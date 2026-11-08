@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { Calendar, CheckCircle2, Clock, Play, RefreshCw } from 'lucide-react';
-import { money, date, Table, Modal, Pagination, type Row } from './UI';
+import { money, number, date, Table, Modal, Pagination, type Row } from './UI';
 import ServerListSearch from './ServerListSearch';
 import { useT } from '../shared/i18n/t';
 
@@ -64,6 +64,20 @@ interface SettlementState {
     }>;
 }
 
+/** A closed row holding one detail table. Stays open when a search or a later page needs it visible. */
+function DetailRow({ title, count, open, children }: { title: string; count?: number; open: boolean; children: React.ReactNode }) {
+    const translate = useT();
+    return (
+        <details className="ws-group" open={open || undefined}>
+            <summary className="ws-group-summary">
+                <span className="ws-group-title">{title}</span>
+                {count !== undefined && <small className="ed-hint">{translate('website_admin', 'settlement_row_count', { count: number(count) })}</small>}
+            </summary>
+            <div className="ws-group-body">{children}</div>
+        </details>
+    );
+}
+
 export default function SettlementsHub({ state }: { state: SettlementState }) {
     const translate = useT();
     const { financeActive, staffActions } = usePage<any>().props;
@@ -88,6 +102,10 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
             return `${rank.toUpperCase()} ${amount === null ? translate('portal', 'policy_value_not_set') : money(amount)}`;
         })
         .join(' · ');
+
+    const searching = (state.search ?? '').trim() !== '';
+    const dealersOpen = searching || Number(state.qualified_salary_dealers.current_page ?? 1) > 1;
+    const leadersOpen = searching || Number(state.qualified_rank_leaders.current_page ?? 1) > 1;
 
     const confirmThen = (message: string, run: () => void) => setPendingConfirmation({ message, run });
 
@@ -163,6 +181,21 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                 </div>
             </div>
 
+            {/* The month at a glance, before any detail */}
+            <section className="panel" aria-labelledby="st-summary-title">
+                <div className="panel-heading">
+                    <div>
+                        <h2 id="st-summary-title">{translate('website_admin', 'settlement_summary_title')}</h2>
+                        <p>{translate('website_admin', 'settlement_summary_hint')}</p>
+                    </div>
+                </div>
+                <div className="metric-grid three">
+                    <div className="metric"><span>{translate('portal', 'st_dealer_pool')}</span><strong>{money(state.dealer_salary_pool_pending)}</strong><small>{translate('portal', 'st_dealers_count', { count: String(state.qualified_salary_dealers_count) })}</small></div>
+                    <div className="metric"><span>{translate('portal', 'st_royalty_pool')}</span><strong>{money(state.rank_pool_pending)}</strong><small>{translate('portal', 'st_leaders_count', { count: String(state.qualified_rank_leaders_count) })}</small></div>
+                    <div className="metric"><span>{translate('portal', 'st_sub_reserved')}</span><strong>{money(state.sub_dealer_salary_pending)}</strong></div>
+                </div>
+            </section>
+
             {/* Cooling-off Maturation Banner */}
             <div className="panel is-soft hub-row is-between">
                 <div className="hub-media">
@@ -230,7 +263,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                         </div>
 
                         {(state.salary_divisions?.length ?? 0) > 0 && (
-                            <div className="hub-spaced">
+                            <DetailRow title={translate('website_admin', 'settlement_details_salary')} count={state.salary_divisions?.length ?? 0} open={false}>
                                 <Table
                                     tools={false}
                                     totalLabel={translate('portal', 'st_div_total')}
@@ -243,11 +276,11 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                                         { key: 'to_company_profit', title: translate('portal', 'st_div_col_to_company'), money: true, total: true, sortValue: d => Number(d.to_company_profit) || 0, render: d => money(d.to_company_profit) },
                                     ]}
                                 />
-                            </div>
+                            </DetailRow>
                         )}
 
                         {state.qualified_salary_dealers.data.length > 0 && (
-                            <div className="hub-spaced">
+                            <DetailRow title={translate('website_admin', 'settlement_details_dealers')} count={state.qualified_salary_dealers.total} open={dealersOpen}>
                                 <Table
                                     tools={false}
                                     rows={state.qualified_salary_dealers.data}
@@ -283,7 +316,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                                     ]}
                                 />
                                 <Pagination page={state.qualified_salary_dealers} />
-                            </div>
+                            </DetailRow>
                         )}
                     </div>
 
@@ -335,7 +368,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                         </div>
 
                         {state.qualified_rank_leaders.data.length > 0 && (
-                            <div className="hub-spaced">
+                            <DetailRow title={translate('website_admin', 'settlement_details_leaders')} count={state.qualified_rank_leaders.total} open={leadersOpen}>
                                 <Table
                                     tools={false}
                                     rows={state.qualified_rank_leaders.data}
@@ -368,7 +401,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                                     ]}
                                 />
                                 <Pagination page={state.qualified_rank_leaders} />
-                            </div>
+                            </DetailRow>
                         )}
                     </div>
 
@@ -386,16 +419,10 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
 
             {/* One-Time Rank Incentives Table */}
             <div className="panel">
-                <div className="panel-heading">
-                    <div>
-                        <h3 className="hub-title">
-                            {translate('portal', 'st_incentive_title')}
-                        </h3>
-                        <p className="hub-sub">
-                            {translate('portal', 'st_incentive_hint_live', { list: incentiveSummary })}
-                        </p>
-                    </div>
-                </div>
+                <DetailRow title={translate('website_admin', 'settlement_details_incentives')} count={state.qualified_rank_leaders.total} open={leadersOpen}>
+                <p className="hub-sub">
+                    {translate('portal', 'st_incentive_hint_live', { list: incentiveSummary })}
+                </p>
 
                 <Table
                     tools={false}
@@ -472,13 +499,12 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                     ]}
                 />
                 <Pagination page={state.qualified_rank_leaders} />
+                </DetailRow>
             </div>
 
             {/* Settled Journal Audit Trail */}
             <div className="panel">
-                <h3 className="hub-title hub-spaced">
-                    {translate('portal', 'st_journal_title')}
-                </h3>
+                <DetailRow title={translate('website_admin', 'settlement_details_journal')} count={state.settled_history.length} open={false}>
                 <Table
                     tools={false}
                     rows={state.settled_history}
@@ -504,6 +530,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                         },
                     ]}
                 />
+                </DetailRow>
             </div>
 
             {pendingConfirmation && (

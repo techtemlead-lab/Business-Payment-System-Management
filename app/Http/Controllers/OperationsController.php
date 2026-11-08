@@ -14,6 +14,7 @@ use App\Domain\Integrations\IntegrationSettings;
 use App\Domain\Staff\StaffPermissions;
 use App\Domain\Staff\TerritoryAccess;
 use App\Models\Product;
+use App\Support\ProductVideo;
 use App\Models\User;
 use App\Support\DeploymentReadiness;
 use App\Support\Money;
@@ -168,9 +169,9 @@ class OperationsController extends Controller
                 'version' => $role->version, 'permissions' => json_decode($role->permissions, true, 512, JSON_THROW_ON_ERROR)])->all();
         }
         if ($section === 'video-marketing') {
-            $setting = DB::table('business_settings')->where('key', 'homepage_video')->first();
-            $data['videoSetting'] = $setting ? [...json_decode($setting->value, true, 512, JSON_THROW_ON_ERROR), 'version' => $setting->version] : ['enabled' => false, 'version' => 0];
-            $data['videoProducts'] = Product::where('active', true)->whereNotNull('video_source')->where('video_source', '!=', 'none')->orderBy('name')->get(['id', 'name'])->toArray();
+            $data = [...$data, ...ProductVideo::managementData()];
+            // Staff who can open the website page manage videos there; the rest keep this form.
+            $data['videoManagedOnWebsite'] = $actor->allows('content');
         }
         foreach ($tables as $key => $query) {
             $filter = $this->applyTableFilter($request, $key, $query);

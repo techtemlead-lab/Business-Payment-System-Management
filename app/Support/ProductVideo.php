@@ -70,6 +70,21 @@ final class ProductVideo
         return is_array($cached['payload'] ?? null) ? $cached['payload'] : null;
     }
 
+    /**
+     * The saved home page video and the products that can be chosen for it.
+     *
+     * @return array{videoSetting: array<string, mixed>, videoProducts: array<int, array<string, mixed>>}
+     */
+    public static function managementData(): array
+    {
+        $setting = DB::table('business_settings')->where('key', 'homepage_video')->first();
+
+        return [
+            'videoSetting' => $setting ? [...json_decode($setting->value, true, 512, JSON_THROW_ON_ERROR), 'version' => $setting->version] : ['enabled' => false, 'version' => 0],
+            'videoProducts' => Product::where('active', true)->whereNotNull('video_source')->where('video_source', '!=', 'none')->orderBy('name')->get(['id', 'name'])->toArray(),
+        ];
+    }
+
     public static function forgetHomepageCache(): void
     {
         Cache::forget(self::HomepageCacheKey);

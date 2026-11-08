@@ -5,6 +5,7 @@ namespace App\Http\Portals\Shared\Sections;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\LocalDigits;
+use App\Support\ProductVideo;
 use App\Support\SiteCustomization;
 use Illuminate\Support\Facades\DB;
 
@@ -95,6 +96,7 @@ final class ContentSection implements WorkspaceSection
             'md_message_body' => __('site.md_message_body', [], 'bn'),
         ];
         $enabled = SiteCustomization::enabledPagesMap();
+        $props = [...$props, ...ProductVideo::managementData()];
         $props['websitePages'] = collect([
             ['key' => 'home', 'slug' => '/', 'label' => __('portal.website_page_home'), 'toggleable' => false],
             ['key' => 'about', 'slug' => '/about', 'label' => __('portal.website_page_about')],
