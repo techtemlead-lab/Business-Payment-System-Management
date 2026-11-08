@@ -58,6 +58,8 @@ export default function AccountCreate({
     const translate = useT();
     // Only owners may let an account share a mobile number another account already uses.
     const isOwner = ['super_admin', 'md', 'chairman'].includes(String((usePage().props as any).auth?.user?.role ?? ''));
+    // The server refuses an NID number from anyone without this permission, so the choice is not offered to them.
+    const canEnterNid = ((usePage().props as any).auth?.capabilities ?? []).includes('identity_write');
     const csrf = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content || '';
     const defaultRole = roles[0] || (intent === 'sub_dealer' ? 'sub_dealer' : intent === 'staff' ? 'employee' : 'dealer');
     const shellSection = intent === 'sub_dealer' ? 'sub-dealers' : intent === 'staff' ? 'employees' : 'accounts';
@@ -243,7 +245,10 @@ export default function AccountCreate({
     const previewPlace = async () => {
         setPlaceError('');
         setPlacePreview(null);
-        if (!form.data.place_code.trim()) return;
+        if (!form.data.place_code.trim()) {
+            setPlaceError(translate('portal', form.data.role === 'sub_dealer' ? 'acct_val_place_sub' : 'acct_val_place_dealer'));
+            return;
+        }
         try {
             const params = new URLSearchParams({
                 place_code: form.data.place_code.trim(),
@@ -482,8 +487,9 @@ export default function AccountCreate({
                                 </div>
                                 <div className="ops-row ops-mb-3">
                                     <button type="button" className={`button small ${form.data.identity_type === 'birth_certificate' ? 'dark' : ''}`} onClick={() => form.setData('identity_type', 'birth_certificate')}>{translate('portal','acct_birth_certificate')}</button>
-                                    <button type="button" className={`button small ${form.data.identity_type === 'nid' ? 'dark' : ''}`} onClick={() => form.setData('identity_type', 'nid')}>{translate('portal','acct_nid')}</button>
+                                    {canEnterNid && <button type="button" className={`button small ${form.data.identity_type === 'nid' ? 'dark' : ''}`} onClick={() => form.setData('identity_type', 'nid')}>{translate('portal','acct_nid')}</button>}
                                 </div>
+                                {!canEnterNid && <p className="muted ops-fs-sm ops-mb-3">{translate('portal','acct_nid_needs_permission')}</p>}
                                 <div className="form-grid">
                                     {form.data.identity_type === 'birth_certificate' ? (
                                         <label>

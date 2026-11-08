@@ -5,6 +5,7 @@ namespace App\Domain\Accounts;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Geography\ManagementReferral;
+use App\Domain\Geography\PlaceCodeCatalog;
 use App\Domain\Geography\PlaceGeographyResolver;
 use App\Domain\Notifications\AccountCreatedSms;
 use App\Domain\Notifications\PartnerEventEmail;
@@ -308,11 +309,7 @@ final class PartnerAccountProvisioning
 
     public function placeLabel(PlaceCode $place): string
     {
-        $level = $place->level === PlaceCode::LevelManagement
-            ? 'Management'
-            : ucfirst($place->level);
-
-        return $place->code.'-'.$level.'-'.$place->name;
+        return $place->code.'-'.PlaceCodeCatalog::localizedLevelLabel($place->level).'-'.$place->name;
     }
 
     /**

@@ -1492,7 +1492,7 @@ return [
     'acct_commission_consumers' => 'Commission receivers',
     'acct_direct_referral' => '10% direct referral',
     'acct_d2d_gen2' => '2% team bonus, level 2',
-    'acct_d2d_gen3' => '2% team bonus, level 3',
+    'acct_d2d_gen3' => '1% team bonus, level 3',
     'acct_step_contact' => '6. Contact',
     'acct_step_contact_hint' => 'A Bangladeshi mobile number and email are required. The mobile number is used to log in.',
     'acct_mobile' => 'Mobile number *',
@@ -6432,4 +6432,5 @@ return [
     'event_shipment_received_back' => 'Parcel received back',
     'acct_partner_created_sent' => ':role account added. Code: :code. The login details went to :phone / :email. The username is the mobile number.',
     'acct_partner_created_not_sent' => ':role account added. Code: :code. The password could not be sent because SMS and email are not on. Open this account and use Login password to see it, then give it to them. The username is the mobile number.',
+    'acct_nid_needs_permission' => 'NID numbers can be entered only by staff with the NID papers permission. Use the birth certificate here.',
 ];
