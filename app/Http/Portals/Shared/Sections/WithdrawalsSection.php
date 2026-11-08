@@ -10,8 +10,8 @@ use App\Domain\Finance\FinanceSettings;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Inventory\BranchScope;
 use App\Domain\Orders\OrderListFilter;
+use App\Domain\Payouts\ManualPayoutService;
 use App\Domain\Payouts\PayoutReceipts;
-use App\Domain\Security\SelfApproval;
 use App\Models\User;
 use App\Support\Money;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -33,19 +33,6 @@ final class WithdrawalsSection implements WorkspaceSection
             'payment-receipts' => $this->paymentReceipts($context),
             default => [],
         };
-    }
-
-    /**
-     * Whether the person viewing may record this approved payment: 'alone' when they approved it
-     * themselves and nobody else could pay, 'second_person' when someone else must, otherwise null.
-     */
-    private function payerState(object $row, User $viewer): ?string
-    {
-        if ($row->status !== 'approved' || (int) $row->reviewed_by !== (int) $viewer->id) {
-            return null;
-        }
-
-        return app(SelfApproval::class)->isAvailable($viewer, [$row->user_id, $row->reviewed_by]) ? 'alone' : 'second_person';
     }
 
     /**
@@ -350,12 +337,13 @@ final class WithdrawalsSection implements WorkspaceSection
                 'role' => $row->role,
                 'district' => $row->district,
                 'division' => $row->division,
-                'payer_state' => $this->payerState($row, $request->user()),
+                'payer_state' => app(ManualPayoutService::class)->payerState($row, $request->user()),
             ]);
 
         $rules = app(CommissionPolicy::class)->snapshot()['rules'];
 
         return [
+            'payment_accounts' => $request->user()->allows('finance') ? app(PaymentAccounts::class)->listing($request->user(), false, false) : [],
             'withdrawals' => $withdrawals,
             'payout_totals' => [
                 'requested_count' => (int) ($summary->requested_count ?? 0),
