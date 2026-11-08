@@ -226,7 +226,7 @@ export default function AccountPasswordManager({ account, canManage }: AccountPa
                 </div>
 
                 <div className="hub-row">
-                    {status?.owner_only ? null : currentPlainPassword || canRevealOnRequest ? (
+                    {!isReady || status?.owner_only ? null : currentPlainPassword || canRevealOnRequest ? (
                         <span className="badge tone-ok">
                             {translate('portal', 'acct_password_status_synced')}
                         </span>
