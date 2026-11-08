@@ -6,7 +6,7 @@ import { Badge, Pagination, Row, Table, humanize, money } from '../components/UI
 import { useT } from '../shared/i18n/t';
 
 
-export default function DataImports({ types, batches, preview, openingLocked, templateBase, startup }: Row) {
+export default function DataImports({ types, batches, preview, openingLocked, canApproveOwnOpening, templateBase, startup }: Row) {
     const translate = useT();
     const translated = (key: string, value: string) => {
         const localized = translate('portal', key);
@@ -21,11 +21,11 @@ export default function DataImports({ types, batches, preview, openingLocked, te
     const upload = useForm<{ type: string; source_reference: string; file: File | null }>({
         type: types[0]?.key ?? '', source_reference: '', file: null,
     });
-    const apply = useForm({ reason: '', confirmed: false });
+    const apply = useForm({ reason: '', confirmed: false, self_approve: false });
     const selectedType = types.find((type: Row) => type.key === upload.data.type);
     const isOpening = preview?.type === 'opening_balances';
     const ownOpening = isOpening && preview.created_by === auth.user.id;
-    const canApply = preview?.status === 'preview' && !ownOpening && (isOpening
+    const canApply = preview?.status === 'preview' && (!ownOpening || canApproveOwnOpening) && (isOpening
         ? !openingLocked && (staffActions?.finance?.approve ?? false)
         : types.find((type: Row) => type.key === preview.type)?.can_create);
     const summary = preview?.summary;
@@ -93,13 +93,14 @@ export default function DataImports({ types, batches, preview, openingLocked, te
                 {preview.row_page < preview.row_pages && <Link className="button" href={'?batch=' + preview.id + '&row_page=' + (preview.row_page + 1)} preserveScroll>{translate('portal','imp_next_rows')}</Link>}
             </nav>}
             <p><a className="text-link" href={'/commands/operations/imports/' + preview.id + '/source'}>{translate('portal','imp_download_source')}</a></p>
-            {ownOpening && preview.status === 'preview' && <p className="notice">{translate('portal','imp_own_opening')}</p>}
+            {ownOpening && !canApproveOwnOpening && preview.status === 'preview' && <p className="notice">{translate('portal','imp_own_opening')}</p>}
             {canApply && <form className="action-form" onSubmit={event => {
                 event.preventDefault();
                 apply.post('/commands/operations/imports/' + preview.id + '/apply', { preserveScroll: true, onSuccess: () => apply.reset() });
             }}>
                 <label>{translate('portal','imp_review_notes')}<textarea required minLength={5} maxLength={1000} rows={3} value={apply.data.reason} onChange={event => apply.setData('reason', event.target.value)} /></label>
                 <label className="import-confirmation"><input type="checkbox" required checked={apply.data.confirmed} onChange={event => apply.setData('confirmed', event.target.checked)} /> {translate('portal','imp_confirm')}</label>
+                {ownOpening && <label className="import-confirmation"><input type="checkbox" required checked={apply.data.self_approve} onChange={event => apply.setData('self_approve', event.target.checked)} /> {translate('self_approval','confirm_label')}</label>}
                 {Object.keys(apply.errors).length > 0 && <p role="alert" className="error">{Object.values(apply.errors).join(' ')}</p>}
                 <button className="button dark" disabled={apply.processing}>{apply.processing ? translate('portal','imp_applying') : isOpening ? translate('portal','imp_approve_opening') : translate('portal','imp_import_records')}</button>
             </form>}

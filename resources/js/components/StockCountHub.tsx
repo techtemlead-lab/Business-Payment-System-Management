@@ -3,6 +3,7 @@ import { router, useForm, usePage } from '@inertiajs/react';
 import { Play } from 'lucide-react';
 import { ActionForm, Badge, Empty, FormErrors, Pagination, Table, date, number, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
+import { CancelSubmittedCount, DecideCountAlone } from './SelfApprovalForm';
 
 interface StockCountData {
     branch_scope: { view: string; name?: string | null };
@@ -133,7 +134,8 @@ function CountSheet({ session, can }: { session: Row; can: StockCountData['can']
                         submit={text('count_reject')}
                     />
                 </div>
-            ) : <p className="muted">{text('count_wait_second_person')}</p>)}
+            ) : session.can_decide_alone ? <DecideCountAlone sessionId={session.id} /> : <p className="muted">{text('count_wait_second_person')}</p>)}
+            {session.status === 'submitted' && can.edit && <CancelSubmittedCount sessionId={session.id} />}
             {session.decision_note && <p className="muted">{text('count_note')}: {session.decision_note}</p>}
         </section>
     );

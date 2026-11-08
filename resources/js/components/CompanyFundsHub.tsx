@@ -9,7 +9,7 @@ type Translate = ReturnType<typeof useT>;
 
 type FundRow = { key: string; money_in: string; money_out: string; pending: string; balance: string; available: string; spendable: boolean; award_only: boolean };
 type Head = { id: number; name_en: string; name_bn: string; is_active: boolean; for_tours: boolean };
-type Approval = Row & { id: number; fund_key: string; amount: string; can_review: boolean };
+type Approval = Row & { id: number; fund_key: string; amount: string; can_review: boolean; can_cancel?: boolean; can_self_approve?: boolean };
 type ReportData = {
     by_fund: { fund: string; total: string; spends: number }[];
     by_head: { head_id: number | null; name_en: string | null; name_bn: string | null; total: string; spends: number }[];
@@ -228,7 +228,15 @@ function SpendForm({ fund, heads, methods, translate, headName, onClose }: { fun
 
 function ApprovalsTab({ approvals, translate, headName }: { approvals: Approval[]; translate: Translate; headName: (head: Row | null | undefined) => string }) {
     const [review, setReview] = useState<{ row: Approval; decision: 'approved' | 'rejected' } | null>(null);
-    const form = useForm<Row>({ decision: '', reason: '' });
+    const form = useForm<Row>({ decision: '', reason: '', self_approve: false, receipt: null });
+    const [cancelling, setCancelling] = useState<Approval | null>(null);
+    const cancelForm = useForm<Row>({ reason: '' });
+    const submitCancel = (event: React.FormEvent) => {
+        event.preventDefault();
+        if (cancelling) {
+            cancelForm.post(`${ROOT}/spends/${cancelling.id}/cancel`, { preserveScroll: true, onSuccess: () => { setCancelling(null); cancelForm.reset(); } });
+        }
+    };
     const submit = (event: React.FormEvent) => {
         event.preventDefault();
         if (!review) {
@@ -262,7 +270,17 @@ function ApprovalsTab({ approvals, translate, headName }: { approvals: Approval[
                                             <button type="button" className="button dark" onClick={() => setReview({ row, decision: 'approved' })}>{translate('funds', 'approve')}</button>
                                             <button type="button" className="button small" onClick={() => setReview({ row, decision: 'rejected' })}>{translate('funds', 'reject')}</button>
                                         </div>
-                                    ) : <small className="muted">{translate('funds', 'own_spend_hint')}</small>}
+                                    ) : (
+                                        <div className="ops-row is-inline">
+                                            {row.can_self_approve ? (
+                                                <>
+                                                    <button type="button" className="button dark" onClick={() => setReview({ row, decision: 'approved' })}>{translate('self_approval', 'approve_alone')}</button>
+                                                    <button type="button" className="button small" onClick={() => setReview({ row, decision: 'rejected' })}>{translate('self_approval', 'reject_alone')}</button>
+                                                </>
+                                            ) : <small className="muted">{translate('funds', 'own_spend_hint')}</small>}
+                                            {row.can_cancel && <button type="button" className="button small" onClick={() => setCancelling(row)}>{translate('self_approval', 'cancel_spend')}</button>}
+                                        </div>
+                                    )}
                                 </td>
                             </tr>
                         ))}
@@ -274,11 +292,27 @@ function ApprovalsTab({ approvals, translate, headName }: { approvals: Approval[
                     <form className="action-form" onSubmit={submit}>
                         <p><b>{money(review.row.amount)}</b> · {translate('funds', `fund_${review.row.fund_key}`)} · {review.row.payee_name}</p>
                         <label>{translate('funds', 'fld_reason')}<textarea required minLength={5} maxLength={1000} value={form.data.reason} onChange={(event) => form.setData('reason', event.target.value)} /></label>
+                        {review.row.can_self_approve && review.decision === 'approved' && !review.row.has_receipt && (
+                            <label>{translate('self_approval', 'receipt_label')}<input type="file" required accept=".pdf,.jpg,.jpeg,.png" onChange={(event) => form.setData('receipt', event.target.files?.[0] ?? null)} /></label>
+                        )}
+                        {review.row.can_self_approve && (
+                            <label className="import-confirmation"><input type="checkbox" required checked={Boolean(form.data.self_approve)} onChange={(event) => form.setData('self_approve', event.target.checked)} /> {translate('self_approval', 'confirm_label')}</label>
+                        )}
                         <FormErrors errors={form.errors} />
                         <div className="ops-row is-inline">
                             <button type="submit" className="button dark" disabled={form.processing}>{translate('funds', review.decision === 'approved' ? 'approve' : 'reject')}</button>
                             <button type="button" className="button small" onClick={() => setReview(null)}>{translate('funds', 'cancel')}</button>
                         </div>
+                    </form>
+                </Modal>
+            )}
+            {cancelling && (
+                <Modal title={translate('self_approval', 'cancel_spend_title')} onClose={() => setCancelling(null)}>
+                    <form className="action-form" onSubmit={submitCancel}>
+                        <p><b>{money(cancelling.amount)}</b> · {translate('funds', `fund_${cancelling.fund_key}`)} · {cancelling.payee_name}</p>
+                        <label>{translate('funds', 'fld_reason')}<textarea required minLength={5} maxLength={1000} value={cancelForm.data.reason} onChange={(event) => cancelForm.setData('reason', event.target.value)} /></label>
+                        <FormErrors errors={cancelForm.errors} />
+                        <button type="submit" className="button dark" disabled={cancelForm.processing}>{translate('self_approval', 'cancel_spend')}</button>
                     </form>
                 </Modal>
             )}

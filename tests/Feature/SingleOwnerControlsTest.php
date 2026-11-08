@@ -556,7 +556,7 @@ class SingleOwnerControlsTest extends TestCase
 
     private function benefitsMoney(): void
     {
-        DB::table('commission_batches')->insert(['order_id' => $this->order(), 'account_type' => 'dealer', 'cash_basis' => '1000.00', 'company_share' => '0.00', 'total_allocated' => '0.00', 'unallocated' => '1000.00', 'refunded_amount' => '0.00', 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('commission_batches')->insert(['order_id' => $this->order(), 'account_type' => 'dealer', 'period_month' => '2026-10', 'policy' => '{}', 'cash_basis' => '1000.00', 'company_share' => '0.00', 'total_allocated' => '0.00', 'unallocated' => '1000.00', 'refunded_amount' => '0.00', 'created_at' => now(), 'updated_at' => now()]);
     }
 
     /** @return array<string, mixed> */

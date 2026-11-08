@@ -10,6 +10,7 @@ type WithdrawalStatus = 'requested' | 'approved' | 'paid' | 'rejected';
 
 interface WithdrawalRecord {
     id: string;
+    payer_state?: 'alone' | 'second_person' | null;
     user_id: number;
     user_name: string;
     dealer_code: string;
@@ -97,6 +98,8 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
     const [settleNote, setSettleNote] = useState('');
     const [receiptFile, setReceiptFile] = useState<File | null>(null);
     const [processingSettle, setProcessingSettle] = useState(false);
+    const [confirmedAlone, setConfirmedAlone] = useState(false);
+    const paysAlone = settleModalRecord?.payer_state === 'alone';
     const [payoutMethod, setPayoutMethod] = useState<PayoutMethod>('bank');
     const [bankName, setBankName] = useState('');
     const [accountNumber, setAccountNumber] = useState('');
@@ -158,14 +161,16 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
         setAccountNumber('');
         setWalletNumber('');
         setReceivedBy('');
+        setConfirmedAlone(false);
     };
 
     const handleSubmitSettle = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!settleModalRecord || (!isCash && !receiptFile)) return;
+        if (!settleModalRecord || ((!isCash || paysAlone) && !receiptFile)) return;
 
         const formData = new FormData();
         if (receiptFile) formData.append('receipt', receiptFile);
+        if (paysAlone) formData.append('self_approve', confirmedAlone ? '1' : '0');
         formData.append('method', payoutMethod);
         formData.append('payment_reference', paymentReference);
         if (payoutMethod === 'bank' || payoutMethod === 'other') {
@@ -428,7 +433,11 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
                                         </button>
                                     )}
 
-                                    {w.status === 'approved' && (
+                                    {w.status === 'approved' && w.payer_state === 'second_person' && (
+                                        <small className="muted">{translate('self_approval', 'wait_second_person')}</small>
+                                    )}
+
+                                    {w.status === 'approved' && w.payer_state !== 'second_person' && (
                                         <button
                                             type="button"
                                             onClick={() => handleOpenSettle(w)}
@@ -645,11 +654,20 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
                                 </label>
                                 <input
                                     type="file"
-                                    required={!isCash}
+                                    required={!isCash || paysAlone}
                                     accept=".pdf,.jpg,.jpeg,.png"
                                     onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
                                 />
                             </div>
+
+                            {paysAlone && (
+                                <div className="hub-field">
+                                    <label>
+                                        <input type="checkbox" required checked={confirmedAlone} onChange={(e) => setConfirmedAlone(e.target.checked)} />{' '}
+                                        {translate('self_approval', 'confirm_label')}
+                                    </label>
+                                </div>
+                            )}
 
                             <div className="hub-field is-last">
                                 <label>

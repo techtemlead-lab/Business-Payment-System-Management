@@ -99,7 +99,7 @@ class CommissionChangeApprovalTest extends TestCase
         $this->review($otherFinance, $id, 'rejected')->assertForbidden();
         $this->assertSame('draft', DB::table('commission_policy_schedules')->where('id', $id)->value('status'));
 
-        // A change the owner proposed as a schedule still cannot be approved by that same owner.
+        // A schedule the owner proposes applies at once, so there is no draft left to approve.
         $ownScheduleId = $this->actingAs($this->owner)->postJson('/api/v1/operations/policy-schedules', [
             'scope' => 'global', 'rules' => ['own_dealer_cashback' => ['percentage' => '4.00']],
             'effective_at' => now()->addHour()->toIso8601String(), 'reason' => 'Owner campaign plan',
