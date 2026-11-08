@@ -88,7 +88,7 @@ return new class extends Migration
             ->where('stock.quantity', '>', 0)
             ->orderBy('stock.id')
             ->select('stock.branch_id', 'stock.product_id', 'stock.quantity', 'stock.created_at', 'products.batch_number', 'products.expires_on', 'products.cost_price')
-            ->lazy(500, 'stock.id')
+            ->lazy(500)
             ->each(function (object $row) use ($now): void {
                 $reference = 'opening:'.$row->branch_id.':'.$row->product_id;
                 $lotId = DB::table('stock_lots')->insertGetId([
