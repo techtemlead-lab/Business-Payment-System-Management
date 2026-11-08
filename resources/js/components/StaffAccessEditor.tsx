@@ -36,7 +36,7 @@ function PermissionForm({modules,entry,mode,roles}:{modules:string[];entry:Row;m
         form.transform(data=>({...data,permissions:sr?Object.fromEntries(Object.entries(data.permissions).filter(([module])=>visible.includes(module))):data.permissions}));
         form.post('/commands/operations/staff/'+(mode==='role'?'roles':'action-permissions'),{preserveScroll:true});
     }}>
-        {mode==='role'?<div className="form-grid"><label>{translate('portal', 'sa_role_name')}<input required maxLength={100} value={form.data.name} onChange={e=>form.setData('name',e.target.value)}/></label><label>{translate('portal', 'sa_role_key')}<input required readOnly={!!entry.version} pattern="custom_[a-z][a-z0-9_]{0,49}" value={form.data.key} onChange={e=>form.setData('key',e.target.value)} placeholder="custom_sales_support"/></label></div>:<label>{translate('portal', 'sa_staff_role')}<select value={form.data.role} disabled={entry.role==='sr'} onChange={e=>{
+        {mode==='role'?<div className="form-grid"><label>{translate('portal', 'sa_role_name')}<input required maxLength={100} value={form.data.name} onChange={e=>form.setData('name',e.target.value)}/></label></div>:<label>{translate('portal', 'sa_staff_role')}<select value={form.data.role} disabled={entry.role==='sr'} onChange={e=>{
             const role=e.target.value;form.setData('role',role);
             const preset=roles.find(item=>item.key===role);if(preset)form.setData('permissions',preset.permissions);
         }}>{[...new Set(staffRoles as string[])].filter(role=>role!=='super_admin').map(role=><option value={role} key={role}>{roles.find(item=>item.key===role)?.name??label(role, translate)}</option>)}</select></label>}

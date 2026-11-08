@@ -124,6 +124,12 @@ final readonly class BranchScope
         return $partnerBranch.' IN ('.implode(', ', array_fill(0, count($this->branchIds), '?')).')';
     }
 
+    /** True when the head office is the branch this page shows. */
+    public function showsHeadOffice(): bool
+    {
+        return $this->headOfficeOnScreen() !== null;
+    }
+
     /** The head office, when it is the branch this page shows. */
     private function headOfficeOnScreen(): ?CompanyBranch
     {

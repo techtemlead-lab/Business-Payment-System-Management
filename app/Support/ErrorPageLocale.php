@@ -18,7 +18,8 @@ final class ErrorPageLocale
     public static function apply(Request $request): void
     {
         $supported = (array) config('madina.locales', ['en', 'bn']);
-        $locale = self::cookieLocale($request, $supported);
+        $saved = $request->hasSession() ? $request->user()?->locale : null;
+        $locale = is_string($saved) && in_array($saved, $supported, true) ? $saved : self::cookieLocale($request, $supported);
         if ($locale === null) {
             $preferred = $request->getPreferredLanguage($supported);
             $locale = is_string($preferred) && in_array($preferred, $supported, true) ? $preferred : null;
