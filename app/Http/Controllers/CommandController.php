@@ -157,7 +157,6 @@ class CommandController extends Controller
                 'status' => 'sometimes|in:active,suspended',
                 'reason' => 'nullable|string|max:1000',
             ]);
-            $created = $partners->create($r->user(), $payload);
             $media = [];
             foreach (PartnerKycDocuments::Kinds as $kind) {
                 if ($r->hasFile('kyc_'.$kind)) {
@@ -173,16 +172,20 @@ class CommandController extends Controller
                     'kyc_agreement' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
                     'kyc_other' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
                 ]);
+            }
+            $created = $partners->create($r->user(), $payload);
+            if ($media !== []) {
                 app(PartnerCreateMedia::class)->attachOptional($r->user(), $created['user'], $media);
             }
 
             $redirect = $created['user']->role === 'sub_dealer' ? '/sub-dealers' : '/accounts';
 
-            return redirect($redirect)->with(
-                'success',
-                ucfirst(str_replace('_', '-', $created['user']->role)).' account created. Code: '.$created['user']->dealer_code.
-                '. Login credentials delivered to '.$created['user']->phone.' / '.$created['user']->email.' (username = mobile number).'
-            );
+            return redirect($redirect)->with('success', __($created['credentials_sent'] ? 'portal.acct_partner_created_sent' : 'portal.acct_partner_created_not_sent', [
+                'role' => __($created['user']->role === 'sub_dealer' ? 'portal.acct_role_sub_dealer' : 'portal.acct_role_dealer'),
+                'code' => $created['user']->dealer_code,
+                'phone' => $created['user']->phone,
+                'email' => $created['user']->email,
+            ]));
         }
 
         $d = $r->validate([
