@@ -32,7 +32,7 @@
             @else
                 <div class="ref-alert ref-error" role="status"><b>{{ __('public_trust.verify_not_valid') }}</b><br>{{ __('public_trust.verify_inactive_note') }}</div>
             @endif
-            <dl style="display:grid;grid-template-columns:max-content 1fr;gap:8px 20px;margin:0;font-size:14px;">
+            <dl style="display:grid;grid-template-columns:max-content 1fr;gap:8px 20px;margin:0;">
                 <dt>{{ __('public_trust.verify_name') }}</dt><dd style="margin:0;font-weight:600;">{{ $result['name'] }}</dd>
                 <dt>{{ __('public_trust.verify_type') }}</dt><dd style="margin:0;">{{ __('public_trust.verify_type_'.$result['type']) }}</dd>
                 <dt>{{ __('public_trust.verify_area') }}</dt>

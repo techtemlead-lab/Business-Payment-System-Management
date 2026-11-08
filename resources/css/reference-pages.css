@@ -759,7 +759,6 @@ details.ref-content-card summary:hover, details.ref-faq-item summary:hover {
 }
 
 .ref-legal-lead {
-    font-size: 15px !important;
     line-height: 1.8 !important;
     color: #4a5a51 !important;
     margin-bottom: 20px !important;
@@ -824,7 +823,6 @@ details.ref-content-card summary:hover, details.ref-faq-item summary:hover {
 }
 
 .ref-legal-prose {
-    font-size: 14.5px !important;
     line-height: 2 !important;
     color: #34463c !important;
     margin-bottom: 0 !important;
@@ -846,7 +844,6 @@ details.ref-content-card summary:hover, details.ref-faq-item summary:hover {
         font-size: 17px !important;
     }
     .ref-legal-prose {
-        font-size: 13.5px !important;
         line-height: 1.85 !important;
     }
     .ref-legal-meta-bar {

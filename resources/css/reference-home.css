@@ -130,9 +130,9 @@ html[data-theme="dark"] .ref-mobile-home-icon img{background:#0a1712;box-shadow:
 .ref-home{padding-bottom:64px}
 .ref-back-top{bottom:88px;right:16px}
 .ref-card-actions{display:flex!important;flex-direction:column!important;gap:6px!important;margin-top:auto!important}
-.ref-card-actions .ref-add-cart,.ref-card-actions .ref-buy-now{width:100%!important;height:33px!important;min-height:33px!important;font-size:11.5px!important;font-weight:700!important;padding:0 10px!important;border-radius:6px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;box-sizing:border-box!important}
+.ref-card-actions .ref-add-cart,.ref-card-actions .ref-buy-now{width:100%!important;height:auto!important;min-height:38px!important;font-weight:700!important;padding:0 10px!important;border-radius:6px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;box-sizing:border-box!important}
 .ref-price-row{flex-wrap:wrap!important;gap:4px!important;margin-bottom:8px!important}
-.ref-save-tag{font-size:9.5px!important;padding:1px 6px!important}
+.ref-save-tag{padding:1px 6px!important}
 }
 @keyframes refFadeIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:767px){.ref-container{padding-left:12px;padding-right:12px}.ref-promotions{gap:10px}.ref-side-banners{gap:10px}.ref-announcement{height:40px;margin-top:15px}.ref-announcement>div{font-size:11px}.ref-shortcuts{grid-template-columns:repeat(2,1fr);gap:10px;margin:15px 0 27px}.ref-shortcuts>a{padding:14px 10px;min-height:77px}.ref-shortcuts>a:last-child{grid-column:span 2;justify-content:center}.ref-shortcuts h3{font-size:13px}.ref-shortcuts p{font-size:9px}.ref-shortcuts i{font-size:25px}.ref-section-title{margin-bottom:20px}.ref-section-title h2{font-size:21px}.ref-section-title p{font-size:12px}.ref-category-grid{grid-template-columns:repeat(4,1fr);gap:10px}.ref-category-grid>a{min-height:103px;padding:13px 6px;gap:12px;border-radius:8px}.ref-category-grid i{font-size:25px}.ref-category-grid span{font-size:10px}.ref-featured-products{margin-top:27px}.ref-product-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.ref-product-info{padding:12px}.ref-product-photo{padding:26px 12px 8px}.ref-product-info h3{font-size:12px;min-height:36px}.ref-product-info>p{font-size:10px}.ref-price strong{font-size:15px}.ref-price del{font-size:9px}.ref-stock{font-size:9px;padding:4px 8px}.ref-footer{padding-top:35px}.ref-footer-grid{grid-template-columns:1fr;gap:28px;padding-bottom:30px}.ref-footer-grid>section{border-bottom:1px solid #1d4a37;padding-bottom:22px}.ref-footer-grid>section:last-child{border:0;padding:0}.ref-footer h2{margin-bottom:20px;font-size:15px}.ref-support-box{display:inline-flex;width:calc(50% - 8px);margin-right:5px;padding:12px;gap:12px;vertical-align:top}.ref-support-box>i{font-size:18px;padding-right:12px}.ref-support-box b{font-size:14px}.ref-support-box small{font-size:9px}.ref-footer-links{grid-template-columns:repeat(3,1fr);gap:16px}.ref-footer-bottom{flex-wrap:wrap;justify-content:center;text-align:center;font-size:10px}.ref-footer-bottom img{width:230px;height:34px}.ref-floating-tools{top:auto;bottom:90px}.ref-home-about{padding:20px}.ref-home-about h1{font-size:18px}.ref-home-about p{font-size:12px}}
@@ -2828,7 +2828,6 @@ aside.ref-floating-tools > a.ref-chat:focus-visible::after {
 
     .ref-footer h2 {
         margin-bottom: 6px !important;
-        font-size: 12px !important;
         letter-spacing: 1.5px;
     }
 
@@ -2878,12 +2877,10 @@ aside.ref-floating-tools > a.ref-chat:focus-visible::after {
     }
 
     .ref-support-box b {
-        font-size: 10.5px !important;
         line-height: 1.15;
     }
 
     .ref-support-box small {
-        font-size: 7.5px !important;
         margin-bottom: 0 !important;
         line-height: 1.1;
     }
@@ -2891,7 +2888,6 @@ aside.ref-floating-tools > a.ref-chat:focus-visible::after {
     .ref-footer-contact-info {
         margin-top: 0 !important;
         gap: 4px !important;
-        font-size: 10px !important;
         min-width: 0;
     }
 
@@ -2913,7 +2909,6 @@ aside.ref-floating-tools > a.ref-chat:focus-visible::after {
     .ref-footer-links {
         grid-template-columns: 1fr 1fr !important;
         gap: 5px 10px !important;
-        font-size: 10.5px !important;
     }
 
     .ref-footer .ref-socials {
@@ -2950,7 +2945,6 @@ aside.ref-floating-tools > a.ref-chat:focus-visible::after {
         padding-top: 8px !important;
         padding-bottom: 8px !important;
         gap: 4px !important;
-        font-size: 9.5px !important;
     }
 
     .ref-footer-legal {
@@ -3106,18 +3100,15 @@ aside.ref-floating-tools > a.ref-chat:focus-visible::after {
     }
 
     .ref-footer h2 {
-        font-size: 15px !important;
         letter-spacing: 2px;
         margin-bottom: 12px !important;
     }
 
     .ref-footer h3 {
-        font-size: 15px !important;
         margin-bottom: 8px !important;
     }
 
     .ref-footer p {
-        font-size: 13px !important;
         line-height: 1.55 !important;
         -webkit-line-clamp: unset !important;
         display: block !important;
@@ -3127,7 +3118,6 @@ aside.ref-floating-tools > a.ref-chat:focus-visible::after {
     .ref-footer-links {
         grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
         gap: 10px 14px !important;
-        font-size: 13.5px !important;
         line-height: 1.4;
     }
 
@@ -3142,17 +3132,14 @@ aside.ref-floating-tools > a.ref-chat:focus-visible::after {
     }
 
     .ref-support-box b {
-        font-size: 14px !important;
         line-height: 1.25;
     }
 
     .ref-support-box small {
-        font-size: 10px !important;
         margin-bottom: 2px !important;
     }
 
     .ref-footer-contact-info {
-        font-size: 13px !important;
         gap: 8px !important;
     }
 
@@ -3165,13 +3152,11 @@ aside.ref-floating-tools > a.ref-chat:focus-visible::after {
     }
 
     .ref-footer-bottom {
-        font-size: 12px !important;
         gap: 10px !important;
     }
 
     .ref-footer-legal {
         gap: 12px !important;
-        font-size: 12px !important;
     }
 }
 
@@ -3651,8 +3636,8 @@ html[data-theme="dark"] .ref-card-cta i{color:var(--sm-green-deep)}
   .ref-footer-support-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px!important}
   .ref-support-box{padding:10px 8px!important;gap:6px!important}
   .ref-support-box>i{font-size:15px!important;padding-right:6px!important}
-  .ref-support-box b{font-size:clamp(11px,3.4vw,14px)!important;line-height:1.25;overflow-wrap:anywhere}
-  .ref-support-box small{font-size:11px!important;margin-bottom:2px!important;line-height:1.25}
+  .ref-support-box b{line-height:1.25}
+  .ref-support-box small{margin-bottom:2px!important;line-height:1.25}
   .ref-footer-contact-info{margin-top:8px}
   .ref-footer-grid>section:last-child .ref-footer-brand img{width:44px;height:44px!important;max-width:none!important}
   .ref-footer .ref-footer-brand h3{margin:0!important;font-size:18px!important}
@@ -3680,4 +3665,48 @@ html[data-theme="dark"] .ref-card-cta i{color:var(--sm-green-deep)}
   .locale-bn .ref-bar-text{font-size:clamp(20px,5.6vw,32px)}
   .ref-bar-leaf{display:none}
   .ref-nav-home{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2}
+}
+
+/* Reading sizes for the public site, all in one place.
+   Ordinary text 16px, links, menus, buttons and form labels 15px, captions 13px, and nothing under 12px.
+   Bangla letters look smaller than English at the same size, so Bangla is always one step bigger.
+   Change a size here and the whole public site follows. */
+body.ref-home{--ref-fs-lead:17px;--ref-fs-body:16px;--ref-fs-link:15px;--ref-fs-small:13px;--ref-fs-tiny:12px}
+body.ref-home.locale-bn{--ref-fs-lead:18px;--ref-fs-body:17px;--ref-fs-link:16px;--ref-fs-small:14px;--ref-fs-tiny:13px}
+
+/* Small headings and names sit one step above ordinary text. */
+body.ref-home :is(.ref-footer h2,.ref-contact-topic h3,.ref-testimonial-author,.ref-role-name,.ref-usage-section h3,.ref-trust-pillar-title,.ref-product-title,.ref-shortcuts h3,.ref-product-info h3,.ref-highlight-box strong,.ref-benefits-list strong,.ref-map-footer strong,.ref-company-paths strong,.ref-campaign-product-banner-body strong,.ref-filter-form h2,.ref-partner-login-copy b,.ref-md-message--home .ref-md-signature strong){font-size:var(--ref-fs-lead);line-height:1.4}
+
+/* Ordinary reading text. */
+body.ref-home :is(.ref-content-card p,.ref-content-prose,.ref-directory-heading>p,.ref-legal-prose,.ref-legal-lead,.ref-about-objectives,.ref-about-objectives li,.ref-md-text p,.ref-md-more p,.ref-md-message--home .ref-md-text p,.ref-md-message--home .ref-md-more p,.ref-map-header p,.ref-map-footer p,.ref-contact-topic p,.ref-empty p,.ref-empty-note,.ref-product-description p,.ref-product-description table,.ref-usage-section p,.ref-video-card-body p,.ref-testimonial-quote,.ref-partner-lead,.ref-role-desc,.ref-section-title p,.ref-home-about p,.ref-benefits-list p,.ref-highlight-box p,.ref-campaign-body p,.ref-campaign-product-banner-body p,.ref-dealer-banner-info p,.ref-directory-grid p,.ref-dealer-point,.ref-trust-pillar-subtitle,.ref-qv-desc,.ref-product-medical-note,.ref-alert,.ref-section-desc,.ref-footer p,.ref-auth-subtitle,.ref-form-section p,.ref-mobile-search-empty){font-size:var(--ref-fs-body)}
+
+/* Typing boxes stay at 16px or more, so phones do not zoom in when one is tapped. */
+body.ref-home :is(.ref-form input,.ref-form select,.ref-form textarea,.ref-input-control,.ref-textarea-control,.ref-feedback-input,.ref-directory-filter select,.ref-compare-selects select,.ref-catalog-toolbar select,.ref-price-inputs input,.ref-quantity-picker input,.ref-search input,.ref-sticky-chrome .ref-search input,.ref-mobile-search-input){font-size:var(--ref-fs-body)}
+
+/* Links, menus, buttons and form labels. */
+body.ref-home :is(.ref-footer-links,.ref-footer-links a,.ref-footer-contact-info,.ref-footer-contact-link,.ref-header-links b,.ref-header-logout-btn b,.ref-nav-item,.ref-mobile-drawer-nav-list li a,.ref-mobile-drawer-cat-list li a,.ref-drawer-btn,.ref-drawer-locale-switch button,.ref-locale-switch button,.ref-sticky-chrome .ref-locale-switch button,.ref-sticky-chrome .ref-theme-toggle,.ref-primary-button,.ref-secondary-button,.ref-ghost-button,.ref-information-links,.ref-information-links>a,.ref-location-btn,.ref-filter-form .ref-primary-button,.ref-auth-submit,.ref-home .ref-auth-submit,.ref-add-cart,.ref-buy-now,.ref-card-cta,.ref-detail-cart,.ref-detail-purchase .ref-buy-now,.ref-cart-login,.ref-campaign-card .ref-primary-button,.ref-dealer-banner-btn,.ref-qv-add-cart,.ref-qv-view-details,.ref-view-all-link,.ref-product-details-link,.ref-md-toggle,.ref-tab-btn,.ref-product-tabs>button,.ref-pagination,.ref-clear-filters,.ref-share-bar,.ref-radio,.ref-catalog-toolbar label,.ref-catalog-toolbar p,.ref-price-inputs label,.ref-form label,.ref-field-label,.ref-feedback-label,.ref-directory-filter,.ref-compare-selects label,.ref-mobile-search-chip,.ref-mobile-search-submit,.ref-mobile-search-view-all,.ref-mobile-search-browse,.ref-mobile-search-result-name,.ref-auth-bottom,.ref-breadcrumb,.ref-home-about summary,.ref-category-grid span,.ref-category-grid span.ref-cat-name,.ref-announcement>div,.ref-cat-toggle-btn,.ref-testimonials-invite a){font-size:var(--ref-fs-link)}
+body.ref-home .ref-card-actions :is(.ref-add-cart,.ref-buy-now){font-size:var(--ref-fs-link)!important}
+
+/* Captions, badges and fine print. */
+body.ref-home :is(.ref-card-category,.ref-card-stock,.ref-card-note,.ref-card-price small,.ref-card-flag,.ref-card-badge,.ref-tab-count,.ref-footer-bottom,.ref-footer-legal,.ref-footer-legal a,.ref-field-hint,.ref-form-hint,.ref-badge-optional,.ref-dealer-badge,.ref-dealer-code,.ref-dealer-distance,.ref-directory-grid small,.ref-role-tag,.ref-legal-hero-badge,.ref-legal-hero-badge span,.ref-legal-meta-item,.ref-company-eyebrow,.ref-home .ref-company-eyebrow,.ref-featured-badge,.ref-campaign-badge,.ref-campaign-features li,.ref-stock,.ref-stock-pill,.ref-save-pill,.ref-discount-tag,.ref-product-cat-tag,.ref-concern-tag,.ref-qv-badge,.ref-qv-cat,.ref-metadata,.ref-metadata del,.ref-price del,.ref-price-mrp,.ref-campaign-pricing del,.ref-catalog-mrp span,.ref-selected-price span,.ref-purchase-note,.ref-cart-dialog>p,.ref-cart-items>div,.ref-rating-num,.ref-stars,.ref-testimonial-meta,.ref-support-box small,.ref-contact-hours,.ref-partner-login-copy small,.ref-feedback-note,.ref-feedback-error,.ref-star-rating-caption,.ref-md-photo-card figcaption span,.ref-md-signature span,.ref-md-message--home .ref-md-signature span,.ref-trust-pill,.ref-partner-pretitle,.ref-partner-trust-note,.ref-location-status,.ref-mobile-search-section-label,.ref-mobile-drawer-group-title,.ref-mobile-search-hint,.ref-mobile-search-result-meta,.ref-header-links small,.ref-header-logout-btn small,.ref-company-paths small,.ref-shortcuts p,.ref-product-info>p,.ref-no-image,.ref-home .ref-no-image,.ref-detail-image .stock-image-caption,.ref-preview-banner,.ref-toast,.ref-password-label>a,.ref-form label a,.ref-quick-view-btn,.ref-section-num,.ref-design-label,.ref-compare-dialog>p,.ref-compare-results>article,aside.ref-floating-tools>a.ref-chat::after){font-size:var(--ref-fs-small)}
+body.ref-home .ref-save-tag{font-size:var(--ref-fs-small)!important}
+
+/* The smallest text on the site: the bottom menu on phones and the little counters. */
+body.ref-home :is(.ref-mobile-nav>a,.ref-mobile-nav>button,.ref-mobile-home-label,.ref-floating-tools b,.ref-floating-tools span,.ref-cat-pill-badge){font-size:var(--ref-fs-tiny)}
+body.ref-home .ref-mobile-nav>a,body.ref-home .ref-mobile-nav>button{line-height:1.2;text-align:center}
+
+/* Footer support box: the phone number is the point of the box, so it stays large and on one line. */
+body.ref-home .ref-support-box b{font-size:var(--ref-fs-lead);line-height:1.3;white-space:nowrap}
+@media(max-width:480px){
+  body.ref-home .ref-footer-support-actions{grid-template-columns:minmax(0,1fr)!important}
+  body.ref-home .ref-footer-support-row{display:block!important}
+  body.ref-home .ref-support-box{max-width:none}
+}
+
+/* Bigger text needs room to wrap on narrow phones. */
+body.ref-home .ref-share-bar{flex-wrap:wrap}
+body.ref-home .ref-contact-grid>*{min-width:0}
+body.ref-home .ref-contact-link{overflow-wrap:anywhere}
+@media(min-width:1024px) and (max-width:1439px){
+  body.ref-home .ref-sticky-chrome .ref-header-links{gap:12px}
 }

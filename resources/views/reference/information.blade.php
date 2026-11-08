@@ -147,7 +147,7 @@
             ];
         @endphp
         <div style="margin-top:20px; padding-top:16px; border-top:1px solid #e2e8f0;">
-            <h3 style="font-size:14px; font-weight:700; color:#1e293b; margin-bottom:10px;">{{ $chrome('contact_social_title', $siteCustomization['contact_social_title'] ?? null) }}</h3>
+            <h3 style="font-weight:700; color:#1e293b; margin-bottom:10px;">{{ $chrome('contact_social_title', $siteCustomization['contact_social_title'] ?? null) }}</h3>
             <div class="ref-socials" style="margin-top:0;">
                 @foreach($socialMap as $platform => $link)
                 @php
