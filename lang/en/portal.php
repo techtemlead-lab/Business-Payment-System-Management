@@ -6244,4 +6244,5 @@ return [
     'event_commission_additional_rank_closed' => 'Additional rank fund closed into company profit',
     'sce_fld_home_bismillah' => 'Bismillah line above the headline',
     'sce_home_bismillah_hint' => 'Shown centred at the very top of the home page, above the company name.',
+    'portal_visit_website' => 'Visit website',
 ];

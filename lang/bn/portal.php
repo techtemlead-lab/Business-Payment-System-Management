@@ -6244,4 +6244,5 @@ return [
     'event_commission_additional_rank_closed' => 'অতিরিক্ত র‍্যাঙ্ক তহবিল কোম্পানির লাভে বন্ধ করা হয়েছে',
     'sce_fld_home_bismillah' => 'শিরোনামের উপরে বিসমিল্লাহ',
     'sce_home_bismillah_hint' => 'হোমপেজের একদম উপরে, কোম্পানির নামের উপরে মাঝখানে দেখাবে।',
+    'portal_visit_website' => 'ওয়েবসাইট দেখুন',
 ];

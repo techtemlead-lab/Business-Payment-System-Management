@@ -6,7 +6,7 @@ import {
     Coins, BadgeCheck, BookOpen, MessageSquare, SlidersHorizontal, MapPin, Award,
     Trophy, TrendingUp, Percent, Store, Landmark, UserCheck, AlertTriangle,
     Briefcase, Hash, FileBarChart2, ChevronDown, UserRound, LifeBuoy, ArrowLeftRight, BarChart3, Compass, Search,
-    Layers, ArrowDownToLine, ArrowUpFromLine, ScrollText, GraduationCap, CalendarDays, ReceiptText, Phone, type LucideIcon
+    Layers, ArrowDownToLine, ArrowUpFromLine, ScrollText, GraduationCap, CalendarDays, ReceiptText, Phone, Globe, type LucideIcon
 } from 'lucide-react';
 import { Flash, label } from './UI';
 import { DealerHeader, DealerBottomNav } from './PortalHeader';
@@ -782,6 +782,15 @@ export default function Shell({ section, children, action }: { section: string; 
                         <BranchWorkspaceSelect branches={workspaceBranches} />
                     )}
                     <div className="header-actions" data-tour="header-actions">
+                        <a
+                            href={`${page.props.publicBase || ''}/`}
+                            className="icon-button portal-website-link"
+                            aria-label={translate('portal', 'portal_visit_website')}
+                            title={translate('portal', 'portal_visit_website')}
+                            data-tooltip={translate('portal', 'portal_visit_website')}
+                        >
+                            <Globe size={19} />
+                        </a>
                         <ThemeToggle compact />
                         <LanguageSwitcher compact />
                         <button
@@ -828,6 +837,10 @@ export default function Shell({ section, children, action }: { section: string; 
                                         <Settings size={16} />
                                         {translate('portal', 'account_settings')}
                                     </Link>
+                                    <a href={`${page.props.publicBase || ''}/`} role="menuitem" onClick={() => setProfileOpen(false)}>
+                                        <Globe size={16} />
+                                        {translate('portal', 'portal_visit_website')}
+                                    </a>
                                     <Link href={base + '/notifications'} role="menuitem" onClick={() => setProfileOpen(false)}>
                                         <Bell size={16} />
                                         {translate('portal', 'notifications')}
