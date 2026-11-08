@@ -5,6 +5,7 @@ namespace App\Domain\Finance;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Geography\PlaceGeographyResolver;
 use App\Domain\Notifications\PartnerEventSms;
+use App\Domain\Notifications\SmsText;
 use App\Jobs\ApplyDataImport;
 use App\Models\AreaDealerAssignment;
 use App\Models\DealerRank;
@@ -151,14 +152,14 @@ final class OpeningBalanceImport
                         'reference' => $batch->source_reference,
                     ], $locale),
                 );
-                DB::afterCommit(function () use ($preparer, $locale, $batch, $typeLabel): void {
+                DB::afterCommit(function () use ($preparer, $batch): void {
                     app(PartnerEventSms::class)->send(
                         $preparer,
                         'data_import.applied',
-                        __('sms.import_applied', [
-                            'type' => $typeLabel,
+                        SmsText::make('sms.import_applied', [
+                            'type' => SmsText::make('portal.import_type_'.$batch->type),
                             'reference' => $batch->source_reference,
-                        ], $locale),
+                        ]),
                     );
                 });
             }
@@ -202,7 +203,7 @@ final class OpeningBalanceImport
                 ], $locale),
             );
             $userId = (int) $partner->id;
-            DB::afterCommit(function () use ($userId, $categoryLabel, $amountDecimal, $locale): void {
+            DB::afterCommit(function () use ($userId, $amountDecimal): void {
                 $notified = User::find($userId);
                 if (! $notified) {
                     return;
@@ -210,10 +211,10 @@ final class OpeningBalanceImport
                 app(PartnerEventSms::class)->send(
                     $notified,
                     'opening.hold_released',
-                    __('sms.commission_released', [
-                        'category' => $categoryLabel,
+                    SmsText::make('sms.commission_released', [
+                        'category' => SmsText::make('portal.report_cat_opening_hold'),
                         'amount' => $amountDecimal,
-                    ], $notified->preferredLocale() ?: $locale),
+                    ]),
                 );
             });
         }, 3);

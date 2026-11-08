@@ -114,9 +114,9 @@ class SecurityHardeningRoundThreeTest extends TestCase
         $sms = app(PartnerEventSms::class);
 
         for ($i = 0; $i < 5; $i++) {
-            $sms->sendToPhone('01712345678', 'enquiry.public_received', 'Thanks');
+            $sms->sendToPhone('01712345678', 'enquiry.public_received', 'ধন্যবাদ');
         }
-        $sms->sendToPhone('+44 7911 123456', 'enquiry.public_received', 'Thanks');
+        $sms->sendToPhone('+44 7911 123456', 'enquiry.public_received', 'ধন্যবাদ');
 
         $this->assertCount(PartnerEventSms::PublicPerPhonePerDay, config('madina.sms.sent'));
     }

@@ -4,6 +4,7 @@ import { CalendarDays, Clock, MapPin, MessageSquareText, Pencil, Plus, Send, Tra
 import { DateInput, Empty, FormErrors, Modal } from './UI';
 import { useT } from '../shared/i18n/t';
 import { isBanglaDocument } from '../business-date';
+import { banglaSmsSegments, hasBanglaLetters } from '../shared/smsRules';
 
 export type PartnerEventRow = {
     id: number;
@@ -51,6 +52,8 @@ type StaffData = {
     divisions: { id: number; name: string }[];
     today_date: string;
     timezone: string;
+    /** Bangla texts for the SMS box; always Bangla, whatever language the page is in. */
+    sms_compose: { template: string; online_place: string; rules_note: string; error: string; counter: string; counter_hint: string };
 };
 
 export type EventsCalendarData = PartnerData | StaffData;
@@ -201,6 +204,24 @@ type FormShape = {
     publish: boolean;
 };
 
+/** The event SMS as it will roughly read, so the office can see its length before sending. */
+function eventSmsPreview(compose: StaffData['sms_compose'], form: FormShape): string {
+    const [y, m, d] = form.date.split('-').map(Number);
+    const date = y && m && d
+        ? new Intl.DateTimeFormat('bn-BD', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(y, m - 1, d)))
+        : '';
+    const [hour, minute] = form.start_time.split(':').map(Number);
+    const time = Number.isNaN(hour) || Number.isNaN(minute)
+        ? ''
+        : `${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${hour < 12 ? 'AM' : 'PM'}`;
+    const place = form.place.trim() || (form.online_url.trim() ? compose.online_place : '');
+    return compose.template
+        .replace(':title', () => form.title_bn.trim())
+        .replace(':date', () => date)
+        .replace(':time', () => time)
+        .replace(':place', () => place);
+}
+
 function EventForm({ data, event, onDone }: { data: StaffData; event: PartnerEventRow | null; onDone: () => void }) {
     const translate = useT();
     const form = useForm<FormShape>({
@@ -217,8 +238,13 @@ function EventForm({ data, event, onDone }: { data: StaffData; event: PartnerEve
         send_sms: event?.send_sms ?? false,
         publish: false,
     });
+    const smsTitleNotBangla = form.data.send_sms && form.data.title_bn.trim() !== '' && !hasBanglaLetters(form.data.title_bn);
+    const smsPreview = form.data.send_sms ? eventSmsPreview(data.sms_compose, form.data) : '';
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
+        if (smsTitleNotBangla) {
+            return;
+        }
         const options = { preserveScroll: true, onSuccess: () => onDone() };
         if (event) {
             form.patch(`/commands/events/${event.id}`, options);
@@ -240,6 +266,7 @@ function EventForm({ data, event, onDone }: { data: StaffData; event: PartnerEve
             <FormErrors errors={form.errors} />
             <label>{translate('portal', 'events_field_title_bn')}
                 <input type="text" lang="bn" required maxLength={200} value={form.data.title_bn} onChange={(e) => form.setData('title_bn', e.target.value)} />{error('title_bn')}
+                {smsTitleNotBangla && !form.errors.title_bn && <span className="field-error" role="alert" lang="bn">{data.sms_compose.error}</span>}
             </label>
             <label>{translate('portal', 'events_field_title_en')}
                 <input type="text" lang="en" required maxLength={200} value={form.data.title_en} onChange={(e) => form.setData('title_en', e.target.value)} />{error('title_en')}
@@ -287,13 +314,20 @@ function EventForm({ data, event, onDone }: { data: StaffData; event: PartnerEve
                 <input type="checkbox" checked={form.data.send_sms} onChange={(e) => form.setData('send_sms', e.target.checked)} />
                 <span>{translate('portal', 'events_field_send_sms')}<small className="field-hint">{translate('portal', 'events_field_send_sms_hint')}</small></span>
             </label>
+            {form.data.send_sms && (
+                <div className="notice" lang="bn">
+                    <p>{data.sms_compose.rules_note}</p>
+                    <p aria-live="polite"><strong>{data.sms_compose.counter.replace(':chars', String(smsPreview.length)).replace(':segments', String(banglaSmsSegments(smsPreview)))}</strong></p>
+                    <small className="field-hint">{data.sms_compose.counter_hint}</small>
+                </div>
+            )}
             {!event && (
                 <label className="events-check">
                     <input type="checkbox" checked={form.data.publish} onChange={(e) => form.setData('publish', e.target.checked)} />
                     <span>{translate('portal', 'events_field_publish_now')}</span>
                 </label>
             )}
-            <button type="submit" className="button dark" disabled={form.processing}>
+            <button type="submit" className="button dark" disabled={form.processing || smsTitleNotBangla}>
                 {form.processing ? translate('portal', 'saving') : translate('portal', 'events_save')}
             </button>
         </form>
