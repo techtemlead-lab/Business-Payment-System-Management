@@ -184,16 +184,16 @@ final class PurchasingService
                 $line = $lines->get((int) $row['purchase_order_line_id']);
                 $stockReference = (string) Str::uuid();
                 $batchNumber = trim($row['batch_number']);
-                $this->stock->adjust($actor, [
+                $this->stock->stockIn($actor, [
                     'product_id' => $line->product_id,
                     'branch_id' => (int) $locked->branch_id,
-                    'kind' => BranchOperations::KindProductIn,
                     'quantity' => (int) $row['quantity'],
                     'reason_code' => 'supplier_receipt',
                     'reason' => $locked->displayNumber(),
                     'reference' => $stockReference,
                     'expires_on' => $row['expires_on'],
                     'batch_number' => $batchNumber,
+                    'unit_cost' => $row['unit_cost'],
                 ]);
                 $receipt->lines()->create([
                     'purchase_order_line_id' => $line->id,

@@ -2,8 +2,8 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\LocaleController;
-use App\Http\Controllers\ProductReviewController;
 use App\Http\Controllers\PartnerProductEnquiryController;
+use App\Http\Controllers\ProductReviewController;
 use App\Http\Controllers\PublicBatchCheckController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\PublicPrescriberController;

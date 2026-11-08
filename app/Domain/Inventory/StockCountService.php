@@ -28,6 +28,7 @@ final class StockCountService
     public function __construct(
         private BranchOperations $branches,
         private StockService $stock,
+        private StockLots $lots,
     ) {}
 
     public function start(User $actor, int $branchId): StockCountSession
@@ -193,15 +194,7 @@ final class StockCountService
                     continue;
                 }
                 $reference = (string) Str::uuid();
-                $this->stock->adjust($actor, [
-                    'product_id' => $line->product_id,
-                    'branch_id' => (int) $locked->branch_id,
-                    'kind' => $variance > 0 ? BranchOperations::KindProductIn : BranchOperations::KindProductOut,
-                    'quantity' => abs($variance),
-                    'reason_code' => 'correction',
-                    'reason' => 'Stock count #'.$locked->id,
-                    'reference' => $reference,
-                ]);
+                $this->postVariance($actor, $locked, $line, $variance, $reference);
                 $line->forceFill(['stock_reference' => $reference])->save();
                 $posted[] = [
                     'product_id' => $line->product_id,
@@ -328,6 +321,30 @@ final class StockCountService
                 return $lastCounted === null || Carbon::parse($lastCounted)->lt($cutoff);
             })
             ->values();
+    }
+
+    /**
+     * Posts one counted difference. A shortage leaves the earliest-expiring lots first, like any
+     * stock-out. A surplus has no paperwork, so it joins the batch that goes out next and is
+     * costed at the product's cost price; a product with no usable batch gets a lot with none.
+     */
+    private function postVariance(User $actor, StockCountSession $session, StockCountLine $line, int $variance, string $reference): void
+    {
+        $adjustment = [
+            'product_id' => (int) $line->product_id,
+            'branch_id' => (int) $session->branch_id,
+            'quantity' => abs($variance),
+            'reason_code' => 'correction',
+            'reason' => 'Stock count #'.$session->id,
+            'reference' => $reference,
+        ];
+        if ($variance < 0) {
+            $this->stock->adjust($actor, [...$adjustment, 'kind' => BranchOperations::KindProductOut]);
+
+            return;
+        }
+        $product = Product::query()->findOrFail($line->product_id);
+        $this->stock->stockIn($actor, [...$adjustment, ...$this->lots->nextBatchSummary($product)]);
     }
 
     /**
