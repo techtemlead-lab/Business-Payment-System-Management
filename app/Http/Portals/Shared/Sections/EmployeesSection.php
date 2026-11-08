@@ -2,7 +2,10 @@
 
 namespace App\Http\Portals\Shared\Sections;
 
+use App\Domain\Inventory\BranchScope;
+use App\Models\BranchStaffAssignment;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Staff accounts with their effective permissions, and the permission catalog the staff editor offers.
@@ -17,6 +20,7 @@ final class EmployeesSection implements WorkspaceSection
         $request = $context->request;
         $props = [];
         $query = User::where(fn ($q) => $q->whereIn('role', ['employee', 'sr'])->orWhere('role', 'like', 'custom\\_%'));
+        $this->onScopedBranches($query, $context->branchScope);
         if ($request->filled('q')) {
             $term = '%'.$request->string('q').'%';
             $query->where(function ($sub) use ($term) {
@@ -35,6 +39,7 @@ final class EmployeesSection implements WorkspaceSection
                 'branch_name' => $employee->activeBranch?->name,
             ]);
         $staffQuery = User::where(fn ($q) => $q->whereIn('role', ['employee', 'sr'])->orWhere('role', 'like', 'custom\\_%'));
+        $this->onScopedBranches($staffQuery, $context->branchScope);
         $props['employee_stats'] = [
             'total' => (clone $staffQuery)->count(),
             'active' => (clone $staffQuery)->where('status', 'active')->count(),
@@ -71,5 +76,22 @@ final class EmployeesSection implements WorkspaceSection
         );
 
         return $props;
+    }
+
+    /**
+     * On a branch picked in the top bar, only staff who work there: assigned to the
+     * branch on the Branches page, or with it as their current branch.
+     *
+     * @param  Builder<User>  $staff
+     */
+    private function onScopedBranches(Builder $staff, ?BranchScope $branchScope): void
+    {
+        if ($branchScope === null || $branchScope->allBranches) {
+            return;
+        }
+        $branchIds = $branchScope->branchIds;
+        $staff->where(fn (Builder $working) => $working
+            ->whereIn('users.active_branch_id', $branchIds)
+            ->orWhereIn('users.id', BranchStaffAssignment::query()->whereIn('branch_id', $branchIds)->select('user_id')));
     }
 }

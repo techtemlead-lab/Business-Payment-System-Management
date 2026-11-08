@@ -263,6 +263,62 @@ class BranchScopedSectionsTest extends TestCase
         $this->actingAs($this->branchStaff($this->dhaka))->onPortal('manage')->get($path)->assertForbidden();
     }
 
+    public function test_employees_follow_the_branch_they_work_at(): void
+    {
+        $assignedToDhaka = User::factory()->staff('employee')->create();
+        BranchStaffAssignment::query()->create(['branch_id' => $this->dhaka->id, 'user_id' => $assignedToDhaka->id, 'duty' => 'storekeeper', 'is_primary' => false]);
+        $workingInRajshahi = User::factory()->staff('employee')->create(['active_branch_id' => $this->rajshahi->id]);
+        $noBranch = User::factory()->staff('employee')->create();
+        $owner = User::factory()->staff()->create(['active_branch_id' => $this->dhaka->id]);
+
+        $this->actingAs($owner)->onPortal('sadmin')->get('/employees')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.branch_scope.code', 'DHK-01')
+            ->where('data.employees.data', fn ($rows) => $this->ids($rows) === [$assignedToDhaka->id])
+            ->where('data.employee_stats.total', 1));
+        $this->ownerOnAll()->get('/employees?branch_id='.$this->rajshahi->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.employees.data', fn ($rows) => $this->ids($rows) === [$workingInRajshahi->id]));
+        $this->ownerOnAll()->get('/employees')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.branch_scope.view', 'all')
+            ->where('data.employees.data', fn ($rows) => $this->ids($rows) === $this->sortedIds([$assignedToDhaka->id, $workingInRajshahi->id, $noBranch->id])));
+
+        $this->flushSession();
+        $this->actingAs(User::factory()->staff('account_manager')->create())->onPortal('manage')->get('/employees')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.employee_stats.total', 3));
+        $this->actingAs($this->branchStaff($this->dhaka))->onPortal('manage')->get('/employees')->assertForbidden();
+    }
+
+    public function test_stock_movement_log_follows_the_branch_on_the_inventory_page(): void
+    {
+        $owner = User::factory()->staff()->create(['active_branch_id' => $this->dhaka->id]);
+        $movements = [];
+        foreach (['dhaka' => $this->dhaka, 'rajshahi' => $this->rajshahi] as $key => $branch) {
+            $movements[$key] = (int) DB::table('stock_movements')->insertGetId([
+                'product_id' => $this->product->id,
+                'branch_id' => $branch->id,
+                'quantity' => 5,
+                'reason' => 'opening',
+                'reference' => (string) Str::uuid(),
+                'kind' => 'product_in',
+                'actor_id' => $owner->id,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        $this->actingAs($owner)->onPortal('sadmin')->get('/inventory')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.branch_scope.code', 'DHK-01')
+            ->where('data.movements.data', fn ($rows) => $this->ids($rows) === [$movements['dhaka']]));
+        $this->ownerOnAll()->get('/inventory')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.branch_scope.view', 'all')
+            ->where('data.movements.data', fn ($rows) => $this->ids($rows) === $this->sortedIds(array_values($movements))));
+
+        $this->flushSession();
+        $storekeeper = User::factory()->staff('inventory')->create(['active_branch_id' => $this->rajshahi->id]);
+        $this->actingAs($storekeeper)->onPortal('manage')->get('/inventory')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.movements.data', fn ($rows) => $this->ids($rows) === [$movements['rajshahi']]));
+        $this->actingAs($this->branchStaff($this->dhaka))->onPortal('manage')->get('/inventory')->assertForbidden();
+    }
+
     public function test_payment_claims_follow_the_order_branch(): void
     {
         $claims = collect($this->ordersPerBranch('dispatched', 'submitted'))->map(fn (string $number): int => $this->claimFor($number));
