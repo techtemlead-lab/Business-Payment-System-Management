@@ -63,7 +63,12 @@ document.addEventListener('visibilitychange', () => {
 /** Soft leaves drifting behind the page, drawn on one small canvas (desktop and tablet only). */
 function initLeafCanvas(): void {
     const host = document.querySelector<HTMLElement>('.ref-ambient-canvas');
-    if (!host || prefersReducedMotion() || !wideScreenQuery.matches) {
+    if (!host || prefersReducedMotion() || host.querySelector('.ref-leaf-canvas')) {
+        return;
+    }
+    if (!wideScreenQuery.matches) {
+        wideScreenQuery.addEventListener('change', initLeafCanvas, { once: true });
+
         return;
     }
     const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
@@ -134,6 +139,11 @@ function initLeafCanvas(): void {
     };
 
     const draw: FrameTask = (time) => {
+        if (!wideScreenQuery.matches) {
+            lastDraw = 0;
+
+            return false;
+        }
         if (time - lastDraw < 33) {
             return true;
         }
@@ -165,6 +175,11 @@ function initLeafCanvas(): void {
     }, { passive: true });
     document.addEventListener('visibilitychange', () => {
         lastDraw = 0;
+    });
+    wideScreenQuery.addEventListener('change', () => {
+        if (wideScreenQuery.matches) {
+            scheduleTask(draw);
+        }
     });
     scheduleTask(draw);
 }

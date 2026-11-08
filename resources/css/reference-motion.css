@@ -38,7 +38,7 @@ html[data-theme="dark"] .ref-ambient-canvas::after{background:radial-gradient(60
   box-shadow:0 22px 40px -18px rgba(0,80,42,.35),0 8px 16px -8px rgba(1,22,39,.12);
 }
 /* A faint light that follows the pointer across the card */
-.ref-home :is(.ref-product-card,.ref-category-grid>a).ref-tilt::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(240px circle at var(--ref-glare-x,50%) var(--ref-glare-y,0%),rgba(255,255,255,.28),transparent 60%);opacity:0;transition:opacity .3s ease;z-index:3}
+.ref-home :is(.ref-product-card,.ref-category-grid>a).ref-tilt::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(240px circle at var(--ref-glare-x,50%) var(--ref-glare-y,0%),rgba(255,255,255,.2),transparent 60%);opacity:0;transition:opacity .3s ease;z-index:3}
 .ref-home :is(.ref-product-card,.ref-category-grid>a).ref-tilt.is-tilting::after{opacity:1}
 html[data-theme="dark"] .ref-home :is(.ref-product-card,.ref-category-grid>a).ref-tilt::after{background:radial-gradient(240px circle at var(--ref-glare-x,50%) var(--ref-glare-y,0%),rgba(255,255,255,.07),transparent 60%)}
 .ref-home .ref-category-grid>a.ref-tilt{position:relative}
