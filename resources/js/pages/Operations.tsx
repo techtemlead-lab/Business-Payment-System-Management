@@ -117,7 +117,7 @@ function OperationForm({title,action,fields,defaults={},policy,policyRules={},fu
     const parameters = policy && form.data.scope!=='recipient' ? Object.fromEntries(Object.entries(policyRules[form.data.rule_key]?.parameters??{}).filter(([key])=>key!=='dynamic_compression')) : {};
     const parameterFields:Field[] = Object.entries(parameters).map(([key,value])=>typeof value==='boolean'
         ? {...options('parameters.'+key,label(key,translate),['1','0'],true,translate('portal','ops_fld_yes'),translate('portal','ops_fld_no')),value:value?'1':'0'}
-        : {...field('parameters.'+key,label(key.replace(/_pct$/,' (%)'),translate),'number'),value:String(value)});
+        : {...field('parameters.'+key,label(key.replace(/_pct$/,' (%)'),translate),'number',!key.endsWith('_award_amount')),value:String(value??'')});
     const fundingFields:Field[]=policy&&form.data.scope==='recipient'?[{name:'funding_mode',label:translate('portal','ops_fld_funding_mode'),required:true,options:[{value:'company',label:translate('portal','ops_fld_funding_company')},{value:'allocations',label:translate('portal','ops_fld_funding_allocations')}]},...(form.data.funding_mode==='allocations'?Array.from({length:fundCount},(_,index)=>[
         {name:`funding_sources.${index}.category`,label:translate('portal','ops_fld_funding_source',{n:String(index+1)}),required:true,options:fundingSources.filter(category=>category!==form.data.rule_key&&!Array.from({length:fundCount},(_,other)=>other===index?'':form.data[`funding_sources.${other}.category`]).includes(category)).map(value=>({value,label:label(value,translate)}))},field(`funding_sources.${index}.percentage`,translate('portal','ops_fld_funding_rate',{n:String(index+1)}),'number')
     ]).flat():[])]:[];

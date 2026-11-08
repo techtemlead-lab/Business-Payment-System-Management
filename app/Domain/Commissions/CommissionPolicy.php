@@ -18,6 +18,9 @@ final class CommissionPolicy
     public const Keys = ['own_dealer_cashback', 'direct_referral', 'd2d_multitier', 'area_dealer_pool',
         'dealer_monthly_salary', 'rank_royalty', 'rank_incentive', 'company_marketing', 'car_bike_incentive'];
 
+    /** Award amounts that may stay blank until the owner decides. They are only shown; nothing pays them automatically. */
+    private const AwardAmountParameters = ['bike_award_amount', 'car_award_amount'];
+
     /** @return array<string, array<string, mixed>> */
     public static function defaults(): array
     {
@@ -30,7 +33,7 @@ final class CommissionPolicy
             'rank_royalty' => ['rank', 'Rank royalty pool', '4.00', ['mo_target' => '250000.00', 'am_count' => 10, 'sm_count' => 10, 'me_count' => 10, 'qualification_depth' => 3, 'mo_share_pct' => '1.00', 'am_share_pct' => '1.00', 'sm_share_pct' => '1.00', 'me_share_pct' => '1.00']],
             'rank_incentive' => ['incentive', 'Rank incentive reserve', '2.00', ['mo_bonus' => '5000.00', 'am_bonus' => '50000.00', 'sm_bonus' => '250000.00', 'me_bonus' => '300000.00']],
             'company_marketing' => ['marketing', 'Marketing reserve', '2.00', []],
-            'car_bike_incentive' => ['rewards', 'Car and motorcycle reserve', '2.00', ['bike_target' => '5000000.00', 'bike_leg_cap' => '800000.00', 'car_target' => '250000000.00', 'car_leg_cap' => '20000000.00']],
+            'car_bike_incentive' => ['rewards', 'Car and motorcycle reserve', '2.00', ['bike_target' => '5000000.00', 'bike_leg_cap' => '800000.00', 'car_target' => '250000000.00', 'car_leg_cap' => '20000000.00', 'bike_award_amount' => '300000.00', 'car_award_amount' => null]],
             'additional_rank' => ['sub_dealer', 'Sub-dealer additional rank reserve', '4.00', []],
             'sub_dealer_salary' => ['sub_dealer', 'Sub-dealer monthly salary', '3.00', []],
             'sub_dealer_tour' => ['sub_dealer', 'Sub-dealer tour reserve', '3.00', []],
@@ -75,6 +78,8 @@ final class CommissionPolicy
             $rules = json_decode($override->rules, true, flags: JSON_THROW_ON_ERROR);
         }
         $rules['d2d_multitier']['parameters']['dynamic_compression'] = false;
+        // Revisions saved before the award amounts existed do not carry them.
+        $rules['car_bike_incentive']['parameters'] = ($rules['car_bike_incentive']['parameters'] ?? []) + self::defaults()['car_bike_incentive']['parameters'];
         foreach ($rules as $key => $rule) {
             if (! is_array($rule)) {
                 continue;
@@ -284,6 +289,8 @@ final class CommissionPolicy
                         if (! is_bool($value)) {
                             throw new InvalidArgumentException(__('portal.err_policy_compression_bool'));
                         }
+                    } elseif (in_array($name, self::AwardAmountParameters, true) && ($value === null || $value === '')) {
+                        continue;
                     } elseif (str_ends_with($name, '_pct')) {
                         Percentage::from((string) $value);
                     } elseif (in_array($name, ['cooling_off_days', 'grace_period_days', 'am_count', 'sm_count', 'me_count', 'qualification_depth'], true)) {
