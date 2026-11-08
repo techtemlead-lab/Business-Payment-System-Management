@@ -108,6 +108,10 @@ final class PrescriptionBook
                     'frequency' => $line['frequency'],
                     'duration' => $line['duration'],
                     'instructions' => $line['instructions'],
+                    'dose_schedule' => $line['dose_schedule'],
+                    'food_timing' => $line['food_timing'],
+                    'duration_count' => $line['duration_count'],
+                    'duration_unit' => $line['duration_unit'],
                     'unit_price' => Money::decimal($line['unit_cents']),
                     'quantity' => $line['quantity'],
                     'discount' => Money::decimal($line['discount_cents']),
@@ -201,7 +205,7 @@ final class PrescriptionBook
 
     /**
      * @param  list<array<string, mixed>>  $rawLines
-     * @return list<array{product_id: int|null, medicine_name: string, dose: string|null, frequency: string|null, duration: string|null, instructions: string|null, unit_cents: int, quantity: int, discount_cents: int, gross_cents: int, mrp_unit_cents: int|null, mrp_cents: int}>
+     * @return list<array{product_id: int|null, medicine_name: string, dose: string|null, frequency: string|null, duration: string|null, instructions: string|null, dose_schedule: string|null, food_timing: string|null, duration_count: int|null, duration_unit: string|null, unit_cents: int, quantity: int, discount_cents: int, gross_cents: int, mrp_unit_cents: int|null, mrp_cents: int}>
      */
     private function buildLines(array $rawLines, bool $clinic): array
     {
@@ -241,6 +245,10 @@ final class PrescriptionBook
                 'frequency' => $this->text($line['frequency'] ?? null),
                 'duration' => $this->text($line['duration'] ?? null),
                 'instructions' => $this->text($line['instructions'] ?? null),
+                'dose_schedule' => $this->text($line['dose_schedule'] ?? null),
+                'food_timing' => $this->text($line['food_timing'] ?? null),
+                'duration_count' => filled($line['duration_count'] ?? null) ? (int) $line['duration_count'] : null,
+                'duration_unit' => $this->text($line['duration_unit'] ?? null),
                 'unit_cents' => $unit,
                 'quantity' => $quantity,
                 'discount_cents' => $discount,

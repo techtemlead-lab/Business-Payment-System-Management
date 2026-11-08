@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\TestCase;
 
@@ -133,6 +134,95 @@ class ClinicRecordsTest extends TestCase
 
         $this->actingAs($this->prescriber)->onPortal('dealer')->getJson('/commands/prescriptions/patients/'.$patient->id.'/repeat')
             ->assertOk()->assertJsonPath('draft', null);
+    }
+
+    /**
+     * @param  array<string, mixed>  $line
+     * @param  array<string, mixed>  $extra
+     * @return TestResponse<Response>
+     */
+    private function writePrescription(PrescriptionPatient $patient, array $line = [], array $extra = []): TestResponse
+    {
+        return $this->actingAs($this->prescriber)->onPortal('dealer')->post('/commands/prescriptions', [
+            'patient_id' => $patient->id,
+            'prescribed_on' => '2026-11-08',
+            'lines' => [['medicine_name' => 'Napa', 'unit_price' => 2, 'quantity' => 10, ...$line]],
+            ...$extra,
+        ]);
+    }
+
+    public function test_structured_dosing_is_saved_and_printed_clearly_in_bangla_and_english(): void
+    {
+        $patient = $this->patient();
+        $this->writePrescription($patient, ['dose_schedule' => '1+0+1', 'food_timing' => 'after', 'duration_count' => 7, 'duration_unit' => 'day', 'dose' => '500 mg', 'instructions' => 'Shake well'])
+            ->assertRedirect()->assertSessionHasNoErrors();
+        $prescription = Prescription::query()->with('lines')->where('patient_id', $patient->id)->firstOrFail();
+        $line = $prescription->lines->first();
+        $this->assertSame('1+0+1', $line->dose_schedule);
+        $this->assertSame('after', $line->food_timing);
+        $this->assertSame(7, $line->duration_count);
+        $this->assertSame('day', $line->duration_unit);
+        $this->assertSame('500 mg', $line->dose);
+
+        $this->actingAs($this->prescriber)->onPortal('dealer')->get('/prescriptions/'.$prescription->id.'/print?lang=bn')->assertOk()
+            ->assertSee('১+০+১ (সকালে ১ · রাতে ১) · খাবারের পরে · ৭ দিন', false)
+            ->assertDontSee('দুপুরে', false)
+            ->assertSee('500 mg')
+            ->assertSee('Shake well');
+        $this->actingAs($this->prescriber)->onPortal('dealer')->get('/prescriptions/'.$prescription->id.'/print?lang=en')->assertOk()
+            ->assertSee('1+0+1 (morning 1 · night 1) · after food · 7 days', false);
+    }
+
+    public function test_free_text_dosing_still_works_on_its_own_and_prints_nothing_extra(): void
+    {
+        $patient = $this->patient();
+        $this->writePrescription($patient, ['dose' => '1 spoon', 'frequency' => 'When needed', 'duration' => 'Until better'])
+            ->assertRedirect()->assertSessionHasNoErrors();
+        $prescription = Prescription::query()->where('patient_id', $patient->id)->firstOrFail();
+
+        $this->actingAs($this->prescriber)->onPortal('dealer')->get('/prescriptions/'.$prescription->id.'/print?lang=bn')->assertOk()
+            ->assertSee('1 spoon')->assertSee('When needed')->assertSee('Until better')->assertDontSee('class="dosing"', false);
+    }
+
+    /** @return array<string, array{0: array<string, mixed>, 1: string}> */
+    public static function badDosing(): array
+    {
+        return [
+            'two parts only' => [['dose_schedule' => '1+0'], 'lines.0.dose_schedule'],
+            'all zero' => [['dose_schedule' => '0+0+0'], 'lines.0.dose_schedule'],
+            'made-up amount' => [['dose_schedule' => '9+0+1'], 'lines.0.dose_schedule'],
+            'unknown food timing' => [['food_timing' => 'during'], 'lines.0.food_timing'],
+            'length without a unit' => [['duration_count' => 7], 'lines.0.duration_unit'],
+            'unit without a length' => [['duration_unit' => 'day'], 'lines.0.duration_count'],
+        ];
+    }
+
+    /** @param  array<string, mixed>  $line */
+    #[DataProvider('badDosing')]
+    public function test_bad_structured_dosing_is_refused(array $line, string $errorKey): void
+    {
+        $this->writePrescription($this->patient(), $line)->assertSessionHasErrors($errorKey);
+        $this->assertSame(0, Prescription::query()->count());
+    }
+
+    public function test_repeat_and_templates_carry_the_structured_dosing(): void
+    {
+        $patient = $this->patient();
+        $this->writePrescription($patient, ['dose_schedule' => '½+0+½', 'food_timing' => 'before', 'duration_count' => 2, 'duration_unit' => 'week'])
+            ->assertSessionHasNoErrors();
+        $prescription = Prescription::query()->where('patient_id', $patient->id)->firstOrFail();
+
+        $this->actingAs($this->prescriber)->onPortal('dealer')->getJson('/commands/prescriptions/patients/'.$patient->id.'/repeat')->assertOk()
+            ->assertJsonPath('draft.lines.0.dose_schedule', '½+0+½')
+            ->assertJsonPath('draft.lines.0.food_timing', 'before')
+            ->assertJsonPath('draft.lines.0.duration_count', 2)
+            ->assertJsonPath('draft.lines.0.duration_unit', 'week');
+
+        $this->actingAs($this->prescriber)->onPortal('dealer')
+            ->post('/commands/prescriptions/templates', ['name' => 'Cough set', 'prescription_id' => $prescription->id])
+            ->assertSessionHasNoErrors();
+        $this->actingAs($this->prescriber)->onPortal('dealer')->get('/prescriptions')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('data.prescription_tools.templates.0.lines.0.dose_schedule', '½+0+½'));
     }
 
     public function test_a_patient_save_that_does_not_mention_allergies_keeps_them_and_an_empty_value_clears_them(): void

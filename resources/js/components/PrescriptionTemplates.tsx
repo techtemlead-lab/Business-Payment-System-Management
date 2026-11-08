@@ -20,6 +20,10 @@ export type TemplateRow = {
         frequency: string | null;
         duration: string | null;
         instructions: string | null;
+        dose_schedule?: string | null;
+        food_timing?: string | null;
+        duration_count?: number | null;
+        duration_unit?: string | null;
         unit_price: string;
         quantity: number;
         discount: string;
@@ -45,6 +49,10 @@ export function linesFromSaved(saved: TemplateRow['lines'], products: { id: numb
             frequency: line.frequency ?? '',
             duration: line.duration ?? '',
             instructions: line.instructions ?? '',
+            dose_schedule: line.dose_schedule ?? '',
+            food_timing: line.food_timing ?? '',
+            duration_count: line.duration_count ? String(line.duration_count) : '',
+            duration_unit: line.duration_unit ?? '',
             unit_price: line.unit_price,
             quantity: String(line.quantity),
             discount: Number(line.discount) > 0 ? line.discount : '',
@@ -157,7 +165,7 @@ export function TemplatesTab({ templates, translate }: { templates: TemplateRow[
                             </div>
                             <ol className="rx-card-lines">
                                 {template.lines.map((line, index) => (
-                                    <li key={index}>{line.medicine_name} × {line.quantity}<small>{[line.dose, line.frequency, line.duration].filter(Boolean).join(' · ')}</small></li>
+                                    <li key={index}>{line.medicine_name} × {line.quantity}<small>{[line.dose_schedule, line.dose, line.frequency, line.duration].filter(Boolean).join(' · ')}</small></li>
                                 ))}
                             </ol>
                             {template.advice && <small className="muted">{translate('prescription', 'rx_advice')}: {template.advice}</small>}

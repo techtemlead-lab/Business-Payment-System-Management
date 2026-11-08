@@ -5,7 +5,7 @@ import { Empty, date, money, number } from '../components/UI';
 import type { PatientRow } from '../components/PrescriptionsHub';
 import { useT } from '../shared/i18n/t';
 
-type HistoryLine = { medicine_name: string; dose: string | null; frequency: string | null; duration: string | null; instructions: string | null; quantity: number };
+type HistoryLine = { medicine_name: string; dose: string | null; frequency: string | null; duration: string | null; instructions: string | null; dose_summary: string; quantity: number };
 
 type HistoryRow = {
     id: number;
@@ -88,7 +88,7 @@ export default function PatientRecord({ record }: { record: PatientRecordData })
                                         {row.lines.map((line, index) => (
                                             <li key={index}>
                                                 {line.medicine_name} × {number(line.quantity)}
-                                                <small>{[line.dose, line.frequency, line.duration, line.instructions].filter(Boolean).join(' · ')}</small>
+                                                <small>{[line.dose_summary, line.dose, line.frequency, line.duration, line.instructions].filter(Boolean).join(' · ')}</small>
                                             </li>
                                         ))}
                                     </ol>

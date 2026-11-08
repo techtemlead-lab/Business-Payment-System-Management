@@ -3,7 +3,7 @@ import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { AlertTriangle, FileText, History, Pill, Plus, Printer, Repeat, Search, Stethoscope, Trash2, UserPlus } from 'lucide-react';
 import { DateInput, Empty, FormErrors, date, money, number, Pagination, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
-import { businessTodayIso } from '../business-date';
+import { businessTodayIso, localizeDigits } from '../business-date';
 import { linesFromSaved, SaveAsTemplate, TemplatePicker, TemplatesTab, type PrescriptionTools, type TemplateRow } from './PrescriptionTemplates';
 import { FollowUpsPanel } from './PrescriptionFollowUps';
 import { PrescriberReportTab } from './PrescriberReport';
@@ -46,7 +46,7 @@ type PrescriptionRow = {
     clinic_fund: string;
     payment_method: string;
     payment_reference: string | null;
-    lines: { medicine_name: string; dose: string | null; frequency: string | null; duration: string | null; quantity: number; line_total: string }[];
+    lines: { medicine_name: string; dose: string | null; frequency: string | null; duration: string | null; dose_summary: string; quantity: number; line_total: string }[];
 };
 
 type ReportData = {
@@ -72,6 +72,9 @@ export type PrescriptionsData = {
     registration: { type: string; number: string } | null;
     registration_types: string[];
     max_lines: number;
+    dose_amounts: string[];
+    food_timings: string[];
+    duration_units: string[];
     products?: { id: number; name: string; sku: string; mrp: string }[];
     branches?: { id: number; code: string; name: string }[];
     payment_methods?: string[];
@@ -86,12 +89,64 @@ export type LineForm = {
     frequency: string;
     duration: string;
     instructions: string;
+    dose_schedule: string;
+    food_timing: string;
+    duration_count: string;
+    duration_unit: string;
     unit_price: string;
     quantity: string;
     discount: string;
 };
 
-const emptyLine = (): LineForm => ({ product_id: '', medicine_name: '', dose: '', frequency: '', duration: '', instructions: '', unit_price: '', quantity: '1', discount: '' });
+const emptyLine = (): LineForm => ({ product_id: '', medicine_name: '', dose: '', frequency: '', duration: '', instructions: '', dose_schedule: '', food_timing: '', duration_count: '', duration_unit: 'day', unit_price: '', quantity: '1', discount: '' });
+
+/** The dosing fields of one line as the server expects them; an unfinished duration is left out. */
+const dosingFields = (line: LineForm) => ({
+    dose: line.dose,
+    frequency: line.frequency,
+    duration: line.duration,
+    instructions: line.instructions,
+    dose_schedule: line.dose_schedule || null,
+    food_timing: line.food_timing || null,
+    duration_count: line.duration_count === '' ? null : Number(line.duration_count),
+    duration_unit: line.duration_count === '' ? null : line.duration_unit,
+});
+
+/** Morning, noon and night amounts, such as 1+0+1, with the other structured dosing beside them. */
+function StructuredDosing({ data, line, onChange, translate }: { data: PrescriptionsData; line: LineForm; onChange: (patch: Partial<LineForm>) => void; translate: Translate }) {
+    const parts = line.dose_schedule === '' ? ['', '', ''] : line.dose_schedule.split('+');
+    const setPart = (slot: number, value: string) => {
+        const next = parts.map((part, index) => (index === slot ? value : part));
+        onChange({ dose_schedule: next.every((part) => part === '') ? '' : next.map((part) => part || '0').join('+') });
+    };
+
+    return (
+        <div className="rx-dosing">
+            {['morning', 'noon', 'night'].map((slot, index) => (
+                <label key={slot}>{translate('clinic_records', `slot_${slot}`)}
+                    <select value={parts[index] ?? ''} onChange={(e) => setPart(index, e.target.value)}>
+                        <option value="">–</option>
+                        {data.dose_amounts.map((amount) => <option key={amount} value={amount}>{localizeDigits(amount)}</option>)}
+                    </select>
+                </label>
+            ))}
+            <label>{translate('clinic_records', 'food_label')}
+                <select value={line.food_timing} onChange={(e) => onChange({ food_timing: e.target.value })}>
+                    <option value="">–</option>
+                    {data.food_timings.map((timing) => <option key={timing} value={timing}>{translate('clinic_records', `food_${timing}`)}</option>)}
+                </select>
+            </label>
+            <label>{translate('clinic_records', 'course_length')}
+                <input type="number" inputMode="numeric" min="1" max="365" step="1" value={line.duration_count} onChange={(e) => onChange({ duration_count: e.target.value })} />
+            </label>
+            <label>{translate('clinic_records', 'course_unit')}
+                <select value={line.duration_unit || 'day'} onChange={(e) => onChange({ duration_unit: e.target.value })}>
+                    {data.duration_units.map((unit) => <option key={unit} value={unit}>{translate('clinic_records', `unit_${unit}`)}</option>)}
+                </select>
+            </label>
+        </div>
+    );
+}
 
 /** Taka to paisa, so totals add up exactly like the server's. */
 const paisa = (value: string | number): number => Math.round((Number(value) || 0) * 100);
@@ -265,8 +320,8 @@ function PrescriptionsTab({ data, tools, translate }: { data: PrescriptionsData;
             [CONFIRM_BELOW_FLOOR]: confirmBelowFloor,
             follow_up_on: values.follow_up_on || null,
             lines: values.lines.map((line) => clinic
-                ? { product_id: Number(line.product_id), dose: line.dose, frequency: line.frequency, duration: line.duration, instructions: line.instructions, unit_price: line.unit_price || '0', quantity: line.quantity, discount: line.discount || '0' }
-                : { medicine_name: line.medicine_name, dose: line.dose, frequency: line.frequency, duration: line.duration, instructions: line.instructions, unit_price: line.unit_price || '0', quantity: line.quantity, discount: line.discount || '0' }),
+                ? { product_id: Number(line.product_id), ...dosingFields(line), unit_price: line.unit_price || '0', quantity: line.quantity, discount: line.discount || '0' }
+                : { medicine_name: line.medicine_name, ...dosingFields(line), unit_price: line.unit_price || '0', quantity: line.quantity, discount: line.discount || '0' }),
         }));
         form.post('/commands/prescriptions', {
             preserveScroll: true,
@@ -362,6 +417,7 @@ function PrescriptionsTab({ data, tools, translate }: { data: PrescriptionsData;
                                                 </button>
                                             )}
                                         </div>
+                                        <StructuredDosing data={data} line={line} onChange={(patch) => setLine(index, patch)} translate={translate} />
                                         <div className="rx-line-grid">
                                             <label>{translate('prescription', 'rx_dose')}<input maxLength={80} value={line.dose} onChange={(e) => setLine(index, { dose: e.target.value })} /></label>
                                             <label>{translate('prescription', 'rx_frequency')}<input maxLength={80} value={line.frequency} onChange={(e) => setLine(index, { frequency: e.target.value })} /></label>
@@ -463,7 +519,7 @@ function PrescriptionList({ data, translate }: { data: PrescriptionsData; transl
                             </div>
                             <ol className="rx-card-lines">
                                 {row.lines.map((line, index) => (
-                                    <li key={index}>{line.medicine_name} × {number(line.quantity)}<small>{[line.dose, line.frequency, line.duration].filter(Boolean).join(' · ')}</small></li>
+                                    <li key={index}>{line.medicine_name} × {number(line.quantity)}<small>{[line.dose_summary, line.dose, line.frequency, line.duration].filter(Boolean).join(' · ')}</small></li>
                                 ))}
                             </ol>
                             <div className="rx-card-foot">

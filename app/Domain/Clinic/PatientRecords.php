@@ -61,6 +61,7 @@ final class PatientRecords
                     'frequency' => $line->frequency,
                     'duration' => $line->duration,
                     'instructions' => $line->instructions,
+                    'dose_summary' => DoseSchedule::summary($line, app()->getLocale()),
                     'quantity' => $line->quantity,
                 ])->all(),
             ])->values()->all(),
@@ -86,17 +87,7 @@ final class PatientRecords
                 'prescribed_on' => $last->prescribed_on->toDateString(),
                 'diagnosis' => $last->diagnosis,
                 'advice' => $last->advice,
-                'lines' => $last->lines->map(fn (PrescriptionLine $line): array => [
-                    'product_id' => $line->product_id,
-                    'medicine_name' => $line->medicine_name,
-                    'dose' => $line->dose,
-                    'frequency' => $line->frequency,
-                    'duration' => $line->duration,
-                    'instructions' => $line->instructions,
-                    'unit_price' => (string) $line->unit_price,
-                    'quantity' => (int) $line->quantity,
-                    'discount' => (string) $line->discount,
-                ])->values()->all(),
+                'lines' => $last->lines->map(fn (PrescriptionLine $line): array => $line->toDraft())->values()->all(),
             ],
         ];
     }
