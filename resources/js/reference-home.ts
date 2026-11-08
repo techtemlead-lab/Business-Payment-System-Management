@@ -381,7 +381,6 @@ function initScrollReveal() {
     // Keep the dealer banner out of transform-based reveal — that motion looked like a
     // glitch under the banner while hovering/scrolling neighboring sections.
     const sectionSelectors = [
-        '.ref-women-special',
         '.ref-promotions',
         '.ref-announcement',
         '.ref-featured-products',

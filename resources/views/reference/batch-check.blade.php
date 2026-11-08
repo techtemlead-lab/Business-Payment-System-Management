@@ -29,8 +29,10 @@
                 <dd>{{ $result['product'] }}</dd>
                 <dt>{{ __('stock_lots.public_expiry') }}</dt>
                 <dd>{{ $result['expires_on'] ? \Carbon\CarbonImmutable::parse($result['expires_on'])->format('d/m/Y') : __('stock_lots.public_expiry_unknown') }}</dd>
-                <dt>{{ __('stock_lots.public_maker') }}</dt>
-                <dd>{{ $result['maker'] }}</dd>
+                @if (filled($result['maker']))
+                    <dt>{{ __('stock_lots.public_maker') }}</dt>
+                    <dd>{{ $result['maker'] }}</dd>
+                @endif
             </dl>
         </section>
     @endforeach

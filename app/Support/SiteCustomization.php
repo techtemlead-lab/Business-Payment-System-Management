@@ -75,13 +75,6 @@ class SiteCustomization
             // Home page: Bismillah line centred above the company headline (owner request).
             'home_bismillah_enabled' => '1',
             'home_bismillah_text' => $copy('home_bismillah_text'),
-            // Women special block, first on the home page
-            'women_special_enabled' => '1',
-            'women_special_title' => $copy('women_special_title'),
-            'women_special_body' => $copy('women_special_body'),
-            'women_special_button' => $copy('women_special_button'),
-            'women_special_link' => '/products',
-            'women_special_image' => '',
             'product_range_title' => $copy('product_range_title'),
             'product_range_sub' => $copy('product_range_sub'),
             'partner_with_us_title' => $copy('partner_with_us_title'),
@@ -193,7 +186,7 @@ class SiteCustomization
             'trust_pillars_enabled' => '1',
             'trust_pillars_title' => 'Our Promise to You',
             'trust_pillars' => [
-                ['icon' => 'fa-leaf', 'title' => 'Herbal & Nutrition Products', 'subtitle' => 'Holistic Nutracare herbal and nutrition products for everyday care.'],
+                ['icon' => 'fa-leaf', 'title' => 'Herbal & Nutrition Products', 'subtitle' => 'Herbal and nutrition products for everyday care.'],
                 ['icon' => 'fa-certificate', 'title' => 'Trade-Licensed Business', 'subtitle' => 'A licensed distributor with its head office in Pirganj, Rangpur.'],
                 ['icon' => 'fa-truck-fast', 'title' => 'Company-Approved Dealers', 'subtitle' => 'Buy from dealers the company has approved, and find the one nearest you.'],
                 ['icon' => 'fa-headset', 'title' => 'Help by Phone', 'subtitle' => 'Call our office for product and order information.'],
@@ -224,7 +217,7 @@ class SiteCustomization
 
             // Homepage About
             'about_headline' => 'Natural Food, Medicine & Wellness Product Shop in Bangladesh',
-            'about_lead' => 'Licensed distributor of Holistic Nutracare herbal and nutrition products. See our products, or contact Madina Natural Health Care about a product or about becoming a dealer.',
+            'about_lead' => 'Licensed distributor of natural herbal and nutrition products. See our products, or contact Madina Natural Health Care about a product or about becoming a dealer.',
             'about_summary_title' => 'Read More',
             'about_summary_body' => 'Dealers order, pay, follow deliveries and get help from their own panel. Only company staff can open a dealer account.',
 
@@ -270,19 +263,19 @@ class SiteCustomization
             // Contact Page (/contact)
             'contact_title' => 'Contact Us',
             'contact_company_title' => 'Madina Natural Health Care',
-            'contact_company_desc' => 'Madina Natural Health Care (Owner: Md Anowar Hossain). Head office: Thana Road, Pirganj 5470, Rangpur. Factory/warehouse: Chaira, Moshorikhula, Hemayetpur, Savar, Dhaka. Hotline: 01730532966 · 01723731877 · 01727612379.',
+            'contact_company_desc' => 'Madina Natural Health Care (Owner: Md Anowar Hossain). Head office: Thana Road, Pirganj 5470, Rangpur. Hotline: 01730532966 · 01723731877.',
             'contact_phone_title' => 'Customer Care & Hotline',
             'contact_phone' => '+8801730532966',
-            'contact_phone_hours' => 'Hotline also: 01723731877 · 01727612379',
+            'contact_phone_hours' => 'Hotline also: 01723731877',
             'contact_email_title' => 'Official Email',
-            'contact_email' => 'holisticnutracare@gmail.com',
+            'contact_email' => '',
             'contact_topic1_title' => 'Dealer Enquiries',
             'contact_topic1_desc' => $copy('contact_topic1_desc'),
             'contact_topic2_title' => 'Products & Support',
             'contact_topic2_desc' => $copy('contact_topic2_desc'),
             'contact_topic3_title' => 'Head Office',
             // Printed order invoice letterhead (starting values come from config/madina.php).
-            'invoice_manufacturer' => (string) config('madina.invoice_manufacturer', 'Holistic Nutracare'),
+            'invoice_manufacturer' => (string) config('madina.invoice_manufacturer', ''),
             'invoice_marketed_by' => (string) config('madina.invoice_marketed_by', 'Madina Natural Health Care'),
             'invoice_marketed_phones' => (string) config('madina.invoice_marketed_phones', '01723-731877, 01730532966'),
             'contact_social_title' => 'Connect With Us Online',
@@ -351,7 +344,7 @@ class SiteCustomization
             'footer_directory_link' => '/dealers',
             'footer_directory_icon' => 'fa-solid fa-location-dot',
             'footer_phone' => '+8801730532966',
-            'footer_email' => 'holisticnutracare@gmail.com',
+            'footer_email' => '',
             'footer_address' => $copy('footer_address'),
             'footer_location' => $copy('footer_location'),
             'footer_link_about' => 'About Us',
@@ -367,7 +360,7 @@ class SiteCustomization
             'footer_link_dealer_apply' => 'Apply for Dealership',
             'footer_link_dealer_apply_url' => '/partnership',
             'footer_about_title' => 'Madina Natural Health Care',
-            'footer_about_desc' => 'Licensed distributor (Trade License 2026-00563, Pirganj Municipality). Natural herbal & Holistic Nutracare products across Bangladesh.',
+            'footer_about_desc' => 'Licensed distributor (Trade License 2026-00563, Pirganj Municipality). Natural herbal and nutrition products across Bangladesh.',
             'footer_logo_url' => '/madina-header-logo-white.png?v=10',
 
             // Floating Tools & Dialogs
@@ -1538,31 +1531,6 @@ class SiteCustomization
             'paragraphs' => $paragraphs,
             'image' => $image !== '' ? $image : (string) self::defaults()['md_message_image'],
             'image_alt' => (string) __('site.md_message_photo_alt', ['name' => $name, 'title' => $title, 'company' => $company]),
-        ];
-    }
-
-    /**
-     * The women special block on the home page, or null when the owner has turned it off.
-     *
-     * @param  array<string, mixed>|null  $customization
-     * @return array{title: string, body: string, button: string, link: string|null, image: string}|null
-     */
-    public static function womenSpecial(?array $customization = null): ?array
-    {
-        $all = $customization ?? self::all();
-        if (! filter_var($all['women_special_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN)) {
-            return null;
-        }
-
-        $text = static fn (string $key): string => SiteChrome::text($key, isset($all[$key]) ? (string) $all[$key] : null);
-        $image = trim((string) ($all['women_special_image'] ?? ''));
-
-        return [
-            'title' => $text('women_special_title'),
-            'body' => $text('women_special_body'),
-            'button' => $text('women_special_button'),
-            'link' => self::publicHref((string) (($all['women_special_link'] ?? '') ?: '/products')),
-            'image' => $image,
         ];
     }
 

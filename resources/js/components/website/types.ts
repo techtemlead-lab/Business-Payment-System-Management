@@ -187,12 +187,6 @@ export interface CustomizationData {
     company_intro_eyebrow?: string;
     home_bismillah_enabled?: string;
     home_bismillah_text?: string;
-    women_special_enabled?: string;
-    women_special_title?: string;
-    women_special_body?: string;
-    women_special_button?: string;
-    women_special_link?: string;
-    women_special_image?: string;
     product_range_title?: string;
     product_range_sub?: string;
     partner_with_us_title?: string;

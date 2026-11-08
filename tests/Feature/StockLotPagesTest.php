@@ -12,6 +12,7 @@ use App\Models\Product;
 use App\Models\StockLot;
 use App\Models\StockTransfer;
 use App\Models\User;
+use App\Support\SiteCustomization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -181,16 +182,27 @@ class StockLotPagesTest extends TestCase
         $this->assertSame(30, $rows[0]['suggested']);
     }
 
+    public function test_public_batch_check_leaves_out_the_maker_until_one_is_set(): void
+    {
+        $product = Product::factory()->create(['stock' => 0, 'name' => 'Plain Syrup']);
+        $this->stockIn($product, 3, 'PUB-78', 100);
+
+        $this->get('/batch-check?batch=pub-78')->assertOk()
+            ->assertSee('Plain Syrup')
+            ->assertDontSee(__('stock_lots.public_maker'));
+    }
+
     public function test_public_batch_check_shows_only_product_expiry_and_maker(): void
     {
         $product = Product::factory()->create(['stock' => 0, 'name' => 'Public Syrup', 'cost_price' => '77.00']);
         $this->stockIn($product, 3, 'PUB-77', 100);
+        SiteCustomization::save(['invoice_manufacturer' => 'Test Maker Ltd']);
 
         $response = $this->get('/batch-check?batch=pub-77')->assertOk();
 
         $response->assertSee('Public Syrup');
         $response->assertSee(now()->addDays(100)->format('d/m/Y'));
-        $response->assertSee((string) config('madina.invoice_manufacturer', 'Holistic Nutracare'));
+        $response->assertSee('Test Maker Ltd');
         $response->assertDontSee('HO-PIRGANJ');
         $response->assertDontSee('77.00');
 

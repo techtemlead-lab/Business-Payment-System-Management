@@ -190,7 +190,7 @@ class PartnerOpsSuiteTest extends TestCase
 
         $payload = app(OrderInvoice::class)->payload($order->fresh(['user', 'lines']), 'dealer');
 
-        $this->assertSame('Holistic Nutracare', $payload['company']['manufacturer']);
+        $this->assertSame('', $payload['company']['manufacturer']);
         $this->assertSame('Madina Natural Health Care', $payload['company']['marketed_by']);
         $this->assertSame('MNHC107', $payload['buyer']['referred_code']);
         $this->assertSame('Dealer', $payload['buyer']['designation']);
