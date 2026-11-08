@@ -191,4 +191,6 @@ return function (string $portal): void {
     Route::post('/commands/stock-counts/{stockCountSession}/approve', [StockCountController::class, 'approve'])->whereNumber('stockCountSession')->middleware('throttle:30,1');
     Route::post('/commands/stock-counts/{stockCountSession}/reject', [StockCountController::class, 'reject'])->whereNumber('stockCountSession')->middleware('throttle:30,1');
     Route::post('/commands/stock-counts/{stockCountSession}/cancel', [StockCountController::class, 'cancel'])->whereNumber('stockCountSession')->middleware('throttle:30,1');
+
+    require __DIR__.'/productivity.php';
 };

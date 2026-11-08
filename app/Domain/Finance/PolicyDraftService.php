@@ -3,6 +3,7 @@
 namespace App\Domain\Finance;
 
 use App\Domain\Notifications\PartnerEventSms;
+use App\Domain\Notifications\SmsText;
 use App\Models\User;
 use App\Support\Audit;
 use Illuminate\Support\Facades\DB;
@@ -74,14 +75,14 @@ final class PolicyDraftService
                         'account_type' => $draft->account_type,
                     ], $locale),
                 );
-                DB::afterCommit(function () use ($preparer, $locale, $draft): void {
+                DB::afterCommit(function () use ($preparer, $draft): void {
                     app(PartnerEventSms::class)->send(
                         $preparer,
                         'policy.published',
-                        __('sms.policy_published', [
+                        SmsText::make('sms.policy_published', [
                             'name' => $draft->name,
                             'account_type' => $draft->account_type,
-                        ], $locale),
+                        ]),
                     );
                 });
             }

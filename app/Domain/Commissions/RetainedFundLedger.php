@@ -341,7 +341,7 @@ final class RetainedFundLedger
             $allocation->category === self::BenefitsCategory => __('portal.retained_fund_benefits'),
             $this->inManagementFund($allocation) => __('portal.retained_fund_area_management'),
             ($allocation->metadata['retained_by'] ?? null) === CommissionPosting::CompanyProfit => __('portal.retained_fund_company_profit'),
-            $allocation->status === 'unassigned_reserve' => __('portal.retained_fund_unassigned'),
+            $allocation->status === 'unassigned_reserve' => __('funds.retained_old_area'),
             $allocation->category === 'company_marketing_fund' => __('portal.retained_fund_marketing'),
             $allocation->category === 'car_bike_incentive_fund' => __('portal.retained_fund_vehicle'),
             $allocation->category === CommissionSettlement::CompanyProfitCategory => __('portal.retained_fund_company_profit'),

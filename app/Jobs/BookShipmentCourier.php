@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Domain\Integrations\CourierGatewayClient;
 use App\Domain\Notifications\PartnerEventSms;
+use App\Domain\Notifications\SmsText;
 use App\Domain\Orders\ShipmentTracking;
 use App\Models\CompanyBranch;
 use App\Models\Order;
@@ -172,6 +173,6 @@ class BookShipmentCourier implements ShouldQueue
             __('portal.notice_shipment_dispatched_title', $replace, $locale),
             __('portal.notice_shipment_dispatched_body', $replace, $locale),
         );
-        app(PartnerEventSms::class)->send($partner, 'order.dispatched', __('sms.shipment_dispatched', $replace, $locale));
+        app(PartnerEventSms::class)->send($partner, 'order.dispatched', SmsText::make('sms.shipment_dispatched', $replace));
     }
 }

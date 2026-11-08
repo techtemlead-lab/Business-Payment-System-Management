@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
-import { SlidersHorizontal, ShieldCheck, AlertCircle, RefreshCw, Calculator, Check } from 'lucide-react';
-import { money, label, humanize } from './UI';
+import { ShieldCheck, AlertCircle, RefreshCw, Check } from 'lucide-react';
+import { label, humanize } from './UI';
 import { useT } from '../shared/i18n/t';
 
 /** Pool limits the backend commission policy enforces (CommissionsSection::commissionPoolLimits). */
@@ -49,7 +49,6 @@ export default function CommissionStudio({ rules: initialRules, limits }: { rule
     const policyLimits: PolicyLimits = limits ?? pageData?.policy_limits ?? {};
     const dealerCap = policyPercent(policyLimits.dealer_pool_cap_pct);
     const subDealerCap = policyPercent(policyLimits.sub_dealer_pool_cap_pct);
-    const companyMrpPct = policyPercent(policyLimits.company_mrp_pct);
     const notSet = translate('portal', 'policy_value_not_set');
     const capLabel = (cap: number | null) => cap === null ? notSet : `${cap.toFixed(2)}%`;
     const [rules, setRules] = useState<Record<string, RuleRecord>>(() => {
@@ -58,11 +57,7 @@ export default function CommissionStudio({ rules: initialRules, limits }: { rule
         return map;
     });
 
-    const [simOrderAmount, setSimOrderAmount] = useState<number>(1000);
-    const [simMrp, setSimMrp] = useState<number>(2000);
-    const [simAccount, setSimAccount] = useState<'dealer'|'sub_dealer'>('dealer');
     const [saving, setSaving] = useState(false);
-    const [activeTab, setActiveTab] = useState<'editor' | 'simulator'>('editor');
 
     // Which rules fill the dealer pool and which are sub-dealer extras comes from the policy.
     const subDealerKeys = policyLimits.sub_dealer_rule_keys
@@ -73,9 +68,6 @@ export default function CommissionStudio({ rules: initialRules, limits }: { rule
     const subDealerPercentage = totalPercentage + Object.values(rules).filter(r=>r.is_active&&subDealerKeys.includes(r.rule_key)).reduce((sum,r)=>sum+(Number(r.percentage) || 0),0);
     const isOverAllocated = (dealerCap !== null && totalPercentage > dealerCap + 0.0001)
         || (subDealerCap !== null && subDealerPercentage > subDealerCap + 0.0001);
-    const simulatedPoolPct = simAccount === 'dealer' ? totalPercentage : subDealerPercentage;
-    const isPreviewUnderfunded = companyMrpPct !== null
-        && simMrp * companyMrpPct / 100 + simOrderAmount * simulatedPoolPct / 100 > simOrderAmount;
 
     const handlePercentageChange = (key: string, val: string) => {
         const num = parseFloat(val) || 0;
@@ -121,23 +113,6 @@ export default function CommissionStudio({ rules: initialRules, limits }: { rule
                     </div>
 
                     <div className="hub-row">
-                        <div className="hub-seg">
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('editor')}
-                                className={activeTab === 'editor' ? 'is-active' : undefined}
-                            >
-                                <SlidersHorizontal size={14} /> {translate('portal','cs_tab_editor')}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('simulator')}
-                                className={activeTab === 'simulator' ? 'is-active' : undefined}
-                            >
-                                <Calculator size={14} /> {translate('portal','cs_tab_simulator')}
-                            </button>
-                        </div>
-
                         <button
                             type="button"
                             disabled={!canEdit || isOverAllocated || saving}
@@ -159,122 +134,66 @@ export default function CommissionStudio({ rules: initialRules, limits }: { rule
                 </div>
             </div>
 
-            {/* TAB 1: RULES EDITOR */}
-            {activeTab === 'editor' && (
-                <div className="hub-grid is-xwide">
-                    {Object.values(rules).length === 0 && (
-                        <div className="hub-empty hub-span-all">
-                            {translate('portal','cs_no_rules')}
-                        </div>
-                    )}
-                    {Object.values(rules).map(r => {
-                        const pct = Number(r.percentage) || 0;
-                        return (
-                            <div key={r.rule_key} className="hub-tile hub-col cs-rule">
-                                <div>
-                                    <div className="hub-row is-between">
-                                        <span className="hub-pill tone-brand">
-                                            {label(String(r.category ?? ""), translate)}
-                                        </span>
-                                        <span className="hub-label">v{r.version}</span>
-                                    </div>
-                                    <h3 className="hub-title is-sm">{(() => { const localized = translate('portal', `rule_name_${r.rule_key}`); return localized !== `rule_name_${r.rule_key}` ? localized : r.name; })()}</h3>
-                                    <p className="hub-hint">{r.description}</p>
-                                </div>
-
-                                <div className="cs-rule-foot">
-                                    <div className="hub-row is-between">
-                                        <label>
-                                            {translate('portal','cs_allocated_pct')}
-                                        </label>
-                                        <div className="hub-inline">
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                max={dealerCap ?? 100}
-                                                step="0.5"
-                                                value={r.percentage}
-                                                onChange={e => handlePercentageChange(r.rule_key, e.target.value)}
-                                                className="cs-pct-input"
-                                            />
-                                            <span className="hub-label">%</span>
-                                        </div>
-                                    </div>
-
-                                    {/* Slider */}
-                                    <input
-                                        type="range"
-                                        min="0"
-                                        max={dealerCap ?? 100}
-                                        step="0.25"
-                                        value={pct}
-                                        onChange={e => handlePercentageChange(r.rule_key, e.target.value)}
-                                        className="cs-range"
-                                    />
-                                    {Object.entries(r.parameters??{}).filter(([key,value])=>key!=='dynamic_compression'&&(value===null||typeof value!=='object')).map(([key,value])=>{
-                                        const isAwardAmount = key.endsWith('_award_amount');
-                                        return <label key={key} className="cs-param">{paramLabel(key)}<input type={typeof value==='boolean'?'checkbox':'number'} step="0.01" min={isAwardAmount?'0':undefined} placeholder={isAwardAmount?translate('portal','cs_award_amount_not_set'):undefined} checked={typeof value==='boolean'?value:undefined} value={typeof value==='boolean'?undefined:String(value??'')} onChange={e=>setRules(prev=>({...prev,[r.rule_key]:{...prev[r.rule_key],parameters:{...prev[r.rule_key].parameters,[key]:typeof value==='boolean'?e.target.checked:e.target.value}}}))}/></label>;
-                                    })}
-                                    {r.rule_key==='car_bike_incentive'&&<p className="hub-hint">{translate('portal','cs_award_amount_hint')}</p>}
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
-
-            {/* TAB 2: LIVE SIMULATOR */}
-            {activeTab === 'simulator' && (
-                <div className="panel">
-                    <div className="cs-sim-form">
-                        <label>
-                            {translate('portal','cs_preview_purchase')}
-                        </label>
-                        <div className="cs-money">
-                            <span>৳</span>
-                            <input
-                                type="number"
-                                min="10"
-                                step="10"
-                                value={simOrderAmount}
-                                onChange={e => setSimOrderAmount(Math.max(0, Number(e.target.value) || 0))}
-                            />
-                        </div>
-                        <label>{translate('portal','cs_account')} <select value={simAccount} onChange={e=>setSimAccount(e.target.value as 'dealer'|'sub_dealer')}><option value="dealer">{translate('portal','cs_dealer')}</option><option value="sub_dealer">{translate('portal','cs_sub_dealer')}</option></select></label>
-                        <label>{translate('portal','cs_total_mrp')} <input type="number" min="0" step="0.01" value={simMrp} onChange={e=>setSimMrp(Math.max(0,Number(e.target.value)||0))}/></label>
-                        <p className={`cs-preview ${companyMrpPct===null?'tone-warn':isPreviewUnderfunded?'tone-danger':'tone-ok'}`}>{translate('portal','cs_preview_only')} {companyMrpPct===null?`${translate('portal','cs_company_retained')}: ${notSet}`:isPreviewUnderfunded?translate('portal','cs_preview_underfunded'):translate('portal','cs_preview_funded')}</p>
+            <div className="hub-grid is-xwide">
+                {Object.values(rules).length === 0 && (
+                    <div className="hub-empty hub-span-all">
+                        {translate('portal','cs_no_rules')}
                     </div>
-
-                    <div className="hub-grid is-wide">
-                        {/* Company Retained Card */}
-                        <div className="hub-tile is-soft">
-                            <div className="hub-label">{translate('portal','cs_company_retained')}</div>
-                            <div className={`hub-value${companyMrpPct === null ? ' tone-warn' : ''}`}>
-                                {companyMrpPct === null ? notSet : money(simMrp * companyMrpPct / 100)}
-                            </div>
-                            <div className="hub-hint">{companyMrpPct === null ? notSet : translate('portal','cs_of_mrp',{pct:companyMrpPct.toFixed(2)})}</div>
-                        </div>
-
-                        {/* Each of the 9 pools */}
-                        {Object.values(rules).filter(r=>r.is_active&&(baseKeys.includes(r.rule_key)||(simAccount==='sub_dealer'&&subDealerKeys.includes(r.rule_key)))).map(r => {
-                            const pct = Number(r.percentage) || 0;
-                            const amount = (simOrderAmount * (pct / 100));
-                            return (
-                                <div key={r.rule_key} className="hub-tile">
-                                    <div className="hub-tile-head">
-                                        <span className="hub-label tone-ok">{r.name}</span>
-                                        <span className="hub-label">{pct.toFixed(1)}%</span>
-                                    </div>
-                                    <div className="hub-value tone-brand">
-                                        {money(amount)}
-                                    </div>
-                                    <div className="hub-hint">{r.description}</div>
+                )}
+                {Object.values(rules).map(r => {
+                    const pct = Number(r.percentage) || 0;
+                    return (
+                        <div key={r.rule_key} className="hub-tile hub-col cs-rule">
+                            <div>
+                                <div className="hub-row is-between">
+                                    <span className="hub-pill tone-brand">
+                                        {label(String(r.category ?? ""), translate)}
+                                    </span>
+                                    <span className="hub-label">v{r.version}</span>
                                 </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
+                                <h3 className="hub-title is-sm">{(() => { const localized = translate('portal', `rule_name_${r.rule_key}`); return localized !== `rule_name_${r.rule_key}` ? localized : r.name; })()}</h3>
+                                <p className="hub-hint">{r.description}</p>
+                            </div>
+
+                            <div className="cs-rule-foot">
+                                <div className="hub-row is-between">
+                                    <label>
+                                        {translate('portal','cs_allocated_pct')}
+                                    </label>
+                                    <div className="hub-inline">
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max={dealerCap ?? 100}
+                                            step="0.5"
+                                            value={r.percentage}
+                                            onChange={e => handlePercentageChange(r.rule_key, e.target.value)}
+                                            className="cs-pct-input"
+                                        />
+                                        <span className="hub-label">%</span>
+                                    </div>
+                                </div>
+
+                                {/* Slider */}
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max={dealerCap ?? 100}
+                                    step="0.25"
+                                    value={pct}
+                                    onChange={e => handlePercentageChange(r.rule_key, e.target.value)}
+                                    className="cs-range"
+                                />
+                                {Object.entries(r.parameters??{}).filter(([key,value])=>key!=='dynamic_compression'&&(value===null||typeof value!=='object')).map(([key,value])=>{
+                                    const isAwardAmount = key.endsWith('_award_amount');
+                                    return <label key={key} className="cs-param">{paramLabel(key)}<input type={typeof value==='boolean'?'checkbox':'number'} step="0.01" min={isAwardAmount?'0':undefined} placeholder={isAwardAmount?translate('portal','cs_award_amount_not_set'):undefined} checked={typeof value==='boolean'?value:undefined} value={typeof value==='boolean'?undefined:String(value??'')} onChange={e=>setRules(prev=>({...prev,[r.rule_key]:{...prev[r.rule_key],parameters:{...prev[r.rule_key].parameters,[key]:typeof value==='boolean'?e.target.checked:e.target.value}}}))}/></label>;
+                                })}
+                                {r.rule_key==='car_bike_incentive'&&<p className="hub-hint">{translate('portal','cs_award_amount_hint')}</p>}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
         </div>
     );
 }

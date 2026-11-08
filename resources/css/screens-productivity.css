@@ -1,0 +1,16 @@
+/* Office tools: header search, saved filters, column chooser, bulk bar, review lists. */
+.global-search-trigger{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 10px;border:1px solid var(--border,#e2e8f0);border-radius:8px;background:var(--ds-surface,#fff);color:var(--muted,#64748b);font-size:12px}
+.global-search-trigger:hover{color:var(--ink,#0f172a)}
+.global-search-trigger kbd{font:inherit;font-size:10px;padding:1px 5px;border:1px solid var(--border,#e2e8f0);border-radius:4px}
+@media(max-width:760px){.global-search-trigger{width:36px;justify-content:center;padding:0}.global-search-trigger-label,.global-search-trigger kbd{display:none}}
+.global-search-layer{position:fixed;inset:0;z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:10vh 16px 16px;background:rgba(15,23,42,.45)}
+.global-search-dialog{width:100%;max-width:560px;max-height:72vh;display:flex;flex-direction:column;background:var(--ds-surface,#fff);color:var(--ink,#0f172a);border:1px solid var(--border,#e2e8f0);border-radius:12px;overflow:hidden;box-shadow:0 24px 60px rgba(15,23,42,.3)}
+.global-search-input{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border,#e2e8f0);color:var(--muted,#64748b)}
+.global-search-input input{flex:1;min-width:0;border:0;background:transparent;color:var(--ink,#0f172a);outline:0;min-height:36px;padding:0}
+.global-search-results{overflow-y:auto;padding:6px 8px 10px}
+.global-search-hint{padding:18px 10px;text-align:center;font-size:13px;color:var(--muted,#64748b)}
+.global-search-results h3{display:flex;align-items:center;gap:6px;margin:10px 8px 4px;font-size:11px;font-weight:600;letter-spacing:0;color:var(--muted,#64748b)}
+.global-search-results ul{list-style:none;margin:0;padding:0}
+.global-search-results li button{display:flex;flex-direction:column;align-items:flex-start;gap:1px;width:100%;padding:8px 10px;border-radius:7px;background:transparent;color:inherit;text-align:left;min-height:44px}
+.global-search-results li button.is-active{background:var(--ds-surface-3,#eef2f7)}
+.global-search-results li small{color:var(--muted,#64748b);font-size:11px}
