@@ -6284,4 +6284,10 @@ return [
     'event_prescriber_company_stock_removed' => 'অফিস অ্যাকাউন্টে কোম্পানির স্টক থেকে প্রেসক্রিপশন বন্ধ হয়েছে',
     'event_clinic_below_floor_override' => 'মালিক এমআরপির ৩০%-এর কমে বিক্রি নিশ্চিত করেছেন',
     'company_funds' => 'কোম্পানির ফান্ড',
+    'event_fund_spend_requested' => 'কোম্পানির ফান্ডের খরচ লেখা হয়েছে',
+    'event_fund_spend_approved' => 'কোম্পানির ফান্ডের খরচ অনুমোদন হয়েছে',
+    'event_fund_spend_rejected' => 'কোম্পানির ফান্ডের খরচ বাতিল হয়েছে',
+    'event_fund_head_created' => 'খরচের খাত যোগ হয়েছে',
+    'event_fund_head_updated' => 'খরচের খাত বদলানো হয়েছে',
+    'section_hint_company_funds' => 'কোন ফান্ডে কত টাকা আছে, কত টাকা তোলা হয়েছে আর কোন খাতে খরচ হয়েছে।',
 ];

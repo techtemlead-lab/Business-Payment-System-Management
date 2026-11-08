@@ -130,7 +130,7 @@ final class FundSpending
                 'paid_at' => $decision === 'approved' ? now() : null,
                 'updated_at' => now(),
             ]);
-            Audit::record($actor->id, 'fund.spend_'.$decision, (string) $id, ['fund' => $row->fund_key, 'amount' => (string) $row->amount, 'reason' => $reason]);
+            Audit::record($actor->id, $decision === 'approved' ? 'fund.spend_approved' : 'fund.spend_rejected', (string) $id, ['fund' => $row->fund_key, 'amount' => (string) $row->amount, 'reason' => $reason]);
         }, 3);
     }
 
