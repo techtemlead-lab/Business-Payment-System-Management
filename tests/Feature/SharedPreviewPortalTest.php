@@ -44,8 +44,9 @@ class SharedPreviewPortalTest extends TestCase
     {
         $this->onPortal('public')->get('/login')
             ->assertOk()
-            ->assertSee(PortalHost::url('sadmin', '/login'), false)
-            ->assertDontSee('/preview-portal/sadmin');
+            ->assertSee(PortalHost::url('dealer', '/login'), false)
+            ->assertDontSee(PortalHost::url('sadmin', '/login'), false)
+            ->assertDontSee('/preview-portal/dealer');
 
         $this->onPortal('public')->get('/owner/login')
             ->assertRedirect(PortalHost::url('sadmin', '/login'));
@@ -102,7 +103,7 @@ class SharedPreviewPortalTest extends TestCase
         $response = $this->preview('GET', '/login');
 
         $response->assertOk()
-            ->assertSee('Account Login')
+            ->assertSee('Dealer log in')
             ->assertSee('http://127.0.0.1:8088/login', false)
             ->assertDontSee('dealer.localhost')
             ->assertDontSee('upgrade-insecure-requests');
@@ -203,7 +204,7 @@ class SharedPreviewPortalTest extends TestCase
         return [
             'owner' => ['sadmin', 'super_admin', 'Owner log in'],
             'staff' => ['manage', 'editor', 'Staff log in'],
-            'dealer' => ['dealer', 'dealer', 'Account Login'],
+            'dealer' => ['dealer', 'dealer', 'Dealer log in'],
             'sub-dealer' => ['subdealer', 'sub_dealer', 'Sub-dealer log in'],
         ];
     }

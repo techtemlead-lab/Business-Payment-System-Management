@@ -224,7 +224,11 @@ class AuthController extends Controller
             'email' => 'required|string|max:254',
             'password' => 'required|string|max:200',
             'captcha' => 'required|string|max:20',
-        ], [], ['email' => 'e-mail, phone number, or dealer code', 'captcha' => __('auth_ui.captcha_label')]);
+        ], [], ['email' => __(match ($portal) {
+            'subdealer' => 'auth_ui.email_phone_or_subdealer_code',
+            'dealer' => 'auth_ui.email_phone_or_dealer_code',
+            default => 'auth_ui.email_or_phone',
+        }), 'captcha' => __('auth_ui.captcha_label')]);
         $identity = trim($data['email']);
         $isEmail = filter_var($identity, FILTER_VALIDATE_EMAIL) !== false;
         $phone = $isEmail ? null : PhoneIdentity::normalize($identity);
