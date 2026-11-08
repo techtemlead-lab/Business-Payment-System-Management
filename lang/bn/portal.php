@@ -1492,7 +1492,7 @@ return [
     'acct_commission_consumers' => 'যারা কমিশন পাবেন',
     'acct_direct_referral' => '১০% সরাসরি রেফারেল',
     'acct_d2d_gen2' => '২% টিম বোনাস (২য় স্তর)',
-    'acct_d2d_gen3' => '২% টিম বোনাস (৩য় স্তর)',
+    'acct_d2d_gen3' => '১% টিম বোনাস (৩য় স্তর)',
     'acct_step_contact' => '৬. যোগাযোগ',
     'acct_step_contact_hint' => 'বাংলাদেশি মোবাইল নম্বর ও ইমেইল লাগবে। মোবাইল নম্বর দিয়েই লগইন হবে।',
     'acct_mobile' => 'মোবাইল নম্বর *',
@@ -6456,6 +6456,7 @@ return [
     'flash_application_approved' => 'আবেদন অনুমোদন হয়েছে। অ্যাকাউন্ট তৈরি হয়েছে।',
     'flash_application_rejected' => 'আবেদন নামঞ্জুর করা হয়েছে।',
     'area_kpi_pool_value' => ':rate%',
+    'acct_nid_needs_permission' => 'NID নম্বর শুধু NID কাগজের অনুমতি পাওয়া স্টাফ লিখতে পারেন। এখানে জন্মনিবন্ধন ব্যবহার করুন।',
     'kyc_note_added_with_account' => 'অ্যাকাউন্ট তৈরির সময় যোগ করা হয়েছে',
     'acct_password_copy_failed' => 'কপি হয়নি। পাসওয়ার্ডটি নিজে সিলেক্ট করে কপি করুন।',
 ];

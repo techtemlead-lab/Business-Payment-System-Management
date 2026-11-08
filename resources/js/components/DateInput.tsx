@@ -147,10 +147,11 @@ export default function DateInput({
             {/* Hidden field carrying the ISO value for form submissions */}
             {name && <input type="hidden" name={name} value={isoVal} />}
 
-            {/* Native date picker used as popup calendar */}
+            {/* Native date picker used as popup calendar. It belongs to no form, so its min and max only limit the calendar and the server gives the reason in the page language. */}
             <input
                 ref={nativePickerRef}
                 type="date"
+                form="date-picker-popup"
                 tabIndex={-1}
                 aria-hidden="true"
                 className="date-native-picker"

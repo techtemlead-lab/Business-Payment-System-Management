@@ -1492,7 +1492,7 @@ return [
     'acct_commission_consumers' => 'Commission receivers',
     'acct_direct_referral' => '10% direct referral',
     'acct_d2d_gen2' => '2% team bonus, level 2',
-    'acct_d2d_gen3' => '2% team bonus, level 3',
+    'acct_d2d_gen3' => '1% team bonus, level 3',
     'acct_step_contact' => '6. Contact',
     'acct_step_contact_hint' => 'A Bangladeshi mobile number and email are required. The mobile number is used to log in.',
     'acct_mobile' => 'Mobile number *',
@@ -6456,6 +6456,7 @@ return [
     'flash_application_approved' => 'Application approved. The account has been created.',
     'flash_application_rejected' => 'Application rejected.',
     'area_kpi_pool_value' => ':rate%',
+    'acct_nid_needs_permission' => 'NID numbers can be entered only by staff with the NID papers permission. Use the birth certificate here.',
     'kyc_note_added_with_account' => 'Added with the new account',
     'acct_password_copy_failed' => 'Could not copy. Select the password and copy it by hand.',
 ];
