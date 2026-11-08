@@ -224,7 +224,7 @@ class PublicWebsiteTest extends TestCase
     public function test_home_page_presents_the_company_and_dealer_network_without_a_public_store(): void
     {
         $response = $this->get('/')->assertOk();
-        $response->assertSee('Company &amp; Partner Network', false)->assertSee('About Our Company')->assertSee('Find a Dealer');
+        $response->assertSee('Find a Dealer');
         foreach (['Natural Food, Medicine &amp; Wellness Product Shop', 'ref-home-about', 'Special Discounts', 'Add to Cart', 'Buy Now', 'data-open-cart', 'data-favorite', 'data-open-compare', 'ref-promotion-dialog', 'ref-rating-num'] as $retiredStoreElement) {
             $response->assertDontSee($retiredStoreElement, false);
         }

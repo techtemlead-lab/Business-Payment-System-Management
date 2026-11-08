@@ -4,17 +4,23 @@ import { notify } from '../../shared/notify';
 import type { CustomizationData } from './types';
 
 /**
- * Photo box for the Managing Director's message: a picture link the owner can
- * type, or a picture uploaded from the computer, with a small preview.
+ * Photo box: a picture link the owner can type, or a picture uploaded from the
+ * computer, with a small preview. The words default to the Managing Director's photo.
  */
 export function MdPhotoField({
     value,
     placeholder,
     onChange,
+    label,
+    clearLabel,
+    hint,
 }: {
     value?: string;
     placeholder?: string;
     onChange: (val: string) => void;
+    label?: string;
+    clearLabel?: string;
+    hint?: string;
 }) {
     const translate = useT();
     const [uploading, setUploading] = useState(false);
@@ -59,7 +65,7 @@ export function MdPhotoField({
 
     return (
         <div className="ed-block hub-span-all">
-            <span className="ed-label">{translate('portal', 'sce_fld_md_message_image')}</span>
+            <span className="ed-label">{label ?? translate('portal', 'sce_fld_md_message_image')}</span>
             <div className="ed-row is-top is-loose">
                 {preview ? (
                     <img src={preview} alt="" width={72} height={90} className="ed-md-photo-preview" />
@@ -89,11 +95,11 @@ export function MdPhotoField({
                         </label>
                         {value ? (
                             <button type="button" className="button small" onClick={() => onChange('')}>
-                                {translate('portal', 'sce_md_photo_use_default')}
+                                {clearLabel ?? translate('portal', 'sce_md_photo_use_default')}
                             </button>
                         ) : null}
                     </div>
-                    <small className="ed-hint ed-mt-xs">{translate('portal', 'sce_md_photo_hint')}</small>
+                    <small className="ed-hint ed-mt-xs">{hint ?? translate('portal', 'sce_md_photo_hint')}</small>
                 </div>
             </div>
         </div>

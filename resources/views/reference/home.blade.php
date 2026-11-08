@@ -15,35 +15,9 @@
     $slideAlt = fn (string $key, ?string $custom, string $fallback): string => \Illuminate\Support\Facades\Lang::has('site.'.$key)
         ? $chrome($key, $custom)
         : (filled($custom) ? (string) $custom : $fallback);
-    $bismillahText = $chrome('home_bismillah_text', $siteCustomization['home_bismillah_text'] ?? null);
 @endphp
 <main id="main" class="ref-container ref-main">
-    <section class="ref-company-intro" aria-labelledby="company-intro-title">
-        @if(filter_var($siteCustomization['home_bismillah_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN))
-        <p class="ref-bismillah"@if(\App\Support\SiteChrome::isArabic($bismillahText)) lang="ar" dir="rtl"@endif><span>{{ $bismillahText }}</span></p>
-        @endif
-        <div>
-            <span class="ref-company-eyebrow">{{ $chrome('company_intro_eyebrow', $siteCustomization['company_intro_eyebrow'] ?? null) }}</span>
-            <h1 id="company-intro-title">{{ $chrome('company_intro_title', $siteCustomization['company_intro_title'] ?? null) }}</h1>
-            <p>{{ $chrome('company_intro_body', $siteCustomization['company_intro_body'] ?? null) }}</p>
-            <div class="ref-company-intro-actions">
-                @if($publicPageEnabled['about'] ?? true)<a href="/about" class="ref-primary-button">{{ $chrome('about_our_company') }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>@endif
-                @if($publicPageEnabled['dealers'] ?? true)<a href="/dealers" class="ref-secondary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ $chrome('find_a_dealer') }}</a>@elseif($publicPageEnabled['partnership'] ?? true)<a href="/partnership" class="ref-secondary-button"><i class="fa-solid fa-handshake" aria-hidden="true"></i> {{ $chrome('become_a_partner') }}</a>@endif
-            </div>
-        </div>
-        <div class="ref-company-paths">
-            @if($publicPageEnabled['products'] ?? true)
-            <a href="/products"><i class="fa-solid fa-leaf" aria-hidden="true"></i><span><strong>{{ $chrome('product_range_title', $siteCustomization['product_range_title'] ?? null) }}</strong><small>{{ $chrome('product_range_sub', $siteCustomization['product_range_sub'] ?? null) }}</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
-            @elseif($publicPageEnabled['services'] ?? true)
-            <a href="/services"><i class="fa-solid fa-hand-holding-heart" aria-hidden="true"></i><span><strong>{{ $chrome('our_services_title', $siteCustomization['our_services_title'] ?? null) }}</strong><small>{{ $chrome('our_services_sub', $siteCustomization['our_services_sub'] ?? null) }}</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
-            @endif
-            @if($publicPageEnabled['partnership'] ?? true)
-            <a href="/partnership"><i class="fa-solid fa-handshake" aria-hidden="true"></i><span><strong>{{ $chrome('partner_with_us_title', $siteCustomization['partner_with_us_title'] ?? null) }}</strong><small>{{ $chrome('partner_with_us_sub', $siteCustomization['partner_with_us_sub'] ?? null) }}</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
-            @elseif($publicPageEnabled['contact'] ?? true)
-            <a href="/contact#vendor"><i class="fa-solid fa-handshake" aria-hidden="true"></i><span><strong>{{ $chrome('partner_with_us_title', $siteCustomization['partner_with_us_title'] ?? null) }}</strong><small>{{ $chrome('partner_with_us_sub', $siteCustomization['partner_with_us_sub'] ?? null) }}</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
-            @endif
-        </div>
-    </section>
+    @include('reference.partials.women-special')
     <section class="ref-promotions" aria-label="{{ __('site.promotional_banners') }}">
         <div class="ref-carousel ref-carousel-instance" aria-roledescription="carousel" aria-label="{{ __('site.featured_promotions') }}">
             <div class="ref-slides">
@@ -100,132 +74,7 @@
         </div>
     </section>
     <div class="ref-announcement"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i><div><span>{{ $chrome('announcement_text', $siteCustomization['announcement_text'] ?? null) }}</span></div></div>
-    @php
-        $shortcutsEnabled = filter_var($siteCustomization['shortcuts_section_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN);
-        $shortcutsList = \App\Support\SiteCustomization::getShortcuts();
-    @endphp
-    @if($shortcutsEnabled && !empty($shortcutsList))
-    <section class="ref-shortcuts" aria-label="{{ __('site.quick_links') }}">
-        @foreach($shortcutsList as $idx => $s)
-        @php
-            $icon = trim($s['icon'] ?? 'fa-circle');
-            $isImage = (bool)preg_match('/\.(png|jpe?g|svg|webp|gif)(\?.*)?$/i', $icon)
-                || str_starts_with($icon, '/')
-                || str_starts_with($icon, 'http://')
-                || str_starts_with($icon, 'https://');
-            if (!$isImage && !str_contains($icon, 'fa-solid') && !str_contains($icon, 'fa-brands') && !str_contains($icon, 'fa-regular')) {
-                if (!str_starts_with($icon, 'fa-')) {
-                    $icon = 'fa-' . $icon;
-                }
-                $icon = 'fa-solid ' . $icon;
-            }
-            $n = $idx + 1;
-            $title = $chrome('shortcut'.$n.'_title', filled($s['title'] ?? null) ? $s['title'] : null);
-            $subtitle = filled($s['subtitle'] ?? null) ? $chrome('shortcut'.$n.'_subtitle', $s['subtitle']) : '';
-        @endphp
-        <a href="{{ $s['link'] ?: '#' }}">
-            @if($isImage)
-                <img src="{{ $icon }}" alt="{{ $title }}" style="width: 32px; height: 32px; object-fit: contain;" />
-            @else
-                <i class="{{ $icon }}" aria-hidden="true"></i>
-            @endif
-            <div>
-                <h3>{{ $title }}</h3>
-                @if($subtitle !== '')<p>{{ $subtitle }}</p>@endif
-            </div>
-        </a>
-        @endforeach
-    </section>
-    @endif
-
-    {{-- Core Brand Promises & Trust Pillars Strip (Admin-controlled toggle) --}}
-    @php
-        $trustPillars = \App\Support\SiteCustomization::getTrustPillars();
-    @endphp
-    @if(!empty($trustPillars))
-    <section class="ref-trust-pillars ref-deferred-paint" aria-label="{{ $chrome('trust_pillars_title', $siteCustomization['trust_pillars_title'] ?? null) }}">
-        <div class="ref-trust-pillars-inner">
-            @foreach($trustPillars as $idx => $pillar)
-            @php
-                $n = $idx + 1;
-                $title = $chrome('trust_pillar'.$n.'_title', filled($pillar['title'] ?? null) ? $pillar['title'] : null);
-                $subtitle = filled($pillar['subtitle'] ?? null) ? $chrome('trust_pillar'.$n.'_subtitle', $pillar['subtitle']) : '';
-            @endphp
-            <div class="ref-trust-pillar-card">
-                <div class="ref-trust-pillar-icon" aria-hidden="true">
-                    <i class="fa-solid {{ $pillar['icon'] ?? 'fa-leaf' }}"></i>
-                </div>
-                <div class="ref-trust-pillar-content">
-                    <h3 class="ref-trust-pillar-title">{{ $title }}</h3>
-                    @if($subtitle !== '')
-                    <p class="ref-trust-pillar-subtitle">{{ $subtitle }}</p>
-                    @endif
-                </div>
-            </div>
-            @endforeach
-        </div>
-    </section>
-    @endif
-    @php
-        $categoriesEnabled = ($publicPageEnabled['products'] ?? true) && filter_var($siteCustomization['featured_categories_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN);
-        $categoriesList = \App\Support\SiteCustomization::getFeaturedCategories();
-    @endphp
-    @if($categoriesEnabled && !empty($categoriesList))
-    <section class="ref-featured-categories" aria-label="{{ $chrome('featured_categories_title') }}">
-        <div class="ref-section-title">
-            <h2>{{ $chrome('featured_categories_title', $siteCustomization['featured_categories_title'] ?? null) }}</h2>
-            <p>{{ $chrome('featured_categories_subtitle', $siteCustomization['featured_categories_subtitle'] ?? null) }}</p>
-        </div>
-        <div class="ref-category-grid is-collapsed" id="refCategoryGrid">
-            @foreach($categoriesList as $cat)
-                @php
-                    $badgeClass = !empty($cat['badge']) ? strtolower(trim($cat['badge'])) : '';
-                @endphp
-                <a href="{{ $cat['link'] }}">
-                    @if(!empty($cat['badge']))
-                        <span class="ref-cat-pill-badge {{ $badgeClass }}">{{ $cat['badge'] }}</span>
-                    @endif
-                    <div class="ref-cat-icon-wrap">
-                        @if(!empty($cat['is_image']))
-                            <img src="{{ $cat['image'] }}" alt="{{ $cat['name'] }}" loading="lazy" width="28" height="28" decoding="async">
-                        @else
-                            {{-- Always generate a category glyph when admin did not upload an image. --}}
-                            @include('reference.partials.category-auto-icon', ['name' => $cat['name']])
-                        @endif
-                    </div>
-                    <span class="ref-cat-name">{{ $cat['name'] }}</span>
-                </a>
-            @endforeach
-        </div>
-        @if(count($categoriesList) > 8)
-        <div class="ref-cat-expand-wrap">
-            <button type="button" class="ref-cat-toggle-btn" id="refCatToggleBtn" aria-expanded="false">
-                <span>{{ __('site.view_all_categories', ['count' => \App\Support\LocalDigits::text(count($categoriesList))]) }}</span>
-                <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
-            </button>
-        </div>
-        <script @if($cspNonce = request()?->attributes?->get('csp_nonce')) nonce="{{ $cspNonce }}" @endif>
-        (function() {
-            var btn = document.getElementById('refCatToggleBtn');
-            var grid = document.getElementById('refCategoryGrid');
-            var moreLabel = @json(__('site.view_all_categories', ['count' => \App\Support\LocalDigits::text(count($categoriesList))]));
-            var fewerLabel = @json(__('site.show_fewer_categories'));
-            if (btn && grid) {
-                btn.addEventListener('click', function() {
-                    var collapsed = grid.classList.toggle('is-collapsed');
-                    btn.setAttribute('aria-expanded', !collapsed);
-                    if (collapsed) {
-                        btn.innerHTML = '<span>' + moreLabel + '</span> <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>';
-                    } else {
-                        btn.innerHTML = '<span>' + fewerLabel + '</span> <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>';
-                    }
-                });
-            }
-        })();
-        </script>
-        @endif
-    </section>
-    @endif
+    @include('reference.partials.md-message', ['placement' => 'home'])
     @if($publicPageEnabled['dealers'] ?? true)
     <section class="ref-dealer-network-banner" aria-label="{{ $chrome('dealer_banner_title') }}">
         <div class="ref-dealer-banner-inner">
@@ -359,8 +208,6 @@
         </div>
     </section>
     @endif
-
-    @include('reference.partials.md-message', ['placement' => 'home'])
 
     {{-- Customer & Partner Testimonials Section (Admin-controlled toggle) --}}
     @php

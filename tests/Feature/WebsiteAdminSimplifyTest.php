@@ -22,12 +22,12 @@ class WebsiteAdminSimplifyTest extends TestCase
     /** Every box the old 5,143-line editor showed, by its stored setting name. */
     private const OldEditorBoxes = [
         'featured_products_badge', 'featured_products_title', 'public_products_subtitle', 'featured_products_view_all', 'featured_products_view_all_link', 'products_empty_title',
-        'top_bar_text', 'search_placeholder', 'header_catalog_title', 'header_about_title', 'header_about_subtitle', 'header_contact_title', 'header_contact_subtitle', 'header_network_title', 'header_account_title', 'header_account_subtitle',
-        'featured_categories_title', 'featured_categories_subtitle', 'announcement_text', 'dealer_banner_title', 'dealer_banner_subtitle', 'dealer_banner_btn_text',
+        'top_bar_text', 'search_placeholder', 'header_catalog_title', 'header_about_title', 'header_contact_title', 'header_network_title', 'header_account_title', 'header_account_subtitle',
+        'announcement_text', 'dealer_banner_title', 'dealer_banner_subtitle', 'dealer_banner_btn_text',
         'catalog_categories_title', 'catalog_all_products_label', 'catalog_price_title', 'catalog_instock_label', 'catalog_apply_filters_btn', 'catalog_clear_filters_btn', 'catalog_sort_by_label', 'catalog_empty_title', 'catalog_empty_desc', 'catalog_empty_btn',
         'product_in_stock_label', 'product_out_of_stock_label', 'product_share_label', 'product_video_title', 'product_tab_description', 'product_tab_specification',
-        'company_intro_title', 'company_intro_body', 'company_intro_eyebrow', 'home_bismillah_text', 'product_range_title', 'product_range_sub', 'partner_with_us_title', 'partner_with_us_sub', 'our_services_title', 'our_services_sub',
-        'trust_pillars_title', 'video_gallery_title', 'video_gallery_subtitle', 'testimonials_title', 'testimonials_subtitle', 'testimonials_invite_title', 'testimonials_invite_body', 'feedback_page_title', 'feedback_page_lead',
+        'home_bismillah_text', 'women_special_title', 'women_special_body', 'women_special_button', 'women_special_link',
+        'video_gallery_title', 'video_gallery_subtitle', 'testimonials_title', 'testimonials_subtitle', 'testimonials_invite_title', 'testimonials_invite_body', 'feedback_page_title', 'feedback_page_lead',
         'about_hero_title', 'about_hero_lead', 'about_history_title', 'about_history', 'about_mission_title', 'about_mission', 'about_vision_title', 'about_vision', 'about_objectives_title',
         'about_obj1_title', 'about_obj1_desc', 'about_obj2_title', 'about_obj2_desc', 'about_obj3_title', 'about_obj3_desc', 'about_obj4_title', 'about_obj4_desc', 'about_network_title', 'about_network', 'about_btn_products', 'about_btn_dealers', 'about_btn_contact',
         'md_message_heading', 'md_message_heading_bn', 'md_message_name', 'md_message_name_bn', 'md_message_title', 'md_message_title_bn', 'md_message_company', 'md_message_company_bn', 'md_message_body', 'md_message_body_bn',
@@ -41,6 +41,13 @@ class WebsiteAdminSimplifyTest extends TestCase
         'footer_about_heading', 'footer_link_about', 'footer_link_about_url', 'footer_link_contact', 'footer_link_contact_url', 'footer_link_dealer_apply', 'footer_link_dealer_apply_url', 'footer_stay_connected_heading', 'footer_logo_url', 'footer_about_title', 'footer_about_desc',
         'social_facebook', 'social_youtube', 'social_linkedin', 'social_instagram', 'social_whatsapp', 'whatsapp_link', 'social_twitter', 'social_tiktok', 'social_telegram', 'app_google_play_link', 'app_apple_store_link',
         'copyright_text', 'copyright_text_bn', 'notice_empty', 'notice_empty_bn', 'floating_chat_label', 'auth_login_title', 'auth_login_subtitle', 'auth_dealer_help_text', 'auth_dealer_contact_text', 'partner_help_title', 'partner_help_body',
+    ];
+
+    /** Boxes for home page parts the owner removed. Saved values stay, in case they are wanted again. */
+    private const RetiredEditorBoxes = [
+        'header_about_subtitle', 'header_contact_subtitle', 'featured_categories_title', 'featured_categories_subtitle',
+        'company_intro_title', 'company_intro_body', 'company_intro_eyebrow', 'product_range_title', 'product_range_sub',
+        'partner_with_us_title', 'partner_with_us_sub', 'our_services_title', 'our_services_sub', 'trust_pillars_title',
     ];
 
     /** Settings that other parts of the page change with buttons or lists. */
@@ -96,11 +103,20 @@ class WebsiteAdminSimplifyTest extends TestCase
         }
     }
 
+    public function test_boxes_for_removed_home_page_parts_are_gone_from_the_editor(): void
+    {
+        $source = $this->websitePageSource();
+
+        foreach (self::RetiredEditorBoxes as $key) {
+            $this->assertStringNotContainsString("fieldKey=\"{$key}\"", $source, "The box for {$key} should be gone.");
+        }
+    }
+
     public function test_every_box_starts_from_what_is_saved(): void
     {
         $startingValues = file_get_contents(resource_path('js/components/website/initialCustomization.ts'));
 
-        foreach ([...self::OldEditorBoxes, ...self::OldEditorSwitchesAndLists, ...$this->numberedBoxes()] as $key) {
+        foreach ([...self::OldEditorBoxes, ...self::RetiredEditorBoxes, ...self::OldEditorSwitchesAndLists, ...$this->numberedBoxes()] as $key) {
             $this->assertMatchesRegularExpression('/^\s+'.preg_quote($key, '/').':/m', $startingValues, "{$key} does not start from its saved value.");
         }
     }
@@ -109,7 +125,7 @@ class WebsiteAdminSimplifyTest extends TestCase
     {
         $storedNames = array_keys(SiteCustomization::defaults());
 
-        foreach ([...self::OldEditorBoxes, ...self::OldEditorSwitchesAndLists, ...$this->numberedBoxes()] as $key) {
+        foreach ([...self::OldEditorBoxes, ...self::RetiredEditorBoxes, ...self::OldEditorSwitchesAndLists, ...$this->numberedBoxes()] as $key) {
             $this->assertContains($key, $storedNames, "{$key} is not a stored setting.");
         }
     }

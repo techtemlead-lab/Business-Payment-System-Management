@@ -15,7 +15,7 @@
     $displayMrp = \App\Support\LocalDigits::text(number_format($mrp, $mrp === floor($mrp) ? 0 : 2));
     $isFeatured = !empty($item['featured']);
 @endphp
-<article class="ref-product-card luxury-product-card"
+<article class="ref-product-card"
     data-category="{{ $catSlug }}"
     data-id="{{ $item['id'] }}"
     data-name="{{ $item['name'] }}"
@@ -26,91 +26,36 @@
     data-desc="{{ $item['description'] ?? '' }}"
     data-url="{{ $item['url'] }}">
 
-    {{-- Botanical Watercolor Corner Flourishes --}}
-    <div class="luxury-card-botanical-bg" aria-hidden="true">
-        <svg class="flourish-tl" viewBox="0 0 140 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M-5 10C25 35 45 75 40 120C38 135 30 145 20 155" stroke="#7a9775" stroke-width="1.2" stroke-linecap="round" opacity="0.45" />
-            <path d="M25 45C42 35 52 48 45 60C38 72 22 60 25 45Z" fill="#8ca886" opacity="0.45" />
-            <path d="M38 85C55 75 65 90 58 100C50 110 35 98 38 85Z" fill="#7d9b78" opacity="0.4" />
-            <circle cx="32" cy="40" r="3.5" fill="#fdfcf7" stroke="#b2c6af" stroke-width="0.8" />
-        </svg>
-        <svg class="flourish-br" viewBox="0 0 200 220" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M195 215C165 175 145 125 155 65C160 35 175 15 195 0" stroke="#7a9775" stroke-width="1.4" stroke-linecap="round" opacity="0.55" />
-            <path d="M148 95C128 80 115 95 125 110C135 125 152 110 148 95Z" fill="#8ca886" opacity="0.45" />
-            <path d="M168 55C148 42 138 56 148 70C158 82 172 68 168 55Z" fill="#7d9b78" opacity="0.5" />
-            <path d="M178 135C155 128 145 148 160 160C175 170 190 150 178 135Z" fill="#9db898" opacity="0.4" />
-            <circle cx="132" cy="85" r="4" fill="#fdfcf7" stroke="#b2c6af" stroke-width="1" />
-            <circle cx="162" cy="125" r="3.5" fill="#fdfcf7" stroke="#b2c6af" stroke-width="1" />
-            <circle cx="142" cy="45" r="4" fill="#fdfcf7" stroke="#b2c6af" stroke-width="1" />
-        </svg>
-    </div>
-
-    {{-- Card Header: Category Badge & Featured Ribbon --}}
-    <div class="luxury-card-header">
-        <div class="luxury-category-pill">
-            <span>{{ $catName }}</span>
-            <span style="font-size: 13px;" aria-hidden="true">🌿</span>
-        </div>
-        @if($isFeatured)
-            <div class="luxury-featured-ribbon">
-                <span>★</span>
-                <span>{{ __('site.featured') }}</span>
-            </div>
+    {{-- The picture stands alone on a bright panel: no shadow, overlay or badge on top of it. --}}
+    <a class="ref-card-picture{{ $hasCustomImage ? '' : ' is-stock' }}" href="{{ $item['url'] }}" aria-label="{{ $item['name'] }}">
+        @if($hasCustomImage)
+            <img src="{{ $imageSrc }}" alt="{{ $item['name'] }}" loading="lazy" decoding="async">
+        @else
+            <img src="{{ $stockImage['url'] }}" alt="{{ $stockImage['alt'] }}" width="{{ $stockImage['width'] }}" height="{{ $stockImage['height'] }}" loading="lazy" decoding="async">
         @endif
-    </div>
+    </a>
+    @unless($hasCustomImage)
+        <p class="ref-card-note">{{ $stockImage['caption'] }}</p>
+    @endunless
 
-    {{-- Hero Showcase Stage: Arched Halo & 3D Marble Pedestal --}}
-    <div class="luxury-hero-stage">
-        <div class="luxury-arched-halo" aria-hidden="true"></div>
-        <div class="luxury-marble-pedestal" aria-hidden="true">
-            <div class="pedestal-shadow"></div>
-            <div class="pedestal-base"></div>
-            <div class="pedestal-top"></div>
-        </div>
-
-        <div class="luxury-product-showcase">
-            @if($hasCustomImage)
-                <a href="{{ $item['url'] }}" aria-label="{{ $item['name'] }}">
-                    <img class="luxury-product-img" src="{{ $imageSrc }}" alt="{{ $item['name'] }}" loading="lazy">
-                </a>
-            @else
-                <a href="{{ $item['url'] }}" class="stock-image-frame" aria-label="{{ $item['name'] }}">
-                    <img src="{{ $stockImage['url'] }}" alt="{{ $stockImage['alt'] }}" width="{{ $stockImage['width'] }}" height="{{ $stockImage['height'] }}" loading="lazy" decoding="async">
-                    <span class="stock-image-caption">{{ $stockImage['caption'] }}</span>
-                </a>
+    <div class="ref-card-body">
+        <div class="ref-card-meta">
+            <span class="ref-card-category">{{ $catName }}</span>
+            @if($isFeatured)
+                <span class="ref-card-flag"><i class="fa-solid fa-star" aria-hidden="true"></i> {{ __('site.featured') }}</span>
             @endif
         </div>
-    </div>
 
-    {{-- Content & Typography Section --}}
-    <div class="luxury-card-body">
-        <h3 class="luxury-product-title">
-            <a href="{{ $item['url'] }}">{{ $item['name'] }}</a>
-        </h3>
+        <h3 class="ref-card-title"><a href="{{ $item['url'] }}">{{ $item['name'] }}</a></h3>
 
-        {{-- Pricing Block --}}
-        <div class="luxury-price-block">
-            <div class="luxury-price-val">
-                <span class="currency">৳</span>
-                <span>{{ $displayMrp }}</span>
+        <div class="ref-card-price-row">
+            <div class="ref-card-price">
+                <strong>৳ {{ $displayMrp }}</strong>
+                <small>{{ __('site.mrp') }} ({{ __('site.retail_price') }})</small>
             </div>
-            <div class="luxury-price-label">{{ __('site.mrp') }} ({{ __('site.retail_price') }})</div>
+            <span class="ref-card-stock {{ $inStock ? 'is-in' : 'is-out' }}">{{ $stockLabel }}</span>
         </div>
 
-        {{-- Action Row --}}
-        <div class="luxury-action-row">
-            <div class="luxury-action-left">
-                <a class="luxury-btn-details" href="{{ $item['url'] }}">
-                    {{ __('site.view_product_details') }}
-                </a>
-            </div>
-
-            <div class="luxury-action-right">
-                <span class="luxury-status-caption">
-                    <span class="ref-stock-dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:{{ $inStock ? '#16a34a' : '#dc2626' }};margin-right:4px;"></span>
-                    {{ $stockLabel }}
-                </span>
-            </div>
-        </div>
+        <a class="ref-card-cta" href="{{ $item['url'] }}">{{ __('site.view_product_details') }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
     </div>
 </article>

@@ -3,12 +3,11 @@ import { CategoryManager } from '../CategoryManager';
 import { FeaturedProductsManager } from '../FeaturedProductsManager';
 import { HeaderNavCategoriesManager } from '../HeaderNavCategoriesManager';
 import { MobileSearchCategoriesManager } from '../MobileSearchCategoriesManager';
-import { ShortcutsManager } from '../ShortcutsManager';
-import { Field } from '../formFields';
+import { Field, MdPhotoField } from '../formFields';
 import { WebsiteGroup, WebsiteSection, WebsiteToolLink, type WebsiteSectionProps } from '../WebsiteLayout';
 import { useT } from '../../../shared/i18n/t';
 
-export default function HomePageSection({ form, defaults, products, updateField, updateSlide, updateSideSlide, updateShortcuts }: WebsiteSectionProps) {
+export default function HomePageSection({ form, defaults, products, updateField, updateSlide, updateSideSlide }: WebsiteSectionProps) {
     const translate = useT();
     return (
         <WebsiteSection id="home" title={translate('website_admin', 'section_home')} hint={translate('website_admin', 'section_home_hint')}>
@@ -19,10 +18,8 @@ export default function HomePageSection({ form, defaults, products, updateField,
                                 <Field label={translate('portal', 'sce_f_catalog_link')} fieldKey="header_catalog_title" value={form.data.customization.header_catalog_title} placeholder={defaults.header_catalog_title} onChange={updateField} />
                                 
                                 <Field label={translate('portal', 'sce_f_about_link_title')} fieldKey="header_about_title" value={form.data.customization.header_about_title} placeholder={defaults.header_about_title} onChange={updateField} />
-                                <Field label={translate('portal', 'sce_f_about_link_subtitle')} fieldKey="header_about_subtitle" value={form.data.customization.header_about_subtitle} placeholder={defaults.header_about_subtitle} onChange={updateField} />
                                 
                                 <Field label={translate('portal', 'sce_f_contact_link_title')} fieldKey="header_contact_title" value={form.data.customization.header_contact_title} placeholder={defaults.header_contact_title} onChange={updateField} />
-                                <Field label={translate('portal', 'sce_f_contact_link_subtitle')} fieldKey="header_contact_subtitle" value={form.data.customization.header_contact_subtitle} placeholder={defaults.header_contact_subtitle} onChange={updateField} />
 
                                 <Field label={translate('portal', 'sce_f_network_link_title')} fieldKey="header_network_title" value={form.data.customization.header_network_title} placeholder={defaults.header_network_title} onChange={updateField} />
 
@@ -45,6 +42,50 @@ export default function HomePageSection({ form, defaults, products, updateField,
                                     onChange={newVal => updateField('nav_categories', newVal)}
                                     featuredCategoriesRaw={form.data.customization.featured_categories_items || defaults.featured_categories_items || ''}
                                     products={products}
+                                />
+                            </div>
+        </WebsiteGroup>
+
+        <WebsiteGroup title={translate('website_admin', 'group_bismillah')}>
+                            <div className="form-grid ed-grid ed-mb-lg">
+                                <Field label={translate('portal', 'sce_fld_home_bismillah')} fieldKey="home_bismillah_text" value={form.data.customization.home_bismillah_text} placeholder={defaults.home_bismillah_text} onChange={updateField} />
+                                <div>
+                                    <p className="ed-desc is-sm">{translate('portal', 'sce_home_bismillah_hint')}</p>
+                                    <button
+                                        type="button"
+                                        className={`button small ${form.data.customization.home_bismillah_enabled !== '0' ? 'dark' : ''}`}
+                                        aria-pressed={form.data.customization.home_bismillah_enabled !== '0'}
+                                        onClick={() => updateField('home_bismillah_enabled', form.data.customization.home_bismillah_enabled !== '0' ? '0' : '1')}
+                                    >
+                                        {form.data.customization.home_bismillah_enabled !== '0' ? `✓ ${translate('portal', 'sce_status_on')}` : `✕ ${translate('portal', 'sce_status_off')}`}
+                                    </button>
+                                </div>
+                            </div>
+        </WebsiteGroup>
+
+        <WebsiteGroup title={translate('website_admin', 'group_women_special')}>
+                            <div className="ed-head ed-mb">
+                                <p className="ed-desc is-sm">{translate('website_admin', 'women_special_hint')}</p>
+                                <button
+                                    type="button"
+                                    className={`button small ${form.data.customization.women_special_enabled !== '0' ? 'dark' : ''}`}
+                                    aria-pressed={form.data.customization.women_special_enabled !== '0'}
+                                    onClick={() => updateField('women_special_enabled', form.data.customization.women_special_enabled !== '0' ? '0' : '1')}
+                                >
+                                    {form.data.customization.women_special_enabled !== '0' ? `✓ ${translate('portal', 'sce_status_on')}` : `✕ ${translate('portal', 'sce_status_off')}`}
+                                </button>
+                            </div>
+                            <div className="form-grid ed-grid ed-mb-lg">
+                                <Field label={translate('website_admin', 'field_women_special_title')} fieldKey="women_special_title" value={form.data.customization.women_special_title} placeholder={defaults.women_special_title} onChange={updateField} />
+                                <Field label={translate('website_admin', 'field_women_special_button')} fieldKey="women_special_button" value={form.data.customization.women_special_button} placeholder={defaults.women_special_button} onChange={updateField} />
+                                <Field label={translate('website_admin', 'field_women_special_body')} fieldKey="women_special_body" value={form.data.customization.women_special_body} placeholder={defaults.women_special_body} onChange={updateField} multiline rows={2} span2 />
+                                <Field label={translate('website_admin', 'field_women_special_link')} fieldKey="women_special_link" value={form.data.customization.women_special_link} placeholder={defaults.women_special_link} onChange={updateField} span2 />
+                                <MdPhotoField
+                                    value={form.data.customization.women_special_image}
+                                    onChange={val => updateField('women_special_image', val)}
+                                    label={translate('website_admin', 'field_women_special_image')}
+                                    clearLabel={translate('website_admin', 'women_special_picture_remove')}
+                                    hint={translate('website_admin', 'women_special_picture_hint')}
                                 />
                             </div>
         </WebsiteGroup>
@@ -203,72 +244,9 @@ export default function HomePageSection({ form, defaults, products, updateField,
                             </div>
         </WebsiteGroup>
 
-        <WebsiteGroup title={translate('portal', 'cms_tab_shortcuts')}>
-                        <ShortcutsManager
-                            shortcuts={form.data.customization.shortcuts || []}
-                            defaultShortcuts={defaults.shortcuts || []}
-                            enabled={form.data.customization.shortcuts_section_enabled !== '0'}
-                            onToggleEnabled={val => updateField('shortcuts_section_enabled', val ? '1' : '0')}
-                            onChange={updateShortcuts}
-                        />
-        </WebsiteGroup>
-
-        <WebsiteGroup title={translate('portal', 'sce_featured_categories_grid_heading')}>
+        <WebsiteGroup title={translate('website_admin', 'group_category_list')}>
                             <div className="ed-divided">
-                                <div className="ed-head">
-                                    <div>
-                                        <p className="ed-desc">
-                                            {translate('portal', 'sce_featured_categories_grid_hint')}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {/* Section Visibility Master Control */}
-                                <div className={`ed-switch-banner${form.data.customization.featured_categories_enabled !== '0' ? ' is-on tone-ok' : ''}`}>
-                                    <div className="ed-row is-loose is-top">
-                                        <div className="ed-switch-icon">
-                                            {form.data.customization.featured_categories_enabled !== '0' ? '✓' : '✕'}
-                                        </div>
-                                        <div>
-                                            <div className="ed-row">
-                                                <strong className="ed-strong is-lg">
-                                                    {translate('portal', 'sce_featured_categories_section_status', {
-                                                        state: form.data.customization.featured_categories_enabled !== '0'
-                                                            ? translate('portal', 'sce_section_active_visible')
-                                                            : translate('portal', 'sce_section_hidden'),
-                                                    })}
-                                                </strong>
-                                                <span className="ed-state-pill">
-                                                    {form.data.customization.featured_categories_enabled !== '0'
-                                                        ? translate('portal', 'sce_enabled')
-                                                        : translate('portal', 'sce_disabled')}
-                                                </span>
-                                            </div>
-                                            <p className="ed-desc">
-                                                {form.data.customization.featured_categories_enabled !== '0'
-                                                    ? translate('portal', 'sce_featured_categories_enabled_hint')
-                                                    : translate('portal', 'sce_featured_categories_disabled_hint')}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <button
-                                            type="button"
-                                            onClick={() => updateField('featured_categories_enabled', form.data.customization.featured_categories_enabled !== '0' ? '0' : '1')}
-                                            className={`button ${form.data.customization.featured_categories_enabled !== '0' ? 'danger' : 'dark'}`}
-                                        >
-                                            {form.data.customization.featured_categories_enabled !== '0'
-                                                ? translate('portal', 'sce_disable_hide_section')
-                                                : translate('portal', 'sce_enable_show_section')}
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className="form-grid ed-grid ed-mb">
-                                    <Field label={translate('portal', 'sce_f_section_heading')} fieldKey="featured_categories_title" value={form.data.customization.featured_categories_title} placeholder={defaults.featured_categories_title} onChange={updateField} />
-                                    <Field label={translate('portal', 'sce_f_section_subtitle')} fieldKey="featured_categories_subtitle" value={form.data.customization.featured_categories_subtitle} placeholder={defaults.featured_categories_subtitle} onChange={updateField} />
-                                </div>
-
+                                <p className="ed-desc">{translate('website_admin', 'category_list_hint')}</p>
                                 <CategoryManager
                                     value={form.data.customization.featured_categories_items}
                                     defaultValue={defaults.featured_categories_items}
@@ -296,57 +274,9 @@ export default function HomePageSection({ form, defaults, products, updateField,
                             />
         </WebsiteGroup>
 
-        <WebsiteGroup title={translate('portal', 'sce_company_intro_heading')}>
-                            <div className="form-grid ed-grid ed-mb-lg">
-                                <Field label={translate('portal', 'sce_f_intro_title')} fieldKey="company_intro_title" value={form.data.customization.company_intro_title} placeholder={defaults.company_intro_title} onChange={updateField} />
-                                <Field label={translate('portal', 'sce_f_intro_text')} fieldKey="company_intro_body" value={form.data.customization.company_intro_body} placeholder={defaults.company_intro_body} onChange={updateField} multiline rows={3} span2 />
-                                <Field label={translate('portal', 'sce_fld_company_intro_eyebrow')} fieldKey="company_intro_eyebrow" value={form.data.customization.company_intro_eyebrow} placeholder={defaults.company_intro_eyebrow} onChange={updateField} />
-                                <Field label={translate('portal', 'sce_fld_home_bismillah')} fieldKey="home_bismillah_text" value={form.data.customization.home_bismillah_text} placeholder={defaults.home_bismillah_text} onChange={updateField} />
-                                <div>
-                                    <p className="ed-desc is-sm">{translate('portal', 'sce_home_bismillah_hint')}</p>
-                                    <button
-                                        type="button"
-                                        className={`button small ${form.data.customization.home_bismillah_enabled !== '0' ? 'dark' : ''}`}
-                                        aria-pressed={form.data.customization.home_bismillah_enabled !== '0'}
-                                        onClick={() => updateField('home_bismillah_enabled', form.data.customization.home_bismillah_enabled !== '0' ? '0' : '1')}
-                                    >
-                                        {form.data.customization.home_bismillah_enabled !== '0' ? `✓ ${translate('portal', 'sce_status_on')}` : `✕ ${translate('portal', 'sce_status_off')}`}
-                                    </button>
-                                </div>
-                                <Field label={translate('portal', 'sce_fld_product_range_title')} fieldKey="product_range_title" value={form.data.customization.product_range_title} placeholder={defaults.product_range_title} onChange={updateField} />
-                                <Field label={translate('portal', 'sce_fld_product_range_sub')} fieldKey="product_range_sub" value={form.data.customization.product_range_sub} placeholder={defaults.product_range_sub} onChange={updateField} />
-                                <Field label={translate('portal', 'sce_fld_partner_with_us_title')} fieldKey="partner_with_us_title" value={form.data.customization.partner_with_us_title} placeholder={defaults.partner_with_us_title} onChange={updateField} />
-                                <Field label={translate('portal', 'sce_fld_partner_with_us_sub')} fieldKey="partner_with_us_sub" value={form.data.customization.partner_with_us_sub} placeholder={defaults.partner_with_us_sub} onChange={updateField} />
-                                <Field label={translate('portal', 'sce_fld_our_services_title')} fieldKey="our_services_title" value={form.data.customization.our_services_title} placeholder={defaults.our_services_title} onChange={updateField} />
-                                <Field label={translate('portal', 'sce_fld_our_services_sub')} fieldKey="our_services_sub" value={form.data.customization.our_services_sub} placeholder={defaults.our_services_sub} onChange={updateField} />
-                            </div>
-        </WebsiteGroup>
-
-        <WebsiteGroup title={translate('website_admin', 'group_trust_testimonials')}>
+        <WebsiteGroup title={translate('website_admin', 'group_customer_reviews')}>
                             <div className="ed-card is-soft is-lg ed-mb-lg">
-                                <p className="ed-desc ed-mb">
-                                    {translate('portal', 'sce_brand_trust_sections_hint')}
-                                </p>
-
-                                {/* 1. Core Brand Commitments & Trust Pillars */}
-                                <div className="ed-card ed-mb">
-                                    <div className="ed-head">
-                                        <div>
-                                            <strong className="ed-strong">{translate('website_admin', 'trust_pillars_heading')}</strong>
-                                            <p className="ed-desc is-sm">{translate('portal', 'sce_trust_pillars_hint')}</p>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            className={`button small ${form.data.customization.trust_pillars_enabled !== '0' ? 'dark' : ''}`}
-                                            onClick={() => updateField('trust_pillars_enabled', form.data.customization.trust_pillars_enabled !== '0' ? '0' : '1')}
-                                        >
-                                            {form.data.customization.trust_pillars_enabled !== '0' ? `✓ ${translate('portal', 'sce_status_on')}` : `✕ ${translate('portal', 'sce_status_off')}`}
-                                        </button>
-                                    </div>
-                                    <Field label={translate('portal', 'sce_f_trust_title')} fieldKey="trust_pillars_title" value={form.data.customization.trust_pillars_title} placeholder={defaults.trust_pillars_title} onChange={updateField} />
-                                </div>
-
-                                {/* 3. Customer & Partner Testimonials */}
+                                {/* Customer & Partner Testimonials */}
                                 <div className="ed-card">
                                     <div className="ed-head">
                                         <div>

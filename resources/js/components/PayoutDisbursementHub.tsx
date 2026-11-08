@@ -107,7 +107,9 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
     const [accountNumber, setAccountNumber] = useState('');
     const [walletNumber, setWalletNumber] = useState('');
     const [receivedBy, setReceivedBy] = useState('');
+    const [paymentAccountId, setPaymentAccountId] = useState('');
     const isCash = payoutMethod === 'cash';
+    const payoutAccounts: Array<{ id: number; label: string; channel: string; is_active: boolean; pays_out: boolean }> = (pageData?.payment_accounts ?? []).filter((account: { is_active: boolean; pays_out: boolean }) => account.is_active && account.pays_out);
 
     const records = withdrawals?.data ?? [];
 
@@ -163,6 +165,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
         setAccountNumber('');
         setWalletNumber('');
         setReceivedBy('');
+        setPaymentAccountId(payoutAccounts.length === 1 ? String(payoutAccounts[0].id) : '');
         setConfirmedAlone(false);
     };
 
@@ -174,6 +177,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
         if (receiptFile) formData.append('receipt', receiptFile);
         if (paysAlone) formData.append('self_approve', confirmedAlone ? '1' : '0');
         formData.append('method', payoutMethod);
+        if (!isCash && paymentAccountId) formData.append('payment_account_id', paymentAccountId);
         formData.append('payment_reference', paymentReference);
         if (payoutMethod === 'bank' || payoutMethod === 'other') {
             formData.append('bank_name', bankName);
@@ -597,6 +601,18 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
                                     ))}
                                 </select>
                             </div>
+
+                            {!isCash && payoutAccounts.length > 0 && (
+                                <div className="hub-field">
+                                    <label htmlFor="payout-company-account">{translate('portal', 'wd_payout_account')}</label>
+                                    <select id="payout-company-account" required value={paymentAccountId} onChange={(e) => setPaymentAccountId(e.target.value)}>
+                                        <option value="">{translate('portal', 'wd_choose_account')}</option>
+                                        {payoutAccounts.map((account) => (
+                                            <option key={account.id} value={account.id}>{account.label} · {account.channel}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
 
                             {(payoutMethod === 'bank' || payoutMethod === 'other') && (
                                 <>

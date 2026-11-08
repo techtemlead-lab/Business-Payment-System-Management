@@ -19,6 +19,19 @@ use Illuminate\Validation\ValidationException;
 
 class ManualPayoutService
 {
+    /**
+     * Whether the person viewing may record this approved payment: 'alone' when they approved
+     * it themselves and nobody else could pay, 'second_person' when someone else must, otherwise null.
+     */
+    public function payerState(object $withdrawal, User $viewer): ?string
+    {
+        if ($withdrawal->status !== 'approved' || (int) $withdrawal->reviewed_by !== (int) $viewer->id) {
+            return null;
+        }
+
+        return app(SelfApproval::class)->isAvailable($viewer, [$withdrawal->user_id, $withdrawal->reviewed_by]) ? 'alone' : 'second_person';
+    }
+
     /** @param array<string, mixed> $data */
     public function request(User $actor, array $data): string
     {

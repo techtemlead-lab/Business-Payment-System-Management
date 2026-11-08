@@ -94,8 +94,6 @@ class SiteFeedbackTest extends TestCase
     {
         $home = $this->get('/')->assertOk();
 
-        $home->assertSee(__('site.trust_pillar2_title'))
-            ->assertSee(__('site.trust_pillar3_title'));
         foreach (['GMP', '64 districts', 'certified for potency', 'Tasmin Ahmed'] as $unverifiedClaim) {
             $home->assertDontSee($unverifiedClaim);
         }

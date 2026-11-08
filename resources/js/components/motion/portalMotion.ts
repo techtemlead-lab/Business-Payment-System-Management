@@ -4,9 +4,6 @@ import { router } from '@inertiajs/react';
  * Motion helpers for the logged-in portals. Styles live in
  * resources/css/portal-motion.css; this file only feeds them:
  *
- * - Pointer glow and tilt: ONE shared pointermove listener (rAF-throttled)
- *   writes the pointer position into CSS variables on the card under the
- *   pointer. Mouse / trackpad only; never on touch screens.
  * - Page transition: when a visit opens another section, the page body
  *   fades and rises in.
  * - Sidebar marker: the "you are here" bar slides from the old menu item to
@@ -16,86 +13,10 @@ import { router } from '@inertiajs/react';
  * for reduced motion.
  */
 
-/** Cards that get the pointer glow (and lift, in CSS). */
-const GLOW_CARDS = '.metric, .treasury-kpi-card, .admin-kpi, .ph-today-grid > div, .office-today-figures a, .office-today-lead, .office-tile';
-
-/** The KPI cards among them that also tilt in 3D. */
-const TILT_CARDS = '.metric, .treasury-kpi-card, .admin-kpi, .ph-today-grid > div';
-
-/** Largest tilt in degrees, measured along the pointer direction. */
-const MAX_TILT_DEG = 4;
-
 const SELECTED_NAV = '.app-shell .sidebar a.selected';
 
 function prefersReducedMotion(): boolean {
     return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? true;
-}
-
-function installPointerEffects(): () => void {
-    const finePointer = window.matchMedia?.('(hover: hover) and (pointer: fine)');
-    if (!finePointer || typeof requestAnimationFrame !== 'function') {
-        return () => {};
-    }
-    let frame = 0;
-    let pointerX = 0;
-    let pointerY = 0;
-    let target: Element | null = null;
-    let current: HTMLElement | null = null;
-
-    const update = () => {
-        frame = 0;
-        const card = target?.closest<HTMLElement>(GLOW_CARDS) ?? null;
-        if (current && current !== card) {
-            current.style.removeProperty('--pm-tx');
-            current.style.removeProperty('--pm-ty');
-        }
-        current = card && card.closest('.app-shell') ? card : null;
-        if (!current) {
-            return;
-        }
-        const box = current.getBoundingClientRect();
-        if (box.width === 0 || box.height === 0) {
-            return;
-        }
-        const x = pointerX - box.left;
-        const y = pointerY - box.top;
-        current.style.setProperty('--pm-x', `${Math.round(x)}px`);
-        current.style.setProperty('--pm-y', `${Math.round(y)}px`);
-        if (!current.matches(TILT_CARDS)) {
-            return;
-        }
-        // -0.5 .. 0.5 from the card centre, then scaled so the combined tilt never passes MAX_TILT_DEG.
-        const offsetX = Math.max(-0.5, Math.min(0.5, x / box.width - 0.5));
-        const offsetY = Math.max(-0.5, Math.min(0.5, y / box.height - 0.5));
-        const length = Math.hypot(offsetX, offsetY) * 2;
-        const scale = length > 1 ? 1 / length : 1;
-        current.style.setProperty('--pm-tx', `${(offsetX * 2 * MAX_TILT_DEG * scale).toFixed(2)}deg`);
-        current.style.setProperty('--pm-ty', `${(-offsetY * 2 * MAX_TILT_DEG * scale).toFixed(2)}deg`);
-    };
-
-    const onPointerMove = (event: PointerEvent) => {
-        if (event.pointerType !== 'mouse' && event.pointerType !== 'pen') {
-            return;
-        }
-        if (!finePointer.matches || prefersReducedMotion()) {
-            return;
-        }
-        pointerX = event.clientX;
-        pointerY = event.clientY;
-        target = event.target instanceof Element ? event.target : null;
-        if (frame === 0) {
-            frame = requestAnimationFrame(update);
-        }
-    };
-
-    document.addEventListener('pointermove', onPointerMove, { passive: true });
-
-    return () => {
-        document.removeEventListener('pointermove', onPointerMove);
-        if (frame !== 0) {
-            cancelAnimationFrame(frame);
-        }
-    };
 }
 
 const EASE_OUT = 'cubic-bezier(.16,1,.3,1)';
@@ -184,11 +105,5 @@ export function installPortalMotion(): () => void {
     if (typeof window === 'undefined' || typeof document === 'undefined') {
         return () => {};
     }
-    const stopPointer = installPointerEffects();
-    const stopPages = installPageTransitions();
-
-    return () => {
-        stopPointer();
-        stopPages();
-    };
+    return installPageTransitions();
 }

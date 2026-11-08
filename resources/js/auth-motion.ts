@@ -4,15 +4,11 @@
  * Nothing here reads, changes or blocks what the forms send. It only adds
  * classes and decorative elements (all aria-hidden) for the styles in
  * resources/css/auth-motion.css:
- * - a gentle pointer parallax on the leaf background (desktop, full motion only);
  * - a light sweep over the logo;
  * - a growing line under the field in focus;
  * - a spinner on the submit button after a form is sent. The button is never
  *   disabled, and the spinner clears itself, so sending again always works.
  */
-
-const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
 
 function decorativeSpan(className: string): HTMLSpanElement {
     const span = document.createElement('span');
@@ -20,41 +16,6 @@ function decorativeSpan(className: string): HTMLSpanElement {
     span.setAttribute('aria-hidden', 'true');
 
     return span;
-}
-
-function startParallax(scene: HTMLElement): void {
-    let targetX = 0;
-    let targetY = 0;
-    let currentX = 0;
-    let currentY = 0;
-    let frame = 0;
-
-    const step = (): void => {
-        currentX += (targetX - currentX) * 0.06;
-        currentY += (targetY - currentY) * 0.06;
-        scene.style.setProperty('--am-px', currentX.toFixed(3));
-        scene.style.setProperty('--am-py', currentY.toFixed(3));
-        frame = Math.abs(targetX - currentX) + Math.abs(targetY - currentY) > 0.002 ? requestAnimationFrame(step) : 0;
-    };
-
-    window.addEventListener('pointermove', (event: PointerEvent) => {
-        if (reducedMotion.matches || !finePointer.matches || event.pointerType !== 'mouse') {
-            return;
-        }
-        targetX = (event.clientX / window.innerWidth - 0.5) * 2;
-        targetY = (event.clientY / window.innerHeight - 0.5) * 2;
-        if (frame === 0) {
-            frame = requestAnimationFrame(step);
-        }
-    }, { passive: true });
-
-    document.documentElement.addEventListener('pointerleave', () => {
-        targetX = 0;
-        targetY = 0;
-        if (frame === 0) {
-            frame = requestAnimationFrame(step);
-        }
-    });
 }
 
 function decorateBrand(image: HTMLImageElement): void {
@@ -155,11 +116,6 @@ function watchCaptcha(): void {
 function boot(): void {
     if (!document.body.classList.contains('am-auth')) {
         return;
-    }
-
-    const scene = document.querySelector<HTMLElement>('.am-scene');
-    if (scene) {
-        startParallax(scene);
     }
 
     document.querySelectorAll<HTMLImageElement>('.ref-auth-brand img, .company-auth-brand img').forEach(decorateBrand);

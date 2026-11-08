@@ -57,7 +57,7 @@ class WithdrawalController extends Controller
             Audit::record($r->user()->id, 'withdrawal.destination_viewed', $id);
         }
 
-        return Inertia::render('WithdrawalDetail', ['withdrawal' => collect((array) $w)->except(['receipt_path', 'receipt_sha256', 'destination', 'idempotency_key'])->all() + ['destination_masked' => str_repeat('•', max(0, strlen($destination) - 4)).substr($destination, -4), 'destination_for_payment' => $r->user()->allows('finance') ? $destination : null, 'has_receipt' => (bool) $w->receipt_path],
+        return Inertia::render('WithdrawalDetail', ['withdrawal' => collect((array) $w)->except(['receipt_path', 'receipt_sha256', 'destination', 'idempotency_key'])->all() + ['destination_masked' => str_repeat('•', max(0, strlen($destination) - 4)).substr($destination, -4), 'destination_for_payment' => $r->user()->allows('finance') ? $destination : null, 'has_receipt' => (bool) $w->receipt_path, 'payer_state' => $r->user()->allows('finance') ? app(ManualPayoutService::class)->payerState($w, $r->user()) : null],
             'paymentAccounts' => $r->user()->allows('finance') ? app(PaymentAccounts::class)->listing($r->user()) : [],
             'payoutReceipt' => app(PayoutReceipts::class)->forWithdrawal($id),
             'events' => DB::table('withdrawal_events')->join('users', 'users.id', '=', 'actor_id')->where('withdrawal_id', $id)->orderBy('withdrawal_events.id')->get(['event', 'note', 'withdrawal_events.created_at', 'users.name'])]);
