@@ -15,6 +15,7 @@ interface CapitalFlowData {
     company_share_60: number;
     management_reserve_2?: number;
     unassigned_territory_reserve?: number;
+    old_area_reserve?: number;
     total_company_deposits?: number;
     commission_pool_40: number;
     allocated_so_far: number;
@@ -611,14 +612,14 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             {/* Unassigned Territory Reserve */}
                             <div className="treasury-kpi-card hub-tile is-soft">
                                 <div className="hub-tile-head">
-                                    <span className="hub-label">{translate('portal', 'tr_dep_geo')}</span>
+                                    <span className="hub-label">{translate('funds', 'tr_area_profit')}</span>
                                     <ShieldCheck size={20} className="tone-ok" />
                                 </div>
                                 <div className="treasury-kpi-amount">
                                     {money(unassignedReserve)}
                                 </div>
                                 <p className="hub-hint">
-                                    {translate('portal', 'tr_dep_geo_body')}
+                                    {translate('funds', 'tr_area_profit_body', { old: money(Number(flow.old_area_reserve) || 0) })}
                                 </p>
                             </div>
                         </div>
@@ -634,8 +635,8 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                                 },
                                 {
                                     id: 'geo',
-                                    title: translate('portal', 'tr_detail_geo'),
-                                    hint: translate('portal', 'tr_detail_geo_hint'),
+                                    title: translate('funds', 'tr_old_area_title'),
+                                    hint: translate('funds', 'tr_old_area_hint'),
                                     rows: unassignedRows,
                                 },
                                 {

@@ -46,12 +46,12 @@ final class ReserveService
 
                 return $old->id;
             }
+            if ($data['program'] === 'tour') {
+                throw ValidationException::withMessages(['program' => __('funds.err_tour_company_only')]);
+            }
             $awardKey = null;
             if ($data['program'] !== 'marketing') {
                 $user = User::whereKey($data['user_id'])->where('status', 'active')->whereIn('role', ['dealer', 'sub_dealer'])->firstOrFail();
-                if ($data['program'] === 'tour' && $user->role !== 'sub_dealer') {
-                    throw ValidationException::withMessages(['user_id' => __('portal.err_reserve_tour_subdealer')]);
-                }
                 if (in_array($data['program'], ['bike', 'car'], true)) {
                     $awardKey = $data['program'].':'.$user->id;
                     if (! $this->qualification->milestone($user->id, $data['program'])['achieved']
@@ -77,6 +77,10 @@ final class ReserveService
             abort_unless($actor->fresh()->allows('finance'), 403);
             $row = DB::table('reserve_disbursements')->where('id', $id)->lockForUpdate()->first();
             abort_unless($row, 404);
+            abort_if($row->program === FundSpending::Program, 422);
+            if ($decision === 'approved' && $row->program === 'tour') {
+                throw ValidationException::withMessages(['reserve' => __('funds.err_tour_company_only')]);
+            }
             if ($row->status !== 'requested' || in_array($actor->id, [$row->created_by, $row->user_id], true)) {
                 throw ValidationException::withMessages(['reserve' => __('portal.err_reserve_reviewer')]);
             }
