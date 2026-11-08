@@ -1,4 +1,5 @@
 import React from 'react';
+import { usePage } from '@inertiajs/react';
 import { PAGE_FLAGS } from '../pageFlags';
 import { Field, MdPhotoField } from '../formFields';
 import { WebsiteGroup, WebsiteSection, type WebsiteSectionProps } from '../WebsiteLayout';
@@ -8,6 +9,7 @@ import { useT } from '../../../shared/i18n/t';
 export default function OtherPagesSection({ form, defaults, websitePages, bnCopy, updateField }: WebsiteSectionProps) {
     const translate = useT();
     const pageFlags = PAGE_FLAGS;
+    const { publicBase = '' } = usePage<{ publicBase?: string }>().props;
     return (
         <WebsiteSection id="pages" title={translate('website_admin', 'section_pages')} hint={translate('website_admin', 'section_pages_hint')}>
         <WebsiteGroup title={translate('portal', 'cms_visibility_title')}>
@@ -52,7 +54,7 @@ export default function OtherPagesSection({ form, defaults, websitePages, bnCopy
                         {websitePages.filter((page) => page.toggleable === false || (page.flag ? form.data.customization[page.flag as typeof pageFlags[number]] !== '0' : page.enabled)).map((page) => (
                             <a
                                 key={`preview-${page.slug}`}
-                                href={page.slug}
+                                href={`${publicBase}${page.slug}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="button small"
