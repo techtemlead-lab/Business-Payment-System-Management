@@ -45,7 +45,8 @@ class BookShipmentCourier implements ShouldQueue
         }
         $order = Order::query()->findOrFail($shipment->order_id);
         $partner = User::query()->find($order->user_id);
-        $profile = is_array($partner?->profile) ? $partner->profile : [];
+        /** @var array<string, mixed> $profile */
+        $profile = (array) ($partner?->getAttribute('profile') ?? []);
         $placeCode = trim((string) ($profile['place_code'] ?? $profile['area_code'] ?? ''));
         $branch = $shipment->branch_id ? CompanyBranch::query()->find($shipment->branch_id) : null;
         $created = $couriers->create((string) $shipment->courier_provider, [

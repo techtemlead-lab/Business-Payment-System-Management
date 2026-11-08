@@ -16,6 +16,7 @@ use App\Jobs\BookShipmentCourier;
 use App\Models\BranchProductStock;
 use App\Models\CompanyBranch;
 use App\Models\Order;
+use App\Models\OrderLine;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\Audit;
@@ -493,7 +494,7 @@ class OrderService
         DB::transaction(function () use ($actor, $order, $shipmentId): void {
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             $shipment = DB::table('shipments')->where('id', $shipmentId)->where('order_id', $locked->id)->lockForUpdate()->first();
-            abort_unless($shipment, 404);
+            abort_if($shipment === null, 404);
             if ($shipment->courier_booking_status !== 'failed') {
                 throw ValidationException::withMessages(['shipment' => __('courier.err_retry_not_failed')]);
             }
@@ -532,20 +533,23 @@ class OrderService
 
             return;
         }
-        $lines = $locked->lines()->whereColumn('dispatched', '<', 'quantity')->orderBy('id')->get();
+        $lines = OrderLine::query()->where('order_id', $locked->id)->whereColumn('dispatched', '<', 'quantity')->orderBy('id')->get();
         if ($lines->isEmpty()) {
             return;
         }
         $products = Product::whereIn('id', $lines->pluck('product_id'))->orderBy('id')->lockForUpdate()->get()->keyBy('id');
+        $items = [];
         foreach ($lines as $line) {
-            $product = $products[$line->product_id] ?? null;
-            if (! $product || $this->branches->ensureBranchStock($branch, $product)->quantity < $line->quantity - $line->dispatched) {
+            $left = (int) $line->getAttribute('quantity') - (int) $line->getAttribute('dispatched');
+            $product = $products->get((int) $line->getAttribute('product_id'));
+            if (! $product instanceof Product || $this->branches->ensureBranchStock($branch, $product)->quantity < $left) {
                 $this->autoShipSkipped($actor, $locked, (string) $provider, 'stock');
 
                 return;
             }
+            $items[] = ['line_id' => (int) $line->getKey(), 'quantity' => $left];
         }
-        $shipmentLines = $this->takeStock($actor, $locked, $branch, $lines->map(fn ($line): array => ['line_id' => $line->id, 'quantity' => $line->quantity - $line->dispatched])->all());
+        $shipmentLines = $this->takeStock($actor, $locked, $branch, $items);
         $shipmentId = DB::table('shipments')->insertGetId([
             'order_id' => $locked->id,
             'branch_id' => $branch->id,

@@ -115,7 +115,7 @@ final class ShipmentTracking
         abort_unless($actor->allows('inventory'), 403);
         abort_if((int) $actor->id === (int) $order->user_id, 403, __('portal.err_self_review_order'));
         $shipment = DB::table('shipments')->where('id', $shipmentId)->where('order_id', $order->id)->first();
-        abort_unless($shipment, 404);
+        abort_if($shipment === null, 404);
         if ($shipment->status !== 'dispatched' || ! in_array($shipment->courier_status, [null, 'waiting_pickup'], true)) {
             throw ValidationException::withMessages(['shipment' => __('courier.err_pickup_not_waiting')]);
         }

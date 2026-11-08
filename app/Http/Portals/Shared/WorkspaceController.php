@@ -305,7 +305,7 @@ class WorkspaceController extends Controller
      * for news in the background, at most once every ten minutes per parcel, so the page
      * (which refreshes itself every few seconds) never waits for the courier.
      *
-     * @return Collection<int, object>
+     * @return Collection<int, \stdClass>
      */
     private function shipmentsWithTracking(Order $order, bool $showBookingErrors): Collection
     {

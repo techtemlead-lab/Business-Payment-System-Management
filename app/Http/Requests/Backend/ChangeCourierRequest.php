@@ -10,7 +10,7 @@ class ChangeCourierRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return ($this->user()?->allows('inventory') || $this->user()?->allows('order_review')) ?? false;
+        return (bool) ($this->user()?->allows('inventory') || $this->user()?->allows('order_review'));
     }
 
     /**
