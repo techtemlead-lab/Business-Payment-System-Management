@@ -3812,3 +3812,11 @@ html[data-theme="dark"] .ref-company-intro>.ref-bismillah{--bismillah-green:#5fd
 @media(max-width:767px){.ref-company-intro>.ref-bismillah{gap:10px;margin:0 0 2px;font-size:18px;}.ref-company-intro>.ref-bismillah[lang="ar"]{font-size:24px;}.ref-company-intro>.ref-bismillah::before,.ref-company-intro>.ref-bismillah::after{max-width:44px;}}
 @media(prefers-reduced-motion:no-preference){.ref-company-intro>.ref-bismillah{animation:refBismillahFade .7s ease-out backwards;}}
 @keyframes refBismillahFade{from{opacity:0}to{opacity:1}}
+
+/* Product facts: general note and reviews on the public product page */
+.ref-product-medical-note{display:flex;gap:8px;align-items:flex-start;margin:14px 0 0;padding:10px 12px;font-size:14px;line-height:1.6;border-left:3px solid #006837;background:rgba(0,104,55,.07);border-radius:6px}
+.ref-product-reviews{margin-top:24px}
+.ref-product-review{padding:14px 0;border-bottom:1px solid rgba(100,116,139,.2)}
+.ref-product-review-text{margin:6px 0;white-space:pre-line;overflow-wrap:anywhere}
+.ref-product-review-form-title{margin:22px 0 6px;font-size:17px;font-weight:700}
+a.ref-concern-tag{text-decoration:none}

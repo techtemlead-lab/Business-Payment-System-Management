@@ -6283,4 +6283,9 @@ return [
     'event_prescriber_company_stock_granted' => 'Company-stock prescribing turned on for an office account',
     'event_prescriber_company_stock_removed' => 'Company-stock prescribing turned off for an office account',
     'event_clinic_below_floor_override' => 'Owner confirmed a sale below 30% of MRP',
+    'event_product_concern_created' => 'Health concern tag added',
+    'event_product_concern_updated' => 'Health concern tag changed',
+    'event_product_concern_deleted' => 'Health concern tag deleted',
+    'sce_fld_product_medical_note' => 'General note on product pages',
+    'sce_fld_catalog_concern_title' => 'Health concern filter title',
 ];

@@ -186,6 +186,8 @@ export interface CustomizationData {
     product_video_title?: string;
     product_tab_description?: string;
     product_tab_specification?: string;
+    product_medical_note?: string;
+    catalog_concern_title?: string;
 
     // Brand Trust & Showcase (Category খ)
     trust_pillars_enabled?: string;
@@ -3977,6 +3979,8 @@ export default function SiteCustomizationEditor({
             product_video_title: customization.product_video_title || '',
             product_tab_description: customization.product_tab_description || '',
             product_tab_specification: customization.product_tab_specification || '',
+            product_medical_note: customization.product_medical_note || '',
+            catalog_concern_title: customization.catalog_concern_title || '',
 
             // Brand Trust & Engagement Controls
             trust_pillars_enabled: customization.trust_pillars_enabled !== undefined ? customization.trust_pillars_enabled : '1',
@@ -4701,6 +4705,8 @@ export default function SiteCustomizationEditor({
                                 <Field label={translate('portal', 'sce_f_share_label')} fieldKey="product_share_label" value={form.data.customization.product_share_label} placeholder={defaults.product_share_label} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_f_product_video_title')} fieldKey="product_video_title" value={form.data.customization.product_video_title} placeholder={defaults.product_video_title} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_f_tab_description')} fieldKey="product_tab_description" value={form.data.customization.product_tab_description} placeholder={defaults.product_tab_description} onChange={updateField} />
+                                <Field label={translate('product_facts', 'cms_medical_note')} fieldKey="product_medical_note" value={form.data.customization.product_medical_note} placeholder={defaults.product_medical_note} onChange={updateField} multiline rows={2} span2 />
+                                <Field label={translate('product_facts', 'cms_concern_title')} fieldKey="catalog_concern_title" value={form.data.customization.catalog_concern_title} placeholder={defaults.catalog_concern_title} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_f_tab_specification')} fieldKey="product_tab_specification" value={form.data.customization.product_tab_specification} placeholder={defaults.product_tab_specification} onChange={updateField} />
                             </div>
                         </div>

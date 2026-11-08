@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Domain\Catalog\CatalogTaxonomy;
 use App\Domain\Content\TestimonialLabels;
 use App\Models\Product;
+use App\Models\ProductConcern;
 use App\Models\SiteFeedback;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -312,6 +313,8 @@ class SiteCustomization
             'product_purchase_note' => 'Dealers pay the full order amount and send a payment screenshot. Goods are sent after the payment is checked.',
             'product_video_title' => 'Product Video',
             'product_tab_description' => 'Description',
+            'product_medical_note' => $copy('product_medical_note'),
+            'catalog_concern_title' => $copy('catalog_concern_title'),
             'product_tab_specification' => 'Specification',
 
             // Footer & Support
@@ -802,6 +805,7 @@ class SiteCustomization
         Cache::forget('public:featured_products:v1');
         Cache::forget('public:featured_products:v2');
         Cache::forget(self::TestimonialsCacheKey);
+        Cache::forget(ProductConcern::PublicOptionsCacheKey);
         ProductVideo::forgetHomepageCache();
     }
 
@@ -1521,6 +1525,7 @@ class SiteCustomization
 
         return SiteFeedback::query()
             ->where('status', 'approved')
+            ->whereNull('product_id')
             ->orderByDesc('moderated_at')
             ->orderByDesc('id')
             ->limit(24)

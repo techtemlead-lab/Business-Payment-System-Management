@@ -6283,4 +6283,9 @@ return [
     'event_prescriber_company_stock_granted' => 'অফিস অ্যাকাউন্টে কোম্পানির স্টক থেকে প্রেসক্রিপশন চালু হয়েছে',
     'event_prescriber_company_stock_removed' => 'অফিস অ্যাকাউন্টে কোম্পানির স্টক থেকে প্রেসক্রিপশন বন্ধ হয়েছে',
     'event_clinic_below_floor_override' => 'মালিক এমআরপির ৩০%-এর কমে বিক্রি নিশ্চিত করেছেন',
+    'event_product_concern_created' => 'স্বাস্থ্য বিষয়ের ট্যাগ যোগ হয়েছে',
+    'event_product_concern_updated' => 'স্বাস্থ্য বিষয়ের ট্যাগ বদলানো হয়েছে',
+    'event_product_concern_deleted' => 'স্বাস্থ্য বিষয়ের ট্যাগ মুছে ফেলা হয়েছে',
+    'sce_fld_product_medical_note' => 'পণ্যের পাতার সাধারণ নোট',
+    'sce_fld_catalog_concern_title' => 'স্বাস্থ্য বিষয় ফিল্টারের শিরোনাম',
 ];

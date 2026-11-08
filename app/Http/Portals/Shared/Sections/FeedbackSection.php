@@ -35,6 +35,7 @@ final class FeedbackSection implements WorkspaceSection
     {
         $props = [];
         $props['feedback_items'] = SiteFeedback::query()
+            ->with('product:id,name')
             ->orderByRaw("CASE status WHEN 'pending' THEN 0 WHEN 'approved' THEN 1 ELSE 2 END")
             ->orderByDesc('created_at')
             ->limit(100)
@@ -47,6 +48,7 @@ final class FeedbackSection implements WorkspaceSection
                 'rating' => $row->rating,
                 'message' => $row->message,
                 'source' => $row->source,
+                'product_name' => $row->product?->name,
                 'status' => $row->status,
                 'created_at' => optional($row->created_at)?->toIso8601String(),
                 'moderated_at' => optional($row->moderated_at)?->toIso8601String(),

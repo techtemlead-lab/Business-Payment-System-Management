@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\Catalog\ProductFacts;
 use App\Domain\Clinic\PrescriptionAccess;
 use App\Domain\Support\PartnerChat;
 use App\Models\User;
@@ -25,7 +26,7 @@ class EnforceStaffActions
         $route = $request->route();
         $controller = class_basename($route?->getControllerClass() ?? '');
         $method = (string) ($route?->getActionMethod() ?? '');
-        if ($request->isMethodSafe() || $controller === 'AuthController' || $controller === 'LocaleController') {
+        if ($request->isMethodSafe() || $controller === 'AuthController' || $controller === 'LocaleController' || $controller === 'ProductReviewController') {
             return $next($request);
         }
         if (! $actor) {
@@ -135,7 +136,7 @@ class EnforceStaffActions
             } elseif ($method === 'destroy') {
                 $this->authorize($actor, ['catalog'], 'edit');
             } else {
-                foreach (['catalog' => ['name', 'sku', 'category', 'description', 'unit', 'active', 'featured', 'image', 'remove_image', 'video_source', 'youtube_url', 'vimeo_url', 'external_video_url', 'video'],
+                foreach (['catalog' => ['name', 'sku', 'category', 'description', 'unit', 'active', 'featured', 'image', 'remove_image', 'video_source', 'youtube_url', 'vimeo_url', 'external_video_url', 'video', ...ProductFacts::requestFields()],
                     'pricing' => ['mrp', 'dealer_price', 'sub_dealer_price', 'cost_price'], 'inventory' => ['low_stock_at', 'initial_stock']] as $module => $fields) {
                     if (array_intersect(array_keys($request->all()), $fields)) {
                         $required[] = $module;
@@ -216,6 +217,7 @@ class EnforceStaffActions
                 'store' => [['catalog'], 'create'],
                 default => [['catalog'], 'edit'],
             },
+            'ProductConcernController' => [['catalog'], $method === 'store' ? 'create' : 'edit'],
             'ProductUnitController' => match ($method) {
                 'index' => [['catalog', 'pricing', 'inventory'], 'view'],
                 'store' => [['catalog'], 'create'],

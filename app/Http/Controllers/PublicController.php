@@ -4,11 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Domain\Accounts\PartnerAge;
 use App\Domain\Audience\PublicPartnerApplication;
+use App\Domain\Catalog\ProductFacts;
 use App\Domain\Content\TestimonialLabels;
 use App\Domain\Geography\PlaceTree;
 use App\Domain\Integrations\MapsPresentation;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Models\Product;
+use App\Models\ProductConcern;
 use App\Models\SiteFeedback;
 use App\Models\User;
 use App\Support\Audit;
@@ -36,7 +38,7 @@ class PublicController extends Controller
         abort_unless(SiteCustomization::isPageEnabled($page), 404);
         $request->validate(['q' => 'nullable|string|max:100', 'district' => 'nullable|string|max:80',
             'division' => 'nullable|string|max:80', 'category' => 'nullable|string|max:100',
-            'page' => 'nullable|integer|min:1', 'sort' => 'nullable|in:name,price_asc,price_desc', 'in_stock' => 'nullable|in:0,1',
+            'page' => 'nullable|integer|min:1', 'sort' => 'nullable|in:name,price_asc,price_desc', 'in_stock' => 'nullable|in:0,1', 'concern' => 'nullable|integer|min:1',
             'min_price' => 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/D', 'max_price' => 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/D',
             'lat' => 'nullable|numeric|between:-90,90', 'lng' => 'nullable|numeric|between:-180,180']);
         if ($page === 'products') {
@@ -162,6 +164,9 @@ class PublicController extends Controller
             'item' => $item,
             'social' => $social,
             'sharePartner' => $partner,
+            'facts' => ProductFacts::forPublic($product),
+            'concernTags' => ProductFacts::concernTags($product),
+            'reviews' => ProductFacts::approvedReviews($product),
         ]);
     }
 
@@ -185,6 +190,7 @@ class PublicController extends Controller
         $query = Product::where('active', true)
             ->when($r->filled('q'), fn ($query) => $query->where('name', 'ilike', '%'.$r->string('q').'%'))
             ->when($r->filled('category'), fn ($query) => $query->where('category', 'ilike', trim((string) $r->string('category'))))
+            ->when($r->filled('concern'), fn ($query) => $query->whereHas('concerns', fn ($tag) => $tag->whereKey($r->integer('concern'))))
             ->when($r->boolean('in_stock'), fn ($query) => $query->where('stock', '>', 0))
             ->when($r->filled('min_price'), fn ($query) => $query->where('mrp', '>=', (string) $r->string('min_price')))
             ->when($r->filled('max_price'), fn ($query) => $query->where('mrp', '<=', (string) $r->string('max_price')));
@@ -196,9 +202,10 @@ class PublicController extends Controller
         $catalog = $query->orderBy('id')->paginate(12)->withQueryString()
             ->through(fn (Product $product) => $this->publicProduct($product));
         $catalogCategories = $this->cachedProductCategories();
+        $catalogConcerns = $this->cachedProductConcerns();
         $social = SocialShareMeta::page('products', __('site.products').' · '.config('app.name'), __('site.meta_description'));
 
-        return view('reference.catalog', compact('catalog', 'catalogCategories', 'social'));
+        return view('reference.catalog', compact('catalog', 'catalogCategories', 'catalogConcerns', 'social'));
     }
 
     /**
@@ -326,6 +333,28 @@ class PublicController extends Controller
         });
 
         return collect($categories)->values();
+    }
+
+    /**
+     * Concern tags that have at least one product on show, for the catalogue filter.
+     *
+     * @return list<array{id: int, name_bn: string, name_en: string}>
+     */
+    private function cachedProductConcerns(): array
+    {
+        return $this->rememberArray(ProductConcern::PublicOptionsCacheKey, 300, function (): array {
+            return ProductConcern::query()
+                ->whereHas('products', fn ($product) => $product->where('active', true))
+                ->orderBy('name_en')
+                ->get()
+                ->map(fn (ProductConcern $concern): array => [
+                    'id' => (int) $concern->id,
+                    'name_bn' => (string) $concern->name_bn,
+                    'name_en' => (string) $concern->name_en,
+                ])
+                ->values()
+                ->all();
+        });
     }
 
     /** @return list<array<string, mixed>> */
