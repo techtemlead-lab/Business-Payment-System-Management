@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { Link, usePage } from '@inertiajs/react';
 import {
     TrendingUp, ShieldCheck, ArrowDownRight, ArrowUpRight, DollarSign,
     Building2, Wallet, Landmark, Layers, CheckCircle2, AlertCircle, FileText,
@@ -15,6 +16,7 @@ interface CapitalFlowData {
     company_share_60: number;
     management_reserve_2?: number;
     unassigned_territory_reserve?: number;
+    old_area_reserve?: number;
     total_company_deposits?: number;
     commission_pool_40: number;
     allocated_so_far: number;
@@ -242,6 +244,7 @@ function RetainedDetailSwitcher({ tables }: { tables: Array<{ id: string; title:
 
 export default function CompanyTreasuryHub({ flow, allocations_by_category, recent_allocations, retained_fund_details = null, payment_accounts = [] }: CompanyTreasuryHubProps) {
     const translate = useT();
+    const { portalBase: base } = usePage<any>().props;
     const [activeTab, setActiveTab] = useState<'overview' | 'inflows' | 'deposits' | 'expenses' | 'ledger'>('overview');
 
     const grossCash = Number(flow.gross_cash_inflow) || 0;
@@ -611,14 +614,14 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             {/* Unassigned Territory Reserve */}
                             <div className="treasury-kpi-card hub-tile is-soft">
                                 <div className="hub-tile-head">
-                                    <span className="hub-label">{translate('portal', 'tr_dep_geo')}</span>
+                                    <span className="hub-label">{translate('funds', 'tr_area_profit')}</span>
                                     <ShieldCheck size={20} className="tone-ok" />
                                 </div>
                                 <div className="treasury-kpi-amount">
                                     {money(unassignedReserve)}
                                 </div>
                                 <p className="hub-hint">
-                                    {translate('portal', 'tr_dep_geo_body')}
+                                    {translate('funds', 'tr_area_profit_body', { old: money(Number(flow.old_area_reserve) || 0) })}
                                 </p>
                             </div>
                         </div>
@@ -634,8 +637,8 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                                 },
                                 {
                                     id: 'geo',
-                                    title: translate('portal', 'tr_detail_geo'),
-                                    hint: translate('portal', 'tr_detail_geo_hint'),
+                                    title: translate('funds', 'tr_old_area_title'),
+                                    hint: translate('funds', 'tr_old_area_hint'),
                                     rows: unassignedRows,
                                 },
                                 {
@@ -713,6 +716,9 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                         </h3>
                         <p className="hub-sub is-lead">
                             {translate('portal', 'tr_expense_hint')}
+                        </p>
+                        <p className="hub-sub">
+                            <Link className="text-link" href={`${base}/company-funds`}>{translate('funds', 'link_manage')}</Link>
                         </p>
 
                         <div className="hub-grid is-wide">

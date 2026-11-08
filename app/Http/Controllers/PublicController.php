@@ -9,6 +9,7 @@ use App\Domain\Content\TestimonialLabels;
 use App\Domain\Geography\PlaceTree;
 use App\Domain\Integrations\MapsPresentation;
 use App\Domain\Notifications\PartnerEventSms;
+use App\Domain\Notifications\SmsText;
 use App\Models\Product;
 use App\Models\SiteFeedback;
 use App\Models\User;
@@ -401,17 +402,17 @@ class PublicController extends Controller
         );
 
         $topicLabel = match ($data['topic']) {
-            'dealer_enquiry' => __('portal.enquiry_topic_dealer', [], $locale),
-            'partnership_enquiry' => __('portal.enquiry_topic_partnership', [], $locale),
-            'product_enquiry' => __('portal.enquiry_topic_product', [], $locale),
-            'support' => __('portal.support_topic_support', [], $locale),
-            'complaint' => __('portal.support_topic_complaint', [], $locale),
+            'dealer_enquiry' => SmsText::make('portal.enquiry_topic_dealer'),
+            'partnership_enquiry' => SmsText::make('portal.enquiry_topic_partnership'),
+            'product_enquiry' => SmsText::make('portal.enquiry_topic_product'),
+            'support' => SmsText::make('portal.support_topic_support'),
+            'complaint' => SmsText::make('portal.support_topic_complaint'),
             default => $data['topic'],
         };
         app(PartnerEventSms::class)->sendToPhone(
             (string) $data['phone'],
             'enquiry.public_received',
-            __('sms.public_enquiry_received', ['topic' => $topicLabel], $locale),
+            SmsText::make('sms.public_enquiry_received', ['topic' => $topicLabel]),
         );
 
         return back()->with('success', __('portal.flash_enquiry_received'));

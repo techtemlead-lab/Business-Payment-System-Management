@@ -12,6 +12,7 @@ import { Flash, label } from './UI';
 import { DealerHeader, DealerBottomNav } from './PortalHeader';
 import LanguageSwitcher from './LanguageSwitcher';
 import NotificationBell from './NotificationBell';
+import GlobalSearchLauncher from './GlobalSearchLauncher';
 import OnboardingTour from './OnboardingTour';
 import ThemeToggle from './ThemeToggle';
 import { t, useT, useTranslations } from '../shared/i18n/t';
@@ -782,6 +783,7 @@ export default function Shell({ section, children, action }: { section: string; 
                         <BranchWorkspaceSelect branches={workspaceBranches} />
                     )}
                     <div className="header-actions" data-tour="header-actions">
+                        <GlobalSearchLauncher />
                         <a
                             href={`${page.props.publicBase || ''}/`}
                             className="icon-button portal-website-link"

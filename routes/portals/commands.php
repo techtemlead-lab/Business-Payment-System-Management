@@ -191,4 +191,5 @@ return function (string $portal): void {
     Route::post('/commands/sales-kit', [SalesKitController::class, 'store'])->middleware('throttle:30,1');
     Route::delete('/commands/sales-kit/{salesKitItem}', [SalesKitController::class, 'destroy'])->whereNumber('salesKitItem')->middleware('throttle:30,1');
     Route::get('/sales-kit/{salesKitItem}/file', [SalesKitController::class, 'file'])->whereNumber('salesKitItem')->middleware('throttle:120,1');
+    require __DIR__.'/productivity.php';
 };

@@ -104,7 +104,7 @@ class PartnerEventCalendarTest extends TestCase
         $sent = collect(config('madina.sms.sent'));
         $this->assertSame([$dealer->id, $subDealer->id], $sent->pluck('user_id')->sort()->values()->all());
         $this->assertSame(['event.published'], $sent->pluck('event')->unique()->values()->all());
-        $this->assertStringContainsString('Monthly dealer meeting', (string) $sent->firstWhere('user_id', $dealer->id)['message']);
+        $this->assertStringContainsString('মাসিক ডিলার সভা', (string) $sent->firstWhere('user_id', $dealer->id)['message']);
         $this->assertSame(2, DB::table('account_notices')->count());
     }
 
