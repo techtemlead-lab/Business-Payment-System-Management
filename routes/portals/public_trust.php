@@ -20,6 +20,7 @@ Route::get('/articles', [PublicTrustController::class, 'articles'])->name('publi
 Route::get('/articles/{article}', [PublicTrustController::class, 'article'])
     ->whereNumber('article')
     ->name('public.articles.show');
-Route::get('/{page}', [PublicTrustController::class, 'textPage'])
-    ->whereIn('page', array_keys(PublicTrustContent::TextPages))
+// Named differently from the /{page} route in public.php on purpose: two routes with the same address replace each other.
+Route::get('/{trustPage}', [PublicTrustController::class, 'textPage'])
+    ->whereIn('trustPage', array_keys(PublicTrustContent::TextPages))
     ->name('public.trust-text');

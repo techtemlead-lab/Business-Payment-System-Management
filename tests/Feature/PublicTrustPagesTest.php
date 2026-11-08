@@ -67,6 +67,13 @@ class PublicTrustPagesTest extends TestCase
             ->post('/commands/public-trust/text', ['values' => $values]);
     }
 
+    public function test_the_new_pages_do_not_take_over_the_existing_public_pages(): void
+    {
+        foreach (['/about', '/products', '/contact', '/privacy', '/refund-policy'] as $path) {
+            $this->publicGet($path)->assertOk();
+        }
+    }
+
     public function test_verify_page_shows_only_the_allowed_facts_for_a_valid_dealer(): void
     {
         $place = PlaceCode::factory()->create(['code' => 'MNHC-7701', 'name' => 'Pirganj']);

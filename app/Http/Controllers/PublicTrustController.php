@@ -39,17 +39,17 @@ class PublicTrustController extends Controller
         ])->header('Cache-Control', 'private, no-store');
     }
 
-    public function textPage(string $page): View
+    public function textPage(string $trustPage): View
     {
-        abort_unless(PublicTrustContent::isVisible($page), 404);
-        $key = PublicTrustContent::TextPages[$page];
+        abort_unless(PublicTrustContent::isVisible($trustPage), 404);
+        $key = PublicTrustContent::TextPages[$trustPage];
 
         return view('reference.trust.text-page', [
-            'page' => $page,
+            'page' => $trustPage,
             'title' => PublicTrustContent::text($key.'_title'),
             'lead' => PublicTrustContent::text($key.'_lead'),
             'body' => PublicTrustContent::text($key.'_body'),
-            'social' => SocialShareMeta::page($page, $this->pageTitle($key.'_title'), PublicTrustContent::text($key.'_lead')),
+            'social' => SocialShareMeta::page($trustPage, $this->pageTitle($key.'_title'), PublicTrustContent::text($key.'_lead')),
         ]);
     }
 
