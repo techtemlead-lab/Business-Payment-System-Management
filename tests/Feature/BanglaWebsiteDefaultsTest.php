@@ -20,7 +20,7 @@ class BanglaWebsiteDefaultsTest extends TestCase
     {
         $html = $this->withSession(['locale' => 'bn'])->onPortal('public')->get('/')->assertOk()->getContent();
 
-        foreach (['hero_slide1_alt', 'side_banner_1_slide2_alt', 'side_banner_2_slide3_alt', 'footer_address'] as $key) {
+        foreach (['hero_slide1_alt', 'side_banner_1_slide2_alt', 'side_banner_2_slide3_alt', 'footer_location'] as $key) {
             $this->assertStringContainsString(e(__('site.'.$key, [], 'bn')), $html, $key);
             $this->assertStringNotContainsString(e(__('site.'.$key, [], 'en')), $html, $key);
         }
@@ -31,14 +31,14 @@ class BanglaWebsiteDefaultsTest extends TestCase
         $html = $this->withSession(['locale' => 'en'])->onPortal('public')->get('/')->assertOk()->getContent();
 
         $this->assertStringContainsString(e(__('site.hero_slide1_alt', [], 'en')), $html);
-        $this->assertStringContainsString(e(__('site.footer_address', [], 'en')), $html);
+        $this->assertStringContainsString(e(__('site.footer_location', [], 'en')), $html);
     }
 
     public function test_owner_edits_are_shown_as_written_in_bangla(): void
     {
         $slides = SiteCustomization::defaults()['slides'];
         $slides[0]['alt'] = 'Eid offer on herbal tea';
-        SiteCustomization::save(['slides' => $slides, 'footer_address' => 'Station Road, Rangpur']);
+        SiteCustomization::save(['slides' => $slides, 'footer_location' => 'Station Road, Rangpur']);
 
         $html = $this->withSession(['locale' => 'bn'])->onPortal('public')->get('/')->assertOk()->getContent();
 

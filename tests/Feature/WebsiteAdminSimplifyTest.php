@@ -37,7 +37,7 @@ class WebsiteAdminSimplifyTest extends TestCase
         'partnership_hero_title', 'partnership_hero_lead', 'partnership_why_title', 'partnership_steps_title', 'partnership_cta_title', 'partnership_cta_btn', 'partnership_cta_body', 'partnership_cta_link',
         'services_hero_title', 'services_hero_lead', 'services_cta_btn', 'services_cta_link', 'quality_hero_title', 'quality_hero_lead', 'quality_cta_btn', 'quality_cta_link',
         'faq_hero_title', 'faq_hero_lead', 'privacy_hero_title', 'privacy_hero_lead', 'privacy_body', 'terms_hero_title', 'terms_hero_lead', 'terms_body', 'legal_meta_effective', 'legal_meta_governance', 'legal_meta_location',
-        'footer_support_heading', 'footer_support_title', 'footer_support_subtitle', 'footer_support_link', 'footer_support_icon', 'footer_directory_title', 'footer_directory_subtitle', 'footer_directory_link', 'footer_directory_icon', 'footer_phone', 'footer_email', 'footer_address',
+        'footer_support_heading', 'footer_support_title', 'footer_support_subtitle', 'footer_support_link', 'footer_support_icon', 'footer_directory_title', 'footer_directory_subtitle', 'footer_directory_link', 'footer_directory_icon', 'footer_phone', 'footer_email',
         'footer_about_heading', 'footer_link_about', 'footer_link_about_url', 'footer_link_contact', 'footer_link_contact_url', 'footer_link_dealer_apply', 'footer_link_dealer_apply_url', 'footer_stay_connected_heading', 'footer_logo_url', 'footer_about_title', 'footer_about_desc',
         'social_facebook', 'social_youtube', 'social_linkedin', 'social_instagram', 'social_whatsapp', 'whatsapp_link', 'social_twitter', 'social_tiktok', 'social_telegram', 'app_google_play_link', 'app_apple_store_link',
         'copyright_text', 'copyright_text_bn', 'notice_empty', 'notice_empty_bn', 'floating_chat_label', 'auth_login_title', 'auth_login_subtitle', 'auth_dealer_help_text', 'auth_dealer_contact_text', 'partner_help_title', 'partner_help_body',
@@ -48,6 +48,7 @@ class WebsiteAdminSimplifyTest extends TestCase
         'header_about_subtitle', 'header_contact_subtitle', 'featured_categories_title', 'featured_categories_subtitle',
         'company_intro_title', 'company_intro_body', 'company_intro_eyebrow', 'product_range_title', 'product_range_sub',
         'partner_with_us_title', 'partner_with_us_sub', 'our_services_title', 'our_services_sub', 'trust_pillars_title',
+        'footer_address',
     ];
 
     /** Settings that other parts of the page change with buttons or lists. */

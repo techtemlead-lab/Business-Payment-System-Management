@@ -51,6 +51,18 @@ class PublicSiteHeaderAndFooterTest extends TestCase
             ->assertSee('01723731877');
     }
 
+    public function test_the_footer_shows_the_location_only_once(): void
+    {
+        $this->withCookie('locale', 'en')->get('/')->assertOk()
+            ->assertSee(__('site.footer_location', [], 'en'))
+            ->assertDontSee('ref-footer-contact-link is-address', false);
+    }
+
+    public function test_the_footer_shows_the_company_name_beside_the_logo_before_the_social_links(): void
+    {
+        $this->get('/')->assertOk()->assertSeeInOrder(['ref-footer-brand', '<img', '<h3>', 'ref-socials'], false);
+    }
+
     public function test_english_and_bangla_premium_fonts_are_loaded(): void
     {
         $this->get('/')->assertOk()
