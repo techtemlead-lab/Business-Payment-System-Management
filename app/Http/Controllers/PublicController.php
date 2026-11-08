@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Accounts\PartnerAge;
+use App\Domain\Audience\PartnerProductEnquiries;
 use App\Domain\Audience\PublicPartnerApplication;
 use App\Domain\Content\TestimonialLabels;
 use App\Domain\Geography\PlaceTree;
@@ -502,19 +503,9 @@ class PublicController extends Controller
 
     private function resolveSharePartner(Request $request): ?User
     {
-        $ref = strtoupper(trim((string) $request->query('ref', '')));
-        if ($ref !== '') {
-            $fromRef = User::query()
-                ->where('status', 'active')
-                ->whereIn('role', ['dealer', 'sub_dealer'])
-                ->where(function ($query) use ($ref): void {
-                    $query->whereRaw('UPPER(refer_code) = ?', [$ref])
-                        ->orWhereRaw('UPPER(dealer_code) = ?', [$ref]);
-                })
-                ->first();
-            if ($fromRef) {
-                return $fromRef;
-            }
+        $fromRef = app(PartnerProductEnquiries::class)->partnerForCode((string) $request->query('ref', ''));
+        if ($fromRef) {
+            return $fromRef;
         }
 
         $user = Auth::user();

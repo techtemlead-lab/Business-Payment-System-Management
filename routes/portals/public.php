@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\PartnerProductEnquiryController;
 use App\Http\Controllers\PublicController;
 use App\Support\PortalHost;
 use App\Support\SiteCustomization;
@@ -25,6 +26,7 @@ Route::get('/join/{code}', [PublicController::class, 'join'])
     ->middleware('throttle:60,1');
 Route::get('/{page}', [PublicController::class, 'index'])->whereIn('page', ['products', 'dealers', 'about', 'contact', 'partnership', 'services', 'quality', 'faq', 'privacy', 'terms', 'notice', 'circular-training', 'circular-price', 'circular-meeting']);
 Route::post('/enquiries', [PublicController::class, 'enquiry'])->middleware('throttle:5,1');
+Route::post('/products/{product}/partner-enquiry', [PartnerProductEnquiryController::class, 'store'])->middleware('throttle:5,1');
 Route::get('/feedback', [PublicController::class, 'feedbackForm']);
 Route::post('/feedback', [PublicController::class, 'storeFeedback'])->middleware('throttle:5,1');
 Route::post('/locale', [LocaleController::class, 'update'])->middleware('throttle:30,1');
