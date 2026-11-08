@@ -6,6 +6,9 @@
 .rx-hub .rx-tabs{margin-top:4px}
 .rx-reg{margin-top:6px;font-size:12.5px;font-weight:600;color:var(--ds-brand,#006a4e)}
 .rx-form .rx-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.rx-allergy{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:10px;border:2px solid var(--ds-danger-fg);background:var(--ds-danger-bg);color:var(--ds-danger-fg)}
+.rx-allergy p{margin:2px 0;font-size:15px;font-weight:700;white-space:pre-wrap;overflow-wrap:anywhere}
+.rx-allergy svg{flex:none;margin-top:2px}
 .rx-lines{border:1px solid var(--ds-line,#e2e8f0);border-radius:10px;padding:12px 14px 14px;margin:0;display:flex;flex-direction:column;gap:12px;min-width:0}
 .rx-lines legend{display:inline-flex;align-items:center;gap:6px;font-weight:700;padding:0 6px}
 .rx-note{font-size:12px}

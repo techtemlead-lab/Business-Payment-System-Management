@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { router, useForm, usePage } from '@inertiajs/react';
-import { FileText, Pill, Plus, Printer, Search, Stethoscope, Trash2, UserPlus } from 'lucide-react';
+import { AlertTriangle, FileText, Pill, Plus, Printer, Search, Stethoscope, Trash2, UserPlus } from 'lucide-react';
 import { DateInput, Empty, FormErrors, date, money, number, Pagination, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
 import { businessTodayIso } from '../business-date';
@@ -13,7 +13,7 @@ type Translate = ReturnType<typeof useT>;
 /** Request field and error key: the owner's answer to the "company loss" warning. */
 const CONFIRM_BELOW_FLOOR = 'confirm_below_floor';
 
-type PatientOption = { id: number; name: string; age: number | null };
+type PatientOption = { id: number; name: string; age: number | null; allergies: string | null };
 
 export type PatientRow = {
     id: number;
@@ -25,6 +25,7 @@ export type PatientRow = {
     place_code_id: number | null;
     place: string | null;
     notes: string | null;
+    allergies: string | null;
     own: boolean;
 };
 
@@ -158,7 +159,7 @@ export default function PrescriptionsHub({ data, tools }: { data: PrescriptionsD
 }
 
 /** The prescriber's own patients: the newest first, and a name search reaches older ones. */
-function PatientPicker({ initial, value, onChange, translate }: { initial: PatientOption[]; value: string; onChange: (id: string) => void; translate: Translate }) {
+function PatientPicker({ initial, value, onChange, translate }: { initial: PatientOption[]; value: string; onChange: (id: string, patient: PatientOption | null) => void; translate: Translate }) {
     const [query, setQuery] = useState('');
     const [found, setFound] = useState<PatientOption[] | null>(null);
     const [chosen, setChosen] = useState<PatientOption | null>(null);
@@ -189,8 +190,9 @@ function PatientPicker({ initial, value, onChange, translate }: { initial: Patie
             </label>
             <label>{translate('prescription', 'rx_patient')}
                 <select required value={value} onChange={(e) => {
-                    setChosen(options.find((patient) => String(patient.id) === e.target.value) ?? null);
-                    onChange(e.target.value);
+                    const patient = options.find((option) => String(option.id) === e.target.value) ?? null;
+                    setChosen(patient);
+                    onChange(e.target.value, patient);
                 }}>
                     <option value="">{translate('prescription', 'rx_choose_patient')}</option>
                     {options.map((patient) => <option key={patient.id} value={patient.id}>{patient.name}{patient.age !== null ? ` (${number(patient.age)})` : ''}</option>)}
@@ -213,6 +215,8 @@ function PrescriptionsTab({ data, tools, translate }: { data: PrescriptionsData;
         follow_up_on: '',
         lines: [emptyLine()] as LineForm[],
     });
+    const [chosenPatient, setChosenPatient] = useState<PatientOption | null>(null);
+    const patientAllergies = chosenPatient && String(chosenPatient.id) === form.data.patient_id ? chosenPatient.allergies : null;
     const lines = form.data.lines;
     const totals = useMemo(() => lines.reduce((sum, line) => {
         const cents = lineCents(line);
@@ -270,12 +274,22 @@ function PrescriptionsTab({ data, tools, translate }: { data: PrescriptionsData;
                             translate={translate}
                         />
                         <div className="rx-grid">
-                            <PatientPicker initial={data.own_patients} value={form.data.patient_id} onChange={(id) => form.setData('patient_id', id)} translate={translate} />
+                            <PatientPicker initial={data.own_patients} value={form.data.patient_id} onChange={(id, patient) => { setChosenPatient(patient); form.setData('patient_id', id); }} translate={translate} />
                             <label>{translate('prescription', 'rx_date')}
                                 <DateInput required value={form.data.prescribed_on} onChange={(e) => form.setData('prescribed_on', e.target.value)} />
                             </label>
                         </div>
                         {error('patient_id') && <span className="field-error" role="alert">{error('patient_id')}</span>}
+                        {patientAllergies && (
+                            <div className="rx-allergy" role="alert">
+                                <AlertTriangle size={20} aria-hidden="true" />
+                                <div>
+                                    <b>{translate('clinic_records', 'allergy_warning_title')}</b>
+                                    <p>{patientAllergies}</p>
+                                    <small>{translate('clinic_records', 'allergy_warning_body')}</small>
+                                </div>
+                            </div>
+                        )}
                         <div className="rx-grid">
                             <label>{translate('prescription', 'rx_complaints')}
                                 <textarea rows={2} value={form.data.complaints} onChange={(e) => form.setData('complaints', e.target.value)} />
@@ -514,14 +528,14 @@ function PatientsTab({ data, translate }: { data: PrescriptionsData; translate: 
     const { portalBase, filters } = usePage<any>().props;
     const [editing, setEditing] = useState<PatientRow | null>(null);
     const [query, setQuery] = useState(String(filters?.q ?? ''));
-    const blank = { name: '', age: '', sex: '', phone: '', place_code_id: '', notes: '' };
+    const blank = { name: '', age: '', sex: '', phone: '', place_code_id: '', notes: '', allergies: '' };
     const form = useForm(blank);
 
     useEffect(() => {
         if (editing) {
             form.setData({
                 name: editing.name, age: editing.age === null ? '' : String(editing.age), sex: editing.sex ?? '',
-                phone: editing.phone ?? '', place_code_id: editing.place_code_id ? String(editing.place_code_id) : '', notes: editing.notes ?? '',
+                phone: editing.phone ?? '', place_code_id: editing.place_code_id ? String(editing.place_code_id) : '', notes: editing.notes ?? '', allergies: editing.allergies ?? '',
             });
         } else {
             form.setData(blank);
@@ -566,6 +580,10 @@ function PatientsTab({ data, translate }: { data: PrescriptionsData; translate: 
                         {editing?.place && <small className="muted"> {editing.place}</small>}
                         <PlaceCodePicker value={form.data.place_code_id} onChange={(id) => form.setData('place_code_id', id)} translate={translate} />
                     </div>
+                    <label>{translate('clinic_records', 'allergies')}
+                        <textarea rows={2} maxLength={1000} value={form.data.allergies} onChange={(e) => form.setData('allergies', e.target.value)} />
+                        <small className="muted">{translate('clinic_records', 'allergies_hint')}</small>
+                    </label>
                     <label>{translate('prescription', 'patient_notes')}<textarea rows={2} maxLength={2000} value={form.data.notes} onChange={(e) => form.setData('notes', e.target.value)} /></label>
                     <FormErrors errors={form.errors} />
                     <div className="rx-actions">
@@ -593,6 +611,7 @@ function PatientsTab({ data, translate }: { data: PrescriptionsData; translate: 
                                     <small className="cell-sub">
                                         {[patient.age !== null ? translate('prescription', 'print_years', { age: patient.age }) : null, patient.sex ? translate('prescription', `sex_${patient.sex}`) : null, patient.phone, patient.place].filter(Boolean).join(' · ')}
                                     </small>
+                                    {patient.allergies && <small className="cell-sub is-bad"><AlertTriangle size={13} aria-hidden="true" /> {translate('clinic_records', 'allergies')}: {patient.allergies}</small>}
                                     {patient.notes && <small className="cell-sub">{patient.notes}</small>}
                                 </div>
                                 <button type="button" className="button small" onClick={() => { setEditing(patient); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>{translate('prescription', 'patient_edit')}</button>

@@ -171,6 +171,7 @@ class PrescriptionController extends Controller
             'phone' => ['nullable', 'string', 'max:20', 'regex:/^\+?[\d\s-]{6,20}$/'],
             'place_code_id' => 'nullable|integer|exists:place_codes,id',
             'notes' => 'nullable|string|max:2000',
+            'allergies' => 'nullable|string|max:1000',
         ];
     }
 }

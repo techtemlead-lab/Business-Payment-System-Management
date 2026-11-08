@@ -31,7 +31,7 @@ final class PrescriptionBook
     public const PatientOptionLimit = 30;
 
     /**
-     * @param  array{name: string, age?: int|null, sex?: string|null, phone?: string|null, place_code_id?: int|null, notes?: string|null}  $data
+     * @param  array{name: string, age?: int|null, sex?: string|null, phone?: string|null, place_code_id?: int|null, notes?: string|null, allergies?: string|null}  $data
      */
     public function savePatient(User $prescriber, ?PrescriptionPatient $patient, array $data): PrescriptionPatient
     {
@@ -47,6 +47,10 @@ final class PrescriptionBook
             'place_code_id' => $data['place_code_id'] ?? null,
             'notes' => filled($data['notes'] ?? null) ? trim((string) $data['notes']) : null,
         ];
+        // A safety field: a save that doesn't mention allergies must not wipe them.
+        if (array_key_exists('allergies', $data)) {
+            $values['allergies'] = filled($data['allergies']) ? trim((string) $data['allergies']) : null;
+        }
         if ($patient === null) {
             $patient = PrescriptionPatient::query()->create([...$values, 'prescriber_id' => $prescriber->id]);
             Audit::record($prescriber->id, 'prescription.patient_created', (string) $patient->id, []);
@@ -152,7 +156,7 @@ final class PrescriptionBook
      * The prescriber's own patients for the prescription picker, newest first; a search by
      * name reaches older ones.
      *
-     * @return list<array{id: int, name: string, age: int|null}>
+     * @return list<array{id: int, name: string, age: int|null, allergies: string|null}>
      */
     public function patientOptions(User $prescriber, string $search = ''): array
     {
@@ -163,8 +167,8 @@ final class PrescriptionBook
             ->when($term !== '', fn ($query) => $query->where('name', 'ilike', '%'.$term.'%'))
             ->orderByDesc('id')
             ->limit(self::PatientOptionLimit)
-            ->get(['id', 'name', 'age'])
-            ->map(fn (PrescriptionPatient $patient): array => ['id' => $patient->id, 'name' => $patient->name, 'age' => $patient->age])
+            ->get(['id', 'name', 'age', 'allergies'])
+            ->map(fn (PrescriptionPatient $patient): array => ['id' => $patient->id, 'name' => $patient->name, 'age' => $patient->age, 'allergies' => $patient->allergies])
             ->values()
             ->all();
     }
@@ -189,6 +193,7 @@ final class PrescriptionBook
             'place_code_id' => $patient->place_code_id,
             'place' => $patient->placeCode ? trim(PlaceCode::displayLabel($patient->placeCode->code).' '.PlaceCode::displayLabel($patient->placeCode->name)) : null,
             'notes' => $patient->notes,
+            'allergies' => $patient->allergies,
             'own' => true,
             'created_at' => $patient->created_at?->toIso8601String(),
         ];
