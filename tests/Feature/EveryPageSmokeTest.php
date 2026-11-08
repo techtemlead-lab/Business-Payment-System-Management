@@ -60,7 +60,8 @@ class EveryPageSmokeTest extends TestCase
     #[DataProvider('locales')]
     public function test_every_office_staff_page_opens_for_staff_with_every_permission(string $locale): void
     {
-        $staff = User::factory()->staff('employee')->create(['profile' => ['permissions' => config('madina.roles.super_admin')]]);
+        // Prescriptions open only for staff switched on for company stock.
+        $staff = User::factory()->staff('employee')->create(['profile' => ['permissions' => config('madina.roles.super_admin')], 'can_prescribe' => true]);
         // Partner chat opens only for staff the owner nominated to answer it.
         DB::table('business_settings')->insert([
             'key' => ChatRouting::SettingKey,

@@ -29,7 +29,7 @@ type CapabilityContext = {
     ownerPortal: boolean;
     /** The owner nominated this staff member to answer partner chat. */
     chatAnswerer?: boolean;
-    /** Verified prescriber (partner) or the owner-doctor: shows the Prescriptions menu. */
+    /** Verified prescriber (partner or office account) or the owner-doctor: shows the Prescriptions menu. */
     prescriber?: boolean;
     dashboardControls?: Record<string, unknown> | null;
 };
@@ -220,7 +220,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     if (['super_admin', 'md', 'chairman'].includes(role)) ['accounts', 'sub-dealers', 'employees'].forEach((item) => items.add(item));
     if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('benefits-fund');
     if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('data-cleanup');
-    if (ownerPortal && prescriber) items.add('prescriptions');
+    if (prescriber) items.add('prescriptions');
     if (capabilities.some((cap) => ['catalog', 'pricing', 'inventory', 'orders', 'finance'].includes(cap))) items.add('catalog');
     if (capabilities.includes('inventory')) {
         items.add('inventory');

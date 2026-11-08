@@ -45,7 +45,7 @@ class PrescriptionReviewRegressionTest extends TestCase
             ->assertRedirect();
 
         $this->actingAs($dealer->fresh())->onPortal('dealer')->get($printPath)->assertForbidden();
-        $this->actingAs($owner)->onPortal('sadmin')->get($printPath)->assertOk();
+        $this->actingAs($owner)->onPortal('sadmin')->get($printPath)->assertNotFound();
     }
 
     public function test_the_print_button_script_carries_the_nonce_the_page_policy_allows(): void
@@ -111,15 +111,13 @@ class PrescriptionReviewRegressionTest extends TestCase
             $lines[] = ['product_id' => $this->stockedProduct($owner, $branch, '0.04')->id, 'unit_price' => '0.01', 'quantity' => 1];
         }
 
-        $this->writePrescription($owner, $patient, $lines)->assertSessionHasErrors('lines');
+        $this->writePrescription($owner, $patient, $lines)->assertSessionHasErrors('confirm_below_floor');
         $this->assertSame(0, Prescription::query()->count());
 
-        $this->setPriceFloor($owner, 'warn');
-        $this->writePrescription($owner, $patient, $lines)->assertSessionHasNoErrors();
+        $this->writePrescription($owner, $patient, $lines, true)->assertSessionHasNoErrors();
         $prescription = Prescription::query()->firstOrFail();
-        $this->setPriceFloor($owner, 'block');
 
-        $this->dispense($owner, $prescription, $branch)->assertSessionHasErrors('prices');
+        $this->dispense($owner, $prescription, $branch)->assertSessionHasErrors('confirm_below_floor');
         $this->assertSame(Prescription::StatusIssued, $prescription->fresh()->status);
         $this->assertFalse(DB::table('journal_entries')->where('event_key', 'clinic.dispense.'.$prescription->id)->exists());
     }
@@ -149,10 +147,10 @@ class PrescriptionReviewRegressionTest extends TestCase
      * @param  list<array<string, mixed>>  $lines
      * @return TestResponse<Response>
      */
-    private function writePrescription(User $owner, PrescriptionPatient $patient, array $lines): TestResponse
+    private function writePrescription(User $owner, PrescriptionPatient $patient, array $lines, bool $confirmBelowFloor = false): TestResponse
     {
         return $this->actingAs($owner)->onPortal('sadmin')->post('/commands/prescriptions', [
-            'patient_id' => $patient->id, 'prescribed_on' => '2026-11-08', 'lines' => $lines,
+            'patient_id' => $patient->id, 'prescribed_on' => '2026-11-08', 'lines' => $lines, 'confirm_below_floor' => $confirmBelowFloor,
         ]);
     }
 
@@ -161,11 +159,6 @@ class PrescriptionReviewRegressionTest extends TestCase
     {
         return $this->actingAs($owner)->onPortal('sadmin')
             ->post('/commands/prescriptions/'.$prescription->id.'/dispense', ['branch_id' => $branch->id]);
-    }
-
-    private function setPriceFloor(User $owner, string $mode): void
-    {
-        $this->actingAs($owner)->onPortal('sadmin')->post('/commands/prescriptions/price-floor', ['mode' => $mode])->assertRedirect();
     }
 
     /** @return array<string, array{0: string, 1: string}> Debit and credit for each account, by account name. */

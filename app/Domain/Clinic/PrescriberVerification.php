@@ -8,8 +8,10 @@ use App\Support\Audit;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Turns prescribing on and off for one dealer or sub-dealer after the owner checked their
- * registration papers offline. Every change is written to the audit log.
+ * Turns prescribing on and off for one account after the owner checked their registration
+ * papers offline: a dealer or sub-dealer (typed medicines), or an office account (MD, Chairman
+ * or any staff), who then prescribes and dispenses from company stock. Every change is
+ * written to the audit log.
  */
 final class PrescriberVerification
 {
@@ -42,6 +44,7 @@ final class PrescriberVerification
     public function enable(User $actor, User $partner, array $data): PrescriberRegistration
     {
         $this->authorize($actor, $partner);
+        abort_if((int) $actor->id === (int) $partner->id, 403, __('prescription.err_self_grant'));
 
         return DB::transaction(function () use ($actor, $partner, $data): PrescriberRegistration {
             $locked = User::query()->whereKey($partner->id)->lockForUpdate()->firstOrFail();
@@ -58,7 +61,7 @@ final class PrescriberVerification
                 'disable_reason' => null,
             ]);
             $locked->forceFill(['can_prescribe' => true])->save();
-            Audit::record($actor->id, 'prescriber.enabled', (string) $locked->id, [
+            Audit::record($actor->id, PrescriptionAccess::isPartner($locked) ? 'prescriber.enabled' : 'prescriber.company_stock_granted', (string) $locked->id, [
                 'registration_type' => $registration->registration_type,
                 'registration_number' => $registration->registration_number,
                 'note' => $registration->note,
@@ -83,7 +86,7 @@ final class PrescriberVerification
                 'updated_at' => now(),
             ]);
             $locked->forceFill(['can_prescribe' => false])->save();
-            Audit::record($actor->id, 'prescriber.disabled', (string) $locked->id, ['reason' => $reason]);
+            Audit::record($actor->id, PrescriptionAccess::isPartner($locked) ? 'prescriber.disabled' : 'prescriber.company_stock_removed', (string) $locked->id, ['reason' => $reason]);
         });
     }
 
@@ -114,6 +117,7 @@ final class PrescriberVerification
     private function authorize(User $actor, User $partner): void
     {
         abort_unless(PrescriptionAccess::canVerify($actor), 403);
-        abort_unless(PrescriptionAccess::isPartner($partner), 422, __('prescription.err_partner_only'));
+        abort_if($partner->role === 'super_admin', 422, __('prescription.err_owner_always_on'));
+        abort_unless(PrescriptionAccess::isPartner($partner) || PrescriptionAccess::isOfficeAccount($partner), 422, __('prescription.err_partner_only'));
     }
 }

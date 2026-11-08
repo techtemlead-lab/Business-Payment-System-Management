@@ -19,13 +19,16 @@ type PrescriberStatus = {
 };
 
 /**
- * The per-partner prescription switch on the accounts page. Owners and staff with the
- * "Verify prescribers" permission turn it on after checking the registration papers in person.
+ * The per-account prescription switch: for partners on the accounts page and for office
+ * accounts on the employees page, where it means prescribing from company stock. Owners and
+ * staff with the "Verify prescribers" permission turn it on after checking the papers in person.
  */
 export default function PartnerPrescriberControls({ account }: { account: Row }) {
     const translate = useT();
     const { auth } = usePage<any>().props;
-    const allowed = Boolean(auth?.prescriberVerifier) && ['dealer', 'sub_dealer'].includes(String(account.role));
+    const office = !['dealer', 'sub_dealer'].includes(String(account.role));
+    const self = Number(auth?.user?.id) === Number(account.id);
+    const allowed = Boolean(auth?.prescriberVerifier) && String(account.role) !== 'super_admin';
     const [status, setStatus] = useState<PrescriberStatus | null>(null);
     const [failed, setFailed] = useState(false);
     const [reason, setReason] = useState('');
@@ -63,10 +66,10 @@ export default function PartnerPrescriberControls({ account }: { account: Row })
             <div className="panel-heading">
                 <div>
                     <h3 className="ops-row is-inline">
-                        <Stethoscope size={18} /> {translate('prescription', 'verify_title')}{' '}
+                        <Stethoscope size={18} /> {translate('prescription', office ? 'office_title' : 'verify_title')}{' '}
                         {status && <span className={`badge ${status.enabled ? 'active' : 'suspended'}`}>{translate('prescription', status.enabled ? 'verify_status_on' : 'verify_status_off')}</span>}
                     </h3>
-                    <p className="muted pbc-hint">{translate('prescription', 'verify_body', { name: String(account.name ?? '') })}</p>
+                    <p className="muted pbc-hint">{translate('prescription', office ? 'office_body' : 'verify_body', { name: String(account.name ?? '') })}</p>
                     {status?.enabled && status.enabled_by && status.enabled_at && (
                         <p className="muted pbc-hint">{translate('prescription', 'verify_enabled_by', { name: status.enabled_by, date: dateTime(status.enabled_at) })}</p>
                     )}
@@ -84,7 +87,8 @@ export default function PartnerPrescriberControls({ account }: { account: Row })
             )}
             {status && (
                 <>
-                    <form
+                    {self && <p className="muted">{translate('prescription', 'err_self_grant')}</p>}
+                    {!self && <form
                         className="action-form"
                         onSubmit={(event) => {
                             event.preventDefault();
@@ -109,7 +113,7 @@ export default function PartnerPrescriberControls({ account }: { account: Row })
                         <button className="button dark" disabled={form.processing}>
                             {translate('prescription', status.enabled ? 'verify_update' : 'verify_enable')}
                         </button>
-                    </form>
+                    </form>}
                     {status.enabled && (
                         <form
                             className="action-form pbc-disable"
