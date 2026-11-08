@@ -61,7 +61,7 @@ final class PlaceCodeCatalog
         $level = $this->assertLevel($level);
 
         return PlaceCode::query()
-            ->with(['parent:id,code,name,level', 'basePlace:id,code,name,level'])
+            ->with(['parent:id,code,name,level', 'basePlace:id,code,name,level,parent_id,is_active'])
             ->where('level', $level)
             ->when(
                 $query !== null && $query !== '' && in_array($level, self::SearchableLevels, true),
@@ -199,7 +199,9 @@ final class PlaceCodeCatalog
         }
 
         if ($code === null) {
-            $name = PlaceCode::PlaceholderLabel;
+            $name = $existing !== null && PlaceCode::isPlaceholderLabel($existing->code) && ! PlaceCode::isPlaceholderLabel($rawName)
+                ? $rawName
+                : PlaceCode::PlaceholderLabel;
         } else {
             if (PlaceCode::isPlaceholderLabel($rawName)) {
                 throw ValidationException::withMessages(['name' => __('portal.err_pc_name_required')]);
@@ -242,23 +244,14 @@ final class PlaceCodeCatalog
         }
 
         $basePlaceId = $input['base_place_id'] ?? null;
-        if ($basePlaceId !== null) {
+        if ($basePlaceId !== null && (int) $basePlaceId !== (int) $existing?->base_place_id) {
             if (! $existing) {
                 throw ValidationException::withMessages(['base_place_id' => __('portal.err_pc_base_after_save')]);
             }
-            $childLevel = self::ChildLevel[$level];
-            if ($childLevel === null) {
+            if (self::ChildLevel[$level] === null) {
                 throw ValidationException::withMessages(['base_place_id' => __('portal.err_pc_union_no_base')]);
             }
-            $base = PlaceCode::query()
-                ->whereKey($basePlaceId)
-                ->where('level', $childLevel)
-                ->where('parent_id', $existing->id)
-                ->where('is_active', true)
-                ->first();
-            if (! $base || ! $base->isReadyForAssignment()) {
-                throw ValidationException::withMessages(['base_place_id' => __('portal.err_pc_base_invalid')]);
-            }
+            $this->assertCanBeBase($existing, (int) $basePlaceId);
         }
 
         return [
@@ -269,6 +262,65 @@ final class PlaceCodeCatalog
             'sort_order' => max(0, (int) ($input['sort_order'] ?? 0)),
             'is_active' => (bool) ($input['is_active'] ?? true),
         ];
+    }
+
+    /**
+     * A base is only checked when the owner picks a new one. The refusal says the
+     * actual reason and names the place, so the owner knows what to do next.
+     *
+     * @throws ValidationException
+     */
+    private function assertCanBeBase(PlaceCode $place, int $candidateId): void
+    {
+        $candidate = PlaceCode::query()->find($candidateId);
+        if ($candidate === null) {
+            throw ValidationException::withMessages(['base_place_id' => __('portal.err_pc_base_invalid')]);
+        }
+
+        $problem = $this->baseProblem($place, $candidate);
+        if ($problem !== null) {
+            throw ValidationException::withMessages(['base_place_id' => __('place_base.refused_'.$problem, [
+                'place' => $this->placeForMessage($candidate),
+            ])]);
+        }
+    }
+
+    /**
+     * Why a place can't be this place's base, or null when it can.
+     *
+     * @return 'not_directly_under'|'turned_off'|'no_code'|'no_name'|null
+     */
+    private function baseProblem(PlaceCode $place, PlaceCode $candidate): ?string
+    {
+        if ($candidate->level !== (self::ChildLevel[$place->level] ?? null) || (int) $candidate->parent_id !== (int) $place->id) {
+            return 'not_directly_under';
+        }
+        if (! $candidate->is_active) {
+            return 'turned_off';
+        }
+        if (PlaceCode::normalizeCode($candidate->code) === null) {
+            return 'no_code';
+        }
+        if (PlaceCode::isPlaceholderLabel($candidate->name)) {
+            return 'no_name';
+        }
+
+        return null;
+    }
+
+    /** A place as the owner knows it: its name with its code, or with its level while it has no code. */
+    private function placeForMessage(PlaceCode $place): string
+    {
+        $level = self::localizedLevelLabel($place->level);
+        $hasName = ! PlaceCode::isPlaceholderLabel($place->name);
+        $hasCode = ! PlaceCode::isPlaceholderLabel($place->code);
+
+        return match (true) {
+            $hasName && $hasCode => $place->name.' ('.$place->code.')',
+            $hasName => $place->name.' ('.$level.')',
+            $hasCode => $place->code.' ('.$level.')',
+            default => $level,
+        };
     }
 
     /**
@@ -297,7 +349,11 @@ final class PlaceCodeCatalog
     }
 
     /**
-     * @return list<array{id:int,code:string,name:string,level:string}>
+     * Children that can be picked as the base, plus the base saved now even when
+     * it can't be picked again, so the owner can always see it and clear it.
+     * Such a saved base carries a short note saying why, e.g. it has no code yet.
+     *
+     * @return list<array{id:int,code:string,name:string,level:string,note?:string}>
      */
     public function optionsForBase(PlaceCode $place): array
     {
@@ -306,7 +362,7 @@ final class PlaceCodeCatalog
             return [];
         }
 
-        return PlaceCode::query()
+        $options = PlaceCode::query()
             ->where('parent_id', $place->id)
             ->where('level', $childLevel)
             ->where('is_active', true)
@@ -323,6 +379,22 @@ final class PlaceCodeCatalog
             ])
             ->values()
             ->all();
+
+        $saved = $place->basePlace;
+        if ($saved === null || in_array($saved->id, array_column($options, 'id'), true)) {
+            return $options;
+        }
+        $problem = $this->baseProblem($place, $saved);
+
+        $options[] = [
+            'id' => $saved->id,
+            'code' => PlaceCode::displayLabel($saved->code),
+            'name' => PlaceCode::displayLabel($saved->name),
+            'level' => $saved->level,
+            ...($problem === null ? [] : ['note' => (string) __('place_base.note_'.$problem)]),
+        ];
+
+        return $options;
     }
 
     /** @return array<string, mixed> */
