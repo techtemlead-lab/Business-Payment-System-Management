@@ -37,6 +37,7 @@ class StatementImportTest extends TestCase
         $order = Order::create([
             'number' => 'MN-'.Str::upper(Str::random(8)), 'user_id' => $buyer->id, 'status' => 'submitted',
             'total' => $amount, 'paid' => '0.00', 'idempotency_key' => (string) Str::uuid(),
+            'payload_hash' => hash('sha256', Str::random()),
         ]);
 
         return DB::table('payment_claims')->insertGetId([
