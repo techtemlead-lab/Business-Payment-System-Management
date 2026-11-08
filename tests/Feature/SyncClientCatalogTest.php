@@ -40,7 +40,7 @@ class SyncClientCatalogTest extends TestCase
         Storage::disk('local')->assertExists($naturalife->image_path);
 
         $custom = SiteCustomization::all();
-        $this->assertSame('holisticnutracare@gmail.com', $custom['contact_email']);
+        $this->assertSame('', $custom['contact_email']);
         $this->assertSame('+8801730532966', $custom['contact_phone']);
         $this->assertStringContainsString('2026-00563', $custom['footer_about_desc']);
         $this->assertStringContainsString('Pirganj', $custom['office_address']);

@@ -52,7 +52,7 @@ return [
     // value; the owner switches it on or off in Finance settings ("Full payment required when ordering").
     'full_payment_when_ordering' => env('MADINA_FULL_PAYMENT_WHEN_ORDERING', true),
     // Printable order invoice letterhead (matches partner invoice template layout).
-    'invoice_manufacturer' => env('MADINA_INVOICE_MANUFACTURER', 'Holistic Nutracare'),
+    'invoice_manufacturer' => env('MADINA_INVOICE_MANUFACTURER', ''),
     'invoice_marketed_by' => env('MADINA_INVOICE_MARKETED_BY', 'Madina Natural Health Care'),
     'invoice_marketed_phones' => env('MADINA_INVOICE_MARKETED_PHONES', '01723-731877, 01730532966'),
     'company_name' => env('MADINA_COMPANY_NAME', 'Madina Natural Health Care'),

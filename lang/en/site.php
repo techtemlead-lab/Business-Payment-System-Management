@@ -144,7 +144,7 @@ return [
     'product_tab_specification' => 'Specification',
     'trust_pillars_title' => 'Our Promise to You',
     'trust_pillar1_title' => 'Herbal & Nutrition Products',
-    'trust_pillar1_subtitle' => 'Holistic Nutracare herbal and nutrition products for everyday care.',
+    'trust_pillar1_subtitle' => 'Herbal and nutrition products for everyday care.',
     'trust_pillar2_title' => 'Trade-Licensed Business',
     'trust_pillar2_subtitle' => 'A licensed distributor with its head office in Pirganj, Rangpur.',
     'trust_pillar3_title' => 'Company-Approved Dealers',
@@ -214,7 +214,6 @@ We use necessary login and security cookies, and setting cookies for language an
 We may change this policy when our work or the law changes. The date on this page changes when a new version is published. For privacy questions or data requests, contact Madina Natural Health Care:
 • Office: Thana Road, Pirganj 5470, Rangpur, Bangladesh
 • Customer care: +8801730532966 / 01723731877
-• Email: holisticnutracare@gmail.com
 • Or use the public Contact form',
     'terms_hero_title' => 'Terms of Use',
     'terms_hero_lead' => 'Rules for using the Madina Natural Health Care website, product list and dealer services — including accounts, orders and TrxID payments.',
@@ -240,7 +239,7 @@ The company checks dealer orders and payments:
 The product list may include unani medicines, food supplements and herbal health products. Website content is for information and learning only. It is not personal medical advice, diagnosis or a prescription. See a qualified doctor or health professional when you need treatment advice.
 
 6. Our Names, Logos & Content
-Trademarks, product names, logos, text, photos and site design belong to Madina Natural Health Care or to the companies that allow us to use them (including Holistic Nutracare marks where they apply). Do not copy, collect or reuse them for business without written permission.
+Trademarks, product names, logos, text, photos and site design belong to Madina Natural Health Care or to the companies that allow us to use them. Do not copy, collect or reuse them for business without written permission.
 
 7. Website Availability
 We try to keep the website and dealer tools running, but we cannot promise they will always be available. Maintenance, network problems or problems at other service providers may stop access, sometimes without notice.
@@ -252,7 +251,6 @@ These terms follow the laws of Bangladesh. Please raise any problem about the we
 Questions about these terms, partnership rules or the website:
 • Head office: Thana Road, Pirganj 5470, Rangpur, Bangladesh
 • Customer care: +8801730532966 / 01723731877
-• Email: holisticnutracare@gmail.com
 • Or use the public Contact form',
     'legal_meta_effective' => 'Effective: October 2026',
     'legal_meta_governance' => 'Madina Natural Health Care · Operational policy',
@@ -269,7 +267,7 @@ Questions about these terms, partnership rules or the website:
     'quality_promise' => 'Quality Promise',
     'company_notice' => 'Company Notice',
     'apply_for_dealership' => 'Apply for Dealership',
-    'footer_about_desc' => 'Licensed distributor (Trade License 2026-00563, Pirganj Municipality). Natural herbal & Holistic Nutracare products across Bangladesh.',
+    'footer_about_desc' => 'Licensed distributor (Trade License 2026-00563, Pirganj Municipality). Natural herbal and nutrition products across Bangladesh.',
     'copyright' => '© :year Madina Natural Health Care. All rights reserved.',
     'privacy_policy' => 'Privacy Policy',
     'terms_of_use' => 'Terms of Use',
@@ -283,13 +281,13 @@ Questions about these terms, partnership rules or the website:
     'contact_head_office' => 'Contact Head Office',
 
     'about_hero_title' => 'About Madina Natural Health Care',
-    'about_hero_lead' => 'Madina Natural Health Care is a licensed, single-owner distributor (Trade License 2026-00563, Pirganj Municipality) with its head office on Thana Road, Pirganj 5470, Rangpur. We supply herbal and Holistic Nutracare nutrition products through authorized dealers and sub-dealers across Bangladesh.',
+    'about_hero_lead' => 'Madina Natural Health Care is a licensed, single-owner distributor (Trade License 2026-00563, Pirganj Municipality) with its head office on Thana Road, Pirganj 5470, Rangpur. We supply herbal and nutrition products through authorized dealers and sub-dealers across Bangladesh.',
     'about_history_title' => 'Company History',
-    'about_history' => 'Madina Natural Health Care was started by its owner, Md Anowar Hossain, as a licensed natural health distributor in Pirganj, Rangpur. It began as a small local business and grew into a steady supply network for Holistic Nutracare nutrition and herbal products, made from natural raw materials using modern methods. Today the company connects its head office with authorized dealers and sub-dealers, so genuine health products reach pharmacies, dealer shops and homes across the country. Our warehouse is at Chaira, Moshorikhula, Hemayetpur, Savar, Dhaka.',
+    'about_history' => 'Madina Natural Health Care was started by its owner, Md Anowar Hossain, as a licensed natural health distributor in Pirganj, Rangpur. It began as a small local business and grew into a steady supply network for nutrition and herbal products. Today the company connects its head office with authorized dealers and sub-dealers, so genuine health products reach pharmacies, dealer shops and homes across the country.',
     'about_mission_title' => 'Our Mission',
-    'about_mission' => 'To protect people\'s health by making sure food is free from adulteration and by promoting the right use of herbal products. We also build an honest, staff-verified dealer and sub-dealer network that gives local business people reliable stock, fair terms, and clear order and payment rules.',
+    'about_mission' => 'To build an honest, staff-verified dealer and sub-dealer network that gives local business people reliable stock, fair terms, and clear order and payment rules.',
     'about_vision_title' => 'Our Vision',
-    'about_vision' => 'To bring herbal and food products to every home in Bangladesh, and to be a dependable mother company for dealers, sub-dealers and health partners who build a steady income by selling genuine products.',
+    'about_vision' => 'To be a dependable mother company for dealers, sub-dealers and health partners who build a steady income by selling genuine products.',
     'about_objectives_title' => 'Core Objectives',
     'about_obj1_title' => 'Genuine Products',
     'about_obj1_desc' => 'Supply safe, checked unani medicines and food supplements, with clear quality standards and product documentation for every SKU in the catalog.',
@@ -531,7 +529,7 @@ Questions about these terms, partnership rules or the website:
     'error_429_body' => 'We got too many requests from you in a short time. Wait a minute, then try again.',
     'hero_slide1_alt' => 'Madina Natural Health Care - Authentic Herbal & Wellness Products',
     'hero_slide2_alt' => 'Madina Authentic Unani & Herbal Solutions',
-    'hero_slide3_alt' => 'Madina Holistic Wellness & Physiotherapy Center',
+    'hero_slide3_alt' => 'Madina Natural Health Care',
     'side_banner_1_slide1_alt' => 'Madina products',
     'side_banner_1_slide2_alt' => 'Madina skin and hair care products',
     'side_banner_1_slide3_alt' => 'Madina everyday health products',
