@@ -60,7 +60,7 @@ export const SECTION_LABEL_KEYS: Record<string, string> = {
     'full-report': 'full_report', ranks: 'ranks', commissions: 'commissions', 'network-tree': 'network_tree',
     'area-dealers': 'area_dealers', 'place-codes': 'place_codes', branches: 'branches',
     'branch-performance': 'branch_performance', rewards: 'rewards', 'capital-flow': 'capital_flow',
-    settlements: 'settlements', simulator: 'simulator', 'payouts-hub': 'payouts_hub', treasury: 'treasury',
+    settlements: 'settlements', simulator: 'simulator', 'payouts-hub': 'payouts_hub', treasury: 'treasury', 'company-funds': 'company_funds',
     'benefits-fund': 'benefits_fund', 'sub-dealers': 'sub_dealers', 'sub-dealer-orders': 'sub_dealer_orders',
     'sub-dealer-applications': 'sub_dealer_applications', 'login-rules': 'login_rules',
     employees: 'employees', dashboards: 'dashboards', help: 'help', 'support-admin': 'support_admin', agreement: 'agreement',
@@ -193,7 +193,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     if (capabilities.some((cap) => ['finance', 'accounts'].includes(cap))) items.add('data-imports');
     if (capabilities.includes('finance') || role === 'super_admin') items.add('service-integrations');
     if (capabilities.includes('finance')) {
-        ['payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'finance-settings', 'treasury',
+        ['payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'finance-settings', 'treasury', 'company-funds',
             'commissions', 'policies', 'ledger', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'salary'].forEach((item) => items.add(item));
     }
     if (capabilities.some((cap) => ['finance', 'reports', 'field_sales'].includes(cap))) items.add('financial-reports');

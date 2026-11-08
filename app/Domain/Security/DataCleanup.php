@@ -158,7 +158,7 @@ final class DataCleanup
         }
         if ($kind === null || $kind === self::KindSmsLogs) {
             $parts[] = DB::table('sms_logs')
-                ->selectRaw("CONCAT('sms:', id) AS ref, 'sms_logs'::text AS kind, phone_masked::text AS label, CONCAT(CASE WHEN sent THEN 'sent' ELSE 'failed' END, CASE WHEN provider IS NULL THEN '' ELSE CONCAT(' · ', provider) END) AS detail, created_at::timestamp AS happened_at");
+                ->selectRaw("CONCAT('sms:', id) AS ref, 'sms_logs'::text AS kind, phone_masked::text AS label, CONCAT(CASE WHEN sent THEN 'sent' WHEN refused THEN 'refused' ELSE 'failed' END, CASE WHEN provider IS NULL THEN '' ELSE CONCAT(' · ', provider) END) AS detail, created_at::timestamp AS happened_at");
         }
         if ($kind === null || $kind === self::KindEnquiries) {
             $parts[] = DB::table('enquiries')

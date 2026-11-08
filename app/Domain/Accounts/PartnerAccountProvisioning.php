@@ -8,6 +8,7 @@ use App\Domain\Geography\ManagementReferral;
 use App\Domain\Geography\PlaceGeographyResolver;
 use App\Domain\Notifications\AccountCreatedSms;
 use App\Domain\Notifications\PartnerEventSms;
+use App\Domain\Notifications\SmsText;
 use App\Models\AreaDealerAssignment;
 use App\Models\DealerRank;
 use App\Models\PlaceCode;
@@ -384,14 +385,14 @@ final class PartnerAccountProvisioning
                     'reason' => $reason,
                 ], $locale),
             );
-            DB::afterCommit(function () use ($locked, $locale, $label, $reason): void {
+            DB::afterCommit(function () use ($locked, $label, $reason): void {
                 app(PartnerEventSms::class)->send(
                     $locked,
                     'account.geography_updated',
-                    __('sms.geography_updated', [
+                    SmsText::make('sms.geography_updated', [
                         'place' => $label,
                         'reason' => $reason,
-                    ], $locale),
+                    ]),
                 );
             });
         }, 3);

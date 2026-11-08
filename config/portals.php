@@ -34,7 +34,7 @@ return [
             'dashboards', 'employees', 'accounts', 'sub-dealers', 'sub-dealer-applications', 'sub-dealer-orders', 'treasury', 'inventory', 'branches', 'branch-performance',
             'payments', 'policies', 'salary', 'withdrawals', 'ledger', 'reports', 'top-sellers', 'content', 'website', 'customization',
             'enquiries', 'feedback', 'partnerships', 'audit', 'commissions', 'network-tree', 'area-dealers', 'place-codes', 'ranks', 'rewards',
-            'settlements', 'simulator', 'payouts-hub', 'help', 'support-admin', 'agreement', 'partner-messages', 'training', 'events', 'prescriptions',
+            'settlements', 'simulator', 'payouts-hub', 'help', 'support-admin', 'agreement', 'partner-messages', 'training', 'events', 'prescriptions', 'company-funds',
         ],
         'staff_capabilities' => [
             'dashboards' => 'accounts',
@@ -45,6 +45,7 @@ return [
             'sub-dealer-applications' => 'accounts',
             'sub-dealer-orders' => 'orders',
             'treasury' => 'finance',
+            'company-funds' => 'finance',
             'inventory' => 'inventory',
             'branches' => 'inventory',
             'branch-performance' => 'reports',
@@ -86,7 +87,7 @@ return [
             'dashboards', 'employees', 'accounts', 'sub-dealers', 'sub-dealer-applications', 'sub-dealer-orders', 'treasury', 'inventory', 'branches', 'branch-performance',
             'payments', 'policies', 'salary', 'withdrawals', 'ledger', 'reports', 'top-sellers', 'content', 'website', 'customization',
             'enquiries', 'feedback', 'partnerships', 'audit', 'commissions', 'network-tree', 'area-dealers', 'place-codes', 'ranks', 'rewards',
-            'settlements', 'simulator', 'payouts-hub', 'benefits-fund', 'help', 'support-admin', 'agreement', 'partner-messages', 'training', 'events', 'data-cleanup', 'prescriptions', 'login-rules',
+            'settlements', 'simulator', 'payouts-hub', 'benefits-fund', 'help', 'support-admin', 'agreement', 'partner-messages', 'training', 'events', 'data-cleanup', 'prescriptions', 'company-funds', 'login-rules',
         ],
         'staff_capabilities' => [
             'dashboards' => 'accounts',
@@ -97,6 +98,7 @@ return [
             'sub-dealer-applications' => 'accounts',
             'sub-dealer-orders' => 'orders',
             'treasury' => 'finance',
+            'company-funds' => 'finance',
             'inventory' => 'inventory',
             'branches' => 'inventory',
             'branch-performance' => 'reports',
