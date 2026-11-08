@@ -145,9 +145,11 @@ final class OrderInvoice
 
         foreach ($order->lines as $index => $line) {
             $product = $products->get($line->product_id);
-            $sentBatches = $dispatchedBatches[(int) $line->id] ?? [];
+            $sentBatches = $dispatchedBatches[(int) $line->getKey()] ?? [];
             // Sent before batches were recorded: the copy taken when the order was placed is all there is.
-            $usesOrderCopy = $sentBatches === [] && (int) $line->dispatched > 0;
+            $usesOrderCopy = $sentBatches === [] && (int) $line->getAttribute('dispatched') > 0;
+            $orderBatch = $line->batch_number;
+            $orderExpiry = $line->expires_on;
             $qty = (int) $line->quantity;
             $mrpCents = Money::cents((string) $line->mrp);
             $rateCents = Money::cents((string) $line->unit_price);
@@ -170,8 +172,8 @@ final class OrderInvoice
                 'sub_category' => $product?->sub_category,
                 'category' => $product?->category,
                 'pack_size' => (string) ($product?->unit ?: 'pack'),
-                'batches' => $usesOrderCopy && (filled($line->batch_number) || filled($line->expires_on))
-                    ? [['batch_number' => $line->batch_number, 'expires_on' => $formatExpiry($line->expires_on ? (string) $line->expires_on : null), 'quantity' => null]]
+                'batches' => $usesOrderCopy && (filled($orderBatch) || filled($orderExpiry))
+                    ? [['batch_number' => $orderBatch, 'expires_on' => $formatExpiry($orderExpiry ? (string) $orderExpiry : null), 'quantity' => null]]
                     : array_map(fn (array $batch): array => [...$batch, 'expires_on' => $formatExpiry($batch['expires_on'])], $sentBatches),
                 'quantity' => $qty,
                 'mrp' => Money::decimal($mrpCents),

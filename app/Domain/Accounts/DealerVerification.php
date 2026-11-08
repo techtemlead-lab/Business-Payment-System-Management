@@ -61,7 +61,8 @@ final class DealerVerification
     /** The partner's area comes from their saved place code, never from free-typed text. */
     private function placeOf(User $partner): ?PlaceCode
     {
-        $profile = is_array($partner->profile) ? $partner->profile : [];
+        $savedProfile = $partner->getAttribute('profile');
+        $profile = is_array($savedProfile) ? $savedProfile : [];
         $placeId = PlaceTree::idFrom($profile['place_code_id'] ?? null);
         if ($placeId !== null) {
             return PlaceCode::query()->find($placeId, ['id', 'code', 'name']);

@@ -30,7 +30,7 @@ final class CourierOptions
     /**
      * Couriers switched on by the owner, read once per request.
      *
-     * @return list<array{key: string, label: string}>
+     * @return list<array{key: string, label: string, manual?: bool, tracking_url?: string}>
      */
     public function enabled(): array
     {

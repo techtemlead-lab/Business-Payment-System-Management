@@ -27,16 +27,19 @@ class StockTransfer extends Model
         ];
     }
 
+    /** @return BelongsTo<Product, $this> */
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
     }
 
+    /** @return BelongsTo<CompanyBranch, $this> */
     public function sourceBranch(): BelongsTo
     {
         return $this->belongsTo(CompanyBranch::class, 'source_branch_id');
     }
 
+    /** @return BelongsTo<CompanyBranch, $this> */
     public function destinationBranch(): BelongsTo
     {
         return $this->belongsTo(CompanyBranch::class, 'destination_branch_id');

@@ -54,6 +54,8 @@ class BookShipmentCourier implements ShouldQueue
         $profile = (array) ($partner?->getAttribute('profile') ?? []);
         $placeCode = trim((string) ($profile['place_code'] ?? $profile['area_code'] ?? ''));
         $branch = $shipment->branch_id ? CompanyBranch::query()->find($shipment->branch_id) : null;
+        $union = $partner?->union;
+        $upazila = $partner?->upazila;
         $created = $couriers->create((string) $shipment->courier_provider, [
             // One invoice per shipment, so the courier can also refuse a repeat booking.
             'invoice' => $order->number.'-'.$shipment->id,
@@ -61,12 +63,12 @@ class BookShipmentCourier implements ShouldQueue
             'recipient_phone' => $partner?->phone,
             'recipient_address' => collect([
                 is_string($profile['address'] ?? null) ? $profile['address'] : null,
-                $partner?->union, $partner?->upazila, $partner?->district, $partner?->division,
+                $union, $upazila, $partner?->district, $partner?->division,
                 $placeCode !== '' ? __('courier.place_code_in_address', ['code' => $placeCode]) : null,
             ])->filter()->implode(', '),
             'recipient_city' => $partner?->district,
-            'recipient_thana' => $partner?->upazila,
-            'recipient_area' => $partner?->union ?: $partner?->upazila,
+            'recipient_thana' => $upazila,
+            'recipient_area' => $union ?: $upazila,
             'amount' => $order->outstanding(),
             'note' => $order->number,
             'pickup_address' => $branch ? collect([$branch->name, $branch->address])->filter()->implode(', ') : null,

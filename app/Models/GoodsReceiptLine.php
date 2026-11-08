@@ -2,9 +2,13 @@
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property CarbonInterface|null $expires_on
+ */
 class GoodsReceiptLine extends Model
 {
     protected $guarded = ['id'];
@@ -18,11 +22,13 @@ class GoodsReceiptLine extends Model
         ];
     }
 
+    /** @return BelongsTo<GoodsReceipt, $this> */
     public function receipt(): BelongsTo
     {
         return $this->belongsTo(GoodsReceipt::class, 'goods_receipt_id');
     }
 
+    /** @return BelongsTo<Product, $this> */
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);

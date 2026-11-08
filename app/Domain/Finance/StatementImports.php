@@ -84,7 +84,7 @@ final class StatementImports
         DB::transaction(function () use ($actor, $id, $mapping): void {
             $this->authorize($actor->fresh());
             $import = DB::table('statement_imports')->where('id', $id)->lockForUpdate()->first();
-            abort_unless($import, 404);
+            abort_unless($import !== null, 404);
             if ($import->status !== 'awaiting_mapping') {
                 throw ValidationException::withMessages(['mapping' => __('accounting.err_already_mapped')]);
             }
@@ -122,7 +122,7 @@ final class StatementImports
         DB::transaction(function () use ($actor, $lineId, $reason): void {
             $this->authorize($actor->fresh());
             $line = DB::table('statement_import_lines')->where('id', $lineId)->lockForUpdate()->first();
-            abort_unless($line, 404);
+            abort_unless($line !== null, 404);
             if ($line->state !== self::StateSuggested) {
                 throw ValidationException::withMessages(['line' => __('accounting.err_line_not_open')]);
             }
@@ -151,7 +151,7 @@ final class StatementImports
         DB::transaction(function () use ($actor, $lineId, $reason): void {
             $this->authorize($actor->fresh());
             $line = DB::table('statement_import_lines')->where('id', $lineId)->lockForUpdate()->first();
-            abort_unless($line, 404);
+            abort_unless($line !== null, 404);
             if ($line->state !== self::StateSuggested) {
                 throw ValidationException::withMessages(['line' => __('accounting.err_line_not_open')]);
             }

@@ -57,7 +57,7 @@ final class IntegrationSettings
         return (bool) ($this->provider($group, $provider)['enabled'] ?? false);
     }
 
-    /** @return list<array{key: string, label: string}> */
+    /** @return list<array{key: string, label: string, manual?: bool, tracking_url?: string}> */
     public function enabledCourierOptions(): array
     {
         // One settings read for every courier: the order form and order pages call this on each visit.

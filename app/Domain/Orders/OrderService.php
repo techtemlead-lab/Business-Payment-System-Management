@@ -454,7 +454,7 @@ class OrderService
             if ($shipment->status !== 'dispatched' || $shipment->courier_status !== 'returned') {
                 throw ValidationException::withMessages(['shipment' => __('courier.err_received_back_not_returned')]);
             }
-            /** @var list<array{line_id: int, name: string, quantity: int}> $shipmentLines */
+            /** @var list<array{line_id: int, name: string, quantity: int, lots?: list<array{lot_id: int, quantity: int}>}> $shipmentLines */
             $shipmentLines = json_decode((string) $shipment->lines, true, 512, JSON_THROW_ON_ERROR);
             $orderLines = $locked->lines()->whereIn('id', array_column($shipmentLines, 'line_id'))->get()->keyBy('id');
             foreach ($shipmentLines as $line) {
@@ -713,7 +713,7 @@ class OrderService
                 'kind' => StockLots::KindDispatch,
                 'actor_id' => $actor->id,
                 'order_id' => $locked->id,
-                'order_line_id' => $line->id,
+                'order_line_id' => (int) $line->getKey(),
                 'reference' => $locked->number,
             ], errorField: 'shipment');
             $companyTotal = (int) BranchProductStock::query()->where('product_id', $product->id)->sum('quantity');

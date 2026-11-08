@@ -249,7 +249,7 @@ final class PurchasingService
             $line = $lines->get($lineId);
             if ($quantity > $line->quantityDue()) {
                 throw ValidationException::withMessages(['lines' => __('purchasing.err_over_receipt', [
-                    'sku' => $line->product?->sku ?? (string) $line->product_id,
+                    'sku' => $line->product->sku ?? (string) $line->product_id,
                     'due' => (string) $line->quantityDue(),
                 ])]);
             }

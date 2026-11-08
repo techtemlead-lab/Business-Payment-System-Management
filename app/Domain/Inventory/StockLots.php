@@ -208,7 +208,7 @@ final class StockLots
                 'branch_id' => $stock->branch_id,
                 'product_id' => $stock->product_id,
                 'batch_number' => $product->batch_number,
-                'expires_on' => $product->expires_on?->toDateString(),
+                'expires_on' => $product->getAttribute('expires_on')?->toDateString(),
                 'quantity' => $difference,
                 'received_quantity' => $difference,
                 'received_on' => StockLot::today(),

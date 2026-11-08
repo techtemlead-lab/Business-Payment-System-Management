@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Database\Factories\StockLotFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
@@ -13,6 +14,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * One received batch of a product at one branch. The lots of a product and branch always
  * add up to its branch_product_stocks row; only StockLots may change the quantity.
+ *
+ * @property CarbonInterface|null $expires_on
+ * @property CarbonInterface|null $received_on
  */
 class StockLot extends Model
 {
@@ -34,11 +38,13 @@ class StockLot extends Model
         ];
     }
 
+    /** @return BelongsTo<CompanyBranch, $this> */
     public function branch(): BelongsTo
     {
         return $this->belongsTo(CompanyBranch::class, 'branch_id');
     }
 
+    /** @return BelongsTo<Product, $this> */
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);

@@ -18,11 +18,13 @@ class StockCountLine extends Model
         ];
     }
 
+    /** @return BelongsTo<StockCountSession, $this> */
     public function session(): BelongsTo
     {
         return $this->belongsTo(StockCountSession::class, 'stock_count_session_id');
     }
 
+    /** @return BelongsTo<Product, $this> */
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
