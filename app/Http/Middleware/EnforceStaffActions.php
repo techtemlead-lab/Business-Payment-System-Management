@@ -224,6 +224,7 @@ class EnforceStaffActions
             'CatalogController' => [['catalog', 'pricing', 'inventory', 'orders', 'finance'], 'view'],
             'PartnerChatController' => [['partner_chat'], 'create'],
             'PrescriberVerificationController' => [['prescriber_verify'], 'edit'],
+            'PurchasingController' => [['inventory'], in_array($method, ['updateSupplier', 'sendOrder', 'cancelOrder'], true) ? 'edit' : 'create'],
             default => null,
         };
         abort_unless($permission, 403, __('portal.err_staff_perm_disabled'));

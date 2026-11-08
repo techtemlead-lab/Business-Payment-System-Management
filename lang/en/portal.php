@@ -6283,4 +6283,13 @@ return [
     'event_prescriber_company_stock_granted' => 'Company-stock prescribing turned on for an office account',
     'event_prescriber_company_stock_removed' => 'Company-stock prescribing turned off for an office account',
     'event_clinic_below_floor_override' => 'Owner confirmed a sale below 30% of MRP',
+    'purchasing_nav' => 'Purchasing',
+    'section_hint_purchasing' => 'Suppliers, purchase orders and goods received.',
+    'status_partly_received' => 'Partly received',
+    'status_received' => 'Received',
+    'event_supplier_saved' => 'Supplier saved',
+    'event_purchase_order_created' => 'Purchase order created',
+    'event_purchase_order_sent' => 'Purchase order marked as sent',
+    'event_purchase_order_cancelled' => 'Purchase order cancelled',
+    'event_purchase_order_received' => 'Goods received against a purchase order',
 ];

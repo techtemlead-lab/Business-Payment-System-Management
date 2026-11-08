@@ -40,6 +40,7 @@ use App\Http\Portals\Shared\Sections\OverviewSection;
 use App\Http\Portals\Shared\Sections\PrescriptionsSection;
 use App\Http\Portals\Shared\Sections\PrescriptionToolsSection;
 use App\Http\Portals\Shared\Sections\ProfileSection;
+use App\Http\Portals\Shared\Sections\PurchasingSection;
 use App\Http\Portals\Shared\Sections\SalarySection;
 use App\Http\Portals\Shared\Sections\SectionContext;
 use App\Http\Portals\Shared\Sections\SectionDates;
@@ -101,6 +102,7 @@ class WorkspaceController extends Controller
         DataCleanupSection::class,
         PrescriptionsSection::class,
         PrescriptionToolsSection::class,
+        PurchasingSection::class,
     ];
 
     public function index(Request $r, ProductPricing $pricing, string $section = 'overview'): Response|RedirectResponse

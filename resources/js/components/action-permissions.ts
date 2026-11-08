@@ -36,5 +36,6 @@ export function actionAllowed(url:string,matrix:Matrix|undefined,method='post'):
     if(path.startsWith('/commands/customization')||path==='/commands/content')return any(['content','catalog'],'edit');
     if(path.startsWith('/commands/enquiries'))return any(['content','catalog','accounts'],'edit');
     if(/^\/commands\/feedback\/\d+$/.test(path)||path==='/commands/testimonials')return any(['content'],'edit');
+    if(path.startsWith('/commands/purchasing/'))return any(['inventory'],method==='patch'||/\/(send|cancel)$/.test(path)?'edit':'create');
     return false;
 }

@@ -6283,4 +6283,13 @@ return [
     'event_prescriber_company_stock_granted' => 'অফিস অ্যাকাউন্টে কোম্পানির স্টক থেকে প্রেসক্রিপশন চালু হয়েছে',
     'event_prescriber_company_stock_removed' => 'অফিস অ্যাকাউন্টে কোম্পানির স্টক থেকে প্রেসক্রিপশন বন্ধ হয়েছে',
     'event_clinic_below_floor_override' => 'মালিক এমআরপির ৩০%-এর কমে বিক্রি নিশ্চিত করেছেন',
+    'purchasing_nav' => 'ক্রয়',
+    'section_hint_purchasing' => 'সাপ্লায়ার, ক্রয় অর্ডার আর গ্রহণ করা মাল।',
+    'status_partly_received' => 'আংশিক এসেছে',
+    'status_received' => 'পুরো এসেছে',
+    'event_supplier_saved' => 'সাপ্লায়ারের তথ্য সেভ হয়েছে',
+    'event_purchase_order_created' => 'ক্রয় অর্ডার তৈরি হয়েছে',
+    'event_purchase_order_sent' => 'ক্রয় অর্ডার পাঠানো হয়েছে',
+    'event_purchase_order_cancelled' => 'ক্রয় অর্ডার বাতিল হয়েছে',
+    'event_purchase_order_received' => 'ক্রয় অর্ডারের মাল গ্রহণ করা হয়েছে',
 ];
