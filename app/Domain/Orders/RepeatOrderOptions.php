@@ -49,7 +49,7 @@ final class RepeatOrderOptions
         }
         $productIds = $orders->flatMap(fn (Order $order) => $order->lines->pluck('product_id'))->unique()->values()->all();
         /** @var Collection<int, Product> $products */
-        $products = Product::query()->whereIn('id', $productIds)->get()->keyBy('id');
+        $products = Product::query()->withSellableStock()->whereIn('id', $productIds)->get()->keyBy('id');
 
         return $orders->map(fn (Order $order): array => $this->option($order, $products, $buyer))
             ->filter(fn (array $option): bool => $option['items'] !== [] || $option['skipped'] !== [])
@@ -94,11 +94,13 @@ final class RepeatOrderOptions
     private function item(OrderLine $line, Product $product, int $unitPrice): array
     {
         $lastQuantity = (int) $line->quantity;
-        $quantity = min($lastQuantity, (int) $product->stock);
+        $sellable = $product->sellableStock();
+        $quantity = min($lastQuantity, $sellable);
 
         return [
             'product' => [
-                ...$product->only(['id', 'sku', 'name', 'category', 'sub_category', 'strength', 'unit', 'mrp', 'stock']),
+                ...$product->only(['id', 'sku', 'name', 'category', 'sub_category', 'strength', 'unit', 'mrp']),
+                'stock' => $sellable,
                 'price' => Money::decimal($unitPrice),
                 'stock_status' => $product->stockStatus(),
             ],

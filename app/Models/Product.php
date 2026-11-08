@@ -2,9 +2,12 @@
 
 namespace App\Models;
 
+use App\Domain\Inventory\SellableStock;
 use App\Support\Money;
 use App\Support\ProductVideo;
 use App\Support\SiteCustomization;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,7 +21,7 @@ class Product extends Model
 
     protected $guarded = ['id'];
 
-    protected $hidden = ['cost_price', 'image_path', 'video_path', 'video_mime'];
+    protected $hidden = ['cost_price', 'image_path', 'video_path', 'video_mime', 'sellable_stock'];
 
     protected $attributes = ['stock' => 0, 'low_stock_at' => 10, 'active' => true, 'tone' => 'sage', 'unit' => 'pack'];
 
@@ -67,10 +70,65 @@ class Product extends Model
         return $this->hasMany(BranchProductStock::class);
     }
 
+    /**
+     * Adds each product's sellable units to its row, so a list does not ask once per product.
+     *
+     * @param  Builder<Product>  $query
+     */
+    #[Scope]
+    protected function withSellableStock(Builder $query): void
+    {
+        if ($query->getQuery()->columns === null) {
+            $query->select('products.*');
+        }
+        $query->selectRaw(SellableStock::sql().' AS sellable_stock', SellableStock::bindings());
+    }
+
+    /** @param  Builder<Product>  $query */
+    #[Scope]
+    protected function whereSellable(Builder $query): void
+    {
+        $query->whereRaw(SellableStock::sql().' > 0', SellableStock::bindings());
+    }
+
+    /** @param  Builder<Product>  $query */
+    #[Scope]
+    protected function whereNotSellable(Builder $query): void
+    {
+        $query->whereRaw(SellableStock::sql().' <= 0', SellableStock::bindings());
+    }
+
+    /** @param  Builder<Product>  $query */
+    #[Scope]
+    protected function orderBySellable(Builder $query, string $direction = 'asc'): void
+    {
+        $query->orderByRaw(SellableStock::sql().($direction === 'desc' ? ' DESC' : ' ASC'), SellableStock::bindings());
+    }
+
+    /**
+     * Units an order can really be given today: not on hold, not expired, at a working stock hub.
+     * The stock column stays the physical count for the stock screens.
+     */
+    public function sellableStock(): int
+    {
+        if (array_key_exists('sellable_stock', $this->attributes)) {
+            return (int) $this->attributes['sellable_stock'];
+        }
+        if (! $this->exists) {
+            return max(0, (int) $this->stock);
+        }
+
+        return (int) self::query()->whereKey($this->getKey())->withSellableStock()->value('sellable_stock');
+    }
+
     public function stockStatus(): string
     {
-        return $this->is_stock_paused || $this->stock <= 0 ? 'out_of_stock'
-            : ($this->stock <= $this->low_stock_at ? 'low_stock' : 'in_stock');
+        if ($this->is_stock_paused) {
+            return 'out_of_stock';
+        }
+        $sellable = $this->sellableStock();
+
+        return $sellable <= 0 ? 'out_of_stock' : ($sellable <= $this->low_stock_at ? 'low_stock' : 'in_stock');
     }
 
     public function registerName(): string

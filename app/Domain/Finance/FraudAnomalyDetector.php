@@ -19,7 +19,10 @@ final class FraudAnomalyDetector
     /**
      * Analyze a withdrawal request for financial fraud, velocity bursts, or anomalies.
      *
-     * @return array{score: int, risk_level: string, flags: list<string>, requires_dual_approval: bool}
+     * Only marks the withdrawal for the activity log. It never stops a payment or asks for an
+     * extra approver: the normal approval steps decide who can approve it.
+     *
+     * @return array{score: int, risk_level: string, flags: list<string>}
      */
     public function analyzeWithdrawal(User $partner, float $amount): array
     {
@@ -67,8 +70,6 @@ final class FraudAnomalyDetector
             default => self::RiskLow,
         };
 
-        $requiresDualApproval = ($amount >= $approvalLimit) || ($score >= 50);
-
         if ($score >= 25) {
             Audit::record(
                 $partner->id,
@@ -87,7 +88,6 @@ final class FraudAnomalyDetector
             'score' => $score,
             'risk_level' => $riskLevel,
             'flags' => $flags,
-            'requires_dual_approval' => $requiresDualApproval,
         ];
     }
 

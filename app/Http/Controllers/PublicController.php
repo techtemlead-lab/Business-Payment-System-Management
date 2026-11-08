@@ -190,10 +190,11 @@ class PublicController extends Controller
     private function catalog(Request $r): View
     {
         $query = Product::where('active', true)
+            ->withSellableStock()
             ->when($r->filled('q'), fn ($query) => $query->where('name', 'ilike', '%'.$r->string('q').'%'))
             ->when($r->filled('category'), fn ($query) => $query->where('category', 'ilike', trim((string) $r->string('category'))))
             ->when($r->filled('concern'), fn ($query) => $query->whereHas('concerns', fn ($tag) => $tag->whereKey($r->integer('concern'))))
-            ->when($r->boolean('in_stock'), fn ($query) => $query->where('stock', '>', 0))
+            ->when($r->boolean('in_stock'), fn ($query) => $query->whereSellable()->where(fn ($open) => $open->where('is_stock_paused', false)->orWhereNull('is_stock_paused')))
             ->when($r->filled('min_price'), fn ($query) => $query->where('mrp', '>=', (string) $r->string('min_price')))
             ->when($r->filled('max_price'), fn ($query) => $query->where('mrp', '<=', (string) $r->string('max_price')));
         match ($r->string('sort', 'name')->toString()) {
