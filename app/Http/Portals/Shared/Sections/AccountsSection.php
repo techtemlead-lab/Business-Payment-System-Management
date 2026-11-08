@@ -110,6 +110,8 @@ final class AccountsSection implements WorkspaceSection
                     'division' => $payload['division'] ?? null,
                     'district' => $payload['district'] ?? null,
                     'upazila' => $payload['upazila'] ?? null,
+                    'place_code' => $payload['place_code'] ?? null,
+                    'sponsor_code' => $payload['sponsor_code'] ?? null,
                     'message' => $payload['message'] ?? null,
                     'status' => $row->status,
                     'source' => $row->source ?? 'staff',

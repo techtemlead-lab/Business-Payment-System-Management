@@ -57,15 +57,18 @@ function Composer({ action }: { action: string }) {
         }
         setSending(true);
         setError(null);
+        const sentBody = body;
+        const sentPhoto = photo;
         router.post(action, { body, ...(photo ? { photo } : {}) }, {
             forceFormData: true,
             preserveScroll: true,
             preserveState: true,
             only: ['data', 'navAttention', 'errors'],
+            // Anything typed or picked while this message was on its way is the next message, so it stays.
             onSuccess: () => {
-                setBody('');
-                setPhoto(null);
-                if (fileInput.current) {
+                setBody((current) => (current === sentBody ? '' : current));
+                setPhoto((current) => (current === sentPhoto ? null : current));
+                if (fileInput.current?.files?.[0] === sentPhoto) {
                     fileInput.current.value = '';
                 }
             },

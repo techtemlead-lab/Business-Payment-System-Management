@@ -288,6 +288,19 @@ class BranchScopedSectionsTest extends TestCase
         $this->actingAs($this->branchStaff($this->dhaka))->onPortal('manage')->get('/employees')->assertForbidden();
     }
 
+    public function test_the_head_office_lists_staff_who_have_no_branch_yet(): void
+    {
+        $noBranch = User::factory()->staff('employee')->create();
+        $assignedToDhaka = User::factory()->staff('employee')->create();
+        BranchStaffAssignment::query()->create(['branch_id' => $this->dhaka->id, 'user_id' => $assignedToDhaka->id, 'duty' => 'storekeeper', 'is_primary' => false]);
+        $owner = User::factory()->staff()->create(['active_branch_id' => $this->headOffice()->id]);
+
+        $this->actingAs($owner)->onPortal('sadmin')->get('/employees')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.branch_scope.code', $this->headOffice()->code)
+            ->where('data.employees.data', fn ($rows) => $this->ids($rows) === [$noBranch->id])
+            ->where('data.employee_stats.total', 1));
+    }
+
     public function test_stock_movement_log_follows_the_branch_on_the_inventory_page(): void
     {
         $owner = User::factory()->staff()->create(['active_branch_id' => $this->dhaka->id]);

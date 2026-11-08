@@ -73,7 +73,9 @@ const emptyTotals: PayoutTotals = {
 
 export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals }: PayoutsHubProps) {
     const translate = useT();
-    const { portalBase, filters, data: pageData } = usePage<any>().props;
+    const { portalBase, filters, data: pageData, staffActions } = usePage<any>().props;
+    // Checking and paying a withdrawal needs finance approval on the server; everyone else just reads the list.
+    const canProcess = staffActions?.finance?.approve ?? true;
     const summary: PayoutTotals = totals ?? pageData?.payout_totals ?? emptyTotals;
     const activeSearch = String(filters?.q ?? '');
     const activeStatus = statusTabs.includes(filters?.status) ? String(filters.status) : 'all';
@@ -423,7 +425,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
                             sortable: false,
                             render: (w: WithdrawalRecord) => (
                                 <div className="hub-row is-end">
-                                    {w.status === 'requested' && (
+                                    {w.status === 'requested' && canProcess && (
                                         <button
                                             type="button"
                                             onClick={() => handleOpenReview(w)}
@@ -437,7 +439,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
                                         <small className="muted">{translate('self_approval', 'wait_second_person')}</small>
                                     )}
 
-                                    {w.status === 'approved' && w.payer_state !== 'second_person' && (
+                                    {w.status === 'approved' && w.payer_state !== 'second_person' && canProcess && (
                                         <button
                                             type="button"
                                             onClick={() => handleOpenSettle(w)}

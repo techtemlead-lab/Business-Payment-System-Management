@@ -257,7 +257,7 @@ export default function PlaceCodesHub({
     const removePlace = (row: PlaceRow) => {
         const label = displayPlace(row.name);
         const reason = window.prompt(translate('portal', 'pc_remove_prompt', { name: label }));
-        if (reason === null || reason.trim().length < 3) {
+        if (reason === null) {
             return;
         }
         router.delete(`/commands/place-codes/${row.id}`, {
@@ -300,28 +300,16 @@ export default function PlaceCodesHub({
             base_place_id: data.base_place_id === '' ? null : Number(data.base_place_id),
         }));
         setEditNotice(null);
-        let rejected = false;
-        const refreshPage = () => {
-            window.location.assign(window.location.pathname + window.location.search);
-        };
         editForm.patch(`/commands/place-codes/${editRow.id}`, {
             preserveScroll: true,
-            preserveState: false,
             onSuccess: () => {
                 setEditRow(null);
-                refreshPage();
             },
             onError: (errors) => {
-                rejected = true;
                 setEditNotice({
                     ok: false,
                     text: formErrorText(errors as Record<string, unknown>) || translate('portal', 'pc_save_failed'),
                 });
-            },
-            onFinish: () => {
-                if (!rejected) {
-                    refreshPage();
-                }
             },
         });
     };
