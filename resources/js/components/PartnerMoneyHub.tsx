@@ -5,6 +5,7 @@ import { ActionForm, Badge, DateInput, Table, date, dateTime, label, money, numb
 import JargonHint from './JargonHint';
 import { SubViewChips, useSubView } from './PartnerHubNav';
 import { useT } from '../shared/i18n/t';
+import { randomUuid } from '../shared/randomUuid';
 
 const EARNINGS_VIEWS = ['list', 'ledger', 'monthly'] as const;
 
@@ -93,7 +94,7 @@ function WithdrawalsTab({ data: d, canWithdraw, history }: { data: Row; canWithd
             {canWithdraw && (
                 <section className="panel" data-tour="withdrawal-form">
                     <h2>{translate('portal', 'request_withdrawal')}</h2>
-                    <ActionForm action="/commands/withdrawals" defaults={{ idempotency_key: crypto.randomUUID() }} fields={[
+                    <ActionForm action="/commands/withdrawals" defaults={{ idempotency_key: randomUuid() }} fields={[
                         { name: 'amount', label: translate('portal', 'amount_minimum', { amount: String(withdrawalMinimum) }), required: true },
                         { name: 'channel', label: translate('portal', 'payment_method'), required: true, options: [{ value: 'Bank', label: translate('portal', 'pay_channel_bank') }, { value: 'bKash', label: translate('portal', 'pay_channel_bkash') }, { value: 'Nagad', label: translate('portal', 'pay_channel_nagad') }, { value: 'Rocket', label: translate('portal', 'pay_channel_rocket') }] },
                         { name: 'destination', label: translate('portal', 'account_or_wallet'), required: true },

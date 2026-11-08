@@ -93,7 +93,7 @@ class PublicWebsiteTest extends TestCase
             ->assertDontSee('<script>alert("cms")</script>', false)
             ->assertSee('&lt;script&gt;alert(&quot;lead&quot;)&lt;/script&gt;', false)
             ->assertDontSee('<script>alert("lead")</script>', false);
-        $this->get('/login')->assertOk()->assertSee('Account Login')->assertSee('/madina-header-logo.png')->assertDontSee('/register');
+        $this->get('/login')->assertOk()->assertSee('Dealer log in')->assertSee('/madina-header-logo.png')->assertDontSee('/register');
         $u = User::factory()->create(['status' => 'active', 'password' => 'TestPassword12345', 'phone' => '01711000066']);
         $this->post('/login', ['email' => $u->email, 'password' => 'TestPassword12345'])->assertRedirect('/login/otp');
         $this->onPortal('dealer')->post('/login/otp', ['code' => $this->lastLoginCode()])->assertRedirect('/');
@@ -271,7 +271,7 @@ class PublicWebsiteTest extends TestCase
 
     public function test_legacy_apex_paths_redirect_to_the_portal_that_owns_them(): void
     {
-        $this->onPortal('public')->get('/login')->assertOk()->assertSee('Dealer Login')->assertSee('Staff Login');
+        $this->onPortal('public')->get('/login')->assertOk()->assertSee('Dealer Login')->assertDontSee('Staff Login');
         $this->onPortal('public')->get('/workspace/orders?q=KEEP')->assertRedirect(PortalHost::url('dealer', '/orders').'?q=KEEP');
         $this->onPortal('public')->get('/company/catalog')->assertRedirect(PortalHost::url('manage', '/catalog'));
         $this->onPortal('public')->get('/owner/login')->assertRedirect(PortalHost::url('sadmin', '/login'));

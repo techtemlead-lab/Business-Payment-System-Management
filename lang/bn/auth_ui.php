@@ -1,7 +1,6 @@
 <?php
 
 return [
-    'account_login' => 'অ্যাকাউন্ট লগইন',
     'subdealer_sign_in' => 'সাব-ডিলার লগইন',
     'staff_sign_in' => 'স্টাফ লগইন',
     'owner_sign_in' => 'মালিক লগইন',
@@ -18,13 +17,16 @@ return [
     'staff_help' => 'হিসাব বিভাগ, স্টাফ ও এসআর-এর লগইন।',
     'recovery_help' => 'অ্যাকাউন্টে আবার ঢুকতে আপনার অ্যাকাউন্টের ইমেইল দিন।',
     'dealer_help' => 'ডিলার অ্যাকাউন্ট দরকার?',
+    'subdealer_help' => 'সাব-ডিলার অ্যাকাউন্ট দরকার?',
     'contact_company' => 'কোম্পানির সাথে যোগাযোগ',
     'email' => 'ইমেইল',
     'email_or_phone' => 'ইমেইল / ফোন নম্বর',
-    'email_phone_or_code' => 'ইমেইল, ফোন নম্বর, ডিলার বা সাব-ডিলার কোড',
+    'email_phone_or_dealer_code' => 'ইমেইল, ফোন নম্বর বা ডিলার কোড',
+    'email_phone_or_subdealer_code' => 'ইমেইল, ফোন নম্বর বা সাব-ডিলার কোড',
     'email_placeholder' => 'আপনার ইমেইল লিখুন',
     'email_or_phone_placeholder' => 'আপনার ইমেইল বা ফোন নম্বর লিখুন',
-    'email_phone_or_code_placeholder' => 'ইমেইল, ফোন নম্বর, ডিলার বা সাব-ডিলার কোড লিখুন',
+    'email_phone_or_dealer_code_placeholder' => 'ইমেইল, ফোন নম্বর বা ডিলার কোড লিখুন',
+    'email_phone_or_subdealer_code_placeholder' => 'ইমেইল, ফোন নম্বর বা সাব-ডিলার কোড লিখুন',
     'password' => 'পাসওয়ার্ড',
     'confirm_password' => 'পাসওয়ার্ড নিশ্চিত করুন',
     'password_rules' => 'কমপক্ষে ১২ অক্ষর, বড় ও ছোট হাতের অক্ষর এবং একটি সংখ্যা থাকতে হবে।',
