@@ -3,6 +3,7 @@
 namespace App\Domain\Finance;
 
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Security\SelfApproval;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
@@ -10,8 +11,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * The withdrawal size at or above which a request is flagged as a large payout for
- * dual review. The owner sets it; every change is audit-logged.
+ * The withdrawal size at or above which a request is marked as a large payout in the activity
+ * log. The mark does not stop a payment or ask for an extra approver: withdrawals follow the
+ * normal approval steps, including the owner finishing alone when nobody else can
+ * ({@see SelfApproval}). The owner sets it; every change is audit-logged.
  */
 final class WithdrawalApprovalLimit
 {

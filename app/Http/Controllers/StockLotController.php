@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Inventory\StockLotDetails;
 use App\Domain\Inventory\StockLotHolds;
 use App\Domain\Inventory\StockLotReports;
 use App\Domain\Inventory\StockTransfers;
@@ -43,6 +44,17 @@ class StockLotController extends Controller
         $holds->writeOff($request->user(), $stockLot, $this->holdReason($request));
 
         return back()->with('success', __('stock_lots.flash_lot_written_off'));
+    }
+
+    public function fillInDetails(Request $request, StockLot $stockLot, StockLotDetails $details): RedirectResponse
+    {
+        abort_unless($request->user()->allows('inventory'), 403);
+        $details->fillIn($request->user(), $stockLot, $request->validate([
+            'batch_number' => ['nullable', 'required_without:expires_on', 'string', 'max:60'],
+            'expires_on' => ['nullable', 'required_without:batch_number', 'date_format:Y-m-d'],
+        ]));
+
+        return back()->with('success', __('stock_lots.flash_lot_details_saved'));
     }
 
     public function requestTransfer(Request $request, StockTransfers $transfers): RedirectResponse

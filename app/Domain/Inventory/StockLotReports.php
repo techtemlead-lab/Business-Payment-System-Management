@@ -228,6 +228,22 @@ final class StockLotReports
     }
 
     /**
+     * Lots a stock count added with no batch number or expiry date. Nothing can warn about
+     * their expiry until someone fills these in.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function lotsMissingDetails(BranchScope $scope): array
+    {
+        return $this->lotRows($this->missingDetailsQuery($scope)->with(['product:id,name,sku', 'branch:id,code,name']));
+    }
+
+    public function missingDetailsCount(BranchScope $scope): int
+    {
+        return $this->missingDetailsQuery($scope)->count();
+    }
+
+    /**
      * The batches each order line really left with, less anything that came back.
      *
      * @param  list<int>  $lineIds
@@ -288,6 +304,20 @@ final class StockLotReports
             ->get()
             ->map(fn (object $row): array => ['product' => (string) $row->product, 'expires_on' => $row->expires_on, 'maker' => $maker])
             ->all();
+    }
+
+    /**
+     * @return Builder<StockLot>
+     */
+    private function missingDetailsQuery(BranchScope $scope): Builder
+    {
+        $query = StockLot::query()
+            ->where('quantity', '>', 0)
+            ->where(fn (Builder $lots) => $lots->whereNull('batch_number')->orWhereNull('expires_on'))
+            ->whereIn('reference', DB::table('stock_count_lines')->whereNotNull('stock_reference')->select('stock_reference'));
+        $scope->restrict($query, 'branch_id');
+
+        return $query;
     }
 
     /**

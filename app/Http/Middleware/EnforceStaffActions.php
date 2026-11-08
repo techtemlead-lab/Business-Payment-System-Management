@@ -196,7 +196,7 @@ class EnforceStaffActions
             'IdentityReviewController' => [['finance'], 'edit'],
             'FundSpendingController' => match ($method) {
                 'review' => [['finance'], 'approve'],
-                'storeHead', 'updateHead' => [['finance'], 'edit'],
+                'storeHead', 'updateHead', 'saveBudget' => [['finance'], 'edit'],
                 default => [['finance'], 'create'],
             },
             'FieldSalesController' => match ($method) {

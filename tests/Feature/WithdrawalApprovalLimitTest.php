@@ -109,6 +109,21 @@ class WithdrawalApprovalLimitTest extends TestCase
         $this->assertSame('100000.00', app(WithdrawalApprovalLimit::class)->current()['amount']);
     }
 
+    public function test_the_wording_does_not_promise_a_second_approver(): void
+    {
+        $english = require lang_path('en/accounting.php');
+        $bangla = require lang_path('bn/accounting.php');
+
+        foreach (['limit_title', 'limit_hint', 'tab_limit', 'flash_limit_saved'] as $key) {
+            $this->assertDoesNotMatchRegularExpression('/second|dual|two[- ]person|another approver/i', $english[$key], $key);
+        }
+        $this->assertStringContainsString('does not stop a payment', $english['limit_hint']);
+        $this->assertStringContainsString('extra approver', $english['limit_hint']);
+        $this->assertStringContainsString('owner can finish one alone', $english['limit_hint']);
+        $this->assertStringContainsString('বাড়তি কোনো অনুমোদনকারীও চায় না', $bangla['limit_hint']);
+        $this->assertStringContainsString('একাই', $bangla['limit_hint']);
+    }
+
     public function test_the_change_needs_a_reason(): void
     {
         $this->actingAs($this->owner())->onPortal('sadmin')->postJson('/commands/operations/accounting/approval-limit', $this->payload(['reason' => '']))

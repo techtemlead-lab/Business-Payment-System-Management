@@ -3,6 +3,7 @@
 namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Finance\CompanyFunds;
+use App\Domain\Finance\FundBudgets;
 use App\Domain\Finance\FundSpending;
 use App\Domain\Payouts\PayoutReceipts;
 use App\Domain\Security\SelfApproval;
@@ -19,7 +20,7 @@ final class CompanyFundsSection implements WorkspaceSection
 {
     public const Tabs = ['funds', 'approvals', 'heads', 'report'];
 
-    public function __construct(private CompanyFunds $funds) {}
+    public function __construct(private CompanyFunds $funds, private FundBudgets $budgets) {}
 
     public function data(SectionContext $context, array $data): array
     {
@@ -36,8 +37,10 @@ final class CompanyFundsSection implements WorkspaceSection
             'head' => 'nullable|integer|min:1',
             'from' => 'nullable|date_format:Y-m-d',
             'to' => 'nullable|date_format:Y-m-d|after_or_equal:from',
+            'budget_month' => 'nullable|date_format:Y-m',
         ]);
         $tab = $filters['tab'] ?? 'funds';
+        $budgetMonth = $filters['budget_month'] ?? now()->timezone('Asia/Dhaka')->format('Y-m');
         $balances = $this->funds->balances();
         $selected = $tab === 'funds' ? ($filters['fund'] ?? null) : null;
         $period = CompanyFunds::defaultPeriod();
@@ -55,6 +58,8 @@ final class CompanyFundsSection implements WorkspaceSection
             'methods' => PayoutReceipts::Methods,
             'filters' => $reportFilters,
             'report' => $tab === 'report' ? $this->funds->report($reportFilters, $showOwnerFunds) : null,
+            'budget_month' => $budgetMonth,
+            'budgets' => $tab === 'heads' ? $this->budgets->forMonth($budgetMonth) : [],
         ]];
     }
 
@@ -82,13 +87,16 @@ final class CompanyFundsSection implements WorkspaceSection
      */
     private function approvals(array $visible, User $actor): array
     {
+        $overBudget = $this->budgets->overBudgetKeys();
+
         return DB::table('reserve_disbursements as r')
             ->leftJoin('fund_expense_heads as h', 'h.id', '=', 'r.expense_head_id')
             ->leftJoin('users as maker', 'maker.id', '=', 'r.created_by')
             ->where('r.program', FundSpending::Program)->where('r.status', 'requested')->whereIn('r.fund_key', $visible)
             ->orderBy('r.id')->limit(100)
-            ->get(['r.id', 'r.fund_key', 'r.amount', 'r.spent_on', 'r.payee_name', 'r.payment_method', 'r.payment_reference', 'r.reason', 'r.created_by', 'h.name_en', 'h.name_bn', 'maker.name as maker_name', DB::raw('r.receipt_path IS NOT NULL AS has_receipt')])
+            ->get(['r.id', 'r.fund_key', 'r.amount', 'r.spent_on', 'r.expense_head_id', 'r.payee_name', 'r.payment_method', 'r.payment_reference', 'r.reason', 'r.created_by', 'h.name_en', 'h.name_bn', 'maker.name as maker_name', DB::raw('r.receipt_path IS NOT NULL AS has_receipt')])
             ->map(fn ($row): array => [...(array) $row, 'can_review' => $row->created_by !== $actor->id, 'can_cancel' => $row->created_by === $actor->id,
+                'over_budget' => ! in_array($row->fund_key, CompanyFunds::OwnerOnly, true) && in_array($row->expense_head_id.'|'.substr((string) $row->spent_on, 0, 7), $overBudget, true),
                 'can_self_approve' => $row->created_by === $actor->id && app(SelfApproval::class)->isAvailable($actor, [$row->created_by], canDoStep: FundSpending::approverOf($row->fund_key))])
             ->all();
     }
