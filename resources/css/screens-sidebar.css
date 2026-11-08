@@ -1,9 +1,9 @@
 /* One flat menu for office staff and partners: group names, then the pages inside. */
 .app-shell .sidebar-section-list{display:flex;flex-direction:column;gap:2px}
 .app-shell .sidebar .sidebar-section-list .nav-section-toggle{font-weight:650;color:var(--ds-side-strong)}
-.app-shell .sidebar .sidebar-section-list .nav-section-single .nav-section-body>a{font-weight:650;color:var(--ds-side-strong)}
+.app-shell .sidebar .sidebar-section-list .nav-section-single .nav-section-body>a:not(.selected){font-weight:650;color:var(--ds-side-strong)}
 .app-shell .sidebar .nav-mother-single .nav-mother-body{margin:0;padding:0;border:0}
-.app-shell .sidebar .nav-mother-single .nav-mother-body>a{font-weight:650;color:var(--ds-side-strong)}
+.app-shell .sidebar .nav-mother-single .nav-mother-body>a:not(.selected){font-weight:650;color:var(--ds-side-strong)}
 
 /* Product search in the partner top bar */
 .app-shell .portal-product-search{display:flex;align-items:stretch;flex:0 1 320px;min-width:0;height:38px;margin:0 auto 0 16px;border:1px solid var(--ds-line);border-radius:var(--ds-r-md);background:var(--ds-surface);overflow:hidden}
