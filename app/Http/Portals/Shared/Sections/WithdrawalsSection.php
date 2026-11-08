@@ -319,9 +319,6 @@ final class WithdrawalsSection implements WorkspaceSection
                 'user_name' => $row->user_name,
                 'dealer_code' => $row->dealer_code,
                 'phone' => $row->phone,
-                'role' => $row->role,
-                'district' => $row->district,
-                'division' => $row->division,
                 'amount' => $row->amount,
                 'withheld_amount' => $row->withheld_amount,
                 'net_amount' => $row->net_amount,
@@ -335,6 +332,9 @@ final class WithdrawalsSection implements WorkspaceSection
                 'payout_receipt_id' => $row->payout_receipt_id,
                 'payout_receipt_number' => $row->payout_receipt_number,
                 'payout_method' => $row->payout_method,
+                'role' => $row->role,
+                'district' => $row->district,
+                'division' => $row->division,
             ]);
 
         $rules = app(CommissionPolicy::class)->snapshot()['rules'];
