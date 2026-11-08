@@ -104,6 +104,24 @@ export const NAV_LINK_SPECS: Record<string, NavLinkSpec> = {
         iconKey: 'commissions',
         match: ({ section }) => ['commissions', 'policies', 'simulator', 'policy-schedules'].includes(section),
     },
+    /** One partner row for the money pages; the page's tabs open the others. */
+    'partner-money': {
+        id: 'partner-money',
+        section: 'earnings',
+        labelKey: 'nav_module_earnings',
+        hrefPath: 'earnings',
+        iconKey: 'earnings',
+        match: ({ section }) => ['earnings', 'withdrawals', 'payment-receipts', 'full-report'].includes(section),
+    },
+    /** One partner row for notices; its tabs open office notices and the partner's own updates. */
+    'partner-notices': {
+        id: 'partner-notices',
+        section: 'circulars',
+        labelKey: 'circulars',
+        hrefPath: 'circulars',
+        iconKey: 'circulars',
+        match: ({ section }) => ['circulars', 'notifications'].includes(section),
+    },
     'catalog-products': {
         id: 'catalog-products',
         section: 'catalog',
@@ -328,9 +346,9 @@ function partnerMothers(role: string, available: Set<string>): NavMother[] {
         home: mother('home', 'nav_module_home', pick(available, ['overview'])),
         newOrder: mother('new-order', 'purchase', pick(available, ['purchase'])),
         orders: mother('commerce', 'nav_module_commerce', pick(available, ['orders', 'deliveries', 'catalog'])),
-        money: mother('earnings', 'nav_module_earnings', pick(available, ['earnings', 'withdrawals', 'payment-receipts', 'full-report'])),
+        money: mother('earnings', 'nav_module_earnings', pick(available, ['partner-money'])),
         clinic: mother('clinic', 'nav_module_clinic', pick(available, ['prescriptions'])),
-        office: mother('office', 'nav_module_office', pick(available, ['messages', 'circulars', 'share-feedback', 'help'])),
+        office: mother('office', 'nav_module_office', pick(available, ['messages', 'partner-notices', 'share-feedback', 'help'])),
         account: mother('account', 'nav_module_account', pick(available, ['profile', 'security', 'agreement'])),
     };
     if (role === 'dealer') {

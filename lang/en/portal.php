@@ -65,7 +65,6 @@ return [
     'nav_module_finance_ops' => 'Accounts & payments',
     'nav_module_finance' => 'Company accounts',
     'nav_module_products' => 'Products and stock',
-    'nav_module_website' => 'Website',
     'nav_module_control' => 'System',
     'nav_module_system' => 'System',
     'nav_module_directory' => 'Partners',

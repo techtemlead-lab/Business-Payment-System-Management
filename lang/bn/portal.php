@@ -65,7 +65,6 @@ return [
     'nav_module_finance_ops' => 'হিসাব ও পেমেন্ট',
     'nav_module_finance' => 'কোম্পানির হিসাব',
     'nav_module_products' => 'পণ্য ও স্টক',
-    'nav_module_website' => 'ওয়েবসাইট',
     'nav_module_control' => 'সিস্টেম',
     'nav_module_system' => 'সিস্টেম',
     'nav_module_directory' => 'পার্টনার তালিকা',
