@@ -131,6 +131,38 @@ class NetworkAndFinancePageScalingTest extends TestCase
         $this->assertSame(array_slice($team, 0, 2500), $props['members']->pluck('id')->map(fn ($id): int => (int) $id)->all());
     }
 
+    public function test_staff_partner_tree_opens_with_the_top_levels_and_grows_with_show_more(): void
+    {
+        $owner = User::factory()->staff()->create();
+        $top = $this->partner(null);
+        $middle = $this->partner($top);
+        $team = $this->bulkTeam($middle, 400);
+        $this->postedOrder(User::findOrFail($team[399]), '120.00');
+
+        $data = $this->actingAs($owner)->onPortal('sadmin')
+            ->withHeaders(['X-Inertia' => 'true', 'X-Inertia-Version' => $this->inertiaVersion()])
+            ->get('/network-tree')->assertOk()->json('props.data');
+        $this->assertCount(NetworkSection::TreeFirstLoad, $data['dealers']);
+        $this->assertTrue($data['dealers_truncated']);
+        $this->assertSame(402, $data['dealers_total']);
+        $this->assertSame(NetworkSection::TreeFirstLoad * 2, $data['dealers_next_limit']);
+        $this->assertSame([$top->id, $middle->id], array_slice(array_column($data['dealers'], 'id'), 0, 2), 'The top of the tree comes first, so every loaded partner has its sponsor loaded.');
+        $byId = collect($data['dealers'])->keyBy('id');
+        $this->assertSame(401, $byId[$top->id]['team_size'], 'Team size counts the whole branch, loaded or not.');
+        $this->assertSame(1, $byId[$top->id]['direct_count']);
+        $this->assertSame(400, $byId[$middle->id]['direct_count']);
+        $this->assertSame(402, $data['tree_stats']['total']);
+        $this->assertSame(402, $data['tree_stats']['ranks']['dealer']);
+        $this->assertSame('120.00', $data['tree_stats']['sales_total'], 'Purchases are summed over every partner, including ones not loaded yet.');
+
+        $more = $this->actingAs($owner)->onPortal('sadmin')
+            ->withHeaders(['X-Inertia' => 'true', 'X-Inertia-Version' => $this->inertiaVersion()])
+            ->get('/network-tree?tree_limit='.$data['dealers_next_limit'])->assertOk()->json('props.data');
+        $this->assertCount(402, $more['dealers']);
+        $this->assertFalse($more['dealers_truncated']);
+        $this->assertNull($more['dealers_next_limit']);
+    }
+
     public function test_partner_home_team_sales_still_count_only_the_downline(): void
     {
         $dealer = $this->partner(null);

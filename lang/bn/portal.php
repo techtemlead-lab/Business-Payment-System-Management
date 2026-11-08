@@ -6245,6 +6245,7 @@ return [
     'sce_fld_home_bismillah' => 'শিরোনামের উপরে বিসমিল্লাহ',
     'sce_home_bismillah_hint' => 'হোমপেজের একদম উপরে, কোম্পানির নামের উপরে মাঝখানে দেখাবে।',
     'portal_visit_website' => 'ওয়েবসাইট দেখুন',
+    'net_show_more' => 'আরও :count জন দেখুন',
     'prescriptions' => 'প্রেসক্রিপশন',
     'nav_module_clinic' => 'চেম্বার',
     'perm_prescriber_verify' => 'প্রেসক্রাইবার যাচাই',

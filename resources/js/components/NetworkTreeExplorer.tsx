@@ -29,10 +29,22 @@ interface DealerNode {
     /** Dealer's own tree only: what the signed-in dealer earned from this member. */
     viewer_earned?: string | number;
     viewer_earned_by_type?: { category: string; amount: string }[];
+    /** Everyone under this partner, from the server (right even when lower levels are not loaded). */
+    team_size?: number;
+    /** Partners this partner referred directly, from the server. */
+    direct_count?: number;
+}
+
+/** Figures over the whole tree, worked out on the server when only part of it is loaded. */
+export interface NetworkTreeStats {
+    total: number;
+    ranks: Partial<Record<string, number>>;
+    sales_total: string | number;
 }
 
 interface NetworkTreeExplorerProps {
     dealers: DealerNode[];
+    treeStats?: NetworkTreeStats | null;
 }
 
 /**
@@ -67,7 +79,7 @@ function generationTone(depth: number): string {
     return 'tone-neutral';
 }
 
-export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProps) {
+export default function NetworkTreeExplorer({ dealers, treeStats = null }: NetworkTreeExplorerProps) {
     const translate = useT();
     const { portal, auth } = usePage<any>().props;
     const isDealerPortal = portal === 'dealer';
@@ -124,6 +136,10 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
 
     // Calculate network tree stats
     const stats = useMemo(() => {
+        if (treeStats) {
+            const ranks = treeStats.ranks ?? {};
+            return { total: treeStats.total, moCount: ranks.mo ?? 0, amCount: ranks.am ?? 0, smCount: ranks.sm ?? 0, meCount: ranks.me ?? 0, totalVolume: Number(treeStats.sales_total) || 0 };
+        }
         const total = dealers.length;
         const moCount = dealers.filter(d => d.rank === 'mo').length;
         const amCount = dealers.filter(d => d.rank === 'am').length;
@@ -131,10 +147,12 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
         const meCount = dealers.filter(d => d.rank === 'me').length;
         const totalVolume = dealers.reduce((acc, d) => acc + salesOf(d), 0);
         return { total, moCount, amCount, smCount, meCount, totalVolume };
-    }, [dealers]);
+    }, [dealers, treeStats]);
 
-    // Recursive calculation of total downline size
+    // Recursive calculation of total downline size; the server count wins when it is sent.
     const getDownlineCount = (id: number): number => {
+        const fromServer = dealerMap[id]?.team_size;
+        if (typeof fromServer === 'number') return fromServer;
         const children = childrenMap[id] || [];
         return children.reduce((count, child) => count + 1 + getDownlineCount(child.id), 0);
     };
@@ -153,7 +171,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
         const isCollapsed = !!collapsedNodes[dealer.id];
         const isSelected = selectedDealerId === dealer.id;
         const badge = rankBadgeStyles[dealer.rank] || rankBadgeStyles.dealer;
-        const directCount = children.length;
+        const directCount = dealer.direct_count ?? children.length;
         const totalDownline = getDownlineCount(dealer.id);
 
         let genTag = '';
@@ -500,9 +518,9 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                                     title: translate('portal', 'net_directs'),
                                     sortable: true,
                                     align: 'center',
-                                    sortValue: (d: DealerNode) => (childrenMap[d.id] || []).length,
+                                    sortValue: (d: DealerNode) => d.direct_count ?? (childrenMap[d.id] || []).length,
                                     render: (d: DealerNode) => {
-                                        const directCount = (childrenMap[d.id] || []).length;
+                                        const directCount = d.direct_count ?? (childrenMap[d.id] || []).length;
                                         return (
                                             <span className={`ntx-count${directCount > 0 ? ' tone-info' : ''}`}>
                                                 {number(directCount)}
@@ -630,7 +648,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                             <div className="ntx-substats">
                                 <div className="ntx-substat tone-info">
                                     <div className="hub-value">
-                                        {(childrenMap[activeDealer.id] || []).length}
+                                        {activeDealer.direct_count ?? (childrenMap[activeDealer.id] || []).length}
                                     </div>
                                     <div className="ops-meta">{translate('portal','net_direct_referrals')}</div>
                                 </div>

@@ -4,6 +4,7 @@ namespace Tests\E2E\Tier3;
 
 use App\Models\BranchProductStock;
 use App\Models\Order;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -338,13 +339,13 @@ class CrossFeatureCombinationsTest extends E2ETestCase
         $dealer = $this->createDealer(['division' => 'Rangpur', 'district' => 'Rangpur']);
         $product = $this->createProduct(['dealer_price' => '250.00']);
 
-        // 1. Assign territory to sales representative
+        // 1. Assign territory to sales representative by its place code (names alone are not accepted)
+        $rangpurDivision = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
+        $rangpurDistrict = PlaceCode::factory()->district($rangpurDivision)->create(['name' => 'Rangpur']);
+        $pirganj = PlaceCode::factory()->upazila($rangpurDistrict)->create(['name' => 'Pirganj']);
         $this->actingAs($superAdmin)->onPortal('manage')->postJson('/api/v1/operations/staff/territories', [
             'staff_id' => $srStaff->id,
-            'level' => 'upazila',
-            'division' => 'Rangpur',
-            'district' => 'Rangpur',
-            'upazila' => 'Pirganj',
+            'place_code' => $pirganj->code,
         ])->assertOk();
 
         // 2. Set monthly sales target for SR
@@ -361,6 +362,8 @@ class CrossFeatureCombinationsTest extends E2ETestCase
 
         $this->assertDatabaseHas('staff_territories', [
             'staff_id' => $srStaff->id,
+            'place_code_id' => $pirganj->id,
+            'level' => 'upazila',
             'district' => 'Rangpur',
             'upazila' => 'Pirganj',
         ]);
