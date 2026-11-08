@@ -3,6 +3,7 @@
 namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Accounts\PartnerAccountList;
+use App\Domain\Inventory\BranchScope;
 use App\Models\User;
 use App\Support\DashboardManagement;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -20,8 +21,8 @@ final class AccountsSection implements WorkspaceSection
     public function data(SectionContext $context, array $data): array
     {
         return match ($context->section) {
-            'accounts' => $this->partnerAccounts($context->request, 'dealer'),
-            'sub-dealers' => $this->partnerAccounts($context->request, 'sub_dealer'),
+            'accounts' => $this->partnerAccounts($context->request, 'dealer', $context->branchScope),
+            'sub-dealers' => $this->partnerAccounts($context->request, 'sub_dealer', $context->branchScope),
             'dashboards' => $this->dashboards($context->user),
             'partnerships' => $this->partnerApplications($context->request, 'dealer'),
             'sub-dealer-applications' => $this->partnerApplications($context->request, 'sub_dealer'),
@@ -31,17 +32,18 @@ final class AccountsSection implements WorkspaceSection
 
     /**
      * Paged dealer or sub-dealer accounts with status counts and area filters.
+     * On a branch picked in the top bar, only that branch's partners.
      *
      * @return array<string, mixed>
      */
-    private function partnerAccounts(Request $request, string $role): array
+    private function partnerAccounts(Request $request, string $role, ?BranchScope $branchScope = null): array
     {
         $list = app(PartnerAccountList::class);
         $filters = PartnerAccountList::filters($request);
         $props = [];
         // Status tab counts follow every other filter but not the status filter, so every tab keeps its number.
-        $props['account_status_counts'] = $list->statusCounts($role, $filters);
-        $props['accounts'] = $list->page($role, $filters);
+        $props['account_status_counts'] = $list->statusCounts($role, $filters, $branchScope);
+        $props['accounts'] = $list->page($role, $filters, branchScope: $branchScope);
         $props['account_areas'] = $list->areaOptions($role);
 
         return $props;

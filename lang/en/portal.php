@@ -6246,4 +6246,12 @@ return [
     'sce_home_bismillah_hint' => 'Shown centred at the very top of the home page, above the company name.',
     'portal_visit_website' => 'Visit website',
     'net_show_more' => 'Show :count more',
+    'branch_scope_showing' => 'Showing: :name',
+    'branch_scope_none' => 'No branch given to you yet',
+    'branch_scope_hint' => 'Change the branch from the top bar.',
+    // Courier auto-booking (stream F): activity log names. Other courier text is in courier.php.
+    'event_order_courier_changed' => 'Courier changed',
+    'event_order_courier_booking_retried' => 'Courier booking tried again',
+    'event_order_courier_auto_skipped' => 'Courier not booked automatically',
+    'event_shipment_courier_status' => 'Parcel status changed',
 ];

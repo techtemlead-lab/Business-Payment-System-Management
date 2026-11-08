@@ -3,6 +3,7 @@
 namespace App\Domain\Accounts;
 
 use App\Domain\Geography\PlaceTree;
+use App\Domain\Inventory\BranchScope;
 use App\Domain\Orders\OrderListFilter;
 use App\Models\PlaceCode;
 use App\Models\User;
@@ -72,12 +73,14 @@ final class PartnerAccountList
      * Partners of one role matching every filter except status, so the status tabs keep their counts.
      *
      * @param  array{q: string, status: string, division: string, district: string, rank: string, no_order_days: int}  $filters
+     * @param  BranchScope|null  $branchScope  On a branch picked in the top bar, only that branch's partners.
      * @return EloquentBuilder<User>
      */
-    public function matching(string $role, array $filters): EloquentBuilder
+    public function matching(string $role, array $filters, ?BranchScope $branchScope = null): EloquentBuilder
     {
         return User::query()
             ->where('users.role', $role)
+            ->when($branchScope !== null, fn (EloquentBuilder $query) => $branchScope?->restrictPartners($query))
             ->when($filters['q'] !== '', function (EloquentBuilder $query) use ($filters): void {
                 $term = '%'.OrderListFilter::escapeLike($filters['q']).'%';
                 $query->where(function (EloquentBuilder $sub) use ($term): void {
@@ -112,9 +115,9 @@ final class PartnerAccountList
      * @param  array{q: string, status: string, division: string, district: string, rank: string, no_order_days: int}  $filters
      * @return array<string, int>
      */
-    public function statusCounts(string $role, array $filters): array
+    public function statusCounts(string $role, array $filters, ?BranchScope $branchScope = null): array
     {
-        return $this->matching($role, $filters)->toBase()
+        return $this->matching($role, $filters, $branchScope)->toBase()
             ->select('users.status')->selectRaw('COUNT(*) AS aggregate')->groupBy('users.status')
             ->pluck('aggregate', 'status')->map(fn ($count): int => (int) $count)->all();
     }
@@ -125,9 +128,9 @@ final class PartnerAccountList
      * @param  array{q: string, status: string, division: string, district: string, rank: string, no_order_days: int}  $filters
      * @return LengthAwarePaginator<int, User>
      */
-    public function page(string $role, array $filters, int $perPage = 20): LengthAwarePaginator
+    public function page(string $role, array $filters, int $perPage = 20, ?BranchScope $branchScope = null): LengthAwarePaginator
     {
-        $page = $this->withStatus($this->matching($role, $filters), $filters)
+        $page = $this->withStatus($this->matching($role, $filters, $branchScope), $filters)
             ->select(self::Columns)
             ->addSelect(['current_rank' => DB::table('dealer_ranks')->select('current_rank')->whereColumn('dealer_ranks.user_id', 'users.id')->limit(1)])
             ->with('sponsor:id,name,dealer_code')

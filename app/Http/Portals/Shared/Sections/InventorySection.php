@@ -3,6 +3,7 @@
 namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Inventory\BranchOperations;
+use App\Domain\Inventory\BranchScope;
 use App\Models\BranchProductStock;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -55,7 +56,14 @@ final class InventorySection implements WorkspaceSection
             })->all();
         }
         $props['products'] = $this->withBookedUnits($props['products'] ?? $data['products'] ?? []);
-        $props['movements'] = DB::table('stock_movements')
+        // The movement log follows the same branch as the stock on hand above it.
+        $branchScope = $viewingAllBranches && $branchOps->canViewAllBranches($user)
+            ? new BranchScope(true, [])
+            : new BranchScope(false, $preferredBranch ? [$preferredBranch->id] : [], $preferredBranch);
+        $props['branch_scope'] = $branchScope->chip();
+        $movements = DB::table('stock_movements');
+        $branchScope->restrict($movements, 'stock_movements.branch_id');
+        $props['movements'] = $movements
             ->join('products', 'products.id', '=', 'product_id')
             ->leftJoin('company_branches', 'company_branches.id', '=', 'stock_movements.branch_id')
             ->leftJoin('users', 'users.id', '=', 'stock_movements.actor_id')

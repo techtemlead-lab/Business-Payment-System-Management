@@ -6246,4 +6246,12 @@ return [
     'sce_home_bismillah_hint' => 'হোমপেজের একদম উপরে, কোম্পানির নামের উপরে মাঝখানে দেখাবে।',
     'portal_visit_website' => 'ওয়েবসাইট দেখুন',
     'net_show_more' => 'আরও :count জন দেখুন',
+    'branch_scope_showing' => 'দেখানো হচ্ছে: :name',
+    'branch_scope_none' => 'আপনাকে এখনো কোনো ব্রাঞ্চ দেওয়া হয়নি',
+    'branch_scope_hint' => 'উপরের বার থেকে ব্রাঞ্চ বদলান।',
+    // কুরিয়ার অটো-বুকিং (স্ট্রিম F): কাজের খাতার নাম। বাকি কুরিয়ার লেখা courier.php তে।
+    'event_order_courier_changed' => 'কুরিয়ার বদলানো হয়েছে',
+    'event_order_courier_booking_retried' => 'আবার কুরিয়ার বুকিং চেষ্টা',
+    'event_order_courier_auto_skipped' => 'নিজে থেকে কুরিয়ার বুক হয়নি',
+    'event_shipment_courier_status' => 'পার্সেলের অবস্থা বদলেছে',
 ];

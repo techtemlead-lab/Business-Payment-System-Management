@@ -6,6 +6,7 @@ use App\Domain\Commissions\CommissionSettlement;
 use App\Domain\Commissions\RetainedFundLedger;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Geography\ManagementReferral;
+use App\Domain\Inventory\BranchScope;
 use App\Domain\Orders\OrderListFilter;
 use App\Models\CommissionAllocation;
 use App\Support\Money;
@@ -24,7 +25,7 @@ final class FinanceSection implements WorkspaceSection
     public function data(SectionContext $context, array $data): array
     {
         return match ($context->section) {
-            'payments' => $this->paymentClaims($context->request),
+            'payments' => $this->paymentClaims($context->request, $context->branchScope),
             'ledger' => $this->ledger($context->request),
             'audit' => $this->auditLog($context->request),
             'capital-flow', 'treasury' => $this->treasury($context),
@@ -35,10 +36,11 @@ final class FinanceSection implements WorkspaceSection
 
     /**
      * Payment claims with their order and buyer, filtered like the payment queue.
+     * On a branch picked in the top bar, only claims on that branch's orders.
      *
      * @return array<string, mixed>
      */
-    private function paymentClaims(Request $request): array
+    private function paymentClaims(Request $request, ?BranchScope $branchScope = null): array
     {
         $props = [];
         $claims = DB::table('payment_claims')
@@ -71,6 +73,7 @@ final class FinanceSection implements WorkspaceSection
                 'users.division',
                 'company_branches.name as branch_name',
             );
+        $branchScope?->restrict($claims, 'orders.fulfillment_branch_id');
         if ($request->filled('q')) {
             $term = '%'.$request->string('q')->toString().'%';
             $claims->where(function ($query) use ($term): void {
