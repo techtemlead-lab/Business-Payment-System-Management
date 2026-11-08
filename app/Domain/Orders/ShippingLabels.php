@@ -27,19 +27,35 @@ final class ShippingLabels
      */
     public static function deliveryAddress(?User $partner): string
     {
+        $place = self::deliveryPlace($partner);
+
+        return collect([
+            $place['address'],
+            $place['union'],
+            $place['upazila'],
+            $partner?->district,
+            $partner?->division,
+            $place['place_code'] !== '' ? __('courier.place_code_in_address', ['code' => $place['place_code']]) : null,
+        ])->filter()->implode(', ');
+    }
+
+    /**
+     * The parts of a delivery address that live on the partner's profile, not on the account row.
+     *
+     * @return array{address: ?string, union: ?string, upazila: ?string, place_code: string}
+     */
+    public static function deliveryPlace(?User $partner): array
+    {
         /** @var array<string, mixed> $profile */
         $profile = (array) ($partner?->getAttribute('profile') ?? []);
         $fromProfile = static fn (string $key): ?string => is_string($profile[$key] ?? null) ? $profile[$key] : null;
-        $placeCode = trim((string) ($profile['place_code'] ?? $profile['area_code'] ?? ''));
 
-        return collect([
-            $fromProfile('address'),
-            $fromProfile('union'),
-            $fromProfile('upazila'),
-            $partner?->district,
-            $partner?->division,
-            $placeCode !== '' ? __('courier.place_code_in_address', ['code' => $placeCode]) : null,
-        ])->filter()->implode(', ');
+        return [
+            'address' => $fromProfile('address'),
+            'union' => $fromProfile('union'),
+            'upazila' => $fromProfile('upazila'),
+            'place_code' => trim((string) ($profile['place_code'] ?? $profile['area_code'] ?? '')),
+        ];
     }
 
     /**
