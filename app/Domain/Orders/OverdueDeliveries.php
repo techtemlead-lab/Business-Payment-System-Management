@@ -55,7 +55,17 @@ final class OverdueDeliveries
      */
     public static function conditionSql(): string
     {
-        return "(orders.status IN ('".implode("', '", self::Statuses)."') AND ".self::daysSinceSentSql().' > '.self::Days.')';
+        return "(orders.status IN ('".implode("', '", self::Statuses)."') AND ".self::daysSinceSentSql().' > '.self::Days.' AND '.self::notSettledByReturnSql().')';
+    }
+
+    /**
+     * A parcel received back ends the wait: after one, only another parcel still on the road
+     * keeps the order overdue.
+     */
+    private static function notSettledByReturnSql(): string
+    {
+        return "(NOT EXISTS (SELECT 1 FROM shipments WHERE shipments.order_id = orders.id AND shipments.status = 'returned')"
+            ." OR EXISTS (SELECT 1 FROM shipments WHERE shipments.order_id = orders.id AND shipments.status = 'dispatched'))";
     }
 
     /**

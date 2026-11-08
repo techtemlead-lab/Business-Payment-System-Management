@@ -50,8 +50,10 @@ final class BranchesSection implements WorkspaceSection
             ->whereIn('branch_id', $branchIds)
             ->get()
             ->groupBy('branch_id');
-        $props['branches'] = $branches->through(function (CompanyBranch $branch) use ($staffByBranch) {
+        $partnerCounts = $branchOps->partnerCountsByBranch();
+        $props['branches'] = $branches->through(function (CompanyBranch $branch) use ($staffByBranch, $partnerCounts) {
             $summary = $branch->summary();
+            $summary['partners_count'] = $partnerCounts[$branch->id] ?? 0;
             $summary['staff'] = ($staffByBranch[$branch->id] ?? collect())->map(fn (BranchStaffAssignment $row) => [
                 'user_id' => $row->user_id,
                 'name' => $row->user?->name,
@@ -69,6 +71,13 @@ final class BranchesSection implements WorkspaceSection
 
             return $summary;
         });
+        $props['head_office_without_place_code'] = CompanyBranch::query()
+            ->where('is_head_office', true)
+            ->whereNull('place_code_id')
+            ->orderBy('id')
+            ->first()
+            ?->summary();
+        $props['can_edit_branches'] = $user->owner() || $user->canAct('inventory', 'edit') || $user->canAct('accounts', 'edit');
         $props['active_branch_id'] = $user->active_branch_id;
         $props['delivery_points'] = $branchOps->deliveryPoints();
         $props['assignable_staff'] = User::query()

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Finance\ReportData;
 use App\Domain\Inventory\BranchOperations;
 use App\Models\BranchProductStock;
 use App\Models\BranchStaffAssignment;
@@ -139,6 +140,53 @@ class BranchScopedExportsTest extends TestCase
             ->assertJsonCount(1, 'data')->assertJsonPath('data.0.number', $own->number);
         $this->actingAs($staff)->getJson('/api/v1/orders/'.$other->id)->assertNotFound();
         $this->actingAs($staff)->getJson('/api/v1/orders/'.$own->id)->assertOk();
+    }
+
+    public function test_branch_staff_with_report_access_are_refused_files_not_built_from_orders(): void
+    {
+        $staff = $this->branchStaff($this->dhaka, ['orders', 'reports']);
+        $refused = array_diff(ReportData::Types, ReportData::OrderBasedReports);
+        $this->assertContains('ledger', $refused);
+        $this->assertContains('payroll', $refused);
+
+        foreach ($refused as $type) {
+            $this->actingAs($staff)->onPortal('manage')->get($this->reportUrl($type))->assertForbidden();
+            $this->travel(61)->seconds();
+        }
+    }
+
+    public function test_the_owner_finance_and_all_branch_staff_still_get_files_not_built_from_orders(): void
+    {
+        $allBranchStaff = User::factory()->staff('employee')->create(['profile' => ['permissions' => ['reports', 'accounts']]]);
+        $actors = ['sadmin' => User::factory()->staff()->create(), 'manage' => User::factory()->staff('finance')->create()];
+
+        foreach ($actors as $portal => $actor) {
+            $this->sheetText($this->actingAs($actor)->onPortal($portal)->get($this->reportUrl('ledger'))->assertOk());
+            $this->travel(61)->seconds();
+        }
+        $this->sheetText($this->actingAs($allBranchStaff)->onPortal('manage')->get($this->reportUrl('withdrawals'))->assertOk());
+    }
+
+    public function test_partners_and_staff_without_report_access_keep_their_own_files(): void
+    {
+        $this->sheetText($this->actingAs($this->partner)->onPortal('dealer')->get($this->reportUrl('commissions'))->assertOk());
+        $this->sheetText($this->actingAs(User::factory()->staff('employee')->create(['profile' => ['permissions' => ['orders']]]))->onPortal('manage')->get($this->reportUrl('payroll'))->assertOk());
+    }
+
+    public function test_the_report_list_offers_branch_staff_only_the_files_they_can_download(): void
+    {
+        $this->actingAs($this->branchStaff($this->dhaka, ['orders', 'reports']))->onPortal('manage')->get('/operations/financial-reports')
+            ->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('reportTypes', fn ($types) => $types->all() === array_values(array_intersect(ReportData::Types, ReportData::OrderBasedReports))));
+
+        $this->actingAs(User::factory()->staff('finance')->create())->onPortal('manage')->get('/operations/financial-reports')
+            ->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('reportTypes', fn ($types) => $types->all() === ReportData::Types));
+    }
+
+    private function reportUrl(string $type): string
+    {
+        return '/commands/operations/reports?type='.$type.'&format=xlsx&from='.now()->subDay()->format('Y-m-d').'&to='.now()->addDay()->format('Y-m-d');
     }
 
     /**

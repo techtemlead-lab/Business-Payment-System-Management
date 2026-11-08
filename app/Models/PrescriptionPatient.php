@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * A patient of one prescriber. Only that prescriber and the owner can see the record.
+ * A patient of one prescriber. Only that prescriber can see the record, not even the owner.
  *
  * @property int $id
  * @property int $prescriber_id
@@ -55,14 +55,12 @@ class PrescriptionPatient extends Model
     }
 
     /**
-     * Patients the viewer may see: their own, or every patient for the owner-doctor.
+     * Patients the viewer may see: only their own.
      *
      * @param  Builder<PrescriptionPatient>  $query
      */
-    public function scopeVisibleTo(Builder $query, User $viewer, bool $seesAll): void
+    public function scopeVisibleTo(Builder $query, User $viewer): void
     {
-        if (! $seesAll) {
-            $query->where('prescriber_id', $viewer->id);
-        }
+        $query->where('prescriber_id', $viewer->id);
     }
 }

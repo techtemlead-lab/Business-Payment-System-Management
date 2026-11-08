@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\Clinic\PrescriptionAccess;
 use App\Domain\Support\PartnerChat;
 use App\Models\User;
 use App\Support\PortalHost;
@@ -69,6 +70,12 @@ class EnforceStaffActions
             // Owners (Super Admin, MD, Chairman) switch prescribing on or off; the controller checks again.
             return $next($request);
         }
+        $prescribing = $controller === 'PrescriptionToolsController'
+            || ($controller === 'PrescriptionController' && in_array($method, ['storePatient', 'updatePatient', 'store', 'dispense'], true));
+        if ($prescribing && PrescriptionAccess::usesCompanyStock($actor)) {
+            // Office accounts switched on for company stock prescribe and dispense; the domain checks again.
+            return $next($request);
+        }
         if ($controller === 'DataCleanupController' && $actor->owner()) {
             // Only owners delete old login codes, SMS records and closed enquiries; the controller checks again.
             return $next($request);
@@ -104,6 +111,10 @@ class EnforceStaffActions
         if ($controller === 'BranchController' && in_array($method, ['select', 'viewAll'], true)) {
             // Choosing which branch to look at changes nothing; BranchOperations checks
             // assignment for one branch and canViewAllBranches() for "All branches".
+            return $next($request);
+        }
+        if ($controller === 'BranchController' && $method === 'update' && $actor->owner()) {
+            // The owner decided MD and Chairman may edit a branch; BranchOperations::saveBranch checks again.
             return $next($request);
         }
         if ($controller === 'DataImportController') {

@@ -31,6 +31,26 @@ final class PhoneIdentity
     }
 
     /**
+     * For printed prescriptions: the first three and last four digits, as "017****1234". A
+     * number too short to hide anything that way shows only its last two digits.
+     */
+    public static function maskedForPrint(?string $phone): string
+    {
+        $digits = preg_replace('/\D+/', '', (string) $phone) ?: '';
+        if (strlen($digits) === 13 && str_starts_with($digits, '8801')) {
+            $digits = substr($digits, 2);
+        }
+        if ($digits === '') {
+            return '';
+        }
+        if (strlen($digits) < 10) {
+            return '****'.substr($digits, -2);
+        }
+
+        return substr($digits, 0, 3).str_repeat('*', strlen($digits) - 7).substr($digits, -4);
+    }
+
+    /**
      * The phone a dealer may see for someone in their own downline (owner decision): the full
      * number for members they referred directly (sponsor_id = viewer) and for themselves, and
      * only the last four digits for everyone deeper.

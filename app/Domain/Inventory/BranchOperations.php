@@ -2,7 +2,9 @@
 
 namespace App\Domain\Inventory;
 
+use App\Domain\Clinic\PrescriptionAccess;
 use App\Domain\Geography\PlaceTree;
+use App\Domain\Support\ChatRouting;
 use App\Models\BranchProductStock;
 use App\Models\BranchStaffAssignment;
 use App\Models\CompanyBranch;
@@ -80,12 +82,12 @@ final class BranchOperations
                 'address' => $data['address'] ?? null,
                 'phone' => $data['phone'] ?? null,
                 'place_code_id' => $place->id,
-                'latitude' => $data['latitude'] ?? null,
-                'longitude' => $data['longitude'] ?? null,
+                'latitude' => array_key_exists('latitude', $data) ? $data['latitude'] : $branch?->latitude,
+                'longitude' => array_key_exists('longitude', $data) ? $data['longitude'] : $branch?->longitude,
                 'is_active' => array_key_exists('is_active', $data) ? (bool) $data['is_active'] : true,
                 'is_delivery_point' => array_key_exists('is_delivery_point', $data) ? (bool) $data['is_delivery_point'] : true,
                 'is_stock_hub' => array_key_exists('is_stock_hub', $data) ? (bool) $data['is_stock_hub'] : true,
-                'notes' => $data['notes'] ?? null,
+                'notes' => array_key_exists('notes', $data) ? $data['notes'] : $branch?->notes,
             ];
 
             if ($branch) {
@@ -102,6 +104,29 @@ final class BranchOperations
 
             return $branch->refresh();
         });
+    }
+
+    /**
+     * How many partners belong to each branch, by the same rule the branch switcher and
+     * partner chat use. Partners with no branch are left out.
+     *
+     * @return array<int, int> Partner count by branch id.
+     */
+    public function partnerCountsByBranch(): array
+    {
+        $rows = DB::table('users')
+            ->whereIn('role', ['dealer', 'sub_dealer'])
+            ->selectRaw(app(ChatRouting::class)->partnerBranchSql('users').' AS branch_id, COUNT(*) AS partners')
+            ->groupByRaw('1')
+            ->get();
+        $counts = [];
+        foreach ($rows as $row) {
+            if ($row->branch_id !== null) {
+                $counts[(int) $row->branch_id] = (int) $row->partners;
+            }
+        }
+
+        return $counts;
     }
 
     /**
@@ -294,6 +319,49 @@ final class BranchOperations
     {
         $this->assertCompanyHandler($actor);
         abort_unless($actor->allows('inventory'), 403);
+
+        return $this->applyStockAdjustment($actor, $data);
+    }
+
+    /**
+     * Takes medicine out for a clinic dispense. The owner's per-account company-stock switch
+     * stands in for the inventory permission here; the branch rules stay the same.
+     *
+     * @param  array{
+     *   product_id:int,
+     *   quantity:int,
+     *   reason:string,
+     *   reference:string,
+     *   branch_id?:int,
+     *   kind?:string,
+     *   reason_code?:string,
+     *   expires_on?:string|null,
+     *   batch_number?:string|null
+     * }  $data
+     */
+    public function adjustStockForClinicDispense(User $actor, array $data): Product
+    {
+        $this->assertCompanyHandler($actor);
+        abort_unless(PrescriptionAccess::usesCompanyStock($actor), 403);
+
+        return $this->applyStockAdjustment($actor, $data);
+    }
+
+    /**
+     * @param  array{
+     *   product_id:int,
+     *   quantity:int,
+     *   reason:string,
+     *   reference:string,
+     *   branch_id?:int,
+     *   kind?:string,
+     *   reason_code?:string,
+     *   expires_on?:string|null,
+     *   batch_number?:string|null
+     * }  $data
+     */
+    private function applyStockAdjustment(User $actor, array $data): Product
+    {
         $branch = $this->resolveWritableBranch($actor, isset($data['branch_id']) ? (int) $data['branch_id'] : null);
 
         return DB::transaction(function () use ($actor, $data, $branch): Product {

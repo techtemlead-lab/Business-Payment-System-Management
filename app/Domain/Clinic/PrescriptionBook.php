@@ -17,13 +17,18 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Patients and prescriptions. Dealer and sub-dealer prescriptions are typed by hand
- * (medicine, dose, price, discount) and never touch company stock. The owner-doctor's
- * clinic prescriptions pick company products; ClinicDispensing takes them out of stock.
+ * (medicine, dose, price, discount) and never touch company stock. Clinic prescriptions, by
+ * the owner-doctor and office accounts switched on for company stock, pick company products;
+ * ClinicDispensing takes them out of stock. Patients and prescriptions are private to the
+ * person who wrote them: nobody else can read them, the owner included.
  */
 final class PrescriptionBook
 {
     /** Most medicines one prescription may hold. */
     public const MaxLines = 30;
+
+    /** Patients offered at once in the prescription picker; a search reaches the rest. */
+    public const PatientOptionLimit = 30;
 
     /**
      * @param  array{name: string, age?: int|null, sex?: string|null, phone?: string|null, place_code_id?: int|null, notes?: string|null}  $data
@@ -54,10 +59,10 @@ final class PrescriptionBook
     }
 
     /**
-     * Writes a prescription. Partners type every medicine; the owner-doctor picks products,
-     * and the medicine name and MRP are copied from the product.
+     * Writes a prescription. Partners type every medicine; company-stock prescribers pick
+     * products, and the medicine name and MRP are copied from the product.
      *
-     * @param  array{patient_id: int, prescribed_on: string, complaints?: string|null, diagnosis?: string|null, advice?: string|null, follow_up_on?: string|null, lines: list<array<string, mixed>>}  $data
+     * @param  array{patient_id: int, prescribed_on: string, complaints?: string|null, diagnosis?: string|null, advice?: string|null, follow_up_on?: string|null, lines: list<array<string, mixed>>, confirm_below_floor?: bool|null}  $data
      */
     public function create(User $prescriber, array $data): Prescription
     {
@@ -65,13 +70,12 @@ final class PrescriptionBook
         $patient = PrescriptionPatient::query()->findOrFail($data['patient_id']);
         // A prescription is always written for one of the prescriber's own patients.
         abort_unless((int) $patient->prescriber_id === (int) $prescriber->id, 404);
-        $clinic = PrescriptionAccess::isOwnerDoctor($prescriber);
+        $clinic = PrescriptionAccess::usesCompanyStock($prescriber);
 
         return DB::transaction(function () use ($prescriber, $patient, $data, $clinic): Prescription {
             $lines = $this->buildLines($data['lines'], $clinic);
-            if ($clinic) {
-                $this->assertPriceFloor($lines);
-            }
+            $belowFloor = $clinic ? $this->linesBelowFloor($lines) : [];
+            $overridden = ClinicDispensing::enforcePriceFloor($prescriber, $belowFloor, (bool) ($data[ClinicDispensing::ConfirmBelowFloorField] ?? false), 'lines');
             $subtotal = array_sum(array_column($lines, 'gross_cents'));
             $discount = array_sum(array_column($lines, 'discount_cents'));
             $prescription = Prescription::query()->create([
@@ -113,23 +117,30 @@ final class PrescriptionBook
                 'kind' => $prescription->kind,
                 'total' => $prescription->total,
             ]);
+            if ($overridden) {
+                Audit::record($prescriber->id, ClinicDispensing::BelowFloorOverrideAction, (string) $prescription->id, [
+                    'stage' => 'prescribed',
+                    'number' => $prescription->number,
+                    'items' => $belowFloor,
+                    'price' => $prescription->total,
+                    'mrp' => $prescription->mrp_total,
+                ]);
+            }
 
             return $prescription->load('lines');
         });
     }
 
     /**
-     * Prescriptions are seen by their own prescriber and by the owner-doctor. A partner whose
-     * prescribing was turned off loses their old prescriptions too, the print page included.
+     * A prescription is seen only by the person who wrote it, not even the owner can open
+     * someone else's. A partner whose prescribing was turned off loses their old prescriptions
+     * too, the print page included.
      */
     public function assertVisible(User $viewer, Prescription $prescription): void
     {
         abort_unless(PrescriptionAccess::enabled(), 404);
         abort_unless(PrescriptionAccess::canPrescribe($viewer), 403);
-        abort_unless(
-            (int) $prescription->prescriber_id === (int) $viewer->id || PrescriptionAccess::seesAllPatients($viewer),
-            404,
-        );
+        abort_unless((int) $prescription->prescriber_id === (int) $viewer->id, 404);
     }
 
     public function assertOwnPatient(User $viewer, PrescriptionPatient $patient): void
@@ -138,27 +149,47 @@ final class PrescriptionBook
     }
 
     /**
-     * Patient row for the screen: the phone is masked the way the app masks phones elsewhere,
-     * except for the prescriber who saved it.
+     * The prescriber's own patients for the prescription picker, newest first; a search by
+     * name reaches older ones.
+     *
+     * @return list<array{id: int, name: string, age: int|null}>
+     */
+    public function patientOptions(User $prescriber, string $search = ''): array
+    {
+        $term = trim($search);
+
+        return PrescriptionPatient::query()
+            ->visibleTo($prescriber)
+            ->when($term !== '', fn ($query) => $query->where('name', 'ilike', '%'.$term.'%'))
+            ->orderByDesc('id')
+            ->limit(self::PatientOptionLimit)
+            ->get(['id', 'name', 'age'])
+            ->map(fn (PrescriptionPatient $patient): array => ['id' => $patient->id, 'name' => $patient->name, 'age' => $patient->age])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Patient row for the prescriber's own screen, with the full phone because they need to
+     * call the patient. Nobody else's patient ever reaches this row.
      *
      * @return array<string, mixed>
      */
     public function patientRow(PrescriptionPatient $patient, User $viewer): array
     {
-        $own = (int) $patient->prescriber_id === (int) $viewer->id;
+        $this->assertOwnPatient($viewer, $patient);
 
         return [
             'id' => $patient->id,
             'name' => $patient->name,
             'age' => $patient->age,
             'sex' => $patient->sex,
-            'phone' => $own ? $patient->phone : PhoneIdentity::masked($patient->phone),
+            'phone' => $patient->phone,
             'phone_masked' => PhoneIdentity::masked($patient->phone),
             'place_code_id' => $patient->place_code_id,
             'place' => $patient->placeCode ? trim(PlaceCode::displayLabel($patient->placeCode->code).' '.PlaceCode::displayLabel($patient->placeCode->name)) : null,
-            'notes' => $own ? $patient->notes : null,
-            'own' => $own,
-            'prescriber' => $own ? null : $patient->prescriber?->name,
+            'notes' => $patient->notes,
+            'own' => true,
             'created_at' => $patient->created_at?->toIso8601String(),
         ];
     }
@@ -218,17 +249,14 @@ final class PrescriptionBook
     }
 
     /**
-     * In "block" mode the owner may not price a clinic line, or the whole prescription, below
-     * 30% of its MRP; the dispense step checks again.
+     * The clinic lines priced below 30% of their MRP, or every line when only the whole
+     * prescription falls below it. The dispense step checks again.
      *
      * @param  list<array{medicine_name: string, gross_cents: int, discount_cents: int, mrp_cents: int}>  $lines
+     * @return list<string>
      */
-    private function assertPriceFloor(array $lines): void
+    private function linesBelowFloor(array $lines): array
     {
-        $dispensing = app(ClinicDispensing::class);
-        if ($dispensing->priceFloor()['mode'] !== 'block') {
-            return;
-        }
         $percent = Percentage::from(ClinicDispensing::ManufacturerMrpPercent);
         $below = [];
         $mrp = 0;
@@ -244,9 +272,8 @@ final class PrescriptionBook
         if ($below === [] && $percent->of($mrp, 'half_up') > $price) {
             $below = array_column($lines, 'medicine_name');
         }
-        if ($below !== []) {
-            throw ValidationException::withMessages(['lines' => __('prescription.err_below_floor', ['items' => implode(', ', $below), 'percent' => '30'])]);
-        }
+
+        return $below;
     }
 
     private function text(mixed $value): ?string

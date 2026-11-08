@@ -25,6 +25,25 @@ final class PlaceTree
     }
 
     /**
+     * SQL for the active branch nearest a partner's place code: the branch on the partner's own
+     * place, or else on the closest place above it. The deepest place wins; if two active
+     * branches share that place, the older one does. NULL when no branch matches.
+     */
+    public static function nearestActiveBranchIdSql(string $table = 'users'): string
+    {
+        return '(WITH RECURSIVE place_chain AS (
+                SELECT place.id, place.parent_id, 0 AS depth FROM place_codes AS place WHERE place.id = '.self::partnerPlaceIdSql($table).'
+                UNION ALL
+                SELECT parent.id, parent.parent_id, place_chain.depth + 1
+                FROM place_chain JOIN place_codes AS parent ON parent.id = place_chain.parent_id
+                WHERE place_chain.depth < 8
+            )
+            SELECT branch.id FROM place_chain
+            JOIN company_branches AS branch ON branch.place_code_id = place_chain.id AND branch.is_active = true
+            ORDER BY place_chain.depth, branch.id LIMIT 1)';
+    }
+
+    /**
      * Keep only partners whose place code is one of these places or lies inside one of them.
      *
      * @param  list<int>  $rootIds

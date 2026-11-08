@@ -2,12 +2,16 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Integrations\IntegrationSettings;
 use App\Domain\Orders\CourierOptions;
 use App\Domain\Orders\OrderService;
+use App\Domain\Orders\OverdueDeliveries;
 use App\Domain\Orders\ShipmentTracking;
 use App\Jobs\BookShipmentCourier;
 use App\Jobs\RefreshShipmentTracking;
+use App\Models\BranchProductStock;
+use App\Models\CommissionAllocation;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
@@ -468,6 +472,143 @@ class CourierAutoBookingTest extends TestCase
 
         $this->assertSame('delivered', DB::table('shipments')->where('id', $deliveredShipmentId)->value('status'));
         $this->assertSame('delivered', $delivered->fresh()->status);
+    }
+
+    public function test_a_returned_parcel_received_back_restores_stock_once_and_closes_the_order(): void
+    {
+        [$order, $shipmentId] = $this->returnedOrder();
+        $product = Product::query()->findOrFail($order->lines()->value('product_id'));
+        $this->assertSame(18, (int) $product->stock);
+        $branchId = (int) DB::table('shipments')->where('id', $shipmentId)->value('branch_id');
+        $store = User::factory()->staff('inventory')->create(['status' => 'active']);
+
+        $this->actingAs($store)->onPortal('manage')->post($this->receivedBackUrl($order, $shipmentId), ['note' => 'Box came back sealed'])
+            ->assertSessionHasNoErrors()->assertSessionHas('success', __('courier.flash_received_back'));
+        $this->actingAs($store)->onPortal('manage')->post($this->receivedBackUrl($order, $shipmentId))->assertSessionHasNoErrors();
+
+        $this->assertSame(20, (int) $product->fresh()->stock);
+        $this->assertSame(20, (int) BranchProductStock::query()->where('branch_id', $branchId)->where('product_id', $product->id)->value('quantity'));
+        $this->assertSame(1, DB::table('stock_movements')->where('product_id', $product->id)->where('branch_id', $branchId)->where('kind', 'product_in')->where('quantity', 2)->count());
+        $this->assertSame('returned', DB::table('shipments')->where('id', $shipmentId)->value('status'));
+        $this->assertSame('cancelled', $order->fresh()->status);
+        $this->assertSame(1, DB::table('order_events')->where('order_id', $order->id)->where('action', 'shipment.received_back')->count());
+        $this->assertDatabaseHas('audit_events', ['actor_id' => $store->id, 'action' => 'shipment.received_back', 'subject' => $order->id]);
+        $locale = $this->dealer->preferredLocale();
+        $this->assertSame(1, DB::table('account_notices')->where('user_id', $this->dealer->id)
+            ->where('title', __('courier.notice_received_back_title', ['number' => $order->number], $locale))->count());
+
+        // A closed parcel cannot be confirmed as delivered afterwards.
+        $this->actingAs($store)->onPortal('manage')
+            ->post('/commands/orders/'.$order->id.'/shipments/'.$shipmentId.'/delivered', ['reason' => 'Dealer says it arrived'])
+            ->assertStatus(422);
+
+        // The staff note stays with staff.
+        $this->actingAs($this->dealer)->onPortal('dealer')->get('/orders/'.$order->id)->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('events', fn (mixed $events): bool => ! array_key_exists('reason', json_decode(collect($events)->firstWhere('action', 'shipment.received_back')['metadata'], true))));
+    }
+
+    public function test_receiving_a_returned_parcel_back_posts_no_commission(): void
+    {
+        $this->enableFinancialPosting();
+        [$order, $shipmentId] = $this->returnedOrder();
+        $store = User::factory()->staff('inventory')->create(['status' => 'active']);
+
+        $this->actingAs($store)->onPortal('manage')->post($this->receivedBackUrl($order, $shipmentId))->assertSessionHasNoErrors();
+        app(CommissionPosting::class)->process($order->fresh(), $this->owner->id);
+
+        $this->assertDatabaseCount('commission_batches', 0);
+        $this->assertSame(0, CommissionAllocation::query()->count());
+
+        // The same setup does post when staff confirm a real delivery, so the zero above means something.
+        $delivered = $this->bookedOrder('SF-RET');
+        $deliveredShipmentId = (int) DB::table('shipments')->where('order_id', $delivered->id)->value('id');
+        app(ShipmentTracking::class)->apply($deliveredShipmentId, 'delivered', 'Delivered', null);
+        $this->actingAs($store)->onPortal('manage')
+            ->post('/commands/orders/'.$delivered->id.'/shipments/'.$deliveredShipmentId.'/delivered', ['reason' => 'Courier delivered it'])
+            ->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('commission_batches', ['order_id' => $delivered->id]);
+        $this->assertDatabaseMissing('commission_batches', ['order_id' => $order->id]);
+    }
+
+    public function test_only_a_parcel_the_courier_returned_can_be_received_back(): void
+    {
+        $order = $this->bookedOrder('SF-RET');
+        $shipmentId = (int) DB::table('shipments')->where('order_id', $order->id)->value('id');
+        $product = Product::query()->findOrFail($order->lines()->value('product_id'));
+        $store = User::factory()->staff('inventory')->create(['status' => 'active']);
+
+        foreach ([null, 'waiting_pickup', 'picked_up', 'in_transit', 'delivered'] as $courierStatus) {
+            DB::table('shipments')->where('id', $shipmentId)->update(['courier_status' => $courierStatus]);
+            $this->actingAs($store)->onPortal('manage')->post($this->receivedBackUrl($order, $shipmentId))->assertSessionHasErrors('shipment');
+        }
+
+        $this->assertSame(18, (int) $product->fresh()->stock);
+        $this->assertSame('dispatched', DB::table('shipments')->where('id', $shipmentId)->value('status'));
+        $this->assertSame('dispatched', $order->fresh()->status);
+    }
+
+    public function test_a_returned_order_leaves_the_overdue_list_once_received_back(): void
+    {
+        [$order, $shipmentId] = $this->returnedOrder();
+        $overdue = app(OverdueDeliveries::class);
+        $this->travel(OverdueDeliveries::Days + 2)->days();
+        $this->assertSame(1, $overdue->count());
+        $store = User::factory()->staff('inventory')->create(['status' => 'active']);
+
+        $this->actingAs($store)->onPortal('manage')->post($this->receivedBackUrl($order, $shipmentId))->assertSessionHasNoErrors();
+
+        $this->assertSame(0, $overdue->count());
+    }
+
+    public function test_a_part_delivered_order_restocks_the_returned_parcel_but_stays_open_without_commission(): void
+    {
+        $this->enableFinancialPosting();
+        [$order, $shipmentId] = $this->returnedOrder();
+        $product = Product::query()->findOrFail($order->lines()->value('product_id'));
+        $deliveredParcel = (array) DB::table('shipments')->where('id', $shipmentId)->first();
+        unset($deliveredParcel['id']);
+        DB::table('shipments')->insert([...$deliveredParcel, 'status' => 'delivered', 'courier_status' => 'delivered', 'idempotency_key' => (string) Str::uuid()]);
+        $this->travel(OverdueDeliveries::Days + 2)->days();
+        $store = User::factory()->staff('inventory')->create(['status' => 'active']);
+
+        $this->actingAs($store)->onPortal('manage')->post($this->receivedBackUrl($order, $shipmentId))->assertSessionHasNoErrors();
+
+        $this->assertSame(20, (int) $product->fresh()->stock);
+        $this->assertSame('dispatched', $order->fresh()->status);
+        $this->assertSame(0, app(OverdueDeliveries::class)->count());
+        $this->assertDatabaseCount('commission_batches', 0);
+    }
+
+    public function test_only_store_staff_can_receive_a_returned_parcel_back(): void
+    {
+        [$order, $shipmentId] = $this->returnedOrder();
+        $product = Product::query()->findOrFail($order->lines()->value('product_id'));
+        $otherDealer = User::factory()->dealer()->create(['status' => 'active']);
+        $finance = User::factory()->staff('finance')->create(['status' => 'active']);
+        $reviewer = User::factory()->staff('order_review')->create(['status' => 'active']);
+
+        foreach ([[$finance, 'manage'], [$reviewer, 'manage'], [$this->dealer, 'dealer'], [$otherDealer, 'dealer']] as [$user, $portal]) {
+            $this->actingAs($user)->onPortal($portal)->post($this->receivedBackUrl($order, $shipmentId))->assertForbidden();
+        }
+
+        $this->assertSame(18, (int) $product->fresh()->stock);
+        $this->assertSame('dispatched', DB::table('shipments')->where('id', $shipmentId)->value('status'));
+        $this->assertSame('dispatched', $order->fresh()->status);
+    }
+
+    /** A booked order the courier has reported as returned, with its shipment id. */
+    private function returnedOrder(): array
+    {
+        $order = $this->bookedOrder('SF-RET');
+        $shipmentId = (int) DB::table('shipments')->where('order_id', $order->id)->value('id');
+        app(ShipmentTracking::class)->apply($shipmentId, 'returned', 'Paid_Return', null);
+
+        return [$order, $shipmentId];
+    }
+
+    private function receivedBackUrl(Order $order, int $shipmentId): string
+    {
+        return '/commands/orders/'.$order->id.'/shipments/'.$shipmentId.'/received-back';
     }
 
     private function enableCourier(string $provider): void
