@@ -26,7 +26,7 @@ class PublicTrustAdminController extends Controller
         $allowedKeys = array_keys(PublicTrustContent::defaults());
         $rules = ['values' => 'required|array'];
         foreach ($allowedKeys as $key) {
-            $rules['values.'.$this->escapeRuleKey($key)] = 'nullable|string|max:'.(str_ends_with(preg_replace('/_bn$/', '', $key), '_body') ? 20000 : 2000);
+            $rules['values.'.$key] = 'nullable|string|max:'.(str_contains($key, '_body') ? 20000 : 2000);
         }
         $validated = $request->validate($rules);
 
@@ -165,11 +165,5 @@ class PublicTrustAdminController extends Controller
         $file->move($directory, $filename);
 
         return '/branding/site-photos/'.$filename;
-    }
-
-    /** Dots in a settings key would be read as nesting by the validator; hyphens and underscores are fine. */
-    private function escapeRuleKey(string $key): string
-    {
-        return str_replace('.', '\.', $key);
     }
 }

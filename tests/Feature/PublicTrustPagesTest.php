@@ -137,7 +137,7 @@ class PublicTrustPagesTest extends TestCase
 
     public function test_verify_page_carries_the_fake_dealer_warning_and_owner_can_change_it(): void
     {
-        $this->publicGet('/verify-dealer')->assertOk()->assertSee(__('public_trust.verify_warning'), false);
+        $this->publicGet('/verify-dealer')->assertOk()->assertSee(__('public_trust.verify_warning'));
 
         $this->saveTrustText(['trust_verify_warning' => 'Never pay in cash.'])->assertSessionHas('success');
 
@@ -511,7 +511,7 @@ class PublicTrustPagesTest extends TestCase
         $dealer = $this->dealerAt(null);
         $this->actingAs($dealer)->onPortal('dealer')
             ->post('/commands/public-trust/articles', ['title' => 'x', 'body' => 'y', 'published' => '1'])
-            ->assertStatus(404);
+            ->assertForbidden();
         $this->assertSame(0, HealthArticle::query()->count());
     }
 
