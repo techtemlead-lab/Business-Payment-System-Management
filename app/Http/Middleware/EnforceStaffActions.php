@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\Clinic\PrescriptionAccess;
 use App\Domain\Support\PartnerChat;
 use App\Models\User;
 use App\Support\PortalHost;
@@ -66,6 +67,10 @@ class EnforceStaffActions
         }
         if ($controller === 'PrescriberVerificationController' && $actor->owner()) {
             // Owners (Super Admin, MD, Chairman) switch prescribing on or off; the controller checks again.
+            return $next($request);
+        }
+        if ($controller === 'PrescriptionController' && in_array($method, ['storePatient', 'updatePatient', 'store', 'dispense'], true) && PrescriptionAccess::usesCompanyStock($actor)) {
+            // Office accounts switched on for company stock prescribe and dispense; the domain checks again.
             return $next($request);
         }
         if ($controller === 'DataCleanupController' && $actor->owner()) {

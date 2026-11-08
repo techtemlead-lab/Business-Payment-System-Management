@@ -18,8 +18,8 @@ use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 
 /**
- * Prescriber actions: patients, prescriptions, the printable page, and for the
- * owner-doctor the clinic dispense and the below-30% price setting.
+ * Prescriber actions: patients, prescriptions, the printable page, and for company-stock
+ * prescribers the clinic dispense.
  */
 class PrescriptionController extends Controller
 {
@@ -42,8 +42,9 @@ class PrescriptionController extends Controller
     public function store(Request $request): RedirectResponse
     {
         abort_unless(PrescriptionAccess::canPrescribe($request->user()), 403);
-        $clinic = PrescriptionAccess::isOwnerDoctor($request->user());
+        $clinic = PrescriptionAccess::usesCompanyStock($request->user());
         $data = $request->validate([
+            ClinicDispensing::ConfirmBelowFloorField => 'nullable|boolean',
             'patient_id' => 'required|integer',
             'prescribed_on' => 'required|date_format:Y-m-d',
             'complaints' => 'nullable|string|max:3000',
@@ -68,19 +69,32 @@ class PrescriptionController extends Controller
 
     public function dispense(Request $request, Prescription $prescription): RedirectResponse
     {
-        $data = $request->validate(['branch_id' => 'required|integer|exists:company_branches,id']);
+        $data = $request->validate([
+            'branch_id' => 'required|integer|exists:company_branches,id',
+            'payment_method' => ['nullable', Rule::in(Prescription::PaymentMethods)],
+            'payment_reference' => 'nullable|string|max:80',
+            ClinicDispensing::ConfirmBelowFloorField => 'nullable|boolean',
+        ]);
         $this->book->assertVisible($request->user(), $prescription);
-        $this->dispensing->dispense($request->user(), $prescription, (int) $data['branch_id']);
+        $this->dispensing->dispense(
+            $request->user(),
+            $prescription,
+            (int) $data['branch_id'],
+            $data['payment_method'] ?? Prescription::PaymentCash,
+            $data['payment_reference'] ?? null,
+            (bool) ($data[ClinicDispensing::ConfirmBelowFloorField] ?? false),
+        );
 
         return back()->with('success', __('prescription.flash_dispensed', ['number' => $prescription->number]));
     }
 
-    public function priceFloor(Request $request): RedirectResponse
+    /** The prescriber's own patients for the picker on the new-prescription form. */
+    public function patientOptions(Request $request): JsonResponse
     {
-        $data = $request->validate(['mode' => ['required', Rule::in(ClinicDispensing::PriceFloorModes)]]);
-        $this->dispensing->savePriceFloor($request->user(), $data['mode']);
+        abort_unless(PrescriptionAccess::canPrescribe($request->user()), 403);
+        $data = $request->validate(['q' => 'nullable|string|max:80']);
 
-        return back()->with('success', __('prescription.flash_setting_saved'));
+        return response()->json(['data' => $this->book->patientOptions($request->user(), (string) ($data['q'] ?? ''))]);
     }
 
     public function registration(Request $request, PrescriberVerification $verification): RedirectResponse
@@ -142,9 +156,7 @@ class PrescriptionController extends Controller
             'registration' => $registration,
             'lang' => $lang,
             'company' => (string) __('portal.brand_company_bar', [], $lang),
-            'phone' => $prescription->patient && (int) $prescription->patient->prescriber_id === (int) $request->user()->id
-                ? $prescription->patient->phone
-                : PhoneIdentity::masked($prescription->patient?->phone),
+            'phone' => PhoneIdentity::maskedForPrint($prescription->patient?->phone),
             'csp_nonce' => (string) $request->attributes->get('csp_nonce', ''),
         ]);
     }

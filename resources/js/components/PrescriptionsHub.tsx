@@ -1,11 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { router, useForm, usePage } from '@inertiajs/react';
 import { FileText, Pill, Plus, Printer, Search, Stethoscope, Trash2, UserPlus } from 'lucide-react';
-import { DateInput, Empty, FormErrors, money } from './UI';
+import { DateInput, Empty, FormErrors, money, Pagination, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
 import { businessTodayIso } from '../business-date';
 
 type Translate = ReturnType<typeof useT>;
+
+/** Request field and error key: the owner's answer to the "company loss" warning. */
+const CONFIRM_BELOW_FLOOR = 'confirm_below_floor';
+
+type PatientOption = { id: number; name: string; age: number | null };
 
 export type PatientRow = {
     id: number;
@@ -18,7 +23,6 @@ export type PatientRow = {
     place: string | null;
     notes: string | null;
     own: boolean;
-    prescriber: string | null;
 };
 
 type PrescriptionRow = {
@@ -26,7 +30,6 @@ type PrescriptionRow = {
     number: string;
     kind: 'partner' | 'clinic';
     own: boolean;
-    prescriber: string | null;
     patient: string | null;
     prescribed_on: string;
     follow_up_on: string | null;
@@ -37,6 +40,8 @@ type PrescriptionRow = {
     status: 'issued' | 'dispensed';
     manufacturer_share: string;
     clinic_fund: string;
+    payment_method: string;
+    payment_reference: string | null;
     lines: { medicine_name: string; dose: string | null; frequency: string | null; duration: string | null; quantity: number; line_total: string }[];
 };
 
@@ -48,19 +53,24 @@ type ReportData = {
     manufacturer_share: string;
     clinic_fund: string;
     days: { day: string; count: number; sales: string; manufacturer_share: string; clinic_fund: string }[];
+    by_method: { method: string; count: number; sales: string }[];
 };
 
 export type PrescriptionsData = {
     mode: 'partner' | 'clinic';
+    is_owner: boolean;
     patients: PatientRow[];
+    patients_page: Row;
+    own_patients: PatientOption[];
     prescriptions: PrescriptionRow[];
+    prescriptions_page: Row;
     sexes: string[];
     registration: { type: string; number: string } | null;
     registration_types: string[];
     max_lines: number;
     products?: { id: number; name: string; sku: string; mrp: string }[];
     branches?: { id: number; code: string; name: string }[];
-    price_floor?: 'block' | 'warn';
+    payment_methods?: string[];
     manufacturer_percent?: string;
     report?: ReportData;
 };
@@ -111,7 +121,7 @@ export default function PrescriptionsHub({ data }: { data: PrescriptionsData }) 
     const tabs = [
         { id: 'prescriptions', label: translate('prescription', 'tab_prescriptions') },
         { id: 'patients', label: translate('prescription', 'tab_patients') },
-        ...(clinic ? [{ id: 'report', label: translate('prescription', 'tab_report') }, { id: 'settings', label: translate('prescription', 'tab_settings') }] : []),
+        ...(data.is_owner ? [{ id: 'report', label: translate('prescription', 'tab_report') }, { id: 'settings', label: translate('prescription', 'tab_settings') }] : []),
     ];
 
     return (
@@ -132,15 +142,57 @@ export default function PrescriptionsHub({ data }: { data: PrescriptionsData }) 
             </section>
             {tab === 'prescriptions' && <PrescriptionsTab data={data} translate={translate} />}
             {tab === 'patients' && <PatientsTab data={data} translate={translate} />}
-            {tab === 'report' && clinic && data.report && <ReportTab report={data.report} translate={translate} />}
-            {tab === 'settings' && clinic && <SettingsTab data={data} translate={translate} />}
+            {tab === 'report' && data.is_owner && data.report && <ReportTab report={data.report} translate={translate} />}
+            {tab === 'settings' && data.is_owner && <SettingsTab data={data} translate={translate} />}
         </div>
+    );
+}
+
+/** The prescriber's own patients: the newest first, and a name search reaches older ones. */
+function PatientPicker({ initial, value, onChange, translate }: { initial: PatientOption[]; value: string; onChange: (id: string) => void; translate: Translate }) {
+    const [query, setQuery] = useState('');
+    const [found, setFound] = useState<PatientOption[] | null>(null);
+    const [chosen, setChosen] = useState<PatientOption | null>(null);
+
+    useEffect(() => {
+        const term = query.trim();
+        if (term === '') {
+            setFound(null);
+            return undefined;
+        }
+        let active = true;
+        const timer = window.setTimeout(() => {
+            fetch(`/commands/prescriptions/patients/options?${new URLSearchParams({ q: term })}`, { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+                .then((response) => (response.ok ? response.json() : { data: [] }))
+                .then((json: { data: PatientOption[] }) => { if (active) setFound(json.data); })
+                .catch(() => { if (active) setFound([]); });
+        }, 250);
+        return () => { active = false; window.clearTimeout(timer); };
+    }, [query]);
+
+    const listed = found ?? initial;
+    const options = chosen && !listed.some((patient) => patient.id === chosen.id) ? [chosen, ...listed] : listed;
+
+    return (
+        <>
+            <label>{translate('prescription', 'patient_search')}
+                <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} />
+            </label>
+            <label>{translate('prescription', 'rx_patient')}
+                <select required value={value} onChange={(e) => {
+                    setChosen(options.find((patient) => String(patient.id) === e.target.value) ?? null);
+                    onChange(e.target.value);
+                }}>
+                    <option value="">{translate('prescription', 'rx_choose_patient')}</option>
+                    {options.map((patient) => <option key={patient.id} value={patient.id}>{patient.name}{patient.age !== null ? ` (${patient.age})` : ''}</option>)}
+                </select>
+            </label>
+        </>
     );
 }
 
 function PrescriptionsTab({ data, translate }: { data: PrescriptionsData; translate: Translate }) {
     const clinic = data.mode === 'clinic';
-    const ownPatients = data.patients.filter((patient) => patient.own);
     const products = data.products ?? [];
     const percent = Number(data.manufacturer_percent ?? '30') / 100;
     const form = useForm({
@@ -166,38 +218,48 @@ function PrescriptionsTab({ data, translate }: { data: PrescriptionsData; transl
         && lineCents(line).total < Math.round(productMrp(line.product_id) * Math.max(1, Number(line.quantity) || 0) * percent);
     const error = (key: string) => (form.errors as Record<string, string>)[key];
 
-    const submit = (event: React.FormEvent) => {
-        event.preventDefault();
+    const send = (confirmBelowFloor: boolean) => {
         form.transform((values) => ({
             ...values,
+            [CONFIRM_BELOW_FLOOR]: confirmBelowFloor,
             follow_up_on: values.follow_up_on || null,
             lines: values.lines.map((line) => clinic
                 ? { product_id: Number(line.product_id), dose: line.dose, frequency: line.frequency, duration: line.duration, instructions: line.instructions, unit_price: line.unit_price || '0', quantity: line.quantity, discount: line.discount || '0' }
                 : { medicine_name: line.medicine_name, dose: line.dose, frequency: line.frequency, duration: line.duration, instructions: line.instructions, unit_price: line.unit_price || '0', quantity: line.quantity, discount: line.discount || '0' }),
         }));
-        form.post('/commands/prescriptions', { preserveScroll: true, onSuccess: () => form.reset() });
+        form.post('/commands/prescriptions', {
+            preserveScroll: true,
+            onSuccess: () => form.reset(),
+            onError: (errors) => {
+                // Only the owner gets this question; the server blocks everyone else outright.
+                const warning = (errors as Record<string, string>)[CONFIRM_BELOW_FLOOR];
+                if (warning && window.confirm(warning)) {
+                    window.setTimeout(() => send(true), 0);
+                }
+            },
+        });
+    };
+
+    const submit = (event: React.FormEvent) => {
+        event.preventDefault();
+        send(false);
     };
 
     return (
         <>
             <section className="panel">
                 <div className="panel-heading"><h2 className="ops-row is-inline"><Plus size={18} /> {translate('prescription', 'rx_new')}</h2></div>
-                {ownPatients.length === 0 ? (
+                {data.own_patients.length === 0 ? (
                     <Empty title={translate('prescription', 'patients_empty')} body={translate('prescription', 'patients_empty_body')} />
                 ) : (
                     <form className="action-form rx-form" onSubmit={submit}>
                         <div className="rx-grid">
-                            <label>{translate('prescription', 'rx_patient')}
-                                <select required value={form.data.patient_id} onChange={(e) => form.setData('patient_id', e.target.value)}>
-                                    <option value="">{translate('prescription', 'rx_choose_patient')}</option>
-                                    {ownPatients.map((patient) => <option key={patient.id} value={patient.id}>{patient.name}{patient.age !== null ? ` (${patient.age})` : ''}</option>)}
-                                </select>
-                                {error('patient_id') && <span className="field-error" role="alert">{error('patient_id')}</span>}
-                            </label>
+                            <PatientPicker initial={data.own_patients} value={form.data.patient_id} onChange={(id) => form.setData('patient_id', id)} translate={translate} />
                             <label>{translate('prescription', 'rx_date')}
                                 <DateInput required value={form.data.prescribed_on} onChange={(e) => form.setData('prescribed_on', e.target.value)} />
                             </label>
                         </div>
+                        {error('patient_id') && <span className="field-error" role="alert">{error('patient_id')}</span>}
                         <div className="rx-grid">
                             <label>{translate('prescription', 'rx_complaints')}
                                 <textarea rows={2} value={form.data.complaints} onChange={(e) => form.setData('complaints', e.target.value)} />
@@ -247,7 +309,7 @@ function PrescriptionsTab({ data, translate }: { data: PrescriptionsData; transl
                                             <div className="rx-line-total">
                                                 <small>{translate('prescription', 'rx_line_total')}</small>
                                                 <b className={cents.total < 0 ? 'is-bad' : undefined}>{money(taka(Math.max(0, cents.total)))}</b>
-                                                {belowFloor(line) && <span className={`rx-floor ${data.price_floor === 'block' ? 'is-bad' : ''}`}>{translate('prescription', 'rx_below_floor_warn')}</span>}
+                                                {belowFloor(line) && <span className="rx-floor is-bad">{translate('prescription', 'rx_below_floor_warn')}</span>}
                                             </div>
                                         </div>
                                         {Object.entries(form.errors).filter(([key]) => key.startsWith(`lines.${index}.`)).map(([key, message]) => <span key={key} className="field-error" role="alert">{String(message)}</span>)}
@@ -285,19 +347,31 @@ function PrescriptionList({ data, translate }: { data: PrescriptionsData; transl
     const { portalBase } = usePage<any>().props;
     const base = String(portalBase ?? '');
     const branches = data.branches ?? [];
+    const paymentMethods = data.payment_methods ?? [];
     const [branchFor, setBranchFor] = useState<Record<number, string>>({});
+    const [paymentFor, setPaymentFor] = useState<Record<number, { method: string; reference: string }>>({});
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [busy, setBusy] = useState<number | null>(null);
+    const paymentOf = (id: number) => paymentFor[id] ?? { method: 'cash', reference: '' };
+    const setPayment = (id: number, patch: Partial<{ method: string; reference: string }>) => setPaymentFor({ ...paymentFor, [id]: { ...paymentOf(id), ...patch } });
 
-    const dispense = (row: PrescriptionRow) => {
+    const dispense = (row: PrescriptionRow, confirmBelowFloor = false) => {
         const branchId = branchFor[row.id] ?? String(branches[0]?.id ?? '');
-        if (!branchId || !window.confirm(translate('prescription', 'dispense_confirm'))) {
+        if (!branchId || (!confirmBelowFloor && !window.confirm(translate('prescription', 'dispense_confirm')))) {
             return;
         }
+        const payment = paymentOf(row.id);
         setBusy(row.id);
-        router.post(`/commands/prescriptions/${row.id}/dispense`, { branch_id: Number(branchId) }, {
+        router.post(`/commands/prescriptions/${row.id}/dispense`, { branch_id: Number(branchId), payment_method: payment.method, payment_reference: payment.reference || null, [CONFIRM_BELOW_FLOOR]: confirmBelowFloor }, {
             preserveScroll: true,
-            onError: (errs) => setErrors(errs as Record<string, string>),
+            onError: (errs) => {
+                // Only the owner gets this question; the server blocks everyone else outright.
+                const { [CONFIRM_BELOW_FLOOR]: warning, ...others } = errs as Record<string, string>;
+                setErrors(others);
+                if (warning && window.confirm(warning)) {
+                    window.setTimeout(() => dispense(row, true), 0);
+                }
+            },
             onSuccess: () => setErrors({}),
             onFinish: () => setBusy(null),
         });
@@ -317,7 +391,7 @@ function PrescriptionList({ data, translate }: { data: PrescriptionsData; transl
                                 <div>
                                     <b>{row.number}</b> · {row.patient}
                                     <small className="cell-sub">
-                                        {row.prescribed_on}{row.prescriber ? ` · ${translate('prescription', 'rx_prescriber')}: ${row.prescriber}` : ''}
+                                        {row.prescribed_on}
                                         {row.diagnosis ? ` · ${row.diagnosis}` : ''}
                                     </small>
                                 </div>
@@ -331,7 +405,10 @@ function PrescriptionList({ data, translate }: { data: PrescriptionsData; transl
                             <div className="rx-card-foot">
                                 <span>{translate('prescription', 'rx_total')}: <b>{money(row.total)}</b>{Number(row.discount_total) > 0 ? ` (${translate('prescription', 'rx_discount_total')} ${money(row.discount_total)})` : ''}</span>
                                 {row.status === 'dispensed' && row.kind === 'clinic' && (
-                                    <small className="muted">{translate('prescription', 'report_manufacturer')}: {money(row.manufacturer_share)} · {translate('prescription', 'report_clinic')}: {money(row.clinic_fund)}</small>
+                                    <small className="muted">
+                                        {translate('prescription', 'report_manufacturer')}: {money(row.manufacturer_share)} · {translate('prescription', 'report_clinic')}: {money(row.clinic_fund)}
+                                        {' · '}{translate('prescription', 'payment_method')}: {translate('prescription', `payment_${row.payment_method}`)}{row.payment_reference ? ` (${translate('prescription', 'payment_ref_short')} ${row.payment_reference})` : ''}
+                                    </small>
                                 )}
                                 <span className="rx-actions">
                                     <a className="button small" href={`${base}/prescriptions/${row.id}/print?lang=bn`} target="_blank" rel="noopener"><Printer size={15} /> {translate('prescription', 'rx_print_bn')}</a>
@@ -345,14 +422,23 @@ function PrescriptionList({ data, translate }: { data: PrescriptionsData; transl
                                             {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.code} — {branch.name}</option>)}
                                         </select>
                                     </label>
+                                    <label>{translate('prescription', 'payment_method')}
+                                        <select value={paymentOf(row.id).method} onChange={(e) => setPayment(row.id, { method: e.target.value })}>
+                                            {paymentMethods.map((method) => <option key={method} value={method}>{translate('prescription', `payment_${method}`)}</option>)}
+                                        </select>
+                                    </label>
+                                    <label>{translate('prescription', 'payment_reference')}
+                                        <input maxLength={80} value={paymentOf(row.id).reference} onChange={(e) => setPayment(row.id, { reference: e.target.value })} />
+                                    </label>
                                     <button type="button" className="button dark" disabled={busy === row.id || branches.length === 0} onClick={() => dispense(row)}>{translate('prescription', 'dispense')}</button>
-                                    <small className="muted">{translate('prescription', 'dispense_help')}</small>
+                                    <small className="muted">{translate('prescription', branches.length === 0 ? 'dispense_no_branch' : 'dispense_help')}</small>
                                 </div>
                             )}
                         </li>
                     ))}
                 </ul>
             )}
+            <Pagination page={data.prescriptions_page} />
         </section>
     );
 }
@@ -490,14 +576,14 @@ function PatientsTab({ data, translate }: { data: PrescriptionsData; translate: 
                                     <small className="cell-sub">
                                         {[patient.age !== null ? translate('prescription', 'print_years', { age: patient.age }) : null, patient.sex ? translate('prescription', `sex_${patient.sex}`) : null, patient.phone, patient.place].filter(Boolean).join(' · ')}
                                     </small>
-                                    {patient.prescriber && <small className="cell-sub">{translate('prescription', 'patient_of', { name: patient.prescriber })}</small>}
                                     {patient.notes && <small className="cell-sub">{patient.notes}</small>}
                                 </div>
-                                {patient.own && <button type="button" className="button small" onClick={() => { setEditing(patient); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>{translate('prescription', 'patient_edit')}</button>}
+                                <button type="button" className="button small" onClick={() => { setEditing(patient); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>{translate('prescription', 'patient_edit')}</button>
                             </li>
                         ))}
                     </ul>
                 )}
+                <Pagination page={data.patients_page} />
             </section>
         </>
     );
@@ -522,6 +608,26 @@ function ReportTab({ report, translate }: { report: ReportData; translate: Trans
                 <div><small>{translate('prescription', 'report_manufacturer')}</small><b>{money(report.manufacturer_share)}</b></div>
                 <div><small>{translate('prescription', 'report_clinic')}</small><b className={Number(report.clinic_fund) < 0 ? 'is-bad' : undefined}>{money(report.clinic_fund)}</b></div>
             </div>
+            {report.by_method.length > 0 && (
+                <div className="table-wrap">
+                    <table className="rx-table">
+                        <thead><tr>
+                            <th>{translate('prescription', 'report_by_method')}</th>
+                            <th className="num">{translate('prescription', 'report_count')}</th>
+                            <th className="num">{translate('prescription', 'report_sales')}</th>
+                        </tr></thead>
+                        <tbody>
+                            {report.by_method.map((row) => (
+                                <tr key={row.method}>
+                                    <td>{translate('prescription', `payment_${row.method}`)}</td>
+                                    <td className="num">{row.count}</td>
+                                    <td className="num">{money(row.sales)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
             {report.days.length === 0 ? (
                 <Empty title={translate('prescription', 'report_empty')} />
             ) : (
@@ -553,7 +659,6 @@ function ReportTab({ report, translate }: { report: ReportData; translate: Trans
 }
 
 function SettingsTab({ data, translate }: { data: PrescriptionsData; translate: Translate }) {
-    const floor = useForm({ mode: data.price_floor ?? 'block' });
     const registration = useForm({
         registration_type: data.registration?.type ?? data.registration_types[0] ?? 'bmdc',
         registration_number: data.registration?.number ?? '',
@@ -562,19 +667,6 @@ function SettingsTab({ data, translate }: { data: PrescriptionsData; translate: 
 
     return (
         <>
-            <section className="panel">
-                <div className="panel-heading"><div><h2>{translate('prescription', 'setting_title')}</h2><p className="muted">{translate('prescription', 'setting_floor_hint')}</p></div></div>
-                <form className="action-form" onSubmit={(e) => { e.preventDefault(); floor.post('/commands/prescriptions/price-floor', { preserveScroll: true }); }}>
-                    {(['block', 'warn'] as const).map((mode) => (
-                        <label key={mode} className="registry-checkbox">
-                            <input type="radio" name="price_floor" value={mode} checked={floor.data.mode === mode} onChange={() => floor.setData('mode', mode)} />
-                            {translate('prescription', `floor_${mode}`)}
-                        </label>
-                    ))}
-                    <FormErrors errors={floor.errors} />
-                    <button className="button dark" disabled={floor.processing}>{translate('prescription', 'setting_save')}</button>
-                </form>
-            </section>
             <section className="panel">
                 <div className="panel-heading"><div><h2>{translate('prescription', 'registration_title')}</h2><p className="muted">{translate('prescription', data.registration ? 'registration_hint' : 'registration_missing')}</p></div></div>
                 <form className="action-form" onSubmit={(e) => { e.preventDefault(); registration.post('/commands/prescriptions/registration', { preserveScroll: true }); }}>

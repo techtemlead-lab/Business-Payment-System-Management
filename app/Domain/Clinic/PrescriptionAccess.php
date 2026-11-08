@@ -10,8 +10,9 @@ use App\Models\User;
  *
  * Owner decisions (2026-11-08): prescribing is OFF for every dealer and sub-dealer until the
  * owner, or someone the owner nominates, checks their registration offline and turns it on.
- * The owner-doctor (Super Admin) always has it. Patients are seen only by their own
- * prescriber, plus the owner-doctor.
+ * The owner-doctor (Super Admin) always has it. Office accounts (MD, Chairman, any staff) may
+ * prescribe and dispense from company stock only when switched on per account. A patient and
+ * their prescriptions are seen only by the prescriber who saved them, not even the owner.
  */
 final class PrescriptionAccess
 {
@@ -35,17 +36,33 @@ final class PrescriptionAccess
         return in_array($user->role, ['dealer', 'sub_dealer'], true);
     }
 
+    /** MD, Chairman or any staff: the accounts with a per-account company-stock switch. */
+    public static function isOfficeAccount(User $user): bool
+    {
+        return $user->role !== 'super_admin' && ! self::isPartner($user) && $user->staff();
+    }
+
     /** May open the prescriptions section and write prescriptions. */
     public static function canPrescribe(User $user): bool
     {
         if (! self::enabled() || $user->status !== 'active') {
             return false;
         }
-        if (self::isOwnerDoctor($user)) {
+        if (self::usesCompanyStock($user)) {
             return true;
         }
 
         return self::isPartner($user) && ! $user->usingStaffWorkspace() && (bool) $user->can_prescribe;
+    }
+
+    /** Prescribes from company products and dispenses them from company stock. */
+    public static function usesCompanyStock(User $user): bool
+    {
+        if (! self::enabled() || $user->status !== 'active') {
+            return false;
+        }
+
+        return self::isOwnerDoctor($user) || (self::isOfficeAccount($user) && (bool) $user->can_prescribe);
     }
 
     /**
@@ -59,11 +76,5 @@ final class PrescriptionAccess
         }
 
         return $user->owner() || ($user->staff() && $user->allows(self::VerifyPermission));
-    }
-
-    /** Sees every prescriber's patients and prescriptions. */
-    public static function seesAllPatients(User $user): bool
-    {
-        return self::isOwnerDoctor($user);
     }
 }

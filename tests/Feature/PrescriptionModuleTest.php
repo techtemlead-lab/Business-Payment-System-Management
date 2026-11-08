@@ -92,7 +92,7 @@ class PrescriptionModuleTest extends TestCase
         $this->assertFalse($subDealer->fresh()->can_prescribe);
     }
 
-    public function test_patients_are_private_to_their_prescriber_and_the_owner(): void
+    public function test_patients_are_private_to_their_own_prescriber(): void
     {
         $owner = User::factory()->staff('super_admin')->create();
         $first = User::factory()->dealer()->create(['status' => 'active', 'can_prescribe' => true]);
@@ -111,14 +111,12 @@ class PrescriptionModuleTest extends TestCase
         $this->assertSame('Karim Private', $patient->fresh()->name);
 
         $this->actingAs($first)->onPortal('dealer')->get('/prescriptions')->assertOk()->assertSee('Karim Private')->assertSee('01799887766');
-        // The owner sees the patient, with the phone masked.
+        // Not even the owner can read another prescriber's patient.
         $this->actingAs($owner)->onPortal('sadmin')->get('/prescriptions')->assertOk()
+            ->assertDontSee('Karim Private')
             ->assertDontSee('01799887766')
-            ->assertInertia(fn (Assert $page) => $page
-                ->where('data.prescriptions.patients.0.name', 'Karim Private')
-                ->where('data.prescriptions.patients.0.phone', '••••7766')
-                ->where('data.prescriptions.patients.0.notes', null));
-        $this->actingAs($owner)->onPortal('sadmin')->get('/prescriptions/'.$prescription->id.'/print')->assertOk();
+            ->assertInertia(fn (Assert $page) => $page->where('data.prescriptions.patients', []));
+        $this->actingAs($owner)->onPortal('sadmin')->get('/prescriptions/'.$prescription->id.'/print')->assertNotFound();
     }
 
     public function test_a_dealer_prescription_totals_discounts_and_never_touches_stock(): void
@@ -231,48 +229,6 @@ class PrescriptionModuleTest extends TestCase
         $this->assertSame('450.00', $report['sales']);
         $this->assertSame('180.00', $report['manufacturer_share']);
         $this->assertSame('270.00', $report['clinic_fund']);
-    }
-
-    public function test_an_owner_price_below_thirty_percent_of_mrp_is_blocked_by_default(): void
-    {
-        [$owner, $branch, $product, $patient] = $this->clinic();
-
-        // 50 each is below 30% of the 200 MRP (60).
-        $this->actingAs($owner)->onPortal('sadmin')->post('/commands/prescriptions', [
-            'patient_id' => $patient->id, 'prescribed_on' => '2026-11-08',
-            'lines' => [['product_id' => $product->id, 'unit_price' => '50', 'quantity' => 1]],
-        ])->assertSessionHasErrors('lines');
-        $this->assertSame(0, Prescription::query()->count());
-
-        // A prescription saved while "warn" was on is still blocked at dispense once "block" is back.
-        $this->actingAs($owner)->onPortal('sadmin')->post('/commands/prescriptions/price-floor', ['mode' => 'warn'])->assertRedirect();
-        $this->actingAs($owner)->onPortal('sadmin')->post('/commands/prescriptions', [
-            'patient_id' => $patient->id, 'prescribed_on' => '2026-11-08',
-            'lines' => [['product_id' => $product->id, 'unit_price' => '50', 'quantity' => 1]],
-        ])->assertSessionHasNoErrors();
-        $prescription = Prescription::query()->firstOrFail();
-        $this->actingAs($owner)->onPortal('sadmin')->post('/commands/prescriptions/price-floor', ['mode' => 'block'])->assertRedirect();
-
-        $this->actingAs($owner)->onPortal('sadmin')
-            ->post('/commands/prescriptions/'.$prescription->id.'/dispense', ['branch_id' => $branch->id])
-            ->assertSessionHasErrors('prices');
-        $this->assertSame(Prescription::StatusIssued, $prescription->fresh()->status);
-        $this->assertSame(10, $product->fresh()->stock);
-        $this->assertFalse(DB::table('journal_entries')->where('event_key', 'clinic.dispense.'.$prescription->id)->exists());
-
-        // In warn mode it goes through; the clinic fund moves below zero and the journal still balances.
-        $this->actingAs($owner)->onPortal('sadmin')->post('/commands/prescriptions/price-floor', ['mode' => 'warn'])->assertRedirect();
-        $this->actingAs($owner)->onPortal('sadmin')
-            ->post('/commands/prescriptions/'.$prescription->id.'/dispense', ['branch_id' => $branch->id])
-            ->assertSessionHasNoErrors();
-        $prescription->refresh();
-        $this->assertSame('60.00', $prescription->manufacturer_share);
-        $this->assertSame('-10.00', $prescription->clinic_fund);
-        $entry = DB::table('journal_entries')->where('event_key', 'clinic.dispense.'.$prescription->id)->value('id');
-        $this->assertSame(
-            (float) DB::table('journal_lines')->where('entry_id', $entry)->sum('debit'),
-            (float) DB::table('journal_lines')->where('entry_id', $entry)->sum('credit'),
-        );
     }
 
     public function test_the_print_page_renders_in_bangla_and_english_with_the_registration_number(): void

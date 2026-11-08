@@ -93,6 +93,9 @@
                 <tr><td>{{ $t('rx_subtotal') }}</td><td class="amt">৳ {{ $prescription->subtotal }}</td></tr>
                 @if ((float) $prescription->discount_total > 0)<tr><td>{{ $t('rx_discount_total') }}</td><td class="amt">− ৳ {{ $prescription->discount_total }}</td></tr>@endif
                 <tr><td><b>{{ $t('rx_total') }}</b></td><td class="amt">৳ {{ $prescription->total }}</td></tr>
+                @if ($prescription->status === \App\Models\Prescription::StatusDispensed)
+                    <tr><td>{{ $t('payment_method') }}</td><td class="amt">{{ $t('payment_'.$prescription->payment_method) }}@if ($prescription->payment_reference) · {{ $t('payment_ref_short') }} {{ $prescription->payment_reference }}@endif</td></tr>
+                @endif
             </table>
         </div>
     </section>

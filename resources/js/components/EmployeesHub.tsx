@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Table, Pagination, Badge, Empty, date, label, type Row, number } from './UI';
 import AccountPasswordManager from './AccountPasswordManager';
+import OfficePrescriberGrants from './OfficePrescriberGrants';
 import { useT } from '../shared/i18n/t';
 
 export interface PermissionDefinition {
@@ -336,6 +337,8 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
 
                 <Pagination page={employees} />
             </section>
+
+            {Boolean(auth?.prescriberVerifier) && <OfficePrescriberGrants />}
 
             {/* CREATE EMPLOYEE MODAL */}
             {createModalOpen && (

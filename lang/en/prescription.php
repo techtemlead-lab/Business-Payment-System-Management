@@ -12,7 +12,7 @@ return [
     'err_product_required' => 'Choose a company product for this line.',
     'err_medicine_required' => 'Write the medicine name.',
     'err_discount_too_big' => 'The discount can\'t be more than the line amount.',
-    'err_below_floor' => 'The price is below :percent% of MRP for: :items. Raise the price, or ask the owner to allow it in the clinic setting.',
+    'err_below_floor' => 'The price is below :percent% of MRP for: :items. Only the owner can sell below this. Please raise the price.',
     'err_not_clinic' => 'Only clinic prescriptions can be dispensed from company stock.',
     'err_already_dispensed' => 'This prescription was already dispensed.',
 
@@ -115,12 +115,6 @@ return [
     'report_day' => 'Day',
     'report_empty' => 'Nothing dispensed in these dates.',
 
-    'setting_title' => 'Price below 30% of MRP',
-    'setting_floor_hint' => 'What happens when your price is lower than the manufacturer\'s 30% share.',
-    'floor_block' => 'Stop it (recommended)',
-    'floor_warn' => 'Allow with a warning (the clinic fund goes below zero)',
-    'setting_save' => 'Save setting',
-
     'registration_title' => 'Your registration',
     'registration_hint' => 'Printed on your prescriptions.',
     'registration_type' => 'Registration type',
@@ -153,4 +147,29 @@ return [
     'print_signature' => 'Signature',
     'print_print' => 'Print',
     'print_years' => ':age yrs',
+
+    'confirm_below_floor' => 'This sale will cause the company a loss. The price of :items is below 30% of MRP. Do you still want to proceed?',
+    'err_self_grant' => 'You can\'t turn this on for your own account. Ask another authorised person.',
+    'err_owner_always_on' => 'The owner always has this. It can\'t be changed.',
+
+    'office_title' => 'Prescribing from company stock',
+    'office_body' => 'Turn on only after you have checked :name\'s registration papers. They can then write prescriptions and give medicine from company stock.',
+    'office_panel_title' => 'Who can prescribe from company stock',
+    'office_panel_hint' => 'Turn this on for each account after checking their registration. The owner always has it. Each person sees only their own patients.',
+    'office_search' => 'Search by name',
+    'office_manage' => 'Open',
+    'office_hide' => 'Hide',
+    'office_empty' => 'No office accounts found.',
+
+    'dispense_no_branch' => 'You are not assigned to a stock branch yet. Ask the office to assign you first.',
+
+    'payment_method' => 'Payment',
+    'payment_cash' => 'Cash',
+    'payment_bkash' => 'bKash',
+    'payment_nagad' => 'Nagad',
+    'payment_bank' => 'Bank',
+    'payment_other' => 'Other',
+    'payment_reference' => 'Reference (optional)',
+    'payment_ref_short' => 'Ref.',
+    'report_by_method' => 'By payment type',
 ];
