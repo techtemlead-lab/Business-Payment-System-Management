@@ -95,6 +95,15 @@ function defaultSpec(id: string): NavLinkSpec {
  */
 export const NAV_LINK_SPECS: Record<string, NavLinkSpec> = {
     overview: defaultSpec('overview'),
+    /** One row for the commission page; its tabs keep their own addresses. */
+    commissions: {
+        id: 'commissions',
+        section: 'commissions',
+        labelKey: 'nav_commission_hub',
+        hrefPath: 'commissions',
+        iconKey: 'commissions',
+        match: ({ section }) => ['commissions', 'policies', 'simulator', 'policy-schedules'].includes(section),
+    },
     'catalog-products': {
         id: 'catalog-products',
         section: 'catalog',
@@ -302,7 +311,7 @@ function staffMothers(available: Set<string>): NavMother[] {
         mother('stock', 'nav_module_stock', pick(available, ['catalog-products', 'stock', 'branches'])),
         mother('finance', 'nav_module_finance', pick(available, ['treasury', 'company-funds', 'reserve-payouts', 'benefits-fund', 'ledger', 'payment-accounts'])),
         mother('commissions', 'nav_module_commissions', pick(available, [
-            'commissions', 'policies', 'policy-schedules', 'commission-holds', 'rewards', 'simulator',
+            'commissions', 'commission-holds', 'rewards',
         ])),
         mother('people', 'nav_module_people', pick(available, ['employees', 'payroll', 'staff-operations', 'field-sales', 'access-management'])),
         mother('reports', 'nav_module_reports', pick(available, ['financial-reports', 'top-sellers', 'branch-performance'])),

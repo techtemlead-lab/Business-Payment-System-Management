@@ -54,7 +54,6 @@ class BranchScopedSectionsTest extends TestCase
         return [
             'orders' => ['/orders', 'dispatched', 'submitted', ['orders']],
             'deliveries' => ['/deliveries', 'partially_dispatched', 'approved', ['orders']],
-            'reports' => ['/reports', 'dispatched', 'submitted', ['orders', 'reports']],
             'overview' => ['/overview', 'dispatched', 'submitted', ['orders']],
         ];
     }

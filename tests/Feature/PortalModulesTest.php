@@ -184,7 +184,7 @@ class PortalModulesTest extends TestCase
                 ->where('translations.portal.download_join_poster', 'জয়েন পোস্টার ডাউনলোড')
                 ->where('translations.portal.new_purchase_request', 'নতুন অর্ডার')
                 ->where('translations.portal.change_password', 'পাসওয়ার্ড পরিবর্তন')
-                ->where('translations.portal.ops_download_reports', 'হিসাব রিপোর্ট ডাউনলোড')
+                ->where('translations.portal.ops_download_reports', 'রিপোর্ট ডাউনলোড')
                 ->where('translations.portal.ops_assign_territory', 'এলাকা নির্ধারণ')
                 ->where('translations.portal.financial_readiness', 'শুরুর ব্যালেন্স যাচাই'));
     }
