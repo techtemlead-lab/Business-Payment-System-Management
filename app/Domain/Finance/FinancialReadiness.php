@@ -58,7 +58,9 @@ final class FinancialReadiness
             foreach (DB::table('orders')->orderBy('id')->cursor(['id', 'total', 'paid', 'due_credit', 'status']) as $order) {
                 hash_update($digest, json_encode($order, JSON_THROW_ON_ERROR));
             }
-            $snapshot = ['checks' => $checks, 'totals' => $totals, 'counts' => $counts, 'balance_digest' => hash_final($digest), 'policy' => $policy['rules']];
+            // Rule names come back in the reader's language, so they stay out of the fingerprint.
+            $policyRules = array_map(fn ($rule) => is_array($rule) ? array_diff_key($rule, ['name' => true]) : $rule, $policy['rules']);
+            $snapshot = ['checks' => $checks, 'totals' => $totals, 'counts' => $counts, 'balance_digest' => hash_final($digest), 'policy' => $policyRules];
 
             return [...$snapshot, 'fingerprint' => hash('sha256', json_encode($snapshot, JSON_THROW_ON_ERROR)),
                 'internally_reconciled' => ! in_array(false, $checks, true), 'posting_enabled' => (bool) config('madina.financial_activation'),
