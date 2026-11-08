@@ -580,4 +580,7 @@ We humbly ask for everyone\'s prayers and support.',
     'prescribers_lead' => 'Find a registered practitioner in your area and send them a request.',
     'prescribers_emergency_note' => 'In an emergency, go to the nearest hospital now. Do not wait for a reply here.',
     'prescribers_consent_line' => 'I agree that my name, phone number and this problem will go only to this practitioner, so they can contact me.',
+    'women_special_title' => 'Women Special',
+    'women_special_body' => 'Products we have picked out for women, all in one place.',
+    'women_special_button' => 'See the products',
 ];

@@ -5,7 +5,7 @@ import { useT } from '../shared/i18n/t';
 import { notify } from '../shared/notify';
 import { buildCustomizationFormData } from './website/initialCustomization';
 import type { WebsitePage, WebsiteProduct, WebsiteSectionProps } from './website/WebsiteLayout';
-import type { CustomizationData, MdMessageBanglaCopy, Shortcut, Slide } from './website/types';
+import type { CustomizationData, MdMessageBanglaCopy, Slide } from './website/types';
 import WebsiteFieldSearch from './website/WebsiteFieldSearch';
 import HomePageSection from './website/sections/HomePageSection';
 import OtherPagesSection from './website/sections/OtherPagesSection';
@@ -88,11 +88,7 @@ export default function SiteCustomizationEditor({
         form.setData('customization', { ...form.data.customization, [fieldKey]: list });
     };
 
-    const updateShortcuts = (shortcuts: Shortcut[]) => {
-        form.setData('customization', { ...form.data.customization, shortcuts });
-    };
-
-    const sectionProps: WebsiteSectionProps = { form, defaults, products, websitePages, bnCopy, updateField, updateSlide, updateSideSlide, updateShortcuts };
+    const sectionProps: WebsiteSectionProps = { form, defaults, products, websitePages, bnCopy, updateField, updateSlide, updateSideSlide };
     const liveSiteHref = typeof window !== 'undefined'
         ? `${window.location.protocol}//${window.location.hostname.replace(/^(manage|sadmin|dealer|subdealer)\./, '')}${window.location.port ? ':' + window.location.port : ''}/`
         : '/';

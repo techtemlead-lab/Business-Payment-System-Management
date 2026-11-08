@@ -1,17 +1,16 @@
 /**
- * Public site motion layer: drifting leaves, scroll parallax, card tilt, a soft cursor ring,
- * header glass on scroll and number count-ups.
+ * Public site motion layer: drifting leaves, scroll parallax, header glass on scroll
+ * and number count-ups. Nothing here follows the mouse (the owner asked for that to go).
  *
  * Rules kept here on purpose:
  * - one requestAnimationFrame loop for everything; it stops when nothing needs drawing,
  *   and the leaves pause while the tab is hidden;
  * - transform and opacity only, and DOM reads happen before writes in each frame;
  * - visitors who ask for reduced motion get none of this (counters show their final value);
- * - leaves, tilt and the cursor ring only run on wide screens with a fine pointer.
+ * - leaves only run on wide screens.
  */
 
 const reducedMotionQuery = matchMedia('(prefers-reduced-motion: reduce)');
-const finePointerQuery = matchMedia('(hover: hover) and (pointer: fine)');
 const wideScreenQuery = matchMedia('(min-width: 768px)');
 
 const prefersReducedMotion = (): boolean => reducedMotionQuery.matches;
@@ -213,7 +212,7 @@ function initParallax(): void {
     scheduleTask(apply);
 }
 
-/** Header turns to frosted glass and the logo settles a little smaller once the page scrolls. */
+/** Header turns to frosted glass and the logo settles a little smaller once it sticks to the top. */
 function initHeaderGlass(): void {
     const chrome = document.querySelector<HTMLElement>('.ref-sticky-chrome');
     if (!chrome) {
@@ -222,139 +221,10 @@ function initHeaderGlass(): void {
     const sentinel = document.createElement('div');
     sentinel.className = 'ref-scroll-sentinel';
     sentinel.setAttribute('aria-hidden', 'true');
-    document.body.prepend(sentinel);
+    chrome.before(sentinel);
     new IntersectionObserver(([entry]) => {
         chrome.classList.toggle('is-scrolled', !entry.isIntersecting);
     }).observe(sentinel);
-}
-
-/** 3D tilt that follows the pointer on product and category cards (fine pointers only). */
-function initCardTilt(): void {
-    if (prefersReducedMotion() || !finePointerQuery.matches) {
-        return;
-    }
-    const selector = '.ref-product-card, .ref-category-grid > a, .ref-about-sections-grid > .ref-content-card, .ref-directory-grid > *, .ref-contact-grid > *, .ref-testimonial-card, .ref-video-card, .ref-trust-pillar-card, .ref-role-card';
-    const maxTilt = 6;
-    let activeCard: HTMLElement | null = null;
-    let pointerX = 0;
-    let pointerY = 0;
-    let queued = false;
-
-    const update: FrameTask = () => {
-        queued = false;
-        if (!activeCard) {
-            return false;
-        }
-        const rect = activeCard.getBoundingClientRect();
-        const relativeX = (pointerX - rect.left) / rect.width - 0.5;
-        const relativeY = (pointerY - rect.top) / rect.height - 0.5;
-        activeCard.style.setProperty('--ref-tilt-x', `${(-relativeY * maxTilt).toFixed(2)}deg`);
-        activeCard.style.setProperty('--ref-tilt-y', `${(relativeX * maxTilt).toFixed(2)}deg`);
-        activeCard.style.setProperty('--ref-glare-x', `${((relativeX + 0.5) * 100).toFixed(1)}%`);
-        activeCard.style.setProperty('--ref-glare-y', `${((relativeY + 0.5) * 100).toFixed(1)}%`);
-
-        return false;
-    };
-
-    const release = (card: HTMLElement): void => {
-        card.classList.remove('is-tilting');
-        card.style.setProperty('--ref-tilt-x', '0deg');
-        card.style.setProperty('--ref-tilt-y', '0deg');
-    };
-
-    document.addEventListener('pointerover', (event) => {
-        if (event.pointerType !== 'mouse') {
-            return;
-        }
-        const card = (event.target as Element | null)?.closest<HTMLElement>(selector) ?? null;
-        if (card === activeCard) {
-            return;
-        }
-        if (activeCard) {
-            release(activeCard);
-        }
-        activeCard = card;
-        card?.classList.add('ref-tilt', 'is-tilting');
-    });
-
-    document.addEventListener('pointermove', (event) => {
-        if (!activeCard || event.pointerType !== 'mouse') {
-            return;
-        }
-        pointerX = event.clientX;
-        pointerY = event.clientY;
-        if (!queued) {
-            queued = true;
-            scheduleTask(update);
-        }
-    }, { passive: true });
-
-    document.addEventListener('pointerout', (event) => {
-        if (!activeCard) {
-            return;
-        }
-        const next = (event.relatedTarget as Element | null)?.closest<HTMLElement>(selector) ?? null;
-        if (next !== activeCard) {
-            release(activeCard);
-            activeCard = null;
-        }
-    });
-}
-
-/** A small ring that softly follows the mouse and grows over things you can click. Decoration only. */
-function initCursorRing(): void {
-    if (prefersReducedMotion() || !finePointerQuery.matches) {
-        return;
-    }
-    const ring = document.createElement('div');
-    ring.className = 'ref-cursor-ring';
-    ring.setAttribute('aria-hidden', 'true');
-    document.body.appendChild(ring);
-
-    const interactive = 'a, button, [role="button"], summary, label, select, input[type="submit"], input[type="checkbox"], input[type="radio"]';
-    let targetX = -100;
-    let targetY = -100;
-    let ringX = -100;
-    let ringY = -100;
-    let running = false;
-
-    const follow: FrameTask = () => {
-        ringX += (targetX - ringX) * 0.2;
-        ringY += (targetY - ringY) * 0.2;
-        ring.style.transform = `translate3d(${ringX.toFixed(1)}px, ${ringY.toFixed(1)}px, 0)`;
-        const settled = Math.abs(targetX - ringX) < 0.3 && Math.abs(targetY - ringY) < 0.3;
-        running = !settled;
-
-        return running;
-    };
-
-    document.addEventListener('pointermove', (event) => {
-        if (event.pointerType !== 'mouse') {
-            ring.classList.remove('is-visible');
-
-            return;
-        }
-        targetX = event.clientX;
-        targetY = event.clientY;
-        if (!ring.classList.contains('is-visible')) {
-            ringX = targetX;
-            ringY = targetY;
-            ring.classList.add('is-visible');
-        }
-        if (!running) {
-            running = true;
-            scheduleTask(follow);
-        }
-    }, { passive: true });
-
-    document.addEventListener('pointerover', (event) => {
-        const overInteractive = Boolean((event.target as Element | null)?.closest(interactive));
-        ring.classList.toggle('is-active', overInteractive);
-    });
-
-    document.addEventListener('pointerdown', () => ring.classList.add('is-pressed'));
-    document.addEventListener('pointerup', () => ring.classList.remove('is-pressed'));
-    document.documentElement.addEventListener('pointerleave', () => ring.classList.remove('is-visible'));
 }
 
 /** Western and Bangla digits, so counters keep the digit style the page was written in. */
@@ -467,7 +337,5 @@ document.documentElement.classList.add('ref-motion-ready');
 initHeaderGlass();
 initLeafCanvas();
 initParallax();
-initCardTilt();
-initCursorRing();
 initButtonRipple();
 initCounters();

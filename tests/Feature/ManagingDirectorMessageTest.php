@@ -57,7 +57,7 @@ class ManagingDirectorMessageTest extends TestCase
         // An existing website whose saved settings have no MD message boxes yet.
         DB::table('content_pages')->updateOrInsert(
             ['slug' => 'frontend_customization'],
-            ['title' => 'Frontend Customization', 'body' => json_encode(['company_intro_eyebrow' => 'Since 2019']), 'published' => true, 'updated_at' => now()],
+            ['title' => 'Frontend Customization', 'body' => json_encode(['announcement_text' => 'Since 2019']), 'published' => true, 'updated_at' => now()],
         );
         SiteCustomization::forgetCache();
 

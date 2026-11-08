@@ -63,11 +63,7 @@ html[data-theme="dark"] body.am-auth.company-auth { --am-glass: rgba(14, 26, 22,
 .am-layer {
     position: absolute;
     inset: -40px;
-    transform: translate3d(calc(var(--am-px, 0) * var(--am-depth, 10px)), calc(var(--am-py, 0) * var(--am-depth, 10px)), 0);
-    will-change: transform;
 }
-.am-layer-mesh { --am-depth: 10px; }
-.am-layer-leaves { --am-depth: 26px; }
 
 .am-blob {
     position: absolute;

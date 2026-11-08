@@ -55,10 +55,7 @@ html[data-theme="dark"] .dealer-shell{--pm-ambient-a:rgba(120,130,255,.08)}
   :root .app-shell::before,:root .app-shell::after{display:none}
 }
 
-/* ---- 2. Cards: lift, 3D tilt and pointer glow ----------------------------
-   KPI cards tilt up to 4 degrees toward the pointer (the angle comes from
-   --pm-tx / --pm-ty, set by portalMotion.ts). Tiles and links only lift.
-   The glow is a soft circle moved with transform inside the card. */
+/* ---- 2. Cards: a small lift on hover (nothing follows the pointer) ------- */
 @media (hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference){
   :root .app-shell :is(.metric,.treasury-kpi-card,.admin-kpi,.ph-today-grid>div,.office-today-figures a,.office-today-lead,.office-tile){
     position:relative;overflow:hidden;
@@ -66,23 +63,10 @@ html[data-theme="dark"] .dealer-shell{--pm-ambient-a:rgba(120,130,255,.08)}
   }
   :root .app-shell :is(.office-today-figures a,.office-today-lead,.office-tile):hover{transform:translateY(-2px)}
   :root .app-shell :is(.metric,.treasury-kpi-card,.admin-kpi,.ph-today-grid>div):hover{
-    transform:perspective(900px) rotateX(var(--pm-ty,0deg)) rotateY(var(--pm-tx,0deg)) translateY(-2px);
+    transform:translateY(-2px);
     box-shadow:var(--ds-shadow-md);
   }
   :root .app-shell :is(.office-tile):hover{box-shadow:var(--ds-shadow-sm)}
-
-  /* the glow: a blurred-looking circle that follows the pointer inside the card */
-  :root .app-shell :is(.metric,.treasury-kpi-card,.admin-kpi,.ph-today-grid>div,.office-today-figures a,.office-today-lead,.office-tile)::after{
-    content:"";position:absolute;left:0;top:0;width:240px;height:240px;margin:-120px 0 0 -120px;
-    border-radius:50%;pointer-events:none;opacity:0;
-    background:radial-gradient(closest-side,var(--pm-glow,rgba(0,106,78,.10)),transparent);
-    transform:translate3d(var(--pm-x,50%),var(--pm-y,50%),0);
-    transition:opacity .3s ease;
-  }
-  :root .app-shell :is(.metric,.treasury-kpi-card,.admin-kpi,.ph-today-grid>div,.office-today-figures a,.office-today-lead,.office-tile):hover::after{opacity:1}
-  /* white glow on the green "today" card */
-  :root .app-shell :is(.office-today-figures a,.office-today-lead){--pm-glow:rgba(255,255,255,.16)}
-  html[data-theme="dark"] .app-shell :is(.metric,.treasury-kpi-card,.admin-kpi,.ph-today-grid>div,.office-tile){--pm-glow:rgba(95,211,168,.10)}
 
   /* panels: a calm shadow lift only, no movement */
   :root .app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .panel{transition:box-shadow .25s ease}

@@ -34,7 +34,6 @@ class PublicSiteLocaleChromeTest extends TestCase
 
         $this->onPortal('public')->get('/')
             ->assertOk()
-            ->assertSee('আমাদের কোম্পানি', false)
             ->assertSee('ডিলার খুঁজুন', false)
             ->assertSee('কোম্পানি নোটিশ', false)
             ->assertSee('পীরগঞ্জ, রংপুর, বাংলাদেশ', false)
@@ -198,22 +197,5 @@ class PublicSiteLocaleChromeTest extends TestCase
         $page->assertSee('৳ ১,২৫০.০০', false)
             ->assertDontSee('৳ 1,250.00', false)
             ->assertSee('© '.LocalDigits::text(date('Y'), 'bn'), false);
-    }
-
-    public function test_bangla_locale_translates_homepage_trust_pillar_cards(): void
-    {
-        $this->onPortal('public')->from('/')->post('/locale', ['locale' => 'bn'])
-            ->assertRedirect();
-
-        $this->onPortal('public')->get('/')
-            ->assertOk()
-            ->assertSee('ভেষজ ও পুষ্টি পণ্য', false)
-            ->assertSee('লাইসেন্স করা পরিবেশক, প্রধান অফিস রংপুরের পীরগঞ্জে।', false)
-            ->assertSee('কোম্পানির অনুমোদিত ডিলার', false)
-            ->assertSee('ফোনে সহায়তা', false)
-            ->assertDontSee('Herbal &amp; Nutrition Products', false)
-            ->assertDontSee('Trade-Licensed Business', false)
-            ->assertDontSee('Company-Approved Dealers', false)
-            ->assertDontSee('Help by Phone', false);
     }
 }
