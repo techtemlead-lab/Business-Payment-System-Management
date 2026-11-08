@@ -70,7 +70,7 @@ final class PortalCatalog
             // Owner-only pages on the owner panel: the owners' fund, the manual data clean-up, the login switches and data requests.
             abort_unless($portal === 'sadmin' && $user->owner(), 403);
         }
-        if ($portal === 'sadmin' && in_array($section, ['sales-kit', 'schemes'], true)) {
+        if ($portal === 'sadmin' && in_array($section, ['sales-kit', 'schemes', 'contests'], true)) {
             // Owner-managed partner tools: staff on the owner panel do not edit these.
             abort_unless($user->owner(), 403);
         }

@@ -7,6 +7,7 @@ use App\Domain\Accounts\PartnerAlerts;
 use App\Domain\Accounts\PartnerNextSteps;
 use App\Domain\Content\SalesKit;
 use App\Domain\Orders\DatedSchemes;
+use App\Domain\Orders\PartnerContests;
 use App\Domain\Orders\RepeatOrderOptions;
 
 /**
@@ -35,6 +36,9 @@ final class DealerToolsSection implements WorkspaceSection
         }
         if ($context->section === 'schemes') {
             $props['schemes_admin'] = app(DatedSchemes::class)->forOwner($context->user);
+        }
+        if ($context->section === 'contests') {
+            $props['contests'] = app(PartnerContests::class)->forViewer($context->user);
         }
         if ($context->section === 'sales-kit') {
             $props['sales_kit'] = app(SalesKit::class)->forViewer($context->user);

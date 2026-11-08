@@ -15,14 +15,14 @@
 return [
     'dealer' => [
         'page' => 'portals/dealer/Dashboard',
-        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'earnings', 'network', 'ranks', 'top-sellers', 'withdrawals', 'payment-receipts', 'full-report', 'share-feedback', 'help', 'messages', 'training', 'events', 'prescriptions', 'sales-kit', 'customers'],
+        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'earnings', 'network', 'ranks', 'top-sellers', 'withdrawals', 'payment-receipts', 'full-report', 'share-feedback', 'help', 'messages', 'training', 'events', 'prescriptions', 'sales-kit', 'customers', 'contests'],
         'partner_commands' => true,
         'staff_commands' => false,
         'owner_commands' => false,
     ],
     'subdealer' => [
         'page' => 'portals/subdealer/Dashboard',
-        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'earnings', 'salary', 'top-sellers', 'withdrawals', 'payment-receipts', 'full-report', 'share-feedback', 'help', 'messages', 'training', 'events', 'prescriptions', 'sales-kit', 'customers'],
+        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'earnings', 'salary', 'top-sellers', 'withdrawals', 'payment-receipts', 'full-report', 'share-feedback', 'help', 'messages', 'training', 'events', 'prescriptions', 'sales-kit', 'customers', 'contests'],
         'partner_commands' => true,
         'staff_commands' => false,
         'owner_commands' => false,
@@ -91,7 +91,7 @@ return [
             'dashboards', 'employees', 'accounts', 'sub-dealers', 'sub-dealer-applications', 'sub-dealer-orders', 'treasury', 'inventory', 'branches', 'branch-performance',
             'payments', 'policies', 'salary', 'withdrawals', 'ledger', 'reports', 'top-sellers', 'content', 'website', 'customization', 'public-trust',
             'enquiries', 'feedback', 'partnerships', 'audit', 'commissions', 'network-tree', 'area-dealers', 'place-codes', 'ranks', 'rewards',
-            'settlements', 'simulator', 'payouts-hub', 'benefits-fund', 'help', 'support-admin', 'agreement', 'partner-messages', 'training', 'events', 'data-cleanup', 'prescriptions', 'sales-kit', 'schemes', 'privacy-requests', 'stock-lots', 'purchasing', 'stock-counts', 'company-funds', 'login-rules',
+            'settlements', 'simulator', 'payouts-hub', 'benefits-fund', 'help', 'support-admin', 'agreement', 'partner-messages', 'training', 'events', 'data-cleanup', 'prescriptions', 'sales-kit', 'schemes', 'contests', 'privacy-requests', 'stock-lots', 'purchasing', 'stock-counts', 'company-funds', 'login-rules',
         ],
         'staff_capabilities' => [
             'dashboards' => 'accounts',
