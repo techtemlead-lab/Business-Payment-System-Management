@@ -38,6 +38,7 @@ use App\Http\Portals\Shared\Sections\NetworkSection;
 use App\Http\Portals\Shared\Sections\OrdersSection;
 use App\Http\Portals\Shared\Sections\OverviewSection;
 use App\Http\Portals\Shared\Sections\PrescriptionsSection;
+use App\Http\Portals\Shared\Sections\PrescriptionToolsSection;
 use App\Http\Portals\Shared\Sections\ProfileSection;
 use App\Http\Portals\Shared\Sections\SalarySection;
 use App\Http\Portals\Shared\Sections\SectionContext;
@@ -99,6 +100,7 @@ class WorkspaceController extends Controller
         EventsSection::class,
         DataCleanupSection::class,
         PrescriptionsSection::class,
+        PrescriptionToolsSection::class,
     ];
 
     public function index(Request $r, ProductPricing $pricing, string $section = 'overview'): Response|RedirectResponse
@@ -177,7 +179,7 @@ class WorkspaceController extends Controller
             $data['branch_scope'] = $branchScope->chip();
         }
 
-        return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role', 'channel', 'category', 'sub_category', 'unit', 'min_mrp', 'max_mrp', 'availability', 'sort', 'period', 'from', 'to', 'division', 'district', 'rank', 'no_order_days'])]);
+        return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role', 'channel', 'category', 'sub_category', 'unit', 'min_mrp', 'max_mrp', 'availability', 'sort', 'period', 'from', 'to', 'division', 'district', 'rank', 'no_order_days', 'branch_id', 'all_branches'])]);
     }
 
     public function createAccount(Request $r): Response
@@ -292,7 +294,8 @@ class WorkspaceController extends Controller
     public function show(Request $r, Order $order): Response
     {
         $u = $r->user();
-        abort_unless($order->user_id === $u->id || $u->allows('orders') || $u->allows('finance'), 404);
+        abort_unless($order->user_id === $u->id
+            || (($u->allows('orders') || $u->allows('finance')) && app(BranchOperations::class)->mayOpenOrder($u, $order)), 404);
 
         ['slots' => $replacementSlots, 'candidates' => $replacementCandidates] = app(UplineReplacementOptions::class)->for(
             $u,
@@ -304,13 +307,35 @@ class WorkspaceController extends Controller
             'outstanding' => $order->outstanding(),
             'fullPaymentRequired' => app(FinanceSettings::class)->fullPaymentWhenOrdering()['enabled'],
             'claims' => DB::table('payment_claims')->where('order_id', $order->id)->get(['id', 'channel', 'reference', 'amount', 'status', 'reason', 'created_at']),
-            'events' => DB::table('order_events')->where('order_id', $order->id)->orderBy('id')->get(['id', 'action', 'metadata', 'created_at']),
+            'events' => $this->orderHistory($order, showCourierDetails: (int) $order->user_id !== (int) $u->id),
             'shipments' => $this->shipmentsWithTracking($order, showBookingErrors: (int) $order->user_id !== (int) $u->id),
             'courierChoices' => $u->allows('inventory') || $u->allows('order_review') ? app(CourierOptions::class)->enabled() : [],
             'refund' => DB::table('order_refunds as f')->join('users as staff', 'staff.id', '=', 'f.refunded_by')->where('f.order_id', $order->id)
                 ->first(['f.amount', 'f.reason', 'f.created_at', 'staff.name as refunded_by']),
             'canRefund' => OrderRefund::canRefund($u) && (int) $u->id !== (int) $order->user_id
                 && in_array($order->status, OrderRefund::RefundableStatuses, true) && Money::cents($order->paid) > 0]);
+    }
+
+    /**
+     * The order's history. The courier's error text and consignment id stay with staff, the
+     * same as on the parcel itself.
+     *
+     * @return Collection<int, \stdClass>
+     */
+    private function orderHistory(Order $order, bool $showCourierDetails): Collection
+    {
+        $events = DB::table('order_events')->where('order_id', $order->id)->orderBy('id')->get(['id', 'action', 'metadata', 'created_at']);
+        if ($showCourierDetails) {
+            return $events;
+        }
+
+        return $events->each(function (\stdClass $event): void {
+            if (in_array($event->action, ['order.courier_booking_failed', 'order.courier_booked'], true)) {
+                $metadata = json_decode((string) $event->metadata, true) ?: [];
+                unset($metadata['message'], $metadata['consignment_id']);
+                $event->metadata = json_encode($metadata, JSON_THROW_ON_ERROR);
+            }
+        });
     }
 
     /**

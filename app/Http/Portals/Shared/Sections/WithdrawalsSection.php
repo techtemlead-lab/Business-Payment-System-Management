@@ -60,7 +60,7 @@ final class WithdrawalsSection implements WorkspaceSection
         $props['period_totals'] = [
             'commission' => Money::decimal(Money::cents((string) DB::table('commission_allocations')
                 ->where('user_id', $user->id)
-                ->where('status', '!=', 'reversed')
+                ->whereNotIn('status', ['reversed', 'forfeited'])
                 ->when($earningsFromUtc, fn ($query) => $query->where('created_at', '>=', $earningsFromUtc))
                 ->when($earningsToUtc, fn ($query) => $query->where('created_at', '<', $earningsToUtc))
                 ->sum('amount'))),

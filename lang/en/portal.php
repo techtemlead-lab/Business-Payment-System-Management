@@ -6273,4 +6273,7 @@ return [
     'cs_award_amount_hint' => 'Leave empty if not decided yet. This amount is only shown. It is never paid by itself; every award still needs approval.',
     'rw_award_not_set' => 'Not set yet',
     'rw_award_not_set_hint' => 'Set this amount in commission settings. Nothing is paid by itself; every award still needs approval.',
+    'event_prescription_template_saved' => 'Prescription template saved',
+    'event_prescription_template_deleted' => 'Prescription template deleted',
+    'event_prescription_follow_up_done' => 'Patient follow-up marked as seen',
 ];
