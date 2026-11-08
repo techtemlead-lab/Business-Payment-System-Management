@@ -4,9 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\HealthArticle;
 use App\Models\Product;
+use App\Models\User;
 use App\Support\SiteCustomization;
 use App\Support\StockImage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\TestWith;
 use Tests\TestCase;
 
@@ -46,6 +48,22 @@ class StockImageFallbackTest extends TestCase
                 ->assertDontSee('/branding/stock/', false)
                 ->assertDontSee(__('stock_images.caption'));
         }
+    }
+
+    public function test_portal_catalog_sends_the_default_only_for_products_without_a_photo(): void
+    {
+        $withoutPhoto = Product::factory()->create(['category' => 'Oil', 'image_path' => null, 'active' => true]);
+        $withPhoto = Product::factory()->create(['category' => 'Oil', 'image_path' => 'products/real.jpg', 'active' => true]);
+        $owner = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+
+        $this->actingAs($owner)->onPortal('sadmin')->get('/catalog')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('data.products', function ($products) use ($withoutPhoto, $withPhoto): bool {
+                $rows = collect($products)->keyBy('id');
+
+                return $rows[$withoutPhoto->id]['image_fallback']['url'] === '/branding/stock/black-seed.webp'
+                    && $rows[$withoutPhoto->id]['image_url'] === null
+                    && $rows[$withPhoto->id]['image_fallback'] === null;
+            }));
     }
 
     public function test_the_caption_follows_the_site_language(): void
