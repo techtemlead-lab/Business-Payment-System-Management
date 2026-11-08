@@ -6,10 +6,13 @@ use App\Domain\Inventory\BranchOperations;
 use App\Models\BranchStaffAssignment;
 use App\Models\CompanyBranch;
 use App\Models\Order;
+use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -27,60 +30,122 @@ class BranchScopedSectionsTest extends TestCase
 
     private User $partner;
 
+    private Product $product;
+
     protected function setUp(): void
     {
         parent::setUp();
         $this->dhaka = CompanyBranch::factory()->create(['code' => 'DHK-01', 'name' => 'Dhaka Hub']);
         $this->rajshahi = CompanyBranch::factory()->create(['code' => 'RAJ-01', 'name' => 'Rajshahi Hub']);
         $this->partner = User::factory()->dealer()->create();
+        $this->product = Product::factory()->create();
     }
 
-    public function test_owner_on_all_branches_sees_orders_of_every_branch_and_unassigned_ones(): void
+    /**
+     * Order-list pages: path, status of the orders that have a branch, status of the
+     * order with no branch yet, and the permissions a branch staff member needs.
+     *
+     * @return array<string, array{string, string, string, list<string>}>
+     */
+    public static function orderListPages(): array
     {
-        $orders = $this->ordersPerBranch();
+        return [
+            'orders' => ['/orders', 'dispatched', 'submitted', ['orders']],
+            'deliveries' => ['/deliveries', 'partially_dispatched', 'approved', ['orders']],
+        ];
+    }
 
-        $this->ownerOnAll()->get('/orders')->assertOk()->assertInertia(fn (Assert $page) => $page
+    /**
+     * @param  list<string>  $permissions
+     */
+    #[DataProvider('orderListPages')]
+    public function test_owner_on_all_branches_sees_every_branch_and_unassigned_orders(string $path, string $status, string $unassignedStatus, array $permissions): void
+    {
+        $orders = $this->ordersPerBranch($status, $unassignedStatus);
+
+        $this->ownerOnAll()->get($path)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('data.branch_scope.view', 'all')
-            ->where('data.orders.data', fn ($rows) => $this->numbers($rows) === $this->sorted([$orders['dhaka'], $orders['rajshahi'], $orders['none']]))
-            ->where('data.order_totals.orders', 3));
+            ->where('data.orders.data', fn ($rows) => $this->numbers($rows) === $this->sorted(array_values($orders))));
     }
 
-    public function test_owner_on_a_picked_branch_sees_only_that_branch(): void
+    /**
+     * @param  list<string>  $permissions
+     */
+    #[DataProvider('orderListPages')]
+    public function test_owner_on_a_picked_branch_sees_only_that_branch(string $path, string $status, string $unassignedStatus, array $permissions): void
     {
-        $orders = $this->ordersPerBranch();
+        $orders = $this->ordersPerBranch($status, $unassignedStatus);
         $owner = User::factory()->staff()->create(['active_branch_id' => $this->dhaka->id]);
 
-        $this->actingAs($owner)->onPortal('sadmin')->get('/orders')->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->actingAs($owner)->onPortal('sadmin')->get($path)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('data.branch_scope.view', 'branch')
             ->where('data.branch_scope.code', 'DHK-01')
-            ->where('data.orders.data', fn ($rows) => $this->numbers($rows) === [$orders['dhaka']])
-            ->where('data.order_status_counts', ['dispatched' => 1])
-            ->where('data.order_totals.orders', 1));
+            ->where('data.orders.data', fn ($rows) => $this->numbers($rows) === [$orders['dhaka']]));
 
-        $this->ownerOnAll()->get('/orders?branch_id='.$this->rajshahi->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->ownerOnAll()->get($path.'?branch_id='.$this->rajshahi->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('data.branch_scope.code', 'RAJ-01')
             ->where('data.orders.data', fn ($rows) => $this->numbers($rows) === [$orders['rajshahi']]));
     }
 
-    public function test_branch_staff_see_only_their_branch_even_when_they_ask_for_another(): void
+    /**
+     * @param  list<string>  $permissions
+     */
+    #[DataProvider('orderListPages')]
+    public function test_branch_staff_see_only_their_branch_even_when_they_ask_for_another(string $path, string $status, string $unassignedStatus, array $permissions): void
     {
-        $orders = $this->ordersPerBranch();
-        $staff = $this->branchStaff($this->dhaka);
+        $orders = $this->ordersPerBranch($status, $unassignedStatus);
+        $staff = $this->branchStaff($this->dhaka, $permissions);
 
         $this->actingAs($staff)->onPortal('manage')
             ->withSession([BranchOperations::SessionView => 'all'])
-            ->get('/orders')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->get($path)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('data.branch_scope.code', 'DHK-01')
             ->where('data.orders.data', fn ($rows) => $this->numbers($rows) === [$orders['dhaka']]));
 
-        $this->actingAs($staff)->onPortal('manage')->get('/orders?branch_id='.$this->rajshahi->id)->assertForbidden();
-        $this->actingAs($staff)->onPortal('manage')->get('/orders?all_branches=1')->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->actingAs($staff)->onPortal('manage')->get($path.'?branch_id='.$this->rajshahi->id)->assertForbidden();
+        $this->actingAs($staff)->onPortal('manage')->get($path.'?all_branches=1')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('data.orders.data', fn ($rows) => $this->numbers($rows) === [$orders['dhaka']]));
+    }
+
+    /**
+     * @param  list<string>  $permissions
+     */
+    #[DataProvider('orderListPages')]
+    public function test_finance_staff_see_every_branch(string $path, string $status, string $unassignedStatus, array $permissions): void
+    {
+        $orders = $this->ordersPerBranch($status, $unassignedStatus);
+        $finance = User::factory()->staff('finance')->create();
+
+        $this->actingAs($finance)->onPortal('manage')->get($path)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.branch_scope.view', 'all')
+            ->where('data.orders.data', fn ($rows) => $this->numbers($rows) === $this->sorted(array_values($orders))));
+    }
+
+    public function test_order_tabs_and_totals_follow_the_picked_branch(): void
+    {
+        $this->ordersPerBranch('dispatched', 'submitted');
+        $owner = User::factory()->staff()->create(['active_branch_id' => $this->dhaka->id]);
+
+        $this->actingAs($owner)->onPortal('sadmin')->get('/orders')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.order_status_counts', ['dispatched' => 1])
+            ->where('data.order_totals.orders', 1));
+        $this->ownerOnAll()->get('/orders')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.order_totals.orders', 3));
+    }
+
+    public function test_delivery_summary_follows_the_picked_branch(): void
+    {
+        $this->ordersPerBranch('partially_dispatched', 'approved');
+        $staff = $this->branchStaff($this->dhaka, ['orders']);
+
+        $this->actingAs($staff)->onPortal('manage')->get('/deliveries')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.delivery_summary.orders', 1)
+            ->where('data.delivery_summary.units', 1));
     }
 
     public function test_staff_with_no_branch_see_no_orders(): void
     {
-        $this->ordersPerBranch();
+        $this->ordersPerBranch('dispatched', 'submitted');
         $staff = User::factory()->staff('support')->create();
 
         $this->actingAs($staff)->onPortal('manage')->get('/orders')->assertOk()->assertInertia(fn (Assert $page) => $page
@@ -89,19 +154,9 @@ class BranchScopedSectionsTest extends TestCase
             ->where('data.orders.data', []));
     }
 
-    public function test_finance_staff_see_every_branch(): void
-    {
-        $orders = $this->ordersPerBranch();
-        $finance = User::factory()->staff('finance')->create();
-
-        $this->actingAs($finance)->onPortal('manage')->get('/orders')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('data.branch_scope.view', 'all')
-            ->where('data.orders.data', fn ($rows) => $this->numbers($rows) === $this->sorted([$orders['dhaka'], $orders['rajshahi'], $orders['none']])));
-    }
-
     public function test_partner_order_pages_have_no_branch_chip(): void
     {
-        $this->ordersPerBranch();
+        $this->ordersPerBranch('dispatched', 'submitted');
 
         $this->actingAs($this->partner)->onPortal('dealer')->get('/orders')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->missing('data.branch_scope')
@@ -115,25 +170,33 @@ class BranchScopedSectionsTest extends TestCase
             ->withSession([BranchOperations::SessionView => 'all']);
     }
 
-    private function branchStaff(CompanyBranch $branch, string $role = 'support'): User
+    /**
+     * A staff member who works at one branch and may not view every branch.
+     *
+     * @param  list<string>  $permissions
+     */
+    private function branchStaff(CompanyBranch $branch, array $permissions = ['orders']): User
     {
-        $staff = User::factory()->staff($role)->create(['active_branch_id' => $branch->id]);
+        $staff = User::factory()->staff('employee')->create([
+            'active_branch_id' => $branch->id,
+            'profile' => ['permissions' => $permissions],
+        ]);
         BranchStaffAssignment::query()->create(['branch_id' => $branch->id, 'user_id' => $staff->id, 'duty' => 'storekeeper', 'is_primary' => true]);
 
         return $staff;
     }
 
     /**
-     * One sent order at each branch and one not yet given a branch.
+     * One order at each branch and one not yet given a branch, each with one unit still to send.
      *
      * @return array{dhaka: string, rajshahi: string, none: string}
      */
-    private function ordersPerBranch(string $status = 'dispatched'): array
+    private function ordersPerBranch(string $status, string $unassignedStatus): array
     {
         return [
             'dhaka' => $this->order($this->dhaka->id, $status)->number,
             'rajshahi' => $this->order($this->rajshahi->id, $status)->number,
-            'none' => $this->order(null, 'submitted')->number,
+            'none' => $this->order(null, $unassignedStatus)->number,
         ];
     }
 
@@ -150,6 +213,19 @@ class BranchScopedSectionsTest extends TestCase
             'payload_hash' => hash('sha256', Str::random()),
         ]);
         $order->forceFill(['fulfillment_branch_id' => $branchId])->save();
+        DB::table('order_lines')->insert([
+            'order_id' => $order->id,
+            'product_id' => $this->product->id,
+            'name' => $this->product->name,
+            'sku' => $this->product->sku,
+            'quantity' => 2,
+            'dispatched' => 1,
+            'mrp' => '250.00',
+            'unit_price' => '250.00',
+            'total' => '500.00',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         return $order;
     }

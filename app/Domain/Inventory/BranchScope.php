@@ -19,7 +19,7 @@ final readonly class BranchScope
      *
      * @var list<string>
      */
-    public const Sections = ['orders'];
+    public const Sections = ['orders', 'deliveries'];
 
     /**
      * @param  list<int>  $branchIds  Branches the page shows; ignored when $allBranches is true.
