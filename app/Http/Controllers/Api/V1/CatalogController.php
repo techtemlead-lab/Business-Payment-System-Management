@@ -17,7 +17,7 @@ class CatalogController extends Controller
         $user = $request->user();
         abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true) || $user->staff(), 403);
         $data = $request->validate(['q' => 'nullable|string|max:100', 'per_page' => 'sometimes|integer|min:1|max:100', 'page' => 'sometimes|integer|min:1']);
-        $products = Product::query()->where('active', true)
+        $products = Product::query()->withSellableStock()->where('active', true)
             ->when(! empty($data['q']), fn ($q) => $q->where('name', 'like', '%'.$data['q'].'%'))
             ->orderBy('name')->orderBy('id')->paginate($data['per_page'] ?? 12)->withQueryString();
         $revealStock = ! $user->staff() || $user->allows('inventory');
@@ -36,7 +36,7 @@ class CatalogController extends Controller
                 ...($user->allows('cost_read') ? ['cost_price' => $product->cost_price] : []),
             ];
             if ($revealStock) {
-                $base['stock'] = $product->stock;
+                $base['stock'] = $product->sellableStock();
                 $base['low_stock_at'] = $product->low_stock_at;
             }
 

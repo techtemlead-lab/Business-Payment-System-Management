@@ -128,6 +128,7 @@ final class ContentSection implements WorkspaceSection
         $revealStock = $user->allows('inventory');
         $revealDealerPrice = $user->allows('pricing') || $user->allows('orders') || $user->allows('finance');
         $websiteProductQuery = Product::query()
+            ->withSellableStock()
             ->where('active', true)
             ->when($request->filled('q'), fn ($q) => $q->where(fn ($match) => $match
                 ->where('name', 'ilike', '%'.$request->string('q').'%')
@@ -147,7 +148,7 @@ final class ContentSection implements WorkspaceSection
                 ...($revealDealerPrice ? ['dealer_price' => $p->dealer_price] : []),
                 'category' => $p->category,
                 'featured' => (bool) $p->featured,
-                ...($revealStock ? ['stock' => (int) $p->stock] : []),
+                ...($revealStock ? ['stock' => $p->sellableStock()] : []),
                 'image' => $p->media()['image_url'] ?? '',
             ]);
 

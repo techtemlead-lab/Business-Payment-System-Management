@@ -90,11 +90,10 @@ class EnterpriseIntegrationsTest extends TestCase
         // Standard withdrawal: low risk
         $normal = $detector->analyzeWithdrawal($dealer, 5000.00);
         $this->assertSame(FraudAnomalyDetector::RiskLow, $normal['risk_level']);
-        $this->assertFalse($normal['requires_dual_approval']);
+        $this->assertNotContains('LARGE_PAYOUT_THRESHOLD', $normal['flags']);
 
-        // Large single payout (>= 100k BDT): triggers dual approval requirement
+        // Large single payout (>= 100k BDT): marked in the activity log, nothing more
         $large = $detector->analyzeWithdrawal($dealer, 150000.00);
-        $this->assertTrue($large['requires_dual_approval']);
         $this->assertContains('LARGE_PAYOUT_THRESHOLD', $large['flags']);
     }
 

@@ -269,7 +269,7 @@ Questions about these terms, partnership rules or the website:
     'quality_promise' => 'Quality Promise',
     'company_notice' => 'Company Notice',
     'apply_for_dealership' => 'Apply for Dealership',
-    'footer_about_desc' => 'Products, partners and communities across Bangladesh.',
+    'footer_about_desc' => 'Licensed distributor (Trade License 2026-00563, Pirganj Municipality). Natural herbal & Holistic Nutracare products across Bangladesh.',
     'copyright' => '© :year Madina Natural Health Care. All rights reserved.',
     'privacy_policy' => 'Privacy Policy',
     'terms_of_use' => 'Terms of Use',

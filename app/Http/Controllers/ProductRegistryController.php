@@ -53,7 +53,7 @@ class ProductRegistryController extends Controller
             $data['sub_dealer_price'] = $product->sub_dealer_price;
         }
         if ($data && $r->user()->allows('inventory')) {
-            $data['stock'] = $product->stock;
+            $data['stock'] = $product->sellableStock();
             $data['low_stock_at'] = $product->low_stock_at;
         }
         if ($data && $r->user()->allows('cost_read')) {
