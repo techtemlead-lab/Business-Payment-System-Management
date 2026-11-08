@@ -356,7 +356,7 @@ function PartnerHome({ home, orders, tools }: { home: Row; orders: React.ReactNo
                 <div className="ph-profile-links">
                     <Link href={`${base}/profile`} className="button small">{translate('portal', 'full_profile')}</Link>
                     <a href={`${base}/id-card/pdf`} className="button small">{translate('portal', 'download_id_card')}</a>
-                    <a href={`${base}/join-poster/pdf`} className="button small">{translate('portal', 'download_join_poster')}</a>
+                    {profile.refer_code && <a href={`${base}/join-poster/pdf`} className="button small">{translate('portal', 'download_join_poster')}</a>}
                 </div>
             </section>
         </div>

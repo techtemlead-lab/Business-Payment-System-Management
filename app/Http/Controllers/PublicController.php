@@ -421,24 +421,26 @@ class PublicController extends Controller
             'updated_at' => now(),
         ]);
 
+        $topicKey = match ($data['topic']) {
+            'dealer_enquiry' => 'portal.enquiry_topic_dealer',
+            'partnership_enquiry' => 'portal.enquiry_topic_partnership',
+            'product_enquiry' => 'portal.enquiry_topic_product',
+            'support' => 'portal.support_topic_support',
+            'complaint' => 'portal.support_topic_complaint',
+            default => null,
+        };
+
         Audit::notifyAdminsAndStaff(
             ['content', 'accounts'],
-            __('portal.notice_admin_enquiry_title'),
-            __('portal.notice_admin_enquiry_body', [
+            fn (string $reader): string => __('portal.notice_admin_enquiry_title', [], $reader),
+            fn (string $reader): string => __('portal.notice_admin_enquiry_body', [
                 'name' => (string) $data['name'],
                 'phone' => (string) $data['phone'],
-                'topic' => (string) $data['topic'],
-            ])
+                'topic' => $topicKey !== null ? __($topicKey, [], $reader) : (string) $data['topic'],
+            ], $reader)
         );
 
-        $topicLabel = match ($data['topic']) {
-            'dealer_enquiry' => SmsText::make('portal.enquiry_topic_dealer'),
-            'partnership_enquiry' => SmsText::make('portal.enquiry_topic_partnership'),
-            'product_enquiry' => SmsText::make('portal.enquiry_topic_product'),
-            'support' => SmsText::make('portal.support_topic_support'),
-            'complaint' => SmsText::make('portal.support_topic_complaint'),
-            default => $data['topic'],
-        };
+        $topicLabel = $topicKey !== null ? SmsText::make($topicKey) : $data['topic'];
         app(PartnerEventSms::class)->sendToPhone(
             (string) $data['phone'],
             'enquiry.public_received',
@@ -494,11 +496,11 @@ class PublicController extends Controller
 
         Audit::notifyAdminsAndStaff(
             ['content'],
-            __('portal.notice_admin_feedback_title'),
-            __('portal.notice_admin_feedback_body', [
+            fn (string $reader): string => __('portal.notice_admin_feedback_title', [], $reader),
+            fn (string $reader): string => __('portal.notice_admin_feedback_body', [
                 'name' => $feedback->name,
-                'source' => $feedback->source,
-            ])
+                'source' => __('portal.feedback_source_'.$feedback->source, [], $reader),
+            ], $reader)
         );
 
         return back()->with('success', __('site.feedback_received'));

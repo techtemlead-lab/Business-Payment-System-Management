@@ -136,7 +136,7 @@ final class PurchasingService
      * @param  array{
      *   reference:string,
      *   notes?:?string,
-     *   lines:list<array{purchase_order_line_id:int,quantity:int,batch_number:string,expires_on:string,unit_cost:numeric-string|int|float}>
+     *   lines:list<array{purchase_order_line_id:int,quantity:int,batch_number?:?string,expires_on:string,unit_cost:numeric-string|int|float}>
      * }  $data
      */
     public function receive(User $actor, PurchaseOrder $order, array $data): GoodsReceipt
@@ -183,7 +183,7 @@ final class PurchasingService
                 /** @var PurchaseOrderLine $line */
                 $line = $lines->get((int) $row['purchase_order_line_id']);
                 $stockReference = (string) Str::uuid();
-                $batchNumber = trim($row['batch_number']);
+                $batchNumber = trim((string) ($row['batch_number'] ?? ''));
                 $this->stock->stockIn($actor, [
                     'product_id' => $line->product_id,
                     'branch_id' => (int) $locked->branch_id,
@@ -199,7 +199,7 @@ final class PurchasingService
                     'purchase_order_line_id' => $line->id,
                     'product_id' => $line->product_id,
                     'quantity' => (int) $row['quantity'],
-                    'batch_number' => $batchNumber,
+                    'batch_number' => $batchNumber !== '' ? $batchNumber : null,
                     'expires_on' => $row['expires_on'],
                     'unit_cost' => $row['unit_cost'],
                     'stock_reference' => $stockReference,
@@ -218,7 +218,7 @@ final class PurchasingService
                 'lines' => array_map(fn (array $row): array => [
                     'purchase_order_line_id' => (int) $row['purchase_order_line_id'],
                     'quantity' => (int) $row['quantity'],
-                    'batch_number' => trim($row['batch_number']),
+                    'batch_number' => trim((string) ($row['batch_number'] ?? '')),
                     'expires_on' => $row['expires_on'],
                 ], $data['lines']),
             ]);

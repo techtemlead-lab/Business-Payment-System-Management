@@ -223,6 +223,7 @@ class HandleInertiaRequests extends Middleware
                 'stock_lots' => Lang::get('stock_lots'),
                 'courier_areas' => Lang::get('courier_areas'),
                 'wave3_ops' => Lang::get('wave3_ops'),
+                'order_payment' => Lang::get('order_payment'),
                 'shipping_label' => Lang::get('shipping_label'),
             ])->as('i18n:'.$locale),
             'portalCatalog' => Inertia::once(fn () => $portalShell

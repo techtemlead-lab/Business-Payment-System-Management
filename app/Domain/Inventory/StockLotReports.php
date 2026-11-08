@@ -314,7 +314,9 @@ final class StockLotReports
         $query = StockLot::query()
             ->where('quantity', '>', 0)
             ->where(fn (Builder $lots) => $lots->whereNull('batch_number')->orWhereNull('expires_on'))
-            ->whereIn('reference', DB::table('stock_count_lines')->whereNotNull('stock_reference')->select('stock_reference'));
+            ->where(fn (Builder $lots) => $lots
+                ->whereIn('reference', DB::table('stock_count_lines')->whereNotNull('stock_reference')->select('stock_reference'))
+                ->orWhereIn('reference', DB::table('goods_receipt_lines')->select('stock_reference')));
         $scope->restrict($query, 'branch_id');
 
         return $query;

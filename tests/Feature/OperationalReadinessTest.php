@@ -620,7 +620,7 @@ class OperationalReadinessTest extends TestCase
         $this->withoutVite();
         $this->get('/up')->assertOk();
         $csp = (string) $this->get('/')->assertHeader('X-Content-Type-Options', 'nosniff')
-            ->assertHeader('Referrer-Policy', 'no-referrer')
+            ->assertHeader('Referrer-Policy', 'same-origin')
             ->headers->get('Content-Security-Policy');
         $this->assertStringContainsString("default-src 'self'", $csp);
         $this->assertStringContainsString("script-src 'self'", $csp);

@@ -38,6 +38,10 @@ final class StockLotDetails
             }
 
             $locked->forceFill($filled)->save();
+            if (isset($filled['batch_number']) && $locked->reference !== null) {
+                DB::table('goods_receipt_lines')->where('stock_reference', $locked->reference)->whereNull('batch_number')
+                    ->update(['batch_number' => $filled['batch_number'], 'updated_at' => now()]);
+            }
             $product->forceFill($this->lots->nextBatchSummary($product))->save();
             Audit::record($actor->id, 'stock.lot_details_filled', (string) $locked->id, [...$filled, 'product_id' => (int) $locked->product_id, 'branch_code' => (string) $branch->code]);
         });

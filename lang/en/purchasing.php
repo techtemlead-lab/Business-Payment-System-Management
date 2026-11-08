@@ -105,4 +105,6 @@ return [
 
     'notice_count_overdue_title' => 'Stock count overdue',
     'notice_count_overdue_body' => 'These branches have not had an approved stock count in :days days: :branches',
+    'batch_optional' => 'Batch no. (optional)',
+    'batch_blank_hint' => 'If you do not have the batch number now, leave it blank. It will then wait under Missing details on the Batches and expiry page, where you can add it later.',
 ];

@@ -15,6 +15,7 @@ use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\BranchScope;
 use App\Domain\Orders\CourierOptions;
 use App\Domain\Orders\OrderInvoice;
+use App\Domain\Orders\OrderPaymentPrompt;
 use App\Domain\Orders\OrderRefund;
 use App\Domain\Orders\ShipmentTracking;
 use App\Domain\Orders\UplineReplacementOptions;
@@ -334,10 +335,13 @@ class WorkspaceController extends Controller
             $r->filled('replacement_q') ? $r->string('replacement_q')->toString() : null,
         );
 
+        $claims = DB::table('payment_claims')->where('order_id', $order->id)->get(['id', 'channel', 'reference', 'amount', 'status', 'reason', 'created_at']);
+
         return Inertia::render('OrderDetail', ['replacementSlots' => $replacementSlots, 'replacementCandidates' => $replacementCandidates, 'order' => $order->load(['lines', 'user:id,name,dealer_code']),
             'outstanding' => $order->outstanding(),
+            'paymentPrompt' => app(OrderPaymentPrompt::class)->for($order, $claims),
             'fullPaymentRequired' => app(FinanceSettings::class)->fullPaymentWhenOrdering()['enabled'],
-            'claims' => DB::table('payment_claims')->where('order_id', $order->id)->get(['id', 'channel', 'reference', 'amount', 'status', 'reason', 'created_at']),
+            'claims' => $claims,
             'events' => $this->orderHistory($order, showCourierDetails: (int) $order->user_id !== (int) $u->id),
             'shipments' => $this->shipmentsWithTracking($order, showBookingErrors: (int) $order->user_id !== (int) $u->id),
             'courierChoices' => $u->allows('inventory') || $u->allows('order_review') ? app(CourierOptions::class)->enabled() : [],

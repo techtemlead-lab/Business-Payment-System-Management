@@ -52,15 +52,16 @@ final class PublicPartnerApplication
                 'division' => $data['division'],
                 'district' => $data['district'],
             ]);
+            $roleKey = $data['role'] === 'sub_dealer' ? 'portal.acct_role_sub_dealer' : 'portal.acct_role_dealer';
             Audit::notifyAdminsAndStaff(
                 ['accounts'],
-                __('portal.notice_admin_partner_apply_title'),
-                __('portal.notice_admin_partner_apply_body', [
+                fn (string $locale): string => __('portal.notice_admin_partner_apply_title', [], $locale),
+                fn (string $locale): string => __('portal.notice_admin_partner_apply_body', [
                     'name' => (string) $data['name'],
-                    'role' => $data['role'] === 'sub_dealer' ? 'সাব-ডিলার' : 'ডিলার',
+                    'role' => __($roleKey, [], $locale),
                     'phone' => (string) $data['phone'],
                     'district' => (string) $data['district'],
-                ])
+                ], $locale)
             );
 
             return $id;

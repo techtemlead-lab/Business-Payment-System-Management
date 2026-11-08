@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Accounts\PartnerAge;
+use App\Domain\Orders\OrderPaymentPrompt;
 use App\Domain\Orders\OrderService;
 use App\Domain\Staff\StaffOperations;
 use App\Domain\Staff\TerritoryAccess;
@@ -76,9 +77,11 @@ class FieldSalesController extends Controller
         $territories->assertPartner($request->user(), $order->user_id, 'sr_orders');
         $order->load(['lines', 'user:id,name,dealer_code']);
         $safeOrder = [...(new OrderResource($order))->resolve($request), 'user' => $order->user->only(['id', 'name', 'dealer_code'])];
+        $claims = DB::table('payment_claims')->where('order_id', $order->id)->get(['id', 'channel', 'reference', 'amount', 'status', 'reason', 'created_at']);
         $data = ['order' => $safeOrder, 'backUrl' => '/operations/field-sales',
             'outstanding' => $order->outstanding(),
-            'claims' => DB::table('payment_claims')->where('order_id', $order->id)->get(['id', 'channel', 'reference', 'amount', 'status', 'reason', 'created_at']),
+            'paymentPrompt' => app(OrderPaymentPrompt::class)->for($order, $claims),
+            'claims' => $claims,
             'events' => DB::table('order_events')->where('order_id', $order->id)->orderBy('id')->get(['id', 'action', 'metadata', 'created_at']),
             'shipments' => DB::table('shipments')->where('order_id', $order->id)->orderBy('id')->get(['id', 'courier', 'tracking', 'courier_contact', 'eta', 'status', 'courier_status', 'lines', 'delivered_at', 'created_at'])];
 

@@ -6,6 +6,7 @@ import { useT } from '../shared/i18n/t';
 import { randomUuid } from '../shared/randomUuid';
 import TransactionProgressStepper from '../components/TransactionProgressStepper';
 import CourierTrackingPanel from '../components/CourierTrackingPanel';
+import { shipmentArrivalText } from '../components/orderShipmentArrival';
 
 function DispatchForm({ order, courierChoices }: { order: Row; courierChoices: { key: string; label: string; manual?: boolean }[] }) {
     const translate = useT();
@@ -61,7 +62,7 @@ function SupplyDateForm({ order }: { order: Row }) {
     </form></div>;
 }
 
-export default function OrderDetail({ order, claims, shipments, events = [], outstanding, backUrl, replacementSlots=[], replacementCandidates=[], refund=null, canRefund=false, fullPaymentRequired=false, courierChoices=[] }: { order: Row; claims: Row[]; shipments: Row[]; events: Row[]; outstanding: string; backUrl?:string; replacementSlots?:Row[]; replacementCandidates?:Row[]; refund?:Row|null; canRefund?:boolean; fullPaymentRequired?:boolean; courierChoices?:{ key: string; label: string }[] }) {
+export default function OrderDetail({ order, claims, shipments, events = [], outstanding, paymentPrompt, backUrl, replacementSlots=[], replacementCandidates=[], refund=null, canRefund=false, fullPaymentRequired=false, courierChoices=[] }: { order: Row; claims: Row[]; shipments: Row[]; events: Row[]; outstanding: string; paymentPrompt: { ask_for_payment: boolean; waiting_for_check: boolean; waiting_amount: string }; backUrl?:string; replacementSlots?:Row[]; replacementCandidates?:Row[]; refund?:Row|null; canRefund?:boolean; fullPaymentRequired?:boolean; courierChoices?:{ key: string; label: string }[] }) {
     const translate = useT();
     const { auth,staffActions,portalBase:base,collectionAccounts=[] } = usePage<any>().props;
     const capabilities: string[] = auth.capabilities;
@@ -97,7 +98,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
         await copyLink();
     };
     const inFlight = ['submitted', 'held', 'approved', 'partially_dispatched', 'dispatched'].includes(order.status);
-    const { stop } = usePoll(5000, { only: ['order', 'claims', 'shipments'] }, { autoStart: inFlight });
+    const { stop } = usePoll(5000, { only: ['order', 'claims', 'shipments', 'outstanding', 'paymentPrompt'] }, { autoStart: inFlight });
     useEffect(() => {
         if (!inFlight) {
             stop();
@@ -135,8 +136,11 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
         <div className="metric-grid three">
             <div className="metric"><span>{translate('portal', 'order_total')}</span><strong>{money(order.total)}</strong></div>
             <div className="metric"><span>{translate('portal', 'verified_payment')}</span><strong>{money(order.paid)}</strong></div>
-            <div className="metric"><span>{translate('portal', 'remaining_payment')}</span><strong>{money(outstanding)}</strong><small>{translate('portal', 'remaining_payment_hint')}</small></div>
+            {paymentPrompt.waiting_for_check
+                ? <div className="metric"><span>{translate('order_payment', 'waiting_metric')}</span><strong>{money(paymentPrompt.waiting_amount)}</strong>{owner && <small>{translate('order_payment', 'waiting_metric_hint')}</small>}</div>
+                : <div className="metric"><span>{translate('portal', 'remaining_payment')}</span><strong>{money(outstanding)}</strong>{paymentPrompt.ask_for_payment && <small>{translate('portal', 'remaining_payment_hint')}</small>}</div>}
         </div>
+        {owner && paymentPrompt.waiting_for_check && <div className="notice" role="status"><b>{translate('order_payment', 'waiting_title')}</b><p>{translate('order_payment', 'waiting_body', { amount: money(paymentPrompt.waiting_amount) })}</p></div>}
         <section className="panel"><div className="panel-heading"><h2>{translate('portal', 'products_fulfilment')}</h2><span>{translate('portal', 'prices_saved_at_submission')}</span></div>
             <Table rows={order.lines} columns={[
                 { key: 'name', title: translate('portal', 'col_product'), render: line => line.is_free ? <>{line.name}<small className="cell-sub">{translate('schemes_commission', 'free_line_scheme', { scheme: line.scheme_title ?? translate('schemes_commission', 'free_line_label') })}</small></> : line.name }, { key: 'quantity', title: translate('portal', 'col_ordered_quantity'), align: 'right', render: line => number(line.quantity) }, { key: 'dispatched', title: translate('portal', 'col_dispatched'), align: 'right', render: line => number(line.dispatched) },
@@ -172,7 +176,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                         {shipment.courier_contact && <p>{translate('portal', 'courier_contact_shown')}: {shipment.courier_contact}</p>}
                         {['pending', 'booking'].includes(shipment.courier_booking_status) && <p className="muted">{translate('portal', 'shipment_courier_booking_pending')}</p>}
                         {shipment.courier_booking_status === 'failed' && <p className="muted">{translate('portal', 'shipment_courier_booking_failed')}</p>}
-                        <p>{date(shipment.created_at)} · {shipment.eta ? `${translate('portal', 'expected')} ${date(shipment.eta)}` : translate('portal', 'eta_to_be_confirmed')}</p>
+                        <p>{[date(shipment.created_at), shipmentArrivalText(shipment, translate, date)].filter(Boolean).join(' · ')}</p>
                         <p>{lines.map((line: Row) => `${line.name} × ${line.quantity}`).join(', ')}</p>
                         {lines.flatMap((line: Row) => (line.lots ?? []) as Row[]).filter((lot: Row) => lot.batch_number || lot.expires_on).map((lot: Row) => <p className="muted" key={lot.lot_id}>{lot.batch_number ? translate('portal', 'inv_batch', { batch: String(lot.batch_number) }) : ''}{lot.expires_on ? ` · ${translate('portal', 'inv_expiry', { date: date(String(lot.expires_on)) })}` : ''} × {lot.quantity}</p>)}
                         <Badge status={shipment.status} />
@@ -198,7 +202,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                 { name: 'reason', label: translate('portal', 'order_refund_reason'), type: 'textarea', required: true },
             ]} submit={translate('portal', 'order_refund_submit')} />
         </section>}
-        {owner && open && outstanding !== '0.00' && <section className="panel narrow-panel">
+        {owner && paymentPrompt.ask_for_payment && <section className="panel narrow-panel">
             <h2>{translate('portal', 'submit_payment_reference')}</h2><p className="muted">{fullPaymentRequired ? translate('portal', 'submit_full_payment_hint', { amount: money(outstanding) }) : translate('portal', 'submit_payment_reference_hint')}</p>
             <ActionForm action={`/commands/orders/${order.id}/payments`} fields={[
                 { name: 'channel', label: translate('portal', 'payment_method'), required: true, options: [
