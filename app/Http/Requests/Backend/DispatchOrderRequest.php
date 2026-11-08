@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Backend;
 
+use App\Domain\Orders\CourierOptions;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class DispatchOrderRequest extends FormRequest
 {
@@ -17,7 +19,7 @@ class DispatchOrderRequest extends FormRequest
             'courier' => 'required|string|max:100',
             'tracking' => 'nullable|string|max:100',
             'courier_contact' => 'nullable|string|max:120',
-            'courier_provider' => 'nullable|string|in:pathao,steadfast,redx,paperfly,ecourier',
+            'courier_provider' => ['nullable', 'string', Rule::in(CourierOptions::knownProviders())],
             'eta' => 'nullable|date', 'idempotency_key' => 'required|uuid',
             'items' => 'required|array|min:1|max:100', 'items.*' => 'array:line_id,quantity',
             'items.*.line_id' => 'required|integer|distinct',
@@ -30,7 +32,7 @@ class DispatchOrderRequest extends FormRequest
         $validator->after(function ($validator): void {
             $provider = $this->input('courier_provider');
             $tracking = trim((string) $this->input('tracking', ''));
-            if ($provider === null && $tracking === '') {
+            if (($provider === null || CourierOptions::isManual($provider)) && $tracking === '') {
                 $validator->errors()->add('tracking', __('portal.err_dispatch_tracking'));
             }
         });

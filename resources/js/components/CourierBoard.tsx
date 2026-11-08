@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import { Row, Table, Pagination, dateTime, number } from './UI';
 import { useT } from '../shared/i18n/t';
+import MixedOutcomeDecisionList from './MixedOutcomeDecisionList';
 
 const STEPS = ['waiting_pickup', 'picked_up', 'in_transit', 'delivered', 'returned'];
 
@@ -31,6 +32,7 @@ export default function CourierBoard({ board }: { board: Row }) {
     const orderLink = (row: Row) => <Link className="text-link" href={`${base}/orders/${row.order_id}`}>{row.number}</Link>;
 
     return <>
+        <MixedOutcomeDecisionList rows={board.needs_decision ?? []} canDecide={Boolean(board.can_decide)} orderLink={orderLink} />
         <section className="panel table-panel" data-testid="courier-failed">
             <div className="panel-heading"><h2>{translate('courier', 'failed_title')}</h2><span>{translate('courier', 'failed_hint')}</span></div>
             <Table rows={failed} searchable={false} tools={false} emptyMessage={translate('courier', 'failed_empty')} columns={[

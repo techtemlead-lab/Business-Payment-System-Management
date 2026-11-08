@@ -6356,4 +6356,12 @@ return [
     'event_statement_import_mapped' => 'স্টেটমেন্টের কলাম ঠিক করে মিল খোঁজা হয়েছে',
     'event_statement_import_match_confirmed' => 'স্টেটমেন্টের লাইন পেমেন্টের দাবির সাথে মিলিয়ে নিশ্চিত করা হয়েছে',
     'event_statement_import_match_dismissed' => 'স্টেটমেন্টের প্রস্তাবিত মিল বাতিল করা হয়েছে',
+    'si_field_tracking_url' => 'ট্র্যাকিংয়ের পাবলিক পেজ (ইচ্ছা হলে)',
+    'si_field_package_code' => 'প্যাকেজ কোড',
+    'si_field_pathao_api_key' => 'ক্লায়েন্ট আইডি',
+    'si_field_pathao_api_secret' => 'ক্লায়েন্ট সিক্রেট',
+    'si_field_pathao_username' => 'মার্চেন্ট লগইন ইমেইল',
+    'si_field_pathao_password' => 'মার্চেন্ট লগইন পাসওয়ার্ড',
+    'event_shipment_consignment_updated' => 'কনসাইনমেন্ট নম্বর আপডেট হয়েছে',
+    'event_order_mixed_outcome_decided' => 'মিশ্র ডেলিভারির কমিশনের সিদ্ধান্ত লেখা হয়েছে',
 ];

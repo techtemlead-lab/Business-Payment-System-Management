@@ -6356,4 +6356,12 @@ return [
     'event_statement_import_mapped' => 'Statement columns set and matches suggested',
     'event_statement_import_match_confirmed' => 'Statement line confirmed against a payment claim',
     'event_statement_import_match_dismissed' => 'Suggested statement match turned down',
+    'si_field_tracking_url' => 'Public tracking page (optional)',
+    'si_field_package_code' => 'Package code',
+    'si_field_pathao_api_key' => 'Client ID',
+    'si_field_pathao_api_secret' => 'Client secret',
+    'si_field_pathao_username' => 'Merchant login email',
+    'si_field_pathao_password' => 'Merchant login password',
+    'event_shipment_consignment_updated' => 'Consignment number updated',
+    'event_order_mixed_outcome_decided' => 'Commission decision recorded for a mixed delivery',
 ];

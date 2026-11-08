@@ -3,8 +3,10 @@
 namespace App\Domain\Integrations;
 
 use App\Support\RedactedError;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 final class CourierGatewayClient
 {
@@ -47,7 +49,7 @@ final class CourierGatewayClient
             return ['success' => false, 'status' => null, 'message' => __('portal.si_courier_disabled'), 'raw' => null];
         }
         $config = $this->settings->provider('couriers', $provider);
-        $base = rtrim((string) $config['base_url'], '/');
+        $base = rtrim((string) ($config['base_url'] ?? ''), '/');
 
         try {
             $response = match ($provider) {
@@ -55,9 +57,12 @@ final class CourierGatewayClient
                     'Api-Key' => (string) $config['api_key'],
                     'Secret-Key' => (string) $config['api_secret'],
                 ])->get($base.'/status_by_trackingcode/'.$tracking),
-                'pathao' => Http::timeout(15)->withToken((string) $config['api_key'])->get($base.'/aladdin/api/v1/orders/'.$tracking.'/info'),
-                'redx' => Http::timeout(15)->withToken((string) $config['api_key'])->get($base.'/v1.0.0-beta/parcel/track/'.$tracking),
-                default => Http::timeout(15)->withToken((string) $config['api_key'])->get($base.'/track/'.$tracking),
+                'pathao' => Http::timeout(15)->withToken($this->pathaoToken($config))->get($base.'/aladdin/api/v1/orders/'.$tracking.'/info'),
+                'redx' => Http::timeout(15)->withHeaders($this->redxAuth($config))->get($base.'/v1.0.0-beta/parcel/track/'.$tracking),
+                'ecourier' => Http::timeout(15)->acceptJson()->withHeaders($this->ecourierAuth($config))->post($base.'/track', ['ecr' => $tracking]),
+                'paperfly' => Http::timeout(15)->acceptJson()->withBasicAuth((string) $config['username'], (string) $config['password'])
+                    ->withHeaders(['paperflykey' => (string) $config['api_key']])->post($base.'/API-Order-Tracking', ['ReferenceNumber' => $tracking]),
+                default => throw new \InvalidArgumentException('This courier has no tracking connection.'),
             };
             $payload = $response->json();
 
@@ -84,6 +89,8 @@ final class CourierGatewayClient
         $tracking = $payload['tracking'] ?? null;
         $latest = is_array($tracking) && array_is_list($tracking) && $tracking !== [] ? end($tracking) : null;
         $candidates = [
+            // eCourier lists its steps newest first, each as [status, comment, time].
+            $payload['query_data'][0]['status'][0][0] ?? null,
             $payload['delivery_status'] ?? null,
             $payload['data']['order_status'] ?? null,
             $payload['data']['order_status_slug'] ?? null,
@@ -104,7 +111,7 @@ final class CourierGatewayClient
     /** @param  array<string, mixed>  $config @param  array<string, mixed>  $shipment */
     private function pathaoCreate(array $config, array $shipment): array
     {
-        $response = Http::timeout(20)->acceptJson()->withToken((string) $config['api_key'])->post(rtrim((string) $config['base_url'], '/').'/aladdin/api/v1/orders', [
+        $response = Http::timeout(20)->acceptJson()->withToken($this->pathaoToken($config))->post(rtrim((string) $config['base_url'], '/').'/aladdin/api/v1/orders', [
             'store_id' => $config['store_id'] ?: null,
             'merchant_order_id' => $shipment['invoice'] ?? null,
             'recipient_name' => $shipment['recipient_name'] ?? __('portal.si_courier_default_recipient'),
@@ -150,7 +157,7 @@ final class CourierGatewayClient
     /** @param  array<string, mixed>  $config @param  array<string, mixed>  $shipment */
     private function redxCreate(array $config, array $shipment): array
     {
-        $response = Http::timeout(20)->acceptJson()->withToken((string) $config['api_key'])->post(rtrim((string) $config['base_url'], '/').'/v1.0.0-beta/parcel', [
+        $response = Http::timeout(20)->acceptJson()->withHeaders($this->redxAuth($config))->post(rtrim((string) $config['base_url'], '/').'/v1.0.0-beta/parcel', [
             'customer_name' => $shipment['recipient_name'] ?? __('portal.si_courier_default_recipient'),
             'customer_phone' => $shipment['recipient_phone'] ?? '',
             'delivery_area' => $shipment['recipient_address'] ?? '',
@@ -171,16 +178,15 @@ final class CourierGatewayClient
     {
         $response = Http::timeout(20)->acceptJson()->withBasicAuth((string) $config['username'], (string) $config['password'])
             ->withHeaders(['paperflykey' => (string) $config['api_key']])
-            ->post(rtrim((string) $config['base_url'], '/').'/OrderPlacement', [
-                'merOrderRef' => $shipment['invoice'] ?? uniqid('ORD-', true),
-                'pickMerchantName' => 'Madina Natural Health Care',
-                'pickMerchantAddress' => filled($shipment['pickup_address'] ?? null) ? $shipment['pickup_address'] : __('portal.si_courier_pick_address'),
-                'productSizeWeight' => 'standard',
+            ->post(rtrim((string) $config['base_url'], '/').'/merchant/api/service/new_order_v2.php', [
+                'merchantOrderReference' => $shipment['invoice'] ?? uniqid('ORD-', true),
+                'storeName' => 'Madina Natural Health Care',
                 'productBrief' => $shipment['note'] ?? __('portal.si_courier_default_item'),
                 'packagePrice' => (float) ($shipment['amount'] ?? 0),
-                'custname' => $shipment['recipient_name'] ?? __('portal.si_courier_default_recipient'),
-                'custAddress' => $shipment['recipient_address'] ?? '',
-                'custPhone' => $shipment['recipient_phone'] ?? '',
+                'max_weight' => '1',
+                'customerName' => $shipment['recipient_name'] ?? __('portal.si_courier_default_recipient'),
+                'customerAddress' => $shipment['recipient_address'] ?? '',
+                'customerPhone' => $shipment['recipient_phone'] ?? '',
             ]);
         $payload = $response->json();
 
@@ -192,27 +198,80 @@ final class CourierGatewayClient
     /** @param  array<string, mixed>  $config @param  array<string, mixed>  $shipment */
     private function ecourierCreate(array $config, array $shipment): array
     {
-        $response = Http::timeout(20)->acceptJson()->withHeaders([
-            'API-KEY' => (string) $config['api_key'],
-            'API-SECRET' => (string) $config['api_secret'],
-            'USER-ID' => (string) ($config['user_id'] ?? ''),
-        ])->post(rtrim((string) $config['base_url'], '/').'/order-place', [
+        $response = Http::timeout(20)->acceptJson()->withHeaders($this->ecourierAuth($config))->post(rtrim((string) $config['base_url'], '/').'/order-place', [
             'recipient_name' => $shipment['recipient_name'] ?? __('portal.si_courier_default_recipient'),
             'recipient_mobile' => $shipment['recipient_phone'] ?? '',
-            'recipient_city' => 'Dhaka',
-            'recipient_area' => $shipment['recipient_address'] ?? '',
+            'recipient_city' => Str::limit((string) ($shipment['recipient_city'] ?? ''), 40, ''),
+            'recipient_thana' => Str::limit((string) ($shipment['recipient_thana'] ?? ''), 40, ''),
+            'recipient_area' => Str::limit((string) ($shipment['recipient_area'] ?? ''), 40, ''),
             'recipient_address' => $shipment['recipient_address'] ?? '',
-            'package_code' => '#2101',
-            'product_price' => (float) ($shipment['amount'] ?? 0),
+            'package_code' => (string) ($config['package_code'] ?? ''),
+            'product_price' => (int) round((float) ($shipment['amount'] ?? 0)),
             'payment_method' => 'COD',
-            'ep_id' => $shipment['invoice'] ?? null,
-            'product_id' => $shipment['note'] ?? __('portal.si_courier_default_item'),
+            'recipient_zip' => '',
+            // eCourier allows 20 characters here; the end of the invoice is the part unique to this parcel.
+            'product_id' => substr((string) ($shipment['invoice'] ?? ''), -20),
+            'comments' => $shipment['note'] ?? null,
         ]);
         $payload = $response->json();
 
         return $this->result('ecourier', $response->successful(), $payload,
             $payload['ID'] ?? $payload['id'] ?? null,
             $payload['ID'] ?? $payload['tracking'] ?? null);
+    }
+
+    /**
+     * RedX takes its token in its own header, not the usual Authorization one.
+     *
+     * @param  array<string, mixed>  $config
+     * @return array<string, string>
+     */
+    private function redxAuth(array $config): array
+    {
+        return ['API-ACCESS-TOKEN' => 'Bearer '.(string) preg_replace('/^Bearer\s+/i', '', trim((string) $config['api_key']))];
+    }
+
+    /**
+     * @param  array<string, mixed>  $config
+     * @return array<string, string>
+     */
+    private function ecourierAuth(array $config): array
+    {
+        return ['API-KEY' => (string) $config['api_key'], 'API-SECRET' => (string) $config['api_secret'], 'USER-ID' => (string) ($config['user_id'] ?? '')];
+    }
+
+    /**
+     * Pathao signs in with a client id, client secret, username and password and hands back a
+     * token that lasts for days, which is kept until shortly before it expires. Without a
+     * username and password, the API key is used as a token the owner pasted in.
+     *
+     * @param  array<string, mixed>  $config
+     */
+    private function pathaoToken(array $config): string
+    {
+        if (blank($config['username'] ?? null) || blank($config['password'] ?? null)) {
+            return (string) $config['api_key'];
+        }
+        $base = rtrim((string) $config['base_url'], '/');
+        $cacheKey = 'courier:pathao-token:'.hash('sha256', implode('|', [$base, $config['api_key'], $config['username'], $config['password']]));
+        $cached = Cache::get($cacheKey);
+        if (is_string($cached)) {
+            return decrypt($cached);
+        }
+        $response = Http::timeout(15)->acceptJson()->post($base.'/aladdin/api/v1/issue-token', [
+            'client_id' => (string) $config['api_key'],
+            'client_secret' => (string) $config['api_secret'],
+            'username' => (string) $config['username'],
+            'password' => (string) $config['password'],
+            'grant_type' => 'password',
+        ]);
+        $token = $response->json('access_token');
+        if (! $response->successful() || ! is_string($token) || $token === '') {
+            throw new \RuntimeException('Pathao sign-in failed with status '.$response->status());
+        }
+        Cache::put($cacheKey, encrypt($token), now()->addSeconds(max(60, (int) $response->json('expires_in', 3600) - 300)));
+
+        return $token;
     }
 
     /** @param  array<string, mixed>|null  $payload */

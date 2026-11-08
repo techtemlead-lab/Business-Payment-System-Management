@@ -12,8 +12,24 @@ final class IntegrationCatalog
         'api_key', 'api_secret', 'app_key', 'app_secret', 'password', 'username', 'client_secret', 'store_password',
     ];
 
+    /** Couriers with no public booking system: on or off, plus an optional public tracking page. */
+    public const ManualCouriers = ['sundarban', 'sa_paribahan', 'karatoa', 'janani', 'continental'];
+
     /**
-     * @return array<string, array{label: string, description: string, providers: array<string, array{label: string, fields: list<string>, defaults: array<string, mixed>}>}>
+     * @return array{label: string, manual: true, fields: list<string>, defaults: array<string, mixed>}
+     */
+    private static function manualCourier(string $key, string $trackingPage = ''): array
+    {
+        return [
+            'label' => __('courier_more.provider_'.$key),
+            'manual' => true,
+            'fields' => ['enabled', 'tracking_url'],
+            'defaults' => ['enabled' => false, 'tracking_url' => $trackingPage],
+        ];
+    }
+
+    /**
+     * @return array<string, array{label: string, description: string, providers: array<string, array{label: string, manual?: true, fields: list<string>, defaults: array<string, mixed>}>}>
      */
     public static function groups(): array
     {
@@ -92,8 +108,8 @@ final class IntegrationCatalog
                 'providers' => [
                     'pathao' => [
                         'label' => __('portal.si_provider_pathao'),
-                        'fields' => ['enabled', 'base_url', 'api_key', 'api_secret', 'store_id'],
-                        'defaults' => ['enabled' => false, 'base_url' => 'https://api-hermes.pathao.com', 'api_key' => '', 'api_secret' => '', 'store_id' => ''],
+                        'fields' => ['enabled', 'base_url', 'api_key', 'api_secret', 'username', 'password', 'store_id'],
+                        'defaults' => ['enabled' => false, 'base_url' => 'https://api-hermes.pathao.com', 'api_key' => '', 'api_secret' => '', 'username' => '', 'password' => '', 'store_id' => ''],
                     ],
                     'steadfast' => [
                         'label' => __('portal.si_provider_steadfast'),
@@ -112,9 +128,15 @@ final class IntegrationCatalog
                     ],
                     'ecourier' => [
                         'label' => __('portal.si_provider_ecourier'),
-                        'fields' => ['enabled', 'base_url', 'api_key', 'api_secret', 'user_id'],
-                        'defaults' => ['enabled' => false, 'base_url' => 'https://backoffice.ecourier.com.bd/api', 'api_key' => '', 'api_secret' => '', 'user_id' => ''],
+                        'fields' => ['enabled', 'base_url', 'api_key', 'api_secret', 'user_id', 'package_code'],
+                        'defaults' => ['enabled' => false, 'base_url' => 'https://backoffice.ecourier.com.bd/api', 'api_key' => '', 'api_secret' => '', 'user_id' => '', 'package_code' => ''],
                     ],
+                    // No booking system to connect to: staff send the parcel and update it by hand.
+                    'sundarban' => self::manualCourier('sundarban', 'https://tracking.sundarbancourierltd.com/'),
+                    'sa_paribahan' => self::manualCourier('sa_paribahan'),
+                    'karatoa' => self::manualCourier('karatoa'),
+                    'janani' => self::manualCourier('janani', 'https://jananiexpress.com/tracking'),
+                    'continental' => self::manualCourier('continental'),
                 ],
             ],
             'payments' => [

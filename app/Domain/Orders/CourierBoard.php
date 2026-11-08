@@ -27,6 +27,7 @@ final class CourierBoard
         $base = fn () => DB::table('shipments')
             ->whereNotNull('shipments.courier_provider')
             ->whereIn('shipments.order_id', clone $orderIds);
+        $manualPages = $this->couriers->manualTrackingPages();
 
         $parcels = $base()
             ->join('orders', 'orders.id', '=', 'shipments.order_id')
@@ -42,8 +43,8 @@ final class CourierBoard
             ])
             ->paginate(15, pageName: 'parcels_page')
             ->withQueryString()
-            ->through(function (object $row): object {
-                $row->tracking_url = CourierOptions::trackingUrl($row->courier_provider, $row->tracking);
+            ->through(function (object $row) use ($manualPages): object {
+                $row->tracking_url = CourierOptions::trackingUrl($row->courier_provider, $row->tracking, null, $manualPages);
 
                 return $row;
             });
@@ -70,6 +71,8 @@ final class CourierBoard
             'counts' => $counts,
             'parcels' => $parcels,
             'failed' => $failed,
+            'needs_decision' => app(MixedOutcomeDecisions::class)->pending($orderIds),
+            'can_decide' => (bool) $request->user()?->allows('order_review'),
         ];
     }
 }

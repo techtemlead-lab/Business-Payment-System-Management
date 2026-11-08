@@ -337,7 +337,11 @@ class OrderService
             $gatewayMeta = null;
             // The courier is booked only after this transaction commits (BookShipmentCourier),
             // so a rolled-back dispatch never leaves a parcel booked with the courier.
-            $bookCourier = is_string($provider) && $provider !== '';
+            $manualCourier = CourierOptions::isManual($provider);
+            if ($manualCourier && ! app(CourierOptions::class)->isEnabled($provider)) {
+                throw ValidationException::withMessages(['courier_provider' => __('courier_more.err_manual_not_enabled')]);
+            }
+            $bookCourier = is_string($provider) && $provider !== '' && ! $manualCourier;
             if ($bookCourier) {
                 $courier = $courier !== '' ? $courier : ucfirst($provider);
                 $gatewayMeta = ['provider' => $provider, 'booking' => 'pending'];
@@ -355,8 +359,9 @@ class OrderService
                 'actor_id' => $actor->id,
                 'idempotency_key' => $data['idempotency_key'],
                 'payload_hash' => $hash,
-                'courier_provider' => $bookCourier ? $provider : null,
-                'courier_booking_status' => $bookCourier ? 'pending' : null,
+                'courier_provider' => $bookCourier || $manualCourier ? $provider : null,
+                'courier_booking_status' => $bookCourier ? 'pending' : ($manualCourier ? 'manual' : null),
+                ...($manualCourier ? $this->manualParcelStart() : []),
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -518,11 +523,14 @@ class OrderService
                 DB::table('shipments')->where('id', $shipment->id)->update([
                     'courier_provider' => $provider,
                     'courier' => CourierOptions::label($provider),
-                    'courier_booking_status' => 'pending',
+                    'courier_booking_status' => CourierOptions::isManual($provider) ? 'manual' : 'pending',
                     'courier_booking_error' => null,
                     'updated_at' => now(),
+                    ...(CourierOptions::isManual($provider) ? $this->manualParcelStart() : []),
                 ]);
-                DB::afterCommit(fn () => BookShipmentCourier::dispatch((int) $shipment->id));
+                if (! CourierOptions::isManual($provider)) {
+                    DB::afterCommit(fn () => BookShipmentCourier::dispatch((int) $shipment->id));
+                }
             }
             $this->event($locked, $actor, 'order.courier_changed', [
                 'from' => $from,
@@ -587,6 +595,13 @@ class OrderService
 
             return;
         }
+        if (CourierOptions::isManual($provider)) {
+            $this->event($locked, $actor, 'order.courier_auto_skipped', ['provider' => $provider, 'reason' => 'manual_courier']);
+            $replace = ['number' => $locked->number, 'courier' => CourierOptions::label($provider)];
+            Audit::notifyAdminsAndStaff(['orders', 'inventory'], __('courier_more.notice_manual_dispatch_title', $replace), __('courier_more.notice_manual_dispatch_body', $replace));
+
+            return;
+        }
         $branchQuery = CompanyBranch::query()->active()->where('is_stock_hub', true);
         $branch = ($locked->fulfillment_branch_id ? (clone $branchQuery)->whereKey($locked->fulfillment_branch_id)->first() : null)
             ?? $branchQuery->orderByRaw('COALESCE(is_head_office, false) DESC')->orderBy('id')->first();
@@ -636,6 +651,20 @@ class OrderService
             'branch_code' => $branch->code,
             'automatic' => true,
         ]);
+    }
+
+    /**
+     * A manual courier's parcel starts waiting for pickup, ready for staff to move on by hand.
+     *
+     * @return array{courier_status: string, courier_status_at: mixed, courier_timeline: string}
+     */
+    private function manualParcelStart(): array
+    {
+        return [
+            'courier_status' => 'waiting_pickup',
+            'courier_status_at' => now(),
+            'courier_timeline' => json_encode([ShipmentTracking::timelineEntry('waiting_pickup', null, 'staff')], JSON_THROW_ON_ERROR),
+        ];
     }
 
     private function autoShipSkipped(User $actor, Order $locked, string $provider, string $reason): void
