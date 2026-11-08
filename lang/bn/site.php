@@ -590,4 +590,5 @@ Madina Natural Health Care-এর মূল উদ্দেশ্য শুধ�
     'md_message_read_more' => 'পুরো বাণী পড়ুন',
     'md_message_read_less' => 'কম দেখান',
     'md_message_photo_alt' => ':name, :title, :company-এর ছবি',
+    'home_bismillah_text' => 'বিসমিল্লাহির রাহমানির রাহিম',
 ];

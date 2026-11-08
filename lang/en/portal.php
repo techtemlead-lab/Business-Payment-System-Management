@@ -6242,4 +6242,6 @@ return [
     'retained_reason_unclaimed_additional_rank' => 'Nobody qualified for the sub-dealer additional rank fund this month, so it went to company profit.',
     'event_commission_quota_holds_forfeited' => 'Missed-quota area commission moved to company profit',
     'event_commission_additional_rank_closed' => 'Additional rank fund closed into company profit',
+    'sce_fld_home_bismillah' => 'Bismillah line above the headline',
+    'sce_home_bismillah_hint' => 'Shown centred at the very top of the home page, above the company name.',
 ];

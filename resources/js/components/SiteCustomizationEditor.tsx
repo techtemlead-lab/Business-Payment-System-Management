@@ -205,6 +205,8 @@ export interface CustomizationData {
     company_intro_title?: string;
     company_intro_body?: string;
     company_intro_eyebrow?: string;
+    home_bismillah_enabled?: string;
+    home_bismillah_text?: string;
     product_range_title?: string;
     product_range_sub?: string;
     partner_with_us_title?: string;
@@ -3994,6 +3996,8 @@ export default function SiteCustomizationEditor({
             company_intro_title: customization.company_intro_title || '',
             company_intro_body: customization.company_intro_body || '',
             company_intro_eyebrow: customization.company_intro_eyebrow || '',
+            home_bismillah_enabled: customization.home_bismillah_enabled !== undefined ? customization.home_bismillah_enabled : '1',
+            home_bismillah_text: customization.home_bismillah_text || '',
             product_range_title: customization.product_range_title || '',
             product_range_sub: customization.product_range_sub || '',
             partner_with_us_title: customization.partner_with_us_title || '',
@@ -4710,6 +4714,18 @@ export default function SiteCustomizationEditor({
                                 <Field label={translate('portal', 'sce_f_intro_title')} fieldKey="company_intro_title" value={form.data.customization.company_intro_title} placeholder={defaults.company_intro_title} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_f_intro_text')} fieldKey="company_intro_body" value={form.data.customization.company_intro_body} placeholder={defaults.company_intro_body} onChange={updateField} multiline rows={3} span2 />
                                 <Field label={translate('portal', 'sce_fld_company_intro_eyebrow')} fieldKey="company_intro_eyebrow" value={form.data.customization.company_intro_eyebrow} placeholder={defaults.company_intro_eyebrow} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_fld_home_bismillah')} fieldKey="home_bismillah_text" value={form.data.customization.home_bismillah_text} placeholder={defaults.home_bismillah_text} onChange={updateField} />
+                                <div>
+                                    <p className="ed-desc is-sm">{translate('portal', 'sce_home_bismillah_hint')}</p>
+                                    <button
+                                        type="button"
+                                        className={`button small ${form.data.customization.home_bismillah_enabled !== '0' ? 'dark' : ''}`}
+                                        aria-pressed={form.data.customization.home_bismillah_enabled !== '0'}
+                                        onClick={() => updateField('home_bismillah_enabled', form.data.customization.home_bismillah_enabled !== '0' ? '0' : '1')}
+                                    >
+                                        {form.data.customization.home_bismillah_enabled !== '0' ? `✓ ${translate('portal', 'sce_status_on')}` : `✕ ${translate('portal', 'sce_status_off')}`}
+                                    </button>
+                                </div>
                                 <Field label={translate('portal', 'sce_fld_product_range_title')} fieldKey="product_range_title" value={form.data.customization.product_range_title} placeholder={defaults.product_range_title} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_fld_product_range_sub')} fieldKey="product_range_sub" value={form.data.customization.product_range_sub} placeholder={defaults.product_range_sub} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_fld_partner_with_us_title')} fieldKey="partner_with_us_title" value={form.data.customization.partner_with_us_title} placeholder={defaults.partner_with_us_title} onChange={updateField} />

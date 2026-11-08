@@ -6242,4 +6242,6 @@ return [
     'retained_reason_unclaimed_additional_rank' => 'এই মাসে সাব-ডিলার অতিরিক্ত র‍্যাঙ্ক তহবিলের যোগ্য কেউ ছিলেন না, তাই এটি কোম্পানির লাভে গেছে।',
     'event_commission_quota_holds_forfeited' => 'কোটা পূরণ না হওয়া এরিয়া কমিশন কোম্পানির লাভে নেওয়া হয়েছে',
     'event_commission_additional_rank_closed' => 'অতিরিক্ত র‍্যাঙ্ক তহবিল কোম্পানির লাভে বন্ধ করা হয়েছে',
+    'sce_fld_home_bismillah' => 'শিরোনামের উপরে বিসমিল্লাহ',
+    'sce_home_bismillah_hint' => 'হোমপেজের একদম উপরে, কোম্পানির নামের উপরে মাঝখানে দেখাবে।',
 ];

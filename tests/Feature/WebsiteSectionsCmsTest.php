@@ -39,6 +39,21 @@ class WebsiteSectionsCmsTest extends TestCase
             ->assertDontSee(__('site.company_intro_eyebrow', [], 'en'));
     }
 
+    public function test_home_page_shows_bismillah_above_the_headline_and_owner_can_turn_it_off(): void
+    {
+        $this->withSession(['locale' => 'bn'])->get('/')->assertOk()
+            ->assertSeeInOrder(['ref-bismillah', 'বিসমিল্লাহির রাহমানির রাহিম', 'company-intro-title'], false);
+
+        $this->withSession(['locale' => 'en'])->get('/')->assertOk()
+            ->assertSee('Bismillahir Rahmanir Rahim');
+
+        SiteCustomization::save(['home_bismillah_text' => 'بسم الله الرحمن الرحيم']);
+        $this->withSession(['locale' => 'bn'])->get('/')->assertOk()->assertSee('بسم الله الرحمن الرحيم');
+
+        SiteCustomization::save(['home_bismillah_enabled' => '0']);
+        $this->withSession(['locale' => 'bn'])->get('/')->assertOk()->assertDontSee('ref-bismillah', false);
+    }
+
     public function test_owner_edits_to_the_home_intro_cards_are_shown_as_written(): void
     {
         SiteCustomization::save([

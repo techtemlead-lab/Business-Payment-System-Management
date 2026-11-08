@@ -3797,3 +3797,6 @@ html[data-theme="dark"] .ref-product-description p.ref-product-description-text{
 /* Trial-mode note under the header: follow night mode instead of staying a bright strip */
 html[data-theme="dark"] .ref-preview-banner{background:#0f1d33;color:#c7d6ee;border-bottom-color:#1e2d45}
 html[data-theme="dark"] .ref-preview-banner i{color:#4ade80}
+/* Bismillah line centred above the home page headline (owner request). */
+.ref-company-intro>.ref-bismillah{grid-column:1/-1;margin:0 0 -22px;max-width:none;text-align:center;color:#006837;font-size:clamp(17px,2vw,22px);font-weight:600;line-height:1.4;letter-spacing:.2px;}
+@media(max-width:767px){.ref-company-intro>.ref-bismillah{margin-bottom:-8px;}}
