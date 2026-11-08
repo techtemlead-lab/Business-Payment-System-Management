@@ -254,7 +254,7 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                 {account.linked_staff_role ? (
                     <div className="metric-grid two">
                         <div className="metric"><span>{translate('portal', 'linked_staff_role')}</span><strong>{label(String(account.linked_staff_role), translate)}</strong></div>
-                        <form onSubmit={event=>{event.preventDefault(); router.post(`/commands/accounts/${account.id}/unlink-staff`);}}>
+                        <form onSubmit={event=>{event.preventDefault(); router.post(`/commands/accounts/${account.id}/unlink-staff`, {}, { onSuccess: onDone });}}>
                             <button className="button" type="submit">{translate('portal', 'unlink_staff_access')}</button>
                         </form>
                     </div>
@@ -262,7 +262,7 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                     <form className="action-form" onSubmit={event=>{
                         event.preventDefault();
                         const fd=new FormData(event.currentTarget);
-                        router.post(`/commands/accounts/${account.id}/link-staff`, { linked_staff_role: String(fd.get('linked_staff_role')||'employee') });
+                        router.post(`/commands/accounts/${account.id}/link-staff`, { linked_staff_role: String(fd.get('linked_staff_role')||'employee') }, { onSuccess: onDone });
                     }}>
                         <label>{translate('portal', 'linked_staff_role')}
                             <select name="linked_staff_role" defaultValue="employee">

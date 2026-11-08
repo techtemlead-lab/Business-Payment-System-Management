@@ -6457,4 +6457,6 @@ return [
     'flash_application_rejected' => 'আবেদন নামঞ্জুর করা হয়েছে।',
     'area_kpi_pool_value' => ':rate%',
     'acct_nid_needs_permission' => 'NID নম্বর শুধু NID কাগজের অনুমতি পাওয়া স্টাফ লিখতে পারেন। এখানে জন্মনিবন্ধন ব্যবহার করুন।',
+    'kyc_note_added_with_account' => 'অ্যাকাউন্ট তৈরির সময় যোগ করা হয়েছে',
+    'acct_password_copy_failed' => 'কপি হয়নি। পাসওয়ার্ডটি নিজে সিলেক্ট করে কপি করুন।',
 ];

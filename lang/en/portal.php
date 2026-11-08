@@ -6457,4 +6457,6 @@ return [
     'flash_application_rejected' => 'Application rejected.',
     'area_kpi_pool_value' => ':rate%',
     'acct_nid_needs_permission' => 'NID numbers can be entered only by staff with the NID papers permission. Use the birth certificate here.',
+    'kyc_note_added_with_account' => 'Added with the new account',
+    'acct_password_copy_failed' => 'Could not copy. Select the password and copy it by hand.',
 ];
