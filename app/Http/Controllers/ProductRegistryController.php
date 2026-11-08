@@ -177,13 +177,15 @@ class ProductRegistryController extends Controller
             $d = $this->resolveCatalogForeignKeys($d, $product);
         }
         $mrp = $d['mrp'] ?? $product?->mrp;
-        $dealer = array_key_exists('dealer_price', $d) && $d['dealer_price'] !== null && $d['dealer_price'] !== '' ? $d['dealer_price'] : $product?->dealer_price;
-        if (isset($d['dealer_discount_pct']) && $mrp) {
+        // The form sends the price and a rounded percent; the price the person typed is the one to keep.
+        $dealerPriceGiven = $this->priceGiven($d, 'dealer_price');
+        $dealer = $dealerPriceGiven ? $d['dealer_price'] : $product?->dealer_price;
+        if (! $dealerPriceGiven && isset($d['dealer_discount_pct']) && $mrp) {
             $rate = Percentage::from((string) $d['dealer_discount_pct']);
             $dealer = Money::decimal(Percentage::from(Money::decimal(10000 - $rate->basisPoints))->of(Money::cents($mrp), 'half_up'));
             $d['dealer_price'] = $dealer;
         }
-        if (isset($d['sub_dealer_discount_pct']) && $mrp) {
+        if (! $this->priceGiven($d, 'sub_dealer_price') && isset($d['sub_dealer_discount_pct']) && $mrp) {
             $rate = Percentage::from((string) $d['sub_dealer_discount_pct']);
             $d['sub_dealer_price'] = Money::decimal(Percentage::from(Money::decimal(10000 - $rate->basisPoints))->of(Money::cents($mrp), 'half_up'));
         }
@@ -191,26 +193,22 @@ class ProductRegistryController extends Controller
         $retail = Money::cents($mrp);
         if ($dealer !== null && (array_key_exists('dealer_price', $d) || array_key_exists('mrp', $d) || array_key_exists('dealer_discount_pct', $d))) {
             $dealerCents = Money::cents($dealer);
-            $minDealerPrice = intdiv($retail * (100 - $maxDealerPct) + 50, 100);
-            $maxDealerPrice = intdiv($retail * 80 + 50, 100);
-            if ($dealerCents < $minDealerPrice || $dealerCents > $maxDealerPrice) {
-                throw ValidationException::withMessages([
-                    'dealer_discount_pct' => __('portal.err_dealer_discount_limit'),
-                    'dealer_price' => __('portal.err_dealer_discount_limit'),
-                ]);
+            if ($dealerCents < intdiv($retail * (100 - $maxDealerPct) + 50, 100)) {
+                throw ValidationException::withMessages(['dealer_price' => __($isOwner ? 'portal.err_dealer_discount_limit_owner' : 'portal.err_dealer_discount_limit')]);
+            }
+            if ($dealerCents > intdiv($retail * 80 + 50, 100)) {
+                throw ValidationException::withMessages(['dealer_price' => __('portal.err_dealer_discount_too_small')]);
             }
         }
 
         $subDealer = $d['sub_dealer_price'] ?? $product?->sub_dealer_price;
         if ($subDealer !== null && (array_key_exists('sub_dealer_price', $d) || array_key_exists('mrp', $d) || array_key_exists('sub_dealer_discount_pct', $d))) {
             $subDealerCents = Money::cents($subDealer);
-            $minSubDealerPrice = intdiv($retail * (100 - $maxSubDealerPct) + 50, 100);
-            $maxSubDealerPrice = intdiv($retail * 80 + 50, 100);
-            if ($subDealerCents < $minSubDealerPrice || $subDealerCents > $maxSubDealerPrice) {
-                throw ValidationException::withMessages([
-                    'sub_dealer_discount_pct' => __('portal.err_sub_dealer_discount_limit'),
-                    'sub_dealer_price' => __('portal.err_sub_dealer_discount_limit'),
-                ]);
+            if ($subDealerCents < intdiv($retail * (100 - $maxSubDealerPct) + 50, 100)) {
+                throw ValidationException::withMessages(['sub_dealer_price' => __($isOwner ? 'portal.err_sub_dealer_discount_limit_owner' : 'portal.err_sub_dealer_discount_limit')]);
+            }
+            if ($subDealerCents > intdiv($retail * 80 + 50, 100)) {
+                throw ValidationException::withMessages(['sub_dealer_price' => __('portal.err_sub_dealer_discount_too_small')]);
             }
         }
         if (Money::cents($mrp) <= 0 || ($dealer !== null && (Money::cents($dealer) <= 0 || Money::cents($dealer) > Money::cents($mrp)))) {
@@ -379,6 +377,16 @@ class ProductRegistryController extends Controller
         $canReadArchived = $user?->staff() && collect(['catalog', 'inventory', 'pricing', 'cost_read', 'orders', 'finance'])
             ->contains(fn (string $capability): bool => $user->allows($capability));
         abort_unless($p->active || $canReadArchived, 404);
+    }
+
+    /**
+     * True when the form sent this price. A blank box falls back to the percent.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function priceGiven(array $data, string $field): bool
+    {
+        return isset($data[$field]) && $data[$field] !== '';
     }
 
     /**

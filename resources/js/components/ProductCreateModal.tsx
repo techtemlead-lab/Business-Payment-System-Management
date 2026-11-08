@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { router } from '@inertiajs/react';
 import { X, Upload, AlertCircle } from 'lucide-react';
@@ -98,13 +98,19 @@ export default function ProductCreateModal({
     const [savingTarget, setSavingTarget] = useState<AddTarget | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const formRef = useRef<HTMLFormElement>(null);
 
+    // Refresh the pick lists when the page data changes, without touching what was typed.
+    useEffect(() => {
+        setCatalog(categories);
+        setUnitList(units);
+    }, [categories, units]);
+
+    // Start clean only when the dialog opens, so a refused save keeps every value.
     useEffect(() => {
         if (!isOpen) {
             return;
         }
-        setCatalog(categories);
-        setUnitList(units);
         setName('');
         setSku(suggestSku());
         setCategoryId('');
@@ -125,7 +131,14 @@ export default function ProductCreateModal({
         setLowStockAt('10');
         setDrafts({ category: '', subcategory: '', unit: '' });
         setErrorMsg(null);
-    }, [isOpen, categories, units]);
+    }, [isOpen]);
+
+    // A refused save scrolls back up so the reason is on screen.
+    useEffect(() => {
+        if (errorMsg) {
+            formRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }, [errorMsg]);
 
     useEffect(() => {
         if (!isOpen || typeof document === 'undefined') {
@@ -331,7 +344,7 @@ export default function ProductCreateModal({
                         <X size={18} />
                     </button>
                 </header>
-                <form className="pcm-form" onSubmit={handleSubmit}>
+                <form className="pcm-form" ref={formRef} onSubmit={handleSubmit}>
                     {errorMsg && (
                         <div className="pcm-error" role="alert">
                             <AlertCircle size={16} />

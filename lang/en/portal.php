@@ -6432,4 +6432,8 @@ return [
     'event_shipment_received_back' => 'Parcel received back',
     'acct_partner_created_sent' => ':role account added. Code: :code. The login details went to :phone / :email. The username is the mobile number.',
     'acct_partner_created_not_sent' => ':role account added. Code: :code. The password could not be sent because SMS and email are not on. Open this account and use Login password to see it, then give it to them. The username is the mobile number.',
+    'err_dealer_discount_limit_owner' => 'Dealer discount cannot be more than 70%.',
+    'err_sub_dealer_discount_limit_owner' => 'Sub-dealer discount cannot be more than 70%.',
+    'err_dealer_discount_too_small' => 'This dealer price is too high. Dealers must get at least 20% off the MRP, so the dealer price can be at most 80% of the MRP.',
+    'err_sub_dealer_discount_too_small' => 'This sub-dealer price is too high. Sub-dealers must get at least 20% off the MRP, so the sub-dealer price can be at most 80% of the MRP.',
 ];
