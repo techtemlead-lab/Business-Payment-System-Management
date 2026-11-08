@@ -107,6 +107,7 @@ final class ContentSection implements WorkspaceSection
             ['key' => 'contact', 'slug' => '/contact', 'label' => __('portal.website_page_contact')],
             ['key' => 'privacy', 'slug' => '/privacy', 'label' => __('portal.website_page_privacy')],
             ['key' => 'terms', 'slug' => '/terms', 'label' => __('portal.website_page_terms')],
+            ['key' => 'prescribers', 'slug' => '/prescribers', 'label' => __('portal.website_page_prescribers')],
         ])->map(function (array $page) use ($enabled) {
             $key = $page['key'];
             $toggleable = $page['toggleable'] ?? true;

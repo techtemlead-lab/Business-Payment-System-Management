@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\PublicController;
+use App\Http\Controllers\PublicPrescriberController;
 use App\Support\PortalHost;
 use App\Support\SiteCustomization;
 use Illuminate\Http\RedirectResponse;
@@ -28,6 +29,8 @@ Route::post('/enquiries', [PublicController::class, 'enquiry'])->middleware('thr
 Route::get('/feedback', [PublicController::class, 'feedbackForm']);
 Route::post('/feedback', [PublicController::class, 'storeFeedback'])->middleware('throttle:5,1');
 Route::post('/locale', [LocaleController::class, 'update'])->middleware('throttle:30,1');
+Route::get('/prescribers', [PublicPrescriberController::class, 'index'])->middleware('throttle:60,1');
+Route::post('/prescribers/{listing}/consult', [PublicPrescriberController::class, 'consult'])->whereNumber('listing')->middleware('throttle:5,1');
 Route::middleware(['auth', 'active'])->group(function (): void {
     Route::post('/logout', [AuthController::class, 'logout']);
 });

@@ -7,6 +7,7 @@ use App\Models\PlaceCode;
 use App\Models\Prescription;
 use App\Models\PrescriptionLine;
 use App\Models\PrescriptionPatient;
+use App\Models\PrescriptionPatientConsent;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\Audit;
@@ -31,9 +32,10 @@ final class PrescriptionBook
     public const PatientOptionLimit = 30;
 
     /**
-     * @param  array{name: string, age?: int|null, sex?: string|null, phone?: string|null, place_code_id?: int|null, notes?: string|null}  $data
+     * @param  array{name: string, age?: int|null, sex?: string|null, phone?: string|null, place_code_id?: int|null, notes?: string|null, patient_consent?: bool|int|string|null}  $data
+     * @param  array{source: string, statement: string, consultation_request_id?: int|null}|null  $consent  Null means the prescriber confirmed it themselves.
      */
-    public function savePatient(User $prescriber, ?PrescriptionPatient $patient, array $data): PrescriptionPatient
+    public function savePatient(User $prescriber, ?PrescriptionPatient $patient, array $data, ?array $consent = null): PrescriptionPatient
     {
         abort_unless(PrescriptionAccess::canPrescribe($prescriber), 403);
         if ($patient !== null) {
@@ -48,14 +50,37 @@ final class PrescriptionBook
             'notes' => filled($data['notes'] ?? null) ? trim((string) $data['notes']) : null,
         ];
         if ($patient === null) {
-            $patient = PrescriptionPatient::query()->create([...$values, 'prescriber_id' => $prescriber->id]);
-            Audit::record($prescriber->id, 'prescription.patient_created', (string) $patient->id, []);
+            return DB::transaction(function () use ($values, $prescriber, $consent): PrescriptionPatient {
+                $created = PrescriptionPatient::query()->create([...$values, 'prescriber_id' => $prescriber->id]);
+                Audit::record($prescriber->id, 'prescription.patient_created', (string) $created->id, []);
+                $this->recordConsent($created, $prescriber, $consent);
 
-            return $patient;
+                return $created;
+            });
         }
         $patient->update($values);
+        if (filter_var($data['patient_consent'] ?? false, FILTER_VALIDATE_BOOLEAN) && ! $patient->consent()->exists()) {
+            $this->recordConsent($patient, $prescriber, null);
+        }
 
         return $patient;
+    }
+
+    /**
+     * @param  array{source: string, statement: string, consultation_request_id?: int|null}|null  $consent
+     */
+    private function recordConsent(PrescriptionPatient $patient, User $prescriber, ?array $consent): void
+    {
+        $source = $consent['source'] ?? PrescriptionPatientConsent::SourcePrescriber;
+        PrescriptionPatientConsent::query()->create([
+            'patient_id' => $patient->id,
+            'prescriber_id' => $prescriber->id,
+            'source' => $source,
+            'statement' => $consent['statement'] ?? (string) __('prescriber_public.patient_consent_label'),
+            'consultation_request_id' => $consent['consultation_request_id'] ?? null,
+            'confirmed_at' => now(),
+        ]);
+        Audit::record($prescriber->id, 'prescription.patient_consent_recorded', (string) $patient->id, ['source' => $source]);
     }
 
     /**
@@ -189,6 +214,7 @@ final class PrescriptionBook
             'place_code_id' => $patient->place_code_id,
             'place' => $patient->placeCode ? trim(PlaceCode::displayLabel($patient->placeCode->code).' '.PlaceCode::displayLabel($patient->placeCode->name)) : null,
             'notes' => $patient->notes,
+            'consent_at' => $patient->consent?->confirmed_at?->toIso8601String(),
             'own' => true,
             'created_at' => $patient->created_at?->toIso8601String(),
         ];

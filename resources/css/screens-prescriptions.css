@@ -66,3 +66,7 @@
 @media (max-width:480px){
   .rx-stats{grid-template-columns:1fr}
 }
+
+/* Consent and public-listing tick boxes: the box sits beside its sentence. */
+.action-form label.rx-consent{display:flex;flex-direction:row;align-items:flex-start;gap:8px}
+.action-form label.rx-consent input{width:auto;margin-top:3px;flex:none}

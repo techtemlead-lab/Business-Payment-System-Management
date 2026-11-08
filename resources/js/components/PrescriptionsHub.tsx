@@ -7,6 +7,7 @@ import { businessTodayIso } from '../business-date';
 import { SaveAsTemplate, TemplatePicker, TemplatesTab, type PrescriptionTools } from './PrescriptionTemplates';
 import { FollowUpsPanel } from './PrescriptionFollowUps';
 import { PrescriberReportTab } from './PrescriberReport';
+import { ConsultationRequestsTab, PublicListingTab, type PrescriberPublicData } from './PrescriberPublicTabs';
 
 type Translate = ReturnType<typeof useT>;
 
@@ -25,6 +26,7 @@ export type PatientRow = {
     place_code_id: number | null;
     place: string | null;
     notes: string | null;
+    consent_at: string | null;
     own: boolean;
 };
 
@@ -114,7 +116,7 @@ function Tabs({ tabs, active, onChange }: { tabs: { id: string; label: string }[
     );
 }
 
-export default function PrescriptionsHub({ data, tools }: { data: PrescriptionsData; tools: PrescriptionTools }) {
+export default function PrescriptionsHub({ data, tools, publicTools }: { data: PrescriptionsData; tools: PrescriptionTools; publicTools: PrescriberPublicData }) {
     const translate = useT();
     const clinic = data.mode === 'clinic';
     const [tab, setTab] = useState<string>(() => {
@@ -124,8 +126,10 @@ export default function PrescriptionsHub({ data, tools }: { data: PrescriptionsD
     const tabs = [
         { id: 'prescriptions', label: translate('prescription', 'tab_prescriptions') },
         { id: 'patients', label: translate('prescription', 'tab_patients') },
+        { id: 'requests', label: publicTools.new_requests > 0 ? `${translate('prescriber_public', 'tab_requests')} (${number(publicTools.new_requests)})` : translate('prescriber_public', 'tab_requests') },
         { id: 'templates', label: translate('prescription', 'tab_templates') },
         { id: 'my-report', label: translate('prescription', 'tab_my_report') },
+        { id: 'public-listing', label: translate('prescriber_public', 'tab_listing') },
         ...(data.is_owner ? [{ id: 'report', label: translate('prescription', 'tab_report') }, { id: 'settings', label: translate('prescription', 'tab_settings') }] : []),
     ];
     const activeTab = tabs.some((item) => item.id === tab) ? tab : 'prescriptions';
@@ -151,6 +155,8 @@ export default function PrescriptionsHub({ data, tools }: { data: PrescriptionsD
             {activeTab === 'patients' && <PatientsTab data={data} translate={translate} />}
             {activeTab === 'templates' && <TemplatesTab templates={tools.templates} translate={translate} />}
             {activeTab === 'my-report' && <PrescriberReportTab report={tools.report} translate={translate} />}
+            {activeTab === 'requests' && <ConsultationRequestsTab data={publicTools} translate={translate} />}
+            {activeTab === 'public-listing' && <PublicListingTab data={publicTools} translate={translate} />}
             {activeTab === 'report' && data.is_owner && data.report && <ReportTab report={data.report} translate={translate} />}
             {activeTab === 'settings' && data.is_owner && <SettingsTab data={data} translate={translate} />}
         </div>
@@ -514,14 +520,14 @@ function PatientsTab({ data, translate }: { data: PrescriptionsData; translate: 
     const { portalBase, filters } = usePage<any>().props;
     const [editing, setEditing] = useState<PatientRow | null>(null);
     const [query, setQuery] = useState(String(filters?.q ?? ''));
-    const blank = { name: '', age: '', sex: '', phone: '', place_code_id: '', notes: '' };
+    const blank = { name: '', age: '', sex: '', phone: '', place_code_id: '', notes: '', patient_consent: false };
     const form = useForm(blank);
 
     useEffect(() => {
         if (editing) {
             form.setData({
                 name: editing.name, age: editing.age === null ? '' : String(editing.age), sex: editing.sex ?? '',
-                phone: editing.phone ?? '', place_code_id: editing.place_code_id ? String(editing.place_code_id) : '', notes: editing.notes ?? '',
+                phone: editing.phone ?? '', place_code_id: editing.place_code_id ? String(editing.place_code_id) : '', notes: editing.notes ?? '', patient_consent: false,
             });
         } else {
             form.setData(blank);
@@ -567,6 +573,12 @@ function PatientsTab({ data, translate }: { data: PrescriptionsData; translate: 
                         <PlaceCodePicker value={form.data.place_code_id} onChange={(id) => form.setData('place_code_id', id)} translate={translate} />
                     </div>
                     <label>{translate('prescription', 'patient_notes')}<textarea rows={2} maxLength={2000} value={form.data.notes} onChange={(e) => form.setData('notes', e.target.value)} /></label>
+                    {(!editing || !editing.consent_at) && (
+                        <label className="rx-consent">
+                            <input type="checkbox" required={!editing} checked={form.data.patient_consent} onChange={(e) => form.setData('patient_consent', e.target.checked)} />
+                            <span>{translate('prescriber_public', 'patient_consent_label')}</span>
+                        </label>
+                    )}
                     <FormErrors errors={form.errors} />
                     <div className="rx-actions">
                         <button className="button dark" disabled={form.processing}>{translate('prescription', 'patient_save')}</button>
@@ -594,6 +606,7 @@ function PatientsTab({ data, translate }: { data: PrescriptionsData; translate: 
                                         {[patient.age !== null ? translate('prescription', 'print_years', { age: patient.age }) : null, patient.sex ? translate('prescription', `sex_${patient.sex}`) : null, patient.phone, patient.place].filter(Boolean).join(' · ')}
                                     </small>
                                     {patient.notes && <small className="cell-sub">{patient.notes}</small>}
+                                    <small className="cell-sub">{patient.consent_at ? translate('prescriber_public', 'patient_consent_on_file', { date: date(patient.consent_at) }) : translate('prescriber_public', 'patient_consent_missing')}</small>
                                 </div>
                                 <button type="button" className="button small" onClick={() => { setEditing(patient); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>{translate('prescription', 'patient_edit')}</button>
                             </li>

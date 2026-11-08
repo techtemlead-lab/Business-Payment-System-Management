@@ -126,7 +126,7 @@ return [
             'dashboards', 'employees', 'accounts', 'sub-dealers', 'sub-dealer-applications', 'sub-dealer-orders', 'treasury', 'inventory', 'branches', 'branch-performance',
             'payments', 'policies', 'salary', 'withdrawals', 'ledger', 'reports', 'top-sellers', 'content', 'website', 'customization',
             'enquiries', 'feedback', 'partnerships', 'audit', 'commissions', 'network-tree', 'area-dealers', 'place-codes', 'ranks', 'rewards',
-            'settlements', 'simulator', 'payouts-hub', 'benefits-fund', 'help', 'support-admin', 'agreement', 'partner-messages', 'training', 'events', 'data-cleanup', 'prescriptions',
+            'settlements', 'simulator', 'payouts-hub', 'benefits-fund', 'help', 'support-admin', 'agreement', 'partner-messages', 'training', 'events', 'data-cleanup', 'prescriptions', 'privacy-requests',
         ],
         'staff_capabilities' => [
             'dashboards' => 'accounts',
@@ -177,7 +177,7 @@ return [
             'reports' => ['reports', 'top-sellers'],
             'website' => ['website', 'content', 'enquiries', 'feedback'],
             'learning' => ['training', 'events'],
-            'system' => ['audit', 'support-admin', 'agreement', 'partner-messages', 'data-cleanup'],
+            'system' => ['audit', 'support-admin', 'agreement', 'partner-messages', 'data-cleanup', 'privacy-requests'],
             'clinic' => ['prescriptions'],
             'dealer_directory' => ['accounts', 'partnerships'],
             'dealer_fulfillment' => ['orders', 'deliveries'],

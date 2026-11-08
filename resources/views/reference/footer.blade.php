@@ -55,6 +55,7 @@
             <a href="{{ $href }}">{{ $chrome('quality_promise', $siteCustomization['footer_link_quality'] ?? null) }}</a>
             @endif
             @if($publicPageEnabled['dealers'] ?? true)<a href="/dealers">{{ $chrome('network') }}</a>@endif
+            @if($publicPageEnabled['prescribers'] ?? true)<a href="/prescribers">{{ $chrome('prescribers_title', $siteCustomization['prescribers_title'] ?? null) }}</a>@endif
             @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_link_partnership_url'] ?? '/partnership'))
             <a href="{{ $href }}">{{ $chrome('become_a_partner', $siteCustomization['footer_link_partnership'] ?? null) }}</a>
             @endif

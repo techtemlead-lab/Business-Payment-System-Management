@@ -328,6 +328,7 @@ export interface CustomizationData {
     page_enabled_faq?: string;
     page_enabled_privacy?: string;
     page_enabled_terms?: string;
+    page_enabled_prescribers?: string;
 
     // Contact Page (/contact)
     contact_title?: string;
@@ -352,6 +353,12 @@ export interface CustomizationData {
     map_subtitle?: string;
     map_facility?: string;
     map_directions_text?: string;
+
+    // Registered practitioners page (/prescribers)
+    prescribers_title?: string;
+    prescribers_lead?: string;
+    prescribers_emergency_note?: string;
+    prescribers_consent_line?: string;
 
     // Dealer Directory Page (/dealers)
     directory_title?: string;
@@ -3776,7 +3783,7 @@ export default function SiteCustomizationEditor({
     const pageFlags = [
         'page_enabled_about', 'page_enabled_products', 'page_enabled_dealers', 'page_enabled_contact',
         'page_enabled_partnership', 'page_enabled_services', 'page_enabled_quality', 'page_enabled_faq',
-        'page_enabled_privacy', 'page_enabled_terms',
+        'page_enabled_privacy', 'page_enabled_terms', 'page_enabled_prescribers',
     ] as const;
 
     const form = useForm<{ customization: CustomizationData }>({
@@ -4121,6 +4128,7 @@ export default function SiteCustomizationEditor({
             page_enabled_faq: customization.page_enabled_faq !== undefined ? customization.page_enabled_faq : '1',
             page_enabled_privacy: customization.page_enabled_privacy !== undefined ? customization.page_enabled_privacy : '1',
             page_enabled_terms: customization.page_enabled_terms !== undefined ? customization.page_enabled_terms : '1',
+            page_enabled_prescribers: customization.page_enabled_prescribers !== undefined ? customization.page_enabled_prescribers : '1',
 
             // Contact Page
             contact_title: customization.contact_title || '',
@@ -4139,6 +4147,12 @@ export default function SiteCustomizationEditor({
             map_subtitle: customization.map_subtitle || '',
             map_facility: customization.map_facility || '',
             map_directions_text: customization.map_directions_text || '',
+
+            // Registered practitioners
+            prescribers_title: customization.prescribers_title || '',
+            prescribers_lead: customization.prescribers_lead || '',
+            prescribers_emergency_note: customization.prescribers_emergency_note || '',
+            prescribers_consent_line: customization.prescribers_consent_line || '',
 
             // Dealer Directory
             directory_title: customization.directory_title || '',
@@ -4901,6 +4915,14 @@ export default function SiteCustomizationEditor({
                                 <Field label={translate('portal', 'sce_fld_invoice_manufacturer')} fieldKey="invoice_manufacturer" value={form.data.customization.invoice_manufacturer} placeholder={defaults.invoice_manufacturer} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_fld_invoice_marketed_by')} fieldKey="invoice_marketed_by" value={form.data.customization.invoice_marketed_by} placeholder={defaults.invoice_marketed_by} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_fld_invoice_marketed_phones')} fieldKey="invoice_marketed_phones" value={form.data.customization.invoice_marketed_phones} placeholder={defaults.invoice_marketed_phones} onChange={updateField} span2 />
+                            </div>
+
+                            <h3 className="ed-title">{translate('portal', 'sce_prescribers_heading')}</h3>
+                            <div className="form-grid ed-grid ed-mb-lg">
+                                <Field label={translate('portal', 'sce_f_prescribers_title')} fieldKey="prescribers_title" value={form.data.customization.prescribers_title} placeholder={defaults.prescribers_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_prescribers_lead')} fieldKey="prescribers_lead" value={form.data.customization.prescribers_lead} placeholder={defaults.prescribers_lead} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_prescribers_emergency')} fieldKey="prescribers_emergency_note" value={form.data.customization.prescribers_emergency_note} placeholder={defaults.prescribers_emergency_note} onChange={updateField} span2 />
+                                <Field label={translate('portal', 'sce_f_prescribers_consent')} fieldKey="prescribers_consent_line" value={form.data.customization.prescribers_consent_line} placeholder={defaults.prescribers_consent_line} onChange={updateField} span2 />
                             </div>
 
                             <h3 className="ed-title">{translate('portal', 'sce_dealer_directory_heading')}</h3>

@@ -51,7 +51,7 @@ export const MANAGEMENT_SECTIONS = [
     'financial-readiness', 'finance-settings', 'financial-reports', 'data-imports', 'service-integrations',
     'rewards', 'settlements', 'payouts-hub', 'payments', 'withdrawals', 'ledger', 'reports', 'top-sellers',
     'catalog', 'inventory', 'branches', 'branch-performance', 'place-codes', 'video-marketing', 'website', 'content', 'enquiries', 'feedback', 'audit', 'support-admin', 'agreement', 'partner-messages',
-    'training', 'events', 'data-cleanup', 'prescriptions',
+    'training', 'events', 'data-cleanup', 'prescriptions', 'privacy-requests',
 ];
 
 const tabOf = (search: string): string | null => new URLSearchParams(search).get('tab');
@@ -79,7 +79,7 @@ export const SECTION_LABEL_KEYS: Record<string, string> = {
     'sub-dealer-applications': 'partnerships',
     employees: 'employees', dashboards: 'dashboards', help: 'help', 'support-admin': 'support_admin', agreement: 'agreement',
     messages: 'chat_nav_partner', 'partner-messages': 'chat_nav_office', 'top-sellers': 'top_sellers',
-    training: 'training', events: 'events', 'payment-receipts': 'payment_receipts', 'data-cleanup': 'cleanup_nav', prescriptions: 'prescriptions',
+    training: 'training', events: 'events', 'payment-receipts': 'payment_receipts', 'data-cleanup': 'cleanup_nav', prescriptions: 'prescriptions', 'privacy-requests': 'privacy_requests_nav',
 };
 
 function defaultHrefPath(section: string): string {
@@ -220,6 +220,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     if (['super_admin', 'md', 'chairman'].includes(role)) ['accounts', 'sub-dealers', 'employees'].forEach((item) => items.add(item));
     if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('benefits-fund');
     if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('data-cleanup');
+    if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('privacy-requests');
     if (prescriber) items.add('prescriptions');
     if (capabilities.some((cap) => ['catalog', 'pricing', 'inventory', 'orders', 'finance'].includes(cap))) items.add('catalog');
     if (capabilities.includes('inventory')) {
@@ -360,7 +361,7 @@ function staffNavigation(staffAvailable: Set<string>): {
             mother('learning', 'nav_module_learning', pick(staffAvailable, ['training', 'events'])),
             mother('clinic', 'nav_module_clinic', pick(staffAvailable, ['prescriptions'])),
             mother('settings', 'nav_module_settings', pick(staffAvailable, [
-                'website', 'content', 'video-marketing', 'enquiries', 'feedback', 'service-integrations', 'audit', 'support-admin', 'agreement', 'partner-messages', 'data-cleanup',
+                'website', 'content', 'video-marketing', 'enquiries', 'feedback', 'service-integrations', 'audit', 'support-admin', 'agreement', 'partner-messages', 'data-cleanup', 'privacy-requests',
             ])),
             mother('account', 'nav_module_account', pick(staffAvailable, ['profile', 'security', 'notifications', 'help'])),
         ]),

@@ -281,6 +281,12 @@ class SiteCustomization
             'map_facility' => 'Madina Natural Health Care — Thana Road, Pirganj',
             'map_directions_text' => 'Open Map Directions',
 
+            // Registered practitioners page (/prescribers)
+            'prescribers_title' => $copy('prescribers_title'),
+            'prescribers_lead' => $copy('prescribers_lead'),
+            'prescribers_emergency_note' => $copy('prescribers_emergency_note'),
+            'prescribers_consent_line' => $copy('prescribers_consent_line'),
+
             // Dealer Directory Page (/dealers)
             'directory_title' => 'Dealer Directory',
             'directory_subtitle' => $copy('directory_subtitle'),
@@ -483,6 +489,7 @@ class SiteCustomization
             'page_enabled_faq' => '1',
             'page_enabled_privacy' => '1',
             'page_enabled_terms' => '1',
+            'page_enabled_prescribers' => '1',
 
             // Copyright
             'copyright_text' => '© '.date('Y').' Madina Natural Health Care. All rights reserved.',
@@ -563,7 +570,7 @@ class SiteCustomization
     /** @return list<string> */
     public static function toggleablePages(): array
     {
-        return ['about', 'products', 'dealers', 'contact', 'partnership', 'services', 'quality', 'faq', 'privacy', 'terms'];
+        return ['about', 'products', 'dealers', 'contact', 'partnership', 'services', 'quality', 'faq', 'privacy', 'terms', 'prescribers'];
     }
 
     /** @return array<string, bool> */

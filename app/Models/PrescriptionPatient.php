@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * A patient of one prescriber. Only that prescriber can see the record, not even the owner.
@@ -52,6 +53,12 @@ class PrescriptionPatient extends Model
     public function prescriptions(): HasMany
     {
         return $this->hasMany(Prescription::class, 'patient_id');
+    }
+
+    /** @return HasOne<PrescriptionPatientConsent, $this> */
+    public function consent(): HasOne
+    {
+        return $this->hasOne(PrescriptionPatientConsent::class, 'patient_id');
     }
 
     /**

@@ -591,4 +591,8 @@ We humbly ask for everyone\'s prayers and support.',
     'md_message_read_less' => 'Show less',
     'md_message_photo_alt' => 'Photo of :name, :title, :company',
     'home_bismillah_text' => 'بسم الله الرحمن الرحيم',
+    'prescribers_title' => 'Registered practitioners',
+    'prescribers_lead' => 'Find a registered practitioner in your area and send them a request.',
+    'prescribers_emergency_note' => 'In an emergency, go to the nearest hospital now. Do not wait for a reply here.',
+    'prescribers_consent_line' => 'I agree that my name, phone number and this problem will go only to this practitioner, so they can contact me.',
 ];

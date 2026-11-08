@@ -27,14 +27,15 @@ class PrescriptionController extends Controller
 
     public function storePatient(Request $request): RedirectResponse
     {
-        $this->book->savePatient($request->user(), null, $request->validate($this->patientRules()));
+        abort_unless(PrescriptionAccess::canPrescribe($request->user()), 403);
+        $this->book->savePatient($request->user(), null, $request->validate([...$this->patientRules(), 'patient_consent' => 'accepted']));
 
         return back()->with('success', __('prescription.flash_patient_saved'));
     }
 
     public function updatePatient(Request $request, PrescriptionPatient $patient): RedirectResponse
     {
-        $this->book->savePatient($request->user(), $patient, $request->validate($this->patientRules()));
+        $this->book->savePatient($request->user(), $patient, $request->validate([...$this->patientRules(), 'patient_consent' => 'nullable|boolean']));
 
         return back()->with('success', __('prescription.flash_patient_saved'));
     }
