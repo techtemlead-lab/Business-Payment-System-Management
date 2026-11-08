@@ -29,6 +29,12 @@ final class SiteChrome
         return self::text($key, $custom);
     }
 
+    /** True when the text has Arabic letters, so the page can mark it right-to-left. */
+    public static function isArabic(string $text): bool
+    {
+        return preg_match('/\p{Arabic}/u', $text) === 1;
+    }
+
     public static function text(string $key, ?string $custom = null): string
     {
         $translated = (string) __('site.'.$key);

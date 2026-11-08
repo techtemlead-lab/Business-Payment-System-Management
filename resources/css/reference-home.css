@@ -3797,6 +3797,18 @@ html[data-theme="dark"] .ref-product-description p.ref-product-description-text{
 /* Trial-mode note under the header: follow night mode instead of staying a bright strip */
 html[data-theme="dark"] .ref-preview-banner{background:#0f1d33;color:#c7d6ee;border-bottom-color:#1e2d45}
 html[data-theme="dark"] .ref-preview-banner i{color:#4ade80}
-/* Bismillah line centred above the home page headline (owner request). */
-.ref-company-intro>.ref-bismillah{grid-column:1/-1;margin:0 0 -22px;max-width:none;text-align:center;color:#006837;font-size:clamp(17px,2vw,22px);font-weight:600;line-height:1.4;letter-spacing:.2px;}
-@media(max-width:767px){.ref-company-intro>.ref-bismillah{margin-bottom:-8px;}}
+/* Bismillah: a centred header band across the top of the home page intro card (owner request).
+   The rules and the diamonds are drawn only with ::before and ::after. Rules fade outward, so the gradient flips for right-to-left text. */
+.ref-company-intro>.ref-bismillah{--bismillah-green:#006837;--bismillah-gold:#b8892b;--bismillah-rule-start:to right;--bismillah-rule-end:to left;grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:clamp(14px,2vw,26px);margin:2px 0 6px;max-width:none;text-align:center;color:var(--bismillah-green);font-size:clamp(19px,2.2vw,26px);font-weight:600;line-height:1.45;letter-spacing:.2px;}
+.ref-company-intro>.ref-bismillah[dir="rtl"]{--bismillah-rule-start:to left;--bismillah-rule-end:to right;}
+.ref-company-intro>.ref-bismillah::before,.ref-company-intro>.ref-bismillah::after{content:'';flex:1 1 0;min-width:14px;height:1px;}
+.ref-company-intro>.ref-bismillah::before{background:linear-gradient(var(--bismillah-rule-start),transparent,var(--bismillah-green) 60%,var(--bismillah-gold));}
+.ref-company-intro>.ref-bismillah::after{background:linear-gradient(var(--bismillah-rule-end),transparent,var(--bismillah-green) 60%,var(--bismillah-gold));}
+.ref-company-intro>.ref-bismillah>span{display:inline-flex;align-items:center;gap:.6em;min-width:0;}
+.ref-company-intro>.ref-bismillah>span::before,.ref-company-intro>.ref-bismillah>span::after{content:'';flex:none;width:.32em;height:.32em;background:var(--bismillah-gold);transform:rotate(45deg);}
+/* Letter spacing would break the joined Arabic letters. */
+.ref-company-intro>.ref-bismillah[lang="ar"]{font-family:"Noto Naskh Arabic","Amiri","Traditional Arabic","Geeza Pro",serif;font-size:clamp(24px,2.8vw,32px);line-height:1.6;letter-spacing:0;}
+html[data-theme="dark"] .ref-company-intro>.ref-bismillah{--bismillah-green:#5fd3a8;--bismillah-gold:#e3b341;color:var(--bismillah-green)!important;}
+@media(max-width:767px){.ref-company-intro>.ref-bismillah{gap:10px;margin:0 0 2px;font-size:18px;}.ref-company-intro>.ref-bismillah[lang="ar"]{font-size:24px;}.ref-company-intro>.ref-bismillah::before,.ref-company-intro>.ref-bismillah::after{max-width:44px;}}
+@media(prefers-reduced-motion:no-preference){.ref-company-intro>.ref-bismillah{animation:refBismillahFade .7s ease-out backwards;}}
+@keyframes refBismillahFade{from{opacity:0}to{opacity:1}}

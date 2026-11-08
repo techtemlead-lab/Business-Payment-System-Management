@@ -20,6 +20,8 @@ final class SiteCustomizationRetiredDefaults
     public static function all(): array
     {
         return [
+            // Spelled-out English line from before the owner chose Arabic, and the Bangla default: neither may reach the other language.
+            'home_bismillah_text' => ['Bismillahir Rahmanir Rahim', 'বিসমিল্লাহির রাহমানির রাহিম'],
             'company_intro_body' => ['Explore our company, our product range and the people connecting our products with communities across Bangladesh.'],
             'announcement_text' => ['For product availability and dealership enquiries, please contact the company.'],
             'side_banner_1_alt' => ['Madina Premium Natural Care - 100% Pure Botanical Ingredients'],

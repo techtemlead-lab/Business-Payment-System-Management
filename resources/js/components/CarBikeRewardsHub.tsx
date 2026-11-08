@@ -82,7 +82,10 @@ export default function CarBikeRewardsHub({ milestones, milestone_type, mileston
     const reachedTarget = (m: MilestoneRecord) => !!m.achieved_at
         || (currentTarget !== null && (Number(m.qualifying_volume) || 0) >= currentTarget);
     const rewardTitle = activeTab === 'bike' ? translate('portal', 'rw_title_bike') : translate('portal', 'rw_title_car');
-    const rewardPrize = activeTab === 'bike' ? translate('portal', 'rw_prize_bike') : translate('portal', 'rw_prize_car');
+    const currentAward = policyAmount(activeTab === 'bike' ? rule_params?.bike_award_amount : rule_params?.car_award_amount);
+    const rewardPrize = currentAward === null
+        ? translate('portal', 'rw_award_not_set')
+        : translate('portal', activeTab === 'bike' ? 'rw_prize_bike' : 'rw_prize_car', { amount: money(currentAward) });
 
     // Parse legs for selected candidate
     const legs: LegBreakdown[] = useMemo(() => {
@@ -159,7 +162,8 @@ export default function CarBikeRewardsHub({ milestones, milestone_type, mileston
 
                     <div className="hub-well is-tinted tone-ok">
                         <div className="hub-label">{translate('portal', 'rw_kpi_reward')}</div>
-                        <div className="hub-value is-sm tone-brand">{rewardPrize}</div>
+                        <div className={`hub-value is-sm ${currentAward === null ? 'tone-warn' : 'tone-brand'}`}>{rewardPrize}</div>
+                        {currentAward === null && <div className="hub-hint">{translate('portal', 'rw_award_not_set_hint')}</div>}
                     </div>
                 </div>
             </div>
