@@ -2,7 +2,7 @@ import React from 'react';
 import { Field } from '../formFields';
 import { WebsiteGroup, type WebsiteSectionProps } from '../WebsiteLayout';
 import { useT } from '../../../shared/i18n/t';
-import { CompanyNameField, SharedFactNote, WebsiteNote } from './SharedFields';
+import { CompanyNameField, MainLogoField, SharedFactNote, WebsiteNote } from './SharedFields';
 
 /** The dealer and sub-dealer side menu shares one help box. */
 function PartnerHelpBox({ form, defaults, updateField, shared }: Pick<WebsiteSectionProps, 'form' | 'defaults' | 'updateField'> & { shared: 'dealer' | 'subdealer' }) {
@@ -28,6 +28,7 @@ export function AdminPortalModule(props: WebsiteSectionProps) {
                 <SharedFactNote goToModule={goToModule} />
                 <div className="form-grid ed-grid">
                     <CompanyNameField {...props} />
+                    <MainLogoField {...props} />
                 </div>
             </WebsiteGroup>
             <WebsiteGroup title={translate('portal', 'sce_invoice_letterhead_heading')} defaultOpen>
@@ -52,6 +53,7 @@ export function StaffPortalModule(props: WebsiteSectionProps) {
                 <SharedFactNote goToModule={goToModule} />
                 <div className="form-grid ed-grid">
                     <CompanyNameField {...props} />
+                    <MainLogoField {...props} />
                 </div>
             </WebsiteGroup>
         </>

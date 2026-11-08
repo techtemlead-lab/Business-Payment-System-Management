@@ -5,7 +5,7 @@ import { HeaderNavCategoriesManager } from '../HeaderNavCategoriesManager';
 import { MobileSearchCategoriesManager } from '../MobileSearchCategoriesManager';
 import { WebsiteGroup, type WebsiteSectionProps } from '../WebsiteLayout';
 import { useT } from '../../../shared/i18n/t';
-import { CompanyNameField, PhoneAndEmailFields, SharedFactNote, SocialLinksFields } from './SharedFields';
+import { CompanyNameField, MainLogoField, PhoneAndEmailFields, SharedFactNote, SocialLinksFields, WhiteLogoField } from './SharedFields';
 
 /** The band at the very top of every page. */
 export function HeaderModule(props: WebsiteSectionProps) {
@@ -17,6 +17,7 @@ export function HeaderModule(props: WebsiteSectionProps) {
                 <SharedFactNote goToModule={goToModule} />
                 <div className="form-grid ed-grid">
                     <CompanyNameField {...props} />
+                    <MainLogoField {...props} />
                 </div>
             </WebsiteGroup>
 
@@ -48,12 +49,26 @@ export function NavbarModule({ form, defaults, products, updateField }: WebsiteS
             <WebsiteGroup title={translate('website_admin', 'group_nav_words')} defaultOpen>
                 <div className="form-grid ed-grid">
                     <Field label={translate('portal', 'sce_f_search_placeholder')} fieldKey="search_placeholder" value={form.data.customization.search_placeholder} placeholder={defaults.search_placeholder} onChange={updateField} />
+                    <Field label={translate('website_admin', 'field_home_link')} fieldKey="header_home_title" value={form.data.customization.header_home_title} placeholder={defaults.header_home_title} onChange={updateField} />
                     <Field label={translate('portal', 'sce_f_catalog_link')} fieldKey="header_catalog_title" value={form.data.customization.header_catalog_title} placeholder={defaults.header_catalog_title} onChange={updateField} />
                     <Field label={translate('portal', 'sce_f_about_link_title')} fieldKey="header_about_title" value={form.data.customization.header_about_title} placeholder={defaults.header_about_title} onChange={updateField} />
                     <Field label={translate('portal', 'sce_f_contact_link_title')} fieldKey="header_contact_title" value={form.data.customization.header_contact_title} placeholder={defaults.header_contact_title} onChange={updateField} />
                     <Field label={translate('portal', 'sce_f_network_link_title')} fieldKey="header_network_title" value={form.data.customization.header_network_title} placeholder={defaults.header_network_title} onChange={updateField} />
                     <Field label={translate('portal', 'sce_f_account_link_title')} fieldKey="header_account_title" value={form.data.customization.header_account_title} placeholder={defaults.header_account_title} onChange={updateField} />
                     <Field label={translate('portal', 'sce_f_account_link_subtitle')} fieldKey="header_account_subtitle" value={form.data.customization.header_account_subtitle} placeholder={defaults.header_account_subtitle} onChange={updateField} />
+                    <Field label={translate('website_admin', 'field_services_link')} fieldKey="header_services_title" value={form.data.customization.header_services_title} placeholder={defaults.header_services_title} onChange={updateField} />
+                    <Field label={translate('website_admin', 'field_partner_link')} fieldKey="header_partner_title" value={form.data.customization.header_partner_title} placeholder={defaults.header_partner_title} onChange={updateField} />
+                    <Field label={translate('website_admin', 'field_faq_link')} fieldKey="header_faq_title" value={form.data.customization.header_faq_title} placeholder={defaults.header_faq_title} onChange={updateField} />
+                </div>
+            </WebsiteGroup>
+
+            <WebsiteGroup title={translate('website_admin', 'group_bottom_menu')}>
+                <p className="ed-desc is-sm">{translate('website_admin', 'bottom_menu_hint')}</p>
+                <div className="form-grid ed-grid">
+                    <Field label={translate('website_admin', 'field_mobile_products')} fieldKey="mobile_nav_products" value={form.data.customization.mobile_nav_products} onChange={updateField} />
+                    <Field label={translate('website_admin', 'field_mobile_dealers')} fieldKey="mobile_nav_dealers" value={form.data.customization.mobile_nav_dealers} onChange={updateField} />
+                    <Field label={translate('website_admin', 'field_mobile_about')} fieldKey="mobile_nav_about" value={form.data.customization.mobile_nav_about} onChange={updateField} />
+                    <Field label={translate('website_admin', 'field_mobile_account')} fieldKey="mobile_nav_account" value={form.data.customization.mobile_nav_account} onChange={updateField} />
                 </div>
             </WebsiteGroup>
 
@@ -135,12 +150,25 @@ export function FooterModule(props: WebsiteSectionProps) {
                     <Field label={translate('portal', 'sce_f_footer_link5_url')} fieldKey="footer_link_contact_url" value={form.data.customization.footer_link_contact_url} placeholder={defaults.footer_link_contact_url} onChange={updateField} />
                     <Field label={translate('portal', 'sce_f_footer_link6_text')} fieldKey="footer_link_dealer_apply" value={form.data.customization.footer_link_dealer_apply} placeholder={defaults.footer_link_dealer_apply} onChange={updateField} />
                     <Field label={translate('portal', 'sce_f_footer_link6_url')} fieldKey="footer_link_dealer_apply_url" value={form.data.customization.footer_link_dealer_apply_url} placeholder={defaults.footer_link_dealer_apply_url} onChange={updateField} />
+                    <Field label={translate('website_admin', 'field_link_services')} fieldKey="footer_link_services" value={form.data.customization.footer_link_services} placeholder={defaults.footer_link_services} onChange={updateField} />
+                    <Field label={translate('website_admin', 'field_link_address')} fieldKey="footer_link_services_url" value={form.data.customization.footer_link_services_url} placeholder={defaults.footer_link_services_url} onChange={updateField} />
+                    <Field label={translate('website_admin', 'field_link_quality')} fieldKey="footer_link_quality" value={form.data.customization.footer_link_quality} placeholder={defaults.footer_link_quality} onChange={updateField} />
+                    <Field label={translate('website_admin', 'field_link_address')} fieldKey="footer_link_quality_url" value={form.data.customization.footer_link_quality_url} placeholder={defaults.footer_link_quality_url} onChange={updateField} />
+                    <Field label={translate('website_admin', 'field_link_partnership')} fieldKey="footer_link_partnership" value={form.data.customization.footer_link_partnership} placeholder={defaults.footer_link_partnership} onChange={updateField} />
+                    <Field label={translate('website_admin', 'field_link_address')} fieldKey="footer_link_partnership_url" value={form.data.customization.footer_link_partnership_url} placeholder={defaults.footer_link_partnership_url} onChange={updateField} />
+                    <Field label={translate('website_admin', 'field_link_faq')} fieldKey="footer_link_faq" value={form.data.customization.footer_link_faq} placeholder={defaults.footer_link_faq} onChange={updateField} />
+                    <Field label={translate('website_admin', 'field_link_address')} fieldKey="footer_link_faq_url" value={form.data.customization.footer_link_faq_url} placeholder={defaults.footer_link_faq_url} onChange={updateField} />
+                    <Field label={translate('website_admin', 'field_link_privacy')} fieldKey="footer_link_privacy" value={form.data.customization.footer_link_privacy} placeholder={defaults.footer_link_privacy} onChange={updateField} />
+                    <Field label={translate('website_admin', 'field_link_address')} fieldKey="footer_link_privacy_url" value={form.data.customization.footer_link_privacy_url} placeholder={defaults.footer_link_privacy_url} onChange={updateField} />
+                    <Field label={translate('website_admin', 'field_link_terms')} fieldKey="footer_link_terms" value={form.data.customization.footer_link_terms} placeholder={defaults.footer_link_terms} onChange={updateField} />
+                    <Field label={translate('website_admin', 'field_link_address')} fieldKey="footer_link_terms_url" value={form.data.customization.footer_link_terms_url} placeholder={defaults.footer_link_terms_url} onChange={updateField} />
+                    <Field label={translate('website_admin', 'field_link_notice')} fieldKey="footer_link_notice" value={form.data.customization.footer_link_notice} onChange={updateField} />
                 </div>
             </WebsiteGroup>
 
             <WebsiteGroup title={translate('website_admin', 'group_footer_about')}>
                 <div className="form-grid ed-grid">
-                    <Field label={translate('portal', 'sce_f_footer_logo_url')} fieldKey="footer_logo_url" value={form.data.customization.footer_logo_url} placeholder={defaults.footer_logo_url} onChange={updateField} span2 />
+                    <WhiteLogoField {...props} />
                     <Field label={translate('portal', 'sce_f_footer_brand_desc')} fieldKey="footer_about_desc" value={form.data.customization.footer_about_desc} placeholder={defaults.footer_about_desc} onChange={updateField} multiline rows={3} span2 />
                 </div>
             </WebsiteGroup>

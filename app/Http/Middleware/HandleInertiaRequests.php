@@ -90,6 +90,7 @@ class HandleInertiaRequests extends Middleware
             'navCategories' => fn () => in_array($portal, ['dealer', 'subdealer'], true)
                 ? SiteCustomization::getNavCategories()
                 : [],
+            'siteBrand' => fn () => ['name' => SiteCustomization::brandName(), 'logo' => SiteCustomization::logoUrl()],
             'siteCustomization' => fn () => in_array($portal, ['dealer', 'subdealer'], true)
                 ? SiteCustomization::partnerPanelCopy()
                 : [],

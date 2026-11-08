@@ -86,6 +86,15 @@ class SiteCustomization
         $copy = static fn (string $siteKey): string => self::englishSiteCopy($siteKey);
 
         return [
+            // Logos and browser icon. The white logo is for dark backgrounds.
+            'site_logo_url' => '/madina-header-logo.png?v=10',
+            'site_favicon_image' => '/reference/favicon.png?v=8',
+
+            // How the site looks when shared and in search results. Empty keeps the built-in wording and picture.
+            'meta_title' => '',
+            'meta_description' => '',
+            'og_image' => '',
+
             // Top Bar & Header Branding
             'top_bar_text' => 'Madina Natural Health Care',
             'search_placeholder' => 'Search products...',
@@ -101,6 +110,15 @@ class SiteCustomization
             'header_account_subtitle' => 'Partner Login',
             'header_shop_title' => 'Shop',
             'header_catalog_title' => 'Products',
+            'header_home_title' => $copy('home'),
+            'header_services_title' => $copy('services'),
+            'header_partner_title' => $copy('become_a_partner'),
+            'header_faq_title' => $copy('faq'),
+            // Short names for the bottom menu on phones. Empty keeps the built-in short name.
+            'mobile_nav_products' => '',
+            'mobile_nav_dealers' => '',
+            'mobile_nav_about' => '',
+            'mobile_nav_account' => '',
             'header_network_title' => 'Dealer Network',
             'company_intro_title' => 'Madina Natural Health Care',
             'company_intro_body' => $copy('company_intro_body'),
@@ -524,6 +542,7 @@ class SiteCustomization
             'footer_link_terms_url' => '/terms',
             'footer_link_partnership' => 'Become a Partner',
             'footer_link_partnership_url' => '/partnership',
+            'footer_link_notice' => '',
 
             // Public page visibility (owner can turn pages off site-wide)
             'page_enabled_about' => '1',
@@ -914,6 +933,47 @@ class SiteCustomization
         $digits = (string) preg_replace('/[^0-9]/', '', $value);
 
         return $digits === '' ? '' : 'https://wa.me/'.(str_starts_with($digits, '01') ? '88'.$digits : $digits);
+    }
+
+    /** The main logo. */
+    public static function logoUrl(): string
+    {
+        return self::imageSetting('site_logo_url');
+    }
+
+    /** The white logo, for dark backgrounds. */
+    public static function whiteLogoUrl(): string
+    {
+        return self::imageSetting('footer_logo_url');
+    }
+
+    /** The small picture in the browser tab. */
+    public static function faviconUrl(): string
+    {
+        return self::imageSetting('site_favicon_image');
+    }
+
+    /**
+     * A logo the owner uploaded, as a file on this server, for printed papers and emails
+     * that cannot load a web address. Null when the owner has not changed the logo,
+     * or it is hosted elsewhere, or the file is missing.
+     */
+    public static function logoFilePath(): ?string
+    {
+        $url = self::logoUrl();
+        if ($url === (string) self::defaults()['site_logo_url'] || ! str_starts_with($url, '/') || str_starts_with($url, '//')) {
+            return null;
+        }
+        $path = public_path(ltrim((string) parse_url($url, PHP_URL_PATH), '/'));
+
+        return is_file($path) ? $path : null;
+    }
+
+    private static function imageSetting(string $key): string
+    {
+        $value = trim((string) (self::all()[$key] ?? ''));
+
+        return $value !== '' ? $value : (string) self::defaults()[$key];
     }
 
     /** The second phone number, or null when there is none or it repeats the first. */

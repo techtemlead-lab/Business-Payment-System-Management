@@ -44,7 +44,7 @@
             <button type="submit" class="active">{{ app()->getLocale() === 'bn' ? __('portal.english') : __('portal.bangla') }}</button>
         </form>
     </div>
-    <div class="company-auth-brand"><img src="/madina-header-logo.png?v=8" alt="{{ __('portal.brand_alt') }}"></div>
+    <div class="company-auth-brand"><img src="{{ \App\Support\SiteCustomization::logoUrl() }}" alt="{{ \App\Support\SiteCustomization::brandName() }}"></div>
     <section class="company-auth-card">
         <span class="eyebrow">{{ $ownerPortal ? __('portal.owner_portal') : __('portal.company_portal') }}</span>
         <h1>{{ $heading }}</h1>
@@ -95,7 +95,7 @@
         @endif
         @endif
     </section>
-    <p class="company-auth-footer">{{ __('portal.brand_company_bar') }} · {{ $ownerPortal ? __('portal.owner_portal') : __('portal.company_portal') }}</p>
+    <p class="company-auth-footer">{{ \App\Support\SiteCustomization::brandName() }} · {{ $ownerPortal ? __('portal.owner_portal') : __('portal.company_portal') }}</p>
 </main>
 </body>
 </html>

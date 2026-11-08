@@ -74,7 +74,7 @@
     <section>
         <h2>{{ $chrome('footer_stay_connected', $siteCustomization['footer_stay_connected_heading'] ?? null) }}</h2>
         <div class="ref-footer-brand">
-            <a href="/" aria-label="{{ __('site.brand_home') }}"><img src="{{ $siteCustomization['footer_logo_url'] ?? '/madina-header-logo-white.png?v=10' }}" alt="{{ __('site.company_bar') }}" width="56" height="56" decoding="async" loading="lazy"></a>
+            <a href="/" aria-label="{{ __('site.brand_home') }}"><img src="{{ \App\Support\SiteCustomization::whiteLogoUrl() }}" alt="{{ \App\Support\SiteCustomization::brandName() }}" width="56" height="56" decoding="async" loading="lazy"></a>
             <h3>{{ \App\Support\SiteCustomization::brandName() }}</h3>
         </div>
         <p>{{ $chrome('footer_about_desc', $siteCustomization['footer_about_desc'] ?? null) }}</p>
@@ -131,7 +131,7 @@
     @if($publicPageEnabled['products'] ?? true)
     <a href="/products" class="ref-mobile-nav-item">
         <i class="fa-solid fa-store" aria-hidden="true"></i>
-        <span>{{ __('site.products') }}</span>
+        <span>{{ $chrome('products', $siteCustomization['mobile_nav_products'] ?? null) }}</span>
     </a>
     @elseif($publicPageEnabled['services'] ?? true)
     <a href="/services" class="ref-mobile-nav-item">
@@ -141,13 +141,13 @@
     @elseif($publicPageEnabled['about'] ?? true)
     <a href="/about" class="ref-mobile-nav-item">
         <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
-        <span>{{ __('site.about') }}</span>
+        <span>{{ $chrome('about', $siteCustomization['mobile_nav_about'] ?? null) }}</span>
     </a>
     @endif
     @if($publicPageEnabled['dealers'] ?? true)
     <a href="/dealers" class="ref-mobile-nav-item">
         <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
-        <span>{{ __('site.dealers') }}</span>
+        <span>{{ $chrome('dealers', $siteCustomization['mobile_nav_dealers'] ?? null) }}</span>
     </a>
     @elseif($publicPageEnabled['partnership'] ?? true)
     <a href="/partnership" class="ref-mobile-nav-item">
@@ -162,14 +162,14 @@
     @endif
     <a href="/" class="ref-mobile-home" aria-label="{{ __('site.home') }}">
         <span class="ref-mobile-home-icon">
-            <img src="/madina-header-logo.png?v=10" alt="" width="40" height="40" decoding="async">
+            <img src="{{ \App\Support\SiteCustomization::logoUrl() }}" alt="" width="40" height="40" decoding="async">
         </span>
-        <span class="ref-mobile-home-label">{{ __('site.home') }}</span>
+        <span class="ref-mobile-home-label">{{ $chrome('home', $siteCustomization['header_home_title'] ?? null) }}</span>
     </a>
     @if($publicPageEnabled['about'] ?? true)
     <a href="/about" class="ref-mobile-nav-item">
         <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
-        <span>{{ __('site.about') }}</span>
+        <span>{{ $chrome('about', $siteCustomization['mobile_nav_about'] ?? null) }}</span>
     </a>
     @elseif($publicPageEnabled['faq'] ?? true)
     <a href="/faq" class="ref-mobile-nav-item">
@@ -185,12 +185,12 @@
     @auth
     <a href="{{ \App\Support\PortalHost::homeUrl(auth()->user()) }}" class="ref-mobile-nav-item">
         <i class="fa-solid fa-user-check" aria-hidden="true"></i>
-        <span>{{ __('site.account') }}</span>
+        <span>{{ $chrome('account', $siteCustomization['mobile_nav_account'] ?? null) }}</span>
     </a>
     @else
     <a href="{{ \App\Support\PortalHost::url('dealer', '/login') }}" class="ref-mobile-nav-item">
         <i class="fa-solid fa-user" aria-hidden="true"></i>
-        <span>{{ __('site.account') }}</span>
+        <span>{{ $chrome('account', $siteCustomization['mobile_nav_account'] ?? null) }}</span>
     </a>
     @endauth
 </nav>
@@ -223,7 +223,7 @@
         </button>
         <div class="ref-quickview-grid">
             <div class="ref-qv-image-col">
-                <img id="qvImage" alt="{{ __('site.product_image') }}" loading="lazy" decoding="async">
+                <img id="qvImage" alt="{{ __('site.product_image') }}" data-fallback="{{ \App\Support\SiteCustomization::logoUrl() }}" loading="lazy" decoding="async">
 
             </div>
             <div class="ref-qv-info-col">

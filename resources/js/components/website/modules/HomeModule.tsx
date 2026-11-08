@@ -1,6 +1,6 @@
 import React from 'react';
 import { FeaturedProductsManager } from '../FeaturedProductsManager';
-import { Field } from '../formFields';
+import { Field, ImageUploadButton } from '../formFields';
 import { WebsiteGroup, WebsiteToolLink, type WebsiteSectionProps } from '../WebsiteLayout';
 import { ActionForm, type Field as ActionField, type Row } from '../../UI';
 import { useT } from '../../../shared/i18n/t';
@@ -43,6 +43,7 @@ export default function HomeModule({ form, defaults, products, updateField, upda
                                                         className="ed-input"
                                                     />
                                                     <small className="ed-hint">{translate('portal', 'sce_default_placeholder', { value: String(defSlide.image ?? '') })}</small>
+                                                    <ImageUploadButton onUploaded={url => updateSlide(idx, 'image', url)} />
                                                 </label>
                                                 <label>
                                                     <span className="ed-label">{translate('portal', 'sce_target_link')}</span>
@@ -96,6 +97,7 @@ export default function HomeModule({ form, defaults, products, updateField, upda
                                                                 className="ed-input is-sm"
                                                             />
                                                             <small className="ed-hint">{defSlide.image}</small>
+                                                            <ImageUploadButton onUploaded={url => updateSideSlide(1, idx, 'image', url)} />
                                                         </label>
                                                         <label>
                                                             <span className="ed-label">{translate('portal', 'sce_target_link')}</span>
@@ -147,6 +149,7 @@ export default function HomeModule({ form, defaults, products, updateField, upda
                                                                 className="ed-input is-sm"
                                                             />
                                                             <small className="ed-hint">{defSlide.image}</small>
+                                                            <ImageUploadButton onUploaded={url => updateSideSlide(2, idx, 'image', url)} />
                                                         </label>
                                                         <label>
                                                             <span className="ed-label">{translate('portal', 'sce_target_link')}</span>

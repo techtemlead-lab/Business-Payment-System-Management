@@ -140,7 +140,7 @@ const icons: Record<string, LucideIcon> = {
 export default function Shell({ section, children, action }: { section: string; children: ReactNode; action?: ReactNode }) {
     useNativeFieldMessages();
     const page = usePage<any>();
-    const { auth, portalBase, portal, demoMode, dashboardNotice, dashboardControls, siteCustomization, unreadNotices = 0, navAttention = {}, tour, userManualChapters, workspaceBranches } = page.props;
+    const { auth, portalBase, portal, demoMode, dashboardNotice, dashboardControls, siteCustomization, siteBrand, unreadNotices = 0, navAttention = {}, tour, userManualChapters, workspaceBranches } = page.props;
     const [manualOpen, setManualOpen] = useState(false);
     const [menuQuery, setMenuQuery] = useState('');
     const unreadCount = Number(unreadNotices ?? 0);
@@ -493,7 +493,7 @@ export default function Shell({ section, children, action }: { section: string; 
                     <X size={18} />
                 </button>
                 <a href={base || '/'} className="portal-logo sidebar-logo" aria-label={translate('portal', 'brand_dashboard_aria')}>
-                    <img src="/madina-header-logo.png?v=10" alt="" />
+                    <img src={siteBrand?.logo || '/madina-header-logo.png?v=10'} alt="" />
                     <span className="sidebar-logo-mark" aria-hidden="true">MNHC</span>
                 </a>
                 <div className="workspace-label">
@@ -706,7 +706,7 @@ export default function Shell({ section, children, action }: { section: string; 
                         </div>
                     )}
                     <footer className="workspace-footer">
-                        <span>{translate('portal', 'brand_company_bar')}</span>
+                        <span>{siteBrand?.name || translate('portal', 'brand_company_bar')}</span>
                         <span>{translate('portal', 'footer_timezone_currency')}</span>
                     </footer>
                 </main>

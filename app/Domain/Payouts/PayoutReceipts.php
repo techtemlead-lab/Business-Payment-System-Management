@@ -186,7 +186,7 @@ final class PayoutReceipts
                 'name' => (string) ($custom['contact_company_title'] ?? config('madina.company_name', 'Madina Natural Health Care')),
                 'address' => (string) ($custom['office_address'] ?? $custom['footer_address'] ?? config('madina.company_address')),
                 'phones' => (string) ($custom['contact_phone'] ?? $custom['footer_phone'] ?? config('madina.company_phone')),
-                'logo_url' => is_file(public_path('branding/madina-logo-latest.png')) ? asset('branding/madina-logo-latest.png') : asset('madina-header-logo.png'),
+                'logo_url' => SiteCustomization::logoFilePath() !== null ? asset(ltrim((string) parse_url(SiteCustomization::logoUrl(), PHP_URL_PATH), '/')) : (is_file(public_path('branding/madina-logo-latest.png')) ? asset('branding/madina-logo-latest.png') : asset('madina-header-logo.png')),
             ],
             'receipt' => [
                 'id' => (int) $receipt->id,

@@ -32,15 +32,15 @@ final class SocialShareMeta
         $image = self::absoluteUrl($usingDefault ? self::DefaultShareImage : $customImage, $usingDefault);
 
         return [
-            'title' => (string) ($custom['meta_title'] ?? __('site.meta_title_default')),
-            'description' => (string) ($custom['meta_description'] ?? __('site.meta_description')),
+            'title' => filled($custom['meta_title'] ?? null) ? (string) $custom['meta_title'] : (string) __('site.meta_title_default'),
+            'description' => filled($custom['meta_description'] ?? null) ? (string) $custom['meta_description'] : (string) __('site.meta_description'),
             'url' => PortalHost::url('public', '/'),
             'image' => $image,
             'image_width' => $usingDefault ? self::DefaultShareImageWidth : null,
             'image_height' => $usingDefault ? self::DefaultShareImageHeight : null,
             'image_type' => $usingDefault ? self::DefaultShareImageType : null,
             'type' => 'website',
-            'site_name' => (string) config('app.name', 'Madina Natural Health Care'),
+            'site_name' => SiteCustomization::brandName(),
         ];
     }
 
@@ -97,7 +97,7 @@ final class SocialShareMeta
         }
 
         return [
-            'title' => $name.' · '.(string) config('app.name', 'Madina Natural Health Care'),
+            'title' => $name.' · '.SiteCustomization::brandName(),
             'description' => mb_substr($description, 0, 280),
             'url' => $url,
             'image' => $image,
@@ -105,7 +105,7 @@ final class SocialShareMeta
             'image_height' => $imageHeight,
             'image_type' => $imageType,
             'type' => 'product',
-            'site_name' => (string) config('app.name', 'Madina Natural Health Care'),
+            'site_name' => SiteCustomization::brandName(),
             'price' => isset($product['price']) ? (string) $product['price'] : (isset($product['mrp']) ? (string) $product['mrp'] : null),
             'currency' => 'BDT',
             'partner' => $partnerPayload,
@@ -124,11 +124,11 @@ final class SocialShareMeta
         $description = __('site.share_refer_description', [
             'name' => $partner->name,
             'code' => $code,
-            'company' => (string) config('app.name', 'Madina Natural Health Care'),
+            'company' => SiteCustomization::brandName(),
         ]);
 
         return [
-            'title' => __('site.share_refer_title', ['name' => $partner->name, 'company' => (string) config('app.name', 'Madina Natural Health Care')]),
+            'title' => __('site.share_refer_title', ['name' => $partner->name, 'company' => SiteCustomization::brandName()]),
             'description' => mb_substr($description, 0, 280),
             'url' => PortalHost::url('public', '/join/'.$code),
             'image' => $photo,
@@ -136,7 +136,7 @@ final class SocialShareMeta
             'image_height' => $usingDefault ? self::DefaultShareImageHeight : 400,
             'image_type' => $usingDefault ? self::DefaultShareImageType : 'image/jpeg',
             'type' => 'profile',
-            'site_name' => (string) config('app.name', 'Madina Natural Health Care'),
+            'site_name' => SiteCustomization::brandName(),
             'partner' => [
                 'name' => (string) $partner->name,
                 'phone' => self::publicPhone($partner),
@@ -196,11 +196,11 @@ final class SocialShareMeta
      */
     public static function pagePresets(string $page): array
     {
-        $site = (string) config('app.name', 'Madina Natural Health Care');
+        $site = SiteCustomization::brandName();
         $presets = [
             'products' => [
                 'title' => 'Products · '.$site,
-                'description' => 'Explore authentic herbal, natural health, and wellness products from Madina Natural Health Care.',
+                'description' => 'Explore authentic herbal, natural health, and wellness products from '.$site.'.',
             ],
             'dealers' => [
                 'title' => 'Dealer Directory · '.$site,
@@ -208,23 +208,23 @@ final class SocialShareMeta
             ],
             'about' => [
                 'title' => 'About Us · '.$site,
-                'description' => 'Learn about Madina Natural Health Care, our mission, natural wellness philosophy, and dedication to health.',
+                'description' => 'Learn about '.$site.', our mission, natural wellness philosophy, and dedication to health.',
             ],
             'contact' => [
                 'title' => 'Contact Us · '.$site,
-                'description' => 'Get in touch with Madina Natural Health Care for corporate enquiries, product information, or dealer support.',
+                'description' => 'Get in touch with '.$site.' for corporate enquiries, product information, or dealer support.',
             ],
             'partnership' => [
                 'title' => 'Partnership · '.$site,
-                'description' => 'Become a business partner with Madina Natural Health Care as an authorized dealer or sub-dealer.',
+                'description' => 'Become a business partner with '.$site.' as an authorized dealer or sub-dealer.',
             ],
             'services' => [
                 'title' => 'Our Services · '.$site,
-                'description' => 'Explore professional healthcare, consultation, and supply chain services by Madina Natural Health Care.',
+                'description' => 'Explore professional healthcare, consultation, and supply chain services by '.$site.'.',
             ],
             'quality' => [
                 'title' => 'Quality Promise · '.$site,
-                'description' => 'How Madina Natural Health Care looks after product quality and its authorized dealer network.',
+                'description' => 'How '.$site.' looks after product quality and its authorized dealer network.',
             ],
             'faq' => [
                 'title' => 'FAQ · '.$site,
@@ -232,21 +232,21 @@ final class SocialShareMeta
             ],
             'privacy' => [
                 'title' => 'Privacy Policy · '.$site,
-                'description' => 'Privacy Policy and data protection terms of Madina Natural Health Care.',
+                'description' => 'Privacy Policy and data protection terms of '.$site.'.',
             ],
             'terms' => [
                 'title' => 'Terms of Use · '.$site,
-                'description' => 'Terms of service and usage conditions for Madina Natural Health Care.',
+                'description' => 'Terms of service and usage conditions for '.$site.'.',
             ],
             'notice' => [
                 'title' => 'Company Notices · '.$site,
-                'description' => 'Official notices and announcements from Madina Natural Health Care management.',
+                'description' => 'Official notices and announcements from '.$site.' management.',
             ],
         ];
 
         return $presets[$page] ?? [
             'title' => ucfirst(str_replace('-', ' ', $page)).' · '.$site,
-            'description' => 'Madina Natural Health Care products, company information and dealer network.',
+            'description' => $site.' products, company information and dealer network.',
         ];
     }
 
@@ -257,7 +257,7 @@ final class SocialShareMeta
      */
     public static function portalAuth(string $portal, string $mode = 'login'): array
     {
-        $site = (string) config('app.name', 'Madina Natural Health Care');
+        $site = SiteCustomization::brandName();
         $portalLabel = match ($portal) {
             'subdealer' => 'Sub-dealer Portal',
             'sadmin' => 'Owner Portal',

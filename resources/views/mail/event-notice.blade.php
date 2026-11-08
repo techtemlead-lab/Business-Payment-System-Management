@@ -1,5 +1,5 @@
 @php
-    $logo = public_path('madina-header-logo.png');
+    $logo = \App\Support\SiteCustomization::logoFilePath() ?? public_path('madina-header-logo.png');
     $company = (string) (config('mail.from.name') ?: config('app.name'));
 @endphp
 <!doctype html>
