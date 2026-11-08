@@ -57,8 +57,10 @@ html[data-theme="dark"] .ref-home :is(.ref-product-card,.ref-category-grid>a).re
 @keyframes refSheen{from{transform:translateX(-120%) skewX(-12deg);opacity:1}to{transform:translateX(260%) skewX(-12deg);opacity:1}}
 
 /* ---- Links: underline that draws in from the left ---- */
-.ref-home :is(.ref-footer-links a,.ref-information-links a,.ref-content-prose a,.ref-contact-link,.ref-breadcrumb a,.ref-nav-item>a){background-image:linear-gradient(currentColor,currentColor);background-repeat:no-repeat;background-position:0 100%;background-size:0% 1px;transition:background-size .35s cubic-bezier(.16,1,.3,1),color .2s ease}
-.ref-home :is(.ref-footer-links a,.ref-information-links a,.ref-content-prose a,.ref-contact-link,.ref-breadcrumb a,.ref-nav-item>a):is(:hover,:focus-visible){background-size:100% 1px;text-decoration:none}
+/* Text links only. The tiles in .ref-information-links paint their own background, and these
+   background-* longhands replaced it, leaving white text with nothing behind it in day mode. */
+.ref-home :is(.ref-footer-links a,.ref-content-prose a,.ref-contact-link,.ref-breadcrumb a,.ref-nav-item>a){background-image:linear-gradient(currentColor,currentColor);background-repeat:no-repeat;background-position:0 100%;background-size:0% 1px;transition:background-size .35s cubic-bezier(.16,1,.3,1),color .2s ease}
+.ref-home :is(.ref-footer-links a,.ref-content-prose a,.ref-contact-link,.ref-breadcrumb a,.ref-nav-item>a):is(:hover,:focus-visible){background-size:100% 1px;text-decoration:none}
 
 /* ---- Cursor ring (fine pointers only; the normal cursor stays) ---- */
 .ref-cursor-ring{position:fixed;left:0;top:0;z-index:2147483000;width:34px;height:34px;margin:-17px 0 0 -17px;pointer-events:none;opacity:0;will-change:transform;transition:opacity .25s ease}

@@ -1,0 +1,8 @@
+/* Phone top bar: the page title shared its row with five buttons and was squeezed to its first letter ("O."). */
+@media(max-width:767px){
+  /* The website link is also in the profile menu, so on phones its place goes to the title. */
+  .app-shell .workspace-header .header-actions .portal-website-link{display:none}
+  .app-shell .workspace-header .header-actions{gap:4px}
+  /* Two lines when it needs them, then an ellipsis. */
+  .app-shell .workspace-header .breadcrumb>b{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;white-space:normal;overflow-wrap:anywhere;font-size:14px;line-height:1.25}
+}
