@@ -93,7 +93,7 @@ final class PrescriberDirectory
                 'registration_type' => (string) $row->getAttribute('registration_type'),
                 'registration_number' => (string) $row->getAttribute('registration_number'),
                 'area' => ($place = $places->get((int) $row->getAttribute('place_id'))) ? $this->placeLabel($place->code, $place->name) : null,
-                'chamber_hours' => $row->getAttribute('chamber_hours'),
+                'chamber_hours' => filled($row->getAttribute('chamber_hours')) ? (string) $row->getAttribute('chamber_hours') : null,
             ]),
             'levels' => $levels,
         ];
