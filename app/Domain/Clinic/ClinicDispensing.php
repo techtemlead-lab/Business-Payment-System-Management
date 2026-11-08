@@ -18,11 +18,11 @@ use Illuminate\Validation\ValidationException;
  * The owner-doctor's clinic: dispensing a clinic prescription from one branch.
  *
  * The owner sets the selling price on each line. 30% of the product MRP goes to the
- * manufacturer fund, the same company share every dealer order carries
- * (CommissionPolicy's `company_mrp_percent`, stored as `company_share`). The rest of the
+ * manufacturer fund, the same percentage every dealer order carries (CommissionPolicy's
+ * `company_mrp_percent`) and rounded the same way: once, on the whole MRP. The rest of the
  * owner's price goes to the clinic fund. No dealer commission, no dealer order.
  *
- * Journal (balanced): debit clinic_cash = price; credit company_share = 30% of MRP;
+ * Journal (balanced): debit clinic_cash = price; credit manufacturer_fund = 30% of MRP;
  * credit clinic_fund = price - 30% of MRP (a debit when the owner allowed a lower price).
  */
 final class ClinicDispensing
@@ -30,8 +30,8 @@ final class ClinicDispensing
     /** Same as CommissionPolicy's company_mrp_percent. */
     public const ManufacturerMrpPercent = '30.00';
 
-    /** Journal account for the manufacturer's 30% of MRP, shared with the company share. */
-    public const ManufacturerAccount = 'company_share';
+    /** Journal account for the manufacturer's 30% of MRP. */
+    public const ManufacturerAccount = 'manufacturer_fund';
 
     public const ClinicFundAccount = 'clinic_fund';
 
@@ -81,18 +81,19 @@ final class ClinicDispensing
         $percent = Percentage::from(self::ManufacturerMrpPercent);
         $price = 0;
         $mrp = 0;
-        $manufacturer = 0;
         $below = [];
         foreach ($prescription->lines as $line) {
             $lineMrp = Money::cents((string) ($line->mrp ?? '0.00')) * (int) $line->quantity;
-            $lineShare = $percent->of($lineMrp, 'half_up');
             $linePrice = Money::cents((string) $line->line_total);
-            if ($linePrice < $lineShare) {
+            if ($linePrice < $percent->of($lineMrp, 'half_up')) {
                 $below[] = $line->medicine_name;
             }
             $price += $linePrice;
             $mrp += $lineMrp;
-            $manufacturer += $lineShare;
+        }
+        $manufacturer = $percent->of($mrp, 'half_up');
+        if ($below === [] && $price < $manufacturer) {
+            $below = $prescription->lines->pluck('medicine_name')->all();
         }
 
         return ['price' => $price, 'mrp' => $mrp, 'manufacturer' => $manufacturer, 'clinic' => $price - $manufacturer, 'below_floor' => $below];
