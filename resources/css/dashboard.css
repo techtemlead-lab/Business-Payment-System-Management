@@ -441,6 +441,7 @@ body{font-family:var(--ds-font);background:var(--ds-bg)}
 .language-switcher button.active{background:#011627;color:#fff}
 .language-switcher button:disabled{opacity:.85;cursor:wait}
 .language-switcher.compact button{padding:5px 9px;font-size:10px}
+.language-switcher .language-short{display:none}
 .madina-locale-switching{position:fixed;inset:0;z-index:2147483646;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;background:rgba(1,22,39,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);animation:madinaLocaleFadeIn .16s ease-out}
 .madina-locale-switching-card{width:min(100%,360px);background:#081621;color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:28px 24px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.35)}
 .madina-locale-switching-spinner{display:inline-block;width:36px;height:36px;margin:0 auto 16px;border:3px solid rgba(255,255,255,.18);border-top-color:#ef4a23;border-radius:50%;animation:madinaLocaleSpin .7s linear infinite}

@@ -336,7 +336,7 @@
                 $invoiceShareText = __('portal.share_invoice_text', ['number' => $order['number'] ?? '']);
                 $invoiceShareBody = $invoiceShareText.' '.$invoiceShareUrl;
             @endphp
-            <button type="button" class="btn-primary" onclick="window.print()">
+            <button type="button" class="btn-primary" data-print>
                 🖨️ {{ __('portal.print_invoice') }}
             </button>
             <a class="btn-secondary" href="{{ url('/orders/'.($order_id ?? '').'/invoice') }}">
@@ -531,11 +531,16 @@
     </table>
 </div>
 
-@if (! empty($auto_print))
-<script>
+@if (! empty($printable))
+<script nonce="{{ $csp_nonce ?? '' }}">
+    document.querySelectorAll('[data-print]').forEach(function (button) {
+        button.addEventListener('click', function () { window.print(); });
+    });
+    @if (! empty($auto_print))
     window.addEventListener('load', function () {
         setTimeout(function () { window.print(); }, 250);
     });
+    @endif
 </script>
 @endif
 </body>

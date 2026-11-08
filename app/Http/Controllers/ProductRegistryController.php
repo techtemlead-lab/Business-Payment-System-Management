@@ -135,7 +135,7 @@ class ProductRegistryController extends Controller
             $locked = Product::whereKey($product->id)->lockForUpdate()->firstOrFail();
             $paused = ! $locked->is_stock_paused;
             $locked->update(['is_stock_paused' => $paused, 'registry_version' => $locked->registry_version + 1]);
-            $this->notifications->recordChange($locked, $locked->stock, $paused && $locked->stock > 0);
+            $this->notifications->recordChange($locked, $locked->stock, $paused && $locked->sellableStock() > 0);
             Audit::record($r->user()->id, 'stock.quick_toggle', (string) $locked->id, ['ordering_paused' => $paused, 'stock_on_hand' => $locked->stock]);
 
             return $paused;
@@ -268,7 +268,7 @@ class ProductRegistryController extends Controller
             $saved = DB::transaction(function () use ($r, $product, $d, $source, $id, $vimeo, $external, $stored, &$old, $initialStock) {
                 $p = $product ? Product::whereKey($product->id)->lockForUpdate()->firstOrFail() : new Product;
                 $previousStock = (int) ($p->stock ?? 0);
-                $wasAvailable = $p->exists && $p->active && $previousStock > 0 && ! $p->is_stock_paused;
+                $wasAvailable = $p->exists && $p->active && $this->notifications->isAvailable($p);
                 if ($product && (string) $p->registry_version !== (string) $d['version']) {
                     throw ValidationException::withMessages(['version' => __('portal.err_prod_stale')]);
                 }

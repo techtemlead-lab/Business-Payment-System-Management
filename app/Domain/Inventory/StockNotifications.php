@@ -11,12 +11,23 @@ use Illuminate\Support\Facades\DB;
 
 final class StockNotifications
 {
+    /**
+     * Whether partners can order this product right now: ordering is not paused and some units
+     * can really be sent. Ask before changing the stock and hand the answer to recordChange(),
+     * so partners are only told a product is back when it can be ordered.
+     */
+    public function isAvailable(Product $product): bool
+    {
+        return ! $product->is_stock_paused && $product->sellableStock() > 0;
+    }
+
     public function recordChange(Product $product, int $previousStock, bool $wasAvailable): void
     {
         if (! $product->active) {
             return;
         }
-        if (! $wasAvailable && $product->stock > 0 && ! $product->is_stock_paused) {
+        $isAvailable = $this->isAvailable($product);
+        if (! $wasAvailable && $isAvailable) {
             User::where('status', 'active')->whereIn('role', ['dealer', 'sub_dealer'])->select(['id', 'locale'])
                 ->chunkById(500, function (Collection $users) use ($product): void {
                     $timestamp = now();
@@ -36,7 +47,7 @@ final class StockNotifications
                     app(WebPushNotices::class)->send($rows);
                 });
         }
-        if ($wasAvailable && ($product->stock <= 0 || $product->is_stock_paused)) {
+        if ($wasAvailable && ! $isAvailable) {
             User::where('status', 'active')->whereIn('role', ['dealer', 'sub_dealer'])->select(['id', 'locale'])
                 ->chunkById(500, function (Collection $users) use ($product): void {
                     $timestamp = now();

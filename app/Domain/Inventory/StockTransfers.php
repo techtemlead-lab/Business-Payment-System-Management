@@ -69,13 +69,14 @@ final class StockTransfers
             $product = Product::query()->whereKey($locked->product_id)->lockForUpdate()->firstOrFail();
             $stock = $this->branches->ensureBranchStock($source, $product);
             $previous = (int) $product->stock;
+            $wasAvailable = $this->notifications->isAvailable($product);
             $taken = $this->lots->take($stock, $product, (int) $locked->quantity, [
                 'kind' => StockLots::KindTransferOut,
                 'actor_id' => $actor->id,
                 'stock_transfer_id' => $locked->id,
                 'reference' => $locked->number,
             ], errorField: 'transfer');
-            $this->afterStockMoved($actor, $product, $previous, $source, -(int) $locked->quantity, 'transfer_out', 'transfer-out:'.$locked->number, $locked->number);
+            $this->afterStockMoved($actor, $product, $previous, $wasAvailable, $source, -(int) $locked->quantity, 'transfer_out', 'transfer-out:'.$locked->number, $locked->number);
             $locked->forceFill(['status' => StockTransfer::StatusInTransit, 'sent_by' => $actor->id, 'sent_at' => now()])->save();
             $this->audit($actor, 'stock.transfer_sent', $locked, $source, null, ['lots' => $taken]);
 
@@ -96,6 +97,7 @@ final class StockTransfers
             $product = Product::query()->whereKey($locked->product_id)->lockForUpdate()->firstOrFail();
             $stock = $this->branches->ensureBranchStock($destination, $product);
             $previous = (int) $product->stock;
+            $wasAvailable = $this->notifications->isAvailable($product);
             $moved = DB::table('stock_lot_movements')
                 ->where('stock_transfer_id', $locked->id)
                 ->where('kind', StockLots::KindTransferOut)
@@ -117,7 +119,7 @@ final class StockTransfers
                     'reference' => $locked->number,
                 ]);
             }
-            $this->afterStockMoved($actor, $product, $previous, $destination, (int) $locked->quantity, 'transfer_in', 'transfer-in:'.$locked->number, $locked->number);
+            $this->afterStockMoved($actor, $product, $previous, $wasAvailable, $destination, (int) $locked->quantity, 'transfer_in', 'transfer-in:'.$locked->number, $locked->number);
             $locked->forceFill(['status' => StockTransfer::StatusReceived, 'received_by' => $actor->id, 'received_at' => now()])->save();
             $this->audit($actor, 'stock.transfer_received', $locked, null, $destination);
 
@@ -152,7 +154,7 @@ final class StockTransfers
         return $locked;
     }
 
-    private function afterStockMoved(User $actor, Product $product, int $previous, CompanyBranch $branch, int $quantity, string $kind, string $reference, string $number): void
+    private function afterStockMoved(User $actor, Product $product, int $previous, bool $wasAvailable, CompanyBranch $branch, int $quantity, string $kind, string $reference, string $number): void
     {
         $companyTotal = (int) BranchProductStock::query()->where('product_id', $product->id)->sum('quantity');
         $product->forceFill(['stock' => $companyTotal])->save();
@@ -167,7 +169,7 @@ final class StockTransfers
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        $this->notifications->recordChange($product, $previous, $previous > 0 && ! $product->is_stock_paused);
+        $this->notifications->recordChange($product, $previous, $wasAvailable);
     }
 
     /**
