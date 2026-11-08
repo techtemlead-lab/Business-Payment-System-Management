@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Content\PartnerEventCalendar;
 use App\Models\PartnerEvent;
+use App\Rules\BanglaSmsText;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -20,7 +21,7 @@ class PartnerEventController extends Controller
     {
         $this->authorizeManager($request);
         $data = $request->validate([
-            ...$this->rules(),
+            ...$this->rules($request),
             'date' => ['required', 'date_format:Y-m-d', 'after_or_equal:'.PartnerEventCalendar::todayInDhaka()],
             'publish' => 'sometimes|boolean',
         ]);
@@ -32,7 +33,7 @@ class PartnerEventController extends Controller
     public function update(Request $request, PartnerEvent $partnerEvent): RedirectResponse
     {
         $this->authorizeManager($request);
-        $data = $request->validate($this->rules());
+        $data = $request->validate($this->rules($request));
         $this->calendar->save($request->user(), $partnerEvent, $data);
 
         return back()->with('success', __('portal.events_flash_saved'));
@@ -71,10 +72,11 @@ class PartnerEventController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function rules(): array
+    private function rules(Request $request): array
     {
         return [
-            'title_bn' => 'required|string|max:200',
+            // The Bangla title is the only typed text that goes into the event SMS.
+            'title_bn' => ['required', 'string', 'max:200', Rule::when($request->boolean('send_sms'), [new BanglaSmsText])],
             'title_en' => 'required|string|max:200',
             'date' => 'required|date_format:Y-m-d',
             'start_time' => 'required|date_format:H:i',

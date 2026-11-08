@@ -4,6 +4,7 @@ namespace App\Domain\Content;
 
 use App\Domain\Geography\PlaceTree;
 use App\Domain\Notifications\PartnerEventSms;
+use App\Domain\Notifications\SmsText;
 use App\Domain\Notifications\WebPushNotices;
 use App\Jobs\SendPartnerEventSms;
 use App\Models\PartnerEvent;
@@ -11,6 +12,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Tells the partners in an event's audience when it is published or cancelled:
@@ -90,6 +92,13 @@ final class PartnerEventNotifications
      */
     public function sendSms(PartnerEvent $event, array $userIds, string $smsEvent, string $smsKey): void
     {
+        // The template's own Bangla words would pass the gateway check, so the typed title is checked here.
+        if (! SmsText::hasBanglaLetters((string) $event->title_bn)) {
+            Log::warning('partner.event.sms.refused_not_bangla', ['event_id' => $event->id, 'sms_event' => $smsEvent]);
+
+            return;
+        }
+
         User::query()
             ->whereIn('id', $userIds)
             ->where('status', 'active')
@@ -97,8 +106,7 @@ final class PartnerEventNotifications
             ->select(['id', 'locale', 'phone'])
             ->orderBy('id')
             ->each(function (User $user) use ($event, $smsEvent, $smsKey): void {
-                $locale = $user->preferredLocale();
-                $this->sms->send($user, $smsEvent, __($smsKey, $this->replacements($event, $locale), $locale));
+                $this->sms->send($user, $smsEvent, SmsText::make($smsKey, $this->replacements($event, SmsText::Locale)));
             });
     }
 

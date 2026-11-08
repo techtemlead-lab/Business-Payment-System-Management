@@ -6,6 +6,7 @@ use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionSettlement;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Notifications\PartnerEventSms;
+use App\Domain\Notifications\SmsText;
 use App\Domain\Payouts\PayoutReceipts;
 use App\Models\CommissionAllocation;
 use App\Models\User;
@@ -134,7 +135,8 @@ final class ReserveService
                     );
                     $userId = (int) $row->user_id;
                     $amountText = (string) $row->amount;
-                    DB::afterCommit(function () use ($userId, $programLabel, $amountText, $locale): void {
+                    $program = (string) $row->program;
+                    DB::afterCommit(function () use ($userId, $program, $amountText): void {
                         $partner = User::find($userId);
                         if (! $partner) {
                             return;
@@ -142,10 +144,10 @@ final class ReserveService
                         app(PartnerEventSms::class)->send(
                             $partner,
                             'reserve.credited',
-                            __('sms.reward_credited', [
-                                'program' => $programLabel,
+                            SmsText::make('sms.reward_credited', [
+                                'program' => SmsText::label('portal.reward_program_'.$program, $program),
                                 'amount' => $amountText,
-                            ], $partner->preferredLocale() ?: $locale),
+                            ]),
                         );
                     });
                     if (in_array($row->program, ['bike', 'car'], true)) {
@@ -466,7 +468,8 @@ final class ReserveService
             ], $locale),
         );
         $userId = (int) $partner->id;
-        DB::afterCommit(function () use ($userId, $categoryLabel, $amountDecimal, $locale): void {
+        $fundCategory = (string) $fund->category;
+        DB::afterCommit(function () use ($userId, $fundCategory, $amountDecimal): void {
             $notified = User::find($userId);
             if (! $notified) {
                 return;
@@ -474,10 +477,10 @@ final class ReserveService
             app(PartnerEventSms::class)->send(
                 $notified,
                 'commission.hold_released',
-                __('sms.commission_released', [
-                    'category' => $categoryLabel,
+                SmsText::make('sms.commission_released', [
+                    'category' => SmsText::label('portal.report_cat_'.$fundCategory, $fundCategory),
                     'amount' => $amountDecimal,
-                ], $notified->preferredLocale() ?: $locale),
+                ]),
             );
         });
 

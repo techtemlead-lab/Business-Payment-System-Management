@@ -8,6 +8,7 @@ use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Geography\PlaceTree;
 use App\Domain\Notifications\PartnerEventSms;
+use App\Domain\Notifications\SmsText;
 use App\Models\DealerRank;
 use App\Models\PlaceCode;
 use App\Models\ReferralTreePath;
@@ -63,15 +64,15 @@ final class StaffOperations
                     'bonus' => $data['bonus'],
                 ], $locale),
             );
-            DB::afterCommit(function () use ($staff, $locale, $data): void {
+            DB::afterCommit(function () use ($staff, $data): void {
                 app(PartnerEventSms::class)->send(
                     $staff,
                     'staff.target_saved',
-                    __('sms.staff_target_saved', [
+                    SmsText::make('sms.staff_target_saved', [
                         'month' => $data['period_month'],
                         'target' => $data['target'],
                         'bonus' => $data['bonus'],
-                    ], $locale),
+                    ]),
                 );
             });
 
@@ -256,11 +257,12 @@ final class StaffOperations
         if ($phone === '') {
             return;
         }
+        $smsRoleLabel = SmsText::make($role === 'sub_dealer' ? 'portal.acct_role_sub_dealer' : 'portal.acct_role_dealer');
         if ($decision === 'approved') {
             app(PartnerEventSms::class)->sendToPhone(
                 $phone,
                 'partnership.application_approved',
-                __('sms.partnership_application_approved', ['role' => $roleLabel], $locale),
+                SmsText::make('sms.partnership_application_approved', ['role' => $smsRoleLabel]),
             );
 
             return;
@@ -268,10 +270,10 @@ final class StaffOperations
         app(PartnerEventSms::class)->sendToPhone(
             $phone,
             'partnership.application_rejected',
-            __('sms.partnership_application_rejected', [
-                'role' => $roleLabel,
+            SmsText::make('sms.partnership_application_rejected', [
+                'role' => $smsRoleLabel,
                 'reason' => $reason,
-            ], $locale),
+            ]),
         );
     }
 }

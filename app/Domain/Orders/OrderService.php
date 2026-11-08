@@ -10,6 +10,7 @@ use App\Domain\Integrations\PaymentGatewayClient;
 use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\StockNotifications;
 use App\Domain\Notifications\PartnerEventSms;
+use App\Domain\Notifications\SmsText;
 use App\Domain\Pricing\ProductPricing;
 use App\Domain\Staff\TerritoryAccess;
 use App\Jobs\BookShipmentCourier;
@@ -220,7 +221,7 @@ class OrderService
                 'reason' => $reason,
             ]);
             $this->partnerSms($locked->user_id, 'order.'.$status, 'sms.order_decision', [
-                'status' => $statusLabel,
+                'status' => SmsText::make('portal.order_status_'.$status),
                 'number' => $locked->number,
                 'reason' => $reason,
             ]);
@@ -296,7 +297,7 @@ class OrderService
                 ]);
                 $this->partnerSms($order->user_id, $approve ? 'payment.verified' : 'payment.rejected', 'sms.payment_reviewed', [
                     'number' => $order->number,
-                    'outcome' => $outcome,
+                    'outcome' => SmsText::make($approve ? 'portal.payment_outcome_verified' : 'portal.payment_outcome_rejected'),
                 ]);
             }, 3);
         } catch (QueryException $exception) {
@@ -690,11 +691,10 @@ class OrderService
             if (! $partner) {
                 return;
             }
-            $locale = $partner->preferredLocale();
             app(PartnerEventSms::class)->send(
                 $partner,
                 $event,
-                __($template, $replace, $locale),
+                SmsText::make($template, $replace),
             );
         });
     }

@@ -6270,4 +6270,11 @@ return [
     'event_prescription_template_saved' => 'প্রেসক্রিপশনের টেমপ্লেট রাখা হয়েছে',
     'event_prescription_template_deleted' => 'প্রেসক্রিপশনের টেমপ্লেট মুছে দেওয়া হয়েছে',
     'event_prescription_follow_up_done' => 'রোগীকে আবার দেখা হয়ে গেছে',
+    'si_provider_greenweb' => 'গ্রিনওয়েব (bdbulksms)',
+    'si_field_greenweb_api_key' => 'API টোকেন',
+    'sms_refused_not_bangla' => 'বাংলা অক্ষর নেই, তাই এসএমএসটি পাঠানো হয়নি।',
+    'sms_err_bangla_required' => 'এসএমএস পাঠাতে হলে বাংলায় শিরোনাম বাংলা অক্ষরে লিখুন। শুধু ইংরেজি বা ইংরেজি অক্ষরে বাংলা (Banglish) চলবে না।',
+    'sms_compose_rules_note' => 'এসএমএসের নিয়ম: বাংলায় লিখুন। বাংলার সাথে কিছু ইংরেজি শব্দ চলবে, কিন্তু শুধু ইংরেজি বা ইংরেজি অক্ষরে বাংলা (Banglish) চলবে না। ব্যক্তিগত বা রাজনৈতিক বার্তা, গালি, হুমকি বা অশ্লীল কথা পাঠানো যাবে না।',
+    'sms_compose_counter' => ':chars অক্ষর · :segments টি এসএমএস',
+    'sms_compose_counter_hint' => 'বাংলায় ১টি এসএমএসে ৭০ অক্ষর। এর বেশি হলে প্রতিটিতে ৬৭ অক্ষর ধরে খরচ হবে।',
 ];
