@@ -2861,7 +2861,7 @@ return [
     'notice_order_decision_title' => 'Order :status',
     'notice_order_decision_body' => ':number: :reason',
     'notice_payment_claimed_title' => 'Payment sent for checking',
-    'notice_payment_claimed_body' => ':number: :amount via :channel is waiting to be checked.',
+    'notice_payment_claimed_body' => ':number: ৳:amount via :channel is waiting to be checked.',
     'notice_payment_reviewed_title' => 'Payment reviewed',
     'notice_payment_reviewed_body' => ':number: payment :outcome.',
     'notice_shipment_dispatched_title' => 'Delivery sent',

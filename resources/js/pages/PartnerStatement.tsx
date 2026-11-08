@@ -3,7 +3,7 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Download } from 'lucide-react';
 import Shell from '../components/Shell';
 import PartnerHubNav, { AllRecordsViews, type PartnerHub } from '../components/PartnerHubNav';
-import { Row, Table, Pagination, money, dateTime, DateInput } from '../components/UI';
+import { Row, Table, Pagination, money, date, dateTime, DateInput } from '../components/UI';
 import { useT } from '../shared/i18n/t';
 
 type Statement = {
@@ -80,10 +80,10 @@ export default function PartnerStatement({ partner, range, statement, staffView,
                 <button className="button small dark" type="submit">{translate('portal', 'stmt_show')}</button>
             </form>
             <div className="metric-grid four">
-                {tile('opening_balance', statement.opening_balance, range.from)}
+                {tile('opening_balance', statement.opening_balance, date(range.from))}
                 {tile('stmt_col_in', statement.total_in)}
                 {tile('stmt_col_out', statement.total_out)}
-                {tile('closing_balance', statement.closing_balance, range.to)}
+                {tile('closing_balance', statement.closing_balance, date(range.to))}
             </div>
             <Table
                 searchable={false}
