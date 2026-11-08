@@ -54,6 +54,7 @@ final class AccountingStatements
         'commission_clawback_recovery' => self::Expense,
         'payroll_expense' => self::Expense,
         'company_marketing_expense' => self::Expense,
+        'company_fund_expense' => self::Expense,
     ];
 
     /**
@@ -171,7 +172,7 @@ final class AccountingStatements
                 'ties_to_journal' => $journal['debit'] === $totals['debit'] && $journal['credit'] === $totals['credit'],
                 'journal_balanced' => $totals['closing'] === 0 && $totals['debit'] === $totals['credit'],
                 'statement_balances' => $totalAssets === $totalLiabilitiesAndEquity,
-                'unclassified_accounts' => array_values(array_keys(array_diff_key($accounts, self::AccountClasses))),
+                'unclassified_accounts' => array_keys(array_diff_key($accounts, self::AccountClasses)),
             ],
         ];
     }

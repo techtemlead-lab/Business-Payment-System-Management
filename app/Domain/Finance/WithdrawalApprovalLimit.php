@@ -25,7 +25,7 @@ final class WithdrawalApprovalLimit
         $row = DB::table('business_settings')->where('key', self::Key)->first();
         $stored = $row ? json_decode($row->value, true, 512, JSON_THROW_ON_ERROR) : [];
 
-        return ['amount' => (string) ($stored['amount'] ?? self::DefaultAmount), 'version' => $row?->version ?? 0];
+        return ['amount' => (string) ($stored['amount'] ?? self::DefaultAmount), 'version' => $row->version ?? 0];
     }
 
     public function save(User $actor, string $amount, int $version, string $reason): void
@@ -45,7 +45,7 @@ final class WithdrawalApprovalLimit
             $stored = DB::table('business_settings')->where('key', self::Key)->first();
             DB::table('business_settings')->updateOrInsert(['key' => self::Key], [
                 'value' => json_encode($after, JSON_THROW_ON_ERROR), 'version' => $version + 1,
-                'updated_by' => $actor->id, 'created_at' => $stored?->created_at ?? now(), 'updated_at' => now(),
+                'updated_by' => $actor->id, 'created_at' => $stored->created_at ?? now(), 'updated_at' => now(),
             ]);
             Audit::record($actor->id, 'finance.withdrawal_approval_limit_changed', self::Key, [
                 'before' => ['amount' => $before['amount']], 'after' => $after, 'reason' => $reason,
