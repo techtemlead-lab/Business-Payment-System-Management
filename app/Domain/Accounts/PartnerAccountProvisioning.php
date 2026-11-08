@@ -7,6 +7,7 @@ use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Geography\ManagementReferral;
 use App\Domain\Geography\PlaceGeographyResolver;
 use App\Domain\Notifications\AccountCreatedSms;
+use App\Domain\Notifications\PartnerEventEmail;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
 use App\Models\AreaDealerAssignment;
@@ -256,6 +257,7 @@ final class PartnerAccountProvisioning
 
         // One-time credentials travel only through the SMS channel — never JSON/Inertia props.
         $this->sms->send($user, $plainPassword);
+        app(PartnerEventEmail::class)->sendTranslated($user, 'account.created', 'event_emails.account_created_title', 'event_emails.account_created_body');
 
         return [
             'user' => $user,

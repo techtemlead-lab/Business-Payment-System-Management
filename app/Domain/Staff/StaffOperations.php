@@ -252,6 +252,7 @@ final class StaffOperations
                 $partner->id,
                 __('portal.notice_partnership_approved_title', [], $locale),
                 __('portal.notice_partnership_approved_body', ['role' => $roleLabel], $locale),
+                'account.created',
             );
         }
         if ($phone === '') {

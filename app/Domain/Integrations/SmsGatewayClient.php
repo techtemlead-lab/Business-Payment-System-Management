@@ -36,6 +36,8 @@ final class SmsGatewayClient
 
             try {
                 $ok = match ($provider) {
+                    'mim_sms' => $this->sendMimSms($config, $phone, $message),
+                    'alpha_sms' => $this->sendAlphaSms($config, $phone, $message),
                     'greenweb' => $this->sendGreenweb($config, $phone, $message),
                     'ssl_wireless' => $this->sendSslWireless($config, $phone, $message),
                     'bulk_sms_bd' => $this->sendBulkSmsBd($config, $phone, $message),
@@ -127,6 +129,8 @@ final class SmsGatewayClient
             }
             try {
                 $balance = match ($key) {
+                    'mim_sms' => $this->balanceMimSms($config),
+                    'alpha_sms' => $this->balanceAlphaSms($config),
                     'greenweb' => $this->balanceGreenweb($config),
                     'ssl_wireless' => $this->balanceSslWireless($config),
                     'bulk_sms_bd' => $this->balanceBulkSmsBd($config),
@@ -151,6 +155,57 @@ final class SmsGatewayClient
             'balance' => null,
             'message' => __('portal.si_sms_balance_unavailable'),
         ];
+    }
+
+    /**
+     * MIM SMS balance (API v2.1). The amount is in data[0].balance; the GET form of the
+     * call returns it in responseResult instead, so that is read too.
+     *
+     * @param  array<string, mixed>  $config
+     */
+    private function balanceMimSms(array $config): ?string
+    {
+        $url = trim((string) ($config['balance_url'] ?? ''));
+        $apiKey = (string) ($config['api_key'] ?? '');
+        $userName = (string) ($config['username'] ?? '');
+        if ($url === '' || $apiKey === '' || $userName === '') {
+            return null;
+        }
+        $response = Http::connectTimeout(3)->timeout(12)->acceptJson()->asJson()->post($url, [
+            'userName' => $userName,
+            'apiKey' => $apiKey,
+        ]);
+        $json = $response->json();
+        if (! $response->successful() || ! is_array($json) || (string) ($json['statusCode'] ?? '') !== '200'
+            || ! in_array(strtolower((string) ($json['status'] ?? '')), ['success', 'ok'], true)) {
+            return null;
+        }
+        $value = $json['data'][0]['balance'] ?? $json['responseResult'] ?? null;
+
+        return $value === null ? null : mb_strimwidth((string) $value, 0, 60);
+    }
+
+    /**
+     * Alpha SMS documents the balance call only with the key in the query string.
+     * Any failure is logged through RedactedError, which removes query strings.
+     *
+     * @param  array<string, mixed>  $config
+     */
+    private function balanceAlphaSms(array $config): ?string
+    {
+        $url = trim((string) ($config['balance_url'] ?? ''));
+        $apiKey = (string) ($config['api_key'] ?? '');
+        if ($url === '' || $apiKey === '') {
+            return null;
+        }
+        $response = Http::connectTimeout(3)->timeout(12)->acceptJson()->get($url, ['api_key' => $apiKey]);
+        $json = $response->json();
+        if (! $response->successful() || ! is_array($json) || ! $this->alphaAccepted($json)) {
+            return null;
+        }
+        $value = $json['data']['balance'] ?? null;
+
+        return $value === null ? null : mb_strimwidth((string) $value, 0, 60);
     }
 
     /**
@@ -265,6 +320,100 @@ final class SmsGatewayClient
         ]);
 
         return false;
+    }
+
+    /**
+     * MIM SMS transactional send (API v2.1): one number per request, JSON body, and only
+     * statusCode 200 with status Success counts as accepted. MIM repeats the number in
+     * its reply, so the reply is logged with the key, login, text and number hidden.
+     *
+     * @param  array<string, mixed>  $config
+     */
+    private function sendMimSms(array $config, string $phone, string $message): bool
+    {
+        $base = rtrim((string) $config['base_url'], '/');
+        $apiKey = (string) $config['api_key'];
+        $userName = (string) ($config['username'] ?? '');
+        $senderName = (string) ($config['sender_id'] ?? '');
+        if ($base === '' || $apiKey === '' || $userName === '' || $senderName === '') {
+            return false;
+        }
+        $number = $this->internationalPhone($phone);
+        $response = Http::connectTimeout(3)->timeout(15)->acceptJson()->asJson()->post($base, [
+            'apiKey' => $apiKey,
+            'userName' => $userName,
+            'campaignName' => 'null',
+            'senderName' => $senderName,
+            'transactionType' => 'T',
+            'mobileNumber' => $number,
+            'message' => $message,
+        ]);
+        $json = $response->json();
+        if ($response->successful() && is_array($json) && (string) ($json['statusCode'] ?? '') === '200'
+            && strcasecmp((string) ($json['status'] ?? ''), 'Success') === 0) {
+            return true;
+        }
+        Log::warning('sms.mim_rejected', [
+            'status' => $response->status(),
+            'reply' => $this->loggableReply($response->body(), [$apiKey, $userName, $message, $number, $phone]),
+        ]);
+
+        return false;
+    }
+
+    /**
+     * Alpha SMS (sms.net.bd): success is "error": 0 in the JSON reply. The key goes in
+     * the form body, never in the URL. See https://sms.bd/api.
+     *
+     * @param  array<string, mixed>  $config
+     */
+    private function sendAlphaSms(array $config, string $phone, string $message): bool
+    {
+        $base = rtrim((string) $config['base_url'], '/');
+        $apiKey = (string) $config['api_key'];
+        if ($base === '' || $apiKey === '') {
+            return false;
+        }
+        $number = $this->internationalPhone($phone);
+        $payload = ['api_key' => $apiKey, 'msg' => $message, 'to' => $number];
+        if (filled($config['sender_id'] ?? null)) {
+            $payload['sender_id'] = (string) $config['sender_id'];
+        }
+        $response = Http::connectTimeout(3)->timeout(15)->acceptJson()->asForm()->post($base, $payload);
+        $json = $response->json();
+        if ($response->successful() && is_array($json) && $this->alphaAccepted($json)) {
+            return true;
+        }
+        Log::warning('sms.alpha_rejected', [
+            'status' => $response->status(),
+            'reply' => $this->loggableReply($response->body(), [$apiKey, $message, $number, $phone]),
+        ]);
+
+        return false;
+    }
+
+    /** @param  array<mixed>  $json */
+    private function alphaAccepted(array $json): bool
+    {
+        return is_numeric($json['error'] ?? null) && (int) $json['error'] === 0;
+    }
+
+    /** MIM and Alpha both take the number as 8801XXXXXXXXX. */
+    private function internationalPhone(string $phone): string
+    {
+        $digits = preg_replace('/\D+/', '', $phone) ?? '';
+
+        return str_starts_with($digits, '01') ? '88'.$digits : $digits;
+    }
+
+    /**
+     * A provider's refusal, cut short and with everything secret or personal removed.
+     *
+     * @param  list<string>  $hidden
+     */
+    private function loggableReply(string $reply, array $hidden): string
+    {
+        return RedactedError::text(mb_strimwidth(str_replace($hidden, '[hidden]', trim($reply)), 0, 120));
     }
 
     /** @param  array<string, mixed>  $config */

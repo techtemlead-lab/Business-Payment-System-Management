@@ -198,6 +198,7 @@ class BookShipmentCourier implements ShouldQueue
             $partner->id,
             __('portal.notice_shipment_dispatched_title', $replace, $locale),
             __('portal.notice_shipment_dispatched_body', $replace, $locale),
+            'order.dispatched',
         );
         app(PartnerEventSms::class)->send($partner, 'order.dispatched', SmsText::make('sms.shipment_dispatched', $replace));
     }

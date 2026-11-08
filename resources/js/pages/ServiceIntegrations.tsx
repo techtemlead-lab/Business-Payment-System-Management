@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { PlugZap } from 'lucide-react';
 import Shell from '../components/Shell';
+import EmailEventSwitches, { EmailEventPanel } from '../components/EmailEventSwitches';
 import { Badge, Row, humanize } from '../components/UI';
 import { useT } from '../shared/i18n/t';
 
@@ -36,6 +37,12 @@ function ProviderForm({ group, provider, version, canEdit }: { group: string; pr
         return humanize(field);
     };
 
+    /** Extra setup help for a provider or one of its fields; empty when none is written. */
+    const hintText = (key: string): string => {
+        const hint = translate('portal', key);
+        return hint !== key ? hint : '';
+    };
+
     const checkBalance = async () => {
         setBalanceBusy(true);
         setBalanceMsg('');
@@ -67,6 +74,7 @@ function ProviderForm({ group, provider, version, canEdit }: { group: string; pr
                 <div><strong>{provider.label}</strong><p className="muted">{translate('portal', 'si_provider_key')}: {provider.key}</p></div>
                 <div><Badge status={provider.enabled ? 'active' : 'inactive'} /></div>
             </div>
+            {hintText(`si_hint_${provider.key}`) && <p className="muted">{hintText(`si_hint_${provider.key}`)}</p>}
             <label>{translate('portal', 'si_enabled')}
                 <select value={String(form.data.enabled)} onChange={e => form.setData('enabled', e.target.value)} disabled={!canEdit}>
                     <option value="0">{translate('portal', 'si_disabled_default')}</option>
@@ -98,6 +106,7 @@ function ProviderForm({ group, provider, version, canEdit }: { group: string; pr
                             autoComplete="off"
                         />
                     )}
+                    {hintText(`si_hint_${provider.key}_${field}`) && <span className="muted">{hintText(`si_hint_${provider.key}_${field}`)}</span>}
                     {form.errors[field] && <span className="field-error">{String(form.errors[field])}</span>}
                 </label>
             ))}
@@ -118,8 +127,9 @@ function ProviderForm({ group, provider, version, canEdit }: { group: string; pr
     );
 }
 
-export default function ServiceIntegrations({ integrations, startup, canEdit, ownerOnlyGroups = [], channelHint }: {
+export default function ServiceIntegrations({ integrations, startup, canEdit, ownerOnlyGroups = [], channelHint, emailEvents }: {
     integrations: { version: number; groups: Record<string, Group> };
+    emailEvents?: EmailEventPanel;
     ownerOnlyGroups?: string[];
     startup: { mode: string | null; version: number; label: string; description: string };
     canEdit: boolean;
@@ -191,6 +201,7 @@ export default function ServiceIntegrations({ integrations, startup, canEdit, ow
                                 <ProviderForm group={groupKey} provider={provider} version={integrations.version} canEdit={canEdit && !ownerOnlyGroups.includes(groupKey)} />
                             </section>
                         ))}
+                        {groupKey === 'mail' && emailEvents && <EmailEventSwitches panel={emailEvents} canEdit={canEdit && !ownerOnlyGroups.includes('mail')} />}
                     </>}
                 </section>
             </div>
