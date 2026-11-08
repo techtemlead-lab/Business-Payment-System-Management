@@ -3625,15 +3625,38 @@ html[data-theme="dark"] .ref-card-cta i{color:var(--sm-green-deep)}
   .ref-featured-products .ref-product-grid>.ref-product-card{flex-basis:calc((100% - 32px)/3);width:calc((100% - 32px)/3)}
   .ref-product-grid.ref-catalog-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+/* Phones show one card at a time, with a shorter picture so a card still fits on the screen. */
 @media(max-width:767px){
-  .ref-featured-products .ref-product-grid{gap:12px}
-  .ref-featured-products .ref-product-grid>.ref-product-card{flex-basis:calc(50% - 6px);width:calc(50% - 6px)}
-  .ref-product-grid.ref-catalog-grid{gap:12px}
-  .ref-card-picture{padding:14px}
-  .ref-card-body{padding:12px 12px 14px}
-  .ref-card-title,.locale-bn .ref-card-title{font-size:17px}
-  .ref-card-price strong{font-size:20px}
-  .ref-card-cta{font-size:14px}
+  .ref-featured-products .ref-product-grid{gap:14px}
+  .ref-featured-products .ref-product-grid>.ref-product-card{flex-basis:100%;width:100%}
+  .ref-product-grid,.ref-product-grid.ref-catalog-grid{grid-template-columns:minmax(0,1fr);gap:14px}
+  .ref-card-picture,.ref-card-picture.is-stock{aspect-ratio:4/3;padding:16px}
+  .ref-card-picture.is-stock{padding:0}
+  .ref-card-body{padding:14px 16px 16px}
+  .ref-card-title,.locale-bn .ref-card-title{min-height:0}
+}
+
+/* Footer: the logo with the company name beside it, then the social links in one row. */
+.ref-footer-brand{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.ref-footer-brand a{display:block;flex:none}
+.ref-footer-brand img{display:block;width:56px;height:56px;object-fit:contain}
+.ref-footer .ref-footer-brand h3{margin:0;font-family:var(--ds-font-display);font-size:20px;font-weight:400;line-height:1.25;color:var(--sm-gold-light)}
+.ref-footer .ref-socials{display:flex;flex-flow:row wrap;align-items:center}
+@media(max-width:767px){
+  .ref-footer-support-row{display:block!important}
+  .ref-footer-support-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px!important}
+  .ref-support-box{padding:10px 8px!important;gap:6px!important}
+  .ref-support-box>i{font-size:15px!important;padding-right:6px!important}
+  .ref-support-box b{font-size:clamp(11px,3.4vw,14px)!important;line-height:1.25;overflow-wrap:anywhere}
+  .ref-support-box small{font-size:11px!important;margin-bottom:2px!important;line-height:1.25}
+  .ref-footer-contact-info{margin-top:8px}
+  .ref-footer-grid>section:last-child .ref-footer-brand img{width:44px;height:44px!important;max-width:none!important}
+  .ref-footer .ref-footer-brand h3{margin:0!important;font-size:18px!important}
+  .ref-footer .ref-socials img{width:30px;height:30px}
+}
+/* The bottom menu already has its own space, so the footer needs none of its own. */
+@media(max-width:1023px){
+  .ref-footer,body.ref-home:has(aside.ref-floating-tools) .ref-footer{padding-bottom:env(safe-area-inset-bottom,0px)}
 }
 
 /* Phones and tablets */

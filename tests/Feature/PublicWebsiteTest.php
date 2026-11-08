@@ -185,7 +185,7 @@ class PublicWebsiteTest extends TestCase
         $res->assertSee('Genuine Products:');
         $res->assertSee('Strong Partners:');
         $res->assertSee('Trade License 2026-00563');
-        $res->assertSee('Thana Road, Pirganj 5470, Rangpur');
+        $res->assertSee('Pirganj, Rangpur, Bangladesh');
         $res->assertSee('staff-verified dealer and sub-dealer network');
         $res->assertSee('dependable mother company for dealers');
         $res->assertDontSee('Moshorikhula');
