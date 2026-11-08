@@ -64,6 +64,11 @@ Schedule::command('couriers:refresh-tracking')->everyThirtyMinutes()->withoutOve
 Schedule::command('support:overdue-reminders')->dailyAt('09:30')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
     ->onFailure(fn () => Log::critical('Scheduled overdue support ticket reminder failed.'));
 
+// Prescribers: how many patients are due back today or past their follow-up date. One portal notice
+// each morning, counts only. No SMS.
+Schedule::command('prescriptions:follow-up-reminders')->dailyAt('08:30')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
+    ->onFailure(fn () => Log::critical('Scheduled prescription follow-up reminder failed.'));
+
 // Failed background jobs are kept for a week to investigate, then removed.
 Schedule::command('queue:prune-failed --hours=168')->dailyAt('04:15')->timezone('Asia/Dhaka')->withoutOverlapping(30)->onOneServer();
 

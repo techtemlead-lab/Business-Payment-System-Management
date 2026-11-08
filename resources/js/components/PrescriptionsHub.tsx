@@ -4,6 +4,9 @@ import { FileText, Pill, Plus, Printer, Search, Stethoscope, Trash2, UserPlus } 
 import { DateInput, Empty, FormErrors, money } from './UI';
 import { useT } from '../shared/i18n/t';
 import { businessTodayIso } from '../business-date';
+import { SaveAsTemplate, TemplatePicker, TemplatesTab, type PrescriptionTools } from './PrescriptionTemplates';
+import { FollowUpsPanel } from './PrescriptionFollowUps';
+import { PrescriberReportTab } from './PrescriberReport';
 
 type Translate = ReturnType<typeof useT>;
 
@@ -65,7 +68,7 @@ export type PrescriptionsData = {
     report?: ReportData;
 };
 
-type LineForm = {
+export type LineForm = {
     product_id: string;
     medicine_name: string;
     dose: string;
@@ -101,7 +104,7 @@ function Tabs({ tabs, active, onChange }: { tabs: { id: string; label: string }[
     );
 }
 
-export default function PrescriptionsHub({ data }: { data: PrescriptionsData }) {
+export default function PrescriptionsHub({ data, tools }: { data: PrescriptionsData; tools: PrescriptionTools }) {
     const translate = useT();
     const clinic = data.mode === 'clinic';
     const [tab, setTab] = useState<string>(() => {
@@ -111,6 +114,8 @@ export default function PrescriptionsHub({ data }: { data: PrescriptionsData }) 
     const tabs = [
         { id: 'prescriptions', label: translate('prescription', 'tab_prescriptions') },
         { id: 'patients', label: translate('prescription', 'tab_patients') },
+        { id: 'templates', label: translate('prescription', 'tab_templates') },
+        { id: 'my-report', label: translate('prescription', 'tab_my_report') },
         ...(clinic ? [{ id: 'report', label: translate('prescription', 'tab_report') }, { id: 'settings', label: translate('prescription', 'tab_settings') }] : []),
     ];
 
@@ -130,15 +135,18 @@ export default function PrescriptionsHub({ data }: { data: PrescriptionsData }) 
                 </div>
                 <Tabs tabs={tabs} active={tab} onChange={setTab} />
             </section>
-            {tab === 'prescriptions' && <PrescriptionsTab data={data} translate={translate} />}
+            {tab === 'prescriptions' && <FollowUpsPanel followUps={tools.follow_ups} translate={translate} />}
+            {tab === 'prescriptions' && <PrescriptionsTab data={data} tools={tools} translate={translate} />}
             {tab === 'patients' && <PatientsTab data={data} translate={translate} />}
+            {tab === 'templates' && <TemplatesTab templates={tools.templates} translate={translate} />}
+            {tab === 'my-report' && <PrescriberReportTab report={tools.report} translate={translate} />}
             {tab === 'report' && clinic && data.report && <ReportTab report={data.report} translate={translate} />}
             {tab === 'settings' && clinic && <SettingsTab data={data} translate={translate} />}
         </div>
     );
 }
 
-function PrescriptionsTab({ data, translate }: { data: PrescriptionsData; translate: Translate }) {
+function PrescriptionsTab({ data, tools, translate }: { data: PrescriptionsData; tools: PrescriptionTools; translate: Translate }) {
     const clinic = data.mode === 'clinic';
     const ownPatients = data.patients.filter((patient) => patient.own);
     const products = data.products ?? [];
@@ -186,6 +194,13 @@ function PrescriptionsTab({ data, translate }: { data: PrescriptionsData; transl
                     <Empty title={translate('prescription', 'patients_empty')} body={translate('prescription', 'patients_empty_body')} />
                 ) : (
                     <form className="action-form rx-form" onSubmit={submit}>
+                        <TemplatePicker
+                            templates={tools.templates}
+                            products={products}
+                            isDirty={lines.some((line) => line.product_id !== '' || line.medicine_name !== '') || form.data.advice !== ''}
+                            onApply={(draft) => form.setData({ ...form.data, advice: draft.advice, lines: draft.lines })}
+                            translate={translate}
+                        />
                         <div className="rx-grid">
                             <label>{translate('prescription', 'rx_patient')}
                                 <select required value={form.data.patient_id} onChange={(e) => form.setData('patient_id', e.target.value)}>
@@ -336,6 +351,7 @@ function PrescriptionList({ data, translate }: { data: PrescriptionsData; transl
                                 <span className="rx-actions">
                                     <a className="button small" href={`${base}/prescriptions/${row.id}/print?lang=bn`} target="_blank" rel="noopener"><Printer size={15} /> {translate('prescription', 'rx_print_bn')}</a>
                                     <a className="button small" href={`${base}/prescriptions/${row.id}/print?lang=en`} target="_blank" rel="noopener"><Printer size={15} /> {translate('prescription', 'rx_print_en')}</a>
+                                    {row.own && <SaveAsTemplate prescriptionId={row.id} translate={translate} />}
                                 </span>
                             </div>
                             {data.mode === 'clinic' && row.kind === 'clinic' && row.own && row.status === 'issued' && (
