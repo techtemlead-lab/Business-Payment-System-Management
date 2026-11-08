@@ -6267,4 +6267,7 @@ return [
     'event_clinic_price_floor_changed' => 'চেম্বারে ৩০%-এর কম দামের সেটিং বদলেছে',
     'section_hint_prescriptions' => 'চেম্বারের রোগী, প্রেসক্রিপশন আর দেওয়া ওষুধ।',
     'section_hint_partner_prescriptions' => 'আপনার রোগী আর আপনার লেখা প্রেসক্রিপশন।',
+    'event_prescription_template_saved' => 'প্রেসক্রিপশনের টেমপ্লেট রাখা হয়েছে',
+    'event_prescription_template_deleted' => 'প্রেসক্রিপশনের টেমপ্লেট মুছে দেওয়া হয়েছে',
+    'event_prescription_follow_up_done' => 'রোগীকে আবার দেখা হয়ে গেছে',
 ];
