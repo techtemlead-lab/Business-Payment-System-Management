@@ -6285,4 +6285,5 @@ return [
     'event_clinic_below_floor_override' => 'Owner confirmed a sale below 30% of MRP',
     'accounting' => 'Accounting',
     'section_hint_accounting' => 'Trial balance, profit and loss, balance sheet, statement checks and the payout file.',
+    'event_finance_withdrawal_approval_limit_changed' => 'Withdrawal approval limit changed',
 ];

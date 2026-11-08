@@ -6285,4 +6285,5 @@ return [
     'event_clinic_below_floor_override' => 'মালিক এমআরপির ৩০%-এর কমে বিক্রি নিশ্চিত করেছেন',
     'accounting' => 'হিসাব',
     'section_hint_accounting' => 'ট্রায়াল ব্যালেন্স, লাভ-ক্ষতি, ব্যালেন্স শিট, স্টেটমেন্ট মেলানো আর পেমেন্ট ফাইল।',
+    'event_finance_withdrawal_approval_limit_changed' => 'উইথড্র অনুমোদনের সীমা বদলানো হয়েছে',
 ];

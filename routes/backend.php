@@ -138,6 +138,7 @@ $operations = function (): void {
     Route::get('/reports', [$finance, 'export'])->middleware('throttle:5,1');
     Route::get('/views/{section}', [OperationsController::class, 'index']);
     Route::get('/accounting/export', [AccountingController::class, 'export'])->middleware('throttle:5,1,accounting-export');
+    Route::post('/accounting/approval-limit', [AccountingController::class, 'saveApprovalLimit']);
 };
 $staffPortal = EnsureStaffPortalHost::class;
 Route::prefix('commands/operations')->middleware(['auth', 'active', 'throttle:60,1', $staffPortal, 'agreement', 'authenticator'])->group($operations);

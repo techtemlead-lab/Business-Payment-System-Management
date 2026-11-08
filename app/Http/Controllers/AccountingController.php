@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Finance\AccountingStatements;
+use App\Domain\Finance\WithdrawalApprovalLimit;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\SpreadsheetCell;
@@ -30,21 +31,41 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class AccountingController extends Controller
 {
-    public const Tabs = ['statements'];
+    public const Tabs = ['statements', 'limit'];
 
-    public function index(Request $request, AccountingStatements $statements): InertiaResponse|JsonResponse
+    public function index(Request $request, AccountingStatements $statements, WithdrawalApprovalLimit $limit): InertiaResponse|JsonResponse
     {
-        $this->authorizeAccounting($request->user());
+        $actor = $request->user();
+        $this->authorizeAccounting($actor);
         $request->validate(['tab' => ['nullable', Rule::in(self::Tabs)]]);
-        [$from, $to] = $this->period($request);
-        $data = [
-            'tab' => $request->string('tab')->toString() ?: 'statements',
-            'filters' => ['from' => $from, 'to' => $to],
-            'statements' => $statements->build($from, $to),
-            'exportBase' => '/commands/operations/accounting/export',
-        ];
+        $tab = $request->string('tab')->toString() ?: 'statements';
+        $data = ['tab' => $tab];
+        if ($tab === 'statements') {
+            [$from, $to] = $this->period($request);
+            $data['filters'] = ['from' => $from, 'to' => $to];
+            $data['statements'] = $statements->build($from, $to);
+            $data['exportBase'] = '/commands/operations/accounting/export';
+        }
+        if ($tab === 'limit') {
+            $data['approvalLimit'] = [...$limit->current(), 'default' => WithdrawalApprovalLimit::DefaultAmount, 'can_edit' => $actor->owner()];
+        }
 
         return $request->expectsJson() ? response()->json(['data' => $data]) : Inertia::render('Accounting', $data);
+    }
+
+    /** Owner-only: the withdrawal size flagged as a large payout. */
+    public function saveApprovalLimit(Request $request, WithdrawalApprovalLimit $limit): Response
+    {
+        $this->authorizeAccounting($request->user());
+        abort_unless($request->user()->owner(), 403);
+        $data = $request->validate([
+            'amount' => [...FinanceOperationsController::Amount, 'gt:0'],
+            'version' => 'required|integer|min:0',
+            'reason' => FinanceOperationsController::Reason,
+        ]);
+        $limit->save($request->user(), $data['amount'], (int) $data['version'], $data['reason']);
+
+        return $request->expectsJson() ? response()->json(['data' => $limit->current()]) : back()->with('success', __('accounting.flash_limit_saved'));
     }
 
     /** Download one statement as a spreadsheet or PDF, the same way the Report Centre does. */

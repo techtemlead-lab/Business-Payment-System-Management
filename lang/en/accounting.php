@@ -6,6 +6,18 @@ return [
     'intro' => 'Reports from the money journal, bank and mobile statement checks, the month-end payout file and the approval limit.',
 
     'tab_statements' => 'Statements',
+    'tab_limit' => 'Approval limit',
+
+    'limit_title' => 'Withdrawal approval limit',
+    'limit_hint' => 'A withdrawal of this amount or more is flagged as a large payout in the activity log. This does not stop or approve a payment by itself. The usual approval steps stay the same.',
+    'limit_current' => 'Current limit',
+    'limit_default' => 'Starting limit: :amount',
+    'limit_new_amount' => 'New limit (BDT)',
+    'limit_reason' => 'Why are you changing it?',
+    'limit_save' => 'Save limit',
+    'limit_owner_only' => 'Only the owner can change this limit.',
+    'err_limit_positive' => 'The limit must be more than zero.',
+    'flash_limit_saved' => 'The approval limit is saved.',
 
     'management_notice' => 'These are management reports for running the business. They are not audited financial statements.',
     'journal_scope_notice' => 'These figures come only from the journal. The journal holds commissions, payroll, payouts, opening balances and clinic sales. Product sales and purchase costs are not in it, so this is not the company\'s full profit.',

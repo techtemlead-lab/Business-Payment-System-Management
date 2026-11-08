@@ -1,5 +1,5 @@
 import React from 'react';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { Download } from 'lucide-react';
 import Shell from '../components/Shell';
 import { Row, Table, money } from '../components/UI';
@@ -7,7 +7,7 @@ import { useT } from '../shared/i18n/t';
 
 type Translate = (key: string, replace?: Record<string, string | number>) => string;
 
-const TABS = ['statements'];
+const TABS = ['statements', 'limit'];
 
 function Notice({ t }: { t: Translate }) {
     return <div className="notice warning" role="note"><p><strong>{t('management_notice')}</strong></p><p>{t('journal_scope_notice')}</p></div>;
@@ -88,6 +88,24 @@ function Statements({ statements, filters, exportBase, t }: Row & { t: Translate
     </>;
 }
 
+function ApprovalLimit({ approvalLimit, t }: Row & { t: Translate }) {
+    const form = useForm({ amount: approvalLimit.amount, version: approvalLimit.version, reason: '' });
+    return <section className="panel">
+        <h2>{t('limit_title')}</h2>
+        <p className="muted">{t('limit_hint')}</p>
+        <div className="metric"><span>{t('limit_current')}</span><strong>{money(approvalLimit.amount)}</strong><small>{t('limit_default', { amount: money(approvalLimit.default) })}</small></div>
+        {approvalLimit.can_edit ? <form className="action-form" onSubmit={event => {
+            event.preventDefault();
+            form.post('/commands/operations/accounting/approval-limit', { preserveScroll: true, onSuccess: () => form.setData('reason', '') });
+        }}>
+            <label>{t('limit_new_amount')}<input required inputMode="decimal" value={form.data.amount} onChange={event => form.setData('amount', event.target.value)} /></label>
+            <label>{t('limit_reason')}<textarea required minLength={5} maxLength={1000} rows={2} value={form.data.reason} onChange={event => form.setData('reason', event.target.value)} /></label>
+            {Object.keys(form.errors).length > 0 && <p role="alert" className="error">{Object.values(form.errors).join(' ')}</p>}
+            <button className="button dark" disabled={form.processing}>{t('limit_save')}</button>
+        </form> : <p className="notice">{t('limit_owner_only')}</p>}
+    </section>;
+}
+
 export default function Accounting(props: Row) {
     const translate = useT();
     const t: Translate = (key, replace = {}) => translate('accounting', key, replace);
@@ -99,5 +117,6 @@ export default function Accounting(props: Row) {
             {TABS.map(name => <Link key={name} className={`button small ${tab === name ? 'dark' : ''}`} href={`/operations/accounting?tab=${name}`} preserveState>{t(`tab_${name}`)}</Link>)}
         </nav>
         {tab === 'statements' && <Statements {...props} t={t} />}
+        {tab === 'limit' && <ApprovalLimit {...props} t={t} />}
     </Shell>;
 }
