@@ -50,8 +50,8 @@
 .rx-stats div{border:1px solid var(--ds-line,#e2e8f0);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;min-width:0}
 .rx-stats small{color:var(--ds-text-muted,#64748b)}
 .rx-stats b{font-size:18px;overflow-wrap:anywhere}
-.rx-table .num{text-align:right;white-space:nowrap}
-.rx-table td:first-child{white-space:nowrap}
+.rx-table .num{text-align:right}
+.app-shell .table-wrap .rx-table :is(.num,td:first-child){white-space:nowrap}
 .pbc-disable{margin-top:14px;padding-top:14px;border-top:1px dashed var(--ds-line,#e2e8f0)}
 @media (max-width:860px){
   .rx-line-grid,.rx-place,.rx-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
