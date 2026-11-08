@@ -487,6 +487,13 @@ final class CommissionSettlement
      */
     public function toCompanyProfit(CommissionAllocation $fund, int $amount, string $month, string $kind, ?string $division, ?string $reasonKey = null): int
     {
+        // A refund before the close already shrank the fund. Keep this row on the same footing,
+        // so a later refund takes back only its fair share (CommissionReversal starts from original_amount).
+        $fundNow = Money::cents($fund->amount);
+        $originalAmount = $fundNow > 0
+            ? intdiv($amount * Money::cents($fund->original_amount ?? $fund->amount) + intdiv($fundNow, 2), $fundNow)
+            : $amount;
+
         return CommissionAllocation::query()->create([
             'order_id' => $fund->order_id,
             'user_id' => null,
@@ -494,7 +501,7 @@ final class CommissionSettlement
             'rate_percentage' => $fund->rate_percentage,
             'cash_basis' => $fund->cash_basis,
             'amount' => Money::decimal($amount),
-            'original_amount' => Money::decimal($amount),
+            'original_amount' => Money::decimal($originalAmount),
             'status' => 'reserved',
             'metadata' => [
                 'basis' => 'purchase_value',
