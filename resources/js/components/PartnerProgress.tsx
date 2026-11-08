@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Bike, Car, Check, Clock, Medal, Plane, TrendingUp, Wallet } from 'lucide-react';
 import { Modal, date, money, number } from './UI';
+import JargonHint from './JargonHint';
 import { useT } from '../shared/i18n/t';
 
 type Unit = 'taka' | 'people';
@@ -148,6 +149,7 @@ function RankSection({ rank, period }: { rank: Rank; period: Period }) {
     return (
         <Section icon={<Medal size={16} />} title={translate('portal', 'pp_rank_title')}>
             <p className="pp-rank-now">{translate('portal', 'pp_rank_now', { rank: rankName(rank.current) })}</p>
+            <JargonHint terms={['mo', 'am', 'sm', 'me']} />
             {next ? (
                 <div className="pp-sub">
                     <h4>{translate('portal', 'pp_rank_next', { rank: rankName(next.rank) })}</h4>

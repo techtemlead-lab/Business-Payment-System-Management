@@ -14,7 +14,7 @@ use Illuminate\Validation\ValidationException;
 final class SupportTickets
 {
     /** @var list<string> */
-    public const Categories = ['withdrawal', 'commission', 'order_invoice', 'technical', 'other'];
+    public const Categories = ['withdrawal', 'commission', 'order_invoice', 'technical', 'other', 'complaint', 'kyc_correction'];
 
     /** @var list<string> */
     public const Statuses = ['pending', 'in_progress', 'resolved'];

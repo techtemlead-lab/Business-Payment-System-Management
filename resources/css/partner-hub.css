@@ -1,0 +1,18 @@
+/* Partner "My money" and notices tabs, the one-list-at-a-time buttons, and short jargon hints. */
+.partner-hub-nav{margin-bottom:var(--ds-s-4,16px)}
+.partner-hub-title{margin:0 0 var(--ds-s-2,8px);font-size:var(--ds-fs-lg,18px);font-weight:700;color:var(--ds-text)}
+.partner-hub-views{margin:var(--ds-s-3,12px) 0}
+.metric-grid.partner-money-two{grid-template-columns:repeat(2,minmax(0,1fr))}
+#support-request{scroll-margin-top:90px}
+
+.jargon-hint{margin:0 0 var(--ds-s-3,12px);font-size:var(--ds-fs-xs,12px);color:var(--ds-text-muted)}
+.jargon-hint summary{display:inline-flex;align-items:center;gap:6px;min-height:32px;color:var(--ds-brand);font-weight:600;cursor:pointer}
+.jargon-hint summary:focus-visible{outline:2px solid var(--ds-brand);outline-offset:2px}
+.jargon-hint dl{display:grid;gap:4px;margin:6px 0 0}
+.jargon-hint dl>div{display:flex;gap:8px}
+.jargon-hint dt{flex:0 0 36px;font-weight:700;color:var(--ds-text)}
+.jargon-hint dd{margin:0}
+
+.support-request summary{cursor:pointer;font-weight:600}
+.support-request-reply{margin-top:var(--ds-s-2,8px);padding:var(--ds-s-2,8px);border-radius:var(--ds-r-md,8px);background:var(--ds-surface-2)}
+.support-request-reply p{margin:4px 0 0}

@@ -11,6 +11,8 @@ export function DealerHeader(){
     const customize = page.siteCustomization ?? {};
     const role = String(page.auth?.user?.role ?? 'dealer');
     const showShop = partnerChromeEnabled(role, page.dashboardControls, 'catalog');
+    // Buying needs both the catalog and orders; with orders off the button stays a plain product list.
+    const canBuy = showShop && partnerChromeEnabled(role, page.dashboardControls, 'orders');
     const chrome = (custom: unknown, key: string) =>
         locale === 'bn' || !custom ? translate('portal', key) : String(custom);
     const offersTitle = chrome(customize.header_offers_title, 'header_offers');
@@ -33,7 +35,9 @@ export function DealerHeader(){
                     <a href={`${publicBase}/#featured-products`}><Gift/><span><b>{offersTitle}</b><small>{offersSubtitle}</small></span></a>
                     <a href={`${publicBase}/dealers`}><Layers/><span><b>{networkTitle}</b><small>{networkSubtitle}</small></span></a>
                     <Link href="/profile" title={translate('portal', 'profile')}><UserRound/><span><b>{translate('portal', 'nav_module_account')}</b><small>{translate('portal', 'profile')}</small></span></Link>
-                    {showShop && <Link href="/catalog" className="portal-shop" title={translate('portal', 'shop')}><Store size={18}/><b>{translate('portal', 'shop')}</b></Link>}
+                    {showShop && (canBuy
+                        ? <Link href="/purchase" className="portal-shop" title={translate('portal', 'purchase')}><ShoppingBag size={18}/><b>{translate('portal', 'purchase')}</b></Link>
+                        : <Link href="/catalog" className="portal-shop" title={translate('portal', 'shop')}><Store size={18}/><b>{translate('portal', 'shop')}</b></Link>)}
                 </div>
             </div>
         </header>

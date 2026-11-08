@@ -6,6 +6,7 @@ use App\Domain\Accounts\PartnerWalletStatement;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
+use App\Support\PartnerHubTabs;
 use App\Support\TableWorkbook;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
@@ -43,6 +44,7 @@ class PartnerStatementController extends Controller
             'statement' => $ledger,
             'staffView' => $staffView,
             'statementBase' => $staffView ? '/accounts/'.$partner->id.'/statement' : '/statement',
+            'hub' => $staffView ? null : PartnerHubTabs::money('full-report'),
         ]);
     }
 

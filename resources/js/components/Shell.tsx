@@ -139,7 +139,7 @@ const icons: Record<string, LucideIcon> = {
 
 export default function Shell({ section, children, action }: { section: string; children: ReactNode; action?: ReactNode }) {
     const page = usePage<any>();
-    const { auth, portalBase, portal, demoMode, dashboardNotice, dashboardControls, publicPageEnabled, publicBase, siteCustomization, unreadNotices = 0, navAttention = {}, tour, userManualChapters, workspaceBranches } = page.props;
+    const { auth, portalBase, portal, demoMode, dashboardNotice, dashboardControls, siteCustomization, unreadNotices = 0, navAttention = {}, tour, userManualChapters, workspaceBranches } = page.props;
     const [manualOpen, setManualOpen] = useState(false);
     const [menuQuery, setMenuQuery] = useState('');
     const unreadCount = Number(unreadNotices ?? 0);
@@ -752,9 +752,7 @@ export default function Shell({ section, children, action }: { section: string; 
                                     {translate('portal', 'partner_help_call')} {siteCustomization.partner_help_phone} <Phone size={14} />
                                 </a>
                             )}
-                            {(publicPageEnabled?.contact ?? true) && (
-                                <a href={`${publicBase || ''}/contact`}>{translate('portal', 'contact_company')} <ArrowUpRight size={14} /></a>
-                            )}
+                            <Link href={`${base}/help#support-request`} onClick={() => setOpen(false)}>{translate('partner_hub', 'help_card_link')} <ArrowUpRight size={14} /></Link>
                         </div>
                     )}
                 </div>
