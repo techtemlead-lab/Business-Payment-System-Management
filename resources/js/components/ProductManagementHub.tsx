@@ -12,10 +12,8 @@ import {
     CheckCircle2,
     Eye
 } from 'lucide-react';
-import {
-    FeaturedProductsManager,
-    type CustomizationData
-} from './SiteCustomizationEditor';
+import { FeaturedProductsManager } from './website/FeaturedProductsManager';
+import type { CustomizationData } from './website/types';
 import { Row, money } from './UI';
 import { useT } from '../shared/i18n/t';
 import LuxuryProductCard from './LuxuryProductCard';

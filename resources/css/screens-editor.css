@@ -246,3 +246,54 @@
   .app-shell .ed-switch-banner{padding:14px}
   .app-shell .ed-toolbar{padding:10px}
 }
+
+/* Owner's one Website page: closed rows, search and a Save bar that stays in view. */
+.app-shell .ws-page{min-width:0}
+.app-shell .ws-page>*+*{margin-top:16px}
+.app-shell .ws-section{scroll-margin-top:84px}
+.app-shell .ws-section-title{margin:0 0 4px;font-size:var(--ds-fs-lg,20px)}
+.app-shell .ws-group-list{display:grid;gap:8px;margin-top:14px}
+.app-shell .ws-group{border:1px solid var(--ds-line);border-radius:var(--ds-r-md);background:var(--ds-surface);min-width:0}
+.app-shell .ws-group-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;padding:12px 14px;font-weight:600;cursor:pointer;list-style:none}
+.app-shell .ws-group-summary::-webkit-details-marker{display:none}
+.app-shell .ws-group-summary::after{content:'';flex:none;width:9px;height:9px;margin-right:4px;border-right:2px solid var(--ds-text-muted);border-bottom:2px solid var(--ds-text-muted);transform:rotate(45deg);transition:transform .15s ease}
+.app-shell .ws-group[open]>.ws-group-summary::after{transform:rotate(-135deg)}
+.app-shell .ws-group-summary:focus-visible{outline:2px solid var(--ds-brand);outline-offset:-2px;border-radius:var(--ds-r-md)}
+.app-shell .ws-group-title{min-width:0}
+.app-shell .ws-group-summary .ed-hint{margin-left:auto;font-weight:400}
+.app-shell .ws-group-body{min-width:0;padding:4px 14px 16px;border-top:1px solid var(--ds-line)}
+.app-shell .ws-group-body>*:first-child{margin-top:12px}
+.app-shell .ws-tool{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;padding:12px 14px;border:1px solid var(--ds-line);border-radius:var(--ds-r-md);background:var(--ds-surface-2);color:var(--ds-text)}
+.app-shell .ws-tool:hover{border-color:var(--ds-brand)}
+.app-shell .ws-tool-text{display:grid;gap:2px;min-width:0}
+.app-shell .ws-tool-title{font-weight:600}
+.app-shell .ws-search{position:relative;margin-top:16px}
+.app-shell .ws-search-icon{position:absolute;left:12px;top:15px;color:var(--ds-text-muted);pointer-events:none}
+.app-shell .ws-search input{width:100%;min-height:46px;padding:10px 12px 10px 36px;border:1px solid var(--ds-line-strong);border-radius:var(--ds-r-md);background:var(--ds-surface);color:var(--ds-text);font:inherit}
+.app-shell .ws-search input:focus{outline:2px solid var(--ds-brand);outline-offset:0}
+.app-shell .ws-search-results{position:absolute;z-index:20;left:0;right:0;top:calc(100% + 4px);max-height:min(60vh,420px);overflow-y:auto;padding:6px;border:1px solid var(--ds-line-strong);border-radius:var(--ds-r-md);background:var(--ds-surface);box-shadow:var(--ds-shadow-sm)}
+.app-shell .ws-search-result{display:grid;gap:2px;width:100%;padding:9px 10px;border:0;border-radius:var(--ds-r-sm,6px);background:transparent;color:var(--ds-text);font:inherit;text-align:left;cursor:pointer}
+.app-shell .ws-search-result:hover,.app-shell .ws-search-result:focus-visible{background:var(--ds-surface-2)}
+.app-shell .ws-search-label{font-weight:600}
+.app-shell .ws-search-empty{margin:0;padding:10px;color:var(--ds-text-muted)}
+.app-shell .ws-jump{display:flex;gap:8px;margin-top:12px;overflow-x:auto;scrollbar-width:thin}
+.app-shell .ws-jump .button{flex:none}
+.app-shell .ws-jump-flash{outline:2px solid var(--ds-brand);outline-offset:3px;border-radius:var(--ds-r-sm,6px)}
+.app-shell .ws-danger-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.app-shell .ws-save-bar{position:sticky;bottom:0;z-index:15;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border:1px solid var(--ds-line-strong);border-radius:var(--ds-r-lg);background:var(--ds-surface);box-shadow:var(--ds-shadow-sm)}
+.app-shell .ws-save-status{color:var(--ds-text-muted)}
+.app-shell .ws-save-status.is-dirty{color:var(--ds-warn-fg,var(--ds-text));font-weight:600}
+@media(max-width:1023px){
+  .app-shell .ws-save-bar{bottom:calc(76px + env(safe-area-inset-bottom))}
+}
+
+/* Tables that show their key columns on phones and open the rest on tap. */
+.app-shell .table-phone-toggle,.app-shell .table-phone-detail{display:none}
+@media(max-width:640px){
+  .app-shell .table-wrap .is-phone-extra{display:none}
+  .app-shell .table-wrap .table-phone-toggle{display:table-cell;width:40px;padding-left:4px;padding-right:0}
+  .app-shell .table-wrap .table-phone-detail{display:table-row}
+  .app-shell .table-phone-detail dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;margin:0}
+  .app-shell .table-phone-detail dt{color:var(--ds-text-muted);font-size:var(--ds-fs-2xs,12px)}
+  .app-shell .table-phone-detail dd{margin:0}
+}
