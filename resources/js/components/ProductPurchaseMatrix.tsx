@@ -26,6 +26,9 @@ interface Props {
     runningSchemes?: RunningScheme[];
 }
 
+/** The most the server accepts on one order line. */
+const MAX_ORDER_QUANTITY = 10000;
+
 interface CartItem {
     product: Row;
     quantity: number;
@@ -216,7 +219,8 @@ export default function ProductPurchaseMatrix({
             removeFromCart(productId);
             return;
         }
-        setCart(prev => prev.map(item => item.product.id === productId ? { ...item, quantity: newQty } : item));
+        const quantityAllowed = Math.min(newQty, MAX_ORDER_QUANTITY);
+        setCart(prev => prev.map(item => item.product.id === productId ? { ...item, quantity: quantityAllowed } : item));
     };
 
     const removeFromCart = (productId: number) => {
@@ -512,7 +516,7 @@ export default function ProductPurchaseMatrix({
                                     <input
                                         type="number"
                                         min="1"
-                                        max="50000"
+                                        max={MAX_ORDER_QUANTITY}
                                         required
                                         value={quantity}
                                         onChange={e => setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
@@ -697,7 +701,7 @@ export default function ProductPurchaseMatrix({
                                                     <input
                                                         type="number"
                                                         min="1"
-                                                        max="50000"
+                                                        max={MAX_ORDER_QUANTITY}
                                                         value={item.quantity}
                                                         onChange={e => updateCartQty(p.id, parseInt(e.target.value, 10) || 1)}
                                                     />

@@ -474,6 +474,7 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                             <label>
                                 {translate('portal', 'support_attachment_optional')}
                                 <input type="file" name="attachment" accept=".jpg,.jpeg,.png,.webp,.pdf" />
+                                {errors.attachment && <span className="field-error">{errors.attachment}</span>}
                             </label>
                             <button className="button dark" disabled={processing}>{translate('portal', 'support_submit')}</button>
                         </>
