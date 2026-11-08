@@ -8,6 +8,7 @@ use App\Domain\Commissions\RecipientFunding;
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Finance\PaymentAccounts;
+use App\Domain\Finance\ReportData;
 use App\Domain\Finance\ReserveService;
 use App\Domain\Integrations\IntegrationSettings;
 use App\Domain\Staff\StaffPermissions;
@@ -62,6 +63,9 @@ class OperationsController extends Controller
         $request->validate(['q' => 'nullable|string|max:100']);
         $tables = [];
         $data = ['section' => $section, 'tables' => [], 'paymentAccounts' => [], 'partners' => [], 'staff' => [], 'summary' => [], 'partnerSearch' => (string) $request->string('q')];
+        if ($section === 'financial-reports') {
+            $data['reportTypes'] = app(ReportData::class)->availableTo($actor);
+        }
         $staff = User::staffAccounts()->orderBy('name')->get(['id', 'name', 'role', 'status', 'profile']);
         if ($actor->allows('staff_admin') || $actor->allows('finance')) {
             $data['staff'] = $staff->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'role' => $u->role, 'field_sales' => $u->allows('field_sales')])->all();

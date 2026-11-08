@@ -3,6 +3,7 @@
 namespace App\Domain\Finance;
 
 use App\Domain\Commissions\RetainedFundLedger;
+use App\Domain\Inventory\BranchOperations;
 use App\Domain\Staff\TerritoryAccess;
 use App\Models\User;
 use App\Support\PortalHost;
@@ -12,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 
 final class ReportData
 {
-    public const Types = ['orders', 'products', 'product-summary', 'category-summary', 'district-summary', 'commissions', 'settlements', 'payroll', 'withdrawals', 'ledger', 'rewards', 'rank-achievements', 'rank-incentives', 'refunds', 'collections', 'tds-register', 'order-refunds'];
+    public const Types = ['orders', 'products', 'product-summary', 'category-summary', 'district-summary', 'commissions', 'settlements', 'payroll', 'withdrawals', 'ledger', 'rewards', 'rank-achievements', 'rank-incentives', 'refunds', 'order-refunds', 'collections', 'tds-register'];
 
     /** Money still to collect on one order; never negative. */
     private const OutstandingSql = 'GREATEST(o.total-o.due_credit-o.paid, 0)';
@@ -29,6 +30,29 @@ final class ReportData
     /** Partner kinds a report can be narrowed to. */
     public const AccountTypes = ['dealer', 'sub_dealer'];
 
+    /**
+     * The files this person is offered in the Report Centre, in display order.
+     *
+     * @return list<string>
+     */
+    public function availableTo(User $actor): array
+    {
+        if (! $actor->allows('finance') && ! $actor->allows('reports')) {
+            return ['orders', 'payroll'];
+        }
+
+        return array_values(array_filter(self::Types, fn (string $type): bool => $this->mayRead($actor, $type)));
+    }
+
+    /**
+     * Files not built from orders have no branch, so they are company-wide. Of the people
+     * who read company reports, only those who may view every branch can have them.
+     */
+    private function mayRead(User $actor, string $type): bool
+    {
+        return in_array($type, self::OrderBasedReports, true) || app(BranchOperations::class)->canViewAllBranches($actor);
+    }
+
     /** @return array{query: Builder, columns: list<string>, money: list<string>} */
     public function query(User $actor, string $type, string $from, string $to, ?string $accountType = null): array
     {
@@ -38,6 +62,7 @@ final class ReportData
             abort_unless($actor->allows('sr_orders'), 403);
         }
         abort_unless($company || ($sales && $type === 'orders') || (! $actor->staff() && in_array($type, ['orders', 'commissions', 'withdrawals'], true)) || $type === 'payroll', 403);
+        abort_if($company && ! $this->mayRead($actor, $type), 403);
         [$query, $columns, $money, $date, $owner] = match ($type) {
             // No goods on credit any more: the orders export shows what was paid and what is still to pay before approval.
             'orders' => [DB::table('orders as o')->join('users as u', 'u.id', '=', 'o.user_id'),
