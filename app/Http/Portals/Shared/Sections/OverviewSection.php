@@ -6,7 +6,6 @@ use App\Domain\Accounts\PartnerDashboardHome;
 use App\Domain\Inventory\BranchScope;
 use App\Domain\Orders\OrderOverviewTotals;
 use App\Domain\Orders\StaffDashboardSummary;
-use App\Models\Product;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 
@@ -32,7 +31,7 @@ final class OverviewSection implements WorkspaceSection
             'supply' => $totals['supply'],
             'accounts' => $user->allows('accounts') ? $this->partnerAccountCount($context->branchScope) : null,
         ];
-        $props['lowStock'] = $user->allows('inventory') ? Product::where('active', true)->whereColumn('stock', '<=', 'low_stock_at')->limit(5)->get(['id', 'name', 'stock', 'sku']) : [];
+        $props['lowStock'] = $user->allows('inventory') ? app(StaffDashboardSummary::class)->lowStockProducts($context->branchScope)->limit(5)->get() : [];
         if (in_array($user->role, ['dealer', 'sub_dealer'], true) && ! $context->usingStaffWorkspace) {
             $props['partner_home'] = app(PartnerDashboardHome::class)->for($user);
         } elseif ($context->isStaff) {

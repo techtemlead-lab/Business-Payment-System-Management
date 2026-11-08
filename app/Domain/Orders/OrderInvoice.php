@@ -2,6 +2,7 @@
 
 namespace App\Domain\Orders;
 
+use App\Domain\Inventory\BranchOperations;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
@@ -42,7 +43,7 @@ final class OrderInvoice
 
     public function assertVisible(User $actor, Order $order): void
     {
-        if ($actor->owner() || ($actor->staff() && ($actor->allows('orders') || $actor->allows('finance')))) {
+        if ($actor->owner() || ($actor->staff() && ($actor->allows('orders') || $actor->allows('finance')) && app(BranchOperations::class)->mayOpenOrder($actor, $order))) {
             return;
         }
         abort_if($actor->staff(), 403);

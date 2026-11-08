@@ -86,10 +86,12 @@ function AgingPill({days}:{days:number}){const translate=useT();const band=days>
 /** Stock movement types (receipt, dispatch, ...) in plain words. */
 const stockKindLabel=(kind:string,translate:TranslateFn)=>{const key=`stock_kind_${kind}`;const localized=translate('portal',key);return localized!==key?localized:label(kind,translate);};
 const pageTotalLabel=(page:Row|undefined,translate:TranslateFn)=>Number(page?.last_page??1)>1?translate('portal','table_page_total'):undefined;
+/** A branch asked for in the address, so a download matches the page it was started from. */
+const branchFilterKeys=['branch_id','all_branches'];
 /** /exports/orders with the filters that are on screen, so the file matches the list. */
 function ordersExportHref(section:string,filters:Row|undefined):string{
  const params=new URLSearchParams();
- for(const key of ['q','status','period','from','to','buyer_role']){
+ for(const key of ['q','status','period','from','to','buyer_role',...branchFilterKeys]){
   const value=String(filters?.[key]??'').trim();
   if(value){
    params.set(key,value);
@@ -156,9 +158,11 @@ function collectionsExportHref(filters:Row|undefined):string{
  else if(period==='year'){from=to.slice(0,5)+'01-01';}
  else if(period==='day'&&filters?.from){from=String(filters.from);to=String(filters.from);}
  else if(period==='custom'&&filters?.from&&filters?.to){from=String(filters.from);to=String(filters.to);}
- return `/commands/operations/reports?${new URLSearchParams({type:'collections',format:'xlsx',from,to}).toString()}`;
+ const query:Record<string,string>={type:'collections',format:'xlsx',from,to};
+ branchFilterKeys.forEach(key=>{const value=filters?.[key];if(value!=null&&value!=='')query[key]=String(value);});
+ return `/commands/operations/reports?${new URLSearchParams(query).toString()}`;
 }
-const accountFilterKeys=['q','status','division','district','rank','no_order_days'];
+const accountFilterKeys=['q','status','division','district','rank','no_order_days',...branchFilterKeys];
 /** Excel download of the dealer or sub-dealer list with exactly the filters on screen. */
 function accountsExportHref(section:string,filters:Row|undefined):string{
  const query:Record<string,string>={section};
