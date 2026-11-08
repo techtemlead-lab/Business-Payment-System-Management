@@ -1,0 +1,82 @@
+/* ==========================================================================
+   Portal polish: brings the plainer portal sections up to the standard of
+   the dashboard and treasury screens. Same tokens, no new look.
+
+   Rules kept here:
+   - Only var(--ds-*) tokens, so light and dark themes follow automatically.
+   - Selectors start with :root because dashboard.css loads its own rules
+     after this import and must not win a specificity tie.
+   - Nothing here moves, so reduced-motion users see no difference, and no
+     outline or focus-ring rule is overridden.
+   ========================================================================== */
+
+/* ---- 1. Section titles written straight into a card ---------------------
+   Cards without a .panel-heading had a title with no gap under it, and in a
+   full-bleed table card the title touched the corner. */
+:root .app-shell .panel>h2{margin-bottom:var(--ds-s-3)}
+:root .app-shell .panel>h2:has(+p){margin-bottom:var(--ds-s-1)}
+:root .app-shell .panel>h2+p.muted{margin:0 0 var(--ds-s-4);font-size:var(--ds-fs-sm);line-height:1.45}
+:root .app-shell .panel.table-panel>h2{margin:0;padding:16px 20px 12px}
+:root .app-shell .panel-heading>span:not(.badge){font-size:var(--ds-fs-sm);color:var(--ds-text-muted);line-height:1.45}
+
+/* ---- 2. Blocks inside a full-bleed table card line up with its title ---- */
+:root .app-shell .panel.table-panel>.order-status-tabs{margin:0;padding:10px 16px}
+:root .app-shell .panel.table-panel>.panel-heading+.order-status-tabs,
+:root .app-shell .panel.table-panel>h2+.order-status-tabs{padding-top:0}
+:root .app-shell .panel.table-panel>.metric-grid,
+:root .app-shell .panel.table-panel>.admin-kpis.list-summary{margin-bottom:14px;padding:14px 20px 0}
+:root .app-shell .panel.table-panel>.panel-heading+.metric-grid{padding-top:0}
+:root .app-shell .panel.table-panel>.pay-totals{padding:14px 20px 2px}
+
+/* ---- 3. Tables inside a padded card get a frame of their own ------------ */
+:root .app-shell .panel:not(.table-panel,.stock-register,.branches-register) .table-wrap{border:1px solid var(--ds-line-soft);border-radius:var(--ds-r-md)}
+
+/* ---- 4. Dealer and sub-dealer tables at the office table density -------- */
+@media (min-width:768px){
+  :root .app-shell:is(.dealer-shell,.subdealer-shell) .table-block th{padding:10px 12px;font-size:12.5px;font-weight:600;color:var(--ds-text-2)}
+  :root .app-shell:is(.dealer-shell,.subdealer-shell) .table-block td{padding:11px 12px;font-size:13.5px;line-height:1.45}
+  :root .app-shell:is(.dealer-shell,.subdealer-shell) .table-block :is(th,td):first-child{padding-left:16px}
+  :root .app-shell:is(.dealer-shell,.subdealer-shell) .table-block :is(th,td):last-child{padding-right:16px}
+}
+
+/* ---- 5. Filter bars outside the full-bleed order list ------------------- */
+:root .app-shell .panel:not(.table-panel)>.filter-bar:not(.ops-m-0,.branch-perf-filters){display:flex;flex-wrap:wrap;align-items:center;gap:var(--ds-s-2);margin:0 0 14px;padding:10px 12px;border:1px solid var(--ds-line-soft);border-radius:var(--ds-r-md);background:var(--ds-surface-2)}
+:root .app-shell .panel:not(.table-panel)>.filter-bar:has(.ptl-date-field){align-items:flex-end}
+:root .app-shell .panel:not(.table-panel)>.filter-bar :is(.button.small,select,.search-input,.date-input-wrapper,.date-input-field){height:36px;min-height:36px}
+:root .app-shell .panel:not(.table-panel)>.filter-bar .preset-chips{margin-right:var(--ds-s-1)}
+:root .app-shell .panel:not(.table-panel)>.filter-bar .button[aria-pressed="true"]{background:var(--ds-brand-soft);border-color:var(--ds-brand);color:var(--ds-brand-text)}
+
+/* ---- 6. Empty states ---------------------------------------------------- */
+:root .app-shell:is(.dealer-shell,.subdealer-shell) .table-block tr.table-empty-row,
+:root .app-shell:is(.dealer-shell,.subdealer-shell) .table-block tr.table-empty-row:hover{background:var(--ds-surface)}
+:root .app-shell:is(.dealer-shell,.subdealer-shell) .table-block tr.table-empty-row>td{padding:16px}
+:root .app-shell:is(.dealer-shell,.subdealer-shell) .table-block tr.table-empty-row .empty{min-height:160px;margin:0;border:1px dashed var(--ds-line-strong);border-radius:var(--ds-r-lg);background:var(--ds-surface-2)}
+:root .app-shell:is(.dealer-shell,.subdealer-shell) .table-block tr.table-empty-row .empty>svg{background:var(--ds-brand-soft);color:var(--ds-brand-text)}
+:root .app-shell .portal-workspace-body>.empty{border:1px dashed var(--ds-line-strong);border-radius:var(--ds-r-lg);background:var(--ds-surface)}
+:root .app-shell .portal-workspace-body>.empty>svg{background:var(--ds-brand-soft);color:var(--ds-brand-text)}
+
+/* ---- 7. Forms: two forms in one card read as two steps ------------------ */
+:root .app-shell .action-form+.action-form{margin-top:var(--ds-s-5);padding-top:var(--ds-s-5);border-top:1px solid var(--ds-line-soft)}
+:root .app-shell .narrow-panel>p{margin-bottom:var(--ds-s-4)}
+
+/* ---- 8. Profile details ------------------------------------------------- */
+:root .app-shell .profile-panel .profile-cover{margin-bottom:var(--ds-s-5);padding:4px 0 var(--ds-s-5);border-bottom:1px solid var(--ds-line-soft)}
+:root .app-shell .profile-panel .profile-cover h2{font-size:var(--ds-fs-lg)}
+:root .app-shell .profile-panel .profile-cover p{font-size:var(--ds-fs-sm);color:var(--ds-text-muted)}
+:root .app-shell .profile-grid{gap:var(--ds-s-4) var(--ds-s-6);margin:var(--ds-s-5) 0}
+:root .app-shell .profile-grid dt{margin-bottom:2px;font-size:var(--ds-fs-xs);font-weight:500;color:var(--ds-text-muted)}
+:root .app-shell .profile-grid dd{font-size:var(--ds-fs-base);font-weight:600;color:var(--ds-text);overflow-wrap:anywhere}
+
+/* ---- 9. Phones: nothing wider than the screen, wide tables scroll inside
+   their own frame ---------------------------------------------------------- */
+@media (max-width:767px){
+  :root .app-shell .panel.table-panel>h2{padding:14px 16px 10px}
+  :root .app-shell .panel.table-panel>.order-status-tabs{padding-inline:12px}
+  :root .app-shell .panel.table-panel>.metric-grid,
+  :root .app-shell .panel.table-panel>.admin-kpis.list-summary,
+  :root .app-shell .panel.table-panel>.pay-totals{padding-inline:12px}
+  :root .app-shell .panel-heading{flex-wrap:wrap}
+  :root .app-shell .toolbar-end{flex-wrap:wrap}
+  :root .app-shell .panel:not(.table-panel)>.filter-bar:not(.ops-m-0,.branch-perf-filters)>:is(select,.button,.ptl-date-field){flex:1 1 140px}
+  :root .app-shell .panel:not(.table-panel)>.filter-bar .preset-chips{flex:1 1 100%;margin-right:0}
+}
