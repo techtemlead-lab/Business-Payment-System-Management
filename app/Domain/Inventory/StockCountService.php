@@ -2,13 +2,16 @@
 
 namespace App\Domain\Inventory;
 
+use App\Domain\Security\SelfApproval;
 use App\Models\BranchProductStock;
+use App\Models\BranchStaffAssignment;
 use App\Models\CompanyBranch;
 use App\Models\Product;
 use App\Models\StockCountLine;
 use App\Models\StockCountSession;
 use App\Models\User;
 use App\Support\Audit;
+use Closure;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -164,12 +167,12 @@ final class StockCountService
      * Second person signs off. Each variance is posted as a stock adjustment; if any one
      * cannot be posted, nothing is.
      */
-    public function approve(User $actor, StockCountSession $session, ?string $note = null): StockCountSession
+    public function approve(User $actor, StockCountSession $session, ?string $note = null, bool $confirmedAlone = false): StockCountSession
     {
         $this->assertMay($actor, 'approve');
         $branch = $this->branches->resolveWritableBranch($actor, (int) $session->branch_id);
 
-        return DB::transaction(function () use ($actor, $session, $note, $branch): StockCountSession {
+        return DB::transaction(function () use ($actor, $session, $note, $branch, $confirmedAlone): StockCountSession {
             $locked = $this->lockSession($session);
             if ($locked->status === StockCountSession::StatusApproved) {
                 return $locked;
@@ -185,7 +188,7 @@ final class StockCountService
                 ->orderBy('id')
                 ->lockForUpdate()
                 ->get();
-            $this->assertSecondPerson($actor, $locked, $lines);
+            $selfApproved = $this->assertSecondPerson($actor, $locked, $lines, $confirmedAlone, $note);
 
             $posted = [];
             foreach ($lines as $line) {
@@ -218,18 +221,19 @@ final class StockCountService
                 'counted_lines' => $lines->count(),
                 'variances' => $posted,
                 'note' => $note,
+                ...($selfApproved ? ['self_approved' => true] : []),
             ]);
 
             return $locked;
         });
     }
 
-    public function reject(User $actor, StockCountSession $session, string $note): StockCountSession
+    public function reject(User $actor, StockCountSession $session, string $note, bool $confirmedAlone = false): StockCountSession
     {
         $this->assertMay($actor, 'approve');
         $this->branches->resolveWritableBranch($actor, (int) $session->branch_id);
 
-        return DB::transaction(function () use ($actor, $session, $note): StockCountSession {
+        return DB::transaction(function () use ($actor, $session, $note, $confirmedAlone): StockCountSession {
             $locked = $this->lockSession($session);
             if ($locked->status !== StockCountSession::StatusSubmitted) {
                 throw ValidationException::withMessages(['count' => __('purchasing.err_count_not_submitted')]);
@@ -238,34 +242,39 @@ final class StockCountService
                 ->where('stock_count_session_id', $locked->id)
                 ->whereNotNull('counted_quantity')
                 ->get();
-            $this->assertSecondPerson($actor, $locked, $lines);
+            $selfApproved = $this->assertSecondPerson($actor, $locked, $lines, $confirmedAlone, $note);
             $locked->forceFill([
                 'status' => StockCountSession::StatusRejected,
                 'decided_by' => $actor->id,
                 'decided_at' => now(),
                 'decision_note' => $note,
             ])->save();
-            Audit::record($actor->id, 'stock_count.rejected', (string) $locked->id, ['note' => $note]);
+            Audit::record($actor->id, 'stock_count.rejected', (string) $locked->id, ['note' => $note, ...($selfApproved ? ['self_approved' => true] : [])]);
 
             return $locked;
         });
     }
 
     /**
-     * Closes a count nobody has submitted, so the branch can start again.
+     * Closes a count that has not been decided, so the branch can start again. Nothing has
+     * been posted to stock yet. A submitted count needs a written reason.
      */
-    public function cancel(User $actor, StockCountSession $session): StockCountSession
+    public function cancel(User $actor, StockCountSession $session, ?string $reason = null): StockCountSession
     {
         $this->assertMay($actor, 'edit');
         $this->branches->resolveWritableBranch($actor, (int) $session->branch_id);
 
-        return DB::transaction(function () use ($actor, $session): StockCountSession {
+        return DB::transaction(function () use ($actor, $session, $reason): StockCountSession {
             $locked = $this->lockSession($session);
-            if ($locked->status !== StockCountSession::StatusCounting) {
+            if (! in_array($locked->status, [StockCountSession::StatusCounting, StockCountSession::StatusSubmitted], true)) {
                 throw ValidationException::withMessages(['count' => __('purchasing.err_count_not_open')]);
             }
+            if ($locked->status === StockCountSession::StatusSubmitted && mb_strlen(trim((string) $reason)) < SelfApproval::MinimumReasonLength) {
+                throw ValidationException::withMessages(['count' => __('self_approval.err_reason')]);
+            }
+            $previousStatus = $locked->status;
             $locked->forceFill(['status' => StockCountSession::StatusCancelled])->save();
-            Audit::record($actor->id, 'stock_count.cancelled', (string) $locked->id, []);
+            Audit::record($actor->id, 'stock_count.cancelled', (string) $locked->id, ['previous_status' => $previousStatus, 'reason' => $reason]);
 
             return $locked;
         });
@@ -350,11 +359,44 @@ final class StockCountService
     /**
      * @param  iterable<int, StockCountLine>  $lines
      */
-    private function assertSecondPerson(User $actor, StockCountSession $session, iterable $lines): void
+    private function assertSecondPerson(User $actor, StockCountSession $session, iterable $lines, bool $confirmedAlone, ?string $note): bool
     {
-        if ($this->tookPartInCount($actor, $session, $lines)) {
-            throw ValidationException::withMessages(['count' => __('purchasing.err_second_person')]);
+        if (! $this->tookPartInCount($actor, $session, $lines)) {
+            return false;
         }
+        app(SelfApproval::class)->authorizeAlone($actor, 'count', __('purchasing.err_second_person'), $confirmedAlone, (string) $note, $this->participants($session, $lines),
+            module: 'inventory', canDoStep: $this->deciderAt((int) $session->branch_id));
+
+        return true;
+    }
+
+    /**
+     * Whether the owner took part in this count and nobody else could decide it.
+     *
+     * @param  iterable<int, StockCountLine>  $lines  Counted lines of the session.
+     */
+    public function canDecideAlone(User $actor, StockCountSession $session, iterable $lines): bool
+    {
+        return $this->tookPartInCount($actor, $session, $lines)
+            && app(SelfApproval::class)->isAvailable($actor, $this->participants($session, $lines), 'inventory', 'approve', $this->deciderAt((int) $session->branch_id));
+    }
+
+    /**
+     * @param  iterable<int, StockCountLine>  $lines
+     * @return list<int|null>
+     */
+    private function participants(StockCountSession $session, iterable $lines): array
+    {
+        return [$session->started_by, $session->submitted_by, ...collect($lines)->pluck('counted_by')->all()];
+    }
+
+    /** @return Closure(User): bool Someone who could approve a count at this branch. */
+    private function deciderAt(int $branchId): Closure
+    {
+        $assigned = BranchStaffAssignment::query()->where('branch_id', $branchId)->pluck('user_id')->map(fn (mixed $id): int => (int) $id)->all();
+
+        return fn (User $person): bool => app(SelfApproval::class)->holdsRight($person, 'inventory', 'approve')
+            && ($person->owner() || $this->branches->canManageAllBranches($person) || in_array((int) $person->id, $assigned, true));
     }
 
     private function lockSession(StockCountSession $session): StockCountSession

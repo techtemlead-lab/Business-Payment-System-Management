@@ -81,9 +81,9 @@ class WithdrawalController extends Controller
             if (Carbon::parse($value, 'Asia/Dhaka')->isFuture()) {
                 $fail(__('portal.err_wd_paid_at_future'));
             }
-        }], 'note' => 'required|string|max:1000']);
+        }], 'note' => 'required|string|max:1000', 'self_approve' => 'sometimes|boolean']);
         $reference = isset($d['payment_reference']) ? strtoupper(trim($d['payment_reference'])) : null;
-        $number = $s->settle($r->user(), $id, $d, $r->file('receipt'), $reference, Carbon::parse($d['paid_at'], 'Asia/Dhaka')->utc()->toDateTimeString(), $d['note'], isset($d['payment_account_id']) ? (int) $d['payment_account_id'] : null);
+        $number = $s->settle($r->user(), $id, $d, $r->file('receipt'), $reference, Carbon::parse($d['paid_at'], 'Asia/Dhaka')->utc()->toDateTimeString(), $d['note'], isset($d['payment_account_id']) ? (int) $d['payment_account_id'] : null, $r->boolean('self_approve'));
         $this->notifyPartnerWithdrawal($id, 'paid');
 
         return back()->with('success', __('portal.flash_withdrawal_paid_receipt', ['number' => $number]));

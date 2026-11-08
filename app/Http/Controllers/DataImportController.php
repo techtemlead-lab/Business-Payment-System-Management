@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Finance\ImportWorkbook;
 use App\Domain\Finance\OpeningBalanceImport;
 use App\Domain\Integrations\IntegrationSettings;
+use App\Domain\Security\SelfApproval;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -47,7 +48,8 @@ class DataImportController extends Controller
                 'products' => $actor->canAct('catalog', 'create') && $actor->canAct('pricing', 'create') && $actor->canAct('inventory', 'create'),
                 default => $actor->canAct('finance', 'create'),
             }], $types), 'batches' => $batches, 'preview' => $preview,
-            'openingLocked' => (bool) config('madina.financial_activation') || DB::table('financial_verifications')->whereNotNull('verified_at')->exists(),
+            'openingLocked' => $imports->openingLocked(),
+            'canApproveOwnOpening' => $batch !== null && $batch->type === 'opening_balances' && $batch->created_by === $actor->id && app(SelfApproval::class)->isAvailable($actor, [$batch->created_by]),
             'templateBase' => '/commands/operations/imports/templates/',
             'startup' => app(IntegrationSettings::class)->startupMode()];
 
@@ -66,9 +68,9 @@ class DataImportController extends Controller
 
     public function apply(Request $request, string $id, OpeningBalanceImport $imports): Response
     {
-        $data = $request->validate(['reason' => FinanceOperationsController::Reason, 'confirmed' => 'required|accepted']);
+        $data = $request->validate(['reason' => FinanceOperationsController::Reason, 'confirmed' => 'required|accepted', 'self_approve' => 'sometimes|boolean']);
         $queued = config('queue.default') !== 'sync';
-        $queued ? $imports->queue($request->user(), $id, $data['reason']) : $imports->apply($request->user(), $id, $data['reason']);
+        $queued ? $imports->queue($request->user(), $id, $data['reason'], $request->boolean('self_approve')) : $imports->apply($request->user(), $id, $data['reason'], $request->boolean('self_approve'));
 
         $status = DB::table('data_import_batches')->where('id', $id)->value('status');
 

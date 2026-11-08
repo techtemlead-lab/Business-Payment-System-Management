@@ -4,6 +4,7 @@ namespace App\Domain\Finance;
 
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
+use App\Domain\Security\SelfApproval;
 use App\Models\User;
 use App\Support\Audit;
 use Illuminate\Support\Facades\DB;
@@ -39,30 +40,33 @@ final class PolicyDraftService
         });
     }
 
-    public function publish(User $actor, int $id): void
+    public function publish(User $actor, int $id, string $reason = '', bool $confirmedAlone = false): void
     {
         abort_unless($actor->canAct('finance', 'approve') || $actor->role === 'super_admin', 403);
-        DB::transaction(function () use ($actor, $id): void {
+        DB::transaction(function () use ($actor, $id, $reason, $confirmedAlone): void {
             abort_unless($actor->fresh()->canAct('finance', 'approve') || $actor->fresh()->role === 'super_admin', 403);
             $draft = DB::table('policy_drafts')->where('id', $id)->lockForUpdate()->first();
             abort_unless($draft, 404);
             if ($draft->status === 'published') {
                 return;
             }
-            if ((int) $draft->created_by === (int) $actor->id) {
-                throw ValidationException::withMessages(['policy' => __('portal.err_draft_publisher')]);
+            $selfApproved = (int) $draft->created_by === (int) $actor->id;
+            if ($selfApproved) {
+                app(SelfApproval::class)->authorizeAlone($actor, 'policy', __('portal.err_draft_publisher'), $confirmedAlone, $reason, [$draft->created_by]);
             }
             DB::table('policy_drafts')->where('id', $id)->update([
                 'status' => 'published',
                 'basis' => 'purchase_value',
                 'published_by' => $actor->id,
                 'published_at' => now(),
+                'self_approved' => $selfApproved,
                 'updated_at' => now(),
             ]);
             Audit::record($actor->id, 'policy.published', (string) $id, [
                 'account_type' => $draft->account_type,
                 'name' => $draft->name,
                 'created_by' => $draft->created_by,
+                ...($selfApproved ? ['self_approved' => true, 'reason' => $reason] : []),
             ]);
             $preparer = User::find((int) $draft->created_by);
             if ($preparer !== null && $preparer->id !== $actor->id) {

@@ -38,23 +38,24 @@ class StockCountController extends Controller
 
     public function approve(Request $request, StockCountSession $stockCountSession, StockCountService $counts): RedirectResponse
     {
-        $data = $request->validate(['note' => ['nullable', 'string', 'max:1000']]);
-        $counts->approve($request->user(), $stockCountSession, $data['note'] ?? null);
+        $data = $request->validate(['note' => ['nullable', 'string', 'max:1000'], 'self_approve' => ['sometimes', 'boolean']]);
+        $counts->approve($request->user(), $stockCountSession, $data['note'] ?? null, $request->boolean('self_approve'));
 
         return back()->with('success', __('purchasing.flash_count_approved'));
     }
 
     public function reject(Request $request, StockCountSession $stockCountSession, StockCountService $counts): RedirectResponse
     {
-        $data = $request->validate(['note' => ['required', 'string', 'max:1000']]);
-        $counts->reject($request->user(), $stockCountSession, $data['note']);
+        $data = $request->validate(['note' => ['required', 'string', 'max:1000'], 'self_approve' => ['sometimes', 'boolean']]);
+        $counts->reject($request->user(), $stockCountSession, $data['note'], $request->boolean('self_approve'));
 
         return back()->with('success', __('purchasing.flash_count_rejected'));
     }
 
     public function cancel(Request $request, StockCountSession $stockCountSession, StockCountService $counts): RedirectResponse
     {
-        $counts->cancel($request->user(), $stockCountSession);
+        $data = $request->validate(['reason' => ['nullable', 'string', 'max:1000']]);
+        $counts->cancel($request->user(), $stockCountSession, $data['reason'] ?? null);
 
         return back()->with('success', __('purchasing.flash_count_cancelled'));
     }

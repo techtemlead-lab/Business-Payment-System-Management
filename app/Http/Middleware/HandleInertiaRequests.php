@@ -215,6 +215,7 @@ class HandleInertiaRequests extends Middleware
                 'accounting' => Lang::get('accounting'),
                 'purchasing' => Lang::get('purchasing'),
                 'funds' => Lang::get('funds'),
+                'self_approval' => Lang::get('self_approval'),
                 'productivity' => Lang::get('productivity'),
                 'clinic_records' => Lang::get('clinic_records'),
                 'stock_lots' => Lang::get('stock_lots'),

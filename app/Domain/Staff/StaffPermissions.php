@@ -13,6 +13,9 @@ final class StaffPermissions
 {
     public const Actions = ['view', 'create', 'edit', 'approve'];
 
+    /** Staff enter money records by default; approving and paying stay with the owner until granted in the matrix. */
+    public const EnterOnlyModules = ['finance', 'payroll'];
+
     /** @return list<string> */
     public function modules(): array
     {
@@ -57,9 +60,11 @@ final class StaffPermissions
                 $capabilities = array_intersect($capabilities, $user->profile['permissions']);
             }
             foreach (array_intersect($capabilities, $this->modules()) as $capability) {
-                $matrix[$capability] = in_array($user->role, ['md', 'chairman'], true)
-                    ? ['view' => true, 'create' => false, 'edit' => false, 'approve' => false]
-                    : array_fill_keys(self::Actions, true);
+                $matrix[$capability] = match (true) {
+                    in_array($user->role, ['md', 'chairman'], true) => ['view' => true, 'create' => false, 'edit' => false, 'approve' => false],
+                    in_array($capability, self::EnterOnlyModules, true) => ['view' => true, 'create' => true, 'edit' => true, 'approve' => false],
+                    default => array_fill_keys(self::Actions, true),
+                };
             }
         }
         if (isset($user->profile['action_permissions'])) {

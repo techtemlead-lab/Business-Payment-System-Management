@@ -6,6 +6,7 @@ use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
+use App\Domain\Security\SelfApproval;
 use App\Domain\Staff\TerritoryAccess;
 use App\Models\User;
 use App\Support\Audit;
@@ -30,6 +31,9 @@ final class PayrollService
             CommissionWallet::lock();
             abort_unless($actor->fresh()->allows('finance'), 403);
             $staff = User::findOrFail($data['staff_id']);
+            if ($staff->role === 'super_admin') {
+                throw ValidationException::withMessages(['staff_id' => __('self_approval.err_owner_not_on_payroll')]);
+            }
             if (! $staff->staff() || $staff->status !== 'active' || Money::cents($data['deduction']) > Money::cents($data['base_salary']) + Money::cents($data['allowance'])) {
                 throw ValidationException::withMessages(['staff_id' => __('portal.err_payroll_contract')]);
             }
@@ -61,7 +65,7 @@ final class PayrollService
             $ids = [];
             foreach ($contracts as $contract) {
                 $staff = User::find($contract->staff_id);
-                if (! $staff?->staff() || $staff->status !== 'active') {
+                if (! $staff?->staff() || $staff->status !== 'active' || $staff->role === 'super_admin') {
                     continue;
                 }
                 $existing = DB::table('payroll_entries')->where('staff_id', $staff->id)->where('period_month', $month)->whereIn('status', ['draft', 'approved', 'paid'])->first();
@@ -92,17 +96,21 @@ final class PayrollService
         }, 3);
     }
 
-    public function review(User $actor, string $id, string $decision, string $reason): void
+    public function review(User $actor, string $id, string $decision, string $reason, bool $confirmedAlone = false): void
     {
         abort_unless($actor->allows('finance'), 403);
         CommissionWallet::requireActive();
-        DB::transaction(function () use ($actor, $id, $decision, $reason): void {
+        DB::transaction(function () use ($actor, $id, $decision, $reason, $confirmedAlone): void {
             CommissionWallet::lock();
             abort_unless($actor->fresh()->allows('finance'), 403);
             $entry = DB::table('payroll_entries')->where('id', $id)->lockForUpdate()->first();
             abort_unless($entry, 404);
-            if ($entry->status !== 'draft' || in_array($actor->id, [$entry->staff_id, $entry->prepared_by], true)) {
+            if ($entry->status !== 'draft' || $actor->id === $entry->staff_id) {
                 throw ValidationException::withMessages(['payroll' => __('portal.err_payroll_reviewer')]);
+            }
+            $selfApproved = $actor->id === $entry->prepared_by;
+            if ($selfApproved) {
+                app(SelfApproval::class)->authorizeAlone($actor, 'payroll', __('portal.err_payroll_reviewer'), $confirmedAlone, $reason, [$entry->staff_id, $entry->prepared_by]);
             }
             if ($decision === 'approved') {
                 $this->wallets->journal('payroll.approved.'.$id, __('portal.jr_payroll_approved', ['month' => $entry->period_month]), [
@@ -112,24 +120,28 @@ final class PayrollService
                 ]);
             }
             DB::table('payroll_entries')->where('id', $id)->update(['status' => $decision, 'approved_by' => $actor->id, 'updated_at' => now()]);
-            $this->event($actor, $id, $decision, $reason);
+            $this->event($actor, $id, $decision, $reason, $selfApproved);
         }, 3);
     }
 
     /** @param array<string, mixed> $data */
-    public function pay(User $actor, string $id, array $data, UploadedFile $receipt): void
+    public function pay(User $actor, string $id, array $data, UploadedFile $receipt, bool $confirmedAlone = false): void
     {
         abort_unless($actor->allows('finance'), 403);
         CommissionWallet::requireActive();
         $path = $receipt->storeAs('payroll-receipts', Str::uuid().'.'.$receipt->guessExtension(), 'local');
         try {
-            DB::transaction(function () use ($actor, $id, $data, $receipt, $path): void {
+            DB::transaction(function () use ($actor, $id, $data, $receipt, $path, $confirmedAlone): void {
                 CommissionWallet::lock();
                 abort_unless($actor->fresh()->allows('finance'), 403);
                 $entry = DB::table('payroll_entries')->where('id', $id)->lockForUpdate()->first();
                 abort_unless($entry, 404);
-                if ($entry->status !== 'approved' || in_array($actor->id, [$entry->staff_id, $entry->approved_by], true)) {
+                if ($entry->status !== 'approved' || $actor->id === $entry->staff_id) {
                     throw ValidationException::withMessages(['payroll' => __('portal.err_payroll_payer')]);
+                }
+                $selfApproved = $actor->id === $entry->approved_by;
+                if ($selfApproved) {
+                    app(SelfApproval::class)->authorizeAlone($actor, 'payroll', __('portal.err_payroll_payer'), $confirmedAlone, (string) $data['reason'], [$entry->staff_id, $entry->approved_by]);
                 }
                 $this->accounts->recordReference($actor, $data['payment_reference'], 'payroll:'.$id, (int) $data['payment_account_id']);
                 $amount = Money::cents($entry->net);
@@ -141,7 +153,7 @@ final class PayrollService
                     'paid_at' => $data['paid_at'], 'payment_reference' => Str::upper(trim($data['payment_reference'])),
                     'payment_account_id' => $data['payment_account_id'], 'receipt_path' => $path,
                     'receipt_hash' => hash_file('sha256', $receipt->getRealPath()), 'updated_at' => now()]);
-                $this->event($actor, $id, 'paid', $data['reason']);
+                $this->event($actor, $id, 'paid', $data['reason'], $selfApproved);
                 $staff = User::find($entry->staff_id);
                 $locale = $staff?->preferredLocale() ?? app()->getLocale();
                 $amountDecimal = Money::decimal($amount);
@@ -176,9 +188,9 @@ final class PayrollService
         }
     }
 
-    private function event(User $actor, string $id, string $action, string $reason): void
+    private function event(User $actor, string $id, string $action, string $reason, bool $selfApproved = false): void
     {
         DB::table('payroll_events')->insert(['payroll_id' => $id, 'actor_id' => $actor->id, 'action' => $action, 'reason' => $reason, 'created_at' => now()]);
-        Audit::record($actor->id, 'payroll.'.$action, $id, ['reason' => $reason]);
+        Audit::record($actor->id, 'payroll.'.$action, $id, ['reason' => $reason, ...($selfApproved ? ['self_approved' => true] : [])]);
     }
 }

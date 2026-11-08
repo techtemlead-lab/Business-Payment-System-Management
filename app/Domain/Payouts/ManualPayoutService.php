@@ -6,6 +6,7 @@ use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Finance\FraudAnomalyDetector;
 use App\Domain\Finance\PaymentAccounts;
+use App\Domain\Security\SelfApproval;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
@@ -139,7 +140,7 @@ class ManualPayoutService
      * @param  array{method: string, bank_name?: ?string, account_number?: ?string, wallet_number?: ?string, received_by?: ?string}  $payout
      * @return string The new receipt number.
      */
-    public function settle(User $actor, string $id, array $payout, ?UploadedFile $receipt, ?string $reference, string $paidAt, string $note, ?int $paymentAccountId = null): string
+    public function settle(User $actor, string $id, array $payout, ?UploadedFile $receipt, ?string $reference, string $paidAt, string $note, ?int $paymentAccountId = null, bool $confirmedAlone = false): string
     {
         abort_unless($actor->allows('finance'), 403);
         CommissionWallet::requireActive();
@@ -151,7 +152,7 @@ class ManualPayoutService
         $path = $receipt?->storeAs('payout-receipts', Str::uuid().'.'.$receipt->guessExtension(), 'local');
         $issued = null;
         try {
-            DB::transaction(function () use ($actor, $id, $payout, $isCash, $receipt, $path, $reference, $paidAt, $note, $paymentAccountId, &$issued) {
+            DB::transaction(function () use ($actor, $id, $payout, $isCash, $receipt, $path, $reference, $paidAt, $note, $paymentAccountId, $confirmedAlone, &$issued) {
                 CommissionWallet::lock();
                 $w = DB::table('withdrawals')->where('id', $id)->lockForUpdate()->first();
                 abort_unless($w, 404);
@@ -161,8 +162,12 @@ class ManualPayoutService
                 if (CommissionWallet::hasDebt($w->user_id)) {
                     throw ValidationException::withMessages(['withdrawal' => __('portal.err_wd_clawback_before_pay')]);
                 }
-                if ($actor->id === $w->user_id || $actor->id === $w->reviewed_by) {
+                if ($actor->id === $w->user_id) {
                     throw ValidationException::withMessages(['withdrawal' => __('portal.err_wd_payer_separation')]);
+                }
+                $selfApproved = $actor->id === $w->reviewed_by;
+                if ($selfApproved) {
+                    app(SelfApproval::class)->authorizeAlone($actor, 'withdrawal', __('portal.err_wd_payer_separation'), $confirmedAlone, $note, [$w->user_id, $w->reviewed_by], receiptNeeded: true, hasReceipt: $receipt !== null);
                 }
                 if ($reference !== null && DB::table('withdrawals')->where('payment_reference', $reference)->exists()) {
                     throw ValidationException::withMessages(['payment_reference' => __('portal.err_wd_payment_ref_used')]);
@@ -192,6 +197,7 @@ class ManualPayoutService
                     'withheld_amount' => $w->withheld_amount, 'payment_reference' => $reference,
                     'method' => $payout['method'], 'payout_receipt' => $issued['number'],
                     'receipt_sha256' => $proofHash,
+                    ...($selfApproved ? ['self_approved' => true] : []),
                 ]);
                 Audit::notice(
                     $w->user_id,

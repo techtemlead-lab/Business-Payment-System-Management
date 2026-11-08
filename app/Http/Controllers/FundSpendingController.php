@@ -42,10 +42,19 @@ class FundSpendingController extends Controller
 
     public function review(Request $request, int $id, FundSpending $spending): RedirectResponse|JsonResponse
     {
-        $data = $request->validate(['decision' => 'required|in:approved,rejected', 'reason' => 'required|string|min:5|max:1000']);
-        $spending->review($request->user(), $id, $data['decision'], $data['reason']);
+        $data = $request->validate(['decision' => 'required|in:approved,rejected', 'reason' => 'required|string|min:5|max:1000',
+            'self_approve' => 'sometimes|boolean', 'receipt' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120']);
+        $spending->review($request->user(), $id, $data['decision'], $data['reason'], $request->boolean('self_approve'), $request->file('receipt'));
 
         return $this->done($request, [], __($data['decision'] === 'approved' ? 'funds.flash_spend_approved' : 'funds.flash_spend_rejected'));
+    }
+
+    public function cancel(Request $request, int $id, FundSpending $spending): RedirectResponse|JsonResponse
+    {
+        $data = $request->validate(['reason' => 'required|string|min:5|max:1000']);
+        $spending->cancel($request->user(), $id, $data['reason']);
+
+        return $this->done($request, [], __('self_approval.flash_spend_cancelled'));
     }
 
     public function storeHead(Request $request, FundSpending $spending): RedirectResponse|JsonResponse

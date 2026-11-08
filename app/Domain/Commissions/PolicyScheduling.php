@@ -59,6 +59,14 @@ final class PolicyScheduling
                 'effective_at' => $at, 'expires_at' => empty($data['expires_at']) ? null : CarbonImmutable::parse($data['expires_at'])->utc(),
                 'reason' => $data['reason'], 'created_by' => $actor->id, 'created_at' => now(), 'updated_at' => now()]);
             Audit::record($actor->id, 'policy_schedule.proposed', (string) $id, ['scope' => $data['scope'], 'user_id' => $buyer?->id, 'changes' => $changes]);
+            if (CommissionPolicy::approves($actor->fresh())) {
+                // The owner's own change applies at once, as it does in CommissionPolicy::update().
+                $this->approve($actor, DB::table('commission_policy_schedules')->where('id', $id)->first());
+                DB::table('commission_policy_schedules')->where('id', $id)->update(['status' => 'approved', 'approved_by' => $actor->id, 'approved_at' => now(),
+                    'reviewed_by' => $actor->id, 'reviewed_at' => now(), 'review_reason' => $data['reason'], 'updated_at' => now()]);
+                Audit::record($actor->id, 'policy_schedule.approved', (string) $id, ['reason' => $data['reason'], 'scope' => $data['scope'], 'proposed_by' => $actor->id,
+                    'reviewed_by' => $actor->id, 'changes' => $changes, 'self_approved' => true]);
+            }
 
             return $id;
         }, 3);
