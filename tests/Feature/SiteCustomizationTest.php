@@ -584,8 +584,6 @@ class SiteCustomizationTest extends TestCase
         $editor = User::factory()->create(['role' => 'editor']);
         $payload = [
             'customization' => [
-                'footer_support_title' => 'Hotline: +8801888888888',
-                'footer_support_link' => 'tel:+8801888888888',
                 'footer_phone' => '+8801888888888',
                 'contact_phone' => '+8801888888888',
                 'social_facebook' => 'https://facebook.com/custom-madina-page',
@@ -601,7 +599,7 @@ class SiteCustomizationTest extends TestCase
 
         $customHome = $this->get('/');
         $customHome->assertOk();
-        $customHome->assertSee('Hotline: +8801888888888');
+        $customHome->assertSee('+8801888888888');
         $customHome->assertSee('tel:+8801888888888');
         $customHome->assertSee('https://facebook.com/custom-madina-page');
         $customHome->assertSee('https://wa.me/8801888888888');
@@ -782,7 +780,7 @@ class SiteCustomizationTest extends TestCase
                 'partnership_benefit3_desc' => $oldBenefit,
                 'privacy_body' => $retired['privacy_body'][0],
                 'faq_items' => $retired['faq_items'][0],
-                'top_bar_text' => 'MADINA OWNER TOP BAR',
+                'contact_company_title' => 'MADINA OWNER TOP BAR',
             ], JSON_UNESCAPED_UNICODE),
             'published' => true,
             'created_at' => now(),
@@ -791,7 +789,7 @@ class SiteCustomizationTest extends TestCase
         SiteCustomization::forgetCache();
 
         $this->assertArrayNotHasKey('catalog_apply_filters_btn', SiteCustomization::raw());
-        $this->assertSame('MADINA OWNER TOP BAR', SiteCustomization::raw()['top_bar_text']);
+        $this->assertSame('MADINA OWNER TOP BAR', SiteCustomization::raw()['contact_company_title']);
 
         $this->get('/products')->assertOk()
             ->assertSee('Apply filters')

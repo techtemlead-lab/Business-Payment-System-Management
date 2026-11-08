@@ -84,7 +84,6 @@ export default function TextPoliciesSection({ form, defaults, updateField }: Web
                                 <Field label={translate('portal', 'sce_f_terms_body')} fieldKey="terms_body" value={form.data.customization.terms_body} placeholder={defaults.terms_body} onChange={updateField} multiline rows={6} span2 />
                                 <Field label={translate('portal', 'sce_f_legal_effective')} fieldKey="legal_meta_effective" value={form.data.customization.legal_meta_effective} placeholder={defaults.legal_meta_effective} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_f_legal_governance')} fieldKey="legal_meta_governance" value={form.data.customization.legal_meta_governance} placeholder={defaults.legal_meta_governance} onChange={updateField} />
-                                <Field label={translate('portal', 'sce_f_legal_location')} fieldKey="legal_meta_location" value={form.data.customization.legal_meta_location} placeholder={defaults.legal_meta_location} onChange={updateField} />
                             </div>
         </WebsiteGroup>
         </WebsiteSection>

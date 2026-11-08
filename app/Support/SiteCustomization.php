@@ -26,6 +26,39 @@ class SiteCustomization
      */
     private const RetiredDefaults = ['auth_login_title' => ['Account Login']];
 
+    /**
+     * Facts the website shows in more than one place. The key on the left has no
+     * value of its own: it always shows what is stored under the key on the right,
+     * so one edit reaches every place.
+     *
+     * @var array<string, string>
+     */
+    public const RepeatedFacts = [
+        'top_bar_text' => 'contact_company_title',
+        'footer_about_title' => 'contact_company_title',
+        'footer_support_title' => 'contact_phone',
+        'footer_email' => 'contact_email',
+        'footer_address' => 'office_address',
+        'legal_meta_location' => 'footer_location',
+        'whatsapp_link' => 'social_whatsapp',
+    ];
+
+    /**
+     * Social networks in the order they appear in the footer and on the Contact page.
+     *
+     * @var array<string, array{label: string, icon: string}>
+     */
+    public const SocialNetworks = [
+        'facebook' => ['label' => 'Facebook', 'icon' => 'fa-facebook-f'],
+        'youtube' => ['label' => 'YouTube', 'icon' => 'fa-youtube'],
+        'instagram' => ['label' => 'Instagram', 'icon' => 'fa-instagram'],
+        'whatsapp' => ['label' => 'WhatsApp', 'icon' => 'fa-whatsapp'],
+        'linkedin' => ['label' => 'LinkedIn', 'icon' => 'fa-linkedin-in'],
+        'twitter' => ['label' => 'X', 'icon' => ''],
+        'tiktok' => ['label' => 'TikTok', 'icon' => 'fa-tiktok'],
+        'telegram' => ['label' => 'Telegram', 'icon' => 'fa-telegram'],
+    ];
+
     public const TestimonialsCacheKey = 'public:testimonials:v1';
 
     private const CacheTtlSeconds = 300;
@@ -263,10 +296,10 @@ class SiteCustomization
             // Contact Page (/contact)
             'contact_title' => 'Contact Us',
             'contact_company_title' => 'Madina Natural Health Care',
-            'contact_company_desc' => 'Madina Natural Health Care (Owner: Md Anowar Hossain). Head office: Thana Road, Pirganj 5470, Rangpur. Hotline: 01730532966 · 01723731877.',
+            'contact_company_desc' => '{company} (Owner: Md Anowar Hossain). Head office: {address}. Hotline: {phones}.',
             'contact_phone_title' => 'Customer Care & Hotline',
             'contact_phone' => '+8801730532966',
-            'contact_phone_hours' => 'Hotline also: 01723731877',
+            'contact_phone_hours' => '',
             'contact_email_title' => 'Official Email',
             'contact_email' => '',
             'contact_topic1_title' => 'Dealer Enquiries',
@@ -276,8 +309,8 @@ class SiteCustomization
             'contact_topic3_title' => 'Head Office',
             // Printed order invoice letterhead (starting values come from config/madina.php).
             'invoice_manufacturer' => (string) config('madina.invoice_manufacturer', ''),
-            'invoice_marketed_by' => (string) config('madina.invoice_marketed_by', 'Madina Natural Health Care'),
-            'invoice_marketed_phones' => (string) config('madina.invoice_marketed_phones', '01723-731877, 01730532966'),
+            'invoice_marketed_by' => (string) config('madina.invoice_marketed_by', ''),
+            'invoice_marketed_phones' => (string) config('madina.invoice_marketed_phones', ''),
             'contact_social_title' => 'Connect With Us Online',
             'office_address' => 'Thana Road, Pirganj 5470, Rangpur, Bangladesh',
             // Default pin: Pirganj Upazila, Rangpur District (admin can override in Website CMS).
@@ -286,8 +319,8 @@ class SiteCustomization
             'map_longitude' => '89.307493',
             'contact_form_title' => 'Send an Enquiry',
             'map_title' => 'Office & Healthcare Center Location',
-            'map_subtitle' => 'Visit Madina Natural Health Care at our licensed Pirganj head office or navigate with map directions.',
-            'map_facility' => 'Madina Natural Health Care — Thana Road, Pirganj',
+            'map_subtitle' => $copy('map_subtitle'),
+            'map_facility' => $copy('map_facility'),
             'map_directions_text' => 'Open Map Directions',
 
             // Registered practitioners page (/prescribers)
@@ -343,7 +376,8 @@ class SiteCustomization
             'footer_directory_title' => 'Dealer Directory',
             'footer_directory_link' => '/dealers',
             'footer_directory_icon' => 'fa-solid fa-location-dot',
-            'footer_phone' => '+8801730532966',
+            // The second number. The first is contact_phone.
+            'footer_phone' => '01723731877',
             'footer_email' => '',
             'footer_address' => $copy('footer_address'),
             'footer_location' => $copy('footer_location'),
@@ -360,7 +394,7 @@ class SiteCustomization
             'footer_link_dealer_apply' => 'Apply for Dealership',
             'footer_link_dealer_apply_url' => '/partnership',
             'footer_about_title' => 'Madina Natural Health Care',
-            'footer_about_desc' => 'Licensed distributor (Trade License 2026-00563, Pirganj Municipality). Natural herbal and nutrition products across Bangladesh.',
+            'footer_about_desc' => $copy('footer_about_desc'),
             'footer_logo_url' => '/madina-header-logo-white.png?v=10',
 
             // Floating Tools & Dialogs
@@ -473,7 +507,7 @@ class SiteCustomization
             'terms_body' => $copy('terms_body'),
 
             'legal_meta_effective' => 'Effective: October 2026',
-            'legal_meta_governance' => 'Madina Natural Health Care · Operational policy',
+            'legal_meta_governance' => $copy('legal_meta_governance'),
             'legal_meta_location' => 'Pirganj, Rangpur, Bangladesh',
 
             // Footer legal links
@@ -574,7 +608,7 @@ class SiteCustomization
         $custom = trim((string) ($all['copyright_text'] ?? ''));
         $isFactory = (bool) preg_match('/^© \d{4} Madina Natural Health Care\. All rights reserved\.$/u', $custom);
         if ($custom === '' || $isFactory) {
-            return (string) __('site.copyright', ['year' => LocalDigits::text(date('Y'))]);
+            return SiteFacts::fill((string) __('site.copyright', ['year' => LocalDigits::text(date('Y'))]));
         }
 
         return $custom;
@@ -812,6 +846,108 @@ class SiteCustomization
         return $normalized;
     }
 
+    /** True for a setting that only repeats another one, so it is never stored. */
+    public static function isRepeatedFact(string $key): bool
+    {
+        return isset(self::RepeatedFacts[$key]) || $key === 'footer_support_link';
+    }
+
+    /**
+     * Fills in every repeated fact from the one place it is stored.
+     *
+     * @param  array<string, mixed>  $all
+     * @return array<string, mixed>
+     */
+    private static function withRepeatedFacts(array $all): array
+    {
+        foreach (self::RepeatedFacts as $repeat => $fact) {
+            $all[$repeat] = $all[$fact] ?? '';
+        }
+        $all['footer_support_link'] = self::phoneLink((string) ($all['contact_phone'] ?? ''));
+        $all['whatsapp_link'] = self::whatsappUrl((string) ($all['social_whatsapp'] ?? ''));
+
+        return $all;
+    }
+
+    /**
+     * Older callers may still send a repeated key. Its value belongs to the fact,
+     * unless the same save already names the fact itself.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private static function withRepeatsMovedToTheirFact(array $payload): array
+    {
+        foreach (self::RepeatedFacts as $repeat => $fact) {
+            if (! array_key_exists($repeat, $payload)) {
+                continue;
+            }
+            if (! array_key_exists($fact, $payload) && filled($payload[$repeat])) {
+                $payload[$fact] = $payload[$repeat];
+            }
+            unset($payload[$repeat]);
+        }
+        unset($payload['footer_support_link']);
+
+        return $payload;
+    }
+
+    /** A tel: link for a phone number as the owner typed it. */
+    public static function phoneLink(string $phone): string
+    {
+        $dialable = (string) preg_replace('/[^0-9+]/', '', $phone);
+
+        return $dialable === '' ? '' : 'tel:'.$dialable;
+    }
+
+    /** A chat link from what the owner typed: a full link, or just a phone number. */
+    public static function whatsappUrl(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '' || $value === '#') {
+            return '';
+        }
+        if (str_starts_with($value, 'http')) {
+            return $value;
+        }
+        $digits = (string) preg_replace('/[^0-9]/', '', $value);
+
+        return $digits === '' ? '' : 'https://wa.me/'.(str_starts_with($digits, '01') ? '88'.$digits : $digits);
+    }
+
+    /** The second phone number, or null when there is none or it repeats the first. */
+    public static function secondPhone(): ?string
+    {
+        $all = self::all();
+        $second = trim((string) ($all['footer_phone'] ?? ''));
+        $digits = static fn (string $number): string => ltrim((string) preg_replace('/\D/', '', $number), '0');
+        if ($second === '' || str_ends_with($digits((string) ($all['contact_phone'] ?? '')), $digits($second))) {
+            return null;
+        }
+
+        return $second;
+    }
+
+    /**
+     * Every social network the owner has filled in, ready to show.
+     *
+     * @return list<array{network: string, label: string, icon: string, url: string}>
+     */
+    public static function socialLinks(): array
+    {
+        $all = self::all();
+        $links = [];
+        foreach (self::SocialNetworks as $network => $details) {
+            $value = trim((string) ($all['social_'.$network] ?? ''));
+            $url = $network === 'whatsapp' ? self::whatsappUrl($value) : ($value === '#' ? '' : $value);
+            if ($url !== '') {
+                $links[] = ['network' => $network, ...$details, 'url' => $url];
+            }
+        }
+
+        return $links;
+    }
+
     public static function forgetCache(): void
     {
         self::$requestMemo = null;
@@ -830,7 +966,7 @@ class SiteCustomization
     public static function all(): array
     {
         return self::$requestMemo ??= Cache::remember(self::CacheKey, self::CacheTtlSeconds, function (): array {
-            return self::loadAll();
+            return self::withRepeatedFacts(self::loadAll());
         });
     }
 
@@ -899,7 +1035,7 @@ class SiteCustomization
                     } else {
                         // String scalar value
                         $trimmed = trim((string) $stored[$key]);
-                        if ($trimmed !== '') {
+                        if ($trimmed !== '' || $key === 'footer_phone') {
                             $merged[$key] = $trimmed;
                         }
                     }
@@ -954,6 +1090,7 @@ class SiteCustomization
 
     public static function save(array $payload): void
     {
+        $payload = self::withRepeatsMovedToTheirFact($payload);
         self::validateShape(self::defaults(), $payload);
         SafeSiteUrl::clean($payload, true);
         DB::transaction(function () use ($payload): void {
@@ -963,6 +1100,9 @@ class SiteCustomization
             $clean = [];
 
             foreach ($defaults as $key => $defaultVal) {
+                if (self::isRepeatedFact($key)) {
+                    continue;
+                }
                 if ($key === 'nav_categories') {
                     if (is_array($payload[$key] ?? null)) {
                         $clean[$key] = implode("\n", array_map('trim', array_filter($payload[$key])));

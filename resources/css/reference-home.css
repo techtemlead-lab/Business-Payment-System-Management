@@ -3710,3 +3710,21 @@ body.ref-home .ref-contact-link{overflow-wrap:anywhere}
 @media(min-width:1024px) and (max-width:1439px){
   body.ref-home .ref-sticky-chrome .ref-header-links{gap:12px}
 }
+
+/* Social links: one row of round brand buttons, used in the footer and on the Contact page. */
+.ref-socials{display:flex;flex-flow:row wrap;align-items:center;gap:10px}
+.ref-social{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:50%;color:#fff;font-size:19px;line-height:1;transition:transform .15s ease,box-shadow .15s ease;box-shadow:0 0 0 1px rgba(255,255,255,.22)}
+.ref-social:hover{transform:translateY(-2px);color:#fff}
+.ref-social:focus-visible{outline:2px solid var(--sm-gold-light,#e9c766);outline-offset:2px}
+.ref-social svg{width:18px;height:18px}
+.ref-social.is-facebook{background:#1877f2}
+.ref-social.is-youtube{background:#ff0033}
+.ref-social.is-instagram{background:linear-gradient(45deg,#f09433,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888)}
+.ref-social.is-whatsapp{background:#25d366}
+.ref-social.is-linkedin{background:#0a66c2}
+.ref-social.is-twitter,.ref-social.is-tiktok{background:#000}
+.ref-social.is-telegram{background:#229ed9}
+.ref-contact-socials{margin-top:20px;padding-top:16px;border-top:1px solid #e2e8f0}
+.ref-contact-socials h3{margin:0 0 10px;font-weight:700;color:#1e293b}
+html[data-theme="dark"] .ref-contact-socials{border-top-color:rgba(255,255,255,.14)}
+html[data-theme="dark"] .ref-contact-socials h3{color:inherit}

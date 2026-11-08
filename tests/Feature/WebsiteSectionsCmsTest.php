@@ -181,8 +181,8 @@ class WebsiteSectionsCmsTest extends TestCase
         $editor = User::factory()->staff('editor')->create();
 
         $this->actingAs($editor)->post('/commands/customization', ['customization' => [
-            'footer_support_link' => 'javascript:alert(1)',
-        ]])->assertSessionHasErrors('customization.footer_support_link');
+            'footer_directory_link' => 'javascript:alert(1)',
+        ]])->assertSessionHasErrors('customization.footer_directory_link');
     }
 
     public function test_invoice_letterhead_starts_from_the_company_settings(): void
@@ -199,7 +199,7 @@ class WebsiteSectionsCmsTest extends TestCase
             ->get('/orders/'.$order->id.'/invoice/print')
             ->assertOk()
             ->assertSee(config('madina.invoice_manufacturer'))
-            ->assertSee(config('madina.invoice_marketed_phones'));
+            ->assertSee('01723731877, +8801730532966');
     }
 
     public function test_invoice_letterhead_uses_what_the_owner_typed(): void

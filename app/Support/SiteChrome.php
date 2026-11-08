@@ -23,7 +23,7 @@ final class SiteChrome
     {
         $bangla = trim((string) $customBangla);
         if (app()->getLocale() === 'bn' && $bangla !== '') {
-            return $bangla;
+            return SiteFacts::fill($bangla);
         }
 
         return self::text($key, $custom);
@@ -35,7 +35,14 @@ final class SiteChrome
         return preg_match('/\p{Arabic}/u', $text) === 1;
     }
 
+    /** The words for this visitor, with any {phone}-style word filled in from the one saved fact. */
     public static function text(string $key, ?string $custom = null): string
+    {
+        return SiteFacts::fill(self::plain($key, $custom));
+    }
+
+    /** The words for this visitor, before any {phone}-style word is filled in. */
+    public static function plain(string $key, ?string $custom = null): string
     {
         $translated = (string) __('site.'.$key);
         $custom = $custom !== null ? trim((string) $custom) : '';

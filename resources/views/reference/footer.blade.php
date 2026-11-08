@@ -1,18 +1,17 @@
 @php
     $chrome = fn (string $key, ?string $custom = null): string => \App\Support\SiteChrome::text($key, $custom);
-    // The support box above the list already shows this number when the two match, so it is not repeated.
-    $phoneDigits = fn (?string $number): string => ltrim((string) preg_replace('/\D/', '', (string) $number), '0');
-    $showHotline = filled($siteCustomization['footer_phone'] ?? null)
-        && ! str_ends_with($phoneDigits($siteCustomization['footer_support_title'] ?? '+8801730532966'), $phoneDigits($siteCustomization['footer_phone']));
+    $secondPhone = \App\Support\SiteCustomization::secondPhone();
+    $companyEmail = trim((string) ($siteCustomization['contact_email'] ?? ''));
+    $mainPhone = (string) ($siteCustomization['contact_phone'] ?? '');
 @endphp
 <footer class="ref-footer"><div class="ref-container ref-footer-grid">
     <section class="ref-footer-support">
         <h2>{{ $chrome('footer_support', $siteCustomization['footer_support_heading'] ?? null) }}</h2>
         <div class="ref-footer-support-row">
             <div class="ref-footer-support-actions">
-                <a class="ref-support-box" href="{{ $siteCustomization['footer_support_link'] ?? 'tel:+8801730532966' }}">
+                <a class="ref-support-box" href="{{ \App\Support\SiteCustomization::phoneLink($mainPhone) }}">
                     <i class="{{ $siteCustomization['footer_support_icon'] ?? 'fa-solid fa-phone' }}" aria-hidden="true"></i>
-                    <span><small>{{ $chrome('company_support', $siteCustomization['footer_support_subtitle'] ?? null) }}</small><b>{{ $siteCustomization['footer_support_title'] ?? '+8801730532966' }}</b></span>
+                    <span><small>{{ $chrome('company_support', $siteCustomization['footer_support_subtitle'] ?? null) }}</small><b>{{ $mainPhone }}</b></span>
                 </a>
                 @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_directory_link'] ?? '/dealers'))
                 <a class="ref-support-box" href="{{ $href }}">
@@ -21,18 +20,18 @@
                 </a>
                 @endif
             </div>
-            @if($showHotline || !empty($siteCustomization['footer_email']))
+            @if($secondPhone !== null || $companyEmail !== '')
             <div class="ref-footer-contact-info">
-                @if($showHotline)
-                <a class="ref-footer-contact-link is-hotline" href="tel:{{ preg_replace('/[^0-9+]/', '', $siteCustomization['footer_phone']) }}">
+                @if($secondPhone !== null)
+                <a class="ref-footer-contact-link is-hotline" href="{{ \App\Support\SiteCustomization::phoneLink($secondPhone) }}">
                     <i class="fa-solid fa-headset" aria-hidden="true"></i>
-                    <span><b>{{ __('site.hotline') }}:</b> {{ $siteCustomization['footer_phone'] }}</span>
+                    <span><b>{{ __('site.hotline') }}:</b> {{ $secondPhone }}</span>
                 </a>
                 @endif
-                @if(!empty($siteCustomization['footer_email']))
-                <a class="ref-footer-contact-link is-email" href="mailto:{{ $siteCustomization['footer_email'] }}">
+                @if($companyEmail !== '')
+                <a class="ref-footer-contact-link is-email" href="mailto:{{ $companyEmail }}">
                     <i class="fa-solid fa-envelope" aria-hidden="true"></i>
-                    <span>{{ $siteCustomization['footer_email'] }}</span>
+                    <span>{{ $companyEmail }}</span>
                 </a>
                 @endif
             </div>
@@ -76,42 +75,11 @@
         <h2>{{ $chrome('footer_stay_connected', $siteCustomization['footer_stay_connected_heading'] ?? null) }}</h2>
         <div class="ref-footer-brand">
             <a href="/" aria-label="{{ __('site.brand_home') }}"><img src="{{ $siteCustomization['footer_logo_url'] ?? '/madina-header-logo-white.png?v=10' }}" alt="{{ __('site.company_bar') }}" width="56" height="56" decoding="async" loading="lazy"></a>
-            <h3>{{ $chrome('company_intro_title', $siteCustomization['footer_about_title'] ?? null) }}</h3>
+            <h3>{{ \App\Support\SiteCustomization::brandName() }}</h3>
         </div>
         <p>{{ $chrome('footer_about_desc', $siteCustomization['footer_about_desc'] ?? null) }}</p>
         @include('reference.partials.business-identity')
-        <div class="ref-socials">
-            @php
-                $socialMap = [
-                    'facebook' => $siteCustomization['social_facebook'] ?? '',
-                    'youtube' => $siteCustomization['social_youtube'] ?? '',
-                    'linkedin' => $siteCustomization['social_linkedin'] ?? '',
-                    'instagram' => $siteCustomization['social_instagram'] ?? '',
-                    'whatsapp' => $siteCustomization['social_whatsapp'] ?? 'https://wa.me/8801730532966',
-                ];
-            @endphp
-            @foreach($socialMap as $platform => $link)
-            @php
-                $href = filled($link) && $link !== '#' ? $link : '';
-                if ($platform === 'whatsapp' && $href !== '' && ! str_starts_with($href, 'http')) {
-                    $cleaned = preg_replace('/[^0-9]/', '', $href);
-                    $href = $cleaned ? 'https://wa.me/'.(str_starts_with($cleaned, '01') ? '88'.$cleaned : $cleaned) : '';
-                }
-            @endphp
-            @if(filled($href) && $href !== '#')
-            <a href="{{ $href }}" target="_blank" rel="noopener noreferrer" aria-label="{{ ucfirst($platform) }}"><img src="/reference/icons/{{ $platform }}.png" alt="{{ ucfirst($platform) }}"></a>
-            @endif
-            @endforeach
-            @if(!empty($siteCustomization['social_twitter']))
-            <a href="{{ $siteCustomization['social_twitter'] }}" target="_blank" rel="noopener noreferrer" aria-label="X / Twitter" class="ref-social-fa" style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:#0f172a;color:#fff;font-size:14px;"><svg class="ref-x-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true" focusable="false"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
-            @endif
-            @if(!empty($siteCustomization['social_tiktok']))
-            <a href="{{ $siteCustomization['social_tiktok'] }}" target="_blank" rel="noopener noreferrer" aria-label="TikTok" class="ref-social-fa" style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:#000;color:#fff;font-size:14px;"><i class="fa-brands fa-tiktok"></i></a>
-            @endif
-            @if(!empty($siteCustomization['social_telegram']))
-            <a href="{{ $siteCustomization['social_telegram'] }}" target="_blank" rel="noopener noreferrer" aria-label="Telegram" class="ref-social-fa" style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:#229ed9;color:#fff;font-size:14px;"><i class="fa-brands fa-telegram"></i></a>
-            @endif
-        </div>
+        @include('reference.partials.social-links')
         @php
             $appLinks = collect([
                 ['url' => $siteCustomization['app_google_play_link'] ?? '', 'name' => 'Google Play', 'image' => 'google-play.png'],
@@ -147,7 +115,7 @@
 </footer>
 <aside class="ref-floating-tools" aria-label="{{ $chrome('company_support_tools') }}">
     <a
-        href="{{ $siteCustomization['whatsapp_link'] ?? '/contact' }}"
+        href="{{ ($siteCustomization['whatsapp_link'] ?? '') ?: '/contact' }}"
         class="ref-chat"
         aria-label="{{ __('site.chat_with_representative') }}"
         title="{{ __('site.chat_with_representative') }}"

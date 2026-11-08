@@ -102,9 +102,12 @@
             <div>
                 <h3>{{ $chrome('contact_phone_title', $siteCustomization['contact_phone_title'] ?? null) }}</h3>
                 <p>
-                    <a href="tel:{{ preg_replace('/[^0-9+]/', '', $siteCustomization['contact_phone'] ?? '+8801730532966') }}" class="ref-contact-link is-phone">
-                        {{ $siteCustomization['contact_phone'] ?? '+8801730532966' }}
+                    <a href="{{ \App\Support\SiteCustomization::phoneLink((string) ($siteCustomization['contact_phone'] ?? '')) }}" class="ref-contact-link is-phone">
+                        {{ $siteCustomization['contact_phone'] ?? '' }}
                     </a>
+                    @if($secondPhone = \App\Support\SiteCustomization::secondPhone())
+                    <br><a href="{{ \App\Support\SiteCustomization::phoneLink($secondPhone) }}" class="ref-contact-link is-phone">{{ $secondPhone }}</a>
+                    @endif
                     @php
                         $phoneHoursCustom = filled($siteCustomization['contact_phone_hours'] ?? null) ? $siteCustomization['contact_phone_hours'] : null;
                         $phoneHours = $phoneHoursCustom !== null
@@ -137,32 +140,12 @@
         <div class="ref-contact-topic"><i class="fa-solid fa-box-open" aria-hidden="true"></i><div><h3>{{ $chrome('contact_topic2_title', $siteCustomization['contact_topic2_title'] ?? null) }}</h3><p>{{ $chrome('contact_topic2_desc', $siteCustomization['contact_topic2_desc'] ?? null) }}</p></div></div>
         <div class="ref-contact-topic"><i class="fa-solid fa-location-dot" aria-hidden="true"></i><div><h3>{{ $chrome('contact_topic3_title', $siteCustomization['contact_topic3_title'] ?? null) }}</h3><p>{{ $chrome('office_address', $siteCustomization['office_address'] ?? null) }}</p></div></div>
 
-        @php
-            $socialMap = [
-                'facebook' => $siteCustomization['social_facebook'] ?? '',
-                'youtube' => $siteCustomization['social_youtube'] ?? '',
-                'linkedin' => $siteCustomization['social_linkedin'] ?? '',
-                'instagram' => $siteCustomization['social_instagram'] ?? '',
-                'whatsapp' => $siteCustomization['social_whatsapp'] ?? 'https://wa.me/8801730532966',
-            ];
-        @endphp
-        <div style="margin-top:20px; padding-top:16px; border-top:1px solid #e2e8f0;">
-            <h3 style="font-weight:700; color:#1e293b; margin-bottom:10px;">{{ $chrome('contact_social_title', $siteCustomization['contact_social_title'] ?? null) }}</h3>
-            <div class="ref-socials" style="margin-top:0;">
-                @foreach($socialMap as $platform => $link)
-                @php
-                    $href = filled($link) && $link !== '#' ? $link : '';
-                    if ($platform === 'whatsapp' && $href !== '' && ! str_starts_with($href, 'http')) {
-                        $cleaned = preg_replace('/[^0-9]/', '', $href);
-                        $href = $cleaned ? 'https://wa.me/'.(str_starts_with($cleaned, '01') ? '88'.$cleaned : $cleaned) : '';
-                    }
-                @endphp
-                @if(filled($href) && $href !== '#')
-                <a href="{{ $href }}" target="_blank" rel="noopener noreferrer" aria-label="{{ ucfirst($platform) }}"><img src="/reference/icons/{{ $platform }}.png" alt="{{ ucfirst($platform) }}"></a>
-                @endif
-                @endforeach
-            </div>
+        @if(\App\Support\SiteCustomization::socialLinks() !== [])
+        <div class="ref-contact-socials">
+            <h3>{{ $chrome('contact_social_title', $siteCustomization['contact_social_title'] ?? null) }}</h3>
+            @include('reference.partials.social-links')
         </div>
+        @endif
 
         @if($publicPageEnabled['dealers'] ?? true)
         <a href="/dealers" class="ref-primary-button" style="margin-top:18px;">{{ $chrome('about_btn_dealers', $siteCustomization['about_btn_dealers'] ?? null) }}</a>
