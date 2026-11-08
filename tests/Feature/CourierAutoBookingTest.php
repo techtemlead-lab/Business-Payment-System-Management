@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
+use RuntimeException;
 use Tests\TestCase;
 
 /**
@@ -285,6 +286,154 @@ class CourierAutoBookingTest extends TestCase
         $this->assertSame('returned', ShipmentTracking::normalize('Paid_Return'));
         $this->assertNull(ShipmentTracking::normalize('200'));
         $this->assertNull(ShipmentTracking::normalize(''));
+    }
+
+    public function test_a_booking_job_that_dies_after_its_claim_gives_staff_a_way_out(): void
+    {
+        Http::fake(['courier.test/*' => Http::response(['consignment' => ['consignment_id' => 'CN-70', 'tracking_code' => 'SF-70']])]);
+        $order = $this->paidOrder('steadfast');
+        $workerDies = true;
+        Order::retrieved(function () use (&$workerDies): void {
+            if ($workerDies && DB::table('shipments')->where('courier_booking_status', 'booking')->exists()) {
+                $workerDies = false;
+                throw new RuntimeException('The worker died');
+            }
+        });
+
+        try {
+            app(OrderService::class)->decision($this->owner, $order, 'approved', 'Paid in full');
+            $this->fail('The job should have died after claiming the booking.');
+        } catch (RuntimeException $exception) {
+            $this->assertSame('The worker died', $exception->getMessage());
+        }
+
+        $shipment = DB::table('shipments')->where('order_id', $order->id)->first();
+        $this->assertSame('failed', $shipment->courier_booking_status);
+        $this->assertSame(__('courier.booking_outcome_unknown'), $shipment->courier_booking_error);
+        $this->assertDatabaseHas('order_events', ['order_id' => $order->id, 'action' => 'order.courier_booking_failed']);
+        $this->assertDatabaseHas('account_notices', ['user_id' => $this->owner->id, 'title' => __('courier.notice_booking_failed_title', ['number' => $order->number])]);
+        Http::assertNothingSent();
+
+        // Staff can now send it again, and it is booked exactly once.
+        $store = User::factory()->staff('inventory')->create(['status' => 'active']);
+        $this->actingAs($store)->onPortal('manage')
+            ->post('/commands/orders/'.$order->id.'/shipments/'.$shipment->id.'/courier-retry')
+            ->assertSessionHasNoErrors();
+        $this->assertSame('booked', DB::table('shipments')->where('id', $shipment->id)->value('courier_booking_status'));
+        Http::assertSentCount(1);
+    }
+
+    public function test_a_finished_job_cannot_be_turned_into_a_failed_booking(): void
+    {
+        $order = $this->bookedOrder('SF-71');
+        $shipmentId = (int) DB::table('shipments')->where('order_id', $order->id)->value('id');
+
+        (new BookShipmentCourier($shipmentId))->failed(new RuntimeException('SMS gateway down'));
+
+        $this->assertSame('booked', DB::table('shipments')->where('id', $shipmentId)->value('courier_booking_status'));
+        $this->assertDatabaseMissing('order_events', ['order_id' => $order->id, 'action' => 'order.courier_booking_failed']);
+    }
+
+    public function test_the_scheduled_run_frees_a_booking_stuck_without_a_failed_job(): void
+    {
+        Bus::fake([BookShipmentCourier::class]);
+        $stuck = $this->paidOrder('steadfast');
+        $working = $this->paidOrder('steadfast');
+        app(OrderService::class)->decision($this->owner, $stuck, 'approved', 'Paid in full');
+        app(OrderService::class)->decision($this->owner, $working, 'approved', 'Paid in full');
+        DB::table('shipments')->where('order_id', $stuck->id)->update(['courier_booking_status' => 'booking', 'updated_at' => now()->subMinutes(BookShipmentCourier::StuckAfterMinutes + 1)]);
+        DB::table('shipments')->where('order_id', $working->id)->update(['courier_booking_status' => 'booking', 'updated_at' => now()]);
+
+        $this->artisan('couriers:refresh-tracking')->assertSuccessful();
+
+        $this->assertSame('failed', DB::table('shipments')->where('order_id', $stuck->id)->value('courier_booking_status'));
+        $this->assertSame('booking', DB::table('shipments')->where('order_id', $working->id)->value('courier_booking_status'));
+    }
+
+    public function test_a_parcel_cannot_be_marked_picked_up_before_it_is_booked(): void
+    {
+        Bus::fake([BookShipmentCourier::class]);
+        $order = $this->paidOrder('steadfast');
+        app(OrderService::class)->decision($this->owner, $order, 'approved', 'Paid in full');
+        $shipmentId = (int) DB::table('shipments')->where('order_id', $order->id)->value('id');
+        $store = User::factory()->staff('inventory')->create(['status' => 'active']);
+
+        foreach (['pending', 'booking', 'failed'] as $bookingStatus) {
+            DB::table('shipments')->where('id', $shipmentId)->update(['courier_booking_status' => $bookingStatus]);
+            $this->actingAs($store)->onPortal('manage')
+                ->post('/commands/orders/'.$order->id.'/shipments/'.$shipmentId.'/picked-up')
+                ->assertSessionHasErrors('shipment');
+            $this->assertNull(DB::table('shipments')->where('id', $shipmentId)->value('courier_status'));
+        }
+    }
+
+    public function test_a_pathao_booking_answered_with_only_a_consignment_id_counts_as_booked(): void
+    {
+        $this->enableCourier('pathao');
+        Http::fake(['courier.test/*' => Http::response(['message' => 'Order Created Successfully', 'type' => 'success', 'code' => 200, 'data' => ['consignment_id' => 'DP-81', 'merchant_order_id' => 'MN-1', 'order_status' => 'Pending', 'delivery_fee' => 80]])]);
+        $order = $this->paidOrder('pathao');
+
+        app(OrderService::class)->decision($this->owner, $order, 'approved', 'Paid in full');
+
+        $shipment = DB::table('shipments')->where('order_id', $order->id)->first();
+        $this->assertSame('booked', $shipment->courier_booking_status);
+        $this->assertSame('DP-81', $shipment->tracking);
+        $this->assertSame('DP-81', $shipment->courier_consignment_id);
+        $this->assertTrue(ShipmentTracking::isTrackable($shipment));
+        Http::assertSentCount(1);
+    }
+
+    public function test_a_courier_that_never_answers_warns_staff_to_check_before_booking_again(): void
+    {
+        Http::fake(['courier.test/*' => Http::failedConnection('Operation timed out')]);
+        $order = $this->paidOrder('steadfast');
+
+        app(OrderService::class)->decision($this->owner, $order, 'approved', 'Paid in full');
+
+        $shipment = DB::table('shipments')->where('order_id', $order->id)->first();
+        $this->assertSame('failed', $shipment->courier_booking_status);
+        $this->assertSame(__('courier.booking_outcome_unknown'), $shipment->courier_booking_error);
+    }
+
+    public function test_a_parcel_already_confirmed_delivered_is_never_sent_to_a_courier_again(): void
+    {
+        Http::fake(['courier.test/*' => Http::response(['message' => 'Area not served'], 422)]);
+        $order = $this->paidOrder('steadfast');
+        app(OrderService::class)->decision($this->owner, $order, 'approved', 'Paid in full');
+        $shipmentId = (int) DB::table('shipments')->where('order_id', $order->id)->value('id');
+        DB::table('shipments')->where('id', $shipmentId)->update(['status' => 'delivered', 'delivered_at' => now()]);
+        $store = User::factory()->staff('inventory')->create(['status' => 'active']);
+
+        $this->actingAs($store)->onPortal('manage')
+            ->post('/commands/orders/'.$order->id.'/shipments/'.$shipmentId.'/courier-retry')
+            ->assertSessionHasErrors('shipment');
+        $this->actingAs($store)->onPortal('manage')
+            ->post('/commands/orders/'.$order->id.'/courier', ['courier' => 'redx'])
+            ->assertSessionHasErrors('courier');
+
+        $this->assertSame('failed', DB::table('shipments')->where('id', $shipmentId)->value('courier_booking_status'));
+        Http::assertSentCount(1);
+    }
+
+    public function test_the_dealer_does_not_receive_the_courier_error_or_consignment_in_the_order_history(): void
+    {
+        Http::fakeSequence('courier.test/*')
+            ->push(['message' => 'Area not served'], 422)
+            ->push(['consignment' => ['consignment_id' => 'CN-90', 'tracking_code' => 'SF-90']]);
+        $order = $this->paidOrder('steadfast');
+        app(OrderService::class)->decision($this->owner, $order, 'approved', 'Paid in full');
+        $shipmentId = (int) DB::table('shipments')->where('order_id', $order->id)->value('id');
+        app(OrderService::class)->retryCourierBooking($this->owner, $order->fresh(), $shipmentId);
+        $metadata = fn (mixed $events, string $action): array => json_decode(collect($events)->firstWhere('action', $action)['metadata'], true);
+
+        $this->actingAs($this->dealer)->onPortal('dealer')->get('/orders/'.$order->id)->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('events', function (mixed $events) use ($metadata): bool {
+                return ! array_key_exists('message', $metadata($events, 'order.courier_booking_failed'))
+                    && ! array_key_exists('consignment_id', $metadata($events, 'order.courier_booked'));
+            }));
+
+        $this->actingAs($this->owner)->onPortal('sadmin')->get('/orders/'.$order->id)->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('events', fn (mixed $events): bool => $metadata($events, 'order.courier_booked')['consignment_id'] === 'CN-90'));
     }
 
     private function enableCourier(string $provider): void

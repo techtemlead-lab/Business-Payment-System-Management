@@ -119,11 +119,13 @@ final class PrescriptionBook
     }
 
     /**
-     * Prescriptions are seen by their own prescriber and by the owner-doctor.
+     * Prescriptions are seen by their own prescriber and by the owner-doctor. A partner whose
+     * prescribing was turned off loses their old prescriptions too, the print page included.
      */
     public function assertVisible(User $viewer, Prescription $prescription): void
     {
         abort_unless(PrescriptionAccess::enabled(), 404);
+        abort_unless(PrescriptionAccess::canPrescribe($viewer), 403);
         abort_unless(
             (int) $prescription->prescriber_id === (int) $viewer->id || PrescriptionAccess::seesAllPatients($viewer),
             404,
@@ -216,8 +218,8 @@ final class PrescriptionBook
     }
 
     /**
-     * In "block" mode the owner may not price a clinic line below 30% of its MRP; the
-     * dispense step checks again.
+     * In "block" mode the owner may not price a clinic line, or the whole prescription, below
+     * 30% of its MRP; the dispense step checks again.
      *
      * @param  list<array{medicine_name: string, gross_cents: int, discount_cents: int, mrp_cents: int}>  $lines
      */
@@ -229,10 +231,18 @@ final class PrescriptionBook
         }
         $percent = Percentage::from(ClinicDispensing::ManufacturerMrpPercent);
         $below = [];
+        $mrp = 0;
+        $price = 0;
         foreach ($lines as $line) {
-            if ($percent->of($line['mrp_cents'], 'half_up') > $line['gross_cents'] - $line['discount_cents']) {
+            $linePrice = $line['gross_cents'] - $line['discount_cents'];
+            if ($percent->of($line['mrp_cents'], 'half_up') > $linePrice) {
                 $below[] = $line['medicine_name'];
             }
+            $mrp += $line['mrp_cents'];
+            $price += $linePrice;
+        }
+        if ($below === [] && $percent->of($mrp, 'half_up') > $price) {
+            $below = array_column($lines, 'medicine_name');
         }
         if ($below !== []) {
             throw ValidationException::withMessages(['lines' => __('prescription.err_below_floor', ['items' => implode(', ', $below), 'percent' => '30'])]);

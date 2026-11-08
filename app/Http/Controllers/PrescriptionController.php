@@ -145,6 +145,7 @@ class PrescriptionController extends Controller
             'phone' => $prescription->patient && (int) $prescription->patient->prescriber_id === (int) $request->user()->id
                 ? $prescription->patient->phone
                 : PhoneIdentity::masked($prescription->patient?->phone),
+            'csp_nonce' => (string) $request->attributes->get('csp_nonce', ''),
         ]);
     }
 

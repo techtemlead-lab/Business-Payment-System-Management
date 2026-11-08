@@ -12,7 +12,7 @@ final class CourierGatewayClient
 
     /**
      * @param  array{recipient_name?:?string, recipient_phone?:?string, recipient_address?:string, amount?:string|int|float, invoice?:string, note?:string, pickup_address?:?string}  $shipment
-     * @return array{success: bool, tracking: ?string, consignment_id: ?string, provider: ?string, message: string, raw: ?array}
+     * @return array{success: bool, tracking: ?string, consignment_id: ?string, provider: ?string, message: string, raw: ?array, outcome_unknown?: bool}
      */
     public function create(string $provider, array $shipment): array
     {
@@ -33,7 +33,8 @@ final class CourierGatewayClient
         } catch (\Throwable $exception) {
             Log::warning('courier.create_failed', ['provider' => $provider, 'error' => RedactedError::message($exception)]);
 
-            return ['success' => false, 'tracking' => null, 'consignment_id' => null, 'provider' => $provider, 'message' => __('portal.si_courier_request_failed', ['error' => RedactedError::message($exception)]), 'raw' => null];
+            // No clear answer came back, so the courier may still have taken the parcel.
+            return ['success' => false, 'tracking' => null, 'consignment_id' => null, 'provider' => $provider, 'message' => __('portal.si_courier_request_failed', ['error' => RedactedError::message($exception)]), 'raw' => null, 'outcome_unknown' => true];
         }
     }
 
@@ -120,7 +121,8 @@ final class CourierGatewayClient
 
         return $this->result('pathao', $response->successful(), $payload,
             $payload['data']['consignment_id'] ?? $payload['consignment_id'] ?? null,
-            $payload['data']['tracking_id'] ?? $payload['tracking_id'] ?? null);
+            // Pathao can answer with only a consignment id, which is also what its tracking uses.
+            $payload['data']['tracking_id'] ?? $payload['tracking_id'] ?? $payload['data']['consignment_id'] ?? $payload['consignment_id'] ?? null);
     }
 
     /** @param  array<string, mixed>  $config @param  array<string, mixed>  $shipment */

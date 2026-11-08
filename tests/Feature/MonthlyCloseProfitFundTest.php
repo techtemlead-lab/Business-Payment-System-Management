@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Accounts\PartnerCertificates;
+use App\Domain\Accounts\PartnerFullReport;
 use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Finance\ReserveService;
@@ -15,6 +17,7 @@ use App\Models\User;
 use Database\Seeders\CommissionRuleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 /**
@@ -174,6 +177,78 @@ class MonthlyCloseProfitFundTest extends TestCase
         // Owner decision: the management share and the marketing budget are kept and carry over.
         $this->assertDatabaseHas('commission_allocations', ['order_id' => $order->id, 'category' => 'area_management', 'status' => 'pending']);
         $this->assertDatabaseHas('commission_allocations', ['order_id' => $order->id, 'category' => 'company_marketing_fund', 'status' => 'pending']);
+    }
+
+    public function test_a_closed_additional_rank_fund_can_no_longer_be_spent(): void
+    {
+        $sub = User::factory()->inPlace($this->division)->create(['role' => 'sub_dealer']);
+        $order = $this->purchase($sub, '120.00', '200.00');
+        $reserves = app(ReserveService::class);
+        $this->assertSame(480, $reserves->remainingByCategory()['additional_rank_pool']);
+        $this->travelTo(now()->setDate(2026, 10, 1)->setTime(1, 0));
+
+        $reserves->closeAdditionalRankFund('2026-09');
+
+        $this->assertSame(0, $reserves->remainingByCategory()['additional_rank_pool'] ?? 0);
+        $this->assertSame('settled', CommissionAllocation::where('order_id', $order->id)->where('category', 'additional_rank_pool')->sole()->status);
+        $this->expectException(ValidationException::class);
+        $this->awardAdditionalRank($sub, '1.00');
+    }
+
+    public function test_the_additional_rank_close_moves_only_what_was_not_already_paid_out(): void
+    {
+        $sub = User::factory()->inPlace($this->division)->create(['role' => 'sub_dealer']);
+        $order = $this->purchase($sub, '120.00', '200.00');
+        $this->awardAdditionalRank($sub, '1.00');
+        $this->travelTo(now()->setDate(2026, 10, 1)->setTime(1, 0));
+
+        $result = app(ReserveService::class)->closeAdditionalRankFund('2026-09');
+
+        $this->assertSame('3.80', $result['total_amount']);
+        $profit = CommissionAllocation::where('order_id', $order->id)->where('category', 'company_profit_fund')->sole();
+        $this->assertSame('3.80', (string) $profit->amount);
+        $this->assertSame('1.00', CommissionAllocation::where('order_id', $order->id)->where('category', 'additional_rank_pool')->sole()->metadata['distributed']);
+    }
+
+    public function test_a_refund_after_the_close_takes_back_only_a_fair_share_when_an_earlier_refund_came_first(): void
+    {
+        $order = $this->purchase(User::factory()->inPlace($this->division)->create());
+        $commissions = app(CommissionService::class);
+        $commissions->reverseOrderPartial($order->fresh(), '20.00', 'First part returned', 'RETURN-1');
+        $this->travelTo(now()->setDate(2026, 10, 1)->setTime(1, 0));
+        $commissions->settleMonthlySalaryPool('2026-09');
+        $fund = CommissionAllocation::where('order_id', $order->id)->where('category', 'dealer_monthly_salary_pool')->sole();
+        $profit = CommissionAllocation::where('order_id', $order->id)->where('category', 'company_profit_fund')->sole();
+        $this->assertSame((string) $fund->amount, (string) $profit->amount);
+
+        $commissions->reverseOrderPartial($order->fresh(), '20.00', 'Second part returned', 'RETURN-2');
+
+        $this->assertSame((string) $fund->fresh()->amount, (string) $profit->fresh()->amount);
+    }
+
+    public function test_a_forfeited_share_is_not_counted_as_the_dealers_income(): void
+    {
+        $dealer = User::factory()->inPlace($this->division)->create();
+        $this->seat($dealer, '100000.00');
+        $order = $this->purchase(User::factory()->inPlace($this->division)->create());
+        $this->assertGreaterThan(0, (float) $this->divisionShare($order)->amount);
+        $this->travelTo(now()->setDate(2026, 10, 1)->setTime(1, 0));
+        app(ReserveService::class)->forfeitUnmetQuotaHolds('2026-09');
+
+        $certificate = app(PartnerCertificates::class)->income($dealer, 2026);
+        $report = app(PartnerFullReport::class)->for($dealer, null, null);
+
+        $this->assertSame('0.00', $certificate['total']);
+        $this->assertNotContains('area_division', array_column($certificate['lines'], 'category'));
+        $this->assertNotContains('area_division', array_column($report['commissions'], 'category'));
+    }
+
+    private function awardAdditionalRank(User $partner, string $amount): void
+    {
+        $reserves = app(ReserveService::class);
+        $id = $reserves->request(User::factory()->staff()->create(), ['program' => 'additional_rank', 'user_id' => $partner->id, 'amount' => $amount,
+            'request_key' => (string) Str::uuid(), 'reason' => 'Additional rank reward']);
+        $reserves->review(User::factory()->staff()->create(), $id, 'approved', 'Checked');
     }
 
     public function test_the_rollover_funds_still_roll_over_after_the_close(): void
