@@ -73,7 +73,7 @@ final class FinanceSection implements WorkspaceSection
                 'users.division',
                 'company_branches.name as branch_name',
             );
-        $branchScope?->restrict($claims, 'orders.fulfillment_branch_id');
+        $branchScope?->restrictOrders($claims);
         if ($request->filled('q')) {
             $term = '%'.$request->string('q')->toString().'%';
             $claims->where(function ($query) use ($term): void {

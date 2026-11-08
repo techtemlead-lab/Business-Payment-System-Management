@@ -180,7 +180,7 @@ class WorkspaceController extends Controller
         // Staff pages that follow the top-bar branch switcher show only the picked branch.
         $branchScope = $staff && BranchScope::covers($section) ? app(BranchOperations::class)->scopeFor($u, $r) : null;
         if ($branchScope !== null) {
-            $branchScope->restrict($orders, 'orders.fulfillment_branch_id');
+            $branchScope->restrictOrders($orders);
         }
         $context = new SectionContext(
             request: $r,

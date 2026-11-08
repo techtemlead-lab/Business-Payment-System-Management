@@ -6,7 +6,6 @@ use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Geography\PlaceGeographyResolver;
 use App\Domain\Geography\PlaceTree;
 use App\Domain\Inventory\BranchScope;
-use App\Domain\Support\ChatRouting;
 use App\Models\PlaceCode;
 use App\Models\User;
 use App\Support\DashboardManagement;
@@ -277,9 +276,8 @@ final class TopSellersBoard
         if ($branchScope->branchIds === []) {
             return ['AND FALSE', []];
         }
-        $placeholders = implode(', ', array_fill(0, count($branchScope->branchIds), '?'));
 
-        return ['AND '.app(ChatRouting::class)->partnerBranchSql('users').' IN ('.$placeholders.')', $branchScope->branchIds];
+        return ['AND '.$branchScope->partnerBranchCondition(), $branchScope->branchIds];
     }
 
     /**

@@ -104,6 +104,20 @@ class BranchScopedExportsTest extends TestCase
         $this->assertDownloadHasOnly($this->sheetText($this->ownerOnAll()->get($url)->assertOk()), $orders, ['dhaka', 'rajshahi', 'none']);
     }
 
+    public function test_the_head_office_downloads_include_orders_with_no_branch_yet(): void
+    {
+        $orders = $this->ordersPerBranch();
+        foreach ($orders as $number) {
+            DB::table('payment_claims')->insert(['order_id' => Order::query()->where('number', $number)->value('id'), 'channel' => 'bKash',
+                'reference' => 'TX-'.$number, 'amount' => '100.00', 'status' => 'verified', 'created_at' => now(), 'updated_at' => now()]);
+        }
+        $owner = $this->ownerAt(CompanyBranch::query()->where('is_head_office', true)->firstOrFail());
+        $collections = '/commands/operations/reports?type=collections&format=xlsx&from='.now()->subDay()->format('Y-m-d').'&to='.now()->addDay()->format('Y-m-d');
+
+        $this->assertDownloadHasOnly($this->actingAs($owner)->onPortal('sadmin')->get('/exports/orders')->assertOk()->streamedContent(), $orders, ['none']);
+        $this->assertDownloadHasOnly($this->sheetText($this->actingAs($owner)->onPortal('sadmin')->get($collections)->assertOk()), $orders, ['none']);
+    }
+
     public function test_the_report_centre_order_files_stay_inside_the_branch_for_branch_staff(): void
     {
         $orders = $this->ordersPerBranch();

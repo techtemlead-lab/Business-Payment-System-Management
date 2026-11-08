@@ -74,7 +74,7 @@ final class GlobalSearch
     private function orders(string $term, BranchScope $scope): array
     {
         $query = Order::query()->where('orders.number', 'ilike', $this->contains($term));
-        $scope->restrict($query, 'orders.fulfillment_branch_id');
+        $scope->restrictOrders($query);
 
         return $query->with('user:id,name,dealer_code')
             ->latest()
