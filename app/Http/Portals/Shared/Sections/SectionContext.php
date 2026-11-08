@@ -2,6 +2,7 @@
 
 namespace App\Http\Portals\Shared\Sections;
 
+use App\Domain\Inventory\BranchScope;
 use App\Domain\Pricing\ProductPricing;
 use App\Models\Order;
 use App\Models\User;
@@ -18,6 +19,7 @@ final readonly class SectionContext
      * @param  bool  $isStaff  Manage or sadmin portal, or a partner working in the staff workspace.
      * @param  string  $catalogPortal  Portal whose section list was checked for this request.
      * @param  Builder<Order>  $orders  Orders this viewer may see. Clone it before adding conditions.
+     * @param  BranchScope|null  $branchScope  Branches a staff page shows, on sections that follow the top-bar branch switcher; null elsewhere.
      */
     public function __construct(
         public Request $request,
@@ -29,5 +31,6 @@ final readonly class SectionContext
         public string $catalogPortal,
         public Builder $orders,
         public ProductPricing $pricing,
+        public ?BranchScope $branchScope = null,
     ) {}
 }

@@ -11,6 +11,8 @@ use App\Domain\Accounts\PartnerJoinPoster;
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Geography\ManagementReferral;
 use App\Domain\Identity\BdrisLookup;
+use App\Domain\Inventory\BranchOperations;
+use App\Domain\Inventory\BranchScope;
 use App\Domain\Orders\OrderInvoice;
 use App\Domain\Orders\OrderRefund;
 use App\Domain\Orders\UplineReplacementOptions;
@@ -138,6 +140,11 @@ class WorkspaceController extends Controller
             ], fn ($value) => $value !== null && $value !== '')));
         }
         $orders = Order::query()->when(! $staff, fn ($q) => $q->where('user_id', $u->id))->when($staff && ! $u->allows('orders') && ! $u->allows('finance'), fn ($q) => $q->whereRaw('1=0'));
+        // Staff pages that follow the top-bar branch switcher show only the picked branch.
+        $branchScope = $staff && BranchScope::covers($section) ? app(BranchOperations::class)->scopeFor($u, $r) : null;
+        if ($branchScope !== null) {
+            $branchScope->restrict($orders, 'orders.fulfillment_branch_id');
+        }
         $context = new SectionContext(
             request: $r,
             user: $u,
@@ -148,6 +155,7 @@ class WorkspaceController extends Controller
             catalogPortal: $catalogPortal,
             orders: $orders,
             pricing: $pricing,
+            branchScope: $branchScope,
         );
         $data = [];
         foreach (self::Sections as $workspaceSection) {
@@ -157,6 +165,9 @@ class WorkspaceController extends Controller
         // The page tour is built once, by the shared `tour` prop in HandleInertiaRequests.
         if (in_array($u->role, ['dealer', 'sub_dealer'], true) && ! $staffWorkspace) {
             $data['guide_prerequisites'] = app(GuidePrerequisites::class)->forSection($u, $section);
+        }
+        if ($branchScope !== null) {
+            $data['branch_scope'] = $branchScope->chip();
         }
 
         return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role', 'channel', 'category', 'sub_category', 'unit', 'min_mrp', 'max_mrp', 'availability', 'sort', 'period', 'from', 'to', 'division', 'district', 'rank', 'no_order_days'])]);

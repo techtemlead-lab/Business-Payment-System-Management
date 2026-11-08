@@ -6246,4 +6246,7 @@ return [
     'sce_home_bismillah_hint' => 'হোমপেজের একদম উপরে, কোম্পানির নামের উপরে মাঝখানে দেখাবে।',
     'portal_visit_website' => 'ওয়েবসাইট দেখুন',
     'net_show_more' => 'আরও :count জন দেখুন',
+    'branch_scope_showing' => 'দেখানো হচ্ছে: :name',
+    'branch_scope_none' => 'আপনাকে এখনো কোনো ব্রাঞ্চ দেওয়া হয়নি',
+    'branch_scope_hint' => 'উপরের বার থেকে ব্রাঞ্চ বদলান।',
 ];
