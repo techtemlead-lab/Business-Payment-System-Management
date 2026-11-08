@@ -1,0 +1,151 @@
+/* ==========================================================================
+   Portal motion, second layer (owner, office staff, dealer, sub-dealer):
+   a slow ambient light behind the workspace, card lift with a small 3D tilt
+   and a soft pointer glow, button press and sheen, a sidebar marker that
+   slides to the new item, progress bars that fill in, and a shimmer on
+   loading placeholders.
+
+   Rules kept here:
+   - Animations move transform and opacity only.
+   - Pointer effects (tilt, glow) run only for a mouse or trackpad
+     (hover:hover and pointer:fine). Touch screens get none of it.
+   - Nothing moves for people who ask for reduced motion.
+   - Selectors start with :root where they must win over dashboard.css,
+     which loads its own rules after this import.
+   The pointer listener and page / sidebar transitions live in
+   resources/js/components/motion/portalMotion.ts.
+   ========================================================================== */
+
+/* ---- 1. Ambient light behind the workspace ------------------------------
+   Two very faint pools of the brand colours (green, marigold) on a fixed
+   layer behind the page. The shell and workspace become see-through so the
+   layer shows; body already paints the same --ds-bg underneath. */
+:root .app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell){
+  --pm-ambient-a:rgba(0,106,78,.075);
+  --pm-ambient-b:rgba(239,74,35,.045);
+  background:transparent;
+}
+:root .dealer-shell{--pm-ambient-a:rgba(46,49,146,.07)}
+html[data-theme="dark"] .app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell){
+  --pm-ambient-a:rgba(47,191,140,.085);
+  --pm-ambient-b:rgba(242,106,69,.05);
+}
+html[data-theme="dark"] .dealer-shell{--pm-ambient-a:rgba(120,130,255,.08)}
+:root .app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace{background:transparent}
+:root .app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell)::before,
+:root .app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell)::after{
+  content:"";position:fixed;z-index:-1;pointer-events:none;border-radius:50%;
+  width:70vmax;height:70vmax;
+}
+:root .app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell)::before{
+  top:-28vmax;right:-22vmax;
+  background:radial-gradient(closest-side,var(--pm-ambient-a),transparent);
+}
+:root .app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell)::after{
+  bottom:-34vmax;left:-12vmax;
+  background:radial-gradient(closest-side,var(--pm-ambient-b),transparent);
+}
+@media (prefers-reduced-motion:no-preference){
+  :root .app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell)::before{animation:pmDriftA 46s ease-in-out infinite alternate}
+  :root .app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell)::after{animation:pmDriftB 58s ease-in-out infinite alternate}
+}
+@keyframes pmDriftA{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(-12vmax,10vmax,0) scale(1.08)}}
+@keyframes pmDriftB{from{transform:translate3d(0,0,0) scale(1.05)}to{transform:translate3d(14vmax,-8vmax,0) scale(.95)}}
+@media print{
+  :root .app-shell::before,:root .app-shell::after{display:none}
+}
+
+/* ---- 2. Cards: lift, 3D tilt and pointer glow ----------------------------
+   KPI cards tilt up to 4 degrees toward the pointer (the angle comes from
+   --pm-tx / --pm-ty, set by portalMotion.ts). Tiles and links only lift.
+   The glow is a soft circle moved with transform inside the card. */
+@media (hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference){
+  :root .app-shell :is(.metric,.treasury-kpi-card,.admin-kpi,.ph-today-grid>div,.office-today-figures a,.office-today-lead,.office-tile){
+    position:relative;overflow:hidden;
+    transition:transform .22s cubic-bezier(.2,.7,.2,1),box-shadow .22s ease,border-color .15s ease;
+  }
+  :root .app-shell :is(.office-today-figures a,.office-today-lead,.office-tile):hover{transform:translateY(-2px)}
+  :root .app-shell :is(.metric,.treasury-kpi-card,.admin-kpi,.ph-today-grid>div):hover{
+    transform:perspective(900px) rotateX(var(--pm-ty,0deg)) rotateY(var(--pm-tx,0deg)) translateY(-2px);
+    box-shadow:var(--ds-shadow-md);
+  }
+  :root .app-shell :is(.office-tile):hover{box-shadow:var(--ds-shadow-sm)}
+
+  /* the glow: a blurred-looking circle that follows the pointer inside the card */
+  :root .app-shell :is(.metric,.treasury-kpi-card,.admin-kpi,.ph-today-grid>div,.office-today-figures a,.office-today-lead,.office-tile)::after{
+    content:"";position:absolute;left:0;top:0;width:240px;height:240px;margin:-120px 0 0 -120px;
+    border-radius:50%;pointer-events:none;opacity:0;
+    background:radial-gradient(closest-side,var(--pm-glow,rgba(0,106,78,.10)),transparent);
+    transform:translate3d(var(--pm-x,50%),var(--pm-y,50%),0);
+    transition:opacity .3s ease;
+  }
+  :root .app-shell :is(.metric,.treasury-kpi-card,.admin-kpi,.ph-today-grid>div,.office-today-figures a,.office-today-lead,.office-tile):hover::after{opacity:1}
+  /* white glow on the green "today" card */
+  :root .app-shell :is(.office-today-figures a,.office-today-lead){--pm-glow:rgba(255,255,255,.16)}
+  html[data-theme="dark"] .app-shell :is(.metric,.treasury-kpi-card,.admin-kpi,.ph-today-grid>div,.office-tile){--pm-glow:rgba(95,211,168,.10)}
+
+  /* panels: a calm shadow lift only, no movement */
+  :root .app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .panel{transition:box-shadow .25s ease}
+  :root .app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .panel:hover{box-shadow:var(--ds-shadow-sm)}
+}
+
+/* ---- 3. Buttons: press and sheen -----------------------------------------
+   Every button sinks a touch when pressed. Main (primary) buttons also get a
+   light band that sweeps across once on hover. */
+@media (prefers-reduced-motion:no-preference){
+  :root .app-shell :is(.button,.icon-button){transition:transform .12s ease,background-color .15s ease,border-color .15s ease,color .15s ease}
+  :root .app-shell :is(.button,.icon-button):active:not(:disabled){transform:translateY(1px) scale(.98)}
+}
+@media (hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference){
+  :root .app-shell .button.primary{position:relative;overflow:hidden;isolation:isolate}
+  :root .app-shell .button.primary::after{
+    content:"";position:absolute;z-index:-1;top:0;bottom:0;left:0;width:60%;pointer-events:none;
+    background:linear-gradient(105deg,transparent 20%,rgba(255,255,255,.22) 50%,transparent 80%);
+    transform:translateX(-120%);
+  }
+  :root .app-shell .button.primary:hover:not(:disabled)::after{transform:translateX(220%);transition:transform .7s cubic-bezier(.2,.7,.2,1)}
+}
+
+/* ---- 4. Table rows: a quiet brand-tinted highlight under the pointer ---- */
+:root .app-shell tbody tr:hover,:root .app-shell tbody tr:nth-child(even):hover{background:color-mix(in srgb,var(--ds-brand) 5%,var(--ds-surface))}
+html[data-theme="dark"] .app-shell tbody tr:hover,html[data-theme="dark"] .app-shell tbody tr:nth-child(even):hover{background:color-mix(in srgb,var(--ds-brand) 8%,var(--ds-surface))}
+
+/* ---- 5. Sidebar: the "you are here" marker as a bar that can slide -------
+   The marker used to be an inset shadow; it is now a small bar that
+   portalMotion.ts slides from the old item to the new one on navigation. */
+:root .app-shell .sidebar :is(.nav-group a,.nav-mother-body>a,.nav-section-body>a,.sidebar-domain-pocket a){position:relative}
+:root .app-shell .sidebar :is(.nav-group a,.nav-mother-body>a,.nav-section-body>a,.sidebar-domain-pocket a).selected{box-shadow:none}
+:root .app-shell .sidebar :is(.nav-group a,.nav-mother-body>a,.nav-section-body>a,.sidebar-domain-pocket a).selected::before{
+  content:"";position:absolute;left:0;top:5px;bottom:5px;width:3px;border-radius:0 3px 3px 0;
+  background:var(--ds-accent);pointer-events:none;
+}
+@media (prefers-reduced-motion:no-preference){
+  :root .app-shell .sidebar :is(.nav-group a,.nav-mother-body>a,.nav-section-body>a,.sidebar-domain-pocket a){transition:background-color .15s ease,color .15s ease}
+  :root .app-shell .sidebar :is(.nav-group a,.nav-mother-body>a,.nav-section-body>a,.sidebar-domain-pocket a) svg{transition:transform .2s cubic-bezier(.2,.7,.2,1)}
+  :root .app-shell .sidebar :is(.nav-group a,.nav-mother-body>a,.nav-section-body>a,.sidebar-domain-pocket a):hover svg{transform:translateX(2px)}
+}
+
+/* ---- 6. Progress bars fill from the left when they appear --------------- */
+@media (prefers-reduced-motion:no-preference){
+  :root .app-shell :is(.partner-home-bar>i,.tsb-bar>i,.hub-progress>*){
+    transform-origin:left center;animation:pmFill .9s cubic-bezier(.2,.7,.2,1) .12s backwards;
+  }
+  /* the progress popup bars already grow their width; add a soft fade so they arrive with the dialog */
+  :root .pp-bar>i{animation:pmFade .5s ease .05s backwards}
+}
+@keyframes pmFill{from{transform:scaleX(0)}to{transform:none}}
+@keyframes pmFade{from{opacity:0}to{opacity:1}}
+
+/* ---- 7. Loading placeholders: a light sweep instead of a flat pulse ----- */
+:root :is(.section-loading-bar,.section-loading-block,.pp-skeleton-block i,.app-shell .skeleton){position:relative;overflow:hidden}
+@media (prefers-reduced-motion:no-preference){
+  :root .pp-skeleton-block i{animation:none;background:var(--ds-surface-3)}
+  :root :is(.section-loading-bar,.section-loading-block){animation:none;background:var(--ds-surface-3)}
+  :root :is(.section-loading-bar,.section-loading-block,.pp-skeleton-block i)::after{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);
+    transform:translateX(-100%);animation:pmSweep 1.3s ease-in-out infinite;
+  }
+  html[data-theme="dark"] :is(.section-loading-bar,.section-loading-block,.pp-skeleton-block i)::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.07),transparent)}
+}
+@keyframes pmSweep{to{transform:translateX(100%)}}
