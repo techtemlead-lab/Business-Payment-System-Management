@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Inventory\BranchOperations;
 use App\Domain\Orders\OrderService;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Backend\ClaimPaymentRequest;
@@ -29,7 +30,9 @@ class OrderController extends Controller
             'q' => 'nullable|string|max:100', 'per_page' => 'sometimes|integer|min:1|max:100',
             'page' => 'sometimes|integer|min:1',
         ]);
+        $branches = app(BranchOperations::class);
         $query = Order::query()->when(! $companyAccess, fn ($q) => $q->where('user_id', $user->id))
+            ->when($companyAccess && ! $branches->canViewAllBranches($user), fn ($q) => $q->whereIn('fulfillment_branch_id', $branches->visibleBranches($user)->pluck('id')))
             ->when(isset($data['status']), fn ($q) => $q->where('status', $data['status']))
             ->when(! empty($data['q']), fn ($q) => $q->where('number', 'ilike', '%'.addcslashes($data['q'], '%_\\').'%'));
 
@@ -100,6 +103,7 @@ class OrderController extends Controller
     private function authorizeOrder(Request $request, Order $order): void
     {
         $user = $request->user();
-        abort_unless($order->user_id === $user->id || $user->allows('orders') || $user->allows('finance'), 404);
+        abort_unless($order->user_id === $user->id
+            || (($user->allows('orders') || $user->allows('finance')) && app(BranchOperations::class)->mayOpenOrder($user, $order)), 404);
     }
 }

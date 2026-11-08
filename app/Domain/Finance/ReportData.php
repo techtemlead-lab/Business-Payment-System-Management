@@ -23,6 +23,9 @@ final class ReportData
      */
     public const AccountTypeReports = ['orders', 'commissions', 'settlements', 'withdrawals', 'rewards', 'rank-achievements', 'rank-incentives', 'refunds', 'collections', 'tds-register', 'order-refunds'];
 
+    /** Reports made of order rows (orders are always "o" in their queries), so they can be limited to a branch. */
+    public const OrderBasedReports = ['orders', 'products', 'product-summary', 'category-summary', 'district-summary', 'collections', 'order-refunds', 'refunds'];
+
     /** Partner kinds a report can be narrowed to. */
     public const AccountTypes = ['dealer', 'sub_dealer'];
 

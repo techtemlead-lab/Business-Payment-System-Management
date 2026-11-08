@@ -17,9 +17,9 @@
 .rx-line-grid .rx-wide{grid-column:span 4}
 .rx-line-total{display:flex;flex-direction:column;justify-content:flex-end;gap:2px;font-size:13px}
 .rx-line-total b{font-size:15px}
-.rx-floor{display:inline-block;align-self:flex-start;padding:2px 8px;border-radius:999px;background:#fbf1da;color:#876727;font-size:11px;font-weight:700}
-.rx-floor.is-bad,.rx-hub .is-bad{color:#a04040}
-.rx-floor.is-bad{background:#faeeee}
+.rx-floor{display:inline-block;align-self:flex-start;padding:2px 8px;border-radius:999px;background:var(--ds-warn-bg);color:var(--ds-warn-fg);font-size:11px;font-weight:700}
+.rx-floor.is-bad,.rx-hub .is-bad{color:var(--ds-danger-fg)}
+.rx-floor.is-bad{background:var(--ds-danger-bg)}
 .rx-lines>.button{align-self:flex-start}
 .rx-totals{margin:0;align-self:flex-end;min-width:min(100%,260px);display:flex;flex-direction:column;gap:4px}
 .rx-totals div{display:flex;justify-content:space-between;gap:16px}
@@ -31,12 +31,13 @@
 .rx-card{border:1px solid var(--ds-line,#e2e8f0);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
 .rx-card.rx-patient{flex-direction:row;align-items:center;justify-content:space-between;gap:12px}
 .rx-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
-.rx-card-lines{margin:0;padding-left:20px;font-size:13px}
+.rx-card-head>div,.rx-card.rx-patient>div{min-width:0;overflow-wrap:anywhere}
+.rx-card-lines{margin:0;padding-left:0;font-size:13px}
 .rx-card-lines small{display:block;color:var(--ds-text-muted,#64748b)}
 .rx-card-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
 .rx-actions{display:flex;flex-wrap:wrap;gap:8px}
-.rx-status{padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap;background:#e8eff6;color:#55748c}
-.rx-status.is-dispensed{background:#e6f2e8;color:#386a4a}
+.rx-status{padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap;background:var(--ds-info-bg);color:var(--ds-info-fg)}
+.rx-status.is-dispensed{background:var(--ds-ok-bg);color:var(--ds-ok-fg)}
 .rx-dispense{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;padding-top:8px;border-top:1px dashed var(--ds-line,#e2e8f0)}
 .rx-dispense label{min-width:200px;flex:1}
 .rx-dispense small{flex-basis:100%}
@@ -46,10 +47,11 @@
 .rx-report-filter{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;margin-bottom:16px}
 .rx-report-filter label{min-width:160px}
 .rx-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
-.rx-stats div{border:1px solid var(--ds-line,#e2e8f0);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.rx-stats div{border:1px solid var(--ds-line,#e2e8f0);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;min-width:0}
 .rx-stats small{color:var(--ds-text-muted,#64748b)}
-.rx-stats b{font-size:18px}
+.rx-stats b{font-size:18px;overflow-wrap:anywhere}
 .rx-table .num{text-align:right}
+.app-shell .table-wrap .rx-table :is(.num,td:first-child){white-space:nowrap}
 .pbc-disable{margin-top:14px;padding-top:14px;border-top:1px dashed var(--ds-line,#e2e8f0)}
 @media (max-width:860px){
   .rx-line-grid,.rx-place,.rx-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -60,4 +62,7 @@
   .rx-card.rx-patient{flex-direction:column;align-items:flex-start}
   .rx-search{max-width:none}
   .rx-hub .panel-heading{flex-wrap:wrap}
+}
+@media (max-width:480px){
+  .rx-stats{grid-template-columns:1fr}
 }

@@ -39,6 +39,7 @@ use App\Http\Portals\Shared\Sections\NetworkSection;
 use App\Http\Portals\Shared\Sections\OrdersSection;
 use App\Http\Portals\Shared\Sections\OverviewSection;
 use App\Http\Portals\Shared\Sections\PrescriptionsSection;
+use App\Http\Portals\Shared\Sections\PrescriptionToolsSection;
 use App\Http\Portals\Shared\Sections\ProfileSection;
 use App\Http\Portals\Shared\Sections\SalarySection;
 use App\Http\Portals\Shared\Sections\SectionContext;
@@ -100,6 +101,7 @@ class WorkspaceController extends Controller
         EventsSection::class,
         DataCleanupSection::class,
         PrescriptionsSection::class,
+        PrescriptionToolsSection::class,
         CompanyFundsSection::class,
     ];
 
@@ -179,7 +181,7 @@ class WorkspaceController extends Controller
             $data['branch_scope'] = $branchScope->chip();
         }
 
-        return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role', 'channel', 'category', 'sub_category', 'unit', 'min_mrp', 'max_mrp', 'availability', 'sort', 'period', 'from', 'to', 'division', 'district', 'rank', 'no_order_days'])]);
+        return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role', 'channel', 'category', 'sub_category', 'unit', 'min_mrp', 'max_mrp', 'availability', 'sort', 'period', 'from', 'to', 'division', 'district', 'rank', 'no_order_days', 'branch_id', 'all_branches'])]);
     }
 
     public function createAccount(Request $r): Response
@@ -294,7 +296,8 @@ class WorkspaceController extends Controller
     public function show(Request $r, Order $order): Response
     {
         $u = $r->user();
-        abort_unless($order->user_id === $u->id || $u->allows('orders') || $u->allows('finance'), 404);
+        abort_unless($order->user_id === $u->id
+            || (($u->allows('orders') || $u->allows('finance')) && app(BranchOperations::class)->mayOpenOrder($u, $order)), 404);
 
         ['slots' => $replacementSlots, 'candidates' => $replacementCandidates] = app(UplineReplacementOptions::class)->for(
             $u,

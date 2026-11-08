@@ -1,9 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { router, useForm, usePage } from '@inertiajs/react';
 import { FileText, Pill, Plus, Printer, Search, Stethoscope, Trash2, UserPlus } from 'lucide-react';
-import { DateInput, Empty, FormErrors, money } from './UI';
+import { DateInput, Empty, FormErrors, date, money, number } from './UI';
 import { useT } from '../shared/i18n/t';
 import { businessTodayIso } from '../business-date';
+import { SaveAsTemplate, TemplatePicker, TemplatesTab, type PrescriptionTools } from './PrescriptionTemplates';
+import { FollowUpsPanel } from './PrescriptionFollowUps';
+import { PrescriberReportTab } from './PrescriberReport';
 
 type Translate = ReturnType<typeof useT>;
 
@@ -65,7 +68,7 @@ export type PrescriptionsData = {
     report?: ReportData;
 };
 
-type LineForm = {
+export type LineForm = {
     product_id: string;
     medicine_name: string;
     dose: string;
@@ -101,7 +104,7 @@ function Tabs({ tabs, active, onChange }: { tabs: { id: string; label: string }[
     );
 }
 
-export default function PrescriptionsHub({ data }: { data: PrescriptionsData }) {
+export default function PrescriptionsHub({ data, tools }: { data: PrescriptionsData; tools: PrescriptionTools }) {
     const translate = useT();
     const clinic = data.mode === 'clinic';
     const [tab, setTab] = useState<string>(() => {
@@ -111,8 +114,11 @@ export default function PrescriptionsHub({ data }: { data: PrescriptionsData }) 
     const tabs = [
         { id: 'prescriptions', label: translate('prescription', 'tab_prescriptions') },
         { id: 'patients', label: translate('prescription', 'tab_patients') },
+        { id: 'templates', label: translate('prescription', 'tab_templates') },
+        { id: 'my-report', label: translate('prescription', 'tab_my_report') },
         ...(clinic ? [{ id: 'report', label: translate('prescription', 'tab_report') }, { id: 'settings', label: translate('prescription', 'tab_settings') }] : []),
     ];
+    const activeTab = tabs.some((item) => item.id === tab) ? tab : 'prescriptions';
 
     return (
         <div className="rx-hub">
@@ -128,17 +134,20 @@ export default function PrescriptionsHub({ data }: { data: PrescriptionsData }) 
                         )}
                     </div>
                 </div>
-                <Tabs tabs={tabs} active={tab} onChange={setTab} />
+                <Tabs tabs={tabs} active={activeTab} onChange={setTab} />
             </section>
-            {tab === 'prescriptions' && <PrescriptionsTab data={data} translate={translate} />}
-            {tab === 'patients' && <PatientsTab data={data} translate={translate} />}
-            {tab === 'report' && clinic && data.report && <ReportTab report={data.report} translate={translate} />}
-            {tab === 'settings' && clinic && <SettingsTab data={data} translate={translate} />}
+            {activeTab === 'prescriptions' && <FollowUpsPanel followUps={tools.follow_ups} translate={translate} />}
+            {activeTab === 'prescriptions' && <PrescriptionsTab data={data} tools={tools} translate={translate} />}
+            {activeTab === 'patients' && <PatientsTab data={data} translate={translate} />}
+            {activeTab === 'templates' && <TemplatesTab templates={tools.templates} translate={translate} />}
+            {activeTab === 'my-report' && <PrescriberReportTab report={tools.report} translate={translate} />}
+            {activeTab === 'report' && clinic && data.report && <ReportTab report={data.report} translate={translate} />}
+            {activeTab === 'settings' && clinic && <SettingsTab data={data} translate={translate} />}
         </div>
     );
 }
 
-function PrescriptionsTab({ data, translate }: { data: PrescriptionsData; translate: Translate }) {
+function PrescriptionsTab({ data, tools, translate }: { data: PrescriptionsData; tools: PrescriptionTools; translate: Translate }) {
     const clinic = data.mode === 'clinic';
     const ownPatients = data.patients.filter((patient) => patient.own);
     const products = data.products ?? [];
@@ -186,11 +195,18 @@ function PrescriptionsTab({ data, translate }: { data: PrescriptionsData; transl
                     <Empty title={translate('prescription', 'patients_empty')} body={translate('prescription', 'patients_empty_body')} />
                 ) : (
                     <form className="action-form rx-form" onSubmit={submit}>
+                        <TemplatePicker
+                            templates={tools.templates}
+                            products={products}
+                            isDirty={lines.some((line) => line.product_id !== '' || line.medicine_name !== '') || form.data.advice !== ''}
+                            onApply={(draft) => form.setData({ ...form.data, advice: draft.advice, lines: draft.lines })}
+                            translate={translate}
+                        />
                         <div className="rx-grid">
                             <label>{translate('prescription', 'rx_patient')}
                                 <select required value={form.data.patient_id} onChange={(e) => form.setData('patient_id', e.target.value)}>
                                     <option value="">{translate('prescription', 'rx_choose_patient')}</option>
-                                    {ownPatients.map((patient) => <option key={patient.id} value={patient.id}>{patient.name}{patient.age !== null ? ` (${patient.age})` : ''}</option>)}
+                                    {ownPatients.map((patient) => <option key={patient.id} value={patient.id}>{patient.name}{patient.age !== null ? ` (${number(patient.age)})` : ''}</option>)}
                                 </select>
                                 {error('patient_id') && <span className="field-error" role="alert">{error('patient_id')}</span>}
                             </label>
@@ -214,7 +230,7 @@ function PrescriptionsTab({ data, translate }: { data: PrescriptionsData; transl
                                 return (
                                     <div className="rx-line" key={index}>
                                         <div className="rx-line-head">
-                                            <b>{index + 1}.</b>
+                                            <b>{number(index + 1)}.</b>
                                             {clinic ? (
                                                 <label className="rx-wide">{translate('prescription', 'rx_product')}
                                                     <select required value={line.product_id} onChange={(e) => {
@@ -315,9 +331,9 @@ function PrescriptionList({ data, translate }: { data: PrescriptionsData; transl
                         <li key={row.id} className="rx-card">
                             <div className="rx-card-head">
                                 <div>
-                                    <b>{row.number}</b> · {row.patient}
+                                    <b>{row.number}</b>{row.patient ? ` · ${row.patient}` : ''}
                                     <small className="cell-sub">
-                                        {row.prescribed_on}{row.prescriber ? ` · ${translate('prescription', 'rx_prescriber')}: ${row.prescriber}` : ''}
+                                        {date(row.prescribed_on)}{row.prescriber ? ` · ${translate('prescription', 'rx_prescriber')}: ${row.prescriber}` : ''}
                                         {row.diagnosis ? ` · ${row.diagnosis}` : ''}
                                     </small>
                                 </div>
@@ -325,7 +341,7 @@ function PrescriptionList({ data, translate }: { data: PrescriptionsData; transl
                             </div>
                             <ol className="rx-card-lines">
                                 {row.lines.map((line, index) => (
-                                    <li key={index}>{line.medicine_name} × {line.quantity}<small>{[line.dose, line.frequency, line.duration].filter(Boolean).join(' · ')}</small></li>
+                                    <li key={index}>{line.medicine_name} × {number(line.quantity)}<small>{[line.dose, line.frequency, line.duration].filter(Boolean).join(' · ')}</small></li>
                                 ))}
                             </ol>
                             <div className="rx-card-foot">
@@ -336,6 +352,7 @@ function PrescriptionList({ data, translate }: { data: PrescriptionsData; transl
                                 <span className="rx-actions">
                                     <a className="button small" href={`${base}/prescriptions/${row.id}/print?lang=bn`} target="_blank" rel="noopener"><Printer size={15} /> {translate('prescription', 'rx_print_bn')}</a>
                                     <a className="button small" href={`${base}/prescriptions/${row.id}/print?lang=en`} target="_blank" rel="noopener"><Printer size={15} /> {translate('prescription', 'rx_print_en')}</a>
+                                    {row.own && <SaveAsTemplate prescriptionId={row.id} translate={translate} />}
                                 </span>
                             </div>
                             {data.mode === 'clinic' && row.kind === 'clinic' && row.own && row.status === 'issued' && (
@@ -517,7 +534,7 @@ function ReportTab({ report, translate }: { report: ReportData; translate: Trans
                 <button className="button dark">{translate('prescription', 'report_apply')}</button>
             </form>
             <div className="rx-stats">
-                <div><small>{translate('prescription', 'report_count')}</small><b>{report.count}</b></div>
+                <div><small>{translate('prescription', 'report_count')}</small><b>{number(report.count)}</b></div>
                 <div><small>{translate('prescription', 'report_sales')}</small><b>{money(report.sales)}</b></div>
                 <div><small>{translate('prescription', 'report_manufacturer')}</small><b>{money(report.manufacturer_share)}</b></div>
                 <div><small>{translate('prescription', 'report_clinic')}</small><b className={Number(report.clinic_fund) < 0 ? 'is-bad' : undefined}>{money(report.clinic_fund)}</b></div>
@@ -537,8 +554,8 @@ function ReportTab({ report, translate }: { report: ReportData; translate: Trans
                         <tbody>
                             {report.days.map((day) => (
                                 <tr key={day.day}>
-                                    <td>{day.day}</td>
-                                    <td className="num">{day.count}</td>
+                                    <td>{date(day.day)}</td>
+                                    <td className="num">{number(day.count)}</td>
                                     <td className="num">{money(day.sales)}</td>
                                     <td className="num">{money(day.manufacturer_share)}</td>
                                     <td className="num">{money(day.clinic_fund)}</td>

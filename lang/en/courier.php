@@ -107,4 +107,9 @@ return [
 
     // A booking that stopped before the courier gave a clear answer.
     'booking_outcome_unknown' => 'No clear answer from the courier, so this parcel may already be booked. Check the courier\'s own panel first. If it is there, do not book it again.',
+
+    // A parcel the courier sent back.
+    'returned_cannot_confirm' => 'The courier returned this parcel, so it cannot be confirmed as delivered. No commission is paid for a returned parcel.',
+    // Deliveries board: the step shown for one parcel.
+    'step_booking_failed' => 'Booking failed',
 ];
