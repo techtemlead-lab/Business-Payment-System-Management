@@ -4,6 +4,7 @@ namespace App\Domain\Finance;
 
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Security\SelfApproval;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
@@ -95,19 +96,66 @@ final class FinancialReadiness
         }
     }
 
-    public function verify(User $actor, int $id): void
+    public function verify(User $actor, int $id, string $reason = '', bool $confirmedAlone = false): void
     {
         abort_unless($actor->allows('finance'), 403);
-        DB::transaction(function () use ($actor, $id): void {
+        DB::transaction(function () use ($actor, $id, $reason, $confirmedAlone): void {
             CommissionWallet::lock();
             abort_unless($actor->fresh()->allows('finance'), 403);
             $row = DB::table('financial_verifications')->where('id', $id)->lockForUpdate()->first();
             abort_unless($row, 404);
-            if ($row->verified_at || $row->created_by === $actor->id || $row->fingerprint !== $this->inspect()['fingerprint']) {
-                throw ValidationException::withMessages(['balances' => __('portal.err_ready_separate_verify')]);
+            if ($row->verified_at) {
+                throw ValidationException::withMessages(['balances' => __('self_approval.err_already_checked')]);
+            }
+            $selfApproved = $row->created_by === $actor->id;
+            if ($selfApproved) {
+                app(SelfApproval::class)->authorizeAlone($actor, 'balances', __('portal.err_ready_separate_verify'), $confirmedAlone, $reason, [$row->created_by]);
+            }
+            if ($row->fingerprint !== $this->inspect()['fingerprint']) {
+                throw ValidationException::withMessages(['balances' => __('self_approval.err_snapshot_changed')]);
             }
             DB::table('financial_verifications')->where('id', $id)->update(['verified_by' => $actor->id, 'verified_at' => now(), 'updated_at' => now()]);
-            Audit::record($actor->id, 'opening_balances.verified', (string) $id);
+            Audit::record($actor->id, 'opening_balances.verified', (string) $id, $selfApproved ? ['self_approved' => true, 'reason' => $reason] : []);
         }, 3);
+    }
+
+    /**
+     * Owner only: says there are no old balances to bring in, which opens the money gate. Paper
+     * records can still be imported later; see {@see self::startedFresh()}.
+     */
+    public function freshStart(User $actor, string $reason, bool $confirmed): int
+    {
+        return DB::transaction(function () use ($actor, $reason, $confirmed): int {
+            CommissionWallet::lock();
+            $current = $actor->fresh();
+            abort_unless($current->role === 'super_admin' && $current->status === 'active', 403);
+            if (! $confirmed) {
+                throw ValidationException::withMessages(['fresh_start' => __('self_approval.err_confirm')]);
+            }
+            if (mb_strlen(trim($reason)) < SelfApproval::MinimumReasonLength) {
+                throw ValidationException::withMessages(['fresh_start' => __('self_approval.err_reason')]);
+            }
+            if (DB::table('financial_verifications')->whereNotNull('verified_at')->exists()) {
+                throw ValidationException::withMessages(['fresh_start' => __('self_approval.err_fresh_already')]);
+            }
+            $snapshot = $this->inspect();
+            if (! $snapshot['internally_reconciled']) {
+                throw ValidationException::withMessages(['fresh_start' => __('portal.err_ready_reconcile')]);
+            }
+            $id = DB::table('financial_verifications')->insertGetId(['fingerprint' => $snapshot['fingerprint'], 'snapshot' => json_encode($snapshot, JSON_THROW_ON_ERROR),
+                'expected_totals' => json_encode($snapshot['totals'], JSON_THROW_ON_ERROR), 'source_reference' => 'Fresh start', 'evidence_path' => '', 'evidence_hash' => '',
+                'fresh_start' => true, 'created_by' => $actor->id, 'verified_by' => $actor->id, 'verified_at' => now(), 'created_at' => now(), 'updated_at' => now()]);
+            Audit::record($actor->id, 'opening_balances.fresh_start', (string) $id, ['reason' => $reason, 'totals' => $snapshot['totals'], 'self_approved' => true]);
+
+            return $id;
+        }, 3);
+    }
+
+    /** True while the only confirmation on record is the owner's fresh start. */
+    public function startedFresh(): bool
+    {
+        $confirmed = DB::table('financial_verifications')->whereNotNull('verified_at');
+
+        return (clone $confirmed)->where('fresh_start', true)->exists() && (clone $confirmed)->where('fresh_start', false)->doesntExist();
     }
 }

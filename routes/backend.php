@@ -133,12 +133,14 @@ $operations = function (): void {
     Route::post('/reserves/clawbacks/{id}/recover', [$finance, 'recover'])->whereNumber('id');
     Route::post('/company-funds/spends', [FundSpendingController::class, 'store']);
     Route::post('/company-funds/spends/{id}/review', [FundSpendingController::class, 'review'])->whereNumber('id');
+    Route::post('/company-funds/spends/{id}/cancel', [FundSpendingController::class, 'cancel'])->whereNumber('id');
     Route::post('/company-funds/heads', [FundSpendingController::class, 'storeHead']);
     Route::patch('/company-funds/heads/{id}', [FundSpendingController::class, 'updateHead'])->whereNumber('id');
     Route::post('/holds/{id}/release', [$finance, 'release'])->whereNumber('id');
     Route::post('/holds/{id}/reassign', [$finance, 'reassignHeld'])->whereNumber('id');
     Route::post('/opening-balances', [$finance, 'opening']);
     Route::post('/opening-balances/{id}/verify', [$finance, 'openingVerify'])->whereNumber('id');
+    Route::post('/opening-balances/fresh-start', [$finance, 'openingFreshStart']);
     Route::get('/receipts/{kind}/{id}', [$finance, 'receipt']);
     Route::get('/reports', [$finance, 'export'])->middleware('throttle:5,1');
     Route::get('/views/{section}', [OperationsController::class, 'index']);

@@ -12,6 +12,7 @@ use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Finance\ReportData;
 use App\Domain\Finance\ReserveService;
 use App\Domain\Integrations\IntegrationSettings;
+use App\Domain\Security\SelfApproval;
 use App\Domain\Staff\StaffPermissions;
 use App\Domain\Staff\TerritoryAccess;
 use App\Models\Product;
@@ -153,7 +154,7 @@ class OperationsController extends Controller
             $data['readiness'] = app(FinancialReadiness::class)->inspect();
             $data['deploymentStatus'] = app(DeploymentReadiness::class)->inspect(app()->isProduction());
             $data['startupMode'] = app(IntegrationSettings::class)->startupMode();
-            $tables['opening_reviews'] = DB::table('financial_verifications')->select(['id', 'fingerprint', 'source_reference', 'created_by', 'verified_by', 'verified_at', 'created_at'])->orderByDesc('id');
+            $tables['opening_reviews'] = DB::table('financial_verifications')->select(['id', 'fingerprint', 'source_reference', 'created_by', 'verified_by', 'verified_at', 'created_at', 'fresh_start'])->orderByDesc('id');
         }
         if ($section === 'finance-settings') {
             $data['withdrawalSetting'] = app(FinanceSettings::class)->withdrawalMinimum();
@@ -176,6 +177,9 @@ class OperationsController extends Controller
             $data = [...$data, ...ProductVideo::managementData()];
             // Staff who can open the website page manage videos there; the rest keep this form.
             $data['videoManagedOnWebsite'] = $actor->allows('content');
+        }
+        if ($actor->role === 'super_admin' && in_array($section, ['payroll', 'reserve-payouts', 'financial-readiness'], true)) {
+            $data['secondApprovers'] = app(SelfApproval::class)->otherEligible($actor);
         }
         foreach ($tables as $key => $query) {
             $filter = $this->applyTableFilter($request, $key, $query);

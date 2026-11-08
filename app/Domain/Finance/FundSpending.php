@@ -4,6 +4,7 @@ namespace App\Domain\Finance;
 
 use App\Domain\Clinic\ClinicDispensing;
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Security\SelfApproval;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
@@ -102,13 +103,61 @@ final class FundSpending
         }
     }
 
-    public function review(User $actor, int $id, string $decision, string $reason): void
+    public function review(User $actor, int $id, string $decision, string $reason, bool $confirmedAlone = false, ?UploadedFile $receipt = null): void
     {
         abort_unless(self::canManage($actor), 403);
         if ($decision === 'approved') {
             CommissionWallet::requireActive();
         }
-        DB::transaction(function () use ($actor, $id, $decision, $reason): void {
+        $path = $receipt?->storeAs('fund-spend-receipts', Str::uuid().'.'.$receipt->guessExtension(), 'local');
+        $attached = false;
+        try {
+            $this->decide($actor, $id, $decision, $reason, $confirmedAlone, $receipt, $path, $attached);
+        } catch (\Throwable $exception) {
+            if ($path !== null) {
+                Storage::disk('local')->delete($path);
+            }
+            throw $exception;
+        }
+        if ($path !== null && ! $attached) {
+            Storage::disk('local')->delete($path);
+        }
+    }
+
+    /**
+     * Whoever recorded a spend may withdraw it before anyone has reviewed it.
+     */
+    public function cancel(User $actor, int $id, string $reason): void
+    {
+        abort_unless(self::canManage($actor), 403);
+        DB::transaction(function () use ($actor, $id, $reason): void {
+            CommissionWallet::lock();
+            abort_unless(self::canManage($actor->fresh()), 403);
+            $row = DB::table('reserve_disbursements')->where('id', $id)->where('program', self::Program)->lockForUpdate()->first();
+            abort_unless($row !== null, 404);
+            abort_unless(! in_array($row->fund_key, CompanyFunds::OwnerOnly, true) || $actor->owner(), 403);
+            if ($row->status !== 'requested' || $row->created_by !== $actor->id) {
+                throw ValidationException::withMessages(['spend' => __('self_approval.err_cancel_spend')]);
+            }
+            DB::table('reserve_disbursements')->where('id', $id)->update(['status' => 'cancelled', 'updated_at' => now()]);
+            Audit::record($actor->id, 'fund.spend_cancelled', (string) $id, ['fund' => $row->fund_key, 'amount' => (string) $row->amount, 'reason' => $reason]);
+        }, 3);
+    }
+
+    /**
+     * Who else could approve a spend from this fund: owners and finance approvers, or only
+     * owners for the owner-only fund.
+     *
+     * @return \Closure(User): bool
+     */
+    public static function approverOf(string $fund): \Closure
+    {
+        return fn (User $person): bool => $person->owner() || (! in_array($fund, CompanyFunds::OwnerOnly, true) && $person->canAct('finance', 'approve'));
+    }
+
+    private function decide(User $actor, int $id, string $decision, string $reason, bool $confirmedAlone, ?UploadedFile $receipt, ?string $path, bool &$attached): void
+    {
+        DB::transaction(function () use ($actor, $id, $decision, $reason, $confirmedAlone, $receipt, $path, &$attached): void {
             CommissionWallet::lock();
             abort_unless(self::canManage($actor->fresh()), 403);
             $row = DB::table('reserve_disbursements')->where('id', $id)->where('program', self::Program)->lockForUpdate()->first();
@@ -117,8 +166,14 @@ final class FundSpending
             if ($row->status !== 'requested') {
                 throw ValidationException::withMessages(['spend' => __('funds.err_already_reviewed')]);
             }
-            if ($row->created_by === $actor->id) {
-                throw ValidationException::withMessages(['spend' => __('funds.err_own_spend')]);
+            $selfApproved = $row->created_by === $actor->id;
+            if ($selfApproved) {
+                app(SelfApproval::class)->authorizeAlone($actor, 'spend', __('funds.err_own_spend'), $confirmedAlone, $reason, [$row->created_by],
+                    canDoStep: self::approverOf((string) $row->fund_key), receiptNeeded: $decision === 'approved', hasReceipt: $row->receipt_path !== null || $path !== null);
+                if ($row->receipt_path === null && $path !== null) {
+                    DB::table('reserve_disbursements')->where('id', $id)->update(['receipt_path' => $path, 'receipt_hash' => hash_file('sha256', $receipt->getRealPath())]);
+                    $attached = true;
+                }
             }
             if ($decision === 'approved') {
                 $this->post($actor, $row);
@@ -130,7 +185,7 @@ final class FundSpending
                 'paid_at' => $decision === 'approved' ? now() : null,
                 'updated_at' => now(),
             ]);
-            Audit::record($actor->id, $decision === 'approved' ? 'fund.spend_approved' : 'fund.spend_rejected', (string) $id, ['fund' => $row->fund_key, 'amount' => (string) $row->amount, 'reason' => $reason]);
+            Audit::record($actor->id, $decision === 'approved' ? 'fund.spend_approved' : 'fund.spend_rejected', (string) $id, ['fund' => $row->fund_key, 'amount' => (string) $row->amount, 'reason' => $reason, ...($selfApproved ? ['self_approved' => true] : [])]);
         }, 3);
     }
 

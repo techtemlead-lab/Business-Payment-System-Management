@@ -18,7 +18,7 @@ class ApplyDataImport implements ShouldQueue
 
     public int $timeout = 1800;
 
-    public function __construct(public string $batchId, public int $actorId, public string $reason)
+    public function __construct(public string $batchId, public int $actorId, public string $reason, public bool $confirmedAlone = false)
     {
         $this->onQueue('imports');
     }
@@ -28,7 +28,7 @@ class ApplyDataImport implements ShouldQueue
      */
     public function handle(OpeningBalanceImport $imports): void
     {
-        $imports->apply(User::findOrFail($this->actorId), $this->batchId, $this->reason);
+        $imports->apply(User::findOrFail($this->actorId), $this->batchId, $this->reason, $this->confirmedAlone);
     }
 
     public function failed(?Throwable $exception): void

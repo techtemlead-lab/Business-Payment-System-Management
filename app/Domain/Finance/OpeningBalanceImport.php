@@ -6,6 +6,7 @@ use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Geography\PlaceGeographyResolver;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
+use App\Domain\Security\SelfApproval;
 use App\Jobs\ApplyDataImport;
 use App\Models\AreaDealerAssignment;
 use App\Models\DealerRank;
@@ -71,9 +72,9 @@ final class OpeningBalanceImport
         return $id;
     }
 
-    public function queue(User $actor, string $id, string $reason): void
+    public function queue(User $actor, string $id, string $reason, bool $confirmedAlone = false): void
     {
-        DB::transaction(function () use ($actor, $id, $reason): void {
+        DB::transaction(function () use ($actor, $id, $reason, $confirmedAlone): void {
             CommissionWallet::lock();
             $batch = DB::table('data_import_batches')->where('id', $id)->lockForUpdate()->first();
             abort_unless($batch, 404);
@@ -84,26 +85,28 @@ final class OpeningBalanceImport
             if ($batch->status !== 'preview') {
                 throw ValidationException::withMessages(['import' => __('portal.err_import_queue_preview_only')]);
             }
+            $selfApproved = false;
             if ($batch->type === 'opening_balances') {
                 $this->assertOpeningAllowed();
                 if ($batch->created_by === $actor->id) {
-                    throw ValidationException::withMessages(['import' => __('portal.err_import_separate_reviewer')]);
+                    app(SelfApproval::class)->authorizeAlone($actor, 'import', __('portal.err_import_separate_reviewer'), $confirmedAlone, $reason, [$batch->created_by]);
+                    $selfApproved = true;
                 }
             }
             DB::table('data_import_batches')->where('id', $id)->update(['status' => 'queued', 'review_reason' => $reason, 'updated_at' => now()]);
-            $dispatch = ApplyDataImport::dispatch($id, $actor->id, $reason);
+            $dispatch = ApplyDataImport::dispatch($id, $actor->id, $reason, $confirmedAlone);
             if (config('queue.default') === 'database' && ! config('queue.connections.database.connection')) {
                 $dispatch->beforeCommit();
             } else {
                 $dispatch->afterCommit();
             }
-            Audit::record($actor->id, 'data_import.queued', $id, ['reason' => $reason]);
+            Audit::record($actor->id, 'data_import.queued', $id, ['reason' => $reason, ...($selfApproved ? ['self_approved' => true] : [])]);
         }, 3);
     }
 
-    public function apply(User $actor, string $id, string $reason): void
+    public function apply(User $actor, string $id, string $reason, bool $confirmedAlone = false): void
     {
-        DB::transaction(function () use ($actor, $id, $reason): void {
+        DB::transaction(function () use ($actor, $id, $reason, $confirmedAlone): void {
             CommissionWallet::lock();
             $batch = DB::table('data_import_batches')->where('id', $id)->lockForUpdate()->first();
             abort_unless($batch, 404);
@@ -114,10 +117,12 @@ final class OpeningBalanceImport
             if (! in_array($batch->status, ['preview', 'queued'], true)) {
                 throw ValidationException::withMessages(['import' => __('portal.err_import_apply_preview_only')]);
             }
+            $selfApproved = false;
             if ($batch->type === 'opening_balances') {
                 $this->assertOpeningAllowed();
                 if ($batch->created_by === $actor->id) {
-                    throw ValidationException::withMessages(['import' => __('portal.err_import_separate_reviewer')]);
+                    app(SelfApproval::class)->authorizeAlone($actor, 'import', __('portal.err_import_separate_reviewer'), $confirmedAlone, $reason, [$batch->created_by]);
+                    $selfApproved = true;
                 }
             }
             if (! Storage::disk('local')->exists($batch->file_path) || ! hash_equals($batch->file_hash, hash_file('sha256', Storage::disk('local')->path($batch->file_path)))) {
@@ -139,7 +144,7 @@ final class OpeningBalanceImport
                 };
             }
             DB::table('data_import_batches')->where('id', $id)->update(['status' => 'applied', 'applied_by' => $actor->id, 'applied_at' => now(), 'review_reason' => $reason, 'updated_at' => now()]);
-            Audit::record($actor->id, 'data_import.applied', $id, ['type' => $batch->type, 'file_hash' => $batch->file_hash, 'summary' => $summary, 'reason' => $reason, 'prepared_by' => $batch->created_by]);
+            Audit::record($actor->id, 'data_import.applied', $id, ['type' => $batch->type, 'file_hash' => $batch->file_hash, 'summary' => $summary, 'reason' => $reason, 'prepared_by' => $batch->created_by, ...($selfApproved ? ['self_approved' => true] : [])]);
             $preparer = User::find((int) $batch->created_by);
             if ($preparer !== null && $preparer->id !== $actor->id) {
                 $locale = $preparer->preferredLocale();
@@ -220,9 +225,22 @@ final class OpeningBalanceImport
         }, 3);
     }
 
+    /**
+     * Opening balances lock once they are checked or live money records start. A fresh start
+     * does not lock them, so paper records can still be brought in afterwards.
+     */
+    public function openingLocked(): bool
+    {
+        if (app(FinancialReadiness::class)->startedFresh()) {
+            return false;
+        }
+
+        return (bool) config('madina.financial_activation') || DB::table('financial_verifications')->whereNotNull('verified_at')->exists();
+    }
+
     private function assertOpeningAllowed(): void
     {
-        if (config('madina.financial_activation') || DB::table('financial_verifications')->whereNotNull('verified_at')->exists()) {
+        if ($this->openingLocked()) {
             throw ValidationException::withMessages(['import' => __('portal.err_import_opening_locked')]);
         }
     }

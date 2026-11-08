@@ -11,6 +11,7 @@ use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Inventory\BranchScope;
 use App\Domain\Orders\OrderListFilter;
 use App\Domain\Payouts\PayoutReceipts;
+use App\Domain\Security\SelfApproval;
 use App\Models\User;
 use App\Support\Money;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -32,6 +33,19 @@ final class WithdrawalsSection implements WorkspaceSection
             'payment-receipts' => $this->paymentReceipts($context),
             default => [],
         };
+    }
+
+    /**
+     * Whether the person viewing may record this approved payment: 'alone' when they approved it
+     * themselves and nobody else could pay, 'second_person' when someone else must, otherwise null.
+     */
+    private function payerState(object $row, User $viewer): ?string
+    {
+        if ($row->status !== 'approved' || (int) $row->reviewed_by !== (int) $viewer->id) {
+            return null;
+        }
+
+        return app(SelfApproval::class)->isAvailable($viewer, [$row->user_id, $row->reviewed_by]) ? 'alone' : 'second_person';
     }
 
     /**
@@ -303,6 +317,7 @@ final class WithdrawalsSection implements WorkspaceSection
                 'withdrawals.payment_reference',
                 'withdrawals.paid_at',
                 'withdrawals.created_at',
+                'withdrawals.reviewed_by',
                 'users.name as user_name',
                 'users.dealer_code',
                 'users.phone',
@@ -315,6 +330,7 @@ final class WithdrawalsSection implements WorkspaceSection
             ->withQueryString()
             ->through(fn (object $row): array => [
                 'id' => $row->id,
+                'payer_state' => $this->payerState($row, $request->user()),
                 'user_id' => $row->user_id,
                 'user_name' => $row->user_name,
                 'dealer_code' => $row->dealer_code,

@@ -97,6 +97,7 @@ final class StockCountsSection implements WorkspaceSection
             'can_decide' => $session->status === StockCountSession::StatusSubmitted
                 && $user->canAct('inventory', 'approve')
                 && ! $service->tookPartInCount($user, $session, $counted),
+            'can_decide_alone' => $session->status === StockCountSession::StatusSubmitted && $service->canDecideAlone($user, $session, $counted),
             'lines' => $session->lines->sortBy('id')->map(fn (StockCountLine $line): array => [
                 'id' => $line->id,
                 'sku' => $line->product?->sku,

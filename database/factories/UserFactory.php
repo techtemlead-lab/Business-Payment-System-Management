@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Domain\Staff\StaffPermissions;
 use App\Models\PlaceCode;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -56,9 +57,22 @@ class UserFactory extends Factory
         return $this->state(fn () => ['role' => 'sub_dealer', 'dealer_code' => 'SYN-S-'.Str::upper(Str::random(8))]);
     }
 
+    /**
+     * A staff account. Finance staff are given approval here, as a trusted person would be in
+     * the permission matrix; use {@see self::enterOnly()} for the default a new account gets.
+     */
     public function staff(string $role = 'super_admin'): static
     {
-        return $this->state(fn () => ['role' => $role, 'dealer_code' => null]);
+        return $this->state(fn () => ['role' => $role, 'dealer_code' => null, ...($role === 'finance' ? ['profile' => ['action_permissions' => array_fill_keys(
+            config('madina.roles.finance'),
+            array_fill_keys(StaffPermissions::Actions, true),
+        )]] : [])]);
+    }
+
+    /** Finance staff as a new account starts: can enter money records but not approve or pay. */
+    public function enterOnly(): static
+    {
+        return $this->state(fn () => ['role' => 'finance', 'dealer_code' => null, 'profile' => []]);
     }
 
     public function suspended(): static

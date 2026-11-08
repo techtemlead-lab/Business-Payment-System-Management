@@ -5,6 +5,8 @@ namespace App\Http\Portals\Shared\Sections;
 use App\Domain\Finance\CompanyFunds;
 use App\Domain\Finance\FundSpending;
 use App\Domain\Payouts\PayoutReceipts;
+use App\Domain\Security\SelfApproval;
+use App\Models\User;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -47,7 +49,7 @@ final class CompanyFundsSection implements WorkspaceSection
             'selected' => $selected,
             'money_in' => $selected ? $this->funds->moneyIn($selected)->through(fn ($row): array => [...(array) $row, 'source_label' => CompanyFunds::sourceLabel($selected, $row->category, $row->status)]) : null,
             'money_out' => $selected ? $this->funds->moneyOut($selected) : null,
-            'approvals' => $tab === 'approvals' ? $this->approvals($visible, (int) $user->id) : [],
+            'approvals' => $tab === 'approvals' ? $this->approvals($visible, $user) : [],
             'approvals_waiting' => (int) DB::table('reserve_disbursements')->where('program', FundSpending::Program)->where('status', 'requested')->whereIn('fund_key', $visible)->count(),
             'heads' => DB::table('fund_expense_heads')->orderByDesc('is_active')->orderBy('name_en')->get(['id', 'name_en', 'name_bn', 'is_active', 'for_tours']),
             'methods' => PayoutReceipts::Methods,
@@ -78,7 +80,7 @@ final class CompanyFundsSection implements WorkspaceSection
      * @param  list<string>  $visible
      * @return list<array<string, mixed>>
      */
-    private function approvals(array $visible, int $actorId): array
+    private function approvals(array $visible, User $actor): array
     {
         return DB::table('reserve_disbursements as r')
             ->leftJoin('fund_expense_heads as h', 'h.id', '=', 'r.expense_head_id')
@@ -86,7 +88,8 @@ final class CompanyFundsSection implements WorkspaceSection
             ->where('r.program', FundSpending::Program)->where('r.status', 'requested')->whereIn('r.fund_key', $visible)
             ->orderBy('r.id')->limit(100)
             ->get(['r.id', 'r.fund_key', 'r.amount', 'r.spent_on', 'r.payee_name', 'r.payment_method', 'r.payment_reference', 'r.reason', 'r.created_by', 'h.name_en', 'h.name_bn', 'maker.name as maker_name', DB::raw('r.receipt_path IS NOT NULL AS has_receipt')])
-            ->map(fn ($row): array => [...(array) $row, 'can_review' => $row->created_by !== $actorId])
+            ->map(fn ($row): array => [...(array) $row, 'can_review' => $row->created_by !== $actor->id, 'can_cancel' => $row->created_by === $actor->id,
+                'can_self_approve' => $row->created_by === $actor->id && app(SelfApproval::class)->isAvailable($actor, [$row->created_by], canDoStep: FundSpending::approverOf($row->fund_key))])
             ->all();
     }
 

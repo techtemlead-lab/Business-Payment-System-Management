@@ -635,7 +635,8 @@ class CommandController extends Controller
     public function publishPolicy(Request $r, int $id, PolicyDraftService $service): RedirectResponse
     {
         $this->permit($r, 'finance');
-        $service->publish($r->user(), $id);
+        $data = $r->validate(['reason' => 'nullable|string|max:1000', 'self_approve' => 'sometimes|boolean']);
+        $service->publish($r->user(), $id, (string) ($data['reason'] ?? ''), $r->boolean('self_approve'));
 
         return back()->with('success', __('portal.flash_policy_published'));
     }

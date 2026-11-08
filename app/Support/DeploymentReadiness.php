@@ -466,6 +466,7 @@ final class DeploymentReadiness
         try {
             $latest = DB::table('financial_verifications')
                 ->whereNotNull('verified_at')
+                ->where('fresh_start', false)
                 ->orderByDesc('id')
                 ->first(['fingerprint']);
             if (! $latest) {
@@ -490,7 +491,7 @@ final class DeploymentReadiness
             return DB::table('policy_drafts')
                 ->where('status', 'published')
                 ->whereNotNull('published_by')
-                ->whereColumn('published_by', '!=', 'created_by')
+                ->where(fn ($reviewed) => $reviewed->whereColumn('published_by', '!=', 'created_by')->orWhere('self_approved', true))
                 ->exists();
         } catch (\Throwable $exception) {
             report($exception);

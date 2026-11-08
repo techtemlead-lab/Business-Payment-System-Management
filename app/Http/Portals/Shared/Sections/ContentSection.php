@@ -2,6 +2,7 @@
 
 namespace App\Http\Portals\Shared\Sections;
 
+use App\Domain\Security\SelfApproval;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\LocalDigits;
@@ -33,7 +34,8 @@ final class ContentSection implements WorkspaceSection
     private function policies(): array
     {
         return [
-            'policies' => DB::table('policy_drafts')->orderByDesc('id')->get(),
+            'policies' => DB::table('policy_drafts')->orderByDesc('id')->get()->map(fn (object $draft): array => [...(array) $draft,
+                'can_publish_alone' => $draft->status !== 'published' && (int) $draft->created_by === (int) request()->user()->id && app(SelfApproval::class)->isAvailable(request()->user(), [$draft->created_by])]),
         ];
     }
 
