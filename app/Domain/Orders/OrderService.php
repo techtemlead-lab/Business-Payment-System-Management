@@ -444,6 +444,9 @@ class OrderService
                 if (! in_array($shipment->courier_booking_status, ['pending', 'failed'], true)) {
                     throw ValidationException::withMessages(['courier' => __('courier.err_change_after_booking')]);
                 }
+                if ($shipment->status !== 'dispatched') {
+                    throw ValidationException::withMessages(['courier' => __('courier.err_change_closed_order')]);
+                }
                 $from = $shipment->courier_provider;
             } elseif (! in_array($locked->status, ['submitted', 'held', 'approved'], true)) {
                 throw ValidationException::withMessages(['courier' => __('courier.err_change_closed_order')]);
@@ -495,7 +498,7 @@ class OrderService
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             $shipment = DB::table('shipments')->where('id', $shipmentId)->where('order_id', $locked->id)->lockForUpdate()->first();
             abort_if($shipment === null, 404);
-            if ($shipment->courier_booking_status !== 'failed') {
+            if ($shipment->courier_booking_status !== 'failed' || $shipment->status !== 'dispatched') {
                 throw ValidationException::withMessages(['shipment' => __('courier.err_retry_not_failed')]);
             }
             if (! app(CourierOptions::class)->isEnabled($shipment->courier_provider)) {
