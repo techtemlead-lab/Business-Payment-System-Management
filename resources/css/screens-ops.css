@@ -530,3 +530,13 @@
   .app-shell .panel-heading{flex-wrap:wrap}
   .app-shell .panel-heading>.ops-row,.app-shell .panel-heading>.button{max-width:100%}
 }
+
+/* Courier parcels: the filter row lines up with the panel heading, long codes and
+   courier errors stay readable on phones, and the timeline dot keeps its round shape. */
+.app-shell .courier-board-filters{padding:0 20px 12px;align-items:flex-end}
+.app-shell .table-wrap td[data-col=courier_booking_error]{min-width:240px;overflow-wrap:anywhere}
+.app-shell .table-wrap td[data-col=tracking]{min-width:150px;overflow-wrap:anywhere}
+.app-shell .timeline-item>i{flex:none}
+@media (max-width:767px){
+  .app-shell .courier-board-filters{padding:0 14px 12px}
+}

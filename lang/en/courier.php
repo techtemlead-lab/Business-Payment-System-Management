@@ -120,4 +120,6 @@ return [
     'notice_received_back_title' => 'Parcel returned: :number',
     'notice_received_back_body' => 'The parcel for order :number came back to our store. Please contact the office about this order.',
     'event_shipment_received_back' => 'Parcel received back',
+    // Deliveries board: the step shown for one parcel.
+    'step_booking_failed' => 'Booking failed',
 ];

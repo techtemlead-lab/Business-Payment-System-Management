@@ -120,4 +120,6 @@ return [
     'notice_received_back_title' => 'পার্সেল ফেরত এসেছে: :number',
     'notice_received_back_body' => 'অর্ডার :number এর পার্সেলটি আমাদের কাছে ফেরত এসেছে। এই অর্ডার নিয়ে জানতে অফিসে যোগাযোগ করুন।',
     'event_shipment_received_back' => 'পার্সেল ফেরত পাওয়া গেছে',
+    // ডেলিভারি বোর্ড: একটি পার্সেলের ধাপ।
+    'step_booking_failed' => 'বুকিং হয়নি',
 ];
