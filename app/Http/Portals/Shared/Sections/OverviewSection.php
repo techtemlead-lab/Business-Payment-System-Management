@@ -3,6 +3,7 @@
 namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Accounts\PartnerDashboardHome;
+use App\Domain\Inventory\BranchScope;
 use App\Domain\Orders\OrderOverviewTotals;
 use App\Domain\Orders\StaffDashboardSummary;
 use App\Models\Product;
@@ -29,7 +30,7 @@ final class OverviewSection implements WorkspaceSection
             'dues' => $totals['dues'],
             'pending' => $totals['pending'],
             'supply' => $totals['supply'],
-            'accounts' => $user->allows('accounts') ? $this->partnerAccountCount() : null,
+            'accounts' => $user->allows('accounts') ? $this->partnerAccountCount($context->branchScope) : null,
         ];
         $props['lowStock'] = $user->allows('inventory') ? Product::where('active', true)->whereColumn('stock', '<=', 'low_stock_at')->limit(5)->get(['id', 'name', 'stock', 'sku']) : [];
         if (in_array($user->role, ['dealer', 'sub_dealer'], true) && ! $context->usingStaffWorkspace) {
@@ -51,19 +52,25 @@ final class OverviewSection implements WorkspaceSection
                 'snapshot' => [
                     'orders_today' => $totals['orders_placed_since'],
                     'pending_review' => $totals['pending'],
-                    'partner_accounts' => $props['stats']['accounts'] ?? $this->partnerAccountCount(),
+                    'partner_accounts' => $props['stats']['accounts'] ?? $this->partnerAccountCount($context->branchScope),
                     'purchases' => $props['stats']['purchases'],
                     'dues' => $props['stats']['dues'],
                 ],
-                ...app(StaffDashboardSummary::class)->for($user),
+                ...app(StaffDashboardSummary::class)->for($user, $context->branchScope),
             ];
         }
 
         return $props;
     }
 
-    private function partnerAccountCount(): int
+    /**
+     * Dealers and sub-dealers, only of the picked branch when the top-bar switcher picked one.
+     */
+    private function partnerAccountCount(?BranchScope $branchScope = null): int
     {
-        return User::whereIn('role', ['dealer', 'sub_dealer'])->count();
+        $partners = User::whereIn('role', ['dealer', 'sub_dealer']);
+        $branchScope?->restrictPartners($partners);
+
+        return $partners->count();
     }
 }

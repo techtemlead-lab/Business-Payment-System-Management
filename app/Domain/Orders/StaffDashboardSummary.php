@@ -2,11 +2,14 @@
 
 namespace App\Domain\Orders;
 
+use App\Domain\Inventory\BranchScope;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -19,34 +22,35 @@ final class StaffDashboardSummary
     public const TrendDays = 14;
 
     /**
+     * @param  BranchScope|null  $branchScope  The branch the top-bar switcher picked; null counts every branch.
      * @return array{
      *     work_queue: list<array{key: string, count: int, section: string, query?: array<string, string>}>,
      *     trend: list<array{date: string, orders: int, value: string}>,
      *     month: array{sales: string, collected: string, collected_today: string, orders: int}|null
      * }
      */
-    public function for(User $viewer): array
+    public function for(User $viewer, ?BranchScope $branchScope = null): array
     {
         $commerce = $viewer->allows('orders') || $viewer->allows('finance');
 
         return [
-            'work_queue' => $this->workQueue($viewer),
-            'trend' => $commerce ? $this->trend() : [],
-            'month' => $commerce ? $this->month() : null,
+            'work_queue' => $this->workQueue($viewer, $branchScope),
+            'trend' => $commerce ? $this->trend($branchScope) : [],
+            'month' => $commerce ? $this->month($branchScope) : null,
         ];
     }
 
     /**
      * @return list<array{key: string, count: int, section: string, query?: array<string, string>}>
      */
-    private function workQueue(User $viewer): array
+    private function workQueue(User $viewer, ?BranchScope $branchScope): array
     {
         $queue = [];
 
         if ($viewer->allows('order_review')) {
             $queue[] = [
                 'key' => 'orders_to_review',
-                'count' => Order::whereIn('status', ['submitted', 'held'])->count(),
+                'count' => $this->orders($branchScope)->whereIn('status', ['submitted', 'held'])->count(),
                 'section' => 'orders',
                 'query' => ['status' => 'submitted'],
             ];
@@ -54,16 +58,16 @@ final class StaffDashboardSummary
         if ($viewer->allows('finance')) {
             $queue[] = [
                 'key' => 'payments_to_check',
-                'count' => (int) DB::table('payment_claims')->where('status', 'pending')->count(),
+                'count' => (int) $this->onScopedOrders(DB::table('payment_claims'), $branchScope)->where('status', 'pending')->count(),
                 'section' => 'payments',
             ];
             $queue[] = [
                 'key' => 'withdrawals_to_review',
-                'count' => (int) DB::table('withdrawals')->where('status', 'requested')->count(),
+                'count' => (int) $this->withdrawalsOf($branchScope)->where('withdrawals.status', 'requested')->count(),
                 'section' => 'withdrawals',
             ];
         }
-        $deliveryCounts = $this->deliveryCounts($viewer);
+        $deliveryCounts = $this->deliveryCounts($viewer, $branchScope);
         if ($viewer->allows('inventory')) {
             $queue[] = [
                 'key' => 'orders_to_dispatch',
@@ -103,13 +107,13 @@ final class StaffDashboardSummary
      *
      * @return array{to_dispatch: int, overdue: int}
      */
-    private function deliveryCounts(User $viewer): array
+    private function deliveryCounts(User $viewer, ?BranchScope $branchScope): array
     {
         if (! $viewer->allows('inventory') && ! OverdueDeliveries::visibleTo($viewer)) {
             return ['to_dispatch' => 0, 'overdue' => 0];
         }
         $awaiting = "'".implode("', '", OrderListFilter::AwaitingDispatch)."'";
-        $row = Order::query()->toBase()
+        $row = $this->orders($branchScope)->toBase()
             ->whereIn('status', OrderListFilter::AwaitingDispatch)
             ->selectRaw(
                 "COUNT(*) FILTER (WHERE orders.status IN ({$awaiting}) AND EXISTS (SELECT 1 FROM order_lines WHERE order_lines.order_id = orders.id AND order_lines.dispatched < order_lines.quantity)) AS to_dispatch, "
@@ -126,13 +130,13 @@ final class StaffDashboardSummary
      *
      * @return list<array{date: string, orders: int, value: string}>
      */
-    private function trend(): array
+    private function trend(?BranchScope $branchScope): array
     {
         $timezone = (string) config('madina.business_timezone', config('app.timezone', 'Asia/Dhaka'));
         $today = CarbonImmutable::now($timezone)->startOfDay();
         $start = $today->subDays(self::TrendDays - 1);
 
-        $rows = Order::query()
+        $rows = $this->orders($branchScope)
             ->whereIn('status', OrderListFilter::Confirmed)
             ->where('created_at', '>=', $start->utc())
             ->selectRaw('(created_at at time zone \'UTC\' at time zone ?)::date as day, count(*) as orders, coalesce(sum(total), 0) as value', [$timezone])
@@ -160,13 +164,13 @@ final class StaffDashboardSummary
      *
      * @return array{sales: string, collected: string, collected_today: string, orders: int}
      */
-    private function month(): array
+    private function month(?BranchScope $branchScope): array
     {
         $timezone = (string) config('madina.business_timezone', config('app.timezone', 'Asia/Dhaka'));
         $now = CarbonImmutable::now($timezone);
         $from = $now->startOfMonth()->utc();
-        $confirmed = Order::query()->whereIn('status', OrderListFilter::Confirmed)->where('created_at', '>=', $from);
-        $collected = DB::table('receipts')
+        $confirmed = $this->orders($branchScope)->whereIn('status', OrderListFilter::Confirmed)->where('created_at', '>=', $from);
+        $collected = $this->onScopedOrders(DB::table('receipts'), $branchScope)
             ->where('created_at', '>=', $from)
             ->selectRaw(
                 'COALESCE(SUM(amount), 0) AS month_total, COALESCE(SUM(amount) FILTER (WHERE created_at >= ?), 0) AS today_total',
@@ -180,5 +184,44 @@ final class StaffDashboardSummary
             'collected_today' => Money::decimal(Money::cents((string) $collected->today_total)),
             'orders' => (clone $confirmed)->count(),
         ];
+    }
+
+    /**
+     * Orders of the picked branch, or every order when no branch was picked.
+     *
+     * @return Builder<Order>
+     */
+    private function orders(?BranchScope $branchScope): Builder
+    {
+        $orders = Order::query();
+        $branchScope?->restrict($orders, 'orders.fulfillment_branch_id');
+
+        return $orders;
+    }
+
+    /**
+     * Rows tied to an order (payment claims, receipts) of the picked branch only.
+     */
+    private function onScopedOrders(QueryBuilder $rows, ?BranchScope $branchScope): QueryBuilder
+    {
+        if ($branchScope !== null && ! $branchScope->allBranches) {
+            $rows->whereIn('order_id', $this->orders($branchScope)->select('orders.id'));
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Withdrawals of the picked branch's partners only.
+     */
+    private function withdrawalsOf(?BranchScope $branchScope): QueryBuilder
+    {
+        $withdrawals = DB::table('withdrawals');
+        if ($branchScope !== null && ! $branchScope->allBranches) {
+            $withdrawals->join('users', 'users.id', '=', 'withdrawals.user_id');
+            $branchScope->restrictPartners($withdrawals);
+        }
+
+        return $withdrawals;
     }
 }

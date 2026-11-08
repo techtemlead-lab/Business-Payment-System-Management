@@ -5,6 +5,8 @@ namespace App\Domain\Orders;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Geography\PlaceGeographyResolver;
 use App\Domain\Geography\PlaceTree;
+use App\Domain\Inventory\BranchScope;
+use App\Domain\Support\ChatRouting;
 use App\Models\PlaceCode;
 use App\Models\User;
 use App\Support\DashboardManagement;
@@ -132,6 +134,8 @@ final class TopSellersBoard
      * The office view: the same ranking with amounts always shown, dealers who
      * are hidden from the public list marked, and any division to compare.
      *
+     *
+     * @param  BranchScope|null  $branchScope  On a branch picked in the top bar, only that branch's partners are ranked.
      * @return array{
      *   month: string,
      *   months: list<string>,
@@ -143,7 +147,7 @@ final class TopSellersBoard
      *   divisional: list<BoardEntry>
      * }
      */
-    public function forStaff(?string $month, ?string $divisionId): array
+    public function forStaff(?string $month, ?string $divisionId, ?BranchScope $branchScope = null): array
     {
         $month = self::resolveMonth($month);
         $divisions = PlaceCode::query()
@@ -155,7 +159,7 @@ final class TopSellersBoard
         $chosen = filter_var($divisionId, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
         $divisionPlace = $chosen === false ? null : $divisions->firstWhere('id', $chosen);
         $division = $divisionPlace !== null ? (int) $divisionPlace->id : null;
-        $rows = $this->rankedRows($month, $division, null);
+        $rows = $this->rankedRows($month, $division, null, $branchScope);
 
         $national = [];
         $divisional = [];
@@ -195,8 +199,9 @@ final class TopSellersBoard
      *
      * @return list<object>
      */
-    private function rankedRows(string $month, ?int $division, ?int $viewerId): array
+    private function rankedRows(string $month, ?int $division, ?int $viewerId, ?BranchScope $branchScope = null): array
     {
+        [$branchCondition, $branchBindings] = $this->branchCondition($branchScope);
         [$start, $end] = CommissionQualification::period($month);
         $statuses = OrderListFilter::Confirmed;
         $statusPlaceholders = implode(', ', array_fill(0, count($statuses), '?'));
@@ -237,6 +242,7 @@ final class TopSellersBoard
                 WHERE users.role = 'dealer'
                   AND users.status = 'active'
                   AND totals.amount > 0
+                  {$branchCondition}
             )
             SELECT * FROM ranked
             WHERE national_rank <= ?
@@ -249,11 +255,31 @@ final class TopSellersBoard
             ...$statuses,
             $start->utc(),
             $end->utc(),
+            ...$branchBindings,
             self::Size,
             $division,
             self::Size,
             $viewerId,
         ]);
+    }
+
+    /**
+     * SQL that keeps only partners of the branch picked in the top bar, so the
+     * board ranks that branch's partners among themselves ({@see BranchScope::restrictPartners()}).
+     *
+     * @return array{0: string, 1: list<int>}
+     */
+    private function branchCondition(?BranchScope $branchScope): array
+    {
+        if ($branchScope === null || $branchScope->allBranches) {
+            return ['', []];
+        }
+        if ($branchScope->branchIds === []) {
+            return ['AND FALSE', []];
+        }
+        $placeholders = implode(', ', array_fill(0, count($branchScope->branchIds), '?'));
+
+        return ['AND '.app(ChatRouting::class)->partnerBranchSql('users').' IN ('.$placeholders.')', $branchScope->branchIds];
     }
 
     /**

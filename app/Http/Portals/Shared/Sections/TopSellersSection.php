@@ -23,7 +23,7 @@ final class TopSellersSection implements WorkspaceSection
         if ($context->isStaff) {
             $division = $request->filled('division') ? mb_substr($request->string('division')->toString(), 0, 100) : null;
 
-            return ['top_sellers' => $board->forStaff($month, $division)];
+            return ['top_sellers' => $board->forStaff($month, $division, $context->branchScope)];
         }
 
         abort_unless(in_array($context->user->role, ['dealer', 'sub_dealer'], true), 403);

@@ -10,6 +10,7 @@ use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\Audit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -458,6 +459,39 @@ final class BranchOperations
     public function canViewAllBranches(User $actor): bool
     {
         return $this->canManageAllBranches($actor) || $actor->allows('finance');
+    }
+
+    /**
+     * The branches a staff page shows, following the top-bar switcher the same way
+     * Branch performance does: the owner and staff who may view every branch see all
+     * branches until they pick one (or when they pick "All branches"); a picked branch
+     * filters the page; branch staff only ever see a branch they are assigned to.
+     * A `branch_id` in the address that the actor may not see is refused with 403.
+     *
+     * @param  Collection<int, CompanyBranch>|null  $visible  Branches already loaded by {@see visibleBranches()}.
+     */
+    public function scopeFor(User $actor, Request $request, ?Collection $visible = null): BranchScope
+    {
+        $visible ??= $this->visibleBranches($actor);
+        $requested = (int) $request->query('branch_id', '0');
+        if ($requested > 0) {
+            $branch = $visible->firstWhere('id', $requested);
+            abort_unless($branch instanceof CompanyBranch, 403);
+
+            return new BranchScope(false, [$branch->id], $branch);
+        }
+
+        if ($this->canViewAllBranches($actor)) {
+            $switcherView = $request->hasSession() ? $request->session()->get(self::SessionView) : null;
+            $noSwitcherChoiceYet = $switcherView === null && $actor->active_branch_id === null;
+            if ($switcherView === 'all' || $noSwitcherChoiceYet || $request->boolean('all_branches')) {
+                return new BranchScope(true, []);
+            }
+        }
+
+        $branch = $this->preferredAmong($visible, $actor);
+
+        return new BranchScope(false, $branch ? [$branch->id] : [], $branch);
     }
 
     public function preferredBranch(User $actor): ?CompanyBranch
