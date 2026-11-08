@@ -26,7 +26,7 @@ class WebsiteAdminSimplifyTest extends TestCase
         'announcement_text', 'dealer_banner_title', 'dealer_banner_subtitle', 'dealer_banner_btn_text',
         'catalog_categories_title', 'catalog_all_products_label', 'catalog_price_title', 'catalog_instock_label', 'catalog_apply_filters_btn', 'catalog_clear_filters_btn', 'catalog_sort_by_label', 'catalog_empty_title', 'catalog_empty_desc', 'catalog_empty_btn',
         'product_in_stock_label', 'product_out_of_stock_label', 'product_share_label', 'product_video_title', 'product_tab_description', 'product_tab_specification',
-        'home_bismillah_text', 'women_special_title', 'women_special_body', 'women_special_button', 'women_special_link',
+        'home_bismillah_text',
         'video_gallery_title', 'video_gallery_subtitle', 'testimonials_title', 'testimonials_subtitle', 'testimonials_invite_title', 'testimonials_invite_body', 'feedback_page_title', 'feedback_page_lead',
         'about_hero_title', 'about_hero_lead', 'about_history_title', 'about_history', 'about_mission_title', 'about_mission', 'about_vision_title', 'about_vision', 'about_objectives_title',
         'about_obj1_title', 'about_obj1_desc', 'about_obj2_title', 'about_obj2_desc', 'about_obj3_title', 'about_obj3_desc', 'about_obj4_title', 'about_obj4_desc', 'about_network_title', 'about_network', 'about_btn_products', 'about_btn_dealers', 'about_btn_contact',

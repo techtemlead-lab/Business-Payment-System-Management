@@ -75,13 +75,6 @@ class SiteCustomization
             // Home page: Bismillah line centred above the company headline (owner request).
             'home_bismillah_enabled' => '1',
             'home_bismillah_text' => $copy('home_bismillah_text'),
-            // Women special block, first on the home page
-            'women_special_enabled' => '1',
-            'women_special_title' => $copy('women_special_title'),
-            'women_special_body' => $copy('women_special_body'),
-            'women_special_button' => $copy('women_special_button'),
-            'women_special_link' => '/products',
-            'women_special_image' => '',
             'product_range_title' => $copy('product_range_title'),
             'product_range_sub' => $copy('product_range_sub'),
             'partner_with_us_title' => $copy('partner_with_us_title'),
@@ -1538,31 +1531,6 @@ class SiteCustomization
             'paragraphs' => $paragraphs,
             'image' => $image !== '' ? $image : (string) self::defaults()['md_message_image'],
             'image_alt' => (string) __('site.md_message_photo_alt', ['name' => $name, 'title' => $title, 'company' => $company]),
-        ];
-    }
-
-    /**
-     * The women special block on the home page, or null when the owner has turned it off.
-     *
-     * @param  array<string, mixed>|null  $customization
-     * @return array{title: string, body: string, button: string, link: string|null, image: string}|null
-     */
-    public static function womenSpecial(?array $customization = null): ?array
-    {
-        $all = $customization ?? self::all();
-        if (! filter_var($all['women_special_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN)) {
-            return null;
-        }
-
-        $text = static fn (string $key): string => SiteChrome::text($key, isset($all[$key]) ? (string) $all[$key] : null);
-        $image = trim((string) ($all['women_special_image'] ?? ''));
-
-        return [
-            'title' => $text('women_special_title'),
-            'body' => $text('women_special_body'),
-            'button' => $text('women_special_button'),
-            'link' => self::publicHref((string) (($all['women_special_link'] ?? '') ?: '/products')),
-            'image' => $image,
         ];
     }
 

@@ -12,7 +12,7 @@ use Tests\TestCase;
 
 /**
  * Website text that used to be fixed in code and is now edited in the
- * website editor: the top of the page, the women special block, the order
+ * website editor: the top of the page, the order
  * invoice letterhead and the distributor name on product pages.
  */
 class WebsiteSectionsCmsTest extends TestCase
@@ -39,46 +39,6 @@ class WebsiteSectionsCmsTest extends TestCase
                 ->assertDontSee(__('site.company_intro_eyebrow', [], $locale))
                 ->assertDontSee(__('site.partner_with_us_sub', [], $locale));
         }
-    }
-
-    public function test_women_special_block_shows_factory_text_in_each_language(): void
-    {
-        foreach (['en', 'bn'] as $locale) {
-            $this->withSession(['locale' => $locale])->get('/')->assertOk()
-                ->assertSeeInOrder(['ref-women-special', __('site.women_special_title', [], $locale), __('site.women_special_body', [], $locale), __('site.women_special_button', [], $locale), 'ref-promotions'], false);
-        }
-    }
-
-    public function test_owner_can_edit_or_turn_off_the_women_special_block(): void
-    {
-        SiteCustomization::save([
-            'women_special_title' => 'For our sisters',
-            'women_special_body' => 'A short line from the owner',
-            'women_special_button' => 'Take a look',
-            'women_special_link' => '/products?category=Oil',
-            'women_special_image' => '/branding/site-photos/women.jpg',
-        ]);
-
-        foreach (['en', 'bn'] as $locale) {
-            $this->withSession(['locale' => $locale])->get('/')->assertOk()
-                ->assertSee('For our sisters')
-                ->assertSee('A short line from the owner')
-                ->assertSee('Take a look')
-                ->assertSee('href="/products?category=Oil"', false)
-                ->assertSee('src="/branding/site-photos/women.jpg"', false);
-        }
-
-        SiteCustomization::save(['women_special_enabled' => '0']);
-        $this->get('/')->assertOk()->assertDontSee('ref-women-special', false);
-    }
-
-    public function test_women_special_button_hides_when_its_page_is_turned_off(): void
-    {
-        SiteCustomization::save(['page_enabled_products' => '0']);
-
-        $this->withSession(['locale' => 'en'])->get('/')->assertOk()
-            ->assertSee('ref-women-special', false)
-            ->assertDontSee(__('site.women_special_button', [], 'en'));
     }
 
     public function test_bismillah_is_the_first_line_of_every_public_page_and_owner_can_turn_it_off(): void
@@ -178,7 +138,7 @@ class WebsiteSectionsCmsTest extends TestCase
 
     public function test_website_text_with_web_code_is_shown_as_plain_text(): void
     {
-        SiteCustomization::save(['women_special_title' => '<script>alert(1)</script>Welcome']);
+        SiteCustomization::save(['home_bismillah_text' => '<script>alert(1)</script>Welcome']);
 
         $html = $this->get('/')->assertOk()->getContent();
 
@@ -244,6 +204,7 @@ class WebsiteSectionsCmsTest extends TestCase
 
     public function test_invoice_letterhead_uses_what_the_owner_typed(): void
     {
+        config(['madina.invoice_manufacturer' => 'Factory Default Maker']);
         SiteCustomization::save([
             'invoice_manufacturer' => 'Green Leaf Labs',
             'invoice_marketed_by' => 'Madina Herbal House',
@@ -261,7 +222,7 @@ class WebsiteSectionsCmsTest extends TestCase
             ->assertSee('Madina Herbal House')
             ->assertSee('01800-000000')
             ->assertSee('Station Road, Rangpur')
-            ->assertDontSee(config('madina.invoice_manufacturer'));
+            ->assertDontSee('Factory Default Maker');
     }
 
     public function test_product_page_shows_the_company_name_from_the_website_editor(): void

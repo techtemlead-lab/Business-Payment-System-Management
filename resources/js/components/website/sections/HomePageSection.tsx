@@ -3,7 +3,6 @@ import { CategoryManager } from '../CategoryManager';
 import { FeaturedProductsManager } from '../FeaturedProductsManager';
 import { HeaderNavCategoriesManager } from '../HeaderNavCategoriesManager';
 import { MobileSearchCategoriesManager } from '../MobileSearchCategoriesManager';
-import { Field, MdPhotoField } from '../formFields';
 import { WebsiteGroup, WebsiteSection, WebsiteToolLink, type WebsiteSectionProps } from '../WebsiteLayout';
 import { useT } from '../../../shared/i18n/t';
 
@@ -60,33 +59,6 @@ export default function HomePageSection({ form, defaults, products, updateField,
                                         {form.data.customization.home_bismillah_enabled !== '0' ? `✓ ${translate('portal', 'sce_status_on')}` : `✕ ${translate('portal', 'sce_status_off')}`}
                                     </button>
                                 </div>
-                            </div>
-        </WebsiteGroup>
-
-        <WebsiteGroup title={translate('website_admin', 'group_women_special')}>
-                            <div className="ed-head ed-mb">
-                                <p className="ed-desc is-sm">{translate('website_admin', 'women_special_hint')}</p>
-                                <button
-                                    type="button"
-                                    className={`button small ${form.data.customization.women_special_enabled !== '0' ? 'dark' : ''}`}
-                                    aria-pressed={form.data.customization.women_special_enabled !== '0'}
-                                    onClick={() => updateField('women_special_enabled', form.data.customization.women_special_enabled !== '0' ? '0' : '1')}
-                                >
-                                    {form.data.customization.women_special_enabled !== '0' ? `✓ ${translate('portal', 'sce_status_on')}` : `✕ ${translate('portal', 'sce_status_off')}`}
-                                </button>
-                            </div>
-                            <div className="form-grid ed-grid ed-mb-lg">
-                                <Field label={translate('website_admin', 'field_women_special_title')} fieldKey="women_special_title" value={form.data.customization.women_special_title} placeholder={defaults.women_special_title} onChange={updateField} />
-                                <Field label={translate('website_admin', 'field_women_special_button')} fieldKey="women_special_button" value={form.data.customization.women_special_button} placeholder={defaults.women_special_button} onChange={updateField} />
-                                <Field label={translate('website_admin', 'field_women_special_body')} fieldKey="women_special_body" value={form.data.customization.women_special_body} placeholder={defaults.women_special_body} onChange={updateField} multiline rows={2} span2 />
-                                <Field label={translate('website_admin', 'field_women_special_link')} fieldKey="women_special_link" value={form.data.customization.women_special_link} placeholder={defaults.women_special_link} onChange={updateField} span2 />
-                                <MdPhotoField
-                                    value={form.data.customization.women_special_image}
-                                    onChange={val => updateField('women_special_image', val)}
-                                    label={translate('website_admin', 'field_women_special_image')}
-                                    clearLabel={translate('website_admin', 'women_special_picture_remove')}
-                                    hint={translate('website_admin', 'women_special_picture_hint')}
-                                />
                             </div>
         </WebsiteGroup>
 

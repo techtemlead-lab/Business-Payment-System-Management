@@ -17,7 +17,6 @@
         : (filled($custom) ? (string) $custom : $fallback);
 @endphp
 <main id="main" class="ref-container ref-main">
-    @include('reference.partials.women-special')
     <section class="ref-promotions" aria-label="{{ __('site.promotional_banners') }}">
         <div class="ref-carousel ref-carousel-instance" aria-roledescription="carousel" aria-label="{{ __('site.featured_promotions') }}">
             <div class="ref-slides">
