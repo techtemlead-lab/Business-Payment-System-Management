@@ -14,6 +14,9 @@ interface WithdrawalRecord {
     user_name: string;
     dealer_code: string;
     phone: string;
+    role?: string | null;
+    district?: string | null;
+    division?: string | null;
     amount: string | number;
     withheld_amount?: string | number | null;
     net_amount?: string | number | null;
@@ -75,6 +78,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
     const activeStatus = statusTabs.includes(filters?.status) ? String(filters.status) : 'all';
     const activeChannel = String(filters?.channel ?? '');
     const activePeriod = String(filters?.period ?? '');
+    const activeBuyerRole = String(filters?.buyer_role ?? '');
 
     const [searchQuery, setSearchQuery] = useState(activeSearch);
     useEffect(() => setSearchQuery(activeSearch), [activeSearch]);
@@ -103,13 +107,14 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
     const records = withdrawals?.data ?? [];
 
     /** Search and status run on the server so every page and the totals agree. */
-    const applyFilters = (next: { q?: string; status?: string; channel?: string; period?: string }) => {
+    const applyFilters = (next: { q?: string; status?: string; channel?: string; period?: string; buyer_role?: string }) => {
         const status = next.status ?? activeStatus;
         const query = {
             q: (next.q ?? activeSearch).trim(),
             status: status === 'all' ? '' : status,
             channel: next.channel ?? activeChannel,
             period: next.period ?? activePeriod,
+            buyer_role: next.buyer_role ?? activeBuyerRole,
         };
         router.get(
             `${portalBase ?? ''}/payouts-hub`,
@@ -117,7 +122,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
             { preserveState: true, preserveScroll: true },
         );
     };
-    const hasActiveFilters = activeSearch !== '' || activeStatus !== 'all' || activeChannel !== '' || activePeriod !== '';
+    const hasActiveFilters = activeSearch !== '' || activeStatus !== 'all' || activeChannel !== '' || activePeriod !== '' || activeBuyerRole !== '';
 
     const handleOpenReview = (record: WithdrawalRecord) => {
         setReviewModalRecord(record);
@@ -278,6 +283,11 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
                         />
                     </div>
                     <button type="submit" className="button small dark">{translate('portal', 'search')}</button>
+                    <select aria-label={translate('portal', 'orders_filter_all')} value={activeBuyerRole} onChange={(e) => applyFilters({ buyer_role: e.target.value })}>
+                        <option value="">{translate('portal', 'orders_filter_all')}</option>
+                        <option value="dealer">{translate('portal', 'wd_filter_dealers')}</option>
+                        <option value="sub_dealer">{translate('portal', 'wd_filter_sub_dealers')}</option>
+                    </select>
                     <select aria-label={translate('portal', 'pay_filter_channel')} value={activeChannel} onChange={(e) => applyFilters({ channel: e.target.value })}>
                         <option value="">{translate('portal', 'pay_filter_channel')}</option>
                         <option value="bKash">{translate('portal', 'pay_channel_bkash')}</option>
@@ -320,7 +330,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
                                 <div>
                                     <div className="hub-strong">{w.user_name}</div>
                                     <div className="cell-sub">
-                                        {w.dealer_code} · {w.phone}
+                                        {[w.dealer_code, w.phone, w.district, w.division].filter(Boolean).join(' · ')}
                                     </div>
                                 </div>
                             ),

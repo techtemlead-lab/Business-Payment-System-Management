@@ -306,6 +306,9 @@ final class WithdrawalsSection implements WorkspaceSection
                 'users.name as user_name',
                 'users.dealer_code',
                 'users.phone',
+                'users.role',
+                'users.district',
+                'users.division',
             ])
             ->latest('withdrawals.created_at')
             ->paginate(20)
@@ -316,6 +319,9 @@ final class WithdrawalsSection implements WorkspaceSection
                 'user_name' => $row->user_name,
                 'dealer_code' => $row->dealer_code,
                 'phone' => $row->phone,
+                'role' => $row->role,
+                'district' => $row->district,
+                'division' => $row->division,
                 'amount' => $row->amount,
                 'withheld_amount' => $row->withheld_amount,
                 'net_amount' => $row->net_amount,

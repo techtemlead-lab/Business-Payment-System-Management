@@ -53,7 +53,7 @@ class WithdrawalHistoryFilterTest extends TestCase
         $this->actingAs($owner)->onPortal('sadmin')->get('/payouts-hub?q=WD-DEALER-1')->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->has('data.withdrawals.data', 1)
-                ->where('data.withdrawals.data.0.name', 'History Dealer')
+                ->where('data.withdrawals.data.0.user_name', 'History Dealer')
                 ->where('data.withdrawals.data.0.phone', '01715550021')
                 ->where('data.withdrawals.data.0.district', 'Bogura')
                 ->where('data.withdrawals.data.0.division', 'Rajshahi')

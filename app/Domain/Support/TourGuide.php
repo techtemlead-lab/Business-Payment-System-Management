@@ -307,13 +307,6 @@ final class TourGuide
                     ['target' => '[data-tour="catalog-grid"]', 'title' => __('portal.tour_staff_catalog_grid_title'), 'body' => __('portal.tour_staff_catalog_grid_body'), 'tip' => __('portal.tour_staff_catalog_grid_tip')],
                 ],
             ],
-            'withdrawals' => [
-                'title' => __('portal.tour_staff_withdrawals_title'),
-                'requires' => ['overview'],
-                'steps' => [
-                    ['target' => '[data-tour="staff-withdrawals"]', 'title' => __('portal.tour_staff_withdrawals_notice_title'), 'body' => __('portal.tour_staff_withdrawals_notice_body'), 'tip' => __('portal.tour_staff_withdrawals_notice_tip')],
-                ],
-            ],
             'payouts-hub' => [
                 'title' => __('portal.tour_staff_payouts_title'),
                 'requires' => ['overview'],

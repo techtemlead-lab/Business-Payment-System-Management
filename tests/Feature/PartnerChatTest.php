@@ -63,14 +63,14 @@ class PartnerChatTest extends TestCase
         $this->actingAs($dealer)->onPortal('dealer')->post('/commands/messages', ['body' => 'Help please'])->assertRedirect();
         $md = User::factory()->staff('md')->create();
         $chosen = User::factory()->staff('employee')->create(['profile' => ['permissions' => ['partner_chat']]]);
-        $support = User::factory()->staff('support')->create();
+        $other = User::factory()->staff('inventory')->create();
         $this->actingAs($md)->onPortal('sadmin')->post('/commands/chat-answerers', [
             'answerers' => [['user_id' => $chosen->id, 'scope' => 'company']],
             'version' => 0,
         ])->assertRedirect();
 
-        $this->actingAs($support)->onPortal('manage')->get('/partner-messages')->assertForbidden();
-        $this->actingAs($support)->onPortal('manage')->post('/commands/partner-messages/'.$dealer->id, ['body' => 'Hi'])->assertForbidden();
+        $this->actingAs($other)->onPortal('manage')->get('/partner-messages')->assertForbidden();
+        $this->actingAs($other)->onPortal('manage')->post('/commands/partner-messages/'.$dealer->id, ['body' => 'Hi'])->assertForbidden();
 
         $inbox = $this->page($chosen, 'manage', '/partner-messages')['data']['chat_inbox']['data'];
         $this->assertCount(1, $inbox);
