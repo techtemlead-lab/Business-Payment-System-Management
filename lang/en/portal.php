@@ -6414,4 +6414,5 @@ return [
     'si_field_status_field' => 'Where the status is in the tracking answer (leave blank if unsure)',
     'si_field_status_map' => 'Status words, one per line: courier\'s words = waiting, picked up, in transit, delivered or returned',
     'status_unassigned_reserve' => 'Company profit fund',
+    'event_shipment_label_printed' => 'Shipping label printed',
 ];

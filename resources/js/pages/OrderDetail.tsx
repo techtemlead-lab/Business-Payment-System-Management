@@ -109,6 +109,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
         <div className="order-title"><div><h2>{order.number}</h2><p>{order.user.name} · {order.user.dealer_code} · {date(order.created_at)}</p></div><div className="ops-row is-wrap ops-relative" data-tour="invoice-actions">
             <a className="button small dark" href={pdfUrl}>{translate('portal','download_invoice')}</a>
             <a className="button small" href={printUrl} target="_blank" rel="noopener noreferrer">{translate('portal','print_invoice')}</a>
+            {capabilities.includes('inventory') && (staffActions?.inventory?.edit??true) && auth.user.id !== order.user_id && ['approved', 'partially_dispatched', 'dispatched'].includes(order.status) && <a className="button small" data-testid="shipping-label-link" href={`/orders/${order.id}/shipping-label`} target="_blank" rel="noopener noreferrer">{translate('shipping_label','print_label')}</a>}
             <button type="button" className="button small" onClick={() => setShareOpen((v) => !v)}>{translate('portal','share_invoice')}</button>
             {shareOpen && (
                 <div className="panel odt-share-menu" data-tour="invoice-share-menu">

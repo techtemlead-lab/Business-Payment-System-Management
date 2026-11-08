@@ -6414,4 +6414,5 @@ return [
     'si_field_status_field' => 'ট্র্যাকিং উত্তরে অবস্থাটা যেখানে থাকে (না জানলে ফাঁকা রাখুন)',
     'si_field_status_map' => 'অবস্থার কথা, প্রতি লাইনে একটা: কুরিয়ারের কথা = waiting, picked up, in transit, delivered অথবা returned',
     'status_unassigned_reserve' => 'কোম্পানির লাভের ফান্ড',
+    'event_shipment_label_printed' => 'শিপিং লেবেল প্রিন্ট করা হয়েছে',
 ];
