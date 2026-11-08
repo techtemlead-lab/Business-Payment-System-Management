@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Finance\CompanyFunds;
+use App\Domain\Finance\FundBudgets;
 use App\Domain\Finance\FundSpending;
 use App\Domain\Payouts\PayoutReceipts;
 use Carbon\CarbonImmutable;
@@ -16,6 +17,8 @@ use Illuminate\Validation\Rule;
  */
 class FundSpendingController extends Controller
 {
+    public function __construct(private FundBudgets $budgets) {}
+
     public function store(Request $request, FundSpending $spending): RedirectResponse|JsonResponse
     {
         abort_unless(FundSpending::canManage($request->user()), 403);
@@ -37,7 +40,7 @@ class FundSpendingController extends Controller
         ]);
         $id = $spending->request($request->user(), $data, $request->file('receipt'));
 
-        return $this->done($request, ['id' => $id], __('funds.flash_spend_recorded'));
+        return $this->done($request, ['id' => $id], __('funds.flash_spend_recorded'), $this->budgets->warningFor($id));
     }
 
     public function review(Request $request, int $id, FundSpending $spending): RedirectResponse|JsonResponse
@@ -46,7 +49,21 @@ class FundSpendingController extends Controller
             'self_approve' => 'sometimes|boolean', 'receipt' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120']);
         $spending->review($request->user(), $id, $data['decision'], $data['reason'], $request->boolean('self_approve'), $request->file('receipt'));
 
-        return $this->done($request, [], __($data['decision'] === 'approved' ? 'funds.flash_spend_approved' : 'funds.flash_spend_rejected'));
+        return $this->done($request, [], __($data['decision'] === 'approved' ? 'funds.flash_spend_approved' : 'funds.flash_spend_rejected'), $data['decision'] === 'approved' ? $this->budgets->warningFor($id) : null);
+    }
+
+    /** Sets or clears the optional monthly budget for one expense head. */
+    public function saveBudget(Request $request): RedirectResponse|JsonResponse
+    {
+        abort_unless(FundSpending::canManage($request->user()), 403);
+        $data = $request->validate([
+            'expense_head_id' => 'required|integer|exists:fund_expense_heads,id',
+            'month' => 'required|date_format:Y-m',
+            'amount' => ['nullable', 'string', 'regex:/^\d{1,9}(\.\d{1,2})?$/D', 'not_regex:/^0+(\.0+)?$/D'],
+        ]);
+        $this->budgets->save($request->user(), (int) $data['expense_head_id'], $data['month'], $data['amount'] ?? null);
+
+        return $this->done($request, [], __('funds.flash_budget_saved'));
     }
 
     public function cancel(Request $request, int $id, FundSpending $spending): RedirectResponse|JsonResponse
@@ -85,10 +102,10 @@ class FundSpendingController extends Controller
     }
 
     /** @param array<string, mixed> $payload */
-    private function done(Request $request, array $payload, string $message): RedirectResponse|JsonResponse
+    private function done(Request $request, array $payload, string $message, ?string $warning = null): RedirectResponse|JsonResponse
     {
         return $request->expectsJson()
-            ? response()->json(['data' => $payload, 'message' => $message])
-            : back()->with('success', $message);
+            ? response()->json(['data' => $payload, 'message' => $message, 'warning' => $warning])
+            : back()->with('success', $message)->with('warning', $warning);
     }
 }

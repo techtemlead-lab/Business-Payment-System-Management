@@ -13,16 +13,26 @@ function Notice({ t }: { t: Translate }) {
     return <div className="notice warning" role="note"><p><strong>{t('management_notice')}</strong></p><p>{t('journal_scope_notice')}</p></div>;
 }
 
-function Checks({ checks, t }: { checks: Row; t: Translate }) {
-    const good = checks.ties_to_journal && checks.journal_balanced && checks.statement_balances;
+function Checks({ checks, sheet, result, t }: { checks: Row; sheet: Row; result: string; t: Translate }) {
+    const good = checks.ties_to_journal && checks.journal_balanced && checks.statement_balances && checks.result_reconciled;
+    const balanceMessage = !checks.journal_balanced ? t('check_not_balanced') : checks.statement_balances ? t('check_balanced') : t('check_sheet_off', { amount: money(sheet.difference) });
     return <section className="panel">
         <h2>{t('check_title')}</h2>
         <div className="metric-grid two">
             <div className="metric"><span>{t('check_journal_debit')}</span><strong>{money(checks.journal_debit)}</strong></div>
             <div className="metric"><span>{t('check_journal_credit')}</span><strong>{money(checks.journal_credit)}</strong></div>
         </div>
-        <p className={good ? 'notice' : 'error'} role="status">{checks.ties_to_journal ? t('check_ties') : t('check_not_ties')} {checks.journal_balanced && checks.statement_balances ? t('check_balanced') : t('check_not_balanced')}</p>
+        <p className={good ? 'notice' : 'error'} role="status">{checks.ties_to_journal ? t('check_ties') : t('check_not_ties')} {balanceMessage}</p>
+        <p className={checks.result_reconciled ? 'muted' : 'error'}>{checks.result_reconciled ? t('check_result_bridge', { journal: money(checks.journal_result), other: money(checks.other_records_result), result: money(result) }) : t('check_result_off')}</p>
         {checks.unclassified_accounts.length > 0 && <p className="notice warning">{t('check_unclassified', { accounts: checks.unclassified_accounts.join(', ') })}</p>}
+    </section>;
+}
+
+function Guidance({ notes, checks, t }: { notes: string[]; checks: string[]; t: Translate }) {
+    return <section className="panel">
+        {notes.length > 0 && <div className="notice warning" role="alert"><p><strong>{t('notes_title')}</strong></p><ul>{notes.map(note => <li key={note}>{note}</li>)}</ul></div>}
+        <h2>{t('accountant_title')}</h2>
+        <ul>{checks.map(check => <li key={check}>{check}</li>)}</ul>
     </section>;
 }
 
@@ -39,7 +49,7 @@ function StatementLines({ title, lines, total, totalLabel, t }: { title: string;
         <h3>{title}</h3>
         <table className="data-table"><tbody>
             {lines.length === 0 && <tr><td className="muted" colSpan={2}>{t('no_lines')}</td></tr>}
-            {lines.map(line => <tr key={line.account}><td>{line.label}</td><td className="num">{money(line.amount)}</td></tr>)}
+            {lines.map(line => <tr key={line.account}><td>{line.label}{line.source_label && <small className="cell-sub">{t('source_prefix', { source: line.source_label })}{line.reliability !== 'firm' && <> · <b>{t(`reliability_${line.reliability}`)}</b></>}</small>}</td><td className="num">{money(line.amount)}</td></tr>)}
             {totalLabel && <tr><th>{totalLabel}</th><th className="num">{money(total)}</th></tr>}
         </tbody></table>
     </div>;
@@ -62,7 +72,8 @@ function Statements({ statements, filters, exportBase, t }: Row & { t: Translate
             </form>
         </section>
         <Notice t={t} />
-        <Checks checks={statements.checks} t={t} />
+        <Guidance notes={statements.notes} checks={statements.accountant_checks} t={t} />
+        <Checks checks={statements.checks} sheet={sheet} result={pl.result} t={t} />
         <section className="panel">
             <div className="panel-heading"><div><h2>{t('statement_trial_balance')}</h2><p className="muted">{t('balance_sign_hint')}</p></div><Downloads type="trial-balance" filters={filters} exportBase={exportBase} t={t} /></div>
             <Table searchable={false} rows={trial.rows} columns={[
@@ -76,8 +87,18 @@ function Statements({ statements, filters, exportBase, t }: Row & { t: Translate
         <section className="panel">
             <div className="panel-heading"><h2>{t('statement_profit_loss')}</h2><Downloads type="profit-loss" filters={filters} exportBase={exportBase} t={t} /></div>
             <StatementLines title={t('section_income')} lines={pl.income} total={pl.total_income} totalLabel={t('total_income')} t={t} />
+            <StatementLines title={t('section_cost_of_sales')} lines={pl.cost_of_sales} total={pl.total_cost_of_sales} totalLabel={t('total_cost_of_sales')} t={t} />
+            <div className="metric ops-mb-4"><span>{t('gross_profit')}</span><strong>{money(pl.gross_profit)}</strong></div>
             <StatementLines title={t('section_expenses')} lines={pl.expenses} total={pl.total_expenses} totalLabel={t('total_expenses')} t={t} />
             <div className="metric"><span>{t('result')}</span><strong>{money(pl.result)}</strong></div>
+        </section>
+        <section className="panel">
+            <h2>{t('purchases_title')}</h2>
+            <p className="muted">{t('purchases_hint')}</p>
+            <div className="metric-grid two">
+                <div className="metric"><span>{t('purchases_in_period')}</span><strong>{money(statements.purchases.in_period)}</strong></div>
+                <div className="metric"><span>{t('purchases_due')}</span><strong>{money(statements.purchases.supplier_due)}</strong><small>{t('reliability_needs_check')}</small></div>
+            </div>
         </section>
         <section className="panel">
             <div className="panel-heading"><h2>{t('statement_balance_sheet')}</h2><Downloads type="balance-sheet" filters={filters} exportBase={exportBase} t={t} /></div>
