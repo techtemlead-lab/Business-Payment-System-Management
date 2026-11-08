@@ -73,7 +73,7 @@ final class ProductVideo
     /**
      * The saved home page video and the products that can be chosen for it.
      *
-     * @return array{videoSetting: array<string, mixed>, videoProducts: array<int, array<string, mixed>>}
+     * @return array{videoSetting: array<mixed>, videoProducts: array<mixed>}
      */
     public static function managementData(): array
     {
