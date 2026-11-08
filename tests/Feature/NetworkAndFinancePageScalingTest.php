@@ -234,7 +234,7 @@ class NetworkAndFinancePageScalingTest extends TestCase
         $buyer = $this->partner($this->partner(null), 'sub_dealer');
         $order = $this->postedOrder($buyer, '120.00');
         $finance = User::factory()->create(['role' => 'finance']);
-        $id = $this->actingAs($finance)->postJson('/api/v1/operations/reserves', ['program' => 'tour', 'user_id' => $buyer->id, 'amount' => '1.20',
+        $id = $this->actingAs($finance)->postJson('/api/v1/operations/reserves', ['program' => 'additional_rank', 'user_id' => $buyer->id, 'amount' => '1.20',
             'request_key' => (string) Str::uuid(), 'reason' => 'Approved sub-dealer tour benefit'])->assertOk()->json('data.id');
         $this->actingAs(User::factory()->create(['role' => 'finance']))->postJson('/api/v1/operations/reserves/'.$id.'/review', ['decision' => 'approved', 'reason' => 'Approve own funded tour'])->assertOk();
         app(CommissionReversal::class)->refund($order, 2000, 'Small part returned', 'RESERVE-REFUND');

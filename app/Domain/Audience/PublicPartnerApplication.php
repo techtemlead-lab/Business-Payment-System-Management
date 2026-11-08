@@ -3,6 +3,7 @@
 namespace App\Domain\Audience;
 
 use App\Domain\Notifications\PartnerEventSms;
+use App\Domain\Notifications\SmsText;
 use App\Support\Audit;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -65,15 +66,11 @@ final class PublicPartnerApplication
             return $id;
         }, 3);
 
-        $locale = app()->getLocale();
-        $roleLabel = match ((string) $data['role']) {
-            'sub_dealer' => __('portal.acct_role_sub_dealer', [], $locale),
-            default => __('portal.acct_role_dealer', [], $locale),
-        };
+        $roleLabel = SmsText::make((string) $data['role'] === 'sub_dealer' ? 'portal.acct_role_sub_dealer' : 'portal.acct_role_dealer');
         app(PartnerEventSms::class)->sendToPhone(
             (string) $data['phone'],
             'partnership.application_received',
-            __('sms.partnership_application_received', ['role' => $roleLabel], $locale),
+            SmsText::make('sms.partnership_application_received', ['role' => $roleLabel]),
         );
 
         return $id;
