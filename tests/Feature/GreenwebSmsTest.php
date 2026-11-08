@@ -13,6 +13,7 @@ use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
 use App\Models\PartnerEvent;
 use App\Models\User;
+use App\Support\DashboardManagement;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
@@ -308,6 +309,7 @@ class GreenwebSmsTest extends TestCase
     {
         $this->useArrayDriverInEnglish();
         $today = CarbonImmutable::parse('2026-11-08', 'Asia/Dhaka');
+        DashboardManagement::save(['birthday_sms_enabled' => true]);
         $this->englishPartner(['profile' => ['date_of_birth' => '1990-11-08']]);
 
         $result = app(BirthdayGreetings::class)->sendForToday($today);
