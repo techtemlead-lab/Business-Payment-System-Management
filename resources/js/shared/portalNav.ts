@@ -229,6 +229,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     if (capabilities.some((cap) => ['finance', 'reports', 'field_sales'].includes(cap))) items.add('financial-reports');
     if (capabilities.some((cap) => ['reports', 'orders', 'finance'].includes(cap))) {
         items.add('top-sellers');
+        items.add('partner-scorecard');
     }
     if (role === 'super_admin') items.add('access-management');
     if (capabilities.some((cap) => ['content', 'catalog'].includes(cap))) items.add('video-marketing');
@@ -348,7 +349,7 @@ function staffMothers(available: Set<string>): NavMother[] {
             'commissions', 'commission-holds', 'rewards',
         ])),
         mother('people', 'nav_module_people', pick(available, ['employees', 'payroll', 'staff-operations', 'field-sales', 'access-management'])),
-        mother('reports', 'nav_module_reports', pick(available, ['financial-reports', 'top-sellers', 'branch-performance'])),
+        mother('reports', 'nav_module_reports', pick(available, ['financial-reports', 'top-sellers', 'partner-scorecard', 'branch-performance'])),
         mother('website', 'nav_module_website', pick(available, ['website', 'content', 'public-trust', 'video-marketing', 'training', 'events'])),
         mother('settings', 'nav_module_settings', pick(available, [
             'finance-settings', 'place-codes', 'dashboards', 'login-rules', 'audit', 'service-integrations', 'data-imports', 'financial-readiness', 'data-cleanup', 'privacy-requests',

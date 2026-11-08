@@ -100,7 +100,7 @@ final class PortalCatalog
             abort_unless($user->owner() || $user->allows('content'), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'partner-messages') {
             abort_unless(PartnerChat::canAnswer($user), 403);
-        } elseif (in_array($portal, ['manage', 'sadmin'], true) && in_array($section, ['reports', 'top-sellers'], true)) {
+        } elseif (in_array($portal, ['manage', 'sadmin'], true) && in_array($section, ['reports', 'top-sellers', 'partner-scorecard'], true)) {
             abort_unless($user->allows('reports') || $user->allows('orders') || $user->allows('finance'), 403);
         } else {
             $capability = self::staffCapabilities($portal)[$section] ?? null;

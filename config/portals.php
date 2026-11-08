@@ -32,7 +32,7 @@ return [
         'sections' => [
             'overview', 'orders', 'catalog', 'deliveries', 'profile', 'security', 'notifications',
             'dashboards', 'employees', 'accounts', 'sub-dealers', 'sub-dealer-applications', 'sub-dealer-orders', 'treasury', 'inventory', 'branches', 'branch-performance',
-            'payments', 'policies', 'salary', 'withdrawals', 'ledger', 'reports', 'top-sellers', 'content', 'website', 'customization', 'public-trust',
+            'payments', 'policies', 'salary', 'withdrawals', 'ledger', 'reports', 'top-sellers', 'partner-scorecard', 'content', 'website', 'customization', 'public-trust',
             'enquiries', 'feedback', 'partnerships', 'audit', 'commissions', 'network-tree', 'area-dealers', 'place-codes', 'ranks', 'rewards',
             'settlements', 'simulator', 'payouts-hub', 'help', 'support-admin', 'agreement', 'partner-messages', 'training', 'events', 'prescriptions', 'stock-lots', 'purchasing', 'stock-counts', 'company-funds',
         ],
@@ -89,7 +89,7 @@ return [
         'sections' => [
             'overview', 'orders', 'catalog', 'deliveries', 'profile', 'security', 'notifications',
             'dashboards', 'employees', 'accounts', 'sub-dealers', 'sub-dealer-applications', 'sub-dealer-orders', 'treasury', 'inventory', 'branches', 'branch-performance',
-            'payments', 'policies', 'salary', 'withdrawals', 'ledger', 'reports', 'top-sellers', 'content', 'website', 'customization', 'public-trust',
+            'payments', 'policies', 'salary', 'withdrawals', 'ledger', 'reports', 'top-sellers', 'partner-scorecard', 'content', 'website', 'customization', 'public-trust',
             'enquiries', 'feedback', 'partnerships', 'audit', 'commissions', 'network-tree', 'area-dealers', 'place-codes', 'ranks', 'rewards',
             'settlements', 'simulator', 'payouts-hub', 'benefits-fund', 'help', 'support-admin', 'agreement', 'partner-messages', 'training', 'events', 'data-cleanup', 'prescriptions', 'sales-kit', 'schemes', 'contests', 'privacy-requests', 'stock-lots', 'purchasing', 'stock-counts', 'company-funds', 'login-rules',
         ],

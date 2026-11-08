@@ -6395,4 +6395,6 @@ return [
     'section_hint_partner_contests' => 'চলমান প্রতিযোগিতা ও কে কোন অবস্থানে আছেন।',
     'event_contest_added' => 'প্রতিযোগিতা যোগ হয়েছে',
     'event_contest_removed' => 'প্রতিযোগিতা সরানো হয়েছে',
+    'partner_scorecard' => 'পার্টনার স্কোরকার্ড',
+    'section_hint_partner_scorecard' => 'প্রতিটি পার্টনারের পেমেন্ট, বাতিল ও ফেরত।',
 ];
