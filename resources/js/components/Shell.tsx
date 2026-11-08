@@ -133,7 +133,7 @@ const icons: Record<string, LucideIcon> = {
     settlements: BadgeCheck, simulator: SlidersHorizontal, 'payouts-hub': Wallet,
     treasury: Landmark, 'benefits-fund': ShieldCheck, 'sub-dealers': Store, 'sub-dealer-orders': ShoppingBag, 'sub-dealer-applications': Briefcase,
     employees: UserCheck, dashboards: SlidersHorizontal, help: LifeBuoy, 'support-admin': MessageSquare, agreement: ScrollText, 'top-sellers': Trophy,
-    finance: Landmark, payouts: Wallet,
+    finance: Landmark, payouts: Wallet, accounting: BookOpen,
     training: GraduationCap, learning: GraduationCap, events: CalendarDays, 'payment-receipts': ReceiptText, 'data-cleanup': Settings, prescriptions: Stethoscope, clinic: Stethoscope,
 };
 

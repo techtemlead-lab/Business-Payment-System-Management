@@ -6283,4 +6283,6 @@ return [
     'event_prescriber_company_stock_granted' => 'Company-stock prescribing turned on for an office account',
     'event_prescriber_company_stock_removed' => 'Company-stock prescribing turned off for an office account',
     'event_clinic_below_floor_override' => 'Owner confirmed a sale below 30% of MRP',
+    'accounting' => 'Accounting',
+    'section_hint_accounting' => 'Trial balance, profit and loss, balance sheet, statement checks and the payout file.',
 ];

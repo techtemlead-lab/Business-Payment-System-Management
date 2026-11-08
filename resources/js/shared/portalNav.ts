@@ -37,7 +37,7 @@ type CapabilityContext = {
 export const OPERATIONS_SECTIONS = new Set([
     'data-imports', 'service-integrations', 'field-sales', 'staff-operations', 'payroll', 'my-payroll', 'payment-accounts',
     'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'financial-reports',
-    'finance-settings', 'access-management', 'video-marketing',
+    'finance-settings', 'access-management', 'video-marketing', 'accounting',
 ]);
 
 export const DEALER_ONLY_SECTIONS = ['accounts', 'partnerships', 'area-dealers'];
@@ -51,7 +51,7 @@ export const MANAGEMENT_SECTIONS = [
     'financial-readiness', 'finance-settings', 'financial-reports', 'data-imports', 'service-integrations',
     'rewards', 'settlements', 'payouts-hub', 'payments', 'withdrawals', 'ledger', 'reports', 'top-sellers',
     'catalog', 'inventory', 'branches', 'branch-performance', 'place-codes', 'video-marketing', 'website', 'content', 'enquiries', 'feedback', 'audit', 'support-admin', 'agreement', 'partner-messages',
-    'training', 'events', 'data-cleanup', 'prescriptions',
+    'training', 'events', 'data-cleanup', 'prescriptions', 'accounting',
 ];
 
 const tabOf = (search: string): string | null => new URLSearchParams(search).get('tab');
@@ -64,6 +64,7 @@ export const SECTION_LABEL_KEYS: Record<string, string> = {
     'data-imports': 'data_imports', 'service-integrations': 'service_integrations', 'commission-holds': 'commission_holds',
     'financial-readiness': 'financial_readiness', 'financial-reports': 'financial_reports',
     'finance-settings': 'finance_settings',
+    accounting: 'accounting',
     'access-management': 'access_management', 'video-marketing': 'video_marketing',
     overview: 'overview', orders: 'orders', order: 'order_details', purchase: 'purchase', catalog: 'catalog', accounts: 'accounts',
     inventory: 'inventory', deliveries: 'deliveries', payments: 'payments', network: 'network',
@@ -204,7 +205,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     if (capabilities.includes('finance') || role === 'super_admin') items.add('service-integrations');
     if (capabilities.includes('finance')) {
         ['payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'finance-settings', 'treasury',
-            'commissions', 'policies', 'ledger', 'reports', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'withdrawals', 'salary'].forEach((item) => items.add(item));
+            'commissions', 'policies', 'ledger', 'reports', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'withdrawals', 'salary', 'accounting'].forEach((item) => items.add(item));
     }
     if (capabilities.some((cap) => ['finance', 'reports', 'field_sales'].includes(cap))) items.add('financial-reports');
     if (capabilities.some((cap) => ['reports', 'orders', 'finance'].includes(cap))) {
@@ -342,7 +343,7 @@ function staffNavigation(staffAvailable: Set<string>): {
             ])),
             mother('orders', 'nav_module_orders', pick(staffAvailable, ['orders', 'deliveries'])),
             mother('finance', 'nav_module_finance', pick(staffAvailable, [
-                'treasury', 'payment-accounts', 'ledger', 'financial-readiness', 'finance-settings',
+                'treasury', 'payment-accounts', 'ledger', 'accounting', 'financial-readiness', 'finance-settings',
             ])),
             mother('payouts', 'nav_module_payouts', pick(staffAvailable, [
                 'withdrawals', 'payouts-hub', 'payments', 'settlements', 'reserve-payouts',

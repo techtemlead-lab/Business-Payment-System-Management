@@ -6283,4 +6283,6 @@ return [
     'event_prescriber_company_stock_granted' => 'অফিস অ্যাকাউন্টে কোম্পানির স্টক থেকে প্রেসক্রিপশন চালু হয়েছে',
     'event_prescriber_company_stock_removed' => 'অফিস অ্যাকাউন্টে কোম্পানির স্টক থেকে প্রেসক্রিপশন বন্ধ হয়েছে',
     'event_clinic_below_floor_override' => 'মালিক এমআরপির ৩০%-এর কমে বিক্রি নিশ্চিত করেছেন',
+    'accounting' => 'হিসাব',
+    'section_hint_accounting' => 'ট্রায়াল ব্যালেন্স, লাভ-ক্ষতি, ব্যালেন্স শিট, স্টেটমেন্ট মেলানো আর পেমেন্ট ফাইল।',
 ];
