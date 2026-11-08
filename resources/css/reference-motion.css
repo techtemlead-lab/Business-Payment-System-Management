@@ -15,7 +15,7 @@ html[data-theme="dark"] .ref-ambient-canvas::after{background:radial-gradient(60
    The blur sits on a pseudo-element so the header never becomes a containing block
    for fixed-position children. */
 .ref-sticky-chrome{isolation:isolate;transition:box-shadow .35s ease,background-color .35s ease}
-.ref-sticky-chrome::before{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:rgba(1,22,39,.8);-webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);opacity:0;transition:opacity .35s ease}
+.ref-sticky-chrome::before{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:rgba(1,22,39,.88);-webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);opacity:0;transition:opacity .35s ease}
 .ref-sticky-chrome .ref-header{transition:background-color .35s ease}
 .ref-sticky-chrome .ref-logo img{transform-origin:left center;transition:transform .35s cubic-bezier(.16,1,.3,1)}
 @supports ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){
@@ -38,7 +38,7 @@ html[data-theme="dark"] .ref-ambient-canvas::after{background:radial-gradient(60
   box-shadow:0 22px 40px -18px rgba(0,80,42,.35),0 8px 16px -8px rgba(1,22,39,.12);
 }
 /* A faint light that follows the pointer across the card */
-.ref-home :is(.ref-product-card,.ref-category-grid>a).ref-tilt::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(240px circle at var(--ref-glare-x,50%) var(--ref-glare-y,0%),rgba(255,255,255,.2),transparent 60%);opacity:0;transition:opacity .3s ease;z-index:3}
+.ref-home :is(.ref-product-card,.ref-category-grid>a).ref-tilt::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(240px circle at var(--ref-glare-x,50%) var(--ref-glare-y,0%),rgba(255,255,255,.08),transparent 60%);opacity:0;transition:opacity .3s ease;z-index:3}
 .ref-home :is(.ref-product-card,.ref-category-grid>a).ref-tilt.is-tilting::after{opacity:1}
 html[data-theme="dark"] .ref-home :is(.ref-product-card,.ref-category-grid>a).ref-tilt::after{background:radial-gradient(240px circle at var(--ref-glare-x,50%) var(--ref-glare-y,0%),rgba(255,255,255,.07),transparent 60%)}
 .ref-home .ref-category-grid>a.ref-tilt{position:relative}
