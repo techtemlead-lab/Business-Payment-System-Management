@@ -77,7 +77,7 @@ return [
     'commissions_pool_s3' => 'Check each account book line: type, rate %, amount, where it came from, and the order or invoice number.',
     'commissions_pool_s4' => 'In short: from each paid and delivered purchase the company keeps :dealer_company_rate% (dealer purchase) or :sub_company_rate% (sub-dealer purchase). The rest goes to the commission funds and is shared among partners by the company rules.',
     'commissions_pool_s5' => 'Money that is waiting for the month to close shows as pending. It is not ready to withdraw yet.',
-    'commissions_pool_s6' => 'Open the wallet statement to see the opening balance, the change in the period, and the closing balance (when shown).',
+    'commissions_pool_s6' => 'Open the earnings book to see the opening balance, the change in the period, and the closing balance (when shown).',
     'commissions_pool_s7' => 'Staff: see the settings under Commission rules, and test figures in the Commission calculator. The calculator never moves money.',
     'commissions_pool_s8' => 'Owners: check live money records and opening balances before you treat test figures as real.',
     'commissions_pool_s9' => 'Download or screenshot the period totals before monthly business meetings.',

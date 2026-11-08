@@ -4,6 +4,7 @@ namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Support\ChatRouting;
 use App\Domain\Support\PartnerChat;
+use App\Domain\Support\PartnerSupportHistory;
 use App\Domain\Support\SupportTickets;
 use App\Domain\Support\UserManual;
 use App\Models\User;
@@ -37,7 +38,9 @@ final class SupportSection implements WorkspaceSection
         $manualQuery = $request->filled('q') ? (string) $request->input('q') : null;
         $props['manual_query'] = $manualQuery;
         $props['manual_sections'] = app(UserManual::class)->chaptersFor($user, $manualQuery);
-        $props['support_tickets'] = app(SupportTickets::class)->forUser($user);
+        $history = app(PartnerSupportHistory::class);
+        $props['support_tickets'] = $history->withOfficeReplies(app(SupportTickets::class)->forUser($user));
+        $props['earlier_support_requests'] = $history->earlierRequests($user);
         $props['support_categories'] = SupportTickets::Categories;
 
         return $props;

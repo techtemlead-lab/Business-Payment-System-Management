@@ -58,6 +58,7 @@ use App\Models\User;
 use App\Support\JoinQr;
 use App\Support\Money;
 use App\Support\OfficeHubs;
+use App\Support\PartnerHubTabs;
 use App\Support\PortalCatalog;
 use App\Support\PortalHost;
 use Illuminate\Http\RedirectResponse;
@@ -189,6 +190,10 @@ class WorkspaceController extends Controller
         }
         if ($branchScope !== null) {
             $data['branch_scope'] = $branchScope->chip();
+        }
+        $partnerHub = PartnerHubTabs::forSection($section, $staff);
+        if ($partnerHub !== null) {
+            $data['partner_hub'] = $partnerHub;
         }
 
         return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role', 'channel', 'category', 'sub_category', 'unit', 'min_mrp', 'max_mrp', 'availability', 'sort', 'period', 'from', 'to', 'division', 'district', 'rank', 'no_order_days', 'branch_id', 'all_branches'])]);

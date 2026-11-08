@@ -1,4 +1,4 @@
-import { Form, router, usePage } from '@inertiajs/react';
+import { Form, Link, router, usePage } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 import {
     BookOpen,
@@ -26,9 +26,13 @@ import { useT } from '../shared/i18n/t';
 
 export default function HelpSupportHub({ data }: { data: Row }) {
     const translate = useT();
-    const { auth, portalBase } = usePage<any>().props;
+    const { auth, portal, portalBase, siteCustomization } = usePage<any>().props;
+    const isPartner = ['dealer', 'subdealer'].includes(String(portal));
+    const officePhone = isPartner ? String(siteCustomization?.partner_help_phone ?? '') : '';
     const sections: Row[] = data.manual_sections || [];
     const tickets: Row[] = data.support_tickets || [];
+    // Requests from the old notices-page form sit beside tickets, newest first.
+    const requests: Row[] = [...tickets, ...(data.earlier_support_requests || [])].sort((first, second) => String(second.created_at).localeCompare(String(first.created_at)));
     const categories: string[] = data.support_categories || [];
 
     const [query, setQuery] = useState(String(data.manual_query || ''));
@@ -80,6 +84,17 @@ export default function HelpSupportHub({ data }: { data: Row }) {
     return (
         <div className="help-support-hub">
             <PrerequisiteHelper guide={data.guide_prerequisites} tourBlocked={[]} />
+
+            {isPartner && (
+                <section className="panel">
+                    <h2>{translate('partner_hub', 'help_ways_title')}</h2>
+                    <div className="ops-row is-wrap">
+                        <a className="button dark" href="#support-request">{translate('partner_hub', 'help_way_form')}</a>
+                        <Link className="button" href={`${portalBase ?? ''}/messages`}>{translate('partner_hub', 'help_way_chat')}</Link>
+                        {officePhone && <a className="button" href={`tel:${officePhone.replace(/[^0-9+]/g, '')}`}>{translate('portal', 'partner_help_call')} {officePhone}</a>}
+                    </div>
+                </section>
+            )}
 
             {/* Enterprise Documentation Panel */}
             <section className="panel help-manual-enterprise-panel" data-tour="help-manual">
@@ -425,7 +440,7 @@ export default function HelpSupportHub({ data }: { data: Row }) {
             </section>
 
             {/* Support Ticket Submission Panel */}
-            <section className="panel" data-tour="help-support">
+            <section className="panel" id="support-request" data-tour="help-support">
                 <div className="panel-heading">
                     <div>
                         <h2>{translate('portal', 'support_request_title')}</h2>
@@ -469,13 +484,13 @@ export default function HelpSupportHub({ data }: { data: Row }) {
             {/* My Tickets List Panel */}
             <section className="panel">
                 <div className="panel-heading"><h2>{translate('portal', 'my_support_tickets')}</h2></div>
-                {tickets.length ? (
+                {requests.length ? (
                     <Table
-                        rows={tickets}
+                        rows={requests}
                         columns={[
                             { key: 'created_at', title: translate('portal', 'col_date'), render: (row) => date(row.created_at) },
-                            { key: 'category', title: translate('portal', 'support_category'), render: (row) => translate('portal', `support_cat_${row.category}`) },
-                            { key: 'subject', title: translate('portal', 'support_subject') },
+                            { key: 'category', title: translate('portal', 'support_category'), render: (row) => row.topic_label ?? translate('portal', `support_cat_${row.category}`) },
+                            { key: 'subject', title: translate('portal', 'support_subject'), render: (row) => <SupportRequestDetails request={row} /> },
                             { key: 'status', title: translate('portal', 'col_status'), render: (row) => <Badge status={row.status} /> },
                         ]}
                     />
@@ -485,6 +500,26 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                 <p className="muted ops-mt-3">{translate('portal', 'support_signed_in_as', { name: auth.user.name })}</p>
             </section>
         </div>
+    );
+}
+
+/** One request in the partner's list: what they wrote and what the office answered. */
+function SupportRequestDetails({ request }: { request: Row }) {
+    const translate = useT();
+    const replies: Row[] = request.replies || [];
+
+    return (
+        <details className="support-request">
+            <summary>{request.subject}</summary>
+            <p className="ptl-prewrap">{request.body}</p>
+            {request.earlier && <small className="muted">{translate('partner_hub', 'earlier_request_note')}</small>}
+            {replies.map((reply, index) => (
+                <div className="support-request-reply" key={index}>
+                    <b>{translate('partner_hub', reply.is_staff ? 'reply_from_office' : 'reply_from_you')}</b> <small className="muted">{date(reply.created_at)}</small>
+                    <p className="ptl-prewrap">{reply.body}</p>
+                </div>
+            ))}
+        </details>
     );
 }
 

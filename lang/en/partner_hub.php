@@ -1,0 +1,42 @@
+<?php
+
+return [
+    'money_title' => 'My money',
+    'tab_earnings' => 'Earnings',
+    'tab_withdrawals' => 'Withdraw money',
+    'tab_receipts' => 'Payment receipts',
+    'tab_all_records' => 'All records together',
+    'tabs_aria' => 'Pages in this area',
+    'views_aria' => 'Which list to show',
+    'earned_in_period' => 'Total earned',
+    'earned_in_period_hint' => 'For the dates chosen above',
+    'earned_all_time_hint' => 'From the start until now',
+    'withdraw_cta' => 'Withdraw money',
+    'view_earnings_list' => 'Earnings list',
+    'view_commissions' => 'Commission',
+    'view_orders' => 'Orders and money',
+    'view_team' => 'My team',
+    'view_team_orders' => 'Team transactions',
+    'export_excel' => 'Open in Excel',
+
+    'notices_title' => 'Notices and updates',
+    'tab_office_notices' => 'Office notices',
+    'tab_my_updates' => 'My updates',
+
+    'help_ways_title' => 'Contact the office',
+    'help_way_form' => 'Send a help request',
+    'help_way_chat' => 'Message the office',
+    'help_card_link' => 'Get help',
+    'ask_company_moved' => 'One form for orders, NID corrections, payments or any other help. You will see the answer there too.',
+    'request_details' => 'See details',
+    'reply_from_office' => 'Office reply',
+    'reply_from_you' => 'You wrote',
+    'earlier_request_note' => 'Sent from the old form',
+
+    'jargon_question' => 'What do :terms mean?',
+    'jargon_mo' => 'Marketing Officer. The first rank after dealer.',
+    'jargon_am' => 'Area Manager. The rank after MO.',
+    'jargon_sm' => 'Sales Manager. The rank after AM.',
+    'jargon_me' => 'Marketing Executive. The highest rank.',
+    'jargon_tds' => 'Tax taken out for the government before your money is sent (tax at source).',
+];

@@ -2,6 +2,7 @@ import { Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { Download, FileBarChart2 } from 'lucide-react';
 import { Badge, money, date, label, Table, type Row, DateInput } from './UI';
+import { ALL_RECORDS_VIEWS, AllRecordsViews, useSubView } from './PartnerHubNav';
 import { useT } from '../shared/i18n/t';
 
 export default function PartnerFullReportHub({ report }: { report: Row }) {
@@ -23,6 +24,7 @@ export default function PartnerFullReportHub({ report }: { report: Row }) {
     const querySuffix = query.toString() ? `?${query.toString()}` : '';
     const certificateYears: number[] = report?.certificates?.years ?? [new Date().getFullYear()];
     const [certificateYear, setCertificateYear] = useState(String(certificateYears[0]));
+    const [view, chooseView] = useSubView(ALL_RECORDS_VIEWS, 'commissions');
 
     return (
         <div className="partner-full-report">
@@ -85,9 +87,10 @@ export default function PartnerFullReportHub({ report }: { report: Row }) {
                     <div className="metric"><span>{translate('portal', 'report_outstanding_due')}</span><strong>{money(summary.due)}</strong></div>
                     <div className="metric"><span>{translate('portal', 'report_commission_earned')}</span><strong>{money(summary.commission)}</strong></div>
                 </div>
+                <AllRecordsViews active={view} onSelect={chooseView} />
             </section>
 
-            <section className="panel table-panel dense-panel">
+            {view === 'commissions' && <section className="panel table-panel dense-panel">
                 <div className="panel-heading">
                     <div>
                         <h2>{translate('portal', 'report_commission_by_head')}</h2>
@@ -104,9 +107,9 @@ export default function PartnerFullReportHub({ report }: { report: Row }) {
                     empty={translate('portal', 'report_no_commission')}
                     emptyBody={translate('portal', 'report_no_commission_body')}
                 />
-            </section>
+            </section>}
 
-            <section className="panel table-panel dense-panel">
+            {view === 'orders' && <section className="panel table-panel dense-panel">
                 <div className="panel-heading">
                     <div>
                         <h2>{translate('portal', 'report_order_payment_records')}</h2>
@@ -177,9 +180,9 @@ export default function PartnerFullReportHub({ report }: { report: Row }) {
                     ]}
                     empty={translate('portal', 'report_no_orders')}
                 />
-            </section>
+            </section>}
 
-            <section className="panel table-panel dense-panel">
+            {view === 'team' && <section className="panel table-panel dense-panel">
                 <div className="panel-heading">
                     <div>
                         <h2>{translate('portal', 'report_team_members')}</h2>
@@ -196,9 +199,9 @@ export default function PartnerFullReportHub({ report }: { report: Row }) {
                     ]}
                     empty={translate('portal', 'report_no_team')}
                 />
-            </section>
+            </section>}
 
-            <section className="panel table-panel dense-panel">
+            {view === 'team_orders' && <section className="panel table-panel dense-panel">
                 <div className="panel-heading">
                     <div>
                         <h2>{translate('portal', 'report_team_transactions')}</h2>
@@ -221,7 +224,7 @@ export default function PartnerFullReportHub({ report }: { report: Row }) {
                     ]}
                     empty={translate('portal', 'report_no_team_orders')}
                 />
-            </section>
+            </section>}
         </div>
     );
 }

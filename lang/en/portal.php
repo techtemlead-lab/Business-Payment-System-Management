@@ -6272,6 +6272,8 @@ return [
     'event_prescriber_company_stock_granted' => 'Company-stock prescribing turned on for an office account',
     'event_prescriber_company_stock_removed' => 'Company-stock prescribing turned off for an office account',
     'event_clinic_below_floor_override' => 'Owner confirmed a sale below 30% of MRP',
+    'support_cat_complaint' => 'Complaint',
+    'support_cat_kyc_correction' => 'NID details correction',
     'company_funds' => 'Company funds',
     'event_fund_spend_requested' => 'Company fund spend recorded',
     'event_fund_spend_approved' => 'Company fund spend approved',

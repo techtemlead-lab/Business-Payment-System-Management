@@ -1,6 +1,7 @@
 import { usePage } from '@inertiajs/react';
 import { Printer } from 'lucide-react';
 import { money, dateTime, Table, Pagination, type Row } from './UI';
+import JargonHint from './JargonHint';
 import { useT } from '../shared/i18n/t';
 
 /**
@@ -19,6 +20,7 @@ export default function PaymentReceiptsList({ receipts }: { receipts?: Row }) {
                 <div>
                     <h2>{translate('portal', 'payment_receipts')}</h2>
                     <p className="muted">{translate('portal', 'prc_list_hint')}</p>
+                    <JargonHint terms={['tds']} />
                 </div>
             </div>
             <Table

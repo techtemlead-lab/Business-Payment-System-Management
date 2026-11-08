@@ -6272,6 +6272,8 @@ return [
     'event_prescriber_company_stock_granted' => 'অফিস অ্যাকাউন্টে কোম্পানির স্টক থেকে প্রেসক্রিপশন চালু হয়েছে',
     'event_prescriber_company_stock_removed' => 'অফিস অ্যাকাউন্টে কোম্পানির স্টক থেকে প্রেসক্রিপশন বন্ধ হয়েছে',
     'event_clinic_below_floor_override' => 'মালিক এমআরপির ৩০%-এর কমে বিক্রি নিশ্চিত করেছেন',
+    'support_cat_complaint' => 'অভিযোগ',
+    'support_cat_kyc_correction' => 'NID তথ্য সংশোধন',
     'company_funds' => 'কোম্পানির ফান্ড',
     'event_fund_spend_requested' => 'কোম্পানির ফান্ডের খরচ লেখা হয়েছে',
     'event_fund_spend_approved' => 'কোম্পানির ফান্ডের খরচ অনুমোদন হয়েছে',

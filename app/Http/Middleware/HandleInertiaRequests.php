@@ -207,6 +207,7 @@ class HandleInertiaRequests extends Middleware
                 'courier' => Lang::get('courier'),
                 'prescription' => Lang::get('prescription'),
                 'website_admin' => Lang::get('website_admin'),
+                'partner_hub' => Lang::get('partner_hub'),
                 'funds' => Lang::get('funds'),
                 'productivity' => Lang::get('productivity'),
             ])->as('i18n:'.$locale),
