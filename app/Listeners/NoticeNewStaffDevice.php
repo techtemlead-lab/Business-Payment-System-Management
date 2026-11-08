@@ -48,6 +48,7 @@ class NoticeNewStaffDevice
             (int) $user->id,
             __('wave3_ops.new_device_title', [], $locale),
             __('wave3_ops.new_device_body', ['device' => $device], $locale),
+            'device.new',
         );
     }
 }

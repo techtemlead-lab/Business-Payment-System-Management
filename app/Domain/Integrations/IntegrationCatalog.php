@@ -49,6 +49,11 @@ final class IntegrationCatalog
                 'label' => __('portal.si_group_sms_label'),
                 'description' => __('portal.si_group_sms_desc'),
                 'providers' => [
+                    'mim_sms' => [
+                        'label' => __('portal.si_provider_mim_sms'),
+                        'fields' => ['enabled', 'base_url', 'api_key', 'username', 'sender_id', 'balance_url'],
+                        'defaults' => ['enabled' => false, 'base_url' => 'https://api.mimsms.com/api/V2/SMS', 'api_key' => '', 'username' => '', 'sender_id' => '', 'balance_url' => 'https://api.mimsms.com/api/V2/BalanceCheck'],
+                    ],
                     'greenweb' => [
                         'label' => __('portal.si_provider_greenweb'),
                         'fields' => ['enabled', 'base_url', 'api_key', 'balance_url'],
@@ -68,6 +73,11 @@ final class IntegrationCatalog
                         'label' => __('portal.si_provider_custom_sms'),
                         'fields' => ['enabled', 'base_url', 'api_key', 'sender_id', 'balance_url'],
                         'defaults' => ['enabled' => false, 'base_url' => '', 'api_key' => '', 'sender_id' => '', 'balance_url' => ''],
+                    ],
+                    'alpha_sms' => [
+                        'label' => __('portal.si_provider_alpha_sms'),
+                        'fields' => ['enabled', 'base_url', 'api_key', 'sender_id', 'balance_url'],
+                        'defaults' => ['enabled' => false, 'base_url' => 'https://api.sms.net.bd/sendsms', 'api_key' => '', 'sender_id' => '', 'balance_url' => 'https://api.sms.net.bd/user/balance/'],
                     ],
                 ],
             ],

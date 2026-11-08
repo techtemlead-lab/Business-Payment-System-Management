@@ -20,6 +20,7 @@ use App\Domain\Geography\ManagementReferral;
 use App\Domain\Geography\PlaceTree;
 use App\Domain\Inventory\StockService;
 use App\Domain\Notifications\AccountCreatedSms;
+use App\Domain\Notifications\PartnerEventEmail;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
 use App\Domain\Orders\OrderRefund;
@@ -273,6 +274,7 @@ class CommandController extends Controller
             app(ManagementReferral::class)->stamp($u);
         }
         Password::sendResetLink(['email' => $u->email]);
+        app(PartnerEventEmail::class)->sendTranslated($u, 'account.created', 'event_emails.account_created_title', 'event_emails.account_created_body');
         $redirectUrl = ($d['role'] ?? '') === 'employee' ? '/employees' : '/accounts';
         $accountTypeLabel = ($d['role'] ?? '') === 'employee'
             ? __('portal.acct_type_employee')
@@ -1104,6 +1106,8 @@ class CommandController extends Controller
         if (filled($user->phone)) {
             $sms->sendPasswordReset($user->fresh(), $plainPassword);
         }
+        // Tells the person it happened; the password itself is never in this email.
+        app(PartnerEventEmail::class)->sendTranslated($user, 'account.password_reset', 'event_emails.password_reset_title', 'event_emails.password_reset_body');
         // Staff who are not owners: the owners get an in-app notice (never with the password).
         $ownerNotice->notify($r->user(), $user);
 

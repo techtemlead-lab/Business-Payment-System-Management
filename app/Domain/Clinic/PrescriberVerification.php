@@ -2,6 +2,7 @@
 
 namespace App\Domain\Clinic;
 
+use App\Domain\Notifications\PartnerEventEmail;
 use App\Models\PrescriberRegistration;
 use App\Models\User;
 use App\Support\Audit;
@@ -67,6 +68,9 @@ final class PrescriberVerification
                 'note' => $registration->note,
                 'was_enabled' => (bool) $before?->enabled,
             ]);
+            if (! $before?->enabled) {
+                app(PartnerEventEmail::class)->sendTranslated($locked, 'prescriber.enabled', 'event_emails.prescriber_enabled_title', 'event_emails.prescriber_enabled_body');
+            }
 
             return $registration;
         });
@@ -78,6 +82,7 @@ final class PrescriberVerification
 
         DB::transaction(function () use ($actor, $partner, $reason): void {
             $locked = User::query()->whereKey($partner->id)->lockForUpdate()->firstOrFail();
+            $wasEnabled = (bool) $locked->can_prescribe;
             PrescriberRegistration::query()->where('user_id', $locked->id)->update([
                 'enabled' => false,
                 'disabled_by' => $actor->id,
@@ -87,6 +92,9 @@ final class PrescriberVerification
             ]);
             $locked->forceFill(['can_prescribe' => false])->save();
             Audit::record($actor->id, PrescriptionAccess::isPartner($locked) ? 'prescriber.disabled' : 'prescriber.company_stock_removed', (string) $locked->id, ['reason' => $reason]);
+            if ($wasEnabled) {
+                app(PartnerEventEmail::class)->sendTranslated($locked, 'prescriber.disabled', 'event_emails.prescriber_disabled_title', 'event_emails.prescriber_disabled_body');
+            }
         });
     }
 

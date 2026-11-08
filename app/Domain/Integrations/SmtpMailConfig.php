@@ -38,6 +38,9 @@ final class SmtpMailConfig
             'mail.mailers.smtp.host' => $host,
             'mail.mailers.smtp.port' => $port > 0 ? $port : 587,
             'mail.mailers.smtp.encryption' => $encryption === '' ? null : $encryption,
+            // Laravel chooses TLS from the scheme alone, and the server's MAIL_SCHEME may say smtps. Port 587 (Amazon SES)
+            // has to stay plain smtp so the connection can upgrade with STARTTLS; smtps is only for SSL or port 465.
+            'mail.mailers.smtp.scheme' => ($encryption === 'ssl' || $port === 465) ? 'smtps' : 'smtp',
             'mail.mailers.smtp.username' => (string) ($config['username'] ?? ''),
             'mail.mailers.smtp.password' => (string) ($config['password'] ?? ''),
             'mail.from.address' => (string) ($config['from_address'] ?? config('mail.from.address')),

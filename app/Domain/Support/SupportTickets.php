@@ -2,6 +2,7 @@
 
 namespace App\Domain\Support;
 
+use App\Domain\Notifications\PartnerEventEmail;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\DashboardManagement;
@@ -238,6 +239,8 @@ final class SupportTickets
         Audit::record($actor->id, 'support.ticket_replied', $id, ['status' => $nextStatus]);
         if (! $isStaff) {
             $this->tellOfficeAboutPartnerReply($actor, $ticket);
+        } elseif ((int) $ticket->user_id !== (int) $actor->id) {
+            $this->emailPartnerAboutOfficeReply($ticket);
         }
 
         return $this->show($id, $actor);
@@ -250,6 +253,22 @@ final class SupportTickets
     {
         $replace = ['name' => $partner->name, 'subject' => Str::limit((string) $ticket->subject, 60)];
         Audit::notifyAdminsAndStaff(['accounts', 'support_desk'], __('wave3_ops.support_reply_notice_title', $replace), __('wave3_ops.support_reply_notice_body', $replace));
+        if (PartnerEventEmail::realMailConfigured()) {
+            foreach (Audit::officeRecipients(['accounts', 'support_desk']) as $officeUser) {
+                app(PartnerEventEmail::class)->sendTranslated($officeUser, 'support.reply_to_office', 'wave3_ops.support_reply_notice_title', 'wave3_ops.support_reply_notice_body', $replace);
+            }
+        }
+    }
+
+    /**
+     * The office answered: the partner gets an email pointing to the reply on the portal.
+     */
+    private function emailPartnerAboutOfficeReply(object $ticket): void
+    {
+        $partner = User::query()->find((int) $ticket->user_id);
+        if ($partner instanceof User) {
+            app(PartnerEventEmail::class)->sendTranslated($partner, 'support.reply_to_partner', 'event_emails.support_reply_title', 'event_emails.support_reply_body', ['subject' => Str::limit((string) $ticket->subject, 60)]);
+        }
     }
 
     /**
