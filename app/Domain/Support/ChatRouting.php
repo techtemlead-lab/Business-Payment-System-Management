@@ -2,6 +2,7 @@
 
 namespace App\Domain\Support;
 
+use App\Domain\Geography\PlaceTree;
 use App\Models\BranchStaffAssignment;
 use App\Models\User;
 use App\Support\Audit;
@@ -15,7 +16,7 @@ use Illuminate\Validation\ValidationException;
  * The owner nominates the staff who answer chat. A nominee answers either for their own
  * branches (the branches they are assigned to) or for the whole company. A partner's chat
  * belongs to the partner's branch: the branch saved on the partner, or else the active
- * branch in the partner's district. Owners always see every chat.
+ * branch nearest the partner's place code. Owners always see every chat.
  */
 final class ChatRouting
 {
@@ -144,12 +145,13 @@ final class ChatRouting
     }
 
     /**
-     * SQL for a partner's branch: the saved branch, or else the first active branch in the partner's district.
+     * SQL for a partner's branch: the saved branch, or else the active branch on the partner's
+     * place code or its nearest parent place ({@see PlaceTree::nearestActiveBranchIdSql()}).
+     * Place names are never matched. NULL means the partner has no branch.
      */
     public function partnerBranchSql(string $usersTable = 'users'): string
     {
-        return 'COALESCE('.$usersTable.'.active_branch_id, (SELECT cb.id FROM company_branches cb WHERE cb.is_active = true'
-            .' AND '.$usersTable.'.district IS NOT NULL AND LOWER(cb.district) = LOWER('.$usersTable.'.district) ORDER BY cb.id LIMIT 1))';
+        return 'COALESCE('.$usersTable.'.active_branch_id, '.PlaceTree::nearestActiveBranchIdSql($usersTable).')';
     }
 
     /**

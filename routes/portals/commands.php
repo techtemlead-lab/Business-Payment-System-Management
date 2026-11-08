@@ -70,6 +70,7 @@ return function (string $portal): void {
     Route::post('/commands/orders/{order}/courier', [CourierShipmentController::class, 'change'])->middleware('throttle:20,1');
     Route::post('/commands/orders/{order}/shipments/{shipment}/courier-retry', [CourierShipmentController::class, 'retry'])->whereNumber('shipment')->middleware('throttle:20,1');
     Route::post('/commands/orders/{order}/shipments/{shipment}/picked-up', [CourierShipmentController::class, 'pickedUp'])->whereNumber('shipment')->middleware('throttle:30,1');
+    Route::post('/commands/orders/{order}/shipments/{shipment}/received-back', [CourierShipmentController::class, 'receivedBack'])->whereNumber('shipment')->middleware('throttle:30,1');
     Route::post('/commands/claims/{claim}/verify', [CommandController::class, 'verify']);
     Route::post('/commands/orders/{order}/refund', [CommandController::class, 'refund'])->middleware('throttle:10,1');
     Route::post('/commands/accounts', [CommandController::class, 'account']);
