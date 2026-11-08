@@ -10,7 +10,7 @@
     $imageHeight = $social['image_height'] ?? null;
     $imageType = $social['image_type'] ?? null;
     $type = $social['type'] ?? 'website';
-    $siteName = $social['site_name'] ?? config('app.name', 'Madina Natural Health Care');
+    $siteName = $social['site_name'] ?? \App\Support\SiteCustomization::brandName();
     $currentLocale = app()->getLocale() === 'bn' ? 'bn_BD' : 'en_US';
     $altLocale = app()->getLocale() === 'bn' ? 'en_US' : 'bn_BD';
 @endphp

@@ -1,9 +1,9 @@
 import React from 'react';
 import { useT } from '../../../shared/i18n/t';
-import { Field } from '../formFields';
+import { Field, MdPhotoField } from '../formFields';
 import { WebsiteGroup, type WebsiteSectionProps } from '../WebsiteLayout';
 import type { CustomizationData } from '../types';
-import { AddressFields, CompanyNameField, PhoneAndEmailFields, WebsiteNote } from './SharedFields';
+import { AddressFields, CompanyNameField, FaviconField, MainLogoField, PhoneAndEmailFields, WebsiteNote, WhiteLogoField } from './SharedFields';
 
 /**
  * The one place for facts the website shows in several places. Sentences on other
@@ -26,6 +26,14 @@ export default function CompanyModule(props: WebsiteSectionProps) {
                 </div>
             </WebsiteGroup>
 
+            <WebsiteGroup title={translate('website_admin', 'group_logos')} defaultOpen>
+                <div className="form-grid ed-grid">
+                    <MainLogoField {...props} />
+                    <WhiteLogoField {...props} />
+                    <FaviconField {...props} />
+                </div>
+            </WebsiteGroup>
+
             <WebsiteGroup title={translate('website_admin', 'group_company_address')} defaultOpen>
                 <div className="form-grid ed-grid">
                     <AddressFields {...props} />
@@ -45,6 +53,15 @@ export default function CompanyModule(props: WebsiteSectionProps) {
                     </div>
                 </WebsiteGroup>
             )}
+
+            <WebsiteGroup title={translate('website_admin', 'group_share_search')}>
+                <p className="ed-desc is-sm">{translate('website_admin', 'share_search_hint')}</p>
+                <div className="form-grid ed-grid">
+                    <Field label={translate('website_admin', 'field_meta_title')} fieldKey="meta_title" value={form.data.customization.meta_title} placeholder={defaults.meta_title} onChange={updateField} />
+                    <Field label={translate('website_admin', 'field_meta_description')} fieldKey="meta_description" value={form.data.customization.meta_description} placeholder={defaults.meta_description} onChange={updateField} multiline rows={2} />
+                    <MdPhotoField fieldName="og_image" label={translate('website_admin', 'field_og_image')} hint={translate('website_admin', 'field_og_image_hint')} clearLabel={translate('website_admin', 'use_built_in_picture')} value={form.data.customization.og_image} onChange={val => updateField('og_image', val)} />
+                </div>
+            </WebsiteGroup>
         </>
     );
 }

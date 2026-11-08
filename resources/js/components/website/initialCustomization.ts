@@ -7,6 +7,20 @@ import type { CustomizationData } from './types';
 export function buildCustomizationFormData(customization: CustomizationData, defaults: CustomizationData): CustomizationData {
     return {
             // Header
+            site_logo_url: customization.site_logo_url || '',
+            site_favicon_image: customization.site_favicon_image || '',
+            meta_title: customization.meta_title || '',
+            meta_description: customization.meta_description || '',
+            og_image: customization.og_image || '',
+            header_home_title: customization.header_home_title || '',
+            header_services_title: customization.header_services_title || '',
+            header_partner_title: customization.header_partner_title || '',
+            header_faq_title: customization.header_faq_title || '',
+            mobile_nav_products: customization.mobile_nav_products || '',
+            mobile_nav_dealers: customization.mobile_nav_dealers || '',
+            mobile_nav_about: customization.mobile_nav_about || '',
+            mobile_nav_account: customization.mobile_nav_account || '',
+            footer_link_notice: customization.footer_link_notice || '',
             search_placeholder: customization.search_placeholder || '',
             header_about_title: customization.header_about_title || '',
             header_about_subtitle: customization.header_about_subtitle || '',

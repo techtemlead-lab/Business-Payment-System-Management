@@ -12,7 +12,7 @@
 <div class="ref-company-bar">
     <div class="ref-container ref-company-bar-inner">
         <a href="/" class="ref-bar-logo" aria-label="{{ __('site.brand_home') }}">
-            <img src="/madina-header-logo.png?v=10" alt="{{ __('site.company_bar') }}" width="68" height="68" decoding="async" fetchpriority="high">
+            <img src="{{ \App\Support\SiteCustomization::logoUrl() }}" alt="{{ \App\Support\SiteCustomization::brandName() }}" width="68" height="68" decoding="async" fetchpriority="high">
         </a>
         <div class="ref-bar-name">
             <i class="fa-solid fa-seedling ref-bar-leaf is-left" aria-hidden="true"></i>
@@ -29,7 +29,7 @@
             <span class="ref-burger" aria-hidden="true"><span></span><span></span><span></span></span>
         </button>
 
-        <a href="/" class="ref-nav-home"@if(request()->is('/')) aria-current="page"@endif><i class="fa-solid fa-house" aria-hidden="true"></i><b>{{ __('site.home') }}</b></a>
+        <a href="/" class="ref-nav-home"@if(request()->is('/')) aria-current="page"@endif><i class="fa-solid fa-house" aria-hidden="true"></i><b>{{ $chrome('home', $siteCustomization['header_home_title'] ?? null) }}</b></a>
 
         @if($publicPageEnabled['products'] ?? true)
         <!-- Desktop Search Form -->
@@ -142,7 +142,7 @@
 <aside id="refMobileDrawer" class="ref-mobile-drawer" aria-hidden="true" aria-label="{{ __('site.mobile_nav_drawer') }}">
     <div class="ref-mobile-drawer-header">
         <a href="/" class="ref-mobile-drawer-logo">
-            <img src="/madina-header-logo-white.png?v=10" alt="{{ __('site.company_bar') }}" class="ref-mobile-drawer-logo-img" width="160" height="40" decoding="async">
+            <img src="{{ \App\Support\SiteCustomization::whiteLogoUrl() }}" alt="{{ \App\Support\SiteCustomization::brandName() }}" class="ref-mobile-drawer-logo-img" width="160" height="40" decoding="async">
         </a>
         <button type="button" class="ref-mobile-drawer-close" id="refMobileDrawerClose" aria-label="{{ __('site.close_menu') }}">
             <i class="fa-solid fa-xmark" aria-hidden="true"></i>
@@ -152,14 +152,14 @@
         <div class="ref-mobile-drawer-group">
             <div class="ref-mobile-drawer-group-title">{{ __('site.navigation') }}</div>
             <ul class="ref-mobile-drawer-nav-list">
-                <li><a href="/"><i class="fa-solid fa-house"></i> {{ __('site.home') }}</a></li>
+                <li><a href="/"><i class="fa-solid fa-house"></i> {{ $chrome('home', $siteCustomization['header_home_title'] ?? null) }}</a></li>
                 @if($publicPageEnabled['products'] ?? true)<li><a href="/products"><i class="fa-solid fa-leaf"></i> {{ $chrome('products', $siteCustomization['header_catalog_title'] ?? null) }}</a></li>@endif
                 @if($publicPageEnabled['dealers'] ?? true)<li><a href="/dealers"><i class="fa-solid fa-layer-group"></i> {{ $chrome('network', $siteCustomization['header_network_title'] ?? null) }}</a></li>@endif
                 @if($publicPageEnabled['about'] ?? true)<li><a href="/about"><i class="fa-solid fa-circle-info"></i> {{ $chrome('about', $siteCustomization['header_about_title'] ?? null) }}</a></li>@endif
-                @if($publicPageEnabled['services'] ?? true)<li><a href="/services"><i class="fa-solid fa-hand-holding-heart"></i> {{ __('site.services') }}</a></li>@endif
-                @if($publicPageEnabled['partnership'] ?? true)<li><a href="/partnership"><i class="fa-solid fa-handshake"></i> {{ __('site.become_a_partner') }}</a></li>@endif
+                @if($publicPageEnabled['services'] ?? true)<li><a href="/services"><i class="fa-solid fa-hand-holding-heart"></i> {{ $chrome('services', $siteCustomization['header_services_title'] ?? null) }}</a></li>@endif
+                @if($publicPageEnabled['partnership'] ?? true)<li><a href="/partnership"><i class="fa-solid fa-handshake"></i> {{ $chrome('become_a_partner', $siteCustomization['header_partner_title'] ?? null) }}</a></li>@endif
                 @if($publicPageEnabled['contact'] ?? true)<li><a href="/contact"><i class="fa-solid fa-headset"></i> {{ $chrome('contact', $siteCustomization['header_contact_title'] ?? null) }}</a></li>@endif
-                @if($publicPageEnabled['faq'] ?? true)<li><a href="/faq"><i class="fa-solid fa-circle-question"></i> {{ __('site.faq') }}</a></li>@endif
+                @if($publicPageEnabled['faq'] ?? true)<li><a href="/faq"><i class="fa-solid fa-circle-question"></i> {{ $chrome('faq', $siteCustomization['header_faq_title'] ?? null) }}</a></li>@endif
             </ul>
         </div>
         <div class="ref-mobile-drawer-group">
@@ -199,7 +199,7 @@
             </a>
             @if(($publicPageEnabled['partnership'] ?? true) || ($publicPageEnabled['contact'] ?? true))
             <a href="{{ ($publicPageEnabled['partnership'] ?? true) ? '/partnership' : '/contact#vendor' }}" class="ref-drawer-btn ref-drawer-btn-secondary">
-                <i class="fa-solid fa-handshake"></i> {{ __('site.become_a_partner') }}
+                <i class="fa-solid fa-handshake"></i> {{ $chrome('become_a_partner', $siteCustomization['header_partner_title'] ?? null) }}
             </a>
             @endif
             @endauth

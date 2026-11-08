@@ -1,7 +1,7 @@
 import React from 'react';
 import { Info } from 'lucide-react';
 import { useT } from '../../../shared/i18n/t';
-import { Field } from '../formFields';
+import { Field, MdPhotoField } from '../formFields';
 import type { WebsiteSectionProps } from '../WebsiteLayout';
 import type { CustomizationData } from '../types';
 
@@ -36,6 +36,21 @@ const boxOf = ({ form, defaults, updateField }: BoxProps) => (key: keyof Customi
     placeholder: defaults[key] as string | undefined,
     onChange: updateField,
 });
+
+export function MainLogoField({ form, defaults, updateField }: BoxProps) {
+    const translate = useT();
+    return <MdPhotoField fieldName="site_logo_url" label={translate('website_admin', 'field_site_logo')} hint={translate('website_admin', 'field_site_logo_hint')} clearLabel={translate('website_admin', 'use_built_in_picture')} value={form.data.customization.site_logo_url} placeholder={defaults.site_logo_url} onChange={val => updateField('site_logo_url', val)} />;
+}
+
+export function WhiteLogoField({ form, defaults, updateField }: BoxProps) {
+    const translate = useT();
+    return <MdPhotoField fieldName="footer_logo_url" darkPreview label={translate('website_admin', 'field_white_logo')} hint={translate('website_admin', 'field_white_logo_hint')} clearLabel={translate('website_admin', 'use_built_in_picture')} value={form.data.customization.footer_logo_url} placeholder={defaults.footer_logo_url} onChange={val => updateField('footer_logo_url', val)} />;
+}
+
+export function FaviconField({ form, defaults, updateField }: BoxProps) {
+    const translate = useT();
+    return <MdPhotoField fieldName="site_favicon_image" label={translate('website_admin', 'field_favicon')} hint={translate('website_admin', 'field_favicon_hint')} clearLabel={translate('website_admin', 'use_built_in_picture')} value={form.data.customization.site_favicon_image} placeholder={defaults.site_favicon_image} onChange={val => updateField('site_favicon_image', val)} />;
+}
 
 export function CompanyNameField(props: BoxProps) {
     const translate = useT();

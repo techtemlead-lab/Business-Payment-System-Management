@@ -196,7 +196,7 @@
     </div>
     @if(!empty($maps['embed_url']))
     <div class="ref-map-embed" style="margin:16px 0;">
-        <iframe title="Office location map" src="{{ $maps['embed_url'] }}" width="100%" height="320" style="border:0;border-radius:12px;" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+        <iframe title="{{ __('site.office_map_title') }}" src="{{ $maps['embed_url'] }}" width="100%" height="320" style="border:0;border-radius:12px;" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
     </div>
     @endif
     <div class="ref-map-footer">

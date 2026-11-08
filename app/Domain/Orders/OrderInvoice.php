@@ -112,7 +112,7 @@ final class OrderInvoice
         $profile = is_array($buyer?->profile) ? $buyer->profile : [];
         $custom = SiteCustomization::all();
 
-        $logoPath = public_path('branding/madina-logo-latest.png');
+        $logoPath = SiteCustomization::logoFilePath() ?? public_path('branding/madina-logo-latest.png');
         if (! is_file($logoPath)) {
             $logoPath = public_path('madina-header-logo.png');
         }

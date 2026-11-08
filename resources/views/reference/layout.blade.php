@@ -8,11 +8,10 @@
 @if(($social ?? null) !== false)
 @include('reference.partials.social-meta', ['social' => is_array($social ?? null) ? $social : \App\Support\SocialShareMeta::homepage()])
 @endif
-<link rel="icon" href="/favicon.ico">
-<link rel="icon" type="image/png" href="/reference/favicon.png?v=8">
-<link rel="apple-touch-icon" href="/reference/favicon.png?v=8">
+<link rel="icon" href="{{ \App\Support\SiteCustomization::faviconUrl() }}">
+<link rel="apple-touch-icon" href="{{ \App\Support\SiteCustomization::faviconUrl() }}">
 <link rel="manifest" href="/manifest.webmanifest">
-<link rel="preload" as="image" href="/madina-header-logo.png?v=10" fetchpriority="high">
+<link rel="preload" as="image" href="{{ \App\Support\SiteCustomization::logoUrl() }}" fetchpriority="high">
 <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
 <link rel="stylesheet" href="https://fonts.bunny.net/css?family=marcellus:400|figtree:400,500,600,700|tiro-bangla:400|anek-bangla:400,500,600,700|amiri:400&display=swap">
 {{-- Load Font Awesome on the critical path so header/category icons never render as empty boxes. --}}

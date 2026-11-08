@@ -10,7 +10,7 @@
     <section class="ref-auth-card ref-partner-login-card">
         <div class="ref-auth-brand" style="text-align:center;margin-bottom:20px;">
             <a href="/" aria-label="{{ __('site.back_home') }}">
-                <img src="/madina-header-logo.png?v=8" alt="{{ __('site.company_bar') }}" style="height:85px;width:85px;margin:0 auto;object-fit:contain;">
+                <img src="{{ \App\Support\SiteCustomization::logoUrl() }}" alt="{{ \App\Support\SiteCustomization::brandName() }}" style="height:85px;width:85px;margin:0 auto;object-fit:contain;">
             </a>
         </div>
         <h1>{{ __('site.partner_login_title') }}</h1>

@@ -101,7 +101,7 @@ class WebsiteAdminSimplifyTest extends TestCase
         $source = $this->websitePageSource();
 
         foreach (self::OldEditorBoxes as $key) {
-            $this->assertStringContainsString("fieldKey=\"{$key}\"", $source, "The box for {$key} is missing.");
+            $this->assertTrue(str_contains($source, "fieldKey=\"{$key}\"") || str_contains($source, "fieldName=\"{$key}\""), "The box for {$key} is missing.");
         }
         foreach (['partnership_benefit${i}_title', 'partnership_step${i}_desc', 'services_card${i}_title', 'quality_pillar${i}_desc'] as $template) {
             $this->assertStringContainsString($template, $source);

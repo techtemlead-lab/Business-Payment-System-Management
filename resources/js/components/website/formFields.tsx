@@ -3,28 +3,10 @@ import { useT } from '../../shared/i18n/t';
 import { notify } from '../../shared/notify';
 import type { CustomizationData } from './types';
 
-/**
- * Photo box: a picture link the owner can type, or a picture uploaded from the
- * computer, with a small preview. The words default to the Managing Director's photo.
- */
-export function MdPhotoField({
-    value,
-    placeholder,
-    onChange,
-    label,
-    clearLabel,
-    hint,
-}: {
-    value?: string;
-    placeholder?: string;
-    onChange: (val: string) => void;
-    label?: string;
-    clearLabel?: string;
-    hint?: string;
-}) {
+/** Sends a picture to the server and returns its web address. */
+function usePhotoUpload(onUploaded: (url: string) => void) {
     const translate = useT();
     const [uploading, setUploading] = useState(false);
-    const preview = (value || '').trim() || placeholder || '';
 
     const upload = async (file: File | null) => {
         if (!file) {
@@ -55,7 +37,7 @@ export function MdPhotoField({
             if (!response.ok || !payload?.ok || !payload.url) {
                 throw new Error(payload?.message || translate('portal', 'sce_md_photo_upload_failed'));
             }
-            onChange(payload.url);
+            onUploaded(payload.url);
         } catch (error) {
             notify(error instanceof Error ? error.message : translate('portal', 'sce_md_photo_upload_failed'), 'error');
         } finally {
@@ -63,12 +45,65 @@ export function MdPhotoField({
         }
     };
 
+    return { uploading, upload };
+}
+
+/** A button that picks a picture from the computer and hands back its web address. */
+export function ImageUploadButton({ onUploaded }: { onUploaded: (url: string) => void }) {
+    const translate = useT();
+    const { uploading, upload } = usePhotoUpload(onUploaded);
     return (
-        <div className="ed-block hub-span-all">
+        <label className={`button small light ed-mt-xs${uploading ? ' ed-busy' : ''}`}>
+            {uploading ? translate('portal', 'sce_uploading_category_image') : translate('portal', 'sce_md_photo_upload')}
+            <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                disabled={uploading}
+                className="ed-hidden"
+                onChange={e => {
+                    const file = e.target.files?.[0] ?? null;
+                    e.target.value = '';
+                    void upload(file);
+                }}
+            />
+        </label>
+    );
+}
+
+/**
+ * Photo box: a picture link the owner can type, or a picture uploaded from the
+ * computer, with a small preview. The words default to the Managing Director's photo.
+ */
+export function MdPhotoField({
+    value,
+    placeholder,
+    onChange,
+    label,
+    clearLabel,
+    hint,
+    fieldName,
+    darkPreview = false,
+}: {
+    value?: string;
+    placeholder?: string;
+    onChange: (val: string) => void;
+    label?: string;
+    clearLabel?: string;
+    hint?: string;
+    fieldName?: string;
+    /** A white logo cannot be seen on a white card, so its preview sits on a dark one. */
+    darkPreview?: boolean;
+}) {
+    const translate = useT();
+    const { uploading, upload } = usePhotoUpload(onChange);
+    const preview = (value || '').trim() || placeholder || '';
+
+    return (
+        <div className="ed-block hub-span-all" data-field={fieldName}>
             <span className="ed-label">{label ?? translate('portal', 'sce_fld_md_message_image')}</span>
             <div className="ed-row is-top is-loose">
                 {preview ? (
-                    <img src={preview} alt="" width={72} height={90} className="ed-md-photo-preview" />
+                    <img src={preview} alt="" width={72} height={90} className={`ed-md-photo-preview${darkPreview ? ' ws-dark-preview' : ''}`} />
                 ) : null}
                 <div className="ed-grow">
                     <input
