@@ -967,7 +967,7 @@ class SiteCustomization
         // Only a picture inside the public folder may reach a printed paper or an email.
         $path = realpath(public_path(ltrim((string) parse_url($url, PHP_URL_PATH), '/')));
         $publicFolder = realpath(public_path());
-        if ($path === false || $publicFolder === false || ! str_starts_with($path, $publicFolder.DIRECTORY_SEPARATOR) || preg_match('/.(png|jpe?g|webp)$/i', $path) !== 1) {
+        if ($path === false || $publicFolder === false || ! str_starts_with($path, $publicFolder.DIRECTORY_SEPARATOR) || preg_match('/\.(png|jpe?g|webp)$/i', $path) !== 1) {
             return null;
         }
 
