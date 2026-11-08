@@ -359,7 +359,7 @@ final class TourGuide
     private function ownerDefinitions(User $user): array
     {
         $prescriptionSteps = PrescriptionAccess::canPrescribe($user)
-            ? [$this->overviewStep('[data-tour="sidebar-domains"], .staff-domain-bottom-nav', 'tour_owner_rx', 'tour_cat_domains', 'manual')]
+            ? [$this->overviewStep('[data-tour="sidebar-nav"], .workspace-menu-button', 'tour_owner_rx', 'tour_cat_domains', 'manual')]
             : [];
 
         return [
@@ -408,7 +408,7 @@ final class TourGuide
             $this->overviewStep('[data-tour="recent-orders"]', $prefix.'_orders', 'tour_cat_orders'),
             // "Recent orders" shows only for office people who can also open Deliveries.
             $this->overviewStep('[data-tour="recent-orders"]', 'tour_office_courier', 'tour_cat_orders', 'manual'),
-            $this->overviewStep('[data-tour="sidebar-domains"], .staff-domain-bottom-nav', $prefix.'_domains', 'tour_cat_domains'),
+            $this->overviewStep('[data-tour="sidebar-nav"], .workspace-menu-button', $prefix.'_domains', 'tour_cat_domains'),
             $this->overviewStep('[data-tour="header-actions"]', $prefix.'_header', 'tour_cat_controls'),
             ...$this->topBarSteps(),
             // The switcher is drawn only when the person has a branch; the tour skips it otherwise.

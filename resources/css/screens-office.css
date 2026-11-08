@@ -94,17 +94,9 @@ html[data-theme="dark"] .office-today-lead span{color:#a9cfc0}
 
 /* ---- Sidebar ---------------------------------------------------------- */
 /* Group headings and section names in sentence case, a little more room, one clear "you are here" */
-.app-shell:is(.owner-shell,.company-shell) .sidebar :is(.sidebar-domain-tab,.nav-section-toggle,.nav-section-label,.sidebar-domain-label,.domain-tab-copy,.nav-link-label){text-transform:none;letter-spacing:0}
-.app-shell:is(.owner-shell,.company-shell) .sidebar .sidebar-domain-switch{gap:4px}
-.app-shell:is(.owner-shell,.company-shell) .sidebar:is(.sidebar-premium,:not(.sidebar-premium)) .sidebar-domain-tab{min-height:38px;padding:8px 10px;font-size:13.5px;font-weight:650;color:var(--ds-side-text)}
-.app-shell:is(.owner-shell,.company-shell) .sidebar:is(.sidebar-premium,:not(.sidebar-premium)) .sidebar-domain.is-open>.sidebar-domain-tab,
-.app-shell:is(.owner-shell,.company-shell) .sidebar:is(.sidebar-premium,:not(.sidebar-premium)) .sidebar-domain.has-active>.sidebar-domain-tab{color:var(--ds-side-strong)}
-.app-shell:is(.owner-shell,.company-shell) .sidebar .sidebar-domain-pocket{margin:2px 0 10px 16px;padding:2px 0 2px 8px;gap:2px}
+.app-shell:is(.owner-shell,.company-shell) .sidebar :is(.nav-section-toggle,.nav-section-label,.nav-link-label){text-transform:none;letter-spacing:0}
 .app-shell:is(.owner-shell,.company-shell) .sidebar .nav-section-toggle{min-height:34px;padding:7px 8px;font-size:13px}
 .app-shell:is(.owner-shell,.company-shell) .sidebar:is(.sidebar-premium,:not(.sidebar-premium)) .nav-section-body{margin:2px 0 6px 14px;padding:0 0 0 8px;gap:2px}
-.app-shell:is(.owner-shell,.company-shell) .sidebar :is(.nav-group a,.nav-mother-body>a,.nav-section-body>a,.sidebar-domain-pocket a){min-height:34px;padding:7px 10px;border-radius:8px;font-size:13px}
-.app-shell:is(.owner-shell,.company-shell) .sidebar :is(.nav-group a,.nav-mother-body>a,.nav-section-body>a,.sidebar-domain-pocket a).selected{background:rgba(61,220,151,.16);color:#fff;font-weight:650;box-shadow:inset 3px 0 0 #3ddc97}
-.app-shell:is(.owner-shell,.company-shell) .sidebar :is(.nav-group a,.nav-mother-body>a,.nav-section-body>a,.sidebar-domain-pocket a).selected svg{opacity:1;color:#7fe7bb}
 
 /* ---- Top bar ---------------------------------------------------------- */
 .app-shell:is(.owner-shell,.company-shell) .workspace-header .breadcrumb>span:first-of-type{font-weight:500}
@@ -138,8 +130,7 @@ html .app-shell:is(.owner-shell,.company-shell) .table-block tr.table-empty-row>
 @media (max-width:1023px){
   /* The menu opens as a drawer wide enough for thumbs */
   .app-shell:is(.owner-shell,.company-shell) .sidebar{width:min(86vw,320px)}
-  .app-shell:is(.owner-shell,.company-shell) .sidebar :is(.nav-group a,.nav-mother-body>a,.nav-section-body>a,.sidebar-domain-pocket a),
-  .app-shell:is(.owner-shell,.company-shell) .sidebar:is(.sidebar-premium,:not(.sidebar-premium)) .sidebar-domain-tab,
+  .app-shell:is(.owner-shell,.company-shell) .sidebar :is(.nav-group a,.nav-mother-body>a,.nav-section-body>a),
   .app-shell:is(.owner-shell,.company-shell) .sidebar .nav-section-toggle,
   .app-shell:is(.owner-shell,.company-shell) .sidebar .sidebar-guide-button{min-height:44px}
   .app-shell:is(.owner-shell,.company-shell) .sidebar>.icon-button{width:44px;height:44px;min-height:44px}

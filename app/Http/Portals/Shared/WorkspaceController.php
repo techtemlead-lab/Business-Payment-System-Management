@@ -148,6 +148,10 @@ class WorkspaceController extends Controller
                 'page' => $r->query('page'),
             ], fn ($value) => $value !== null && $value !== '')));
         }
+        if ($staff && $section === 'withdrawals') {
+            // One desk for office withdrawal work; old links and saved filters still arrive there.
+            return redirect('/payouts-hub'.rtrim('?'.http_build_query($r->only(['q', 'status', 'channel', 'buyer_role', 'period', 'from', 'to', 'page', 'branch_id', 'all_branches'])), '?'));
+        }
         $orders = Order::query()->when(! $staff, fn ($q) => $q->where('user_id', $u->id))->when($staff && ! $u->allows('orders') && ! $u->allows('finance'), fn ($q) => $q->whereRaw('1=0'));
         // Staff pages that follow the top-bar branch switcher show only the picked branch.
         $branchScope = $staff && BranchScope::covers($section) ? app(BranchOperations::class)->scopeFor($u, $r) : null;

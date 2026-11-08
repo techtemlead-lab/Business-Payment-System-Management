@@ -113,16 +113,16 @@ html[data-theme="dark"] .app-shell tbody tr:hover,html[data-theme="dark"] .app-s
 /* ---- 5. Sidebar: the "you are here" marker as a bar that can slide -------
    The marker used to be an inset shadow; it is now a small bar that
    portalMotion.ts slides from the old item to the new one on navigation. */
-:root .app-shell .sidebar :is(.nav-group a,.nav-mother-body>a,.nav-section-body>a,.sidebar-domain-pocket a){position:relative}
-:root .app-shell .sidebar :is(.nav-group a,.nav-mother-body>a,.nav-section-body>a,.sidebar-domain-pocket a).selected{box-shadow:none}
-:root .app-shell .sidebar :is(.nav-group a,.nav-mother-body>a,.nav-section-body>a,.sidebar-domain-pocket a).selected::before{
+:root .app-shell .sidebar :is(.nav-group a,.nav-mother-body>a,.nav-section-body>a){position:relative}
+:root .app-shell .sidebar :is(.nav-group a,.nav-mother-body>a,.nav-section-body>a).selected{box-shadow:none}
+:root .app-shell .sidebar :is(.nav-group a,.nav-mother-body>a,.nav-section-body>a).selected::before{
   content:"";position:absolute;left:0;top:5px;bottom:5px;width:3px;border-radius:0 3px 3px 0;
   background:var(--ds-accent);pointer-events:none;
 }
 @media (prefers-reduced-motion:no-preference){
-  :root .app-shell .sidebar :is(.nav-group a,.nav-mother-body>a,.nav-section-body>a,.sidebar-domain-pocket a){transition:background-color .15s ease,color .15s ease}
-  :root .app-shell .sidebar :is(.nav-group a,.nav-mother-body>a,.nav-section-body>a,.sidebar-domain-pocket a) svg{transition:transform .2s cubic-bezier(.2,.7,.2,1)}
-  :root .app-shell .sidebar :is(.nav-group a,.nav-mother-body>a,.nav-section-body>a,.sidebar-domain-pocket a):hover svg{transform:translateX(2px)}
+  :root .app-shell .sidebar :is(.nav-group a,.nav-mother-body>a,.nav-section-body>a){transition:background-color .15s ease,color .15s ease}
+  :root .app-shell .sidebar :is(.nav-group a,.nav-mother-body>a,.nav-section-body>a) svg{transition:transform .2s cubic-bezier(.2,.7,.2,1)}
+  :root .app-shell .sidebar :is(.nav-group a,.nav-mother-body>a,.nav-section-body>a):hover svg{transform:translateX(2px)}
 }
 
 /* ---- 6. Progress bars fill from the left when they appear --------------- */

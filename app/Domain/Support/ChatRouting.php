@@ -13,8 +13,9 @@ use Illuminate\Validation\ValidationException;
 /**
  * Who answers partner chat, and which partners each of them may see.
  *
- * The owner nominates the staff who answer chat. A nominee answers either for their own
- * branches (the branches they are assigned to) or for the whole company. A partner's chat
+ * The Support role always answers chat for the branches its staff are assigned to. The owner can
+ * nominate other staff, or widen a Support person to the whole company: a nominee answers either
+ * for their own branches (the branches they are assigned to) or for the whole company. A partner's chat
  * belongs to the partner's branch: the branch saved on the partner, or else the active
  * branch nearest the partner's place code. Owners always see every chat.
  */
@@ -65,7 +66,7 @@ final class ChatRouting
         return $this->setting()['answerers'][(int) $user->id] ?? null;
     }
 
-    /** Owners always; other active staff only when the owner nominated them. */
+    /** Owners and the Support role always; other active staff only when the owner nominated them. */
     public function canAnswer(User $user): bool
     {
         if ($user->status !== 'active') {
@@ -75,7 +76,7 @@ final class ChatRouting
             return true;
         }
 
-        return $user->staff() && $this->scopeOf($user) !== null;
+        return $user->role === 'support' || ($user->staff() && $this->scopeOf($user) !== null);
     }
 
     /**

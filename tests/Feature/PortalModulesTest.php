@@ -145,22 +145,17 @@ class PortalModulesTest extends TestCase
         $this->assertSame('http://dealer.example.test/', PortalHost::homeUrl($dealer));
     }
 
-    public function test_partner_nav_is_grouped_into_mother_modules(): void
+    public function test_the_menu_lives_in_the_page_code_not_in_the_portal_config(): void
     {
-        $this->assertSame(['overview', 'top-sellers'], PortalCatalog::nav('dealer')['home']);
-        $this->assertSame(['overview', 'top-sellers'], PortalCatalog::nav('subdealer')['home']);
-        $this->assertSame(['orders', 'purchase', 'catalog', 'deliveries'], PortalCatalog::nav('dealer')['commerce']);
-        $this->assertSame(['earnings', 'full-report', 'withdrawals', 'payment-receipts'], PortalCatalog::nav('dealer')['earnings']);
-        $this->assertSame(['messages', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help'], PortalCatalog::nav('dealer')['account']);
-        $this->assertSame(['salary', 'earnings', 'full-report', 'withdrawals', 'payment-receipts'], PortalCatalog::nav('subdealer')['earnings']);
-        $this->assertSame(['messages', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help'], PortalCatalog::nav('subdealer')['account']);
-        $this->assertArrayNotHasKey('owner', PortalCatalog::nav('sadmin'));
-        $this->assertSame(['accounts', 'partnerships'], PortalCatalog::nav('manage')['dealer_directory']);
-        $this->assertSame(['sub-dealers', 'sub-dealer-applications'], PortalCatalog::nav('manage')['subdealer_directory']);
-        $this->assertSame(['sub-dealers', 'sub-dealer-applications'], PortalCatalog::nav('sadmin')['subdealer_directory']);
-        $this->assertSame(['orders', 'deliveries'], PortalCatalog::nav('manage')['fulfillment']);
-        $this->assertSame(['catalog', 'inventory', 'branches', 'branch-performance', 'place-codes'], PortalCatalog::nav('manage')['products']);
-        $this->assertSame(['audit', 'support-admin', 'agreement', 'partner-messages'], PortalCatalog::nav('manage')['system']);
+        foreach (['dealer', 'subdealer', 'manage', 'sadmin'] as $portal) {
+            $this->assertArrayNotHasKey('nav', PortalCatalog::definition($portal));
+            $this->assertArrayNotHasKey('nav', PortalCatalog::inertiaPayload($portal));
+            $this->assertContains('overview', PortalCatalog::inertiaPayload($portal)['sections']);
+        }
+        $this->assertContains('share-feedback', PortalCatalog::sections('dealer'));
+        $this->assertContains('share-feedback', PortalCatalog::sections('subdealer'));
+        $this->assertContains('login-rules', PortalCatalog::sections('sadmin'));
+        $this->assertNotContains('login-rules', PortalCatalog::sections('manage'));
     }
 
     public function test_mother_module_labels_are_available_in_english_and_bangla(): void
@@ -169,8 +164,8 @@ class PortalModulesTest extends TestCase
         $this->actingAs($dealer)->onPortal('dealer')->get('/')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('translations.portal.nav_module_commerce', 'Orders and products')
-                ->where('translations.portal.nav_module_earnings', 'Earnings')
+                ->where('translations.portal.nav_module_commerce', 'My orders')
+                ->where('translations.portal.nav_module_earnings', 'My money')
                 ->where('translations.portal.nav_module_fulfillment', 'Orders and delivery')
                 ->where('translations.portal.nav_module_system', 'System')
                 ->where('translations.portal.search_menu', 'Search menu')
@@ -181,8 +176,8 @@ class PortalModulesTest extends TestCase
         $this->onPortal('dealer')->get('/')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('translations.portal.nav_module_commerce', 'অর্ডার ও পণ্য')
-                ->where('translations.portal.nav_module_earnings', 'আয়')
+                ->where('translations.portal.nav_module_commerce', 'আমার অর্ডার')
+                ->where('translations.portal.nav_module_earnings', 'আমার টাকা')
                 ->where('translations.portal.nav_module_fulfillment', 'অর্ডার ও ডেলিভারি')
                 ->where('translations.portal.nav_module_system', 'সিস্টেম')
                 ->where('translations.portal.search_menu', 'মেনু খুঁজুন')
@@ -213,7 +208,7 @@ class PortalModulesTest extends TestCase
                 ->component('portals/subdealer/Dashboard')
                 ->where('locale', 'bn')
                 ->where('translations.portal.log_out', 'লগআউট')
-                ->where('translations.portal.nav_module_earnings', 'আয়')
+                ->where('translations.portal.nav_module_earnings', 'আমার টাকা')
                 ->where('translations.portal.change_password', 'পাসওয়ার্ড পরিবর্তন'));
     }
 }

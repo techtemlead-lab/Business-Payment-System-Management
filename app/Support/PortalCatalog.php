@@ -34,12 +34,6 @@ final class PortalCatalog
         return (string) (self::definition($portal)['page'] ?? 'Portal');
     }
 
-    /** @return array<string, list<string>> */
-    public static function nav(string $portal): array
-    {
-        return self::definition($portal)['nav'] ?? [];
-    }
-
     /**
      * Section names the portal's catch-all `/{section?}` route may match.
      * Partner portals also serve the staff desk (manage sections) for dealers
@@ -72,8 +66,8 @@ final class PortalCatalog
             // Off for every partner until the owner verifies their registration; the owner-doctor always has it.
             abort_unless(PrescriptionAccess::canPrescribe($user), 403, (string) __('prescription.err_not_enabled'));
         }
-        if ($section === 'benefits-fund' || $section === 'data-cleanup') {
-            // Owner-only pages on the owner panel: the owners' fund and the manual data clean-up.
+        if ($section === 'benefits-fund' || $section === 'data-cleanup' || $section === 'login-rules') {
+            // Owner-only pages on the owner panel: the owners' fund, the manual data clean-up and the login switches.
             abort_unless($portal === 'sadmin' && $user->owner(), 403);
         }
         if (in_array($portal, ['manage', 'sadmin'], true) && $section === 'agreement') {
@@ -84,7 +78,9 @@ final class PortalCatalog
             // Owners (Super Admin, MD, Chairman) open the account lists to reset or see passwords.
             abort_unless($user->owner() || $user->allows('accounts'), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'enquiries') {
-            abort_unless($user->allows('content') || $user->allows('accounts'), 403);
+            abort_unless($user->allows('content') || $user->allows('accounts') || $user->allows('support_desk'), 403);
+        } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'support-admin') {
+            abort_unless($user->owner() || $user->allows('accounts') || $user->allows('support_desk'), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'feedback') {
             // Reviews go on the public website, so only website (content) staff check them.
             abort_unless($user->allows('content'), 403);
@@ -110,12 +106,11 @@ final class PortalCatalog
         }
     }
 
-    /** @return array{sections: list<string>, nav: array<string, list<string>>, page: string} */
+    /** @return array{sections: list<string>, page: string} */
     public static function inertiaPayload(string $portal): array
     {
         return [
             'sections' => self::sections($portal),
-            'nav' => self::nav($portal),
             'page' => self::page($portal),
         ];
     }

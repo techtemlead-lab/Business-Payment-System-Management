@@ -505,8 +505,6 @@ class SiteCustomization
     {
         $all = self::all();
         $copy = collect($all)->only([
-            'header_offers_title', 'header_offers_subtitle',
-            'header_projects_title', 'header_projects_subtitle',
         ])->map(fn (mixed $value): string => (string) $value)->all();
         $phone = trim((string) ($all['contact_phone'] ?? ''));
 

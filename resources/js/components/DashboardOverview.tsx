@@ -10,7 +10,7 @@ import { ProfilePhoto } from './ProfilePhoto';
 import { Badge, humanize, money, type Row, number } from './UI';
 import { localizeDigits } from '../business-date';
 import { useT } from '../shared/i18n/t';
-import { buildStaffAvailable, pick, sectionHref } from '../shared/portalNav';
+import { OPERATIONS_SECTIONS, buildStaffAvailable, pick, sectionHref } from '../shared/portalNav';
 
 /** A progress bar row, or (kind "amount") a plain amount with no target, such as a sub-dealer's salary or tour fund. */
 type TargetRow = {
@@ -456,13 +456,13 @@ type OfficeTile = { section: string; label: string; hint?: string; icon: React.C
 const OFFICE_TILES: OfficeTile[] = [
     { section: 'orders', label: 'admin_tile_orders', hint: 'admin_tile_orders_hint', icon: ShoppingBag, tone: 'green' },
     { section: 'payments', label: 'admin_tile_payments', hint: 'admin_tile_payments_hint', icon: Wallet, tone: 'blue' },
-    { section: 'withdrawals', label: 'withdrawals', icon: Banknote, tone: 'rose' },
+    { section: 'payouts-hub', label: 'payouts_hub', icon: Banknote, tone: 'rose' },
     { section: 'deliveries', label: 'admin_tile_deliveries', hint: 'admin_tile_deliveries_hint', icon: Truck, tone: 'amber' },
     { section: 'inventory', label: 'admin_tile_inventory', hint: 'admin_tile_inventory_hint', icon: Boxes, tone: 'green' },
     { section: 'catalog', label: 'admin_tile_catalog', hint: 'admin_tile_catalog_hint', icon: Package, tone: 'blue' },
     { section: 'accounts', label: 'admin_tile_accounts', hint: 'admin_tile_accounts_hint', icon: Users, tone: 'amber' },
     { section: 'partnerships', label: 'admin_tile_partnerships', hint: 'admin_tile_partnerships_hint', icon: UserPlus, tone: 'rose' },
-    { section: 'reports', label: 'admin_tile_reports', hint: 'admin_tile_reports_hint', icon: FileBarChart2, tone: 'green' },
+    { section: 'financial-reports', label: 'admin_tile_reports', hint: 'admin_tile_reports_hint', icon: FileBarChart2, tone: 'green' },
     { section: 'top-sellers', label: 'top_sellers', icon: TrendingUp, tone: 'blue' },
     { section: 'ledger', label: 'admin_tile_ledger', hint: 'admin_tile_ledger_hint', icon: FileText, tone: 'amber' },
     { section: 'policies', label: 'admin_tile_policies', hint: 'admin_tile_policies_hint', icon: ShieldCheck, tone: 'rose' },
@@ -478,7 +478,7 @@ function OfficeTiles({ base }: { base: string }) {
     const catalogSections: string[] = portalCatalog?.sections ?? [];
     const available = buildStaffAvailable({ capabilities: auth.capabilities ?? [], role: auth.user?.role ?? '', ownerPortal: portal === 'sadmin', chatAnswerer: Boolean(auth.chatAnswerer) });
     const offered = new Set(pick(available, OFFICE_TILES.map((tile) => tile.section)));
-    const tiles = OFFICE_TILES.filter((tile) => offered.has(tile.section) && (catalogSections.length === 0 || catalogSections.includes(tile.section)));
+    const tiles = OFFICE_TILES.filter((tile) => offered.has(tile.section) && (catalogSections.length === 0 || catalogSections.includes(tile.section) || OPERATIONS_SECTIONS.has(tile.section)));
     if (tiles.length === 0) {
         return null;
     }
@@ -524,7 +524,7 @@ function OfficeToday({ home, base }: { home: Row; base: string }) {
         figures.push({ key: 'payments', label: translate('portal', 'office_today_payments'), value: number(paymentsWaiting.count), href: `${base}/payments?status=pending`, waiting: paymentsWaiting.count > 0 });
     }
     if (withdrawalsWaiting) {
-        figures.push({ key: 'withdrawals', label: translate('portal', 'office_today_withdrawals'), value: number(withdrawalsWaiting.count), href: `${base}/withdrawals?status=requested`, waiting: withdrawalsWaiting.count > 0 });
+        figures.push({ key: 'withdrawals', label: translate('portal', 'office_today_withdrawals'), value: number(withdrawalsWaiting.count), href: `${base}/payouts-hub?status=requested`, waiting: withdrawalsWaiting.count > 0 });
     }
     const [lead, ...rest] = figures;
     const totals = [

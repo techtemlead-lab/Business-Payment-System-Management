@@ -256,6 +256,9 @@ final class WithdrawalsSection implements WorkspaceSection
                     ->orWhere('withdrawals.payment_reference', 'ilike', $term);
             });
         }
+        if ($request->filled('buyer_role')) {
+            $matching->where('users.role', $request->string('buyer_role')->toString());
+        }
         // Method and request dates, so finance can work one bKash or bank batch at a time.
         $channel = $request->string('channel')->toString();
         if (in_array($channel, PaymentAccounts::channels(), true)) {

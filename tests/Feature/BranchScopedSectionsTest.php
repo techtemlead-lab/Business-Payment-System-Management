@@ -347,7 +347,7 @@ class BranchScopedSectionsTest extends TestCase
      */
     public static function withdrawalPages(): array
     {
-        return ['withdrawals' => ['/withdrawals'], 'payouts hub' => ['/payouts-hub']];
+        return ['payouts hub' => ['/payouts-hub']];
     }
 
     #[DataProvider('withdrawalPages')]
