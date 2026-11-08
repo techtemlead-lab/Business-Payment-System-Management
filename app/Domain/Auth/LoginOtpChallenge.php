@@ -4,6 +4,7 @@ namespace App\Domain\Auth;
 
 use App\Domain\Integrations\SmsGatewayClient;
 use App\Domain\Notifications\PartnerEventSms;
+use App\Domain\Notifications\SmsText;
 use App\Domain\Security\SecuritySettings;
 use App\Models\User;
 use App\Support\PhoneIdentity;
@@ -123,10 +124,10 @@ final class LoginOtpChallenge
         $sent = $this->sms->send(
             $user,
             'login.otp',
-            __('sms.login_otp', [
+            SmsText::make('sms.login_otp', [
                 'code' => $code,
                 'minutes' => (string) max(1, intdiv($this->ttl(), 60)),
-            ], $user->preferredLocale()),
+            ]),
         );
         if (! $sent) {
             return ['sent' => false, 'reason' => 'failed', 'retry_after' => 0, 'code' => null];

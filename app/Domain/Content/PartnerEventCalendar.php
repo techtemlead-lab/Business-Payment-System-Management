@@ -2,6 +2,7 @@
 
 namespace App\Domain\Content;
 
+use App\Domain\Notifications\SmsText;
 use App\Models\PartnerEvent;
 use App\Models\PlaceCode;
 use App\Models\User;
@@ -216,6 +217,9 @@ final class PartnerEventCalendar
             $locked = PartnerEvent::query()->whereKey($event->id)->lockForUpdate()->firstOrFail();
             if ($locked->status !== 'draft') {
                 throw ValidationException::withMessages(['status' => __('portal.events_err_not_draft')]);
+            }
+            if ($locked->send_sms && ! SmsText::hasBanglaLetters((string) $locked->title_bn)) {
+                throw ValidationException::withMessages(['title_bn' => SmsText::make('portal.sms_err_bangla_required')]);
             }
             $locked->forceFill(['status' => 'published', 'published_at' => now(), 'updated_by' => $actor->id])->save();
             $notified = $this->notifications->published($locked);

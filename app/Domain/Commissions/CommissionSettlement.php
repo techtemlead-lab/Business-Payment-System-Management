@@ -6,6 +6,7 @@ use App\Domain\Accounts\PartnerBenefitControls;
 use App\Domain\Finance\Percentage;
 use App\Domain\Geography\PlaceGeographyResolver;
 use App\Domain\Notifications\PartnerEventSms;
+use App\Domain\Notifications\SmsText;
 use App\Models\CommissionAllocation;
 use App\Models\DealerRank;
 use App\Models\User;
@@ -263,16 +264,15 @@ final class CommissionSettlement
             if (! $partner) {
                 continue;
             }
-            $locale = $partner->preferredLocale();
-            $kindLabel = __('portal.settle_kind_'.$kind, [], $locale);
+            $kindLabel = SmsText::make('portal.settle_kind_'.$kind);
             $sms->send(
                 $partner,
                 'commission.settled',
-                __('sms.commission_settled', [
+                SmsText::make('sms.commission_settled', [
                     'amount' => $amount,
                     'kind' => $kindLabel,
                     'month' => $month,
-                ], $locale),
+                ]),
             );
         }
     }
@@ -884,7 +884,7 @@ final class CommissionSettlement
                     __('portal.notice_commission_matured_body', ['amount' => $amountDecimal], $locale),
                 );
                 $userId = (int) $fund->user_id;
-                DB::afterCommit(function () use ($userId, $amountDecimal, $locale): void {
+                DB::afterCommit(function () use ($userId, $amountDecimal): void {
                     $partner = User::find($userId);
                     if (! $partner) {
                         return;
@@ -892,7 +892,7 @@ final class CommissionSettlement
                     app(PartnerEventSms::class)->send(
                         $partner,
                         'commission.matured',
-                        __('sms.commission_matured', ['amount' => $amountDecimal], $partner->preferredLocale() ?: $locale),
+                        SmsText::make('sms.commission_matured', ['amount' => $amountDecimal]),
                     );
                 });
                 $count++;

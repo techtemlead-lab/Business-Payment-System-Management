@@ -3,6 +3,7 @@
 namespace App\Domain\Commissions;
 
 use App\Domain\Notifications\PartnerEventSms;
+use App\Domain\Notifications\SmsText;
 use App\Models\CommissionAllocation;
 use App\Models\DealerRank;
 use App\Models\Order;
@@ -166,7 +167,7 @@ final class CommissionReversal
             );
             $userId = (int) $order->user_id;
             $orderNumber = (string) $order->number;
-            DB::afterCommit(function () use ($userId, $orderNumber, $amountDecimal, $reason, $locale): void {
+            DB::afterCommit(function () use ($userId, $orderNumber, $amountDecimal, $reason): void {
                 $partner = User::find($userId);
                 if (! $partner) {
                     return;
@@ -174,11 +175,11 @@ final class CommissionReversal
                 app(PartnerEventSms::class)->send(
                     $partner,
                     'order.refunded',
-                    __('sms.order_refunded', [
+                    SmsText::make('sms.order_refunded', [
                         'number' => $orderNumber,
                         'amount' => $amountDecimal,
                         'reason' => $reason,
-                    ], $partner->preferredLocale() ?: $locale),
+                    ]),
                 );
             });
 

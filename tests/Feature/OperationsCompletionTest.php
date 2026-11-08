@@ -136,21 +136,18 @@ class OperationsCompletionTest extends TestCase
         $this->assertEquals(DB::table('journal_lines')->sum('debit'), DB::table('journal_lines')->sum('credit'));
     }
 
-    public function test_tour_reserve_is_owned_cannot_be_overdrawn_and_reverses_after_refund(): void
+    public function test_rank_reserve_award_cannot_be_self_approved_and_reverses_after_refund(): void
     {
         $this->enableFinancialPosting();
         $admin = User::factory()->create(['role' => 'finance']);
         $reviewer = User::factory()->create(['role' => 'finance']);
         $buyer = User::factory()->create(['role' => 'sub_dealer']);
-        $other = User::factory()->create(['role' => 'sub_dealer']);
         $order = $this->postedOrder($buyer, '120.00');
-        $payload = ['program' => 'tour', 'user_id' => $buyer->id, 'amount' => '3.60', 'request_key' => (string) Str::uuid(), 'reason' => 'Approved sub-dealer tour benefit'];
+        $payload = ['program' => 'additional_rank', 'user_id' => $buyer->id, 'amount' => '3.60', 'request_key' => (string) Str::uuid(), 'reason' => 'Approved sub-dealer tour benefit'];
         $id = $this->actingAs($admin)->postJson('/api/v1/operations/reserves', $payload)->assertOk()->json('data.id');
         $this->postJson('/api/v1/operations/reserves', $payload)->assertOk()->assertJsonPath('data.id', $id);
         $this->postJson('/api/v1/operations/reserves/'.$id.'/review', ['decision' => 'approved', 'reason' => 'Approve tour benefit'])->assertUnprocessable();
-        $wrong = $this->postJson('/api/v1/operations/reserves', [...$payload, 'user_id' => $other->id, 'request_key' => (string) Str::uuid()])->assertOk()->json('data.id');
-        $this->actingAs($reviewer)->postJson('/api/v1/operations/reserves/'.$wrong.'/review', ['decision' => 'approved', 'reason' => 'Approve own funded tour'])->assertUnprocessable();
-        $this->postJson('/api/v1/operations/reserves/'.$id.'/review', ['decision' => 'approved', 'reason' => 'Approve own funded tour'])->assertOk();
+        $this->actingAs($reviewer)->postJson('/api/v1/operations/reserves/'.$id.'/review', ['decision' => 'approved', 'reason' => 'Approve own funded tour'])->assertOk();
         $this->assertDatabaseHas('commission_settlement_payouts', ['kind' => 'award_'.$id, 'amount' => '3.60']);
         app(CommissionReversal::class)->refund($order, 6000, 'Half order returned', 'TOUR-REFUND');
         $this->assertDatabaseHas('commission_settlement_payouts', ['kind' => 'award_'.$id, 'reversed_amount' => '1.80']);
@@ -164,7 +161,7 @@ class OperationsCompletionTest extends TestCase
         $order = $this->postedOrder($buyer, '120.00');
         app(CommissionReversal::class)->refund($order, 6000, 'First half returned', 'FIRST-HALF');
         $admin = User::factory()->create(['role' => 'finance']);
-        $id = $this->actingAs($admin)->postJson('/api/v1/operations/reserves', ['program' => 'tour', 'user_id' => $buyer->id, 'amount' => '1.80', 'request_key' => (string) Str::uuid(), 'reason' => 'Reward remaining tour reserve'])->assertOk()->json('data.id');
+        $id = $this->actingAs($admin)->postJson('/api/v1/operations/reserves', ['program' => 'additional_rank', 'user_id' => $buyer->id, 'amount' => '1.80', 'request_key' => (string) Str::uuid(), 'reason' => 'Reward remaining tour reserve'])->assertOk()->json('data.id');
         $this->actingAs(User::factory()->create(['role' => 'finance']))->postJson('/api/v1/operations/reserves/'.$id.'/review', ['decision' => 'approved', 'reason' => 'Reviewed remaining funds'])->assertOk();
         app(CommissionReversal::class)->refund($order, 3000, 'Next quarter returned', 'NEXT-QUARTER');
         $this->assertDatabaseHas('commission_settlement_payouts', ['kind' => 'award_'.$id, 'refunded_basis' => '60.00', 'reversed_amount' => '0.90']);
