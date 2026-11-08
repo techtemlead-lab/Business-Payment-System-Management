@@ -14,6 +14,7 @@ use App\Domain\Pricing\ProductPricing;
 use App\Domain\Staff\TerritoryAccess;
 use App\Jobs\BookShipmentCourier;
 use App\Models\BranchProductStock;
+use App\Models\CompanyBranch;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
@@ -78,7 +79,7 @@ class OrderService
             $this->assertPaidInFullWithOrder($data, $total);
             $order = Order::create(['number' => 'MN-'.now()->format('ymd').'-'.Str::upper(Str::random(8)),
                 'user_id' => $user->id, 'submitted_by' => $submittedBy?->id, 'total' => Money::decimal($total), 'idempotency_key' => $data['idempotency_key'],
-                'payload_hash' => $hash, 'note' => $data['note'] ?? null]);
+                'payload_hash' => $hash, 'note' => $data['note'] ?? null, 'courier_choice' => CourierOptions::stored($data['courier_choice'] ?? null)]);
             $order->lines()->createMany($lines);
             $this->commissions->capture($order, $user);
             $claimedWithOrder = ! empty($data['reference']);
@@ -222,6 +223,10 @@ class OrderService
                 'number' => $locked->number,
                 'reason' => $reason,
             ]);
+            if ($status === 'approved') {
+                // The dealer picked a courier: the parcel is booked now, without waiting for manual dispatch.
+                $this->autoShip($actor, $locked);
+            }
         }, 3);
     }
 
@@ -323,38 +328,7 @@ class OrderService
                 throw ValidationException::withMessages(['shipment' => __('portal.err_shipment_needs_full_payment', ['amount' => Money::grouped($locked->outstanding())])]);
             }
             $fulfillmentBranch = $this->branches->resolveWritableBranch($actor, isset($data['branch_id']) ? (int) $data['branch_id'] : null);
-            $orderLines = $locked->lines()->whereIn('id', array_column($data['items'], 'line_id'))->get()->keyBy('id');
-            abort_unless($orderLines->count() === count($data['items']), 404);
-            $products = Product::whereIn('id', $orderLines->pluck('product_id'))->orderBy('id')->lockForUpdate()->get()->keyBy('id');
-            $shipmentLines = [];
-            foreach ($data['items'] as $item) {
-                $line = $orderLines[$item['line_id']];
-                $product = $products[$line->product_id];
-                $quantity = $item['quantity'];
-                $branchStock = $this->branches->ensureBranchStock($fulfillmentBranch, $product);
-                if ($quantity > $line->quantity - $line->dispatched || $quantity > $branchStock->quantity) {
-                    throw ValidationException::withMessages(['shipment' => __('portal.err_shipment_qty', ['product' => $product->name])]);
-                }
-                $previousStock = $product->stock;
-                $branchStock->quantity = (int) $branchStock->quantity - $quantity;
-                $branchStock->save();
-                $companyTotal = (int) BranchProductStock::query()->where('product_id', $product->id)->sum('quantity');
-                $product->forceFill(['stock' => $companyTotal])->save();
-                $this->stockNotifications->recordChange($product, $previousStock, $previousStock > 0 && ! $product->is_stock_paused);
-                $line->increment('dispatched', $quantity);
-                DB::table('stock_movements')->insert([
-                    'product_id' => $product->id,
-                    'branch_id' => $fulfillmentBranch->id,
-                    'quantity' => -$quantity,
-                    'kind' => 'dispatch',
-                    'reference' => (string) Str::uuid(),
-                    'reason' => $locked->number,
-                    'actor_id' => $actor->id,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-                $shipmentLines[] = ['line_id' => $line->id, 'name' => $line->name, 'quantity' => $quantity];
-            }
+            $shipmentLines = $this->takeStock($actor, $locked, $fulfillmentBranch, $data['items']);
             $courier = (string) $data['courier'];
             $tracking = trim((string) ($data['tracking'] ?? ''));
             $provider = $data['courier_provider'] ?? null;
@@ -443,6 +417,214 @@ class OrderService
                 'number' => $locked->number,
             ]);
         }, 3);
+    }
+
+    /**
+     * Staff or the owner switch the order to another courier: before the booking, or after
+     * the courier refused it (closed, not serving that area, ...). The optional note is
+     * shown to the dealer. A waiting or failed booking is then sent to the new courier; an
+     * approved order that was not booked yet is booked now.
+     */
+    public function changeCourier(User $actor, Order $order, string $provider, ?string $note): void
+    {
+        abort_unless($actor->allows('inventory') || $actor->allows('order_review'), 403);
+        $this->assertNotOwnOrder($actor, $order);
+        $options = app(CourierOptions::class);
+        if (! $options->isEnabled($provider)) {
+            throw ValidationException::withMessages(['courier' => __('courier.err_courier_not_enabled')]);
+        }
+        $note = $note !== null && trim($note) !== '' ? Str::limit(trim($note), 500, '') : null;
+        DB::transaction(function () use ($actor, $order, $provider, $note): void {
+            $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            $shipment = DB::table('shipments')->where('order_id', $locked->id)->whereNotNull('courier_provider')
+                ->orderByDesc('id')->lockForUpdate()->first();
+            $from = $locked->courier_choice;
+            if ($shipment) {
+                if (! in_array($shipment->courier_booking_status, ['pending', 'failed'], true)) {
+                    throw ValidationException::withMessages(['courier' => __('courier.err_change_after_booking')]);
+                }
+                $from = $shipment->courier_provider;
+            } elseif (! in_array($locked->status, ['submitted', 'held', 'approved'], true)) {
+                throw ValidationException::withMessages(['courier' => __('courier.err_change_closed_order')]);
+            }
+            if ($from === $provider) {
+                throw ValidationException::withMessages(['courier' => __('courier.err_same_courier')]);
+            }
+            $locked->update(['courier_choice' => $provider]);
+            if ($shipment) {
+                DB::table('shipments')->where('id', $shipment->id)->update([
+                    'courier_provider' => $provider,
+                    'courier' => CourierOptions::label($provider),
+                    'courier_booking_status' => 'pending',
+                    'courier_booking_error' => null,
+                    'updated_at' => now(),
+                ]);
+                DB::afterCommit(fn () => BookShipmentCourier::dispatch((int) $shipment->id));
+            }
+            $this->event($locked, $actor, 'order.courier_changed', [
+                'from' => $from,
+                'to' => $provider,
+                'from_label' => CourierOptions::label($from),
+                'to_label' => CourierOptions::label($provider),
+                'note' => $note,
+                'shipment_id' => $shipment?->id,
+            ]);
+            $partner = User::find($locked->user_id);
+            $locale = $partner?->preferredLocale() ?? app()->getLocale();
+            $replace = ['number' => $locked->number, 'from' => CourierOptions::label($from, $locale), 'to' => CourierOptions::label($provider, $locale), 'note' => (string) $note];
+            Audit::notice(
+                $locked->user_id,
+                __('courier.notice_changed_title', $replace, $locale),
+                __($note !== null ? 'courier.notice_changed_body_with_note' : 'courier.notice_changed_body', $replace, $locale),
+            );
+            if (! $shipment && $locked->status === 'approved') {
+                $this->autoShip($actor, $locked);
+            }
+        }, 3);
+    }
+
+    /**
+     * Sends a refused courier booking again, to the same courier.
+     */
+    public function retryCourierBooking(User $actor, Order $order, int $shipmentId): void
+    {
+        abort_unless($actor->allows('inventory') || $actor->allows('order_review'), 403);
+        $this->assertNotOwnOrder($actor, $order);
+        DB::transaction(function () use ($actor, $order, $shipmentId): void {
+            $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            $shipment = DB::table('shipments')->where('id', $shipmentId)->where('order_id', $locked->id)->lockForUpdate()->first();
+            abort_unless($shipment, 404);
+            if ($shipment->courier_booking_status !== 'failed') {
+                throw ValidationException::withMessages(['shipment' => __('courier.err_retry_not_failed')]);
+            }
+            if (! app(CourierOptions::class)->isEnabled($shipment->courier_provider)) {
+                throw ValidationException::withMessages(['shipment' => __('courier.err_courier_not_enabled')]);
+            }
+            DB::table('shipments')->where('id', $shipment->id)->update(['courier_booking_status' => 'pending', 'courier_booking_error' => null, 'updated_at' => now()]);
+            $this->event($locked, $actor, 'order.courier_booking_retried', ['shipment_id' => $shipment->id, 'provider' => $shipment->courier_provider]);
+            DB::afterCommit(fn () => BookShipmentCourier::dispatch((int) $shipment->id));
+        }, 3);
+    }
+
+    /**
+     * After approval, an order whose dealer picked a courier is packed from the fulfilling
+     * branch (the head office unless another branch was chosen) and booked with that courier
+     * once the approval is saved. "Company decides" orders keep the manual dispatch. When the
+     * courier is switched off or the branch lacks stock, nothing is sent and staff are told,
+     * so they can dispatch by hand or change the courier.
+     */
+    private function autoShip(User $actor, Order $locked): void
+    {
+        $provider = $locked->courier_choice;
+        if (blank($provider) || DB::table('shipments')->where('order_id', $locked->id)->exists()) {
+            return;
+        }
+        if (! app(CourierOptions::class)->isEnabled($provider)) {
+            $this->autoShipSkipped($actor, $locked, (string) $provider, 'courier_off');
+
+            return;
+        }
+        $branchQuery = CompanyBranch::query()->active()->where('is_stock_hub', true);
+        $branch = ($locked->fulfillment_branch_id ? (clone $branchQuery)->whereKey($locked->fulfillment_branch_id)->first() : null)
+            ?? $branchQuery->orderByRaw('COALESCE(is_head_office, false) DESC')->orderBy('id')->first();
+        if (! $branch) {
+            $this->autoShipSkipped($actor, $locked, (string) $provider, 'no_branch');
+
+            return;
+        }
+        $lines = $locked->lines()->whereColumn('dispatched', '<', 'quantity')->orderBy('id')->get();
+        if ($lines->isEmpty()) {
+            return;
+        }
+        $products = Product::whereIn('id', $lines->pluck('product_id'))->orderBy('id')->lockForUpdate()->get()->keyBy('id');
+        foreach ($lines as $line) {
+            $product = $products[$line->product_id] ?? null;
+            if (! $product || $this->branches->ensureBranchStock($branch, $product)->quantity < $line->quantity - $line->dispatched) {
+                $this->autoShipSkipped($actor, $locked, (string) $provider, 'stock');
+
+                return;
+            }
+        }
+        $shipmentLines = $this->takeStock($actor, $locked, $branch, $lines->map(fn ($line): array => ['line_id' => $line->id, 'quantity' => $line->quantity - $line->dispatched])->all());
+        $shipmentId = DB::table('shipments')->insertGetId([
+            'order_id' => $locked->id,
+            'branch_id' => $branch->id,
+            'courier' => CourierOptions::label($provider),
+            'tracking' => '',
+            'lines' => json_encode($shipmentLines, JSON_THROW_ON_ERROR),
+            'actor_id' => $actor->id,
+            'idempotency_key' => (string) Str::uuid(),
+            'payload_hash' => hash('sha256', 'auto-ship:'.$locked->id),
+            'courier_provider' => $provider,
+            'courier_booking_status' => 'pending',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::afterCommit(fn () => BookShipmentCourier::dispatch($shipmentId));
+        $remaining = $locked->lines()->whereColumn('dispatched', '<', 'quantity')->exists();
+        $locked->update(['status' => $remaining ? 'partially_dispatched' : 'dispatched', 'fulfillment_branch_id' => $branch->id]);
+        $this->event($locked, $actor, 'order.dispatched', [
+            'shipment_id' => $shipmentId,
+            'courier_gateway' => ['provider' => $provider, 'booking' => 'pending'],
+            'branch_id' => $branch->id,
+            'branch_code' => $branch->code,
+            'automatic' => true,
+        ]);
+    }
+
+    private function autoShipSkipped(User $actor, Order $locked, string $provider, string $reason): void
+    {
+        $this->event($locked, $actor, 'order.courier_auto_skipped', ['provider' => $provider, 'reason' => $reason]);
+        $replace = ['number' => $locked->number, 'courier' => CourierOptions::label($provider)];
+        Audit::notifyAdminsAndStaff(
+            ['orders', 'inventory'],
+            __('courier.notice_auto_skipped_title', $replace),
+            __('courier.notice_auto_skipped_body_'.$reason, $replace),
+        );
+    }
+
+    /**
+     * Takes the shipped quantities out of the branch stock and marks the order lines sent.
+     *
+     * @param  list<array{line_id: int, quantity: int}>  $items
+     * @return list<array{line_id: int, name: string, quantity: int}>
+     */
+    private function takeStock(User $actor, Order $locked, CompanyBranch $branch, array $items): array
+    {
+        $orderLines = $locked->lines()->whereIn('id', array_column($items, 'line_id'))->get()->keyBy('id');
+        abort_unless($orderLines->count() === count($items), 404);
+        $products = Product::whereIn('id', $orderLines->pluck('product_id'))->orderBy('id')->lockForUpdate()->get()->keyBy('id');
+        $shipmentLines = [];
+        foreach ($items as $item) {
+            $line = $orderLines[$item['line_id']];
+            $product = $products[$line->product_id];
+            $quantity = (int) $item['quantity'];
+            $branchStock = $this->branches->ensureBranchStock($branch, $product);
+            if ($quantity > $line->quantity - $line->dispatched || $quantity > $branchStock->quantity) {
+                throw ValidationException::withMessages(['shipment' => __('portal.err_shipment_qty', ['product' => $product->name])]);
+            }
+            $previousStock = $product->stock;
+            $branchStock->quantity = (int) $branchStock->quantity - $quantity;
+            $branchStock->save();
+            $companyTotal = (int) BranchProductStock::query()->where('product_id', $product->id)->sum('quantity');
+            $product->forceFill(['stock' => $companyTotal])->save();
+            $this->stockNotifications->recordChange($product, $previousStock, $previousStock > 0 && ! $product->is_stock_paused);
+            $line->increment('dispatched', $quantity);
+            DB::table('stock_movements')->insert([
+                'product_id' => $product->id,
+                'branch_id' => $branch->id,
+                'quantity' => -$quantity,
+                'kind' => 'dispatch',
+                'reference' => (string) Str::uuid(),
+                'reason' => $locked->number,
+                'actor_id' => $actor->id,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            $shipmentLines[] = ['line_id' => $line->id, 'name' => $line->name, 'quantity' => $quantity];
+        }
+
+        return $shipmentLines;
     }
 
     /**

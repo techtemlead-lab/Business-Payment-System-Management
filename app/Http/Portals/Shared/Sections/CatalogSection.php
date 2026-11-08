@@ -4,6 +4,7 @@ namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Catalog\CatalogTaxonomy;
 use App\Domain\Finance\FinanceSettings;
+use App\Domain\Orders\CourierOptions;
 use App\Models\Product;
 use App\Support\CatalogCms;
 use App\Support\Money;
@@ -134,6 +135,8 @@ final class CatalogSection implements WorkspaceSection
         if ($context->section === 'purchase' && ! $context->isStaff) {
             // The order form asks for the whole payment and its screenshot while this is on.
             $props['full_payment_required'] = app(FinanceSettings::class)->fullPaymentWhenOrdering()['enabled'];
+            // The dealer picks one of the couriers the owner switched on, or lets the company decide.
+            $props['courier_choices'] = app(CourierOptions::class)->choices();
         }
 
         return $props;

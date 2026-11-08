@@ -4,6 +4,8 @@ namespace App\Jobs;
 
 use App\Domain\Integrations\CourierGatewayClient;
 use App\Domain\Notifications\PartnerEventSms;
+use App\Domain\Orders\ShipmentTracking;
+use App\Models\CompanyBranch;
 use App\Models\Order;
 use App\Models\User;
 use App\Support\Audit;
@@ -13,11 +15,14 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
- * Books a saved shipment with the courier company, once the dispatch is committed.
+ * Books a saved shipment with the courier company, once the dispatch (or the approval
+ * that created it) is committed.
  *
  * The shipment row is claimed (pending -> booking) before the courier is called, so a
  * repeated or retried job never books the same parcel twice. A booking that stops half
  * way stays "booking" for staff to check with the courier instead of being sent again.
+ * A refused booking is marked "failed": staff see it on the order and the deliveries
+ * board, and can try again or switch to another courier.
  */
 class BookShipmentCourier implements ShouldQueue
 {
@@ -40,14 +45,22 @@ class BookShipmentCourier implements ShouldQueue
         }
         $order = Order::query()->findOrFail($shipment->order_id);
         $partner = User::query()->find($order->user_id);
+        $profile = is_array($partner?->profile) ? $partner->profile : [];
+        $placeCode = trim((string) ($profile['place_code'] ?? $profile['area_code'] ?? ''));
+        $branch = $shipment->branch_id ? CompanyBranch::query()->find($shipment->branch_id) : null;
         $created = $couriers->create((string) $shipment->courier_provider, [
             // One invoice per shipment, so the courier can also refuse a repeat booking.
             'invoice' => $order->number.'-'.$shipment->id,
             'recipient_name' => $partner?->name,
             'recipient_phone' => $partner?->phone,
-            'recipient_address' => collect([$partner?->union, $partner?->upazila, $partner?->district, $partner?->division])->filter()->implode(', '),
+            'recipient_address' => collect([
+                is_string($profile['address'] ?? null) ? $profile['address'] : null,
+                $partner?->union, $partner?->upazila, $partner?->district, $partner?->division,
+                $placeCode !== '' ? __('courier.place_code_in_address', ['code' => $placeCode]) : null,
+            ])->filter()->implode(', '),
             'amount' => $order->outstanding(),
             'note' => $order->number,
+            'pickup_address' => $branch ? collect([$branch->name, $branch->address])->filter()->implode(', ') : null,
         ]);
 
         if (! $created['success']) {
@@ -61,6 +74,11 @@ class BookShipmentCourier implements ShouldQueue
                 'provider' => $shipment->courier_provider,
                 'message' => $created['message'],
             ]);
+            Audit::notifyAdminsAndStaff(
+                ['orders', 'inventory'],
+                __('courier.notice_booking_failed_title', ['number' => $order->number]),
+                __('courier.notice_booking_failed_body', ['number' => $order->number, 'courier' => (string) $shipment->courier, 'message' => (string) $created['message']]),
+            );
 
             return;
         }
@@ -71,6 +89,10 @@ class BookShipmentCourier implements ShouldQueue
             'courier_booking_status' => 'booked',
             'courier_consignment_id' => $created['consignment_id'],
             'courier_booking_error' => null,
+            // A booked parcel waits at the branch until the courier collects it.
+            'courier_status' => 'waiting_pickup',
+            'courier_status_at' => now(),
+            'courier_timeline' => json_encode([ShipmentTracking::timelineEntry('waiting_pickup', null, 'booking')], JSON_THROW_ON_ERROR),
             'updated_at' => now(),
         ]);
         $this->event($order, (int) $shipment->actor_id, 'order.courier_booked', [

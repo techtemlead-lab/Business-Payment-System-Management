@@ -60,9 +60,12 @@ final class IntegrationSettings
     /** @return list<array{key: string, label: string}> */
     public function enabledCourierOptions(): array
     {
+        // One settings read for every courier: the order form and order pages call this on each visit.
+        $stored = $this->stored(self::SettingsKey)['value']['couriers'] ?? [];
         $options = [];
         foreach (IntegrationCatalog::groups()['couriers']['providers'] as $key => $provider) {
-            if ($this->isEnabled('couriers', $key)) {
+            $row = is_array($stored[$key] ?? null) ? $stored[$key] : [];
+            if ((bool) ($row['enabled'] ?? $provider['defaults']['enabled'] ?? false)) {
                 $options[] = ['key' => $key, 'label' => $provider['label']];
             }
         }
