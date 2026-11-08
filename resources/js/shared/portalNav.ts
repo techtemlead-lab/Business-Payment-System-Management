@@ -54,7 +54,7 @@ export const SECTION_LABEL_KEYS: Record<string, string> = {
     overview: 'overview', orders: 'orders', order: 'order_details', purchase: 'purchase', catalog: 'catalog', accounts: 'accounts',
     inventory: 'inventory', deliveries: 'deliveries', payments: 'payments', network: 'network',
     policies: 'policies', salary: 'salary', withdrawals: 'withdrawals', ledger: 'ledger', reports: 'reports',
-    customization: 'website', website: 'website', content: 'content', enquiries: 'enquiries', feedback: 'feedback',
+    customization: 'website', website: 'website', content: 'content', 'public-trust': 'public_trust', enquiries: 'enquiries', feedback: 'feedback',
     'share-feedback': 'share_feedback', partnerships: 'partnerships', audit: 'audit', profile: 'profile',
     security: 'security', notifications: 'notifications', circulars: 'circulars', earnings: 'earnings',
     'full-report': 'full_report', ranks: 'ranks', commissions: 'commissions', 'network-tree': 'network_tree',
@@ -248,7 +248,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
         items.add('branch-performance');
     }
     if (capabilities.includes('content')) {
-        ['website', 'content', 'enquiries', 'feedback'].forEach((item) => items.add(item));
+        ['website', 'content', 'public-trust', 'enquiries', 'feedback'].forEach((item) => items.add(item));
     }
     if (capabilities.includes('content') || ownerPortal) {
         items.add('training');
@@ -333,7 +333,7 @@ function staffMothers(available: Set<string>): NavMother[] {
         ])),
         mother('people', 'nav_module_people', pick(available, ['employees', 'payroll', 'staff-operations', 'field-sales', 'access-management'])),
         mother('reports', 'nav_module_reports', pick(available, ['financial-reports', 'top-sellers', 'branch-performance'])),
-        mother('website', 'nav_module_website', pick(available, ['website', 'content', 'video-marketing', 'training', 'events'])),
+        mother('website', 'nav_module_website', pick(available, ['website', 'content', 'public-trust', 'video-marketing', 'training', 'events'])),
         mother('settings', 'nav_module_settings', pick(available, [
             'finance-settings', 'place-codes', 'dashboards', 'login-rules', 'audit', 'service-integrations', 'data-imports', 'financial-readiness', 'data-cleanup',
         ])),

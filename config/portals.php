@@ -32,7 +32,7 @@ return [
         'sections' => [
             'overview', 'orders', 'catalog', 'deliveries', 'profile', 'security', 'notifications',
             'dashboards', 'employees', 'accounts', 'sub-dealers', 'sub-dealer-applications', 'sub-dealer-orders', 'treasury', 'inventory', 'branches', 'branch-performance',
-            'payments', 'policies', 'salary', 'withdrawals', 'ledger', 'reports', 'top-sellers', 'content', 'website', 'customization',
+            'payments', 'policies', 'salary', 'withdrawals', 'ledger', 'reports', 'top-sellers', 'content', 'website', 'customization', 'public-trust',
             'enquiries', 'feedback', 'partnerships', 'audit', 'commissions', 'network-tree', 'area-dealers', 'place-codes', 'ranks', 'rewards',
             'settlements', 'simulator', 'payouts-hub', 'help', 'support-admin', 'agreement', 'partner-messages', 'training', 'events', 'prescriptions', 'company-funds',
         ],
@@ -59,6 +59,7 @@ return [
             'content' => 'content',
             'website' => 'content',
             'customization' => 'content',
+            'public-trust' => 'content',
             'enquiries' => 'content',
             'feedback' => 'content',
             'audit' => 'audit',
@@ -85,7 +86,7 @@ return [
         'sections' => [
             'overview', 'orders', 'catalog', 'deliveries', 'profile', 'security', 'notifications',
             'dashboards', 'employees', 'accounts', 'sub-dealers', 'sub-dealer-applications', 'sub-dealer-orders', 'treasury', 'inventory', 'branches', 'branch-performance',
-            'payments', 'policies', 'salary', 'withdrawals', 'ledger', 'reports', 'top-sellers', 'content', 'website', 'customization',
+            'payments', 'policies', 'salary', 'withdrawals', 'ledger', 'reports', 'top-sellers', 'content', 'website', 'customization', 'public-trust',
             'enquiries', 'feedback', 'partnerships', 'audit', 'commissions', 'network-tree', 'area-dealers', 'place-codes', 'ranks', 'rewards',
             'settlements', 'simulator', 'payouts-hub', 'benefits-fund', 'help', 'support-admin', 'agreement', 'partner-messages', 'training', 'events', 'data-cleanup', 'prescriptions', 'company-funds', 'login-rules',
         ],
@@ -112,6 +113,7 @@ return [
             'content' => 'content',
             'website' => 'content',
             'customization' => 'content',
+            'public-trust' => 'content',
             'enquiries' => 'content',
             'feedback' => 'content',
             'audit' => 'audit',

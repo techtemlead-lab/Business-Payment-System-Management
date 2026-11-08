@@ -98,13 +98,15 @@ final class FeedbackSection implements WorkspaceSection
         $props = [];
         $search = trim($request->string('q')->toString());
         $status = $request->string('status')->toString();
-        $props['enquiries'] = DB::table('enquiries')->select(['id', 'name', 'phone', 'topic', 'message', 'status', 'created_at', 'updated_at'])
+        $props['enquiries'] = DB::table('enquiries')->select(['id', 'name', 'phone', 'topic', 'message', 'status', 'tracking_number', 'product_name', 'batch_number', 'created_at', 'updated_at'])
             ->when($search !== '', function ($query) use ($search): void {
                 $term = '%'.addcslashes($search, '%_\\').'%';
                 $query->where(fn ($match) => $match->where('name', 'ilike', $term)
                     ->orWhere('phone', 'ilike', $term)
                     ->orWhere('topic', 'ilike', $term)
-                    ->orWhere('message', 'ilike', $term));
+                    ->orWhere('message', 'ilike', $term)
+                    ->orWhere('tracking_number', 'ilike', $term)
+                    ->orWhere('batch_number', 'ilike', $term));
             })
             ->when(in_array($status, self::EnquiryStatuses, true), fn ($query) => $query->where('status', $status))
             ->orderByDesc('created_at')

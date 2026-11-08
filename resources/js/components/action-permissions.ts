@@ -34,6 +34,7 @@ export function actionAllowed(url:string,matrix:Matrix|undefined,method='post'):
     if(path.startsWith('/commands/commissions'))return any(['finance'],path.endsWith('/rules')?'edit':path.endsWith('/simulate')?'view':'approve');
     if(path==='/commands/policies')return any(['finance'],'create');
     if(path.startsWith('/commands/customization')||path==='/commands/content')return any(['content','catalog'],'edit');
+    if(path.startsWith('/commands/public-trust'))return any(['content'],'edit');
     if(path.startsWith('/commands/enquiries'))return any(['content','catalog','accounts'],'edit');
     if(/^\/commands\/feedback\/\d+$/.test(path)||path==='/commands/testimonials')return any(['content'],'edit');
     return false;
