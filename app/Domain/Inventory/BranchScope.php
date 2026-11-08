@@ -62,8 +62,8 @@ final readonly class BranchScope
 
     /**
      * Keep only partners of the scoped branches. A partner belongs to the branch saved
-     * on the account, or else the first active branch in the partner's district (the
-     * mapping partner chat already uses, {@see ChatRouting::partnerBranchSql()}).
+     * on the account, or else the active branch nearest their place code (the mapping
+     * partner chat uses too, {@see ChatRouting::partnerBranchSql()}).
      * Partners with no branch are kept only on "All branches".
      *
      * @template TBuilder of EloquentBuilder<*>|QueryBuilder

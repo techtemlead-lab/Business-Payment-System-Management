@@ -31,6 +31,7 @@ interface BranchRow extends Row {
     stock_units?: number;
     stock_value?: string | number | null;
     manager_name?: string | null;
+    partners_count?: number;
     staff?: BranchStaff[];
 }
 
@@ -53,6 +54,8 @@ interface BranchesPage {
 interface BranchesHubProps {
     branches: BranchesPage;
     active_branch_id?: number | null;
+    head_office_without_place_code?: BranchRow | null;
+    can_edit_branches?: boolean;
     assignable_staff?: AssignableStaff[];
     canManage?: boolean;
 }
@@ -60,6 +63,8 @@ interface BranchesHubProps {
 export default function BranchesHub({
     branches,
     active_branch_id,
+    head_office_without_place_code,
+    can_edit_branches = false,
     assignable_staff = [],
     canManage = true,
 }: BranchesHubProps) {
@@ -89,7 +94,6 @@ export default function BranchesHub({
         is_active: true,
         is_delivery_point: true,
         is_stock_hub: true,
-        notes: '',
     });
 
     const assignForm = useForm({
@@ -109,7 +113,6 @@ export default function BranchesHub({
             is_active: !!row.is_active,
             is_delivery_point: !!row.is_delivery_point,
             is_stock_hub: !!row.is_stock_hub,
-            notes: '',
         });
     };
 
@@ -131,6 +134,16 @@ export default function BranchesHub({
             </div>
 
             <p className="muted brh-hint">{translate('portal', 'branch_view_all_hint')}</p>
+            {head_office_without_place_code && (
+                <div className="notice" role="status">
+                    <div>{translate('portal', 'branch_head_office_place_code_missing', { name: head_office_without_place_code.name })}</div>
+                    {can_edit_branches && (
+                        <button type="button" className="button small ops-mt-3" onClick={() => openEdit(head_office_without_place_code)}>
+                            {translate('portal', 'branch_head_office_place_code_action')}
+                        </button>
+                    )}
+                </div>
+            )}
             <section className="panel branches-register">
                 <div className="panel-heading">
                     <div>
@@ -164,6 +177,7 @@ export default function BranchesHub({
                                         <MapPin size={14} /> {location(r)}
                                     </span>
                                     {r.address && <small className="cell-sub">{r.address}</small>}
+                                    <small className="cell-sub">{translate('portal', 'branch_partner_count', { count: String(r.partners_count ?? 0) })}</small>
                                 </>
                             ),
                         },
