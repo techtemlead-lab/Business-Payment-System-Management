@@ -80,13 +80,18 @@ final class GlobalSearch
             ->latest()
             ->limit(self::PerGroup)
             ->get(['orders.id', 'orders.number', 'orders.status', 'orders.user_id', 'orders.created_at'])
-            ->map(fn (Order $order): array => [
-                'id' => (string) $order->id,
-                'number' => (string) $order->number,
-                'status' => (string) $order->status,
-                'partner' => $order->user?->name,
-                'partner_code' => $order->user?->dealer_code,
-            ])->all();
+            ->map(function (Order $order): array {
+                /** @var User|null $buyer */
+                $buyer = $order->user;
+
+                return [
+                    'id' => (string) $order->id,
+                    'number' => (string) $order->number,
+                    'status' => (string) $order->status,
+                    'partner' => $buyer?->name,
+                    'partner_code' => $buyer?->dealer_code,
+                ];
+            })->all();
     }
 
     /**
