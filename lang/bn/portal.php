@@ -6289,4 +6289,6 @@ return [
     'section_hint_partner_sales_kit' => 'অনুমোদিত পোস্টার, দামের তালিকা ও সোশ্যাল পোস্ট দেখুন ও ডাউনলোড করুন।',
     'event_sales_kit_added' => 'সেলস কিটে ফাইল যোগ হয়েছে',
     'event_sales_kit_removed' => 'সেলস কিট থেকে ফাইল সরানো হয়েছে',
+    'customer_book' => 'আমার কাস্টমার',
+    'section_hint_partner_customers' => 'আপনার নিজের কাস্টমার, নোট ও ফলো-আপের তারিখ। এটা শুধু আপনি দেখতে পাবেন।',
 ];

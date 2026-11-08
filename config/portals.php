@@ -16,7 +16,7 @@
 return [
     'dealer' => [
         'page' => 'portals/dealer/Dashboard',
-        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'earnings', 'network', 'ranks', 'top-sellers', 'withdrawals', 'payment-receipts', 'full-report', 'share-feedback', 'help', 'messages', 'training', 'events', 'prescriptions', 'sales-kit'],
+        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'earnings', 'network', 'ranks', 'top-sellers', 'withdrawals', 'payment-receipts', 'full-report', 'share-feedback', 'help', 'messages', 'training', 'events', 'prescriptions', 'sales-kit', 'customers'],
         'nav' => [
             'home' => ['overview', 'top-sellers'],
             'commerce' => ['orders', 'purchase', 'catalog', 'deliveries'],
@@ -25,7 +25,7 @@ return [
             'account' => ['messages', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help'],
             'learning' => ['training', 'events'],
             'clinic' => ['prescriptions'],
-            'tools' => ['sales-kit'],
+            'tools' => ['sales-kit', 'customers'],
         ],
         'partner_commands' => true,
         'staff_commands' => false,
@@ -33,7 +33,7 @@ return [
     ],
     'subdealer' => [
         'page' => 'portals/subdealer/Dashboard',
-        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'earnings', 'salary', 'top-sellers', 'withdrawals', 'payment-receipts', 'full-report', 'share-feedback', 'help', 'messages', 'training', 'events', 'prescriptions', 'sales-kit'],
+        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'earnings', 'salary', 'top-sellers', 'withdrawals', 'payment-receipts', 'full-report', 'share-feedback', 'help', 'messages', 'training', 'events', 'prescriptions', 'sales-kit', 'customers'],
         'nav' => [
             'home' => ['overview', 'top-sellers'],
             'commerce' => ['orders', 'purchase', 'catalog', 'deliveries'],
@@ -41,7 +41,7 @@ return [
             'account' => ['messages', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help'],
             'learning' => ['training', 'events'],
             'clinic' => ['prescriptions'],
-            'tools' => ['sales-kit'],
+            'tools' => ['sales-kit', 'customers'],
         ],
         'partner_commands' => true,
         'staff_commands' => false,

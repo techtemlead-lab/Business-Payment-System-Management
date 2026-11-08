@@ -6289,4 +6289,6 @@ return [
     'section_hint_partner_sales_kit' => 'Approved posters, price lists and social posts to view and download.',
     'event_sales_kit_added' => 'Sales kit file added',
     'event_sales_kit_removed' => 'Sales kit file removed',
+    'customer_book' => 'My customers',
+    'section_hint_partner_customers' => 'Your own customers, notes and follow-up dates. Only you can see this.',
 ];

@@ -52,6 +52,8 @@ class EnforceStaffActions
                 'PrescriptionController' => in_array($method, ['storePatient', 'updatePatient', 'store'], true),
                 'PrescriptionToolsController' => true,
                 'PushSubscriptionController' => true,
+                // A partner's own customer book; CustomerBook scopes every row to the signed-in partner.
+                'CustomerBookController' => true,
                 default => false,
             };
             abort_unless($partnerAllowed, 403, __('portal.err_staff_only_action'));
@@ -96,7 +98,7 @@ class EnforceStaffActions
             // The owners decided they may refund a paid order themselves; OrderRefund checks again.
             return $next($request);
         }
-        if (in_array($controller, ['TrainingController', 'PartnerEventController'], true) && $actor->owner()) {
+        if (in_array($controller, ['TrainingController', 'PartnerEventController', 'SalesKitController', 'DatedSchemeController'], true) && $actor->owner()) {
             // Owners manage the partner training library and meetings calendar; the controllers check again.
             return $next($request);
         }

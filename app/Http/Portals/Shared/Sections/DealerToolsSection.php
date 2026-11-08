@@ -2,6 +2,7 @@
 
 namespace App\Http\Portals\Shared\Sections;
 
+use App\Domain\Accounts\CustomerBook;
 use App\Domain\Accounts\PartnerAlerts;
 use App\Domain\Accounts\PartnerNextSteps;
 use App\Domain\Content\SalesKit;
@@ -27,6 +28,9 @@ final class DealerToolsSection implements WorkspaceSection
             ];
         }
 
+        if ($isPartner && $context->section === 'customers') {
+            $props['customer_book'] = app(CustomerBook::class)->pageFor($context->user, $context->request->string('q')->toString() ?: null, $context->request->string('status')->toString() ?: null);
+        }
         if ($context->section === 'sales-kit') {
             $props['sales_kit'] = app(SalesKit::class)->forViewer($context->user);
         }

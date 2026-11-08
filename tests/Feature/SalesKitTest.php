@@ -73,6 +73,17 @@ class SalesKitTest extends TestCase
         $this->assertDatabaseHas('audit_events', ['action' => 'sales_kit.removed']);
     }
 
+    public function test_the_md_can_add_to_the_kit_like_any_owner(): void
+    {
+        $md = User::factory()->create(['role' => 'md', 'status' => 'active']);
+
+        $this->actingAs($md)->onPortal('sadmin')->post('/commands/sales-kit', [
+            'title' => 'Price list', 'kind' => 'price_list', 'language' => 'en',
+            'file' => UploadedFile::fake()->create('prices.pdf', 10, 'application/pdf'),
+        ])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame(1, SalesKitItem::query()->count());
+    }
+
     public function test_an_unsupported_file_type_is_refused(): void
     {
         $owner = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);

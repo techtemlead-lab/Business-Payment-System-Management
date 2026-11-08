@@ -74,6 +74,10 @@ Schedule::command('prescriptions:follow-up-reminders')->dailyAt('08:30')->timezo
 Schedule::command('partners:progress-alerts')->dailyAt('09:15')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
     ->onFailure(fn () => Log::critical('Scheduled partner alert run failed.'));
 
+// A partner's own customers due for a follow-up: one portal notice a day with counts only. No SMS.
+Schedule::command('partners:customer-follow-up-reminders')->dailyAt('08:45')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
+    ->onFailure(fn () => Log::critical('Scheduled customer follow-up reminder failed.'));
+
 // Failed background jobs are kept for a week to investigate, then removed.
 Schedule::command('queue:prune-failed --hours=168')->dailyAt('04:15')->timezone('Asia/Dhaka')->withoutOverlapping(30)->onOneServer();
 

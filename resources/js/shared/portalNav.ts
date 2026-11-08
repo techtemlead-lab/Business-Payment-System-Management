@@ -79,7 +79,7 @@ export const SECTION_LABEL_KEYS: Record<string, string> = {
     'sub-dealer-applications': 'partnerships',
     employees: 'employees', dashboards: 'dashboards', help: 'help', 'support-admin': 'support_admin', agreement: 'agreement',
     messages: 'chat_nav_partner', 'partner-messages': 'chat_nav_office', 'top-sellers': 'top_sellers',
-    training: 'training', events: 'events', 'payment-receipts': 'payment_receipts', 'data-cleanup': 'cleanup_nav', prescriptions: 'prescriptions', 'sales-kit': 'sales_kit',
+    training: 'training', events: 'events', 'payment-receipts': 'payment_receipts', 'data-cleanup': 'cleanup_nav', prescriptions: 'prescriptions', 'sales-kit': 'sales_kit', customers: 'customer_book',
 };
 
 function defaultHrefPath(section: string): string {
@@ -271,6 +271,7 @@ export function buildPartnerAvailable(role: string, dashboardControls?: Record<s
             items.add('prescriptions');
         }
         items.add('sales-kit');
+        items.add('customers');
         return items;
     }
     if (role === 'sub_dealer') {
@@ -296,6 +297,7 @@ export function buildPartnerAvailable(role: string, dashboardControls?: Record<s
             items.add('prescriptions');
         }
         items.add('sales-kit');
+        items.add('customers');
         return items;
     }
     return new Set(['profile', 'security', 'notifications']);
@@ -428,7 +430,7 @@ export function buildDomainMothers(input: {
                 mother('earnings', 'nav_module_earnings', pick(partnerAvailable, ['earnings', 'full-report', 'withdrawals', 'payment-receipts'])),
                 mother('learning', 'nav_module_learning', pick(partnerAvailable, ['training', 'events'])),
                 mother('clinic', 'nav_module_clinic', pick(partnerAvailable, ['prescriptions'])),
-                mother('tools', 'nav_module_tools', pick(partnerAvailable, ['sales-kit'])),
+                mother('tools', 'nav_module_tools', pick(partnerAvailable, ['sales-kit', 'customers'])),
                 mother('account', 'nav_module_account', pick(partnerAvailable, ['messages', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'help'])),
             ]);
         }
@@ -439,7 +441,7 @@ export function buildDomainMothers(input: {
                 mother('earnings', 'nav_module_earnings', pick(partnerAvailable, ['salary', 'earnings', 'full-report', 'withdrawals', 'payment-receipts'])),
                 mother('learning', 'nav_module_learning', pick(partnerAvailable, ['training', 'events'])),
                 mother('clinic', 'nav_module_clinic', pick(partnerAvailable, ['prescriptions'])),
-                mother('tools', 'nav_module_tools', pick(partnerAvailable, ['sales-kit'])),
+                mother('tools', 'nav_module_tools', pick(partnerAvailable, ['sales-kit', 'customers'])),
                 mother('account', 'nav_module_account', pick(partnerAvailable, ['messages', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'help'])),
             ]);
         }
