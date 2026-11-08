@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Domain\Accounts\PartnerAccountProvisioning;
 use App\Domain\Identity\BdrisLookup;
 use App\Models\PlaceCode;
-use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -45,21 +44,17 @@ class IdentityLookupController extends Controller
         $reference = strtoupper(trim((string) ($data['reference_code'] ?? '')));
         $own = strtoupper(trim((string) ($data['refer_code'] ?? '')));
         $warnings = [];
-        if ($reference !== '' && $own !== '' && $reference === $own) {
+        if ($reference !== '' && $own !== '' && $provisioning->isSameCode($reference, $own)) {
             $warnings[] = __('portal.acct_val_reference_same_as_refer');
         }
-        if ($own !== '' && User::query()->whereRaw('UPPER(refer_code) = ?', [$own])->exists()) {
+        if ($own !== '' && $provisioning->referCodeInUse($own)) {
             $warnings[] = __('portal.acct_val_refer_taken');
         }
         $management = ($reference !== '' && $provisioning->referenceIsManagement($reference))
             || ($reference === '' && $provisioning->blankReferenceUsesManagement());
         $sponsor = null;
         if ($reference !== '' && ! $management) {
-            $sponsor = User::query()
-                ->whereRaw('UPPER(refer_code) = ?', [$reference])
-                ->where('role', 'dealer')
-                ->where('status', 'active')
-                ->first();
+            $sponsor = $provisioning->findSponsor($reference);
             if (! $sponsor) {
                 $warnings[] = __('portal.acct_val_reference_missing');
             }

@@ -64,6 +64,7 @@ export default function AccountCreate({
     const singlePartnerRole = roles.length === 1 && ['dealer', 'sub_dealer'].includes(roles[0]);
 
     const [referCodeTouched, setReferCodeTouched] = useState(false);
+    const [dealerCodeTouched, setDealerCodeTouched] = useState(false);
     const form = useForm({
         role: defaultRole,
         identity_type: default_identity_type as 'birth_certificate' | 'nid',
@@ -261,7 +262,8 @@ export default function AccountCreate({
                     refer_code: referCodeTouched && prev.refer_code ? prev.refer_code : nextCode,
                 }));
             } else if (form.data.role === 'dealer') {
-                const nextCode = (form.data.dealer_code || form.data.place_code).trim().toUpperCase();
+                const placeCode = String(json.data.path?.origin_place_code || form.data.place_code).trim().toUpperCase();
+                const nextCode = dealerCodeTouched && form.data.dealer_code.trim() ? form.data.dealer_code.trim().toUpperCase() : placeCode;
                 form.setData((prev) => ({
                     ...prev,
                     dealer_code: nextCode,
@@ -401,6 +403,7 @@ export default function AccountCreate({
                                         value={form.data.role}
                                         onChange={(e) => {
                                             const newRole = e.target.value;
+                                            setDealerCodeTouched(false);
                                             form.setData((prev) => ({
                                                 ...prev,
                                                 role: newRole,
@@ -609,12 +612,14 @@ export default function AccountCreate({
                                             {translate('portal','acct_dealer_code_override')}
                                             <input value={form.data.dealer_code} onChange={(e) => {
                                                 const next = e.target.value.toUpperCase();
+                                                setDealerCodeTouched(next.trim() !== '');
                                                 form.setData((prev) => ({
                                                     ...prev,
                                                     dealer_code: next,
                                                     refer_code: referCodeTouched ? prev.refer_code : next,
                                                 }));
                                             }} placeholder={translate('portal','acct_dealer_code_default')} />
+                                            {form.errors.dealer_code && <span className="field-error">{form.errors.dealer_code}</span>}
                                         </label>
                                     )}
                                     {form.data.role === 'sub_dealer' && (
@@ -780,7 +785,15 @@ export default function AccountCreate({
                             </fieldset>
                         )}
                         {Object.keys(form.errors).length > 0 && (
-                            <div className="error ops-mt-3" role="alert">{translate('portal','acct_fix_errors')}</div>
+                            <div className="error ops-mt-3" role="alert">
+                                {[...new Set(Object.values(form.errors))].map((message) => <div key={String(message)}>{message}</div>)}
+                                <div>{translate('portal','acct_fix_errors')}</div>
+                            </div>
+                        )}
+                        {isPartner && referWarnings.length > 0 && (
+                            <div className="error ops-mt-3">
+                                {referWarnings.map((warning) => <div key={warning}>{warning}</div>)}
+                            </div>
                         )}
                         <button type="submit" className="button dark full-width ops-mt-4" disabled={form.processing || (isPartner && referWarnings.length > 0)}>
                             {form.processing ? translate('portal','acct_creating') : isPartner ? translate('portal','acct_submit_partner') : translate('portal','acct_submit_staff')}

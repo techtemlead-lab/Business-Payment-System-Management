@@ -157,7 +157,6 @@ class CommandController extends Controller
                 'status' => 'sometimes|in:active,suspended',
                 'reason' => 'nullable|string|max:1000',
             ]);
-            $created = $partners->create($r->user(), $payload);
             $media = [];
             foreach (PartnerKycDocuments::Kinds as $kind) {
                 if ($r->hasFile('kyc_'.$kind)) {
@@ -173,6 +172,9 @@ class CommandController extends Controller
                     'kyc_agreement' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
                     'kyc_other' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
                 ]);
+            }
+            $created = $partners->create($r->user(), $payload);
+            if ($media !== []) {
                 app(PartnerCreateMedia::class)->attachOptional($r->user(), $created['user'], $media);
             }
 
