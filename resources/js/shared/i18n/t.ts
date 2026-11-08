@@ -18,7 +18,9 @@ const PURE_NUMBER = /^[-+]?\d[\d,]*(\.\d+)?%?$/;
  */
 export function t(dict: Dict, group: string, key: string, replace: Record<string, string | number> = {}): string {
     let value = dict?.[group]?.[key] ?? key;
-    for (const [name, raw] of Object.entries(replace)) {
+    // Longest names first, so ":page" never eats the start of ":pages".
+    const fills = Object.entries(replace).sort(([first], [second]) => second.length - first.length);
+    for (const [name, raw] of fills) {
         const content = String(raw ?? '');
         value = value.replaceAll(`:${name}`, PURE_NUMBER.test(content.trim()) ? localizeDigits(content) : content);
     }
