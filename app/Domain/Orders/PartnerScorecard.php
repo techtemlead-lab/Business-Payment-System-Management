@@ -6,8 +6,8 @@ use App\Domain\Inventory\BranchScope;
 use App\Models\User;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -21,7 +21,7 @@ final class PartnerScorecard
 
     /**
      * @param  array{q?: string|null, buyer_role?: string|null, period?: string|null, from?: string|null, to?: string|null}  $filters
-     * @return array{partners: LengthAwarePaginator<int, array<string, mixed>>}
+     * @return array{partners: LengthAwarePaginator<int, array{id: int, name: string, dealer_code: string|null, role: string, status: string, orders: int, cancelled: int, payments_verified: int, payments_verified_amount: string, payments_rejected: int, payments_pending: int, returned: int}>}
      */
     public function page(array $filters, ?BranchScope $branchScope): array
     {
