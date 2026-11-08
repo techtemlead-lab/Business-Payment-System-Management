@@ -3,6 +3,7 @@
 namespace App\Domain\Orders;
 
 use App\Domain\Inventory\BranchScope;
+use App\Domain\Inventory\SellableStock;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
@@ -102,8 +103,10 @@ final class StaffDashboardSummary
     }
 
     /**
-     * Active products at or under their low-stock mark: company stock on All branches,
-     * and the branch's own stock and mark when one branch is picked.
+     * Active products at or under their low-stock mark, counting only units that can really be
+     * sent: the staff use this list to act before dealers run out, and units on hold or past
+     * their date will not fill an order. On All branches that is the company's sellable stock;
+     * with one branch picked, that branch's own usable stock and mark.
      *
      * @return Builder<Product>
      */
@@ -111,12 +114,14 @@ final class StaffDashboardSummary
     {
         $products = Product::query()->where('products.active', true);
         if ($branchScope === null || $branchScope->allBranches) {
-            return $products->whereColumn('products.stock', '<=', 'products.low_stock_at')
-                ->select(['products.id', 'products.name', 'products.stock', 'products.sku']);
+            return $products->whereRaw(SellableStock::sql().' <= products.low_stock_at', SellableStock::bindings())
+                ->select(['products.id', 'products.name', 'products.sku'])
+                ->selectRaw('CAST('.SellableStock::sql().' AS integer) AS stock', SellableStock::bindings());
         }
         $products->join('branch_product_stocks', 'branch_product_stocks.product_id', '=', 'products.id')
-            ->whereColumn('branch_product_stocks.quantity', '<=', 'branch_product_stocks.low_stock_at')
-            ->select(['products.id', 'products.name', 'branch_product_stocks.quantity as stock', 'products.sku']);
+            ->whereRaw(SellableStock::branchSql().' <= branch_product_stocks.low_stock_at', SellableStock::branchBindings())
+            ->select(['products.id', 'products.name', 'products.sku'])
+            ->selectRaw('CAST('.SellableStock::branchSql().' AS integer) AS stock', SellableStock::branchBindings());
         $branchScope->restrict($products, 'branch_product_stocks.branch_id');
 
         return $products;
