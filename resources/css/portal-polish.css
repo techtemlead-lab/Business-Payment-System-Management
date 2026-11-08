@@ -75,8 +75,10 @@
   :root .app-shell .panel.table-panel>.metric-grid,
   :root .app-shell .panel.table-panel>.admin-kpis.list-summary,
   :root .app-shell .panel.table-panel>.pay-totals{padding-inline:12px}
+  :root .app-shell .panel.table-panel>.metric-grid.three{grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--ds-s-2)}
+  :root .app-shell .panel.table-panel>.metric-grid.three .metric{padding:10px 12px}
   :root .app-shell .panel-heading{flex-wrap:wrap}
   :root .app-shell .toolbar-end{flex-wrap:wrap}
-  :root .app-shell .panel:not(.table-panel)>.filter-bar:not(.ops-m-0,.branch-perf-filters)>:is(select,.button,.ptl-date-field){flex:1 1 140px}
+  :root .app-shell .panel:not(.table-panel)>.filter-bar:not(.ops-m-0,.branch-perf-filters)>:is(select,.button,.ptl-date-field){flex:1 1 120px}
   :root .app-shell .panel:not(.table-panel)>.filter-bar .preset-chips{flex:1 1 100%;margin-right:0}
 }
