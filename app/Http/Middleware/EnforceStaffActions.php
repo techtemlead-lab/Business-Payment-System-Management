@@ -57,6 +57,8 @@ class EnforceStaffActions
                 'PushSubscriptionController' => true,
                 // A partner's own customer book; CustomerBook scopes every row to the signed-in partner.
                 'CustomerBookController' => true,
+                // A partner working in the staff desk; ListViews checks again.
+                'ListViewController' => true,
                 default => false,
             };
             abort_unless($partnerAllowed, 403, __('portal.err_staff_only_action'));
@@ -64,6 +66,10 @@ class EnforceStaffActions
             return $next($request);
         }
         if ($actor->role === 'super_admin') {
+            return $next($request);
+        }
+        // Each person's own saved filters and columns change no business data; ListViews checks the list.
+        if ($controller === 'ListViewController') {
             return $next($request);
         }
         // Owners always answer partner chat; other staff answer when the owner nominated them.

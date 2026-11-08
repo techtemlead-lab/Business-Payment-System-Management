@@ -14,4 +14,14 @@ return [
     'search_group_orders' => 'অর্ডার',
     'search_group_partners' => 'পার্টনার',
     'search_group_products' => 'পণ্য',
+
+    'views_saved_filters' => 'সেভ করা ফিল্টার',
+    'views_columns' => 'কলাম',
+    'views_none_yet' => 'এই তালিকায় আপনার কোনো সেভ করা ফিল্টার নেই।',
+    'views_name_placeholder' => 'এই ফিল্টারের নাম',
+    'views_save' => 'সেভ করুন',
+    'views_delete' => 'সেভ করা ফিল্টার :name মুছুন',
+    'views_choose_filters_first' => 'আগে তালিকায় ফিল্টার বাছুন, তারপর এখানে সেভ করুন।',
+    'views_nothing_to_save' => 'সেভ করার আগে অন্তত একটি ফিল্টার বাছুন।',
+    'views_too_many' => 'একটি তালিকায় সর্বোচ্চ :count টি ফিল্টার রাখা যায়। আগে একটি মুছুন।',
 ];
