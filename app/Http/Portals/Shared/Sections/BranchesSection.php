@@ -77,7 +77,7 @@ final class BranchesSection implements WorkspaceSection
             ->orderBy('id')
             ->first()
             ?->summary();
-        $props['can_edit_branches'] = $user->canAct('inventory', 'edit') || $user->canAct('accounts', 'edit');
+        $props['can_edit_branches'] = $user->owner() || $user->canAct('inventory', 'edit') || $user->canAct('accounts', 'edit');
         $props['active_branch_id'] = $user->active_branch_id;
         $props['delivery_points'] = $branchOps->deliveryPoints();
         $props['assignable_staff'] = User::query()
