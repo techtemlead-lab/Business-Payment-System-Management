@@ -60,7 +60,7 @@ export default function AccountPasswordManager({ account, canManage }: AccountPa
             .then(async (res) => {
                 if (!res.ok) {
                     const data = await res.json().catch(() => ({}));
-                    throw new Error(data.message || 'Failed to load password status');
+                    throw new Error(data.message || translateRef.current('portal', 'acct_password_load_failed'));
                 }
 
                 return res.json();
@@ -116,7 +116,7 @@ export default function AccountPasswordManager({ account, canManage }: AccountPa
             setCopied(true);
             setTimeout(() => setCopied(false), 2500);
         } catch {
-            setError('Could not copy to clipboard.');
+            setError(translate('portal', 'acct_password_copy_failed'));
         }
     };
 
@@ -226,7 +226,7 @@ export default function AccountPasswordManager({ account, canManage }: AccountPa
                 </div>
 
                 <div className="hub-row">
-                    {currentPlainPassword || canRevealOnRequest ? (
+                    {!isReady || status?.owner_only ? null : currentPlainPassword || canRevealOnRequest ? (
                         <span className="badge tone-ok">
                             {translate('portal', 'acct_password_status_synced')}
                         </span>

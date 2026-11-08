@@ -1150,7 +1150,7 @@ class CommandController extends Controller
         ]);
         $stored = $documents->store($r->user(), $user, $data['kind'], $r->file('document'), $data['note'] ?? null);
 
-        return back()->with('success', __('portal.flash_kyc_stored', ['kind' => $stored['kind']]));
+        return back()->with('success', __('portal.flash_kyc_stored', ['kind' => __('portal.kyc_kind_'.$stored['kind'])]));
     }
 
     public function downloadKycDocument(Request $r, User $user, string $document, PartnerKycDocuments $documents): StreamedResponse

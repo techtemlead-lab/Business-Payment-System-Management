@@ -26,7 +26,7 @@ final class PartnerCreateMedia
             if (! in_array($kind, PartnerKycDocuments::Kinds, true)) {
                 continue;
             }
-            $row = $this->documents->store($actor, $partner, $kind, $file, 'Attached during account creation');
+            $row = $this->documents->store($actor, $partner, $kind, $file, __('portal.kyc_note_added_with_account'));
             $stored[] = $row;
             if ($kind === 'photo') {
                 $this->publishProfilePhoto($partner, $file, $row['id']);
