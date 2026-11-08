@@ -86,7 +86,7 @@ final class StaffDashboardSummary
         if ($viewer->allows('inventory')) {
             $queue[] = [
                 'key' => 'low_stock_products',
-                'count' => Product::where('active', true)->whereColumn('stock', '<=', 'low_stock_at')->count(),
+                'count' => $this->lowStockProducts($branchScope)->count(),
                 'section' => 'inventory',
             ];
         }
@@ -99,6 +99,27 @@ final class StaffDashboardSummary
         }
 
         return $queue;
+    }
+
+    /**
+     * Active products at or under their low-stock mark: company stock on All branches,
+     * and the branch's own stock and mark when one branch is picked.
+     *
+     * @return Builder<Product>
+     */
+    public function lowStockProducts(?BranchScope $branchScope): Builder
+    {
+        $products = Product::query()->where('products.active', true);
+        if ($branchScope === null || $branchScope->allBranches) {
+            return $products->whereColumn('products.stock', '<=', 'products.low_stock_at')
+                ->select(['products.id', 'products.name', 'products.stock', 'products.sku']);
+        }
+        $products->join('branch_product_stocks', 'branch_product_stocks.product_id', '=', 'products.id')
+            ->whereColumn('branch_product_stocks.quantity', '<=', 'branch_product_stocks.low_stock_at')
+            ->select(['products.id', 'products.name', 'branch_product_stocks.quantity as stock', 'products.sku']);
+        $branchScope->restrict($products, 'branch_product_stocks.branch_id');
+
+        return $products;
     }
 
     /**

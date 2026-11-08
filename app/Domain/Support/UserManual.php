@@ -316,6 +316,15 @@ final class UserManual
             $this->ch('my_progress', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 7, 2, 2, 1, ['progress', 'target', 'popup', 'salary', 'rank', 'অগ্রগতি', 'টার্গেট', 'বেতন', 'র‍্যাঙ্ক']),
             $this->ch('office_chat', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 6, 2, 2, 1, ['chat', 'message', 'answer', 'staff', 'চ্যাট', 'মেসেজ', 'অফিস']),
             $this->ch('data_cleanup', ['owner'], 5, 2, 2, 1, ['cleanup', 'delete', 'sms', 'login code', 'enquiry', 'মুছুন', 'পুরোনো', 'এসএমএস']),
+            $this->ch('courier_ordering', ['partner', 'dealer', 'sub_dealer'], 7, 2, 2, 1, ['courier', 'company decides', 'tracking', 'parcel', 'কুরিয়ার', 'ট্র্যাকিং', 'পার্সেল']),
+            $this->ch('courier_staff', ['staff', 'owner'], 8, 2, 2, 1, ['courier', 'booking', 'automatic', 'change courier', 'dispatch', 'কুরিয়ার', 'বুকিং', 'অনুমোদন']),
+            $this->ch('deliveries_board', ['staff', 'owner'], 6, 2, 1, 1, ['deliveries', 'board', 'failed booking', 'parcel', 'ডেলিভারি', 'বুকিং', 'পার্সেল']),
+            $this->ch('notification_panel', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 6, 1, 1, 1, ['bell', 'notification', 'notice', 'unread', 'ঘণ্টা', 'নোটিশ']),
+            $this->ch('branch_switcher', ['staff', 'owner'], 6, 1, 1, 1, ['branch', 'switcher', 'top bar', 'all branches', 'ব্রাঞ্চ', 'সব ব্রাঞ্চ']),
+            $this->ch('website_button', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 4, 1, 1, 1, ['website', 'globe', 'visit', 'ওয়েবসাইট', 'গ্লোব']),
+            $this->ch('prescriptions_partner', ['dealer', 'sub_dealer'], 7, 2, 2, 1, ['prescription', 'patient', 'medicine', 'registration', 'প্রেসক্রিপশন', 'রোগী', 'ওষুধ', 'রেজিস্ট্রেশন']),
+            $this->ch('prescriptions_verify', ['staff', 'owner'], 6, 1, 1, 1, ['prescription', 'verify', 'registration', 'bmdc', 'প্রেসক্রিপশন', 'যাচাই', 'রেজিস্ট্রেশন']),
+            $this->ch('clinic_prescriptions', ['owner'], 7, 3, 2, 1, ['clinic', 'prescription', 'dispense', 'manufacturer', 'mrp', 'চেম্বার', 'প্রেসক্রিপশন', 'তহবিল', 'এমআরপি']),
         ];
     }
 

@@ -19,6 +19,9 @@ x-application: &application
   volumes:
     - application-storage:/var/www/html/storage
     - private-backups:/var/backups/madina
+    # Website photos and category icons uploaded in the portal. Kept outside the image so a deploy does not lose them.
+    - branding-site-photos:/var/www/html/public/branding/site-photos
+    - branding-category-icons:/var/www/html/public/branding/category-icons
   restart: unless-stopped
   depends_on:
     db:
@@ -34,12 +37,14 @@ services:
     ports: ["127.0.0.1:8095:80"]
     depends_on: [app]
     restart: unless-stopped
-    # Uploaded partner and staff photos are served straight from the shared storage volume.
+    # Uploaded partner and staff photos, website photos and category icons are served straight from the shared volumes.
     volumes:
       - application-storage:/var/www/html/storage:ro
+      - branding-site-photos:/var/www/html/public/branding/site-photos:ro
+      - branding-category-icons:/var/www/html/public/branding/category-icons:ro
     healthcheck:
-      # The app only answers its own domain in production, so send that Host header.
-      test: ["CMD", "wget", "--quiet", "--spider", "--header=Host: ${APP_DOMAIN:-localhost}", "http://127.0.0.1/up"]
+      # PortalHost::trustedHostPatterns accepts 127.0.0.1 only for /up from inside this container.
+      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1/up"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -70,3 +75,5 @@ volumes:
   application-storage:
   private-backups:
   database:
+  branding-site-photos:
+  branding-category-icons:

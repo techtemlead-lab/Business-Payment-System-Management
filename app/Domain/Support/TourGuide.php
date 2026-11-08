@@ -2,6 +2,7 @@
 
 namespace App\Domain\Support;
 
+use App\Domain\Clinic\PrescriptionAccess;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -121,10 +122,10 @@ final class TourGuide
     public function definitionsFor(User $user): array
     {
         return match ($this->audience($user)) {
-            'owner' => $this->ownerDefinitions(),
+            'owner' => $this->ownerDefinitions($user),
             'staff' => $this->staffDefinitions(),
-            'sub_dealer' => $this->partnerDefinitions('sub_dealer'),
-            default => $this->partnerDefinitions('dealer'),
+            'sub_dealer' => $this->partnerDefinitions('sub_dealer', $user),
+            default => $this->partnerDefinitions('dealer', $user),
         };
     }
 
@@ -149,9 +150,13 @@ final class TourGuide
     /**
      * @return array<string, array{title: string, requires?: list<string>, steps: list<array{target: string, title: string, body: string, tip?: string, category?: string, location?: string, action?: string}>}>
      */
-    private function partnerDefinitions(string $role): array
+    private function partnerDefinitions(string $role, ?User $user = null): array
     {
         $sideMenu = '[data-tour="sidebar-nav"], .workspace-menu-button';
+        $courierStep = $this->overviewStep('[data-tour="recent-orders"]', 'tour_partner_courier', 'tour_cat_orders', 'manual');
+        $prescriptionSteps = $user !== null && PrescriptionAccess::canPrescribe($user)
+            ? [$this->overviewStep($sideMenu, 'tour_partner_rx', 'tour_cat_nav', 'manual')]
+            : [];
 
         $dealerOverviewSteps = [
             $this->overviewStep('[data-tour="home-profile"]', 'tour_dealer_step_profile', 'tour_cat_profile'),
@@ -159,9 +164,12 @@ final class TourGuide
             $this->overviewStep('[data-tour="home-metrics"]', 'tour_dealer_step_metrics', 'tour_cat_metrics'),
             $this->overviewStep('[data-tour="home-targets"]', 'tour_dealer_step_targets', 'tour_cat_targets'),
             $this->overviewStep('[data-tour="recent-orders"]', 'tour_dealer_step_orders', 'tour_cat_orders'),
+            $courierStep,
             $this->overviewStep('[data-tour="home-referral"]', 'tour_dealer_step_referral', 'tour_cat_network'),
             $this->overviewStep('[data-tour="header-actions"]', 'tour_dealer_step_header', 'tour_cat_controls'),
+            ...$this->topBarSteps(),
             $this->overviewStep($sideMenu, 'tour_dealer_step_sidebar', 'tour_cat_nav'),
+            ...$prescriptionSteps,
         ];
 
         $subDealerOverviewSteps = [
@@ -171,9 +179,12 @@ final class TourGuide
             $this->overviewStep('[data-tour="home-metrics"]', 'tour_subdealer_step_metrics', 'tour_cat_metrics'),
             $this->overviewStep('[data-tour="home-targets"]', 'tour_subdealer_step_targets', 'tour_cat_targets'),
             $this->overviewStep('[data-tour="recent-orders"]', 'tour_subdealer_step_orders', 'tour_cat_orders'),
+            $courierStep,
             $this->overviewStep('[data-tour="home-referral"]', 'tour_subdealer_step_referral', 'tour_cat_network'),
             $this->overviewStep('[data-tour="header-actions"]', 'tour_subdealer_step_header', 'tour_cat_controls'),
+            ...$this->topBarSteps(),
             $this->overviewStep($sideMenu, 'tour_subdealer_step_sidebar', 'tour_cat_nav'),
+            ...$prescriptionSteps,
         ];
 
         $defs = [
@@ -345,13 +356,17 @@ final class TourGuide
     /**
      * @return array<string, array{title: string, requires?: list<string>, steps: list<array{target: string, title: string, body: string, tip?: string, category?: string, location?: string, action?: string}>}>
      */
-    private function ownerDefinitions(): array
+    private function ownerDefinitions(User $user): array
     {
+        $prescriptionSteps = PrescriptionAccess::canPrescribe($user)
+            ? [$this->overviewStep('[data-tour="sidebar-domains"], .staff-domain-bottom-nav', 'tour_owner_rx', 'tour_cat_domains', 'manual')]
+            : [];
+
         return [
             ...$this->staffDefinitions(),
             'overview' => [
                 'title' => __('portal.tour_owner_overview_title'),
-                'steps' => $this->officeOverviewSteps('tour_owner_step'),
+                'steps' => [...$this->officeOverviewSteps('tour_owner_step'), ...$prescriptionSteps],
             ],
             'treasury' => [
                 'title' => __('portal.tour_owner_treasury_title'),
@@ -391,27 +406,45 @@ final class TourGuide
             $this->overviewStep('[data-tour="admin-work-queue"]', $prefix.'_work', 'tour_cat_work'),
             $this->overviewStep('[data-tour="admin-modules"]', $prefix.'_modules', 'tour_cat_command'),
             $this->overviewStep('[data-tour="recent-orders"]', $prefix.'_orders', 'tour_cat_orders'),
+            // "Recent orders" shows only for office people who can also open Deliveries.
+            $this->overviewStep('[data-tour="recent-orders"]', 'tour_office_courier', 'tour_cat_orders', 'manual'),
             $this->overviewStep('[data-tour="sidebar-domains"], .staff-domain-bottom-nav', $prefix.'_domains', 'tour_cat_domains'),
             $this->overviewStep('[data-tour="header-actions"]', $prefix.'_header', 'tour_cat_controls'),
+            ...$this->topBarSteps(),
+            // The switcher is drawn only when the person has a branch; the tour skips it otherwise.
+            $this->overviewStep('.branch-workspace-select', 'tour_branch', 'tour_cat_controls', 'manual'),
             $this->overviewStep('.tour-guide-launcher, .profile-menu-trigger', $prefix.'_help', 'tour_cat_help'),
         ];
     }
 
     /**
-     * One dashboard tour step read from the `portal.{prefix}_title|_loc|_body|_action|_tip` keys.
+     * The bell and the globe. Every audience has them, at every screen width.
+     *
+     * @return list<array{target: string, title: string, body: string, tip: string, category: string, location: string, action: string}>
+     */
+    private function topBarSteps(): array
+    {
+        return [
+            $this->overviewStep('.notice-bell', 'tour_bell', 'tour_cat_controls', 'manual'),
+            $this->overviewStep('.portal-website-link', 'tour_website', 'tour_cat_controls', 'manual'),
+        ];
+    }
+
+    /**
+     * One dashboard tour step read from the `{namespace}.{prefix}_title|_loc|_body|_action|_tip` keys.
      *
      * @return array{target: string, title: string, body: string, tip: string, category: string, location: string, action: string}
      */
-    private function overviewStep(string $target, string $prefix, string $category): array
+    private function overviewStep(string $target, string $prefix, string $category, string $namespace = 'portal'): array
     {
         return [
             'target' => $target,
             'category' => __('portal.'.$category),
-            'location' => __('portal.'.$prefix.'_loc'),
-            'title' => __('portal.'.$prefix.'_title'),
-            'body' => __('portal.'.$prefix.'_body'),
-            'action' => __('portal.'.$prefix.'_action'),
-            'tip' => __('portal.'.$prefix.'_tip'),
+            'location' => __($namespace.'.'.$prefix.'_loc'),
+            'title' => __($namespace.'.'.$prefix.'_title'),
+            'body' => __($namespace.'.'.$prefix.'_body'),
+            'action' => __($namespace.'.'.$prefix.'_action'),
+            'tip' => __($namespace.'.'.$prefix.'_tip'),
         ];
     }
 }
