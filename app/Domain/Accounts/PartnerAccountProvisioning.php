@@ -32,7 +32,7 @@ final class PartnerAccountProvisioning
 
     /**
      * @param  array<string, mixed>  $input
-     * @return array{user: User, place_label: ?string, commission_consumers: array<string, mixed>}
+     * @return array{user: User, place_label: ?string, commission_consumers: array<string, mixed>, credentials_sent: bool}
      */
     public function create(User $actor, array $input): array
     {
@@ -67,14 +67,7 @@ final class PartnerAccountProvisioning
         } elseif ($this->managementReferral->matchesReference($referenceCode)) {
             $managementReferral = true;
         } else {
-            $sponsor = User::query()
-                ->where(function ($query) use ($referenceCode): void {
-                    $query->whereRaw('UPPER(refer_code) = ?', [$referenceCode])
-                        ->orWhereRaw('UPPER(dealer_code) = ?', [$referenceCode]);
-                })
-                ->where('role', 'dealer')
-                ->where('status', 'active')
-                ->first();
+            $sponsor = $this->findSponsor($referenceCode);
             if (! $sponsor) {
                 throw ValidationException::withMessages(['reference_code' => __('portal.acct_val_reference_missing')]);
             }
@@ -119,10 +112,10 @@ final class PartnerAccountProvisioning
 
         // By default refer_code matches dealer/sub-dealer code; admin may override explicitly.
         $referCode = strtoupper(trim((string) ($input['refer_code'] ?? '')));
-        if ($referCode === '') {
+        if ($referCode === '' || PlaceCode::brandSerial($referCode) === strtoupper($dealerCode)) {
             $referCode = strtoupper($dealerCode);
         }
-        if ($referenceCode !== '' && $referenceCode === $referCode) {
+        if ($referenceCode !== '' && $this->isSameCode($referenceCode, $referCode)) {
             throw ValidationException::withMessages([
                 'refer_code' => __('portal.acct_val_refer_same_as_reference'),
                 'reference_code' => __('portal.acct_val_reference_same_as_refer'),
@@ -131,7 +124,7 @@ final class PartnerAccountProvisioning
         if ($this->managementReferral->matchesReference($referCode)) {
             throw ValidationException::withMessages(['refer_code' => __('portal.acct_val_refer_is_management')]);
         }
-        if (User::query()->whereRaw('UPPER(refer_code) = ?', [$referCode])->exists()) {
+        if ($this->referCodeInUse($referCode)) {
             throw ValidationException::withMessages(['refer_code' => __('portal.acct_val_refer_taken')]);
         }
         if ($referCode !== strtoupper($dealerCode) && User::query()->whereRaw('UPPER(dealer_code) = ?', [$referCode])->exists()) {
@@ -256,14 +249,61 @@ final class PartnerAccountProvisioning
         }, 3);
 
         // One-time credentials travel only through the SMS channel — never JSON/Inertia props.
-        $this->sms->send($user, $plainPassword);
+        $credentialsSent = $this->sms->send($user, $plainPassword);
         app(PartnerEventEmail::class)->sendTranslated($user, 'account.created', 'event_emails.account_created_title', 'event_emails.account_created_body');
 
         return [
             'user' => $user,
             'place_label' => $this->placeLabel($place),
             'commission_consumers' => $this->commissionConsumers($sponsor, $managementReferral),
+            'credentials_sent' => $credentialsSent,
         ];
+    }
+
+    /**
+     * The active dealer a typed reference code belongs to. People may type the dealer's
+     * refer code or dealer code, with or without the MNHC- prefix.
+     */
+    public function findSponsor(string $reference): ?User
+    {
+        $forms = $this->codeForms($reference);
+
+        return User::query()
+            ->where(function ($query) use ($forms): void {
+                $query->whereIn(DB::raw('UPPER(refer_code)'), $forms)
+                    ->orWhereIn(DB::raw('UPPER(dealer_code)'), $forms);
+            })
+            ->where('role', 'dealer')
+            ->where('status', 'active')
+            ->orderBy('id')
+            ->first();
+    }
+
+    /** True when an account already uses this refer code, with or without the MNHC- prefix. */
+    public function referCodeInUse(string $code): bool
+    {
+        return User::query()->whereIn(DB::raw('UPPER(refer_code)'), $this->codeForms($code))->exists();
+    }
+
+    /** True when two typed codes are the same code, with or without the MNHC- prefix. */
+    public function isSameCode(string $first, string $second): bool
+    {
+        return PlaceCode::brandSerial($first) === PlaceCode::brandSerial($second);
+    }
+
+    /**
+     * A typed code as written, with the MNHC- prefix, and without it.
+     *
+     * @return list<string>
+     */
+    private function codeForms(string $code): array
+    {
+        $typed = strtoupper(trim($code));
+        $branded = PlaceCode::brandSerial($typed) ?? $typed;
+        $prefix = PlaceCode::BrandPrefix.'-';
+        $bare = str_starts_with($branded, $prefix) ? substr($branded, strlen($prefix)) : $branded;
+
+        return array_values(array_unique([$typed, $branded, $bare]));
     }
 
     public function placeLabel(PlaceCode $place): string
