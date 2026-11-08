@@ -6,8 +6,10 @@ use App\Domain\Inventory\BranchOperations;
 use App\Models\BranchStaffAssignment;
 use App\Models\CompanyBranch;
 use App\Models\Order;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\User;
+use Database\Factories\UserFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -163,7 +165,7 @@ class BranchScopedSectionsTest extends TestCase
             ->where('data.admin_home.work_queue', fn ($queue) => $queueCount($queue->all(), 'orders_to_review') === 0
                 && $queueCount($queue->all(), 'payments_to_check') === 1
                 && $queueCount($queue->all(), 'withdrawals_to_review') === 1)
-            // The Dhaka partner and the partner placed by district on no branch: only the first counts.
+            // The Dhaka partner and the partner on no branch: only the first counts.
             ->where('data.stats.accounts', 1));
 
         $this->ownerOnAll()->get('/overview')->assertOk()->assertInertia(fn (Assert $page) => $page
@@ -197,10 +199,10 @@ class BranchScopedSectionsTest extends TestCase
 
     public function test_top_sellers_rank_only_the_picked_branch_partners(): void
     {
-        $this->rajshahi->forceFill(['district' => 'Rajshahi'])->save();
+        $rajshahiPlace = $this->placeRajshahiBranch();
         $sellers = [
             'Dhaka Seller' => User::factory()->dealer()->create(['name' => 'Dhaka Seller', 'active_branch_id' => $this->dhaka->id, 'district' => 'Sylhet']),
-            'Rajshahi Seller' => User::factory()->dealer()->create(['name' => 'Rajshahi Seller', 'district' => 'Rajshahi']),
+            'Rajshahi Seller' => User::factory()->dealer()->inPlace($rajshahiPlace)->create(['name' => 'Rajshahi Seller']),
             'No Branch Seller' => User::factory()->dealer()->create(['name' => 'No Branch Seller', 'district' => 'Sylhet']),
         ];
         foreach (array_values($sellers) as $index => $seller) {
@@ -381,21 +383,30 @@ class BranchScopedSectionsTest extends TestCase
     }
 
     /**
-     * One partner saved on the Dhaka branch, one matched to Rajshahi by district,
+     * One partner saved on the Dhaka branch, one matched to Rajshahi by place code,
      * and one with no branch at all.
      *
      * @return array{dhaka: User, rajshahi: User, none: User}
      */
     private function partnersPerBranch(string $role = 'dealer'): array
     {
-        $this->rajshahi->forceFill(['district' => 'Rajshahi'])->save();
-        $factory = fn (array $attributes): User => ($role === 'dealer' ? User::factory()->dealer() : User::factory()->subDealer())->create($attributes);
+        $rajshahiPlace = $this->placeRajshahiBranch();
+        $factory = fn (): UserFactory => $role === 'dealer' ? User::factory()->dealer() : User::factory()->subDealer();
 
         return [
-            'dhaka' => $factory(['active_branch_id' => $this->dhaka->id, 'district' => 'Sylhet']),
-            'rajshahi' => $factory(['district' => 'Rajshahi']),
-            'none' => $factory(['district' => 'Sylhet']),
+            'dhaka' => $factory()->create(['active_branch_id' => $this->dhaka->id, 'district' => 'Sylhet']),
+            'rajshahi' => $factory()->inPlace($rajshahiPlace)->create(),
+            'none' => $factory()->create(['district' => 'Sylhet']),
         ];
+    }
+
+    /** Put the Rajshahi branch on a district place code and return that place. */
+    private function placeRajshahiBranch(): PlaceCode
+    {
+        $district = PlaceCode::factory()->district(PlaceCode::factory()->division()->create(['name' => 'Rajshahi']))->create(['name' => 'Rajshahi']);
+        $this->rajshahi->forceFill(['place_code_id' => $district->id])->save();
+
+        return $district;
     }
 
     /**

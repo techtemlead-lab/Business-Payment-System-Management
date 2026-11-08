@@ -6267,4 +6267,7 @@ return [
     'event_clinic_price_floor_changed' => 'চেম্বারে ৩০%-এর কম দামের সেটিং বদলেছে',
     'section_hint_prescriptions' => 'চেম্বারের রোগী, প্রেসক্রিপশন আর দেওয়া ওষুধ।',
     'section_hint_partner_prescriptions' => 'আপনার রোগী আর আপনার লেখা প্রেসক্রিপশন।',
+    'branch_partner_count' => 'এই ব্রাঞ্চের পার্টনার: :count জন',
+    'branch_head_office_place_code_missing' => 'হেড অফিসের (:name) এখনো প্লেস কোড নেই। প্লেস কোড দিলে ওই এলাকার পার্টনাররা হেড অফিসের আওতায় আসবে।',
+    'branch_head_office_place_code_action' => 'প্লেস কোড দিন',
 ];

@@ -6267,4 +6267,7 @@ return [
     'event_clinic_price_floor_changed' => 'Clinic below-30% price setting changed',
     'section_hint_prescriptions' => 'Your clinic patients, prescriptions and dispensed medicines.',
     'section_hint_partner_prescriptions' => 'Your patients and the prescriptions you write.',
+    'branch_partner_count' => 'Partners in this branch: :count',
+    'branch_head_office_place_code_missing' => 'The head office (:name) has no place code yet. Add one so that partners in its area come under the head office.',
+    'branch_head_office_place_code_action' => 'Add place code',
 ];

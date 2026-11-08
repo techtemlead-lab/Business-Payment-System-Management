@@ -6,6 +6,7 @@ use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\BranchStaffAssignment;
 use App\Models\CompanyBranch;
 use App\Models\PartnerMessage;
+use App\Models\PlaceCode;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
@@ -126,16 +127,30 @@ class PartnerChatRoutingTest extends TestCase
         $this->actingAs($companyWide)->onPortal('manage')->post('/commands/partner-messages/'.$this->northDealer->id, ['body' => 'Head office here'])->assertRedirect();
     }
 
-    public function test_a_partner_without_a_saved_branch_follows_the_branch_in_their_district(): void
+    public function test_a_partner_without_a_saved_branch_follows_the_nearest_branch_above_their_place_code(): void
     {
-        $districtDealer = User::factory()->dealer()->create(['status' => 'active', 'active_branch_id' => null, 'district' => 'panchagarh']);
-        $this->actingAs($districtDealer)->onPortal('dealer')->post('/commands/messages', ['body' => 'No branch saved'])->assertRedirect();
+        $district = PlaceCode::factory()->district(PlaceCode::factory()->division()->create())->create();
+        $upazila = PlaceCode::factory()->upazila($district)->create();
+        $this->north->forceFill(['place_code_id' => $district->id])->save();
+        $placedDealer = User::factory()->dealer()->inPlace($upazila)->create(['status' => 'active', 'active_branch_id' => null]);
+        $this->actingAs($placedDealer)->onPortal('dealer')->post('/commands/messages', ['body' => 'No branch saved'])->assertRedirect();
         $northStaff = $this->staffIn($this->north);
         $southStaff = $this->staffIn($this->south);
         $this->nominate([$northStaff->id => 'branch', $southStaff->id => 'branch']);
 
-        $this->assertContains($districtDealer->id, $this->inboxPartnerIds($northStaff));
-        $this->assertNotContains($districtDealer->id, $this->inboxPartnerIds($southStaff));
+        $this->assertContains($placedDealer->id, $this->inboxPartnerIds($northStaff));
+        $this->assertNotContains($placedDealer->id, $this->inboxPartnerIds($southStaff));
+    }
+
+    public function test_a_matching_district_name_no_longer_routes_a_chat(): void
+    {
+        $namedDealer = User::factory()->dealer()->create(['status' => 'active', 'active_branch_id' => null, 'district' => 'Panchagarh']);
+        $this->actingAs($namedDealer)->onPortal('dealer')->post('/commands/messages', ['body' => 'Only a district name'])->assertRedirect();
+        $northStaff = $this->staffIn($this->north);
+        $this->nominate([$northStaff->id => 'branch']);
+
+        $this->assertNotContains($namedDealer->id, $this->inboxPartnerIds($northStaff));
+        $this->assertContains($namedDealer->id, $this->inboxPartnerIds($this->owner, 'sadmin'));
     }
 
     public function test_chat_photos_follow_the_same_routing(): void
