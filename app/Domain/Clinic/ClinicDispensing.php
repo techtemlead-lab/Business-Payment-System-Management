@@ -51,7 +51,7 @@ final class ClinicDispensing
         $stored = $row ? json_decode((string) $row->value, true, 512, JSON_THROW_ON_ERROR) : [];
         $mode = in_array($stored['mode'] ?? null, self::PriceFloorModes, true) ? $stored['mode'] : 'block';
 
-        return ['mode' => $mode, 'version' => (int) ($row?->version ?? 0)];
+        return ['mode' => $mode, 'version' => (int) ($row->version ?? 0)];
     }
 
     public function savePriceFloor(User $actor, string $mode): void
@@ -64,7 +64,7 @@ final class ClinicDispensing
             'value' => json_encode(['mode' => $mode], JSON_THROW_ON_ERROR),
             'version' => $before['version'] + 1,
             'updated_by' => $actor->id,
-            'created_at' => $stored?->created_at ?? now(),
+            'created_at' => $stored->created_at ?? now(),
             'updated_at' => now(),
         ]);
         Audit::record($actor->id, 'clinic.price_floor_changed', self::PriceFloorKey, ['before' => $before['mode'], 'after' => $mode]);

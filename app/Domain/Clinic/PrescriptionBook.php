@@ -174,7 +174,7 @@ final class PrescriptionBook
             ? Product::query()->whereIn('id', array_filter(array_map(fn (array $line): int => (int) ($line['product_id'] ?? 0), $rawLines)))->get(['id', 'name', 'mrp'])->keyBy('id')
             : collect();
         $lines = [];
-        foreach (array_values($rawLines) as $index => $line) {
+        foreach ($rawLines as $index => $line) {
             $productId = null;
             $mrpUnit = null;
             $name = trim((string) ($line['medicine_name'] ?? ''));
