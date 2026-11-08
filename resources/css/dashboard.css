@@ -16,6 +16,7 @@
 @import './screens-motion.css';
 @import './portal-motion.css';
 @import './portal-polish.css';
+@import './screens-phone-topbar.css';
 @import url('https://fonts.bunny.net/css?family=instrument-serif:400,400i,700&display=swap');
 @import url('https://fonts.bunny.net/css?family=hind-siliguri:400,500,600,700&display=swap');
 /* Bangla digits ০-৯ come from Noto Sans Bengali, where every digit has the same width, so
@@ -877,7 +878,7 @@ dialog.portal-modal::backdrop{
 .app-shell .order-filters select.order-partner-select{width:168px}
 .app-shell .order-filters select.order-period-select{width:148px}
 .app-shell .order-filters select.order-extra-select{max-width:190px}
-.app-shell .order-filters .order-filter-actions{display:inline-flex;align-items:center;gap:8px;margin-left:auto}
+.app-shell .order-filters .order-filter-actions{display:inline-flex;flex-wrap:wrap;align-items:center;gap:8px;margin-left:auto}
 .app-shell .order-filters .order-dates{display:inline-flex;align-items:center;gap:8px}
 .app-shell .order-filters .date-input-wrapper{width:148px}
 .app-shell .table-panel,
