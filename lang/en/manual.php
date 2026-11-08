@@ -724,7 +724,7 @@ return [
     'deliveries_board_o1' => 'You can see how many parcels are at each step.',
     'deliveries_board_o2' => 'A failed booking leaves the list once it is booked.',
     'deliveries_board_t1' => 'You also get a bell notice when a booking fails.',
-    'deliveries_board_w1' => 'If a parcel stays on “Not booked yet” for a long time, the booking may have stopped half way. Talk to the courier first.',
+    'deliveries_board_w1' => 'If the “Problem” column says the courier gave no clear answer, the parcel may already be booked. Check the courier\'s own panel first. If it is there, do not book it again.',
 
     'notification_panel_badge' => 'Notifications',
     'notification_panel_title' => 'The bell and the notification panel',
