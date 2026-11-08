@@ -13,13 +13,17 @@ final class CourierOptions
 {
     public const CompanyDecides = 'company';
 
-    /** Where each courier lets anyone follow a parcel with its tracking number. */
+    /**
+     * Where each courier lets anyone follow a parcel with its tracking number. Paperfly and
+     * eCourier are the addresses of the tracking forms on their own websites. A courier with no
+     * confirmed address is left out, so people see its name and the number instead of a bad link.
+     */
     private const PublicTrackingPages = [
         'steadfast' => 'https://steadfast.com.bd/t/:tracking',
         'pathao' => 'https://merchant.pathao.com/tracking?consignment_id=:consignment',
         'redx' => 'https://redx.com.bd/track-parcel/?trackingId=:tracking',
-        'paperfly' => 'https://go.paperfly.com.bd/track/order/:tracking',
-        'ecourier' => 'https://ecourier.com.bd/track/?q=:tracking',
+        'paperfly' => 'https://paperfly.com.bd/track?q=:tracking',
+        'ecourier' => 'https://ecourier.com.bd/tracking?tracking_no=:tracking',
     ];
 
     /** @var list<array{key: string, label: string}>|null */
