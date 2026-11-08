@@ -110,6 +110,16 @@ return [
 
     // A parcel the courier sent back.
     'returned_cannot_confirm' => 'The courier returned this parcel, so it cannot be confirmed as delivered. No commission is paid for a returned parcel.',
+    'received_back_action' => 'Parcel received back',
+    'received_back_note_label' => 'Note (optional, staff only)',
+    'received_back_hint' => 'Press this once the parcel is physically back at the branch. The items go back into stock, and the order closes once nothing else is left on it.',
+    'received_back_money_note' => 'Any money the dealer paid for this order must be returned by hand, outside this system.',
+    'received_back_reason' => 'The courier returned this parcel and it was received back.',
+    'err_received_back_not_returned' => 'Only a parcel the courier reported as returned can be received back.',
+    'flash_received_back' => 'Parcel received back and its items added to stock.',
+    'notice_received_back_title' => 'Parcel returned: :number',
+    'notice_received_back_body' => 'The parcel for order :number came back to our store. Please contact the office about this order.',
+    'event_shipment_received_back' => 'Parcel received back',
     // Deliveries board: the step shown for one parcel.
     'step_booking_failed' => 'Booking failed',
 ];

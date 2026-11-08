@@ -425,6 +425,60 @@ class OrderService
     }
 
     /**
+     * A parcel the courier returned is physically back at the branch. The shipped quantity
+     * goes back into that branch's stock exactly once, and the order closes when nothing else
+     * is left on it. No commission is posted; any money is returned by hand outside the system.
+     */
+    public function receiveReturnedParcel(User $actor, Order $order, int $shipmentId, ?string $note): void
+    {
+        $this->branches->assertCompanyHandler($actor);
+        abort_unless($actor->allows('inventory'), 403);
+        $this->assertNotOwnOrder($actor, $order);
+        $note = $note !== null && trim($note) !== '' ? Str::limit(trim($note), 500, '') : null;
+        DB::transaction(function () use ($actor, $order, $shipmentId, $note): void {
+            $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            $shipment = DB::table('shipments')->where('id', $shipmentId)->where('order_id', $locked->id)->lockForUpdate()->first();
+            abort_unless($shipment !== null, 404);
+            if ($shipment->status === 'returned') {
+                return;
+            }
+            if ($shipment->status !== 'dispatched' || $shipment->courier_status !== 'returned') {
+                throw ValidationException::withMessages(['shipment' => __('courier.err_received_back_not_returned')]);
+            }
+            /** @var list<array{line_id: int, name: string, quantity: int}> $shipmentLines */
+            $shipmentLines = json_decode((string) $shipment->lines, true, 512, JSON_THROW_ON_ERROR);
+            $orderLines = $locked->lines()->whereIn('id', array_column($shipmentLines, 'line_id'))->get()->keyBy('id');
+            foreach ($shipmentLines as $line) {
+                $this->branches->adjustStock($actor, [
+                    'product_id' => (int) $orderLines[$line['line_id']]->getAttribute('product_id'),
+                    'quantity' => (int) $line['quantity'],
+                    'kind' => BranchOperations::KindProductIn,
+                    'reason_code' => 'return',
+                    'reason' => $locked->number,
+                    'reference' => 'shipment-return:'.$shipment->id.':'.$line['line_id'],
+                    'branch_id' => (int) $shipment->branch_id,
+                ]);
+            }
+            DB::table('shipments')->where('id', $shipment->id)->update(['status' => 'returned', 'updated_at' => now()]);
+            $unsent = $locked->lines()->whereColumn('dispatched', '<', 'quantity')->exists();
+            $otherParcels = DB::table('shipments')->where('order_id', $locked->id)->where('status', '!=', 'returned')->exists();
+            $orderClosed = ! $unsent && ! $otherParcels;
+            if ($orderClosed) {
+                $locked->update(['status' => 'cancelled', 'decision_reason' => __('courier.received_back_reason')]);
+            }
+            $this->event($locked, $actor, 'shipment.received_back', [
+                'shipment_id' => $shipment->id,
+                'reason' => $note,
+                'order_closed' => $orderClosed,
+                'branch_id' => $shipment->branch_id,
+            ]);
+            $this->partnerNotice($locked->user_id, 'courier.notice_received_back_title', 'courier.notice_received_back_body', [
+                'number' => $locked->number,
+            ]);
+        }, 3);
+    }
+
+    /**
      * Staff or the owner switch the order to another courier: before the booking, or after
      * the courier refused it (closed, not serving that area, ...). The optional note is
      * shown to the dealer. A waiting or failed booking is then sent to the new courier; an
