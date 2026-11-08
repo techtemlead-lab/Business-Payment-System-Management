@@ -1,3 +1,5 @@
+import '../css/reference-motion.css';
+import './reference-motion';
 import { bindLocaleSwitchForms } from './shared/localeSwitch';
 import { bindThemeToggles } from './shared/theme';
 
