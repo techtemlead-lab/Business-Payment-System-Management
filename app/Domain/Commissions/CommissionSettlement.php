@@ -5,6 +5,7 @@ namespace App\Domain\Commissions;
 use App\Domain\Accounts\PartnerBenefitControls;
 use App\Domain\Finance\Percentage;
 use App\Domain\Geography\PlaceGeographyResolver;
+use App\Domain\Notifications\PartnerEventEmail;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
 use App\Models\CommissionAllocation;
@@ -273,6 +274,14 @@ final class CommissionSettlement
                     'kind' => $kindLabel,
                     'month' => $month,
                 ]),
+            );
+            // One email per person per run, like the SMS; the portal notices are per commission line.
+            $locale = $partner->preferredLocale();
+            app(PartnerEventEmail::class)->send(
+                $partner,
+                'commission.posted',
+                __('portal.notice_settle_title', [], $locale),
+                __('portal.notice_settle_body', ['amount' => $amount, 'kind' => __('portal.settle_kind_'.$kind, [], $locale), 'month' => $month], $locale),
             );
         }
     }
@@ -882,6 +891,7 @@ final class CommissionSettlement
                     $fund->user_id,
                     __('portal.notice_commission_matured_title', [], $locale),
                     __('portal.notice_commission_matured_body', ['amount' => $amountDecimal], $locale),
+                    'commission.posted',
                 );
                 $userId = (int) $fund->user_id;
                 DB::afterCommit(function () use ($userId, $amountDecimal): void {
