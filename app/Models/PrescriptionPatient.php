@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property string|null $phone
  * @property int|null $place_code_id
  * @property string|null $notes
+ * @property string|null $allergies
  */
 class PrescriptionPatient extends Model
 {
@@ -29,12 +30,12 @@ class PrescriptionPatient extends Model
 
     public const Sexes = ['male', 'female', 'other'];
 
-    protected $fillable = ['prescriber_id', 'name', 'age', 'sex', 'phone', 'place_code_id', 'notes'];
+    protected $fillable = ['prescriber_id', 'name', 'age', 'sex', 'phone', 'place_code_id', 'notes', 'allergies'];
 
     /** @return array<string, string> */
     protected function casts(): array
     {
-        return ['age' => 'integer'];
+        return ['age' => 'integer', 'allergies' => 'encrypted'];
     }
 
     /** @return BelongsTo<User, $this> */

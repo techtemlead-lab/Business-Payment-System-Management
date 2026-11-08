@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccountListExportController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BranchController;
+use App\Http\Controllers\ClinicRecordsController;
 use App\Http\Controllers\CommandController;
 use App\Http\Controllers\CourierShipmentController;
 use App\Http\Controllers\CustomerBookController;
@@ -211,4 +212,8 @@ return function (string $portal): void {
     Route::delete('/commands/sales-kit/{salesKitItem}', [SalesKitController::class, 'destroy'])->whereNumber('salesKitItem')->middleware('throttle:30,1');
     Route::get('/sales-kit/{salesKitItem}/file', [SalesKitController::class, 'file'])->whereNumber('salesKitItem')->middleware('throttle:120,1');
     require __DIR__.'/productivity.php';
+
+    // A prescriber's own clinical records; ClinicRecordsController answers 404 to anyone else.
+    Route::get('/prescriptions/patients/{patient}', [ClinicRecordsController::class, 'patient'])->whereNumber('patient')->middleware('throttle:60,1');
+    Route::get('/commands/prescriptions/patients/{patient}/repeat', [ClinicRecordsController::class, 'repeatDraft'])->whereNumber('patient')->middleware('throttle:60,1');
 };

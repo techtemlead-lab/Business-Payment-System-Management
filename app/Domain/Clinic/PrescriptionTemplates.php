@@ -29,17 +29,7 @@ final class PrescriptionTemplates
         if (PrescriptionTemplate::query()->where('prescriber_id', $prescriber->id)->count() >= self::MaxTemplates) {
             throw ValidationException::withMessages(['name' => __('prescription.err_template_limit', ['max' => self::MaxTemplates])]);
         }
-        $lines = $prescription->lines->map(fn (PrescriptionLine $line): array => [
-            'product_id' => $line->product_id,
-            'medicine_name' => $line->medicine_name,
-            'dose' => $line->dose,
-            'frequency' => $line->frequency,
-            'duration' => $line->duration,
-            'instructions' => $line->instructions,
-            'unit_price' => (string) $line->unit_price,
-            'quantity' => (int) $line->quantity,
-            'discount' => (string) $line->discount,
-        ])->values()->all();
+        $lines = $prescription->lines->map(fn (PrescriptionLine $line): array => $line->toDraft())->values()->all();
 
         try {
             $template = DB::transaction(fn (): PrescriptionTemplate => PrescriptionTemplate::query()->create([

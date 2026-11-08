@@ -1,0 +1,37 @@
+<?php
+
+return [
+    'allergies' => 'অ্যালার্জি',
+    'allergies_hint' => 'যে ওষুধ বা খাবারে এই রোগীর সমস্যা হয়। না থাকলে খালি রাখুন।',
+    'allergy_warning_title' => 'অ্যালার্জির সতর্কতা',
+    'allergy_warning_body' => 'সেভ করার আগে নিচের ওষুধগুলো এই অ্যালার্জির সাথে মিলিয়ে দেখুন।',
+
+    'open_record' => 'রোগীর খাতা',
+    'back_to_patients' => 'রোগীর তালিকায় ফিরুন',
+    'history_title' => 'আগের প্রেসক্রিপশন',
+    'history_empty' => 'এখনো কোনো প্রেসক্রিপশন নেই',
+    'history_empty_body' => 'এই রোগীর জন্য লেখা প্রেসক্রিপশন এখানে দেখাবে।',
+    'repeat_last' => 'শেষ প্রেসক্রিপশনটি আবার লিখুন',
+    'repeat_filled' => ':number থেকে ভরা হয়েছে। সেভ করার আগে দেখে নিন, দরকার হলে বদলান।',
+    'repeat_none' => 'এই রোগীর আগের কোনো প্রেসক্রিপশন নেই।',
+    'repeat_failed' => 'শেষ প্রেসক্রিপশন আনা যায়নি। আবার চেষ্টা করুন।',
+
+    'slot_morning' => 'সকাল',
+    'slot_noon' => 'দুপুর',
+    'slot_night' => 'রাত',
+    'food_label' => 'খাবার',
+    'food_before' => 'খাবারের আগে',
+    'food_after' => 'খাবারের পরে',
+    'course_length' => 'কত দিন',
+    'course_unit' => 'দিন / সপ্তাহ / মাস',
+    'unit_day' => 'দিন',
+    'unit_week' => 'সপ্তাহ',
+    'unit_month' => 'মাস',
+    'dose_morning' => 'সকালে :amount',
+    'dose_noon' => 'দুপুরে :amount',
+    'dose_night' => 'রাতে :amount',
+    'duration_day' => ':value দিন',
+    'duration_week' => ':value সপ্তাহ',
+    'duration_month' => ':value মাস',
+    'err_dose_schedule' => 'সকাল, দুপুর আর রাতে কতটুকু খাবে তা বেছে দিন। অন্তত একটি শূন্যের বেশি হতে হবে।',
+];

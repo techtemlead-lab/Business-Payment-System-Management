@@ -20,6 +20,10 @@ export type TemplateRow = {
         frequency: string | null;
         duration: string | null;
         instructions: string | null;
+        dose_schedule?: string | null;
+        food_timing?: string | null;
+        duration_count?: number | null;
+        duration_unit?: string | null;
         unit_price: string;
         quantity: number;
         discount: string;
@@ -31,6 +35,31 @@ export type PrescriptionTools = {
     follow_ups: FollowUpsData;
     report: PrescriberReportData;
 };
+
+/** Turns saved lines into form lines; a product no longer sold is left blank to choose again. */
+export function linesFromSaved(saved: TemplateRow['lines'], products: { id: number }[]): { lines: LineForm[]; productMissing: boolean } {
+    let productMissing = false;
+    const lines = saved.map((line): LineForm => {
+        const stillSold = line.product_id === null || products.some((product) => product.id === line.product_id);
+        productMissing = productMissing || !stillSold;
+        return {
+            product_id: line.product_id !== null && stillSold ? String(line.product_id) : '',
+            medicine_name: line.medicine_name,
+            dose: line.dose ?? '',
+            frequency: line.frequency ?? '',
+            duration: line.duration ?? '',
+            instructions: line.instructions ?? '',
+            dose_schedule: line.dose_schedule ?? '',
+            food_timing: line.food_timing ?? '',
+            duration_count: line.duration_count ? String(line.duration_count) : '',
+            duration_unit: line.duration_unit ?? '',
+            unit_price: line.unit_price,
+            quantity: String(line.quantity),
+            discount: Number(line.discount) > 0 ? line.discount : '',
+        };
+    });
+    return { lines, productMissing };
+}
 
 /** Fills the new-prescription form from a saved template; nothing is saved until the form is. */
 export function TemplatePicker({ templates, products, isDirty, onApply, translate }: {
@@ -51,22 +80,7 @@ export function TemplatePicker({ templates, products, isDirty, onApply, translat
         if (!template || (isDirty && !window.confirm(translate('prescription', 'tpl_replace_confirm')))) {
             return;
         }
-        let missing = false;
-        const lines = template.lines.map((line): LineForm => {
-            const stillSold = line.product_id === null || products.some((product) => product.id === line.product_id);
-            missing = missing || !stillSold;
-            return {
-                product_id: line.product_id !== null && stillSold ? String(line.product_id) : '',
-                medicine_name: line.medicine_name,
-                dose: line.dose ?? '',
-                frequency: line.frequency ?? '',
-                duration: line.duration ?? '',
-                instructions: line.instructions ?? '',
-                unit_price: line.unit_price,
-                quantity: String(line.quantity),
-                discount: Number(line.discount) > 0 ? line.discount : '',
-            };
-        });
+        const { lines, productMissing: missing } = linesFromSaved(template.lines, products);
         setProductMissing(missing);
         onApply({ advice: template.advice ?? '', lines });
     };
@@ -151,7 +165,7 @@ export function TemplatesTab({ templates, translate }: { templates: TemplateRow[
                             </div>
                             <ol className="rx-card-lines">
                                 {template.lines.map((line, index) => (
-                                    <li key={index}>{line.medicine_name} × {line.quantity}<small>{[line.dose, line.frequency, line.duration].filter(Boolean).join(' · ')}</small></li>
+                                    <li key={index}>{line.medicine_name} × {line.quantity}<small>{[line.dose_schedule, line.dose, line.frequency, line.duration].filter(Boolean).join(' · ')}</small></li>
                                 ))}
                             </ol>
                             {template.advice && <small className="muted">{translate('prescription', 'rx_advice')}: {template.advice}</small>}

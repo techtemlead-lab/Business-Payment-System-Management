@@ -23,6 +23,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $line_total
  * @property string|null $mrp
  * @property int $position
+ * @property string|null $dose_schedule
+ * @property string|null $food_timing
+ * @property int|null $duration_count
+ * @property string|null $duration_unit
  */
 class PrescriptionLine extends Model
 {
@@ -31,6 +35,7 @@ class PrescriptionLine extends Model
     protected $fillable = [
         'prescription_id', 'product_id', 'medicine_name', 'dose', 'frequency', 'duration', 'instructions',
         'unit_price', 'quantity', 'discount', 'line_total', 'mrp', 'position',
+        'dose_schedule', 'food_timing', 'duration_count', 'duration_unit',
     ];
 
     /** @return array<string, string> */
@@ -43,6 +48,31 @@ class PrescriptionLine extends Model
             'mrp' => 'decimal:2',
             'quantity' => 'integer',
             'position' => 'integer',
+            'duration_count' => 'integer',
+        ];
+    }
+
+    /**
+     * The fields a template or a repeated prescription carries over to a new form.
+     *
+     * @return array<string, mixed>
+     */
+    public function toDraft(): array
+    {
+        return [
+            'product_id' => $this->product_id,
+            'medicine_name' => $this->medicine_name,
+            'dose' => $this->dose,
+            'frequency' => $this->frequency,
+            'duration' => $this->duration,
+            'instructions' => $this->instructions,
+            'dose_schedule' => $this->dose_schedule,
+            'food_timing' => $this->food_timing,
+            'duration_count' => $this->duration_count,
+            'duration_unit' => $this->duration_unit,
+            'unit_price' => (string) $this->unit_price,
+            'quantity' => (int) $this->quantity,
+            'discount' => (string) $this->discount,
         ];
     }
 
