@@ -46,7 +46,7 @@ final class BulkActions
     {
         abort_unless(($actor->staff() || $actor->usingStaffWorkspace()) && ($actor->allows('orders') || $actor->allows('finance')), 403);
         $query = Order::query()->whereIn('orders.id', $ids);
-        $this->branches->scopeFor($actor, $request)->restrict($query, 'orders.fulfillment_branch_id');
+        $this->branches->scopeFor($actor, $request)->restrictOrders($query);
 
         return $query->with(['user:id,name,dealer_code,role,phone,division,district', 'fulfillmentBranch:id,name,code', 'lines:id,order_id,name,sku,quantity'])
             ->orderBy('orders.created_at')

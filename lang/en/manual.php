@@ -750,7 +750,7 @@ return [
     'branch_switcher_s2' => 'The owner, and staff who work with accounts, stock or finance, see every branch and also “All branches”.',
     'branch_switcher_s3' => 'Other staff see only the branches they are assigned to. They do not get “All branches”.',
     'branch_switcher_s4' => 'Staff with no branch do not get the list. Pages that follow the branch stay empty until the owner gives them one.',
-    'branch_switcher_s5' => 'Pick a branch. Dashboard, Orders, Deliveries, Check order payments, Withdrawal requests, Reports, Top sellers, Dealer list, Sub-dealer list and Staff list then show that branch.',
+    'branch_switcher_s5' => 'Pick a branch. Dashboard, Orders, Deliveries, Check order payments, Withdrawal requests, Reports, Top sellers, Dealer list, Sub-dealer list and Staff list then show that branch. The head office also shows new orders, dealers and sub-dealers that have no branch yet.',
     'branch_switcher_s6' => 'These pages say which branch you are looking at, for example “Showing: Head Office”.',
     'branch_switcher_o1' => 'You see the numbers for one branch at a time.',
     'branch_switcher_t1' => 'Check the branch name before you record stock or anything else for a branch.',

@@ -455,6 +455,89 @@ class BranchScopedSectionsTest extends TestCase
         return array_values($ids);
     }
 
+    /**
+     * @param  list<string>  $permissions
+     */
+    #[DataProvider('orderListPages')]
+    public function test_the_head_office_also_lists_orders_with_no_branch_yet(string $path, string $status, string $unassignedStatus, array $permissions): void
+    {
+        $orders = $this->ordersPerBranch($status, $unassignedStatus);
+        $sentFromHeadOffice = $this->order($this->headOffice()->id, $status)->number;
+        $owner = User::factory()->staff()->create(['active_branch_id' => $this->headOffice()->id]);
+
+        $this->actingAs($owner)->onPortal('sadmin')->get($path)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.branch_scope.code', $this->headOffice()->code)
+            ->where('data.orders.data', fn ($rows) => $this->numbers($rows) === $this->sorted([$sentFromHeadOffice, $orders['none']])));
+
+        $this->actingAs($this->branchStaff($this->headOffice(), $permissions))->onPortal('manage')->get($path)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.orders.data', fn ($rows) => $this->numbers($rows) === $this->sorted([$sentFromHeadOffice, $orders['none']])));
+    }
+
+    public function test_the_head_office_search_finds_an_order_with_no_branch_yet(): void
+    {
+        $orders = $this->ordersPerBranch('dispatched', 'submitted');
+        $owner = User::factory()->staff()->create(['active_branch_id' => $this->headOffice()->id]);
+
+        $this->actingAs($owner)->onPortal('sadmin')->getJson('/commands/search?q='.$orders['none'])->assertOk()->assertJsonCount(1, 'data.orders');
+        $this->actingAs($owner)->onPortal('sadmin')->getJson('/commands/search?q='.$orders['dhaka'])->assertOk()->assertJsonCount(0, 'data.orders');
+    }
+
+    public function test_the_head_office_work_queue_counts_new_orders_and_their_payments(): void
+    {
+        foreach ($this->ordersPerBranch('dispatched', 'submitted') as $number) {
+            $this->claimFor($number);
+        }
+        $queueCount = fn (array $queue, string $key): int => (int) collect($queue)->firstWhere('key', $key)['count'];
+        $owner = User::factory()->staff()->create(['active_branch_id' => $this->headOffice()->id]);
+
+        $this->actingAs($owner)->onPortal('sadmin')->get('/overview')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.stats.order_count', 1)
+            ->where('data.admin_home.work_queue', fn ($queue) => $queueCount($queue->all(), 'orders_to_review') === 1
+                && $queueCount($queue->all(), 'payments_to_check') === 1));
+    }
+
+    public function test_the_head_office_lists_payments_for_orders_with_no_branch_yet(): void
+    {
+        $claims = collect($this->ordersPerBranch('dispatched', 'submitted'))->map(fn (string $number): int => $this->claimFor($number));
+        $owner = User::factory()->staff()->create(['active_branch_id' => $this->headOffice()->id]);
+
+        $this->actingAs($owner)->onPortal('sadmin')->get('/payments')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.claims.data', fn ($rows) => $this->ids($rows) === [$claims['none']]));
+    }
+
+    #[DataProvider('partnerAccountPages')]
+    public function test_the_head_office_also_lists_partners_with_no_branch(string $path, string $role): void
+    {
+        $partners = collect($this->partnersPerBranch($role))->map(fn (User $partner): int => $partner->id);
+        $noBranch = $role === 'dealer' ? [$partners['none'], $this->partner->id] : [$partners['none']];
+        $owner = User::factory()->staff()->create(['active_branch_id' => $this->headOffice()->id]);
+
+        $this->actingAs($owner)->onPortal('sadmin')->get($path)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.branch_scope.code', $this->headOffice()->code)
+            ->where('data.accounts.data', fn ($rows) => $this->ids($rows) === $this->sortedIds($noBranch)));
+    }
+
+    public function test_top_sellers_on_the_head_office_include_partners_with_no_branch(): void
+    {
+        $sellers = [
+            User::factory()->dealer()->create(['name' => 'Dhaka Seller', 'active_branch_id' => $this->dhaka->id, 'district' => 'Sylhet']),
+            User::factory()->dealer()->create(['name' => 'No Branch Seller', 'district' => 'Sylhet']),
+        ];
+        foreach ($sellers as $seller) {
+            $this->partner = $seller;
+            $this->order(null, 'dispatched');
+        }
+        $owner = User::factory()->staff()->create(['active_branch_id' => $this->headOffice()->id]);
+
+        $this->actingAs($owner)->onPortal('sadmin')->get('/top-sellers')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.top_sellers.national', fn ($rows) => collect($rows)->pluck('name')->all() === ['No Branch Seller']));
+    }
+
+    private function headOffice(): CompanyBranch
+    {
+        return CompanyBranch::query()->where('is_head_office', true)->firstOrFail();
+    }
+
     private function ownerOnAll(): self
     {
         return $this->actingAs(User::factory()->staff()->create())

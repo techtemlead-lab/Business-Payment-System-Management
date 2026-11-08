@@ -220,7 +220,7 @@ final class StaffDashboardSummary
     private function orders(?BranchScope $branchScope): Builder
     {
         $orders = Order::query();
-        $branchScope?->restrict($orders, 'orders.fulfillment_branch_id');
+        $branchScope?->restrictOrders($orders);
 
         return $orders;
     }

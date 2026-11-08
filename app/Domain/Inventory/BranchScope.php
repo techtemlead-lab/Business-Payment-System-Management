@@ -61,10 +61,33 @@ final readonly class BranchScope
     }
 
     /**
+     * Keep only the orders of the scoped branches. An order gets its branch when it is
+     * sent, and until then the head office is the branch that will send it, so the head
+     * office also lists orders with no branch yet. Every other branch keeps the rule
+     * of {@see restrict()}.
+     *
+     * @template TBuilder of EloquentBuilder<*>|QueryBuilder
+     *
+     * @param  TBuilder  $query
+     * @return TBuilder
+     */
+    public function restrictOrders(EloquentBuilder|QueryBuilder $query, string $branchColumn = 'orders.fulfillment_branch_id'): EloquentBuilder|QueryBuilder
+    {
+        if ($this->headOfficeOnScreen() === null) {
+            return $this->restrict($query, $branchColumn);
+        }
+        $query->where(function ($orders) use ($branchColumn): void {
+            $orders->whereIn($branchColumn, $this->branchIds)->orWhereNull($branchColumn);
+        });
+
+        return $query;
+    }
+
+    /**
      * Keep only partners of the scoped branches. A partner belongs to the branch saved
      * on the account, or else the active branch nearest their place code (the mapping
      * partner chat uses too, {@see ChatRouting::partnerBranchSql()}).
-     * Partners with no branch are kept only on "All branches".
+     * Partners with no branch are kept on "All branches" and on the head office.
      *
      * @template TBuilder of EloquentBuilder<*>|QueryBuilder
      *
@@ -81,10 +104,30 @@ final readonly class BranchScope
 
             return $query;
         }
-        $placeholders = implode(', ', array_fill(0, count($this->branchIds), '?'));
-        $query->whereRaw(app(ChatRouting::class)->partnerBranchSql($usersTable).' IN ('.$placeholders.')', $this->branchIds);
+        $query->whereRaw($this->partnerBranchCondition($usersTable), $this->branchIds);
 
         return $query;
+    }
+
+    /**
+     * SQL that is true for partners of the scoped branches. Bind {@see $branchIds} to it.
+     * Only for a scope that has at least one branch.
+     */
+    public function partnerBranchCondition(string $usersTable = 'users'): string
+    {
+        $partnerBranch = app(ChatRouting::class)->partnerBranchSql($usersTable);
+        $headOffice = $this->headOfficeOnScreen();
+        if ($headOffice !== null) {
+            $partnerBranch = 'COALESCE('.$partnerBranch.', '.(int) $headOffice->id.')';
+        }
+
+        return $partnerBranch.' IN ('.implode(', ', array_fill(0, count($this->branchIds), '?')).')';
+    }
+
+    /** The head office, when it is the branch this page shows. */
+    private function headOfficeOnScreen(): ?CompanyBranch
+    {
+        return ! $this->allBranches && $this->branch?->is_head_office ? $this->branch : null;
     }
 
     /**

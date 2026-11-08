@@ -49,7 +49,7 @@ class ReportController extends Controller
         // The file follows the same branch as the list on screen.
         $visibleOrders = Order::query()->when(! $staff, fn ($q) => $q->where('user_id', $u->id));
         if ($staff) {
-            app(BranchOperations::class)->scopeFor($u, $r)->restrict($visibleOrders, 'orders.fulfillment_branch_id');
+            app(BranchOperations::class)->scopeFor($u, $r)->restrictOrders($visibleOrders);
         }
 
         $q = $filter->apply(

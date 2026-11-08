@@ -422,7 +422,7 @@ class FinanceOperationsController extends Controller
             || ($type !== 'collections' && $branches->canViewAllBranches($actor))) {
             return;
         }
-        $branches->scopeFor($actor, $request)->restrict($report, 'o.fulfillment_branch_id');
+        $branches->scopeFor($actor, $request)->restrictOrders($report, 'o.fulfillment_branch_id');
     }
 
     /** Report column header in the viewer's language, e.g. "dealer_code" → "Dealer code". */
