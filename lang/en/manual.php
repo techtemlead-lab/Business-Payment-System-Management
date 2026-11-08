@@ -9,7 +9,7 @@ return [
     'area_dealers_places_s2' => 'Learn the order of areas: Division → District → Upazila → Union / Pourashava. In this manual, “union” always means Union / Pourashava.',
     'area_dealers_places_s3' => 'Area dealers share the :area_rate% area fund of every purchase made in their area (division :area_division%, district :area_district%, upazila :area_upazila%, union :area_union%, management :area_management%).',
     'area_dealers_places_s4' => 'Each share goes to the one dealer seated on that exact place code. The place code of the buyer decides it, not the place name.',
-    'area_dealers_places_s5' => 'If no area dealer is seated on a place code level, that share goes straight to the company profit fund when the order is placed.',
+    'area_dealers_places_s5' => 'If no area dealer is seated on a place code level, that share goes straight to the company profit fund when the order is placed, and its source is recorded.',
     'area_dealers_places_s6' => 'A dealer seated in the middle of a month earns only from orders placed after they were seated.',
     'area_dealers_places_s7' => 'Each area dealer has a monthly purchase target. If you miss it, that month\'s area money goes to the company profit fund when the month closes. It does not carry over to the next month.',
     'area_dealers_places_s8' => 'Staff: seat dealers and set targets from the Place codes and Area dealers pages. If a shop moves, send a support request and stop using the old place code.',
