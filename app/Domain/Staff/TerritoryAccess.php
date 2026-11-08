@@ -6,6 +6,7 @@ use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Geography\PlaceTree;
 use App\Domain\Notifications\PartnerEventSms;
+use App\Domain\Notifications\SmsText;
 use App\Models\PlaceCode;
 use App\Models\User;
 use App\Support\Audit;
@@ -120,14 +121,14 @@ final class TerritoryAccess
                     'territory' => $label,
                 ], $locale),
             );
-            DB::afterCommit(function () use ($staff, $locale, $data, $label): void {
+            DB::afterCommit(function () use ($staff, $data, $label): void {
                 app(PartnerEventSms::class)->send(
                     $staff,
                     'staff.territory_assigned',
-                    __('sms.staff_territory_assigned', [
+                    SmsText::make('sms.staff_territory_assigned', [
                         'level' => $data['level'],
                         'territory' => $label,
-                    ], $locale),
+                    ]),
                 );
             });
 
@@ -176,14 +177,14 @@ final class TerritoryAccess
                     'reason' => $reason,
                 ], $locale),
             );
-            DB::afterCommit(function () use ($staff, $locale, $row, $label): void {
+            DB::afterCommit(function () use ($staff, $row, $label): void {
                 app(PartnerEventSms::class)->send(
                     $staff,
                     'staff.territory_removed',
-                    __('sms.staff_territory_removed', [
+                    SmsText::make('sms.staff_territory_removed', [
                         'level' => $row->level,
                         'territory' => $label,
-                    ], $locale),
+                    ]),
                 );
             });
         }, 3);

@@ -5,6 +5,7 @@ namespace App\Domain\Finance;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Notifications\PartnerEventSms;
+use App\Domain\Notifications\SmsText;
 use App\Domain\Staff\TerritoryAccess;
 use App\Models\User;
 use App\Support\Audit;
@@ -154,7 +155,7 @@ final class PayrollService
                 );
                 $staffId = (int) $entry->staff_id;
                 $periodMonth = (string) $entry->period_month;
-                DB::afterCommit(function () use ($staffId, $periodMonth, $amountDecimal, $locale): void {
+                DB::afterCommit(function () use ($staffId, $periodMonth, $amountDecimal): void {
                     $staff = User::find($staffId);
                     if (! $staff) {
                         return;
@@ -162,10 +163,10 @@ final class PayrollService
                     app(PartnerEventSms::class)->send(
                         $staff,
                         'payroll.paid',
-                        __('sms.payroll_paid', [
+                        SmsText::make('sms.payroll_paid', [
                             'month' => $periodMonth,
                             'amount' => $amountDecimal,
-                        ], $staff->preferredLocale() ?: $locale),
+                        ]),
                     );
                 });
             }, 3);

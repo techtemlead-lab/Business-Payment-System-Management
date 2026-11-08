@@ -21,6 +21,7 @@ use App\Domain\Geography\PlaceTree;
 use App\Domain\Inventory\StockService;
 use App\Domain\Notifications\AccountCreatedSms;
 use App\Domain\Notifications\PartnerEventSms;
+use App\Domain\Notifications\SmsText;
 use App\Domain\Orders\OrderRefund;
 use App\Domain\Orders\OrderService;
 use App\Domain\Staff\PartnerStaffLink;
@@ -444,7 +445,7 @@ class CommandController extends Controller
                 app(PartnerEventSms::class)->sendToPhone(
                     $phoneChange['old_phone'],
                     'account.phone_changed',
-                    __('sms.account_phone_changed', ['code' => $partner->dealer_code ?? $partner->name], $partner->preferredLocale()),
+                    SmsText::make('sms.account_phone_changed', ['code' => $partner->dealer_code ?? $partner->name]),
                 );
             }
         }
@@ -461,7 +462,7 @@ class CommandController extends Controller
                     app(PartnerEventSms::class)->send(
                         $partner,
                         'account.suspended',
-                        __('sms.account_suspended', ['reason' => $statusChange['reason']], $locale),
+                        SmsText::make('sms.account_suspended', ['reason' => $statusChange['reason']]),
                     );
                 } elseif ($statusChange['to'] === 'active' && $statusChange['from'] === 'suspended') {
                     Audit::notice(
@@ -472,7 +473,7 @@ class CommandController extends Controller
                     app(PartnerEventSms::class)->send(
                         $partner,
                         'account.reactivated',
-                        __('sms.account_reactivated', [], $locale),
+                        SmsText::make('sms.account_reactivated', []),
                     );
                 }
             }
@@ -496,10 +497,10 @@ class CommandController extends Controller
                 app(PartnerEventSms::class)->send(
                     $partner,
                     'account.sponsor_updated',
-                    __('sms.sponsor_updated', [
-                        'sponsor' => $sponsorLabel,
+                    SmsText::make('sms.sponsor_updated', [
+                        'sponsor' => $sponsor ? $sponsorLabel : SmsText::make('portal.sponsor_none'),
                         'reason' => $sponsorChange['reason'],
-                    ], $locale),
+                    ]),
                 );
             }
         }
@@ -524,10 +525,9 @@ class CommandController extends Controller
                 app(PartnerEventSms::class)->send(
                     $partner,
                     $visible ? 'account.directory_listed' : 'account.directory_unlisted',
-                    __(
+                    SmsText::make(
                         $visible ? 'sms.directory_listed' : 'sms.directory_unlisted',
                         [],
-                        $locale,
                     ),
                 );
             }
@@ -825,10 +825,7 @@ class CommandController extends Controller
         DB::table('enquiries')->where('id', $id)->update([...$d, 'updated_at' => now()]);
         Audit::record($r->user()->id, 'enquiry.updated', (string) $id);
         if ($previous !== $d['status'] && in_array($d['status'], ['contacted', 'closed'], true)) {
-            $supported = config('madina.locales', ['en', 'bn']);
-            $locale = is_string($enquiry->locale ?? null) && in_array($enquiry->locale, $supported, true)
-                ? $enquiry->locale
-                : app()->getLocale();
+            $locale = SmsText::Locale;
             $topicLabel = match ((string) $enquiry->topic) {
                 'dealer_enquiry' => __('portal.enquiry_topic_dealer', [], $locale),
                 'partnership_enquiry', 'Partnership' => __('portal.enquiry_topic_partnership', [], $locale),
@@ -847,10 +844,10 @@ class CommandController extends Controller
             app(PartnerEventSms::class)->sendToPhone(
                 (string) $enquiry->phone,
                 'enquiry.'.$d['status'],
-                __($template, [
+                SmsText::make($template, [
                     'topic' => $topicLabel,
                     'status' => $statusLabel,
-                ], $locale),
+                ]),
             );
         }
 
@@ -952,17 +949,17 @@ class CommandController extends Controller
             'topic' => $topicKey,
         ]);
         $topicLabel = match ($topicKey) {
-            'support' => __('portal.support_topic_support', [], $locale),
-            'complaint' => __('portal.support_topic_complaint', [], $locale),
-            'order_dispute' => __('portal.support_topic_order', [], $locale),
-            'kyc_correction' => __('portal.support_topic_kyc', [], $locale),
-            'payout_question' => __('portal.support_topic_payout', [], $locale),
+            'support' => SmsText::make('portal.support_topic_support'),
+            'complaint' => SmsText::make('portal.support_topic_complaint'),
+            'order_dispute' => SmsText::make('portal.support_topic_order'),
+            'kyc_correction' => SmsText::make('portal.support_topic_kyc'),
+            'payout_question' => SmsText::make('portal.support_topic_payout'),
             default => $topicKey,
         };
         app(PartnerEventSms::class)->send(
             $user,
             'support.requested',
-            __('sms.support_requested', ['topic' => $topicLabel], $locale),
+            SmsText::make('sms.support_requested', ['topic' => $topicLabel]),
         );
 
         return back()->with('success', __('portal.flash_support_sent'));
@@ -1018,7 +1015,7 @@ class CommandController extends Controller
         app(PartnerEventSms::class)->send(
             $user,
             'account.invitation_sent',
-            __('sms.account_invitation_sent', [], $locale),
+            SmsText::make('sms.account_invitation_sent', []),
         );
 
         return back()->with('success', __('portal.acct_invite_flash'));
@@ -1326,10 +1323,10 @@ class CommandController extends Controller
             app(PartnerEventSms::class)->send(
                 $dealer,
                 'area_dealer.assigned',
-                __('sms.area_dealer_assigned', [
+                SmsText::make('sms.area_dealer_assigned', [
                     'zone' => $d['zone_name'],
                     'quota' => $d['monthly_quota'],
-                ], $locale),
+                ]),
             );
         }
 
@@ -1355,9 +1352,9 @@ class CommandController extends Controller
             app(PartnerEventSms::class)->send(
                 $dealer,
                 'area_dealer.removed',
-                __('sms.area_dealer_removed', [
+                SmsText::make('sms.area_dealer_removed', [
                     'zone' => $assignment->zone_name,
-                ], $locale),
+                ]),
             );
         }
 

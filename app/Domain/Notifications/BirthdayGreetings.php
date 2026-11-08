@@ -13,7 +13,7 @@ use Throwable;
 
 /**
  * Birthday greetings for dealers and sub-dealers: one short SMS on the day,
- * in the partner's own language and in the company's name. No sales pitch and
+ * always in Bangla (see SmsText) and in the company's name. No sales pitch and
  * no income talk. The date of birth comes from the KYC details saved in the
  * user's profile (profile.date_of_birth).
  */
@@ -109,8 +109,7 @@ final class BirthdayGreetings
             return 'already_sent';
         }
 
-        $locale = $partner->preferredLocale();
-        $message = (string) __('sms.birthday_greeting', ['name' => $this->displayName($partner, $locale)], $locale);
+        $message = SmsText::make('sms.birthday_greeting', ['name' => $this->displayName($partner)]);
         try {
             $delivered = $this->sms->send($partner, self::Event, $message);
         } catch (Throwable $exception) {
@@ -126,13 +125,13 @@ final class BirthdayGreetings
         return 'sent';
     }
 
-    /** The Bangla name on file for Bangla texts, otherwise the account name. */
-    private function displayName(User $partner, string $locale): string
+    /** The Bangla name on file, otherwise the account name. */
+    private function displayName(User $partner): string
     {
         $profile = is_array($partner->profile) ? $partner->profile : [];
         $banglaName = trim((string) ($profile['name_bn'] ?? ''));
 
-        return $locale === 'bn' && $banglaName !== '' ? $banglaName : (string) $partner->name;
+        return $banglaName !== '' ? $banglaName : (string) $partner->name;
     }
 
     /**

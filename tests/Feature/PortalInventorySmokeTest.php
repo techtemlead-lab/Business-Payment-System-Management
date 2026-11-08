@@ -53,7 +53,7 @@ class PortalInventorySmokeTest extends TestCase
             '/operations/policy-schedules', '/operations/commission-holds', '/settlements', '/rewards', '/payouts-hub',
             '/operations/reserve-payouts', '/operations/finance-settings', '/operations/financial-readiness',
             '/catalog', '/inventory', '/branches', '/branch-performance', '/place-codes',
-            '/reports', '/operations/financial-reports', '/dashboards', '/operations/data-imports',
+            '/operations/financial-reports', '/dashboards', '/operations/data-imports',
             '/website', '/content', '/operations/video-marketing', '/enquiries', '/operations/service-integrations',
             '/audit', '/support-admin',
             '/profile', '/security', '/notifications', '/help',
@@ -111,7 +111,7 @@ class PortalInventorySmokeTest extends TestCase
             '/treasury', '/payments', '/withdrawals', '/operations/payment-accounts', '/ledger',
             '/operations/policy-schedules', '/operations/commission-holds', '/settlements', '/rewards', '/payouts-hub',
             '/operations/reserve-payouts', '/operations/finance-settings', '/operations/financial-readiness',
-            '/catalog', '/reports', '/operations/financial-reports', '/operations/data-imports',
+            '/catalog', '/operations/financial-reports', '/operations/data-imports',
             '/commissions', '/policies', '/simulator', '/salary',
             '/profile', '/security', '/notifications', '/help',
         ];

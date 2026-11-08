@@ -97,7 +97,7 @@ class ServiceIntegrationsTest extends TestCase
 
         Http::fake(['https://sms.example/send' => Http::response(['ok' => true], 200)]);
 
-        $result = app(SmsGatewayClient::class)->send('01700000000', 'Hello Madina');
+        $result = app(SmsGatewayClient::class)->send('01700000000', 'মদিনা পরীক্ষা');
         $this->assertTrue($result['sent']);
         $this->assertSame('custom', $result['provider']);
         Http::assertSent(fn ($request) => $request->url() === 'https://sms.example/send');

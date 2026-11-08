@@ -1019,9 +1019,9 @@ class PartnerEventSmsTest extends TestCase
         $this->assertSame('01720000096', $sent[0]['phone'] ?? null);
         $this->assertSame(
             __('sms.partnership_application_rejected', [
-                'role' => __('portal.acct_role_sub_dealer', [], 'en'),
+                'role' => __('portal.acct_role_sub_dealer', [], 'bn'),
                 'reason' => 'Incomplete territory documentation.',
-            ], 'en'),
+            ], 'bn'),
             $sent[0]['message'] ?? null,
         );
         $this->assertDatabaseMissing('users', ['email' => 'reject.sms@example.test']);
