@@ -30,16 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->trustHosts(at: function () {
-            $hosts = ['^(.+\.)?'.preg_quote(PortalHost::domain(), '/').'$'];
-            if (PortalHost::allowsSharedPreview()) {
-                $hosts[] = '^127\.0\.0\.1$';
-                $hosts[] = '^localhost$';
-                $hosts[] = '^\[::1\]$';
-            }
-
-            return $hosts;
-        });
+        $middleware->trustHosts(at: fn (): array => PortalHost::trustedHostPatterns(request()));
         $middleware->encryptCookies(except: [PortalHost::PreviewCookie]);
         $middleware->prepend(UseSharedPreviewPortal::class);
         $middleware->prepend(CorrelationId::class);
