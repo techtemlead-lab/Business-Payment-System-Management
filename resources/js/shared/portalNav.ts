@@ -50,7 +50,7 @@ export const MANAGEMENT_SECTIONS = [
     'treasury', 'benefits-fund', 'payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds',
     'financial-readiness', 'finance-settings', 'financial-reports', 'data-imports', 'service-integrations',
     'rewards', 'settlements', 'payouts-hub', 'payments', 'withdrawals', 'ledger', 'reports', 'top-sellers',
-    'catalog', 'inventory', 'branches', 'branch-performance', 'place-codes', 'video-marketing', 'website', 'content', 'enquiries', 'feedback', 'audit', 'support-admin', 'agreement', 'partner-messages',
+    'catalog', 'inventory', 'stock-lots', 'branches', 'branch-performance', 'place-codes', 'video-marketing', 'website', 'content', 'enquiries', 'feedback', 'audit', 'support-admin', 'agreement', 'partner-messages',
     'training', 'events', 'data-cleanup', 'prescriptions',
 ];
 
@@ -224,6 +224,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     if (capabilities.some((cap) => ['catalog', 'pricing', 'inventory', 'orders', 'finance'].includes(cap))) items.add('catalog');
     if (capabilities.includes('inventory')) {
         items.add('inventory');
+        items.add('stock-lots');
         items.add('branches');
     }
     if (capabilities.includes('accounts') && !items.has('branches')) items.add('branches');
@@ -338,7 +339,7 @@ function staffNavigation(staffAvailable: Set<string>): {
             mother('overview', 'nav_module_overview', pick(staffAvailable, ['overview'])),
             mother('catalog', 'nav_module_catalog', pick(staffAvailable, ['catalog-products', 'catalog-taxonomy'])),
             mother('stock', 'nav_module_stock', pick(staffAvailable, [
-                'stock', 'product-in', 'product-out', 'branches', 'branch-performance', 'place-codes',
+                'stock', 'product-in', 'product-out', 'stock-lots', 'branches', 'branch-performance', 'place-codes',
             ])),
             mother('orders', 'nav_module_orders', pick(staffAvailable, ['orders', 'deliveries'])),
             mother('finance', 'nav_module_finance', pick(staffAvailable, [

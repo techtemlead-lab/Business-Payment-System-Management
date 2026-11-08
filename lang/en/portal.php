@@ -6283,4 +6283,13 @@ return [
     'event_prescriber_company_stock_granted' => 'Company-stock prescribing turned on for an office account',
     'event_prescriber_company_stock_removed' => 'Company-stock prescribing turned off for an office account',
     'event_clinic_below_floor_override' => 'Owner confirmed a sale below 30% of MRP',
+    'stock_lots' => 'Batches and expiry',
+    'section_hint_stock_lots' => 'Batches expiring soon, recall, branch transfers and what to reorder.',
+    'event_stock_near_expiry_days_set' => 'Near-expiry warning changed',
+    'event_stock_transfer_requested' => 'Branch transfer requested',
+    'event_stock_transfer_sent' => 'Branch transfer sent',
+    'event_stock_transfer_received' => 'Branch transfer received',
+    'event_stock_transfer_cancelled' => 'Branch transfer cancelled',
+    'stock_received_on' => 'Date received',
+    'stock_unit_cost' => 'Cost per unit',
 ];

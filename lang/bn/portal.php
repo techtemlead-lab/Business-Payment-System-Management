@@ -6283,4 +6283,13 @@ return [
     'event_prescriber_company_stock_granted' => 'অফিস অ্যাকাউন্টে কোম্পানির স্টক থেকে প্রেসক্রিপশন চালু হয়েছে',
     'event_prescriber_company_stock_removed' => 'অফিস অ্যাকাউন্টে কোম্পানির স্টক থেকে প্রেসক্রিপশন বন্ধ হয়েছে',
     'event_clinic_below_floor_override' => 'মালিক এমআরপির ৩০%-এর কমে বিক্রি নিশ্চিত করেছেন',
+    'stock_lots' => 'ব্যাচ ও মেয়াদ',
+    'section_hint_stock_lots' => 'যেসব ব্যাচের মেয়াদ শেষ হয়ে আসছে, রিকল, ব্রাঞ্চ ট্রান্সফার ও কী রিঅর্ডার করতে হবে।',
+    'event_stock_near_expiry_days_set' => 'মেয়াদের সতর্কতা বদলানো হয়েছে',
+    'event_stock_transfer_requested' => 'ব্রাঞ্চ ট্রান্সফারের অনুরোধ হয়েছে',
+    'event_stock_transfer_sent' => 'ব্রাঞ্চ ট্রান্সফার পাঠানো হয়েছে',
+    'event_stock_transfer_received' => 'ব্রাঞ্চ ট্রান্সফার গ্রহণ করা হয়েছে',
+    'event_stock_transfer_cancelled' => 'ব্রাঞ্চ ট্রান্সফার বাতিল হয়েছে',
+    'stock_received_on' => 'গ্রহণের তারিখ',
+    'stock_unit_cost' => 'প্রতি ইউনিটের খরচ',
 ];

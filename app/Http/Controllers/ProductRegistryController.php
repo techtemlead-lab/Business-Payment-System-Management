@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Finance\Percentage;
 use App\Domain\Inventory\BranchOperations;
+use App\Domain\Inventory\StockLots;
 use App\Domain\Inventory\StockNotifications;
 use App\Models\BranchProductStock;
 use App\Models\Product;
@@ -294,13 +295,14 @@ class ProductRegistryController extends Controller
                 $p->save();
                 if (! $product && $initialStock > 0) {
                     $hub = $this->branches->resolveWritableBranch($r->user());
-                    BranchProductStock::query()->updateOrCreate(
+                    $hubStock = BranchProductStock::query()->updateOrCreate(
                         ['branch_id' => $hub->id, 'product_id' => $p->id],
                         [
                             'quantity' => $initialStock,
                             'low_stock_at' => (int) ($p->low_stock_at ?? 10),
                         ],
                     );
+                    app(StockLots::class)->reconcile($hubStock, $p->refresh());
                     DB::table('stock_movements')->insert([
                         'product_id' => $p->id,
                         'branch_id' => $hub->id,

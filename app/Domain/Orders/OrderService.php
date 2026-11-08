@@ -8,6 +8,7 @@ use App\Domain\Finance\FinanceSettings;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Integrations\PaymentGatewayClient;
 use App\Domain\Inventory\BranchOperations;
+use App\Domain\Inventory\StockLots;
 use App\Domain\Inventory\StockNotifications;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Pricing\ProductPricing;
@@ -39,6 +40,7 @@ class OrderService
         private readonly CommissionPosting $commissions,
         private readonly StockNotifications $stockNotifications,
         private readonly BranchOperations $branches,
+        private readonly StockLots $stockLots,
     ) {}
 
     public function create(User $user, array $data, ?User $submittedBy = null): Order
@@ -359,6 +361,7 @@ class OrderService
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+            $this->stockLots->linkShipment($shipmentLines, $shipmentId);
             if ($bookCourier) {
                 DB::afterCommit(fn () => BookShipmentCourier::dispatch($shipmentId));
             }
@@ -457,6 +460,12 @@ class OrderService
                     'reason' => $locked->number,
                     'reference' => 'shipment-return:'.$shipment->id.':'.$line['line_id'],
                     'branch_id' => (int) $shipment->branch_id,
+                    // Older parcels have no lot record, so they come back as a new lot with the batch on the order line.
+                    'return_lots' => $line['lots'] ?? [],
+                    'lot_source' => StockLots::SourceReturn,
+                    'batch_number' => $orderLines[$line['line_id']]->getAttribute('batch_number'),
+                    'expires_on' => $orderLines[$line['line_id']]->getRawOriginal('expires_on'),
+                    'lot_context' => ['order_id' => $locked->id, 'order_line_id' => (int) $line['line_id'], 'shipment_id' => (int) $shipment->id],
                 ]);
             }
             DB::table('shipments')->where('id', $shipment->id)->update(['status' => 'returned', 'updated_at' => now()]);
@@ -603,7 +612,7 @@ class OrderService
         foreach ($lines as $line) {
             $left = (int) $line->getAttribute('quantity') - (int) $line->getAttribute('dispatched');
             $product = $products->get((int) $line->getAttribute('product_id'));
-            if (! $product instanceof Product || $this->branches->ensureBranchStock($branch, $product)->quantity < $left) {
+            if (! $product instanceof Product || $this->stockLots->usableQuantity($this->branches->ensureBranchStock($branch, $product), $product) < $left) {
                 $this->autoShipSkipped($actor, $locked, (string) $provider, 'stock');
 
                 return;
@@ -625,6 +634,7 @@ class OrderService
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $this->stockLots->linkShipment($shipmentLines, $shipmentId);
         DB::afterCommit(fn () => BookShipmentCourier::dispatch($shipmentId));
         $remaining = $locked->lines()->whereColumn('dispatched', '<', 'quantity')->exists();
         $locked->update(['status' => $remaining ? 'partially_dispatched' : 'dispatched', 'fulfillment_branch_id' => $branch->id]);
@@ -652,7 +662,7 @@ class OrderService
      * Takes the shipped quantities out of the branch stock and marks the order lines sent.
      *
      * @param  list<array{line_id: int, quantity: int}>  $items
-     * @return list<array{line_id: int, name: string, quantity: int}>
+     * @return list<array{line_id: int, name: string, quantity: int, lots: list<array{movement_id: int, lot_id: int, batch_number: ?string, expires_on: ?string, quantity: int}>}>
      */
     private function takeStock(User $actor, Order $locked, CompanyBranch $branch, array $items): array
     {
@@ -669,8 +679,13 @@ class OrderService
                 throw ValidationException::withMessages(['shipment' => __('portal.err_shipment_qty', ['product' => $product->name])]);
             }
             $previousStock = $product->stock;
-            $branchStock->quantity = (int) $branchStock->quantity - $quantity;
-            $branchStock->save();
+            $takenLots = $this->stockLots->take($branchStock, $product, $quantity, [
+                'kind' => StockLots::KindDispatch,
+                'actor_id' => $actor->id,
+                'order_id' => $locked->id,
+                'order_line_id' => $line->id,
+                'reference' => $locked->number,
+            ], errorField: 'shipment');
             $companyTotal = (int) BranchProductStock::query()->where('product_id', $product->id)->sum('quantity');
             $product->forceFill(['stock' => $companyTotal])->save();
             $this->stockNotifications->recordChange($product, $previousStock, $previousStock > 0 && ! $product->is_stock_paused);
@@ -686,7 +701,7 @@ class OrderService
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-            $shipmentLines[] = ['line_id' => $line->id, 'name' => $line->name, 'quantity' => $quantity];
+            $shipmentLines[] = ['line_id' => $line->id, 'name' => $line->name, 'quantity' => $quantity, 'lots' => $takenLots];
         }
 
         return $shipmentLines;

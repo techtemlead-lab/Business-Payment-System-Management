@@ -53,6 +53,19 @@ class AdjustStockRequest extends FormRequest
                 'string',
                 'max:60',
             ],
+            'received_on' => [
+                Rule::excludeIf($kind !== BranchOperations::KindProductIn),
+                'nullable',
+                'date',
+                'before_or_equal:'.now('Asia/Dhaka')->toDateString(),
+            ],
+            'unit_cost' => [
+                Rule::excludeIf($kind !== BranchOperations::KindProductIn),
+                'nullable',
+                'numeric',
+                'min:0',
+                'max:99999999',
+            ],
         ];
     }
 

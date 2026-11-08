@@ -69,6 +69,10 @@ Schedule::command('support:overdue-reminders')->dailyAt('09:30')->timezone('Asia
 Schedule::command('prescriptions:follow-up-reminders')->dailyAt('08:30')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
     ->onFailure(fn () => Log::critical('Scheduled prescription follow-up reminder failed.'));
 
+// Inventory staff: batches newly inside the warning window or just expired. Portal notice only.
+Schedule::command('stock:near-expiry-notices')->dailyAt('08:45')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
+    ->onFailure(fn () => Log::critical('Scheduled near-expiry stock notice failed.'));
+
 // Failed background jobs are kept for a week to investigate, then removed.
 Schedule::command('queue:prune-failed --hours=168')->dailyAt('04:15')->timezone('Asia/Dhaka')->withoutOverlapping(30)->onOneServer();
 

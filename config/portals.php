@@ -52,7 +52,7 @@ return [
             'dashboards', 'employees', 'accounts', 'sub-dealers', 'sub-dealer-applications', 'sub-dealer-orders', 'treasury', 'inventory', 'branches', 'branch-performance',
             'payments', 'policies', 'salary', 'withdrawals', 'ledger', 'reports', 'top-sellers', 'content', 'website', 'customization',
             'enquiries', 'feedback', 'partnerships', 'audit', 'commissions', 'network-tree', 'area-dealers', 'place-codes', 'ranks', 'rewards',
-            'settlements', 'simulator', 'payouts-hub', 'help', 'support-admin', 'agreement', 'partner-messages', 'training', 'events', 'prescriptions',
+            'settlements', 'simulator', 'payouts-hub', 'help', 'support-admin', 'agreement', 'partner-messages', 'training', 'events', 'prescriptions', 'stock-lots',
         ],
         'staff_capabilities' => [
             'dashboards' => 'accounts',
@@ -92,6 +92,7 @@ return [
             'partner-messages' => 'partner_chat',
             'training' => 'content',
             'events' => 'content',
+            'stock-lots' => 'inventory',
         ],
         'nav' => [
             'home' => ['overview'],
@@ -126,7 +127,7 @@ return [
             'dashboards', 'employees', 'accounts', 'sub-dealers', 'sub-dealer-applications', 'sub-dealer-orders', 'treasury', 'inventory', 'branches', 'branch-performance',
             'payments', 'policies', 'salary', 'withdrawals', 'ledger', 'reports', 'top-sellers', 'content', 'website', 'customization',
             'enquiries', 'feedback', 'partnerships', 'audit', 'commissions', 'network-tree', 'area-dealers', 'place-codes', 'ranks', 'rewards',
-            'settlements', 'simulator', 'payouts-hub', 'benefits-fund', 'help', 'support-admin', 'agreement', 'partner-messages', 'training', 'events', 'data-cleanup', 'prescriptions',
+            'settlements', 'simulator', 'payouts-hub', 'benefits-fund', 'help', 'support-admin', 'agreement', 'partner-messages', 'training', 'events', 'data-cleanup', 'prescriptions', 'stock-lots',
         ],
         'staff_capabilities' => [
             'dashboards' => 'accounts',
@@ -166,6 +167,7 @@ return [
             'partner-messages' => 'partner_chat',
             'training' => 'content',
             'events' => 'content',
+            'stock-lots' => 'inventory',
         ],
         'nav' => [
             'home' => ['overview'],

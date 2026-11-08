@@ -206,6 +206,7 @@ class HandleInertiaRequests extends Middleware
                 'auth' => Lang::get('auth_ui'),
                 'courier' => Lang::get('courier'),
                 'prescription' => Lang::get('prescription'),
+                'stock_lots' => Lang::get('stock_lots'),
             ])->as('i18n:'.$locale),
             'portalCatalog' => Inertia::once(fn () => $portalShell
                 ? PortalCatalog::inertiaPayload($portal)
