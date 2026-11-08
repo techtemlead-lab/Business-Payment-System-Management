@@ -41,7 +41,7 @@ final class CommissionPosting
             foreach ($keys as $key) {
                 $rate += CommissionPolicy::rate($snapshot['rules'], $key)->basisPoints;
             }
-            $mrp = $order->chargedLines()->sum(fn ($line): int => Money::cents($line->mrp) * $line->quantity);
+            $mrp = $order->chargedLines()->sum(fn ($line): int => Money::cents((string) $line->mrp) * $line->quantity);
             $cash = Money::cents($order->total);
             if ($mrp <= 0 || $cash * 10000 < $mrp * 3000 + $cash * $rate) {
                 throw ValidationException::withMessages(['items' => __('portal.err_post_price_funding')]);
@@ -242,22 +242,24 @@ final class CommissionPosting
         $mrp = 0;
         $quantities = [];
         foreach ($order->chargedLines() as $line) {
-            $quantity = $delivered[$line->id] ?? 0;
+            $lineId = (int) $line->getKey();
+            $quantity = $delivered[$lineId] ?? 0;
             if ($quantity === 0) {
                 continue;
             }
-            $unitPrice = Money::cents($line->unit_price);
-            if ($quantity > $line->quantity || $unitPrice * $line->quantity !== Money::cents($line->total)) {
+            $ordered = (int) $line->getAttribute('quantity');
+            $unitPrice = Money::cents((string) $line->getAttribute('unit_price'));
+            if ($quantity > $ordered || $unitPrice * $ordered !== Money::cents((string) $line->getAttribute('total'))) {
                 throw ValidationException::withMessages(['commissions' => __('portal.err_post_reconcile')]);
             }
             $cash += $unitPrice * $quantity;
-            $mrp += Money::cents($line->mrp) * $quantity;
-            $quantities[$line->id] = $quantity;
+            $mrp += Money::cents((string) $line->getAttribute('mrp')) * $quantity;
+            $quantities[$lineId] = $quantity;
         }
         if ($cash <= 0 || $mrp <= 0) {
             throw ValidationException::withMessages(['decision' => __('schemes_commission.err_nothing_paid_delivered')]);
         }
-        if (Money::cents($order->paid) !== Money::cents($order->total)) {
+        if (Money::cents((string) $order->paid) !== Money::cents((string) $order->total)) {
             throw ValidationException::withMessages(['decision' => __('schemes_commission.err_not_paid_in_full')]);
         }
 
@@ -280,8 +282,8 @@ final class CommissionPosting
             $mrp = 0;
             $lineCash = 0;
             foreach ($order->chargedLines() as $line) {
-                $mrp += Money::cents($line->mrp) * $line->quantity;
-                $lineCash += Money::cents($line->total);
+                $mrp += Money::cents((string) $line->mrp) * $line->quantity;
+                $lineCash += Money::cents((string) $line->total);
             }
             if ($mrp <= 0 || $lineCash !== $cash) {
                 throw ValidationException::withMessages(['commissions' => __('portal.err_post_reconcile')]);

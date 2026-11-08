@@ -50,7 +50,7 @@ final class SchemeFreeLines
                 'sku' => $product->sku,
                 'category_snapshot' => $product->category,
                 'batch_number' => $product->batch_number,
-                'expires_on' => $product->expires_on?->toDateString(),
+                'expires_on' => $product->getAttribute('expires_on')?->toDateString(),
                 'quantity' => (int) $scheme->free_quantity,
                 'mrp' => $product->mrp,
                 'unit_price' => '0.00',

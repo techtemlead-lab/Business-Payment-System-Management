@@ -43,11 +43,11 @@ class Order extends Model
     /**
      * The lines the dealer pays for. Free scheme goods are left out of every money figure.
      *
-     * @return Collection<int, OrderLine>
+     * @return Collection<int, Model>
      */
     public function chargedLines(): Collection
     {
-        return $this->lines->reject(fn (OrderLine $line): bool => (bool) $line->is_free)->values();
+        return $this->lines->reject(fn (Model $line): bool => (bool) $line->getAttribute('is_free'))->values();
     }
 
     public function user(): BelongsTo
