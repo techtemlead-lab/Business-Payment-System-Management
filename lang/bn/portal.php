@@ -6408,4 +6408,9 @@ return [
     'event_stock_lot_written_off' => 'আটকে রাখা ব্যাচ লোকসান হিসেবে বাদ',
     'event_stock_lot_details_filled' => 'ব্যাচের তথ্য লেখা হয়েছে',
     'event_fund_budget_saved' => 'খরচের খাতের বাজেট সেভ হয়েছে',
+    'event_courier_area_mapped' => 'প্লেস কোডের সাথে কুরিয়ারের এলাকা মিলানো হয়েছে',
+    'event_courier_area_removed' => 'কুরিয়ারের এলাকার মিল মুছে দেওয়া হয়েছে',
+    'event_courier_area_fetch_started' => 'কুরিয়ার থেকে এলাকা আনা শুরু হয়েছে',
+    'si_field_status_field' => 'ট্র্যাকিং উত্তরে অবস্থাটা যেখানে থাকে (না জানলে ফাঁকা রাখুন)',
+    'si_field_status_map' => 'অবস্থার কথা, প্রতি লাইনে একটা: কুরিয়ারের কথা = waiting, picked up, in transit, delivered অথবা returned',
 ];

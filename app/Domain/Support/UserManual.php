@@ -357,6 +357,12 @@ final class UserManual
             $this->ch('practitioner_directory', ['dealer', 'sub_dealer', 'staff', 'owner'], 5, 1, 1, 1, ['practitioner', 'directory', 'consultation', 'public listing', 'request', 'চিকিৎসক', 'পরামর্শ', 'তালিকা', 'অনুরোধ']),
             $this->ch('patient_records', ['dealer', 'sub_dealer', 'staff', 'owner'], 5, 1, 1, 1, ['patient', 'consent', 'allergy', 'allergies', 'history', 'record', 'রোগী', 'সম্মতি', 'অ্যালার্জি', 'খাতা']),
             $this->ch('prescription_templates_followups', ['dealer', 'sub_dealer', 'staff', 'owner'], 6, 1, 1, 1, ['template', 'follow-up', 'follow up', 'again', 'টেমপ্লেট', 'ফলো-আপ', 'আবার দেখানো']),
+            $this->ch('contests_guide', ['dealer', 'sub_dealer', 'owner'], 4, 1, 1, 1, ['contest', 'standings', 'prize', 'competition', 'প্রতিযোগিতা', 'অবস্থান', 'পুরস্কার']),
+            $this->ch('partner_scorecard', ['staff', 'owner'], 3, 1, 1, 1, ['scorecard', 'partner', 'returned', 'cancelled', 'payments', 'স্কোরকার্ড', 'পার্টনার', 'ফেরত']),
+            $this->ch('duplicate_account_check', ['staff', 'owner'], 3, 1, 1, 1, ['duplicate', 'same person', 'nid', 'phone', 'identity', 'ডুপ্লিকেট', 'একই ব্যক্তি', 'এনআইডি']),
+            $this->ch('device_list', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 4, 1, 1, 1, ['device', 'session', 'log out', 'security', 'phone', 'ডিভাইস', 'লগআউট', 'সিকিউরিটি']),
+            $this->ch('saved_filters', ['staff', 'owner'], 3, 1, 1, 1, ['saved filter', 'filter', 'columns', 'list', 'সেভ করা ফিল্টার', 'ফিল্টার', 'কলাম']),
+            $this->ch('batches_on_hold', ['staff', 'owner'], 4, 1, 1, 1, ['hold', 'batch', 'quarantine', 'release', 'write off', 'হোল্ড', 'ব্যাচ', 'আটকে', 'রিলিজ']),
             $this->ch('prescription_dosing', ['dealer', 'sub_dealer', 'staff', 'owner'], 5, 1, 1, 1, ['dose', 'dosing', '1+0+1', 'morning', 'noon', 'night', 'food', 'মাত্রা', 'সকাল', 'দুপুর', 'রাত', 'খাবার']),
         ];
     }

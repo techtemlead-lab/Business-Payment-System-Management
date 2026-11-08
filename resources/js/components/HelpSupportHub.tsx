@@ -490,7 +490,7 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                         columns={[
                             { key: 'created_at', title: translate('portal', 'col_date'), render: (row) => date(row.created_at) },
                             { key: 'category', title: translate('portal', 'support_category'), render: (row) => row.topic_label ?? translate('portal', `support_cat_${row.category}`) },
-                            { key: 'subject', title: translate('portal', 'support_subject'), render: (row) => <SupportRequestDetails request={row} /> },
+                            { key: 'subject', title: translate('portal', 'support_subject'), render: (row) => <SupportRequestDetails request={row} canReply={isPartner} /> },
                             { key: 'status', title: translate('portal', 'col_status'), render: (row) => <Badge status={row.status} /> },
                         ]}
                     />
@@ -504,7 +504,7 @@ export default function HelpSupportHub({ data }: { data: Row }) {
 }
 
 /** One request in the partner's list: what they wrote and what the office answered. */
-function SupportRequestDetails({ request }: { request: Row }) {
+function SupportRequestDetails({ request, canReply }: { request: Row; canReply: boolean }) {
     const translate = useT();
     const replies: Row[] = request.replies || [];
 
@@ -519,6 +519,20 @@ function SupportRequestDetails({ request }: { request: Row }) {
                     <p className="ptl-prewrap">{reply.body}</p>
                 </div>
             ))}
+            {canReply && !request.earlier && (
+                <Form action={`/commands/support-tickets/${request.id}/reply`} method="post" className="action-form ops-mt-3" resetOnSuccess options={{ preserveScroll: true }}>
+                    {({ errors, processing }) => (
+                        <>
+                            <label>
+                                {translate('wave3_ops', 'support_reply_label')}
+                                <textarea name="body" rows={3} required maxLength={5000} />
+                                {errors.body && <span className="field-error">{errors.body}</span>}
+                            </label>
+                            <button className="button small dark" disabled={processing}>{translate('wave3_ops', 'support_reply_send')}</button>
+                        </>
+                    )}
+                </Form>
+            )}
         </details>
     );
 }

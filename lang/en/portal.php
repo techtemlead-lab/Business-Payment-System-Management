@@ -6408,4 +6408,9 @@ return [
     'event_stock_lot_written_off' => 'Held batch written off',
     'event_stock_lot_details_filled' => 'Batch details filled in',
     'event_fund_budget_saved' => 'Expense head budget saved',
+    'event_courier_area_mapped' => 'Courier area matched to a place code',
+    'event_courier_area_removed' => 'Courier area match removed',
+    'event_courier_area_fetch_started' => 'Fetching areas from a courier started',
+    'si_field_status_field' => 'Where the status is in the tracking answer (leave blank if unsure)',
+    'si_field_status_map' => 'Status words, one per line: courier\'s words = waiting, picked up, in transit, delivered or returned',
 ];
