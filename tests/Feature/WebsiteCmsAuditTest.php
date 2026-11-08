@@ -130,6 +130,19 @@ class WebsiteCmsAuditTest extends TestCase
         }
     }
 
+    public function test_printed_papers_only_use_a_logo_picture_inside_the_public_folder(): void
+    {
+        $this->assertNull(SiteCustomization::logoFilePath(), 'The factory logo keeps its own file on printed papers.');
+
+        foreach (['/../.env', '/../composer.json', '/index.php', '/branding/not-there.png'] as $unsafe) {
+            SiteCustomization::save(['site_logo_url' => $unsafe]);
+            $this->assertNull(SiteCustomization::logoFilePath(), $unsafe.' must not be used.');
+        }
+
+        SiteCustomization::save(['site_logo_url' => '/madina-header-logo-white.png?v=2']);
+        $this->assertSame(realpath(public_path('madina-header-logo-white.png')), SiteCustomization::logoFilePath());
+    }
+
     public function test_the_old_fixed_logo_address_is_only_kept_as_the_factory_setting(): void
     {
         foreach (['reference/header.blade.php', 'reference/footer.blade.php', 'reference/layout.blade.php', 'reference/partials/page-boot.blade.php', 'reference/auth.blade.php', 'reference/partner-login.blade.php', 'company/auth.blade.php', 'errors/layout.blade.php'] as $view) {
