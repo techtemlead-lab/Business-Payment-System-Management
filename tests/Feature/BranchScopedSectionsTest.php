@@ -230,6 +230,39 @@ class BranchScopedSectionsTest extends TestCase
             ->where('data.top_sellers.national', fn ($rows) => count($rows) === 3));
     }
 
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function partnerAccountPages(): array
+    {
+        return ['dealers' => ['/accounts', 'dealer'], 'sub-dealers' => ['/sub-dealers', 'sub_dealer']];
+    }
+
+    #[DataProvider('partnerAccountPages')]
+    public function test_partner_accounts_follow_the_partner_branch(string $path, string $role): void
+    {
+        $partners = collect($this->partnersPerBranch($role))->map(fn (User $partner): int => $partner->id);
+        $all = $role === 'dealer' ? [...$partners->values()->all(), $this->partner->id] : $partners->values()->all();
+        $owner = User::factory()->staff()->create(['active_branch_id' => $this->dhaka->id]);
+
+        $this->actingAs($owner)->onPortal('sadmin')->get($path)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.branch_scope.code', 'DHK-01')
+            ->where('data.accounts.data', fn ($rows) => $this->ids($rows) === [$partners['dhaka']])
+            ->where('data.account_status_counts', ['active' => 1]));
+        $this->ownerOnAll()->get($path)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.branch_scope.view', 'all')
+            ->where('data.accounts.data', fn ($rows) => $this->ids($rows) === $this->sortedIds($all)));
+        $this->ownerOnAll()->get($path.'?branch_id='.$this->rajshahi->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.accounts.data', fn ($rows) => $this->ids($rows) === [$partners['rajshahi']]));
+
+        $this->flushSession();
+        $this->actingAs(User::factory()->staff('account_manager')->create())->onPortal('manage')->get($path)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.branch_scope.view', 'all')
+            ->where('data.accounts.data', fn ($rows) => count($rows) === count($all)));
+        // The accounts permission already covers every branch, so branch staff cannot open this page.
+        $this->actingAs($this->branchStaff($this->dhaka))->onPortal('manage')->get($path)->assertForbidden();
+    }
+
     public function test_payment_claims_follow_the_order_branch(): void
     {
         $claims = collect($this->ordersPerBranch('dispatched', 'submitted'))->map(fn (string $number): int => $this->claimFor($number));
@@ -293,18 +326,30 @@ class BranchScopedSectionsTest extends TestCase
 
     /**
      * One partner saved on the Dhaka branch, one matched to Rajshahi by district,
-     * and one with no branch at all, each with one withdrawal request.
+     * and one with no branch at all.
+     *
+     * @return array{dhaka: User, rajshahi: User, none: User}
+     */
+    private function partnersPerBranch(string $role = 'dealer'): array
+    {
+        $this->rajshahi->forceFill(['district' => 'Rajshahi'])->save();
+        $factory = fn (array $attributes): User => ($role === 'dealer' ? User::factory()->dealer() : User::factory()->subDealer())->create($attributes);
+
+        return [
+            'dhaka' => $factory(['active_branch_id' => $this->dhaka->id, 'district' => 'Sylhet']),
+            'rajshahi' => $factory(['district' => 'Rajshahi']),
+            'none' => $factory(['district' => 'Sylhet']),
+        ];
+    }
+
+    /**
+     * One withdrawal request from each partner of {@see partnersPerBranch()}.
      *
      * @return array{dhaka: string, rajshahi: string, none: string}
      */
     private function withdrawalsPerBranch(): array
     {
-        $this->rajshahi->forceFill(['district' => 'Rajshahi'])->save();
-        $partners = [
-            'dhaka' => User::factory()->dealer()->create(['active_branch_id' => $this->dhaka->id, 'district' => 'Sylhet']),
-            'rajshahi' => User::factory()->dealer()->create(['district' => 'Rajshahi']),
-            'none' => User::factory()->dealer()->create(['district' => 'Sylhet']),
-        ];
+        $partners = $this->partnersPerBranch();
 
         return array_map(function (User $partner): string {
             $id = (string) Str::uuid();
