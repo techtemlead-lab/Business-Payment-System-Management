@@ -33,9 +33,9 @@ class SignedInRoundWordingNavTest extends TestCase
                 ->where('publicBase', 'http://example.test')
                 ->where('data.websitePages.1.slug', '/about'));
 
-        $section = (string) file_get_contents(resource_path('js/components/website/sections/OtherPagesSection.tsx'));
-        $this->assertStringContainsString('href={`${publicBase}${page.slug}`}', $section);
-        $this->assertStringNotContainsString('href={page.slug}', $section);
+        $section = (string) file_get_contents(resource_path('js/components/website/WebsiteLayout.tsx'));
+        $this->assertStringContainsString('href={`${publicBase}${slug}`}', $section);
+        $this->assertStringNotContainsString('href={slug}', $section);
     }
 
     public function test_order_quantity_column_has_its_own_heading_and_the_money_heading_stays(): void
