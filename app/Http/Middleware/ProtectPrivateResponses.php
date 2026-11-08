@@ -58,13 +58,15 @@ class ProtectPrivateResponses
         $videoFrames = ' '.implode(' ', TrainingVideoLink::EmbedHosts);
         // Bunny Fonts serves some font files (Instrument Serif headings) from the jsDelivr fontsource path.
         $fontFiles = ' https://cdn.jsdelivr.net/fontsource/';
+        // Removing a product photo's background runs WebAssembly in the browser, and only the office portals have that form.
+        $officeTools = in_array(PortalHost::activePreviewPortal($request), ['manage', 'sadmin'], true) ? " 'wasm-unsafe-eval'" : '';
 
         $response->headers->set(
             'Content-Security-Policy',
             "default-src 'self'{$previewSource}{$domainHosts}; base-uri 'self'; object-src 'none'; "
             ."frame-ancestors 'self'{$domainHosts}; form-action {$formAction}; "
             ."frame-src 'self'{$domainHosts} https://maps.google.com https://www.google.com https://maps.googleapis.com{$videoFrames}; "
-            ."script-src 'self' 'nonce-{$nonce}' 'unsafe-inline'{$domainHosts}{$viteDev}; "
+            ."script-src 'self' 'nonce-{$nonce}' 'unsafe-inline'{$officeTools}{$domainHosts}{$viteDev}; "
             ."style-src 'self' 'unsafe-inline' https://fonts.bunny.net{$domainHosts}{$viteDev}; "
             ."img-src 'self' data: blob:{$domainHosts}{$viteDev}; "
             ."font-src 'self' data: https://fonts.bunny.net{$fontFiles}{$domainHosts}{$viteDev}; "

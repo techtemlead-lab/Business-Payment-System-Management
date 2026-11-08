@@ -3249,3 +3249,25 @@ html[data-theme="dark"] .notice-panel .skeleton{background:linear-gradient(90deg
 .stock-image-frame{position:relative;display:block;width:132px;height:99px;border-radius:12px;overflow:hidden;box-shadow:0 10px 16px rgba(30,42,25,.2)}
 .stock-image-frame img{display:block;width:100%;height:100%;object-fit:cover}
 .stock-image-caption{position:absolute;left:0;right:0;bottom:0;padding:2px 4px;background:rgba(1,22,39,.74);color:#fff;font-size:10px;font-weight:600;line-height:1.4;text-align:center}
+
+/* Removing a product photo's background */
+.ppc{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.ppc-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.ppc-note{margin:0;font-size:14px;line-height:1.5;color:#475569}
+.ppc-note.is-error{color:#b91c1c}
+.ppc-button{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 14px;border:1px solid #0c3b2a;border-radius:8px;background:#fff;color:#0c3b2a;font-size:14px;font-weight:600;cursor:pointer}
+.ppc-button.is-primary{background:#0c3b2a;color:#fff}
+.ppc-button:disabled{opacity:.5;cursor:not-allowed}
+.ppc-link{border:0;padding:0;background:transparent;color:#14633f;font-size:14px;font-weight:600;text-decoration:underline;cursor:pointer}
+.ppc-spinner{width:18px;height:18px;border:2px solid #e7e4d6;border-top-color:#14633f;border-radius:50%;animation:ppc-turn .8s linear infinite}
+@keyframes ppc-turn{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.ppc-spinner{animation:none}}
+.ppc-compare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;max-width:560px}
+.ppc-compare figure{display:flex;flex-direction:column;gap:6px;margin:0}
+.ppc-compare figcaption{font-size:14px;font-weight:600}
+.ppc-panel{position:relative;aspect-ratio:1/1;border:1px solid #e7e4d6;border-radius:10px;background:#f8f6ec}
+.ppc-panel img{position:absolute;inset:12px;width:calc(100% - 24px);height:calc(100% - 24px);object-fit:contain}
+.registry-photo{background:#f8f6ec}
+html[data-theme="dark"] .ppc-note{color:#cbd5e1}
+html[data-theme="dark"] .ppc-note.is-error{color:#fca5a5}
+html[data-theme="dark"] .ppc-link{color:#7fd0a4}

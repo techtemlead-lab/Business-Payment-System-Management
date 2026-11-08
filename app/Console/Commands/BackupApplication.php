@@ -126,7 +126,7 @@ class BackupApplication extends Command
         $files = [];
         foreach (['local' => 'private', 'public' => 'public'] as $disk => $prefix) {
             foreach (Storage::disk($disk)->allFiles() as $file) {
-                if (in_array(explode('/', $file)[0], ['backup-work', 'backups', 'backups-offsite', 'deployment-backups', 'exports', 'readiness'], true) || basename($file) === '.gitignore') {
+                if (in_array(explode('/', $file)[0], ['backup-work', 'backups', 'backups-offsite', 'deployment-backups', 'exports', 'product-photo-model', 'readiness'], true) || basename($file) === '.gitignore') {
                     continue;
                 }
                 $source = Storage::disk($disk)->path($file);

@@ -45,7 +45,7 @@ class Product extends Model
 
     protected $guarded = ['id'];
 
-    protected $hidden = ['cost_price', 'image_path', 'video_path', 'video_mime', 'sellable_stock'];
+    protected $hidden = ['cost_price', 'image_path', 'image_original_path', 'video_path', 'video_mime', 'sellable_stock'];
 
     protected $attributes = ['stock' => 0, 'low_stock_at' => 10, 'active' => true, 'tone' => 'sage', 'unit' => 'pack'];
 
