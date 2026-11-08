@@ -49,7 +49,7 @@ class PublicRenderPerformanceTest extends TestCase
 
         $this->assertStringContainsString('/reference/fontawesome-local.css', $html);
         $this->assertStringNotContainsString('fonts.bunny.net/css?family=noto-sans-bengali', $html);
-        $this->assertStringContainsString('/madina-header-logo.png?v=9', $html);
+        $this->assertStringContainsString('/madina-header-logo.png?v=10', $html);
         $this->assertStringContainsString('rel="preload" as="image"', $html);
     }
 

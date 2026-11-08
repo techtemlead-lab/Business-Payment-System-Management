@@ -491,7 +491,7 @@ export default function Shell({ section, children, action }: { section: string; 
                     <X size={18} />
                 </button>
                 <a href={base || '/'} className="portal-logo sidebar-logo" aria-label={translate('portal', 'brand_dashboard_aria')}>
-                    <img src="/madina-header-logo.png?v=8" alt="" />
+                    <img src="/madina-header-logo.png?v=10" alt="" />
                     <span className="sidebar-logo-mark" aria-hidden="true">MNHC</span>
                 </a>
                 <div className="workspace-label">

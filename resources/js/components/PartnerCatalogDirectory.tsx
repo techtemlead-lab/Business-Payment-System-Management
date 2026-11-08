@@ -164,6 +164,18 @@ export default function PartnerCatalogDirectory({ products = [], categories = []
                                                 alt={p.name}
                                                 className="pcd-thumb"
                                             />
+                                        ) : p.image_fallback ? (
+                                            <img
+                                                src={p.image_fallback.url}
+                                                alt={p.image_fallback.alt}
+                                                title={p.image_fallback.caption}
+                                                width={38}
+                                                height={38}
+                                                loading="lazy"
+                                                decoding="async"
+                                                className="pcd-thumb"
+                                                style={{ objectFit: 'cover' }}
+                                            />
                                         ) : (
                                             <div className="pcd-thumb is-placeholder">
                                                 MH
@@ -182,6 +194,7 @@ export default function PartnerCatalogDirectory({ products = [], categories = []
                                             </div>
                                             <div className="cell-sub">
                                                 SKU: <code>{p.sku}</code>
+                                                {!p.image_url && p.image_fallback ? ` · ${p.image_fallback.caption}` : null}
                                             </div>
                                         </div>
                                     </div>
