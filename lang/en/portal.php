@@ -6432,4 +6432,6 @@ return [
     'event_shipment_received_back' => 'Parcel received back',
     'acct_partner_created_sent' => ':role account added. Code: :code. The login details went to :phone / :email. The username is the mobile number.',
     'acct_partner_created_not_sent' => ':role account added. Code: :code. The password could not be sent because SMS and email are not on. Open this account and use Login password to see it, then give it to them. The username is the mobile number.',
+    'kyc_note_added_with_account' => 'Added with the new account',
+    'acct_password_copy_failed' => 'Could not copy. Select the password and copy it by hand.',
 ];
