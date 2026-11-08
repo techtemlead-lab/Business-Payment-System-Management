@@ -61,7 +61,8 @@ class FetchCourierAreas implements ShouldQueue
     private function continueFrom(?string $cityId): void
     {
         $cities = DB::table('courier_area_options')->where('provider', $this->provider)->where('level', 'city')->orderBy('id')->pluck('external_id')->all();
-        $next = $cityId === null ? ($cities[0] ?? null) : ($cities[array_search($cityId, $cities, true) + 1] ?? null);
+        $position = $cityId === null ? -1 : array_search($cityId, $cities, true);
+        $next = $position === false ? null : ($cities[$position + 1] ?? null);
         if ($next === null) {
             $this->finish();
 

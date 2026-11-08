@@ -253,7 +253,7 @@ final class CourierGatewayClient
             'recipient_thana' => Str::limit((string) ($shipment['recipient_thana'] ?? ''), 40, ''),
             'recipient_area' => Str::limit((string) ($shipment['recipient_area'] ?? ''), 40, ''),
             'recipient_address' => $shipment['recipient_address'] ?? '',
-            'package_code' => (string) ($config['package_code'] ?? ''),
+            'package_code' => (string) $config['package_code'],
             'product_price' => (int) round((float) ($shipment['amount'] ?? 0)),
             'payment_method' => 'COD',
             'recipient_zip' => '',

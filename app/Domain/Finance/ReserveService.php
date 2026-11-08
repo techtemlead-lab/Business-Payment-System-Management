@@ -54,14 +54,12 @@ final class ReserveService
                 throw ValidationException::withMessages(['program' => __('wave3_ops.err_marketing_moved')]);
             }
             $awardKey = null;
-            if ($data['program'] !== 'marketing') {
-                $user = User::whereKey($data['user_id'])->where('status', 'active')->whereIn('role', ['dealer', 'sub_dealer'])->firstOrFail();
-                if (in_array($data['program'], ['bike', 'car'], true)) {
-                    $awardKey = $data['program'].':'.$user->id;
-                    if (! $this->qualification->milestone($user->id, $data['program'])['achieved']
-                        || DB::table('reserve_disbursements')->where('award_key', $awardKey)->exists()) {
-                        throw ValidationException::withMessages(['program' => __('portal.err_reserve_milestone_once')]);
-                    }
+            $user = User::whereKey($data['user_id'])->where('status', 'active')->whereIn('role', ['dealer', 'sub_dealer'])->firstOrFail();
+            if (in_array($data['program'], ['bike', 'car'], true)) {
+                $awardKey = $data['program'].':'.$user->id;
+                if (! $this->qualification->milestone($user->id, $data['program'])['achieved']
+                    || DB::table('reserve_disbursements')->where('award_key', $awardKey)->exists()) {
+                    throw ValidationException::withMessages(['program' => __('portal.err_reserve_milestone_once')]);
                 }
             }
             $id = DB::table('reserve_disbursements')->insertGetId([...collect($data)->only(['program', 'user_id', 'payee_name', 'amount', 'request_key', 'reason'])->all(),

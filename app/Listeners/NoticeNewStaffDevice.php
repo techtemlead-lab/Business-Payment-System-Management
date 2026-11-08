@@ -18,8 +18,6 @@ use Throwable;
  */
 class NoticeNewStaffDevice
 {
-    public function __construct(private UserDevices $devices) {}
-
     public function handle(Login $event): void
     {
         try {
@@ -34,7 +32,7 @@ class NoticeNewStaffDevice
 
     private function remember(User $user, string $userAgent): void
     {
-        $device = mb_substr($this->devices->label($userAgent), 0, 120);
+        $device = mb_substr(app(UserDevices::class)->label($userAgent), 0, 120);
         $alreadyKnown = DB::table('known_sign_in_devices')->where('user_id', $user->id)->where('device', $device)
             ->update(['last_seen_at' => now()]) > 0;
         if ($alreadyKnown) {

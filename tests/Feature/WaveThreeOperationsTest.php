@@ -35,7 +35,8 @@ class WaveThreeOperationsTest extends TestCase
     public function test_a_partner_reply_moves_a_resolved_request_back_and_tells_the_office(): void
     {
         $dealer = User::factory()->dealer()->create(['status' => 'active']);
-        $supportStaff = User::factory()->staff('accounts')->create(['status' => 'active']);
+        $supportStaff = User::factory()->staff('support')->create(['status' => 'active']);
+        $accountsStaff = User::factory()->staff('account_manager')->create(['status' => 'active']);
         $unrelatedStaff = User::factory()->staff('inventory')->create(['status' => 'active']);
         $ticket = app(SupportTickets::class)->create($dealer, ['category' => 'technical', 'subject' => 'App problem', 'body' => 'It stopped.']);
         app(SupportTickets::class)->reply($supportStaff, $ticket['id'], 'Please try again.', 'resolved');
@@ -48,6 +49,7 @@ class WaveThreeOperationsTest extends TestCase
         $this->assertDatabaseHas('support_tickets', ['id' => $ticket['id'], 'status' => 'pending', 'resolved_at' => null]);
         $this->assertDatabaseHas('support_ticket_replies', ['support_ticket_id' => $ticket['id'], 'user_id' => $dealer->id, 'is_staff' => false, 'body' => 'Still not working.']);
         $this->assertDatabaseHas('account_notices', ['user_id' => $supportStaff->id, 'title' => __('wave3_ops.support_reply_notice_title')]);
+        $this->assertDatabaseHas('account_notices', ['user_id' => $accountsStaff->id, 'title' => __('wave3_ops.support_reply_notice_title')]);
         $this->assertDatabaseMissing('account_notices', ['user_id' => $unrelatedStaff->id, 'title' => __('wave3_ops.support_reply_notice_title')]);
         $this->assertSame([$ticket['id']], array_column(app(SupportTickets::class)->adminIndex('pending')['tickets'], 'id'));
     }
@@ -66,7 +68,7 @@ class WaveThreeOperationsTest extends TestCase
     public function test_a_staff_reply_still_does_not_notify_the_office(): void
     {
         $dealer = User::factory()->dealer()->create(['status' => 'active']);
-        $supportStaff = User::factory()->staff('accounts')->create(['status' => 'active']);
+        $supportStaff = User::factory()->staff('support')->create(['status' => 'active']);
         $ticket = app(SupportTickets::class)->create($dealer, ['category' => 'technical', 'subject' => 'App', 'body' => 'Broken.']);
 
         app(SupportTickets::class)->reply($supportStaff, $ticket['id'], 'Looking.');
@@ -77,7 +79,7 @@ class WaveThreeOperationsTest extends TestCase
 
     public function test_staff_get_a_notice_only_for_a_browser_and_system_not_seen_before(): void
     {
-        $staff = User::factory()->staff('orders')->create(['status' => 'active']);
+        $staff = User::factory()->staff('inventory')->create(['status' => 'active']);
         $title = __('wave3_ops.new_device_title', [], $staff->preferredLocale());
 
         $this->signIn($staff, 'Mozilla/5.0 (Windows NT 10.0) Chrome/120.0 Safari/537.36');
@@ -103,8 +105,8 @@ class WaveThreeOperationsTest extends TestCase
 
     public function test_a_broken_device_check_never_stops_a_sign_in(): void
     {
-        $staff = User::factory()->staff('orders')->create(['status' => 'active']);
-        $this->mock(UserDevices::class)->shouldReceive('label')->andThrow(new \RuntimeException('boom'));
+        $staff = User::factory()->staff('inventory')->create(['status' => 'active']);
+        $this->app->bind(UserDevices::class, fn () => throw new \RuntimeException('boom'));
 
         $this->signIn($staff, 'Mozilla/5.0 Chrome/120.0');
 
@@ -129,7 +131,8 @@ class WaveThreeOperationsTest extends TestCase
         ]);
 
         $this->actingAs($finance)->onPortal('manage')->get('/operations/reserve-payouts')->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('tables.reserve_requests.data', fn ($rows): bool => collect($rows)->contains(fn ($row): bool => (int) $row['id'] === $legacyId)));
+            ->assertInertia(fn (Assert $page) => $page->where('tables.0.key', 'reserve_requests')
+                ->where('tables.0.page.data', fn ($rows): bool => collect($rows)->contains(fn ($row): bool => (int) $row['id'] === $legacyId)));
 
         app(ReserveService::class)->cancel($finance, $legacyId, 'No longer needed');
 

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Domain\Integrations\CourierAreaMapping;
 use App\Domain\Integrations\CourierGatewayClient;
 use App\Domain\Integrations\IntegrationSettings;
+use App\Domain\Orders\CourierOptions;
 use App\Domain\Orders\OrderService;
 use App\Domain\Orders\ShipmentTracking;
 use App\Jobs\BookShipmentCourier;
@@ -144,7 +145,7 @@ class CourierAreaMappingTest extends TestCase
         $this->assertDatabaseHas('courier_area_options', ['provider' => 'pathao', 'level' => 'city', 'external_id' => '1', 'name' => 'Dhaka']);
         $this->assertDatabaseHas('courier_area_options', ['provider' => 'pathao', 'level' => 'zone', 'external_id' => '52', 'parent_external_id' => '1']);
         $this->assertDatabaseHas('courier_area_options', ['provider' => 'pathao', 'level' => 'area', 'external_id' => '908', 'parent_external_id' => '52']);
-        $this->assertDatabaseHas('account_notices', ['user_id' => $this->owner->id, 'title' => __('courier_areas.notice_fetch_done_title', ['courier' => 'Pathao'])]);
+        $this->assertDatabaseHas('account_notices', ['user_id' => $this->owner->id, 'title' => __('courier_areas.notice_fetch_done_title', ['courier' => CourierOptions::label('pathao')])]);
     }
 
     public function test_redx_list_is_fetched_and_gives_the_name_when_the_owner_only_types_a_number(): void
@@ -165,7 +166,7 @@ class CourierAreaMappingTest extends TestCase
 
         $this->actingAs($this->owner)->onPortal('sadmin')->post('/commands/operations/courier-areas/fetch', ['provider' => 'redx'])->assertSessionHasNoErrors();
 
-        $this->assertDatabaseHas('account_notices', ['user_id' => $this->owner->id, 'title' => __('courier_areas.notice_fetch_failed_title', ['courier' => 'RedX'])]);
+        $this->assertDatabaseHas('account_notices', ['user_id' => $this->owner->id, 'title' => __('courier_areas.notice_fetch_failed_title', ['courier' => CourierOptions::label('redx')])]);
         $this->assertDatabaseCount('courier_area_options', 0);
         $this->actingAs($this->owner)->onPortal('sadmin')
             ->post('/commands/operations/courier-areas/mappings', ['provider' => 'redx', 'place_code_id' => $this->district->id, 'area_id' => '14', 'area_name' => 'Mirpur'])
@@ -294,7 +295,7 @@ class CourierAreaMappingTest extends TestCase
         $order = app(OrderService::class)->create($dealer, ['items' => [['product_id' => $product->id, 'quantity' => 1]], 'idempotency_key' => (string) Str::uuid(), 'courier_choice' => $provider]);
         $order->update(['paid' => $order->total, 'status' => 'pending_approval']);
         $shipmentId = DB::table('shipments')->insertGetId(['order_id' => $order->id, 'actor_id' => $this->owner->id, 'courier' => ucfirst($provider), 'courier_provider' => $provider,
-            'courier_booking_status' => 'pending', 'tracking' => 'PENDING-'.Str::random(6), 'status' => 'dispatched', 'created_at' => now(), 'updated_at' => now()]);
+            'courier_booking_status' => 'pending', 'tracking' => 'PENDING-'.Str::random(6), 'status' => 'dispatched', 'lines' => '[]', 'created_at' => now(), 'updated_at' => now()]);
         BookShipmentCourier::dispatchSync($shipmentId);
 
         return DB::table('shipments')->where('id', $shipmentId)->first();
@@ -306,7 +307,7 @@ class CourierAreaMappingTest extends TestCase
         $product = Product::create(['sku' => 'CAM-'.Str::random(6), 'name' => 'Area Product', 'category' => 'Test', 'mrp' => '200.00', 'dealer_price' => '140.00', 'stock' => 20]);
         $order = app(OrderService::class)->create($dealer, ['items' => [['product_id' => $product->id, 'quantity' => 1]], 'idempotency_key' => (string) Str::uuid()]);
         $shipmentId = DB::table('shipments')->insertGetId(['order_id' => $order->id, 'actor_id' => $this->owner->id, 'courier' => 'Paperfly', 'courier_provider' => 'paperfly',
-            'courier_booking_status' => 'booked', 'tracking' => 'PF-1', 'courier_status' => 'waiting_pickup', 'status' => 'dispatched', 'created_at' => now(), 'updated_at' => now()]);
+            'courier_booking_status' => 'booked', 'tracking' => 'PF-1', 'courier_status' => 'waiting_pickup', 'status' => 'dispatched', 'lines' => '[]', 'created_at' => now(), 'updated_at' => now()]);
 
         return DB::table('shipments')->where('id', $shipmentId)->first();
     }

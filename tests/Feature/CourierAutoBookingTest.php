@@ -143,6 +143,9 @@ class CourierAutoBookingTest extends TestCase
             'courier.test/*' => Http::response(['message' => 'Closed today'], 503),
             'redx.test/*' => Http::response(['tracking_id' => 'RX-77']),
         ]);
+        $place = PlaceCode::factory()->division()->create();
+        $this->dealer->forceFill(['profile' => [...(array) $this->dealer->getAttribute('profile'), 'place_code' => $place->code, 'place_code_id' => $place->id]])->save();
+        app(CourierAreaMapping::class)->save($this->owner, ['provider' => 'redx', 'place_code_id' => $place->id, 'area_id' => '14', 'area_name' => 'Mirpur']);
         $order = $this->paidOrder('steadfast');
         app(OrderService::class)->decision($this->owner, $order, 'approved', 'Paid in full');
         $shipment = DB::table('shipments')->where('order_id', $order->id)->first();

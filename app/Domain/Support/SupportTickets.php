@@ -249,7 +249,7 @@ final class SupportTickets
     private function tellOfficeAboutPartnerReply(User $partner, object $ticket): void
     {
         $replace = ['name' => $partner->name, 'subject' => Str::limit((string) $ticket->subject, 60)];
-        Audit::notifyAdminsAndStaff('accounts', __('wave3_ops.support_reply_notice_title', $replace), __('wave3_ops.support_reply_notice_body', $replace));
+        Audit::notifyAdminsAndStaff(['accounts', 'support_desk'], __('wave3_ops.support_reply_notice_title', $replace), __('wave3_ops.support_reply_notice_body', $replace));
     }
 
     /**
