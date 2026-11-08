@@ -7,6 +7,7 @@ use App\Domain\Inventory\StockService;
 use App\Models\CompanyBranch;
 use App\Models\Prescription;
 use App\Models\PrescriptionPatient;
+use App\Models\PrescriptionTemplate;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -98,6 +99,31 @@ class PrescriberReportTest extends TestCase
                 ->where('data.prescription_tools.report.prescriptions', 0)
                 ->where('data.prescription_tools.report.billed', '0.00')
                 ->has('data.prescription_tools.report.rows', 0));
+    }
+
+    public function test_the_owner_doctors_tools_never_carry_another_prescribers_patient(): void
+    {
+        $owner = User::factory()->staff('super_admin')->create();
+        $dealer = $this->prescriber();
+        $patient = PrescriptionPatient::factory()->create(['prescriber_id' => $dealer->id, 'name' => 'Dealer Private Patient', 'phone' => '01799887766']);
+        Prescription::factory()->create(['patient_id' => $patient->id, 'prescribed_on' => '2026-11-03', 'follow_up_on' => '2026-11-10', 'diagnosis' => 'Private diagnosis', 'total' => '100.00']);
+        PrescriptionTemplate::factory()->create(['prescriber_id' => $dealer->id, 'name' => 'Dealer private template']);
+
+        $this->actingAs($owner)->onPortal('sadmin')->get('/prescriptions?from=2026-11-01&to=2026-11-15')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('data.prescription_tools.report.prescriptions', 0)
+                ->where('data.prescription_tools.report.patients', 0)
+                ->where('data.prescription_tools.follow_ups.overdue', 0)
+                ->has('data.prescription_tools.follow_ups.rows', 0)
+                ->has('data.prescription_tools.templates', 0)
+                ->where('data.prescription_tools', function ($tools): bool {
+                    $payload = (string) json_encode($tools);
+
+                    return ! str_contains($payload, 'Dealer Private Patient')
+                        && ! str_contains($payload, '01799887766')
+                        && ! str_contains($payload, 'Private diagnosis')
+                        && ! str_contains($payload, 'Dealer private template');
+                }));
     }
 
     public function test_the_owner_doctor_sees_dispensed_sales_manufacturer_share_and_clinic_fund(): void
