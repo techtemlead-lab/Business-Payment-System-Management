@@ -41,7 +41,7 @@ final class PatientAccessLog
     /**
      * The newest entries on this prescriber's own patients, or on one of them.
      *
-     * @return list<array{id: int, patient: string|null, patient_id: int, viewer: string|null, is_self: bool, action: string, at: string|null}>
+     * @return list<array{id: int, patient: string|null, patient_id: int, viewer: string|null, is_self: bool, action: string, at: string}>
      */
     public function forPrescriber(User $prescriber, ?PrescriptionPatient $patient = null): array
     {
@@ -59,7 +59,7 @@ final class PatientAccessLog
                 'viewer' => $entry->viewer?->name,
                 'is_self' => (int) $entry->viewer_id === (int) $prescriber->id,
                 'action' => $entry->action,
-                'at' => $entry->created_at?->toIso8601String(),
+                'at' => $entry->created_at->toIso8601String(),
             ])
             ->values()
             ->all();
