@@ -49,4 +49,18 @@ return [
     'access_action_repeated' => 'Copied the last prescription',
     'access_action_file_downloaded' => 'Downloaded a file',
     'access_action_blocked' => 'Tried to open it and was refused',
+
+    'vitals_title' => 'Vitals at this visit',
+    'vital_bp' => 'Blood pressure',
+    'vital_bp_systolic' => 'BP upper',
+    'vital_bp_diastolic' => 'BP lower',
+    'vital_weight' => 'Weight',
+    'vital_pulse' => 'Pulse',
+    'vital_temperature' => 'Temperature',
+    'vital_unit_kg' => 'kg',
+    'vital_unit_pulse' => '/min',
+    'vital_unit_f' => '°F',
+    'vital_weight_input' => 'Weight (kg)',
+    'vital_pulse_input' => 'Pulse (per minute)',
+    'vital_temperature_input' => 'Temperature (°F)',
 ];

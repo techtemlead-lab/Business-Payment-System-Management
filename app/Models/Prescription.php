@@ -23,6 +23,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $complaints
  * @property string|null $diagnosis
  * @property string|null $advice
+ * @property array<string, string>|null $vitals
  * @property Carbon|null $follow_up_on
  * @property string $subtotal
  * @property string $discount_total
@@ -56,7 +57,7 @@ class Prescription extends Model
     public const PaymentMethods = [self::PaymentCash, 'bkash', 'nagad', 'bank', 'other'];
 
     protected $fillable = [
-        'number', 'kind', 'prescriber_id', 'patient_id', 'prescribed_on', 'complaints', 'diagnosis', 'advice', 'follow_up_on',
+        'number', 'kind', 'prescriber_id', 'patient_id', 'prescribed_on', 'complaints', 'diagnosis', 'advice', 'vitals', 'follow_up_on',
         'subtotal', 'discount_total', 'total', 'status', 'branch_id', 'mrp_total', 'manufacturer_share', 'clinic_fund',
         'dispensed_by', 'dispensed_at', 'payment_method', 'payment_reference',
     ];
@@ -68,6 +69,7 @@ class Prescription extends Model
             'complaints' => 'encrypted',
             'diagnosis' => 'encrypted',
             'advice' => 'encrypted',
+            'vitals' => 'encrypted:array',
             'prescribed_on' => 'date',
             'follow_up_on' => 'date',
             'dispensed_at' => 'datetime',

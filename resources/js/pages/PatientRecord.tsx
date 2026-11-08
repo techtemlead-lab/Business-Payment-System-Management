@@ -18,6 +18,7 @@ type HistoryRow = {
     complaints: string | null;
     diagnosis: string | null;
     advice: string | null;
+    vitals: { label: string; value: string }[];
     total: string;
     lines: HistoryLine[];
 };
@@ -84,6 +85,7 @@ export default function PatientRecord({ record }: { record: PatientRecordData })
                                         </div>
                                         <span className={`rx-status is-${row.status}`}>{translate('prescription', `rx_status_${row.status}`)}</span>
                                     </div>
+                                    {row.vitals.length > 0 && <small>{row.vitals.map((reading) => `${reading.label}: ${reading.value}`).join(' · ')}</small>}
                                     {row.complaints && <small><b>{translate('prescription', 'rx_complaints')}:</b> {row.complaints}</small>}
                                     {row.diagnosis && <small><b>{translate('prescription', 'rx_diagnosis')}:</b> {row.diagnosis}</small>}
                                     <ol className="rx-card-lines">

@@ -8,6 +8,7 @@ use App\Domain\Clinic\PatientRecords;
 use App\Domain\Clinic\PrescriberVerification;
 use App\Domain\Clinic\PrescriptionAccess;
 use App\Domain\Clinic\PrescriptionBook;
+use App\Domain\Clinic\Vitals;
 use App\Models\PlaceCode;
 use App\Models\PrescriberRegistration;
 use App\Models\Prescription;
@@ -54,6 +55,7 @@ class PrescriptionController extends Controller
             'diagnosis' => 'nullable|string|max:3000',
             'advice' => 'nullable|string|max:3000',
             'follow_up_on' => 'nullable|date_format:Y-m-d|after_or_equal:prescribed_on',
+            ...Vitals::rules(),
             'lines' => 'required|array|min:1|max:'.PrescriptionBook::MaxLines,
             'lines.*.product_id' => $clinic ? 'required|integer' : 'prohibited',
             'lines.*.medicine_name' => $clinic ? 'nullable|string|max:160' : 'required|string|max:160',

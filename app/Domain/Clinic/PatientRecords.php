@@ -77,6 +77,7 @@ final class PatientRecords
                 'complaints' => $prescription->complaints,
                 'diagnosis' => $prescription->diagnosis,
                 'advice' => $prescription->advice,
+                'vitals' => Vitals::lines($prescription->vitals, app()->getLocale()),
                 'total' => $prescription->total,
                 'lines' => $prescription->lines->map(fn (PrescriptionLine $line): array => [
                     'medicine_name' => $line->medicine_name,

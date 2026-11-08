@@ -76,6 +76,11 @@
     </section>
     <section class="body">
         <aside class="side">
+            @php $vitals = \App\Domain\Clinic\Vitals::lines($prescription->vitals, $lang); @endphp
+            @if ($vitals !== [])
+                <h3>{{ __('clinic_records.vitals_title', [], $lang) }}</h3>
+                @foreach ($vitals as $reading)<p>{{ $reading['label'] }}: {{ $reading['value'] }}</p>@endforeach
+            @endif
             @if ($prescription->complaints)<h3>{{ $t('rx_complaints') }}</h3><p>{{ $prescription->complaints }}</p>@endif
             @if ($prescription->diagnosis)<h3>{{ $t('rx_diagnosis') }}</h3><p>{{ $prescription->diagnosis }}</p>@endif
             @if ($prescription->advice)<h3>{{ $t('rx_advice') }}</h3><p>{{ $prescription->advice }}</p>@endif

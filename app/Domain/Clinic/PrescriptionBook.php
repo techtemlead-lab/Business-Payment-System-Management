@@ -116,6 +116,7 @@ final class PrescriptionBook
                 'complaints' => $data['complaints'] ?? null,
                 'diagnosis' => $data['diagnosis'] ?? null,
                 'advice' => $data['advice'] ?? null,
+                'vitals' => Vitals::clean($data['vitals'] ?? null),
                 'follow_up_on' => $data['follow_up_on'] ?? null,
                 'subtotal' => Money::decimal($subtotal),
                 'discount_total' => Money::decimal($discount),

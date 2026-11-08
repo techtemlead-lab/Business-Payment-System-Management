@@ -49,4 +49,18 @@ return [
     'access_action_repeated' => 'শেষ প্রেসক্রিপশন নিয়েছেন',
     'access_action_file_downloaded' => 'ফাইল নামিয়েছেন',
     'access_action_blocked' => 'খুলতে চেয়েছিলেন, দেওয়া হয়নি',
+
+    'vitals_title' => 'এই ভিজিটের রিডিং',
+    'vital_bp' => 'রক্তচাপ',
+    'vital_bp_systolic' => 'রক্তচাপ (উপরের)',
+    'vital_bp_diastolic' => 'রক্তচাপ (নিচের)',
+    'vital_weight' => 'ওজন',
+    'vital_pulse' => 'পালস',
+    'vital_temperature' => 'তাপমাত্রা',
+    'vital_unit_kg' => 'কেজি',
+    'vital_unit_pulse' => '/মিনিট',
+    'vital_unit_f' => '°F',
+    'vital_weight_input' => 'ওজন (কেজি)',
+    'vital_pulse_input' => 'পালস (প্রতি মিনিটে)',
+    'vital_temperature_input' => 'তাপমাত্রা (°F)',
 ];

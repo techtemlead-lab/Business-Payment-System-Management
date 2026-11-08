@@ -9,6 +9,7 @@ import { FollowUpsPanel } from './PrescriptionFollowUps';
 import { PrescriberReportTab } from './PrescriberReport';
 import { ConsultationRequestsTab, PublicListingTab, type PrescriberPublicData } from './PrescriberPublicTabs';
 import { PatientAccessLogList } from './PatientAccessLogList';
+import { emptyVitals, VitalsFields, vitalsForServer } from './VitalsFields';
 
 type Translate = ReturnType<typeof useT>;
 
@@ -280,6 +281,7 @@ function PrescriptionsTab({ data, tools, translate }: { data: PrescriptionsData;
         diagnosis: '',
         advice: '',
         follow_up_on: '',
+        vitals: emptyVitals(),
         lines: [emptyLine()] as LineForm[],
     });
     const [chosenPatient, setChosenPatient] = useState<PatientOption | null>(null);
@@ -334,6 +336,7 @@ function PrescriptionsTab({ data, tools, translate }: { data: PrescriptionsData;
             ...values,
             [CONFIRM_BELOW_FLOOR]: confirmBelowFloor,
             follow_up_on: values.follow_up_on || null,
+            vitals: vitalsForServer(values.vitals),
             lines: values.lines.map((line) => clinic
                 ? { product_id: Number(line.product_id), ...dosingFields(line), unit_price: line.unit_price || '0', quantity: line.quantity, discount: line.discount || '0' }
                 : { medicine_name: line.medicine_name, ...dosingFields(line), unit_price: line.unit_price || '0', quantity: line.quantity, discount: line.discount || '0' }),
@@ -402,6 +405,7 @@ function PrescriptionsTab({ data, tools, translate }: { data: PrescriptionsData;
                                 <textarea rows={2} value={form.data.diagnosis} onChange={(e) => form.setData('diagnosis', e.target.value)} />
                             </label>
                         </div>
+                        <VitalsFields value={form.data.vitals} errors={form.errors as Record<string, string>} onChange={(next) => form.setData('vitals', next)} translate={translate} />
                         <fieldset className="rx-lines">
                             <legend><Pill size={16} /> {translate('prescription', 'rx_lines')}</legend>
                             {!clinic && <p className="muted rx-note">{translate('prescription', 'rx_no_stock_note')}</p>}
