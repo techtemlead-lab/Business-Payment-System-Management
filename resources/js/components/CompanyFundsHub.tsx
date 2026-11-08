@@ -3,6 +3,7 @@ import { router, useForm, usePage } from '@inertiajs/react';
 import { Download, Landmark, Plus } from 'lucide-react';
 import { Badge, DateInput, Empty, FormErrors, Modal, Pagination, date, money, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
+import { randomUuid } from '../shared/randomUuid';
 import { businessTodayIso } from '../business-date';
 
 type Translate = ReturnType<typeof useT>;
@@ -191,7 +192,7 @@ function FundHistory({ fund, moneyIn, moneyOut, translate, headName }: { fund: F
 }
 
 function SpendForm({ fund, heads, methods, translate, headName, onClose }: { fund: FundRow; heads: Head[]; methods: string[]; translate: Translate; headName: (head: Row | null | undefined) => string; onClose: () => void }) {
-    const form = useForm<Row>({ fund: fund.key, expense_head_id: '', amount: '', spent_on: businessTodayIso(), payee: '', payment_method: '', reference: '', note: '', receipt: null, request_key: crypto.randomUUID() });
+    const form = useForm<Row>({ fund: fund.key, expense_head_id: '', amount: '', spent_on: businessTodayIso(), payee: '', payment_method: '', reference: '', note: '', receipt: null, request_key: randomUuid() });
     const usableHeads = heads.filter((head) => head.is_active && (fund.key !== 'tour' || head.for_tours));
     const submit = (event: React.FormEvent) => {
         event.preventDefault();
