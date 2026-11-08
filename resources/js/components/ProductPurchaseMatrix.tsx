@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { money, type Row, Table, number, FormErrors } from './UI';
 import { useT } from '../shared/i18n/t';
+import RepeatOrderPanel, { repeatChangeNotes, type RepeatOption } from './dealertools/RepeatOrderPanel';
 
 interface Props {
     products: Row[];
@@ -17,6 +18,8 @@ interface Props {
     fullPaymentRequired?: boolean;
     /** Couriers the owner switched on, plus "company decides" (key "company"). */
     courierChoices?: { key: string; label: string }[];
+    /** Past orders that can go back in the cart with one tap, at today's prices and stock. */
+    repeatOrders?: RepeatOption[];
 }
 
 interface CartItem {
@@ -32,6 +35,7 @@ export default function ProductPurchaseMatrix({
     initialProductId = null,
     fullPaymentRequired = false,
     courierChoices = [],
+    repeatOrders = [],
 }: Props) {
     const translate = useT();
 
@@ -192,6 +196,15 @@ export default function ProductPurchaseMatrix({
         // This allows dealer to immediately add another strength/variant or change quantity.
     };
 
+    // One tap: the cart becomes this past order, at today's prices and stock.
+    const [repeatNotes, setRepeatNotes] = useState<string[]>([]);
+    const fillCartFromOrder = (option: RepeatOption) => {
+        setCart(option.items.filter(item => item.quantity > 0).map(item => ({ product: item.product, quantity: item.quantity })));
+        setRepeatNotes(repeatChangeNotes(option, translate));
+        setAddedBanner(translate('dealer_tools', 'repeat_done', { number: option.number }));
+        setTimeout(() => setAddedBanner(null), 4000);
+    };
+
     // Update quantity in cart
     const updateCartQty = (productId: number, newQty: number) => {
         if (newQty <= 0) {
@@ -321,6 +334,13 @@ export default function ProductPurchaseMatrix({
                     <Package size={15} /> {translate('portal', 'b2b_catalog_list_title')} ↗
                 </Link>
             </div>
+
+            <RepeatOrderPanel orders={repeatOrders} onFill={fillCartFromOrder} />
+            {repeatNotes.length > 0 && (
+                <div className="notice warning" role="status">
+                    <ul>{repeatNotes.map(note => <li key={note}>{note}</li>)}</ul>
+                </div>
+            )}
 
             {/* Success Toast */}
             {addedBanner && (
