@@ -19,10 +19,13 @@ class WebsiteSectionsCmsTest extends TestCase
 {
     use RefreshDatabase;
 
+    private const ArabicBismillah = 'بسم الله الرحمن الرحيم';
+
     protected function setUp(): void
     {
         parent::setUp();
         $this->withoutVite();
+        SiteCustomization::forgetCache();
     }
 
     public function test_home_intro_cards_show_factory_text_in_each_language(): void
@@ -42,16 +45,52 @@ class WebsiteSectionsCmsTest extends TestCase
     public function test_home_page_shows_bismillah_above_the_headline_and_owner_can_turn_it_off(): void
     {
         $this->withSession(['locale' => 'bn'])->get('/')->assertOk()
-            ->assertSeeInOrder(['ref-bismillah', 'বিসমিল্লাহির রাহমানির রাহিম', 'company-intro-title'], false);
+            ->assertSeeInOrder(['ref-bismillah', 'বিসমিল্লাহির রাহমানির রাহিম', 'company-intro-title'], false)
+            ->assertDontSee('dir="rtl"', false);
 
         $this->withSession(['locale' => 'en'])->get('/')->assertOk()
-            ->assertSee('Bismillahir Rahmanir Rahim');
-
-        SiteCustomization::save(['home_bismillah_text' => 'بسم الله الرحمن الرحيم']);
-        $this->withSession(['locale' => 'bn'])->get('/')->assertOk()->assertSee('بسم الله الرحمن الرحيم');
+            ->assertSee('<p class="ref-bismillah" lang="ar" dir="rtl"><span>'.self::ArabicBismillah.'</span></p>', false)
+            ->assertDontSee('Bismillahir Rahmanir Rahim');
 
         SiteCustomization::save(['home_bismillah_enabled' => '0']);
         $this->withSession(['locale' => 'bn'])->get('/')->assertOk()->assertDontSee('ref-bismillah', false);
+    }
+
+    public function test_saving_the_editor_without_touching_bismillah_keeps_each_languages_own_line(): void
+    {
+        $storedByAnUntouchedSave = [
+            'empty box from a fresh editor' => '',
+            'the English factory text saved by another field' => self::ArabicBismillah,
+            'the old spelled-out English line' => 'Bismillahir Rahmanir Rahim',
+            'the Bangla factory text' => 'বিসমিল্লাহির রাহমানির রাহিম',
+        ];
+
+        foreach ($storedByAnUntouchedSave as $case => $stored) {
+            SiteCustomization::save(['home_bismillah_text' => $stored]);
+            SiteCustomization::save(SiteCustomization::raw());
+
+            $this->withSession(['locale' => 'en'])->get('/')->assertOk()
+                ->assertSee('<p class="ref-bismillah" lang="ar" dir="rtl"><span>'.self::ArabicBismillah.'</span></p>', false);
+            $this->withSession(['locale' => 'bn'])->get('/')->assertOk()
+                ->assertSee('<p class="ref-bismillah"><span>বিসমিল্লাহির রাহমানির রাহিম</span></p>', false);
+            $this->assertNotSame('Bismillahir Rahmanir Rahim', SiteCustomization::all()['home_bismillah_text'], $case);
+        }
+    }
+
+    public function test_owner_wording_for_bismillah_is_shown_as_written_in_both_languages(): void
+    {
+        $withVowelMarks = 'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ';
+        SiteCustomization::save(['home_bismillah_text' => $withVowelMarks]);
+        foreach (['en', 'bn'] as $locale) {
+            $this->withSession(['locale' => $locale])->get('/')->assertOk()
+                ->assertSee('<p class="ref-bismillah" lang="ar" dir="rtl"><span>'.$withVowelMarks.'</span></p>', false);
+        }
+
+        SiteCustomization::save(['home_bismillah_text' => 'In the name of Allah']);
+        foreach (['en', 'bn'] as $locale) {
+            $this->withSession(['locale' => $locale])->get('/')->assertOk()
+                ->assertSee('<p class="ref-bismillah"><span>In the name of Allah</span></p>', false);
+        }
     }
 
     public function test_owner_edits_to_the_home_intro_cards_are_shown_as_written(): void

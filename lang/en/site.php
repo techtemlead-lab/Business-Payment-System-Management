@@ -590,5 +590,5 @@ We humbly ask for everyone\'s prayers and support.',
     'md_message_read_more' => 'Read the full message',
     'md_message_read_less' => 'Show less',
     'md_message_photo_alt' => 'Photo of :name, :title, :company',
-    'home_bismillah_text' => 'Bismillahir Rahmanir Rahim',
+    'home_bismillah_text' => 'بسم الله الرحمن الرحيم',
 ];
