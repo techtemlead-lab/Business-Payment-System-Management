@@ -32,7 +32,7 @@ final class PartnerAccountProvisioning
 
     /**
      * @param  array<string, mixed>  $input
-     * @return array{user: User, place_label: ?string, commission_consumers: array<string, mixed>}
+     * @return array{user: User, place_label: ?string, commission_consumers: array<string, mixed>, credentials_sent: bool}
      */
     public function create(User $actor, array $input): array
     {
@@ -249,13 +249,14 @@ final class PartnerAccountProvisioning
         }, 3);
 
         // One-time credentials travel only through the SMS channel — never JSON/Inertia props.
-        $this->sms->send($user, $plainPassword);
+        $credentialsSent = $this->sms->send($user, $plainPassword);
         app(PartnerEventEmail::class)->sendTranslated($user, 'account.created', 'event_emails.account_created_title', 'event_emails.account_created_body');
 
         return [
             'user' => $user,
             'place_label' => $this->placeLabel($place),
             'commission_consumers' => $this->commissionConsumers($sponsor, $managementReferral),
+            'credentials_sent' => $credentialsSent,
         ];
     }
 

@@ -137,6 +137,30 @@ class PartnerCreationCodesTest extends TestCase
         $this->assertDatabaseMissing('users', ['email' => 'partner@example.com']);
     }
 
+    public function test_the_success_message_says_the_login_details_were_sent_when_they_were(): void
+    {
+        $this->submit($this->partnerForm())->assertSessionHas('success', __('portal.acct_partner_created_sent', [
+            'role' => __('portal.acct_role_dealer'),
+            'code' => 'MNHC-57481252',
+            'phone' => '01712345678',
+            'email' => 'partner@example.com',
+        ]));
+    }
+
+    public function test_the_success_message_is_honest_when_no_sms_or_email_is_on(): void
+    {
+        config(['madina.sms.driver' => 'gateway']);
+
+        $this->submit($this->partnerForm())->assertRedirect('/accounts')->assertSessionHas('success', __('portal.acct_partner_created_not_sent', [
+            'role' => __('portal.acct_role_dealer'),
+            'code' => 'MNHC-57481252',
+            'phone' => '01712345678',
+            'email' => 'partner@example.com',
+        ]));
+
+        $this->assertDatabaseHas('users', ['email' => 'partner@example.com', 'role' => 'dealer']);
+    }
+
     /**
      * @param  array<string, mixed>  $form
      */

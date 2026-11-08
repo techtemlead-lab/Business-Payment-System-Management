@@ -180,11 +180,12 @@ class CommandController extends Controller
 
             $redirect = $created['user']->role === 'sub_dealer' ? '/sub-dealers' : '/accounts';
 
-            return redirect($redirect)->with(
-                'success',
-                ucfirst(str_replace('_', '-', $created['user']->role)).' account created. Code: '.$created['user']->dealer_code.
-                '. Login credentials delivered to '.$created['user']->phone.' / '.$created['user']->email.' (username = mobile number).'
-            );
+            return redirect($redirect)->with('success', __($created['credentials_sent'] ? 'portal.acct_partner_created_sent' : 'portal.acct_partner_created_not_sent', [
+                'role' => __($created['user']->role === 'sub_dealer' ? 'portal.acct_role_sub_dealer' : 'portal.acct_role_dealer'),
+                'code' => $created['user']->dealer_code,
+                'phone' => $created['user']->phone,
+                'email' => $created['user']->email,
+            ]));
         }
 
         $d = $r->validate([
