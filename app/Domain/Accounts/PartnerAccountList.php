@@ -155,11 +155,12 @@ final class PartnerAccountList
      * Every filtered partner as one export row, newest first like the list.
      *
      * @param  array{q: string, status: string, division: string, district: string, rank: string, no_order_days: int}  $filters
+     * @param  BranchScope|null  $branchScope  On a branch picked in the top bar, only that branch's partners.
      * @return Generator<int, array<string, mixed>>
      */
-    public function exportRows(string $role, array $filters): Generator
+    public function exportRows(string $role, array $filters, ?BranchScope $branchScope = null): Generator
     {
-        $query = $this->withStatus($this->matching($role, $filters), $filters)->toBase()
+        $query = $this->withStatus($this->matching($role, $filters, $branchScope), $filters)->toBase()
             ->leftJoin('users as sponsors', 'sponsors.id', '=', 'users.sponsor_id')
             ->leftJoin('dealer_ranks', 'dealer_ranks.user_id', '=', 'users.id')
             ->leftJoinSub($this->activity(), 'activity', 'activity.user_id', '=', 'users.id')
