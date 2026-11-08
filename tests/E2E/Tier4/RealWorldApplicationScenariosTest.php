@@ -4,6 +4,7 @@ namespace Tests\E2E\Tier4;
 
 use App\Models\BranchProductStock;
 use App\Models\Order;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -186,19 +187,14 @@ class RealWorldApplicationScenariosTest extends E2ETestCase
         $product = $this->createProduct(['mrp' => '500.00', 'dealer_price' => '300.00', 'sub_dealer_price' => '350.00', 'stock' => 50]);
         BranchProductStock::create(['branch_id' => $hub->id, 'product_id' => $product->id, 'quantity' => 50]);
 
-        // Assign territory in Rangpur to SR staff so assertGeography passes
-        DB::table('staff_territories')->insert([
+        // Assign the Rangpur division to the SR by its place code, so the candidate's place is inside their territory
+        $rangpurDivision = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
+        $rangpurDistrict = PlaceCode::factory()->district($rangpurDivision)->create(['name' => 'Rangpur']);
+        $pirganj = PlaceCode::factory()->upazila($rangpurDistrict)->create(['name' => 'Pirganj']);
+        $this->actingAs($superAdmin)->onPortal('manage')->postJson('/api/v1/operations/staff/territories', [
             'staff_id' => $srStaff->id,
-            'level' => 'division',
-            'division' => 'Rangpur',
-            'district' => null,
-            'upazila' => null,
-            'union' => null,
-            'is_active' => true,
-            'created_by' => $superAdmin->id,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+            'place_code' => $rangpurDivision->code,
+        ])->assertOk();
 
         $candidateEmail = strtolower('candidate.dealer.'.Str::random(5).'@example.com');
 
@@ -208,9 +204,7 @@ class RealWorldApplicationScenariosTest extends E2ETestCase
             'email' => $candidateEmail,
             'phone' => '017'.fake()->unique()->numerify('########'),
             'role' => 'dealer',
-            'division' => 'Rangpur',
-            'district' => 'Rangpur',
-            'upazila' => 'Pirganj',
+            'place_code' => $pirganj->code,
         ]);
         $appRes->assertOk();
         $appId = $appRes->json('data.id');
@@ -226,6 +220,7 @@ class RealWorldApplicationScenariosTest extends E2ETestCase
         $newPartner = User::where('email', $candidateEmail)->first();
         $this->assertNotNull($newPartner);
         $this->assertSame('dealer', $newPartner->role);
+        $this->assertSame($pirganj->id, (int) data_get($newPartner->profile, 'place_code_id'));
 
         // 3. New dealer places first wholesale purchase
         $orderRes = $this->actingAs($newPartner)->postJson('/api/v1/orders', [
