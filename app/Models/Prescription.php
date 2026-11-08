@@ -65,6 +65,9 @@ class Prescription extends Model
     protected function casts(): array
     {
         return [
+            'complaints' => 'encrypted',
+            'diagnosis' => 'encrypted',
+            'advice' => 'encrypted',
             'prescribed_on' => 'date',
             'follow_up_on' => 'date',
             'dispensed_at' => 'datetime',

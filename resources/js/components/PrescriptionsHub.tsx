@@ -8,6 +8,7 @@ import { linesFromSaved, SaveAsTemplate, TemplatePicker, TemplatesTab, type Pres
 import { FollowUpsPanel } from './PrescriptionFollowUps';
 import { PrescriberReportTab } from './PrescriberReport';
 import { ConsultationRequestsTab, PublicListingTab, type PrescriberPublicData } from './PrescriberPublicTabs';
+import { PatientAccessLogList } from './PatientAccessLogList';
 
 type Translate = ReturnType<typeof useT>;
 
@@ -186,6 +187,7 @@ export default function PrescriptionsHub({ data, tools, publicTools }: { data: P
         { id: 'requests', label: publicTools.new_requests > 0 ? `${translate('prescriber_public', 'tab_requests')} (${number(publicTools.new_requests)})` : translate('prescriber_public', 'tab_requests') },
         { id: 'templates', label: translate('prescription', 'tab_templates') },
         { id: 'my-report', label: translate('prescription', 'tab_my_report') },
+        { id: 'access-log', label: translate('clinic_records', 'access_log_tab') },
         { id: 'public-listing', label: translate('prescriber_public', 'tab_listing') },
         ...(data.is_owner ? [{ id: 'report', label: translate('prescription', 'tab_report') }, { id: 'settings', label: translate('prescription', 'tab_settings') }] : []),
     ];
@@ -211,6 +213,12 @@ export default function PrescriptionsHub({ data, tools, publicTools }: { data: P
             {activeTab === 'prescriptions' && <PrescriptionsTab data={data} tools={tools} translate={translate} />}
             {activeTab === 'patients' && <PatientsTab data={data} translate={translate} />}
             {activeTab === 'templates' && <TemplatesTab templates={tools.templates} translate={translate} />}
+            {activeTab === 'access-log' && (
+                <section className="panel">
+                    <div className="panel-heading"><div><h2>{translate('clinic_records', 'access_log_title')}</h2><p className="muted">{translate('clinic_records', 'access_log_intro')}</p></div></div>
+                    <PatientAccessLogList rows={tools.access_log} showPatient translate={translate} />
+                </section>
+            )}
             {activeTab === 'my-report' && <PrescriberReportTab report={tools.report} translate={translate} />}
             {activeTab === 'requests' && <ConsultationRequestsTab data={publicTools} translate={translate} />}
             {activeTab === 'public-listing' && <PublicListingTab data={publicTools} translate={translate} />}

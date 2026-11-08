@@ -3,6 +3,7 @@ import { router, useForm } from '@inertiajs/react';
 import { BookmarkPlus, Trash2 } from 'lucide-react';
 import { Empty } from './UI';
 import { useT } from '../shared/i18n/t';
+import type { AccessLogRow } from './PatientAccessLogList';
 import type { LineForm } from './PrescriptionsHub';
 import type { FollowUpsData } from './PrescriptionFollowUps';
 import type { PrescriberReportData } from './PrescriberReport';
@@ -31,6 +32,7 @@ export type TemplateRow = {
 };
 
 export type PrescriptionTools = {
+    access_log: AccessLogRow[];
     templates: TemplateRow[];
     follow_ups: FollowUpsData;
     report: PrescriberReportData;

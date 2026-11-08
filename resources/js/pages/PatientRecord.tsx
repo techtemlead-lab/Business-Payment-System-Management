@@ -3,6 +3,7 @@ import { AlertTriangle, History, Printer, Repeat } from 'lucide-react';
 import Shell from '../components/Shell';
 import { Empty, date, money, number } from '../components/UI';
 import type { PatientRow } from '../components/PrescriptionsHub';
+import { PatientAccessLogList, type AccessLogRow } from '../components/PatientAccessLogList';
 import { useT } from '../shared/i18n/t';
 
 type HistoryLine = { medicine_name: string; dose: string | null; frequency: string | null; duration: string | null; instructions: string | null; dose_summary: string; quantity: number };
@@ -24,6 +25,7 @@ type HistoryRow = {
 type PatientRecordData = {
     patient: PatientRow;
     prescriptions: HistoryRow[];
+    access_log: AccessLogRow[];
 };
 
 export default function PatientRecord({ record }: { record: PatientRecordData }) {
@@ -104,6 +106,11 @@ export default function PatientRecord({ record }: { record: PatientRecordData })
                             ))}
                         </ul>
                     )}
+                </section>
+
+                <section className="panel">
+                    <div className="panel-heading"><div><h2>{translate('clinic_records', 'access_log_patient_title')}</h2><p className="muted">{translate('clinic_records', 'access_log_intro')}</p></div></div>
+                    <PatientAccessLogList rows={record.access_log} showPatient={false} translate={translate} />
                 </section>
             </div>
         </Shell>

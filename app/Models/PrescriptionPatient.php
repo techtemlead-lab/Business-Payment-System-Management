@@ -35,7 +35,7 @@ class PrescriptionPatient extends Model
     /** @return array<string, string> */
     protected function casts(): array
     {
-        return ['age' => 'integer', 'allergies' => 'encrypted'];
+        return ['age' => 'integer', 'phone' => 'encrypted', 'notes' => 'encrypted', 'allergies' => 'encrypted'];
     }
 
     /** @return BelongsTo<User, $this> */

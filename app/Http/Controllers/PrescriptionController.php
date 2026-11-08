@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Clinic\ClinicDispensing;
 use App\Domain\Clinic\DoseSchedule;
+use App\Domain\Clinic\PatientRecords;
 use App\Domain\Clinic\PrescriberVerification;
 use App\Domain\Clinic\PrescriptionAccess;
 use App\Domain\Clinic\PrescriptionBook;
@@ -154,9 +155,9 @@ class PrescriptionController extends Controller
     }
 
     /** The printable prescription in Bangla (?lang=bn) or English (?lang=en). */
-    public function print(Request $request, Prescription $prescription): Response
+    public function print(Request $request, Prescription $prescription, PatientRecords $records): Response
     {
-        $this->book->assertVisible($request->user(), $prescription);
+        $records->openForPrint($request->user(), $prescription);
         $lang = in_array($request->query('lang'), ['bn', 'en'], true) ? (string) $request->query('lang') : app()->getLocale();
         $prescription->load(['lines', 'patient.placeCode', 'prescriber:id,name,phone']);
         $registration = PrescriberRegistration::query()->where('user_id', $prescription->prescriber_id)->first();
