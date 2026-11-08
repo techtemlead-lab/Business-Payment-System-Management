@@ -61,7 +61,7 @@ export const SECTION_LABEL_KEYS: Record<string, string> = {
     'full-report': 'full_report', ranks: 'ranks', commissions: 'commissions', 'network-tree': 'network_tree',
     'area-dealers': 'area_dealers', 'place-codes': 'place_codes', branches: 'branches',
     'branch-performance': 'branch_performance', rewards: 'rewards', 'capital-flow': 'capital_flow',
-    settlements: 'settlements', simulator: 'simulator', 'payouts-hub': 'payouts_hub', treasury: 'treasury', 'company-funds': 'company_funds',
+    settlements: 'settlements', simulator: 'simulator', 'payouts-hub': 'payouts_hub', treasury: 'treasury', 'company-funds': 'company_funds', 'identity-review': 'identity_review',
     'benefits-fund': 'benefits_fund', 'sub-dealers': 'sub_dealers', 'sub-dealer-orders': 'sub_dealer_orders',
     'sub-dealer-applications': 'sub_dealer_applications', 'login-rules': 'login_rules',
     employees: 'employees', dashboards: 'dashboards', help: 'help', 'support-admin': 'support_admin', agreement: 'agreement',
@@ -223,7 +223,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     if (capabilities.some((cap) => ['finance', 'accounts'].includes(cap))) items.add('data-imports');
     if (capabilities.includes('finance') || role === 'super_admin') items.add('service-integrations');
     if (capabilities.includes('finance')) {
-        ['payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'finance-settings', 'treasury', 'company-funds',
+        ['payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'finance-settings', 'treasury', 'company-funds', 'identity-review',
             'commissions', 'policies', 'ledger', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'salary', 'accounting'].forEach((item) => items.add(item));
     }
     if (capabilities.some((cap) => ['finance', 'reports', 'field_sales'].includes(cap))) items.add('financial-reports');
@@ -340,7 +340,7 @@ function staffMothers(available: Set<string>): NavMother[] {
             'accounts', 'sub-dealers', 'partnerships', 'sub-dealer-applications', 'network-tree', 'area-dealers', 'ranks', 'agreement', 'schemes', 'sales-kit',
         ])),
         mother('stock', 'nav_module_stock', pick(available, ['catalog-products', 'stock', 'stock-lots', 'purchasing', 'stock-counts', 'branches'])),
-        mother('finance', 'nav_module_finance', pick(available, ['treasury', 'company-funds', 'reserve-payouts', 'benefits-fund', 'ledger', 'accounting', 'payment-accounts'])),
+        mother('finance', 'nav_module_finance', pick(available, ['treasury', 'company-funds', 'reserve-payouts', 'benefits-fund', 'ledger', 'accounting', 'payment-accounts', 'identity-review'])),
         mother('commissions', 'nav_module_commissions', pick(available, [
             'commissions', 'commission-holds', 'rewards',
         ])),

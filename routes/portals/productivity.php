@@ -2,6 +2,7 @@
 
 use App\Domain\Lists\ListViews;
 use App\Http\Controllers\GlobalSearchController;
+use App\Http\Controllers\IdentityReviewController;
 use App\Http\Controllers\ListViewController;
 use Illuminate\Support\Facades\Route;
 
@@ -14,3 +15,7 @@ Route::get('/commands/list-views/{list}', [ListViewController::class, 'index'])-
 Route::post('/commands/list-views/{list}', [ListViewController::class, 'store'])->whereIn('list', ListViews::Lists)->middleware('throttle:30,1');
 Route::put('/commands/list-views/{list}/columns', [ListViewController::class, 'columns'])->whereIn('list', ListViews::Lists)->middleware('throttle:60,1');
 Route::delete('/commands/list-views/{list}/{view}', [ListViewController::class, 'destroy'])->whereIn('list', ListViews::Lists)->whereNumber('view')->middleware('throttle:30,1');
+
+Route::get('/commands/identity-review', [IdentityReviewController::class, 'index'])->middleware('throttle:60,1');
+Route::post('/commands/identity-review/scan', [IdentityReviewController::class, 'scan'])->middleware('throttle:3,1');
+Route::post('/commands/identity-review/{flag}/mark', [IdentityReviewController::class, 'mark'])->whereNumber('flag')->middleware('throttle:60,1');

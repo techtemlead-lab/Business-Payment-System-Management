@@ -72,6 +72,10 @@ class EnforceStaffActions
         if ($controller === 'ListViewController') {
             return $next($request);
         }
+        // Owners review possible duplicate accounts; IdentityReviewList checks again. Flag only.
+        if ($controller === 'IdentityReviewController' && $actor->owner()) {
+            return $next($request);
+        }
         // Owners always answer partner chat; other staff answer when the owner nominated them.
         // PartnerChat and ChatRouting check again which partners each person may answer.
         if ($controller === 'PartnerChatController' && ($actor->owner() || ($method === 'reply' && PartnerChat::canAnswer($actor)))) {
@@ -184,6 +188,7 @@ class EnforceStaffActions
                 'accounts' => [['finance'], 'view'],
                 'contract' => [['finance'], 'edit'], default => [['finance'], 'create'],
             },
+            'IdentityReviewController' => [['finance'], 'edit'],
             'FundSpendingController' => match ($method) {
                 'review' => [['finance'], 'approve'],
                 'storeHead', 'updateHead' => [['finance'], 'edit'],
