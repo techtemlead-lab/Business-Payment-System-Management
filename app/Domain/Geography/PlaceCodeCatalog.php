@@ -384,7 +384,7 @@ final class PlaceCodeCatalog
             ->all();
 
         $saved = $place->basePlace;
-        if ($saved === null || in_array($saved->id, array_column($options, 'id'), true)) {
+        if (! $saved instanceof PlaceCode || in_array($saved->id, array_column($options, 'id'), true)) {
             return $options;
         }
         $problem = $this->baseProblem($place, $saved);
