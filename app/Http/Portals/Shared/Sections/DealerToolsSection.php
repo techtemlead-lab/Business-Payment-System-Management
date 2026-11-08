@@ -6,6 +6,7 @@ use App\Domain\Accounts\CustomerBook;
 use App\Domain\Accounts\PartnerAlerts;
 use App\Domain\Accounts\PartnerNextSteps;
 use App\Domain\Content\SalesKit;
+use App\Domain\Orders\DatedSchemes;
 use App\Domain\Orders\RepeatOrderOptions;
 
 /**
@@ -19,6 +20,7 @@ final class DealerToolsSection implements WorkspaceSection
         $props = [];
         if ($isPartner && $context->section === 'purchase') {
             $props['repeat_orders'] = app(RepeatOrderOptions::class)->for($context->user);
+            $props['running_schemes'] = app(DatedSchemes::class)->runningToday();
         }
 
         if ($isPartner && $context->section === 'overview') {
@@ -30,6 +32,9 @@ final class DealerToolsSection implements WorkspaceSection
 
         if ($isPartner && $context->section === 'customers') {
             $props['customer_book'] = app(CustomerBook::class)->pageFor($context->user, $context->request->string('q')->toString() ?: null, $context->request->string('status')->toString() ?: null);
+        }
+        if ($context->section === 'schemes') {
+            $props['schemes_admin'] = app(DatedSchemes::class)->forOwner($context->user);
         }
         if ($context->section === 'sales-kit') {
             $props['sales_kit'] = app(SalesKit::class)->forViewer($context->user);

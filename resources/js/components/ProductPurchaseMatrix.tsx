@@ -7,6 +7,7 @@ import {
 import { money, type Row, Table, number, FormErrors } from './UI';
 import { useT } from '../shared/i18n/t';
 import RepeatOrderPanel, { repeatChangeNotes, type RepeatOption } from './dealertools/RepeatOrderPanel';
+import SchemeNotices, { type RunningScheme } from './dealertools/SchemeNotices';
 
 interface Props {
     products: Row[];
@@ -20,6 +21,8 @@ interface Props {
     courierChoices?: { key: string; label: string }[];
     /** Past orders that can go back in the cart with one tap, at today's prices and stock. */
     repeatOrders?: RepeatOption[];
+    /** Schemes running today, shown as information only. */
+    runningSchemes?: RunningScheme[];
 }
 
 interface CartItem {
@@ -36,6 +39,7 @@ export default function ProductPurchaseMatrix({
     fullPaymentRequired = false,
     courierChoices = [],
     repeatOrders = [],
+    runningSchemes = [],
 }: Props) {
     const translate = useT();
 
@@ -336,6 +340,7 @@ export default function ProductPurchaseMatrix({
             </div>
 
             <RepeatOrderPanel orders={repeatOrders} onFill={fillCartFromOrder} />
+            <SchemeNotices schemes={runningSchemes} cartQuantities={Object.fromEntries(cart.map(item => [Number(item.product.id), item.quantity]))} />
             {repeatNotes.length > 0 && (
                 <div className="notice warning" role="status">
                     <ul>{repeatNotes.map(note => <li key={note}>{note}</li>)}</ul>

@@ -6291,4 +6291,8 @@ return [
     'event_sales_kit_removed' => 'Sales kit file removed',
     'customer_book' => 'My customers',
     'section_hint_partner_customers' => 'Your own customers, notes and follow-up dates. Only you can see this.',
+    'dated_schemes' => 'Schemes',
+    'section_hint_schemes' => 'Dated offers partners see while ordering. Shown as information only.',
+    'event_dated_scheme_added' => 'Scheme added',
+    'event_dated_scheme_removed' => 'Scheme removed',
 ];

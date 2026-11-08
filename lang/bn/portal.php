@@ -6291,4 +6291,8 @@ return [
     'event_sales_kit_removed' => 'সেলস কিট থেকে ফাইল সরানো হয়েছে',
     'customer_book' => 'আমার কাস্টমার',
     'section_hint_partner_customers' => 'আপনার নিজের কাস্টমার, নোট ও ফলো-আপের তারিখ। এটা শুধু আপনি দেখতে পাবেন।',
+    'dated_schemes' => 'স্কিম',
+    'section_hint_schemes' => 'অর্ডারের সময় পার্টনাররা যে তারিখভিত্তিক অফার দেখেন। শুধু জানানোর জন্য।',
+    'event_dated_scheme_added' => 'স্কিম যোগ হয়েছে',
+    'event_dated_scheme_removed' => 'স্কিম সরানো হয়েছে',
 ];

@@ -7,6 +7,7 @@ use App\Http\Controllers\CommandController;
 use App\Http\Controllers\CourierShipmentController;
 use App\Http\Controllers\CustomerBookController;
 use App\Http\Controllers\DataCleanupController;
+use App\Http\Controllers\DatedSchemeController;
 use App\Http\Controllers\IdentityLookupController;
 use App\Http\Controllers\PartnerAgreementController;
 use App\Http\Controllers\PartnerChatController;
@@ -181,6 +182,8 @@ return function (string $portal): void {
     Route::delete('/commands/accounts/{user}/prescriber', [PrescriberVerificationController::class, 'disable'])->middleware('throttle:20,1');
 
     // Partner tools.
+    Route::post('/commands/schemes', [DatedSchemeController::class, 'store'])->middleware('throttle:30,1');
+    Route::delete('/commands/schemes/{datedScheme}', [DatedSchemeController::class, 'destroy'])->whereNumber('datedScheme')->middleware('throttle:30,1');
     Route::post('/commands/customers', [CustomerBookController::class, 'store'])->middleware('throttle:60,1');
     Route::patch('/commands/customers/{customer}', [CustomerBookController::class, 'update'])->whereNumber('customer')->middleware('throttle:60,1');
     Route::post('/commands/customers/{customer}/follow-up-done', [CustomerBookController::class, 'followUpDone'])->whereNumber('customer')->middleware('throttle:60,1');
