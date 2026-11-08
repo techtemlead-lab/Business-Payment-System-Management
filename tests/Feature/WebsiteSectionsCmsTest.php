@@ -12,8 +12,8 @@ use Tests\TestCase;
 
 /**
  * Website text that used to be fixed in code and is now edited in the
- * website editor: the home page intro cards, the order invoice letterhead
- * and the distributor name on product pages.
+ * website editor: the top of the page, the women special block, the order
+ * invoice letterhead and the distributor name on product pages.
  */
 class WebsiteSectionsCmsTest extends TestCase
 {
@@ -28,25 +28,67 @@ class WebsiteSectionsCmsTest extends TestCase
         SiteCustomization::forgetCache();
     }
 
-    public function test_home_intro_cards_show_factory_text_in_each_language(): void
+    public function test_the_sections_the_owner_crossed_out_are_gone_from_the_home_page(): void
     {
-        $this->withSession(['locale' => 'en'])->get('/')->assertOk()
-            ->assertSee(__('site.company_intro_eyebrow', [], 'en'))
-            ->assertSee(__('site.product_range_title', [], 'en'))
-            ->assertSee(__('site.partner_with_us_sub', [], 'en'));
-
-        $this->withSession(['locale' => 'bn'])->get('/')->assertOk()
-            ->assertSee(__('site.company_intro_eyebrow', [], 'bn'))
-            ->assertSee(__('site.product_range_title', [], 'bn'))
-            ->assertSee(__('site.partner_with_us_sub', [], 'bn'))
-            ->assertDontSee(__('site.company_intro_eyebrow', [], 'en'));
+        foreach (['en', 'bn'] as $locale) {
+            $this->withSession(['locale' => $locale])->get('/')->assertOk()
+                ->assertDontSee('company-intro-title', false)
+                ->assertDontSee('ref-shortcuts', false)
+                ->assertDontSee('ref-trust-pillars', false)
+                ->assertDontSee('ref-featured-categories', false)
+                ->assertDontSee(__('site.company_intro_eyebrow', [], $locale))
+                ->assertDontSee(__('site.partner_with_us_sub', [], $locale));
+        }
     }
 
-    public function test_home_page_shows_bismillah_above_the_headline_and_owner_can_turn_it_off(): void
+    public function test_women_special_block_shows_factory_text_in_each_language(): void
     {
-        $this->withSession(['locale' => 'bn'])->get('/')->assertOk()
-            ->assertSeeInOrder(['ref-bismillah', 'বিসমিল্লাহির রাহমানির রাহিম', 'company-intro-title'], false)
-            ->assertDontSee('dir="rtl"', false);
+        foreach (['en', 'bn'] as $locale) {
+            $this->withSession(['locale' => $locale])->get('/')->assertOk()
+                ->assertSeeInOrder(['ref-women-special', __('site.women_special_title', [], $locale), __('site.women_special_body', [], $locale), __('site.women_special_button', [], $locale), 'ref-promotions'], false);
+        }
+    }
+
+    public function test_owner_can_edit_or_turn_off_the_women_special_block(): void
+    {
+        SiteCustomization::save([
+            'women_special_title' => 'For our sisters',
+            'women_special_body' => 'A short line from the owner',
+            'women_special_button' => 'Take a look',
+            'women_special_link' => '/products?category=Oil',
+            'women_special_image' => '/branding/site-photos/women.jpg',
+        ]);
+
+        foreach (['en', 'bn'] as $locale) {
+            $this->withSession(['locale' => $locale])->get('/')->assertOk()
+                ->assertSee('For our sisters')
+                ->assertSee('A short line from the owner')
+                ->assertSee('Take a look')
+                ->assertSee('href="/products?category=Oil"', false)
+                ->assertSee('src="/branding/site-photos/women.jpg"', false);
+        }
+
+        SiteCustomization::save(['women_special_enabled' => '0']);
+        $this->get('/')->assertOk()->assertDontSee('ref-women-special', false);
+    }
+
+    public function test_women_special_button_hides_when_its_page_is_turned_off(): void
+    {
+        SiteCustomization::save(['page_enabled_products' => '0']);
+
+        $this->withSession(['locale' => 'en'])->get('/')->assertOk()
+            ->assertSee('ref-women-special', false)
+            ->assertDontSee(__('site.women_special_button', [], 'en'));
+    }
+
+    public function test_bismillah_is_the_first_line_of_every_public_page_and_owner_can_turn_it_off(): void
+    {
+        foreach (['/', '/about', '/products'] as $path) {
+            $this->withSession(['locale' => 'bn'])->get($path)->assertOk()
+                ->assertSeeInOrder(['ref-bismillah', 'বিসমিল্লাহির রাহমানির রাহিম', 'ref-company-bar', 'ref-sticky-chrome'], false);
+        }
+
+        $this->withSession(['locale' => 'bn'])->get('/')->assertOk()->assertDontSee('dir="rtl"', false);
 
         $this->withSession(['locale' => 'en'])->get('/')->assertOk()
             ->assertSee('<p class="ref-bismillah" lang="ar" dir="rtl"><span>'.self::ArabicBismillah.'</span></p>', false)
@@ -54,6 +96,47 @@ class WebsiteSectionsCmsTest extends TestCase
 
         SiteCustomization::save(['home_bismillah_enabled' => '0']);
         $this->withSession(['locale' => 'bn'])->get('/')->assertOk()->assertDontSee('ref-bismillah', false);
+    }
+
+    public function test_navigation_buttons_have_no_second_line_of_small_text(): void
+    {
+        foreach (['en', 'bn'] as $locale) {
+            $html = $this->withSession(['locale' => $locale])->get('/')->assertOk()->getContent();
+
+            $this->assertStringNotContainsString('<small', Str::between($html, 'class="ref-header-links"', 'ref-theme-toggle'));
+            $this->assertStringNotContainsString(__('site.about_sub', [], $locale), $html);
+            $this->assertStringNotContainsString(__('site.contact_sub', [], $locale), $html);
+        }
+    }
+
+    public function test_managing_director_message_comes_before_the_products_on_the_home_page(): void
+    {
+        $this->get('/')->assertOk()->assertSeeInOrder(['ref-promotions', 'ref-md-message--home', 'id="featured-products"'], false);
+    }
+
+    public function test_home_page_shows_a_short_managing_director_message_and_the_about_page_the_longer_one(): void
+    {
+        SiteCustomization::save(['md_message_body' => "First paragraph.\n\nSecond paragraph.\n\nThird paragraph.\n\nFourth paragraph.\n\nFifth paragraph."]);
+
+        $home = $this->withSession(['locale' => 'en'])->get('/')->assertOk()->getContent();
+        $this->assertStringContainsString('id="md-message-more-home" hidden', $home);
+        $this->assertLessThan(strpos($home, 'Third paragraph.'), strpos($home, 'id="md-message-more-home" hidden'));
+
+        $about = $this->withSession(['locale' => 'en'])->get('/about')->assertOk()->getContent();
+        $this->assertLessThan(strpos($about, 'Fourth paragraph.'), strpos($about, 'Third paragraph.'));
+        $this->assertLessThan(strpos($about, 'Fourth paragraph.'), strpos($about, 'id="md-message-more-about" hidden'));
+    }
+
+    public function test_product_cards_show_the_picture_with_nothing_on_top_of_it(): void
+    {
+        Product::factory()->create(['name' => 'Bright Card Honey', 'category' => 'Oil', 'image_path' => 'products/real.jpg', 'active' => true]);
+
+        $html = $this->get('/products')->assertOk()->getContent();
+
+        $this->assertStringContainsString('ref-card-picture', $html);
+        $this->assertStringNotContainsString('luxury-hero-stage', $html);
+        $this->assertStringNotContainsString('luxury-marble-pedestal', $html);
+        $this->assertMatchesRegularExpression('#<a class="ref-card-picture"[^>]*>\s*<img [^>]*>\s*</a>#', $html);
     }
 
     public function test_saving_the_editor_without_touching_bismillah_keeps_each_languages_own_line(): void
@@ -93,42 +176,9 @@ class WebsiteSectionsCmsTest extends TestCase
         }
     }
 
-    public function test_owner_edits_to_the_home_intro_cards_are_shown_as_written(): void
-    {
-        SiteCustomization::save([
-            'company_intro_eyebrow' => 'Since 2019 in Rangpur',
-            'product_range_title' => 'Herbal shelf',
-            'product_range_sub' => 'Teas, oils and honey',
-            'partner_with_us_title' => 'Open a Madina shop',
-            'partner_with_us_sub' => 'Talk to our dealer team',
-        ]);
-
-        foreach (['en', 'bn'] as $locale) {
-            $this->withSession(['locale' => $locale])->get('/')->assertOk()
-                ->assertSee('Since 2019 in Rangpur')
-                ->assertSee('Herbal shelf')
-                ->assertSee('Teas, oils and honey')
-                ->assertSee('Open a Madina shop')
-                ->assertSee('Talk to our dealer team');
-        }
-    }
-
-    public function test_services_card_text_is_editable_when_the_products_page_is_off(): void
-    {
-        SiteCustomization::save([
-            'page_enabled_products' => '0',
-            'our_services_title' => 'Physio and herbal advice',
-            'our_services_sub' => 'Open six days a week',
-        ]);
-
-        $this->get('/')->assertOk()
-            ->assertSee('Physio and herbal advice')
-            ->assertSee('Open six days a week');
-    }
-
     public function test_website_text_with_web_code_is_shown_as_plain_text(): void
     {
-        SiteCustomization::save(['company_intro_eyebrow' => '<script>alert(1)</script>Welcome']);
+        SiteCustomization::save(['women_special_title' => '<script>alert(1)</script>Welcome']);
 
         $html = $this->get('/')->assertOk()->getContent();
 

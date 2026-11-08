@@ -66,8 +66,6 @@ class SiteCustomizationTest extends TestCase
                 'announcement_text' => 'Special Ramadan offer: 10% discount on all wellness supplements!',
                 'featured_products_title' => 'Handpicked Wellness Collection',
                 'about_headline' => 'Retired Shop Introduction',
-                'company_intro_title' => 'Our Company and Distribution Network',
-                'company_intro_body' => 'Custom company introduction for our partners.',
                 'header_catalog_title' => 'Product Catalogue',
                 'header_network_title' => 'Our Dealers',
                 'copyright_text' => '© 2026 Madina Natural Health Care Custom Copyright.',
@@ -83,16 +81,13 @@ class SiteCustomizationTest extends TestCase
         $response->assertSee('OFFICIAL MADINA HEALTH STORE');
         $response->assertSee('Special Ramadan offer: 10% discount on all wellness supplements!');
         $response->assertSee('Handpicked Wellness Collection');
-        $response->assertSee('Our Company and Distribution Network');
-        $response->assertSee('Custom company introduction for our partners.');
         $response->assertSee('Product Catalogue');
         $response->assertSee('Our Dealers');
         $response->assertDontSee('Retired Shop Introduction');
         $response->assertSee('© 2026 Madina Natural Health Care Custom Copyright.');
 
-        // Verify unset elements still show standard placeholders
+        // The owner removed these home page blocks, so they stay away even with saved text.
         $response->assertDontSee('Featured Categories');
-        $response->assertSee('Our Products');
     }
 
     public function test_customization_can_be_reset_to_default_placeholders(): void
@@ -276,48 +271,6 @@ class SiteCustomizationTest extends TestCase
         $home->assertDontSee('href="/partnership"', false);
         $home->assertDontSee('href="/faq"', false);
         $home->assertDontSee('href="/privacy"', false);
-    }
-
-    public function test_shortcuts_can_be_customized_added_removed_and_disabled(): void
-    {
-        $editor = User::factory()->create(['role' => 'editor']);
-
-        // 1. Customize with 3 custom shortcuts (added/modified)
-        $payload = [
-            'customization' => [
-                'shortcuts_section_enabled' => '1',
-                'shortcuts' => [
-                    ['title' => 'VIP Consultations', 'subtitle' => 'Book doctor session', 'icon' => 'fa-user-doctor', 'link' => '/vip-consult'],
-                    ['title' => 'Rapid Medicine Dispatch', 'subtitle' => 'Same-day delivery', 'icon' => 'fa-truck-fast', 'link' => '/delivery'],
-                    ['title' => 'Herbal Research Lab', 'subtitle' => 'Explore unani formulas', 'icon' => 'fa-flask', 'link' => '/lab'],
-                ],
-            ],
-        ];
-
-        $this->actingAs($editor)->post('/commands/customization', $payload)
-            ->assertSessionHas('success');
-
-        $response = $this->get('/');
-        $response->assertOk();
-        $response->assertSee('VIP Consultations');
-        $response->assertSee('Book doctor session');
-        $response->assertSee('Rapid Medicine Dispatch');
-        $response->assertSee('Herbal Research Lab');
-        // Unused default shortcuts should not be present
-        $response->assertDontSee('Raise a Complain');
-
-        // 2. Disable shortcuts section
-        $payloadDisabled = [
-            'customization' => [
-                'shortcuts_section_enabled' => '0',
-            ],
-        ];
-        $this->actingAs($editor)->post('/commands/customization', $payloadDisabled);
-
-        $responseDisabled = $this->get('/');
-        $responseDisabled->assertOk();
-        $responseDisabled->assertDontSee('VIP Consultations');
-        $responseDisabled->assertDontSee('Rapid Medicine Dispatch');
     }
 
     public function test_stored_campaigns_cannot_restore_public_shopping_or_override_product_mrp(): void
@@ -707,7 +660,7 @@ class SiteCustomizationTest extends TestCase
         $this->assertEquals($expectedDefaults, SiteCustomization::getNavCategories());
     }
 
-    public function test_featured_category_image_urls_render_on_public_home(): void
+    public function test_featured_category_image_urls_are_read_from_the_saved_list(): void
     {
         $editor = User::factory()->create(['role' => 'editor']);
 
@@ -724,14 +677,6 @@ class SiteCustomizationTest extends TestCase
         $this->assertFalse($categories[1]['is_image']);
         $this->assertSame('fa-bottle-droplet', $categories[1]['icon']);
 
-        $home = $this->get('/');
-        $home->assertOk();
-        $home->assertSee('ref-cat-icon-wrap', false);
-        $home->assertSee('/branding/madina-logo-client.png');
-        // No admin image → category-specific auto SVG (not Font Awesome).
-        $home->assertDontSee('fa-bottle-droplet', false);
-        $home->assertSee('ref-cat-auto-icon', false);
-        $home->assertSee('data-cat-icon="droplet"', false);
     }
 
     public function test_staff_can_upload_featured_category_icon_image(): void
