@@ -6394,4 +6394,11 @@ return [
     'section_hint_identity_review' => 'Accounts that share a phone, NID or payout number, or may have referred themselves. For checking only.',
     'event_identity_review_marked' => 'Duplicate account match reviewed',
     'event_security_device_logged_out' => 'Logged out one device',
+    'contests' => 'Contests',
+    'section_hint_contests' => 'Set up contests and see how partners stand. Prizes are given by hand.',
+    'section_hint_partner_contests' => 'Running contests and where everyone stands.',
+    'event_contest_added' => 'Contest added',
+    'event_contest_removed' => 'Contest removed',
+    'partner_scorecard' => 'Partner scorecard',
+    'section_hint_partner_scorecard' => 'Each partner\'s payments, cancellations and returns.',
 ];

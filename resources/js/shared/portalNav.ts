@@ -229,6 +229,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     if (capabilities.some((cap) => ['finance', 'reports', 'field_sales'].includes(cap))) items.add('financial-reports');
     if (capabilities.some((cap) => ['reports', 'orders', 'finance'].includes(cap))) {
         items.add('top-sellers');
+        items.add('partner-scorecard');
     }
     if (role === 'super_admin') items.add('access-management');
     if (capabilities.some((cap) => ['content', 'catalog'].includes(cap))) items.add('video-marketing');
@@ -242,6 +243,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     if (ownerPortal && OWNER_ROLES.includes(role)) items.add('login-rules');
     if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('sales-kit');
     if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('schemes');
+    if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('contests');
     if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('privacy-requests');
     if (prescriber) items.add('prescriptions');
     if (capabilities.some((cap) => ['catalog', 'pricing', 'inventory', 'orders', 'finance'].includes(cap))) items.add('catalog');
@@ -297,6 +299,7 @@ export function buildPartnerAvailable(role: string, dashboardControls?: Record<s
         }
         items.add('sales-kit');
         items.add('customers');
+        items.add('contests');
         return items;
     }
     if (role === 'sub_dealer') {
@@ -323,6 +326,7 @@ export function buildPartnerAvailable(role: string, dashboardControls?: Record<s
         }
         items.add('sales-kit');
         items.add('customers');
+        items.add('contests');
         return items;
     }
     return new Set(['profile', 'security', 'notifications']);
@@ -337,7 +341,7 @@ function staffMothers(available: Set<string>): NavMother[] {
         mother('clinic', 'nav_module_clinic', pick(available, ['prescriptions'])),
         mother('payouts', 'nav_module_payouts', pick(available, ['payouts-hub', 'settlements', 'salary'])),
         mother('partners', 'nav_module_partners', pick(available, [
-            'accounts', 'sub-dealers', 'partnerships', 'sub-dealer-applications', 'network-tree', 'area-dealers', 'ranks', 'agreement', 'schemes', 'sales-kit',
+            'accounts', 'sub-dealers', 'partnerships', 'sub-dealer-applications', 'network-tree', 'area-dealers', 'ranks', 'agreement', 'schemes', 'sales-kit', 'contests',
         ])),
         mother('stock', 'nav_module_stock', pick(available, ['catalog-products', 'stock', 'stock-lots', 'purchasing', 'stock-counts', 'branches'])),
         mother('finance', 'nav_module_finance', pick(available, ['treasury', 'company-funds', 'reserve-payouts', 'benefits-fund', 'ledger', 'accounting', 'payment-accounts', 'identity-review'])),
@@ -345,7 +349,7 @@ function staffMothers(available: Set<string>): NavMother[] {
             'commissions', 'commission-holds', 'rewards',
         ])),
         mother('people', 'nav_module_people', pick(available, ['employees', 'payroll', 'staff-operations', 'field-sales', 'access-management'])),
-        mother('reports', 'nav_module_reports', pick(available, ['financial-reports', 'top-sellers', 'branch-performance'])),
+        mother('reports', 'nav_module_reports', pick(available, ['financial-reports', 'top-sellers', 'partner-scorecard', 'branch-performance'])),
         mother('website', 'nav_module_website', pick(available, ['website', 'content', 'public-trust', 'video-marketing', 'training', 'events'])),
         mother('settings', 'nav_module_settings', pick(available, [
             'finance-settings', 'place-codes', 'dashboards', 'login-rules', 'audit', 'service-integrations', 'data-imports', 'financial-readiness', 'data-cleanup', 'privacy-requests',
@@ -370,7 +374,7 @@ function partnerMothers(role: string, available: Set<string>): NavMother[] {
             shared.newOrder,
             shared.orders,
             shared.money,
-            mother('network', 'nav_module_network', pick(available, ['network', 'customers', 'ranks', 'top-sellers'])),
+            mother('network', 'nav_module_network', pick(available, ['network', 'customers', 'ranks', 'top-sellers', 'contests'])),
             mother('learning', 'nav_module_learning', pick(available, ['training', 'events'])),
             shared.clinic,
             shared.office,
@@ -383,7 +387,7 @@ function partnerMothers(role: string, available: Set<string>): NavMother[] {
         shared.orders,
         mother('compensation', 'nav_module_compensation', pick(available, ['salary'])),
         shared.money,
-        mother('learning', 'nav_module_learning', pick(available, ['training', 'events', 'top-sellers'])),
+        mother('learning', 'nav_module_learning', pick(available, ['training', 'events', 'top-sellers', 'contests'])),
         shared.clinic,
         shared.office,
         shared.account,
