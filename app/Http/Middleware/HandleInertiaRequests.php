@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\Clinic\PrescriptionAccess;
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Inventory\BranchOperations;
@@ -72,6 +73,12 @@ class HandleInertiaRequests extends Middleware
             'capabilities' => $capabilities,
             // Staff the owner nominated to answer partner chat (owners always may).
             'chatAnswerer' => $u !== null && ($u->staff() || $u->usingStaffWorkspace()) && PartnerChat::canAnswer($u),
+            // Prescriptions menu: verified partners and the owner-doctor (read from the user row, no query).
+            'prescriber' => $u !== null && PrescriptionAccess::canPrescribe($u),
+            // May switch prescribing on or off on the accounts page.
+            // Same rule as PrescriptionAccess::canVerify, reusing the capabilities read above.
+            'prescriberVerifier' => $u !== null && PrescriptionAccess::enabled() && $u->status === 'active'
+                && ($u->owner() || ($u->staff() && in_array(PrescriptionAccess::VerifyPermission, $capabilities, true))),
         ],
             'collectionAccounts' => fn () => ($u && $payments->mayReceiveCollectionAccounts($u))
                 ? $payments->listing($u, true, true)
@@ -197,6 +204,7 @@ class HandleInertiaRequests extends Middleware
             'translations' => Inertia::once(fn () => [
                 'portal' => Lang::get('portal'),
                 'auth' => Lang::get('auth_ui'),
+                'prescription' => Lang::get('prescription'),
             ])->as('i18n:'.$locale),
             'portalCatalog' => Inertia::once(fn () => $portalShell
                 ? PortalCatalog::inertiaPayload($portal)

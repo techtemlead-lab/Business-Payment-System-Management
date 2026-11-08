@@ -47,6 +47,8 @@ class EnforceStaffActions
                 'PartnerAgreementController' => $method === 'accept',
                 'PartnerChatController' => $method === 'send',
                 'TrainingController' => $method === 'submitQuiz',
+                // Verified prescribers only; PrescriptionAccess checks again.
+                'PrescriptionController' => in_array($method, ['storePatient', 'updatePatient', 'store'], true),
                 'PushSubscriptionController' => true,
                 default => false,
             };
@@ -60,6 +62,10 @@ class EnforceStaffActions
         // Owners always answer partner chat; other staff answer when the owner nominated them.
         // PartnerChat and ChatRouting check again which partners each person may answer.
         if ($controller === 'PartnerChatController' && ($actor->owner() || ($method === 'reply' && PartnerChat::canAnswer($actor)))) {
+            return $next($request);
+        }
+        if ($controller === 'PrescriberVerificationController' && $actor->owner()) {
+            // Owners (Super Admin, MD, Chairman) switch prescribing on or off; the controller checks again.
             return $next($request);
         }
         if ($controller === 'DataCleanupController' && $actor->owner()) {
@@ -203,6 +209,7 @@ class EnforceStaffActions
             },
             'CatalogController' => [['catalog', 'pricing', 'inventory', 'orders', 'finance'], 'view'],
             'PartnerChatController' => [['partner_chat'], 'create'],
+            'PrescriberVerificationController' => [['prescriber_verify'], 'edit'],
             default => null,
         };
         abort_unless($permission, 403, __('portal.err_staff_perm_disabled'));

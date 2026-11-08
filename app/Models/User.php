@@ -42,6 +42,7 @@ class User extends Authenticatable implements HasLocalePreference
         'totp_recovery_codes',
         'phone_share_approved_by',
         'phone_share_reason',
+        'can_prescribe',
     ];
 
     protected $attributes = ['status' => 'active', 'role' => 'dealer'];
@@ -209,6 +210,7 @@ class User extends Authenticatable implements HasLocalePreference
             'directory_visible' => 'boolean',
             'linked_staff_permissions' => 'array',
             'staff_linked_at' => 'datetime',
+            'can_prescribe' => 'boolean',
         ];
     }
 

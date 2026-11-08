@@ -59,6 +59,7 @@ final class EmployeesSection implements WorkspaceSection
             ['key' => 'cost_read', 'category' => 'finance'],
             ['key' => 'identity_write', 'category' => 'security'],
             ['key' => 'partner_chat', 'category' => 'operations'],
+            ['key' => 'prescriber_verify', 'category' => 'security'],
         ];
         $props['available_permissions'] = array_map(
             fn (array $permission): array => [

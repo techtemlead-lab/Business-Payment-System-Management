@@ -41,6 +41,11 @@ return [
         'pdf_max_mb' => (int) env('MADINA_TRAINING_PDF_MAX_MB', 20),
     ],
 
+    // Prescription module. Prescribing stays off per partner until the owner verifies them.
+    'prescriptions' => [
+        'enabled' => (bool) env('MADINA_PRESCRIPTIONS', true),
+    ],
+
     'business_timezone' => 'Asia/Dhaka',
     'withdrawal_minimum' => '200.00',
     // Owner decision: nobody orders without paying the whole order first. This is only the starting
@@ -76,7 +81,7 @@ return [
     // Edge/Windows, Safari). Anything else is refused, so the server never posts to other hosts.
     'web_push_hosts' => ['fcm.googleapis.com', 'android.googleapis.com', 'push.services.mozilla.com', 'notify.windows.com', 'push.apple.com'],
     'roles' => [
-        'super_admin' => ['pricing', 'cost_read', 'accounts', 'catalog', 'inventory', 'orders', 'order_review', 'finance', 'content', 'reports', 'audit', 'identity_write', 'staff_admin', 'field_sales', 'sr_orders', 'sr_onboarding', 'payroll', 'partner_chat'],
+        'super_admin' => ['pricing', 'cost_read', 'accounts', 'catalog', 'inventory', 'orders', 'order_review', 'finance', 'content', 'reports', 'audit', 'identity_write', 'staff_admin', 'field_sales', 'sr_orders', 'sr_onboarding', 'payroll', 'partner_chat', 'prescriber_verify'],
         'md' => ['orders', 'finance', 'reports', 'audit'],
         'chairman' => ['orders', 'finance', 'reports', 'audit'],
         'sr' => ['field_sales', 'sr_orders', 'sr_onboarding'],

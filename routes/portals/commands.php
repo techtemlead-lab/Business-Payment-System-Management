@@ -10,6 +10,8 @@ use App\Http\Controllers\PartnerAgreementController;
 use App\Http\Controllers\PartnerChatController;
 use App\Http\Controllers\PartnerEventController;
 use App\Http\Controllers\PlaceCodeController;
+use App\Http\Controllers\PrescriberVerificationController;
+use App\Http\Controllers\PrescriptionController;
 use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductRegistryController;
 use App\Http\Controllers\ProductSubcategoryController;
@@ -151,4 +153,18 @@ return function (string $portal): void {
     Route::post('/commands/branches/{branch}/staff', [BranchController::class, 'assignStaff']);
     Route::delete('/commands/branches/{branch}/staff/{user}', [BranchController::class, 'removeStaff']);
     Route::post('/commands/branches/{branch}/select', [BranchController::class, 'select']);
+
+    // Prescriptions: patients and prescriptions for verified prescribers, the owner's clinic dispense,
+    // and the per-partner prescribing switch on the accounts page.
+    Route::get('/commands/prescriptions/places', [PrescriptionController::class, 'places'])->middleware('throttle:60,1');
+    Route::post('/commands/prescriptions/patients', [PrescriptionController::class, 'storePatient'])->middleware('throttle:30,1');
+    Route::patch('/commands/prescriptions/patients/{patient}', [PrescriptionController::class, 'updatePatient'])->whereNumber('patient')->middleware('throttle:30,1');
+    Route::post('/commands/prescriptions', [PrescriptionController::class, 'store'])->middleware('throttle:30,1');
+    Route::post('/commands/prescriptions/{prescription}/dispense', [PrescriptionController::class, 'dispense'])->whereNumber('prescription')->middleware('throttle:20,1');
+    Route::post('/commands/prescriptions/price-floor', [PrescriptionController::class, 'priceFloor'])->middleware('throttle:10,1');
+    Route::post('/commands/prescriptions/registration', [PrescriptionController::class, 'registration'])->middleware('throttle:10,1');
+    Route::get('/prescriptions/{prescription}/print', [PrescriptionController::class, 'print'])->whereNumber('prescription')->middleware('throttle:30,1');
+    Route::get('/commands/accounts/{user}/prescriber', [PrescriberVerificationController::class, 'show'])->middleware('throttle:60,1');
+    Route::post('/commands/accounts/{user}/prescriber', [PrescriberVerificationController::class, 'enable'])->middleware('throttle:20,1');
+    Route::delete('/commands/accounts/{user}/prescriber', [PrescriberVerificationController::class, 'disable'])->middleware('throttle:20,1');
 };
