@@ -99,6 +99,7 @@ final class ContentSection implements WorkspaceSection
         ];
         $enabled = SiteCustomization::enabledPagesMap();
         $props = [...$props, ...ProductVideo::managementData()];
+        $props['trust_editor'] = $user->allows('content') ? app(PublicTrustSection::class)->textEditorData() : null;
         $props['websitePages'] = collect([
             ['key' => 'home', 'slug' => '/', 'label' => __('portal.website_page_home'), 'toggleable' => false],
             ['key' => 'about', 'slug' => '/about', 'label' => __('portal.website_page_about')],

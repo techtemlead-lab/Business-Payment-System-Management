@@ -19,24 +19,9 @@ final class PublicTrustSection implements WorkspaceSection
             return [];
         }
 
-        $all = SiteCustomization::all();
-        $values = [];
-        foreach (array_keys(PublicTrustContent::defaults()) as $key) {
-            $values[$key] = (string) ($all[$key] ?? '');
-        }
-
         return [
             'public_trust' => [
-                'values' => $values,
-                'text_keys' => PublicTrustContent::TextKeys,
-                'identity_keys' => PublicTrustContent::IdentityKeys,
-                'contact_keys' => PublicTrustContent::ContactKeys,
-                'pages' => PublicTrustContent::Pages,
-                'drafts' => [
-                    'en' => $this->drafts('en'),
-                    'bn' => $this->drafts('bn'),
-                ],
-                'labels' => $this->labels(),
+                ...$this->textEditorData(),
                 'documents' => QualityDocument::query()->orderByDesc('created_at')->orderByDesc('id')->get()
                     ->map(fn (QualityDocument $document): array => [
                         'id' => $document->id,
@@ -55,6 +40,34 @@ final class PublicTrustSection implements WorkspaceSection
                         'published_at' => $article->published_at?->toIso8601String(),
                     ])->all(),
             ],
+        ];
+    }
+
+    /**
+     * Saved wording, built-in drafts and labels for the trust pages. The website
+     * settings page uses this too, so every page has its boxes in one place.
+     *
+     * @return array<string, mixed>
+     */
+    public function textEditorData(): array
+    {
+        $all = SiteCustomization::all();
+        $values = [];
+        foreach (array_keys(PublicTrustContent::defaults()) as $key) {
+            $values[$key] = (string) ($all[$key] ?? '');
+        }
+
+        return [
+            'values' => $values,
+            'text_keys' => PublicTrustContent::TextKeys,
+            'identity_keys' => PublicTrustContent::IdentityKeys,
+            'contact_keys' => PublicTrustContent::ContactKeys,
+            'pages' => PublicTrustContent::Pages,
+            'drafts' => [
+                'en' => $this->drafts('en'),
+                'bn' => $this->drafts('bn'),
+            ],
+            'labels' => $this->labels(),
         ];
     }
 

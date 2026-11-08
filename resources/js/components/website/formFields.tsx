@@ -152,8 +152,13 @@ function FieldBox({
             )}
             {placeholder ? (
                 <small className="ed-hint ed-mt-xs">
-                    {translate('portal', 'sce_default_placeholder', { value: placeholder })}
+                    {translate('portal', 'sce_default_placeholder', { value: placeholder.length > 120 ? `${placeholder.slice(0, 120)}…` : placeholder })}
                 </small>
+            ) : null}
+            {multiline && placeholder && !(value || '').trim() ? (
+                <button type="button" className="button small ed-mt-xs" onClick={() => onChange(fieldKey, placeholder)}>
+                    {translate('website_admin', 'start_from_default')}
+                </button>
             ) : null}
         </label>
     );

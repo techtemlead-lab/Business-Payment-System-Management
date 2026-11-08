@@ -1,67 +1,30 @@
 import React from 'react';
-import { CategoryManager } from '../CategoryManager';
 import { FeaturedProductsManager } from '../FeaturedProductsManager';
 import { Field } from '../formFields';
-import { HeaderNavCategoriesManager } from '../HeaderNavCategoriesManager';
-import { MobileSearchCategoriesManager } from '../MobileSearchCategoriesManager';
-import { WebsiteGroup, WebsiteSection, WebsiteToolLink, type WebsiteSectionProps } from '../WebsiteLayout';
+import { WebsiteGroup, WebsiteToolLink, type WebsiteSectionProps } from '../WebsiteLayout';
+import { ActionForm, type Field as ActionField, type Row } from '../../UI';
 import { useT } from '../../../shared/i18n/t';
 
-export default function HomePageSection({ form, defaults, products, updateField, updateSlide, updateSideSlide }: WebsiteSectionProps) {
+/** Banners, products, reviews and videos on the home page. */
+export default function HomeModule({ form, defaults, products, updateField, updateSlide, updateSideSlide, videoSetting, videoProducts }: WebsiteSectionProps) {
     const translate = useT();
+    const yesNo = (value: string) => translate('portal', value === '1' ? 'yes' : 'no');
+    const galleryOn = form.data.customization.video_gallery_enabled !== '0';
+    const homepageFields: ActionField[] = [
+        { name: 'enabled', label: translate('portal', 'ops_fld_show_video'), required: true, options: ['1', '0'].map((value) => ({ value, label: yesNo(value) })) },
+        { name: 'product_id', label: translate('portal', 'ops_fld_product_video'), required: false, options: videoProducts.map((product) => ({ value: String(product.id), label: product.name })) },
+        { name: 'title', label: translate('portal', 'ops_fld_section_title'), required: true },
+        { name: 'description', label: translate('portal', 'ops_fld_introduction'), type: 'textarea', required: false },
+        { name: 'reason', label: translate('portal', 'ops_fld_reason'), type: 'textarea', required: true },
+    ];
+    const homepageDefaults: Row = {
+        ...videoSetting,
+        enabled: videoSetting.enabled ? '1' : '0',
+        title: videoSetting.title ?? translate('portal', 'ops_video_title_default'),
+    };
+
     return (
-        <WebsiteSection id="home" title={translate('website_admin', 'section_home')} hint={translate('website_admin', 'section_home_hint')}>
-        <WebsiteGroup title={translate('portal', 'cms_tab_header')}>
-                            <div className="form-grid ed-grid">
-                                <Field label={translate('portal', 'sce_f_search_placeholder')} fieldKey="search_placeholder" value={form.data.customization.search_placeholder} placeholder={defaults.search_placeholder} onChange={updateField} />
-                                <Field label={translate('portal', 'sce_f_catalog_link')} fieldKey="header_catalog_title" value={form.data.customization.header_catalog_title} placeholder={defaults.header_catalog_title} onChange={updateField} />
-                                
-                                <Field label={translate('portal', 'sce_f_about_link_title')} fieldKey="header_about_title" value={form.data.customization.header_about_title} placeholder={defaults.header_about_title} onChange={updateField} />
-                                
-                                <Field label={translate('portal', 'sce_f_contact_link_title')} fieldKey="header_contact_title" value={form.data.customization.header_contact_title} placeholder={defaults.header_contact_title} onChange={updateField} />
-
-                                <Field label={translate('portal', 'sce_f_network_link_title')} fieldKey="header_network_title" value={form.data.customization.header_network_title} placeholder={defaults.header_network_title} onChange={updateField} />
-
-                                <Field label={translate('portal', 'sce_f_account_link_title')} fieldKey="header_account_title" value={form.data.customization.header_account_title} placeholder={defaults.header_account_title} onChange={updateField} />
-                                <Field label={translate('portal', 'sce_f_account_link_subtitle')} fieldKey="header_account_subtitle" value={form.data.customization.header_account_subtitle} placeholder={defaults.header_account_subtitle} onChange={updateField} />
-
-                                <MobileSearchCategoriesManager
-                                    enabled={form.data.customization.mobile_search_categories_enabled || '1'}
-                                    heading={form.data.customization.mobile_search_categories_heading || ''}
-                                    items={form.data.customization.mobile_search_categories_items || ''}
-                                    limit={form.data.customization.mobile_search_categories_limit || '6'}
-                                    featuredCategoriesRaw={form.data.customization.featured_categories_items || defaults.featured_categories_items || ''}
-                                    products={products}
-                                    onChange={updateField}
-                                />
-
-                                <HeaderNavCategoriesManager
-                                    value={form.data.customization.nav_categories || ''}
-                                    defaultValue={defaults.nav_categories || ''}
-                                    onChange={newVal => updateField('nav_categories', newVal)}
-                                    featuredCategoriesRaw={form.data.customization.featured_categories_items || defaults.featured_categories_items || ''}
-                                    products={products}
-                                />
-                            </div>
-        </WebsiteGroup>
-
-        <WebsiteGroup title={translate('website_admin', 'group_bismillah')}>
-                            <div className="form-grid ed-grid ed-mb-lg">
-                                <Field label={translate('portal', 'sce_fld_home_bismillah')} fieldKey="home_bismillah_text" value={form.data.customization.home_bismillah_text} placeholder={defaults.home_bismillah_text} onChange={updateField} />
-                                <div>
-                                    <p className="ed-desc is-sm">{translate('portal', 'sce_home_bismillah_hint')}</p>
-                                    <button
-                                        type="button"
-                                        className={`button small ${form.data.customization.home_bismillah_enabled !== '0' ? 'dark' : ''}`}
-                                        aria-pressed={form.data.customization.home_bismillah_enabled !== '0'}
-                                        onClick={() => updateField('home_bismillah_enabled', form.data.customization.home_bismillah_enabled !== '0' ? '0' : '1')}
-                                    >
-                                        {form.data.customization.home_bismillah_enabled !== '0' ? `✓ ${translate('portal', 'sce_status_on')}` : `✕ ${translate('portal', 'sce_status_off')}`}
-                                    </button>
-                                </div>
-                            </div>
-        </WebsiteGroup>
-
+        <>
         <WebsiteGroup title={translate('portal', 'cms_banners_title')}>
                             <div className="ed-stack is-loose ed-mb-lg">
                                 {(form.data.customization.slides || []).map((slide, idx) => {
@@ -216,18 +179,6 @@ export default function HomePageSection({ form, defaults, products, updateField,
                             </div>
         </WebsiteGroup>
 
-        <WebsiteGroup title={translate('website_admin', 'group_category_list')}>
-                            <div className="ed-divided">
-                                <p className="ed-desc">{translate('website_admin', 'category_list_hint')}</p>
-                                <CategoryManager
-                                    value={form.data.customization.featured_categories_items}
-                                    defaultValue={defaults.featured_categories_items}
-                                    onChange={val => updateField('featured_categories_items', val)}
-                                    products={products}
-                                />
-                            </div>
-        </WebsiteGroup>
-
         <WebsiteGroup title={translate('portal', 'sce_dealer_banner_ticker_heading')}>
                             <div className="form-grid ed-grid ed-mb-lg">
                                 <Field label={translate('portal', 'sce_f_ticker_text')} fieldKey="announcement_text" value={form.data.customization.announcement_text} placeholder={defaults.announcement_text} onChange={updateField} span2 />
@@ -268,14 +219,37 @@ export default function HomePageSection({ form, defaults, products, updateField,
                                         <Field label={translate('portal', 'sce_f_testimonials_subtitle')} fieldKey="testimonials_subtitle" value={form.data.customization.testimonials_subtitle} placeholder={defaults.testimonials_subtitle} onChange={updateField} />
                                         <Field label={translate('portal', 'sce_fld_testimonials_invite_title')} fieldKey="testimonials_invite_title" value={form.data.customization.testimonials_invite_title} placeholder={defaults.testimonials_invite_title} onChange={updateField} />
                                         <Field label={translate('portal', 'sce_fld_testimonials_invite_body')} fieldKey="testimonials_invite_body" value={form.data.customization.testimonials_invite_body} placeholder={defaults.testimonials_invite_body} onChange={updateField} multiline rows={2} />
-                                        <Field label={translate('portal', 'sce_fld_feedback_page_title')} fieldKey="feedback_page_title" value={form.data.customization.feedback_page_title} placeholder={defaults.feedback_page_title} onChange={updateField} />
-                                        <Field label={translate('portal', 'sce_fld_feedback_page_lead')} fieldKey="feedback_page_lead" value={form.data.customization.feedback_page_lead} placeholder={defaults.feedback_page_lead} onChange={updateField} multiline rows={2} />
                                     </div>
                                 </div>
                             </div>
         </WebsiteGroup>
 
-        <WebsiteToolLink href="/catalog?tab=offers" title={translate('portal', 'cms_product_mgmt')} body={translate('portal', 'cms_product_banner')} />
-        </WebsiteSection>
+            <WebsiteGroup title={translate('website_admin', 'group_home_video')}>
+                <p className="ed-desc is-sm">{translate('website_admin', 'home_video_own_save')}</p>
+                <p className="ed-desc is-sm">{translate('portal', 'ops_promote_video_hide')}</p>
+                {videoProducts.length === 0 && <p className="ed-desc is-sm">{translate('portal', 'ops_no_product_videos')}</p>}
+                <ActionForm action="/commands/operations/marketing/homepage-video" fields={homepageFields} defaults={homepageDefaults} submit={translate('portal', 'ops_save_homepage_video')} />
+            </WebsiteGroup>
+
+            <WebsiteGroup title={translate('website_admin', 'group_video_gallery')}>
+                <div className="ed-head">
+                    <p className="ed-desc is-sm">{translate('portal', 'sce_video_showcase_hint')}</p>
+                    <button
+                        type="button"
+                        className={`button small ${galleryOn ? 'dark' : ''}`}
+                        aria-pressed={galleryOn}
+                        onClick={() => updateField('video_gallery_enabled', galleryOn ? '0' : '1')}
+                    >
+                        {galleryOn ? `✓ ${translate('portal', 'sce_status_on')}` : `✕ ${translate('portal', 'sce_status_off')}`}
+                    </button>
+                </div>
+                <div className="form-grid ed-grid is-md">
+                    <Field label={translate('portal', 'sce_f_video_title')} fieldKey="video_gallery_title" value={form.data.customization.video_gallery_title} placeholder={defaults.video_gallery_title} onChange={updateField} />
+                    <Field label={translate('portal', 'sce_f_video_subtitle')} fieldKey="video_gallery_subtitle" value={form.data.customization.video_gallery_subtitle} placeholder={defaults.video_gallery_subtitle} onChange={updateField} />
+                </div>
+            </WebsiteGroup>
+
+            <WebsiteToolLink href="/catalog?tab=offers" title={translate('portal', 'cms_product_mgmt')} body={translate('portal', 'cms_product_banner')} />
+        </>
     );
 }
