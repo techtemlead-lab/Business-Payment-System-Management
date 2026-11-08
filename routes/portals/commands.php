@@ -22,6 +22,7 @@ use App\Http\Controllers\PrescriptionToolsController;
 use App\Http\Controllers\PrivacyRequestController;
 use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductConcernController;
+use App\Http\Controllers\ProductPhotoModelController;
 use App\Http\Controllers\ProductRegistryController;
 use App\Http\Controllers\ProductSubcategoryController;
 use App\Http\Controllers\ProductUnitController;
@@ -101,6 +102,7 @@ return function (string $portal): void {
     Route::get('/commands/identity/place-preview', [IdentityLookupController::class, 'placePreview'])->middleware('throttle:60,1');
     Route::get('/commands/identity/refer-preview', [IdentityLookupController::class, 'referPreview'])->middleware('throttle:60,1');
     Route::get('/commands/place-codes/children', [PlaceCodeController::class, 'children'])->middleware('throttle:60,1');
+    Route::get('/commands/product-photo-model/cutout/{file}', ProductPhotoModelController::class)->where('file', '.*')->middleware('throttle:60,1');
     Route::post('/commands/products', [ProductRegistryController::class, 'store']);
     Route::patch('/commands/products/{product}', [ProductRegistryController::class, 'update']);
     Route::delete('/commands/products/{product}', [ProductRegistryController::class, 'destroy']);
