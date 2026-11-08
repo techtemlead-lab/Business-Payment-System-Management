@@ -6,6 +6,7 @@ use App\Domain\Integrations\CourierStatusMap;
 use App\Domain\Integrations\IntegrationSettings;
 use App\Domain\Integrations\SmsGatewayClient;
 use App\Domain\Integrations\SmtpMailConfig;
+use App\Domain\Notifications\EmailEventSwitches;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
@@ -22,6 +23,7 @@ class IntegrationSettingsController extends Controller
             'canEdit' => $actor->canAct('finance', 'edit') || $actor->role === 'super_admin',
             'ownerOnlyGroups' => $actor->role === 'super_admin' ? [] : IntegrationSettings::OwnerOnlyGroups,
             'channelHint' => __('portal.si_channel_hint'),
+            'emailEvents' => app(EmailEventSwitches::class)->panel(),
         ];
 
         return $request->expectsJson()

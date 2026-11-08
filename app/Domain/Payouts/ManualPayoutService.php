@@ -75,7 +75,7 @@ class ManualPayoutService
                 'risk_level' => $risk['risk_level'],
                 'risk_flags' => $risk['flags'],
             ]);
-            Audit::notice($actor->id, __('portal.notice_user_withdrawal_title'), __('portal.notice_user_withdrawal_body', ['amount' => Money::decimal($amount)]));
+            Audit::notice($actor->id, __('portal.notice_user_withdrawal_title'), __('portal.notice_user_withdrawal_body', ['amount' => Money::decimal($amount)]), 'withdrawal.requested');
             Audit::notifyAdminsAndStaff(
                 ['finance'],
                 __('portal.notice_admin_withdrawal_title'),
@@ -128,6 +128,7 @@ class ManualPayoutService
                 $w->user_id,
                 __('portal.notice_wd_reviewed_title', [], $locale),
                 __('portal.notice_wd_reviewed_body', ['decision' => $decisionLabel, 'reason' => $reason], $locale),
+                'withdrawal.'.$decision,
             );
         }, 3);
     }
@@ -203,6 +204,7 @@ class ManualPayoutService
                     $w->user_id,
                     __('portal.notice_wd_paid_title', [], $locale),
                     __('portal.notice_wd_paid_receipt_body', ['number' => $issued['number']], $locale),
+                    'withdrawal.paid',
                 );
             }, 3);
         } catch (\Throwable $e) {

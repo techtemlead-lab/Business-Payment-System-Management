@@ -94,7 +94,7 @@ class OrderService
             $this->event($order, $submittedBy ?? $user, 'order.submitted');
             $this->partnerNotice($user->id, 'portal.notice_order_submitted_title', 'portal.notice_order_submitted_body', [
                 'number' => $order->number,
-            ]);
+            ], 'order.submitted');
             $this->partnerSms($user->id, 'order.submitted', 'sms.order_submitted', [
                 'number' => $order->number,
             ]);
@@ -222,7 +222,7 @@ class OrderService
                 'status' => $statusLabel,
                 'number' => $locked->number,
                 'reason' => $reason,
-            ]);
+            ], 'order.'.$status);
             $this->partnerSms($locked->user_id, 'order.'.$status, 'sms.order_decision', [
                 'status' => SmsText::make('portal.order_status_'.$status),
                 'number' => $locked->number,
@@ -297,7 +297,7 @@ class OrderService
                 $this->partnerNotice($order->user_id, 'portal.notice_payment_reviewed_title', 'portal.notice_payment_reviewed_body', [
                     'number' => $order->number,
                     'outcome' => $outcome,
-                ]);
+                ], $approve ? 'payment.verified' : 'payment.rejected');
                 $this->partnerSms($order->user_id, $approve ? 'payment.verified' : 'payment.rejected', 'sms.payment_reviewed', [
                     'number' => $order->number,
                     'outcome' => SmsText::make($approve ? 'portal.payment_outcome_verified' : 'portal.payment_outcome_rejected'),
@@ -391,7 +391,7 @@ class OrderService
                 'number' => $locked->number,
                 'courier' => $courier,
                 'tracking' => $tracking,
-            ]);
+            ], 'order.dispatched');
             $this->partnerSms($locked->user_id, 'order.dispatched', 'sms.shipment_dispatched', [
                 'number' => $locked->number,
                 'courier' => $courier,
@@ -427,7 +427,7 @@ class OrderService
             $this->event($locked, $actor, 'shipment.delivered', ['shipment_id' => $shipmentId, 'reason' => $reason]);
             $this->partnerNotice($locked->user_id, 'portal.notice_delivery_confirmed_title', 'portal.notice_delivery_confirmed_body', [
                 'number' => $locked->number,
-            ]);
+            ], 'shipment.delivered');
             $this->partnerSms($locked->user_id, 'shipment.delivered', 'sms.delivery_confirmed', [
                 'number' => $locked->number,
             ]);
@@ -769,7 +769,7 @@ class OrderService
         }, 3);
     }
 
-    private function partnerNotice(int $userId, string $titleKey, string $bodyKey, array $replace = []): void
+    private function partnerNotice(int $userId, string $titleKey, string $bodyKey, array $replace = [], ?string $emailEvent = null): void
     {
         $partner = User::find($userId);
         $locale = $partner?->preferredLocale() ?? app()->getLocale();
@@ -777,6 +777,7 @@ class OrderService
             $userId,
             __($titleKey, $replace, $locale),
             __($bodyKey, $replace, $locale),
+            $emailEvent,
         );
     }
 
