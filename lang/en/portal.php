@@ -5227,7 +5227,7 @@ return [
     'ph_birthday_title' => 'Happy birthday!',
     'ph_birthday_body' => 'Happy birthday from the Madina family, :name! Have a lovely day.',
     'dash_mgmt_toggle_birthday_sms' => 'Send birthday SMS',
-    'dash_mgmt_toggle_birthday_sms_desc' => 'Send one short birthday SMS to each dealer and sub-dealer at 9 am on their birthday. Each SMS costs money. It only sends when SMS is set up.',
+    'dash_mgmt_toggle_birthday_sms_desc' => 'Off until you turn it on. When on, one short birthday SMS goes to each dealer and sub-dealer at 9 am on their birthday. Each SMS costs money, so you can turn it off any time, for example when SMS balance is low. It only sends when SMS is set up.',
     'top_sellers' => 'Top sellers',
     'top_sellers_title' => 'Top sellers of the month',
     'top_sellers_hint' => 'Dealers in order of how much they bought for themselves this month. Only confirmed orders count.',
@@ -6298,4 +6298,5 @@ return [
     'sms_compose_counter' => ':chars characters · :segments SMS',
     'sms_compose_counter_hint' => 'One Bangla SMS holds 70 characters. Longer messages are charged at 67 characters per SMS.',
     'cleanup_detail_refused' => 'Not sent (no Bangla letters)',
+    'event_dashboard_birthday_sms_changed' => 'Birthday SMS turned on or off',
 ];
