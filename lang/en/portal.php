@@ -6316,6 +6316,9 @@ return [
     'event_prescription_patient_consent_recorded' => 'Patient consent recorded',
     'event_privacy_request_submitted' => 'Partner asked for their data or its deletion',
     'event_privacy_request_resolved' => 'Owner answered a data request',
+    'accounting' => 'Accounting',
+    'section_hint_accounting' => 'Trial balance, profit and loss, balance sheet, statement checks and the payout file.',
+    'event_finance_withdrawal_approval_limit_changed' => 'Withdrawal approval limit changed',
     'company_funds' => 'Company funds',
     'event_fund_spend_requested' => 'Company fund spend recorded',
     'event_fund_spend_approved' => 'Company fund spend approved',
@@ -6349,4 +6352,8 @@ return [
     'perm_support_desk' => 'Support desk',
     'perm_support_desk_hint' => 'Answer partner support requests and website enquiries.',
     'nav_commission_hub' => 'Commission rules & rates',
+    'event_statement_import_uploaded' => 'Bank or mobile statement uploaded',
+    'event_statement_import_mapped' => 'Statement columns set and matches suggested',
+    'event_statement_import_match_confirmed' => 'Statement line confirmed against a payment claim',
+    'event_statement_import_match_dismissed' => 'Suggested statement match turned down',
 ];

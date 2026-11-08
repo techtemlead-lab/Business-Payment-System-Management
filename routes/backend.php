@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountingController;
 use App\Http\Controllers\Api\V1\CatalogController;
 use App\Http\Controllers\Api\V1\CommissionController;
 use App\Http\Controllers\Api\V1\FinancialPreviewController;
@@ -141,6 +142,13 @@ $operations = function (): void {
     Route::get('/receipts/{kind}/{id}', [$finance, 'receipt']);
     Route::get('/reports', [$finance, 'export'])->middleware('throttle:5,1');
     Route::get('/views/{section}', [OperationsController::class, 'index']);
+    Route::get('/accounting/export', [AccountingController::class, 'export'])->middleware('throttle:5,1,accounting-export');
+    Route::post('/accounting/approval-limit', [AccountingController::class, 'saveApprovalLimit']);
+    Route::get('/accounting/payout-batch/export', [AccountingController::class, 'exportPayoutBatch'])->middleware('throttle:5,1,accounting-export');
+    Route::post('/accounting/statements', [AccountingController::class, 'uploadStatement']);
+    Route::post('/accounting/statements/{id}/map', [AccountingController::class, 'mapStatement'])->whereUuid('id');
+    Route::post('/accounting/statement-lines/{id}/confirm', [AccountingController::class, 'confirmStatementLine'])->whereNumber('id');
+    Route::post('/accounting/statement-lines/{id}/dismiss', [AccountingController::class, 'dismissStatementLine'])->whereNumber('id');
 };
 $staffPortal = EnsureStaffPortalHost::class;
 Route::prefix('commands/operations')->middleware(['auth', 'active', 'throttle:60,1', $staffPortal, 'agreement', 'authenticator'])->group($operations);

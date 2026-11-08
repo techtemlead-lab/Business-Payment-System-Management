@@ -6316,6 +6316,9 @@ return [
     'event_prescription_patient_consent_recorded' => 'রোগীর সম্মতি লেখা হয়েছে',
     'event_privacy_request_submitted' => 'পার্টনার নিজের তথ্য বা তথ্য মোছার অনুরোধ করেছেন',
     'event_privacy_request_resolved' => 'তথ্যের অনুরোধের উত্তর দেওয়া হয়েছে',
+    'accounting' => 'হিসাব',
+    'section_hint_accounting' => 'ট্রায়াল ব্যালেন্স, লাভ-ক্ষতি, ব্যালেন্স শিট, স্টেটমেন্ট মেলানো আর পেমেন্ট ফাইল।',
+    'event_finance_withdrawal_approval_limit_changed' => 'উইথড্র অনুমোদনের সীমা বদলানো হয়েছে',
     'company_funds' => 'কোম্পানির ফান্ড',
     'event_fund_spend_requested' => 'কোম্পানির ফান্ডের খরচ লেখা হয়েছে',
     'event_fund_spend_approved' => 'কোম্পানির ফান্ডের খরচ অনুমোদন হয়েছে',
@@ -6349,4 +6352,8 @@ return [
     'perm_support_desk' => 'সাপোর্ট ডেস্ক',
     'perm_support_desk_hint' => 'পার্টনারদের সাপোর্ট অনুরোধ আর ওয়েবসাইটের জিজ্ঞাসার উত্তর দিন।',
     'nav_commission_hub' => 'কমিশনের নিয়ম ও হার',
+    'event_statement_import_uploaded' => 'ব্যাংক বা মোবাইল স্টেটমেন্ট আপলোড হয়েছে',
+    'event_statement_import_mapped' => 'স্টেটমেন্টের কলাম ঠিক করে মিল খোঁজা হয়েছে',
+    'event_statement_import_match_confirmed' => 'স্টেটমেন্টের লাইন পেমেন্টের দাবির সাথে মিলিয়ে নিশ্চিত করা হয়েছে',
+    'event_statement_import_match_dismissed' => 'স্টেটমেন্টের প্রস্তাবিত মিল বাতিল করা হয়েছে',
 ];

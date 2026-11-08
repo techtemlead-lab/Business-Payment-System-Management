@@ -248,6 +248,7 @@ class EnforceStaffActions
             'PartnerChatController' => [['partner_chat'], 'create'],
             'PrescriberVerificationController' => [['prescriber_verify'], 'edit'],
             'PublicTrustAdminController' => [['content'], 'edit'],
+            'AccountingController' => [['finance'], $method === 'saveApprovalLimit' ? 'edit' : 'create'],
             default => null,
         };
         abort_unless($permission, 403, __('portal.err_staff_perm_disabled'));

@@ -35,7 +35,7 @@ type CapabilityContext = {
 export const OPERATIONS_SECTIONS = new Set([
     'data-imports', 'service-integrations', 'field-sales', 'staff-operations', 'payroll', 'my-payroll', 'payment-accounts',
     'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'financial-reports',
-    'finance-settings', 'access-management', 'video-marketing',
+    'finance-settings', 'access-management', 'video-marketing', 'accounting',
 ]);
 
 const OWNER_ROLES = ['super_admin', 'md', 'chairman'];
@@ -50,6 +50,7 @@ export const SECTION_LABEL_KEYS: Record<string, string> = {
     'data-imports': 'data_imports', 'service-integrations': 'service_integrations', 'commission-holds': 'commission_holds',
     'financial-readiness': 'financial_readiness', 'financial-reports': 'financial_reports',
     'finance-settings': 'finance_settings',
+    accounting: 'accounting',
     'access-management': 'access_management', 'video-marketing': 'video_marketing',
     overview: 'overview', orders: 'orders', order: 'order_details', purchase: 'purchase', catalog: 'catalog', accounts: 'accounts',
     inventory: 'inventory', deliveries: 'deliveries', payments: 'payments', network: 'network',
@@ -221,7 +222,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     if (capabilities.includes('finance') || role === 'super_admin') items.add('service-integrations');
     if (capabilities.includes('finance')) {
         ['payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'finance-settings', 'treasury', 'company-funds',
-            'commissions', 'policies', 'ledger', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'salary'].forEach((item) => items.add(item));
+            'commissions', 'policies', 'ledger', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'salary', 'accounting'].forEach((item) => items.add(item));
     }
     if (capabilities.some((cap) => ['finance', 'reports', 'field_sales'].includes(cap))) items.add('financial-reports');
     if (capabilities.some((cap) => ['reports', 'orders', 'finance'].includes(cap))) {
@@ -334,7 +335,7 @@ function staffMothers(available: Set<string>): NavMother[] {
             'accounts', 'sub-dealers', 'partnerships', 'sub-dealer-applications', 'network-tree', 'area-dealers', 'ranks', 'agreement', 'schemes', 'sales-kit',
         ])),
         mother('stock', 'nav_module_stock', pick(available, ['catalog-products', 'stock', 'branches'])),
-        mother('finance', 'nav_module_finance', pick(available, ['treasury', 'company-funds', 'reserve-payouts', 'benefits-fund', 'ledger', 'payment-accounts'])),
+        mother('finance', 'nav_module_finance', pick(available, ['treasury', 'company-funds', 'reserve-payouts', 'benefits-fund', 'ledger', 'accounting', 'payment-accounts'])),
         mother('commissions', 'nav_module_commissions', pick(available, [
             'commissions', 'commission-holds', 'rewards',
         ])),
