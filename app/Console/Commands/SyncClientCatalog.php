@@ -16,6 +16,24 @@ use Illuminate\Support\Str;
 #[Description('Upsert Madina client catalog products, packshot images, and company contact defaults from resources/client-catalog.')]
 class SyncClientCatalog extends Command
 {
+    /** @var array<string, string> Company details this command fills in on the website. */
+    private const CompanyDefaults = [
+        'office_address' => 'Thana Road, Pirganj 5470, Rangpur, Bangladesh',
+        'footer_address' => 'Thana Road, Pirganj 5470, Rangpur',
+        'footer_phone' => '+8801730532966',
+        'footer_support_title' => '+8801730532966',
+        'footer_support_link' => 'tel:+8801730532966',
+        'contact_phone' => '+8801730532966',
+        'contact_email' => 'holisticnutracare@gmail.com',
+        'footer_email' => 'holisticnutracare@gmail.com',
+        'footer_about_title' => 'Madina Natural Health Care',
+        'contact_company_desc' => 'Madina Natural Health Care (Owner: Md Anowar Hossain). Head office: Thana Road, Pirganj 5470, Rangpur. Factory/warehouse: Chaira, Moshorikhula, Hemayetpur, Savar, Dhaka. Hotline: 01730532966 · 01723731877 · 01727612379.',
+        'map_facility' => 'Madina Natural Health Care — Thana Road, Pirganj',
+        'footer_logo_url' => '/madina-header-logo-white.png?v=10',
+        'social_whatsapp' => 'https://wa.me/8801730532966',
+        'whatsapp_link' => 'https://wa.me/8801730532966',
+    ];
+
     public function handle(): int
     {
         $dryRun = (bool) $this->option('dry-run');
@@ -82,24 +100,7 @@ class SyncClientCatalog extends Command
         }
 
         if (! $dryRun) {
-            SiteCustomization::save([
-                'office_address' => 'Thana Road, Pirganj 5470, Rangpur, Bangladesh',
-                'footer_address' => 'Thana Road, Pirganj 5470, Rangpur',
-                'footer_phone' => '+8801730532966',
-                'footer_support_title' => '+8801730532966',
-                'footer_support_link' => 'tel:+8801730532966',
-                'contact_phone' => '+8801730532966',
-                'contact_email' => 'holisticnutracare@gmail.com',
-                'footer_email' => 'holisticnutracare@gmail.com',
-                'footer_about_title' => 'Madina Natural Health Care',
-                'footer_about_desc' => 'Licensed distributor of natural herbal and nutrition products. Trade License 2026-00563, Pirganj Municipality, Rangpur. Marketed nutrition line: Holistic Nutracare.',
-                'contact_company_desc' => 'Madina Natural Health Care (Owner: Md Anowar Hossain). Head office: Thana Road, Pirganj 5470, Rangpur. Factory/warehouse: Chaira, Moshorikhula, Hemayetpur, Savar, Dhaka. Hotline: 01730532966 · 01723731877 · 01727612379.',
-                'about_hero_lead' => 'Madina Natural Health Care is a licensed single-owner distributor (Trade License 2026-00563, Pirganj Municipality) headquartered on Thana Road, Pirganj 5470, Rangpur. We supply herbal and Holistic Nutracare nutrition products through an authorized dealer and sub-dealer network serving communities across Bangladesh.',
-                'map_facility' => 'Madina Natural Health Care — Thana Road, Pirganj',
-                'footer_logo_url' => '/madina-header-logo-white.png?v=10',
-                'social_whatsapp' => 'https://wa.me/8801730532966',
-                'whatsapp_link' => 'https://wa.me/8801730532966',
-            ]);
+            $this->saveCompanyDefaults();
             SiteCustomization::forgetCache();
             $this->info('Company contact defaults updated from trade license / catalog.');
         }
@@ -107,6 +108,30 @@ class SyncClientCatalog extends Command
         $this->info('Client catalog sync '.($dryRun ? 'dry-run complete.' : 'complete.'));
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Fills in the company's details, leaving alone anything the owner has changed in the website
+     * editor. A field counts as untouched while it is empty, still holds the factory text, or
+     * already holds this value.
+     *
+     * The footer description and the About lead are not written here. They keep their built-in
+     * English and Bangla text, so each visitor reads their own language until the owner writes
+     * something else.
+     */
+    private function saveCompanyDefaults(): void
+    {
+        $stored = SiteCustomization::raw();
+        $defaults = SiteCustomization::defaults();
+        $untouched = array_filter(self::CompanyDefaults, function (string $value, string $key) use ($stored, $defaults): bool {
+            $current = trim((string) ($stored[$key] ?? ''));
+
+            return $current === '' || $current === $value || $current === trim((string) ($defaults[$key] ?? ''));
+        }, ARRAY_FILTER_USE_BOTH);
+
+        if ($untouched !== []) {
+            SiteCustomization::save($untouched);
+        }
     }
 
     /**

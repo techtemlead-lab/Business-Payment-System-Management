@@ -38,8 +38,18 @@ class WithdrawalApprovalLimitTest extends TestCase
         $dealer = User::factory()->dealer()->create(['status' => 'active']);
         $detector = app(FraudAnomalyDetector::class);
 
-        $this->assertFalse($detector->analyzeWithdrawal($dealer, 99999.99)['requires_dual_approval']);
-        $this->assertTrue($detector->analyzeWithdrawal($dealer, 100000.00)['requires_dual_approval']);
+        $this->assertNotContains('LARGE_PAYOUT_THRESHOLD', $detector->analyzeWithdrawal($dealer, 99999.99)['flags']);
+        $this->assertContains('LARGE_PAYOUT_THRESHOLD', $detector->analyzeWithdrawal($dealer, 100000.00)['flags']);
+    }
+
+    public function test_a_large_withdrawal_is_only_marked_and_no_second_approver_is_implied(): void
+    {
+        $dealer = User::factory()->dealer()->create(['status' => 'active']);
+
+        $risk = app(FraudAnomalyDetector::class)->analyzeWithdrawal($dealer, 500000.00);
+
+        $this->assertContains('LARGE_PAYOUT_THRESHOLD', $risk['flags']);
+        $this->assertSame(['score', 'risk_level', 'flags'], array_keys($risk));
     }
 
     public function test_the_owner_can_change_the_limit_and_the_new_limit_is_used(): void
