@@ -6283,4 +6283,11 @@ return [
     'event_prescriber_company_stock_granted' => 'Company-stock prescribing turned on for an office account',
     'event_prescriber_company_stock_removed' => 'Company-stock prescribing turned off for an office account',
     'event_clinic_below_floor_override' => 'Owner confirmed a sale below 30% of MRP',
+    'company_funds' => 'Company funds',
+    'event_fund_spend_requested' => 'Company fund spend recorded',
+    'event_fund_spend_approved' => 'Company fund spend approved',
+    'event_fund_spend_rejected' => 'Company fund spend rejected',
+    'event_fund_head_created' => 'Expense head added',
+    'event_fund_head_updated' => 'Expense head changed',
+    'section_hint_company_funds' => 'How much each company fund holds, money taken out and what it was spent on.',
 ];

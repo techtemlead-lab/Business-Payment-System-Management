@@ -31,7 +31,7 @@ class StaffReserveLocaleTest extends TestCase
         }
     }
 
-    public function test_tour_reserve_for_dealer_returns_bangla_validation(): void
+    public function test_tour_reserve_for_one_partner_is_refused_in_bangla(): void
     {
         $this->enableFinancialPosting();
         app()->setLocale('bn');
@@ -50,8 +50,8 @@ class StaffReserveLocaleTest extends TestCase
             $this->fail('Expected ValidationException for tour reserve on dealer');
         } catch (ValidationException $exception) {
             $this->assertSame(
-                __('portal.err_reserve_tour_subdealer', [], 'bn'),
-                $exception->errors()['user_id'][0] ?? null,
+                __('funds.err_tour_company_only', [], 'bn'),
+                $exception->errors()['program'][0] ?? null,
             );
         }
     }
