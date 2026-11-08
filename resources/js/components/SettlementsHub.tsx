@@ -4,6 +4,7 @@ import { Calendar, CheckCircle2, Clock, Play, RefreshCw } from 'lucide-react';
 import { money, number, date, Table, Modal, Pagination, type Row } from './UI';
 import ServerListSearch from './ServerListSearch';
 import { useT } from '../shared/i18n/t';
+import { randomUuid } from '../shared/randomUuid';
 
 type LeaderRank = 'mo' | 'am' | 'sm' | 'me';
 
@@ -119,7 +120,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
     const handleSettleSalary = () => {
         confirmThen(translate('portal', 'st_confirm_salary', { month: selectedMonth }), () => {
             setProcessingSalary(true);
-            router.post('/commands/commissions/settle-salary', { period_month: selectedMonth, request_key: crypto.randomUUID() }, {
+            router.post('/commands/commissions/settle-salary', { period_month: selectedMonth, request_key: randomUuid() }, {
                 onFinish: () => setProcessingSalary(false)
             });
         });
@@ -128,7 +129,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
     const handleSettleRank = () => {
         confirmThen(translate('portal', 'st_confirm_rank', { month: selectedMonth }), () => {
             setProcessingRank(true);
-            router.post('/commands/commissions/settle-rank-royalty', { period_month: selectedMonth, request_key: crypto.randomUUID() }, {
+            router.post('/commands/commissions/settle-rank-royalty', { period_month: selectedMonth, request_key: randomUuid() }, {
                 onFinish: () => setProcessingRank(false)
             });
         });
@@ -136,7 +137,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
 
     const handleReleaseMatured = () => {
         setProcessingMatured(true);
-        router.post('/commands/commissions/release-matured', { request_key: crypto.randomUUID() }, {
+        router.post('/commands/commissions/release-matured', { request_key: randomUuid() }, {
             onFinish: () => setProcessingMatured(false)
         });
     };
@@ -144,7 +145,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
     const handleClaimIncentive = (userId: number, leaderName: string, rank: string) => {
         confirmThen(translate('portal', 'st_confirm_incentive', { name: leaderName, rank: rank.toUpperCase() }), () => {
             setClaimingIncentive(userId);
-            router.post(`/commands/commissions/claim-incentive/${userId}`, { request_key: crypto.randomUUID() }, {
+            router.post(`/commands/commissions/claim-incentive/${userId}`, { request_key: randomUuid() }, {
                 onFinish: () => setClaimingIncentive(null)
             });
         });

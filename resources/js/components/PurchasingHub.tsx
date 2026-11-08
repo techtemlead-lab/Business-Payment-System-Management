@@ -3,6 +3,7 @@ import { router, useForm } from '@inertiajs/react';
 import { PackageCheck, Plus, Trash2 } from 'lucide-react';
 import { ActionForm, Badge, DateInput, Empty, FormErrors, Modal, Pagination, Table, date, money, number, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
+import { randomUuid } from '../shared/randomUuid';
 
 interface PurchasingData {
     branch_scope: { view: string; code?: string | null; name?: string | null };
@@ -100,7 +101,7 @@ function NewOrderForm({ data, onDone }: { data: PurchasingData; onDone: () => vo
 function ReceiveForm({ order, onDone }: { order: Row; onDone: () => void }) {
     const text = useText();
     const dueLines: Row[] = order.lines.filter((line: Row) => Number(line.due) > 0);
-    const [reference] = useState(() => crypto.randomUUID());
+    const [reference] = useState(() => randomUuid());
     const form = useForm<{ reference: string; lines: Row[] }>({
         reference,
         lines: dueLines.map((line) => ({ purchase_order_line_id: line.id, quantity: '', batch_number: '', expires_on: '', unit_cost: '' })),
