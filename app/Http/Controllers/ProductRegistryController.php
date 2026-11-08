@@ -257,6 +257,7 @@ class ProductRegistryController extends Controller
         if ($r->boolean('restore_original_image') && ! $product?->image_original_path) {
             throw ValidationException::withMessages(['restore_original_image' => __('portal.err_prod_no_original')]);
         }
+        /** @var array<string, string> $stored */
         $stored = [];
         $old = [];
         try {
