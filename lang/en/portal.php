@@ -6270,4 +6270,5 @@ return [
     'event_prescription_template_saved' => 'Prescription template saved',
     'event_prescription_template_deleted' => 'Prescription template deleted',
     'event_prescription_follow_up_done' => 'Patient follow-up marked as seen',
+    'status_returned' => 'Returned',
 ];

@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 
 /**
  * Staff actions on courier parcels: change the courier, try a refused booking again,
- * mark a parcel picked up, or ask the courier for news now.
+ * mark a parcel picked up, ask the courier for news now, or take a returned parcel back.
  */
 class CourierShipmentController extends Controller
 {
@@ -35,5 +35,13 @@ class CourierShipmentController extends Controller
         $tracking->markPickedUp($request->user(), $order, $shipment);
 
         return back(fallback: '/orders/'.$order->id)->with('success', __('courier.flash_picked_up'));
+    }
+
+    public function receivedBack(Request $request, Order $order, int $shipment, OrderService $orders): RedirectResponse
+    {
+        $data = $request->validate(['note' => ['nullable', 'string', 'max:500']]);
+        $orders->receiveReturnedParcel($request->user(), $order, $shipment, $data['note'] ?? null);
+
+        return back(fallback: '/orders/'.$order->id)->with('success', __('courier.flash_received_back'));
     }
 }
