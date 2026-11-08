@@ -692,7 +692,7 @@ return [
     'ops_warn_verified_backup_missing' => 'There is no recent backup that has been tested. Ask your technician to make one and test it. For your IT person: `php artisan app:backup` then `php artisan app:backup-verify`.',
     'a11y_qty_of' => 'Quantity of :name',
     'a11y_view_order' => 'View :number',
-    'brand_natural_care' => 'NATURAL CARE',
+    'product_art_tagline' => 'PRODUCT',
     'reward_program_bike' => 'bike',
     'reward_program_car' => 'car',
     'reward_program_marketing' => 'marketing',

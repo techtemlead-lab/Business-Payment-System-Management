@@ -24,7 +24,11 @@ final class SiteCustomizationRetiredDefaults
             'home_bismillah_text' => ['Bismillahir Rahmanir Rahim', 'বিসমিল্লাহির রাহমানির রাহিম'],
             'company_intro_body' => ['Explore our company, our product range and the people connecting our products with communities across Bangladesh.'],
             'announcement_text' => ['For product availability and dealership enquiries, please contact the company.'],
-            'side_banner_1_alt' => ['Madina Premium Natural Care - 100% Pure Botanical Ingredients'],
+            // Banner picture descriptions: "100% pure", "immunity" and "vitality" are claims the owner never supplied.
+            'side_banner_1_alt' => ['Madina Premium Natural Care - 100% Pure Botanical Ingredients', 'Madina Premium Natural Care - 100% Pure Plant Ingredients', 'মদিনা প্রিমিয়াম ন্যাচারাল কেয়ার - ১০০% খাঁটি ভেষজ উপাদান'],
+            'side_banner_1_slide1_alt' => ['Madina Premium Natural Care - 100% Pure Botanical Ingredients', 'মদিনার প্রাকৃতিক যত্ন - ১০০% খাঁটি ভেষজ উপাদান'],
+            'side_banner_1_slide2_alt' => ['Madina Pure Herbal Skincare & Hair Vitality', 'মদিনার খাঁটি ভেষজ ত্বক ও চুলের যত্ন'],
+            'side_banner_1_slide3_alt' => ['Madina Daily Immunity & Vitality Boosters', 'মদিনার রোজকার রোগ প্রতিরোধ ও শক্তির পণ্য'],
             'side_banner_2_alt' => ['Madina Authorized Dealer Network - Nationwide Distribution'],
             // Banner picture description; stated a 64-district reach nobody had checked.
             'side_banner_2_slide3_alt' => ['Madina Authorized Partner Pharmacy Outlets Across All 64 Districts'],
