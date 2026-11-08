@@ -3,6 +3,7 @@
 namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Content\PartnerEventCalendar;
+use App\Domain\Notifications\SmsText;
 use App\Models\PartnerEvent;
 
 /**
@@ -31,6 +32,14 @@ final class EventsSection implements WorkspaceSection
                 'divisions' => $this->calendar->divisionOptions(),
                 'today_date' => PartnerEventCalendar::todayInDhaka(),
                 'timezone' => PartnerEvent::Timezone,
+                'sms_compose' => [
+                    'template' => SmsText::make('portal.events_sms_published'),
+                    'online_place' => SmsText::make('portal.events_online'),
+                    'rules_note' => SmsText::make('portal.sms_compose_rules_note'),
+                    'error' => SmsText::make('portal.sms_err_bangla_required'),
+                    'counter' => SmsText::make('portal.sms_compose_counter'),
+                    'counter_hint' => SmsText::make('portal.sms_compose_counter_hint'),
+                ],
             ]];
         }
 

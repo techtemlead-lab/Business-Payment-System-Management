@@ -6290,4 +6290,12 @@ return [
     'event_fund_head_created' => 'Expense head added',
     'event_fund_head_updated' => 'Expense head changed',
     'section_hint_company_funds' => 'How much each company fund holds, money taken out and what it was spent on.',
+    'si_provider_greenweb' => 'Greenweb (bdbulksms)',
+    'si_field_greenweb_api_key' => 'API token',
+    'sms_refused_not_bangla' => 'This SMS was not sent because it has no Bangla letters.',
+    'sms_err_bangla_required' => 'To send an SMS, write the Bangla title in Bangla letters. English-only or Banglish text is not allowed.',
+    'sms_compose_rules_note' => 'SMS rules: write in Bangla. A few English words are fine, but English-only text or Bangla written in English letters (Banglish) is not. No personal or political messages, and no abuse, threats or indecent words.',
+    'sms_compose_counter' => ':chars characters · :segments SMS',
+    'sms_compose_counter_hint' => 'One Bangla SMS holds 70 characters. Longer messages are charged at 67 characters per SMS.',
+    'cleanup_detail_refused' => 'Not sent (no Bangla letters)',
 ];
