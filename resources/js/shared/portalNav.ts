@@ -50,7 +50,7 @@ export const MANAGEMENT_SECTIONS = [
     'treasury', 'benefits-fund', 'payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds',
     'financial-readiness', 'finance-settings', 'financial-reports', 'data-imports', 'service-integrations',
     'rewards', 'settlements', 'payouts-hub', 'payments', 'withdrawals', 'ledger', 'reports', 'top-sellers',
-    'catalog', 'inventory', 'branches', 'branch-performance', 'place-codes', 'video-marketing', 'website', 'content', 'enquiries', 'feedback', 'audit', 'support-admin', 'agreement', 'partner-messages',
+    'catalog', 'inventory', 'branches', 'branch-performance', 'place-codes', 'video-marketing', 'website', 'content', 'public-trust', 'enquiries', 'feedback', 'audit', 'support-admin', 'agreement', 'partner-messages',
     'training', 'events', 'data-cleanup', 'prescriptions',
 ];
 
@@ -68,7 +68,7 @@ export const SECTION_LABEL_KEYS: Record<string, string> = {
     overview: 'overview', orders: 'orders', order: 'order_details', purchase: 'purchase', catalog: 'catalog', accounts: 'accounts',
     inventory: 'inventory', deliveries: 'deliveries', payments: 'payments', network: 'network',
     policies: 'policies', salary: 'salary', withdrawals: 'withdrawals', ledger: 'ledger', reports: 'reports',
-    customization: 'website', website: 'website', content: 'content', enquiries: 'enquiries', feedback: 'feedback',
+    customization: 'website', website: 'website', content: 'content', 'public-trust': 'public_trust', enquiries: 'enquiries', feedback: 'feedback',
     'share-feedback': 'share_feedback', partnerships: 'partnerships', audit: 'audit', profile: 'profile',
     security: 'security', notifications: 'notifications', circulars: 'circulars', earnings: 'earnings',
     'full-report': 'full_report', ranks: 'ranks', commissions: 'commissions', 'network-tree': 'network_tree',
@@ -231,7 +231,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
         items.add('branch-performance');
     }
     if (capabilities.includes('content')) {
-        ['website', 'content', 'enquiries', 'feedback'].forEach((item) => items.add(item));
+        ['website', 'content', 'public-trust', 'enquiries', 'feedback'].forEach((item) => items.add(item));
     }
     if (capabilities.includes('content') || ownerPortal) {
         items.add('training');
@@ -360,7 +360,7 @@ function staffNavigation(staffAvailable: Set<string>): {
             mother('learning', 'nav_module_learning', pick(staffAvailable, ['training', 'events'])),
             mother('clinic', 'nav_module_clinic', pick(staffAvailable, ['prescriptions'])),
             mother('settings', 'nav_module_settings', pick(staffAvailable, [
-                'website', 'content', 'video-marketing', 'enquiries', 'feedback', 'service-integrations', 'audit', 'support-admin', 'agreement', 'partner-messages', 'data-cleanup',
+                'website', 'content', 'public-trust', 'video-marketing', 'enquiries', 'feedback', 'service-integrations', 'audit', 'support-admin', 'agreement', 'partner-messages', 'data-cleanup',
             ])),
             mother('account', 'nav_module_account', pick(staffAvailable, ['profile', 'security', 'notifications', 'help'])),
         ]),

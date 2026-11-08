@@ -835,6 +835,7 @@ class CommandController extends Controller
                 'product_enquiry' => __('portal.enquiry_topic_product', [], $locale),
                 'support' => __('portal.support_topic_support', [], $locale),
                 'complaint' => __('portal.support_topic_complaint', [], $locale),
+                'product_problem' => __('public_trust.topic_product_problem', [], $locale),
                 'order_dispute' => __('portal.support_topic_order', [], $locale),
                 'kyc_correction' => __('portal.support_topic_kyc', [], $locale),
                 'payout_question' => __('portal.support_topic_payout', [], $locale),

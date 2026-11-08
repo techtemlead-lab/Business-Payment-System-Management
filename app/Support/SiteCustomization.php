@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Domain\Catalog\CatalogTaxonomy;
+use App\Domain\Content\PublicTrustContent;
 use App\Domain\Content\TestimonialLabels;
 use App\Models\Product;
 use App\Models\SiteFeedback;
@@ -492,6 +493,9 @@ class SiteCustomization
             // Text on the notice and circular pages while nothing is published.
             'notice_empty' => $copy('notice_empty'),
             'notice_empty_bn' => '',
+
+            // Verify a dealer, policies, code of conduct, grievance, documents and articles.
+            ...PublicTrustContent::defaults(),
         ];
     }
 
