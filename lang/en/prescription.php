@@ -177,7 +177,7 @@ return [
     'fu_counts' => 'Due today: :today. Past their date: :overdue.',
     'fu_empty' => 'Nobody is due back right now.',
     'fu_due_today' => 'Due today',
-    'fu_days_late' => ':days days past',
+    'fu_days_late' => 'Late by :days day(s)',
     'fu_done' => 'Seen',
     'flash_follow_up_done' => 'Removed from the list.',
     'notice_follow_up_title' => 'Patients to see again',
