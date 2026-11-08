@@ -132,6 +132,7 @@ html[data-theme="dark"] body.am-auth :is(.ref-auth-card, .company-auth-card) {
     border-color: var(--am-glass-line) !important;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), var(--am-shadow);
 }
+html[data-theme="dark"] body.am-auth .ref-auth-bottom { border-top-color: var(--am-glass-line); }
 /* The glowing edge: a gradient ring that brightens while the form is in use. */
 body.am-auth :is(.ref-auth-card, .company-auth-card)::before {
     content: '';
