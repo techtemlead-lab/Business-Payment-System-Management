@@ -4,7 +4,6 @@ namespace App\Domain\Clinic;
 
 use App\Domain\Finance\Percentage;
 use App\Domain\Inventory\BranchOperations;
-use App\Domain\Inventory\StockService;
 use App\Models\Prescription;
 use App\Models\User;
 use App\Support\Audit;
@@ -44,7 +43,7 @@ final class ClinicDispensing
     /** The request field and error key for the owner's "yes, take the loss" answer. */
     public const ConfirmBelowFloorField = 'confirm_below_floor';
 
-    public function __construct(private StockService $stock, private BranchOperations $branches) {}
+    public function __construct(private BranchOperations $branches) {}
 
     /**
      * The below-30% rule: nobody may sell below 30% of MRP except the owner (the Super Admin
@@ -122,7 +121,7 @@ final class ClinicDispensing
             $split = $this->split($locked);
             $overridden = self::enforcePriceFloor($actor, $split['below_floor'], $confirmBelowFloor, 'prices');
             foreach ($locked->lines as $line) {
-                $this->stock->adjust($actor, [
+                $this->branches->adjustStockForClinicDispense($actor, [
                     'product_id' => (int) $line->product_id,
                     'quantity' => (int) $line->quantity,
                     'kind' => BranchOperations::KindProductOut,

@@ -2,6 +2,7 @@
 
 namespace App\Domain\Inventory;
 
+use App\Domain\Clinic\PrescriptionAccess;
 use App\Domain\Geography\PlaceTree;
 use App\Models\BranchProductStock;
 use App\Models\BranchStaffAssignment;
@@ -293,6 +294,49 @@ final class BranchOperations
     {
         $this->assertCompanyHandler($actor);
         abort_unless($actor->allows('inventory'), 403);
+
+        return $this->applyStockAdjustment($actor, $data);
+    }
+
+    /**
+     * Takes medicine out for a clinic dispense. The owner's per-account company-stock switch
+     * stands in for the inventory permission here; the branch rules stay the same.
+     *
+     * @param  array{
+     *   product_id:int,
+     *   quantity:int,
+     *   reason:string,
+     *   reference:string,
+     *   branch_id?:int,
+     *   kind?:string,
+     *   reason_code?:string,
+     *   expires_on?:string|null,
+     *   batch_number?:string|null
+     * }  $data
+     */
+    public function adjustStockForClinicDispense(User $actor, array $data): Product
+    {
+        $this->assertCompanyHandler($actor);
+        abort_unless(PrescriptionAccess::usesCompanyStock($actor), 403);
+
+        return $this->applyStockAdjustment($actor, $data);
+    }
+
+    /**
+     * @param  array{
+     *   product_id:int,
+     *   quantity:int,
+     *   reason:string,
+     *   reference:string,
+     *   branch_id?:int,
+     *   kind?:string,
+     *   reason_code?:string,
+     *   expires_on?:string|null,
+     *   batch_number?:string|null
+     * }  $data
+     */
+    private function applyStockAdjustment(User $actor, array $data): Product
+    {
         $branch = $this->resolveWritableBranch($actor, isset($data['branch_id']) ? (int) $data['branch_id'] : null);
 
         return DB::transaction(function () use ($actor, $data, $branch): Product {
