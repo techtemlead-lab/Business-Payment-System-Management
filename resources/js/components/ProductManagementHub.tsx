@@ -67,7 +67,8 @@ export default function ProductManagementHub({
     const [minMrp, setMinMrp] = useState(String(filters?.min_mrp || ''));
     const [maxMrp, setMaxMrp] = useState(String(filters?.max_mrp || ''));
     const [availability, setAvailability] = useState(String(filters?.availability || ''));
-    const [sort, setSort] = useState(String(filters?.sort || 'name_asc'));
+    // With no filters the server sends an empty list, and a list has its own `sort`.
+    const [sort, setSort] = useState(typeof filters?.sort === 'string' && filters.sort !== '' ? filters.sort : 'name_asc');
 
     // Form for Featured Products Showcase
     const featuredForm = useForm({
@@ -256,8 +257,8 @@ export default function ProductManagementHub({
                                 detailsUrl={`/products/${p.id}`}
                                 onToggleStock={(id) => router.post(`/commands/products/${id}/toggle-stock`, {}, { preserveScroll: true })}
                                 onArchive={(id, name) => {
-                                    const reason = window.prompt(`Archive "${name}"? Enter a reason (required):`);
-                                    if (reason !== null && reason.trim().length >= 3) {
+                                    const reason = window.prompt(translate('portal', 'archive_product_prompt', { name }));
+                                    if (reason !== null) {
                                         router.delete(`/commands/products/${id}`, { data: { reason } });
                                     }
                                 }}
