@@ -53,13 +53,13 @@ class PublicRenderPerformanceTest extends TestCase
         $this->assertStringContainsString('rel="preload" as="image"', $html);
     }
 
-    public function test_bangla_pages_use_hind_siliguri_with_equal_width_bangla_digits(): void
+    public function test_bangla_pages_use_the_theme_fonts_with_equal_width_bangla_digits(): void
     {
         $this->from('/')->post('/locale', ['locale' => 'bn'])->assertRedirect();
 
         $html = $this->get('/')->assertOk()->getContent();
 
-        $this->assertStringContainsString('fonts.bunny.net/css?family=hind-siliguri', $html);
+        $this->assertStringContainsString('tiro-bangla:400|anek-bangla:', $html);
         // Only the digits ০-৯ come from Noto Sans Bengali, through a small unicode-range face.
         $this->assertStringNotContainsString('fonts.bunny.net/css?family=noto-sans-bengali', $html);
         foreach (['resources/css/reference-home.css', 'resources/css/dashboard.css'] as $css) {

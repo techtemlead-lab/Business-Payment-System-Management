@@ -71,7 +71,7 @@ class WebsiteSectionsCmsTest extends TestCase
 
     public function test_managing_director_message_comes_before_the_products_on_the_home_page(): void
     {
-        $this->get('/')->assertOk()->assertSeeInOrder(['ref-promotions', 'ref-md-message--home', 'id="featured-products"'], false);
+        $this->get('/')->assertOk()->assertSeeInOrder(['ref-md-message--home', 'ref-promotions', 'id="featured-products"'], false);
     }
 
     public function test_home_page_shows_a_short_managing_director_message_and_the_about_page_the_longer_one(): void

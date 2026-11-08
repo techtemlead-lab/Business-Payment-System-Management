@@ -488,33 +488,6 @@ function initFaqAccordions() {
     });
 }
 
-// The company name and its two leaves are sized to fill the header row exactly, for any text and language.
-function initCompanyNameFit() {
-    const row = document.querySelector<HTMLElement>('[data-company-name-fit]');
-    if (!row) return;
-
-    const fit = () => {
-        const styles = getComputedStyle(row);
-        const available = row.clientWidth - parseFloat(styles.paddingLeft) - parseFloat(styles.paddingRight);
-        const name = row.querySelector<HTMLElement>('.ref-bar-text');
-        if (available <= 0 || !name) return;
-        const used = [...row.children].reduce((total, item) => total + item.getBoundingClientRect().width, 0);
-        const currentSize = parseFloat(getComputedStyle(name).fontSize);
-        if (used <= 0 || currentSize <= 0) return;
-        row.style.setProperty('--company-name-size', `${Math.floor((currentSize * available / used) * 100) / 100}px`);
-    };
-
-    fit();
-    document.fonts?.ready.then(fit);
-    let lastWidth = row.clientWidth;
-    new ResizeObserver(() => {
-        if (row.clientWidth !== lastWidth) {
-            lastWidth = row.clientWidth;
-            fit();
-        }
-    }).observe(row);
-}
-
 // Managing Director's message: "Read the full message" shows the rest of the letter.
 function initMdMessageToggles() {
     document.querySelectorAll<HTMLButtonElement>('[data-md-toggle]').forEach((button) => {
@@ -640,7 +613,6 @@ if (document.readyState === 'loading') {
         initScrollReveal();
         initFaqAccordions();
         initMdMessageToggles();
-        initCompanyNameFit();
         bindLocaleSwitchForms();
         initPageProgressNavigation();
         prefetchLikelyNextPages();
@@ -649,7 +621,6 @@ if (document.readyState === 'loading') {
     initScrollReveal();
     initFaqAccordions();
     initMdMessageToggles();
-    initCompanyNameFit();
     bindLocaleSwitchForms();
     initPageProgressNavigation();
     prefetchLikelyNextPages();

@@ -3,7 +3,7 @@
 @include('partials.theme-boot')
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#011627">
+<meta name="theme-color" content="#0c3b2a">
 <title>@yield('title', (is_array($social ?? null) ? ($social['title'] ?? null) : null) ?: __('site.meta_title_default'))</title>
 @if(($social ?? null) !== false)
 @include('reference.partials.social-meta', ['social' => is_array($social ?? null) ? $social : \App\Support\SocialShareMeta::homepage()])
@@ -13,9 +13,8 @@
 <link rel="apple-touch-icon" href="/reference/favicon.png?v=8">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="preload" as="image" href="/madina-header-logo.png?v=10" fetchpriority="high">
-<link rel="stylesheet" href="https://fonts.bunny.net/css?family=instrument-serif:400,400i,700&display=swap">
 <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
-<link rel="stylesheet" href="https://fonts.bunny.net/css?family=hind-siliguri:400,500,600,700&display=swap">
+<link rel="stylesheet" href="https://fonts.bunny.net/css?family=marcellus:400|figtree:400,500,600,700|tiro-bangla:400|anek-bangla:400,500,600,700|amiri:400&display=swap">
 {{-- Load Font Awesome on the critical path so header/category icons never render as empty boxes. --}}
 <link rel="preload" href="/reference/fonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/reference/fonts/fa-brands-400.woff2" as="font" type="font/woff2" crossorigin>
@@ -25,12 +24,6 @@
 @include('reference.partials.page-boot')
 </head>
 <body class="ref-home locale-{{ app()->getLocale() }} @yield('bodyClass')">
-<div class="ref-ambient-canvas" aria-hidden="true">
-    <div class="ref-ambient-orb ref-orb-emerald"></div>
-    <div class="ref-ambient-orb ref-orb-flame"></div>
-    <div class="ref-ambient-orb ref-orb-indigo"></div>
-    <div class="ref-ambient-grid"></div>
-</div>
 @include('reference.header')
 @if(config('madina.preview_mode'))
 <aside class="ref-preview-banner" role="status"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>{{ __('site.preview_banner') }}</span></aside>
