@@ -7,6 +7,8 @@ use App\Domain\Accounts\PartnerAlerts;
 use App\Domain\Accounts\PartnerNextSteps;
 use App\Domain\Content\SalesKit;
 use App\Domain\Orders\DatedSchemes;
+use App\Domain\Orders\PartnerContests;
+use App\Domain\Orders\PartnerScorecard;
 use App\Domain\Orders\RepeatOrderOptions;
 
 /**
@@ -35,6 +37,12 @@ final class DealerToolsSection implements WorkspaceSection
         }
         if ($context->section === 'schemes') {
             $props['schemes_admin'] = app(DatedSchemes::class)->forOwner($context->user);
+        }
+        if ($context->isStaff && $context->section === 'partner-scorecard') {
+            $props['partner_scorecard'] = app(PartnerScorecard::class)->page($context->request->only(['q', 'buyer_role', 'period', 'from', 'to']), $context->branchScope);
+        }
+        if ($context->section === 'contests') {
+            $props['contests'] = app(PartnerContests::class)->forViewer($context->user);
         }
         if ($context->section === 'sales-kit') {
             $props['sales_kit'] = app(SalesKit::class)->forViewer($context->user);
