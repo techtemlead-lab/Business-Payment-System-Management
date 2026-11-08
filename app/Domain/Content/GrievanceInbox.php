@@ -35,12 +35,12 @@ final class GrievanceInbox
 
         Audit::notifyAdminsAndStaff(
             ['content', 'accounts'],
-            __('portal.notice_admin_enquiry_title'),
-            __('portal.notice_admin_enquiry_body', [
+            fn (string $locale): string => __('portal.notice_admin_enquiry_title', [], $locale),
+            fn (string $locale): string => __('portal.notice_admin_enquiry_body', [
                 'name' => $data['name'],
                 'phone' => $data['phone'],
-                'topic' => __('public_trust.topic_'.$data['topic']).' ('.$trackingNumber.')',
-            ])
+                'topic' => __('public_trust.topic_'.$data['topic'], [], $locale).' ('.$trackingNumber.')',
+            ], $locale)
         );
 
         return $trackingNumber;

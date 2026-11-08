@@ -52,11 +52,11 @@ class ProductReviewController extends Controller
 
         Audit::notifyAdminsAndStaff(
             ['content'],
-            __('product_facts.notice_review_title'),
-            __('product_facts.notice_review_body', [
+            fn (string $locale): string => __('product_facts.notice_review_title', [], $locale),
+            fn (string $locale): string => __('product_facts.notice_review_body', [
                 'name' => $review->name,
                 'product' => $product->name,
-            ])
+            ], $locale)
         );
 
         return redirect()->to(route('products.show', $product, false).'#product-reviews')

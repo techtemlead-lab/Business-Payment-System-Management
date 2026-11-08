@@ -188,14 +188,9 @@ final class StaffOperations
                 if (! empty($sponsorId) && ! User::whereKey($sponsorId)->where('status', 'active')->where('role', 'dealer')->exists()) {
                     throw ValidationException::withMessages(['sponsor_id' => __('portal.err_staff_sponsor_inactive')]);
                 }
-                $supported = config('madina.locales', ['en', 'bn']);
-                $applicantLocale = is_string($data['locale'] ?? null) && in_array($data['locale'], $supported, true)
-                    ? $data['locale']
-                    : app()->getLocale();
                 $user = (new User)->forceFill(['name' => $data['name'], 'email' => $application->email, 'phone' => $data['phone'],
                     'role' => $data['role'], 'status' => 'active', 'password' => Str::random(48),
                     'dealer_code' => 'MN-'.Str::upper(Str::random(12)), 'sponsor_id' => $sponsorId,
-                    'locale' => $applicantLocale,
                     'division' => $data['division'], 'district' => $data['district'],
                     'profile' => ['upazila' => $data['upazila'], 'union' => $data['union'], 'area_code' => $data['place_code'],
                         'place_code' => $data['place_code'], 'place_code_id' => $data['place_code_id'],

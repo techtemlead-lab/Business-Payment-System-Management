@@ -68,6 +68,8 @@ const options = (name:string,title:string,values:string[],required=true, yes='Ye
 const moneyKeys = new Set(['total','paid','due_credit','outstanding','target','bonus','gross','deduction','net','base_salary','allowance','amount','held','held_released','recovered','before_outstanding','after_outstanding','refunded_basis']);
 /** Amount columns whose page sum means something (flows, not snapshots or rates). */
 const totalKeys = new Set(['total','paid','outstanding','gross','deduction','net','amount','held','recovered']);
+/** Reserve fund names use their own Bangla and English labels instead of the stored code. */
+const reserveProgramLabel=(value:string,translate:TranslateFn):string=>{const key=`prc_reserve_program_${value}`;const text=translate('portal',key);return text!==key?text:label(value,translate);};
 const enumKeys = new Set(['kind','program','category','scope','level','role']);
 const isMoneyKey = (key:string) => moneyKeys.has(key) || key.endsWith('_amount');
 /** Column heading for a database key: a portal translation when one exists, else a readable label. */
@@ -102,6 +104,9 @@ function cellValue(key:string, value:unknown, translate:TranslateFn):React.React
     }
     if (/_month$/.test(key)) {
         return businessMonth(String(value));
+    }
+    if (key === 'program' && typeof value === 'string') {
+        return reserveProgramLabel(value,translate);
     }
     if (enumKeys.has(key) && typeof value === 'string') {
         return label(value,translate);
@@ -346,7 +351,7 @@ export default function Operations({section,tables,hub=null,reportTypes=[],repor
         forms.push({title:translate('portal','ops_prepare_payroll'),action:root+'/payroll/prepare',fields:[field('period_month',translate('portal','ops_fld_closed_salary_month'),'month')]});
     }
     if(section==='policy-schedules')forms.push({title:translate('portal','ops_propose_commission_schedule'),action:root+'/policy-schedules',policy:true,policyRules:policy?.rules??{},fundingSources:policy?.funding_sources??[],fields:[choice('scope',translate('portal','ops_fld_schedule_scope'),['global','buyer','recipient']),{...partnerField,required:false,label:translate('portal','ops_fld_partner_custom')},{name:'rule_key',label:translate('portal','ops_fld_commission_rule'),required:true,options:Object.entries(policy?.rules??{}).map(([key,value]:[string,any])=>{const localized=translate('portal',`rule_name_${key}`);return{value:key,label:localized!==`rule_name_${key}`?localized:(value.name??key)};})},field('percentage',translate('portal','ops_fld_rate_pct'),'number'),field('effective_at',translate('portal','ops_fld_starts_dhaka'),'datetime-local'),field('expires_at',translate('portal','ops_fld_expires_dhaka'),'datetime-local',false),reason]});
-    if(section==='reserve-payouts')forms.push({title:translate('portal','ops_request_reserve'),action:root+'/reserves',fields:[choice('program',translate('portal','ops_fld_reserve_program'),['additional_rank','bike','car']),{...partnerField,required:false},field('amount',translate('portal','ops_fld_approved_amount'),'number'),reason],defaults:{request_key:crypto.randomUUID()}});
+    if(section==='reserve-payouts')forms.push({title:translate('portal','ops_request_reserve'),action:root+'/reserves',fields:[{name:'program',label:translate('portal','ops_fld_reserve_program'),required:true,options:['additional_rank','bike','car'].map(value=>({value,label:reserveProgramLabel(value,translate)}))},{...partnerField,required:false},field('amount',translate('portal','ops_fld_approved_amount'),'number'),reason],defaults:{request_key:crypto.randomUUID()}});
     if(section==='financial-readiness')forms.push({title:translate('portal','ops_submit_opening_balances'),action:root+'/opening-balances',fields:[field('wallet_available',translate('portal','ops_fld_wallet_available'),'number'),field('wallet_held',translate('portal','ops_fld_wallet_held'),'number'),field('order_paid',translate('portal','ops_fld_order_paid'),'number'),field('withdrawal_paid',translate('portal','ops_fld_withdrawal_paid'),'number'),field('source_reference',translate('portal','ops_fld_source_ref')),field('evidence',translate('portal','ops_fld_evidence'),'file')]});
     const accountFields:Field[]=[field('label',translate('portal','ops_fld_account_label')),{name:'channel',label:translate('portal','ops_fld_gateway'),required:true,options:[{value:'Bank',label:translate('portal','pay_channel_bank')},{value:'bKash',label:translate('portal','pay_channel_bkash')},{value:'Nagad',label:translate('portal','pay_channel_nagad')},{value:'Rocket',label:translate('portal','pay_channel_rocket')}]},field('holder',translate('portal','ops_fld_holder')),field('account_number',translate('portal','ops_fld_account_number')),field('details',translate('portal','ops_fld_payment_instructions'),'textarea',false),choice('collects_payments',translate('portal','ops_fld_accept_collections'),['1','0'],true),choice('pays_out',translate('portal','ops_fld_allow_payouts'),['1','0'],true),choice('is_active',translate('portal','ops_fld_account_active'),['1','0'],true),reason];
     if(section==='payment-accounts')forms.push({title:account?translate('portal','ops_save_account_version'):translate('portal','ops_add_payment_account'),action:root+'/payment-accounts'+(account?'/'+account.id:''),fields:accountFields,defaults:account?{...account,collects_payments:account.collects_payments?'1':'0',pays_out:account.pays_out?'1':'0',is_active:account.is_active?'1':'0',_method:'patch'}:{collects_payments:'1',pays_out:'0',is_active:'1'}});

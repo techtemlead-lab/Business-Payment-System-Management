@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Domain\Notifications\WebPushNotices;
 use App\Models\User;
+use Closure;
 use Illuminate\Support\Facades\DB;
 
 final class Audit
@@ -30,9 +31,13 @@ final class Audit
     /**
      * Notify administrators, owners and staff members matching specific capabilities.
      *
+     * Text can be given as a function of the reader's language, so each person reads it in theirs.
+     *
      * @param  string|list<string>  $capabilities
+     * @param  string|Closure(string): string  $title
+     * @param  string|Closure(string): string  $body
      */
-    public static function notifyAdminsAndStaff(string|array $capabilities, string $title, string $body, ?int $excludeUserId = null): void
+    public static function notifyAdminsAndStaff(string|array $capabilities, string|Closure $title, string|Closure $body, ?int $excludeUserId = null): void
     {
         $caps = (array) $capabilities;
         $users = User::query()
@@ -67,8 +72,8 @@ final class Audit
         $now = now();
         $rows = $recipients->map(fn (User $u): array => [
             'user_id' => $u->id,
-            'title' => $title,
-            'body' => $body,
+            'title' => $title instanceof Closure ? $title($u->preferredLocale()) : $title,
+            'body' => $body instanceof Closure ? $body($u->preferredLocale()) : $body,
             'created_at' => $now,
             'updated_at' => $now,
         ])->values()->all();

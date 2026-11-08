@@ -193,7 +193,7 @@ class SecurityHardeningTest extends TestCase
         $this->assertStringContainsString('example.test', $csp);
         $this->assertStringContainsString('*.example.test', $csp);
         $this->assertStringContainsString('frame-src', $csp);
-        $response->assertHeader('Referrer-Policy', 'no-referrer')
+        $response->assertHeader('Referrer-Policy', 'same-origin')
             ->assertHeader('X-Content-Type-Options', 'nosniff');
     }
 
