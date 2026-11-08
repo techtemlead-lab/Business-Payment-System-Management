@@ -8,6 +8,7 @@ use App\Domain\Accounts\PartnerWalletStatement;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Finance\PaymentAccounts;
+use App\Domain\Inventory\BranchScope;
 use App\Domain\Orders\OrderListFilter;
 use App\Domain\Payouts\PayoutReceipts;
 use App\Models\User;
@@ -27,7 +28,7 @@ final class WithdrawalsSection implements WorkspaceSection
         return match ($context->section) {
             'withdrawals', 'earnings' => $this->earnings($context),
             'full-report' => $this->fullReport($context),
-            'payouts-hub' => $this->payoutsHub($context->request),
+            'payouts-hub' => $this->payoutsHub($context->request, $context->branchScope),
             'payment-receipts' => $this->paymentReceipts($context),
             default => [],
         };
@@ -65,9 +66,9 @@ final class WithdrawalsSection implements WorkspaceSection
                 ->sum('amount'))),
         ];
         $props['settlement_payouts'] = DB::table('commission_settlement_payouts')->where('user_id', $user->id)->latest()->limit(30)->get(['id', 'kind', 'period_month', 'amount', 'reversed_amount', 'created_at']);
-        $props['withdrawals'] = $this->withdrawalHistory($request, $user, $context->portal, $context->section === 'withdrawals');
+        $props['withdrawals'] = $this->withdrawalHistory($request, $user, $context->portal, $context->section === 'withdrawals', $context->branchScope);
         if ($context->section === 'withdrawals') {
-            $props['withdrawal_status_counts'] = $this->withdrawalStatusCounts($request, $user, $context->portal);
+            $props['withdrawal_status_counts'] = $this->withdrawalStatusCounts($request, $user, $context->portal, $context->branchScope);
         }
         if (in_array($user->role, ['dealer', 'sub_dealer'], true) && $context->section === 'earnings') {
             $props['wallet_statement'] = app(PartnerWalletStatement::class)->for($user, $earningsFrom, $earningsTo);
@@ -106,9 +107,9 @@ final class WithdrawalsSection implements WorkspaceSection
     /**
      * @return LengthAwarePaginator<int, array<string, mixed>>
      */
-    private function withdrawalHistory(Request $request, User $user, string $portal, bool $applyFilters): LengthAwarePaginator
+    private function withdrawalHistory(Request $request, User $user, string $portal, bool $applyFilters, ?BranchScope $branchScope = null): LengthAwarePaginator
     {
-        $query = $this->filteredWithdrawals($request, $user, $portal, $applyFilters, true);
+        $query = $this->filteredWithdrawals($request, $user, $portal, $applyFilters, true, $branchScope);
 
         return $this->presentHistory($query);
     }
@@ -119,9 +120,9 @@ final class WithdrawalsSection implements WorkspaceSection
      *
      * @return array<string, int>
      */
-    private function withdrawalStatusCounts(Request $request, User $user, string $portal): array
+    private function withdrawalStatusCounts(Request $request, User $user, string $portal, ?BranchScope $branchScope = null): array
     {
-        return $this->filteredWithdrawals($request, $user, $portal, true, false)
+        return $this->filteredWithdrawals($request, $user, $portal, true, false, $branchScope)
             ->select('withdrawals.status')
             ->selectRaw('COUNT(*) AS aggregate')
             ->groupBy('withdrawals.status')
@@ -130,7 +131,10 @@ final class WithdrawalsSection implements WorkspaceSection
             ->all();
     }
 
-    private function filteredWithdrawals(Request $request, User $user, string $portal, bool $applyFilters, bool $withStatus): Builder
+    /**
+     * On a branch picked in the top bar, staff see only withdrawals of that branch's partners.
+     */
+    private function filteredWithdrawals(Request $request, User $user, string $portal, bool $applyFilters, bool $withStatus, ?BranchScope $branchScope = null): Builder
     {
         $staff = in_array($portal, ['manage', 'sadmin'], true);
         $query = DB::table('withdrawals')
@@ -155,6 +159,9 @@ final class WithdrawalsSection implements WorkspaceSection
                 'users.district',
                 'users.division',
             ]);
+        if ($staff) {
+            $branchScope?->restrictPartners($query);
+        }
 
         if ($applyFilters) {
             if ($request->filled('q')) {
@@ -235,9 +242,10 @@ final class WithdrawalsSection implements WorkspaceSection
      *
      * @return array{withdrawals: LengthAwarePaginator<int, array<string, mixed>>, payout_totals: array{requested_count: int, requested_amount: string, approved_count: int, approved_amount: string, paid_count: int, paid_amount: string, paid_withheld_amount: string}, tds_rate: float}
      */
-    private function payoutsHub(Request $request): array
+    private function payoutsHub(Request $request, ?BranchScope $branchScope = null): array
     {
         $matching = DB::table('withdrawals')->join('users', 'users.id', '=', 'withdrawals.user_id');
+        $branchScope?->restrictPartners($matching);
         $search = $request->string('q')->trim()->toString();
         if ($search !== '') {
             $term = '%'.OrderListFilter::escapeLike($search).'%';

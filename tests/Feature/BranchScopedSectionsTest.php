@@ -77,6 +77,7 @@ class BranchScopedSectionsTest extends TestCase
         $orders = $this->ordersPerBranch($status, $unassignedStatus);
         $owner = User::factory()->staff()->create(['active_branch_id' => $this->dhaka->id]);
 
+        $this->flushSession();
         $this->actingAs($owner)->onPortal('sadmin')->get($path)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('data.branch_scope.view', 'branch')
             ->where('data.branch_scope.code', 'DHK-01')
@@ -161,6 +162,120 @@ class BranchScopedSectionsTest extends TestCase
         $this->actingAs($this->partner)->onPortal('dealer')->get('/orders')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->missing('data.branch_scope')
             ->where('data.orders.total', 3));
+    }
+
+    public function test_payment_claims_follow_the_order_branch(): void
+    {
+        $claims = collect($this->ordersPerBranch('dispatched', 'submitted'))->map(fn (string $number): int => $this->claimFor($number));
+        $owner = User::factory()->staff()->create(['active_branch_id' => $this->dhaka->id]);
+
+        $this->ownerOnAll()->get('/payments')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.branch_scope.view', 'all')
+            ->where('data.claims.data', fn ($rows) => $this->ids($rows) === $this->sortedIds($claims->values()->all())));
+        $this->flushSession();
+        $this->actingAs($owner)->onPortal('sadmin')->get('/payments')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.branch_scope.code', 'DHK-01')
+            ->where('data.claims.data', fn ($rows) => $this->ids($rows) === [$claims['dhaka']])
+            ->where('data.claim_status_counts', ['pending' => 1]));
+        $this->ownerOnAll()->get('/payments?branch_id='.$this->rajshahi->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.claims.data', fn ($rows) => $this->ids($rows) === [$claims['rajshahi']]));
+        $this->actingAs(User::factory()->staff('finance')->create())->onPortal('manage')->get('/payments')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.claims.data', fn ($rows) => count($rows) === 3));
+        // Finance pages need the finance permission, which already covers every branch.
+        $this->actingAs($this->branchStaff($this->dhaka))->onPortal('manage')->get('/payments')->assertForbidden();
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function withdrawalPages(): array
+    {
+        return ['withdrawals' => ['/withdrawals'], 'payouts hub' => ['/payouts-hub']];
+    }
+
+    #[DataProvider('withdrawalPages')]
+    public function test_withdrawals_follow_the_partner_branch(string $path): void
+    {
+        $withdrawals = $this->withdrawalsPerBranch();
+        $owner = User::factory()->staff()->create(['active_branch_id' => $this->dhaka->id]);
+
+        $this->ownerOnAll()->get($path)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.branch_scope.view', 'all')
+            ->where('data.withdrawals.data', fn ($rows) => $this->ids($rows) === $this->sortedIds(array_values($withdrawals))));
+        $this->flushSession();
+        $this->actingAs($owner)->onPortal('sadmin')->get($path)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.branch_scope.code', 'DHK-01')
+            ->where('data.withdrawals.data', fn ($rows) => $this->ids($rows) === [$withdrawals['dhaka']]));
+        $this->ownerOnAll()->get($path.'?branch_id='.$this->rajshahi->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.withdrawals.data', fn ($rows) => $this->ids($rows) === [$withdrawals['rajshahi']]));
+        $this->actingAs(User::factory()->staff('finance')->create())->onPortal('manage')->get($path)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.withdrawals.data', fn ($rows) => count($rows) === 3));
+    }
+
+    private function claimFor(string $orderNumber): int
+    {
+        return (int) DB::table('payment_claims')->insertGetId([
+            'order_id' => Order::query()->where('number', $orderNumber)->value('id'),
+            'channel' => 'bKash',
+            'reference' => 'TX-'.Str::upper(Str::random(8)),
+            'amount' => '100.00',
+            'status' => 'pending',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    /**
+     * One partner saved on the Dhaka branch, one matched to Rajshahi by district,
+     * and one with no branch at all, each with one withdrawal request.
+     *
+     * @return array{dhaka: string, rajshahi: string, none: string}
+     */
+    private function withdrawalsPerBranch(): array
+    {
+        $this->rajshahi->forceFill(['district' => 'Rajshahi'])->save();
+        $partners = [
+            'dhaka' => User::factory()->dealer()->create(['active_branch_id' => $this->dhaka->id, 'district' => 'Sylhet']),
+            'rajshahi' => User::factory()->dealer()->create(['district' => 'Rajshahi']),
+            'none' => User::factory()->dealer()->create(['district' => 'Sylhet']),
+        ];
+
+        return array_map(function (User $partner): string {
+            $id = (string) Str::uuid();
+            DB::table('withdrawals')->insert([
+                'id' => $id,
+                'user_id' => $partner->id,
+                'amount' => '200.00',
+                'status' => 'requested',
+                'channel' => 'Bank',
+                'destination' => encrypt('TEST-ACCOUNT-1234'),
+                'idempotency_key' => (string) Str::uuid(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return $id;
+        }, $partners);
+    }
+
+    /**
+     * @param  iterable<array<string, mixed>>  $rows
+     * @return list<int|string>
+     */
+    private function ids(iterable $rows): array
+    {
+        return $this->sortedIds(collect($rows)->pluck('id')->all());
+    }
+
+    /**
+     * @param  list<int|string>  $ids
+     * @return list<int|string>
+     */
+    private function sortedIds(array $ids): array
+    {
+        sort($ids);
+
+        return array_values($ids);
     }
 
     private function ownerOnAll(): self

@@ -2,6 +2,7 @@
 
 namespace App\Domain\Inventory;
 
+use App\Domain\Support\ChatRouting;
 use App\Models\CompanyBranch;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
@@ -19,7 +20,7 @@ final readonly class BranchScope
      *
      * @var list<string>
      */
-    public const Sections = ['orders', 'deliveries'];
+    public const Sections = ['orders', 'deliveries', 'payments', 'withdrawals', 'payouts-hub'];
 
     /**
      * @param  list<int>  $branchIds  Branches the page shows; ignored when $allBranches is true.
@@ -55,6 +56,33 @@ final readonly class BranchScope
             return $query;
         }
         $query->whereIn($branchColumn, $this->branchIds);
+
+        return $query;
+    }
+
+    /**
+     * Keep only partners of the scoped branches. A partner belongs to the branch saved
+     * on the account, or else the first active branch in the partner's district (the
+     * mapping partner chat already uses, {@see ChatRouting::partnerBranchSql()}).
+     * Partners with no branch are kept only on "All branches".
+     *
+     * @template TBuilder of EloquentBuilder<*>|QueryBuilder
+     *
+     * @param  TBuilder  $query
+     * @return TBuilder
+     */
+    public function restrictPartners(EloquentBuilder|QueryBuilder $query, string $usersTable = 'users'): EloquentBuilder|QueryBuilder
+    {
+        if ($this->allBranches) {
+            return $query;
+        }
+        if ($this->branchIds === []) {
+            $query->whereRaw('1 = 0');
+
+            return $query;
+        }
+        $placeholders = implode(', ', array_fill(0, count($this->branchIds), '?'));
+        $query->whereRaw(app(ChatRouting::class)->partnerBranchSql($usersTable).' IN ('.$placeholders.')', $this->branchIds);
 
         return $query;
     }
