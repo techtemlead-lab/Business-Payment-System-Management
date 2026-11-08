@@ -69,6 +69,11 @@ Schedule::command('support:overdue-reminders')->dailyAt('09:30')->timezone('Asia
 Schedule::command('prescriptions:follow-up-reminders')->dailyAt('08:30')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
     ->onFailure(fn () => Log::critical('Scheduled prescription follow-up reminder failed.'));
 
+// Branches that hold goods but have had no approved stock count for 30 days. Each morning staff
+// with the inventory permission get one portal notice naming the branch codes. No SMS.
+Schedule::command('stock:count-reminders')->dailyAt('09:45')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
+    ->onFailure(fn () => Log::critical('Scheduled stock count reminder failed.'));
+
 // Failed background jobs are kept for a week to investigate, then removed.
 Schedule::command('queue:prune-failed --hours=168')->dailyAt('04:15')->timezone('Asia/Dhaka')->withoutOverlapping(30)->onOneServer();
 

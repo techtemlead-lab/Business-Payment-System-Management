@@ -6292,4 +6292,12 @@ return [
     'event_purchase_order_sent' => 'Purchase order marked as sent',
     'event_purchase_order_cancelled' => 'Purchase order cancelled',
     'event_purchase_order_received' => 'Goods received against a purchase order',
+    'stock_counts_nav' => 'Stock counts',
+    'section_hint_stock_counts' => 'Count the shelf, see the differences, and approve them.',
+    'status_counting' => 'Counting',
+    'event_stock_count_started' => 'Stock count started',
+    'event_stock_count_submitted' => 'Stock count sent for approval',
+    'event_stock_count_approved' => 'Stock count approved and stock updated',
+    'event_stock_count_rejected' => 'Stock count rejected',
+    'event_stock_count_cancelled' => 'Stock count cancelled',
 ];

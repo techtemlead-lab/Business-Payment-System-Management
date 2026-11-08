@@ -6292,4 +6292,12 @@ return [
     'event_purchase_order_sent' => 'ক্রয় অর্ডার পাঠানো হয়েছে',
     'event_purchase_order_cancelled' => 'ক্রয় অর্ডার বাতিল হয়েছে',
     'event_purchase_order_received' => 'ক্রয় অর্ডারের মাল গ্রহণ করা হয়েছে',
+    'stock_counts_nav' => 'স্টক গণনা',
+    'section_hint_stock_counts' => 'তাকের মাল গুনুন, গরমিল দেখুন, অনুমোদন করুন।',
+    'status_counting' => 'গণনা চলছে',
+    'event_stock_count_started' => 'স্টক গণনা শুরু হয়েছে',
+    'event_stock_count_submitted' => 'স্টক গণনা অনুমোদনের জন্য পাঠানো হয়েছে',
+    'event_stock_count_approved' => 'স্টক গণনা অনুমোদন হয়েছে, স্টক ঠিক করা হয়েছে',
+    'event_stock_count_rejected' => 'স্টক গণনা বাতিল করা হয়েছে',
+    'event_stock_count_cancelled' => 'চলমান স্টক গণনা বন্ধ করা হয়েছে',
 ];

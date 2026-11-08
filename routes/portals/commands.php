@@ -21,6 +21,7 @@ use App\Http\Controllers\ProductUnitController;
 use App\Http\Controllers\PurchasingController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\StockCountController;
 use App\Http\Controllers\TrainingController;
 use App\Http\Controllers\WithdrawalController;
 use Illuminate\Support\Facades\Route;
@@ -184,4 +185,10 @@ return function (string $portal): void {
     Route::post('/commands/purchasing/orders/{purchaseOrder}/send', [PurchasingController::class, 'sendOrder'])->whereNumber('purchaseOrder')->middleware('throttle:30,1');
     Route::post('/commands/purchasing/orders/{purchaseOrder}/cancel', [PurchasingController::class, 'cancelOrder'])->whereNumber('purchaseOrder')->middleware('throttle:30,1');
     Route::post('/commands/purchasing/orders/{purchaseOrder}/receipts', [PurchasingController::class, 'receive'])->whereNumber('purchaseOrder')->middleware('throttle:30,1');
+    Route::post('/commands/stock-counts', [StockCountController::class, 'start'])->middleware('throttle:30,1');
+    Route::post('/commands/stock-counts/{stockCountSession}/lines', [StockCountController::class, 'saveCounts'])->whereNumber('stockCountSession')->middleware('throttle:60,1');
+    Route::post('/commands/stock-counts/{stockCountSession}/submit', [StockCountController::class, 'submit'])->whereNumber('stockCountSession')->middleware('throttle:30,1');
+    Route::post('/commands/stock-counts/{stockCountSession}/approve', [StockCountController::class, 'approve'])->whereNumber('stockCountSession')->middleware('throttle:30,1');
+    Route::post('/commands/stock-counts/{stockCountSession}/reject', [StockCountController::class, 'reject'])->whereNumber('stockCountSession')->middleware('throttle:30,1');
+    Route::post('/commands/stock-counts/{stockCountSession}/cancel', [StockCountController::class, 'cancel'])->whereNumber('stockCountSession')->middleware('throttle:30,1');
 };

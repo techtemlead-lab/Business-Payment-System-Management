@@ -51,7 +51,7 @@ export const MANAGEMENT_SECTIONS = [
     'financial-readiness', 'finance-settings', 'financial-reports', 'data-imports', 'service-integrations',
     'rewards', 'settlements', 'payouts-hub', 'payments', 'withdrawals', 'ledger', 'reports', 'top-sellers',
     'catalog', 'inventory', 'branches', 'branch-performance', 'place-codes', 'video-marketing', 'website', 'content', 'enquiries', 'feedback', 'audit', 'support-admin', 'agreement', 'partner-messages',
-    'training', 'events', 'data-cleanup', 'prescriptions', 'purchasing',
+    'training', 'events', 'data-cleanup', 'prescriptions', 'purchasing', 'stock-counts',
 ];
 
 const tabOf = (search: string): string | null => new URLSearchParams(search).get('tab');
@@ -81,6 +81,7 @@ export const SECTION_LABEL_KEYS: Record<string, string> = {
     messages: 'chat_nav_partner', 'partner-messages': 'chat_nav_office', 'top-sellers': 'top_sellers',
     training: 'training', events: 'events', 'payment-receipts': 'payment_receipts', 'data-cleanup': 'cleanup_nav', prescriptions: 'prescriptions',
     purchasing: 'purchasing_nav',
+    'stock-counts': 'stock_counts_nav',
 };
 
 function defaultHrefPath(section: string): string {
@@ -227,6 +228,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
         items.add('inventory');
         items.add('branches');
         items.add('purchasing');
+        items.add('stock-counts');
     }
     if (capabilities.includes('accounts') && !items.has('branches')) items.add('branches');
     if (capabilities.some((cap) => ['reports', 'finance', 'inventory'].includes(cap)) || ['super_admin', 'md', 'chairman'].includes(role)) {
@@ -340,7 +342,7 @@ function staffNavigation(staffAvailable: Set<string>): {
             mother('overview', 'nav_module_overview', pick(staffAvailable, ['overview'])),
             mother('catalog', 'nav_module_catalog', pick(staffAvailable, ['catalog-products', 'catalog-taxonomy'])),
             mother('stock', 'nav_module_stock', pick(staffAvailable, [
-                'stock', 'product-in', 'product-out', 'purchasing', 'branches', 'branch-performance', 'place-codes',
+                'stock', 'product-in', 'product-out', 'purchasing', 'stock-counts', 'branches', 'branch-performance', 'place-codes',
             ])),
             mother('orders', 'nav_module_orders', pick(staffAvailable, ['orders', 'deliveries'])),
             mother('finance', 'nav_module_finance', pick(staffAvailable, [

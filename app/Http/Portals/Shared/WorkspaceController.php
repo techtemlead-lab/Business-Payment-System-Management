@@ -44,6 +44,7 @@ use App\Http\Portals\Shared\Sections\PurchasingSection;
 use App\Http\Portals\Shared\Sections\SalarySection;
 use App\Http\Portals\Shared\Sections\SectionContext;
 use App\Http\Portals\Shared\Sections\SectionDates;
+use App\Http\Portals\Shared\Sections\StockCountsSection;
 use App\Http\Portals\Shared\Sections\SupportSection;
 use App\Http\Portals\Shared\Sections\TerritorySection;
 use App\Http\Portals\Shared\Sections\TopSellersSection;
@@ -103,6 +104,7 @@ class WorkspaceController extends Controller
         PrescriptionsSection::class,
         PrescriptionToolsSection::class,
         PurchasingSection::class,
+        StockCountsSection::class,
     ];
 
     public function index(Request $r, ProductPricing $pricing, string $section = 'overview'): Response|RedirectResponse
