@@ -6270,4 +6270,7 @@ return [
     'branch_partner_count' => 'Partners in this branch: :count',
     'branch_head_office_place_code_missing' => 'The head office (:name) has no place code yet. Add one so that partners in its area come under the head office.',
     'branch_head_office_place_code_action' => 'Add place code',
+    'event_prescription_template_saved' => 'Prescription template saved',
+    'event_prescription_template_deleted' => 'Prescription template deleted',
+    'event_prescription_follow_up_done' => 'Patient follow-up marked as seen',
 ];

@@ -49,6 +49,7 @@ class EnforceStaffActions
                 'TrainingController' => $method === 'submitQuiz',
                 // Verified prescribers only; PrescriptionAccess checks again.
                 'PrescriptionController' => in_array($method, ['storePatient', 'updatePatient', 'store'], true),
+                'PrescriptionToolsController' => true,
                 'PushSubscriptionController' => true,
                 default => false,
             };

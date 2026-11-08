@@ -6270,4 +6270,7 @@ return [
     'branch_partner_count' => 'এই ব্রাঞ্চের পার্টনার: :count জন',
     'branch_head_office_place_code_missing' => 'হেড অফিসের (:name) এখনো প্লেস কোড নেই। প্লেস কোড দিলে ওই এলাকার পার্টনাররা হেড অফিসের আওতায় আসবে।',
     'branch_head_office_place_code_action' => 'প্লেস কোড দিন',
+    'event_prescription_template_saved' => 'প্রেসক্রিপশনের টেমপ্লেট রাখা হয়েছে',
+    'event_prescription_template_deleted' => 'প্রেসক্রিপশনের টেমপ্লেট মুছে দেওয়া হয়েছে',
+    'event_prescription_follow_up_done' => 'রোগীকে আবার দেখা হয়ে গেছে',
 ];
