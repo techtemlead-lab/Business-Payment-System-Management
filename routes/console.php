@@ -74,6 +74,10 @@ Schedule::command('prescriptions:follow-up-reminders')->dailyAt('08:30')->timezo
 Schedule::command('partners:progress-alerts')->dailyAt('09:15')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
     ->onFailure(fn () => Log::critical('Scheduled partner alert run failed.'));
 
+// Partners who share a phone, NID or payout number, or refer themselves: listed for the owner and finance. Flag only.
+Schedule::command('partners:scan-duplicates')->dailyAt('03:30')->timezone('Asia/Dhaka')->withoutOverlapping(60)->onOneServer()
+    ->onFailure(fn () => Log::warning('Scheduled duplicate account check failed.'));
+
 // A partner's own customers due for a follow-up: one portal notice a day with counts only. No SMS.
 Schedule::command('partners:customer-follow-up-reminders')->dailyAt('08:45')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
     ->onFailure(fn () => Log::critical('Scheduled customer follow-up reminder failed.'));
