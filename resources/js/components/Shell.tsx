@@ -14,6 +14,7 @@ import LanguageSwitcher from './LanguageSwitcher';
 import NotificationBell from './NotificationBell';
 import GlobalSearchLauncher from './GlobalSearchLauncher';
 import OnboardingTour from './OnboardingTour';
+import { useNativeFieldMessages } from '../shared/useNativeFieldMessages';
 import ThemeToggle from './ThemeToggle';
 import { t, useT, useTranslations } from '../shared/i18n/t';
 import {
@@ -137,6 +138,7 @@ const icons: Record<string, LucideIcon> = {
 };
 
 export default function Shell({ section, children, action }: { section: string; children: ReactNode; action?: ReactNode }) {
+    useNativeFieldMessages();
     const page = usePage<any>();
     const { auth, portalBase, portal, demoMode, dashboardNotice, dashboardControls, siteCustomization, unreadNotices = 0, navAttention = {}, tour, userManualChapters, workspaceBranches } = page.props;
     const [manualOpen, setManualOpen] = useState(false);
