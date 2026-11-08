@@ -13,20 +13,24 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Throwable;
 
 /**
  * Books a saved shipment with the courier company, once the dispatch (or the approval
  * that created it) is committed.
  *
  * The shipment row is claimed (pending -> booking) before the courier is called, so a
- * repeated or retried job never books the same parcel twice. A booking that stops half
- * way stays "booking" for staff to check with the courier instead of being sent again.
- * A refused booking is marked "failed": staff see it on the order and the deliveries
- * board, and can try again or switch to another courier.
+ * repeated or retried job never books the same parcel twice. A refused booking is marked
+ * "failed": staff see it on the order and the deliveries board, and can try again or
+ * switch to another courier. A booking that stops half way is never sent again by itself:
+ * it is also marked "failed", with a warning to check with the courier first.
  */
 class BookShipmentCourier implements ShouldQueue
 {
     use Queueable;
+
+    /** A claimed booking older than this has stopped: the job itself ends after 60 seconds. */
+    public const StuckAfterMinutes = 15;
 
     public int $tries = 1;
 
@@ -65,21 +69,13 @@ class BookShipmentCourier implements ShouldQueue
         ]);
 
         if (! $created['success']) {
+            $message = ($created['outcome_unknown'] ?? false) ? __('courier.booking_outcome_unknown') : (string) $created['message'];
             DB::table('shipments')->where('id', $shipment->id)->update([
                 'courier_booking_status' => 'failed',
-                'courier_booking_error' => Str::limit((string) $created['message'], 250),
+                'courier_booking_error' => Str::limit($message, 250),
                 'updated_at' => now(),
             ]);
-            $this->event($order, (int) $shipment->actor_id, 'order.courier_booking_failed', [
-                'shipment_id' => $shipment->id,
-                'provider' => $shipment->courier_provider,
-                'message' => $created['message'],
-            ]);
-            Audit::notifyAdminsAndStaff(
-                ['orders', 'inventory'],
-                __('courier.notice_booking_failed_title', ['number' => $order->number]),
-                __('courier.notice_booking_failed_body', ['number' => $order->number, 'courier' => (string) $shipment->courier, 'message' => (string) $created['message']]),
-            );
+            $this->reportFailure($order, $shipment, $message);
 
             return;
         }
@@ -104,6 +100,41 @@ class BookShipmentCourier implements ShouldQueue
         if ($partner) {
             $this->tellPartner($partner, $order, (string) $shipment->courier, $tracking);
         }
+    }
+
+    /**
+     * The job stopped before the booking finished (an error, a timeout, a crashed worker).
+     * Nothing else would ever move it on, so it is handed to staff as a failed booking. A
+     * parcel the courier already accepted is left alone.
+     */
+    public function failed(?Throwable $exception = null): void
+    {
+        $message = __('courier.booking_outcome_unknown');
+        $stopped = DB::table('shipments')->where('id', $this->shipmentId)
+            ->whereIn('courier_booking_status', ['pending', 'booking'])
+            ->update(['courier_booking_status' => 'failed', 'courier_booking_error' => Str::limit($message, 250), 'updated_at' => now()]);
+        if ($stopped === 0) {
+            return;
+        }
+        $shipment = DB::table('shipments')->where('id', $this->shipmentId)->first();
+        $this->reportFailure(Order::query()->findOrFail($shipment->order_id), $shipment, $message);
+    }
+
+    /**
+     * Writes the failed booking to the order history and tells the staff.
+     */
+    private function reportFailure(Order $order, object $shipment, string $message): void
+    {
+        $this->event($order, (int) $shipment->actor_id, 'order.courier_booking_failed', [
+            'shipment_id' => $shipment->id,
+            'provider' => $shipment->courier_provider,
+            'message' => $message,
+        ]);
+        Audit::notifyAdminsAndStaff(
+            ['orders', 'inventory'],
+            __('courier.notice_booking_failed_title', ['number' => $order->number]),
+            __('courier.notice_booking_failed_body', ['number' => $order->number, 'courier' => (string) $shipment->courier, 'message' => $message]),
+        );
     }
 
     /**

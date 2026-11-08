@@ -285,9 +285,10 @@ class BackendContractsAndDbFeatureTest extends E2ETestCase
                 'database' => ['status', 'latency_ms', 'connection'],
                 'cache' => ['status', 'latency_ms'],
                 'storage' => ['status'],
-                'environment' => ['app_env', 'financial_activation'],
+                'environment' => ['financial_activation', 'preview_mode'],
             ],
         ]);
+        $response->assertJsonMissingPath('checks.environment.app_env');
     }
 
     /**

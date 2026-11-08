@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Domain\Orders\ShipmentTracking;
+use App\Jobs\BookShipmentCourier;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -21,6 +22,13 @@ class RefreshCourierTracking extends Command
      */
     public function handle(ShipmentTracking $tracking): int
     {
+        // A booking whose job vanished without reporting back is handed to staff.
+        DB::table('shipments')
+            ->where('courier_booking_status', 'booking')
+            ->where('updated_at', '<', now()->subMinutes(BookShipmentCourier::StuckAfterMinutes))
+            ->pluck('id')
+            ->each(fn (mixed $id) => (new BookShipmentCourier((int) $id))->failed());
+
         $ids = DB::table('shipments')
             ->where('courier_booking_status', 'booked')
             ->where('status', 'dispatched')

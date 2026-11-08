@@ -22,8 +22,8 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
  */
 final class PartnerCertificates
 {
-    /** Commission rows that were taken back do not count as income. */
-    private const NotIncome = ['reversed'];
+    /** Commission rows that were taken back, or moved to company profit at month close, do not count as income. */
+    private const NotIncome = ['reversed', 'forfeited'];
 
     /**
      * Commission earned in one Dhaka calendar year by category, and money actually sent out.

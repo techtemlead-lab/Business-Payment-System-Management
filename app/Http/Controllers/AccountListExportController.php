@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Accounts\PartnerAccountList;
+use App\Domain\Inventory\BranchOperations;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\PhoneIdentity;
@@ -29,6 +30,8 @@ class AccountListExportController extends Controller
         $data = $request->validate([
             ...PartnerAccountList::rules(),
             'section' => 'required|in:accounts,sub-dealers',
+            'branch_id' => 'nullable|integer|min:1',
+            'all_branches' => 'nullable|boolean',
         ]);
         $role = $data['section'] === 'sub-dealers' ? 'sub_dealer' : 'dealer';
         $filters = PartnerAccountList::filters($request);
@@ -54,7 +57,7 @@ class AccountListExportController extends Controller
         $fullContacts = self::mayExportFullContacts($user);
         $applied = array_filter($filters, fn ($value): bool => $value !== '' && $value !== 0);
         Audit::record($user->id, 'report.exported', 'accounts', ['section' => $data['section'], 'full_contacts' => $fullContacts, ...$applied]);
-        $rows = $list->exportRows($role, $filters);
+        $rows = $list->exportRows($role, $filters, app(BranchOperations::class)->scopeFor($user, $request));
         if (! $fullContacts) {
             $rows = (function (iterable $rows): Generator {
                 foreach ($rows as $row) {
