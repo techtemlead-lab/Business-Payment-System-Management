@@ -2,9 +2,13 @@
 @php
     $mdMessage = \App\Support\SiteCustomization::managingDirectorMessage($siteCustomization ?? null);
     $mdPlacement = $placement ?? 'about';
-    $mdVisibleCount = 3;
+    $mdIsCompact = $mdPlacement === 'home';
+    $mdVisibleCount = $mdIsCompact ? 2 : 3;
     $mdParagraphs = $mdMessage['paragraphs'] ?? [];
-    $mdHasMore = count($mdParagraphs) > $mdVisibleCount + 1;
+    // The short home version trims long text with CSS, so it needs the button even when nothing else is hidden.
+    $mdHasMore = $mdIsCompact
+        ? count($mdParagraphs) > $mdVisibleCount || mb_strlen(implode(' ', $mdParagraphs)) > 320
+        : count($mdParagraphs) > $mdVisibleCount + 1;
     $mdShown = $mdHasMore ? array_slice($mdParagraphs, 0, $mdVisibleCount) : $mdParagraphs;
     $mdHidden = $mdHasMore ? array_slice($mdParagraphs, $mdVisibleCount) : [];
 @endphp

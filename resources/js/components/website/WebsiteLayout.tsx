@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, usePage, type InertiaFormProps } from '@inertiajs/react';
 import { ArrowUpRight } from 'lucide-react';
-import type { CustomizationData, MdMessageBanglaCopy, Shortcut, Slide } from './types';
+import type { CustomizationData, MdMessageBanglaCopy, Slide } from './types';
 
 export type WebsiteForm = InertiaFormProps<{ customization: CustomizationData }>;
 
@@ -36,7 +36,6 @@ export interface WebsiteSectionProps {
     updateField: (field: keyof CustomizationData, value: string) => void;
     updateSlide: (index: number, key: keyof Slide, value: string) => void;
     updateSideSlide: (banner: 1 | 2, index: number, key: keyof Slide, value: string) => void;
-    updateShortcuts: (shortcuts: Shortcut[]) => void;
 }
 
 /** One of the five big parts of the website page. */

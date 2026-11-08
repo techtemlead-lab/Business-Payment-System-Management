@@ -7,6 +7,7 @@ use App\Domain\Integrations\SmtpMailConfig;
 use App\Domain\Notifications\WebPushNotices;
 use App\Domain\Pricing\CurrentProductPricing;
 use App\Domain\Pricing\ProductPricing;
+use App\Http\Middleware\ThrottleEachAction;
 use App\Listeners\NoticeNewStaffDevice;
 use App\Models\User;
 use App\Support\PhoneIdentity;
@@ -22,6 +23,7 @@ use Illuminate\Http\Request;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\Looping;
 use Illuminate\Queue\Events\QueueBusy;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -41,6 +43,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(ProductPricing::class, CurrentProductPricing::class);
+        $this->app->bind(ThrottleRequests::class, ThrottleEachAction::class);
         // Fail unreachable Postgres hosts quickly instead of blocking php artisan serve
         // (single-threaded) until max_execution_time, which freezes every device viewport.
         $this->app->bind('db.connector.pgsql', PostgresConnector::class);

@@ -1,21 +1,22 @@
 @php
     $chrome = fn (string $key, ?string $custom = null): string => \App\Support\SiteChrome::text($key, $custom);
+    $bismillahText = $chrome('home_bismillah_text', $siteCustomization['home_bismillah_text'] ?? null);
+    $showBismillah = filter_var($siteCustomization['home_bismillah_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN);
+    $companyNameTag = request()->is('/') ? 'h1' : 'div';
 @endphp
 <a class="ref-skip" href="#main">{{ __('site.skip_to_content') }}</a>
-<div class="ref-sticky-chrome">
+@if($showBismillah)
+<p class="ref-bismillah"@if(\App\Support\SiteChrome::isArabic($bismillahText)) lang="ar" dir="rtl"@endif><span>{{ $bismillahText }}</span></p>
+@endif
+{{-- The name and its two leaves fill the width of the header row below; reference-home.ts sizes them. --}}
 <div class="ref-company-bar">
-    <div class="ref-company-bar-inner">
-        <span class="ref-bar-flourish left" aria-hidden="true">
-            <span class="ref-bar-line"></span>
-            <i class="fa-solid fa-seedling"></i>
-        </span>
-        <span class="ref-bar-text">{{ $chrome('company_bar', $siteCustomization['top_bar_text'] ?? null) }}</span>
-        <span class="ref-bar-flourish right" aria-hidden="true">
-            <i class="fa-solid fa-seedling"></i>
-            <span class="ref-bar-line"></span>
-        </span>
+    <div class="ref-container ref-company-bar-inner" data-company-name-fit>
+        <i class="fa-solid fa-seedling ref-bar-leaf is-left" aria-hidden="true"></i>
+        <{{ $companyNameTag }} class="ref-bar-text">{{ $chrome('company_bar', $siteCustomization['top_bar_text'] ?? null) }}</{{ $companyNameTag }}>
+        <i class="fa-solid fa-seedling ref-bar-leaf is-right" aria-hidden="true"></i>
     </div>
 </div>
+<div class="ref-sticky-chrome">
 <header class="ref-header">
     <div class="ref-container ref-header-inner">
         <!-- Mobile Hamburger Menu Button (CSS bars so the control stays visible if icon fonts fail) -->
@@ -46,19 +47,19 @@
         <!-- Desktop Header Links -->
         <div class="ref-header-links">
             @if($publicPageEnabled['about'] ?? true)
-            <a href="/about"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span><b>{{ $chrome('about', $siteCustomization['header_about_title'] ?? null) }}</b><small>{{ $chrome('about_sub', $siteCustomization['header_about_subtitle'] ?? null) }}</small></span></a>
+            <a href="/about"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><b>{{ $chrome('about', $siteCustomization['header_about_title'] ?? null) }}</b></a>
             @endif
             @if($publicPageEnabled['contact'] ?? true)
-            <a href="/contact"><i class="fa-solid fa-headset" aria-hidden="true"></i><span><b>{{ $chrome('contact', $siteCustomization['header_contact_title'] ?? null) }}</b><small>{{ $chrome('contact_sub', $siteCustomization['header_contact_subtitle'] ?? null) }}</small></span></a>
+            <a href="/contact"><i class="fa-solid fa-headset" aria-hidden="true"></i><b>{{ $chrome('contact', $siteCustomization['header_contact_title'] ?? null) }}</b></a>
             @endif
             @if($publicPageEnabled['dealers'] ?? true)
-            <a href="/dealers"><i class="fa-solid fa-layer-group" aria-hidden="true"></i><span><b>{{ $chrome('network', $siteCustomization['header_network_title'] ?? null) }}</b><small>{{ $chrome('network_sub') }}</small></span></a>
+            <a href="/dealers"><i class="fa-solid fa-layer-group" aria-hidden="true"></i><b>{{ $chrome('network', $siteCustomization['header_network_title'] ?? null) }}</b></a>
             @endif
             @auth
-            <a href="{{ \App\Support\PortalHost::homeUrl(auth()->user()) }}"><i class="fa-solid fa-user-check" aria-hidden="true"></i><span><b>{{ auth()->user()->name }}</b><small>{{ auth()->user()->owner() ? __('site.owner_portal') : (auth()->user()->staff() ? __('site.company_portal') : (auth()->user()->dealer_code ?? __('site.my_account'))) }}</small></span></a>
-            <form method="POST" action="/logout" class="ref-logout-form"><input type="hidden" name="_token" value="{{ csrf_token() }}"><button type="submit" class="ref-header-logout-btn" title="{{ __('site.log_out') }}" aria-label="{{ __('site.log_out') }}"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i><span><b>{{ __('site.log_out') }}</b><small>{{ __('site.exit_session') }}</small></span></button></form>
+            <a href="{{ \App\Support\PortalHost::homeUrl(auth()->user()) }}" class="ref-header-account"><i class="fa-solid fa-user-check" aria-hidden="true"></i><b>{{ auth()->user()->name }}</b></a>
+            <form method="POST" action="/logout" class="ref-logout-form"><input type="hidden" name="_token" value="{{ csrf_token() }}"><button type="submit" class="ref-header-logout-btn" title="{{ __('site.log_out') }}" aria-label="{{ __('site.log_out') }}"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i><b>{{ __('site.log_out') }}</b></button></form>
             @else
-            <a href="/login"><i class="fa-solid fa-user" aria-hidden="true"></i><span><b>{{ $chrome('account', $siteCustomization['header_account_title'] ?? null) }}</b><small>{{ $chrome('account_sub', $siteCustomization['header_account_subtitle'] ?? null) }}</small></span></a>
+            <a href="/login"><i class="fa-solid fa-user" aria-hidden="true"></i><b>{{ $chrome('account', $siteCustomization['header_account_title'] ?? null) }}</b></a>
             @endauth
             <button type="button" class="ref-theme-toggle" data-theme-toggle data-label-day="{{ __('site.day_mode') }}" data-label-night="{{ __('site.night_mode') }}" aria-label="{{ __('site.night_mode') }}" title="{{ __('site.night_mode') }}">
                 <span class="theme-icon-day" aria-hidden="true">

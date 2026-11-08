@@ -2,6 +2,7 @@
 
 namespace App\Http\Portals\Shared\Sections;
 
+use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Geography\ManagementReferral;
 use App\Domain\Geography\PlaceCodeCatalog;
 use App\Models\AreaDealerAssignment;
@@ -70,6 +71,7 @@ final class TerritorySection implements WorkspaceSection
             $divisionStats[$division]['total_quota_cents'] += $cents;
             $totalQuotaCents += $cents;
         }
+        $props['area_pool_rate'] = (string) app(CommissionPolicy::class)->snapshot(false)['rules']['area_dealer_pool']['percentage'];
         $props['area_summary'] = [
             'total' => $seats->count(),
             'total_quota' => Money::decimal($totalQuotaCents),

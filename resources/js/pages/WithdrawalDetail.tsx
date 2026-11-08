@@ -360,11 +360,13 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
     const translate = useT();
     const { auth, financeActive, staffActions, portalBase: base, paymentAccounts = [] } = usePage<any>().props;
     const finance = financeActive && auth.capabilities.includes('finance') && (staffActions?.finance?.approve ?? true);
-    const form = useForm<{ payment_account_id: string; receipt: File | null; payment_reference: string; paid_at: string; note: string; method: PayoutMethod; bank_name: string; account_number: string; wallet_number: string; received_by: string }>({
+    const form = useForm<{ payment_account_id: string; receipt: File | null; payment_reference: string; paid_at: string; note: string; method: PayoutMethod; bank_name: string; account_number: string; wallet_number: string; received_by: string; self_approve: boolean }>({
         payment_account_id: '', receipt: null, payment_reference: '', paid_at: '', note: '',
-        method: methodForChannel(String(w.channel ?? '')), bank_name: '', account_number: '', wallet_number: '', received_by: '',
+        method: methodForChannel(String(w.channel ?? '')), bank_name: '', account_number: '', wallet_number: '', received_by: '', self_approve: false,
     });
     const isCash = form.data.method === 'cash';
+    // Same rule as the payouts hub: alone only when nobody else could pay; otherwise a second person finishes.
+    const paysAlone = w.payer_state === 'alone';
 
     const inFlight = ['requested', 'processing', 'approved'].includes(w.status);
     const { stop } = usePoll(5000, { only: ['withdrawal', 'payoutReceipt'] }, { autoStart: inFlight });
@@ -430,7 +432,13 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                     />
                 </section>
             )}
-            {finance && w.status === 'approved' && (
+            {finance && w.status === 'approved' && w.payer_state === 'second_person' && (
+                <section className="panel narrow-panel">
+                    <h2>{translate('portal', 'wd_record_title')}</h2>
+                    <p className="muted" role="status">{translate('self_approval', 'wait_second_person')}</p>
+                </section>
+            )}
+            {finance && w.status === 'approved' && w.payer_state !== 'second_person' && (
                 <section className="panel narrow-panel">
                     <h2>{translate('portal', 'wd_record_title')}</h2>
                     <div className="notice">
@@ -462,7 +470,8 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                         {isCash && <label>{translate('portal', 'pay_fld_received_by')}<input required maxLength={100} placeholder={translate('portal', 'pay_ph_received_by')} value={form.data.received_by} onChange={e => form.setData('received_by', e.target.value)} /></label>}
                         <label>{translate('portal', isCash ? 'pay_fld_reference_cash' : 'wd_payment_ref')}<input required={!isCash} maxLength={100} value={form.data.payment_reference} onChange={e => form.setData('payment_reference', e.target.value)} /></label>
                         <label>{translate('portal', 'wd_paid_at')}<input required type="datetime-local" value={form.data.paid_at} onChange={e => form.setData('paid_at', e.target.value)} /></label>
-                        <label>{translate('portal', isCash ? 'pay_fld_receipt_cash' : 'wd_upload_receipt')}<input required={!isCash} type="file" accept="application/pdf,image/jpeg,image/png" onChange={e => form.setData('receipt', e.target.files?.[0] ?? null)} /></label>
+                        <label>{translate('portal', isCash ? 'pay_fld_receipt_cash' : 'wd_upload_receipt')}<input required={!isCash || paysAlone} type="file" accept="application/pdf,image/jpeg,image/png" onChange={e => form.setData('receipt', e.target.files?.[0] ?? null)} /></label>
+                        {paysAlone && <label className="checkbox-label"><input type="checkbox" required checked={form.data.self_approve} onChange={e => form.setData('self_approve', e.target.checked)} /><span>{translate('self_approval', 'confirm_label')}</span></label>}
                         <label>{translate('portal', 'wd_payment_note')}<textarea required maxLength={1000} value={form.data.note} onChange={e => form.setData('note', e.target.value)} /></label>
                         {form.progress && <progress max={100} value={form.progress.percentage} aria-label={translate('portal', 'wd_upload_progress')} />}
                         <FormErrors errors={form.errors}/>
