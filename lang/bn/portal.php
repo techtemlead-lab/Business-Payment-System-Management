@@ -2861,7 +2861,7 @@ return [
     'notice_order_decision_title' => 'অর্ডার :status',
     'notice_order_decision_body' => ':number: :reason',
     'notice_payment_claimed_title' => 'পেমেন্ট যাচাইয়ের জন্য পাঠানো হয়েছে',
-    'notice_payment_claimed_body' => ':number: :channel দিয়ে :amount যাচাইয়ের অপেক্ষায়।',
+    'notice_payment_claimed_body' => ':number: :channel দিয়ে ৳:amount যাচাইয়ের অপেক্ষায়।',
     'notice_payment_reviewed_title' => 'পেমেন্ট যাচাই হয়েছে',
     'notice_payment_reviewed_body' => ':number: পেমেন্ট :outcome।',
     'notice_shipment_dispatched_title' => 'ডেলিভারি পাঠানো হয়েছে',

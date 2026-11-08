@@ -6,6 +6,15 @@ import { Row, Badge, ActionForm, money, date, FormErrors, label } from '../compo
 import { useT } from '../shared/i18n/t';
 import { methodForChannel, payoutMethods, type PayoutMethod } from '../shared/payoutMethods';
 
+/** A payment method in the reader's language ("bKash" shows as "বিকাশ" on Bangla pages); unknown methods show as stored. */
+const channelName = (channel: unknown, translate: ReturnType<typeof useT>): string => {
+    const raw = String(channel ?? '');
+    const key = `pay_channel_${raw.toLowerCase()}`;
+    const text = translate('portal', key);
+
+    return text !== key ? text : raw;
+};
+
 function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row; events: Row[] }) {
     const translate = useT();
     const t = (k: string, fallback: string) => {
@@ -26,7 +35,7 @@ function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row;
         state: 'completed' as const,
         icon: <Check size={16} />,
         time: w.created_at,
-        desc: `${w.destination_for_payment ?? w.destination_masked} · ${w.channel}`,
+        desc: `${w.destination_for_payment ?? w.destination_masked} · ${channelName(w.channel, translate)}`,
     };
 
     // Step 2: Staff Approved / Rejected
@@ -372,7 +381,7 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
             <div className="order-title">
                 <div>
                     <h2>{money(w.amount)}</h2>
-                    <p>{translate('portal', 'wd_requested')} {date(w.created_at)} · {w.channel}</p>
+                    <p>{translate('portal', 'wd_requested')} {date(w.created_at)} · {channelName(w.channel, translate)}</p>
                 </div>
                 <Badge status={w.status} />
             </div>
@@ -396,7 +405,7 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                 <h2>{translate('portal', 'wd_history_title')}</h2>
                 {events.map((e, i) => (
                     <div key={i} className="timeline-item">
-                        <i /><div><b>{e.event} · {e.name}</b><p>{e.note}</p><small>{date(e.created_at)}</small></div>
+                        <i /><div><b>{label(String(e.event), translate)} · {e.name}</b><p>{e.note}</p><small>{date(e.created_at)}</small></div>
                     </div>
                 ))}
             </section>
