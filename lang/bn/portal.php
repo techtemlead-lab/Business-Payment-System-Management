@@ -6270,4 +6270,7 @@ return [
     'event_prescription_template_saved' => 'প্রেসক্রিপশনের টেমপ্লেট রাখা হয়েছে',
     'event_prescription_template_deleted' => 'প্রেসক্রিপশনের টেমপ্লেট মুছে দেওয়া হয়েছে',
     'event_prescription_follow_up_done' => 'রোগীকে আবার দেখা হয়ে গেছে',
+    'event_prescriber_company_stock_granted' => 'অফিস অ্যাকাউন্টে কোম্পানির স্টক থেকে প্রেসক্রিপশন চালু হয়েছে',
+    'event_prescriber_company_stock_removed' => 'অফিস অ্যাকাউন্টে কোম্পানির স্টক থেকে প্রেসক্রিপশন বন্ধ হয়েছে',
+    'event_clinic_below_floor_override' => 'মালিক এমআরপির ৩০%-এর কমে বিক্রি নিশ্চিত করেছেন',
 ];

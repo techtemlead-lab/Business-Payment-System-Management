@@ -79,7 +79,12 @@ export default function PartnerPrescriberControls({ account }: { account: Row })
                 </div>
             </div>
             {!status && !failed && <p className="muted">{translate('prescription', 'verify_loading')}</p>}
-            {failed && <p className="error" role="alert">{translate('prescription', 'verify_failed')}</p>}
+            {failed && (
+                <p className="error" role="alert">
+                    {translate('prescription', 'verify_failed')}{' '}
+                    <button type="button" className="button small" onClick={load}>{translate('portal', 'notice_panel_retry')}</button>
+                </p>
+            )}
             {status && (
                 <>
                     {self && <p className="muted">{translate('prescription', 'err_self_grant')}</p>}
