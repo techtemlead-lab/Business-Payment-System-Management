@@ -179,4 +179,6 @@ return function (string $portal): void {
     Route::get('/commands/accounts/{user}/prescriber', [PrescriberVerificationController::class, 'show'])->middleware('throttle:60,1');
     Route::post('/commands/accounts/{user}/prescriber', [PrescriberVerificationController::class, 'enable'])->middleware('throttle:20,1');
     Route::delete('/commands/accounts/{user}/prescriber', [PrescriberVerificationController::class, 'disable'])->middleware('throttle:20,1');
+
+    require __DIR__.'/productivity.php';
 };

@@ -1,6 +1,6 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {Link,useForm,usePage} from '@inertiajs/react';
-import {ArrowUpRight, X, Inbox, ArrowUpDown, ArrowUp, ArrowDown, RotateCcw, ChevronLeft, ChevronRight, Download, Printer} from 'lucide-react';
+import {ArrowUpRight, X, Inbox, ArrowUpDown, ArrowUp, ArrowDown, RotateCcw, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Download, Printer} from 'lucide-react';
 import {actionAllowed} from './action-permissions';
 import {businessDate, businessDateTime, businessTodayIso, isPastBusinessDate, localizeDigits} from '../business-date';
 import {useT} from '../shared/i18n/t';
@@ -204,6 +204,8 @@ export interface TableProps<T extends Row = any> {
  printTitle?: string;
  /** Keep the header row (and totals row) in view while scrolling long tables. Defaults to true. */
  stickyHeader?: boolean;
+ /** Column keys to keep on phones; the other columns move into a row that opens on tap. */
+ phoneColumns?: string[];
 }
 
 const STICKY_HEADER_MIN_ROWS = 12;
@@ -417,6 +419,7 @@ export function Table<T extends Row = any>({
  filename,
  printTitle,
  stickyHeader = true,
+ phoneColumns,
 }: TableProps<T>){
  const translate = useT();
  const list = rows ?? data ?? [];
@@ -428,6 +431,17 @@ export function Table<T extends Row = any>({
  const [sortDir, setSortDir] = useState<'asc' | 'desc' | null>(defaultSortDir ?? null);
  const [currentPage, setCurrentPage] = useState(1);
  const [clientPageSize, setClientPageSize] = useState<number | null>(pageSize ?? null);
+ const [expandedRows, setExpandedRows] = useState<Set<string>>(() => new Set());
+ const hasPhoneColumns = Boolean(phoneColumns?.length);
+ const isPhoneExtra = (c: TableColumn<T>) => hasPhoneColumns && !phoneColumns!.includes(c.key);
+ const extraPhoneColumns = columns.filter(isPhoneExtra);
+ const toggleExpandedRow = (key: string) => setExpandedRows(current => {
+  const next = new Set(current);
+  if (!next.delete(key)) {
+   next.add(key);
+  }
+  return next;
+ });
  const canExport = exportable ?? Boolean(filename);
  const canPrint = printable ?? canExport;
 
@@ -545,15 +559,30 @@ export function Table<T extends Row = any>({
   });
  };
 
- const cellClass = (c: TableColumn<T>) => [c.className, c.money || c.total || columnAlign(c) === 'right' ? 'is-num' : ''].filter(Boolean).join(' ') || undefined;
+ const cellClass = (c: TableColumn<T>) => [c.className, c.money || c.total || columnAlign(c) === 'right' ? 'is-num' : '', isPhoneExtra(c) ? 'is-phone-extra' : ''].filter(Boolean).join(' ') || undefined;
 
- const body = pagedRows.length ? pagedRows.map((r, i) => (
+ const body = pagedRows.length ? pagedRows.map((r, i) => {
+  const rowKey = String((r as any).id ?? (r as any).row_key ?? i);
+  const expanded = expandedRows.has(rowKey);
+  return <React.Fragment key={rowKey}>
   <tr
-   key={(r as any).id ?? (r as any).row_key ?? i}
    onClick={onRowClick ? () => onRowClick(r, i) : undefined}
    className={rowClassName ? rowClassName(r, i) : undefined}
    style={rowStyle ? rowStyle(r, i) : (onRowClick ? { cursor: 'pointer' } : undefined)}
   >
+   {hasPhoneColumns && (
+    <td className="table-phone-toggle">
+     <button
+      type="button"
+      className="icon-button"
+      aria-expanded={expanded}
+      aria-label={translate('website_admin', expanded ? 'table_show_less' : 'table_show_more')}
+      onClick={event => { event.stopPropagation(); toggleExpandedRow(rowKey); }}
+     >
+      {expanded ? <ChevronUp size={16} aria-hidden="true" /> : <ChevronDown size={16} aria-hidden="true" />}
+     </button>
+    </td>
+   )}
    {columns.map(c => (
     <td
      key={c.key}
@@ -565,9 +594,24 @@ export function Table<T extends Row = any>({
     </td>
    ))}
   </tr>
- )) : (
+  {hasPhoneColumns && expanded && (
+   <tr className="table-phone-detail">
+    <td colSpan={columns.length + 1}>
+     <dl>
+      {extraPhoneColumns.map(c => (
+       <div key={c.key}>
+        <dt>{columnHeading(c)}</dt>
+        <dd>{c.render ? c.render(r, i) : String((r as any)[c.key] ?? '—')}</dd>
+       </div>
+      ))}
+     </dl>
+    </td>
+   </tr>
+  )}
+  </React.Fragment>;
+ }) : (
   <tr className="table-empty-row">
-   <td colSpan={columns.length}>
+   <td colSpan={columns.length + (hasPhoneColumns ? 1 : 0)}>
     <Empty
      title={list.length ? translate('portal', 'table_no_matches') : emptyTitle}
      body={list.length ? translate('portal', 'table_no_matches_hint') : emptyBody}
@@ -656,6 +700,7 @@ export function Table<T extends Row = any>({
     <table>
      <thead>
       <tr>
+       {hasPhoneColumns && <th className="table-phone-toggle" scope="col" aria-hidden="true" />}
        {columns.map(c => {
         const colHeading = columnHeading(c);
         const isSortable = c.sortable ?? (c.key !== 'action' && c.key !== 'actions' && (colHeading.trim() !== ''));
@@ -672,7 +717,7 @@ export function Table<T extends Row = any>({
            cursor: isSortable ? 'pointer' : 'default',
            userSelect: isSortable ? 'none' : 'auto',
           }}
-          className={`${isSortable ? 'table-th-sortable' : ''} ${isSorted ? 'is-sorted' : ''} ${c.money || align === 'right' ? 'is-num' : ''} ${c.className ?? ''}`}
+          className={`${isSortable ? 'table-th-sortable' : ''} ${isSorted ? 'is-sorted' : ''} ${c.money || align === 'right' ? 'is-num' : ''} ${c.className ?? ''} ${isPhoneExtra(c) ? 'is-phone-extra' : ''}`}
           onClick={() => handleHeaderClick(c.key, isSortable)}
           aria-sort={isSorted ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
          >
@@ -709,6 +754,7 @@ export function Table<T extends Row = any>({
      {hasFooter && (
       <tfoot>
        <tr className="table-total-row">
+        {hasPhoneColumns && <td className="table-phone-toggle" />}
         {columns.map((c, index) => (
          <td key={c.key} style={{ textAlign: columnAlign(c) }} className={cellClass(c)}>
           {footerCell(c, index, footerLabelIndex)}

@@ -27,13 +27,17 @@ class PartnerBirthdaySmsTest extends TestCase
         Config::set('madina.sms.sent', []);
     }
 
-    public function test_switch_is_on_by_default_and_sends_without_saving_settings(): void
+    public function test_switch_is_off_by_default_and_nothing_sends_until_it_is_turned_on(): void
     {
-        $this->assertTrue(DashboardManagement::defaults()['birthday_sms_enabled']);
-        $this->assertTrue(DashboardManagement::get()['birthday_sms_enabled']);
+        $this->assertFalse(DashboardManagement::defaults()['birthday_sms_enabled']);
+        $this->assertFalse(DashboardManagement::get()['birthday_sms_enabled']);
         $this->travelTo(CarbonImmutable::parse('2026-11-05 09:00:00', 'Asia/Dhaka'));
         $dealer = $this->partner('dealer', '1990-11-05');
 
+        $this->artisan('partners:birthday-sms')->assertSuccessful();
+        $this->assertSame([], $this->birthdayTexts());
+
+        $this->turnOn();
         $this->artisan('partners:birthday-sms')->assertSuccessful();
 
         $this->assertSame([$dealer->id], array_column($this->birthdayTexts(), 'user_id'));

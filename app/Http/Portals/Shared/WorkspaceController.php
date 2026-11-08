@@ -36,6 +36,7 @@ use App\Http\Portals\Shared\Sections\FeedbackSection;
 use App\Http\Portals\Shared\Sections\FinanceSection;
 use App\Http\Portals\Shared\Sections\InventorySection;
 use App\Http\Portals\Shared\Sections\NetworkSection;
+use App\Http\Portals\Shared\Sections\OfficeHubSection;
 use App\Http\Portals\Shared\Sections\OrdersSection;
 use App\Http\Portals\Shared\Sections\OverviewSection;
 use App\Http\Portals\Shared\Sections\PrescriptionsSection;
@@ -56,6 +57,7 @@ use App\Models\PlaceCode;
 use App\Models\User;
 use App\Support\JoinQr;
 use App\Support\Money;
+use App\Support\OfficeHubs;
 use App\Support\PortalCatalog;
 use App\Support\PortalHost;
 use Illuminate\Http\RedirectResponse;
@@ -89,6 +91,7 @@ class WorkspaceController extends Controller
         ContentSection::class,
         ProfileSection::class,
         NetworkSection::class,
+        OfficeHubSection::class,
         SalarySection::class,
         WithdrawalsSection::class,
         SupportSection::class,
@@ -149,6 +152,9 @@ class WorkspaceController extends Controller
                 'status' => $r->query('status'),
                 'page' => $r->query('page'),
             ], fn ($value) => $value !== null && $value !== '')));
+        }
+        if ($staff && $section === 'reports') {
+            return redirect(OfficeHubs::oldReportsAddress($u, in_array($portal, ['manage', 'sadmin'], true), $r->query()));
         }
         $orders = Order::query()->when(! $staff, fn ($q) => $q->where('user_id', $u->id))->when($staff && ! $u->allows('orders') && ! $u->allows('finance'), fn ($q) => $q->whereRaw('1=0'));
         // Staff pages that follow the top-bar branch switcher show only the picked branch.
