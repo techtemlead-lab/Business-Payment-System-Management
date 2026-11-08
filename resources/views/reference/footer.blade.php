@@ -1,5 +1,9 @@
 @php
     $chrome = fn (string $key, ?string $custom = null): string => \App\Support\SiteChrome::text($key, $custom);
+    // The support box above the list already shows this number when the two match, so it is not repeated.
+    $phoneDigits = fn (?string $number): string => ltrim((string) preg_replace('/\D/', '', (string) $number), '0');
+    $showHotline = filled($siteCustomization['footer_phone'] ?? null)
+        && ! str_ends_with($phoneDigits($siteCustomization['footer_support_title'] ?? '+8801730532966'), $phoneDigits($siteCustomization['footer_phone']));
 @endphp
 <footer class="ref-footer"><div class="ref-container ref-footer-grid">
     <section class="ref-footer-support">
@@ -17,9 +21,9 @@
                 </a>
                 @endif
             </div>
-            @if(!empty($siteCustomization['footer_phone']) || !empty($siteCustomization['footer_email']) || !empty($siteCustomization['footer_address']))
+            @if($showHotline || !empty($siteCustomization['footer_email']) || !empty($siteCustomization['footer_address']))
             <div class="ref-footer-contact-info">
-                @if(!empty($siteCustomization['footer_phone']))
+                @if($showHotline)
                 <a class="ref-footer-contact-link is-hotline" href="tel:{{ preg_replace('/[^0-9+]/', '', $siteCustomization['footer_phone']) }}">
                     <i class="fa-solid fa-headset" aria-hidden="true"></i>
                     <span><b>{{ __('site.hotline') }}:</b> {{ $siteCustomization['footer_phone'] }}</span>

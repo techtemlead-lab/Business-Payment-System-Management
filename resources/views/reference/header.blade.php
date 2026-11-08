@@ -8,12 +8,17 @@
 @if($showBismillah)
 <p class="ref-bismillah"@if(\App\Support\SiteChrome::isArabic($bismillahText)) lang="ar" dir="rtl"@endif><span>{{ $bismillahText }}</span></p>
 @endif
-{{-- The name and its two leaves fill the width of the header row below; reference-home.ts sizes them. --}}
+{{-- The round logo sits at the left of the company name; the name stays centred on the page. --}}
 <div class="ref-company-bar">
-    <div class="ref-container ref-company-bar-inner" data-company-name-fit>
-        <i class="fa-solid fa-seedling ref-bar-leaf is-left" aria-hidden="true"></i>
-        <{{ $companyNameTag }} class="ref-bar-text">{{ $chrome('company_bar', $siteCustomization['top_bar_text'] ?? null) }}</{{ $companyNameTag }}>
-        <i class="fa-solid fa-seedling ref-bar-leaf is-right" aria-hidden="true"></i>
+    <div class="ref-container ref-company-bar-inner">
+        <a href="/" class="ref-bar-logo" aria-label="{{ __('site.brand_home') }}">
+            <img src="/madina-header-logo.png?v=10" alt="{{ __('site.company_bar') }}" width="68" height="68" decoding="async" fetchpriority="high">
+        </a>
+        <div class="ref-bar-name">
+            <i class="fa-solid fa-seedling ref-bar-leaf is-left" aria-hidden="true"></i>
+            <{{ $companyNameTag }} class="ref-bar-text">{{ $chrome('company_bar', $siteCustomization['top_bar_text'] ?? null) }}</{{ $companyNameTag }}>
+            <i class="fa-solid fa-seedling ref-bar-leaf is-right" aria-hidden="true"></i>
+        </div>
     </div>
 </div>
 <div class="ref-sticky-chrome">
@@ -24,11 +29,7 @@
             <span class="ref-burger" aria-hidden="true"><span></span><span></span><span></span></span>
         </button>
 
-        <!-- Logo: light mark for desktop; transparent-on-dark mark for mobile navy header -->
-        <a href="/" class="ref-logo ref-madina-logo" aria-label="{{ __('site.brand_home') }}">
-            <img class="ref-logo-img-light" src="/madina-header-logo.png?v=10" alt="{{ __('site.company_bar') }}" width="160" height="40" style="height:auto;max-height:40px;width:auto;" decoding="async">
-            <img class="ref-logo-img-dark" src="/madina-header-logo-white.png?v=10" alt="{{ __('site.company_bar') }}" width="160" height="40" style="height:auto;max-height:40px;width:auto;" decoding="async">
-        </a>
+        <a href="/" class="ref-nav-home"@if(request()->is('/')) aria-current="page"@endif><i class="fa-solid fa-house" aria-hidden="true"></i><b>{{ __('site.home') }}</b></a>
 
         @if($publicPageEnabled['products'] ?? true)
         <!-- Desktop Search Form -->

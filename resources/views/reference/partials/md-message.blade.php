@@ -16,7 +16,7 @@
 <section id="md-message" class="ref-md-message ref-md-message--{{ $mdPlacement }}" data-reveal aria-labelledby="md-message-title-{{ $mdPlacement }}">
     <figure class="ref-md-photo-card">
         <div class="ref-md-photo-frame">
-            <img src="{{ $mdMessage['image'] }}" alt="{{ $mdMessage['image_alt'] }}" width="800" height="782" loading="lazy" decoding="async">
+            <img src="{{ $mdMessage['image'] }}" alt="{{ $mdMessage['image_alt'] }}" width="800" height="782" loading="{{ $mdIsCompact ? 'eager' : 'lazy' }}" decoding="async">
         </div>
         <figcaption>
             <strong>{{ $mdMessage['name'] }}</strong>

@@ -17,6 +17,7 @@
         : (filled($custom) ? (string) $custom : $fallback);
 @endphp
 <main id="main" class="ref-container ref-main">
+    @include('reference.partials.md-message', ['placement' => 'home'])
     <section class="ref-promotions" aria-label="{{ __('site.promotional_banners') }}">
         <div class="ref-carousel ref-carousel-instance" aria-roledescription="carousel" aria-label="{{ __('site.featured_promotions') }}">
             <div class="ref-slides">
@@ -73,7 +74,6 @@
         </div>
     </section>
     <div class="ref-announcement"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i><div><span>{{ $chrome('announcement_text', $siteCustomization['announcement_text'] ?? null) }}</span></div></div>
-    @include('reference.partials.md-message', ['placement' => 'home'])
     @if($publicPageEnabled['dealers'] ?? true)
     <section class="ref-dealer-network-banner" aria-label="{{ $chrome('dealer_banner_title') }}">
         <div class="ref-dealer-banner-inner">
