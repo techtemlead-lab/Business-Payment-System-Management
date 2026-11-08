@@ -84,7 +84,8 @@ final class StockLots
 
     /**
      * Takes stock out, earliest-expiring lot first, and records which lot went where.
-     * Expired lots are refused unless the goods are being disposed of.
+     * Expired lots are refused unless the goods are being disposed of. Lots on hold are refused
+     * too; a disposal reaches them only after every other lot is used up.
      *
      * @param  LotContext  $context
      * @return list<Allocation>
@@ -99,7 +100,9 @@ final class StockLots
             ->fefo()
             ->lockForUpdate()
             ->get();
-        $candidates = $allowExpired ? $lots : $lots->reject(fn (StockLot $lot): bool => $lot->isExpired());
+        $candidates = $allowExpired
+            ? $lots->sortBy(fn (StockLot $lot): int => $lot->isOnHold() ? 1 : 0)
+            : $lots->reject(fn (StockLot $lot): bool => $lot->isExpired() || $lot->isOnHold());
         $available = (int) $candidates->sum('quantity');
         if ($available < $quantity) {
             $this->refuseShortfall($lots, $product, $available, $errorField);
@@ -112,20 +115,36 @@ final class StockLots
                 break;
             }
             $portion = min($left, (int) $lot->quantity);
-            $lot->forceFill(['quantity' => (int) $lot->quantity - $portion])->save();
-            $movementId = $this->ledger($lot, -$portion, $context);
-            $allocations[] = [
-                'movement_id' => $movementId,
-                'lot_id' => (int) $lot->id,
-                'batch_number' => $lot->batch_number,
-                'expires_on' => $lot->expires_on?->toDateString(),
-                'quantity' => $portion,
-            ];
+            $allocations[] = $this->takePortion($lot, $portion, $context);
             $left -= $portion;
         }
         $stock->forceFill(['quantity' => (int) $stock->quantity - $quantity])->save();
 
         return $allocations;
+    }
+
+    /**
+     * Takes stock out of one named lot, for when the goods themselves were chosen.
+     *
+     * @param  LotContext  $context
+     * @return list<Allocation>
+     */
+    public function takeFromLot(BranchProductStock $stock, Product $product, int $lotId, int $quantity, array $context): array
+    {
+        $this->reconcile($stock, $product);
+        $lot = StockLot::query()
+            ->whereKey($lotId)
+            ->where('branch_id', $stock->branch_id)
+            ->where('product_id', $stock->product_id)
+            ->lockForUpdate()
+            ->firstOrFail();
+        if ((int) $lot->quantity < $quantity) {
+            throw ValidationException::withMessages(['quantity' => __('stock_lots.err_not_enough', ['product' => $product->name, 'usable' => (int) $lot->quantity])]);
+        }
+        $allocation = $this->takePortion($lot, $quantity, $context);
+        $stock->forceFill(['quantity' => (int) $stock->quantity - $quantity])->save();
+
+        return [$allocation];
     }
 
     /**
@@ -220,7 +239,7 @@ final class StockLots
             return;
         }
         $excess = -$difference;
-        foreach ($lots->reverse() as $lot) {
+        foreach ($lots->reverse()->sortBy(fn (StockLot $lot): int => $lot->isOnHold() ? 1 : 0) as $lot) {
             if ($excess === 0) {
                 break;
             }
@@ -269,7 +288,34 @@ final class StockLots
             ])]);
         }
 
+        $held = $lots->filter(fn (StockLot $lot): bool => $lot->isOnHold());
+        if ($held->isNotEmpty()) {
+            throw ValidationException::withMessages([$errorField => __('stock_lots.err_on_hold_refused', [
+                'product' => $product->name,
+                'held' => (int) $held->sum('quantity'),
+                'batches' => $held->map(fn (StockLot $lot): string => $lot->batch_number ?? __('stock_lots.no_batch'))->unique()->implode(', '),
+                'usable' => $available,
+            ])]);
+        }
+
         throw ValidationException::withMessages([$errorField => __('stock_lots.err_not_enough', ['product' => $product->name, 'usable' => $available])]);
+    }
+
+    /**
+     * @param  LotContext  $context
+     * @return Allocation
+     */
+    private function takePortion(StockLot $lot, int $portion, array $context): array
+    {
+        $lot->forceFill(['quantity' => (int) $lot->quantity - $portion])->save();
+
+        return [
+            'movement_id' => $this->ledger($lot, -$portion, $context),
+            'lot_id' => (int) $lot->id,
+            'batch_number' => $lot->batch_number,
+            'expires_on' => $lot->expires_on?->toDateString(),
+            'quantity' => $portion,
+        ];
     }
 
     /**

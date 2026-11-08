@@ -118,6 +118,9 @@ return function (string $portal): void {
     Route::delete('/commands/product-units/{productUnit}', [ProductUnitController::class, 'destroy']);
     Route::post('/commands/stock', [CommandController::class, 'stock']);
     Route::post('/commands/stock-lots/near-expiry-days', [StockLotController::class, 'saveNearExpiryDays']);
+    Route::post('/commands/stock-lots/{stockLot}/hold', [StockLotController::class, 'hold'])->whereNumber('stockLot');
+    Route::post('/commands/stock-lots/{stockLot}/release', [StockLotController::class, 'release'])->whereNumber('stockLot');
+    Route::post('/commands/stock-lots/{stockLot}/write-off', [StockLotController::class, 'writeOff'])->whereNumber('stockLot');
     Route::post('/commands/stock-transfers', [StockLotController::class, 'requestTransfer']);
     Route::post('/commands/stock-transfers/{stockTransfer}/send', [StockLotController::class, 'sendTransfer'])->whereNumber('stockTransfer');
     Route::post('/commands/stock-transfers/{stockTransfer}/receive', [StockLotController::class, 'receiveTransfer'])->whereNumber('stockTransfer');

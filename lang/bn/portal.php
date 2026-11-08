@@ -6390,4 +6390,7 @@ return [
     'event_stock_transfer_cancelled' => 'ব্রাঞ্চ ট্রান্সফার বাতিল হয়েছে',
     'stock_received_on' => 'গ্রহণের তারিখ',
     'stock_unit_cost' => 'প্রতি ইউনিটের খরচ',
+    'event_stock_lot_held' => 'ব্যাচ আটকে রাখা হয়েছে',
+    'event_stock_lot_released' => 'আটকে রাখা ব্যাচ ছাড় দেওয়া হয়েছে',
+    'event_stock_lot_written_off' => 'আটকে রাখা ব্যাচ লোকসান হিসেবে বাদ',
 ];

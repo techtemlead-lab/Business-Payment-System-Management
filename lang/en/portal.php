@@ -6390,4 +6390,7 @@ return [
     'event_stock_transfer_cancelled' => 'Branch transfer cancelled',
     'stock_received_on' => 'Date received',
     'stock_unit_cost' => 'Cost per unit',
+    'event_stock_lot_held' => 'Batch put on hold',
+    'event_stock_lot_released' => 'Batch released from hold',
+    'event_stock_lot_written_off' => 'Held batch written off',
 ];

@@ -17,7 +17,7 @@ use Illuminate\Support\Collection;
  */
 final class StockLotsSection implements WorkspaceSection
 {
-    private const Tabs = ['near', 'recall', 'transfers', 'reorder'];
+    private const Tabs = ['near', 'recall', 'transfers', 'reorder', 'hold'];
 
     public function data(SectionContext $context, array $data): array
     {
@@ -46,6 +46,11 @@ final class StockLotsSection implements WorkspaceSection
             'recall' => ['recall' => $reports->recall($scope, (string) $request->query('batch', ''))],
             'transfers' => $this->transfers($scope, $visible),
             'reorder' => ['reorder' => $reports->reorderSuggestions($scope)],
+            'hold' => [
+                'held' => $reports->heldLots($scope),
+                'hold_search' => (string) $request->query('q', ''),
+                'hold_candidates' => $reports->holdCandidates($scope, (string) $request->query('q', '')),
+            ],
             default => ['expiry' => $reports->expiryLists($scope, $days)],
         };
 
