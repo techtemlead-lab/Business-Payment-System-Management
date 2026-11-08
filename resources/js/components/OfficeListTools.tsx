@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { router, usePage } from '@inertiajs/react';
-import { Bookmark, Columns3, Trash2 } from 'lucide-react';
+import { Bookmark, Columns3, ListChecks, Trash2 } from 'lucide-react';
 import { Table, type Row, type TableColumn, type TableProps } from './UI';
 import { useT } from '../shared/i18n/t';
-import { jsonRequest } from '../shared/jsonRequest';
+import { jsonRequest, submitFormPost } from '../shared/jsonRequest';
 
 type SavedView = { id: number; name: string; filters: Record<string, string> };
 type ListView = { views: SavedView[]; hidden: string[] };
+type BulkKind = 'orders' | 'partners';
 
 /** Columns that identify a row or hold its buttons stay on, so a list can always be used. */
 const ALWAYS_SHOWN = new Set(['number', 'name', 'action']);
@@ -148,22 +149,93 @@ export function SavedFilterMenu({ listKey, section, filters }: { listKey: string
     );
 }
 
+/** Tick several unread notices on this page and mark just those as read. */
+export function NoticeBulkPicker({ notices }: { notices: Row[] }) {
+    const translate = useT();
+    const [picked, setPicked] = useState<number[]>([]);
+    const [error, setError] = useState<string | null>(null);
+    const unread = notices.filter((notice) => !notice.read_at);
+    if (unread.length < 2) {
+        return null;
+    }
+    const chosen = unread.map((notice) => Number(notice.id)).filter((id) => picked.includes(id));
+
+    const markRead = () => {
+        setError(null);
+        jsonRequest('/commands/bulk/notices-read', { method: 'POST', body: { ids: chosen } })
+            .then(() => {
+                setPicked([]);
+                router.reload({ only: ['data', 'navAttention', 'unreadNotices'] });
+            })
+            .catch(() => setError(translate('productivity', 'bulk_failed')));
+    };
+
+    return (
+        <ToolMenu icon={<ListChecks size={14} aria-hidden="true" />} title={translate('productivity', 'bulk_choose_notices')}>
+            <ul className="list-tool-list">
+                {unread.map((notice) => {
+                    const id = Number(notice.id);
+                    return (
+                        <li key={id}>
+                            <label className="list-tool-check">
+                                <input type="checkbox" checked={picked.includes(id)} onChange={() => setPicked((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]))} />
+                                <span>{notice.title}</span>
+                            </label>
+                        </li>
+                    );
+                })}
+            </ul>
+            <button type="button" className="button small dark" disabled={chosen.length === 0} onClick={markRead}>{translate('productivity', 'bulk_mark_read')}</button>
+            {error && <p className="field-error" role="alert">{error}</p>}
+        </ToolMenu>
+    );
+}
+
 function columnTitle<T extends Row>(column: TableColumn<T>): string {
     return column.title ?? column.header ?? '';
 }
 
 /** A plain table unless a list key is given, so partners' order lists load nothing extra. */
-export function OfficeListTable<T extends Row = any>({ listKey, ...table }: TableProps<T> & { listKey?: string }) {
-    return listKey ? <ChoosableTable listKey={listKey} {...table} /> : <Table {...table} />;
+export function OfficeListTable<T extends Row = any>({ listKey, bulk, ...table }: TableProps<T> & { listKey?: string; bulk?: BulkKind }) {
+    return listKey ? <ChoosableTable listKey={listKey} bulk={bulk} {...table} /> : <Table {...table} />;
 }
 
-/** A list table with a "Columns" menu; each person's choice is remembered on the server. */
-function ChoosableTable<T extends Row = any>({ listKey, columns, extraTools, ...table }: TableProps<T> & { listKey: string }) {
+/** A list table with a "Columns" menu and tick boxes; each person's column choice is remembered on the server. */
+function ChoosableTable<T extends Row = any>({ listKey, bulk, columns, extraTools, ...table }: TableProps<T> & { listKey: string; bulk?: BulkKind }) {
     const translate = useT();
     const { view, setView, remember } = useListView(listKey);
+    const [picked, setPicked] = useState<Set<string>>(() => new Set());
     const hidden = useMemo(() => new Set(view.hidden), [view.hidden]);
     const choosable = columns.filter((column) => !ALWAYS_SHOWN.has(column.key) && columnTitle(column) !== '');
     const visible = columns.filter((column) => ALWAYS_SHOWN.has(column.key) || columnTitle(column) === '' || !hidden.has(column.key));
+    const pageIds = ((table.rows ?? table.data ?? []) as Row[]).map((row) => String(row.id));
+    const chosen = pageIds.filter((id) => picked.has(id));
+
+    const togglePick = (id: string) => setPicked((current) => {
+        const next = new Set(current);
+        if (next.has(id)) {
+            next.delete(id);
+        } else {
+            next.add(id);
+        }
+        return next;
+    });
+
+    const selectColumn: TableColumn<T> = {
+        key: 'bulk_select',
+        title: '',
+        sortable: false,
+        exportable: false,
+        render: (row) => (
+            <input
+                type="checkbox"
+                className="bulk-check"
+                aria-label={translate('productivity', 'bulk_select_row')}
+                checked={picked.has(String((row as Row).id))}
+                onChange={() => togglePick(String((row as Row).id))}
+            />
+        ),
+    };
 
     const toggle = (key: string) => {
         const previous = view;
@@ -177,10 +249,24 @@ function ChoosableTable<T extends Row = any>({ listKey, columns, extraTools, ...
     return (
         <Table
             {...table}
-            columns={visible}
+            columns={bulk ? [selectColumn, ...visible] : visible}
             extraTools={(
                 <>
                     {extraTools}
+                    {bulk && pageIds.length > 0 && (
+                        <span className="bulk-bar">
+                            <button type="button" className="button small" onClick={() => setPicked(chosen.length === pageIds.length ? new Set() : new Set(pageIds))}>
+                                {translate('productivity', chosen.length === pageIds.length ? 'bulk_clear' : 'bulk_select_page')}
+                            </button>
+                            {chosen.length > 0 && (
+                                <>
+                                    <b>{translate('productivity', 'bulk_selected', { count: chosen.length })}</b>
+                                    {bulk === 'orders' && <button type="button" className="button small" onClick={() => submitFormPost('/commands/bulk/order-slips', { ids: chosen }, '_blank')}>{translate('productivity', 'bulk_print_slips')}</button>}
+                                    <button type="button" className="button small" onClick={() => submitFormPost(`/commands/bulk/${bulk}-export`, { ids: chosen })}>{translate('productivity', 'bulk_export')}</button>
+                                </>
+                            )}
+                        </span>
+                    )}
                     <ToolMenu icon={<Columns3 size={14} aria-hidden="true" />} title={translate('productivity', 'views_columns')}>
                         <ul className="list-tool-list">
                             {choosable.map((column) => (
