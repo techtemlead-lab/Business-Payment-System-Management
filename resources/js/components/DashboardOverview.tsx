@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { PartnerProgressButton } from './PartnerProgress';
 import PartnerAlertsCard from './dealertools/PartnerAlertsCard';
+import NextStepsCard from './dealertools/NextStepsCard';
 import { ProfilePhoto } from './ProfilePhoto';
 import { Badge, humanize, money, type Row, number } from './UI';
 import { localizeDigits } from '../business-date';
@@ -250,6 +251,7 @@ function PartnerHome({ home, orders, tools }: { home: Row; orders: React.ReactNo
             </section>
 
             <PartnerAlertsCard alerts={tools?.alerts ?? []} inactivePartners={tools?.inactive_partners ?? []} />
+            <NextStepsCard steps={tools?.next_steps ?? []} />
 
             {targets.length > 0 && (
                 <section className="ph-card ph-targets" data-tour="home-targets">

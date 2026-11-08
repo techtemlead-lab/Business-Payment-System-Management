@@ -3,6 +3,7 @@
 namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Accounts\PartnerAlerts;
+use App\Domain\Accounts\PartnerNextSteps;
 use App\Domain\Orders\RepeatOrderOptions;
 
 /**
@@ -19,7 +20,10 @@ final class DealerToolsSection implements WorkspaceSection
         }
 
         if ($isPartner && $context->section === 'overview') {
-            $props['partner_tools'] = app(PartnerAlerts::class)->cardFor($context->user);
+            $props['partner_tools'] = [
+                ...app(PartnerAlerts::class)->cardFor($context->user),
+                'next_steps' => app(PartnerNextSteps::class)->for($context->user),
+            ];
         }
 
         return $props;
