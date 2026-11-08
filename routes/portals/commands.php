@@ -12,6 +12,7 @@ use App\Http\Controllers\DatedSchemeController;
 use App\Http\Controllers\IdentityLookupController;
 use App\Http\Controllers\PartnerAgreementController;
 use App\Http\Controllers\PartnerChatController;
+use App\Http\Controllers\PartnerContestController;
 use App\Http\Controllers\PartnerEventController;
 use App\Http\Controllers\PlaceCodeController;
 use App\Http\Controllers\PrescriberPublicToolsController;
@@ -224,6 +225,8 @@ return function (string $portal): void {
     Route::post('/commands/stock-counts/{stockCountSession}/cancel', [StockCountController::class, 'cancel'])->whereNumber('stockCountSession')->middleware('throttle:30,1');
 
     // Partner tools.
+    Route::post('/commands/contests', [PartnerContestController::class, 'store'])->middleware('throttle:30,1');
+    Route::delete('/commands/contests/{partnerContest}', [PartnerContestController::class, 'destroy'])->whereNumber('partnerContest')->middleware('throttle:30,1');
     Route::post('/commands/schemes', [DatedSchemeController::class, 'store'])->middleware('throttle:30,1');
     Route::delete('/commands/schemes/{datedScheme}', [DatedSchemeController::class, 'destroy'])->whereNumber('datedScheme')->middleware('throttle:30,1');
     Route::post('/commands/customers', [CustomerBookController::class, 'store'])->middleware('throttle:60,1');

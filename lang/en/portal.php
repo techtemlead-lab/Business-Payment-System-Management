@@ -6390,4 +6390,11 @@ return [
     'event_stock_transfer_cancelled' => 'Branch transfer cancelled',
     'stock_received_on' => 'Date received',
     'stock_unit_cost' => 'Cost per unit',
+    'contests' => 'Contests',
+    'section_hint_contests' => 'Set up contests and see how partners stand. Prizes are given by hand.',
+    'section_hint_partner_contests' => 'Running contests and where everyone stands.',
+    'event_contest_added' => 'Contest added',
+    'event_contest_removed' => 'Contest removed',
+    'partner_scorecard' => 'Partner scorecard',
+    'section_hint_partner_scorecard' => 'Each partner\'s payments, cancellations and returns.',
 ];
