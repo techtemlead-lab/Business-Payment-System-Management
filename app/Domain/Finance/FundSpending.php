@@ -112,7 +112,7 @@ final class FundSpending
             CommissionWallet::lock();
             abort_unless(self::canManage($actor->fresh()), 403);
             $row = DB::table('reserve_disbursements')->where('id', $id)->where('program', self::Program)->lockForUpdate()->first();
-            abort_unless($row, 404);
+            abort_unless($row !== null, 404);
             $this->assertMayUseFund($actor, $row->fund_key);
             if ($row->status !== 'requested') {
                 throw ValidationException::withMessages(['spend' => __('funds.err_already_reviewed')]);
@@ -160,7 +160,7 @@ final class FundSpending
     {
         abort_unless(self::canManage($actor), 403);
         $before = DB::table('fund_expense_heads')->where('id', $id)->first();
-        abort_unless($before, 404);
+        abort_unless($before !== null, 404);
         DB::table('fund_expense_heads')->where('id', $id)->update([
             'name_en' => $data['name_en'],
             'name_bn' => $data['name_bn'],

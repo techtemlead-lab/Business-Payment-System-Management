@@ -8,8 +8,8 @@ use App\Domain\Geography\ManagementReferral;
 use App\Models\Prescription;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
 /**

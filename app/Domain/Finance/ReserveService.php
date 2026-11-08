@@ -51,9 +51,6 @@ final class ReserveService
             $awardKey = null;
             if ($data['program'] !== 'marketing') {
                 $user = User::whereKey($data['user_id'])->where('status', 'active')->whereIn('role', ['dealer', 'sub_dealer'])->firstOrFail();
-                if ($data['program'] === 'tour' && $user->role !== 'sub_dealer') {
-                    throw ValidationException::withMessages(['user_id' => __('portal.err_reserve_tour_subdealer')]);
-                }
                 if (in_array($data['program'], ['bike', 'car'], true)) {
                     $awardKey = $data['program'].':'.$user->id;
                     if (! $this->qualification->milestone($user->id, $data['program'])['achieved']
