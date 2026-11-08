@@ -94,7 +94,7 @@ final class PartnerFullReport
 
         $allocations = DB::table('commission_allocations')
             ->where('user_id', $user->id)
-            ->whereNotIn('status', ['reversed'])
+            ->whereNotIn('status', ['reversed', 'forfeited'])
             ->when($fromUtc, fn ($query) => $query->where('created_at', '>=', $fromUtc))
             ->when($toUtc, fn ($query) => $query->where('created_at', '<', $toUtc))
             ->selectRaw('category, COALESCE(SUM(amount), 0) as total, COUNT(*) as entries')
@@ -160,7 +160,7 @@ final class PartnerFullReport
             ? '0.00'
             : Money::decimal(Money::cents((string) DB::table('commission_allocations')
                 ->whereIn('user_id', $teamIds)
-                ->whereNotIn('status', ['reversed'])
+                ->whereNotIn('status', ['reversed', 'forfeited'])
                 ->when($fromUtc, fn ($query) => $query->where('created_at', '>=', $fromUtc))
                 ->when($toUtc, fn ($query) => $query->where('created_at', '<', $toUtc))
                 ->sum('amount')));

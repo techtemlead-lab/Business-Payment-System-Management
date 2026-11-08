@@ -8,7 +8,7 @@
         var domainMeta = document.querySelector('meta[name="madina-theme-domain"]');
         var cookieDomain = domainMeta ? String(domainMeta.getAttribute('content') || '') : '';
         function readCookie(name) {
-            var parts = (';' + document.cookie).split('; ' + name + '=');
+            var parts = ('; ' + document.cookie).split('; ' + name + '=');
             if (parts.length < 2) return null;
             return decodeURIComponent(parts.pop().split(';').shift() || '');
         }

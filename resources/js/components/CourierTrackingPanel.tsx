@@ -71,7 +71,7 @@ function ParcelTracking({ order, shipment, canManage }: { order: Row; shipment: 
             {lastUpdate && <p className="muted">{translate('courier', 'last_update')}: {dateTime(lastUpdate)}</p>}
             {shipment.courier_tracked_at && <p className="muted">{translate('courier', 'last_checked')}: {dateTime(shipment.courier_tracked_at)}</p>}
         </>}
-        {canManage && booking === 'failed' && <ActionForm action={`/commands/orders/${order.id}/shipments/${shipment.id}/courier-retry`} fields={[]} submit={translate('courier', 'retry')} />}
+        {canManage && booking === 'failed' && shipment.status === 'dispatched' && <ActionForm action={`/commands/orders/${order.id}/shipments/${shipment.id}/courier-retry`} fields={[]} submit={translate('courier', 'retry')} />}
         {canManage && booking === 'booked' && shipment.status === 'dispatched' && (!shipment.courier_status || shipment.courier_status === 'waiting_pickup')
             && <ActionForm action={`/commands/orders/${order.id}/shipments/${shipment.id}/picked-up`} fields={[]} submit={translate('courier', 'mark_picked_up')} />}
     </div></div>;
@@ -88,8 +88,8 @@ export default function CourierTrackingPanel({ order, shipments, events, courier
     const changes: Row[] = events.filter(event => event.action === 'order.courier_changed').map(event => ({ id: event.id, at: event.created_at, ...parse(event.metadata) }));
     const latestCourierShipment = courierShipments[courierShipments.length - 1];
     const canChange = canManage && (latestCourierShipment
-        ? ['pending', 'failed'].includes(latestCourierShipment.courier_booking_status)
-        : ['submitted', 'held', 'approved'].includes(order.status) && shipments.length === 0);
+        ? ['pending', 'failed'].includes(latestCourierShipment.courier_booking_status) && latestCourierShipment.status === 'dispatched'
+        :['submitted', 'held', 'approved'].includes(order.status) && shipments.length === 0);
     const current = latestCourierShipment?.courier_provider ?? order.courier_choice;
     const others = courierChoices.filter(choice => choice.key !== current);
     const chosenLabel = latestCourierShipment?.courier

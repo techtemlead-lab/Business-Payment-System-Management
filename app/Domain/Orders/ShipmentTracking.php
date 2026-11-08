@@ -116,7 +116,8 @@ final class ShipmentTracking
         abort_if((int) $actor->id === (int) $order->user_id, 403, __('portal.err_self_review_order'));
         $shipment = DB::table('shipments')->where('id', $shipmentId)->where('order_id', $order->id)->first();
         abort_if($shipment === null, 404);
-        if ($shipment->status !== 'dispatched' || ! in_array($shipment->courier_status, [null, 'waiting_pickup'], true)) {
+        // Before the booking succeeds there is nothing to collect, and the booking would reset the step.
+        if ($shipment->courier_booking_status !== 'booked' || $shipment->status !== 'dispatched' || ! in_array($shipment->courier_status, [null, 'waiting_pickup'], true)) {
             throw ValidationException::withMessages(['shipment' => __('courier.err_pickup_not_waiting')]);
         }
         $this->apply($shipmentId, 'picked_up', null, $actor);
