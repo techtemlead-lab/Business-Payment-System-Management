@@ -52,6 +52,8 @@ class BranchScopedSectionsTest extends TestCase
         return [
             'orders' => ['/orders', 'dispatched', 'submitted', ['orders']],
             'deliveries' => ['/deliveries', 'partially_dispatched', 'approved', ['orders']],
+            'reports' => ['/reports', 'dispatched', 'submitted', ['orders', 'reports']],
+            'overview' => ['/overview', 'dispatched', 'submitted', ['orders']],
         ];
     }
 
@@ -142,6 +144,35 @@ class BranchScopedSectionsTest extends TestCase
         $this->actingAs($staff)->onPortal('manage')->get('/deliveries')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('data.delivery_summary.orders', 1)
             ->where('data.delivery_summary.units', 1));
+    }
+
+    public function test_overview_cards_and_work_queue_follow_the_picked_branch(): void
+    {
+        $orders = $this->ordersPerBranch('dispatched', 'submitted');
+        foreach ($orders as $number) {
+            $this->claimFor($number);
+        }
+        $this->withdrawalsPerBranch();
+        $queueCount = fn (array $queue, string $key): int => (int) collect($queue)->firstWhere('key', $key)['count'];
+        $owner = User::factory()->staff()->create(['active_branch_id' => $this->dhaka->id]);
+
+        $this->actingAs($owner)->onPortal('sadmin')->get('/overview')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.branch_scope.code', 'DHK-01')
+            ->where('data.stats.order_count', 1)
+            ->where('data.admin_home.month.orders', 1)
+            ->where('data.admin_home.work_queue', fn ($queue) => $queueCount($queue->all(), 'orders_to_review') === 0
+                && $queueCount($queue->all(), 'payments_to_check') === 1
+                && $queueCount($queue->all(), 'withdrawals_to_review') === 1)
+            // The Dhaka partner and the partner placed by district on no branch: only the first counts.
+            ->where('data.stats.accounts', 1));
+
+        $this->ownerOnAll()->get('/overview')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.branch_scope.view', 'all')
+            ->where('data.stats.order_count', 3)
+            ->where('data.admin_home.work_queue', fn ($queue) => $queueCount($queue->all(), 'orders_to_review') === 1
+                && $queueCount($queue->all(), 'payments_to_check') === 3
+                && $queueCount($queue->all(), 'withdrawals_to_review') === 3)
+            ->where('data.stats.accounts', 4));
     }
 
     public function test_staff_with_no_branch_see_no_orders(): void
