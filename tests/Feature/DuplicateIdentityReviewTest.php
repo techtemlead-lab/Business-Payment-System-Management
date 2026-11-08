@@ -180,6 +180,19 @@ class DuplicateIdentityReviewTest extends TestCase
         $this->actingAs(User::factory()->dealer()->create())->onPortal('dealer')->getJson('/commands/identity-review')->assertForbidden();
     }
 
+    public function test_finance_staff_can_run_the_check_and_mark_a_match(): void
+    {
+        User::factory()->dealer()->create(['nid' => '1110001111']);
+        User::factory()->dealer()->create(['nid' => '1110001111']);
+        $finance = User::factory()->staff('finance')->create();
+
+        $this->actingAs($finance)->onPortal('manage')->postJson('/commands/identity-review/scan')->assertOk()->assertJsonPath('data.found', 1);
+        $flagId = (int) DB::table('identity_review_flags')->value('id');
+        $this->actingAs($finance)->onPortal('manage')->postJson('/commands/identity-review/'.$flagId.'/mark', ['status' => 'cleared'])->assertOk();
+
+        $this->assertDatabaseHas('identity_review_flags', ['id' => $flagId, 'status' => 'cleared', 'reviewed_by' => $finance->id]);
+    }
+
     public function test_staff_without_finance_cannot_run_or_mark(): void
     {
         $orders = User::factory()->staff('employee')->create(['profile' => ['permissions' => ['orders']]]);
