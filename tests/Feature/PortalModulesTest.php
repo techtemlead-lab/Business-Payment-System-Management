@@ -88,7 +88,7 @@ class PortalModulesTest extends TestCase
         $this->onPortal('dealer')->from('/login')->post('/locale', ['locale' => 'bn'])->assertRedirect('/login');
         $this->onPortal('dealer')->get('/login')
             ->assertOk()
-            ->assertSee('অ্যাকাউন্ট লগইন', false)
+            ->assertSee('ডিলার লগইন', false)
             ->assertSee('আবার স্বাগতম', false)
             ->assertSee('ডিলার অ্যাকাউন্ট দরকার?', false)
             ->assertSee('কোম্পানির সাথে যোগাযোগ', false)

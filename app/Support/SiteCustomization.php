@@ -19,6 +19,13 @@ class SiteCustomization
 
     private const CacheKey = 'site_customization:v1';
 
+    /**
+     * Earlier factory defaults that saved website settings may still hold. They count as not customised.
+     *
+     * @var array<string, list<string>>
+     */
+    private const RetiredDefaults = ['auth_login_title' => ['Account Login']];
+
     public const TestimonialsCacheKey = 'public:testimonials:v1';
 
     private const CacheTtlSeconds = 300;
@@ -387,7 +394,7 @@ class SiteCustomization
             'payment_methods_alt' => 'Payment methods',
 
             // Auth & Partner Portal Login (/login)
-            'auth_login_title' => 'Account Login',
+            'auth_login_title' => 'Dealer log in',
             'auth_login_subtitle' => 'Welcome back! Please enter your credentials.',
             'auth_dealer_help_text' => 'Need a dealer account?',
             'auth_dealer_contact_text' => 'Contact the company',
@@ -724,14 +731,15 @@ class SiteCustomization
     }
 
     /**
-     * Prefer translated copy when CMS still holds the English factory default.
+     * Prefer translated copy when CMS still holds the English factory default,
+     * including an earlier default that saved website settings may still carry.
      * Custom CMS text is returned unchanged.
      */
     public static function localizedCopy(array $customization, string $key, string $translationKey): string
     {
         $value = trim((string) ($customization[$key] ?? ''));
         $default = trim((string) (self::defaults()[$key] ?? ''));
-        if ($value === '' || $value === $default) {
+        if ($value === '' || $value === $default || in_array($value, self::RetiredDefaults[$key] ?? [], true)) {
             return (string) __($translationKey);
         }
 

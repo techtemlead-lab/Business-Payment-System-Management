@@ -1,7 +1,6 @@
 <?php
 
 return [
-    'account_login' => 'Account Login',
     'subdealer_sign_in' => 'Sub-dealer log in',
     'staff_sign_in' => 'Staff log in',
     'owner_sign_in' => 'Owner log in',
@@ -18,13 +17,16 @@ return [
     'staff_help' => 'Login for accounts staff, other staff and SR.',
     'recovery_help' => 'Enter the email linked to your account to get back in.',
     'dealer_help' => 'Need a dealer account?',
+    'subdealer_help' => 'Need a sub-dealer account?',
     'contact_company' => 'Contact the company',
     'email' => 'Email',
     'email_or_phone' => 'Email / Phone Number',
-    'email_phone_or_code' => 'Email, Phone, Dealer or Sub-dealer Code',
+    'email_phone_or_dealer_code' => 'Email, Phone Number or Dealer Code',
+    'email_phone_or_subdealer_code' => 'Email, Phone Number or Sub-dealer Code',
     'email_placeholder' => 'Enter your email',
     'email_or_phone_placeholder' => 'Enter your email or phone number',
-    'email_phone_or_code_placeholder' => 'Email, phone number, dealer or sub-dealer code',
+    'email_phone_or_dealer_code_placeholder' => 'Enter your email, phone number or dealer code',
+    'email_phone_or_subdealer_code_placeholder' => 'Enter your email, phone number or sub-dealer code',
     'password' => 'Password',
     'confirm_password' => 'Confirm Password',
     'password_rules' => 'At least 12 characters, uppercase and lowercase letters, and a number.',
