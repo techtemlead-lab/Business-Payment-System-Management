@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { Link, usePage } from '@inertiajs/react';
 import {
     TrendingUp, ShieldCheck, ArrowDownRight, ArrowUpRight, DollarSign,
     Building2, Wallet, Landmark, Layers, CheckCircle2, AlertCircle, FileText,
@@ -243,6 +244,7 @@ function RetainedDetailSwitcher({ tables }: { tables: Array<{ id: string; title:
 
 export default function CompanyTreasuryHub({ flow, allocations_by_category, recent_allocations, retained_fund_details = null, payment_accounts = [] }: CompanyTreasuryHubProps) {
     const translate = useT();
+    const { portalBase: base } = usePage<any>().props;
     const [activeTab, setActiveTab] = useState<'overview' | 'inflows' | 'deposits' | 'expenses' | 'ledger'>('overview');
 
     const grossCash = Number(flow.gross_cash_inflow) || 0;
@@ -714,6 +716,9 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                         </h3>
                         <p className="hub-sub is-lead">
                             {translate('portal', 'tr_expense_hint')}
+                        </p>
+                        <p className="hub-sub">
+                            <Link className="text-link" href={`${base}/company-funds`}>{translate('funds', 'link_manage')}</Link>
                         </p>
 
                         <div className="hub-grid is-wide">
