@@ -39,7 +39,7 @@ final class WithdrawalsSection implements WorkspaceSection
      * Whether the person viewing may record this approved payment: 'alone' when they approved it
      * themselves and nobody else could pay, 'second_person' when someone else must, otherwise null.
      */
-    private function payerState(object $row, User $viewer): ?string
+    private function payerState(object $row, User $viewer): mixed
     {
         if ($row->status !== 'approved' || (int) $row->reviewed_by !== (int) $viewer->id) {
             return null;
