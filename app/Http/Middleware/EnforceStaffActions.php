@@ -144,6 +144,10 @@ class EnforceStaffActions
             // The Finance settings page offers these two switches to every owner; the controller checks again.
             return $next($request);
         }
+        if ($controller === 'CourierAreaController' && $actor->owner()) {
+            // The courier area page is open to every owner; the controller and CourierAreaMapping check again.
+            return $next($request);
+        }
         if ($controller === 'BranchController' && in_array($method, ['select', 'viewAll'], true)) {
             // Choosing which branch to look at changes nothing; BranchOperations checks
             // assignment for one branch and canViewAllBranches() for "All branches".
