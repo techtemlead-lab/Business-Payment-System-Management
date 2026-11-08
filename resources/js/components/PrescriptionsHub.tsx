@@ -1,0 +1,594 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { router, useForm, usePage } from '@inertiajs/react';
+import { FileText, Pill, Plus, Printer, Search, Stethoscope, Trash2, UserPlus } from 'lucide-react';
+import { DateInput, Empty, FormErrors, money } from './UI';
+import { useT } from '../shared/i18n/t';
+import { businessTodayIso } from '../business-date';
+
+type Translate = ReturnType<typeof useT>;
+
+export type PatientRow = {
+    id: number;
+    name: string;
+    age: number | null;
+    sex: string | null;
+    phone: string | null;
+    phone_masked: string;
+    place_code_id: number | null;
+    place: string | null;
+    notes: string | null;
+    own: boolean;
+    prescriber: string | null;
+};
+
+type PrescriptionRow = {
+    id: number;
+    number: string;
+    kind: 'partner' | 'clinic';
+    own: boolean;
+    prescriber: string | null;
+    patient: string | null;
+    prescribed_on: string;
+    follow_up_on: string | null;
+    diagnosis: string | null;
+    subtotal: string;
+    discount_total: string;
+    total: string;
+    status: 'issued' | 'dispensed';
+    manufacturer_share: string;
+    clinic_fund: string;
+    lines: { medicine_name: string; dose: string | null; frequency: string | null; duration: string | null; quantity: number; line_total: string }[];
+};
+
+type ReportData = {
+    from: string;
+    to: string;
+    count: number;
+    sales: string;
+    manufacturer_share: string;
+    clinic_fund: string;
+    days: { day: string; count: number; sales: string; manufacturer_share: string; clinic_fund: string }[];
+};
+
+export type PrescriptionsData = {
+    mode: 'partner' | 'clinic';
+    patients: PatientRow[];
+    prescriptions: PrescriptionRow[];
+    sexes: string[];
+    registration: { type: string; number: string } | null;
+    registration_types: string[];
+    max_lines: number;
+    products?: { id: number; name: string; sku: string; mrp: string }[];
+    branches?: { id: number; code: string; name: string }[];
+    price_floor?: 'block' | 'warn';
+    manufacturer_percent?: string;
+    report?: ReportData;
+};
+
+type LineForm = {
+    product_id: string;
+    medicine_name: string;
+    dose: string;
+    frequency: string;
+    duration: string;
+    instructions: string;
+    unit_price: string;
+    quantity: string;
+    discount: string;
+};
+
+const emptyLine = (): LineForm => ({ product_id: '', medicine_name: '', dose: '', frequency: '', duration: '', instructions: '', unit_price: '', quantity: '1', discount: '' });
+
+/** Taka to paisa, so totals add up exactly like the server's. */
+const paisa = (value: string | number): number => Math.round((Number(value) || 0) * 100);
+const taka = (cents: number): string => (cents / 100).toFixed(2);
+
+function lineCents(line: LineForm): { gross: number; discount: number; total: number } {
+    const gross = paisa(line.unit_price) * Math.max(0, Math.floor(Number(line.quantity) || 0));
+    const discount = paisa(line.discount);
+    return { gross, discount, total: gross - discount };
+}
+
+function Tabs({ tabs, active, onChange }: { tabs: { id: string; label: string }[]; active: string; onChange: (id: string) => void }) {
+    return (
+        <div className="retained-detail-tabs rx-tabs" role="tablist">
+            {tabs.map((tab) => (
+                <button key={tab.id} type="button" role="tab" aria-selected={tab.id === active} className={tab.id === active ? 'is-active' : undefined} onClick={() => onChange(tab.id)}>
+                    {tab.label}
+                </button>
+            ))}
+        </div>
+    );
+}
+
+export default function PrescriptionsHub({ data }: { data: PrescriptionsData }) {
+    const translate = useT();
+    const clinic = data.mode === 'clinic';
+    const [tab, setTab] = useState<string>(() => {
+        const fromUrl = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null;
+        return fromUrl ?? 'prescriptions';
+    });
+    const tabs = [
+        { id: 'prescriptions', label: translate('prescription', 'tab_prescriptions') },
+        { id: 'patients', label: translate('prescription', 'tab_patients') },
+        ...(clinic ? [{ id: 'report', label: translate('prescription', 'tab_report') }, { id: 'settings', label: translate('prescription', 'tab_settings') }] : []),
+    ];
+
+    return (
+        <div className="rx-hub">
+            <section className="panel">
+                <div className="panel-heading">
+                    <div>
+                        <h2 className="ops-row is-inline"><Stethoscope size={20} /> {translate('prescription', 'title')}</h2>
+                        <p className="muted">{translate('prescription', clinic ? 'intro_clinic' : 'intro')}</p>
+                        {data.registration && (
+                            <p className="rx-reg">
+                                {translate('prescription', `type_${data.registration.type}`)} · {translate('prescription', 'print_reg')} {data.registration.number}
+                            </p>
+                        )}
+                    </div>
+                </div>
+                <Tabs tabs={tabs} active={tab} onChange={setTab} />
+            </section>
+            {tab === 'prescriptions' && <PrescriptionsTab data={data} translate={translate} />}
+            {tab === 'patients' && <PatientsTab data={data} translate={translate} />}
+            {tab === 'report' && clinic && data.report && <ReportTab report={data.report} translate={translate} />}
+            {tab === 'settings' && clinic && <SettingsTab data={data} translate={translate} />}
+        </div>
+    );
+}
+
+function PrescriptionsTab({ data, translate }: { data: PrescriptionsData; translate: Translate }) {
+    const clinic = data.mode === 'clinic';
+    const ownPatients = data.patients.filter((patient) => patient.own);
+    const products = data.products ?? [];
+    const percent = Number(data.manufacturer_percent ?? '30') / 100;
+    const form = useForm({
+        patient_id: '',
+        prescribed_on: businessTodayIso(),
+        complaints: '',
+        diagnosis: '',
+        advice: '',
+        follow_up_on: '',
+        lines: [emptyLine()] as LineForm[],
+    });
+    const lines = form.data.lines;
+    const totals = useMemo(() => lines.reduce((sum, line) => {
+        const cents = lineCents(line);
+        return { gross: sum.gross + cents.gross, discount: sum.discount + cents.discount };
+    }, { gross: 0, discount: 0 }), [lines]);
+
+    const setLine = (index: number, patch: Partial<LineForm>) => {
+        form.setData('lines', lines.map((line, i) => (i === index ? { ...line, ...patch } : line)));
+    };
+    const productMrp = (id: string): number => paisa(products.find((product) => String(product.id) === id)?.mrp ?? 0);
+    const belowFloor = (line: LineForm): boolean => clinic && line.product_id !== ''
+        && lineCents(line).total < Math.round(productMrp(line.product_id) * Math.max(1, Number(line.quantity) || 0) * percent);
+    const error = (key: string) => (form.errors as Record<string, string>)[key];
+
+    const submit = (event: React.FormEvent) => {
+        event.preventDefault();
+        form.transform((values) => ({
+            ...values,
+            follow_up_on: values.follow_up_on || null,
+            lines: values.lines.map((line) => clinic
+                ? { product_id: Number(line.product_id), dose: line.dose, frequency: line.frequency, duration: line.duration, instructions: line.instructions, unit_price: line.unit_price || '0', quantity: line.quantity, discount: line.discount || '0' }
+                : { medicine_name: line.medicine_name, dose: line.dose, frequency: line.frequency, duration: line.duration, instructions: line.instructions, unit_price: line.unit_price || '0', quantity: line.quantity, discount: line.discount || '0' }),
+        }));
+        form.post('/commands/prescriptions', { preserveScroll: true, onSuccess: () => form.reset() });
+    };
+
+    return (
+        <>
+            <section className="panel">
+                <div className="panel-heading"><h2 className="ops-row is-inline"><Plus size={18} /> {translate('prescription', 'rx_new')}</h2></div>
+                {ownPatients.length === 0 ? (
+                    <Empty title={translate('prescription', 'patients_empty')} body={translate('prescription', 'patients_empty_body')} />
+                ) : (
+                    <form className="action-form rx-form" onSubmit={submit}>
+                        <div className="rx-grid">
+                            <label>{translate('prescription', 'rx_patient')}
+                                <select required value={form.data.patient_id} onChange={(e) => form.setData('patient_id', e.target.value)}>
+                                    <option value="">{translate('prescription', 'rx_choose_patient')}</option>
+                                    {ownPatients.map((patient) => <option key={patient.id} value={patient.id}>{patient.name}{patient.age !== null ? ` (${patient.age})` : ''}</option>)}
+                                </select>
+                                {error('patient_id') && <span className="field-error" role="alert">{error('patient_id')}</span>}
+                            </label>
+                            <label>{translate('prescription', 'rx_date')}
+                                <DateInput required value={form.data.prescribed_on} onChange={(e) => form.setData('prescribed_on', e.target.value)} />
+                            </label>
+                        </div>
+                        <div className="rx-grid">
+                            <label>{translate('prescription', 'rx_complaints')}
+                                <textarea rows={2} value={form.data.complaints} onChange={(e) => form.setData('complaints', e.target.value)} />
+                            </label>
+                            <label>{translate('prescription', 'rx_diagnosis')}
+                                <textarea rows={2} value={form.data.diagnosis} onChange={(e) => form.setData('diagnosis', e.target.value)} />
+                            </label>
+                        </div>
+                        <fieldset className="rx-lines">
+                            <legend><Pill size={16} /> {translate('prescription', 'rx_lines')}</legend>
+                            {!clinic && <p className="muted rx-note">{translate('prescription', 'rx_no_stock_note')}</p>}
+                            {lines.map((line, index) => {
+                                const cents = lineCents(line);
+                                return (
+                                    <div className="rx-line" key={index}>
+                                        <div className="rx-line-head">
+                                            <b>{index + 1}.</b>
+                                            {clinic ? (
+                                                <label className="rx-wide">{translate('prescription', 'rx_product')}
+                                                    <select required value={line.product_id} onChange={(e) => {
+                                                        const product = products.find((item) => String(item.id) === e.target.value);
+                                                        setLine(index, { product_id: e.target.value, unit_price: line.unit_price || (product ? String(product.mrp) : '') });
+                                                    }}>
+                                                        <option value="">{translate('prescription', 'rx_choose_product')}</option>
+                                                        {products.map((product) => <option key={product.id} value={product.id}>{product.name} — {translate('prescription', 'rx_mrp')} {money(product.mrp)}</option>)}
+                                                    </select>
+                                                </label>
+                                            ) : (
+                                                <label className="rx-wide">{translate('prescription', 'rx_medicine')}
+                                                    <input required maxLength={160} value={line.medicine_name} onChange={(e) => setLine(index, { medicine_name: e.target.value })} />
+                                                </label>
+                                            )}
+                                            {lines.length > 1 && (
+                                                <button type="button" className="icon-button" aria-label={translate('prescription', 'rx_remove_line')} onClick={() => form.setData('lines', lines.filter((_, i) => i !== index))}>
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="rx-line-grid">
+                                            <label>{translate('prescription', 'rx_dose')}<input maxLength={80} value={line.dose} onChange={(e) => setLine(index, { dose: e.target.value })} /></label>
+                                            <label>{translate('prescription', 'rx_frequency')}<input maxLength={80} value={line.frequency} onChange={(e) => setLine(index, { frequency: e.target.value })} /></label>
+                                            <label>{translate('prescription', 'rx_duration')}<input maxLength={80} value={line.duration} onChange={(e) => setLine(index, { duration: e.target.value })} /></label>
+                                            <label className="rx-wide">{translate('prescription', 'rx_instructions')}<input maxLength={300} value={line.instructions} onChange={(e) => setLine(index, { instructions: e.target.value })} /></label>
+                                            <label>{translate('prescription', 'rx_unit_price')}<input type="number" inputMode="decimal" min="0" step="0.01" required value={line.unit_price} onChange={(e) => setLine(index, { unit_price: e.target.value })} /></label>
+                                            <label>{translate('prescription', 'rx_quantity')}<input type="number" inputMode="numeric" min="1" step="1" required value={line.quantity} onChange={(e) => setLine(index, { quantity: e.target.value })} /></label>
+                                            <label>{translate('prescription', 'rx_discount')}<input type="number" inputMode="decimal" min="0" step="0.01" value={line.discount} onChange={(e) => setLine(index, { discount: e.target.value })} /></label>
+                                            <div className="rx-line-total">
+                                                <small>{translate('prescription', 'rx_line_total')}</small>
+                                                <b className={cents.total < 0 ? 'is-bad' : undefined}>{money(taka(Math.max(0, cents.total)))}</b>
+                                                {belowFloor(line) && <span className={`rx-floor ${data.price_floor === 'block' ? 'is-bad' : ''}`}>{translate('prescription', 'rx_below_floor_warn')}</span>}
+                                            </div>
+                                        </div>
+                                        {Object.entries(form.errors).filter(([key]) => key.startsWith(`lines.${index}.`)).map(([key, message]) => <span key={key} className="field-error" role="alert">{String(message)}</span>)}
+                                    </div>
+                                );
+                            })}
+                            {lines.length < data.max_lines && (
+                                <button type="button" className="button small" onClick={() => form.setData('lines', [...lines, emptyLine()])}><Plus size={16} /> {translate('prescription', 'rx_add_line')}</button>
+                            )}
+                            <dl className="rx-totals">
+                                <div><dt>{translate('prescription', 'rx_subtotal')}</dt><dd>{money(taka(totals.gross))}</dd></div>
+                                <div><dt>{translate('prescription', 'rx_discount_total')}</dt><dd>− {money(taka(totals.discount))}</dd></div>
+                                <div className="is-grand"><dt>{translate('prescription', 'rx_total')}</dt><dd>{money(taka(Math.max(0, totals.gross - totals.discount)))}</dd></div>
+                            </dl>
+                        </fieldset>
+                        <div className="rx-grid">
+                            <label>{translate('prescription', 'rx_advice')}
+                                <textarea rows={2} value={form.data.advice} onChange={(e) => form.setData('advice', e.target.value)} />
+                            </label>
+                            <label>{translate('prescription', 'rx_follow_up')}
+                                <DateInput value={form.data.follow_up_on} min={form.data.prescribed_on} onChange={(e) => form.setData('follow_up_on', e.target.value)} />
+                            </label>
+                        </div>
+                        {error('lines') && <div className="error" role="alert">{error('lines')}</div>}
+                        <button className="button dark" disabled={form.processing}>{form.processing ? translate('prescription', 'rx_saving') : translate('prescription', 'rx_save')}</button>
+                    </form>
+                )}
+            </section>
+            <PrescriptionList data={data} translate={translate} />
+        </>
+    );
+}
+
+function PrescriptionList({ data, translate }: { data: PrescriptionsData; translate: Translate }) {
+    const { portalBase } = usePage<any>().props;
+    const base = String(portalBase ?? '');
+    const branches = data.branches ?? [];
+    const [branchFor, setBranchFor] = useState<Record<number, string>>({});
+    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [busy, setBusy] = useState<number | null>(null);
+
+    const dispense = (row: PrescriptionRow) => {
+        const branchId = branchFor[row.id] ?? String(branches[0]?.id ?? '');
+        if (!branchId || !window.confirm(translate('prescription', 'dispense_confirm'))) {
+            return;
+        }
+        setBusy(row.id);
+        router.post(`/commands/prescriptions/${row.id}/dispense`, { branch_id: Number(branchId) }, {
+            preserveScroll: true,
+            onError: (errs) => setErrors(errs as Record<string, string>),
+            onSuccess: () => setErrors({}),
+            onFinish: () => setBusy(null),
+        });
+    };
+
+    return (
+        <section className="panel">
+            <div className="panel-heading"><h2 className="ops-row is-inline"><FileText size={18} /> {translate('prescription', 'rx_list')}</h2></div>
+            <FormErrors errors={errors} />
+            {data.prescriptions.length === 0 ? (
+                <Empty title={translate('prescription', 'rx_empty')} body={translate('prescription', 'rx_empty_body')} />
+            ) : (
+                <ul className="rx-list">
+                    {data.prescriptions.map((row) => (
+                        <li key={row.id} className="rx-card">
+                            <div className="rx-card-head">
+                                <div>
+                                    <b>{row.number}</b> · {row.patient}
+                                    <small className="cell-sub">
+                                        {row.prescribed_on}{row.prescriber ? ` · ${translate('prescription', 'rx_prescriber')}: ${row.prescriber}` : ''}
+                                        {row.diagnosis ? ` · ${row.diagnosis}` : ''}
+                                    </small>
+                                </div>
+                                <span className={`rx-status is-${row.status}`}>{translate('prescription', `rx_status_${row.status}`)}</span>
+                            </div>
+                            <ol className="rx-card-lines">
+                                {row.lines.map((line, index) => (
+                                    <li key={index}>{line.medicine_name} × {line.quantity}<small>{[line.dose, line.frequency, line.duration].filter(Boolean).join(' · ')}</small></li>
+                                ))}
+                            </ol>
+                            <div className="rx-card-foot">
+                                <span>{translate('prescription', 'rx_total')}: <b>{money(row.total)}</b>{Number(row.discount_total) > 0 ? ` (${translate('prescription', 'rx_discount_total')} ${money(row.discount_total)})` : ''}</span>
+                                {row.status === 'dispensed' && row.kind === 'clinic' && (
+                                    <small className="muted">{translate('prescription', 'report_manufacturer')}: {money(row.manufacturer_share)} · {translate('prescription', 'report_clinic')}: {money(row.clinic_fund)}</small>
+                                )}
+                                <span className="rx-actions">
+                                    <a className="button small" href={`${base}/prescriptions/${row.id}/print?lang=bn`} target="_blank" rel="noopener"><Printer size={15} /> {translate('prescription', 'rx_print_bn')}</a>
+                                    <a className="button small" href={`${base}/prescriptions/${row.id}/print?lang=en`} target="_blank" rel="noopener"><Printer size={15} /> {translate('prescription', 'rx_print_en')}</a>
+                                </span>
+                            </div>
+                            {data.mode === 'clinic' && row.kind === 'clinic' && row.own && row.status === 'issued' && (
+                                <div className="rx-dispense">
+                                    <label>{translate('prescription', 'dispense_branch')}
+                                        <select value={branchFor[row.id] ?? String(branches[0]?.id ?? '')} onChange={(e) => setBranchFor({ ...branchFor, [row.id]: e.target.value })}>
+                                            {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.code} — {branch.name}</option>)}
+                                        </select>
+                                    </label>
+                                    <button type="button" className="button dark" disabled={busy === row.id || branches.length === 0} onClick={() => dispense(row)}>{translate('prescription', 'dispense')}</button>
+                                    <small className="muted">{translate('prescription', 'dispense_help')}</small>
+                                </div>
+                            )}
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </section>
+    );
+}
+
+type PlaceOption = { id: number; code: string; name: string; level: string };
+const placeLevels = ['division', 'district', 'upazila', 'union'] as const;
+
+/** Division → district → upazila → union, like the account form's place picker; keeps the most specific choice. */
+function PlaceCodePicker({ value, onChange, translate }: { value: string; onChange: (id: string) => void; translate: Translate }) {
+    const [chosen, setChosen] = useState<string[]>(['', '', '', '']);
+    const [options, setOptions] = useState<PlaceOption[][]>([[], [], [], []]);
+
+    const load = async (levelIndex: number, parentId: string) => {
+        const params = new URLSearchParams({ level: placeLevels[levelIndex] });
+        if (parentId) params.set('parent_id', parentId);
+        try {
+            const response = await fetch(`/commands/prescriptions/places?${params}`, { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
+            const json = response.ok ? await response.json() : { data: [] };
+            setOptions((current) => current.map((list, i) => (i === levelIndex ? (json.data as PlaceOption[]) : i > levelIndex ? [] : list)));
+        } catch {
+            setOptions((current) => current.map((list, i) => (i >= levelIndex ? [] : list)));
+        }
+    };
+
+    useEffect(() => { void load(0, ''); }, []);
+    useEffect(() => {
+        if (value === '') {
+            setChosen(['', '', '', '']);
+        }
+    }, [value]);
+
+    const pick = (levelIndex: number, id: string) => {
+        const next = chosen.map((current, i) => (i === levelIndex ? id : i > levelIndex ? '' : current));
+        setChosen(next);
+        onChange(next.filter(Boolean).pop() ?? '');
+        if (id && levelIndex < placeLevels.length - 1) {
+            void load(levelIndex + 1, id);
+        }
+    };
+
+    return (
+        <div className="rx-place">
+            {placeLevels.map((level, index) => (index === 0 || chosen[index - 1]) && (
+                <label key={level}>{translate('prescription', `place_${level}`)}
+                    <select value={chosen[index]} onChange={(e) => pick(index, e.target.value)}>
+                        <option value="">{translate('prescription', 'place_choose')}</option>
+                        {options[index].map((option) => <option key={option.id} value={option.id}>{option.code} — {option.name}</option>)}
+                    </select>
+                </label>
+            ))}
+        </div>
+    );
+}
+
+function PatientsTab({ data, translate }: { data: PrescriptionsData; translate: Translate }) {
+    const { portalBase, filters } = usePage<any>().props;
+    const [editing, setEditing] = useState<PatientRow | null>(null);
+    const [query, setQuery] = useState(String(filters?.q ?? ''));
+    const blank = { name: '', age: '', sex: '', phone: '', place_code_id: '', notes: '' };
+    const form = useForm(blank);
+
+    useEffect(() => {
+        if (editing) {
+            form.setData({
+                name: editing.name, age: editing.age === null ? '' : String(editing.age), sex: editing.sex ?? '',
+                phone: editing.phone ?? '', place_code_id: editing.place_code_id ? String(editing.place_code_id) : '', notes: editing.notes ?? '',
+            });
+        } else {
+            form.setData(blank);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editing]);
+
+    const submit = (event: React.FormEvent) => {
+        event.preventDefault();
+        form.transform((values) => ({
+            ...values,
+            age: values.age === '' ? null : Number(values.age),
+            sex: values.sex || null,
+            place_code_id: values.place_code_id === '' ? null : Number(values.place_code_id),
+        }));
+        const options = { preserveScroll: true, onSuccess: () => { setEditing(null); form.reset(); } };
+        if (editing) {
+            form.patch(`/commands/prescriptions/patients/${editing.id}`, options);
+        } else {
+            form.post('/commands/prescriptions/patients', options);
+        }
+    };
+
+    return (
+        <>
+            <section className="panel">
+                <div className="panel-heading"><h2 className="ops-row is-inline"><UserPlus size={18} /> {translate('prescription', editing ? 'patient_edit' : 'patient_new')}</h2></div>
+                <form className="action-form rx-form" onSubmit={submit}>
+                    <div className="rx-grid">
+                        <label>{translate('prescription', 'patient_name')}<input required maxLength={120} value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} /></label>
+                        <label>{translate('prescription', 'patient_age')}<input type="number" inputMode="numeric" min="0" max="130" value={form.data.age} onChange={(e) => form.setData('age', e.target.value)} /></label>
+                        <label>{translate('prescription', 'patient_sex')}
+                            <select value={form.data.sex} onChange={(e) => form.setData('sex', e.target.value)}>
+                                <option value="">{translate('prescription', 'place_choose')}</option>
+                                {data.sexes.map((sex) => <option key={sex} value={sex}>{translate('prescription', `sex_${sex}`)}</option>)}
+                            </select>
+                        </label>
+                        <label>{translate('prescription', 'patient_phone')}<input type="tel" inputMode="tel" maxLength={20} value={form.data.phone} onChange={(e) => form.setData('phone', e.target.value)} /></label>
+                    </div>
+                    <div>
+                        <span className="rx-label">{translate('prescription', 'patient_place')}</span>
+                        {editing?.place && <small className="muted"> {editing.place}</small>}
+                        <PlaceCodePicker value={form.data.place_code_id} onChange={(id) => form.setData('place_code_id', id)} translate={translate} />
+                    </div>
+                    <label>{translate('prescription', 'patient_notes')}<textarea rows={2} maxLength={2000} value={form.data.notes} onChange={(e) => form.setData('notes', e.target.value)} /></label>
+                    <FormErrors errors={form.errors} />
+                    <div className="rx-actions">
+                        <button className="button dark" disabled={form.processing}>{translate('prescription', 'patient_save')}</button>
+                        {editing && <button type="button" className="button small" onClick={() => setEditing(null)}>{translate('portal', 'cancel')}</button>}
+                    </div>
+                </form>
+            </section>
+            <section className="panel">
+                <div className="panel-heading">
+                    <h2>{translate('prescription', 'patients')}</h2>
+                    <form className="rx-search" onSubmit={(e) => { e.preventDefault(); router.get(`${portalBase ?? ''}/prescriptions`, query ? { q: query, tab: 'patients' } : { tab: 'patients' }, { preserveState: true, preserveScroll: true }); }}>
+                        <input type="search" value={query} placeholder={translate('prescription', 'patient_search')} aria-label={translate('prescription', 'patient_search')} onChange={(e) => setQuery(e.target.value)} />
+                        <button className="icon-button" aria-label={translate('prescription', 'patient_search')}><Search size={16} /></button>
+                    </form>
+                </div>
+                {data.patients.length === 0 ? (
+                    <Empty title={translate('prescription', 'patients_empty')} body={translate('prescription', 'patients_empty_body')} />
+                ) : (
+                    <ul className="rx-list">
+                        {data.patients.map((patient) => (
+                            <li key={patient.id} className="rx-card rx-patient">
+                                <div>
+                                    <b>{patient.name}</b>
+                                    <small className="cell-sub">
+                                        {[patient.age !== null ? translate('prescription', 'print_years', { age: patient.age }) : null, patient.sex ? translate('prescription', `sex_${patient.sex}`) : null, patient.phone, patient.place].filter(Boolean).join(' · ')}
+                                    </small>
+                                    {patient.prescriber && <small className="cell-sub">{translate('prescription', 'patient_of', { name: patient.prescriber })}</small>}
+                                    {patient.notes && <small className="cell-sub">{patient.notes}</small>}
+                                </div>
+                                {patient.own && <button type="button" className="button small" onClick={() => { setEditing(patient); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>{translate('prescription', 'patient_edit')}</button>}
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </section>
+        </>
+    );
+}
+
+function ReportTab({ report, translate }: { report: ReportData; translate: Translate }) {
+    const { portalBase } = usePage<any>().props;
+    const [from, setFrom] = useState(report.from);
+    const [to, setTo] = useState(report.to);
+
+    return (
+        <section className="panel">
+            <div className="panel-heading"><h2>{translate('prescription', 'report_title')}</h2></div>
+            <form className="rx-report-filter" onSubmit={(e) => { e.preventDefault(); router.get(`${portalBase ?? ''}/prescriptions`, { from, to, tab: 'report' }, { preserveScroll: true }); }}>
+                <label>{translate('prescription', 'report_from')}<DateInput value={from} onChange={(e) => setFrom(e.target.value)} /></label>
+                <label>{translate('prescription', 'report_to')}<DateInput value={to} min={from} onChange={(e) => setTo(e.target.value)} /></label>
+                <button className="button dark">{translate('prescription', 'report_apply')}</button>
+            </form>
+            <div className="rx-stats">
+                <div><small>{translate('prescription', 'report_count')}</small><b>{report.count}</b></div>
+                <div><small>{translate('prescription', 'report_sales')}</small><b>{money(report.sales)}</b></div>
+                <div><small>{translate('prescription', 'report_manufacturer')}</small><b>{money(report.manufacturer_share)}</b></div>
+                <div><small>{translate('prescription', 'report_clinic')}</small><b className={Number(report.clinic_fund) < 0 ? 'is-bad' : undefined}>{money(report.clinic_fund)}</b></div>
+            </div>
+            {report.days.length === 0 ? (
+                <Empty title={translate('prescription', 'report_empty')} />
+            ) : (
+                <div className="table-wrap">
+                    <table className="rx-table">
+                        <thead><tr>
+                            <th>{translate('prescription', 'report_day')}</th>
+                            <th className="num">{translate('prescription', 'report_count')}</th>
+                            <th className="num">{translate('prescription', 'report_sales')}</th>
+                            <th className="num">{translate('prescription', 'report_manufacturer')}</th>
+                            <th className="num">{translate('prescription', 'report_clinic')}</th>
+                        </tr></thead>
+                        <tbody>
+                            {report.days.map((day) => (
+                                <tr key={day.day}>
+                                    <td>{day.day}</td>
+                                    <td className="num">{day.count}</td>
+                                    <td className="num">{money(day.sales)}</td>
+                                    <td className="num">{money(day.manufacturer_share)}</td>
+                                    <td className="num">{money(day.clinic_fund)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+        </section>
+    );
+}
+
+function SettingsTab({ data, translate }: { data: PrescriptionsData; translate: Translate }) {
+    const floor = useForm({ mode: data.price_floor ?? 'block' });
+    const registration = useForm({
+        registration_type: data.registration?.type ?? data.registration_types[0] ?? 'bmdc',
+        registration_number: data.registration?.number ?? '',
+        note: '',
+    });
+
+    return (
+        <>
+            <section className="panel">
+                <div className="panel-heading"><div><h2>{translate('prescription', 'setting_title')}</h2><p className="muted">{translate('prescription', 'setting_floor_hint')}</p></div></div>
+                <form className="action-form" onSubmit={(e) => { e.preventDefault(); floor.post('/commands/prescriptions/price-floor', { preserveScroll: true }); }}>
+                    {(['block', 'warn'] as const).map((mode) => (
+                        <label key={mode} className="registry-checkbox">
+                            <input type="radio" name="price_floor" value={mode} checked={floor.data.mode === mode} onChange={() => floor.setData('mode', mode)} />
+                            {translate('prescription', `floor_${mode}`)}
+                        </label>
+                    ))}
+                    <FormErrors errors={floor.errors} />
+                    <button className="button dark" disabled={floor.processing}>{translate('prescription', 'setting_save')}</button>
+                </form>
+            </section>
+            <section className="panel">
+                <div className="panel-heading"><div><h2>{translate('prescription', 'registration_title')}</h2><p className="muted">{translate('prescription', data.registration ? 'registration_hint' : 'registration_missing')}</p></div></div>
+                <form className="action-form" onSubmit={(e) => { e.preventDefault(); registration.post('/commands/prescriptions/registration', { preserveScroll: true }); }}>
+                    <label>{translate('prescription', 'registration_type')}
+                        <select value={registration.data.registration_type} onChange={(e) => registration.setData('registration_type', e.target.value)}>
+                            {data.registration_types.map((type) => <option key={type} value={type}>{translate('prescription', `type_${type}`)}</option>)}
+                        </select>
+                    </label>
+                    <label>{translate('prescription', 'registration_number')}<input required maxLength={60} value={registration.data.registration_number} onChange={(e) => registration.setData('registration_number', e.target.value)} /></label>
+                    <label>{translate('prescription', 'registration_note')}<input maxLength={1000} value={registration.data.note} onChange={(e) => registration.setData('note', e.target.value)} /></label>
+                    <FormErrors errors={registration.errors} />
+                    <button className="button dark" disabled={registration.processing}>{translate('prescription', 'registration_save')}</button>
+                </form>
+            </section>
+        </>
+    );
+}

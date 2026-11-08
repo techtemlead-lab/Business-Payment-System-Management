@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Domain\Clinic\PrescriptionAccess;
 use App\Domain\Support\PartnerChat;
 use App\Models\User;
 
@@ -66,6 +67,10 @@ final class PortalCatalog
         abort_unless(self::allowsSection($portal, $section), 404);
         if (in_array($user->role, ['dealer', 'sub_dealer'], true)) {
             DashboardManagement::assertPartnerSection($user, $section);
+        }
+        if ($section === 'prescriptions') {
+            // Off for every partner until the owner verifies their registration; the owner-doctor always has it.
+            abort_unless(PrescriptionAccess::canPrescribe($user), 403, (string) __('prescription.err_not_enabled'));
         }
         if ($section === 'benefits-fund' || $section === 'data-cleanup') {
             // Owner-only pages on the owner panel: the owners' fund and the manual data clean-up.

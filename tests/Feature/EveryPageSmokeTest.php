@@ -82,14 +82,15 @@ class EveryPageSmokeTest extends TestCase
     #[DataProvider('locales')]
     public function test_every_dealer_page_opens(string $locale): void
     {
-        $this->assertSame([], $this->visit(User::factory()->dealer()->create(['status' => 'active']), 'dealer', $locale));
+        // Prescribing is turned on so its page is opened too; it stays off by default (PrescriptionModuleTest).
+        $this->assertSame([], $this->visit(User::factory()->dealer()->create(['status' => 'active', 'can_prescribe' => true]), 'dealer', $locale));
     }
 
     #[DataProvider('locales')]
     public function test_every_sub_dealer_page_opens(string $locale): void
     {
         $dealer = User::factory()->dealer()->create(['status' => 'active']);
-        $subDealer = User::factory()->subDealer()->create(['status' => 'active', 'sponsor_id' => $dealer->id]);
+        $subDealer = User::factory()->subDealer()->create(['status' => 'active', 'sponsor_id' => $dealer->id, 'can_prescribe' => true]);
 
         $this->assertSame([], $this->visit($subDealer, 'subdealer', $locale));
     }

@@ -37,6 +37,7 @@ use App\Http\Portals\Shared\Sections\InventorySection;
 use App\Http\Portals\Shared\Sections\NetworkSection;
 use App\Http\Portals\Shared\Sections\OrdersSection;
 use App\Http\Portals\Shared\Sections\OverviewSection;
+use App\Http\Portals\Shared\Sections\PrescriptionsSection;
 use App\Http\Portals\Shared\Sections\ProfileSection;
 use App\Http\Portals\Shared\Sections\SalarySection;
 use App\Http\Portals\Shared\Sections\SectionContext;
@@ -97,6 +98,7 @@ class WorkspaceController extends Controller
         TrainingSection::class,
         EventsSection::class,
         DataCleanupSection::class,
+        PrescriptionsSection::class,
     ];
 
     public function index(Request $r, ProductPricing $pricing, string $section = 'overview'): Response|RedirectResponse

@@ -3,6 +3,7 @@ import { router, useForm, usePage } from '@inertiajs/react';
 import { Row, label, FormErrors } from './UI';
 import PartnerCommissionOverride from './PartnerCommissionOverride';
 import PartnerBenefitControls from './PartnerBenefitControls';
+import PartnerPrescriberControls from './PartnerPrescriberControls';
 import AccountPasswordManager from './AccountPasswordManager';
 import { useT } from '../shared/i18n/t';
 
@@ -277,5 +278,6 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
 
         <PartnerCommissionOverride account={account} />
         <PartnerBenefitControls account={account} />
+        <PartnerPrescriberControls account={account} />
     </>;
 }
