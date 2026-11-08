@@ -15,11 +15,12 @@
     $slideAlt = fn (string $key, ?string $custom, string $fallback): string => \Illuminate\Support\Facades\Lang::has('site.'.$key)
         ? $chrome($key, $custom)
         : (filled($custom) ? (string) $custom : $fallback);
+    $bismillahText = $chrome('home_bismillah_text', $siteCustomization['home_bismillah_text'] ?? null);
 @endphp
 <main id="main" class="ref-container ref-main">
     <section class="ref-company-intro" aria-labelledby="company-intro-title">
         @if(filter_var($siteCustomization['home_bismillah_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN))
-        <p class="ref-bismillah">{{ $chrome('home_bismillah_text', $siteCustomization['home_bismillah_text'] ?? null) }}</p>
+        <p class="ref-bismillah"@if(\App\Support\SiteChrome::isArabic($bismillahText)) lang="ar" dir="rtl"@endif><span>{{ $bismillahText }}</span></p>
         @endif
         <div>
             <span class="ref-company-eyebrow">{{ $chrome('company_intro_eyebrow', $siteCustomization['company_intro_eyebrow'] ?? null) }}</span>

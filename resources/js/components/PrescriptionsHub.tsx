@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { router, useForm, usePage } from '@inertiajs/react';
 import { FileText, Pill, Plus, Printer, Search, Stethoscope, Trash2, UserPlus } from 'lucide-react';
-import { DateInput, Empty, FormErrors, money } from './UI';
+import { DateInput, Empty, FormErrors, date, money, number } from './UI';
 import { useT } from '../shared/i18n/t';
 import { businessTodayIso } from '../business-date';
 import { SaveAsTemplate, TemplatePicker, TemplatesTab, type PrescriptionTools } from './PrescriptionTemplates';
@@ -118,6 +118,7 @@ export default function PrescriptionsHub({ data, tools }: { data: PrescriptionsD
         { id: 'my-report', label: translate('prescription', 'tab_my_report') },
         ...(clinic ? [{ id: 'report', label: translate('prescription', 'tab_report') }, { id: 'settings', label: translate('prescription', 'tab_settings') }] : []),
     ];
+    const activeTab = tabs.some((item) => item.id === tab) ? tab : 'prescriptions';
 
     return (
         <div className="rx-hub">
@@ -133,15 +134,15 @@ export default function PrescriptionsHub({ data, tools }: { data: PrescriptionsD
                         )}
                     </div>
                 </div>
-                <Tabs tabs={tabs} active={tab} onChange={setTab} />
+                <Tabs tabs={tabs} active={activeTab} onChange={setTab} />
             </section>
-            {tab === 'prescriptions' && <FollowUpsPanel followUps={tools.follow_ups} translate={translate} />}
-            {tab === 'prescriptions' && <PrescriptionsTab data={data} tools={tools} translate={translate} />}
-            {tab === 'patients' && <PatientsTab data={data} translate={translate} />}
-            {tab === 'templates' && <TemplatesTab templates={tools.templates} translate={translate} />}
-            {tab === 'my-report' && <PrescriberReportTab report={tools.report} translate={translate} />}
-            {tab === 'report' && clinic && data.report && <ReportTab report={data.report} translate={translate} />}
-            {tab === 'settings' && clinic && <SettingsTab data={data} translate={translate} />}
+            {activeTab === 'prescriptions' && <FollowUpsPanel followUps={tools.follow_ups} translate={translate} />}
+            {activeTab === 'prescriptions' && <PrescriptionsTab data={data} tools={tools} translate={translate} />}
+            {activeTab === 'patients' && <PatientsTab data={data} translate={translate} />}
+            {activeTab === 'templates' && <TemplatesTab templates={tools.templates} translate={translate} />}
+            {activeTab === 'my-report' && <PrescriberReportTab report={tools.report} translate={translate} />}
+            {activeTab === 'report' && clinic && data.report && <ReportTab report={data.report} translate={translate} />}
+            {activeTab === 'settings' && clinic && <SettingsTab data={data} translate={translate} />}
         </div>
     );
 }
@@ -205,7 +206,7 @@ function PrescriptionsTab({ data, tools, translate }: { data: PrescriptionsData;
                             <label>{translate('prescription', 'rx_patient')}
                                 <select required value={form.data.patient_id} onChange={(e) => form.setData('patient_id', e.target.value)}>
                                     <option value="">{translate('prescription', 'rx_choose_patient')}</option>
-                                    {ownPatients.map((patient) => <option key={patient.id} value={patient.id}>{patient.name}{patient.age !== null ? ` (${patient.age})` : ''}</option>)}
+                                    {ownPatients.map((patient) => <option key={patient.id} value={patient.id}>{patient.name}{patient.age !== null ? ` (${number(patient.age)})` : ''}</option>)}
                                 </select>
                                 {error('patient_id') && <span className="field-error" role="alert">{error('patient_id')}</span>}
                             </label>
@@ -229,7 +230,7 @@ function PrescriptionsTab({ data, tools, translate }: { data: PrescriptionsData;
                                 return (
                                     <div className="rx-line" key={index}>
                                         <div className="rx-line-head">
-                                            <b>{index + 1}.</b>
+                                            <b>{number(index + 1)}.</b>
                                             {clinic ? (
                                                 <label className="rx-wide">{translate('prescription', 'rx_product')}
                                                     <select required value={line.product_id} onChange={(e) => {
@@ -330,9 +331,9 @@ function PrescriptionList({ data, translate }: { data: PrescriptionsData; transl
                         <li key={row.id} className="rx-card">
                             <div className="rx-card-head">
                                 <div>
-                                    <b>{row.number}</b> · {row.patient}
+                                    <b>{row.number}</b>{row.patient ? ` · ${row.patient}` : ''}
                                     <small className="cell-sub">
-                                        {row.prescribed_on}{row.prescriber ? ` · ${translate('prescription', 'rx_prescriber')}: ${row.prescriber}` : ''}
+                                        {date(row.prescribed_on)}{row.prescriber ? ` · ${translate('prescription', 'rx_prescriber')}: ${row.prescriber}` : ''}
                                         {row.diagnosis ? ` · ${row.diagnosis}` : ''}
                                     </small>
                                 </div>
@@ -340,7 +341,7 @@ function PrescriptionList({ data, translate }: { data: PrescriptionsData; transl
                             </div>
                             <ol className="rx-card-lines">
                                 {row.lines.map((line, index) => (
-                                    <li key={index}>{line.medicine_name} × {line.quantity}<small>{[line.dose, line.frequency, line.duration].filter(Boolean).join(' · ')}</small></li>
+                                    <li key={index}>{line.medicine_name} × {number(line.quantity)}<small>{[line.dose, line.frequency, line.duration].filter(Boolean).join(' · ')}</small></li>
                                 ))}
                             </ol>
                             <div className="rx-card-foot">
@@ -533,7 +534,7 @@ function ReportTab({ report, translate }: { report: ReportData; translate: Trans
                 <button className="button dark">{translate('prescription', 'report_apply')}</button>
             </form>
             <div className="rx-stats">
-                <div><small>{translate('prescription', 'report_count')}</small><b>{report.count}</b></div>
+                <div><small>{translate('prescription', 'report_count')}</small><b>{number(report.count)}</b></div>
                 <div><small>{translate('prescription', 'report_sales')}</small><b>{money(report.sales)}</b></div>
                 <div><small>{translate('prescription', 'report_manufacturer')}</small><b>{money(report.manufacturer_share)}</b></div>
                 <div><small>{translate('prescription', 'report_clinic')}</small><b className={Number(report.clinic_fund) < 0 ? 'is-bad' : undefined}>{money(report.clinic_fund)}</b></div>
@@ -553,8 +554,8 @@ function ReportTab({ report, translate }: { report: ReportData; translate: Trans
                         <tbody>
                             {report.days.map((day) => (
                                 <tr key={day.day}>
-                                    <td>{day.day}</td>
-                                    <td className="num">{day.count}</td>
+                                    <td>{date(day.day)}</td>
+                                    <td className="num">{number(day.count)}</td>
                                     <td className="num">{money(day.sales)}</td>
                                     <td className="num">{money(day.manufacturer_share)}</td>
                                     <td className="num">{money(day.clinic_fund)}</td>

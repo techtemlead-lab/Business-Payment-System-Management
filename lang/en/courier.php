@@ -110,4 +110,6 @@ return [
 
     // A parcel the courier sent back.
     'returned_cannot_confirm' => 'The courier returned this parcel, so it cannot be confirmed as delivered. No commission is paid for a returned parcel.',
+    // Deliveries board: the step shown for one parcel.
+    'step_booking_failed' => 'Booking failed',
 ];

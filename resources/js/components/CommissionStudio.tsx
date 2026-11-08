@@ -211,7 +211,11 @@ export default function CommissionStudio({ rules: initialRules, limits }: { rule
                                         onChange={e => handlePercentageChange(r.rule_key, e.target.value)}
                                         className="cs-range"
                                     />
-                                    {Object.entries(r.parameters??{}).filter(([key,value])=>key!=='dynamic_compression'&&typeof value!=='object').map(([key,value])=><label key={key} className="cs-param">{paramLabel(key)}<input type={typeof value==='boolean'?'checkbox':'number'} step="0.01" checked={typeof value==='boolean'?value:undefined} value={typeof value==='boolean'?undefined:String(value)} onChange={e=>setRules(prev=>({...prev,[r.rule_key]:{...prev[r.rule_key],parameters:{...prev[r.rule_key].parameters,[key]:typeof value==='boolean'?e.target.checked:e.target.value}}}))}/></label>)}
+                                    {Object.entries(r.parameters??{}).filter(([key,value])=>key!=='dynamic_compression'&&(value===null||typeof value!=='object')).map(([key,value])=>{
+                                        const isAwardAmount = key.endsWith('_award_amount');
+                                        return <label key={key} className="cs-param">{paramLabel(key)}<input type={typeof value==='boolean'?'checkbox':'number'} step="0.01" min={isAwardAmount?'0':undefined} placeholder={isAwardAmount?translate('portal','cs_award_amount_not_set'):undefined} checked={typeof value==='boolean'?value:undefined} value={typeof value==='boolean'?undefined:String(value??'')} onChange={e=>setRules(prev=>({...prev,[r.rule_key]:{...prev[r.rule_key],parameters:{...prev[r.rule_key].parameters,[key]:typeof value==='boolean'?e.target.checked:e.target.value}}}))}/></label>;
+                                    })}
+                                    {r.rule_key==='car_bike_incentive'&&<p className="hub-hint">{translate('portal','cs_award_amount_hint')}</p>}
                                 </div>
                             </div>
                         );
