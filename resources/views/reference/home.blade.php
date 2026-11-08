@@ -18,6 +18,9 @@
 @endphp
 <main id="main" class="ref-container ref-main">
     <section class="ref-company-intro" aria-labelledby="company-intro-title">
+        @if(filter_var($siteCustomization['home_bismillah_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN))
+        <p class="ref-bismillah">{{ $chrome('home_bismillah_text', $siteCustomization['home_bismillah_text'] ?? null) }}</p>
+        @endif
         <div>
             <span class="ref-company-eyebrow">{{ $chrome('company_intro_eyebrow', $siteCustomization['company_intro_eyebrow'] ?? null) }}</span>
             <h1 id="company-intro-title">{{ $chrome('company_intro_title', $siteCustomization['company_intro_title'] ?? null) }}</h1>

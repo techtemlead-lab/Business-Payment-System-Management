@@ -63,6 +63,9 @@ class SiteCustomization
             'company_intro_body' => $copy('company_intro_body'),
             // Home page intro: small line above the company name and the two link cards beside it.
             'company_intro_eyebrow' => $copy('company_intro_eyebrow'),
+            // Home page: Bismillah line centred above the company headline (owner request).
+            'home_bismillah_enabled' => '1',
+            'home_bismillah_text' => $copy('home_bismillah_text'),
             'product_range_title' => $copy('product_range_title'),
             'product_range_sub' => $copy('product_range_sub'),
             'partner_with_us_title' => $copy('partner_with_us_title'),
