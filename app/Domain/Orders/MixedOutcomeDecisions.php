@@ -86,6 +86,7 @@ final class MixedOutcomeDecisions
             ->whereColumn('shipments.order_id', 'orders.id')->where('shipments.status', $status);
 
         return DB::table('orders')
+            ->whereNotIn('orders.status', ['cancelled', 'rejected', 'delivered'])
             ->whereExists($parcel('delivered'))
             ->whereExists($parcel('returned'))
             ->whereNotExists($parcel('dispatched'))

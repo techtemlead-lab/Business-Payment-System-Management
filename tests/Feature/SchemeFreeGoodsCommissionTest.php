@@ -21,6 +21,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class SchemeFreeGoodsCommissionTest extends TestCase
@@ -136,7 +137,7 @@ class SchemeFreeGoodsCommissionTest extends TestCase
         ];
     }
 
-    /** @dataProvider datesAroundTheScheme */
+    #[DataProvider('datesAroundTheScheme')]
     public function test_the_scheme_dates_are_inclusive_in_the_business_timezone(string $moment, int $expected): void
     {
         config(['madina.business_timezone' => 'Asia/Dhaka']);

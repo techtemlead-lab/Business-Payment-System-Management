@@ -37,7 +37,7 @@ export default function SchemesHub({ data }: { data: SchemesData }) {
                     </label>
                     <label>{translate('dealer_tools', 'scheme_min_field')}<input type="number" min={1} required value={form.data.min_quantity} onChange={(e) => form.setData('min_quantity', e.target.value)} /></label>
                     <label>{translate('dealer_tools', 'scheme_type_field')}
-                        <select value={form.data.benefit_type} onChange={(e) => form.setData('benefit_type', e.target.value)}>
+                        <select value={form.data.benefit_type} onChange={(e) => form.setData({ ...form.data, benefit_type: e.target.value, free_product_id: '', free_quantity: '' })}>
                             {data.benefit_types.map((type) => <option key={type} value={type}>{translate('dealer_tools', `scheme_type_${type}`)}</option>)}
                         </select>
                     </label>
@@ -45,7 +45,7 @@ export default function SchemesHub({ data }: { data: SchemesData }) {
                     {form.data.benefit_type === 'free_goods' && <>
                         <p className="muted">{translate('schemes_commission', 'scheme_free_hint')}</p>
                         <label>{translate('schemes_commission', 'scheme_free_product')}
-                            <select value={form.data.free_product_id} onChange={(e) => form.setData('free_product_id', e.target.value)}>
+                            <select value={form.data.free_product_id} onChange={(e) => form.setData({ ...form.data, free_product_id: e.target.value, free_quantity: e.target.value === '' ? '' : form.data.free_quantity })}>
                                 <option value="">{translate('schemes_commission', 'scheme_free_none')}</option>
                                 {data.products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
                             </select>

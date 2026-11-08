@@ -247,6 +247,19 @@ class MixedOutcomeDeliveredPartCommissionTest extends TestCase
         $this->assertSame(0, DB::table('order_events')->where('order_id', $mixed->id)->where('action', MixedOutcomeDecisions::Action)->count());
     }
 
+    public function test_a_cancelled_order_cannot_post_the_delivered_part(): void
+    {
+        $mixed = $this->mixedOrder(3, 4);
+        DB::table('orders')->where('id', $mixed->id)->update(['status' => 'cancelled']);
+
+        try {
+            $this->decide($mixed, MixedOutcomeDecisions::DeliveredPart);
+            $this->fail('A cancelled order must be refused.');
+        } catch (ValidationException) {
+            $this->assertSame(0, DB::table('commission_batches')->where('order_id', $mixed->id)->count());
+        }
+    }
+
     public function test_the_order_itself_keeps_its_full_total_and_paid_amount(): void
     {
         $mixed = $this->mixedOrder(3, 4);
