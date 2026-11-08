@@ -9,6 +9,7 @@ use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Security\SelfApproval;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\LocalDigits;
 use App\Support\Money;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -49,7 +50,7 @@ class ManualPayoutService
             }
             $minimum = app(FinanceSettings::class)->withdrawalMinimum()['amount'];
             if ($amount < Money::cents($minimum)) {
-                throw ValidationException::withMessages(['amount' => __('portal.err_wd_minimum', ['amount' => $minimum])]);
+                throw ValidationException::withMessages(['amount' => __('portal.err_wd_minimum', ['amount' => LocalDigits::text(Money::grouped($minimum))])]);
             }
             if (CommissionWallet::hasDebt($actor->id)) {
                 throw ValidationException::withMessages(['amount' => __('portal.err_wd_clawback')]);
@@ -75,7 +76,7 @@ class ManualPayoutService
                 'risk_level' => $risk['risk_level'],
                 'risk_flags' => $risk['flags'],
             ]);
-            Audit::notice($actor->id, __('portal.notice_user_withdrawal_title'), __('portal.notice_user_withdrawal_body', ['amount' => Money::decimal($amount)]), 'withdrawal.requested');
+            Audit::notice($actor->id, __('portal.notice_user_withdrawal_title'), __('portal.notice_user_withdrawal_body', ['amount' => LocalDigits::text(Money::grouped(Money::decimal($amount)))]), 'withdrawal.requested');
             Audit::notifyAdminsAndStaff(
                 ['finance'],
                 __('portal.notice_admin_withdrawal_title'),

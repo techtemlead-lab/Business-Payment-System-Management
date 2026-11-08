@@ -2861,7 +2861,7 @@ return [
     'notice_order_decision_title' => 'অর্ডার :status',
     'notice_order_decision_body' => ':number: :reason',
     'notice_payment_claimed_title' => 'পেমেন্ট যাচাইয়ের জন্য পাঠানো হয়েছে',
-    'notice_payment_claimed_body' => ':number: :channel দিয়ে :amount যাচাইয়ের অপেক্ষায়।',
+    'notice_payment_claimed_body' => ':number: :channel দিয়ে ৳:amount যাচাইয়ের অপেক্ষায়।',
     'notice_payment_reviewed_title' => 'পেমেন্ট যাচাই হয়েছে',
     'notice_payment_reviewed_body' => ':number: পেমেন্ট :outcome।',
     'notice_shipment_dispatched_title' => 'ডেলিভারি পাঠানো হয়েছে',
@@ -6432,5 +6432,9 @@ return [
     'event_shipment_received_back' => 'পার্সেল ফেরত পাওয়া গেছে',
     'acct_partner_created_sent' => ':role অ্যাকাউন্ট যোগ হয়েছে। কোড: :code। লগইনের তথ্য :phone / :email-এ পাঠানো হয়েছে। ইউজারনেম হলো মোবাইল নম্বর।',
     'acct_partner_created_not_sent' => ':role অ্যাকাউন্ট যোগ হয়েছে। কোড: :code। SMS ও ইমেইল চালু না থাকায় পাসওয়ার্ড পাঠানো যায়নি। এই অ্যাকাউন্ট খুলে লগইন পাসওয়ার্ড অংশ থেকে দেখে তাকে দিন। ইউজারনেম হলো মোবাইল নম্বর।',
+    'err_dealer_discount_limit_owner' => 'ডিলারের ছাড় ৭০%-এর বেশি দেওয়া যাবে না।',
+    'err_sub_dealer_discount_limit_owner' => 'সাব-ডিলারের ছাড় ৭০%-এর বেশি দেওয়া যাবে না।',
+    'err_dealer_discount_too_small' => 'ডিলারের দাম অনেক বেশি হয়েছে। ডিলারকে MRP থেকে কমপক্ষে ২০% ছাড় দিতে হবে, তাই ডিলারের দাম MRP-এর ৮০%-এর বেশি রাখা যাবে না।',
+    'err_sub_dealer_discount_too_small' => 'সাব-ডিলারের দাম অনেক বেশি হয়েছে। সাব-ডিলারকে MRP থেকে কমপক্ষে ২০% ছাড় দিতে হবে, তাই সাব-ডিলারের দাম MRP-এর ৮০%-এর বেশি রাখা যাবে না।',
     'archive_product_prompt' => '":name" আর্কাইভ করতে চান? কারণ লিখুন (কমপক্ষে ৫ অক্ষর):',
 ];
