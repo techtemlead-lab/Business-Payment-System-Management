@@ -103,6 +103,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
         })
         .join(' · ');
 
+    const tileLabel = (key: string) => translate('portal', key).replace(/[:：]\s*$/, '');
     const searching = (state.search ?? '').trim() !== '';
     const dealersOpen = searching || Number(state.qualified_salary_dealers.current_page ?? 1) > 1;
     const leadersOpen = searching || Number(state.qualified_rank_leaders.current_page ?? 1) > 1;
@@ -190,9 +191,9 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                     </div>
                 </div>
                 <div className="metric-grid three">
-                    <div className="metric"><span>{translate('portal', 'st_dealer_pool')}</span><strong>{money(state.dealer_salary_pool_pending)}</strong><small>{translate('portal', 'st_dealers_count', { count: String(state.qualified_salary_dealers_count) })}</small></div>
-                    <div className="metric"><span>{translate('portal', 'st_royalty_pool')}</span><strong>{money(state.rank_pool_pending)}</strong><small>{translate('portal', 'st_leaders_count', { count: String(state.qualified_rank_leaders_count) })}</small></div>
-                    <div className="metric"><span>{translate('portal', 'st_sub_reserved')}</span><strong>{money(state.sub_dealer_salary_pending)}</strong></div>
+                    <div className="metric"><span>{tileLabel('st_dealer_pool')}</span><strong>{money(state.dealer_salary_pool_pending)}</strong><small>{translate('portal', 'st_dealers_count', { count: String(state.qualified_salary_dealers_count) })}</small></div>
+                    <div className="metric"><span>{tileLabel('st_royalty_pool')}</span><strong>{money(state.rank_pool_pending)}</strong><small>{translate('portal', 'st_leaders_count', { count: String(state.qualified_rank_leaders_count) })}</small></div>
+                    <div className="metric"><span>{tileLabel('st_sub_reserved')}</span><strong>{money(state.sub_dealer_salary_pending)}</strong></div>
                 </div>
             </section>
 
