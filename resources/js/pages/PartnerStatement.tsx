@@ -40,7 +40,7 @@ function presetRange(preset: string): { from: string; to: string } {
  * the chosen dates with a running balance, totals for the whole range and
  * the closing balance. Excel and PDF downloads use the same dates.
  */
-export default function PartnerStatement({ partner, range, statement, staffView, statementBase, hub }: { partner: Row; range: { from: string; to: string }; statement: Statement; staffView: boolean; statementBase: string; hub?: PartnerHub | null }) {
+export default function PartnerStatement({ partner, range, statement, staffView, statementBase, partner_hub: hub }: { partner: Row; range: { from: string; to: string }; statement: Statement; staffView: boolean; statementBase: string; partner_hub?: PartnerHub | null }) {
     const translate = useT();
     const { portalBase: base } = usePage<any>().props;
     const [from, setFrom] = useState(range.from);

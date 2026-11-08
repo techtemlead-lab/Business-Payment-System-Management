@@ -13,6 +13,7 @@ import PartnerFullReportHub from '../components/PartnerFullReportHub';
 import PartnerHubNav from '../components/PartnerHubNav';
 import PartnerMoneyHub from '../components/PartnerMoneyHub';
 import PushOptIn from '../components/PushOptIn';
+import OfficeHubTabs from '../components/OfficeHubTabs';
 import { ProfilePhoto } from '../components/ProfilePhoto';
 import {Row,Field,Table,Pagination,Modal,ActionForm,Badge,Empty,money,number,date,dateTime,label,auditActionLabel,DateInput,FormErrors} from '../components/UI';
 import {useT} from '../shared/i18n/t';
@@ -346,9 +347,10 @@ export default function Portal({section,data:d,filters}:{section:string,data:Row
  },[section]);
  const stats=d.stats??{}; const action=section==='overview'?<Link className="button dark" href={staff?(base+(caps.includes('orders')||caps.includes('finance')?'/orders':caps.includes('content')?'/content':'/profile')):(base+'/purchase')}>{staff?(caps.includes('orders')||caps.includes('finance')?translate('portal','manage_orders'):caps.includes('content')?translate('portal','manage_website'):translate('portal','view_profile')):translate('portal','new_purchase_request')}<ArrowUpRight size={17}/></Link>:(!staff&&(section==='orders'||section==='deliveries'||section==='catalog'))?<Link className="button dark" href={`${base}/purchase`}><Plus size={17}/>{translate('portal','new_purchase_request')}</Link>:section==='accounts'&&(staffActions?.accounts?.create??true)?<Link className="button dark" href="/accounts/create?intent=dealer"><Plus size={17}/>{translate('portal','acct_heading')}</Link>:section==='sub-dealers'&&(staffActions?.accounts?.create??true)?<Link className="button dark" href="/accounts/create?intent=sub_dealer"><Plus size={17}/>{translate('portal','sd_add')}</Link>:undefined;
  const ordersEmpty=section==='deliveries'?{title:translate('portal','empty_deliveries_title'),body:translate('portal','empty_deliveries_body')}:{title:translate('portal','empty_orders_title'),body:translate('portal','empty_orders_body')};
- return <Shell section={section} action={action}><Head title={SECTION_LABEL_KEYS[section]?translate('portal',SECTION_LABEL_KEYS[section]):label(section,translate)}/><React.Suspense fallback={<SectionLoading/>}>
+ return <Shell section={d.hub?.home??section} action={action}><Head title={SECTION_LABEL_KEYS[section]?translate('portal',SECTION_LABEL_KEYS[section]):label(section,translate)}/><React.Suspense fallback={<SectionLoading/>}>
+ {d.hub&&<OfficeHubTabs hub={d.hub}/>}
  {staff&&d.branch_scope&&<BranchScopeChip scope={d.branch_scope}/>}
- {d.hub&&<PartnerHubNav hub={d.hub}/>}
+ {d.partner_hub&&<PartnerHubNav hub={d.partner_hub}/>}
  {section==='overview'&&<DashboardOverview data={d} orders={<OrderTable page={d.orders}/>}/>}
  {['orders','deliveries','reports'].includes(section)&&<section className="panel table-panel" data-tour="orders-table">{section==='orders'&&d.order_status_counts&&<StatusTabs counts={d.order_status_counts} filters={filters} section="orders" statuses={orderStatuses}/>}{section==='deliveries'&&d.delivery_summary&&<DeliverySummary summary={d.delivery_summary}/>}{section==='orders'&&d.order_totals&&<OrderTotals totals={d.order_totals}/>}<Filter section={section} filters={filters} actions={<>{staff&&(caps.includes('reports')||caps.includes('finance'))&&<Link className="button small" href="/operations/financial-reports">{translate('portal','excel_pdf_reports')}</Link>}{(!staff||caps.includes('reports')||caps.includes('orders')||caps.includes('finance'))&&<a className="button small" data-tour="invoice-actions" href={ordersExportHref(section,filters)}><Download size={15}/>{staff?translate('portal','export_csv'):translate('partner_hub','export_excel')}</a>}</>}/><OrderTable page={d.orders} empty={ordersEmpty.title} emptyBody={ordersEmpty.body} searchable={false} report overdue={section==='deliveries'&&filters.status==='overdue_delivery'}/></section>}
  {section==='deliveries'&&staff&&d.courier_board&&<CourierBoard board={d.courier_board}/>}

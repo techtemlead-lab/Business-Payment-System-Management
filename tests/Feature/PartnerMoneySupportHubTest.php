@@ -47,9 +47,10 @@ class PartnerMoneySupportHubTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('portals/dealer/Dashboard')
                 ->where('section', $tab)
-                ->where('data.hub.active', $tab)
-                ->where('data.hub.title', 'My money')
-                ->where('data.hub.tabs', fn ($tabs) => collect($tabs)->pluck('path')->all() === ['/earnings', '/withdrawals', '/payment-receipts', '/full-report']));
+                ->where('data.partner_hub.active', $tab)
+                ->where('data.partner_hub.title', 'My money')
+                ->missing('data.hub')
+                ->where('data.partner_hub.tabs', fn ($tabs) => collect($tabs)->pluck('path')->all() === ['/earnings', '/withdrawals', '/payment-receipts', '/full-report']));
     }
 
     public function test_statement_opens_the_all_records_tab_for_dealers_and_sub_dealers(): void
@@ -59,14 +60,14 @@ class PartnerMoneySupportHubTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('PartnerStatement')
-                ->where('hub.active', 'full-report')
+                ->where('partner_hub.active', 'full-report')
                 ->where('staffView', false));
 
         $subDealer = User::factory()->create(['role' => 'sub_dealer', 'status' => 'active', 'dealer_code' => 'MNHC-SUB1', 'phone' => '01710000102']);
         $this->actingAs($subDealer)->onPortal('subdealer')
             ->get('/statement')
             ->assertOk()
-            ->assertInertia(fn ($page) => $page->component('PartnerStatement')->where('hub.active', 'full-report'));
+            ->assertInertia(fn ($page) => $page->component('PartnerStatement')->where('partner_hub.active', 'full-report'));
     }
 
     public function test_money_tabs_keep_the_figures_each_tab_needs(): void
@@ -100,8 +101,8 @@ class PartnerMoneySupportHubTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('section', $tab)
-                ->where('data.hub.active', $tab)
-                ->where('data.hub.tabs', fn ($tabs) => collect($tabs)->pluck('path')->all() === ['/circulars', '/notifications']));
+                ->where('data.partner_hub.active', $tab)
+                ->where('data.partner_hub.tabs', fn ($tabs) => collect($tabs)->pluck('path')->all() === ['/circulars', '/notifications']));
     }
 
     public function test_office_pages_do_not_get_partner_tabs(): void
@@ -111,7 +112,7 @@ class PartnerMoneySupportHubTest extends TestCase
         $this->actingAs($owner)->onPortal('sadmin')
             ->get('/withdrawals')
             ->assertOk()
-            ->assertInertia(fn ($page) => $page->where('section', 'withdrawals')->missing('data.hub'));
+            ->assertInertia(fn ($page) => $page->where('section', 'withdrawals')->missing('data.partner_hub'));
     }
 
     public function test_requests_from_both_old_forms_still_show_to_the_partner(): void

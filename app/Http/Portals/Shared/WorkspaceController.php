@@ -36,6 +36,7 @@ use App\Http\Portals\Shared\Sections\FeedbackSection;
 use App\Http\Portals\Shared\Sections\FinanceSection;
 use App\Http\Portals\Shared\Sections\InventorySection;
 use App\Http\Portals\Shared\Sections\NetworkSection;
+use App\Http\Portals\Shared\Sections\OfficeHubSection;
 use App\Http\Portals\Shared\Sections\OrdersSection;
 use App\Http\Portals\Shared\Sections\OverviewSection;
 use App\Http\Portals\Shared\Sections\PrescriptionsSection;
@@ -56,6 +57,7 @@ use App\Models\PlaceCode;
 use App\Models\User;
 use App\Support\JoinQr;
 use App\Support\Money;
+use App\Support\OfficeHubs;
 use App\Support\PartnerHubTabs;
 use App\Support\PortalCatalog;
 use App\Support\PortalHost;
@@ -90,6 +92,7 @@ class WorkspaceController extends Controller
         ContentSection::class,
         ProfileSection::class,
         NetworkSection::class,
+        OfficeHubSection::class,
         SalarySection::class,
         WithdrawalsSection::class,
         SupportSection::class,
@@ -151,6 +154,9 @@ class WorkspaceController extends Controller
                 'page' => $r->query('page'),
             ], fn ($value) => $value !== null && $value !== '')));
         }
+        if ($staff && $section === 'reports') {
+            return redirect(OfficeHubs::oldReportsAddress($u, in_array($portal, ['manage', 'sadmin'], true), $r->query()));
+        }
         $orders = Order::query()->when(! $staff, fn ($q) => $q->where('user_id', $u->id))->when($staff && ! $u->allows('orders') && ! $u->allows('finance'), fn ($q) => $q->whereRaw('1=0'));
         // Staff pages that follow the top-bar branch switcher show only the picked branch.
         $branchScope = $staff && BranchScope::covers($section) ? app(BranchOperations::class)->scopeFor($u, $r) : null;
@@ -183,7 +189,7 @@ class WorkspaceController extends Controller
         }
         $partnerHub = PartnerHubTabs::forSection($section, $staff);
         if ($partnerHub !== null) {
-            $data['hub'] = $partnerHub;
+            $data['partner_hub'] = $partnerHub;
         }
 
         return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role', 'channel', 'category', 'sub_category', 'unit', 'min_mrp', 'max_mrp', 'availability', 'sort', 'period', 'from', 'to', 'division', 'district', 'rank', 'no_order_days', 'branch_id', 'all_branches'])]);

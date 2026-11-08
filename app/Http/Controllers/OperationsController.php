@@ -18,6 +18,7 @@ use App\Models\Product;
 use App\Models\User;
 use App\Support\DeploymentReadiness;
 use App\Support\Money;
+use App\Support\OfficeHubs;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -66,6 +67,7 @@ class OperationsController extends Controller
         $data = ['section' => $section, 'tables' => [], 'paymentAccounts' => [], 'partners' => [], 'staff' => [], 'summary' => [], 'partnerSearch' => (string) $request->string('q')];
         if ($section === 'financial-reports') {
             $data['reportTypes'] = app(ReportData::class)->availableTo($actor);
+            $data['reportGroups'] = OfficeHubs::reportGroups($actor, $data['reportTypes']);
         }
         $staff = User::staffAccounts()->orderBy('name')->get(['id', 'name', 'role', 'status', 'profile']);
         if ($actor->allows('staff_admin') || $actor->allows('finance')) {
@@ -113,6 +115,7 @@ class OperationsController extends Controller
             }
         }
         if ($section === 'policy-schedules') {
+            $data['hub'] = OfficeHubs::commission($actor, true, $section);
             // Changes waiting for the owner come first, with old → new values and who proposed them.
             $tables['policy_schedules'] = DB::table('commission_policy_schedules as s')->leftJoin('users as u', 'u.id', '=', 's.user_id')
                 ->leftJoin('users as proposer', 'proposer.id', '=', 's.created_by')->leftJoin('users as reviewer', 'reviewer.id', '=', 's.reviewed_by')

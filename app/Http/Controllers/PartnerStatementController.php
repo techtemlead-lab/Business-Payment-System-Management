@@ -44,7 +44,7 @@ class PartnerStatementController extends Controller
             'statement' => $ledger,
             'staffView' => $staffView,
             'statementBase' => $staffView ? '/accounts/'.$partner->id.'/statement' : '/statement',
-            'hub' => $staffView ? null : PartnerHubTabs::money('full-report'),
+            'partner_hub' => $staffView ? null : PartnerHubTabs::money('full-report'),
         ]);
     }
 

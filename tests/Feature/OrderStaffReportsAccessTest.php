@@ -16,10 +16,7 @@ class OrderStaffReportsAccessTest extends TestCase
 
         $this->actingAs($manager)->onPortal('manage')
             ->get('/reports')
-            ->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->component('portals/manage/Dashboard')
-                ->where('section', 'reports'));
+            ->assertRedirect('/orders');
 
         $this->actingAs($manager)->onPortal('manage')
             ->get('/exports/orders')
