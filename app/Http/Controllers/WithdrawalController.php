@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Notifications\PartnerEventSms;
+use App\Domain\Notifications\SmsText;
 use App\Domain\Payouts\ManualPayoutService;
 use App\Domain\Payouts\PayoutReceipts;
 use App\Models\User;
@@ -34,10 +35,10 @@ class WithdrawalController extends Controller
             app(PartnerEventSms::class)->send(
                 $user,
                 'withdrawal.requested',
-                __('sms.withdrawal_requested', [
+                SmsText::make('sms.withdrawal_requested', [
                     'amount' => $data['amount'],
                     'channel' => $data['channel'],
-                ], $user->preferredLocale()),
+                ]),
             );
         }
         if ($r->expectsJson()) {
@@ -110,10 +111,10 @@ class WithdrawalController extends Controller
         app(PartnerEventSms::class)->send(
             $partner,
             'withdrawal.'.$event,
-            __($template, [
+            SmsText::make($template, [
                 'amount' => $withdrawal->amount,
                 'channel' => $withdrawal->channel,
-            ], $partner->preferredLocale()),
+            ]),
         );
     }
 

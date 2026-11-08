@@ -16,6 +16,9 @@ final class PartnerEventSms
     /** Messages that carry a login code or password. */
     public const SecretEvents = ['login.otp', 'account.password_reset', 'account.created'];
 
+    /** One-time codes. Greenweb's Bangla-only rule makes an exception for these; all others are refused without Bangla. */
+    public const OtpEvents = ['login.otp'];
+
     /** "We got your message" texts that anyone on the public website can trigger. */
     public const PublicEvents = ['enquiry.public_received', 'partnership.application_received'];
 
@@ -70,7 +73,10 @@ final class PartnerEventSms
 
     private function deliver(string $phone, string $event, string $message, ?int $userId): bool
     {
-        $remote = $this->gateway->send($phone, $message);
+        $remote = $this->gateway->send($phone, $message, in_array($event, self::OtpEvents, true));
+        if ($remote['refused']) {
+            return false;
+        }
         if ($remote['sent']) {
             Log::info('partner.event.sms.gateway', [
                 'user_id' => $userId,
@@ -80,6 +86,13 @@ final class PartnerEventSms
             ]);
 
             return true;
+        }
+
+        // A real SMS service is on and did not take this text: it was not delivered, and its text stays out of the log.
+        if ($this->gateway->anyEnabled()) {
+            Log::warning('partner.event.sms.undelivered', ['user_id' => $userId, 'phone' => $phone, 'event' => $event]);
+
+            return false;
         }
 
         $driver = (string) config('madina.sms.driver', 'log');

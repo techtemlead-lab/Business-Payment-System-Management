@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Commissions\PolicyScheduling;
+use App\Domain\Finance\CompanyFunds;
 use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Finance\PayrollService;
@@ -229,6 +230,8 @@ class FinanceOperationsController extends Controller
         };
         $row = DB::table($table)->where('id', $id)->first();
         abort_unless($row && ($request->user()->allows('finance') || ($kind === 'payroll' && $row->staff_id === $request->user()->id)), 404);
+        // The owners' own fund stays out of staff sight, receipts included.
+        abort_if($kind === 'reserve' && in_array($row->fund_key, CompanyFunds::OwnerOnly, true) && ! $request->user()->owner(), 404);
         // Payment proof is the dealer's screenshot of the transfer, checked by finance before approval.
         $path = match ($kind) {
             'opening' => $row->evidence_path,
@@ -245,17 +248,18 @@ class FinanceOperationsController extends Controller
     {
         $data = $request->validate(['type' => ['required', Rule::in(ReportData::Types)], 'format' => 'required|in:xlsx,pdf',
             'from' => 'required|date_format:Y-m-d', 'to' => 'required|date_format:Y-m-d|after_or_equal:from',
-            'account_type' => ['nullable', Rule::in(ReportData::AccountTypes)]]);
+            'account_type' => ['nullable', Rule::in(ReportData::AccountTypes)], 'fund' => 'nullable|string|max:40', 'head' => 'nullable|integer|min:1']);
         if (CarbonImmutable::parse($data['from'])->diffInDays(CarbonImmutable::parse($data['to'])) > 366) {
             throw ValidationException::withMessages(['to' => __('portal.ops_val_date_range')]);
         }
         $accountType = in_array($data['type'], ReportData::AccountTypeReports, true) ? ($data['account_type'] ?? null) : null;
-        $report = $reports->query($request->user(), $data['type'], $data['from'], $data['to'], $accountType);
+        $report = $reports->query($request->user(), $data['type'], $data['from'], $data['to'], $accountType, ['fund' => $data['fund'] ?? null, 'head' => $data['head'] ?? null]);
         $this->limitReportToBranch($request, $data['type'], $report['query']);
         $partnerScope = in_array($data['type'], ReportData::AccountTypeReports, true) ? __('portal.ops_report_account_'.($accountType ?? 'all')) : null;
         $reportKey = str_replace('-', '_', $data['type']);
-        $reportNameKey = 'portal.ops_export_name_'.$reportKey;
-        $reportNoteKey = 'portal.ops_export_note_'.$reportKey;
+        $langFile = $data['type'] === 'fund-spending' ? 'funds' : 'portal';
+        $reportNameKey = $langFile.'.ops_export_name_'.$reportKey;
+        $reportNoteKey = $langFile.'.ops_export_note_'.$reportKey;
         $reportName = __($reportNameKey);
         if ($reportName === $reportNameKey) {
             $reportName = Str::headline($data['type']);
@@ -416,10 +420,14 @@ class FinanceOperationsController extends Controller
     /** Report column header in the viewer's language, e.g. "dealer_code" → "Dealer code". */
     private function reportColumnLabel(string $column): string
     {
-        $key = 'portal.rpt_col_'.$column;
-        $label = __($key);
+        foreach (['portal.rpt_col_'.$column, 'funds.rpt_col_'.$column] as $key) {
+            $label = __($key);
+            if ($label !== $key) {
+                return $label;
+            }
+        }
 
-        return $label === $key ? Str::headline($column) : $label;
+        return Str::headline($column);
     }
 
     /** Status / kind values in the viewer's language, falling back to a readable label. */
