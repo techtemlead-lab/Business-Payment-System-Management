@@ -137,7 +137,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
             <div className="metric"><span>{translate('portal', 'order_total')}</span><strong>{money(order.total)}</strong></div>
             <div className="metric"><span>{translate('portal', 'verified_payment')}</span><strong>{money(order.paid)}</strong></div>
             {paymentPrompt.waiting_for_check
-                ? <div className="metric"><span>{translate('order_payment', 'waiting_metric')}</span><strong>{money(paymentPrompt.waiting_amount)}</strong><small>{translate('order_payment', 'waiting_metric_hint')}</small></div>
+                ? <div className="metric"><span>{translate('order_payment', 'waiting_metric')}</span><strong>{money(paymentPrompt.waiting_amount)}</strong>{owner && <small>{translate('order_payment', 'waiting_metric_hint')}</small>}</div>
                 : <div className="metric"><span>{translate('portal', 'remaining_payment')}</span><strong>{money(outstanding)}</strong>{paymentPrompt.ask_for_payment && <small>{translate('portal', 'remaining_payment_hint')}</small>}</div>}
         </div>
         {owner && paymentPrompt.waiting_for_check && <div className="notice" role="status"><b>{translate('order_payment', 'waiting_title')}</b><p>{translate('order_payment', 'waiting_body', { amount: money(paymentPrompt.waiting_amount) })}</p></div>}

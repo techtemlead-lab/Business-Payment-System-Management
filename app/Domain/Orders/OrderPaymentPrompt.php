@@ -22,7 +22,7 @@ final class OrderPaymentPrompt
     public function for(Order $order, Collection $claims): array
     {
         $dueCents = Money::cents($order->outstanding());
-        $waitingCents = $claims->where('status', 'pending')->sum(fn (object $claim): int => Money::cents((string) $claim->amount));
+        $waitingCents = (int) $claims->where('status', 'pending')->sum(fn (object $claim): int => Money::cents((string) $claim->amount));
         $stillPayable = $dueCents > 0 && ! in_array($order->status, self::NoPaymentStatuses, true);
         $waitingForCheck = $stillPayable && $waitingCents >= $dueCents;
 
