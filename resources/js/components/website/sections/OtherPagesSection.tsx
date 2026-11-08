@@ -210,6 +210,8 @@ export default function OtherPagesSection({ form, defaults, websitePages, bnCopy
                                 <Field label={translate('portal', 'sce_f_share_label')} fieldKey="product_share_label" value={form.data.customization.product_share_label} placeholder={defaults.product_share_label} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_f_tab_description')} fieldKey="product_tab_description" value={form.data.customization.product_tab_description} placeholder={defaults.product_tab_description} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_f_tab_specification')} fieldKey="product_tab_specification" value={form.data.customization.product_tab_specification} placeholder={defaults.product_tab_specification} onChange={updateField} />
+                                <Field label={translate('product_facts', 'cms_medical_note')} fieldKey="product_medical_note" value={form.data.customization.product_medical_note} placeholder={defaults.product_medical_note} onChange={updateField} multiline rows={2} span2 />
+                                <Field label={translate('product_facts', 'cms_concern_title')} fieldKey="catalog_concern_title" value={form.data.customization.catalog_concern_title} placeholder={defaults.catalog_concern_title} onChange={updateField} />
                             </div>
         </WebsiteGroup>
         </WebsiteSection>

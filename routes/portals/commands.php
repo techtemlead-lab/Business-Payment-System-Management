@@ -15,6 +15,7 @@ use App\Http\Controllers\PrescriberVerificationController;
 use App\Http\Controllers\PrescriptionController;
 use App\Http\Controllers\PrescriptionToolsController;
 use App\Http\Controllers\ProductCategoryController;
+use App\Http\Controllers\ProductConcernController;
 use App\Http\Controllers\ProductRegistryController;
 use App\Http\Controllers\ProductSubcategoryController;
 use App\Http\Controllers\ProductUnitController;
@@ -91,6 +92,9 @@ return function (string $portal): void {
     Route::patch('/commands/products/{product}', [ProductRegistryController::class, 'update']);
     Route::delete('/commands/products/{product}', [ProductRegistryController::class, 'destroy']);
     Route::post('/commands/products/{product}/toggle-stock', [ProductRegistryController::class, 'toggleStock']);
+    Route::post('/commands/product-concerns', [ProductConcernController::class, 'store']);
+    Route::patch('/commands/product-concerns/{productConcern}', [ProductConcernController::class, 'update']);
+    Route::delete('/commands/product-concerns/{productConcern}', [ProductConcernController::class, 'destroy']);
     Route::post('/commands/product-categories', [ProductCategoryController::class, 'store']);
     Route::patch('/commands/product-categories/{productCategory}', [ProductCategoryController::class, 'update']);
     Route::delete('/commands/product-categories/{productCategory}', [ProductCategoryController::class, 'destroy']);

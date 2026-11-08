@@ -8,6 +8,7 @@ use App\Support\SiteCustomization;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use InvalidArgumentException;
 
@@ -51,6 +52,14 @@ class Product extends Model
     public function productUnit(): BelongsTo
     {
         return $this->belongsTo(ProductUnit::class, 'product_unit_id');
+    }
+
+    /**
+     * @return BelongsToMany<ProductConcern, $this>
+     */
+    public function concerns(): BelongsToMany
+    {
+        return $this->belongsToMany(ProductConcern::class, ProductConcern::PivotTable);
     }
 
     public function branchStocks(): HasMany

@@ -59,14 +59,16 @@
         @endif
     </div>
     <div class="ref-detail-info">
+        @if($concernTags !== [] || !empty($item['strength']))
         <div class="ref-product-concern-tags">
-            <span class="ref-concern-tag"><i class="fa-solid fa-leaf" aria-hidden="true"></i> {{ __('site.pd_tag_natural') }}</span>
-            <span class="ref-concern-tag"><i class="fa-solid fa-certificate" aria-hidden="true"></i> {{ __('site.pd_tag_gmp') }}</span>
-            <span class="ref-concern-tag"><i class="fa-solid fa-shield-heart" aria-hidden="true"></i> {{ __('site.pd_tag_safe') }}</span>
+            @foreach($concernTags as $concernTag)
+                <a class="ref-concern-tag" href="/products?concern={{ $concernTag['id'] }}">{{ $concernTag['name'] }}</a>
+            @endforeach
             @if(!empty($item['strength']))
                 <span class="ref-concern-tag potency"><i class="fa-solid fa-flask" aria-hidden="true"></i> {{ __('site.pd_strength') }}: {{ $item['strength'] }}</span>
             @endif
         </div>
+        @endif
 
         <h1>{{ $item['name'] }}</h1>
 
@@ -79,6 +81,8 @@
                 <span>{{ __('site.unit') }}: <b>{{ $item['unit'] }}</b></span>
             @endif
         </div>
+
+        <p class="ref-product-medical-note"><i class="fa-solid fa-user-doctor" aria-hidden="true"></i> <span>{{ $chrome('product_medical_note', $siteCustomization['product_medical_note'] ?? null) }}</span></p>
 
         <div class="ref-partner-information">
             <span class="ref-company-eyebrow">{{ __('site.product_network_eyebrow') }}</span>
@@ -102,20 +106,41 @@
 
 @php
     $hasVideo = !empty($item['video_url']) || !empty($item['video_embed_url']);
+    $hasDescription = filled($item['description'] ?? null);
+    $qualityPoints = $facts['quality_points'];
+    $usageSections = array_filter([
+        ['fa-book-medical', __('site.pd_directions_title'), $facts['dose']],
+        ['fa-seedling', __('product_facts.ingredients'), $facts['ingredients']],
+        ['fa-triangle-exclamation', __('product_facts.warnings'), $facts['warnings']],
+        ['fa-temperature-arrow-down', __('site.pd_storage_title'), $facts['storage']],
+    ], fn (array $section): bool => $section[2] !== null);
+    $factRows = array_filter([
+        __('product_facts.manufacturer') => $facts['manufacturer'],
+        __('product_facts.product_system') => $facts['product_system'],
+        __('product_facts.registration_number') => $facts['registration_number'],
+        __('product_facts.pack_size') => $facts['pack_size'],
+    ], fn (?string $value): bool => $value !== null);
+    $firstTab = $hasDescription ? 'description' : ($qualityPoints !== [] ? 'quality' : ($usageSections !== [] ? 'usage' : 'specification'));
 @endphp
 
 <section class="ref-product-description">
     <div class="ref-product-tabs" role="tablist" aria-label="{{ __('site.product_information') }}">
+        @if($hasDescription)
         <button role="tab" id="description-tab" aria-controls="description-panel" aria-selected="true" data-info-tab="description-panel">
             <i class="fa-solid fa-align-left" aria-hidden="true"></i> {{ $chrome('product_tab_description', $siteCustomization['product_tab_description'] ?? null) }}
         </button>
-        <button role="tab" id="benefits-tab" aria-controls="benefits-panel" aria-selected="false" data-info-tab="benefits-panel">
-            <i class="fa-solid fa-star" aria-hidden="true"></i> {{ __('site.product_tab_benefits') }}
+        @endif
+        @if($qualityPoints !== [])
+        <button role="tab" id="quality-tab" aria-controls="quality-panel" aria-selected="{{ $firstTab === 'quality' ? 'true' : 'false' }}" data-info-tab="quality-panel">
+            <i class="fa-solid fa-circle-check" aria-hidden="true"></i> {{ __('product_facts.quality_points') }}
         </button>
-        <button role="tab" id="usage-tab" aria-controls="usage-panel" aria-selected="false" data-info-tab="usage-panel">
+        @endif
+        @if($usageSections !== [])
+        <button role="tab" id="usage-tab" aria-controls="usage-panel" aria-selected="{{ $firstTab === 'usage' ? 'true' : 'false' }}" data-info-tab="usage-panel">
             <i class="fa-solid fa-flask" aria-hidden="true"></i> {{ __('site.product_tab_usage') }}
         </button>
-        <button role="tab" id="specification-tab" aria-controls="specification-panel" aria-selected="false" data-info-tab="specification-panel">
+        @endif
+        <button role="tab" id="specification-tab" aria-controls="specification-panel" aria-selected="{{ $firstTab === 'specification' ? 'true' : 'false' }}" data-info-tab="specification-panel">
             <i class="fa-solid fa-table-list" aria-hidden="true"></i> {{ $chrome('product_tab_specification', $siteCustomization['product_tab_specification'] ?? null) }}
         </button>
         @if($hasVideo)
@@ -126,74 +151,48 @@
     </div>
 
     {{-- Description Panel --}}
+    @if($hasDescription)
     <div id="description-panel" role="tabpanel" aria-labelledby="description-tab">
         <h2>{{ $chrome('product_tab_description', $siteCustomization['product_tab_description'] ?? null) }}</h2>
         <h3>{{ $item['name'] }}</h3>
         {{-- Kept on one line: this paragraph keeps the description's own line breaks (pre-wrap), so template indentation would show. --}}
-        <p class="ref-product-description-text">{{ $item['description'] ?: __('site.pd_default_description') }}</p>
-        <div class="ref-product-highlights-grid">
-            <div class="ref-highlight-box">
-                <i class="fa-solid fa-leaf" aria-hidden="true"></i>
-                <div>
-                    <strong>{{ __('site.pd_feature_herbs_title') }}</strong>
-                    <p>{{ __('site.pd_feature_herbs_body') }}</p>
-                </div>
-            </div>
-            <div class="ref-highlight-box">
-                <i class="fa-solid fa-check-double" aria-hidden="true"></i>
-                <div>
-                    <strong>{{ __('site.pd_feature_made_title') }}</strong>
-                    <p>{{ __('site.pd_feature_made_body') }}</p>
-                </div>
-            </div>
-        </div>
+        <p class="ref-product-description-text">{{ $item['description'] }}</p>
     </div>
+    @endif
 
-    {{-- Key Benefits & Features Panel --}}
-    <div id="benefits-panel" role="tabpanel" aria-labelledby="benefits-tab" hidden>
-        <h2>{{ __('site.product_tab_benefits') }}</h2>
+    {{-- Quality points the owner entered --}}
+    @if($qualityPoints !== [])
+    <div id="quality-panel" role="tabpanel" aria-labelledby="quality-tab" @if($firstTab !== 'quality') hidden @endif>
+        <h2>{{ __('product_facts.quality_points') }}</h2>
         <ul class="ref-benefits-list">
+            @foreach($qualityPoints as $qualityPoint)
             <li>
-                <span class="ref-benefit-icon"><i class="fa-solid fa-circle-check"></i></span>
-                <div>
-                    <strong>{{ __('site.pd_feature_natural_title') }}</strong>
-                    <p>{{ __('site.pd_feature_natural_body') }}</p>
-                </div>
+                <span class="ref-benefit-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></span>
+                <div><p>{{ $qualityPoint }}</p></div>
             </li>
-            <li>
-                <span class="ref-benefit-icon"><i class="fa-solid fa-circle-check"></i></span>
-                <div>
-                    <strong>{{ __('site.pd_feature_care_title') }}</strong>
-                    <p>{{ __('site.pd_feature_care_body') }}</p>
-                </div>
-            </li>
-            <li>
-                <span class="ref-benefit-icon"><i class="fa-solid fa-circle-check"></i></span>
-                <div>
-                    <strong>{{ __('site.pd_feature_advisers_title') }}</strong>
-                    <p>{{ __('site.pd_feature_advisers_body') }}</p>
-                </div>
-            </li>
+            @endforeach
         </ul>
     </div>
+    @endif
 
-    {{-- Usage, Directions & Ingredients Panel --}}
-    <div id="usage-panel" role="tabpanel" aria-labelledby="usage-tab" hidden>
+    {{-- Usage, Ingredients, Warnings and Storage the owner entered --}}
+    @if($usageSections !== [])
+    <div id="usage-panel" role="tabpanel" aria-labelledby="usage-tab" @if($firstTab !== 'usage') hidden @endif>
         <h2>{{ __('site.product_tab_usage') }}</h2>
         <div class="ref-usage-content">
+            @foreach($usageSections as [$icon, $title, $text])
             <div class="ref-usage-section">
-                <h3><i class="fa-solid fa-book-medical" aria-hidden="true"></i> {{ __('site.pd_directions_title') }}</h3>
-                <p>{{ __('site.pd_directions_body') }}</p>
+                <h3><i class="fa-solid {{ $icon }}" aria-hidden="true"></i> {{ $title }}</h3>
+                {{-- Kept on one line: this paragraph keeps the owner's own line breaks, so template indentation would show. --}}
+                <p class="ref-product-description-text">{{ $text }}</p>
             </div>
-            <div class="ref-usage-section">
-                <h3><i class="fa-solid fa-temperature-arrow-down" aria-hidden="true"></i> {{ __('site.pd_storage_title') }}</h3>
-                <p>{{ __('site.pd_storage_body') }}</p>
-            </div>
+            @endforeach
         </div>
     </div>
+    @endif
 
     {{-- Specifications Panel --}}
-    <div id="specification-panel" role="tabpanel" aria-labelledby="specification-tab" hidden>
+    <div id="specification-panel" role="tabpanel" aria-labelledby="specification-tab" @if($firstTab !== 'specification') hidden @endif>
         <h2>{{ $chrome('product_tab_specification', $siteCustomization['product_tab_specification'] ?? null) }}</h2>
         <table>
             <tbody>
@@ -217,6 +216,12 @@
                     <td>{{ $item['strength'] }}</td>
                 </tr>
                 @endif
+                @foreach($factRows as $label => $value)
+                <tr>
+                    <th>{{ $label }}</th>
+                    <td>{{ $value }}</td>
+                </tr>
+                @endforeach
                 <tr>
                     <th>{{ __('site.mrp') }}</th>
                     <td>৳ {{ \App\Support\LocalDigits::text(number_format((float) $item['mrp'], 2)) }}</td>
@@ -245,5 +250,7 @@
         </div>
     </div>
     @endif
-</section></main>
+</section>
+@include('reference.partials.product-reviews')
+</main>
 @endsection

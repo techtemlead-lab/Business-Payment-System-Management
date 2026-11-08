@@ -202,6 +202,8 @@ export function buildCustomizationFormData(customization: CustomizationData, def
             product_video_title: customization.product_video_title || '',
             product_tab_description: customization.product_tab_description || '',
             product_tab_specification: customization.product_tab_specification || '',
+            product_medical_note: customization.product_medical_note || '',
+            catalog_concern_title: customization.catalog_concern_title || '',
 
             // Brand Trust & Engagement Controls
             trust_pillars_enabled: customization.trust_pillars_enabled !== undefined ? customization.trust_pillars_enabled : '1',

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\ProductReviewController;
 use App\Http\Controllers\PublicController;
 use App\Support\PortalHost;
 use App\Support\SiteCustomization;
@@ -13,6 +14,7 @@ Route::get('/search/products', [PublicController::class, 'productSearch'])
     ->middleware('throttle:60,1')
     ->name('products.search');
 Route::get('/products/{product}', [PublicController::class, 'product'])->name('products.show');
+Route::post('/products/{product}/reviews', [ProductReviewController::class, 'store'])->middleware('throttle:5,1')->name('products.reviews.store');
 Route::get('/product/{product}', fn ($product) => redirect('/products/'.$product, 301));
 Route::get('/outlets', function () {
     abort_unless(SiteCustomization::isPageEnabled('dealers'), 404);

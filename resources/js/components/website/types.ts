@@ -164,6 +164,8 @@ export interface CustomizationData {
     product_video_title?: string;
     product_tab_description?: string;
     product_tab_specification?: string;
+    product_medical_note?: string;
+    catalog_concern_title?: string;
 
     // Brand Trust & Showcase (Category খ)
     trust_pillars_enabled?: string;
