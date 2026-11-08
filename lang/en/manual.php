@@ -1216,7 +1216,7 @@ return [
     'schemes_partner_s3' => 'If the scheme has a free item, it is added to your order by itself when you reach the minimum. Other benefits are arranged by the office by hand.',
     'schemes_partner_o1' => 'You can see every running scheme while you order.',
     'schemes_partner_t1' => 'If a scheme is not clear, ask the office before you pay.',
-    'schemes_partner_w1' => 'A scheme does not change your order total. Free items earn no commission.',
+    'schemes_partner_w1' => 'A scheme without a free item is information only. A scheme never changes your order total, and free items earn no commission.',
 
     'product_facts_badge' => 'Product facts',
     'product_facts_title' => 'Product facts and health concern tags',
