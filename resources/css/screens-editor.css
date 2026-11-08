@@ -248,7 +248,8 @@
 }
 
 /* Owner's one Website page: closed rows, search and a Save bar that stays in view. */
-.app-shell .ws-page{display:grid;gap:16px;min-width:0}
+.app-shell .ws-page{min-width:0}
+.app-shell .ws-page>*+*{margin-top:16px}
 .app-shell .ws-section{scroll-margin-top:84px}
 .app-shell .ws-section-title{margin:0 0 4px;font-size:var(--ds-fs-lg,20px)}
 .app-shell .ws-group-list{display:grid;gap:8px;margin-top:14px}

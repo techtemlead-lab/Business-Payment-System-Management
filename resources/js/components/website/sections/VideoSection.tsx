@@ -42,6 +42,7 @@ export default function VideoSection({
     return (
         <WebsiteSection id="video" title={translate('website_admin', 'section_video')} hint={translate('website_admin', 'section_video_hint')}>
             <WebsiteGroup title={translate('website_admin', 'group_home_video')}>
+                <p className="ed-desc is-sm">{translate('website_admin', 'home_video_own_save')}</p>
                 <p className="ed-desc is-sm">{translate('portal', 'ops_promote_video_hide')}</p>
                 {videoProducts.length === 0 && <p className="ed-desc is-sm">{translate('portal', 'ops_no_product_videos')}</p>}
                 <ActionForm action="/commands/operations/marketing/homepage-video" fields={homepageFields} defaults={homepageDefaults} submit={translate('portal', 'ops_save_homepage_video')} />

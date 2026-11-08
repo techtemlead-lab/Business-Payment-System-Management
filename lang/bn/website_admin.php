@@ -42,4 +42,5 @@ return [
     'settlement_details_incentives' => 'এককালীন র‍্যাংক পুরস্কারের তালিকা',
     'settlement_details_journal' => 'আগের হিসাবের খাতা',
     'settlement_row_count' => ':count টি সারি',
+    'home_video_own_save' => 'এই ভিডিওর সেভ বোতাম আলাদা, নিচের বড় সেভ এটি সেভ করে না। ওপরের লেখায় কিছু বদলে থাকলে আগে সেগুলো সেভ করুন।',
 ];
