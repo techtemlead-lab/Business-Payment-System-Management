@@ -104,7 +104,7 @@ class PartnerBirthdaySmsTest extends TestCase
         $this->assertEqualsCanonicalizing([$dealer->id, $subDealer->id], array_column($texts, 'user_id'));
         $this->assertNotContains($staff->id, array_column($texts, 'user_id'));
         $this->assertSame(
-            'Happy birthday from the Madina family, '.$dealer->name.'! Have a lovely day.',
+            'মদিনা পরিবারের পক্ষ থেকে শুভ জন্মদিন, '.$dealer->name.'! আপনার দিনটি ভালো কাটুক।',
             collect($texts)->firstWhere('user_id', $dealer->id)['message'],
         );
         $this->assertDatabaseHas('partner_birthday_greetings', ['user_id' => $dealer->id, 'year' => 2026]);
@@ -155,7 +155,7 @@ class PartnerBirthdaySmsTest extends TestCase
         $this->assertFalse(BirthdayGreetings::isBirthday('not a date', CarbonImmutable::parse('2027-03-01')));
     }
 
-    public function test_sms_is_written_in_the_partners_preferred_language(): void
+    public function test_sms_is_always_written_in_bangla_whatever_language_the_partner_prefers(): void
     {
         $this->turnOn();
         $this->travelTo(CarbonImmutable::parse('2026-11-05 09:00:00', 'Asia/Dhaka'));
@@ -166,7 +166,7 @@ class PartnerBirthdaySmsTest extends TestCase
 
         $texts = collect($this->birthdayTexts())->keyBy('user_id');
         $this->assertSame('মদিনা পরিবারের পক্ষ থেকে শুভ জন্মদিন, রহিম উদ্দিন! আপনার দিনটি ভালো কাটুক।', $texts[$bangla->id]['message']);
-        $this->assertSame('Happy birthday from the Madina family, '.$english->name.'! Have a lovely day.', $texts[$english->id]['message']);
+        $this->assertSame('মদিনা পরিবারের পক্ষ থেকে শুভ জন্মদিন, করিম! আপনার দিনটি ভালো কাটুক।', $texts[$english->id]['message']);
         foreach ($texts as $text) {
             foreach (['income', 'commission', 'earn', 'order', 'offer', 'আয়', 'কমিশন', 'অর্ডার'] as $word) {
                 $this->assertStringNotContainsStringIgnoringCase($word, $text['message']);
