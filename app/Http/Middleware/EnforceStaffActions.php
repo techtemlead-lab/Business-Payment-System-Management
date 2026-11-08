@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\Clinic\PrescriptionAccess;
 use App\Domain\Support\PartnerChat;
 use App\Models\User;
 use App\Support\PortalHost;
@@ -75,6 +76,12 @@ class EnforceStaffActions
         }
         if ($controller === 'FinanceOperationsController' && $method === 'receipt' && $actor->owner()) {
             // Owners check the bill before approving a spend; the controller checks again.
+            return $next($request);
+        }
+        $prescribing = $controller === 'PrescriptionToolsController'
+            || ($controller === 'PrescriptionController' && in_array($method, ['storePatient', 'updatePatient', 'store', 'dispense'], true));
+        if ($prescribing && PrescriptionAccess::usesCompanyStock($actor)) {
+            // Office accounts switched on for company stock prescribe and dispense; the domain checks again.
             return $next($request);
         }
         if ($controller === 'DataCleanupController' && $actor->owner()) {

@@ -52,7 +52,7 @@ return [
             'dashboards', 'employees', 'accounts', 'sub-dealers', 'sub-dealer-applications', 'sub-dealer-orders', 'treasury', 'inventory', 'branches', 'branch-performance',
             'payments', 'policies', 'salary', 'withdrawals', 'ledger', 'reports', 'top-sellers', 'content', 'website', 'customization',
             'enquiries', 'feedback', 'partnerships', 'audit', 'commissions', 'network-tree', 'area-dealers', 'place-codes', 'ranks', 'rewards',
-            'settlements', 'simulator', 'payouts-hub', 'help', 'support-admin', 'agreement', 'partner-messages', 'training', 'events', 'company-funds',
+            'settlements', 'simulator', 'payouts-hub', 'help', 'support-admin', 'agreement', 'partner-messages', 'training', 'events', 'prescriptions', 'company-funds',
         ],
         'staff_capabilities' => [
             'dashboards' => 'accounts',
@@ -104,6 +104,7 @@ return [
             'reports' => ['reports', 'top-sellers'],
             'website' => ['website', 'content', 'enquiries', 'feedback'],
             'learning' => ['training', 'events'],
+            'clinic' => ['prescriptions'],
             'system' => ['audit', 'support-admin', 'agreement', 'partner-messages'],
             'dealer_directory' => ['accounts', 'partnerships'],
             'dealer_fulfillment' => ['orders', 'deliveries'],

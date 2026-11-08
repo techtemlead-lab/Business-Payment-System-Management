@@ -12,23 +12,52 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 /**
- * The per-partner prescribing switch on the owner's accounts page. Owners and staff with
- * the "prescriber_verify" permission turn it on after checking the registration offline.
+ * The per-account prescribing switch: for partners on the accounts page, for office accounts
+ * on the employees page. Owners and staff with the "prescriber_verify" permission turn it on
+ * after checking the registration offline.
  */
 class PrescriberVerificationController extends Controller
 {
+    /** Office accounts listed at once; a search by name reaches the rest. */
+    private const OfficeAccountLimit = 50;
+
     public function __construct(private PrescriberVerification $verification) {}
 
     public function show(Request $request, User $user): JsonResponse
     {
         abort_unless(PrescriptionAccess::canVerify($request->user()), 403);
-        abort_unless(PrescriptionAccess::isPartner($user), 404);
+        abort_unless(PrescriptionAccess::isPartner($user) || PrescriptionAccess::isOfficeAccount($user), 404);
 
         return response()->json([
             'can_edit' => true,
             'types' => PrescriberRegistration::Types,
             ...$this->verification->status($user),
         ]);
+    }
+
+    /** Office accounts (MD, Chairman, staff) for the company-stock switch; those switched on come first. */
+    public function officeAccounts(Request $request): JsonResponse
+    {
+        abort_unless(PrescriptionAccess::canVerify($request->user()), 403);
+        $data = $request->validate(['q' => 'nullable|string|max:80']);
+        $term = trim((string) ($data['q'] ?? ''));
+        $accounts = User::query()
+            ->staffAccounts()
+            ->where('role', '!=', 'super_admin')
+            ->when($term !== '', fn ($query) => $query->where('name', 'ilike', '%'.$term.'%'))
+            ->orderByDesc('can_prescribe')
+            ->orderBy('name')
+            ->limit(self::OfficeAccountLimit)
+            ->get(['id', 'name', 'role', 'status', 'can_prescribe'])
+            ->map(fn (User $account): array => [
+                'id' => $account->id,
+                'name' => $account->name,
+                'role' => $account->role,
+                'status' => $account->status,
+                'enabled' => (bool) $account->can_prescribe,
+            ]);
+
+        return response()->json(['data' => $accounts]);
     }
 
     public function enable(Request $request, User $user): RedirectResponse

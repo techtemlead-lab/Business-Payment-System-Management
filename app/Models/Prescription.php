@@ -34,6 +34,8 @@ use Illuminate\Support\Carbon;
  * @property string $clinic_fund
  * @property int|null $dispensed_by
  * @property Carbon|null $dispensed_at
+ * @property string $payment_method
+ * @property string|null $payment_reference
  */
 class Prescription extends Model
 {
@@ -48,10 +50,15 @@ class Prescription extends Model
 
     public const StatusDispensed = 'dispensed';
 
+    public const PaymentCash = 'cash';
+
+    /** How a clinic sale can be paid; cash is the default. */
+    public const PaymentMethods = [self::PaymentCash, 'bkash', 'nagad', 'bank', 'other'];
+
     protected $fillable = [
         'number', 'kind', 'prescriber_id', 'patient_id', 'prescribed_on', 'complaints', 'diagnosis', 'advice', 'follow_up_on',
         'subtotal', 'discount_total', 'total', 'status', 'branch_id', 'mrp_total', 'manufacturer_share', 'clinic_fund',
-        'dispensed_by', 'dispensed_at',
+        'dispensed_by', 'dispensed_at', 'payment_method', 'payment_reference',
     ];
 
     /** @return array<string, string> */
