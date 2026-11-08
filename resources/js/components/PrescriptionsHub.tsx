@@ -5,6 +5,7 @@ import { DateInput, Empty, FormErrors, money } from './UI';
 import { useT } from '../shared/i18n/t';
 import { businessTodayIso } from '../business-date';
 import { SaveAsTemplate, TemplatePicker, TemplatesTab, type PrescriptionTools } from './PrescriptionTemplates';
+import { FollowUpsPanel } from './PrescriptionFollowUps';
 
 type Translate = ReturnType<typeof useT>;
 
@@ -132,6 +133,7 @@ export default function PrescriptionsHub({ data, tools }: { data: PrescriptionsD
                 </div>
                 <Tabs tabs={tabs} active={tab} onChange={setTab} />
             </section>
+            {tab === 'prescriptions' && <FollowUpsPanel followUps={tools.follow_ups} translate={translate} />}
             {tab === 'prescriptions' && <PrescriptionsTab data={data} tools={tools} translate={translate} />}
             {tab === 'patients' && <PatientsTab data={data} translate={translate} />}
             {tab === 'templates' && <TemplatesTab templates={tools.templates} translate={translate} />}

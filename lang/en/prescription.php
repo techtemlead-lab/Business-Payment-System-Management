@@ -172,4 +172,14 @@ return [
     'err_template_limit' => 'You can keep up to :max templates. Delete an old one to add a new one.',
     'flash_template_saved' => 'Template ":name" saved.',
     'flash_template_deleted' => 'Template deleted.',
+
+    'fu_title' => 'Patients to see again',
+    'fu_counts' => 'Due today: :today. Past their date: :overdue.',
+    'fu_empty' => 'Nobody is due back right now.',
+    'fu_due_today' => 'Due today',
+    'fu_days_late' => ':days days past',
+    'fu_done' => 'Seen',
+    'flash_follow_up_done' => 'Removed from the list.',
+    'notice_follow_up_title' => 'Patients to see again',
+    'notice_follow_up_body' => 'Due today: :today. Past their date: :overdue. Open the Prescriptions page for the list.',
 ];

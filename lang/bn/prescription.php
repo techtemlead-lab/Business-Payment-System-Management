@@ -172,4 +172,14 @@ return [
     'err_template_limit' => 'সর্বোচ্চ :maxটি টেমপ্লেট রাখা যায়। পুরোনো কোনোটা মুছে নতুনটা রাখুন।',
     'flash_template_saved' => 'টেমপ্লেট ":name" রাখা হলো।',
     'flash_template_deleted' => 'টেমপ্লেট মুছে দেওয়া হলো।',
+
+    'fu_title' => 'আবার দেখানোর তালিকা',
+    'fu_counts' => 'আজ দেখানোর কথা: :today জন। তারিখ পার হয়ে গেছে: :overdue জন।',
+    'fu_empty' => 'এখন কাউকে দেখানোর কথা নেই।',
+    'fu_due_today' => 'আজ দেখানোর কথা',
+    'fu_days_late' => ':days দিন পার হয়ে গেছে',
+    'fu_done' => 'দেখা হয়ে গেছে',
+    'flash_follow_up_done' => 'তালিকা থেকে সরানো হলো।',
+    'notice_follow_up_title' => 'আবার দেখানোর রোগী',
+    'notice_follow_up_body' => 'আজ দেখানোর কথা: :today জন। তারিখ পার হয়ে গেছে: :overdue জন। তালিকা দেখতে প্রেসক্রিপশন পাতায় যান।',
 ];

@@ -4,6 +4,7 @@ import { BookmarkPlus, Trash2 } from 'lucide-react';
 import { Empty } from './UI';
 import { useT } from '../shared/i18n/t';
 import type { LineForm } from './PrescriptionsHub';
+import type { FollowUpsData } from './PrescriptionFollowUps';
 
 type Translate = ReturnType<typeof useT>;
 
@@ -26,6 +27,7 @@ export type TemplateRow = {
 
 export type PrescriptionTools = {
     templates: TemplateRow[];
+    follow_ups: FollowUpsData;
 };
 
 /** Fills the new-prescription form from a saved template; nothing is saved until the form is. */

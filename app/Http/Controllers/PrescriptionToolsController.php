@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Clinic\PrescriptionAccess;
+use App\Domain\Clinic\PrescriptionFollowUps;
 use App\Domain\Clinic\PrescriptionTemplates;
 use App\Models\Prescription;
 use App\Models\PrescriptionTemplate;
@@ -15,7 +16,7 @@ use Illuminate\Http\Request;
  */
 class PrescriptionToolsController extends Controller
 {
-    public function __construct(private PrescriptionTemplates $templates) {}
+    public function __construct(private PrescriptionTemplates $templates, private PrescriptionFollowUps $followUps) {}
 
     public function storeTemplate(Request $request): RedirectResponse
     {
@@ -38,5 +39,12 @@ class PrescriptionToolsController extends Controller
         $this->templates->delete($request->user(), $template);
 
         return back()->with('success', __('prescription.flash_template_deleted'));
+    }
+
+    public function markFollowUpDone(Request $request, Prescription $prescription): RedirectResponse
+    {
+        $this->followUps->markDone($request->user(), $prescription);
+
+        return back()->with('success', __('prescription.flash_follow_up_done'));
     }
 }
