@@ -49,6 +49,9 @@ class DashboardManagement
 
             // Support tickets waiting longer than this many hours for an office reply are marked overdue.
             'support_overdue_hours' => 24,
+
+            // Direct partners with no order for this many days appear in their sponsor's alerts.
+            'partner_inactive_days' => 30,
         ];
     }
 
@@ -94,6 +97,13 @@ class DashboardManagement
                 throw ValidationException::withMessages(['support_overdue_hours' => __('portal.err_support_overdue_hours')]);
             }
             $clean['support_overdue_hours'] = $hours;
+        }
+        if (array_key_exists('partner_inactive_days', $clean)) {
+            $days = filter_var($clean['partner_inactive_days'], FILTER_VALIDATE_INT);
+            if ($days === false || $days < 7 || $days > 365) {
+                throw ValidationException::withMessages(['partner_inactive_days' => __('dealer_tools.err_partner_inactive_days')]);
+            }
+            $clean['partner_inactive_days'] = $days;
         }
         foreach (['dealer_min_order', 'subdealer_min_order'] as $moneyKey) {
             if (! array_key_exists($moneyKey, $clean)) {

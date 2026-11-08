@@ -30,6 +30,7 @@ use App\Http\Portals\Shared\Sections\CommissionsSection;
 use App\Http\Portals\Shared\Sections\CompanyFundsSection;
 use App\Http\Portals\Shared\Sections\ContentSection;
 use App\Http\Portals\Shared\Sections\DataCleanupSection;
+use App\Http\Portals\Shared\Sections\DealerToolsSection;
 use App\Http\Portals\Shared\Sections\EmployeesSection;
 use App\Http\Portals\Shared\Sections\EventsSection;
 use App\Http\Portals\Shared\Sections\FeedbackSection;
@@ -108,6 +109,7 @@ class WorkspaceController extends Controller
         PrescriptionsSection::class,
         PrescriptionToolsSection::class,
         PublicTrustSection::class,
+        DealerToolsSection::class,
         CompanyFundsSection::class,
     ];
 

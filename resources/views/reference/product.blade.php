@@ -47,6 +47,9 @@
     </div>
 </div>
 @endif
+@if(!empty($sharePartner) && filled(request()->query('ref')))
+    @include('reference.partials.partner-enquiry-form', ['partner' => $sharePartner, 'productId' => $item['id'], 'code' => (string) request()->query('ref')])
+@endif
 <section class="ref-detail-card">
     <div class="ref-detail-image">
         @if(!empty($item['image_path']))

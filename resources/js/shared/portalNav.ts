@@ -65,7 +65,7 @@ export const SECTION_LABEL_KEYS: Record<string, string> = {
     'sub-dealer-applications': 'sub_dealer_applications', 'login-rules': 'login_rules',
     employees: 'employees', dashboards: 'dashboards', help: 'help', 'support-admin': 'support_admin', agreement: 'agreement',
     messages: 'chat_nav_partner', 'partner-messages': 'chat_nav_office', 'top-sellers': 'top_sellers',
-    training: 'training', events: 'events', 'payment-receipts': 'payment_receipts', 'data-cleanup': 'cleanup_nav', prescriptions: 'prescriptions',
+    training: 'training', events: 'events', 'payment-receipts': 'payment_receipts', 'data-cleanup': 'cleanup_nav', prescriptions: 'prescriptions', 'sales-kit': 'sales_kit', customers: 'customer_book', schemes: 'dated_schemes',
 };
 
 function defaultHrefPath(section: string): string {
@@ -237,6 +237,8 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('benefits-fund');
     if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('data-cleanup');
     if (ownerPortal && OWNER_ROLES.includes(role)) items.add('login-rules');
+    if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('sales-kit');
+    if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('schemes');
     if (prescriber) items.add('prescriptions');
     if (capabilities.some((cap) => ['catalog', 'pricing', 'inventory', 'orders', 'finance'].includes(cap))) items.add('catalog');
     if (capabilities.includes('inventory')) {
@@ -286,6 +288,8 @@ export function buildPartnerAvailable(role: string, dashboardControls?: Record<s
         if (prescriber) {
             items.add('prescriptions');
         }
+        items.add('sales-kit');
+        items.add('customers');
         return items;
     }
     if (role === 'sub_dealer') {
@@ -310,6 +314,8 @@ export function buildPartnerAvailable(role: string, dashboardControls?: Record<s
         if (prescriber) {
             items.add('prescriptions');
         }
+        items.add('sales-kit');
+        items.add('customers');
         return items;
     }
     return new Set(['profile', 'security', 'notifications']);
@@ -324,7 +330,7 @@ function staffMothers(available: Set<string>): NavMother[] {
         mother('clinic', 'nav_module_clinic', pick(available, ['prescriptions'])),
         mother('payouts', 'nav_module_payouts', pick(available, ['payouts-hub', 'settlements', 'salary'])),
         mother('partners', 'nav_module_partners', pick(available, [
-            'accounts', 'sub-dealers', 'partnerships', 'sub-dealer-applications', 'network-tree', 'area-dealers', 'ranks', 'agreement',
+            'accounts', 'sub-dealers', 'partnerships', 'sub-dealer-applications', 'network-tree', 'area-dealers', 'ranks', 'agreement', 'schemes', 'sales-kit',
         ])),
         mother('stock', 'nav_module_stock', pick(available, ['catalog-products', 'stock', 'branches'])),
         mother('finance', 'nav_module_finance', pick(available, ['treasury', 'company-funds', 'reserve-payouts', 'benefits-fund', 'ledger', 'payment-accounts'])),
@@ -345,10 +351,10 @@ function partnerMothers(role: string, available: Set<string>): NavMother[] {
     const shared = {
         home: mother('home', 'nav_module_home', pick(available, ['overview'])),
         newOrder: mother('new-order', 'purchase', pick(available, ['purchase'])),
-        orders: mother('commerce', 'nav_module_commerce', pick(available, ['orders', 'deliveries', 'catalog'])),
+        orders: mother('commerce', 'nav_module_commerce', pick(available, ['orders', 'deliveries', 'catalog', ...(role === 'dealer' ? [] : ['customers'])])),
         money: mother('earnings', 'nav_module_earnings', pick(available, ['partner-money'])),
         clinic: mother('clinic', 'nav_module_clinic', pick(available, ['prescriptions'])),
-        office: mother('office', 'nav_module_office', pick(available, ['messages', 'partner-notices', 'share-feedback', 'help'])),
+        office: mother('office', 'nav_module_office', pick(available, ['messages', 'partner-notices', 'sales-kit', 'share-feedback', 'help'])),
         account: mother('account', 'nav_module_account', pick(available, ['profile', 'security', 'agreement'])),
     };
     if (role === 'dealer') {
@@ -357,7 +363,7 @@ function partnerMothers(role: string, available: Set<string>): NavMother[] {
             shared.newOrder,
             shared.orders,
             shared.money,
-            mother('network', 'nav_module_network', pick(available, ['network', 'ranks', 'top-sellers'])),
+            mother('network', 'nav_module_network', pick(available, ['network', 'customers', 'ranks', 'top-sellers'])),
             mother('learning', 'nav_module_learning', pick(available, ['training', 'events'])),
             shared.clinic,
             shared.office,

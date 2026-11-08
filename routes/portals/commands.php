@@ -5,7 +5,9 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\CommandController;
 use App\Http\Controllers\CourierShipmentController;
+use App\Http\Controllers\CustomerBookController;
 use App\Http\Controllers\DataCleanupController;
+use App\Http\Controllers\DatedSchemeController;
 use App\Http\Controllers\IdentityLookupController;
 use App\Http\Controllers\PartnerAgreementController;
 use App\Http\Controllers\PartnerChatController;
@@ -22,6 +24,7 @@ use App\Http\Controllers\ProductUnitController;
 use App\Http\Controllers\PublicTrustAdminController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SalesKitController;
 use App\Http\Controllers\TrainingController;
 use App\Http\Controllers\WithdrawalController;
 use Illuminate\Support\Facades\Route;
@@ -190,5 +193,15 @@ return function (string $portal): void {
     Route::post('/commands/accounts/{user}/prescriber', [PrescriberVerificationController::class, 'enable'])->middleware('throttle:20,1');
     Route::delete('/commands/accounts/{user}/prescriber', [PrescriberVerificationController::class, 'disable'])->middleware('throttle:20,1');
 
+    // Partner tools.
+    Route::post('/commands/schemes', [DatedSchemeController::class, 'store'])->middleware('throttle:30,1');
+    Route::delete('/commands/schemes/{datedScheme}', [DatedSchemeController::class, 'destroy'])->whereNumber('datedScheme')->middleware('throttle:30,1');
+    Route::post('/commands/customers', [CustomerBookController::class, 'store'])->middleware('throttle:60,1');
+    Route::patch('/commands/customers/{customer}', [CustomerBookController::class, 'update'])->whereNumber('customer')->middleware('throttle:60,1');
+    Route::post('/commands/customers/{customer}/follow-up-done', [CustomerBookController::class, 'followUpDone'])->whereNumber('customer')->middleware('throttle:60,1');
+    Route::delete('/commands/customers/{customer}', [CustomerBookController::class, 'destroy'])->whereNumber('customer')->middleware('throttle:60,1');
+    Route::post('/commands/sales-kit', [SalesKitController::class, 'store'])->middleware('throttle:30,1');
+    Route::delete('/commands/sales-kit/{salesKitItem}', [SalesKitController::class, 'destroy'])->whereNumber('salesKitItem')->middleware('throttle:30,1');
+    Route::get('/sales-kit/{salesKitItem}/file', [SalesKitController::class, 'file'])->whereNumber('salesKitItem')->middleware('throttle:120,1');
     require __DIR__.'/productivity.php';
 };
