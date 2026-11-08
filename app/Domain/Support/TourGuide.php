@@ -154,6 +154,9 @@ final class TourGuide
     {
         $sideMenu = '[data-tour="sidebar-nav"], .workspace-menu-button';
         $courierStep = $this->overviewStep('[data-tour="recent-orders"]', 'tour_partner_courier', 'tour_cat_orders', 'manual');
+        // The cards are drawn only when there is something to say; the tour skips them otherwise.
+        $alertsStep = $this->overviewStep('[data-testid="partner-alerts"], [data-testid="next-steps"]', 'tour_partner_alerts', 'tour_cat_targets', 'manual');
+        $moneyStep = $this->overviewStep($sideMenu, 'tour_partner_money', 'tour_cat_nav', 'manual');
         $prescriptionSteps = $user !== null && PrescriptionAccess::canPrescribe($user)
             ? [$this->overviewStep($sideMenu, 'tour_partner_rx', 'tour_cat_nav', 'manual')]
             : [];
@@ -162,6 +165,7 @@ final class TourGuide
             $this->overviewStep('[data-tour="home-profile"]', 'tour_dealer_step_profile', 'tour_cat_profile'),
             $this->overviewStep('.ph-actions', 'tour_dealer_step_buy', 'tour_cat_buy'),
             $this->overviewStep('[data-tour="home-metrics"]', 'tour_dealer_step_metrics', 'tour_cat_metrics'),
+            $alertsStep,
             $this->overviewStep('[data-tour="home-targets"]', 'tour_dealer_step_targets', 'tour_cat_targets'),
             $this->overviewStep('[data-tour="recent-orders"]', 'tour_dealer_step_orders', 'tour_cat_orders'),
             $courierStep,
@@ -169,6 +173,7 @@ final class TourGuide
             $this->overviewStep('[data-tour="header-actions"]', 'tour_dealer_step_header', 'tour_cat_controls'),
             ...$this->topBarSteps(),
             $this->overviewStep($sideMenu, 'tour_dealer_step_sidebar', 'tour_cat_nav'),
+            $moneyStep,
             ...$prescriptionSteps,
         ];
 
@@ -177,6 +182,7 @@ final class TourGuide
             $this->overviewStep('.ph-actions', 'tour_subdealer_step_buy', 'tour_cat_buy'),
             $this->overviewStep('[data-tour="sponsor-contact"]', 'tour_subdealer_step_sponsor', 'tour_cat_sponsor'),
             $this->overviewStep('[data-tour="home-metrics"]', 'tour_subdealer_step_metrics', 'tour_cat_metrics'),
+            $alertsStep,
             $this->overviewStep('[data-tour="home-targets"]', 'tour_subdealer_step_targets', 'tour_cat_targets'),
             $this->overviewStep('[data-tour="recent-orders"]', 'tour_subdealer_step_orders', 'tour_cat_orders'),
             $courierStep,
@@ -184,6 +190,7 @@ final class TourGuide
             $this->overviewStep('[data-tour="header-actions"]', 'tour_subdealer_step_header', 'tour_cat_controls'),
             ...$this->topBarSteps(),
             $this->overviewStep($sideMenu, 'tour_subdealer_step_sidebar', 'tour_cat_nav'),
+            $moneyStep,
             ...$prescriptionSteps,
         ];
 
@@ -197,6 +204,12 @@ final class TourGuide
                 'requires' => ['overview'],
                 'steps' => [
                     ['target' => '[data-tour="profile-panel"]', 'title' => __('portal.tour_profile_panel_title'), 'body' => __('portal.tour_profile_panel_body'), 'tip' => __('portal.tour_profile_panel_tip')],
+                ],
+            ],
+            'security' => [
+                'title' => __('portal.tour_profile_security_title'),
+                'requires' => ['overview'],
+                'steps' => [
                     ['target' => '[data-tour="security-link"]', 'title' => __('portal.tour_profile_security_title'), 'body' => __('portal.tour_profile_security_body'), 'tip' => __('portal.tour_profile_security_tip')],
                 ],
             ],
@@ -205,7 +218,13 @@ final class TourGuide
                 'requires' => ['overview'],
                 'steps' => [
                     ['target' => '[data-tour="catalog-grid"]', 'title' => __('portal.tour_catalog_grid_title'), 'body' => __('portal.tour_catalog_grid_body'), 'tip' => __('portal.tour_catalog_grid_tip')],
-                    ['target' => '[data-tour="catalog-cart"]', 'title' => __('portal.tour_catalog_cart_title'), 'body' => __('portal.tour_catalog_cart_body'), 'tip' => __('portal.tour_catalog_cart_tip')],
+                ],
+            ],
+            'purchase' => [
+                'title' => __('portal.tour_catalog_cart_title'),
+                'requires' => ['overview'],
+                'steps' => [
+                    ['target' => '[data-tour="purchase-matrix"]', 'title' => __('portal.tour_catalog_cart_title'), 'body' => __('portal.tour_catalog_cart_body'), 'tip' => __('portal.tour_catalog_cart_tip')],
                 ],
             ],
             'orders' => [
@@ -282,6 +301,12 @@ final class TourGuide
                 'requires' => ['overview'],
                 'steps' => [
                     ['target' => '[data-tour="profile-panel"]', 'title' => __('portal.tour_staff_profile_panel_title'), 'body' => __('portal.tour_staff_profile_panel_body')],
+                ],
+            ],
+            'security' => [
+                'title' => __('portal.tour_profile_security_title'),
+                'requires' => ['overview'],
+                'steps' => [
                     ['target' => '[data-tour="security-link"]', 'title' => __('portal.tour_profile_security_title'), 'body' => __('portal.tour_staff_profile_security_body')],
                 ],
             ],
@@ -403,6 +428,7 @@ final class TourGuide
             $this->overviewStep('[data-tour="recent-orders"]', 'tour_office_courier', 'tour_cat_orders', 'manual'),
             $this->overviewStep('[data-tour="sidebar-nav"], .workspace-menu-button', $prefix.'_domains', 'tour_cat_domains'),
             $this->overviewStep('[data-tour="header-actions"]', $prefix.'_header', 'tour_cat_controls'),
+            $this->overviewStep('.global-search-trigger', 'tour_office_search', 'tour_cat_controls', 'manual'),
             ...$this->topBarSteps(),
             // The switcher is drawn only when the person has a branch; the tour skips it otherwise.
             $this->overviewStep('.branch-workspace-select', 'tour_branch', 'tour_cat_controls', 'manual'),
