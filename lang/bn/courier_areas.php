@@ -56,7 +56,7 @@ return [
     'err_zone_required' => 'জোনের নম্বর লিখুন।',
     'err_area_required' => 'এলাকার নম্বর লিখুন।',
     'err_redx_name' => 'রেডএক্সে এলাকার নামও লাগে। নাম লিখুন, অথবা রেডএক্স থেকে তালিকা আনুন।',
-    'err_status_map' => 'প্রতি লাইনে লিখুন: কুরিয়ারের কথা = ধাপ। ধাপগুলো হলো waiting_pickup, picked_up, in_transit, delivered এবং returned।',
+    'err_status_map' => 'প্রতি লাইনে লিখুন: কুরিয়ারের কথা = ধাপ। ধাপগুলো হলো waiting, picked up, in transit, delivered এবং returned।',
     'err_keys_first' => 'আগে সার্ভিস ইন্টিগ্রেশনে :courier চালু করে তার কী দিন।',
 
     'needs_mapping' => 'এলাকা মিলানো বাকি: প্লেস কোড :code বা তার ওপরের কোনো জায়গায় :courier এর এলাকা দেওয়া নেই। কুরিয়ারের এলাকা পাতায় দিয়ে আবার চেষ্টা করুন, অথবা কুরিয়ার বদলান।',

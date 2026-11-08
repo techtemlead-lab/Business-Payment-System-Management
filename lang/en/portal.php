@@ -6410,5 +6410,5 @@ return [
     'event_courier_area_removed' => 'Courier area match removed',
     'event_courier_area_fetch_started' => 'Fetching areas from a courier started',
     'si_field_status_field' => 'Where the status is in the tracking answer (leave blank if unsure)',
-    'si_field_status_map' => 'Status words, one per line: courier\'s words = waiting_pickup, picked_up, in_transit, delivered or returned',
+    'si_field_status_map' => 'Status words, one per line: courier\'s words = waiting, picked up, in transit, delivered or returned',
 ];

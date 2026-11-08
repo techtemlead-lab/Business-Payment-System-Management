@@ -6410,5 +6410,5 @@ return [
     'event_courier_area_removed' => 'কুরিয়ারের এলাকার মিল মুছে দেওয়া হয়েছে',
     'event_courier_area_fetch_started' => 'কুরিয়ার থেকে এলাকা আনা শুরু হয়েছে',
     'si_field_status_field' => 'ট্র্যাকিং উত্তরে অবস্থাটা যেখানে থাকে (না জানলে ফাঁকা রাখুন)',
-    'si_field_status_map' => 'অবস্থার কথা, প্রতি লাইনে একটা: কুরিয়ারের কথা = waiting_pickup, picked_up, in_transit, delivered অথবা returned',
+    'si_field_status_map' => 'অবস্থার কথা, প্রতি লাইনে একটা: কুরিয়ারের কথা = waiting, picked up, in transit, delivered অথবা returned',
 ];

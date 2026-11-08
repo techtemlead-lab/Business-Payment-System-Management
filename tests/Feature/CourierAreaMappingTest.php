@@ -237,7 +237,7 @@ class CourierAreaMappingTest extends TestCase
 
     public function test_tracking_uses_the_owners_word_before_its_own_guess(): void
     {
-        $this->enableCourier('paperfly', ['username' => 'm', 'password' => 'p', 'status_map' => 'Point Received = picked_up']);
+        $this->enableCourier('paperfly', ['username' => 'm', 'password' => 'p', 'status_map' => 'Point Received = picked up']);
         Http::fake(['courier.test/*' => Http::response(['status' => 'Point Received'])]);
         $shipment = $this->bookedPaperflyShipment();
 

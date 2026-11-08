@@ -2,17 +2,26 @@
 
 namespace App\Domain\Integrations;
 
-use App\Domain\Orders\ShipmentTracking;
 use Illuminate\Support\Str;
 
 /**
  * The owner's own reading of a courier's tracking answer, for couriers whose wording is not
- * published clearly. Each line says "courier's words = our step", such as "Received at point = in_transit".
+ * published clearly. Each line says "courier's words = our step", such as "Received at point = in transit".
  * A line the courier never sends does nothing; a courier word with no line falls back to the
  * usual reading of the status.
  */
 final class CourierStatusMap
 {
+    /** @var array<string, string> The plain words the owner writes for our tracking steps. */
+    private const StepWords = [
+        'waiting' => 'waiting_pickup',
+        'waiting pickup' => 'waiting_pickup',
+        'picked up' => 'picked_up',
+        'in transit' => 'in_transit',
+        'delivered' => 'delivered',
+        'returned' => 'returned',
+    ];
+
     /**
      * @return array<string, string> The courier's words in lower case, and the step they mean.
      */
@@ -86,7 +95,9 @@ final class CourierStatusMap
         }
         [$words, $step] = array_map('trim', explode('=', $line, 2));
 
-        return $words !== '' && in_array($step, ShipmentTracking::Statuses, true) ? [$words, $step] : null;
+        $step = self::StepWords[self::key(str_replace('_', ' ', $step))] ?? null;
+
+        return $words !== '' && $step !== null ? [$words, $step] : null;
     }
 
     private static function key(string $words): string

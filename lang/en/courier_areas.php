@@ -56,7 +56,7 @@ return [
     'err_zone_required' => 'Enter the zone number.',
     'err_area_required' => 'Enter the area number.',
     'err_redx_name' => 'RedX also needs the area name. Type it, or fetch the list from RedX.',
-    'err_status_map' => 'Each line must read: courier\'s words = step. The steps are waiting_pickup, picked_up, in_transit, delivered and returned.',
+    'err_status_map' => 'Each line must read: courier\'s words = step. The steps are waiting, picked up, in transit, delivered and returned.',
     'err_keys_first' => 'Turn on :courier and enter its keys in service integrations first.',
 
     'needs_mapping' => 'Needs area mapping: no :courier area is set for place code :code or any place above it. Add it on the Courier areas page, then press Retry, or change the courier.',
