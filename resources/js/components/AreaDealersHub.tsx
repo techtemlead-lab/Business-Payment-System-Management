@@ -55,6 +55,8 @@ interface AreaDealersHubProps {
     /** Count, quota and per-division figures over every dealer, not just this page. */
     summary?: { total: number; total_quota: string; divisions: { division: string; count: number; total_quota: string }[] };
     areaFilters?: { division?: string; level?: string; q?: string };
+    /** The area dealer fund percentage from the commission rules. */
+    areaPoolRate?: string;
     divisions: string[];
     dealers_list: DealerOption[];
     place_codes?: PlaceCodeOption[];
@@ -67,7 +69,7 @@ const levelMeta: Record<string, { labelKey: string; tone: string; defaultQuota: 
     union: { labelKey: 'area_lvl_union', tone: 'tone-warn', defaultQuota: 10000 },
 };
 
-export default function AreaDealersHub({ assignments: page, summary, areaFilters = {}, divisions }: AreaDealersHubProps) {
+export default function AreaDealersHub({ assignments: page, summary, areaFilters = {}, areaPoolRate, divisions }: AreaDealersHubProps) {
     const translate = useT();
     const { url } = usePage();
     // The table is one server page (25 rows); the division cards and totals come from the server over every dealer.
@@ -127,7 +129,7 @@ export default function AreaDealersHub({ assignments: page, summary, areaFilters
                         <Compass size={16} /> {translate('portal', 'area_kpi_pool')}
                     </div>
                     <div className="ops-figure ops-mt-1">
-                        4.00%
+                        {areaPoolRate ? translate('portal', 'area_kpi_pool_value', { rate: areaPoolRate }) : '—'}
                     </div>
                     <div className="hub-hint">{translate('portal', 'area_kpi_pool_hint')}</div>
                 </div>
