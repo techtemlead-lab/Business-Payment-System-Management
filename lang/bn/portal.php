@@ -6364,4 +6364,13 @@ return [
     'si_field_pathao_password' => 'মার্চেন্ট লগইন পাসওয়ার্ড',
     'event_shipment_consignment_updated' => 'কনসাইনমেন্ট নম্বর আপডেট হয়েছে',
     'event_order_mixed_outcome_decided' => 'মিশ্র ডেলিভারির কমিশনের সিদ্ধান্ত লেখা হয়েছে',
+    'stock_lots' => 'ব্যাচ ও মেয়াদ',
+    'section_hint_stock_lots' => 'যেসব ব্যাচের মেয়াদ শেষ হয়ে আসছে, রিকল, ব্রাঞ্চ ট্রান্সফার ও কী রিঅর্ডার করতে হবে।',
+    'event_stock_near_expiry_days_set' => 'মেয়াদের সতর্কতা বদলানো হয়েছে',
+    'event_stock_transfer_requested' => 'ব্রাঞ্চ ট্রান্সফারের অনুরোধ হয়েছে',
+    'event_stock_transfer_sent' => 'ব্রাঞ্চ ট্রান্সফার পাঠানো হয়েছে',
+    'event_stock_transfer_received' => 'ব্রাঞ্চ ট্রান্সফার গ্রহণ করা হয়েছে',
+    'event_stock_transfer_cancelled' => 'ব্রাঞ্চ ট্রান্সফার বাতিল হয়েছে',
+    'stock_received_on' => 'গ্রহণের তারিখ',
+    'stock_unit_cost' => 'প্রতি ইউনিটের খরচ',
 ];

@@ -49,6 +49,7 @@ use App\Http\Portals\Shared\Sections\PublicTrustSection;
 use App\Http\Portals\Shared\Sections\SalarySection;
 use App\Http\Portals\Shared\Sections\SectionContext;
 use App\Http\Portals\Shared\Sections\SectionDates;
+use App\Http\Portals\Shared\Sections\StockLotsSection;
 use App\Http\Portals\Shared\Sections\SupportSection;
 use App\Http\Portals\Shared\Sections\TerritorySection;
 use App\Http\Portals\Shared\Sections\TopSellersSection;
@@ -115,6 +116,7 @@ class WorkspaceController extends Controller
         PrescriberPublicSection::class,
         PrivacyRequestsSection::class,
         CompanyFundsSection::class,
+        StockLotsSection::class,
     ];
 
     public function index(Request $r, ProductPricing $pricing, string $section = 'overview'): Response|RedirectResponse

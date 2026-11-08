@@ -245,6 +245,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     if (capabilities.some((cap) => ['catalog', 'pricing', 'inventory', 'orders', 'finance'].includes(cap))) items.add('catalog');
     if (capabilities.includes('inventory')) {
         items.add('inventory');
+        items.add('stock-lots');
         items.add('branches');
     }
     if (capabilities.includes('accounts') && !items.has('branches')) items.add('branches');
@@ -334,7 +335,7 @@ function staffMothers(available: Set<string>): NavMother[] {
         mother('partners', 'nav_module_partners', pick(available, [
             'accounts', 'sub-dealers', 'partnerships', 'sub-dealer-applications', 'network-tree', 'area-dealers', 'ranks', 'agreement', 'schemes', 'sales-kit',
         ])),
-        mother('stock', 'nav_module_stock', pick(available, ['catalog-products', 'stock', 'branches'])),
+        mother('stock', 'nav_module_stock', pick(available, ['catalog-products', 'stock', 'stock-lots', 'branches'])),
         mother('finance', 'nav_module_finance', pick(available, ['treasury', 'company-funds', 'reserve-payouts', 'benefits-fund', 'ledger', 'accounting', 'payment-accounts'])),
         mother('commissions', 'nav_module_commissions', pick(available, [
             'commissions', 'commission-holds', 'rewards',

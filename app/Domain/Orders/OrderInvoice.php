@@ -3,6 +3,7 @@
 namespace App\Domain\Orders;
 
 use App\Domain\Inventory\BranchOperations;
+use App\Domain\Inventory\StockLotReports;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
@@ -139,8 +140,14 @@ final class OrderInvoice
         $sumCommission = 0;
         $sumTotal = 0;
 
+        $dispatchedBatches = app(StockLotReports::class)->dispatchedBatches($order->lines->pluck('id')->map(fn ($id): int => (int) $id)->all());
+        $formatExpiry = static fn (?string $date): ?string => $date ? CarbonImmutable::parse($date)->format('d/m/Y') : null;
+
         foreach ($order->lines as $index => $line) {
             $product = $products->get($line->product_id);
+            $sentBatches = $dispatchedBatches[(int) $line->id] ?? [];
+            // Sent before batches were recorded: the copy taken when the order was placed is all there is.
+            $usesOrderCopy = $sentBatches === [] && (int) $line->dispatched > 0;
             $qty = (int) $line->quantity;
             $mrpCents = Money::cents((string) $line->mrp);
             $rateCents = Money::cents((string) $line->unit_price);
@@ -163,8 +170,9 @@ final class OrderInvoice
                 'sub_category' => $product?->sub_category,
                 'category' => $product?->category,
                 'pack_size' => (string) ($product?->unit ?: 'pack'),
-                'batch_number' => $line->batch_number,
-                'expires_on' => $line->expires_on ? CarbonImmutable::parse((string) $line->expires_on)->format('d/m/Y') : null,
+                'batches' => $usesOrderCopy && (filled($line->batch_number) || filled($line->expires_on))
+                    ? [['batch_number' => $line->batch_number, 'expires_on' => $formatExpiry($line->expires_on ? (string) $line->expires_on : null), 'quantity' => null]]
+                    : array_map(fn (array $batch): array => [...$batch, 'expires_on' => $formatExpiry($batch['expires_on'])], $sentBatches),
                 'quantity' => $qty,
                 'mrp' => Money::decimal($mrpCents),
                 'rate' => Money::decimal($rateCents),

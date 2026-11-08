@@ -6364,4 +6364,13 @@ return [
     'si_field_pathao_password' => 'Merchant login password',
     'event_shipment_consignment_updated' => 'Consignment number updated',
     'event_order_mixed_outcome_decided' => 'Commission decision recorded for a mixed delivery',
+    'stock_lots' => 'Batches and expiry',
+    'section_hint_stock_lots' => 'Batches expiring soon, recall, branch transfers and what to reorder.',
+    'event_stock_near_expiry_days_set' => 'Near-expiry warning changed',
+    'event_stock_transfer_requested' => 'Branch transfer requested',
+    'event_stock_transfer_sent' => 'Branch transfer sent',
+    'event_stock_transfer_received' => 'Branch transfer received',
+    'event_stock_transfer_cancelled' => 'Branch transfer cancelled',
+    'stock_received_on' => 'Date received',
+    'stock_unit_cost' => 'Cost per unit',
 ];

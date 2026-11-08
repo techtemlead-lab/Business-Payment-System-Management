@@ -172,6 +172,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                         {shipment.courier_booking_status === 'failed' && <p className="muted">{translate('portal', 'shipment_courier_booking_failed')}</p>}
                         <p>{date(shipment.created_at)} · {shipment.eta ? `${translate('portal', 'expected')} ${date(shipment.eta)}` : translate('portal', 'eta_to_be_confirmed')}</p>
                         <p>{lines.map((line: Row) => `${line.name} × ${line.quantity}`).join(', ')}</p>
+                        {lines.flatMap((line: Row) => (line.lots ?? []) as Row[]).filter((lot: Row) => lot.batch_number || lot.expires_on).map((lot: Row) => <p className="muted" key={lot.lot_id}>{lot.batch_number ? translate('portal', 'inv_batch', { batch: String(lot.batch_number) }) : ''}{lot.expires_on ? ` · ${translate('portal', 'inv_expiry', { date: date(String(lot.expires_on)) })}` : ''} × {lot.quantity}</p>)}
                         <Badge status={shipment.status} />
                         {capabilities.includes('inventory') && shipment.status === 'dispatched' && (shipment.courier_status === 'returned'
                             ? <>

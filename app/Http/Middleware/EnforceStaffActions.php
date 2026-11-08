@@ -191,6 +191,7 @@ class EnforceStaffActions
             'FinancialPreviewController' => [['finance'], 'view'],
             'WithdrawalController' => [['finance'], 'approve'],
             'InventoryController' => [['inventory'], 'create'],
+            'StockLotController' => [['inventory'], $method === 'requestTransfer' ? 'create' : 'edit'],
             'OrderController' => match ($method) {
                 'decision' => [['order_review'], 'approve'], 'verify' => [['finance'], 'approve'],
                 'dispatch', 'delivered' => [['inventory'], 'edit'], default => [['orders'], 'create'],
