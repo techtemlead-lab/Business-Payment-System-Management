@@ -45,7 +45,7 @@ return [
     'company_portal' => 'কোম্পানি প্যানেল',
     'my_account' => 'আমার অ্যাকাউন্ট',
     'skip_to_content' => 'মূল অংশে যান',
-    'timezone_currency' => 'ঢাকা, বাংলাদেশ',
+    'footer_location' => 'পীরগঞ্জ, রংপুর, বাংলাদেশ',
 
     'loading_experience' => 'মদিনা ন্যাচারাল হেলথ কেয়ার লোড হচ্ছে',
     'error_back_home' => 'হোমপেজে ফিরে যান',

@@ -456,6 +456,7 @@ export function buildCustomizationFormData(customization: CustomizationData, def
             footer_phone: customization.footer_phone || '',
             footer_email: customization.footer_email || '',
             footer_address: customization.footer_address || '',
+            footer_location: customization.footer_location || '',
             footer_link_about_url: customization.footer_link_about_url || '',
             footer_link_contact_url: customization.footer_link_contact_url || '',
             footer_link_dealer_apply_url: customization.footer_link_dealer_apply_url || '',

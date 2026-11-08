@@ -361,6 +361,7 @@ export interface CustomizationData {
     footer_phone?: string;
     footer_email?: string;
     footer_address?: string;
+    footer_location?: string;
 
     footer_link_about?: string;
     footer_link_about_url?: string;

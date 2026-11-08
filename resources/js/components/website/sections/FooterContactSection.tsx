@@ -53,6 +53,7 @@ export default function FooterContactSection({ form, defaults, bnCopy, updateFie
                                 <Field label={translate('portal', 'sce_f_footer_phone')} fieldKey="footer_phone" value={form.data.customization.footer_phone} placeholder={defaults.footer_phone} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_f_footer_email')} fieldKey="footer_email" value={form.data.customization.footer_email} placeholder={defaults.footer_email} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_f_footer_address')} fieldKey="footer_address" value={form.data.customization.footer_address} placeholder={defaults.footer_address} onChange={updateField} span2 />
+                                <Field label={translate('website_admin', 'field_footer_location')} fieldKey="footer_location" value={form.data.customization.footer_location} placeholder={defaults.footer_location} onChange={updateField} span2 />
                             </div>
         </WebsiteGroup>
 

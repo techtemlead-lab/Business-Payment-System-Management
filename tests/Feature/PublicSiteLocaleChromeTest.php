@@ -37,7 +37,7 @@ class PublicSiteLocaleChromeTest extends TestCase
             ->assertSee('আমাদের কোম্পানি', false)
             ->assertSee('ডিলার খুঁজুন', false)
             ->assertSee('কোম্পানি নোটিশ', false)
-            ->assertSee('ঢাকা, বাংলাদেশ', false)
+            ->assertSee('পীরগঞ্জ, রংপুর, বাংলাদেশ', false)
             ->assertSee('প্রাকৃতিক খাদ্য সম্পূরক', false)
             ->assertSee('চ্যাট', false)
             ->assertSee('id="ref-site-ui"', false)
@@ -180,7 +180,7 @@ class PublicSiteLocaleChromeTest extends TestCase
         $this->onPortal('public')->get('/')
             ->assertOk()
             ->assertSee('Company Notice', false)
-            ->assertSee('Dhaka, Bangladesh', false);
+            ->assertSee('Pirganj, Rangpur, Bangladesh', false);
 
         $this->onPortal('public')->get('/products')
             ->assertOk()
