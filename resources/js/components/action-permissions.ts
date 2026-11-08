@@ -28,6 +28,8 @@ export function actionAllowed(url:string,matrix:Matrix|undefined,method='post'):
     // Owners may refund without a staff matrix entry; the order page only shows this form when the server says canRefund.
     if(/^\/commands\/orders\/[^/]+\/refund$/.test(path))return true;
     if(/\/dispatch$|\/delivered$/.test(path))return any(['inventory'],'edit');
+    // Courier parcels: change courier, try a refused booking again, mark picked up.
+    if(/^\/commands\/orders\/[^/]+\/(courier|shipments\/\d+\/(courier-retry|picked-up))$/.test(path))return any(['inventory','order_review'],'edit');
     if(path.startsWith('/commands/claims')||path.startsWith('/commands/withdrawals'))return any(['finance'],'approve');
     if(path.startsWith('/commands/commissions'))return any(['finance'],path.endsWith('/rules')?'edit':path.endsWith('/simulate')?'view':'approve');
     if(path==='/commands/policies')return any(['finance'],'create');

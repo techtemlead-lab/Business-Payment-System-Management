@@ -2,6 +2,7 @@
 
 namespace App\Http\Portals\Shared\Sections;
 
+use App\Domain\Orders\CourierBoard;
 use App\Domain\Orders\OrderListFilter;
 use App\Domain\Orders\OverdueDeliveries;
 use App\Support\Money;
@@ -47,6 +48,10 @@ final class OrdersSection implements WorkspaceSection
         }
         if ($context->section === 'deliveries') {
             $props['delivery_summary'] = $this->deliverySummary($filteredOrders);
+            if ($context->isStaff) {
+                // Courier parcels board: filters by step and courier, and the refused bookings.
+                $props['courier_board'] = app(CourierBoard::class)->for($request, (clone $context->orders)->toBase()->reorder()->select('orders.id'));
+            }
         }
 
         return $props;

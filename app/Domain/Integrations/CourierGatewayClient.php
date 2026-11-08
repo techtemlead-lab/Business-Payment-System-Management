@@ -11,7 +11,7 @@ final class CourierGatewayClient
     public function __construct(private IntegrationSettings $settings) {}
 
     /**
-     * @param  array{recipient_name?:string, recipient_phone?:string, recipient_address?:string, amount?:string|int|float, invoice?:string, note?:string}  $shipment
+     * @param  array{recipient_name?:?string, recipient_phone?:?string, recipient_address?:string, amount?:string|int|float, invoice?:string, note?:string, pickup_address?:?string}  $shipment
      * @return array{success: bool, tracking: ?string, consignment_id: ?string, provider: ?string, message: string, raw: ?array}
      */
     public function create(string $provider, array $shipment): array
@@ -62,13 +62,42 @@ final class CourierGatewayClient
 
             return [
                 'success' => $response->successful(),
-                'status' => is_array($payload) ? (string) ($payload['status'] ?? $payload['delivery_status'] ?? $payload['data']['status'] ?? '') : null,
+                'status' => is_array($payload) ? $this->trackedStatus($payload) : null,
                 'message' => $response->successful() ? __('portal.si_courier_tracking_ok') : __('portal.si_courier_tracking_failed'),
                 'raw' => is_array($payload) ? $payload : null,
             ];
         } catch (\Throwable $exception) {
             return ['success' => false, 'status' => null, 'message' => __('portal.si_courier_tracking_error'), 'raw' => null];
         }
+    }
+
+    /**
+     * The parcel status in the courier's own words. Steadfast answers with "delivery_status"
+     * (its "status" is the HTTP code), Pathao with "data.order_status", RedX with a list of
+     * tracking messages (the newest last).
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function trackedStatus(array $payload): string
+    {
+        $tracking = $payload['tracking'] ?? null;
+        $latest = is_array($tracking) && array_is_list($tracking) && $tracking !== [] ? end($tracking) : null;
+        $candidates = [
+            $payload['delivery_status'] ?? null,
+            $payload['data']['order_status'] ?? null,
+            $payload['data']['order_status_slug'] ?? null,
+            is_array($latest) ? ($latest['message_en'] ?? $latest['status'] ?? null) : null,
+            $payload['data']['status'] ?? null,
+            $payload['order_status'] ?? null,
+            $payload['status'] ?? null,
+        ];
+        foreach ($candidates as $candidate) {
+            if (is_string($candidate) && trim($candidate) !== '' && ! is_numeric($candidate)) {
+                return trim($candidate);
+            }
+        }
+
+        return '';
     }
 
     /** @param  array<string, mixed>  $config @param  array<string, mixed>  $shipment */
@@ -143,7 +172,7 @@ final class CourierGatewayClient
             ->post(rtrim((string) $config['base_url'], '/').'/OrderPlacement', [
                 'merOrderRef' => $shipment['invoice'] ?? uniqid('ORD-', true),
                 'pickMerchantName' => 'Madina Natural Health Care',
-                'pickMerchantAddress' => __('portal.si_courier_pick_address'),
+                'pickMerchantAddress' => filled($shipment['pickup_address'] ?? null) ? $shipment['pickup_address'] : __('portal.si_courier_pick_address'),
                 'productSizeWeight' => 'standard',
                 'productBrief' => $shipment['note'] ?? __('portal.si_courier_default_item'),
                 'packagePrice' => (float) ($shipment['amount'] ?? 0),

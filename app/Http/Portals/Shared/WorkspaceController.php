@@ -13,8 +13,10 @@ use App\Domain\Geography\ManagementReferral;
 use App\Domain\Identity\BdrisLookup;
 use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\BranchScope;
+use App\Domain\Orders\CourierOptions;
 use App\Domain\Orders\OrderInvoice;
 use App\Domain\Orders\OrderRefund;
+use App\Domain\Orders\ShipmentTracking;
 use App\Domain\Orders\UplineReplacementOptions;
 use App\Domain\Pricing\ProductPricing;
 use App\Domain\Staff\StaffPermissions;
@@ -45,6 +47,7 @@ use App\Http\Portals\Shared\Sections\TopSellersSection;
 use App\Http\Portals\Shared\Sections\TrainingSection;
 use App\Http\Portals\Shared\Sections\WithdrawalsSection;
 use App\Http\Portals\Shared\Sections\WorkspaceSection;
+use App\Jobs\RefreshShipmentTracking;
 use App\Models\Order;
 use App\Models\PlaceCode;
 use App\Models\User;
@@ -55,6 +58,8 @@ use App\Support\PortalHost;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -298,10 +303,40 @@ class WorkspaceController extends Controller
             'fullPaymentRequired' => app(FinanceSettings::class)->fullPaymentWhenOrdering()['enabled'],
             'claims' => DB::table('payment_claims')->where('order_id', $order->id)->get(['id', 'channel', 'reference', 'amount', 'status', 'reason', 'created_at']),
             'events' => DB::table('order_events')->where('order_id', $order->id)->orderBy('id')->get(['id', 'action', 'metadata', 'created_at']),
-            'shipments' => DB::table('shipments')->where('order_id', $order->id)->orderBy('id')->get(['id', 'courier', 'tracking', 'courier_contact', 'eta', 'status', 'courier_booking_status', 'lines', 'delivered_at', 'created_at']),
+            'shipments' => $this->shipmentsWithTracking($order, showBookingErrors: (int) $order->user_id !== (int) $u->id),
+            'courierChoices' => $u->allows('inventory') || $u->allows('order_review') ? app(CourierOptions::class)->enabled() : [],
             'refund' => DB::table('order_refunds as f')->join('users as staff', 'staff.id', '=', 'f.refunded_by')->where('f.order_id', $order->id)
                 ->first(['f.amount', 'f.reason', 'f.created_at', 'staff.name as refunded_by']),
             'canRefund' => OrderRefund::canRefund($u) && (int) $u->id !== (int) $order->user_id
                 && in_array($order->status, OrderRefund::RefundableStatuses, true) && Money::cents($order->paid) > 0]);
+    }
+
+    /**
+     * The order's parcels with their courier tracking. Opening the page also asks the courier
+     * for news in the background, at most once every ten minutes per parcel, so the page
+     * (which refreshes itself every few seconds) never waits for the courier.
+     *
+     * @return Collection<int, \stdClass>
+     */
+    private function shipmentsWithTracking(Order $order, bool $showBookingErrors): Collection
+    {
+        $shipments = DB::table('shipments')->where('order_id', $order->id)->orderBy('id')->get([
+            'id', 'courier', 'tracking', 'courier_contact', 'eta', 'status', 'courier_booking_status', 'courier_booking_error', 'courier_provider',
+            'courier_consignment_id', 'courier_status', 'courier_status_raw', 'courier_status_at', 'courier_tracked_at', 'courier_timeline',
+            'lines', 'delivered_at', 'created_at',
+        ]);
+        foreach ($shipments as $shipment) {
+            $shipment->tracking_url = CourierOptions::trackingUrl($shipment->courier_provider, $shipment->tracking, $shipment->courier_consignment_id);
+            $shipment->courier_timeline = json_decode((string) ($shipment->courier_timeline ?? '[]'), true) ?: [];
+            if (ShipmentTracking::isTrackable($shipment) && Cache::add('courier-tracking:'.$shipment->id, true, now()->addMinutes(10))) {
+                RefreshShipmentTracking::dispatch((int) $shipment->id);
+            }
+            unset($shipment->courier_consignment_id);
+            if (! $showBookingErrors) {
+                unset($shipment->courier_booking_error);
+            }
+        }
+
+        return $shipments;
     }
 }

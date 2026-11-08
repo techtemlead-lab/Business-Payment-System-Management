@@ -3,8 +3,10 @@
 namespace App\Http\Requests\Backend;
 
 use App\Domain\Finance\FinanceSettings;
+use App\Domain\Orders\CourierOptions;
 use App\Domain\Orders\PaymentProof;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreOrderRequest extends FormRequest
 {
@@ -38,6 +40,8 @@ class StoreOrderRequest extends FormRequest
             'items.*.quantity' => 'required|integer|min:1|max:10000',
             'idempotency_key' => 'required|uuid',
             'note' => 'nullable|string|max:1000',
+            // Only the couriers the owner switched on, or "company decides" (the default).
+            'courier_choice' => ['nullable', 'string', Rule::in(app(CourierOptions::class)->choiceKeys())],
             'reference' => ($paidWithOrder ? 'required' : 'nullable').'|string|max:100',
             'payment_account_id' => 'nullable|integer|exists:payment_accounts,id',
             'channel' => ($paidWithOrder ? 'required' : 'nullable|required_with:reference').'|in:bKash,Nagad,Rocket,Bank',
