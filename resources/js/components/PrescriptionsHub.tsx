@@ -109,7 +109,8 @@ const dosingFields = (line: LineForm) => ({
     dose_schedule: line.dose_schedule || null,
     food_timing: line.food_timing || null,
     duration_count: line.duration_count === '' ? null : Number(line.duration_count),
-    duration_unit: line.duration_count === '' ? null : line.duration_unit,
+    // A line filled from a template or an old prescription may have no unit yet; the dropdown shows days.
+    duration_unit: line.duration_count === '' ? null : (line.duration_unit || 'day'),
 });
 
 /** Morning, noon and night amounts, such as 1+0+1, with the other structured dosing beside them. */
