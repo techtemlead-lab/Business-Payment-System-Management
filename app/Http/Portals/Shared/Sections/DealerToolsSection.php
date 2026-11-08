@@ -4,6 +4,7 @@ namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Accounts\PartnerAlerts;
 use App\Domain\Accounts\PartnerNextSteps;
+use App\Domain\Content\SalesKit;
 use App\Domain\Orders\RepeatOrderOptions;
 
 /**
@@ -24,6 +25,10 @@ final class DealerToolsSection implements WorkspaceSection
                 ...app(PartnerAlerts::class)->cardFor($context->user),
                 'next_steps' => app(PartnerNextSteps::class)->for($context->user),
             ];
+        }
+
+        if ($context->section === 'sales-kit') {
+            $props['sales_kit'] = app(SalesKit::class)->forViewer($context->user);
         }
 
         return $props;

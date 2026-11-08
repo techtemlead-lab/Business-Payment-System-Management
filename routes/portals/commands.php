@@ -20,6 +20,7 @@ use App\Http\Controllers\ProductSubcategoryController;
 use App\Http\Controllers\ProductUnitController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SalesKitController;
 use App\Http\Controllers\TrainingController;
 use App\Http\Controllers\WithdrawalController;
 use Illuminate\Support\Facades\Route;
@@ -177,4 +178,9 @@ return function (string $portal): void {
     Route::get('/commands/accounts/{user}/prescriber', [PrescriberVerificationController::class, 'show'])->middleware('throttle:60,1');
     Route::post('/commands/accounts/{user}/prescriber', [PrescriberVerificationController::class, 'enable'])->middleware('throttle:20,1');
     Route::delete('/commands/accounts/{user}/prescriber', [PrescriberVerificationController::class, 'disable'])->middleware('throttle:20,1');
+
+    // Partner tools.
+    Route::post('/commands/sales-kit', [SalesKitController::class, 'store'])->middleware('throttle:30,1');
+    Route::delete('/commands/sales-kit/{salesKitItem}', [SalesKitController::class, 'destroy'])->whereNumber('salesKitItem')->middleware('throttle:30,1');
+    Route::get('/sales-kit/{salesKitItem}/file', [SalesKitController::class, 'file'])->whereNumber('salesKitItem')->middleware('throttle:120,1');
 };

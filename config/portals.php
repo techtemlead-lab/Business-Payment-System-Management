@@ -16,7 +16,7 @@
 return [
     'dealer' => [
         'page' => 'portals/dealer/Dashboard',
-        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'earnings', 'network', 'ranks', 'top-sellers', 'withdrawals', 'payment-receipts', 'full-report', 'share-feedback', 'help', 'messages', 'training', 'events', 'prescriptions'],
+        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'earnings', 'network', 'ranks', 'top-sellers', 'withdrawals', 'payment-receipts', 'full-report', 'share-feedback', 'help', 'messages', 'training', 'events', 'prescriptions', 'sales-kit'],
         'nav' => [
             'home' => ['overview', 'top-sellers'],
             'commerce' => ['orders', 'purchase', 'catalog', 'deliveries'],
@@ -25,6 +25,7 @@ return [
             'account' => ['messages', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help'],
             'learning' => ['training', 'events'],
             'clinic' => ['prescriptions'],
+            'tools' => ['sales-kit'],
         ],
         'partner_commands' => true,
         'staff_commands' => false,
@@ -32,7 +33,7 @@ return [
     ],
     'subdealer' => [
         'page' => 'portals/subdealer/Dashboard',
-        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'earnings', 'salary', 'top-sellers', 'withdrawals', 'payment-receipts', 'full-report', 'share-feedback', 'help', 'messages', 'training', 'events', 'prescriptions'],
+        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'earnings', 'salary', 'top-sellers', 'withdrawals', 'payment-receipts', 'full-report', 'share-feedback', 'help', 'messages', 'training', 'events', 'prescriptions', 'sales-kit'],
         'nav' => [
             'home' => ['overview', 'top-sellers'],
             'commerce' => ['orders', 'purchase', 'catalog', 'deliveries'],
@@ -40,6 +41,7 @@ return [
             'account' => ['messages', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help'],
             'learning' => ['training', 'events'],
             'clinic' => ['prescriptions'],
+            'tools' => ['sales-kit'],
         ],
         'partner_commands' => true,
         'staff_commands' => false,
@@ -126,7 +128,7 @@ return [
             'dashboards', 'employees', 'accounts', 'sub-dealers', 'sub-dealer-applications', 'sub-dealer-orders', 'treasury', 'inventory', 'branches', 'branch-performance',
             'payments', 'policies', 'salary', 'withdrawals', 'ledger', 'reports', 'top-sellers', 'content', 'website', 'customization',
             'enquiries', 'feedback', 'partnerships', 'audit', 'commissions', 'network-tree', 'area-dealers', 'place-codes', 'ranks', 'rewards',
-            'settlements', 'simulator', 'payouts-hub', 'benefits-fund', 'help', 'support-admin', 'agreement', 'partner-messages', 'training', 'events', 'data-cleanup', 'prescriptions',
+            'settlements', 'simulator', 'payouts-hub', 'benefits-fund', 'help', 'support-admin', 'agreement', 'partner-messages', 'training', 'events', 'data-cleanup', 'prescriptions', 'sales-kit',
         ],
         'staff_capabilities' => [
             'dashboards' => 'accounts',
@@ -178,6 +180,7 @@ return [
             'website' => ['website', 'content', 'enquiries', 'feedback'],
             'learning' => ['training', 'events'],
             'system' => ['audit', 'support-admin', 'agreement', 'partner-messages', 'data-cleanup'],
+            'tools' => ['sales-kit'],
             'clinic' => ['prescriptions'],
             'dealer_directory' => ['accounts', 'partnerships'],
             'dealer_fulfillment' => ['orders', 'deliveries'],

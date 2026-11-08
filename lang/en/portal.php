@@ -6283,4 +6283,10 @@ return [
     'event_prescriber_company_stock_granted' => 'Company-stock prescribing turned on for an office account',
     'event_prescriber_company_stock_removed' => 'Company-stock prescribing turned off for an office account',
     'event_clinic_below_floor_override' => 'Owner confirmed a sale below 30% of MRP',
+    'sales_kit' => 'Sales kit',
+    'nav_module_tools' => 'Partner tools',
+    'section_hint_sales_kit' => 'Approved posters, price lists and social posts for partners.',
+    'section_hint_partner_sales_kit' => 'Approved posters, price lists and social posts to view and download.',
+    'event_sales_kit_added' => 'Sales kit file added',
+    'event_sales_kit_removed' => 'Sales kit file removed',
 ];

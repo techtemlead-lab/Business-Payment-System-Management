@@ -6283,4 +6283,10 @@ return [
     'event_prescriber_company_stock_granted' => 'অফিস অ্যাকাউন্টে কোম্পানির স্টক থেকে প্রেসক্রিপশন চালু হয়েছে',
     'event_prescriber_company_stock_removed' => 'অফিস অ্যাকাউন্টে কোম্পানির স্টক থেকে প্রেসক্রিপশন বন্ধ হয়েছে',
     'event_clinic_below_floor_override' => 'মালিক এমআরপির ৩০%-এর কমে বিক্রি নিশ্চিত করেছেন',
+    'sales_kit' => 'সেলস কিট',
+    'nav_module_tools' => 'পার্টনার টুলস',
+    'section_hint_sales_kit' => 'পার্টনারদের জন্য অনুমোদিত পোস্টার, দামের তালিকা ও সোশ্যাল পোস্ট।',
+    'section_hint_partner_sales_kit' => 'অনুমোদিত পোস্টার, দামের তালিকা ও সোশ্যাল পোস্ট দেখুন ও ডাউনলোড করুন।',
+    'event_sales_kit_added' => 'সেলস কিটে ফাইল যোগ হয়েছে',
+    'event_sales_kit_removed' => 'সেলস কিট থেকে ফাইল সরানো হয়েছে',
 ];
