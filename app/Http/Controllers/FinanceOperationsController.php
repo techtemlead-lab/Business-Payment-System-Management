@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Commissions\PolicyScheduling;
+use App\Domain\Finance\CompanyFunds;
 use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Finance\PayrollService;
@@ -227,6 +228,8 @@ class FinanceOperationsController extends Controller
         };
         $row = DB::table($table)->where('id', $id)->first();
         abort_unless($row && ($request->user()->allows('finance') || ($kind === 'payroll' && $row->staff_id === $request->user()->id)), 404);
+        // The owners' own fund stays out of staff sight, receipts included.
+        abort_if($kind === 'reserve' && in_array($row->fund_key, CompanyFunds::OwnerOnly, true) && ! $request->user()->owner(), 404);
         // Payment proof is the dealer's screenshot of the transfer, checked by finance before approval.
         $path = match ($kind) {
             'opening' => $row->evidence_path,

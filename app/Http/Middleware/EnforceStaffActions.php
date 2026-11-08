@@ -72,6 +72,10 @@ class EnforceStaffActions
             // Owners record and approve spends from company funds; FundSpending checks again.
             return $next($request);
         }
+        if ($controller === 'FinanceOperationsController' && $method === 'receipt' && $actor->owner()) {
+            // Owners check the bill before approving a spend; the controller checks again.
+            return $next($request);
+        }
         if ($controller === 'DataCleanupController' && $actor->owner()) {
             // Only owners delete old login codes, SMS records and closed enquiries; the controller checks again.
             return $next($request);

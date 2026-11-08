@@ -29,6 +29,7 @@ final class FundSpending
     private const FundAccounts = [
         'company_share' => ClinicDispensing::ManufacturerAccount,
         'clinic' => ClinicDispensing::ClinicFundAccount,
+        'marketing' => 'company_marketing_expense',
     ];
 
     public function __construct(private CommissionWallet $wallets, private CompanyFunds $funds) {}

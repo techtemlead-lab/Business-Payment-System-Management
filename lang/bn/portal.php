@@ -6267,4 +6267,5 @@ return [
     'event_clinic_price_floor_changed' => 'চেম্বারে ৩০%-এর কম দামের সেটিং বদলেছে',
     'section_hint_prescriptions' => 'চেম্বারের রোগী, প্রেসক্রিপশন আর দেওয়া ওষুধ।',
     'section_hint_partner_prescriptions' => 'আপনার রোগী আর আপনার লেখা প্রেসক্রিপশন।',
+    'company_funds' => 'কোম্পানির ফান্ড',
 ];

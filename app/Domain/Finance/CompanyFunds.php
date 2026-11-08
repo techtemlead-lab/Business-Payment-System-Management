@@ -66,14 +66,14 @@ final class CompanyFunds
 
         return "CASE WHEN funds.category = '{$companyProfit}' OR funds.metadata->>'retained_by' = '{$retainedProfit}' THEN 'company_profit' "
             ."WHEN funds.category = 'area_management' OR funds.metadata->>'retained_by' = '{$retainedManagement}' THEN 'management' "
+            ."WHEN funds.category LIKE '%\\_override\\_reserve' OR funds.category LIKE '%\\_breakage' THEN 'referral_reserve' "
             ."WHEN funds.status = 'unassigned_reserve' THEN 'geographic_reserve' "
             ."WHEN funds.category = 'company_marketing_fund' THEN 'marketing' "
             ."WHEN funds.category = 'car_bike_incentive_fund' THEN 'car_bike' "
             ."WHEN funds.category = 'sub_dealer_tour' THEN 'tour' "
             ."WHEN funds.category = 'additional_rank_pool' AND funds.status = 'pending' THEN 'rank_reward' "
             ."WHEN funds.category = '{$rankReserve}' THEN 'rank_reward' "
-            ."WHEN funds.category IN ('{$dealerSalary}', '{$subDealerSalary}') THEN 'salary_reserve' "
-            ."WHEN funds.category LIKE '%\\_override\\_reserve' OR funds.category LIKE '%\\_breakage' THEN 'referral_reserve' END";
+            ."WHEN funds.category IN ('{$dealerSalary}', '{$subDealerSalary}') THEN 'salary_reserve' END";
     }
 
     /**
@@ -153,7 +153,7 @@ final class CompanyFunds
         if (in_array($fund, ['company_share', 'benefits'], true)) {
             $column = $fund === 'company_share' ? 'b.company_share' : 'b.unallocated';
             $query = DB::table('commission_batches as b')->join('orders as o', 'o.id', '=', 'b.order_id')->leftJoin('users as u', 'u.id', '=', 'o.user_id')
-                ->selectRaw("'order' AS kind, o.number AS reference, u.name AS from_name, NULL AS category, b.created_at, ROUND({$column} * (b.cash_basis - b.refunded_amount) / NULLIF(b.cash_basis, 0), 2) AS amount");
+                ->selectRaw("'order' AS kind, o.number AS reference, u.name AS from_name, NULL AS category, NULL AS status, b.created_at, ROUND({$column} * (b.cash_basis - b.refunded_amount) / NULLIF(b.cash_basis, 0), 2) AS amount");
             if ($fund === 'company_share') {
                 $query->unionAll($this->clinicRows('manufacturer_share'));
             }
@@ -169,7 +169,7 @@ final class CompanyFunds
             ->where('funds.amount', '>', 0)
             ->whereRaw('('.self::fundSql().') = ?', [$fund])
             ->orderByDesc('funds.id')
-            ->selectRaw("'order' AS kind, o.number AS reference, u.name AS from_name, funds.category, funds.created_at, funds.amount")
+            ->selectRaw("'order' AS kind, o.number AS reference, u.name AS from_name, funds.category, funds.status, funds.created_at, funds.amount")
             ->paginate($perPage, ['*'], 'in_page')->withQueryString();
     }
 
@@ -245,7 +245,7 @@ final class CompanyFunds
     {
         return DB::table('prescriptions as p')
             ->where('p.kind', Prescription::KindClinic)->where('p.status', Prescription::StatusDispensed)
-            ->selectRaw("'clinic' AS kind, p.number AS reference, NULL AS from_name, NULL AS category, p.dispensed_at AS created_at, p.{$column} AS amount");
+            ->selectRaw("'clinic' AS kind, p.number AS reference, NULL AS from_name, NULL AS category, NULL AS status, p.dispensed_at AS created_at, p.{$column} AS amount");
     }
 
     private function settlementPayouts(): Builder
@@ -269,11 +269,20 @@ final class CompanyFunds
         return str_starts_with($text, '-') ? -Money::cents(substr($text, 1)) : Money::cents($text);
     }
 
-    /** The category name of an allocation row in the reader's language. */
-    public static function categoryLabel(?string $category): ?string
+    /**
+     * Where a money-in row came from, in the reader's language. Area shares with no dealer are
+     * company profit since the owner's rule; rows from before that rule stay readable as old reserve.
+     */
+    public static function sourceLabel(string $fund, ?string $category, ?string $status): ?string
     {
         if ($category === null) {
             return null;
+        }
+        if ($fund === 'company_profit' && $status === 'unassigned_reserve') {
+            return __('funds.source_no_dealer_profit');
+        }
+        if ($fund === 'geographic_reserve') {
+            return __('funds.source_old_area');
         }
         $key = 'portal.report_cat_'.$category;
         $label = __($key);

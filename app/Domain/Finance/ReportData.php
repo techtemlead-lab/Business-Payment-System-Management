@@ -38,6 +38,7 @@ final class ReportData
             abort_unless($actor->allows('sr_orders'), 403);
         }
         abort_unless($company || ($sales && $type === 'orders') || (! $actor->staff() && in_array($type, ['orders', 'commissions', 'withdrawals'], true)) || $type === 'payroll', 403);
+        abort_if($type === 'fund-spending' && ! FundSpending::canManage($actor), 403);
         [$query, $columns, $money, $date, $owner] = match ($type) {
             // No goods on credit any more: the orders export shows what was paid and what is still to pay before approval.
             'orders' => [DB::table('orders as o')->join('users as u', 'u.id', '=', 'o.user_id'),

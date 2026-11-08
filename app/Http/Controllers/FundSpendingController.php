@@ -78,7 +78,7 @@ class FundSpendingController extends Controller
     /** @param array<string, mixed> $payload */
     private function done(Request $request, array $payload, string $message): RedirectResponse|JsonResponse
     {
-        return $request->expectsJson() && ! $request->header('X-Inertia')
+        return $request->expectsJson()
             ? response()->json(['data' => $payload, 'message' => $message])
             : back()->with('success', $message);
     }

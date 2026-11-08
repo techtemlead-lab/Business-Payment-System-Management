@@ -6267,4 +6267,5 @@ return [
     'event_clinic_price_floor_changed' => 'Clinic below-30% price setting changed',
     'section_hint_prescriptions' => 'Your clinic patients, prescriptions and dispensed medicines.',
     'section_hint_partner_prescriptions' => 'Your patients and the prescriptions you write.',
+    'company_funds' => 'Company funds',
 ];

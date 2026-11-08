@@ -45,7 +45,7 @@ final class CompanyFundsSection implements WorkspaceSection
             'tab' => $tab,
             'funds' => array_map(fn (string $key): array => $this->fundRow($key, $balances[$key]), $visible),
             'selected' => $selected,
-            'money_in' => $selected ? $this->funds->moneyIn($selected)->through(fn ($row): array => [...(array) $row, 'source_label' => CompanyFunds::categoryLabel($row->category)]) : null,
+            'money_in' => $selected ? $this->funds->moneyIn($selected)->through(fn ($row): array => [...(array) $row, 'source_label' => CompanyFunds::sourceLabel($selected, $row->category, $row->status)]) : null,
             'money_out' => $selected ? $this->funds->moneyOut($selected) : null,
             'approvals' => $tab === 'approvals' ? $this->approvals($visible, (int) $user->id) : [],
             'approvals_waiting' => (int) DB::table('reserve_disbursements')->where('program', FundSpending::Program)->where('status', 'requested')->whereIn('fund_key', $visible)->count(),
