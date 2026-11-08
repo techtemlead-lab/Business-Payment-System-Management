@@ -124,7 +124,7 @@ class PrescriptionModuleTest extends TestCase
         $dealer = User::factory()->dealer()->create(['status' => 'active', 'can_prescribe' => true]);
         $product = Product::factory()->create(['stock' => 20]);
         $this->actingAs($dealer)->onPortal('dealer')
-            ->post('/commands/prescriptions/patients', ['name' => 'Rahima', 'age' => 34, 'sex' => 'female', 'phone' => '01811111111'])
+            ->post('/commands/prescriptions/patients', ['name' => 'Rahima', 'age' => 34, 'sex' => 'female', 'phone' => '01811111111', 'patient_consent' => true])
             ->assertRedirect()->assertSessionHasNoErrors();
         $patient = PrescriptionPatient::query()->where('prescriber_id', $dealer->id)->firstOrFail();
         $movementsBefore = DB::table('stock_movements')->count();

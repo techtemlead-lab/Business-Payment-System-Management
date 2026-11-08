@@ -348,6 +348,11 @@ export function buildCustomizationFormData(customization: CustomizationData, def
             page_enabled_faq: customization.page_enabled_faq !== undefined ? customization.page_enabled_faq : '1',
             page_enabled_privacy: customization.page_enabled_privacy !== undefined ? customization.page_enabled_privacy : '1',
             page_enabled_terms: customization.page_enabled_terms !== undefined ? customization.page_enabled_terms : '1',
+            page_enabled_prescribers: customization.page_enabled_prescribers !== undefined ? customization.page_enabled_prescribers : '1',
+            prescribers_title: customization.prescribers_title || '',
+            prescribers_lead: customization.prescribers_lead || '',
+            prescribers_emergency_note: customization.prescribers_emergency_note || '',
+            prescribers_consent_line: customization.prescribers_consent_line || '',
 
             // Contact Page
             contact_title: customization.contact_title || '',

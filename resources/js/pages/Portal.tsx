@@ -54,6 +54,8 @@ const PrescriptionsHub=React.lazy(()=>import('../components/PrescriptionsHub'));
 const SalesKitHub=React.lazy(()=>import('../components/dealertools/SalesKitHub'));
 const CustomerBookHub=React.lazy(()=>import('../components/dealertools/CustomerBookHub'));
 const SchemesHub=React.lazy(()=>import('../components/dealertools/SchemesHub'));
+const PrivacyRequestsHub=React.lazy(()=>import('../components/PrivacyRequestsHub'));
+const PartnerPrivacyRequests=React.lazy(()=>import('../components/PrivacyRequestsHub').then(m=>({default:m.PartnerPrivacyRequests})));
 const CompanyFundsHub=React.lazy(()=>import('../components/CompanyFundsHub'));
 /** Placeholder shown for the moment an office screen is being fetched. */
 function SectionLoading(){const translate=useT();return <div className="section-loading" role="status" aria-live="polite"><span className="section-loading-bar"/><span className="section-loading-bar short"/><span className="section-loading-block"/><span className="sr-only">{translate('portal','loading')}</span></div>;}
@@ -386,7 +388,9 @@ export default function Portal({section,data:d,filters}:{section:string,data:Row
  {section==='agreement'&&<AgreementHub agreement={d.agreement}/>}
  {section==='training'&&<TrainingHub data={d.training}/>}{section==='data-cleanup'&&<DataCleanupHub data={d.data_cleanup}/>}
  {section==='events'&&<EventsCalendarHub data={d.events_calendar}/>}
- {section==='prescriptions'&&d.prescriptions&&<PrescriptionsHub data={d.prescriptions} tools={d.prescription_tools}/>}
+ {section==='prescriptions'&&d.prescriptions&&<PrescriptionsHub data={d.prescriptions} tools={d.prescription_tools} publicTools={d.prescriber_public}/>}
+ {section==='privacy-requests'&&<PrivacyRequestsHub data={d.privacy_queue}/>}
+ {section==='security'&&d.privacy_requests&&<PartnerPrivacyRequests data={d.privacy_requests}/>}
  {section==='sales-kit'&&d.sales_kit&&<SalesKitHub data={d.sales_kit}/>}
  {section==='customers'&&d.customer_book&&<CustomerBookHub data={d.customer_book} filters={filters}/>}
  {section==='schemes'&&d.schemes_admin&&<SchemesHub data={d.schemes_admin}/>}

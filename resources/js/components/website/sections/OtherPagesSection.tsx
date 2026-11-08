@@ -63,6 +63,15 @@ export default function OtherPagesSection({ form, defaults, websitePages, bnCopy
                     </div>
         </WebsiteGroup>
 
+        <WebsiteGroup title={translate('portal', 'sce_prescribers_heading')}>
+                            <div className="form-grid ed-grid ed-mb-lg">
+                                <Field label={translate('portal', 'sce_f_prescribers_title')} fieldKey="prescribers_title" value={form.data.customization.prescribers_title} placeholder={defaults.prescribers_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_prescribers_lead')} fieldKey="prescribers_lead" value={form.data.customization.prescribers_lead} placeholder={defaults.prescribers_lead} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_prescribers_emergency')} fieldKey="prescribers_emergency_note" value={form.data.customization.prescribers_emergency_note} placeholder={defaults.prescribers_emergency_note} onChange={updateField} span2 />
+                                <Field label={translate('portal', 'sce_f_prescribers_consent')} fieldKey="prescribers_consent_line" value={form.data.customization.prescribers_consent_line} placeholder={defaults.prescribers_consent_line} onChange={updateField} span2 />
+                            </div>
+        </WebsiteGroup>
+
         <WebsiteGroup title={translate('portal', 'sce_about_page_heading')}>
                             <div className="form-grid ed-grid ed-mb-lg">
                                 <Field label={translate('portal', 'sce_f_about_hero_title')} fieldKey="about_hero_title" value={form.data.customization.about_hero_title} placeholder={defaults.about_hero_title} onChange={updateField} />

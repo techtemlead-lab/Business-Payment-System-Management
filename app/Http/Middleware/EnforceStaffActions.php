@@ -52,6 +52,8 @@ class EnforceStaffActions
                 // Verified prescribers only; PrescriptionAccess checks again.
                 'PrescriptionController' => in_array($method, ['storePatient', 'updatePatient', 'store'], true),
                 'PrescriptionToolsController' => true,
+                'PrescriberPublicToolsController' => true,
+                'PrivacyRequestController' => $method === 'store',
                 'PushSubscriptionController' => true,
                 // A partner's own customer book; CustomerBook scopes every row to the signed-in partner.
                 'CustomerBookController' => true,
@@ -81,7 +83,11 @@ class EnforceStaffActions
             // Owners check the bill before approving a spend; the controller checks again.
             return $next($request);
         }
-        $prescribing = $controller === 'PrescriptionToolsController'
+        if ($controller === 'PrivacyRequestController' && $method === 'resolve' && $actor->owner()) {
+            // Owners answer partners' data requests; the domain checks again.
+            return $next($request);
+        }
+        $prescribing = in_array($controller, ['PrescriptionToolsController', 'PrescriberPublicToolsController'], true)
             || ($controller === 'PrescriptionController' && in_array($method, ['storePatient', 'updatePatient', 'store', 'dispense'], true));
         if ($prescribing && PrescriptionAccess::usesCompanyStock($actor)) {
             // Office accounts switched on for company stock prescribe and dispense; the domain checks again.

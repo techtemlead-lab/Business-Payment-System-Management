@@ -133,7 +133,7 @@ const icons: Record<string, LucideIcon> = {
     treasury: Landmark, 'benefits-fund': ShieldCheck, 'sub-dealers': Store, 'sub-dealer-orders': ShoppingBag, 'sub-dealer-applications': Briefcase,
     employees: UserCheck, dashboards: SlidersHorizontal, help: LifeBuoy, 'support-admin': MessageSquare, agreement: ScrollText, 'top-sellers': Trophy,
     finance: Landmark, payouts: Wallet, 'partner-messages': MessageSquare, messages: MessageSquare, partners: Users, people: UserCheck, settings: Settings, 'login-rules': ShieldCheck,
-    training: GraduationCap, learning: GraduationCap, events: CalendarDays, 'payment-receipts': ReceiptText, 'data-cleanup': Settings, prescriptions: Stethoscope, clinic: Stethoscope,
+    training: GraduationCap, learning: GraduationCap, events: CalendarDays, 'payment-receipts': ReceiptText, 'data-cleanup': Settings, 'privacy-requests': ShieldCheck, prescriptions: Stethoscope, clinic: Stethoscope,
 };
 
 export default function Shell({ section, children, action }: { section: string; children: ReactNode; action?: ReactNode }) {

@@ -41,7 +41,7 @@ final class PrescriptionsSection implements WorkspaceSection
 
         $patientPage = PrescriptionPatient::query()
             ->visibleTo($user)
-            ->with(['placeCode:id,code,name'])
+            ->with(['placeCode:id,code,name', 'consent:id,patient_id,confirmed_at'])
             ->when($search !== '', fn ($query) => $query->where('name', 'ilike', '%'.$search.'%'))
             ->orderByDesc('id')
             ->paginate(self::ListLimit, ['*'], 'patients_page')

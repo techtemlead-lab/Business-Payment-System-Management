@@ -576,4 +576,8 @@ We humbly ask for everyone\'s prayers and support.',
     'home_bismillah_text' => 'بسم الله الرحمن الرحيم',
     'product_medical_note' => 'For diagnosis and treatment, please consult a registered doctor.',
     'catalog_concern_title' => 'Browse by health concern',
+    'prescribers_title' => 'Registered practitioners',
+    'prescribers_lead' => 'Find a registered practitioner in your area and send them a request.',
+    'prescribers_emergency_note' => 'In an emergency, go to the nearest hospital now. Do not wait for a reply here.',
+    'prescribers_consent_line' => 'I agree that my name, phone number and this problem will go only to this practitioner, so they can contact me.',
 ];

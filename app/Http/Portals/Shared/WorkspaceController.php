@@ -40,8 +40,10 @@ use App\Http\Portals\Shared\Sections\NetworkSection;
 use App\Http\Portals\Shared\Sections\OfficeHubSection;
 use App\Http\Portals\Shared\Sections\OrdersSection;
 use App\Http\Portals\Shared\Sections\OverviewSection;
+use App\Http\Portals\Shared\Sections\PrescriberPublicSection;
 use App\Http\Portals\Shared\Sections\PrescriptionsSection;
 use App\Http\Portals\Shared\Sections\PrescriptionToolsSection;
+use App\Http\Portals\Shared\Sections\PrivacyRequestsSection;
 use App\Http\Portals\Shared\Sections\ProfileSection;
 use App\Http\Portals\Shared\Sections\PublicTrustSection;
 use App\Http\Portals\Shared\Sections\SalarySection;
@@ -110,6 +112,8 @@ class WorkspaceController extends Controller
         PrescriptionToolsSection::class,
         PublicTrustSection::class,
         DealerToolsSection::class,
+        PrescriberPublicSection::class,
+        PrivacyRequestsSection::class,
         CompanyFundsSection::class,
     ];
 

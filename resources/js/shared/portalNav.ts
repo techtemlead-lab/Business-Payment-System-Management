@@ -65,7 +65,7 @@ export const SECTION_LABEL_KEYS: Record<string, string> = {
     'sub-dealer-applications': 'sub_dealer_applications', 'login-rules': 'login_rules',
     employees: 'employees', dashboards: 'dashboards', help: 'help', 'support-admin': 'support_admin', agreement: 'agreement',
     messages: 'chat_nav_partner', 'partner-messages': 'chat_nav_office', 'top-sellers': 'top_sellers',
-    training: 'training', events: 'events', 'payment-receipts': 'payment_receipts', 'data-cleanup': 'cleanup_nav', prescriptions: 'prescriptions', 'sales-kit': 'sales_kit', customers: 'customer_book', schemes: 'dated_schemes',
+    training: 'training', events: 'events', 'payment-receipts': 'payment_receipts', 'data-cleanup': 'cleanup_nav', prescriptions: 'prescriptions', 'sales-kit': 'sales_kit', customers: 'customer_book', schemes: 'dated_schemes', 'privacy-requests': 'privacy_requests_nav',
 };
 
 function defaultHrefPath(section: string): string {
@@ -239,6 +239,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     if (ownerPortal && OWNER_ROLES.includes(role)) items.add('login-rules');
     if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('sales-kit');
     if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('schemes');
+    if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('privacy-requests');
     if (prescriber) items.add('prescriptions');
     if (capabilities.some((cap) => ['catalog', 'pricing', 'inventory', 'orders', 'finance'].includes(cap))) items.add('catalog');
     if (capabilities.includes('inventory')) {
@@ -341,7 +342,7 @@ function staffMothers(available: Set<string>): NavMother[] {
         mother('reports', 'nav_module_reports', pick(available, ['financial-reports', 'top-sellers', 'branch-performance'])),
         mother('website', 'nav_module_website', pick(available, ['website', 'content', 'public-trust', 'video-marketing', 'training', 'events'])),
         mother('settings', 'nav_module_settings', pick(available, [
-            'finance-settings', 'place-codes', 'dashboards', 'login-rules', 'audit', 'service-integrations', 'data-imports', 'financial-readiness', 'data-cleanup',
+            'finance-settings', 'place-codes', 'dashboards', 'login-rules', 'audit', 'service-integrations', 'data-imports', 'financial-readiness', 'data-cleanup', 'privacy-requests',
         ])),
     ]);
 }

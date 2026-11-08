@@ -308,6 +308,12 @@ export interface CustomizationData {
     page_enabled_faq?: string;
     page_enabled_privacy?: string;
     page_enabled_terms?: string;
+    page_enabled_prescribers?: string;
+    // Registered practitioners page (/prescribers)
+    prescribers_title?: string;
+    prescribers_lead?: string;
+    prescribers_emergency_note?: string;
+    prescribers_consent_line?: string;
 
     // Contact Page (/contact)
     contact_title?: string;
