@@ -89,6 +89,7 @@ final class OrderInvoice
         $payload = $this->payload($order, $watermark);
         $payload['printable'] = true;
         $payload['auto_print'] = true;
+        $payload['csp_nonce'] = (string) request()->attributes->get('csp_nonce', '');
         $payload['order_id'] = $order->id;
         $payload['share_url'] = PortalHost::url(PortalHost::forUser($actor), '/orders/'.$order->id.'/invoice/print');
         if (! empty($payload['company']['logo_path']) && is_file((string) $payload['company']['logo_path'])) {

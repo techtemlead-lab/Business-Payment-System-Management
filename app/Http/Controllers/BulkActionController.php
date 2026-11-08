@@ -24,7 +24,10 @@ class BulkActionController extends Controller
         return match ($action) {
             BulkActions::OrdersExport => $bulk->exportOrders($user, $request, array_map(strval(...), $ids)),
             BulkActions::PartnersExport => $bulk->exportPartners($user, $request, array_map(intval(...), $ids)),
-            BulkActions::OrderSlips => view('bulk.order-slips', ['orders' => $bulk->orders($user, $request, array_map(strval(...), $ids))]),
+            BulkActions::OrderSlips => view('bulk.order-slips', [
+                'orders' => $bulk->orders($user, $request, array_map(strval(...), $ids)),
+                'csp_nonce' => (string) $request->attributes->get('csp_nonce', ''),
+            ]),
             default => response()->json(['data' => ['unread' => $bulk->markNoticesRead($user, array_map(intval(...), $ids))]]),
         };
     }
