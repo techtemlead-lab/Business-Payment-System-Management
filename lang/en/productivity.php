@@ -66,4 +66,15 @@ return [
     'slips_sku' => 'SKU',
     'slips_quantity' => 'Quantity',
     'slips_none' => 'None of the selected orders can be shown for your branch.',
+
+    'device_title' => 'Devices signed in',
+    'device_hint' => 'These are the phones and computers signed in to your account. If you do not know one, log it out and change your password.',
+    'device_empty' => 'No devices to show.',
+    'device_this_one' => 'This device',
+    'device_log_out' => 'Log out',
+    'device_password' => 'Your password, needed to log out a device',
+    'device_wrong_password' => 'That password is not correct.',
+    'device_failed' => 'That did not work. Please try again.',
+    'device_unknown' => 'Unknown device',
+    'device_label' => ':browser on :system',
 ];

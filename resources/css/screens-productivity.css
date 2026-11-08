@@ -26,6 +26,10 @@
 @media(max-width:640px){.list-tool-panel{position:fixed;left:16px;right:16px;top:auto;width:auto}}
 .bulk-check{width:16px;height:16px;min-height:16px;padding:0}
 .bulk-bar{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12px}
+.device-list{list-style:none;margin:0 0 12px;padding:0}
+.device-list li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--border,#e2e8f0)}
+.device-list small{display:block}
+.device-current{color:var(--ds-ok-fg,#386a4a)}
 .identity-flag{padding:14px 0;border-top:1px solid var(--border,#e2e8f0)}
 .identity-flag-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;margin-bottom:6px}
 .identity-flag-accounts{list-style:none;margin:0 0 6px;padding:0}

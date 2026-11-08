@@ -61,6 +61,8 @@ class EnforceStaffActions
                 'ListViewController' => true,
                 // A fixed list of read-only actions plus marking your own notices; BulkActions checks each.
                 'BulkActionController' => true,
+                // Only ever ends the signed-in person's own sessions.
+                'DeviceSessionController' => true,
                 default => false,
             };
             abort_unless($partnerAllowed, 403, __('portal.err_staff_only_action'));
@@ -71,7 +73,7 @@ class EnforceStaffActions
             return $next($request);
         }
         // Each person's own saved filters and columns change no business data; ListViews checks the list.
-        if (in_array($controller, ['ListViewController', 'BulkActionController'], true)) {
+        if (in_array($controller, ['ListViewController', 'BulkActionController', 'DeviceSessionController'], true)) {
             return $next($request);
         }
         // Owners review possible duplicate accounts; IdentityReviewList checks again. Flag only.

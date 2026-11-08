@@ -6393,4 +6393,5 @@ return [
     'identity_review' => 'Duplicate account check',
     'section_hint_identity_review' => 'Accounts that share a phone, NID or payout number, or may have referred themselves. For checking only.',
     'event_identity_review_marked' => 'Duplicate account match reviewed',
+    'event_security_device_logged_out' => 'Logged out one device',
 ];
