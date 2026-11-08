@@ -2861,7 +2861,7 @@ return [
     'notice_order_decision_title' => 'Order :status',
     'notice_order_decision_body' => ':number: :reason',
     'notice_payment_claimed_title' => 'Payment sent for checking',
-    'notice_payment_claimed_body' => ':number: :amount via :channel is waiting to be checked.',
+    'notice_payment_claimed_body' => ':number: ৳:amount via :channel is waiting to be checked.',
     'notice_payment_reviewed_title' => 'Payment reviewed',
     'notice_payment_reviewed_body' => ':number: payment :outcome.',
     'notice_shipment_dispatched_title' => 'Delivery sent',
@@ -6444,4 +6444,8 @@ return [
     'field_too_big' => 'The highest number allowed is :max.',
     'field_bad_number' => 'Please enter a correct number.',
     'field_bad_format' => 'Please write it in the correct format.',
+    'err_dealer_discount_limit_owner' => 'Dealer discount cannot be more than 70%.',
+    'err_sub_dealer_discount_limit_owner' => 'Sub-dealer discount cannot be more than 70%.',
+    'err_dealer_discount_too_small' => 'This dealer price is too high. Dealers must get at least 20% off the MRP, so the dealer price can be at most 80% of the MRP.',
+    'err_sub_dealer_discount_too_small' => 'This sub-dealer price is too high. Sub-dealers must get at least 20% off the MRP, so the sub-dealer price can be at most 80% of the MRP.',
 ];

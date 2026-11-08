@@ -23,6 +23,7 @@ use App\Models\Product;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\DashboardManagement;
+use App\Support\LocalDigits;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
@@ -110,11 +111,7 @@ class OrderService
                 $submittedBy?->id
             );
             if ($claimedWithOrder) {
-                $this->partnerNotice($user->id, 'portal.notice_payment_claimed_title', 'portal.notice_payment_claimed_body', [
-                    'number' => $order->number,
-                    'amount' => (string) $data['amount'],
-                    'channel' => (string) $data['channel'],
-                ]);
+                $this->paymentClaimedNotice($user->id, $order->number, (string) $data['amount'], (string) $data['channel']);
                 $this->partnerSms($user->id, 'payment.claimed', 'sms.payment_claimed', [
                     'number' => $order->number,
                     'amount' => (string) $data['amount'],
@@ -147,7 +144,7 @@ class OrderService
                 throw ValidationException::withMessages(['reference' => __('portal.err_order_closed')]);
             }
             if (app(FinanceSettings::class)->fullPaymentWhenOrdering()['enabled'] && Money::cents((string) $data['amount']) !== Money::cents($locked->outstanding())) {
-                throw ValidationException::withMessages(['amount' => __('portal.err_claim_full_amount', ['amount' => Money::grouped($locked->outstanding())])]);
+                throw ValidationException::withMessages(['amount' => __('portal.err_claim_full_amount', ['amount' => LocalDigits::text(Money::grouped($locked->outstanding()))])]);
             }
             $reference = Str::upper(trim($data['reference']));
             if (DB::table('payment_claims')->where('channel', $data['channel'])->where('reference', $reference)->where('status', '<>', 'rejected')->exists()
@@ -156,11 +153,7 @@ class OrderService
             }
             $id = $this->insertClaim($locked, $data);
             $this->event($locked, $actor, 'payment.claimed', ['claim_id' => $id]);
-            $this->partnerNotice($locked->user_id, 'portal.notice_payment_claimed_title', 'portal.notice_payment_claimed_body', [
-                'number' => $locked->number,
-                'amount' => (string) $data['amount'],
-                'channel' => (string) $data['channel'],
-            ]);
+            $this->paymentClaimedNotice($locked->user_id, $locked->number, (string) $data['amount'], (string) $data['channel']);
             $this->partnerSms($locked->user_id, 'payment.claimed', 'sms.payment_claimed', [
                 'number' => $locked->number,
                 'amount' => (string) $data['amount'],
@@ -770,6 +763,17 @@ class OrderService
         }, 3);
     }
 
+    /** The "payment sent for checking" notice, with the money and the payment method written for the partner's language. */
+    private function paymentClaimedNotice(int $userId, string $number, string $amount, string $channel): void
+    {
+        $locale = User::find($userId)?->preferredLocale() ?? app()->getLocale();
+        $this->partnerNotice($userId, 'portal.notice_payment_claimed_title', 'portal.notice_payment_claimed_body', [
+            'number' => $number,
+            'amount' => LocalDigits::text(Money::grouped($amount), $locale),
+            'channel' => __('portal.pay_channel_'.Str::lower($channel), [], $locale),
+        ]);
+    }
+
     private function partnerNotice(int $userId, string $titleKey, string $bodyKey, array $replace = [], ?string $emailEvent = null): void
     {
         $partner = User::find($userId);
@@ -879,7 +883,7 @@ class OrderService
             throw ValidationException::withMessages(['reference' => __('portal.err_order_full_payment_needed')]);
         }
         if (Money::cents((string) ($data['amount'] ?? '0')) !== $totalCents) {
-            throw ValidationException::withMessages(['amount' => __('portal.err_order_full_payment_amount', ['amount' => Money::grouped(Money::decimal($totalCents))])]);
+            throw ValidationException::withMessages(['amount' => __('portal.err_order_full_payment_amount', ['amount' => LocalDigits::text(Money::grouped(Money::decimal($totalCents)))])]);
         }
     }
 

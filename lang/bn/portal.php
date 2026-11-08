@@ -2861,7 +2861,7 @@ return [
     'notice_order_decision_title' => 'অর্ডার :status',
     'notice_order_decision_body' => ':number: :reason',
     'notice_payment_claimed_title' => 'পেমেন্ট যাচাইয়ের জন্য পাঠানো হয়েছে',
-    'notice_payment_claimed_body' => ':number: :channel দিয়ে :amount যাচাইয়ের অপেক্ষায়।',
+    'notice_payment_claimed_body' => ':number: :channel দিয়ে ৳:amount যাচাইয়ের অপেক্ষায়।',
     'notice_payment_reviewed_title' => 'পেমেন্ট যাচাই হয়েছে',
     'notice_payment_reviewed_body' => ':number: পেমেন্ট :outcome।',
     'notice_shipment_dispatched_title' => 'ডেলিভারি পাঠানো হয়েছে',
@@ -6444,4 +6444,8 @@ return [
     'field_too_big' => 'সবচেয়ে বেশি :max দেওয়া যাবে।',
     'field_bad_number' => 'সঠিক সংখ্যা লিখুন।',
     'field_bad_format' => 'ঠিক নিয়মে লিখুন।',
+    'err_dealer_discount_limit_owner' => 'ডিলারের ছাড় ৭০%-এর বেশি দেওয়া যাবে না।',
+    'err_sub_dealer_discount_limit_owner' => 'সাব-ডিলারের ছাড় ৭০%-এর বেশি দেওয়া যাবে না।',
+    'err_dealer_discount_too_small' => 'ডিলারের দাম অনেক বেশি হয়েছে। ডিলারকে MRP থেকে কমপক্ষে ২০% ছাড় দিতে হবে, তাই ডিলারের দাম MRP-এর ৮০%-এর বেশি রাখা যাবে না।',
+    'err_sub_dealer_discount_too_small' => 'সাব-ডিলারের দাম অনেক বেশি হয়েছে। সাব-ডিলারকে MRP থেকে কমপক্ষে ২০% ছাড় দিতে হবে, তাই সাব-ডিলারের দাম MRP-এর ৮০%-এর বেশি রাখা যাবে না।',
 ];

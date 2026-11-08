@@ -329,6 +329,7 @@ return [
         'branch_id' => 'ব্রাঞ্চ',
         'source_branch_id' => 'যে ব্রাঞ্চ থেকে',
         'destination_branch_id' => 'যে ব্রাঞ্চে',
+        'destination' => 'অ্যাকাউন্ট বা ওয়ালেট নম্বর',
         'supplier_id' => 'সরবরাহকারী',
         'lines' => 'পণ্যের তালিকা',
         'items' => 'পণ্যের তালিকা',
