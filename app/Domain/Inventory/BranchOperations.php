@@ -443,6 +443,10 @@ final class BranchOperations
             return [];
         }
 
+        if (isset($data['from_lot_id'])) {
+            return $this->lots->takeFromLot($stock, $product, (int) $data['from_lot_id'], -$quantity, $context);
+        }
+
         $reasonCode = trim((string) ($data['reason_code'] ?? '')) ?: trim((string) $data['reason']);
         $disposal = $kind !== self::KindProductOut || in_array($reasonCode, StockLots::DisposalReasons, true);
 

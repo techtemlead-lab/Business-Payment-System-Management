@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Inventory\StockLotHolds;
 use App\Domain\Inventory\StockLotReports;
 use App\Domain\Inventory\StockTransfers;
+use App\Models\StockLot;
 use App\Models\StockTransfer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,6 +19,30 @@ class StockLotController extends Controller
         $reports->saveNearExpiryDays($request->user(), (int) $data['days']);
 
         return back()->with('success', __('stock_lots.flash_days_saved'));
+    }
+
+    public function hold(Request $request, StockLot $stockLot, StockLotHolds $holds): RedirectResponse
+    {
+        abort_unless($request->user()->allows('inventory'), 403);
+        $holds->hold($request->user(), $stockLot, $this->holdReason($request));
+
+        return back()->with('success', __('stock_lots.flash_lot_held'));
+    }
+
+    public function release(Request $request, StockLot $stockLot, StockLotHolds $holds): RedirectResponse
+    {
+        abort_unless($request->user()->allows('inventory'), 403);
+        $holds->release($request->user(), $stockLot, $this->holdReason($request));
+
+        return back()->with('success', __('stock_lots.flash_lot_released'));
+    }
+
+    public function writeOff(Request $request, StockLot $stockLot, StockLotHolds $holds): RedirectResponse
+    {
+        abort_unless($request->user()->allows('inventory'), 403);
+        $holds->writeOff($request->user(), $stockLot, $this->holdReason($request));
+
+        return back()->with('success', __('stock_lots.flash_lot_written_off'));
     }
 
     public function requestTransfer(Request $request, StockTransfers $transfers): RedirectResponse
@@ -52,5 +78,10 @@ class StockLotController extends Controller
         $transfers->cancel($request->user(), $stockTransfer);
 
         return back()->with('success', __('stock_lots.flash_transfer_cancelled'));
+    }
+
+    private function holdReason(Request $request): string
+    {
+        return $request->validate(['reason' => ['required', 'string', 'min:5', 'max:500']])['reason'];
     }
 }

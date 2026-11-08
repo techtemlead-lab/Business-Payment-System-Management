@@ -224,7 +224,7 @@ final class SocialShareMeta
             ],
             'quality' => [
                 'title' => 'Quality Promise · '.$site,
-                'description' => 'Our 100% natural, tested, and high-quality herbal product commitment.',
+                'description' => 'How Madina Natural Health Care looks after product quality and its authorized dealer network.',
             ],
             'faq' => [
                 'title' => 'FAQ · '.$site,

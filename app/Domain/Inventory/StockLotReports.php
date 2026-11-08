@@ -189,6 +189,45 @@ final class StockLotReports
     }
 
     /**
+     * Lots on hold that still hold stock, with who held them and why.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function heldLots(BranchScope $scope): array
+    {
+        $query = StockLot::query()
+            ->with(['product:id,name,sku', 'branch:id,code,name', 'heldBy:id,name'])
+            ->where('quantity', '>', 0)
+            ->whereNotNull('held_at');
+        $scope->restrict($query, 'branch_id');
+
+        return $this->lotRows($query);
+    }
+
+    /**
+     * Lots with stock that could be put on hold, optionally narrowed by batch or product.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function holdCandidates(BranchScope $scope, string $search): array
+    {
+        $query = StockLot::query()
+            ->with(['product:id,name,sku', 'branch:id,code,name'])
+            ->where('quantity', '>', 0)
+            ->whereNull('held_at');
+        $scope->restrict($query, 'branch_id');
+        $term = trim($search);
+        if ($term !== '') {
+            $like = '%'.addcslashes($term, '%_\\').'%';
+            $query->where(fn (Builder $lots) => $lots
+                ->where('batch_number', 'ilike', $like)
+                ->orWhereHas('product', fn (Builder $product) => $product->where('name', 'ilike', $like)->orWhere('sku', 'ilike', $like)));
+        }
+
+        return $this->lotRows($query);
+    }
+
+    /**
      * The batches each order line really left with, less anything that came back.
      *
      * @param  list<int>  $lineIds
@@ -270,6 +309,10 @@ final class StockLotReports
             'days_left' => $lot->expires_on !== null ? (int) $today->diffInDays(CarbonImmutable::parse($lot->expires_on->toDateString()), false) : null,
             'quantity' => (int) $lot->quantity,
             'received_on' => $lot->received_on?->toDateString(),
+            'on_hold' => $lot->isOnHold(),
+            'held_at' => $lot->held_at?->toIso8601String(),
+            'hold_reason' => $lot->hold_reason,
+            'held_by' => $lot->relationLoaded('heldBy') ? $lot->heldBy?->name : null,
         ])->all();
     }
 }

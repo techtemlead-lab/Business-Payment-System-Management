@@ -146,7 +146,7 @@ export default function LuxuryProductCard({
                             <div className="bottle-label">
                                 <span className="brand">madina</span>
                                 <span className="cat">{category}</span>
-                                <span className="sub">{translate('portal', 'brand_natural_care') || 'NATURAL CARE'}</span>
+                                <span className="sub">{translate('portal', 'product_art_tagline')}</span>
                             </div>
                         </div>
                     )}
