@@ -24,8 +24,8 @@ RUN ldconfig
 WORKDIR /var/www/html
 COPY --chown=www-data:www-data . .
 RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-progress \
-    && mkdir -p storage/app/private storage/app/public storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs /var/backups/madina \
-    && chown -R www-data:www-data storage bootstrap/cache /var/backups/madina
+    && mkdir -p storage/app/private storage/app/public storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs /var/backups/madina public/branding/site-photos public/branding/category-icons \
+    && chown -R www-data:www-data storage bootstrap/cache /var/backups/madina public/branding/site-photos public/branding/category-icons
 COPY --from=frontend --chown=www-data:www-data /build/public/build ./public/build
 COPY infra/php.production.ini /usr/local/etc/php/conf.d/production.ini
 RUN chmod +x infra/production-entrypoint.sh

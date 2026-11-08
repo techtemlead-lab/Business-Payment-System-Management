@@ -104,4 +104,7 @@ return [
     // Manual dispatch form.
     'dispatch_provider_label' => 'Book with a courier (optional)',
     'dispatch_provider_none' => 'No, I will type the tracking number',
+
+    // A booking that stopped before the courier gave a clear answer.
+    'booking_outcome_unknown' => 'No clear answer from the courier, so this parcel may already be booked. Check the courier\'s own panel first. If it is there, do not book it again.',
 ];

@@ -24,6 +24,9 @@ final class ReserveService
     public const Programs = ['tour' => 'sub_dealer_tour', 'additional_rank' => 'additional_rank_pool',
         'bike' => 'car_bike_incentive_fund', 'car' => 'car_bike_incentive_fund', 'marketing' => 'company_marketing_fund'];
 
+    /** A fund closed at month end: its money has moved to company profit, so nothing more can be spent from it. */
+    private const ClosedFundStatus = 'settled';
+
     public function __construct(private CommissionWallet $wallets, private CommissionQualification $qualification, private PaymentAccounts $accounts) {}
 
     /** @param array<string, mixed> $data */
@@ -347,12 +350,16 @@ final class ReserveService
             $funds = CommissionAllocation::query()->where('category', 'additional_rank_pool')->where('status', 'pending')
                 ->where('metadata->period_month', $month)->orderBy('id')->lockForUpdate()->get();
             $settlement = app(CommissionSettlement::class);
+            // Rewards already paid from a fund are not unclaimed: only what is left goes to profit.
+            $paid = DB::table('commission_settlement_payouts')->whereIn('allocation_id', $funds->pluck('id'))->groupBy('allocation_id')
+                ->selectRaw('allocation_id, SUM(amount - reversed_amount) AS total')->pluck('total', 'allocation_id');
             $total = 0;
             foreach ($funds as $fund) {
-                $amount = Money::cents($fund->amount);
-                $profitId = $settlement->toCompanyProfit($fund, $amount, $month, 'additional_rank', null, 'retained_reason_unclaimed_additional_rank');
-                $fund->update(['status' => 'settled', 'metadata' => [...$fund->metadata, 'settled_at' => now()->toIso8601String(),
-                    'settled_period' => $month, 'distributed' => '0.00', 'reserved' => Money::decimal($amount), 'settlement_reserve_allocation_id' => $profitId]]);
+                $paidOut = Money::cents((string) ($paid[$fund->id] ?? '0'));
+                $amount = max(0, Money::cents($fund->amount) - $paidOut);
+                $profitId = $amount > 0 ? $settlement->toCompanyProfit($fund, $amount, $month, 'additional_rank', null, 'retained_reason_unclaimed_additional_rank') : null;
+                $fund->update(['status' => self::ClosedFundStatus, 'metadata' => [...$fund->metadata, 'settled_at' => now()->toIso8601String(),
+                    'settled_period' => $month, 'distributed' => Money::decimal($paidOut), 'reserved' => Money::decimal($amount), 'settlement_reserve_allocation_id' => $profitId]]);
                 $total += $amount;
             }
             if ($funds->isNotEmpty()) {
@@ -523,7 +530,7 @@ final class ReserveService
     private function funds(string $program, ?int $userId): Collection
     {
         return CommissionAllocation::where('category', self::Programs[$program])->when($program === 'tour', fn ($q) => $q->where('user_id', $userId))
-            ->where('amount', '>', 0)->orderBy('id')->lockForUpdate()->get();
+            ->where('status', '!=', self::ClosedFundStatus)->where('amount', '>', 0)->orderBy('id')->lockForUpdate()->get();
     }
 
     /**
@@ -545,6 +552,7 @@ final class ReserveService
             ->leftJoinSub($paid, 'paid', 'paid.allocation_id', '=', 'funds.id')
             ->leftJoinSub($spent, 'spent', 'spent.allocation_id', '=', 'funds.id')
             ->whereIn('funds.category', array_values(array_unique(self::Programs)))
+            ->where('funds.status', '!=', self::ClosedFundStatus)
             ->when($userId !== null, fn ($query) => $query->where('funds.user_id', $userId))
             ->groupBy('funds.category')
             ->selectRaw('funds.category, SUM(funds.amount - COALESCE(paid.total, 0) - COALESCE(spent.total, 0)) AS remaining')
