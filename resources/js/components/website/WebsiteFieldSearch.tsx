@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { Search } from 'lucide-react';
 import { useT } from '../../shared/i18n/t';
 
@@ -33,7 +34,7 @@ function findMatches(root: HTMLElement | null, query: string): SearchResult[] {
             continue;
         }
         const groupTitle = element.closest('details.ws-group')?.querySelector('.ws-group-title')?.textContent ?? '';
-        const sectionTitle = element.closest('.ws-section')?.querySelector('.ws-section-title')?.textContent ?? '';
+        const sectionTitle = element.closest('.ws-module')?.querySelector('.ws-section-title')?.textContent ?? '';
         const place = [sectionTitle, groupTitle].filter((part) => part !== '' && part !== label).join(' › ');
         const id = `${place}|${label}`;
         if (seen.has(id)) {
@@ -49,7 +50,10 @@ function findMatches(root: HTMLElement | null, query: string): SearchResult[] {
 }
 
 /** Opens any closed rows around the box, brings it into view and puts the cursor in it. */
-function jumpTo(target: HTMLElement): void {
+function jumpTo(target: HTMLElement, onReveal?: (target: HTMLElement) => void): void {
+    if (onReveal) {
+        flushSync(() => onReveal(target));
+    }
     let parent = target.parentElement;
     while (parent) {
         if (parent instanceof HTMLDetailsElement) {
@@ -70,7 +74,7 @@ function jumpTo(target: HTMLElement): void {
     window.setTimeout(() => target.classList.remove('ws-jump-flash'), 1600);
 }
 
-export default function WebsiteFieldSearch({ pageRef }: { pageRef: React.RefObject<HTMLDivElement | null> }) {
+export default function WebsiteFieldSearch({ pageRef, onReveal }: { pageRef: React.RefObject<HTMLDivElement | null>; onReveal?: (target: HTMLElement) => void }) {
     const translate = useT();
     const [query, setQuery] = useState('');
     const boxRef = useRef<HTMLDivElement>(null);
@@ -88,7 +92,7 @@ export default function WebsiteFieldSearch({ pageRef }: { pageRef: React.RefObje
 
     const choose = (result: SearchResult) => {
         setQuery('');
-        jumpTo(result.target);
+        jumpTo(result.target, onReveal);
     };
 
     return (

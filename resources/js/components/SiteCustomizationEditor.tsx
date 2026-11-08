@@ -1,23 +1,21 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from '@inertiajs/react';
 import { ExternalLink, RotateCcw, Save, SlidersHorizontal } from 'lucide-react';
 import { useT } from '../shared/i18n/t';
 import { notify } from '../shared/notify';
 import { buildCustomizationFormData } from './website/initialCustomization';
-import type { WebsitePage, WebsiteProduct, WebsiteSectionProps } from './website/WebsiteLayout';
+import { WebsiteModule, type HomepageVideoSetting, type TrustEditorData, type WebsitePage, type WebsiteProduct, type WebsiteSectionProps } from './website/WebsiteLayout';
 import type { CustomizationData, MdMessageBanglaCopy, Slide } from './website/types';
 import WebsiteFieldSearch from './website/WebsiteFieldSearch';
-import HomePageSection from './website/sections/HomePageSection';
-import OtherPagesSection from './website/sections/OtherPagesSection';
-import TextPoliciesSection from './website/sections/TextPoliciesSection';
-import VideoSection, { type HomepageVideoSetting } from './website/sections/VideoSection';
-import FooterContactSection from './website/sections/FooterContactSection';
+import { OLD_ANCHORS, RAIL_GROUPS, WEBSITE_AREAS, WEBSITE_MODULES, type AreaId, type WebsiteModuleDefinition } from './website/modules/moduleRegistry';
 
-const SECTION_IDS = ['home', 'pages', 'text', 'video', 'footer'] as const;
+const firstModuleOf = (area: AreaId): string => WEBSITE_MODULES.find((module) => module.area === area)?.id ?? 'company';
+const moduleById = (id: string): WebsiteModuleDefinition | undefined => WEBSITE_MODULES.find((module) => module.id === id);
 
 /**
- * The owner's one website page: five sections of closed rows, a search that
- * jumps to any box by name, and a Save bar that stays in view.
+ * The owner's website settings: five main areas (the public website and each portal).
+ * Inside the public website, every page and page part has its own sub-module. Every box
+ * stays in the page while hidden, so the search can reach any of them.
  */
 export default function SiteCustomizationEditor({
     customization,
@@ -27,6 +25,7 @@ export default function SiteCustomizationEditor({
     bnCopy = {},
     videoSetting = { enabled: false, version: 0 },
     videoProducts = [],
+    trustEditor = null,
 }: {
     customization: CustomizationData;
     defaults: CustomizationData;
@@ -35,21 +34,44 @@ export default function SiteCustomizationEditor({
     websitePages?: WebsitePage[];
     videoSetting?: HomepageVideoSetting;
     videoProducts?: Array<{ id: number; name: string }>;
+    trustEditor?: TrustEditorData | null;
 }) {
     const translate = useT();
     const pageRef = useRef<HTMLDivElement>(null);
     const form = useForm<{ customization: CustomizationData }>({
-        customization: buildCustomizationFormData(customization, defaults),
+        customization: { ...buildCustomizationFormData(customization, defaults), ...(trustEditor?.values ?? {}) },
     });
     const resetForm = useForm({});
+    const [activeModule, setActiveModule] = useState<string>('company');
+    const activeDefinition = moduleById(activeModule) ?? WEBSITE_MODULES[0];
+    const activeArea = activeDefinition.area;
 
     const latestForm = useRef(form);
     latestForm.current = form;
 
+    const goToModule = useCallback((moduleId: string) => {
+        if (!moduleById(moduleId)) {
+            return;
+        }
+        setActiveModule(moduleId);
+        window.history.replaceState(null, '', `#${moduleId}`);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, []);
+
     useEffect(() => {
         const wanted = window.location.hash.slice(1);
-        const target = wanted ? document.getElementById(wanted) : null;
-        target?.scrollIntoView({ block: 'start' });
+        const target = OLD_ANCHORS[wanted] ?? wanted;
+        if (moduleById(target)) {
+            setActiveModule(target);
+        }
+    }, []);
+
+    /** The search lands on a box that may be hidden: show the sub-module that holds it first. */
+    const revealBox = useCallback((target: HTMLElement) => {
+        const moduleId = target.closest<HTMLElement>('[data-ws-module]')?.dataset.wsModule;
+        if (moduleId) {
+            setActiveModule(moduleId);
+        }
     }, []);
 
     const saveAll = () => {
@@ -88,14 +110,17 @@ export default function SiteCustomizationEditor({
         form.setData('customization', { ...form.data.customization, [fieldKey]: list });
     };
 
-    const sectionProps: WebsiteSectionProps = { form, defaults, products, websitePages, bnCopy, updateField, updateSlide, updateSideSlide };
+    const sectionProps: WebsiteSectionProps = { form, defaults, products, websitePages, bnCopy, updateField, updateSlide, updateSideSlide, videoSetting, videoProducts, trustEditor, goToModule };
     const liveSiteHref = typeof window !== 'undefined'
         ? `${window.location.protocol}//${window.location.hostname.replace(/^(manage|sadmin|dealer|subdealer)\./, '')}${window.location.port ? ':' + window.location.port : ''}/`
         : '/';
 
+    const areaModules = useMemo(() => WEBSITE_MODULES.filter((module) => module.area === activeArea), [activeArea]);
+    const moduleTitle = (id: string): string => translate('website_admin', `module_${id}`);
+
     return (
         <div className="site-customization-container ws-page" ref={pageRef}>
-            <div className="panel">
+            <div className="panel ws-hero">
                 <div className="ed-head is-flush">
                     <div>
                         <h2 className="ed-row is-loose">
@@ -107,19 +132,89 @@ export default function SiteCustomizationEditor({
                         <ExternalLink size={14} /> {translate('portal', 'cms_preview_live')}
                     </a>
                 </div>
-                <WebsiteFieldSearch pageRef={pageRef} />
-                <nav className="ws-jump" aria-label={translate('website_admin', 'heading')}>
-                    {SECTION_IDS.map((id) => (
-                        <a key={id} className="button small" href={`#website-${id}`}>{translate('website_admin', `section_${id}`)}</a>
+                <WebsiteFieldSearch pageRef={pageRef} onReveal={revealBox} />
+                <div className="ws-areas" role="tablist" aria-label={translate('website_admin', 'heading')}>
+                    {WEBSITE_AREAS.map(({ id, icon: Icon }) => (
+                        <button
+                            key={id}
+                            type="button"
+                            role="tab"
+                            aria-selected={activeArea === id}
+                            className={`ws-area${activeArea === id ? ' is-active' : ''}`}
+                            onClick={() => goToModule(firstModuleOf(id))}
+                        >
+                            <Icon size={22} aria-hidden="true" />
+                            <span className="ws-area-title">{translate('website_admin', `main_${id}`)}</span>
+                            <span className="ws-area-hint">{translate('website_admin', `main_${id}_hint`)}</span>
+                        </button>
                     ))}
-                </nav>
+                </div>
             </div>
 
-            <HomePageSection {...sectionProps} />
-            <OtherPagesSection {...sectionProps} />
-            <TextPoliciesSection {...sectionProps} />
-            <VideoSection {...sectionProps} videoSetting={videoSetting} videoProducts={videoProducts} />
-            <FooterContactSection {...sectionProps} />
+            <div className={`ws-workspace${areaModules.length > 1 ? ' has-rail' : ''}`}>
+                {areaModules.length > 1 && (
+                    <>
+                        <nav className="panel ws-rail" aria-label={translate('website_admin', 'rail_choose')}>
+                            {RAIL_GROUPS.map((group) => {
+                                const items = areaModules.filter((module) => module.railGroup === group);
+                                return items.length === 0 ? null : (
+                                    <div key={group} className="ws-rail-group">
+                                        <p className="ws-rail-heading">{translate('website_admin', `rail_${group}`)}</p>
+                                        {items.map(({ id, icon: Icon, flag }) => {
+                                            const hidden = flag ? (form.data.customization as Record<string, unknown>)[flag] === '0' : false;
+                                            return (
+                                                <button
+                                                    key={id}
+                                                    type="button"
+                                                    className={`ws-rail-item${activeModule === id ? ' is-active' : ''}`}
+                                                    aria-current={activeModule === id ? 'true' : undefined}
+                                                    onClick={() => goToModule(id)}
+                                                >
+                                                    <Icon size={17} aria-hidden="true" />
+                                                    <span>{moduleTitle(id)}</span>
+                                                    {hidden && <small className="ws-rail-off">{translate('website_admin', 'page_hidden_short')}</small>}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                );
+                            })}
+                        </nav>
+                        <label className="panel ws-rail-select">
+                            <span className="ed-label">{translate('website_admin', 'rail_choose')}</span>
+                            <select className="ed-input" value={activeModule} onChange={(event) => goToModule(event.target.value)}>
+                                {RAIL_GROUPS.map((group) => (
+                                    <optgroup key={group} label={translate('website_admin', `rail_${group}`)}>
+                                        {areaModules.filter((module) => module.railGroup === group).map(({ id }) => (
+                                            <option key={id} value={id}>{moduleTitle(id)}</option>
+                                        ))}
+                                    </optgroup>
+                                ))}
+                            </select>
+                        </label>
+                    </>
+                )}
+
+                <div className="ws-modules">
+                    {WEBSITE_MODULES.map(({ id, area, icon, flag, slug, component: Component }) => (
+                        <WebsiteModule
+                            key={id}
+                            moduleId={id}
+                            area={area}
+                            active={activeModule === id}
+                            icon={icon}
+                            title={moduleTitle(id)}
+                            hint={translate('website_admin', `module_${id}_hint`)}
+                            flag={flag && (form.data.customization as Record<string, unknown>)[flag] !== undefined ? flag : undefined}
+                            slug={slug}
+                            form={form}
+                            updateField={updateField}
+                        >
+                            <Component {...sectionProps} />
+                        </WebsiteModule>
+                    ))}
+                </div>
+            </div>
 
             <div className="panel ws-danger-row">
                 <span className="ed-desc is-sm">{translate('website_admin', 'reset_hint')}</span>

@@ -14,6 +14,7 @@ use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Content\CircularPublishNotifications;
+use App\Domain\Content\PublicTrustContent;
 use App\Domain\Content\TestimonialLabels;
 use App\Domain\Finance\PolicyDraftService;
 use App\Domain\Geography\ManagementReferral;
@@ -649,7 +650,15 @@ class CommandController extends Controller
     public function customization(Request $r): RedirectResponse
     {
         abort_unless($r->user()->allows('content') || $r->user()->allows('catalog') || $r->user()->role === 'super_admin', 403);
-        $payload = $r->validate(['customization' => 'required|array'])['customization'];
+        $rules = ['customization' => 'required|array'];
+        foreach (array_keys(PublicTrustContent::defaults()) as $key) {
+            $rules['customization.'.$key] = 'nullable|string|max:'.(str_contains($key, '_body') ? 20000 : 2000);
+        }
+        $r->validate($rules);
+        $payload = (array) $r->input('customization', []);
+        if (! $r->user()->allows('content')) {
+            $payload = array_diff_key($payload, PublicTrustContent::defaults());
+        }
         SiteCustomization::save($payload);
         Audit::record($r->user()->id, 'customization.updated', 'frontend');
 
