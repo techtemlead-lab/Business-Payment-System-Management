@@ -6436,4 +6436,5 @@ return [
     'err_sub_dealer_discount_limit_owner' => 'Sub-dealer discount cannot be more than 70%.',
     'err_dealer_discount_too_small' => 'This dealer price is too high. Dealers must get at least 20% off the MRP, so the dealer price can be at most 80% of the MRP.',
     'err_sub_dealer_discount_too_small' => 'This sub-dealer price is too high. Sub-dealers must get at least 20% off the MRP, so the sub-dealer price can be at most 80% of the MRP.',
+    'archive_product_prompt' => 'Archive ":name"? Write a reason (at least 5 letters):',
 ];
