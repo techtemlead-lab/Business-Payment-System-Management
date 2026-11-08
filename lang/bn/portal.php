@@ -6301,4 +6301,8 @@ return [
     'sms_compose_counter' => ':chars অক্ষর · :segments টি এসএমএস',
     'sms_compose_counter_hint' => 'বাংলায় ১টি এসএমএসে ৭০ অক্ষর। এর বেশি হলে প্রতিটিতে ৬৭ অক্ষর ধরে খরচ হবে।',
     'cleanup_detail_refused' => 'পাঠানো হয়নি (বাংলা অক্ষর নেই)',
+    'event_statement_import_uploaded' => 'ব্যাংক বা মোবাইল স্টেটমেন্ট আপলোড হয়েছে',
+    'event_statement_import_mapped' => 'স্টেটমেন্টের কলাম ঠিক করে মিল খোঁজা হয়েছে',
+    'event_statement_import_match_confirmed' => 'স্টেটমেন্টের লাইন পেমেন্টের দাবির সাথে মিলিয়ে নিশ্চিত করা হয়েছে',
+    'event_statement_import_match_dismissed' => 'স্টেটমেন্টের প্রস্তাবিত মিল বাতিল করা হয়েছে',
 ];

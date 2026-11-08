@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Finance\AccountingStatements;
+use App\Domain\Finance\StatementImports;
 use App\Domain\Finance\WithdrawalApprovalLimit;
+use App\Domain\Payouts\PayoutBatch;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\SpreadsheetCell;
@@ -31,9 +33,9 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class AccountingController extends Controller
 {
-    public const Tabs = ['statements', 'limit'];
+    public const Tabs = ['statements', 'import', 'payouts', 'limit'];
 
-    public function index(Request $request, AccountingStatements $statements, WithdrawalApprovalLimit $limit): InertiaResponse|JsonResponse
+    public function index(Request $request, AccountingStatements $statements, WithdrawalApprovalLimit $limit, PayoutBatch $payouts, StatementImports $imports): InertiaResponse|JsonResponse
     {
         $actor = $request->user();
         $this->authorizeAccounting($actor);
@@ -45,6 +47,19 @@ class AccountingController extends Controller
             $data['filters'] = ['from' => $from, 'to' => $to];
             $data['statements'] = $statements->build($from, $to);
             $data['exportBase'] = '/commands/operations/accounting/export';
+        }
+        if ($tab === 'import') {
+            $request->validate(['statement' => 'nullable|uuid']);
+            $data['channels'] = StatementImports::Channels;
+            $data['history'] = $imports->history();
+            $data['statement'] = $request->filled('statement') ? $imports->detail($request->string('statement')->toString()) : null;
+            abort_if($request->filled('statement') && $data['statement'] === null, 404);
+        }
+        if ($tab === 'payouts') {
+            [$month, $channel] = $this->payoutFilters($request);
+            $data['filters'] = ['month' => $month, 'channel' => $channel];
+            $data['channels'] = PayoutBatch::Channels;
+            $data['payoutBatch'] = $payouts->listing($month, $channel);
         }
         if ($tab === 'limit') {
             $data['approvalLimit'] = [...$limit->current(), 'default' => WithdrawalApprovalLimit::DefaultAmount, 'can_edit' => $actor->owner()];
@@ -97,6 +112,90 @@ class AccountingController extends Controller
         Audit::record($request->user()->id, 'report.exported', $type, ['type' => $type, 'format' => $format, 'from' => $from, 'to' => $to]);
 
         return response()->download($path, 'Madina-'.$type.'-'.$from.'-'.$to.'.'.$format, ['Cache-Control' => 'private, no-store'])->deleteFileAfterSend();
+    }
+
+    /** The approved withdrawals as a CSV for the bank or wallet. Changes nothing. */
+    public function exportPayoutBatch(Request $request, PayoutBatch $payouts): Response
+    {
+        $this->authorizeAccounting($request->user());
+        [$month, $channel] = $this->payoutFilters($request);
+        $file = $payouts->fileRows($month, $channel);
+        Audit::record($request->user()->id, 'report.exported', 'payout-batch', [
+            'month' => $month, 'channel' => $channel, 'count' => count($file['rows']), 'total_net' => $file['total_net'], 'withdrawal_ids' => $file['ids'],
+        ]);
+
+        return response()->streamDownload(function () use ($file): void {
+            $output = fopen('php://output', 'wb');
+            fwrite($output, "\xEF\xBB\xBF");
+            fputcsv($output, PayoutBatch::FileColumns, ',', '"', '');
+            foreach ($file['rows'] as $row) {
+                fputcsv($output, $row, ',', '"', '');
+            }
+            fclose($output);
+        }, 'Madina-payout-batch-'.$month.'-'.($channel ?? 'all').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8', 'Cache-Control' => 'private, no-store']);
+    }
+
+    public function uploadStatement(Request $request, StatementImports $imports): Response
+    {
+        $this->authorizeAccounting($request->user());
+        $data = $request->validate([
+            'channel' => ['required', Rule::in(StatementImports::Channels)],
+            'source_reference' => 'required|string|min:3|max:150',
+            'file' => 'required|file|mimes:csv,txt,xlsx|extensions:csv,xlsx|max:10240',
+        ]);
+        $id = $imports->upload($request->user(), $data['channel'], $data['source_reference'], $request->file('file'));
+
+        return $request->expectsJson() ? response()->json(['data' => ['id' => $id]], 201)
+            : redirect('/operations/accounting?tab=import&statement='.$id)->with('success', __('accounting.flash_statement_uploaded'));
+    }
+
+    public function mapStatement(Request $request, string $id, StatementImports $imports): Response
+    {
+        $this->authorizeAccounting($request->user());
+        $data = $request->validate([
+            'first_data_row' => 'required|integer|min:1|max:1000000',
+            'reference_column' => 'required|integer|min:0|max:200',
+            'amount_column' => 'required|integer|min:0|max:200|different:reference_column',
+            'date_column' => 'nullable|integer|min:0|max:200',
+            'description_column' => 'nullable|integer|min:0|max:200',
+        ], ['amount_column.different' => __('accounting.err_same_column')]);
+        $imports->map($request->user(), $id, [
+            'first_data_row' => (int) $data['first_data_row'],
+            'reference_column' => (int) $data['reference_column'],
+            'amount_column' => (int) $data['amount_column'],
+            'date_column' => isset($data['date_column']) ? (int) $data['date_column'] : null,
+            'description_column' => isset($data['description_column']) ? (int) $data['description_column'] : null,
+        ]);
+
+        return $request->expectsJson() ? response()->json(['data' => ['id' => $id]])
+            : redirect('/operations/accounting?tab=import&statement='.$id)->with('success', __('accounting.flash_statement_mapped'));
+    }
+
+    /** Records that staff checked this line. It does not approve the payment. */
+    public function confirmStatementLine(Request $request, int $id, StatementImports $imports): Response
+    {
+        $this->authorizeAccounting($request->user());
+        $data = $request->validate(['reason' => 'nullable|string|max:1000']);
+        $imports->confirm($request->user(), $id, $data['reason'] ?? null);
+
+        return $request->expectsJson() ? response()->json(['data' => ['id' => $id]]) : back()->with('success', __('accounting.flash_line_confirmed'));
+    }
+
+    public function dismissStatementLine(Request $request, int $id, StatementImports $imports): Response
+    {
+        $this->authorizeAccounting($request->user());
+        $data = $request->validate(['reason' => 'nullable|string|max:1000']);
+        $imports->dismiss($request->user(), $id, $data['reason'] ?? __('accounting.dismiss_reason'));
+
+        return $request->expectsJson() ? response()->json(['data' => ['id' => $id]]) : back()->with('success', __('accounting.flash_line_dismissed'));
+    }
+
+    /** @return array{string, ?string} */
+    private function payoutFilters(Request $request): array
+    {
+        $data = $request->validate(['month' => 'nullable|date_format:Y-m', 'channel' => ['nullable', Rule::in(PayoutBatch::Channels)]]);
+
+        return [$data['month'] ?? now()->timezone('Asia/Dhaka')->format('Y-m'), $data['channel'] ?? null];
     }
 
     /** Owner and finance staff only; the money figures here are company-wide. */

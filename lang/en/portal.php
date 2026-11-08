@@ -6301,4 +6301,8 @@ return [
     'sms_compose_counter' => ':chars characters · :segments SMS',
     'sms_compose_counter_hint' => 'One Bangla SMS holds 70 characters. Longer messages are charged at 67 characters per SMS.',
     'cleanup_detail_refused' => 'Not sent (no Bangla letters)',
+    'event_statement_import_uploaded' => 'Bank or mobile statement uploaded',
+    'event_statement_import_mapped' => 'Statement columns set and matches suggested',
+    'event_statement_import_match_confirmed' => 'Statement line confirmed against a payment claim',
+    'event_statement_import_match_dismissed' => 'Suggested statement match turned down',
 ];
