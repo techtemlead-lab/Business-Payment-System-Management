@@ -232,7 +232,7 @@ class SingleOwnerControlsTest extends TestCase
         $this->openMoneyGate();
         $this->allocation('company_marketing_fund', '500.00');
         $reserves = app(ReserveService::class);
-        $id = $reserves->request($this->owner, $this->marketing());
+        $id = $this->olderMarketingRequest($this->owner);
 
         $reserves->review($this->owner, $id, 'approved', self::Reason, true);
         $this->assertAudited('reserve.approved');
@@ -248,11 +248,11 @@ class SingleOwnerControlsTest extends TestCase
         $this->openMoneyGate();
         $this->allocation('company_marketing_fund', '500.00');
         $reserves = app(ReserveService::class);
-        $entered = $reserves->request(User::factory()->enterOnly()->create(), $this->marketing());
+        $entered = $this->olderMarketingRequest(User::factory()->enterOnly()->create());
         $reserves->review($this->owner, $entered, 'approved', self::Reason);
         $this->assertDatabaseHas('reserve_disbursements', ['id' => $entered, 'status' => 'approved', 'approved_by' => $this->owner->id]);
 
-        $own = $reserves->request($this->owner, $this->marketing());
+        $own = $this->olderMarketingRequest($this->owner);
         User::factory()->staff('finance')->create();
         $this->assertRefused(fn () => $reserves->review($this->owner, $own, 'approved', self::Reason, true), 'reserve', __('portal.err_reserve_reviewer'));
     }
@@ -520,10 +520,11 @@ class SingleOwnerControlsTest extends TestCase
             'account_number' => 'BANK-'.random_int(100000, 999999), 'collects_payments' => true, 'pays_out' => true, 'is_active' => true, 'reason' => 'Approved company account']);
     }
 
-    /** @return array<string, mixed> */
-    private function marketing(): array
+    /** A marketing request made before these moved to the company funds page; it can still be finished. */
+    private function olderMarketingRequest(User $createdBy): int
     {
-        return ['program' => 'marketing', 'user_id' => null, 'payee_name' => 'Print shop', 'amount' => '100.00', 'request_key' => (string) Str::uuid(), 'reason' => 'Leaflets for the launch'];
+        return DB::table('reserve_disbursements')->insertGetId(['program' => 'marketing', 'user_id' => null, 'payee_name' => 'Print shop', 'amount' => '100.00',
+            'request_key' => (string) Str::uuid(), 'reason' => 'Leaflets for the launch', 'created_by' => $createdBy->id, 'created_at' => now(), 'updated_at' => now()]);
     }
 
     /** @return array<string, mixed> */

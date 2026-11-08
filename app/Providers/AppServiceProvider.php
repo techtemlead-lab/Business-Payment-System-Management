@@ -7,10 +7,12 @@ use App\Domain\Integrations\SmtpMailConfig;
 use App\Domain\Notifications\WebPushNotices;
 use App\Domain\Pricing\CurrentProductPricing;
 use App\Domain\Pricing\ProductPricing;
+use App\Listeners\NoticeNewStaffDevice;
 use App\Models\User;
 use App\Support\PhoneIdentity;
 use App\Support\PortalHost;
 use App\Support\SiteCustomization;
+use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -81,6 +83,7 @@ class AppServiceProvider extends ServiceProvider
                 $lastRecorded = time();
             }
         });
+        Event::listen(Login::class, NoticeNewStaffDevice::class);
         Event::listen(Logout::class, function (Logout $event): void {
             $endpoint = request()->hasSession() ? request()->session()->get(WebPushNotices::SessionEndpoint) : null;
             app(WebPushNotices::class)->forgetOnLogout($event->user instanceof User ? $event->user : null, is_string($endpoint) ? $endpoint : null);

@@ -3,7 +3,7 @@ const CACHE_NAME = 'madina-v2';
 const STATIC_ASSETS = [
   '/favicon.ico',
   '/reference/favicon.png?v=8',
-  '/madina-header-logo.png?v=9',
+  '/madina-header-logo.png?v=10',
   '/reference/instrument-sans-local.css',
   '/reference/fontawesome-local.css',
   '/manifest.webmanifest'

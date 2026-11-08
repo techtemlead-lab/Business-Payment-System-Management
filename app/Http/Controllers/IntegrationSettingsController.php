@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Integrations\CourierStatusMap;
 use App\Domain\Integrations\IntegrationSettings;
 use App\Domain\Integrations\SmsGatewayClient;
 use App\Domain\Integrations\SmtpMailConfig;
@@ -50,6 +51,12 @@ class IntegrationSettingsController extends Controller
             'sender_id' => 'nullable|string|max:40',
             'user_id' => 'nullable|string|max:120',
             'package_code' => 'nullable|string|max:40',
+            'status_field' => 'nullable|string|max:120',
+            'status_map' => ['nullable', 'string', 'max:2000', function (string $attribute, mixed $value, \Closure $fail): void {
+                if (is_string($value) && CourierStatusMap::invalidLines($value) !== []) {
+                    $fail(__('courier_areas.err_status_map'));
+                }
+            }],
             'tracking_url' => 'nullable|url:https|max:500',
             'timeout' => 'nullable|integer|min:3|max:60',
             'mode' => 'nullable|string|in:sandbox,live',

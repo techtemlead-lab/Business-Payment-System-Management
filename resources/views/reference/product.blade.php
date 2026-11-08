@@ -55,9 +55,12 @@
         @if(!empty($item['image_path']))
             <img src="{{ $item['image_path'] }}" alt="{{ $item['name'] }}">
         @else
-            <div class="ref-no-image" aria-hidden="true">
-                <i class="fa-solid fa-leaf"></i>
-                <span>{{ __('site.photo_coming_soon') }}</span>
+            @php
+                $stockImage = \App\Support\StockImage::forCategory($item['category'] ?? null, $item['name']);
+            @endphp
+            <div class="stock-image-frame">
+                <img src="{{ $stockImage['url'] }}" alt="{{ $stockImage['alt'] }}" width="{{ $stockImage['width'] }}" height="{{ $stockImage['height'] }}" loading="lazy" decoding="async">
+                <span class="stock-image-caption">{{ $stockImage['caption'] }}</span>
             </div>
         @endif
     </div>

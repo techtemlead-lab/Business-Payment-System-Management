@@ -101,6 +101,7 @@ class HandleInertiaRequests extends Middleware
             'locales' => config('madina.locales', ['en', 'bn']),
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
+                'warning' => fn () => $request->session()->get('warning'),
                 'totp_setup' => fn () => $request->session()->get('totp_setup'),
                 'totp_recovery_codes' => fn () => $request->session()->get('totp_recovery_codes'),
             ],
@@ -206,6 +207,7 @@ class HandleInertiaRequests extends Middleware
                 'auth' => Lang::get('auth_ui'),
                 'courier' => Lang::get('courier'),
                 'courier_more' => Lang::get('courier_more'),
+                'schemes_commission' => Lang::get('schemes_commission'),
                 'prescription' => Lang::get('prescription'),
                 'website_admin' => Lang::get('website_admin'),
                 'partner_hub' => Lang::get('partner_hub'),
@@ -219,6 +221,8 @@ class HandleInertiaRequests extends Middleware
                 'productivity' => Lang::get('productivity'),
                 'clinic_records' => Lang::get('clinic_records'),
                 'stock_lots' => Lang::get('stock_lots'),
+                'courier_areas' => Lang::get('courier_areas'),
+                'wave3_ops' => Lang::get('wave3_ops'),
             ])->as('i18n:'.$locale),
             'portalCatalog' => Inertia::once(fn () => $portalShell
                 ? PortalCatalog::inertiaPayload($portal)

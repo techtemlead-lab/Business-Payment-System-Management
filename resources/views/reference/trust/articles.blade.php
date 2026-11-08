@@ -16,6 +16,11 @@
         <section class="ref-content-card">
             @if($article->image_url)
             <img src="{{ $article->image_url }}" alt="" loading="lazy" decoding="async" style="width:100%;height:auto;max-height:200px;object-fit:cover;border-radius:8px;margin-bottom:14px;">
+            @else
+            @php
+                $stockImage = \App\Support\StockImage::forSection('article');
+            @endphp
+            <img src="{{ $stockImage['url'] }}" alt="{{ $stockImage['alt'] }}" width="{{ $stockImage['width'] }}" height="{{ $stockImage['height'] }}" loading="lazy" decoding="async" style="width:100%;height:auto;max-height:200px;object-fit:cover;border-radius:8px;margin-bottom:14px;">
             @endif
             <h2>{{ $article->title }}</h2>
             <p>{{ $article->excerpt() }}</p>

@@ -42,7 +42,7 @@ final class RepeatOrderOptions
             ->latest()
             ->orderByDesc('id')
             ->limit(self::RecentOrders)
-            ->with('lines:id,order_id,product_id,name,quantity,unit_price')
+            ->with('lines:id,order_id,product_id,name,quantity,unit_price,is_free')
             ->get(['id', 'number', 'created_at']);
         if ($orders->isEmpty()) {
             return [];
@@ -66,7 +66,7 @@ final class RepeatOrderOptions
         $items = [];
         $skipped = [];
         /** @var OrderLine $line */
-        foreach ($order->lines as $line) {
+        foreach ($order->chargedLines() as $line) {
             $product = $products->get($line->product_id);
             $reason = $this->unavailableReason($product);
             $unitPrice = $reason === null ? $this->priceFor($product, $buyer) : null;

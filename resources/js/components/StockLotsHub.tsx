@@ -3,6 +3,7 @@ import { router } from '@inertiajs/react';
 import { ActionForm, Table, date, number, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
 import StockLotHoldTab from './StockLotHoldTab';
+import StockLotDetailsTab from './StockLotDetailsTab';
 
 const TABS = [
     { key: 'near', label: 'tab_near_expiry' },
@@ -10,6 +11,7 @@ const TABS = [
     { key: 'transfers', label: 'tab_transfers' },
     { key: 'reorder', label: 'tab_reorder' },
     { key: 'hold', label: 'tab_hold' },
+    { key: 'details', label: 'tab_missing_details' },
 ];
 
 function NearExpiry({ data }: { data: Row }) {
@@ -163,15 +165,17 @@ export default function StockLotsHub({ data }: { data: Row }) {
             <div className="preset-chips" role="tablist">
                 {TABS.map((tab) => (
                     <button key={tab.key} type="button" role="tab" aria-selected={data.tab === tab.key} className={`button small ${data.tab === tab.key ? 'dark' : ''}`} onClick={() => router.get('/stock-lots', { tab: tab.key })}>
-                        {translate('stock_lots', tab.label)}
+                        {translate('stock_lots', tab.label)}{tab.key === 'details' && data.missing_details_count > 0 ? ` (${data.missing_details_count})` : ''}
                     </button>
                 ))}
             </div>
+            {data.tab !== 'details' && data.missing_details_count > 0 && <p className="notice" role="status">{translate('stock_lots', 'missing_details_notice', { count: String(data.missing_details_count) })} <button type="button" className="button small" onClick={() => router.get('/stock-lots', { tab: 'details' })}>{translate('stock_lots', 'fill_in_action')}</button></p>}
             {data.tab === 'near' && <NearExpiry data={data} />}
             {data.tab === 'recall' && <Recall data={data} />}
             {data.tab === 'transfers' && <Transfers data={data} />}
             {data.tab === 'reorder' && <Reorder data={data} />}
             {data.tab === 'hold' && <StockLotHoldTab data={data} />}
+            {data.tab === 'details' && <StockLotDetailsTab data={data} />}
         </div>
     );
 }

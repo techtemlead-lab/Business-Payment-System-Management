@@ -132,24 +132,19 @@ export default function LuxuryProductCard({
                             alt={String(product.name || 'Product')}
                             loading="lazy"
                         />
-                    ) : (
-                        <div className="luxury-art-bottle" aria-hidden="true">
-                            <div className="bottle-cap" />
-                            <div className="bottle-gold-neck" />
-                            {/* Silver necklace chain with leaf charm */}
-                            <svg className="bottle-pendant" viewBox="0 0 20 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M2 2C8 12 16 12 18 2" stroke="#94a3b8" strokeWidth="1.2" strokeLinecap="round" />
-                                <path d="M10 10V16" stroke="#94a3b8" strokeWidth="1" />
-                                <path d="M10 16C6 18 6 24 10 28C14 24 14 18 10 16Z" fill="#cbd5e1" stroke="#64748b" strokeWidth="0.8" />
-                                <path d="M10 18V26" stroke="#64748b" strokeWidth="0.6" />
-                            </svg>
-                            <div className="bottle-label">
-                                <span className="brand">madina</span>
-                                <span className="cat">{category}</span>
-                                <span className="sub">{translate('portal', 'product_art_tagline')}</span>
-                            </div>
+                    ) : product.image_fallback ? (
+                        <div className="stock-image-frame">
+                            <img
+                                src={product.image_fallback.url}
+                                alt={product.image_fallback.alt}
+                                width={product.image_fallback.width}
+                                height={product.image_fallback.height}
+                                loading="lazy"
+                                decoding="async"
+                            />
+                            <span className="stock-image-caption">{product.image_fallback.caption}</span>
                         </div>
-                    )}
+                    ) : null}
                 </div>
             </div>
 

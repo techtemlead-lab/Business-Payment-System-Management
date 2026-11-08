@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { PlugZap } from 'lucide-react';
 import Shell from '../components/Shell';
 import { Badge, Row, humanize } from '../components/UI';
@@ -86,6 +86,8 @@ function ProviderForm({ group, provider, version, canEdit }: { group: string; pr
                             <option value="ssl">SSL</option>
                             <option value="none">None</option>
                         </select>
+                    ) : field === 'status_map' ? (
+                        <textarea rows={5} value={String(form.data[field] ?? '')} onChange={e => form.setData(field, e.target.value)} disabled={!canEdit} />
                     ) : (
                         <input
                             type={secretFields.has(field) ? 'password' : (field === 'timeout' || field === 'port') ? 'number' : 'text'}
@@ -124,7 +126,7 @@ export default function ServiceIntegrations({ integrations, startup, canEdit, ow
     channelHint?: string;
 }) {
     const translate = useT();
-    const { flash } = usePage<any>().props;
+    const { flash, portal } = usePage<any>().props;
     const [groupKey, setGroupKey] = useState(Object.keys(integrations.groups)[0] ?? 'bdris');
     const startupForm = useForm({ mode: startup.mode ?? 'fresh', version: startup.version, reason: '' });
     const group = integrations.groups[groupKey];
@@ -178,6 +180,12 @@ export default function ServiceIntegrations({ integrations, startup, canEdit, ow
                     </div>
                     {group && <>
                         <p>{group.description}</p>
+                        {groupKey === 'couriers' && portal === 'sadmin' && (
+                            <div className="notice ops-mb-3">
+                                <p>{translate('courier_areas', 'open_page_hint')}</p>
+                                <Link className="button small" href="/operations/courier-areas">{translate('courier_areas', 'open_page')}</Link>
+                            </div>
+                        )}
                         {Object.values(group.providers).map(provider => (
                             <section className="panel narrow-panel ops-mt-4" key={provider.key}>
                                 <ProviderForm group={groupKey} provider={provider} version={integrations.version} canEdit={canEdit && !ownerOnlyGroups.includes(groupKey)} />

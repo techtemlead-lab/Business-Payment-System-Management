@@ -79,6 +79,7 @@ class OrderService
             if ($total <= 0 || $total > 9999999999900) {
                 throw ValidationException::withMessages(['items' => __('portal.err_order_limit')]);
             }
+            $lines = [...$lines, ...app(SchemeFreeLines::class)->for($lines)];
             DashboardManagement::assertPartnerCanOrder($user, $total);
             $this->assertPaidInFullWithOrder($data, $total);
             $order = Order::create(['number' => 'MN-'.now()->format('ymd').'-'.Str::upper(Str::random(8)),

@@ -108,4 +108,12 @@ return [
     'flash_lot_held' => 'Batch put on hold.',
     'flash_lot_released' => 'Batch released. It can be sent again.',
     'flash_lot_written_off' => 'Batch written off and taken out of stock.',
+    'tab_missing_details' => 'Missing details',
+    'missing_details_intro' => 'A stock count found these goods but they have no batch number or expiry date, so nothing can warn you before they expire. Check the pack and fill in what is missing.',
+    'missing_details_notice' => ':count batch(es) from a stock count have no batch number or expiry date.',
+    'none_missing_details' => 'Every batch from a stock count has its details.',
+    'missing_badge' => 'Missing',
+    'fill_in_action' => 'Fill in',
+    'err_nothing_to_fill' => 'This batch already has these details.',
+    'flash_lot_details_saved' => 'Batch details saved.',
 ];

@@ -2,7 +2,8 @@
     $catName = $item['category'] ?? 'General';
     $catSlug = $item['category_slug'] ?? \Illuminate\Support\Str::slug($catName);
     $hasCustomImage = !empty($item['image_path']);
-    $imageSrc = $hasCustomImage ? $item['image_path'] : '';
+    $stockImage = $hasCustomImage ? null : \App\Support\StockImage::forCategory($catName, $item['name'] ?? null);
+    $imageSrc = $hasCustomImage ? $item['image_path'] : $stockImage['url'];
     $stockStatus = $item['stock_status'] ?? 'out_of_stock';
     $inStock = $stockStatus !== 'out_of_stock';
     $stockLabel = ! $inStock
@@ -19,7 +20,7 @@
     data-id="{{ $item['id'] }}"
     data-name="{{ $item['name'] }}"
     data-mrp="৳ {{ $displayMrp }}"
-    data-image="{{ $imageSrc ?: '/madina-header-logo.png?v=8' }}"
+    data-image="{{ $imageSrc }}"
     data-category-name="{{ $catName }}"
     data-stock-status="{{ $stockStatus }}"
     data-desc="{{ $item['description'] ?? '' }}"
@@ -73,20 +74,9 @@
                     <img class="luxury-product-img" src="{{ $imageSrc }}" alt="{{ $item['name'] }}" loading="lazy">
                 </a>
             @else
-                <a href="{{ $item['url'] }}" class="luxury-art-bottle" aria-label="{{ $item['name'] }}">
-                    <div class="bottle-cap"></div>
-                    <div class="bottle-gold-neck"></div>
-                    <svg class="bottle-pendant" viewBox="0 0 20 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M2 2C8 12 16 12 18 2" stroke="#94a3b8" stroke-width="1.2" stroke-linecap="round" />
-                        <path d="M10 10V16" stroke="#94a3b8" stroke-width="1" />
-                        <path d="M10 16C6 18 6 24 10 28C14 24 14 18 10 16Z" fill="#cbd5e1" stroke="#64748b" stroke-width="0.8" />
-                        <path d="M10 18V26" stroke="#64748b" stroke-width="0.6" />
-                    </svg>
-                    <div class="bottle-label">
-                        <span class="brand">madina</span>
-                        <span class="cat">{{ $catName }}</span>
-                        <span class="sub">{{ __('site.brand_tagline') }}</span>
-                    </div>
+                <a href="{{ $item['url'] }}" class="stock-image-frame" aria-label="{{ $item['name'] }}">
+                    <img src="{{ $stockImage['url'] }}" alt="{{ $stockImage['alt'] }}" width="{{ $stockImage['width'] }}" height="{{ $stockImage['height'] }}" loading="lazy" decoding="async">
+                    <span class="stock-image-caption">{{ $stockImage['caption'] }}</span>
                 </a>
             @endif
         </div>

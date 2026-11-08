@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\Money;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -37,6 +38,16 @@ class Order extends Model
     public function lines(): HasMany
     {
         return $this->hasMany(OrderLine::class);
+    }
+
+    /**
+     * The lines the dealer pays for. Free scheme goods are left out of every money figure.
+     *
+     * @return Collection<int, Model>
+     */
+    public function chargedLines(): Collection
+    {
+        return $this->lines->reject(fn (Model $line): bool => (bool) $line->getAttribute('is_free'))->values();
     }
 
     public function user(): BelongsTo

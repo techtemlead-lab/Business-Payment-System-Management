@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccountingController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CourierAreaController;
 use App\Http\Controllers\DataImportController;
 use App\Http\Controllers\IntegrationSettingsController;
 use App\Http\Controllers\LocaleController;
@@ -39,6 +40,11 @@ Route::middleware(['auth', 'active', 'portal:sadmin', 'authenticator'])->group(f
     Route::get('/operations/accounting', [AccountingController::class, 'index']);
     Route::get('/operations/data-imports', [DataImportController::class, 'index']);
     Route::get('/operations/service-integrations', [IntegrationSettingsController::class, 'index']);
+    Route::get('/operations/courier-areas', [CourierAreaController::class, 'index']);
+    Route::get('/operations/courier-areas/options', [CourierAreaController::class, 'options']);
+    Route::post('/commands/operations/courier-areas/fetch', [CourierAreaController::class, 'fetch'])->middleware('throttle:6,1');
+    Route::post('/commands/operations/courier-areas/mappings', [CourierAreaController::class, 'save'])->middleware('throttle:60,1');
+    Route::post('/commands/operations/courier-areas/mappings/remove', [CourierAreaController::class, 'remove'])->middleware('throttle:60,1');
     Route::get('/operations/{section}', [OperationsController::class, 'index'])->whereIn('section', OperationsController::Sections);
     Route::get('/accounts/create', [DashboardController::class, 'createAccount']);
     Route::get('/accounts/{partner}/statement', [PartnerStatementController::class, 'show'])->whereNumber('partner');

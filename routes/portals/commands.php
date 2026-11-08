@@ -122,6 +122,7 @@ return function (string $portal): void {
     Route::post('/commands/stock-lots/{stockLot}/hold', [StockLotController::class, 'hold'])->whereNumber('stockLot');
     Route::post('/commands/stock-lots/{stockLot}/release', [StockLotController::class, 'release'])->whereNumber('stockLot');
     Route::post('/commands/stock-lots/{stockLot}/write-off', [StockLotController::class, 'writeOff'])->whereNumber('stockLot');
+    Route::post('/commands/stock-lots/{stockLot}/details', [StockLotController::class, 'fillInDetails'])->whereNumber('stockLot');
     Route::post('/commands/stock-transfers', [StockLotController::class, 'requestTransfer']);
     Route::post('/commands/stock-transfers/{stockTransfer}/send', [StockLotController::class, 'sendTransfer'])->whereNumber('stockTransfer');
     Route::post('/commands/stock-transfers/{stockTransfer}/receive', [StockLotController::class, 'receiveTransfer'])->whereNumber('stockTransfer');

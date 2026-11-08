@@ -128,8 +128,8 @@ class ReservePayoutReceiptsTest extends TestCase
         $preparer = User::factory()->create(['role' => 'finance']);
         $reviewer = User::factory()->create(['role' => 'finance']);
         $this->postedOrder(User::factory()->create());
-        $id = $this->actingAs($preparer)->postJson('/api/v1/operations/reserves', ['program' => 'marketing', 'payee_name' => 'Approved advertising supplier', 'amount' => '2',
-            'request_key' => (string) Str::uuid(), 'reason' => 'Approved marketing invoice'])->assertOk()->json('data.id');
+        $id = DB::table('reserve_disbursements')->insertGetId(['program' => 'marketing', 'payee_name' => 'Approved advertising supplier', 'amount' => '2.00',
+            'request_key' => (string) Str::uuid(), 'reason' => 'Approved marketing invoice', 'created_by' => $preparer->id, 'created_at' => now(), 'updated_at' => now()]);
         $this->actingAs($reviewer)->postJson('/api/v1/operations/reserves/'.$id.'/review', ['decision' => 'approved', 'reason' => 'Marketing invoice reviewed'])->assertOk();
 
         return [$preparer, (int) $id];

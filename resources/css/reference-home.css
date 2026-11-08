@@ -3820,3 +3820,11 @@ html[data-theme="dark"] .ref-company-intro>.ref-bismillah{--bismillah-green:#5fd
 .ref-product-review-text{margin:6px 0;white-space:pre-line;overflow-wrap:anywhere}
 .ref-product-review-form-title{margin:22px 0 6px;font-size:17px;font-weight:700}
 a.ref-concern-tag{text-decoration:none}
+
+/* Default pictures for products with no photo yet. A real upload replaces them. */
+.stock-image-frame{position:relative;display:block;width:132px;height:99px;border-radius:12px;overflow:hidden;box-shadow:0 10px 16px rgba(30,42,25,.2)}
+.stock-image-frame img{display:block;width:100%;height:100%;max-width:none;max-height:none;object-fit:cover}
+.stock-image-caption{position:absolute;left:0;right:0;bottom:0;padding:2px 4px;background:rgba(1,22,39,.74);color:#fff;font-size:10px;font-weight:600;line-height:1.4;text-align:center}
+.ref-detail-image .stock-image-frame{width:100%;height:100%;box-shadow:none}
+.ref-detail-image .stock-image-frame img{max-width:none;max-height:none;object-fit:cover}
+.ref-detail-image .stock-image-caption{padding:6px 10px;font-size:13px}

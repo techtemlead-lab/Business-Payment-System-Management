@@ -248,8 +248,9 @@ class OperationsCompletionTest extends TestCase
         $reviewer = User::factory()->create(['role' => 'finance']);
         $account = $this->account($preparer);
         $order = $this->postedOrder(User::factory()->create());
-        $id = $this->actingAs($preparer)->postJson('/api/v1/operations/reserves', ['program' => 'marketing', 'payee_name' => 'Approved advertising supplier', 'amount' => '2',
-            'request_key' => (string) Str::uuid(), 'reason' => 'Approved marketing invoice'])->assertOk()->json('data.id');
+        // New marketing spends use the company funds page; a request made before that can still finish here.
+        $id = DB::table('reserve_disbursements')->insertGetId(['program' => 'marketing', 'payee_name' => 'Approved advertising supplier', 'amount' => '2.00',
+            'request_key' => (string) Str::uuid(), 'reason' => 'Approved marketing invoice', 'created_by' => $preparer->id, 'created_at' => now(), 'updated_at' => now()]);
         $this->actingAs($reviewer)->postJson('/api/v1/operations/reserves/'.$id.'/review', ['decision' => 'approved', 'reason' => 'Marketing invoice reviewed'])->assertOk();
         $proof = ['payment_account_id' => $account, 'payment_reference' => 'EXPENSE-1', 'paid_at' => now()->subMinute()->toIso8601String(), 'reason' => 'Invoice payment confirmed', 'receipt' => UploadedFile::fake()->create('expense.pdf', 5, 'application/pdf')];
         $this->actingAs($preparer)->postJson('/api/v1/operations/reserves/'.$id.'/pay', [...$proof, 'method' => 'other'])->assertOk();

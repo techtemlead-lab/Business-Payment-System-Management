@@ -25,8 +25,8 @@
 
         <!-- Logo: light mark for desktop; transparent-on-dark mark for mobile navy header -->
         <a href="/" class="ref-logo ref-madina-logo" aria-label="{{ __('site.brand_home') }}">
-            <img class="ref-logo-img-light" src="/madina-header-logo.png?v=9" alt="{{ __('site.company_bar') }}" width="160" height="40" style="height:auto;max-height:40px;width:auto;" decoding="async">
-            <img class="ref-logo-img-dark" src="/madina-header-logo-white.png?v=9" alt="{{ __('site.company_bar') }}" width="160" height="40" style="height:auto;max-height:40px;width:auto;" decoding="async">
+            <img class="ref-logo-img-light" src="/madina-header-logo.png?v=10" alt="{{ __('site.company_bar') }}" width="160" height="40" style="height:auto;max-height:40px;width:auto;" decoding="async">
+            <img class="ref-logo-img-dark" src="/madina-header-logo-white.png?v=10" alt="{{ __('site.company_bar') }}" width="160" height="40" style="height:auto;max-height:40px;width:auto;" decoding="async">
         </a>
 
         @if($publicPageEnabled['products'] ?? true)
@@ -140,7 +140,7 @@
 <aside id="refMobileDrawer" class="ref-mobile-drawer" aria-hidden="true" aria-label="{{ __('site.mobile_nav_drawer') }}">
     <div class="ref-mobile-drawer-header">
         <a href="/" class="ref-mobile-drawer-logo">
-            <img src="/madina-header-logo-white.png?v=9" alt="{{ __('site.company_bar') }}" class="ref-mobile-drawer-logo-img" width="160" height="40" decoding="async">
+            <img src="/madina-header-logo-white.png?v=10" alt="{{ __('site.company_bar') }}" class="ref-mobile-drawer-logo-img" width="160" height="40" decoding="async">
         </a>
         <button type="button" class="ref-mobile-drawer-close" id="refMobileDrawerClose" aria-label="{{ __('site.close_menu') }}">
             <i class="fa-solid fa-xmark" aria-hidden="true"></i>

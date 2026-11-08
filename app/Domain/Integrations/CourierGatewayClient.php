@@ -3,6 +3,7 @@
 namespace App\Domain\Integrations;
 
 use App\Support\RedactedError;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -13,7 +14,7 @@ final class CourierGatewayClient
     public function __construct(private IntegrationSettings $settings) {}
 
     /**
-     * @param  array{recipient_name?:?string, recipient_phone?:?string, recipient_address?:string, amount?:string|int|float, invoice?:string, note?:string, pickup_address?:?string}  $shipment
+     * @param  array{recipient_name?:?string, recipient_phone?:?string, recipient_address?:string, amount?:string|int|float, invoice?:string, note?:string, pickup_address?:?string, courier_area?:array<string, ?string>|null}  $shipment
      * @return array{success: bool, tracking: ?string, consignment_id: ?string, provider: ?string, message: string, raw: ?array, outcome_unknown?: bool}
      */
     public function create(string $provider, array $shipment): array
@@ -41,7 +42,7 @@ final class CourierGatewayClient
     }
 
     /**
-     * @return array{success: bool, status: ?string, message: string, raw: ?array}
+     * @return array{success: bool, status: ?string, message: string, raw: ?array, step?: ?string}
      */
     public function track(string $provider, string $tracking): array
     {
@@ -65,16 +66,54 @@ final class CourierGatewayClient
                 default => throw new \InvalidArgumentException('This courier has no tracking connection.'),
             };
             $payload = $response->json();
+            $map = CourierStatusMap::parse((string) ($config['status_map'] ?? ''));
+            $status = is_array($payload) && filled($config['status_field'] ?? null) ? CourierStatusMap::statusFrom($payload, (string) $config['status_field'], $map) : null;
+            $status ??= is_array($payload) ? $this->trackedStatus($payload) : null;
 
             return [
                 'success' => $response->successful(),
-                'status' => is_array($payload) ? $this->trackedStatus($payload) : null,
+                'status' => $status,
+                'step' => CourierStatusMap::stepFor($map, $status),
                 'message' => $response->successful() ? __('portal.si_courier_tracking_ok') : __('portal.si_courier_tracking_failed'),
                 'raw' => is_array($payload) ? $payload : null,
             ];
         } catch (\Throwable $exception) {
             return ['success' => false, 'status' => null, 'message' => __('portal.si_courier_tracking_error'), 'raw' => null];
         }
+    }
+
+    /**
+     * The courier's own list of cities, zones or areas, for the owner to pick from.
+     *
+     * @return list<array{id: string, name: string}>
+     *
+     * @throws \RuntimeException When the courier refuses or answers with something unreadable.
+     */
+    public function areas(string $provider, string $level, ?string $parentId = null): array
+    {
+        $config = $this->settings->provider('couriers', $provider);
+        $base = rtrim((string) ($config['base_url'] ?? ''), '/');
+        $response = match ($provider.'.'.$level) {
+            'pathao.city' => $this->pathaoLookup($config, $base.'/aladdin/api/v1/city-list'),
+            'pathao.zone' => $this->pathaoLookup($config, $base.'/aladdin/api/v1/cities/'.rawurlencode((string) $parentId).'/zone-list'),
+            'pathao.area' => $this->pathaoLookup($config, $base.'/aladdin/api/v1/zones/'.rawurlencode((string) $parentId).'/area-list'),
+            'redx.area' => Http::timeout(30)->acceptJson()->withHeaders($this->redxAuth($config))->get($base.'/v1.0.0-beta/areas'),
+            default => throw new \InvalidArgumentException('This courier has no such list.'),
+        };
+        $rows = $response->json($provider === 'redx' ? 'areas' : 'data.data');
+        if (! $response->successful() || ! is_array($rows)) {
+            throw new \RuntimeException(ucfirst($provider).' answered with status '.$response->status());
+        }
+        $idKey = $provider === 'redx' ? 'id' : $level.'_id';
+        $nameKey = $provider === 'redx' ? 'name' : $level.'_name';
+        $list = [];
+        foreach ($rows as $row) {
+            if (is_array($row) && filled($row[$idKey] ?? null) && filled($row[$nameKey] ?? null)) {
+                $list[] = ['id' => (string) $row[$idKey], 'name' => (string) $row[$nameKey]];
+            }
+        }
+
+        return $list;
     }
 
     /**
@@ -117,6 +156,11 @@ final class CourierGatewayClient
             'recipient_name' => $shipment['recipient_name'] ?? __('portal.si_courier_default_recipient'),
             'recipient_phone' => $shipment['recipient_phone'] ?? '',
             'recipient_address' => $shipment['recipient_address'] ?? '',
+            ...array_filter([
+                'recipient_city' => $shipment['courier_area']['city_id'] ?? null,
+                'recipient_zone' => $shipment['courier_area']['zone_id'] ?? null,
+                'recipient_area' => $shipment['courier_area']['area_id'] ?? null,
+            ], 'filled'),
             'delivery_type' => 48,
             'item_type' => 2,
             'item_quantity' => 1,
@@ -160,7 +204,8 @@ final class CourierGatewayClient
         $response = Http::timeout(20)->acceptJson()->withHeaders($this->redxAuth($config))->post(rtrim((string) $config['base_url'], '/').'/v1.0.0-beta/parcel', [
             'customer_name' => $shipment['recipient_name'] ?? __('portal.si_courier_default_recipient'),
             'customer_phone' => $shipment['recipient_phone'] ?? '',
-            'delivery_area' => $shipment['recipient_address'] ?? '',
+            'delivery_area' => $shipment['courier_area']['area_name'] ?? $shipment['recipient_address'] ?? '',
+            ...array_filter(['delivery_area_id' => $shipment['courier_area']['area_id'] ?? null], 'filled'),
             'customer_address' => $shipment['recipient_address'] ?? '',
             'merchant_invoice_id' => $shipment['invoice'] ?? null,
             'cash_collection_amount' => (float) ($shipment['amount'] ?? 0),
@@ -198,6 +243,9 @@ final class CourierGatewayClient
     /** @param  array<string, mixed>  $config @param  array<string, mixed>  $shipment */
     private function ecourierCreate(array $config, array $shipment): array
     {
+        if (blank($config['package_code'] ?? null)) {
+            return ['success' => false, 'tracking' => null, 'consignment_id' => null, 'provider' => 'ecourier', 'message' => __('courier_areas.needs_package_code'), 'raw' => null];
+        }
         $response = Http::timeout(20)->acceptJson()->withHeaders($this->ecourierAuth($config))->post(rtrim((string) $config['base_url'], '/').'/order-place', [
             'recipient_name' => $shipment['recipient_name'] ?? __('portal.si_courier_default_recipient'),
             'recipient_mobile' => $shipment['recipient_phone'] ?? '',
@@ -205,7 +253,7 @@ final class CourierGatewayClient
             'recipient_thana' => Str::limit((string) ($shipment['recipient_thana'] ?? ''), 40, ''),
             'recipient_area' => Str::limit((string) ($shipment['recipient_area'] ?? ''), 40, ''),
             'recipient_address' => $shipment['recipient_address'] ?? '',
-            'package_code' => (string) ($config['package_code'] ?? ''),
+            'package_code' => (string) $config['package_code'],
             'product_price' => (int) round((float) ($shipment['amount'] ?? 0)),
             'payment_method' => 'COD',
             'recipient_zip' => '',
@@ -218,6 +266,12 @@ final class CourierGatewayClient
         return $this->result('ecourier', $response->successful(), $payload,
             $payload['ID'] ?? $payload['id'] ?? null,
             $payload['ID'] ?? $payload['tracking'] ?? null);
+    }
+
+    /** @param  array<string, mixed>  $config */
+    private function pathaoLookup(array $config, string $url): Response
+    {
+        return Http::timeout(15)->acceptJson()->withToken($this->pathaoToken($config))->get($url);
     }
 
     /**
