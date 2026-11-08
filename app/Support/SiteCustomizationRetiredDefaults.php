@@ -55,6 +55,8 @@ final class SiteCustomizationRetiredDefaults
             'about_obj4_title' => ['Transparent Operations'],
             'about_obj4_desc' => ['Maintain staff-audited product requests, manual payment verification, delivery records and distribution accountability from head office through the partner network.'],
             'about_network' => ['Madina operates as the mother company for a staff-governed distribution network. Dealer and sub-dealer accounts are created only after company review—there is no public self-registration. Authorized partners place product requests through dedicated portals, submit manual payment evidence for verification, and serve end customers under approved commercial terms. This model keeps inventory, pricing discipline and customer trust aligned from Pirganj head office to local outlets across Bangladesh.'],
+            // The last line of the page used to name Dhaka; the head office is in Pirganj, Rangpur.
+            'footer_location' => ['Dhaka, Bangladesh', 'ঢাকা, বাংলাদেশ'],
             'contact_topic1_desc' => ['Dealer accounts are created by company staff after review.'],
             'contact_topic2_desc' => ['Ask about availability, orders and your local dealer.'],
             'directory_subtitle' => ['Find a company-approved dealer point or search nearest dealers in your area.'],

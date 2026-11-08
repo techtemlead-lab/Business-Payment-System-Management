@@ -64,6 +64,8 @@ final class PlaceGeographyResolver
 
     /**
      * Walk parents upward and base_place_id downward to fill the full serial path.
+     * A base place with no code yet is skipped: its level stays empty, so nothing is
+     * paid or saved against it, and the walk carries on to any coded place below it.
      *
      * @return array<string, mixed>
      */
@@ -80,7 +82,9 @@ final class PlaceGeographyResolver
         $cursor = $anchor;
         $guard = 0;
         while ($cursor && $guard++ < 8) {
-            $this->writeLevel($geography, $cursor);
+            if ($cursor === $anchor || $cursor->isReadyForAssignment()) {
+                $this->writeLevel($geography, $cursor);
+            }
             if (! $cursor->base_place_id) {
                 break;
             }

@@ -46,7 +46,7 @@
     </main>
     <footer class="ref-footer" style="margin-top:auto">
         <div class="ref-container ref-footer-bottom" style="border-top:0">
-            <span>{{ __('site.timezone_currency') }}</span>
+            <span>{{ \App\Support\SiteChrome::text('footer_location', $siteCustomization['footer_location'] ?? null) }}</span>
             <span>&copy; {{ date('Y') }} {{ __('site.company_bar') }}</span>
         </div>
     </footer>

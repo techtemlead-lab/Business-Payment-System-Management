@@ -131,7 +131,7 @@
 </div>
 <div class="ref-container ref-footer-bottom">
     <span>{{ \App\Support\SiteCustomization::copyrightLine() }}</span>
-    <span>{{ __('site.timezone_currency') }}</span>
+    <span>{{ $chrome('footer_location', $siteCustomization['footer_location'] ?? null) }}</span>
     <nav class="ref-footer-legal" aria-label="{{ __('site.legal_nav') }}">
         @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_link_privacy_url'] ?? '/privacy'))
         <a href="{{ $href }}">{{ $chrome('privacy_policy', $siteCustomization['footer_link_privacy'] ?? null) }}</a>

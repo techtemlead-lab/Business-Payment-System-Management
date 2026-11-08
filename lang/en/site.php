@@ -45,7 +45,7 @@ return [
     'company_portal' => 'Company Panel',
     'my_account' => 'My Account',
     'skip_to_content' => 'Skip to content',
-    'timezone_currency' => 'Dhaka, Bangladesh',
+    'footer_location' => 'Pirganj, Rangpur, Bangladesh',
 
     'loading_experience' => 'Loading Madina Natural Health Care',
     'error_back_home' => 'Back to homepage',

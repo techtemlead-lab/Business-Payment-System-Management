@@ -15,7 +15,7 @@ interface PlaceRow extends Row {
     base_place_id?: number | null;
     base_place_code?: string | null;
     base_place_name?: string | null;
-    base_options?: { id: number; code: string; name: string; level: string }[];
+    base_options?: { id: number; code: string; name: string; level: string; note?: string }[];
     sort_order?: number;
     is_active?: boolean;
     is_placeholder?: boolean;
@@ -484,7 +484,7 @@ export default function PlaceCodesHub({
                                 <select value={editForm.data.base_place_id} onChange={(e) => editForm.setData('base_place_id', e.target.value)}>
                                     <option value="">—</option>
                                     {editRow.base_options?.map((option) => (
-                                        <option key={option.id} value={option.id}>{displayPlace(option.name)} ({displayPlace(option.code)})</option>
+                                        <option key={option.id} value={option.id}>{displayPlace(option.name)} ({option.note ?? displayPlace(option.code)})</option>
                                     ))}
                                 </select>
                                 {editForm.errors.base_place_id && <span className="field-error">{editForm.errors.base_place_id}</span>}

@@ -35,13 +35,13 @@ class AuditRemediationFixesTest extends TestCase
         $this->assertStringContainsString('max-height:48px', $html);
     }
 
-    public function test_bangla_footer_shows_dhaka_location_without_currency(): void
+    public function test_bangla_footer_shows_head_office_location_without_currency(): void
     {
         $this->onPortal('public')->from('/')->post('/locale', ['locale' => 'bn'])->assertRedirect();
         $this->onPortal('public')
             ->get('/')
             ->assertOk()
-            ->assertSee('ঢাকা, বাংলাদেশ', false)
+            ->assertSee('পীরগঞ্জ, রংপুর, বাংলাদেশ', false)
             ->assertDontSee('এশিয়া/ঢাকা · BDT', false)
             ->assertDontSee('এশিয়া/ঢাকা · ৳', false);
     }

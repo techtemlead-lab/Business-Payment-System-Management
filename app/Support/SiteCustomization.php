@@ -346,6 +346,7 @@ class SiteCustomization
             'footer_phone' => '+8801730532966',
             'footer_email' => 'holisticnutracare@gmail.com',
             'footer_address' => $copy('footer_address'),
+            'footer_location' => $copy('footer_location'),
             'footer_link_about' => 'About Us',
             'footer_link_about_url' => '/about',
             'footer_link_vendor' => 'Vendor Program',
