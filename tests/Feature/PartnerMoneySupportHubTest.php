@@ -6,7 +6,6 @@ use App\Domain\Support\SupportTickets;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -110,9 +109,9 @@ class PartnerMoneySupportHubTest extends TestCase
         $owner = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
 
         $this->actingAs($owner)->onPortal('sadmin')
-            ->get('/withdrawals')
+            ->get('/notifications')
             ->assertOk()
-            ->assertInertia(fn ($page) => $page->where('section', 'withdrawals')->missing('data.partner_hub'));
+            ->assertInertia(fn ($page) => $page->where('section', 'notifications')->missing('data.partner_hub'));
     }
 
     public function test_requests_from_both_old_forms_still_show_to_the_partner(): void
@@ -264,12 +263,12 @@ class PartnerMoneySupportHubTest extends TestCase
         $this->assertStringContainsString('/commands/support-tickets', file_get_contents(resource_path('js/components/HelpSupportHub.tsx')));
     }
 
-    public function test_the_header_button_goes_to_buying(): void
+    public function test_the_new_order_menu_row_goes_to_buying(): void
     {
-        $header = file_get_contents(resource_path('js/components/PortalHeader.tsx'));
-
-        $this->assertStringContainsString('canBuy', $header);
-        $this->assertTrue(Str::contains($header, "<Link href=\"/purchase\" className=\"portal-shop\" title={translate('portal', 'purchase')}"));
+        $this->assertStringContainsString(
+            "mother('new-order', 'purchase', pick(available, ['purchase']))",
+            file_get_contents(resource_path('js/shared/portalNav.ts')),
+        );
         $this->actingAs($this->dealer())->onPortal('dealer')
             ->get('/purchase')
             ->assertOk()
