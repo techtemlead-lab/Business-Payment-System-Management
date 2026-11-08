@@ -75,7 +75,7 @@ final class DatedSchemes
     public function add(User $owner, array $data): DatedScheme
     {
         abort_unless(self::canManage($owner), 403);
-        $scheme = DatedScheme::query()->create([...$data, 'product_ids' => array_values(array_map('intval', $data['product_ids'])), 'created_by' => $owner->id]);
+        $scheme = DatedScheme::query()->create([...$data, 'product_ids' => array_map('intval', $data['product_ids']), 'created_by' => $owner->id]);
         Audit::record($owner->id, 'dated_scheme.added', (string) $scheme->id, ['title' => $scheme->title]);
 
         return $scheme;
@@ -96,7 +96,7 @@ final class DatedSchemes
             'title' => (string) $scheme->title,
             'starts_on' => $scheme->starts_on->toDateString(),
             'ends_on' => $scheme->ends_on->toDateString(),
-            'product_ids' => array_values(array_map('intval', $scheme->product_ids)),
+            'product_ids' => array_map('intval', $scheme->product_ids),
             'min_quantity' => (int) $scheme->min_quantity,
             'benefit_type' => (string) $scheme->benefit_type,
             'benefit_text' => (string) $scheme->benefit_text,

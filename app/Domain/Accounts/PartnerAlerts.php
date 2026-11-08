@@ -80,7 +80,8 @@ final class PartnerAlerts
                     ...$this->rankCloseAlert($user, $rules, $ranks->get($id), $teamCounts[$id] ?? [], $month),
                 ];
             }
-            $mine = $inactive->get($id, collect());
+            /** @var Collection<int, \stdClass> $mine */
+            $mine = $inactive->get($id) ?? collect();
             if ($mine->isNotEmpty()) {
                 $alerts[] = [
                     'kind' => 'inactive_partners',
@@ -198,7 +199,7 @@ final class PartnerAlerts
      * older than the cut-off, longest quiet first, grouped by the partner who referred them.
      *
      * @param  list<int>  $sponsorIds
-     * @return Collection<int, Collection<int, object>>
+     * @return Collection<int|string, Collection<int, \stdClass>>
      */
     private function inactiveDirectPartners(array $sponsorIds, CarbonImmutable $cutoff): Collection
     {

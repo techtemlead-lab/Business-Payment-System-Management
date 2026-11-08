@@ -28,8 +28,8 @@ export default function SchemesHub({ data }: { data: SchemesData }) {
                 <p className="muted">{translate('dealer_tools', 'scheme_owner_hint')}</p>
                 <form className="action-form" onSubmit={submit}>
                     <label>{translate('dealer_tools', 'scheme_title_field')}<input required maxLength={150} value={form.data.title} onChange={(e) => form.setData('title', e.target.value)} /></label>
-                    <label>{translate('dealer_tools', 'scheme_starts')}<DateInput value={form.data.starts_on} onChange={(value: string) => form.setData('starts_on', value)} /></label>
-                    <label>{translate('dealer_tools', 'scheme_ends')}<DateInput value={form.data.ends_on} onChange={(value: string) => form.setData('ends_on', value)} /></label>
+                    <label>{translate('dealer_tools', 'scheme_starts')}<DateInput value={form.data.starts_on} onChange={(e) => form.setData('starts_on', e.target.value)} /></label>
+                    <label>{translate('dealer_tools', 'scheme_ends')}<DateInput value={form.data.ends_on} onChange={(e) => form.setData('ends_on', e.target.value)} /></label>
                     <label>{translate('dealer_tools', 'scheme_products')}
                         <select multiple size={6} required value={form.data.product_ids} onChange={(e) => form.setData('product_ids', Array.from(e.target.selectedOptions).map((option) => option.value))}>
                             {data.products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}

@@ -65,6 +65,7 @@ final class RepeatOrderOptions
     {
         $items = [];
         $skipped = [];
+        /** @var OrderLine $line */
         foreach ($order->lines as $line) {
             $product = $products->get($line->product_id);
             $reason = $this->unavailableReason($product);
