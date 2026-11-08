@@ -6298,4 +6298,12 @@ return [
     'sms_compose_counter' => ':chars characters · :segments SMS',
     'sms_compose_counter_hint' => 'One Bangla SMS holds 70 characters. Longer messages are charged at 67 characters per SMS.',
     'cleanup_detail_refused' => 'Not sent (no Bangla letters)',
+    'si_field_tracking_url' => 'Public tracking page (optional)',
+    'si_field_package_code' => 'Package code',
+    'si_field_pathao_api_key' => 'Client ID',
+    'si_field_pathao_api_secret' => 'Client secret',
+    'si_field_pathao_username' => 'Merchant login email',
+    'si_field_pathao_password' => 'Merchant login password',
+    'event_shipment_consignment_updated' => 'Consignment number updated',
+    'event_order_mixed_outcome_decided' => 'Commission decision recorded for a mixed delivery',
 ];

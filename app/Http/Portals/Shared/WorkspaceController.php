@@ -354,8 +354,11 @@ class WorkspaceController extends Controller
             'courier_consignment_id', 'courier_status', 'courier_status_raw', 'courier_status_at', 'courier_tracked_at', 'courier_timeline',
             'lines', 'delivered_at', 'created_at',
         ]);
+        $manualPages = $shipments->contains(fn (\stdClass $shipment): bool => CourierOptions::isManual($shipment->courier_provider))
+            ? app(CourierOptions::class)->manualTrackingPages()
+            : [];
         foreach ($shipments as $shipment) {
-            $shipment->tracking_url = CourierOptions::trackingUrl($shipment->courier_provider, $shipment->tracking, $shipment->courier_consignment_id);
+            $shipment->tracking_url = CourierOptions::trackingUrl($shipment->courier_provider, $shipment->tracking, $shipment->courier_consignment_id, $manualPages);
             $shipment->courier_timeline = json_decode((string) ($shipment->courier_timeline ?? '[]'), true) ?: [];
             if (ShipmentTracking::isTrackable($shipment) && Cache::add('courier-tracking:'.$shipment->id, true, now()->addMinutes(10))) {
                 RefreshShipmentTracking::dispatch((int) $shipment->id);

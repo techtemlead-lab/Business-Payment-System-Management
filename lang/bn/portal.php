@@ -6298,4 +6298,12 @@ return [
     'sms_compose_counter' => ':chars অক্ষর · :segments টি এসএমএস',
     'sms_compose_counter_hint' => 'বাংলায় ১টি এসএমএসে ৭০ অক্ষর। এর বেশি হলে প্রতিটিতে ৬৭ অক্ষর ধরে খরচ হবে।',
     'cleanup_detail_refused' => 'পাঠানো হয়নি (বাংলা অক্ষর নেই)',
+    'si_field_tracking_url' => 'ট্র্যাকিংয়ের পাবলিক পেজ (ইচ্ছা হলে)',
+    'si_field_package_code' => 'প্যাকেজ কোড',
+    'si_field_pathao_api_key' => 'ক্লায়েন্ট আইডি',
+    'si_field_pathao_api_secret' => 'ক্লায়েন্ট সিক্রেট',
+    'si_field_pathao_username' => 'মার্চেন্ট লগইন ইমেইল',
+    'si_field_pathao_password' => 'মার্চেন্ট লগইন পাসওয়ার্ড',
+    'event_shipment_consignment_updated' => 'কনসাইনমেন্ট নম্বর আপডেট হয়েছে',
+    'event_order_mixed_outcome_decided' => 'মিশ্র ডেলিভারির কমিশনের সিদ্ধান্ত লেখা হয়েছে',
 ];

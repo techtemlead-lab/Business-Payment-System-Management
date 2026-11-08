@@ -48,12 +48,12 @@ final class ShipmentTracking
         if (str_contains($status, 'picked')) {
             return 'picked_up';
         }
-        foreach (['transit', 'hub', 'sorting', 'delivery', 'ready', 'progress', 'hold', 'out_for', 'dispatched', 'shipped'] as $word) {
+        foreach (['transit', 'hub', 'branch', 'sorting', 'delivery', 'ready', 'progress', 'hold', 'out_for', 'dispatched', 'shipped'] as $word) {
             if (str_contains($status, $word)) {
                 return 'in_transit';
             }
         }
-        foreach (['pickup', 'pending', 'requested', 'review', 'placed', 'created', 'booked', 'accepted'] as $word) {
+        foreach (['pickup', 'pending', 'requested', 'review', 'placed', 'created', 'booked', 'accepted', 'initiated'] as $word) {
             if (str_contains($status, $word)) {
                 return 'waiting_pickup';
             }
@@ -98,6 +98,10 @@ final class ShipmentTracking
         $reference = $shipment->courier_provider === 'pathao' && filled($shipment->courier_consignment_id)
             ? (string) $shipment->courier_consignment_id
             : (string) $shipment->tracking;
+        // Paperfly looks parcels up by the merchant's own order reference, the invoice sent when booking.
+        if ($shipment->courier_provider === 'paperfly') {
+            $reference = Order::query()->whereKey($shipment->order_id)->value('number').'-'.$shipment->id;
+        }
         $result = $this->couriers->track((string) $shipment->courier_provider, $reference);
         DB::table('shipments')->where('id', $shipmentId)->update(['courier_tracked_at' => now()]);
         if (! $result['success'] || blank($result['status'])) {
@@ -121,6 +125,38 @@ final class ShipmentTracking
             throw ValidationException::withMessages(['shipment' => __('courier.err_pickup_not_waiting')]);
         }
         $this->apply($shipmentId, 'picked_up', null, $actor);
+    }
+
+    /**
+     * Store staff, for a courier with no booking system: type the consignment number and move
+     * the parcel forward. A step of "delivered" is still only the courier's word: staff confirm
+     * the delivery separately, which is what releases commission.
+     */
+    public function updateByHand(User $actor, Order $order, int $shipmentId, ?string $status, ?string $tracking): void
+    {
+        abort_unless($actor->allows('inventory'), 403);
+        abort_if((int) $actor->id === (int) $order->user_id, 403, __('portal.err_self_review_order'));
+        $tracking = trim((string) $tracking);
+        if ($status === null && $tracking === '') {
+            throw ValidationException::withMessages(['status' => __('courier_more.err_manual_nothing')]);
+        }
+        $shipment = DB::table('shipments')->where('id', $shipmentId)->where('order_id', $order->id)->first();
+        abort_if($shipment === null, 404);
+        if ($shipment->courier_booking_status !== 'manual' || $shipment->status !== 'dispatched') {
+            throw ValidationException::withMessages(['status' => __('courier_more.err_not_manual_parcel')]);
+        }
+        DB::transaction(function () use ($actor, $order, $shipment, $status, $tracking): void {
+            if ($tracking !== '' && $tracking !== (string) $shipment->tracking) {
+                DB::table('shipments')->where('id', $shipment->id)->update(['tracking' => $tracking, 'updated_at' => now()]);
+                $metadata = ['shipment_id' => $shipment->id, 'from' => $shipment->tracking, 'to' => $tracking];
+                DB::table('order_events')->insert(['order_id' => $order->id, 'actor_id' => $actor->id, 'action' => 'shipment.consignment_updated',
+                    'metadata' => json_encode($metadata, JSON_THROW_ON_ERROR), 'created_at' => now()]);
+                Audit::record($actor->id, 'shipment.consignment_updated', $order->id, $metadata);
+            }
+            if ($status !== null && $this->apply($shipment->id, $status, null, $actor) === null) {
+                throw ValidationException::withMessages(['status' => __('courier_more.err_manual_status_backwards')]);
+            }
+        }, 3);
     }
 
     /**

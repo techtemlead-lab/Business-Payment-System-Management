@@ -6,9 +6,11 @@ import { useT } from '../shared/i18n/t';
 import TransactionProgressStepper from '../components/TransactionProgressStepper';
 import CourierTrackingPanel from '../components/CourierTrackingPanel';
 
-function DispatchForm({ order, courierChoices }: { order: Row; courierChoices: { key: string; label: string }[] }) {
+function DispatchForm({ order, courierChoices }: { order: Row; courierChoices: { key: string; label: string; manual?: boolean }[] }) {
     const translate = useT();
-    const form = useForm({ courier: '', tracking: '', courier_contact: '', eta: '', courier_provider: '', idempotency_key: crypto.randomUUID(),
+    // A manual courier the dealer picked is filled in; staff only type the consignment number.
+    const chosenManual = courierChoices.find(option => option.manual && option.key === order.courier_choice);
+    const form = useForm({ courier: chosenManual?.label ?? '', tracking: '', courier_contact: '', eta: '', courier_provider: chosenManual?.key ?? '', idempotency_key: crypto.randomUUID(),
         items: order.lines.filter((line: Row) => line.dispatched < line.quantity).map((line: Row) => ({ line_id: line.id, quantity: line.quantity - line.dispatched })) });
     return <form className="action-form" onSubmit={event => {
         event.preventDefault();
@@ -25,7 +27,7 @@ function DispatchForm({ order, courierChoices }: { order: Row; courierChoices: {
                 {courierChoices.map(option => <option key={option.key} value={option.key}>{option.label}</option>)}
             </select></label>}
             <label>{translate('portal', 'courier')}<input required aria-label={translate('portal', 'courier')} value={form.data.courier} onChange={event => form.setData('courier', event.target.value)} /></label>
-            <label>{translate('portal', 'tracking_reference')}<input required={form.data.courier_provider === ''} aria-label={translate('portal', 'tracking_reference')} value={form.data.tracking} onChange={event => form.setData('tracking', event.target.value)} /></label>
+            <label>{translate('portal', 'tracking_reference')}<input required={form.data.courier_provider === '' || Boolean(courierChoices.find(option => option.key === form.data.courier_provider)?.manual)} aria-label={translate('portal', 'tracking_reference')} value={form.data.tracking} onChange={event => form.setData('tracking', event.target.value)} /></label>
             <label>{translate('portal', 'courier_contact_label')}<input maxLength={120} aria-label={translate('portal', 'courier_contact_label')} value={form.data.courier_contact} onChange={event => form.setData('courier_contact', event.target.value)} /></label>
             <label>{translate('portal', 'estimated_delivery')}<DateInput value={form.data.eta} onChange={event => form.setData('eta', event.target.value)} /></label>
         </div>

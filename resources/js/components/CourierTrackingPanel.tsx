@@ -3,6 +3,7 @@ import { Row, ActionForm, dateTime } from './UI';
 import { useT } from '../shared/i18n/t';
 
 const STEPS = ['waiting_pickup', 'picked_up', 'in_transit', 'delivered'];
+const ALL_STEPS = [...STEPS, 'returned'];
 
 type Props = {
     order: Row;
@@ -56,7 +57,7 @@ function ParcelTracking({ order, shipment, canManage }: { order: Row; shipment: 
         {booking === 'failed' && <p className="muted" role="status">{canManage && shipment.courier_booking_error
             ? translate('courier', 'booking_failed_staff', { message: String(shipment.courier_booking_error) })
             : translate('courier', 'booking_failed')}</p>}
-        {booking === 'booked' && <>
+        {['booked', 'manual'].includes(booking) && <>
             <ol className="ops-row is-wrap" aria-label={translate('courier', 'tracking_title')}>
                 {steps.map((step, index) => <li key={step} className={`hub-pill ${index <= current ? 'tone-ok' : ''}`} aria-current={index === current ? 'step' : undefined}>
                     {translate('courier', `status_${step}`)}{reached.get(step) ? ` · ${dateTime(reached.get(step))}` : ''}
@@ -74,6 +75,13 @@ function ParcelTracking({ order, shipment, canManage }: { order: Row; shipment: 
         {canManage && booking === 'failed' && shipment.status === 'dispatched' && <ActionForm action={`/commands/orders/${order.id}/shipments/${shipment.id}/courier-retry`} fields={[]} submit={translate('courier', 'retry')} />}
         {canManage && booking === 'booked' && shipment.status === 'dispatched' && (!shipment.courier_status || shipment.courier_status === 'waiting_pickup')
             && <ActionForm action={`/commands/orders/${order.id}/shipments/${shipment.id}/picked-up`} fields={[]} submit={translate('courier', 'mark_picked_up')} />}
+        {canManage && booking === 'manual' && shipment.status === 'dispatched' && !['delivered', 'returned'].includes(shipment.courier_status) && <>
+            <p className="muted">{translate('courier_more', 'manual_hint')}</p>
+            <ActionForm action={`/commands/orders/${order.id}/shipments/${shipment.id}/manual-update`} fields={[
+                { name: 'status', label: translate('courier_more', 'manual_status_label'), options: ALL_STEPS.slice(ALL_STEPS.indexOf(shipment.courier_status ?? 'waiting_pickup') + 1).map(step => ({ value: step, label: translate('courier', `status_${step}`) })) },
+                { name: 'tracking', label: translate('courier_more', 'manual_tracking_label') },
+            ]} submit={translate('courier_more', 'manual_submit')} />
+        </>}
     </div></div>;
 }
 
