@@ -29,7 +29,10 @@ final class WithdrawalsSection implements WorkspaceSection
         return match ($context->section) {
             'withdrawals', 'earnings' => $this->earnings($context),
             'full-report' => $this->fullReport($context),
-            'payouts-hub' => $this->payoutsHub($context->request, $context->branchScope),
+            'payouts-hub' => [
+                'payment_accounts' => $context->request->user()->allows('finance') ? app(PaymentAccounts::class)->listing($context->request->user(), false, false) : [],
+                ...$this->payoutsHub($context->request, $context->branchScope),
+            ],
             'payment-receipts' => $this->paymentReceipts($context),
             default => [],
         };
@@ -343,7 +346,6 @@ final class WithdrawalsSection implements WorkspaceSection
         $rules = app(CommissionPolicy::class)->snapshot()['rules'];
 
         return [
-            'payment_accounts' => $request->user()->allows('finance') ? app(PaymentAccounts::class)->listing($request->user(), false, false) : [],
             'withdrawals' => $withdrawals,
             'payout_totals' => [
                 'requested_count' => (int) ($summary->requested_count ?? 0),
