@@ -16,8 +16,6 @@ final class FraudAnomalyDetector
 
     public const ThresholdHighVelocity = 3;
 
-    public const ThresholdLargeSinglePayout = 100000.00; // 100k BDT triggers dual review
-
     /**
      * Analyze a withdrawal request for financial fraud, velocity bursts, or anomalies.
      *
@@ -27,6 +25,7 @@ final class FraudAnomalyDetector
     {
         $flags = [];
         $score = 0;
+        $approvalLimit = (float) app(WithdrawalApprovalLimit::class)->current()['amount'];
 
         // 1. Check 24-hour withdrawal velocity
         $recentWithdrawals = DB::table('withdrawals')
@@ -40,7 +39,7 @@ final class FraudAnomalyDetector
         }
 
         // 2. Check large single payout threshold
-        if ($amount >= self::ThresholdLargeSinglePayout) {
+        if ($amount >= $approvalLimit) {
             $flags[] = 'LARGE_PAYOUT_THRESHOLD';
             $score += 30;
         }
@@ -68,7 +67,7 @@ final class FraudAnomalyDetector
             default => self::RiskLow,
         };
 
-        $requiresDualApproval = ($amount >= self::ThresholdLargeSinglePayout) || ($score >= 50);
+        $requiresDualApproval = ($amount >= $approvalLimit) || ($score >= 50);
 
         if ($score >= 25) {
             Audit::record(

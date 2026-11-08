@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import { Search, GitFork, Users, Award, ChevronRight, ChevronDown, Phone, MapPin, Calendar, DollarSign, ArrowUpRight, ShieldCheck, Filter, UserCheck, Eye, Download } from 'lucide-react';
 import { money, date, Table, type TableColumn, number } from './UI';
+import JargonHint from './JargonHint';
 import { useT } from '../shared/i18n/t';
 
 interface DealerNode {
@@ -263,6 +264,7 @@ export default function NetworkTreeExplorer({ dealers, treeStats = null }: Netwo
 
     return (
         <div className="hub">
+            <JargonHint terms={['mo', 'am', 'sm', 'me']} />
             {/* Top Stat Summary Cards */}
             <div className="hub-grid">
                 <div className="hub-tile">

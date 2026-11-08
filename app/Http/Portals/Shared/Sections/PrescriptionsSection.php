@@ -3,6 +3,7 @@
 namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Clinic\ClinicDispensing;
+use App\Domain\Clinic\DoseSchedule;
 use App\Domain\Clinic\PrescriptionAccess;
 use App\Domain\Clinic\PrescriptionBook;
 use App\Domain\Inventory\BranchOperations;
@@ -41,7 +42,7 @@ final class PrescriptionsSection implements WorkspaceSection
 
         $patientPage = PrescriptionPatient::query()
             ->visibleTo($user)
-            ->with(['placeCode:id,code,name'])
+            ->with(['placeCode:id,code,name', 'consent:id,patient_id,confirmed_at'])
             ->when($search !== '', fn ($query) => $query->where('name', 'ilike', '%'.$search.'%'))
             ->orderByDesc('id')
             ->paginate(self::ListLimit, ['*'], 'patients_page')
@@ -82,6 +83,7 @@ final class PrescriptionsSection implements WorkspaceSection
                     'dose' => $line->dose,
                     'frequency' => $line->frequency,
                     'duration' => $line->duration,
+                    'dose_summary' => DoseSchedule::summary($line, app()->getLocale()),
                     'quantity' => $line->quantity,
                     'line_total' => $line->line_total,
                 ])->all(),
@@ -102,6 +104,9 @@ final class PrescriptionsSection implements WorkspaceSection
             'registration' => $registration ? ['type' => $registration->registration_type, 'number' => $registration->registration_number] : null,
             'registration_types' => PrescriberRegistration::Types,
             'max_lines' => PrescriptionBook::MaxLines,
+            'dose_amounts' => DoseSchedule::Amounts,
+            'food_timings' => DoseSchedule::FoodTimings,
+            'duration_units' => DoseSchedule::DurationUnits,
         ];
 
         if ($clinic) {

@@ -49,7 +49,8 @@ class ProductBatchNumberTest extends TestCase
     {
         $hub = CompanyBranch::query()->where('code', 'HO-PIRGANJ')->firstOrFail();
         $actor = User::factory()->staff('inventory')->create(['active_branch_id' => $hub->id]);
-        $product = Product::factory()->create(['stock' => 5, 'batch_number' => 'OLD-1']);
+        // Nothing older on the shelf, so the new delivery is the batch that goes out next.
+        $product = Product::factory()->create(['stock' => 0, 'batch_number' => 'OLD-1']);
 
         $this->actingAs($actor)->postJson('/api/v1/inventory/adjustments', [
             'product_id' => $product->id,
@@ -106,11 +107,13 @@ class ProductBatchNumberTest extends TestCase
             'idempotency_key' => (string) Str::uuid(),
         ]);
         $product->forceFill(['batch_number' => 'LATER-2', 'expires_on' => '2028-01-31'])->save();
+        // Sent before batches were recorded, so the copy made when the order was placed is used.
+        $order->lines()->update(['dispatched' => 2]);
 
         $line = app(OrderInvoice::class)->payload($order->fresh(['user', 'lines']), 'dealer')['lines'][0];
 
-        $this->assertSame('SOLD-1', $line['batch_number']);
-        $this->assertSame('31/05/2027', $line['expires_on']);
+        $this->assertSame('SOLD-1', $line['batches'][0]['batch_number']);
+        $this->assertSame('31/05/2027', $line['batches'][0]['expires_on']);
 
         $html = $this->actingAs($dealer)->onPortal('dealer')->get('/orders/'.$order->id.'/invoice/print')->assertOk()->getContent();
         $this->assertStringContainsString(__('portal.inv_batch', ['batch' => 'SOLD-1']), $html);

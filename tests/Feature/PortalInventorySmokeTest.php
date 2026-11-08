@@ -49,7 +49,7 @@ class PortalInventorySmokeTest extends TestCase
             '/', '/employees', '/operations/staff-operations', '/operations/payroll', '/operations/my-payroll',
             '/operations/field-sales', '/operations/access-management',
             '/orders', '/deliveries',
-            '/treasury', '/payments', '/withdrawals', '/operations/payment-accounts', '/ledger',
+            '/treasury', '/payments', '/operations/payment-accounts', '/ledger',
             '/operations/policy-schedules', '/operations/commission-holds', '/settlements', '/rewards', '/payouts-hub',
             '/operations/reserve-payouts', '/operations/finance-settings', '/operations/financial-readiness',
             '/catalog', '/inventory', '/branches', '/branch-performance', '/place-codes',
@@ -108,7 +108,7 @@ class PortalInventorySmokeTest extends TestCase
 
         $paths = [
             '/', '/orders', '/deliveries',
-            '/treasury', '/payments', '/withdrawals', '/operations/payment-accounts', '/ledger',
+            '/treasury', '/payments', '/operations/payment-accounts', '/ledger',
             '/operations/policy-schedules', '/operations/commission-holds', '/settlements', '/rewards', '/payouts-hub',
             '/operations/reserve-payouts', '/operations/finance-settings', '/operations/financial-readiness',
             '/catalog', '/operations/financial-reports', '/operations/data-imports',

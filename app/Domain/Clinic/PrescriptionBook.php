@@ -7,6 +7,7 @@ use App\Models\PlaceCode;
 use App\Models\Prescription;
 use App\Models\PrescriptionLine;
 use App\Models\PrescriptionPatient;
+use App\Models\PrescriptionPatientConsent;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\Audit;
@@ -31,9 +32,10 @@ final class PrescriptionBook
     public const PatientOptionLimit = 30;
 
     /**
-     * @param  array{name: string, age?: int|null, sex?: string|null, phone?: string|null, place_code_id?: int|null, notes?: string|null}  $data
+     * @param  array{name: string, age?: int|null, sex?: string|null, phone?: string|null, place_code_id?: int|null, notes?: string|null, allergies?: string|null, patient_consent?: bool|int|string|null}  $data
+     * @param  array{source: string, statement: string, consultation_request_id?: int|null}|null  $consent  Null means the prescriber confirmed it themselves.
      */
-    public function savePatient(User $prescriber, ?PrescriptionPatient $patient, array $data): PrescriptionPatient
+    public function savePatient(User $prescriber, ?PrescriptionPatient $patient, array $data, ?array $consent = null): PrescriptionPatient
     {
         abort_unless(PrescriptionAccess::canPrescribe($prescriber), 403);
         if ($patient !== null) {
@@ -47,15 +49,42 @@ final class PrescriptionBook
             'place_code_id' => $data['place_code_id'] ?? null,
             'notes' => filled($data['notes'] ?? null) ? trim((string) $data['notes']) : null,
         ];
+        // A safety field: a save that doesn't mention allergies must not wipe them.
+        if (array_key_exists('allergies', $data)) {
+            $values['allergies'] = filled($data['allergies']) ? trim((string) $data['allergies']) : null;
+        }
         if ($patient === null) {
-            $patient = PrescriptionPatient::query()->create([...$values, 'prescriber_id' => $prescriber->id]);
-            Audit::record($prescriber->id, 'prescription.patient_created', (string) $patient->id, []);
+            return DB::transaction(function () use ($values, $prescriber, $consent): PrescriptionPatient {
+                $created = PrescriptionPatient::query()->create([...$values, 'prescriber_id' => $prescriber->id]);
+                Audit::record($prescriber->id, 'prescription.patient_created', (string) $created->id, []);
+                $this->recordConsent($created, $prescriber, $consent);
 
-            return $patient;
+                return $created;
+            });
         }
         $patient->update($values);
+        if (filter_var($data['patient_consent'] ?? false, FILTER_VALIDATE_BOOLEAN) && ! $patient->consent()->exists()) {
+            $this->recordConsent($patient, $prescriber, null);
+        }
 
         return $patient;
+    }
+
+    /**
+     * @param  array{source: string, statement: string, consultation_request_id?: int|null}|null  $consent
+     */
+    private function recordConsent(PrescriptionPatient $patient, User $prescriber, ?array $consent): void
+    {
+        $source = $consent['source'] ?? PrescriptionPatientConsent::SourcePrescriber;
+        PrescriptionPatientConsent::query()->create([
+            'patient_id' => $patient->id,
+            'prescriber_id' => $prescriber->id,
+            'source' => $source,
+            'statement' => $consent['statement'] ?? (string) __('prescriber_public.patient_consent_label'),
+            'consultation_request_id' => $consent['consultation_request_id'] ?? null,
+            'confirmed_at' => now(),
+        ]);
+        Audit::record($prescriber->id, 'prescription.patient_consent_recorded', (string) $patient->id, ['source' => $source]);
     }
 
     /**
@@ -104,6 +133,10 @@ final class PrescriptionBook
                     'frequency' => $line['frequency'],
                     'duration' => $line['duration'],
                     'instructions' => $line['instructions'],
+                    'dose_schedule' => $line['dose_schedule'],
+                    'food_timing' => $line['food_timing'],
+                    'duration_count' => $line['duration_count'],
+                    'duration_unit' => $line['duration_unit'],
                     'unit_price' => Money::decimal($line['unit_cents']),
                     'quantity' => $line['quantity'],
                     'discount' => Money::decimal($line['discount_cents']),
@@ -152,7 +185,7 @@ final class PrescriptionBook
      * The prescriber's own patients for the prescription picker, newest first; a search by
      * name reaches older ones.
      *
-     * @return list<array{id: int, name: string, age: int|null}>
+     * @return list<array{id: int, name: string, age: int|null, allergies: string|null}>
      */
     public function patientOptions(User $prescriber, string $search = ''): array
     {
@@ -163,8 +196,8 @@ final class PrescriptionBook
             ->when($term !== '', fn ($query) => $query->where('name', 'ilike', '%'.$term.'%'))
             ->orderByDesc('id')
             ->limit(self::PatientOptionLimit)
-            ->get(['id', 'name', 'age'])
-            ->map(fn (PrescriptionPatient $patient): array => ['id' => $patient->id, 'name' => $patient->name, 'age' => $patient->age])
+            ->get(['id', 'name', 'age', 'allergies'])
+            ->map(fn (PrescriptionPatient $patient): array => ['id' => $patient->id, 'name' => $patient->name, 'age' => $patient->age, 'allergies' => $patient->allergies])
             ->values()
             ->all();
     }
@@ -189,6 +222,8 @@ final class PrescriptionBook
             'place_code_id' => $patient->place_code_id,
             'place' => $patient->placeCode ? trim(PlaceCode::displayLabel($patient->placeCode->code).' '.PlaceCode::displayLabel($patient->placeCode->name)) : null,
             'notes' => $patient->notes,
+            'consent_at' => $patient->consent?->confirmed_at?->toIso8601String(),
+            'allergies' => $patient->allergies,
             'own' => true,
             'created_at' => $patient->created_at?->toIso8601String(),
         ];
@@ -196,7 +231,7 @@ final class PrescriptionBook
 
     /**
      * @param  list<array<string, mixed>>  $rawLines
-     * @return list<array{product_id: int|null, medicine_name: string, dose: string|null, frequency: string|null, duration: string|null, instructions: string|null, unit_cents: int, quantity: int, discount_cents: int, gross_cents: int, mrp_unit_cents: int|null, mrp_cents: int}>
+     * @return list<array{product_id: int|null, medicine_name: string, dose: string|null, frequency: string|null, duration: string|null, instructions: string|null, dose_schedule: string|null, food_timing: string|null, duration_count: int|null, duration_unit: string|null, unit_cents: int, quantity: int, discount_cents: int, gross_cents: int, mrp_unit_cents: int|null, mrp_cents: int}>
      */
     private function buildLines(array $rawLines, bool $clinic): array
     {
@@ -236,6 +271,10 @@ final class PrescriptionBook
                 'frequency' => $this->text($line['frequency'] ?? null),
                 'duration' => $this->text($line['duration'] ?? null),
                 'instructions' => $this->text($line['instructions'] ?? null),
+                'dose_schedule' => $this->text($line['dose_schedule'] ?? null),
+                'food_timing' => $this->text($line['food_timing'] ?? null),
+                'duration_count' => filled($line['duration_count'] ?? null) ? (int) $line['duration_count'] : null,
+                'duration_unit' => $this->text($line['duration_unit'] ?? null),
                 'unit_cents' => $unit,
                 'quantity' => $quantity,
                 'discount_cents' => $discount,

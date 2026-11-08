@@ -51,12 +51,15 @@ class PortalSidebarNavSmokeTest extends TestCase
                 ->component('portals/sadmin/Dashboard')
                 ->where('section', 'catalog')
                 ->where('translations.portal.nav_module_catalog', 'Product list')
-                ->where('translations.portal.nav_module_stock', 'Stock & godown')
+                ->where('translations.portal.nav_module_stock', 'Products & stock')
+                ->where('translations.portal.nav_module_settings', 'Settings')
+                ->where('translations.portal.nav_module_messages', 'Messages & support')
+                ->where('translations.portal.nav_module_partners', 'Dealers & sub-dealers')
                 ->where('translations.portal.nav_products', 'Products')
                 ->where('translations.portal.cms_taxonomy_tab', 'Categories & units')
                 ->where('translations.portal.stock_action_product_in', 'Product in')
                 ->where('translations.portal.stock_action_product_out', 'Product out')
                 ->where('translations.portal.branches', 'Branches')
-                ->where('translations.portal.place_codes', 'Place codes'));
+                ->where('translations.portal.place_codes', 'Area codes (place codes)'));
     }
 }

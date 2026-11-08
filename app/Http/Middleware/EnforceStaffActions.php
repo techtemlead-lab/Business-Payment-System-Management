@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\Catalog\ProductFacts;
 use App\Domain\Clinic\PrescriptionAccess;
 use App\Domain\Support\PartnerChat;
 use App\Models\User;
@@ -25,7 +26,7 @@ class EnforceStaffActions
         $route = $request->route();
         $controller = class_basename($route?->getControllerClass() ?? '');
         $method = (string) ($route?->getActionMethod() ?? '');
-        if ($request->isMethodSafe() || $controller === 'AuthController' || $controller === 'LocaleController') {
+        if ($request->isMethodSafe() || $controller === 'AuthController' || $controller === 'LocaleController' || $controller === 'ProductReviewController') {
             return $next($request);
         }
         if (! $actor) {
@@ -51,7 +52,11 @@ class EnforceStaffActions
                 // Verified prescribers only; PrescriptionAccess checks again.
                 'PrescriptionController' => in_array($method, ['storePatient', 'updatePatient', 'store'], true),
                 'PrescriptionToolsController' => true,
+                'PrescriberPublicToolsController' => true,
+                'PrivacyRequestController' => $method === 'store',
                 'PushSubscriptionController' => true,
+                // A partner's own customer book; CustomerBook scopes every row to the signed-in partner.
+                'CustomerBookController' => true,
                 default => false,
             };
             abort_unless($partnerAllowed, 403, __('portal.err_staff_only_action'));
@@ -78,7 +83,11 @@ class EnforceStaffActions
             // Owners check the bill before approving a spend; the controller checks again.
             return $next($request);
         }
-        $prescribing = $controller === 'PrescriptionToolsController'
+        if ($controller === 'PrivacyRequestController' && $method === 'resolve' && $actor->owner()) {
+            // Owners answer partners' data requests; the domain checks again.
+            return $next($request);
+        }
+        $prescribing = in_array($controller, ['PrescriptionToolsController', 'PrescriberPublicToolsController'], true)
             || ($controller === 'PrescriptionController' && in_array($method, ['storePatient', 'updatePatient', 'store', 'dispense'], true));
         if ($prescribing && PrescriptionAccess::usesCompanyStock($actor)) {
             // Office accounts switched on for company stock prescribe and dispense; the domain checks again.
@@ -104,7 +113,7 @@ class EnforceStaffActions
             // The owners decided they may refund a paid order themselves; OrderRefund checks again.
             return $next($request);
         }
-        if (in_array($controller, ['TrainingController', 'PartnerEventController'], true) && $actor->owner()) {
+        if (in_array($controller, ['TrainingController', 'PartnerEventController', 'SalesKitController', 'DatedSchemeController'], true) && $actor->owner()) {
             // Owners manage the partner training library and meetings calendar; the controllers check again.
             return $next($request);
         }
@@ -143,7 +152,7 @@ class EnforceStaffActions
             } elseif ($method === 'destroy') {
                 $this->authorize($actor, ['catalog'], 'edit');
             } else {
-                foreach (['catalog' => ['name', 'sku', 'category', 'description', 'unit', 'active', 'featured', 'image', 'remove_image', 'video_source', 'youtube_url', 'vimeo_url', 'external_video_url', 'video'],
+                foreach (['catalog' => ['name', 'sku', 'category', 'description', 'unit', 'active', 'featured', 'image', 'remove_image', 'video_source', 'youtube_url', 'vimeo_url', 'external_video_url', 'video', ...ProductFacts::requestFields()],
                     'pricing' => ['mrp', 'dealer_price', 'sub_dealer_price', 'cost_price'], 'inventory' => ['low_stock_at', 'initial_stock']] as $module => $fields) {
                     if (array_intersect(array_keys($request->all()), $fields)) {
                         $required[] = $module;
@@ -182,6 +191,7 @@ class EnforceStaffActions
             'FinancialPreviewController' => [['finance'], 'view'],
             'WithdrawalController' => [['finance'], 'approve'],
             'InventoryController' => [['inventory'], 'create'],
+            'StockLotController' => [['inventory'], $method === 'requestTransfer' ? 'create' : 'edit'],
             'OrderController' => match ($method) {
                 'decision' => [['order_review'], 'approve'], 'verify' => [['finance'], 'approve'],
                 'dispatch', 'delivered' => [['inventory'], 'edit'], default => [['orders'], 'create'],
@@ -193,14 +203,14 @@ class EnforceStaffActions
                 'decision' => [['order_review'], 'approve'], 'verify', 'refund' => [['finance'], 'approve'],
                 'dispatch', 'delivered', 'supplyDate' => [['inventory'], 'edit'], 'stock' => [['inventory'], 'create'],
                 'content', 'resetCustomization' => [['content'], 'edit'],
-                'enquiry' => [['content', 'accounts'], 'edit'],
+                'enquiry' => [['content', 'accounts', 'support_desk'], 'edit'],
                 'moderateSiteFeedback', 'storeStaffTestimonial' => [['content'], 'edit'],
                 'customization', 'uploadCategoryIcon' => [['content', 'catalog'], 'edit'],
                 'policy' => [['finance'], 'create'], 'publishPolicy' => [['finance'], 'approve'], 'updateCommissionRules' => [['finance'], 'edit'],
                 'settleSalaryPool', 'settleRankRoyaltyPool', 'claimRankIncentive', 'releaseMaturedCommissions', 'financialGate' => [['finance'], 'approve'],
                 'assignAreaDealer', 'removeAreaDealer' => [['accounts'], 'edit'], 'simulateCommissions' => [['finance'], 'view'],
                 'order', 'claim' => [['orders', 'sr_orders'], 'create'],
-                'supportTicket', 'supportTicketReply' => [['accounts', 'content'], 'edit'],
+                'supportTicket', 'supportTicketReply' => [['accounts', 'content', 'support_desk'], 'edit'],
                 'linkStaffRole', 'unlinkStaffRole' => [['accounts'], 'edit'],
                 default => null,
             },
@@ -229,6 +239,7 @@ class EnforceStaffActions
                 'store' => [['catalog'], 'create'],
                 default => [['catalog'], 'edit'],
             },
+            'ProductConcernController' => [['catalog'], $method === 'store' ? 'create' : 'edit'],
             'ProductUnitController' => match ($method) {
                 'index' => [['catalog', 'pricing', 'inventory'], 'view'],
                 'store' => [['catalog'], 'create'],
@@ -237,6 +248,14 @@ class EnforceStaffActions
             'CatalogController' => [['catalog', 'pricing', 'inventory', 'orders', 'finance'], 'view'],
             'PartnerChatController' => [['partner_chat'], 'create'],
             'PrescriberVerificationController' => [['prescriber_verify'], 'edit'],
+            'PublicTrustAdminController' => [['content'], 'edit'],
+            'AccountingController' => [['finance'], $method === 'saveApprovalLimit' ? 'edit' : 'create'],
+            'PurchasingController' => [['inventory'], in_array($method, ['updateSupplier', 'sendOrder', 'cancelOrder'], true) ? 'edit' : 'create'],
+            'StockCountController' => [['inventory'], match ($method) {
+                'approve', 'reject' => 'approve',
+                'cancel' => 'edit',
+                default => 'create',
+            }],
             default => null,
         };
         abort_unless($permission, 403, __('portal.err_staff_perm_disabled'));

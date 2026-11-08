@@ -164,6 +164,8 @@ export interface CustomizationData {
     product_video_title?: string;
     product_tab_description?: string;
     product_tab_specification?: string;
+    product_medical_note?: string;
+    catalog_concern_title?: string;
 
     // Brand Trust & Showcase (Category খ)
     trust_pillars_enabled?: string;
@@ -306,6 +308,12 @@ export interface CustomizationData {
     page_enabled_faq?: string;
     page_enabled_privacy?: string;
     page_enabled_terms?: string;
+    page_enabled_prescribers?: string;
+    // Registered practitioners page (/prescribers)
+    prescribers_title?: string;
+    prescribers_lead?: string;
+    prescribers_emergency_note?: string;
+    prescribers_consent_line?: string;
 
     // Contact Page (/contact)
     contact_title?: string;

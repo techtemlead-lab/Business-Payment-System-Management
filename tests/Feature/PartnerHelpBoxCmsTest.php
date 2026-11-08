@@ -32,7 +32,7 @@ class PartnerHelpBoxCmsTest extends TestCase
                 ->where('siteCustomization.partner_help_title', __('site.partner_help_title', [], 'en'))
                 ->where('siteCustomization.partner_help_body', __('site.partner_help_body', [], 'en'))
                 ->where('siteCustomization.partner_help_phone', SiteCustomization::defaults()['contact_phone'])
-                ->has('siteCustomization.header_offers_title'));
+                ->missing('siteCustomization.header_offers_title'));
     }
 
     public function test_bangla_partner_sees_bangla_factory_words(): void

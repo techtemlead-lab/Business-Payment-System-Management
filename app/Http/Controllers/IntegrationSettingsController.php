@@ -49,6 +49,8 @@ class IntegrationSettingsController extends Controller
             'store_id' => 'nullable|string|max:120',
             'sender_id' => 'nullable|string|max:40',
             'user_id' => 'nullable|string|max:120',
+            'package_code' => 'nullable|string|max:40',
+            'tracking_url' => 'nullable|url:https|max:500',
             'timeout' => 'nullable|integer|min:3|max:60',
             'mode' => 'nullable|string|in:sandbox,live',
             'map_embed_url' => 'nullable|string|max:1000',

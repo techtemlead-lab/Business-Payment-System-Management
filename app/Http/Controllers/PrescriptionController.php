@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Clinic\ClinicDispensing;
+use App\Domain\Clinic\DoseSchedule;
 use App\Domain\Clinic\PrescriberVerification;
 use App\Domain\Clinic\PrescriptionAccess;
 use App\Domain\Clinic\PrescriptionBook;
@@ -27,14 +28,15 @@ class PrescriptionController extends Controller
 
     public function storePatient(Request $request): RedirectResponse
     {
-        $this->book->savePatient($request->user(), null, $request->validate($this->patientRules()));
+        abort_unless(PrescriptionAccess::canPrescribe($request->user()), 403);
+        $this->book->savePatient($request->user(), null, $request->validate([...$this->patientRules(), 'patient_consent' => 'accepted']));
 
         return back()->with('success', __('prescription.flash_patient_saved'));
     }
 
     public function updatePatient(Request $request, PrescriptionPatient $patient): RedirectResponse
     {
-        $this->book->savePatient($request->user(), $patient, $request->validate($this->patientRules()));
+        $this->book->savePatient($request->user(), $patient, $request->validate([...$this->patientRules(), 'patient_consent' => 'nullable|boolean']));
 
         return back()->with('success', __('prescription.flash_patient_saved'));
     }
@@ -58,6 +60,14 @@ class PrescriptionController extends Controller
             'lines.*.frequency' => 'nullable|string|max:80',
             'lines.*.duration' => 'nullable|string|max:80',
             'lines.*.instructions' => 'nullable|string|max:300',
+            'lines.*.dose_schedule' => ['nullable', 'string', 'max:20', function (string $attribute, mixed $value, \Closure $fail): void {
+                if (! DoseSchedule::isValid((string) $value)) {
+                    $fail(__('clinic_records.err_dose_schedule'));
+                }
+            }],
+            'lines.*.food_timing' => ['nullable', Rule::in(DoseSchedule::FoodTimings)],
+            'lines.*.duration_count' => 'nullable|integer|min:1|max:365|required_with:lines.*.duration_unit',
+            'lines.*.duration_unit' => ['nullable', Rule::in(DoseSchedule::DurationUnits), 'required_with:lines.*.duration_count'],
             'lines.*.unit_price' => 'required|numeric|decimal:0,2|min:0|max:9999999',
             'lines.*.quantity' => 'required|integer|min:1|max:10000',
             'lines.*.discount' => 'nullable|numeric|decimal:0,2|min:0|max:9999999',
@@ -171,6 +181,7 @@ class PrescriptionController extends Controller
             'phone' => ['nullable', 'string', 'max:20', 'regex:/^\+?[\d\s-]{6,20}$/'],
             'place_code_id' => 'nullable|integer|exists:place_codes,id',
             'notes' => 'nullable|string|max:2000',
+            'allergies' => 'nullable|string|max:1000',
         ];
     }
 }

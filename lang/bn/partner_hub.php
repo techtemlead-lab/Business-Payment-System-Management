@@ -1,0 +1,42 @@
+<?php
+
+return [
+    'money_title' => 'আমার টাকা',
+    'tab_earnings' => 'আয়ের হিসাব',
+    'tab_withdrawals' => 'টাকা তোলা',
+    'tab_receipts' => 'টাকা পাওয়ার রসিদ',
+    'tab_all_records' => 'সব হিসাব একসাথে',
+    'tabs_aria' => 'এই অংশের পাতাগুলো',
+    'views_aria' => 'কোন তালিকা দেখবেন',
+    'earned_in_period' => 'মোট আয়',
+    'earned_in_period_hint' => 'উপরে বেছে নেওয়া তারিখের হিসাব',
+    'earned_all_time_hint' => 'শুরু থেকে এ পর্যন্ত',
+    'withdraw_cta' => 'টাকা তুলুন',
+    'view_earnings_list' => 'আয়ের তালিকা',
+    'view_commissions' => 'কমিশনের হিসাব',
+    'view_orders' => 'অর্ডার ও টাকা',
+    'view_team' => 'আমার টিম',
+    'view_team_orders' => 'টিমের লেনদেন',
+    'export_excel' => 'এক্সেলে নিন',
+
+    'notices_title' => 'নোটিশ ও আপডেট',
+    'tab_office_notices' => 'অফিসের নোটিশ',
+    'tab_my_updates' => 'আমার আপডেট',
+
+    'help_ways_title' => 'অফিসের সাথে যোগাযোগ',
+    'help_way_form' => 'সাহায্যের অনুরোধ পাঠান',
+    'help_way_chat' => 'অফিসে মেসেজ করুন',
+    'help_card_link' => 'সাহায্য নিন',
+    'ask_company_moved' => 'অর্ডার, NID তথ্য সংশোধন, পেমেন্ট বা অন্য যেকোনো সাহায্যের জন্য একটাই ফর্ম। সেখানেই উত্তর দেখতে পাবেন।',
+    'request_details' => 'বিস্তারিত দেখুন',
+    'reply_from_office' => 'অফিসের উত্তর',
+    'reply_from_you' => 'আপনি লিখেছেন',
+    'earlier_request_note' => 'আগের ফর্ম থেকে পাঠানো',
+
+    'jargon_question' => ':terms মানে কী?',
+    'jargon_mo' => 'মার্কেটিং অফিসার। ডিলারের পরের প্রথম র‍্যাংক।',
+    'jargon_am' => 'এরিয়া ম্যানেজার। MO-র পরের র‍্যাংক।',
+    'jargon_sm' => 'সেলস ম্যানেজার। AM-এর পরের র‍্যাংক।',
+    'jargon_me' => 'মার্কেটিং এক্সিকিউটিভ। সবচেয়ে উপরের র‍্যাংক।',
+    'jargon_tds' => 'টাকা পাঠানোর সময় সরকারের জন্য আগেই কেটে রাখা কর (উৎসে কর)।',
+];

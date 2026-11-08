@@ -40,15 +40,8 @@ class DashboardManagement
             'top_sellers_show_amounts' => true,
 
             // Employee Dashboard Controls
-            'employee_default_permissions' => ['orders', 'inventory'],
             'employee_announcement' => 'All actions on customer accounts, inventory, and orders are logged in the append-only company audit trail.',
             'employee_announcement_type' => 'info',
-
-            // Company & Super Dashboard Controls
-            'company_treasury_enabled' => true,
-            'company_commissions_enabled' => true,
-            'company_customization_enabled' => true,
-            'company_audit_enabled' => true,
 
             // Birthday SMS to dealers and sub-dealers. Each SMS costs money, so it stays off until the
             // owner or responsible staff turn it on (owner decision, 2026-11-08).
@@ -56,6 +49,9 @@ class DashboardManagement
 
             // Support tickets waiting longer than this many hours for an office reply are marked overdue.
             'support_overdue_hours' => 24,
+
+            // Direct partners with no order for this many days appear in their sponsor's alerts.
+            'partner_inactive_days' => 30,
         ];
     }
 
@@ -77,7 +73,7 @@ class DashboardManagement
     {
         $defaults = self::defaults();
         $clean = array_intersect_key($settings, $defaults);
-        foreach (['dealer_network_tree_enabled', 'dealer_ranks_enabled', 'dealer_rewards_enabled', 'dealer_orders_enabled', 'dealer_claims_enabled', 'dealer_catalog_enabled', 'dealer_maintenance_mode', 'subdealer_salary_enabled', 'subdealer_orders_enabled', 'subdealer_deliveries_enabled', 'subdealer_catalog_enabled', 'subdealer_maintenance_mode', 'top_sellers_enabled', 'top_sellers_show_amounts', 'company_treasury_enabled', 'company_commissions_enabled', 'company_customization_enabled', 'company_audit_enabled'] as $flag) {
+        foreach (['dealer_network_tree_enabled', 'dealer_ranks_enabled', 'dealer_rewards_enabled', 'dealer_orders_enabled', 'dealer_claims_enabled', 'dealer_catalog_enabled', 'dealer_maintenance_mode', 'subdealer_salary_enabled', 'subdealer_orders_enabled', 'subdealer_deliveries_enabled', 'subdealer_catalog_enabled', 'subdealer_maintenance_mode', 'top_sellers_enabled', 'top_sellers_show_amounts'] as $flag) {
             if (array_key_exists($flag, $clean)) {
                 $clean[$flag] = filter_var($clean[$flag], FILTER_VALIDATE_BOOLEAN);
             }
@@ -102,6 +98,13 @@ class DashboardManagement
             }
             $clean['support_overdue_hours'] = $hours;
         }
+        if (array_key_exists('partner_inactive_days', $clean)) {
+            $days = filter_var($clean['partner_inactive_days'], FILTER_VALIDATE_INT);
+            if ($days === false || $days < 7 || $days > 365) {
+                throw ValidationException::withMessages(['partner_inactive_days' => __('dealer_tools.err_partner_inactive_days')]);
+            }
+            $clean['partner_inactive_days'] = $days;
+        }
         foreach (['dealer_min_order', 'subdealer_min_order'] as $moneyKey) {
             if (! array_key_exists($moneyKey, $clean)) {
                 continue;
@@ -111,13 +114,6 @@ class DashboardManagement
                 throw ValidationException::withMessages([$moneyKey => __('portal.err_dash_min_order')]);
             }
             $clean[$moneyKey] = Money::decimal(Money::cents($amount));
-        }
-        if (array_key_exists('employee_default_permissions', $clean)) {
-            $known = array_unique(array_merge(...array_values(config('madina.roles'))));
-            $clean['employee_default_permissions'] = array_values(array_intersect(
-                array_map('strval', (array) $clean['employee_default_permissions']),
-                $known,
-            ));
         }
 
         DB::table('content_pages')->updateOrInsert(

@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Catalog\ProductFacts;
 use App\Domain\Finance\Percentage;
 use App\Domain\Inventory\BranchOperations;
+use App\Domain\Inventory\StockLots;
 use App\Domain\Inventory\StockNotifications;
 use App\Models\BranchProductStock;
 use App\Models\Product;
+use App\Models\ProductConcern;
 use App\Models\ProductSubcategory;
 use App\Models\ProductUnit;
 use App\Support\Audit;
@@ -64,6 +67,8 @@ class ProductRegistryController extends Controller
                 ? optional($product->expires_on)?->toDateString()
                 : null;
             $data['batch_number'] = $product->batch_number;
+            $data += ProductFacts::forEditor($product);
+            $data['concern_ids'] = $product->concerns()->pluck('product_concerns.id')->map(fn (mixed $id): int => (int) $id)->values()->all();
         }
 
         return Inertia::render('ProductEditor', [
@@ -73,6 +78,8 @@ class ProductRegistryController extends Controller
             'categories' => SiteCustomization::getConfiguredCategoryNames(),
             'sub_categories' => SiteCustomization::getConfiguredSubCategories(),
             'supports_product_expiry' => Schema::hasColumn('products', 'expires_on'),
+            'product_fact_fields' => ProductFacts::editorFields(),
+            'product_concerns' => ProductConcern::query()->orderBy('name_en')->get(['id', 'name_bn', 'name_en']),
         ]);
     }
 
@@ -162,6 +169,7 @@ class ProductRegistryController extends Controller
             'batch_number' => $catalog ? 'sometimes|nullable|string|max:60' : 'prohibited',
             'redirect_to' => 'nullable|string|max:50',
             'initial_stock' => $inventory ? 'nullable|integer|min:0|max:100000' : 'nullable|integer|in:0'];
+        $rules += ProductFacts::validationRules($catalog);
         $d = $r->validate($rules);
         if (! $r->user()->allows('cost_read')) {
             unset($d['cost_price']);
@@ -268,6 +276,7 @@ class ProductRegistryController extends Controller
                 if (Schema::hasColumn('products', 'expires_on')) {
                     $attributeKeys[] = 'expires_on';
                 }
+                $attributeKeys = [...$attributeKeys, ...ProductFacts::columns()];
                 $attributes = collect($d)->only($attributeKeys)->all();
                 if (! $product && $initialStock > 0) {
                     $attributes['stock'] = $initialStock;
@@ -292,15 +301,20 @@ class ProductRegistryController extends Controller
                 $p->fill($attributes);
                 $p->updated_at = now();
                 $p->save();
+                if ($r->boolean('sync_concerns')) {
+                    $p->concerns()->sync($d['concern_ids'] ?? []);
+                    $attributes['concern_ids'] = true;
+                }
                 if (! $product && $initialStock > 0) {
                     $hub = $this->branches->resolveWritableBranch($r->user());
-                    BranchProductStock::query()->updateOrCreate(
+                    $hubStock = BranchProductStock::query()->updateOrCreate(
                         ['branch_id' => $hub->id, 'product_id' => $p->id],
                         [
                             'quantity' => $initialStock,
                             'low_stock_at' => (int) ($p->low_stock_at ?? 10),
                         ],
                     );
+                    app(StockLots::class)->reconcile($hubStock, $p->refresh());
                     DB::table('stock_movements')->insert([
                         'product_id' => $p->id,
                         'branch_id' => $hub->id,
@@ -325,6 +339,9 @@ class ProductRegistryController extends Controller
         }
         foreach (array_filter($old) as $path) {
             Storage::disk('local')->delete($path);
+        }
+        if ($r->boolean('sync_concerns')) {
+            SiteCustomization::forgetCache();
         }
         if ($r->input('redirect_to') === 'catalog') {
             if ($product) {

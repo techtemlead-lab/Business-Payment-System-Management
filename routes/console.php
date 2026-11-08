@@ -69,6 +69,22 @@ Schedule::command('support:overdue-reminders')->dailyAt('09:30')->timezone('Asia
 Schedule::command('prescriptions:follow-up-reminders')->dailyAt('08:30')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
     ->onFailure(fn () => Log::critical('Scheduled prescription follow-up reminder failed.'));
 
+// Partner alerts: direct partners who went quiet, salary or rank targets at risk, ranks nearly reached.
+// Portal notice only (no SMS); each one at most once a month, or once a week for inactive partners.
+Schedule::command('partners:progress-alerts')->dailyAt('09:15')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
+    ->onFailure(fn () => Log::critical('Scheduled partner alert run failed.'));
+
+// A partner's own customers due for a follow-up: one portal notice a day with counts only. No SMS.
+Schedule::command('partners:customer-follow-up-reminders')->dailyAt('08:45')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
+    ->onFailure(fn () => Log::critical('Scheduled customer follow-up reminder failed.'));
+// Inventory staff: batches newly inside the warning window or just expired. Portal notice only.
+Schedule::command('stock:near-expiry-notices')->dailyAt('08:45')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
+    ->onFailure(fn () => Log::critical('Scheduled near-expiry stock notice failed.'));
+// Branches that hold goods but have had no approved stock count for 30 days. Each morning staff
+// with the inventory permission get one portal notice naming the branch codes. No SMS.
+Schedule::command('stock:count-reminders')->dailyAt('09:45')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
+    ->onFailure(fn () => Log::critical('Scheduled stock count reminder failed.'));
+
 // Failed background jobs are kept for a week to investigate, then removed.
 Schedule::command('queue:prune-failed --hours=168')->dailyAt('04:15')->timezone('Asia/Dhaka')->withoutOverlapping(30)->onOneServer();
 

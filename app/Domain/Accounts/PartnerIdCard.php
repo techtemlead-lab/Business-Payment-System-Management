@@ -50,7 +50,8 @@ final class PartnerIdCard
         $issued = now('Asia/Dhaka')->format('d M Y');
 
         $qrPng = $dir.'/partner-id-qr-'.$safeCode.'-'.Str::lower(Str::random(6)).'.png';
-        file_put_contents($qrPng, JoinQr::png($joinUrl, 140));
+        // The card's QR opens the public check page, so anyone can see the card is genuine.
+        file_put_contents($qrPng, JoinQr::png(PortalHost::url('public', DealerVerification::path($user->dealer_code ?: $refer)), 140));
 
         $html = '<html><head><style>
             body{font-family:freeserif,sans-serif;color:#011627;margin:0}
@@ -83,8 +84,8 @@ final class PartnerIdCard
             </table>
             </td>
             <td style="width:32%;text-align:center;vertical-align:middle">
-                <img class="qr" src="'.e($qrPng).'" alt="'.e($t('pdf_id_card_scan')).'"/>
-                <div style="font-size:7pt;color:#64748b;margin-top:3px">'.e($t('pdf_id_card_scan')).'</div>
+                <img class="qr" src="'.e($qrPng).'" alt="'.e(__('public_trust.id_card_scan_to_verify', [], $locale)).'"/>
+                <div style="font-size:7pt;color:#64748b;margin-top:3px">'.e(__('public_trust.id_card_scan_to_verify', [], $locale)).'</div>
             </td>
             </tr></table>
             <div class="foot">'.e($t('pdf_id_card_foot', ['when' => $issued])).'</div>

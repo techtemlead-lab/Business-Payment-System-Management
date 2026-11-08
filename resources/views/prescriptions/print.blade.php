@@ -34,6 +34,7 @@
         ol { padding-left: 18px; margin: 6px 0; }
         ol li { margin-bottom: 8px; }
         ol li small { display: block; color: #475569; }
+        ol li .dosing { margin-top: 2px; font-size: 14px; font-weight: 600; color: #0f172a; }
         table.totals { margin-left: auto; margin-top: 10px; border-collapse: collapse; }
         table.totals td { padding: 3px 8px; }
         table.totals td.amt { text-align: right; font-weight: 600; }
@@ -86,6 +87,8 @@
                 @foreach ($prescription->lines as $line)
                     <li>
                         <b>{{ $line->medicine_name }}</b> × {{ $digits($line->quantity) }}
+                        @php $dosing = \App\Domain\Clinic\DoseSchedule::summary($line, $lang); @endphp
+                        @if ($dosing !== '')<div class="dosing">{{ $dosing }}</div>@endif
                         <small>{{ collect([$line->dose, $line->frequency, $line->duration])->filter()->implode(' · ') }}</small>
                         @if ($line->instructions)<small>{{ $line->instructions }}</small>@endif
                     </li>

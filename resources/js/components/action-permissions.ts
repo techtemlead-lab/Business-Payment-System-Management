@@ -29,12 +29,15 @@ export function actionAllowed(url:string,matrix:Matrix|undefined,method='post'):
     if(/^\/commands\/orders\/[^/]+\/refund$/.test(path))return true;
     if(/\/dispatch$|\/delivered$/.test(path))return any(['inventory'],'edit');
     // Courier parcels: change courier, try a refused booking again, mark picked up.
-    if(/^\/commands\/orders\/[^/]+\/(courier|shipments\/\d+\/(courier-retry|picked-up|received-back))$/.test(path))return any(['inventory','order_review'],'edit');
+    if(/^\/commands\/orders\/[^/]+\/(courier|mixed-outcome-decision|shipments\/\d+\/(courier-retry|picked-up|received-back|manual-update))$/.test(path))return any(['inventory','order_review'],'edit');
     if(path.startsWith('/commands/claims')||path.startsWith('/commands/withdrawals'))return any(['finance'],'approve');
     if(path.startsWith('/commands/commissions'))return any(['finance'],path.endsWith('/rules')?'edit':path.endsWith('/simulate')?'view':'approve');
     if(path==='/commands/policies')return any(['finance'],'create');
     if(path.startsWith('/commands/customization')||path==='/commands/content')return any(['content','catalog'],'edit');
+    if(path.startsWith('/commands/public-trust'))return any(['content'],'edit');
     if(path.startsWith('/commands/enquiries'))return any(['content','catalog','accounts'],'edit');
     if(/^\/commands\/feedback\/\d+$/.test(path)||path==='/commands/testimonials')return any(['content'],'edit');
+    if(path.startsWith('/commands/purchasing/'))return any(['inventory'],method==='patch'||/\/(send|cancel)$/.test(path)?'edit':'create');
+    if(path.startsWith('/commands/stock-counts'))return any(['inventory'],/\/(approve|reject)$/.test(path)?'approve':/\/cancel$/.test(path)?'edit':'create');
     return false;
 }

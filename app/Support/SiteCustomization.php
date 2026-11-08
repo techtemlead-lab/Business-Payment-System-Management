@@ -3,8 +3,10 @@
 namespace App\Support;
 
 use App\Domain\Catalog\CatalogTaxonomy;
+use App\Domain\Content\PublicTrustContent;
 use App\Domain\Content\TestimonialLabels;
 use App\Models\Product;
+use App\Models\ProductConcern;
 use App\Models\SiteFeedback;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -281,6 +283,12 @@ class SiteCustomization
             'map_facility' => 'Madina Natural Health Care — Thana Road, Pirganj',
             'map_directions_text' => 'Open Map Directions',
 
+            // Registered practitioners page (/prescribers)
+            'prescribers_title' => $copy('prescribers_title'),
+            'prescribers_lead' => $copy('prescribers_lead'),
+            'prescribers_emergency_note' => $copy('prescribers_emergency_note'),
+            'prescribers_consent_line' => $copy('prescribers_consent_line'),
+
             // Dealer Directory Page (/dealers)
             'directory_title' => 'Dealer Directory',
             'directory_subtitle' => $copy('directory_subtitle'),
@@ -312,6 +320,8 @@ class SiteCustomization
             'product_purchase_note' => 'Dealers pay the full order amount and send a payment screenshot. Goods are sent after the payment is checked.',
             'product_video_title' => 'Product Video',
             'product_tab_description' => 'Description',
+            'product_medical_note' => $copy('product_medical_note'),
+            'catalog_concern_title' => $copy('catalog_concern_title'),
             'product_tab_specification' => 'Specification',
 
             // Footer & Support
@@ -483,6 +493,7 @@ class SiteCustomization
             'page_enabled_faq' => '1',
             'page_enabled_privacy' => '1',
             'page_enabled_terms' => '1',
+            'page_enabled_prescribers' => '1',
 
             // Copyright
             'copyright_text' => '© '.date('Y').' Madina Natural Health Care. All rights reserved.',
@@ -492,6 +503,9 @@ class SiteCustomization
             // Text on the notice and circular pages while nothing is published.
             'notice_empty' => $copy('notice_empty'),
             'notice_empty_bn' => '',
+
+            // Verify a dealer, policies, code of conduct, grievance, documents and articles.
+            ...PublicTrustContent::defaults(),
         ];
     }
 
@@ -505,8 +519,6 @@ class SiteCustomization
     {
         $all = self::all();
         $copy = collect($all)->only([
-            'header_offers_title', 'header_offers_subtitle',
-            'header_projects_title', 'header_projects_subtitle',
         ])->map(fn (mixed $value): string => (string) $value)->all();
         $phone = trim((string) ($all['contact_phone'] ?? ''));
 
@@ -563,7 +575,7 @@ class SiteCustomization
     /** @return list<string> */
     public static function toggleablePages(): array
     {
-        return ['about', 'products', 'dealers', 'contact', 'partnership', 'services', 'quality', 'faq', 'privacy', 'terms'];
+        return ['about', 'products', 'dealers', 'contact', 'partnership', 'services', 'quality', 'faq', 'privacy', 'terms', 'prescribers'];
     }
 
     /** @return array<string, bool> */
@@ -802,6 +814,7 @@ class SiteCustomization
         Cache::forget('public:featured_products:v1');
         Cache::forget('public:featured_products:v2');
         Cache::forget(self::TestimonialsCacheKey);
+        Cache::forget(ProductConcern::PublicOptionsCacheKey);
         ProductVideo::forgetHomepageCache();
     }
 
@@ -1521,6 +1534,7 @@ class SiteCustomization
 
         return SiteFeedback::query()
             ->where('status', 'approved')
+            ->whereNull('product_id')
             ->orderByDesc('moderated_at')
             ->orderByDesc('id')
             ->limit(24)

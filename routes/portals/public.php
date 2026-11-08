@@ -2,7 +2,11 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\PartnerProductEnquiryController;
+use App\Http\Controllers\ProductReviewController;
+use App\Http\Controllers\PublicBatchCheckController;
 use App\Http\Controllers\PublicController;
+use App\Http\Controllers\PublicPrescriberController;
 use App\Support\PortalHost;
 use App\Support\SiteCustomization;
 use Illuminate\Http\RedirectResponse;
@@ -12,7 +16,9 @@ Route::get('/', [PublicController::class, 'index']);
 Route::get('/search/products', [PublicController::class, 'productSearch'])
     ->middleware('throttle:60,1')
     ->name('products.search');
+Route::get('/batch-check', [PublicBatchCheckController::class, 'show'])->middleware('throttle:30,1');
 Route::get('/products/{product}', [PublicController::class, 'product'])->name('products.show');
+Route::post('/products/{product}/reviews', [ProductReviewController::class, 'store'])->middleware('throttle:5,1')->name('products.reviews.store');
 Route::get('/product/{product}', fn ($product) => redirect('/products/'.$product, 301));
 Route::get('/outlets', function () {
     abort_unless(SiteCustomization::isPageEnabled('dealers'), 404);
@@ -25,9 +31,13 @@ Route::get('/join/{code}', [PublicController::class, 'join'])
     ->middleware('throttle:60,1');
 Route::get('/{page}', [PublicController::class, 'index'])->whereIn('page', ['products', 'dealers', 'about', 'contact', 'partnership', 'services', 'quality', 'faq', 'privacy', 'terms', 'notice', 'circular-training', 'circular-price', 'circular-meeting']);
 Route::post('/enquiries', [PublicController::class, 'enquiry'])->middleware('throttle:5,1');
+Route::post('/products/{product}/partner-enquiry', [PartnerProductEnquiryController::class, 'store'])->middleware('throttle:5,1');
 Route::get('/feedback', [PublicController::class, 'feedbackForm']);
 Route::post('/feedback', [PublicController::class, 'storeFeedback'])->middleware('throttle:5,1');
 Route::post('/locale', [LocaleController::class, 'update'])->middleware('throttle:30,1');
+require __DIR__.'/public_trust.php';
+Route::get('/prescribers', [PublicPrescriberController::class, 'index'])->middleware('throttle:60,1');
+Route::post('/prescribers/{listing}/consult', [PublicPrescriberController::class, 'consult'])->whereNumber('listing')->middleware('throttle:5,1');
 Route::middleware(['auth', 'active'])->group(function (): void {
     Route::post('/logout', [AuthController::class, 'logout']);
 });

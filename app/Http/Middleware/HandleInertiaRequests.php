@@ -128,13 +128,13 @@ class HandleInertiaRequests extends Middleware
 
                 return [
                     'notifications' => $unreadNotices(),
-                    'enquiries' => $staffWorkspace && ($u->allows('content') || $u->allows('accounts'))
+                    'enquiries' => $staffWorkspace && ($u->allows('content') || $u->allows('accounts') || $u->allows('support_desk'))
                         ? (int) DB::table('enquiries')->where('status', 'new')->count()
                         : 0,
                     'withdrawals' => $staffWorkspace && $u->allows('finance')
                         ? (int) DB::table('withdrawals')->where('status', 'requested')->count()
                         : 0,
-                    'support-admin' => $staffWorkspace && ($u->allows('accounts') || $u->owner())
+                    'support-admin' => $staffWorkspace && ($u->allows('accounts') || $u->allows('support_desk') || $u->owner())
                         ? (int) DB::table('support_tickets')->whereIn('status', ['pending', 'in_progress'])->count()
                         : 0,
                     // Unread chat: office replies for a partner, partner messages for staff who may answer.
@@ -205,10 +205,19 @@ class HandleInertiaRequests extends Middleware
                 'portal' => Lang::get('portal'),
                 'auth' => Lang::get('auth_ui'),
                 'courier' => Lang::get('courier'),
+                'courier_more' => Lang::get('courier_more'),
                 'prescription' => Lang::get('prescription'),
                 'website_admin' => Lang::get('website_admin'),
+                'partner_hub' => Lang::get('partner_hub'),
+                'product_facts' => Lang::get('product_facts'),
+                'dealer_tools' => Lang::get('dealer_tools'),
+                'prescriber_public' => Lang::get('prescriber_public'),
+                'accounting' => Lang::get('accounting'),
+                'purchasing' => Lang::get('purchasing'),
                 'funds' => Lang::get('funds'),
                 'productivity' => Lang::get('productivity'),
+                'clinic_records' => Lang::get('clinic_records'),
+                'stock_lots' => Lang::get('stock_lots'),
             ])->as('i18n:'.$locale),
             'portalCatalog' => Inertia::once(fn () => $portalShell
                 ? PortalCatalog::inertiaPayload($portal)

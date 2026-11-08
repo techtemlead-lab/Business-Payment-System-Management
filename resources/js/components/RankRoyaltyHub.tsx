@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Eye } from 'lucide-react';
 import { money, date, Table, number, Pagination, type Row } from './UI';
 import ServerListSearch from './ServerListSearch';
+import JargonHint from './JargonHint';
 import { useT } from '../shared/i18n/t';
 import { useEscape } from '../shared/useEscape';
 
@@ -219,6 +220,7 @@ export default function RankRoyaltyHub({ ranks: rankList, stats, policy, filters
                         <p className="hub-sub">
                             {translate('portal','rank_framework_hint')}
                         </p>
+                        <JargonHint terms={['mo', 'am', 'sm', 'me']} />
                     </div>
                     <div className="hub-pill tone-ok">
                         {poolPct === null ? notSet : translate('portal','rank_combined_pool_live',{pct:poolPct.toFixed(2)})}

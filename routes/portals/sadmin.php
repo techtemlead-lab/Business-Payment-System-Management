@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountingController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DataImportController;
 use App\Http\Controllers\IntegrationSettingsController;
@@ -35,6 +36,7 @@ Route::middleware('guest')->group(function (): void {
 
 Route::middleware(['auth', 'active', 'portal:sadmin', 'authenticator'])->group(function () use ($registerCommands): void {
     $registerCommands('sadmin');
+    Route::get('/operations/accounting', [AccountingController::class, 'index']);
     Route::get('/operations/data-imports', [DataImportController::class, 'index']);
     Route::get('/operations/service-integrations', [IntegrationSettingsController::class, 'index']);
     Route::get('/operations/{section}', [OperationsController::class, 'index'])->whereIn('section', OperationsController::Sections);

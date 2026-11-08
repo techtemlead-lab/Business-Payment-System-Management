@@ -57,7 +57,7 @@ final class IntegrationSettings
         return (bool) ($this->provider($group, $provider)['enabled'] ?? false);
     }
 
-    /** @return list<array{key: string, label: string}> */
+    /** @return list<array{key: string, label: string, manual?: bool, tracking_url?: string}> */
     public function enabledCourierOptions(): array
     {
         // One settings read for every courier: the order form and order pages call this on each visit.
@@ -66,7 +66,9 @@ final class IntegrationSettings
         foreach (IntegrationCatalog::groups()['couriers']['providers'] as $key => $provider) {
             $row = is_array($stored[$key] ?? null) ? $stored[$key] : [];
             if ((bool) ($row['enabled'] ?? $provider['defaults']['enabled'] ?? false)) {
-                $options[] = ['key' => $key, 'label' => $provider['label']];
+                $options[] = ['key' => $key, 'label' => $provider['label'], ...(($provider['manual'] ?? false)
+                    ? ['manual' => true, 'tracking_url' => (string) ($row['tracking_url'] ?? $provider['defaults']['tracking_url'] ?? '')]
+                    : [])];
             }
         }
 
@@ -165,10 +167,11 @@ final class IntegrationSettings
                 if ($group === 'bdris' && (blank($next['base_url'] ?? null) || blank($next['api_key'] ?? null))) {
                     throw ValidationException::withMessages(['base_url' => __('portal.si_err_bdris_enable')]);
                 }
-                if (in_array($group, ['sms', 'couriers', 'payments'], true) && blank($next['base_url'] ?? null)) {
+                $needsConnection = ! ($catalog['manual'] ?? false);
+                if ($needsConnection && in_array($group, ['sms', 'couriers', 'payments'], true) && blank($next['base_url'] ?? null)) {
                     throw ValidationException::withMessages(['base_url' => __('portal.si_err_base_url')]);
                 }
-                if (in_array($group, ['sms', 'couriers'], true) && blank($next['api_key'] ?? null)) {
+                if ($needsConnection && in_array($group, ['sms', 'couriers'], true) && blank($next['api_key'] ?? null)) {
                     throw ValidationException::withMessages(['api_key' => __('portal.si_err_api_key')]);
                 }
                 if ($group === 'payments' && blank($next['api_key'] ?? null) && blank($next['app_key'] ?? null) && blank($next['store_id'] ?? null)) {

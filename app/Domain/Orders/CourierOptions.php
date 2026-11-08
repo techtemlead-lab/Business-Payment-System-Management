@@ -30,7 +30,7 @@ final class CourierOptions
     /**
      * Couriers switched on by the owner, read once per request.
      *
-     * @return list<array{key: string, label: string}>
+     * @return list<array{key: string, label: string, manual?: bool, tracking_url?: string}>
      */
     public function enabled(): array
     {
@@ -58,6 +58,22 @@ final class CourierOptions
         return $provider !== null && in_array($provider, array_column($this->enabled(), 'key'), true);
     }
 
+    /** A courier with no booking system: staff send the parcel and update it by hand. */
+    public static function isManual(?string $provider): bool
+    {
+        return in_array($provider, IntegrationCatalog::ManualCouriers, true);
+    }
+
+    /**
+     * The public tracking pages the owner has for the switched-on manual couriers.
+     *
+     * @return array<string, string>
+     */
+    public function manualTrackingPages(): array
+    {
+        return array_filter(array_column(array_filter($this->enabled(), fn (array $option): bool => $option['manual'] ?? false), 'tracking_url', 'key'), 'filled');
+    }
+
     /** The value saved on the order: a courier key, or null when the company decides. */
     public static function stored(?string $choice): ?string
     {
@@ -69,6 +85,9 @@ final class CourierOptions
     {
         if ($provider === null || $provider === '' || $provider === self::CompanyDecides) {
             return __('courier.company_decides', [], $locale);
+        }
+        if (self::isManual($provider)) {
+            return __('courier_more.provider_'.$provider, [], $locale);
         }
 
         return in_array($provider, self::knownProviders(), true)
@@ -82,10 +101,14 @@ final class CourierOptions
         return array_keys(IntegrationCatalog::groups()['couriers']['providers']);
     }
 
-    /** The courier's own public page for following this parcel, when there is a number to follow. */
-    public static function trackingUrl(?string $provider, ?string $tracking, ?string $consignment = null): ?string
+    /**
+     * The courier's own public page for following this parcel, when there is a number to follow.
+     *
+     * @param  array<string, string>  $manualPages  from manualTrackingPages()
+     */
+    public static function trackingUrl(?string $provider, ?string $tracking, ?string $consignment = null, array $manualPages = []): ?string
     {
-        $pattern = self::PublicTrackingPages[$provider ?? ''] ?? null;
+        $pattern = self::PublicTrackingPages[$provider ?? ''] ?? $manualPages[$provider ?? ''] ?? null;
         $tracking = trim((string) $tracking);
         $consignment = trim((string) $consignment) ?: $tracking;
         if ($pattern === null || $tracking === '') {

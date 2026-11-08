@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Download } from 'lucide-react';
 import Shell from '../components/Shell';
+import PartnerHubNav, { AllRecordsViews, type PartnerHub } from '../components/PartnerHubNav';
 import { Row, Table, Pagination, money, dateTime, DateInput } from '../components/UI';
 import { useT } from '../shared/i18n/t';
 
@@ -39,7 +40,7 @@ function presetRange(preset: string): { from: string; to: string } {
  * the chosen dates with a running balance, totals for the whole range and
  * the closing balance. Excel and PDF downloads use the same dates.
  */
-export default function PartnerStatement({ partner, range, statement, staffView, statementBase }: { partner: Row; range: { from: string; to: string }; statement: Statement; staffView: boolean; statementBase: string }) {
+export default function PartnerStatement({ partner, range, statement, staffView, statementBase, partner_hub: hub }: { partner: Row; range: { from: string; to: string }; statement: Statement; staffView: boolean; statementBase: string; partner_hub?: PartnerHub | null }) {
     const translate = useT();
     const { portalBase: base } = usePage<any>().props;
     const [from, setFrom] = useState(range.from);
@@ -50,9 +51,9 @@ export default function PartnerStatement({ partner, range, statement, staffView,
     const backHref = staffView ? `${base}/${partner.role === 'sub_dealer' ? 'sub-dealers' : 'accounts'}?q=${encodeURIComponent(String(partner.dealer_code || partner.name || ''))}` : `${base}/earnings`;
     const tile = (title: string, value: string, hint?: string) => <div className="metric"><span>{translate('portal', title)}</span><strong>{money(value)}</strong>{hint && <small>{hint}</small>}</div>;
 
-    return <Shell section={staffView ? (partner.role === 'sub_dealer' ? 'sub-dealers' : 'accounts') : 'earnings'}>
+    return <Shell section={staffView ? (partner.role === 'sub_dealer' ? 'sub-dealers' : 'accounts') : 'full-report'}>
         <Head title={translate('portal', 'stmt_title')} />
-        <Link className="text-link" href={backHref}>{translate('portal', staffView ? 'stmt_back_accounts' : 'stmt_back_earnings')}</Link>
+        {hub ? <><PartnerHubNav hub={hub} /><AllRecordsViews active="statement" /></> : <Link className="text-link" href={backHref}>{translate('portal', staffView ? 'stmt_back_accounts' : 'stmt_back_earnings')}</Link>}
         <section className="panel table-panel stmt-panel">
             <div className="panel-heading">
                 <div>

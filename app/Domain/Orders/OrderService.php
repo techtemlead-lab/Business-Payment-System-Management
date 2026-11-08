@@ -8,6 +8,7 @@ use App\Domain\Finance\FinanceSettings;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Integrations\PaymentGatewayClient;
 use App\Domain\Inventory\BranchOperations;
+use App\Domain\Inventory\StockLots;
 use App\Domain\Inventory\StockNotifications;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
@@ -40,6 +41,7 @@ class OrderService
         private readonly CommissionPosting $commissions,
         private readonly StockNotifications $stockNotifications,
         private readonly BranchOperations $branches,
+        private readonly StockLots $stockLots,
     ) {}
 
     public function create(User $user, array $data, ?User $submittedBy = null): Order
@@ -337,7 +339,11 @@ class OrderService
             $gatewayMeta = null;
             // The courier is booked only after this transaction commits (BookShipmentCourier),
             // so a rolled-back dispatch never leaves a parcel booked with the courier.
-            $bookCourier = is_string($provider) && $provider !== '';
+            $manualCourier = CourierOptions::isManual($provider);
+            if ($manualCourier && ! app(CourierOptions::class)->isEnabled($provider)) {
+                throw ValidationException::withMessages(['courier_provider' => __('courier_more.err_manual_not_enabled')]);
+            }
+            $bookCourier = is_string($provider) && $provider !== '' && ! $manualCourier;
             if ($bookCourier) {
                 $courier = $courier !== '' ? $courier : ucfirst($provider);
                 $gatewayMeta = ['provider' => $provider, 'booking' => 'pending'];
@@ -355,11 +361,13 @@ class OrderService
                 'actor_id' => $actor->id,
                 'idempotency_key' => $data['idempotency_key'],
                 'payload_hash' => $hash,
-                'courier_provider' => $bookCourier ? $provider : null,
-                'courier_booking_status' => $bookCourier ? 'pending' : null,
+                'courier_provider' => $bookCourier || $manualCourier ? $provider : null,
+                'courier_booking_status' => $bookCourier ? 'pending' : ($manualCourier ? 'manual' : null),
+                ...($manualCourier ? $this->manualParcelStart() : []),
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+            $this->stockLots->linkShipment($shipmentLines, $shipmentId);
             if ($bookCourier) {
                 DB::afterCommit(fn () => BookShipmentCourier::dispatch($shipmentId));
             }
@@ -446,7 +454,7 @@ class OrderService
             if ($shipment->status !== 'dispatched' || $shipment->courier_status !== 'returned') {
                 throw ValidationException::withMessages(['shipment' => __('courier.err_received_back_not_returned')]);
             }
-            /** @var list<array{line_id: int, name: string, quantity: int}> $shipmentLines */
+            /** @var list<array{line_id: int, name: string, quantity: int, lots?: list<array{lot_id: int, quantity: int}>}> $shipmentLines */
             $shipmentLines = json_decode((string) $shipment->lines, true, 512, JSON_THROW_ON_ERROR);
             $orderLines = $locked->lines()->whereIn('id', array_column($shipmentLines, 'line_id'))->get()->keyBy('id');
             foreach ($shipmentLines as $line) {
@@ -458,6 +466,12 @@ class OrderService
                     'reason' => $locked->number,
                     'reference' => 'shipment-return:'.$shipment->id.':'.$line['line_id'],
                     'branch_id' => (int) $shipment->branch_id,
+                    // Older parcels have no lot record, so they come back as a new lot with the batch on the order line.
+                    'return_lots' => $line['lots'] ?? [],
+                    'lot_source' => StockLots::SourceReturn,
+                    'batch_number' => $orderLines[$line['line_id']]->getAttribute('batch_number'),
+                    'expires_on' => $orderLines[$line['line_id']]->getRawOriginal('expires_on'),
+                    'lot_context' => ['order_id' => $locked->id, 'order_line_id' => (int) $line['line_id'], 'shipment_id' => (int) $shipment->id],
                 ]);
             }
             DB::table('shipments')->where('id', $shipment->id)->update(['status' => 'returned', 'updated_at' => now()]);
@@ -518,11 +532,14 @@ class OrderService
                 DB::table('shipments')->where('id', $shipment->id)->update([
                     'courier_provider' => $provider,
                     'courier' => CourierOptions::label($provider),
-                    'courier_booking_status' => 'pending',
+                    'courier_booking_status' => CourierOptions::isManual($provider) ? 'manual' : 'pending',
                     'courier_booking_error' => null,
                     'updated_at' => now(),
+                    ...(CourierOptions::isManual($provider) ? $this->manualParcelStart() : []),
                 ]);
-                DB::afterCommit(fn () => BookShipmentCourier::dispatch((int) $shipment->id));
+                if (! CourierOptions::isManual($provider)) {
+                    DB::afterCommit(fn () => BookShipmentCourier::dispatch((int) $shipment->id));
+                }
             }
             $this->event($locked, $actor, 'order.courier_changed', [
                 'from' => $from,
@@ -587,6 +604,13 @@ class OrderService
 
             return;
         }
+        if (CourierOptions::isManual($provider)) {
+            $this->event($locked, $actor, 'order.courier_auto_skipped', ['provider' => $provider, 'reason' => 'manual_courier']);
+            $replace = ['number' => $locked->number, 'courier' => CourierOptions::label($provider)];
+            Audit::notifyAdminsAndStaff(['orders', 'inventory'], __('courier_more.notice_manual_dispatch_title', $replace), __('courier_more.notice_manual_dispatch_body', $replace));
+
+            return;
+        }
         $branchQuery = CompanyBranch::query()->active()->where('is_stock_hub', true);
         $branch = ($locked->fulfillment_branch_id ? (clone $branchQuery)->whereKey($locked->fulfillment_branch_id)->first() : null)
             ?? $branchQuery->orderByRaw('COALESCE(is_head_office, false) DESC')->orderBy('id')->first();
@@ -604,7 +628,7 @@ class OrderService
         foreach ($lines as $line) {
             $left = (int) $line->getAttribute('quantity') - (int) $line->getAttribute('dispatched');
             $product = $products->get((int) $line->getAttribute('product_id'));
-            if (! $product instanceof Product || $this->branches->ensureBranchStock($branch, $product)->quantity < $left) {
+            if (! $product instanceof Product || $this->stockLots->usableQuantity($this->branches->ensureBranchStock($branch, $product), $product) < $left) {
                 $this->autoShipSkipped($actor, $locked, (string) $provider, 'stock');
 
                 return;
@@ -626,6 +650,7 @@ class OrderService
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $this->stockLots->linkShipment($shipmentLines, $shipmentId);
         DB::afterCommit(fn () => BookShipmentCourier::dispatch($shipmentId));
         $remaining = $locked->lines()->whereColumn('dispatched', '<', 'quantity')->exists();
         $locked->update(['status' => $remaining ? 'partially_dispatched' : 'dispatched', 'fulfillment_branch_id' => $branch->id]);
@@ -636,6 +661,20 @@ class OrderService
             'branch_code' => $branch->code,
             'automatic' => true,
         ]);
+    }
+
+    /**
+     * A manual courier's parcel starts waiting for pickup, ready for staff to move on by hand.
+     *
+     * @return array{courier_status: string, courier_status_at: mixed, courier_timeline: string}
+     */
+    private function manualParcelStart(): array
+    {
+        return [
+            'courier_status' => 'waiting_pickup',
+            'courier_status_at' => now(),
+            'courier_timeline' => json_encode([ShipmentTracking::timelineEntry('waiting_pickup', null, 'staff')], JSON_THROW_ON_ERROR),
+        ];
     }
 
     private function autoShipSkipped(User $actor, Order $locked, string $provider, string $reason): void
@@ -653,7 +692,7 @@ class OrderService
      * Takes the shipped quantities out of the branch stock and marks the order lines sent.
      *
      * @param  list<array{line_id: int, quantity: int}>  $items
-     * @return list<array{line_id: int, name: string, quantity: int}>
+     * @return list<array{line_id: int, name: string, quantity: int, lots: list<array{movement_id: int, lot_id: int, batch_number: ?string, expires_on: ?string, quantity: int}>}>
      */
     private function takeStock(User $actor, Order $locked, CompanyBranch $branch, array $items): array
     {
@@ -670,8 +709,13 @@ class OrderService
                 throw ValidationException::withMessages(['shipment' => __('portal.err_shipment_qty', ['product' => $product->name])]);
             }
             $previousStock = $product->stock;
-            $branchStock->quantity = (int) $branchStock->quantity - $quantity;
-            $branchStock->save();
+            $takenLots = $this->stockLots->take($branchStock, $product, $quantity, [
+                'kind' => StockLots::KindDispatch,
+                'actor_id' => $actor->id,
+                'order_id' => $locked->id,
+                'order_line_id' => (int) $line->getKey(),
+                'reference' => $locked->number,
+            ], errorField: 'shipment');
             $companyTotal = (int) BranchProductStock::query()->where('product_id', $product->id)->sum('quantity');
             $product->forceFill(['stock' => $companyTotal])->save();
             $this->stockNotifications->recordChange($product, $previousStock, $previousStock > 0 && ! $product->is_stock_paused);
@@ -687,7 +731,7 @@ class OrderService
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-            $shipmentLines[] = ['line_id' => $line->id, 'name' => $line->name, 'quantity' => $quantity];
+            $shipmentLines[] = ['line_id' => $line->id, 'name' => $line->name, 'quantity' => $quantity, 'lots' => $takenLots];
         }
 
         return $shipmentLines;

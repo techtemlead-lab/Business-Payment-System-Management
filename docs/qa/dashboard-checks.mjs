@@ -46,7 +46,7 @@ try {
         check(name + ' profile summary', await page.locator('.account-profile-card').isVisible());
         check(name + ' five summary figures', await page.locator('.account-profile-stats>div').count() === 5);
         check(name + ' desktop no overflow', await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
-        check(name + ' correct website separation', await page.locator('.portal-site-header').count() === (portal.staff ? 0 : 1));
+        check(name + ' correct website separation', await page.locator('.portal-site-header').count() === 0);
         check(name + ' correct action links', await page.locator('.account-action-card').evaluateAll((links) => links.every((a) => {
             const path = new URL(a.href).pathname;
             return path.startsWith('/') && !path.startsWith('/company/') && !path.startsWith('/workspace/') && !path.startsWith('/owner/');

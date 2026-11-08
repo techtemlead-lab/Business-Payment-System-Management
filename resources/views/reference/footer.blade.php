@@ -55,6 +55,7 @@
             <a href="{{ $href }}">{{ $chrome('quality_promise', $siteCustomization['footer_link_quality'] ?? null) }}</a>
             @endif
             @if($publicPageEnabled['dealers'] ?? true)<a href="/dealers">{{ $chrome('network') }}</a>@endif
+            @if($publicPageEnabled['prescribers'] ?? true)<a href="/prescribers">{{ $chrome('prescribers_title', $siteCustomization['prescribers_title'] ?? null) }}</a>@endif
             @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_link_partnership_url'] ?? '/partnership'))
             <a href="{{ $href }}">{{ $chrome('become_a_partner', $siteCustomization['footer_link_partnership'] ?? null) }}</a>
             @endif
@@ -70,6 +71,7 @@
             @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_link_dealer_apply_url'] ?? '/partnership'))
             <a href="{{ $href }}">{{ $chrome('apply_for_dealership', $siteCustomization['footer_link_dealer_apply'] ?? null) }}</a>
             @endif
+            @include('reference.partials.trust-footer-links')
         </div>
     </section>
     <section>
@@ -77,6 +79,7 @@
         <div style="margin-bottom:14px;"><a href="/" aria-label="{{ __('site.brand_home') }}"><img src="{{ $siteCustomization['footer_logo_url'] ?? '/madina-header-logo-white.png?v=9' }}" alt="{{ __('site.company_bar') }}" width="200" height="56" decoding="async" loading="lazy" style="height:56px;width:auto;max-width:200px;background:transparent;padding:0;border-radius:0;box-shadow:none;object-fit:contain;display:inline-block;"></a></div>
         <h3>{{ $chrome('company_intro_title', $siteCustomization['footer_about_title'] ?? null) }}</h3>
         <p>{{ $chrome('footer_about_desc', $siteCustomization['footer_about_desc'] ?? null) }}</p>
+        @include('reference.partials.business-identity')
         <div class="ref-socials">
             @php
                 $socialMap = [

@@ -30,6 +30,7 @@ use App\Http\Portals\Shared\Sections\CommissionsSection;
 use App\Http\Portals\Shared\Sections\CompanyFundsSection;
 use App\Http\Portals\Shared\Sections\ContentSection;
 use App\Http\Portals\Shared\Sections\DataCleanupSection;
+use App\Http\Portals\Shared\Sections\DealerToolsSection;
 use App\Http\Portals\Shared\Sections\EmployeesSection;
 use App\Http\Portals\Shared\Sections\EventsSection;
 use App\Http\Portals\Shared\Sections\FeedbackSection;
@@ -39,12 +40,18 @@ use App\Http\Portals\Shared\Sections\NetworkSection;
 use App\Http\Portals\Shared\Sections\OfficeHubSection;
 use App\Http\Portals\Shared\Sections\OrdersSection;
 use App\Http\Portals\Shared\Sections\OverviewSection;
+use App\Http\Portals\Shared\Sections\PrescriberPublicSection;
 use App\Http\Portals\Shared\Sections\PrescriptionsSection;
 use App\Http\Portals\Shared\Sections\PrescriptionToolsSection;
+use App\Http\Portals\Shared\Sections\PrivacyRequestsSection;
 use App\Http\Portals\Shared\Sections\ProfileSection;
+use App\Http\Portals\Shared\Sections\PublicTrustSection;
+use App\Http\Portals\Shared\Sections\PurchasingSection;
 use App\Http\Portals\Shared\Sections\SalarySection;
 use App\Http\Portals\Shared\Sections\SectionContext;
 use App\Http\Portals\Shared\Sections\SectionDates;
+use App\Http\Portals\Shared\Sections\StockCountsSection;
+use App\Http\Portals\Shared\Sections\StockLotsSection;
 use App\Http\Portals\Shared\Sections\SupportSection;
 use App\Http\Portals\Shared\Sections\TerritorySection;
 use App\Http\Portals\Shared\Sections\TopSellersSection;
@@ -58,6 +65,7 @@ use App\Models\User;
 use App\Support\JoinQr;
 use App\Support\Money;
 use App\Support\OfficeHubs;
+use App\Support\PartnerHubTabs;
 use App\Support\PortalCatalog;
 use App\Support\PortalHost;
 use Illuminate\Http\RedirectResponse;
@@ -105,7 +113,14 @@ class WorkspaceController extends Controller
         DataCleanupSection::class,
         PrescriptionsSection::class,
         PrescriptionToolsSection::class,
+        PublicTrustSection::class,
+        DealerToolsSection::class,
+        PrescriberPublicSection::class,
+        PrivacyRequestsSection::class,
+        PurchasingSection::class,
+        StockCountsSection::class,
         CompanyFundsSection::class,
+        StockLotsSection::class,
     ];
 
     public function index(Request $r, ProductPricing $pricing, string $section = 'overview'): Response|RedirectResponse
@@ -153,6 +168,10 @@ class WorkspaceController extends Controller
                 'page' => $r->query('page'),
             ], fn ($value) => $value !== null && $value !== '')));
         }
+        if ($staff && $section === 'withdrawals') {
+            // One desk for office withdrawal work; old links and saved filters still arrive there.
+            return redirect('/payouts-hub'.rtrim('?'.http_build_query($r->only(['q', 'status', 'channel', 'buyer_role', 'period', 'from', 'to', 'page', 'branch_id', 'all_branches'])), '?'));
+        }
         if ($staff && $section === 'reports') {
             return redirect(OfficeHubs::oldReportsAddress($u, in_array($portal, ['manage', 'sadmin'], true), $r->query()));
         }
@@ -185,6 +204,10 @@ class WorkspaceController extends Controller
         }
         if ($branchScope !== null) {
             $data['branch_scope'] = $branchScope->chip();
+        }
+        $partnerHub = PartnerHubTabs::forSection($section, $staff);
+        if ($partnerHub !== null) {
+            $data['partner_hub'] = $partnerHub;
         }
 
         return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role', 'channel', 'category', 'sub_category', 'unit', 'min_mrp', 'max_mrp', 'availability', 'sort', 'period', 'from', 'to', 'division', 'district', 'rank', 'no_order_days', 'branch_id', 'all_branches'])]);
@@ -360,8 +383,11 @@ class WorkspaceController extends Controller
             'courier_consignment_id', 'courier_status', 'courier_status_raw', 'courier_status_at', 'courier_tracked_at', 'courier_timeline',
             'lines', 'delivered_at', 'created_at',
         ]);
+        $manualPages = $shipments->contains(fn (\stdClass $shipment): bool => CourierOptions::isManual($shipment->courier_provider))
+            ? app(CourierOptions::class)->manualTrackingPages()
+            : [];
         foreach ($shipments as $shipment) {
-            $shipment->tracking_url = CourierOptions::trackingUrl($shipment->courier_provider, $shipment->tracking, $shipment->courier_consignment_id);
+            $shipment->tracking_url = CourierOptions::trackingUrl($shipment->courier_provider, $shipment->tracking, $shipment->courier_consignment_id, $manualPages);
             $shipment->courier_timeline = json_decode((string) ($shipment->courier_timeline ?? '[]'), true) ?: [];
             if (ShipmentTracking::isTrackable($shipment) && Cache::add('courier-tracking:'.$shipment->id, true, now()->addMinutes(10))) {
                 RefreshShipmentTracking::dispatch((int) $shipment->id);

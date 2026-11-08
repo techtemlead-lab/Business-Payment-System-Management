@@ -4,6 +4,7 @@ namespace App\Domain\Clinic;
 
 use App\Domain\Finance\Percentage;
 use App\Domain\Inventory\BranchOperations;
+use App\Domain\Inventory\StockLots;
 use App\Models\Prescription;
 use App\Models\User;
 use App\Support\Audit;
@@ -129,6 +130,7 @@ final class ClinicDispensing
                     'reason' => 'Clinic dispense '.$locked->number,
                     'reference' => 'clinic-'.$locked->number.'-'.$line->id,
                     'branch_id' => $branch->id,
+                    'lot_context' => ['kind' => StockLots::KindClinicDispense, 'prescription_id' => $locked->id],
                 ]);
             }
             $clinic = $split['clinic'];

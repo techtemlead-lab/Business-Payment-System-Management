@@ -27,6 +27,19 @@ export interface DashboardManagementHubProps {
 export default function DashboardManagementHub({ settings, defaults, stats, recent_employees = [] }: DashboardManagementHubProps) {
     const translate = useT();
     const [activeTab, setActiveTab] = useState<'dealers' | 'subdealers' | 'employees' | 'company'>('dealers');
+    /** The four cards at the top are the only way to switch: they work with a tap or the keyboard. */
+    const cardControl = (tab: 'dealers' | 'subdealers' | 'employees' | 'company') => ({
+        role: 'button' as const,
+        tabIndex: 0,
+        'aria-pressed': activeTab === tab,
+        onClick: () => setActiveTab(tab),
+        onKeyDown: (event: React.KeyboardEvent) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                setActiveTab(tab);
+            }
+        },
+    });
 
     const form = useForm({
         settings: {
@@ -103,7 +116,7 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
             <div className="hub-grid ops-mb-6">
                 {/* 1. Dealer Dashboard */}
                 <div
-                    onClick={() => setActiveTab('dealers')}
+                    {...cardControl('dealers')}
                     className={`ops-card dmh-card tone-info${activeTab === 'dealers' ? ' is-active' : ''}`}
                 >
                     <div className="dmh-card-head">
@@ -130,7 +143,7 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
 
                 {/* 2. Sub-Dealer Dashboard */}
                 <div
-                    onClick={() => setActiveTab('subdealers')}
+                    {...cardControl('subdealers')}
                     className={`ops-card dmh-card tone-ok${activeTab === 'subdealers' ? ' is-active' : ''}`}
                 >
                     <div className="dmh-card-head">
@@ -157,7 +170,7 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
 
                 {/* 3. Employee Dashboard */}
                 <div
-                    onClick={() => setActiveTab('employees')}
+                    {...cardControl('employees')}
                     className={`ops-card dmh-card tone-teal${activeTab === 'employees' ? ' is-active' : ''}`}
                 >
                     <div className="dmh-card-head">
@@ -178,7 +191,7 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
 
                 {/* 4. Company & Super Dashboard */}
                 <div
-                    onClick={() => setActiveTab('company')}
+                    {...cardControl('company')}
                     className={`ops-card dmh-card tone-neutral${activeTab === 'company' ? ' is-active' : ''}`}
                 >
                     <div className="dmh-card-head">
@@ -196,41 +209,6 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                         {translate('portal','dash_mgmt_card_company_hint')}
                     </p>
                 </div>
-            </div>
-
-            {/* Sub-Navigation Tabs */}
-            <div className="dmh-tabs">
-                <button
-                    type="button"
-                    onClick={() => setActiveTab('dealers')}
-                    className={`dmh-tab tone-info${activeTab === 'dealers' ? ' is-active' : ''}`}
-                >
-                    <span aria-hidden="true">🤝</span> {translate('portal','dash_mgmt_tab_dealer')}
-                </button>
-
-                <button
-                    type="button"
-                    onClick={() => setActiveTab('subdealers')}
-                    className={`dmh-tab tone-ok${activeTab === 'subdealers' ? ' is-active' : ''}`}
-                >
-                    <span aria-hidden="true">🏬</span> {translate('portal','dash_mgmt_tab_subdealer')}
-                </button>
-
-                <button
-                    type="button"
-                    onClick={() => setActiveTab('employees')}
-                    className={`dmh-tab tone-teal${activeTab === 'employees' ? ' is-active' : ''}`}
-                >
-                    <span aria-hidden="true">👥</span> {translate('portal','dash_mgmt_tab_employee')}
-                </button>
-
-                <button
-                    type="button"
-                    onClick={() => setActiveTab('company')}
-                    className={`dmh-tab tone-neutral${activeTab === 'company' ? ' is-active' : ''}`}
-                >
-                    <span aria-hidden="true">🏢</span> {translate('portal','dash_mgmt_tab_company')}
-                </button>
             </div>
 
             {/* TAB CONTENT */}
@@ -595,10 +573,6 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
 
                             <div className="dmh-toggles tone-neutral">
                                 {[
-                                    { key: 'company_treasury_enabled', label: translate('portal','dash_mgmt_toggle_treasury'), desc: translate('portal','dash_mgmt_toggle_treasury_desc') },
-                                    { key: 'company_commissions_enabled', label: translate('portal','dash_mgmt_toggle_commissions'), desc: translate('portal','dash_mgmt_toggle_commissions_desc') },
-                                    { key: 'company_customization_enabled', label: translate('portal','dash_mgmt_toggle_cms'), desc: translate('portal','dash_mgmt_toggle_cms_desc') },
-                                    { key: 'company_audit_enabled', label: translate('portal','dash_mgmt_toggle_audit'), desc: translate('portal','dash_mgmt_toggle_audit_desc') },
                                     { key: 'birthday_sms_enabled', label: translate('portal','dash_mgmt_toggle_birthday_sms'), desc: translate('portal','dash_mgmt_toggle_birthday_sms_desc') },
                                 ].map(toggle => {
                                     const active = Boolean(form.data.settings[toggle.key]);
@@ -631,6 +605,19 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                                     className="ops-full ops-mt-1"
                                 />
                                 <small className="muted">{translate('portal','dash_mgmt_support_overdue_hours_hint')}</small>
+                            </label>
+                            <label className="ops-block ops-mt-3">
+                                {translate('dealer_tools','setting_inactive_days')}
+                                <input
+                                    type="number"
+                                    min={7}
+                                    max={365}
+                                    step={1}
+                                    value={form.data.settings.partner_inactive_days ?? 30}
+                                    onChange={e => updateField('partner_inactive_days', e.target.value)}
+                                    className="ops-full ops-mt-1"
+                                />
+                                <small className="muted">{translate('dealer_tools','setting_inactive_days_hint')}</small>
                             </label>
                         </section>
                     </div>

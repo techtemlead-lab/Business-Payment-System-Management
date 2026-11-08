@@ -48,7 +48,7 @@ final class BranchOperations
         'other',
     ];
 
-    public function __construct(private StockNotifications $notifications) {}
+    public function __construct(private StockNotifications $notifications, private StockLots $lots) {}
 
     /**
      * @param  array{
@@ -379,22 +379,14 @@ final class BranchOperations
             }
 
             $previousCompany = (int) $product->stock;
-            $stock->quantity = $next;
-            $stock->save();
+            $batchNumber = trim((string) ($data['batch_number'] ?? ''));
+            $takenLots = $this->moveLots($actor, $stock, $product, $quantity, $kind, $data);
 
             $companyTotal = (int) BranchProductStock::query()->where('product_id', $product->id)->sum('quantity');
             $productUpdates = ['stock' => $companyTotal];
-            if (
-                $kind === self::KindProductIn
-                && array_key_exists('expires_on', $data)
-                && $data['expires_on']
-                && Schema::hasColumn('products', 'expires_on')
-            ) {
-                $productUpdates['expires_on'] = $data['expires_on'];
-            }
-            $batchNumber = trim((string) ($data['batch_number'] ?? ''));
-            if ($kind === self::KindProductIn && $batchNumber !== '') {
-                $productUpdates['batch_number'] = $batchNumber;
+            if ($kind === self::KindProductIn && ($batchNumber !== '' || filled($data['expires_on'] ?? null))) {
+                // The product shows the lot that goes out next; a new delivery no longer overwrites it.
+                $productUpdates += $this->lots->nextBatchSummary($product);
             }
             $product->forceFill($productUpdates)->save();
 
@@ -416,11 +408,45 @@ final class BranchOperations
                 'branch_id' => $branch->id,
                 'branch_code' => $branch->code,
                 ...($batchNumber !== '' && $kind === self::KindProductIn ? ['batch_number' => $batchNumber] : []),
+                ...($takenLots !== [] ? ['lots' => $takenLots] : []),
             ]);
             $this->notifications->recordChange($product, $previousCompany, $previousCompany > 0 && ! $product->is_stock_paused);
 
             return $product->refresh();
         });
+    }
+
+    /**
+     * Applies an adjustment to the lots. Goods coming back go into the lots they left from;
+     * other goods coming in make a new lot; goods going out leave earliest-expiring first.
+     *
+     * @param  array<string, mixed>  $data
+     * @return list<array{movement_id: int, lot_id: int, batch_number: ?string, expires_on: ?string, quantity: int}> The lots taken from.
+     */
+    private function moveLots(User $actor, BranchProductStock $stock, Product $product, int $quantity, string $kind, array $data): array
+    {
+        /** @var array<string, mixed> $context */
+        $context = ['reference' => $data['reference'], 'actor_id' => $actor->id, ...($data['lot_context'] ?? [])];
+        if ($quantity > 0) {
+            if (($data['return_lots'] ?? []) !== []) {
+                $this->lots->restore($stock, $product, $data['return_lots'], $context);
+            } else {
+                $this->lots->receive($stock, $product, $quantity, [
+                    'batch_number' => $data['batch_number'] ?? null,
+                    'expires_on' => filled($data['expires_on'] ?? null) ? $data['expires_on'] : null,
+                    'received_on' => $data['received_on'] ?? null,
+                    'unit_cost' => $data['unit_cost'] ?? null,
+                    'source' => $data['lot_source'] ?? StockLots::SourceStockIn,
+                ], $context);
+            }
+
+            return [];
+        }
+
+        $reasonCode = trim((string) ($data['reason_code'] ?? '')) ?: trim((string) $data['reason']);
+        $disposal = $kind !== self::KindProductOut || in_array($reasonCode, StockLots::DisposalReasons, true);
+
+        return $this->lots->take($stock, $product, -$quantity, $context, $disposal);
     }
 
     /**

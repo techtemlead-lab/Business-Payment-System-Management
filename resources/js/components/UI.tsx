@@ -621,6 +621,7 @@ export function Table<T extends Row = any>({
  );
 
  const showToolbar = tools || canExport || canPrint;
+ const isPartnerPortal = ['dealer', 'subdealer'].includes(String(usePage<any>().props.portal));
  const sticky = stickyHeader && pagedRows.length > STICKY_HEADER_MIN_ROWS;
 
  return (
@@ -683,7 +684,7 @@ export function Table<T extends Row = any>({
        {canExport && (
         <button type="button" className="button small table-report-button" onClick={exportCsv} disabled={!sorted.length}>
          <Download size={13} aria-hidden="true" />
-         <span>{translate('portal', 'export_csv')}</span>
+         <span>{isPartnerPortal ? translate('partner_hub', 'export_excel') : translate('portal', 'export_csv')}</span>
         </button>
        )}
        {canPrint && (

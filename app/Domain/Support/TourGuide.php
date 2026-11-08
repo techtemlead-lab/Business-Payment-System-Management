@@ -307,13 +307,6 @@ final class TourGuide
                     ['target' => '[data-tour="catalog-grid"]', 'title' => __('portal.tour_staff_catalog_grid_title'), 'body' => __('portal.tour_staff_catalog_grid_body'), 'tip' => __('portal.tour_staff_catalog_grid_tip')],
                 ],
             ],
-            'withdrawals' => [
-                'title' => __('portal.tour_staff_withdrawals_title'),
-                'requires' => ['overview'],
-                'steps' => [
-                    ['target' => '[data-tour="staff-withdrawals"]', 'title' => __('portal.tour_staff_withdrawals_notice_title'), 'body' => __('portal.tour_staff_withdrawals_notice_body'), 'tip' => __('portal.tour_staff_withdrawals_notice_tip')],
-                ],
-            ],
             'payouts-hub' => [
                 'title' => __('portal.tour_staff_payouts_title'),
                 'requires' => ['overview'],
@@ -359,7 +352,7 @@ final class TourGuide
     private function ownerDefinitions(User $user): array
     {
         $prescriptionSteps = PrescriptionAccess::canPrescribe($user)
-            ? [$this->overviewStep('[data-tour="sidebar-domains"], .staff-domain-bottom-nav', 'tour_owner_rx', 'tour_cat_domains', 'manual')]
+            ? [$this->overviewStep('[data-tour="sidebar-nav"], .workspace-menu-button', 'tour_owner_rx', 'tour_cat_domains', 'manual')]
             : [];
 
         return [
@@ -408,7 +401,7 @@ final class TourGuide
             $this->overviewStep('[data-tour="recent-orders"]', $prefix.'_orders', 'tour_cat_orders'),
             // "Recent orders" shows only for office people who can also open Deliveries.
             $this->overviewStep('[data-tour="recent-orders"]', 'tour_office_courier', 'tour_cat_orders', 'manual'),
-            $this->overviewStep('[data-tour="sidebar-domains"], .staff-domain-bottom-nav', $prefix.'_domains', 'tour_cat_domains'),
+            $this->overviewStep('[data-tour="sidebar-nav"], .workspace-menu-button', $prefix.'_domains', 'tour_cat_domains'),
             $this->overviewStep('[data-tour="header-actions"]', $prefix.'_header', 'tour_cat_controls'),
             ...$this->topBarSteps(),
             // The switcher is drawn only when the person has a branch; the tour skips it otherwise.
