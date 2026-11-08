@@ -94,6 +94,10 @@ final class EmployeesSection implements WorkspaceSection
         $branchIds = $branchScope->branchIds;
         $staff->where(fn (Builder $working) => $working
             ->whereIn('users.active_branch_id', $branchIds)
-            ->orWhereIn('users.id', BranchStaffAssignment::query()->whereIn('branch_id', $branchIds)->select('user_id')));
+            ->orWhereIn('users.id', BranchStaffAssignment::query()->whereIn('branch_id', $branchIds)->select('user_id'))
+            // Someone just added has no branch yet; the head office lists them so they can be found and placed.
+            ->when($branchScope->showsHeadOffice(), fn (Builder $headOffice) => $headOffice->orWhere(fn (Builder $noBranch) => $noBranch
+                ->whereNull('users.active_branch_id')
+                ->whereNotIn('users.id', BranchStaffAssignment::query()->select('user_id')))));
     }
 }
