@@ -182,4 +182,16 @@ return [
     'flash_follow_up_done' => 'Removed from the list.',
     'notice_follow_up_title' => 'Patients to see again',
     'notice_follow_up_body' => 'Due today: :today. Past their date: :overdue. Open the Prescriptions page for the list.',
+
+    'tab_my_report' => 'My report',
+    'mr_title' => 'My report',
+    'mr_intro_partner' => 'The prices you typed on your prescriptions. This is separate from your company account.',
+    'mr_intro_clinic' => 'Prescriptions you wrote and patients you saw, with the money from medicines dispensed at the clinic.',
+    'mr_prescriptions' => 'Prescriptions',
+    'mr_patients' => 'Patients',
+    'mr_billed' => 'Total billed',
+    'mr_discount' => 'Total discount',
+    'mr_sales' => 'Dispensed sales',
+    'mr_month' => 'Month',
+    'mr_empty' => 'No prescriptions on these dates.',
 ];

@@ -6,6 +6,7 @@ import { useT } from '../shared/i18n/t';
 import { businessTodayIso } from '../business-date';
 import { SaveAsTemplate, TemplatePicker, TemplatesTab, type PrescriptionTools } from './PrescriptionTemplates';
 import { FollowUpsPanel } from './PrescriptionFollowUps';
+import { PrescriberReportTab } from './PrescriberReport';
 
 type Translate = ReturnType<typeof useT>;
 
@@ -114,6 +115,7 @@ export default function PrescriptionsHub({ data, tools }: { data: PrescriptionsD
         { id: 'prescriptions', label: translate('prescription', 'tab_prescriptions') },
         { id: 'patients', label: translate('prescription', 'tab_patients') },
         { id: 'templates', label: translate('prescription', 'tab_templates') },
+        { id: 'my-report', label: translate('prescription', 'tab_my_report') },
         ...(clinic ? [{ id: 'report', label: translate('prescription', 'tab_report') }, { id: 'settings', label: translate('prescription', 'tab_settings') }] : []),
     ];
 
@@ -137,6 +139,7 @@ export default function PrescriptionsHub({ data, tools }: { data: PrescriptionsD
             {tab === 'prescriptions' && <PrescriptionsTab data={data} tools={tools} translate={translate} />}
             {tab === 'patients' && <PatientsTab data={data} translate={translate} />}
             {tab === 'templates' && <TemplatesTab templates={tools.templates} translate={translate} />}
+            {tab === 'my-report' && <PrescriberReportTab report={tools.report} translate={translate} />}
             {tab === 'report' && clinic && data.report && <ReportTab report={data.report} translate={translate} />}
             {tab === 'settings' && clinic && <SettingsTab data={data} translate={translate} />}
         </div>

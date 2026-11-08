@@ -5,6 +5,7 @@ import { Empty } from './UI';
 import { useT } from '../shared/i18n/t';
 import type { LineForm } from './PrescriptionsHub';
 import type { FollowUpsData } from './PrescriptionFollowUps';
+import type { PrescriberReportData } from './PrescriberReport';
 
 type Translate = ReturnType<typeof useT>;
 
@@ -28,6 +29,7 @@ export type TemplateRow = {
 export type PrescriptionTools = {
     templates: TemplateRow[];
     follow_ups: FollowUpsData;
+    report: PrescriberReportData;
 };
 
 /** Fills the new-prescription form from a saved template; nothing is saved until the form is. */
