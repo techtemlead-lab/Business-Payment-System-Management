@@ -327,12 +327,16 @@ export type StaffDomainGroup = {
     mothers: NavMother[];
 };
 
-function staffNavigation(staffAvailable: Set<string>): {
+/** Opened from the tabs on their merged page, so they get no sidebar row of their own. */
+const MERGED_TAB_SECTIONS = ['policies', 'simulator', 'policy-schedules', 'reports'];
+
+function staffNavigation(available: Set<string>): {
     company: NavMother[];
     dealers: NavMother[];
     subDealers: NavMother[];
     account: NavMother | null;
 } {
+    const staffAvailable = new Set([...available].filter((item) => !MERGED_TAB_SECTIONS.includes(item)));
     return {
         company: compactMothers([
             mother('overview', 'nav_module_overview', pick(staffAvailable, ['overview'])),
