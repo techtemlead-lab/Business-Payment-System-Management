@@ -6249,6 +6249,11 @@ return [
     'branch_scope_showing' => 'Showing: :name',
     'branch_scope_none' => 'No branch given to you yet',
     'branch_scope_hint' => 'Change the branch from the top bar.',
+    // Courier auto-booking (stream F): activity log names. Other courier text is in courier.php.
+    'event_order_courier_changed' => 'Courier changed',
+    'event_order_courier_booking_retried' => 'Courier booking tried again',
+    'event_order_courier_auto_skipped' => 'Courier not booked automatically',
+    'event_shipment_courier_status' => 'Parcel status changed',
     'prescriptions' => 'Prescriptions',
     'nav_module_clinic' => 'Clinic',
     'perm_prescriber_verify' => 'Verify prescribers',

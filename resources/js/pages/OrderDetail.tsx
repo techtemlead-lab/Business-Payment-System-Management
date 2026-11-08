@@ -4,20 +4,28 @@ import Shell from '../components/Shell';
 import { Row, Table, Badge, money, number, date, label, ActionForm, DateInput, FormErrors } from '../components/UI';
 import { useT } from '../shared/i18n/t';
 import TransactionProgressStepper from '../components/TransactionProgressStepper';
+import CourierTrackingPanel from '../components/CourierTrackingPanel';
 
-function DispatchForm({ order }: { order: Row }) {
+function DispatchForm({ order, courierChoices }: { order: Row; courierChoices: { key: string; label: string }[] }) {
     const translate = useT();
-    const form = useForm({ courier: '', tracking: '', courier_contact: '', eta: '', idempotency_key: crypto.randomUUID(),
+    const form = useForm({ courier: '', tracking: '', courier_contact: '', eta: '', courier_provider: '', idempotency_key: crypto.randomUUID(),
         items: order.lines.filter((line: Row) => line.dispatched < line.quantity).map((line: Row) => ({ line_id: line.id, quantity: line.quantity - line.dispatched })) });
     return <form className="action-form" onSubmit={event => {
         event.preventDefault();
-        form.transform(data => ({ ...data, items: data.items.filter((item: Row) => Number(item.quantity) > 0) }));
+        form.transform(data => ({ ...data, courier_provider: data.courier_provider || null, items: data.items.filter((item: Row) => Number(item.quantity) > 0) }));
         form.post(`/commands/orders/${order.id}/dispatch`, { onSuccess: () => form.setData('idempotency_key', crypto.randomUUID()) });
     }}>
         <p className="muted">{translate('portal', 'dispatch_hint')}</p>
         <div className="form-grid">
+            {courierChoices.length > 0 && <label>{translate('courier', 'dispatch_provider_label')}<select value={form.data.courier_provider} onChange={event => {
+                const choice = courierChoices.find(option => option.key === event.target.value);
+                form.setData(data => ({ ...data, courier_provider: event.target.value, courier: choice && data.courier === '' ? choice.label : data.courier }));
+            }}>
+                <option value="">{translate('courier', 'dispatch_provider_none')}</option>
+                {courierChoices.map(option => <option key={option.key} value={option.key}>{option.label}</option>)}
+            </select></label>}
             <label>{translate('portal', 'courier')}<input required aria-label={translate('portal', 'courier')} value={form.data.courier} onChange={event => form.setData('courier', event.target.value)} /></label>
-            <label>{translate('portal', 'tracking_reference')}<input required aria-label={translate('portal', 'tracking_reference')} value={form.data.tracking} onChange={event => form.setData('tracking', event.target.value)} /></label>
+            <label>{translate('portal', 'tracking_reference')}<input required={form.data.courier_provider === ''} aria-label={translate('portal', 'tracking_reference')} value={form.data.tracking} onChange={event => form.setData('tracking', event.target.value)} /></label>
             <label>{translate('portal', 'courier_contact_label')}<input maxLength={120} aria-label={translate('portal', 'courier_contact_label')} value={form.data.courier_contact} onChange={event => form.setData('courier_contact', event.target.value)} /></label>
             <label>{translate('portal', 'estimated_delivery')}<DateInput value={form.data.eta} onChange={event => form.setData('eta', event.target.value)} /></label>
         </div>
@@ -50,7 +58,7 @@ function SupplyDateForm({ order }: { order: Row }) {
     </form></div>;
 }
 
-export default function OrderDetail({ order, claims, shipments, events = [], outstanding, backUrl, replacementSlots=[], replacementCandidates=[], refund=null, canRefund=false, fullPaymentRequired=false }: { order: Row; claims: Row[]; shipments: Row[]; events: Row[]; outstanding: string; backUrl?:string; replacementSlots?:Row[]; replacementCandidates?:Row[]; refund?:Row|null; canRefund?:boolean; fullPaymentRequired?:boolean }) {
+export default function OrderDetail({ order, claims, shipments, events = [], outstanding, backUrl, replacementSlots=[], replacementCandidates=[], refund=null, canRefund=false, fullPaymentRequired=false, courierChoices=[] }: { order: Row; claims: Row[]; shipments: Row[]; events: Row[]; outstanding: string; backUrl?:string; replacementSlots?:Row[]; replacementCandidates?:Row[]; refund?:Row|null; canRefund?:boolean; fullPaymentRequired?:boolean; courierChoices?:{ key: string; label: string }[] }) {
     const translate = useT();
     const { auth,staffActions,portalBase:base,collectionAccounts=[] } = usePage<any>().props;
     const capabilities: string[] = auth.capabilities;
@@ -117,6 +125,8 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
             <Badge status={order.status} />
         </div></div>
         <TransactionProgressStepper order={order} currentStatus={order.status} claims={claims} shipments={shipments} events={events} />
+        <CourierTrackingPanel order={order} shipments={shipments} events={events} courierChoices={courierChoices}
+            canManage={(capabilities.includes('inventory') || capabilities.includes('order_review')) && auth.user.id !== order.user_id} />
 
         <div className="metric-grid three">
             <div className="metric"><span>{translate('portal', 'order_total')}</span><strong>{money(order.total)}</strong></div>
@@ -197,11 +207,18 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                 { name: 'reason', label: translate('portal', 'decision_reason'), type: 'textarea', required: true },
             ]} submit={translate('portal', 'record_decision')} />
         </section>}
-        {capabilities.includes('inventory') && (staffActions?.inventory?.edit??true) && ['approved', 'partially_dispatched'].includes(order.status) && <section className="panel"><h2>{translate('portal', 'dispatch_available_items')}</h2><DispatchForm key={`${order.id}-${shipments.length}`} order={order} /></section>}
+        {capabilities.includes('inventory') && (staffActions?.inventory?.edit??true) && ['approved', 'partially_dispatched'].includes(order.status) && <section className="panel"><h2>{translate('portal', 'dispatch_available_items')}</h2><DispatchForm key={`${order.id}-${shipments.length}`} order={order} courierChoices={courierChoices} /></section>}
         <section className="panel"><h2>{translate('portal', 'order_activity')}</h2>
             {events.length ? events.map(event => {
                 const metadata = typeof event.metadata === 'string' ? JSON.parse(event.metadata) : event.metadata;
-                return <div className="timeline-item" key={event.id}><i /><div><b>{translate('portal', `event_${event.action.replaceAll('.', '_')}`) === `event_${event.action.replaceAll('.', '_')}` ? label(event.action.replaceAll('.', ' ')) : translate('portal', `event_${event.action.replaceAll('.', '_')}`)}</b><p>{date(event.created_at)}{metadata?.reason ? ` · ${metadata.reason}` : ''}</p></div></div>;
+                const eventKey = `event_${event.action.replaceAll('.', '_')}`;
+                const courierLabel = translate('courier', eventKey);
+                const portalLabel = translate('portal', eventKey);
+                const title = courierLabel !== eventKey ? courierLabel : portalLabel !== eventKey ? portalLabel : label(event.action.replaceAll('.', ' '));
+                const detail = event.action === 'order.courier_changed'
+                    ? translate('courier', 'changed_from_to', { from: String(metadata?.from_label ?? ''), to: String(metadata?.to_label ?? '') }) + (metadata?.note ? ` · ${metadata.note}` : '')
+                    : event.action === 'shipment.courier_status' && metadata?.to ? translate('courier', `status_${metadata.to}`) : metadata?.reason;
+                return <div className="timeline-item" key={event.id}><i /><div><b>{title}</b><p>{date(event.created_at)}{detail ? ` · ${detail}` : ''}</p></div></div>;
             }) : <p className="muted">{translate('portal', 'order_activity_empty')}</p>}
         </section>
     </Shell>;

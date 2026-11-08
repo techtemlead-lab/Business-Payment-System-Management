@@ -179,6 +179,8 @@ class EnforceStaffActions
                 'linkStaffRole', 'unlinkStaffRole' => [['accounts'], 'edit'],
                 default => null,
             },
+            // Courier parcels: change courier, try a refused booking again, mark picked up.
+            'CourierShipmentController' => [['inventory', 'order_review'], 'edit'],
             'TrainingController', 'PartnerEventController' => [['content'], $method === 'store' ? 'create' : 'edit'],
             'IntegrationSettingsController' => [['finance'], 'edit'],
             'IdentityLookupController' => [['accounts'], 'view'],

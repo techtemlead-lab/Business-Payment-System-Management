@@ -15,6 +15,8 @@ interface Props {
     initialProductId?: number | string | null;
     /** Owner setting "Full payment required when ordering": the whole total and a screenshot go with the order. */
     fullPaymentRequired?: boolean;
+    /** Couriers the owner switched on, plus "company decides" (key "company"). */
+    courierChoices?: { key: string; label: string }[];
 }
 
 interface CartItem {
@@ -29,6 +31,7 @@ export default function ProductPurchaseMatrix({
     collectionAccounts = [],
     initialProductId = null,
     fullPaymentRequired = false,
+    courierChoices = [],
 }: Props) {
     const translate = useT();
 
@@ -246,6 +249,7 @@ export default function ProductPurchaseMatrix({
         channel: 'Bank',
         amount: '',
         note: '',
+        courier_choice: 'company',
         proof: null as File | null,
     });
 
@@ -276,6 +280,7 @@ export default function ProductPurchaseMatrix({
             channel: f.data.channel,
             amount: fullPaymentRequired ? cartSummary.totalPayable.toFixed(2) : f.data.amount,
             note: f.data.note,
+            courier_choice: courierChoices.length ? f.data.courier_choice : undefined,
             proof: f.data.proof,
         }));
 
@@ -835,6 +840,22 @@ export default function ProductPurchaseMatrix({
                                     {f.errors.proof && <span className="field-error" role="alert">{f.errors.proof}</span>}
                                 </label>
                             </div>
+
+                            {courierChoices.length > 0 && (
+                                <label>
+                                    {translate('courier', 'order_form_label')}
+                                    <select
+                                        value={f.data.courier_choice}
+                                        onChange={e => f.setData('courier_choice', e.target.value)}
+                                    >
+                                        {courierChoices.map(choice => (
+                                            <option key={choice.key} value={choice.key}>{choice.label}</option>
+                                        ))}
+                                    </select>
+                                    <small className="field-hint">{translate('courier', 'order_form_hint')}</small>
+                                    {f.errors.courier_choice && <span className="field-error" role="alert">{f.errors.courier_choice}</span>}
+                                </label>
+                            )}
 
                             <label>
                                 {translate('portal', 'note')}

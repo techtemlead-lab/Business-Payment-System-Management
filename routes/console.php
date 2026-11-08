@@ -54,6 +54,11 @@ Schedule::command('partners:anniversary-greetings')->dailyAt('09:05')->timezone(
 Schedule::command('orders:delivery-reminders')->dailyAt('10:00')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
     ->onFailure(fn () => Log::critical('Scheduled overdue delivery reminder failed.'));
 
+// Courier tracking: every 30 minutes ask the couriers where each booked, not yet delivered parcel is.
+// Dealers get a notice when their parcel moves (picked up, in transit, delivered, returned).
+Schedule::command('couriers:refresh-tracking')->everyThirtyMinutes()->withoutOverlapping(25)->onOneServer()
+    ->onFailure(fn () => Log::warning('Scheduled courier tracking refresh failed.'));
+
 // Support tickets that have waited longer than the owner's limit (24 hours unless changed) for an
 // office reply. Each morning staff with the accounts permission get one portal notice with the count. No SMS.
 Schedule::command('support:overdue-reminders')->dailyAt('09:30')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
