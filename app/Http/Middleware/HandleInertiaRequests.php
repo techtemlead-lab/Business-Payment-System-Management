@@ -213,6 +213,7 @@ class HandleInertiaRequests extends Middleware
                 'dealer_tools' => Lang::get('dealer_tools'),
                 'prescriber_public' => Lang::get('prescriber_public'),
                 'accounting' => Lang::get('accounting'),
+                'purchasing' => Lang::get('purchasing'),
                 'funds' => Lang::get('funds'),
                 'productivity' => Lang::get('productivity'),
                 'clinic_records' => Lang::get('clinic_records'),

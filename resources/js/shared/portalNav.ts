@@ -67,6 +67,8 @@ export const SECTION_LABEL_KEYS: Record<string, string> = {
     employees: 'employees', dashboards: 'dashboards', help: 'help', 'support-admin': 'support_admin', agreement: 'agreement',
     messages: 'chat_nav_partner', 'partner-messages': 'chat_nav_office', 'top-sellers': 'top_sellers',
     training: 'training', events: 'events', 'payment-receipts': 'payment_receipts', 'data-cleanup': 'cleanup_nav', prescriptions: 'prescriptions', 'sales-kit': 'sales_kit', customers: 'customer_book', schemes: 'dated_schemes', 'privacy-requests': 'privacy_requests_nav',
+    purchasing: 'purchasing_nav',
+    'stock-counts': 'stock_counts_nav',
 };
 
 function defaultHrefPath(section: string): string {
@@ -247,6 +249,8 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
         items.add('inventory');
         items.add('stock-lots');
         items.add('branches');
+        items.add('purchasing');
+        items.add('stock-counts');
     }
     if (capabilities.includes('accounts') && !items.has('branches')) items.add('branches');
     if (capabilities.some((cap) => ['reports', 'finance', 'inventory'].includes(cap)) || ['super_admin', 'md', 'chairman'].includes(role)) {
@@ -335,7 +339,7 @@ function staffMothers(available: Set<string>): NavMother[] {
         mother('partners', 'nav_module_partners', pick(available, [
             'accounts', 'sub-dealers', 'partnerships', 'sub-dealer-applications', 'network-tree', 'area-dealers', 'ranks', 'agreement', 'schemes', 'sales-kit',
         ])),
-        mother('stock', 'nav_module_stock', pick(available, ['catalog-products', 'stock', 'stock-lots', 'branches'])),
+        mother('stock', 'nav_module_stock', pick(available, ['catalog-products', 'stock', 'stock-lots', 'purchasing', 'stock-counts', 'branches'])),
         mother('finance', 'nav_module_finance', pick(available, ['treasury', 'company-funds', 'reserve-payouts', 'benefits-fund', 'ledger', 'accounting', 'payment-accounts'])),
         mother('commissions', 'nav_module_commissions', pick(available, [
             'commissions', 'commission-holds', 'rewards',

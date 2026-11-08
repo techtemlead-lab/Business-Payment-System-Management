@@ -250,6 +250,12 @@ class EnforceStaffActions
             'PrescriberVerificationController' => [['prescriber_verify'], 'edit'],
             'PublicTrustAdminController' => [['content'], 'edit'],
             'AccountingController' => [['finance'], $method === 'saveApprovalLimit' ? 'edit' : 'create'],
+            'PurchasingController' => [['inventory'], in_array($method, ['updateSupplier', 'sendOrder', 'cancelOrder'], true) ? 'edit' : 'create'],
+            'StockCountController' => [['inventory'], match ($method) {
+                'approve', 'reject' => 'approve',
+                'cancel' => 'edit',
+                default => 'create',
+            }],
             default => null,
         };
         abort_unless($permission, 403, __('portal.err_staff_perm_disabled'));

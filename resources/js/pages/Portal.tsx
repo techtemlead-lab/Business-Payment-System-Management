@@ -57,6 +57,8 @@ const CustomerBookHub=React.lazy(()=>import('../components/dealertools/CustomerB
 const SchemesHub=React.lazy(()=>import('../components/dealertools/SchemesHub'));
 const PrivacyRequestsHub=React.lazy(()=>import('../components/PrivacyRequestsHub'));
 const PartnerPrivacyRequests=React.lazy(()=>import('../components/PrivacyRequestsHub').then(m=>({default:m.PartnerPrivacyRequests})));
+const PurchasingHub=React.lazy(()=>import('../components/PurchasingHub'));
+const StockCountHub=React.lazy(()=>import('../components/StockCountHub'));
 const CompanyFundsHub=React.lazy(()=>import('../components/CompanyFundsHub'));
 /** Placeholder shown for the moment an office screen is being fetched. */
 function SectionLoading(){const translate=useT();return <div className="section-loading" role="status" aria-live="polite"><span className="section-loading-bar"/><span className="section-loading-bar short"/><span className="section-loading-block"/><span className="sr-only">{translate('portal','loading')}</span></div>;}
@@ -393,6 +395,8 @@ export default function Portal({section,data:d,filters}:{section:string,data:Row
  {section==='prescriptions'&&d.prescriptions&&<PrescriptionsHub data={d.prescriptions} tools={d.prescription_tools} publicTools={d.prescriber_public}/>}
  {section==='privacy-requests'&&<PrivacyRequestsHub data={d.privacy_queue}/>}
  {section==='security'&&d.privacy_requests&&<PartnerPrivacyRequests data={d.privacy_requests}/>}
+ {section==='purchasing'&&d.purchasing&&<PurchasingHub data={d.purchasing}/>}
+ {section==='stock-counts'&&d.stock_counts&&<StockCountHub data={d.stock_counts}/>}
  {section==='sales-kit'&&d.sales_kit&&<SalesKitHub data={d.sales_kit}/>}
  {section==='customers'&&d.customer_book&&<CustomerBookHub data={d.customer_book} filters={filters}/>}
  {section==='schemes'&&d.schemes_admin&&<SchemesHub data={d.schemes_admin}/>}

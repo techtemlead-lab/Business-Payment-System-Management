@@ -46,9 +46,11 @@ use App\Http\Portals\Shared\Sections\PrescriptionToolsSection;
 use App\Http\Portals\Shared\Sections\PrivacyRequestsSection;
 use App\Http\Portals\Shared\Sections\ProfileSection;
 use App\Http\Portals\Shared\Sections\PublicTrustSection;
+use App\Http\Portals\Shared\Sections\PurchasingSection;
 use App\Http\Portals\Shared\Sections\SalarySection;
 use App\Http\Portals\Shared\Sections\SectionContext;
 use App\Http\Portals\Shared\Sections\SectionDates;
+use App\Http\Portals\Shared\Sections\StockCountsSection;
 use App\Http\Portals\Shared\Sections\StockLotsSection;
 use App\Http\Portals\Shared\Sections\SupportSection;
 use App\Http\Portals\Shared\Sections\TerritorySection;
@@ -115,6 +117,8 @@ class WorkspaceController extends Controller
         DealerToolsSection::class,
         PrescriberPublicSection::class,
         PrivacyRequestsSection::class,
+        PurchasingSection::class,
+        StockCountsSection::class,
         CompanyFundsSection::class,
         StockLotsSection::class,
     ];

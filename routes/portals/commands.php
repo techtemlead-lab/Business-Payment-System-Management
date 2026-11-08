@@ -25,9 +25,11 @@ use App\Http\Controllers\ProductRegistryController;
 use App\Http\Controllers\ProductSubcategoryController;
 use App\Http\Controllers\ProductUnitController;
 use App\Http\Controllers\PublicTrustAdminController;
+use App\Http\Controllers\PurchasingController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SalesKitController;
+use App\Http\Controllers\StockCountController;
 use App\Http\Controllers\StockLotController;
 use App\Http\Controllers\TrainingController;
 use App\Http\Controllers\WithdrawalController;
@@ -208,6 +210,18 @@ return function (string $portal): void {
     Route::get('/commands/accounts/{user}/prescriber', [PrescriberVerificationController::class, 'show'])->middleware('throttle:60,1');
     Route::post('/commands/accounts/{user}/prescriber', [PrescriberVerificationController::class, 'enable'])->middleware('throttle:20,1');
     Route::delete('/commands/accounts/{user}/prescriber', [PrescriberVerificationController::class, 'disable'])->middleware('throttle:20,1');
+    Route::post('/commands/purchasing/suppliers', [PurchasingController::class, 'storeSupplier'])->middleware('throttle:30,1');
+    Route::patch('/commands/purchasing/suppliers/{supplier}', [PurchasingController::class, 'updateSupplier'])->whereNumber('supplier')->middleware('throttle:30,1');
+    Route::post('/commands/purchasing/orders', [PurchasingController::class, 'storeOrder'])->middleware('throttle:30,1');
+    Route::post('/commands/purchasing/orders/{purchaseOrder}/send', [PurchasingController::class, 'sendOrder'])->whereNumber('purchaseOrder')->middleware('throttle:30,1');
+    Route::post('/commands/purchasing/orders/{purchaseOrder}/cancel', [PurchasingController::class, 'cancelOrder'])->whereNumber('purchaseOrder')->middleware('throttle:30,1');
+    Route::post('/commands/purchasing/orders/{purchaseOrder}/receipts', [PurchasingController::class, 'receive'])->whereNumber('purchaseOrder')->middleware('throttle:30,1');
+    Route::post('/commands/stock-counts', [StockCountController::class, 'start'])->middleware('throttle:30,1');
+    Route::post('/commands/stock-counts/{stockCountSession}/lines', [StockCountController::class, 'saveCounts'])->whereNumber('stockCountSession')->middleware('throttle:60,1');
+    Route::post('/commands/stock-counts/{stockCountSession}/submit', [StockCountController::class, 'submit'])->whereNumber('stockCountSession')->middleware('throttle:30,1');
+    Route::post('/commands/stock-counts/{stockCountSession}/approve', [StockCountController::class, 'approve'])->whereNumber('stockCountSession')->middleware('throttle:30,1');
+    Route::post('/commands/stock-counts/{stockCountSession}/reject', [StockCountController::class, 'reject'])->whereNumber('stockCountSession')->middleware('throttle:30,1');
+    Route::post('/commands/stock-counts/{stockCountSession}/cancel', [StockCountController::class, 'cancel'])->whereNumber('stockCountSession')->middleware('throttle:30,1');
 
     // Partner tools.
     Route::post('/commands/schemes', [DatedSchemeController::class, 'store'])->middleware('throttle:30,1');
