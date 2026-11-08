@@ -37,7 +37,7 @@
     <section class="ref-content-card" style="margin-top:22px;">
         <h2>{{ __('public_trust.grievance_contact_heading') }}</h2>
         <p>{{ $trust('grievance_contact_note') }}</p>
-        <dl style="display:grid;grid-template-columns:max-content 1fr;gap:8px 20px;margin:0;font-size:14px;">
+        <dl style="display:grid;grid-template-columns:max-content 1fr;gap:8px 20px;margin:0;">
             <dt>{{ __('public_trust.grievance_contact_name') }}</dt><dd style="margin:0;font-weight:600;">{{ $contactName }}</dd>
             @foreach($contactRows as $contactKey => $contactValue)
                 <dt>{{ __('public_trust.'.$contactKey) }}</dt><dd style="margin:0;">{{ $contactValue }}</dd>
