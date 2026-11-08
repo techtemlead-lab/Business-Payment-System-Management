@@ -184,7 +184,7 @@ function Reports({salesOnly=false,types=[]}:{salesOnly?:boolean;types?:string[]}
     const iso=(date:Date)=>`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
     const [from,setFrom]=useState(iso(new Date(dhaka.getFullYear(),dhaka.getMonth(),1)));
     const [to,setTo]=useState(iso(dhaka));
-    const reportName=(type:string)=>{const key=type.replaceAll('-','_');const localized=translate('portal',`ops_report_${key}`);return localized!==`ops_report_${key}`?localized:label(key,translate);};
+    const reportName=(type:string)=>{const key=type.replaceAll('-','_');const fundsName=translate('funds',`ops_export_name_${key}`);if(fundsName!==`ops_export_name_${key}`){return fundsName;}const localized=translate('portal',`ops_report_${key}`);return localized!==`ops_report_${key}`?localized:label(key,translate);};
     const choosePeriod=(value:string)=>{
         setPeriod(value);
         if(value==='custom'){

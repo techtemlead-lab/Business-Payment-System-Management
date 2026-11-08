@@ -41,7 +41,7 @@ final class ReportData
             return ['orders', 'payroll'];
         }
 
-        return array_values(array_filter(self::Types, fn (string $type): bool => $type !== 'fund-spending' && $this->mayRead($actor, $type)));
+        return array_values(array_filter(self::Types, fn (string $type): bool => $this->mayRead($actor, $type)));
     }
 
     /**
@@ -50,6 +50,10 @@ final class ReportData
      */
     private function mayRead(User $actor, string $type): bool
     {
+        if ($type === 'fund-spending' && ! FundSpending::canManage($actor)) {
+            return false;
+        }
+
         return in_array($type, self::OrderBasedReports, true) || app(BranchOperations::class)->canViewAllBranches($actor);
     }
 
@@ -65,7 +69,6 @@ final class ReportData
             abort_unless($actor->allows('sr_orders'), 403);
         }
         abort_unless($company || ($sales && $type === 'orders') || (! $actor->staff() && in_array($type, ['orders', 'commissions', 'withdrawals'], true)) || $type === 'payroll', 403);
-        abort_if($type === 'fund-spending' && ! FundSpending::canManage($actor), 403);
         abort_if($company && ! $this->mayRead($actor, $type), 403);
         [$query, $columns, $money, $date, $owner] = match ($type) {
             // No goods on credit any more: the orders export shows what was paid and what is still to pay before approval.
