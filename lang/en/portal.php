@@ -6297,7 +6297,7 @@ return [
     'customer_book' => 'My customers',
     'section_hint_partner_customers' => 'Your own customers, notes and follow-up dates. Only you can see this.',
     'dated_schemes' => 'Schemes',
-    'section_hint_schemes' => 'Dated offers partners see while ordering. Shown as information only.',
+    'section_hint_schemes' => 'Dated offers partners see while ordering. A scheme with a free product adds it to qualifying orders.',
     'event_dated_scheme_added' => 'Scheme added',
     'event_dated_scheme_removed' => 'Scheme removed',
     'privacy_requests_nav' => 'Data requests',

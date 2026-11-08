@@ -89,7 +89,7 @@ class UserManualRoundTwoTest extends TestCase
         $this->assertStringContainsString('sales and purchases are not in the journal', implode(' ', $chapters['accounting_statements']['warnings']));
         $this->assertStringContainsString('Not even the owner', implode(' ', $chapters['prescriptions_partner']['outcomes']));
         $this->assertStringContainsString('cannot see a partner', implode(' ', $chapters['clinic_prescriptions']['tips']));
-        $this->assertStringContainsString('information only', implode(' ', $chapters['schemes_partner']['warnings']));
+        $this->assertStringContainsString('does not change your order total', implode(' ', $chapters['schemes_partner']['warnings']));
 
         foreach ([...self::OfficeChapters, ...self::PartnerChapters, ...self::SharedChapters, 'sales_kit_schemes_owner'] as $key) {
             $text = mb_strtolower(json_encode($chapters[$key], JSON_UNESCAPED_UNICODE));

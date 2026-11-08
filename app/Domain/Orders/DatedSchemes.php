@@ -8,12 +8,11 @@ use App\Models\User;
 use App\Support\Audit;
 
 /**
- * Dated schemes, shown to partners on the purchase page as information only.
+ * Dated schemes, shown to partners on the purchase page.
  *
- * Applying a benefit is deliberately left out. Commission posting builds its MRP basis, the
- * company's share and its funding check from every order line's MRP times quantity, so a free
- * line added to an order would change those figures. Until that is settled, the office applies
- * any benefit by hand and this class never touches an order, a price or a commission.
+ * This class only manages and lists the schemes. A free-goods scheme with a free product and
+ * quantity becomes free order lines through SchemeFreeLines when the order is placed. Any other
+ * scheme is information only, and the office applies its benefit by hand.
  */
 final class DatedSchemes
 {
@@ -70,7 +69,7 @@ final class DatedSchemes
     }
 
     /**
-     * @param  array{title: string, starts_on: string, ends_on: string, product_ids: list<int>, min_quantity: int, benefit_type: string, benefit_text: string}  $data
+     * @param  array{title: string, starts_on: string, ends_on: string, product_ids: list<int>, min_quantity: int, benefit_type: string, benefit_text: string, free_product_id?: int|null, free_quantity?: int|null}  $data
      */
     public function add(User $owner, array $data): DatedScheme
     {
@@ -100,6 +99,8 @@ final class DatedSchemes
             'min_quantity' => (int) $scheme->min_quantity,
             'benefit_type' => (string) $scheme->benefit_type,
             'benefit_text' => (string) $scheme->benefit_text,
+            'free_product_id' => $scheme->free_product_id === null ? null : (int) $scheme->free_product_id,
+            'free_quantity' => $scheme->free_quantity === null ? null : (int) $scheme->free_quantity,
         ];
     }
 }

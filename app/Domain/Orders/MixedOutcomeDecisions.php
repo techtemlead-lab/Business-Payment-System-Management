@@ -2,6 +2,8 @@
 
 namespace App\Domain\Orders;
 
+use App\Domain\Commissions\CommissionPosting;
+use App\Domain\Commissions\CommissionWallet;
 use App\Models\Order;
 use App\Models\User;
 use App\Support\Audit;
@@ -12,21 +14,28 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Orders with a mixed outcome: one parcel delivered and another received back. Staff talk to
- * the dealer and record what should happen to the commission, with a required reason.
+ * Orders with a mixed outcome: one parcel delivered and another received back. Such an order
+ * never reaches "delivered", so nothing posts on its own. Staff talk to the dealer and decide,
+ * with a required reason: commission on the delivered part only, or none at all.
  *
- * This only records the decision. It never reads or moves commission. An order like this
- * never reaches "delivered", so no commission was posted for it, and the existing commission
- * reversal cannot run without a posted commission batch.
+ * A decision is made once per order and cannot be changed here. The delivered-part choice posts
+ * through CommissionPosting in the same transaction, so the decision and the money stand or fall
+ * together.
  */
 final class MixedOutcomeDecisions
 {
     public const Action = 'order.mixed_outcome_decided';
 
-    public const Choices = ['returned_part', 'whole_sale'];
+    public const DeliveredPart = 'delivered_part';
+
+    public const NoCommission = 'no_commission';
+
+    public const Choices = [self::DeliveredPart, self::NoCommission];
 
     /** Most orders listed at a time. */
     private const ListLimit = 50;
+
+    public function __construct(private readonly CommissionPosting $commissions) {}
 
     /**
      * @param  Builder  $orderIds  the order ids this reader may see
@@ -48,6 +57,7 @@ final class MixedOutcomeDecisions
         abort_unless($actor->allows('order_review'), 403);
         abort_if((int) $actor->id === (int) $order->user_id, 403, __('portal.err_self_review_order'));
         DB::transaction(function () use ($actor, $order, $choice, $reason): void {
+            CommissionWallet::lock();
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             if (DB::table('order_events')->where('order_id', $locked->id)->where('action', self::Action)->exists()) {
                 throw ValidationException::withMessages(['decision' => __('courier_more.err_decision_already')]);
@@ -56,26 +66,32 @@ final class MixedOutcomeDecisions
                 throw ValidationException::withMessages(['decision' => __('courier_more.err_decision_not_needed')]);
             }
             $metadata = ['decision' => $choice, 'reason' => $reason];
+            if ($choice === self::DeliveredPart) {
+                $metadata['commission_posted'] = $this->commissions->processDeliveredPart($locked, $actor->id) !== [];
+            }
             DB::table('order_events')->insert(['order_id' => $locked->id, 'actor_id' => $actor->id, 'action' => self::Action,
                 'metadata' => json_encode($metadata, JSON_THROW_ON_ERROR), 'created_at' => now()]);
             Audit::record($actor->id, self::Action, $locked->id, $metadata);
             $partner = User::query()->find($locked->user_id);
             $locale = $partner?->preferredLocale() ?? app()->getLocale();
-            $replace = ['number' => $locked->number, 'decision' => __('courier_more.decision_'.$choice, [], $locale), 'reason' => $reason];
+            $replace = ['number' => $locked->number, 'decision' => __('schemes_commission.decision_'.$choice, [], $locale), 'reason' => $reason];
             Audit::notice($locked->user_id, __('courier_more.notice_decision_title', $replace, $locale), __('courier_more.notice_decision_body', $replace, $locale));
         }, 3);
     }
 
-    /** Delivered and received-back parcels, none still on the road, and no decision yet. */
+    /** Delivered and received-back parcels, nothing on the road or left to send, and no decision yet. */
     private function waiting(): QueryBuilder
     {
         $parcel = fn (string $status): Closure => fn (QueryBuilder $query) => $query->selectRaw('1')->from('shipments')
             ->whereColumn('shipments.order_id', 'orders.id')->where('shipments.status', $status);
 
         return DB::table('orders')
+            ->whereNotIn('orders.status', ['cancelled', 'rejected', 'delivered'])
             ->whereExists($parcel('delivered'))
             ->whereExists($parcel('returned'))
             ->whereNotExists($parcel('dispatched'))
+            ->whereNotExists(fn (QueryBuilder $query) => $query->selectRaw('1')->from('order_lines')
+                ->whereColumn('order_lines.order_id', 'orders.id')->whereColumn('order_lines.dispatched', '<', 'order_lines.quantity'))
             ->whereNotExists(fn (QueryBuilder $query) => $query->selectRaw('1')->from('order_events')
                 ->whereColumn('order_events.order_id', 'orders.id')->where('order_events.action', self::Action));
     }

@@ -8,7 +8,7 @@ export type RunningScheme = {
     min_quantity: number; benefit_type: string; benefit_text: string;
 };
 
-/** Schemes running today, with a note when the cart reaches the minimum. Information only: the order does not change. */
+/** Schemes running today, with a note when the cart reaches the minimum. */
 export default function SchemeNotices({ schemes, cartQuantities }: { schemes: RunningScheme[]; cartQuantities: Record<number, number> }) {
     const translate = useT();
     if (schemes.length === 0) {

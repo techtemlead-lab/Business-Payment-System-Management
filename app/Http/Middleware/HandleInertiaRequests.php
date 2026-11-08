@@ -207,6 +207,7 @@ class HandleInertiaRequests extends Middleware
                 'auth' => Lang::get('auth_ui'),
                 'courier' => Lang::get('courier'),
                 'courier_more' => Lang::get('courier_more'),
+                'schemes_commission' => Lang::get('schemes_commission'),
                 'prescription' => Lang::get('prescription'),
                 'website_admin' => Lang::get('website_admin'),
                 'partner_hub' => Lang::get('partner_hub'),

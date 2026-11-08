@@ -137,7 +137,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
         </div>
         <section className="panel"><div className="panel-heading"><h2>{translate('portal', 'products_fulfilment')}</h2><span>{translate('portal', 'prices_saved_at_submission')}</span></div>
             <Table rows={order.lines} columns={[
-                { key: 'name', title: translate('portal', 'col_product') }, { key: 'quantity', title: translate('portal', 'report_col_ordered'), align: 'right', render: line => number(line.quantity) }, { key: 'dispatched', title: translate('portal', 'col_dispatched'), align: 'right', render: line => number(line.dispatched) },
+                { key: 'name', title: translate('portal', 'col_product'), render: line => line.is_free ? <>{line.name}<small className="cell-sub">{translate('schemes_commission', 'free_line_scheme', { scheme: line.scheme_title ?? translate('schemes_commission', 'free_line_label') })}</small></> : line.name }, { key: 'quantity', title: translate('portal', 'report_col_ordered'), align: 'right', render: line => number(line.quantity) }, { key: 'dispatched', title: translate('portal', 'col_dispatched'), align: 'right', render: line => number(line.dispatched) },
                 { key: 'remaining', title: translate('portal', 'col_remaining'), align: 'right', render: line => number(line.quantity - line.dispatched) },
                 { key: 'unit_price', title: translate('portal', 'unit_price'), render: line => money(line.unit_price) }, { key: 'total', title: translate('portal', 'col_total'), render: line => money(line.total) },
             ]} />
