@@ -13,6 +13,9 @@ final class StaffPermissions
 {
     public const Actions = ['view', 'create', 'edit', 'approve'];
 
+    /** What the role form sends for a role that has no key yet; the key is made when it is saved. */
+    public const NewRoleKey = 'custom_';
+
     /** Staff enter money records by default; approving and paying stay with the owner until granted in the matrix. */
     public const EnterOnlyModules = ['finance', 'payroll'];
 
@@ -108,6 +111,9 @@ final class StaffPermissions
     public function saveRole(User $actor, string $key, string $name, array $permissions, int $version, string $reason): string
     {
         $matrix = $this->validateMatrix($permissions);
+        if ($key === self::NewRoleKey) {
+            $key = 'custom_role_'.Str::lower(Str::random(12));
+        }
         if (! preg_match('/^custom_[a-z][a-z0-9_]{0,49}$/D', $key)) {
             throw ValidationException::withMessages(['key' => __('portal.err_perm_role_key')]);
         }
