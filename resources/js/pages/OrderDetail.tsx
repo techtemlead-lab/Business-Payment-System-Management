@@ -171,7 +171,9 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                         <p>{date(shipment.created_at)} · {shipment.eta ? `${translate('portal', 'expected')} ${date(shipment.eta)}` : translate('portal', 'eta_to_be_confirmed')}</p>
                         <p>{lines.map((line: Row) => `${line.name} × ${line.quantity}`).join(', ')}</p>
                         <Badge status={shipment.status} />
-                        {capabilities.includes('inventory') && shipment.status === 'dispatched' && <ActionForm action={`/commands/orders/${order.id}/shipments/${shipment.id}/delivered`} fields={[{ name: 'reason', label: translate('portal', 'delivery_confirmation_evidence'), required: true }]} submit={translate('portal', 'confirm_delivery')} />}
+                        {capabilities.includes('inventory') && shipment.status === 'dispatched' && (shipment.courier_status === 'returned'
+                            ? <p className="muted" role="status">{translate('courier', 'returned_cannot_confirm')}</p>
+                            : <ActionForm action={`/commands/orders/${order.id}/shipments/${shipment.id}/delivered`} fields={[{ name: 'reason', label: translate('portal', 'delivery_confirmation_evidence'), required: true }]} submit={translate('portal', 'confirm_delivery')} />)}
                     </div></div>;
                 }) : <p className="muted">{translate('portal', 'shipment_empty')}</p>}
             </section>
