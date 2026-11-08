@@ -238,4 +238,7 @@ return function (string $portal): void {
     // A prescriber's own clinical records; ClinicRecordsController answers 404 to anyone else.
     Route::get('/prescriptions/patients/{patient}', [ClinicRecordsController::class, 'patient'])->whereNumber('patient')->middleware('throttle:60,1');
     Route::get('/commands/prescriptions/patients/{patient}/repeat', [ClinicRecordsController::class, 'repeatDraft'])->whereNumber('patient')->middleware('throttle:60,1');
+    Route::post('/commands/prescriptions/patients/{patient}/attachments', [ClinicRecordsController::class, 'storeAttachment'])->whereNumber('patient')->middleware('throttle:20,1');
+    Route::get('/commands/prescriptions/patients/{patient}/attachments/{attachment}', [ClinicRecordsController::class, 'downloadAttachment'])->whereNumber(['patient', 'attachment'])->middleware('throttle:60,1');
+    Route::delete('/commands/prescriptions/patients/{patient}/attachments/{attachment}', [ClinicRecordsController::class, 'destroyAttachment'])->whereNumber(['patient', 'attachment'])->middleware('throttle:30,1');
 };
