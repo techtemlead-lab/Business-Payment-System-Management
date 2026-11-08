@@ -6455,4 +6455,5 @@ return [
     'partnership_sponsor_code_hint' => 'Correct it if the applicant typed it wrong, or clear it if it cannot be found.',
     'flash_application_approved' => 'Application approved. The account has been created.',
     'flash_application_rejected' => 'Application rejected.',
+    'area_kpi_pool_value' => ':rate%',
 ];

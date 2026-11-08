@@ -6455,4 +6455,5 @@ return [
     'partnership_sponsor_code_hint' => 'ভুল লিখে থাকলে ঠিক করুন, আর খুঁজে না পেলে খালি করে দিন।',
     'flash_application_approved' => 'আবেদন অনুমোদন হয়েছে। অ্যাকাউন্ট তৈরি হয়েছে।',
     'flash_application_rejected' => 'আবেদন নামঞ্জুর করা হয়েছে।',
+    'area_kpi_pool_value' => ':rate%',
 ];
