@@ -39,7 +39,7 @@ final class WithdrawalsSection implements WorkspaceSection
      * Whether the person viewing may record this approved payment: 'alone' when they approved it
      * themselves and nobody else could pay, 'second_person' when someone else must, otherwise null.
      */
-    private function payerState(object $row, User $viewer): mixed
+    private function payerState(object $row, User $viewer): ?string
     {
         if ($row->status !== 'approved' || (int) $row->reviewed_by !== (int) $viewer->id) {
             return null;
@@ -330,7 +330,6 @@ final class WithdrawalsSection implements WorkspaceSection
             ->withQueryString()
             ->through(fn (object $row): array => [
                 'id' => $row->id,
-                'payer_state' => $this->payerState($row, $request->user()),
                 'user_id' => $row->user_id,
                 'user_name' => $row->user_name,
                 'dealer_code' => $row->dealer_code,
@@ -351,6 +350,7 @@ final class WithdrawalsSection implements WorkspaceSection
                 'role' => $row->role,
                 'district' => $row->district,
                 'division' => $row->division,
+                'payer_state' => $this->payerState($row, $request->user()),
             ]);
 
         $rules = app(CommissionPolicy::class)->snapshot()['rules'];
