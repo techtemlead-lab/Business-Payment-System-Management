@@ -11,6 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -202,9 +203,34 @@ class BranchPlaceCodeCoverageTest extends TestCase
         $this->assertSame($this->district->id, $headOffice->fresh()->place_code_id);
     }
 
+    /**
+     * @return array<string, array{0: string}>
+     */
+    public static function seniorOfficerRoles(): array
+    {
+        return ['managing director' => ['md'], 'chairman' => ['chairman']];
+    }
+
+    #[DataProvider('seniorOfficerRoles')]
+    public function test_managing_director_and_chairman_can_edit_a_branch(string $role): void
+    {
+        $officer = User::factory()->staff($role)->create();
+        $headOffice = CompanyBranch::query()->where('is_head_office', true)->firstOrFail();
+
+        $this->actingAs($officer)->onPortal('sadmin')->get('/branches')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.can_edit_branches', true));
+
+        $this->actingAs($officer)->onPortal('sadmin');
+        $this->headOfficeEdit($headOffice, $this->upazila->code)->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertSame($this->upazila->id, $headOffice->fresh()->place_code_id);
+    }
+
     public function test_the_head_office_prompt_offers_no_button_to_those_who_cannot_edit_branches(): void
     {
-        $this->actingAs(User::factory()->staff('md')->create())->onPortal('sadmin')->get('/branches')->assertOk()->assertInertia(fn (Assert $page) => $page
+        $viewer = User::factory()->staff('employee')->create(['profile' => ['permissions' => ['inventory'], 'action_permissions' => ['inventory' => ['view' => true]]]]);
+
+        $this->actingAs($viewer)->onPortal('manage')->get('/branches')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->whereNot('data.head_office_without_place_code', null)
             ->where('data.can_edit_branches', false));
     }

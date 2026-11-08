@@ -114,6 +114,10 @@ class EnforceStaffActions
             // assignment for one branch and canViewAllBranches() for "All branches".
             return $next($request);
         }
+        if ($controller === 'BranchController' && $method === 'update' && $actor->owner()) {
+            // The owner decided MD and Chairman may edit a branch; BranchOperations::saveBranch checks again.
+            return $next($request);
+        }
         if ($controller === 'DataImportController') {
             $ok = $actor->canAct('accounts', 'create')
                 || $actor->canAct('catalog', 'create')
