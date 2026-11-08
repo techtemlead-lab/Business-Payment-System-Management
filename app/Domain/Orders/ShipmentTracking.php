@@ -108,7 +108,7 @@ final class ShipmentTracking
             return null;
         }
 
-        return $this->apply($shipmentId, self::normalize($result['status']), (string) $result['status'], null);
+        return $this->apply($shipmentId, $result['step'] ?? self::normalize($result['status']), (string) $result['status'], null);
     }
 
     /**

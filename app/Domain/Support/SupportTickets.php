@@ -224,6 +224,8 @@ final class SupportTickets
             $nextStatus = $status;
         } elseif ($isStaff && $ticket->status === 'pending') {
             $nextStatus = 'in_progress';
+        } elseif (! $isStaff) {
+            $nextStatus = 'pending';
         }
 
         DB::table('support_tickets')->where('id', $id)->update([
@@ -234,8 +236,20 @@ final class SupportTickets
         ]);
 
         Audit::record($actor->id, 'support.ticket_replied', $id, ['status' => $nextStatus]);
+        if (! $isStaff) {
+            $this->tellOfficeAboutPartnerReply($actor, $ticket);
+        }
 
         return $this->show($id, $actor);
+    }
+
+    /**
+     * A partner answered: the office sees it in the bell, and the request is back on the desk.
+     */
+    private function tellOfficeAboutPartnerReply(User $partner, object $ticket): void
+    {
+        $replace = ['name' => $partner->name, 'subject' => Str::limit((string) $ticket->subject, 60)];
+        Audit::notifyAdminsAndStaff('accounts', __('wave3_ops.support_reply_notice_title', $replace), __('wave3_ops.support_reply_notice_body', $replace));
     }
 
     /**

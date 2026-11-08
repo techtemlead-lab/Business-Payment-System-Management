@@ -50,6 +50,9 @@ final class ReserveService
             if ($data['program'] === 'tour') {
                 throw ValidationException::withMessages(['program' => __('funds.err_tour_company_only')]);
             }
+            if ($data['program'] === 'marketing') {
+                throw ValidationException::withMessages(['program' => __('wave3_ops.err_marketing_moved')]);
+            }
             $awardKey = null;
             if ($data['program'] !== 'marketing') {
                 $user = User::whereKey($data['user_id'])->where('status', 'active')->whereIn('role', ['dealer', 'sub_dealer'])->firstOrFail();

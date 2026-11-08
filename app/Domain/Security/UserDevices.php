@@ -60,7 +60,7 @@ final class UserDevices
     }
 
     /** "Chrome on Windows": enough to recognise a device, with no version numbers. */
-    private function label(string $userAgent): string
+    public function label(string $userAgent): string
     {
         $browser = match (true) {
             str_contains($userAgent, 'Edg/') => 'Edge',

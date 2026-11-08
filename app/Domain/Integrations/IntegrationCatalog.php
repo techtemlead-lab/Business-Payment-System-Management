@@ -123,8 +123,8 @@ final class IntegrationCatalog
                     ],
                     'paperfly' => [
                         'label' => __('portal.si_provider_paperfly'),
-                        'fields' => ['enabled', 'base_url', 'api_key', 'username', 'password'],
-                        'defaults' => ['enabled' => false, 'base_url' => 'https://api.paperfly.com.bd', 'api_key' => '', 'username' => '', 'password' => ''],
+                        'fields' => ['enabled', 'base_url', 'api_key', 'username', 'password', 'status_field', 'status_map'],
+                        'defaults' => ['enabled' => false, 'base_url' => 'https://api.paperfly.com.bd', 'api_key' => '', 'username' => '', 'password' => '', 'status_field' => '', 'status_map' => ''],
                     ],
                     'ecourier' => [
                         'label' => __('portal.si_provider_ecourier'),

@@ -2,9 +2,11 @@
 
 namespace App\Jobs;
 
+use App\Domain\Integrations\CourierAreaMapping;
 use App\Domain\Integrations\CourierGatewayClient;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
+use App\Domain\Orders\CourierOptions;
 use App\Domain\Orders\ShipmentTracking;
 use App\Models\CompanyBranch;
 use App\Models\Order;
@@ -53,10 +55,18 @@ class BookShipmentCourier implements ShouldQueue
         /** @var array<string, mixed> $profile */
         $profile = (array) ($partner?->getAttribute('profile') ?? []);
         $placeCode = trim((string) ($profile['place_code'] ?? $profile['area_code'] ?? ''));
+        $provider = (string) $shipment->courier_provider;
+        $courierArea = CourierAreaMapping::needsMapping($provider) ? app(CourierAreaMapping::class)->forPlaceCode($provider, $placeCode) : null;
+        if (CourierAreaMapping::needsMapping($provider) && $courierArea === null) {
+            $this->holdForAreaMapping($order, $shipment, $provider, $placeCode);
+
+            return;
+        }
         $branch = $shipment->branch_id ? CompanyBranch::query()->find($shipment->branch_id) : null;
         $union = $partner?->union;
         $upazila = $partner?->upazila;
-        $created = $couriers->create((string) $shipment->courier_provider, [
+        $created = $couriers->create($provider, [
+            'courier_area' => $courierArea,
             // One invoice per shipment, so the courier can also refuse a repeat booking.
             'invoice' => $order->number.'-'.$shipment->id,
             'recipient_name' => $partner?->name,
@@ -106,6 +116,17 @@ class BookShipmentCourier implements ShouldQueue
         if ($partner) {
             $this->tellPartner($partner, $order, (string) $shipment->courier, $tracking);
         }
+    }
+
+    /**
+     * Pathao and RedX cannot take a parcel without their own area numbers, so the courier is
+     * not called at all. Staff see the reason and can retry after mapping, or change courier.
+     */
+    private function holdForAreaMapping(Order $order, object $shipment, string $provider, string $placeCode): void
+    {
+        $message = __('courier_areas.needs_mapping', ['courier' => CourierOptions::label($provider), 'code' => $placeCode !== '' ? $placeCode : __('courier_areas.no_place_code')]);
+        DB::table('shipments')->where('id', $shipment->id)->update(['courier_booking_status' => 'failed', 'courier_booking_error' => Str::limit($message, 250), 'updated_at' => now()]);
+        $this->reportFailure($order, $shipment, $message);
     }
 
     /**

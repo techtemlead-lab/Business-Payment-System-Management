@@ -6406,4 +6406,9 @@ return [
     'event_stock_lot_held' => 'ব্যাচ আটকে রাখা হয়েছে',
     'event_stock_lot_released' => 'আটকে রাখা ব্যাচ ছাড় দেওয়া হয়েছে',
     'event_stock_lot_written_off' => 'আটকে রাখা ব্যাচ লোকসান হিসেবে বাদ',
+    'event_courier_area_mapped' => 'প্লেস কোডের সাথে কুরিয়ারের এলাকা মিলানো হয়েছে',
+    'event_courier_area_removed' => 'কুরিয়ারের এলাকার মিল মুছে দেওয়া হয়েছে',
+    'event_courier_area_fetch_started' => 'কুরিয়ার থেকে এলাকা আনা শুরু হয়েছে',
+    'si_field_status_field' => 'ট্র্যাকিং উত্তরে অবস্থাটা যেখানে থাকে (না জানলে ফাঁকা রাখুন)',
+    'si_field_status_map' => 'অবস্থার কথা, প্রতি লাইনে একটা: কুরিয়ারের কথা = waiting_pickup, picked_up, in_transit, delivered অথবা returned',
 ];

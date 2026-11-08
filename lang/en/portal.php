@@ -6406,4 +6406,9 @@ return [
     'event_stock_lot_held' => 'Batch put on hold',
     'event_stock_lot_released' => 'Batch released from hold',
     'event_stock_lot_written_off' => 'Held batch written off',
+    'event_courier_area_mapped' => 'Courier area matched to a place code',
+    'event_courier_area_removed' => 'Courier area match removed',
+    'event_courier_area_fetch_started' => 'Fetching areas from a courier started',
+    'si_field_status_field' => 'Where the status is in the tracking answer (leave blank if unsure)',
+    'si_field_status_map' => 'Status words, one per line: courier\'s words = waiting_pickup, picked_up, in_transit, delivered or returned',
 ];
