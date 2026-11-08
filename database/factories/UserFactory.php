@@ -58,15 +58,21 @@ class UserFactory extends Factory
     }
 
     /**
-     * A staff account. Finance staff are given approval here, as a trusted person would be in
-     * the permission matrix; use {@see self::enterOnly()} for the default a new account gets.
+     * Finance staff made here are given approval, as a trusted person would be in the
+     * permission matrix. Use {@see self::enterOnly()} for the default a new account gets.
      */
+    public function configure(): static
+    {
+        return $this->afterMaking(function (User $user): void {
+            if ($user->role === 'finance' && $user->profile === null) {
+                $user->profile = ['action_permissions' => array_fill_keys(config('madina.roles.finance'), array_fill_keys(StaffPermissions::Actions, true))];
+            }
+        });
+    }
+
     public function staff(string $role = 'super_admin'): static
     {
-        return $this->state(fn () => ['role' => $role, 'dealer_code' => null, ...($role === 'finance' ? ['profile' => ['action_permissions' => array_fill_keys(
-            config('madina.roles.finance'),
-            array_fill_keys(StaffPermissions::Actions, true),
-        )]] : [])]);
+        return $this->state(fn () => ['role' => $role, 'dealer_code' => null]);
     }
 
     /** Finance staff as a new account starts: can enter money records but not approve or pay. */
