@@ -1819,18 +1819,6 @@ parameters:
 			path: app/Http/Resources/Api/V1/OrderResource.php
 
 		-
-			message: '#^Access to an undefined property App\\Models\\User\:\:\$union\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Jobs/BookShipmentCourier.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\User\:\:\$upazila\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Jobs/BookShipmentCourier.php
-
-		-
 			message: '#^Parameter \#1 \$value of static method App\\Support\\Money\:\:cents\(\) expects int\|string, float given\.$#'
 			identifier: argument.type
 			count: 2

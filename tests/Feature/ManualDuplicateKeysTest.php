@@ -32,4 +32,34 @@ class ManualDuplicateKeysTest extends TestCase
         $this->assertStringContainsString((string) __('portal.nav_module_payouts', [], $locale), $step);
         $this->assertStringContainsString((string) __('portal.payouts_hub', [], $locale), $step);
     }
+
+    #[DataProvider('languages')]
+    public function test_no_line_is_defined_twice_in_the_manual(string $locale): void
+    {
+        preg_match_all("/^\s*'([^']+)'\s*=>/m", File::get(lang_path($locale.'/manual.php')), $keys);
+
+        $this->assertSame([], array_keys(array_filter(array_count_values($keys[1]), fn (int $count): bool => $count > 1)));
+    }
+
+    #[DataProvider('languages')]
+    public function test_the_benefits_fund_step_names_the_menu_the_owner_really_sees(string $locale): void
+    {
+        $step = (string) __('manual.owner_benefits_fund_s1', [], $locale);
+
+        $this->assertStringContainsString((string) __('portal.nav_module_finance', [], $locale), $step);
+        $this->assertStringContainsString((string) __('portal.benefits_fund', [], $locale), $step);
+        $this->assertStringNotContainsString('sadmin', $step);
+    }
+
+    #[DataProvider('languages')]
+    public function test_the_benefits_fund_outcome_names_the_page_the_owner_really_sees(string $locale): void
+    {
+        $this->assertStringContainsString((string) __('portal.treasury', [], $locale), (string) __('manual.owner_benefits_fund_o3', [], $locale));
+    }
+
+    public function test_the_benefits_fund_purpose_keeps_the_wording_for_a_one_owner_company(): void
+    {
+        $this->assertStringStartsWith('Owner accounts need', (string) __('manual.owner_benefits_fund_purpose', [], 'en'));
+        $this->assertStringContainsString('মালিক পক্ষের', (string) __('manual.owner_benefits_fund_purpose', [], 'bn'));
+    }
 }

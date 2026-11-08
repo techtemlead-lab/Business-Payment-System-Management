@@ -710,6 +710,7 @@ class OrderService
                 throw ValidationException::withMessages(['shipment' => __('portal.err_shipment_qty', ['product' => $product->name])]);
             }
             $previousStock = $product->stock;
+            $wasAvailable = $this->stockNotifications->isAvailable($product);
             $takenLots = $this->stockLots->take($branchStock, $product, $quantity, [
                 'kind' => StockLots::KindDispatch,
                 'actor_id' => $actor->id,
@@ -719,7 +720,7 @@ class OrderService
             ], errorField: 'shipment');
             $companyTotal = (int) BranchProductStock::query()->where('product_id', $product->id)->sum('quantity');
             $product->forceFill(['stock' => $companyTotal])->save();
-            $this->stockNotifications->recordChange($product, $previousStock, $previousStock > 0 && ! $product->is_stock_paused);
+            $this->stockNotifications->recordChange($product, $previousStock, $wasAvailable);
             $line->increment('dispatched', $quantity);
             DB::table('stock_movements')->insert([
                 'product_id' => $product->id,

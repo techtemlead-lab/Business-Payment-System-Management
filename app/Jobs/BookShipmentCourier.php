@@ -8,6 +8,7 @@ use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
 use App\Domain\Orders\CourierOptions;
 use App\Domain\Orders\ShipmentTracking;
+use App\Domain\Orders\ShippingLabels;
 use App\Models\CompanyBranch;
 use App\Models\Order;
 use App\Models\User;
@@ -52,9 +53,8 @@ class BookShipmentCourier implements ShouldQueue
         }
         $order = Order::query()->findOrFail($shipment->order_id);
         $partner = User::query()->find($order->user_id);
-        /** @var array<string, mixed> $profile */
-        $profile = (array) ($partner?->getAttribute('profile') ?? []);
-        $placeCode = trim((string) ($profile['place_code'] ?? $profile['area_code'] ?? ''));
+        $place = ShippingLabels::deliveryPlace($partner);
+        $placeCode = $place['place_code'];
         $provider = (string) $shipment->courier_provider;
         $courierArea = CourierAreaMapping::needsMapping($provider) ? app(CourierAreaMapping::class)->forPlaceCode($provider, $placeCode) : null;
         if (CourierAreaMapping::needsMapping($provider) && $courierArea === null) {
@@ -63,22 +63,16 @@ class BookShipmentCourier implements ShouldQueue
             return;
         }
         $branch = $shipment->branch_id ? CompanyBranch::query()->find($shipment->branch_id) : null;
-        $union = $partner?->union;
-        $upazila = $partner?->upazila;
         $created = $couriers->create($provider, [
             'courier_area' => $courierArea,
             // One invoice per shipment, so the courier can also refuse a repeat booking.
             'invoice' => $order->number.'-'.$shipment->id,
             'recipient_name' => $partner?->name,
             'recipient_phone' => $partner?->phone,
-            'recipient_address' => collect([
-                is_string($profile['address'] ?? null) ? $profile['address'] : null,
-                $union, $upazila, $partner?->district, $partner?->division,
-                $placeCode !== '' ? __('courier.place_code_in_address', ['code' => $placeCode]) : null,
-            ])->filter()->implode(', '),
+            'recipient_address' => ShippingLabels::deliveryAddress($partner),
             'recipient_city' => $partner?->district,
-            'recipient_thana' => $upazila,
-            'recipient_area' => $union ?: $upazila,
+            'recipient_thana' => $place['upazila'],
+            'recipient_area' => $place['union'] ?: $place['upazila'],
             'amount' => $order->outstanding(),
             'note' => $order->number,
             'pickup_address' => $branch ? collect([$branch->name, $branch->address])->filter()->implode(', ') : null,

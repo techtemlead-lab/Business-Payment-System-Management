@@ -18,7 +18,7 @@ use Illuminate\Validation\ValidationException;
  */
 final class StockLotHolds
 {
-    public function __construct(private BranchOperations $branches, private StockService $stock) {}
+    public function __construct(private BranchOperations $branches, private StockService $stock, private StockNotifications $notifications) {}
 
     public function hold(User $actor, StockLot $lot, string $reason): void
     {
@@ -29,7 +29,7 @@ final class StockLotHolds
             $this->assertHasStock($locked);
             $locked->forceFill(['held_at' => now(), 'held_by' => $actor->id, 'hold_reason' => $reason])->save();
             Audit::record($actor->id, 'stock.lot_held', (string) $locked->id, $this->auditDetails($locked, $branch, $reason));
-        });
+        }, tellPartners: true);
     }
 
     public function release(User $actor, StockLot $lot, string $reason): void
@@ -39,7 +39,7 @@ final class StockLotHolds
             $details = [...$this->auditDetails($locked, $branch, $reason), 'held_since' => $locked->held_at?->toIso8601String(), 'hold_reason' => $locked->hold_reason];
             $locked->forceFill(['held_at' => null, 'held_by' => null, 'hold_reason' => null])->save();
             Audit::record($actor->id, 'stock.lot_released', (string) $locked->id, $details);
-        });
+        }, tellPartners: true);
     }
 
     /**
@@ -67,16 +67,23 @@ final class StockLotHolds
     }
 
     /**
+     * A hold or release changes what can be sold without moving any stock, so nothing else would
+     * tell partners. A write-off goes through the normal stock-out, which already does.
+     *
      * @param  Closure(StockLot, CompanyBranch): void  $change
      */
-    private function withLockedLot(User $actor, StockLot $lot, Closure $change): void
+    private function withLockedLot(User $actor, StockLot $lot, Closure $change, bool $tellPartners = false): void
     {
         $branch = $this->branches->resolveWritableBranch($actor, (int) $lot->branch_id);
 
-        DB::transaction(function () use ($lot, $branch, $change): void {
+        DB::transaction(function () use ($lot, $branch, $change, $tellPartners): void {
             $product = Product::query()->whereKey($lot->product_id)->lockForUpdate()->firstOrFail();
             $this->branches->ensureBranchStock($branch, $product);
+            $wasAvailable = $tellPartners && $this->notifications->isAvailable($product);
             $change(StockLot::query()->whereKey($lot->id)->lockForUpdate()->firstOrFail(), $branch);
+            if ($tellPartners) {
+                $this->notifications->recordChange($product, (int) $product->stock, $wasAvailable);
+            }
         });
     }
 

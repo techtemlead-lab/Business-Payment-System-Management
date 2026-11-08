@@ -379,6 +379,7 @@ final class BranchOperations
             }
 
             $previousCompany = (int) $product->stock;
+            $wasAvailable = $this->notifications->isAvailable($product);
             $batchNumber = trim((string) ($data['batch_number'] ?? ''));
             $takenLots = $this->moveLots($actor, $stock, $product, $quantity, $kind, $data);
 
@@ -410,7 +411,7 @@ final class BranchOperations
                 ...($batchNumber !== '' && $kind === self::KindProductIn ? ['batch_number' => $batchNumber] : []),
                 ...($takenLots !== [] ? ['lots' => $takenLots] : []),
             ]);
-            $this->notifications->recordChange($product, $previousCompany, $previousCompany > 0 && ! $product->is_stock_paused);
+            $this->notifications->recordChange($product, $previousCompany, $wasAvailable);
 
             return $product->refresh();
         });
