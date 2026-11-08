@@ -3,6 +3,7 @@
 namespace Tests\E2E\Tier1;
 
 use App\Domain\Inventory\BranchOperations;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\ReferralTreePath;
 use App\Models\User;
@@ -426,12 +427,18 @@ class OperationsAndAdminFeatureTest extends E2ETestCase
             'phone' => '019'.fake()->unique()->numerify('########'),
         ]);
 
-        // First assign territory
+        // First assign a territory: places are chosen by place code, never by name.
+        $dhaka = PlaceCode::factory()->division()->create(['name' => 'Dhaka']);
         $this->actingAs($admin)->onPortal('sadmin')->postJson('/api/v1/operations/staff/territories', [
             'staff_id' => $employee->id,
+            'place_code' => $dhaka->code,
+        ])->assertOk();
+        $this->assertDatabaseHas('staff_territories', [
+            'staff_id' => $employee->id,
+            'place_code_id' => $dhaka->id,
             'level' => 'division',
             'division' => 'Dhaka',
-        ])->assertOk();
+        ]);
 
         $response = $this->actingAs($admin)->onPortal('sadmin')->postJson('/api/v1/operations/staff/targets', [
             'staff_id' => $employee->id,

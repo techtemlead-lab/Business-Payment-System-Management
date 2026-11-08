@@ -310,6 +310,15 @@ function PolicyEditor({onDone}:{onDone:()=>void}){const translate=useT();const f
  * report or the network tree every few seconds wastes the user's mobile data.
  */
 const LIVE_SECTIONS=['overview','orders','payments','withdrawals','deliveries','notifications','sub-dealer-orders','payouts-hub'];
+/** Staff partner tree: it opens with the top levels; this loads the next 300 partners. */
+function TreeShowMore({data,base}:{data:Row,base:string}){
+ const translate=useT();
+ const [loading,setLoading]=useState(false);
+ if(!data.dealers_truncated)return null;
+ const shown=(data.dealers||[]).length;
+ return <div className="notice ops-mt-3 ops-row is-between is-wrap"><p>{translate('portal','net_truncated_notice',{shown:String(shown),total:String(data.dealers_total||shown)})}</p>{data.dealers_next_limit&&<button type="button" className="button small" disabled={loading} onClick={()=>{setLoading(true);router.get(base+'/network-tree',{tree_limit:String(data.dealers_next_limit)},{preserveState:true,preserveScroll:true,replace:true,only:['data'],onFinish:()=>setLoading(false)});}}>{translate('portal','net_show_more',{count:String(Math.min(300,Number(data.dealers_total||0)-shown))})}</button>}</div>;
+}
+
 export default function Portal({section,data:d,filters}:{section:string,data:Row,filters:Row}){
  const translate=useT();const {auth,financeActive,staffActions,withdrawalMinimum,staffRoles,portalBase:base,portal,securityControls,flash,collectionAccounts:sharedCollectionAccounts=[]}=usePage<any>().props;const u=auth.user;const caps:string[]=auth.capabilities;const staff=portal==='manage'||portal==='sadmin';const[modal,setModal]=useState<string|null>(null);const[selected,setSelected]=useState<Row>({});const security=securityControls||{};const otp=security.partner_login_otp||{};const totp=security.totp||{};
  /** A status drop-down for the server filter bar; it filters every page, not just the rows on screen. */
@@ -338,7 +347,7 @@ export default function Portal({section,data:d,filters}:{section:string,data:Row
  {section==='settlements'&&<SettlementsHub state={d.settlement_state}/>}
  {section==='simulator'&&<CompensationSimulator initialSimulation={d.simulation} activeRules={d.active_rules||[]}/>}
  {section==='payouts-hub'&&<div data-tour="payouts-hub"><PayoutDisbursementHub withdrawals={d.withdrawals} tdsRate={d.tds_rate??0.00}/></div>}
- {section==='network-tree'&&staff&&<NetworkTreeExplorer dealers={d.dealers||[]}/>}
+ {section==='network-tree'&&staff&&<><NetworkTreeExplorer dealers={d.dealers||[]} treeStats={d.tree_stats??null}/><TreeShowMore data={d} base={base}/></>}
  {section==='area-dealers'&&<AreaDealersHub assignments={d.assignments} summary={d.area_summary} areaFilters={d.area_filters||{}} divisions={d.divisions||[]} dealers_list={d.dealers_list||[]} place_codes={d.place_codes||[]}/>}
  {section==='branch-performance'&&<BranchPerformanceHub performance={d.performance||{period:{period:'month',from:'',to:'',label:'month',timezone:''},totals:{order_count:0,order_value:'0.00',income:'0.00',outstanding:'0.00',estimated_profit:'0.00'},branches:[],unassigned:{order_count:0,order_value:'0.00',income:'0.00',outstanding:'0.00',estimated_profit:'0.00'},orders:[]}} branch_options={d.branch_options||[]}/>}
  {section==='branches'&&<BranchesHub branches={d.branches||{data:[],current_page:1,last_page:1,total:0,links:[]}} active_branch_id={d.active_branch_id} assignable_staff={d.assignable_staff||[]} canManage={caps.includes('inventory')||caps.includes('accounts')||['super_admin','md','chairman'].includes(u.role)}/>}
