@@ -8,6 +8,7 @@ import { linesFromSaved, SaveAsTemplate, TemplatePicker, TemplatesTab, type Pres
 import { FollowUpsPanel } from './PrescriptionFollowUps';
 import { PrescriberReportTab } from './PrescriberReport';
 import { ConsultationRequestsTab, PublicListingTab, type PrescriberPublicData } from './PrescriberPublicTabs';
+import { ClinicQueueTab } from './ClinicQueueTab';
 import { PatientAccessLogList } from './PatientAccessLogList';
 import { emptyVitals, VitalsFields, vitalsForServer } from './VitalsFields';
 
@@ -16,7 +17,7 @@ type Translate = ReturnType<typeof useT>;
 /** Request field and error key: the owner's answer to the "company loss" warning. */
 const CONFIRM_BELOW_FLOOR = 'confirm_below_floor';
 
-type PatientOption = { id: number; name: string; age: number | null; allergies: string | null };
+export type PatientOption = { id: number; name: string; age: number | null; allergies: string | null };
 
 export type PatientRow = {
     id: number;
@@ -188,6 +189,7 @@ export default function PrescriptionsHub({ data, tools, publicTools }: { data: P
         { id: 'requests', label: publicTools.new_requests > 0 ? `${translate('prescriber_public', 'tab_requests')} (${number(publicTools.new_requests)})` : translate('prescriber_public', 'tab_requests') },
         { id: 'templates', label: translate('prescription', 'tab_templates') },
         { id: 'my-report', label: translate('prescription', 'tab_my_report') },
+        { id: 'queue', label: translate('clinic_records', 'queue_tab') },
         { id: 'access-log', label: translate('clinic_records', 'access_log_tab') },
         { id: 'public-listing', label: translate('prescriber_public', 'tab_listing') },
         ...(data.is_owner ? [{ id: 'report', label: translate('prescription', 'tab_report') }, { id: 'settings', label: translate('prescription', 'tab_settings') }] : []),
@@ -214,6 +216,13 @@ export default function PrescriptionsHub({ data, tools, publicTools }: { data: P
             {activeTab === 'prescriptions' && <PrescriptionsTab data={data} tools={tools} translate={translate} />}
             {activeTab === 'patients' && <PatientsTab data={data} translate={translate} />}
             {activeTab === 'templates' && <TemplatesTab templates={tools.templates} translate={translate} />}
+            {activeTab === 'queue' && (
+                <ClinicQueueTab<PatientOption>
+                    queue={tools.queue}
+                    renderPatientPicker={(value, chosen, onChange) => <PatientPicker initial={data.own_patients} value={value} chosen={chosen} onChange={onChange} translate={translate} />}
+                    translate={translate}
+                />
+            )}
             {activeTab === 'access-log' && (
                 <section className="panel">
                     <div className="panel-heading"><div><h2>{translate('clinic_records', 'access_log_title')}</h2><p className="muted">{translate('clinic_records', 'access_log_intro')}</p></div></div>
@@ -230,7 +239,7 @@ export default function PrescriptionsHub({ data, tools, publicTools }: { data: P
 }
 
 /** The prescriber's own patients: the newest first, and a name search reaches older ones. */
-function PatientPicker({ initial, value, chosen, onChange, translate }: { initial: PatientOption[]; value: string; chosen: PatientOption | null; onChange: (id: string, patient: PatientOption | null) => void; translate: Translate }) {
+export function PatientPicker({ initial, value, chosen, onChange, translate }: { initial: PatientOption[]; value: string; chosen: PatientOption | null; onChange: (id: string, patient: PatientOption | null) => void; translate: Translate }) {
     const [query, setQuery] = useState('');
     const [found, setFound] = useState<PatientOption[] | null>(null);
 

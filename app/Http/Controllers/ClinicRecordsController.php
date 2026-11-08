@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Clinic\ClinicQueue;
 use App\Domain\Clinic\PatientAttachments;
 use App\Domain\Clinic\PatientRecords;
+use App\Models\PrescriptionAppointment;
 use App\Models\PrescriptionPatient;
 use App\Models\PrescriptionPatientAttachment;
 use Illuminate\Http\JsonResponse;
@@ -63,5 +65,29 @@ class ClinicRecordsController extends Controller
         $this->attachments->delete($request->user(), $patient, $attachment);
 
         return back()->with('success', __('clinic_records.flash_file_deleted'));
+    }
+
+    public function storeAppointment(Request $request, ClinicQueue $queue): RedirectResponse
+    {
+        // The patient's owner is checked before the other fields, so someone else gets the same 404 whatever they send.
+        $patientId = $request->validate(['patient_id' => 'required|integer'])['patient_id'];
+        $patient = PrescriptionPatient::query()->findOrFail($patientId);
+        $this->records->assertOwn($request->user(), $patient);
+        $data = $request->validate([
+            'appointment_on' => 'required|date_format:Y-m-d|after_or_equal:'.$queue->today(),
+            'appointment_time' => 'nullable|date_format:H:i',
+            'note' => 'nullable|string|max:500',
+        ]);
+        $appointment = $queue->book($request->user(), $patient, $data['appointment_on'], $data['appointment_time'] ?? null, $data['note'] ?? null);
+
+        return back()->with('success', __('clinic_records.flash_queue_booked', ['token' => $appointment->token]));
+    }
+
+    public function updateAppointmentStatus(Request $request, PrescriptionAppointment $appointment, ClinicQueue $queue): RedirectResponse
+    {
+        $status = (string) $request->input('status', '');
+        $queue->changeStatus($request->user(), $appointment, $status);
+
+        return back()->with('success', __('clinic_records.flash_queue_updated'));
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Portals\Shared\Sections;
 
+use App\Domain\Clinic\ClinicQueue;
 use App\Domain\Clinic\PatientAccessLog;
 use App\Domain\Clinic\PrescriberReport;
 use App\Domain\Clinic\PrescriptionAccess;
@@ -20,6 +21,7 @@ final class PrescriptionToolsSection implements WorkspaceSection
         private PrescriptionFollowUps $followUps,
         private PrescriberReport $report,
         private PatientAccessLog $accessLog,
+        private ClinicQueue $queue,
     ) {}
 
     public function data(SectionContext $context, array $data): array
@@ -36,6 +38,7 @@ final class PrescriptionToolsSection implements WorkspaceSection
             'templates' => $this->templates->listFor($context->user),
             'follow_ups' => $this->followUps->forPrescriber($context->user),
             'access_log' => $this->accessLog->forPrescriber($context->user),
+            'queue' => $this->queue->forDay($context->user, SectionDates::optionalDate($context->request->query('queue_date'))),
             'report' => $this->report->forPrescriber(
                 $context->user,
                 $from ? CarbonImmutable::createFromFormat('Y-m-d', $from, $timezone) : CarbonImmutable::now($timezone)->startOfMonth(),

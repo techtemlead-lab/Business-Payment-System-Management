@@ -241,4 +241,6 @@ return function (string $portal): void {
     Route::post('/commands/prescriptions/patients/{patient}/attachments', [ClinicRecordsController::class, 'storeAttachment'])->whereNumber('patient')->middleware('throttle:20,1');
     Route::get('/commands/prescriptions/patients/{patient}/attachments/{attachment}', [ClinicRecordsController::class, 'downloadAttachment'])->whereNumber(['patient', 'attachment'])->middleware('throttle:60,1');
     Route::delete('/commands/prescriptions/patients/{patient}/attachments/{attachment}', [ClinicRecordsController::class, 'destroyAttachment'])->whereNumber(['patient', 'attachment'])->middleware('throttle:30,1');
+    Route::post('/commands/prescriptions/appointments', [ClinicRecordsController::class, 'storeAppointment'])->middleware('throttle:60,1');
+    Route::post('/commands/prescriptions/appointments/{appointment}/status', [ClinicRecordsController::class, 'updateAppointmentStatus'])->whereNumber('appointment')->middleware('throttle:120,1');
 };
