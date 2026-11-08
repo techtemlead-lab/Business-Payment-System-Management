@@ -31,6 +31,7 @@ final class CatalogSection implements WorkspaceSection
         $request = $context->request;
         $props = [];
         $productQuery = Product::query()
+            ->withSellableStock()
             ->when(! $context->isStaff, fn ($q) => $q->where('active', true))
             ->when($request->filled('q'), fn ($q) => $q->where(fn ($match) => $match->where('name', 'ilike', '%'.$request->string('q').'%')->orWhere('sku', 'ilike', '%'.$request->string('q').'%')->orWhere('category', 'ilike', '%'.$request->string('q').'%')))
             ->when($context->section === 'catalog' && $request->filled('category'), fn ($q) => $q->where('category', $request->string('category')))
@@ -40,8 +41,8 @@ final class CatalogSection implements WorkspaceSection
             ->when($context->section === 'catalog' && $request->filled('max_mrp'), fn ($q) => $q->where('mrp', '<=', $request->input('max_mrp')))
             ->when($context->section === 'catalog' && $request->string('availability')->toString() === 'published', fn ($q) => $q->where('active', true))
             ->when($context->section === 'catalog' && $request->string('availability')->toString() === 'draft', fn ($q) => $q->where('active', false))
-            ->when($context->section === 'catalog' && $request->string('availability')->toString() === 'in_stock', fn ($q) => $q->where('stock', '>', 0)->where(fn ($stock) => $stock->where('is_stock_paused', false)->orWhereNull('is_stock_paused')))
-            ->when($context->section === 'catalog' && $request->string('availability')->toString() === 'out_of_stock', fn ($q) => $q->where(fn ($stock) => $stock->where('stock', '<=', 0)->orWhere('is_stock_paused', true)))
+            ->when($context->section === 'catalog' && $request->string('availability')->toString() === 'in_stock', fn ($q) => $q->whereSellable()->where(fn ($stock) => $stock->where('is_stock_paused', false)->orWhereNull('is_stock_paused')))
+            ->when($context->section === 'catalog' && $request->string('availability')->toString() === 'out_of_stock', fn ($q) => $q->where(fn ($stock) => $stock->whereNotSellable()->orWhere('is_stock_paused', true)))
             ->when(
                 $context->section === 'catalog' && in_array($request->string('sort')->toString(), ['name_desc', 'price_asc', 'price_desc', 'newest', 'stock_asc', 'stock_desc'], true),
                 function ($q) use ($request) {
@@ -50,8 +51,8 @@ final class CatalogSection implements WorkspaceSection
                         'price_asc' => $q->orderBy('mrp')->orderBy('name'),
                         'price_desc' => $q->orderByDesc('mrp')->orderBy('name'),
                         'newest' => $q->orderByDesc('created_at')->orderByDesc('id'),
-                        'stock_asc' => $q->orderBy('stock')->orderBy('name'),
-                        'stock_desc' => $q->orderByDesc('stock')->orderBy('name'),
+                        'stock_asc' => $q->orderBySellable()->orderBy('name'),
+                        'stock_desc' => $q->orderBySellable('desc')->orderBy('name'),
                     };
                 },
                 fn ($q) => $q->orderBy('name'),
@@ -75,7 +76,8 @@ final class CatalogSection implements WorkspaceSection
                 $base['price'] = $p->dealer_price;
             }
             if ($revealStock) {
-                $base['stock'] = $p->stock;
+                // The stock screen counts what is on the shelf; everywhere else counts what can be sold.
+                $base['stock'] = $context->section === 'inventory' ? $p->stock : $p->sellableStock();
                 $base['low_stock_at'] = $p->low_stock_at;
             }
             if ($context->section === 'inventory') {
@@ -107,6 +109,7 @@ final class CatalogSection implements WorkspaceSection
                 $props['customization'] = SiteCustomization::raw();
                 $props['defaults'] = SiteCustomization::defaults();
                 $pickerQuery = Product::query()
+                    ->withSellableStock()
                     ->where('active', true)
                     ->when($request->filled('q'), fn ($q) => $q->where(fn ($match) => $match
                         ->where('name', 'ilike', '%'.$request->string('q').'%')
@@ -128,7 +131,7 @@ final class CatalogSection implements WorkspaceSection
                         'sub_category' => $p->sub_category,
                         'strength' => $p->strength,
                         'featured' => (bool) $p->featured,
-                        ...($revealStock ? ['stock' => (int) $p->stock] : []),
+                        ...($revealStock ? ['stock' => $p->sellableStock()] : []),
                         'image' => $p->media()['image_url'] ?? '',
                     ]);
             }

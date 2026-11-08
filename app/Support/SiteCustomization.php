@@ -1813,6 +1813,7 @@ class SiteCustomization
 
             if (! empty($productIds)) {
                 $products = Product::where('active', true)
+                    ->withSellableStock()
                     ->whereIn('id', $productIds)
                     ->get()
                     ->keyBy('id');
@@ -1828,6 +1829,7 @@ class SiteCustomization
 
         if (empty($items)) {
             $products = Product::where('active', true)
+                ->withSellableStock()
                 ->orderByDesc('featured')
                 ->orderBy('name')
                 ->limit(20)
