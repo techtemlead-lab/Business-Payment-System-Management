@@ -214,24 +214,7 @@ final class PartnerAccountProvisioning
             DealerRank::firstOrCreate(['user_id' => $user->id], ['current_rank' => 'dealer']);
 
             if ($role === 'dealer') {
-                AreaDealerAssignment::create([
-                    'user_id' => $user->id,
-                    'level' => $place->level,
-                    'place_code_id' => $place->id,
-                    'zone_name' => $place->name.' ('.$place->code.')',
-                    'division' => $path['division'],
-                    'district' => $path['district'],
-                    'upazila' => $path['upazila'],
-                    'union' => $path['union'],
-                    'monthly_quota' => match ($place->level) {
-                        'division' => '50000.00',
-                        'district' => '40000.00',
-                        'upazila' => '20000.00',
-                        default => '10000.00',
-                    },
-                    'territory_key' => hash('sha256', $place->level.'|code:'.$place->code),
-                    'is_active' => true,
-                ]);
+                $this->seatDealer($user, $place, $path);
             }
 
             Audit::record($actor->id, 'account.created', (string) $user->id, [
@@ -258,6 +241,55 @@ final class PartnerAccountProvisioning
             'commission_consumers' => $this->commissionConsumers($sponsor, $managementReferral),
             'credentials_sent' => $credentialsSent,
         ];
+    }
+
+    /**
+     * The code a new partner gets on a place: a dealer takes the place code and a
+     * sub-dealer takes the next serial in the union.
+     *
+     * @throws ValidationException when a dealer already holds the place or the code is in use
+     */
+    public function codeForPlace(PlaceCode $place, string $role): string
+    {
+        if ($role === 'sub_dealer') {
+            return $this->nextSubDealerCode($place->code);
+        }
+        if (AreaDealerAssignment::query()->where('place_code_id', $place->id)->where('is_active', true)->exists()) {
+            throw ValidationException::withMessages(['place_code' => __('portal.acct_val_place_taken')]);
+        }
+        if (User::query()->where('dealer_code', $place->code)->exists() || $this->referCodeInUse($place->code)) {
+            throw ValidationException::withMessages(['place_code' => __('portal.acct_val_dealer_code_taken')]);
+        }
+
+        return $place->code;
+    }
+
+    /**
+     * Makes a dealer the holder of a place, so the area shares of that place reach them.
+     *
+     * @param  array<string, mixed>|null  $path  The place's geography when the caller already has it
+     */
+    public function seatDealer(User $dealer, PlaceCode $place, ?array $path = null): void
+    {
+        $path ??= $this->geography->expandFromAnchor($place);
+        AreaDealerAssignment::create([
+            'user_id' => $dealer->id,
+            'level' => $place->level,
+            'place_code_id' => $place->id,
+            'zone_name' => $place->name.' ('.$place->code.')',
+            'division' => $path['division'],
+            'district' => $path['district'],
+            'upazila' => $path['upazila'],
+            'union' => $path['union'],
+            'monthly_quota' => match ($place->level) {
+                'division' => '50000.00',
+                'district' => '40000.00',
+                'upazila' => '20000.00',
+                default => '10000.00',
+            },
+            'territory_key' => hash('sha256', $place->level.'|code:'.$place->code),
+            'is_active' => true,
+        ]);
     }
 
     /**

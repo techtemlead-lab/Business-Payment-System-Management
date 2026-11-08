@@ -6432,4 +6432,10 @@ return [
     'event_shipment_received_back' => 'Parcel received back',
     'acct_partner_created_sent' => ':role account added. Code: :code. The login details went to :phone / :email. The username is the mobile number.',
     'acct_partner_created_not_sent' => ':role account added. Code: :code. The password could not be sent because SMS and email are not on. Open this account and use Login password to see it, then give it to them. The username is the mobile number.',
+    'partnership_place_code' => 'Place code (needed to approve)',
+    'partnership_place_code_hint' => 'The code of the place this partner will work in, for example MNHC-100001. A sub-dealer needs a union code.',
+    'partnership_sponsor_code' => 'Reference code from the applicant (optional)',
+    'partnership_sponsor_code_hint' => 'Correct it if the applicant typed it wrong, or clear it if it cannot be found.',
+    'flash_application_approved' => 'Application approved. The account has been created.',
+    'flash_application_rejected' => 'Application rejected.',
 ];
