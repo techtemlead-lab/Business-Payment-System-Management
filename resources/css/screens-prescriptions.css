@@ -1,0 +1,63 @@
+/* =========================================================================
+   Prescriptions: patients, prescription form with medicine lines, the list,
+   clinic dispense and the clinic report. Phone first: every grid collapses
+   to one column under 640px.
+   ========================================================================= */
+.rx-hub .rx-tabs{margin-top:4px}
+.rx-reg{margin-top:6px;font-size:12.5px;font-weight:600;color:var(--ds-brand,#006a4e)}
+.rx-form .rx-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.rx-lines{border:1px solid var(--ds-line,#e2e8f0);border-radius:10px;padding:12px 14px 14px;margin:0;display:flex;flex-direction:column;gap:12px;min-width:0}
+.rx-lines legend{display:inline-flex;align-items:center;gap:6px;font-weight:700;padding:0 6px}
+.rx-note{font-size:12px}
+.rx-line{border:1px solid var(--ds-line,#e2e8f0);border-radius:8px;padding:10px;background:var(--ds-surface-2,#fafbf8);display:flex;flex-direction:column;gap:10px}
+.rx-line-head{display:flex;align-items:flex-end;gap:10px}
+.rx-line-head>b{padding-bottom:12px}
+.rx-line-head .rx-wide{flex:1;min-width:0}
+.rx-line-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.rx-line-grid .rx-wide{grid-column:span 4}
+.rx-line-total{display:flex;flex-direction:column;justify-content:flex-end;gap:2px;font-size:13px}
+.rx-line-total b{font-size:15px}
+.rx-floor{display:inline-block;align-self:flex-start;padding:2px 8px;border-radius:999px;background:#fbf1da;color:#876727;font-size:11px;font-weight:700}
+.rx-floor.is-bad,.rx-hub .is-bad{color:#a04040}
+.rx-floor.is-bad{background:#faeeee}
+.rx-lines>.button{align-self:flex-start}
+.rx-totals{margin:0;align-self:flex-end;min-width:min(100%,260px);display:flex;flex-direction:column;gap:4px}
+.rx-totals div{display:flex;justify-content:space-between;gap:16px}
+.rx-totals dt{color:var(--ds-text-muted,#64748b)}
+.rx-totals dd{margin:0;font-weight:600}
+.rx-totals .is-grand{border-top:1px solid var(--ds-line,#e2e8f0);padding-top:6px;font-size:15px}
+.rx-totals .is-grand dt{color:var(--ds-text,#0f172a);font-weight:700}
+.rx-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.rx-card{border:1px solid var(--ds-line,#e2e8f0);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.rx-card.rx-patient{flex-direction:row;align-items:center;justify-content:space-between;gap:12px}
+.rx-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.rx-card-lines{margin:0;padding-left:20px;font-size:13px}
+.rx-card-lines small{display:block;color:var(--ds-text-muted,#64748b)}
+.rx-card-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.rx-actions{display:flex;flex-wrap:wrap;gap:8px}
+.rx-status{padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap;background:#e8eff6;color:#55748c}
+.rx-status.is-dispensed{background:#e6f2e8;color:#386a4a}
+.rx-dispense{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;padding-top:8px;border-top:1px dashed var(--ds-line,#e2e8f0)}
+.rx-dispense label{min-width:200px;flex:1}
+.rx-dispense small{flex-basis:100%}
+.rx-place{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:6px}
+.rx-label{font-weight:500;font-size:13px}
+.rx-search{display:flex;gap:8px;align-items:center;max-width:320px;width:100%}
+.rx-report-filter{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;margin-bottom:16px}
+.rx-report-filter label{min-width:160px}
+.rx-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.rx-stats div{border:1px solid var(--ds-line,#e2e8f0);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.rx-stats small{color:var(--ds-text-muted,#64748b)}
+.rx-stats b{font-size:18px}
+.rx-table .num{text-align:right}
+.pbc-disable{margin-top:14px;padding-top:14px;border-top:1px dashed var(--ds-line,#e2e8f0)}
+@media (max-width:860px){
+  .rx-line-grid,.rx-place,.rx-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rx-line-grid .rx-wide{grid-column:span 2}
+}
+@media (max-width:640px){
+  .rx-form .rx-grid{grid-template-columns:1fr}
+  .rx-card.rx-patient{flex-direction:column;align-items:flex-start}
+  .rx-search{max-width:none}
+  .rx-hub .panel-heading{flex-wrap:wrap}
+}

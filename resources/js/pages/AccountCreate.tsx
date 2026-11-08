@@ -15,7 +15,7 @@ type Consumer = { id: number | null; name: string; refer_code: string | null; ra
 const availablePermissionKeys = [
     'field_sales', 'sr_orders', 'sr_onboarding', 'staff_admin', 'payroll',
     'orders', 'order_review', 'inventory', 'catalog', 'accounts', 'finance', 'reports',
-    'content', 'audit', 'pricing', 'cost_read', 'identity_write', 'partner_chat',
+    'content', 'audit', 'pricing', 'cost_read', 'identity_write', 'partner_chat', 'prescriber_verify',
 ] as const;
 
 /** The latest date of birth for someone who is 18 today (Dhaka calendar), as YYYY-MM-DD. */
