@@ -24,8 +24,13 @@
     };
 @endphp
 @section('title', $title.' · '.__('portal.brand_company_bar'))
+@section('bodyClass', 'am-auth')
+@push('head')
+@vite(['resources/css/auth-motion.css','resources/js/auth-motion.ts'])
+@endpush
 @section('content')
 <main id="main" class="ref-container ref-auth-main">
+    @include('partials.auth-motion-scene')
     <section class="ref-auth-card">
         <div class="ref-auth-brand" style="text-align:center;margin-bottom:20px;">
             <a href="{{ \App\Support\PortalHost::url('public', '/') }}" aria-label="{{ __('portal.brand_home_aria') }}">

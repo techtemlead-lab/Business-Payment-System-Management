@@ -1,0 +1,366 @@
+/* ==========================================================================
+   Sign-in screens: visual and motion polish (dealer / sub-dealer, staff and
+   owner sign-in, two-step code, authenticator code, captcha, password reset).
+
+   Styling only. Every rule is scoped to body.am-auth, which is set only on the
+   sign-in pages. Animations move with transform and opacity only, and all of
+   it switches off for anyone who asks the system for reduced motion.
+   ========================================================================== */
+
+body.am-auth {
+    --am-forest: #0f3d2e;
+    --am-leaf: #2f9e6e;
+    --am-sprout: #7fd1a8;
+    --am-dew: #f2f9f5;
+    --am-mist: #e3f1eb;
+    --am-sun: #f3d48a;
+    --am-glass: rgba(255, 255, 255, .8);
+    --am-glass-line: rgba(255, 255, 255, .75);
+    --am-shadow: 0 28px 64px -30px rgba(15, 61, 46, .42), 0 10px 26px -14px rgba(15, 61, 46, .2);
+    --am-ease-out: cubic-bezier(.16, 1, .3, 1);
+}
+
+html[data-theme="dark"] body.am-auth {
+    --am-forest: #04120d;
+    --am-leaf: #3fcf96;
+    --am-sprout: #2b8f66;
+    --am-dew: #07130f;
+    --am-mist: #0c2119;
+    --am-glass: rgba(14, 26, 22, .78);
+    --am-glass-line: rgba(127, 209, 168, .16);
+    --am-shadow: 0 30px 70px -30px rgba(0, 0, 0, .7), 0 10px 26px -14px rgba(0, 0, 0, .5);
+}
+
+/* --------------------------------------------------------------------------
+   Background: a calm green mesh with a few drifting leaves.
+   -------------------------------------------------------------------------- */
+body.am-auth .ref-ambient-canvas { display: none; }
+
+.am-scene {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+    contain: strict;
+    background:
+        radial-gradient(120% 80% at 50% -10%, var(--am-mist) 0%, transparent 60%),
+        linear-gradient(165deg, var(--am-dew) 0%, #eaf5ef 48%, #f6faf7 100%);
+}
+html[data-theme="dark"] .am-scene {
+    background:
+        radial-gradient(120% 80% at 50% -10%, var(--am-mist) 0%, transparent 60%),
+        linear-gradient(165deg, var(--am-dew) 0%, #0a1914 55%, #06100d 100%);
+}
+/* Staff / owner sign-in keeps its navy band: only the mesh and leaves show,
+   and the card is a little more solid so the band does not muddy it. */
+body.company-auth .am-scene { z-index: 0; background: none; }
+body.am-auth.company-auth { --am-glass: rgba(255, 255, 255, .93); }
+html[data-theme="dark"] body.am-auth.company-auth { --am-glass: rgba(14, 26, 22, .9); }
+
+.am-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+.am-layer {
+    position: absolute;
+    inset: -40px;
+    transform: translate3d(calc(var(--am-px, 0) * var(--am-depth, 10px)), calc(var(--am-py, 0) * var(--am-depth, 10px)), 0);
+    will-change: transform;
+}
+.am-layer-mesh { --am-depth: 10px; }
+.am-layer-leaves { --am-depth: 26px; }
+
+.am-blob {
+    position: absolute;
+    border-radius: 50%;
+    opacity: .55;
+    will-change: transform;
+}
+.am-blob-a {
+    width: 46vmax; height: 46vmax; left: -12vmax; top: -14vmax;
+    background: radial-gradient(circle at 40% 40%, rgba(47, 158, 110, .34), rgba(47, 158, 110, 0) 68%);
+}
+.am-blob-b {
+    width: 40vmax; height: 40vmax; right: -14vmax; top: 18%;
+    background: radial-gradient(circle at 50% 50%, rgba(127, 209, 168, .38), rgba(127, 209, 168, 0) 70%);
+}
+.am-blob-c {
+    width: 36vmax; height: 36vmax; left: 22%; bottom: -16vmax;
+    background: radial-gradient(circle at 50% 50%, rgba(243, 212, 138, .3), rgba(243, 212, 138, 0) 70%);
+}
+html[data-theme="dark"] .am-blob { opacity: .4; }
+body.company-auth .am-blob { opacity: .4; }
+
+.am-leaf {
+    position: absolute;
+    width: 46px;
+    height: 46px;
+    color: var(--am-leaf);
+    opacity: .16;
+    will-change: transform;
+}
+.am-leaf use { fill: currentColor; }
+.am-leaf-1 { left: 8%;  top: 16%; width: 58px; height: 58px; --am-turn: -24deg; }
+.am-leaf-2 { right: 10%; top: 10%; width: 40px; height: 40px; --am-turn: 38deg; color: var(--am-sprout); opacity: .3; }
+.am-leaf-3 { left: 14%; bottom: 14%; width: 44px; height: 44px; --am-turn: 62deg; }
+.am-leaf-4 { right: 16%; bottom: 22%; width: 64px; height: 64px; --am-turn: -48deg; opacity: .12; }
+.am-leaf-5 { left: 46%; top: 6%; width: 30px; height: 30px; --am-turn: 12deg; color: var(--am-sprout); opacity: .26; }
+.am-leaf { transform: rotate(var(--am-turn, 0deg)); }
+html[data-theme="dark"] .am-leaf { opacity: .14; }
+body.company-auth .am-leaf-2, body.company-auth .am-leaf-5 { color: var(--am-sprout); opacity: .34; }
+
+@media (max-width: 640px) {
+    .am-leaf-3, .am-leaf-5 { display: none; }
+    .am-leaf-1 { left: -10px; top: 9%; }
+    .am-leaf-4 { right: -14px; bottom: 8%; }
+}
+
+/* --------------------------------------------------------------------------
+   Card: frosted glass, soft shadow and a thin glowing edge.
+   -------------------------------------------------------------------------- */
+body.am-auth :is(.ref-auth-card, .company-auth-card) {
+    position: relative;
+    isolation: isolate;
+    background: var(--am-glass);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    backdrop-filter: blur(18px) saturate(140%);
+    border: 1px solid var(--am-glass-line);
+    border-radius: 18px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7), var(--am-shadow);
+}
+html[data-theme="dark"] body.am-auth :is(.ref-auth-card, .company-auth-card) {
+    background: var(--am-glass) !important;
+    border-color: var(--am-glass-line) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), var(--am-shadow);
+}
+html[data-theme="dark"] body.am-auth .ref-auth-bottom { border-top-color: var(--am-glass-line); }
+/* The glowing edge: a gradient ring that brightens while the form is in use. */
+body.am-auth :is(.ref-auth-card, .company-auth-card)::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    z-index: -1;
+    padding: 1px;
+    border-radius: inherit;
+    background: linear-gradient(140deg, rgba(127, 209, 168, .9), rgba(47, 158, 110, .15) 40%, rgba(243, 212, 138, .55) 75%, rgba(127, 209, 168, .7));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    opacity: .45;
+    transition: opacity .4s ease;
+    pointer-events: none;
+}
+body.am-auth :is(.ref-auth-card, .company-auth-card):focus-within::before { opacity: 1; }
+
+/* --------------------------------------------------------------------------
+   Brand mark: a slow light sweep across the logo.
+   -------------------------------------------------------------------------- */
+.am-brand-mark {
+    position: relative;
+    display: inline-block;
+    line-height: 0;
+    vertical-align: middle;
+}
+body.company-auth .am-brand-mark { border-radius: 50%; }
+.am-shine {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: inherit;
+    pointer-events: none;
+    -webkit-mask: var(--am-logo) center / contain no-repeat;
+    mask: var(--am-logo) center / contain no-repeat;
+}
+.am-shine-band {
+    position: absolute;
+    top: -20%;
+    bottom: -20%;
+    left: 0;
+    width: 55%;
+    background: linear-gradient(105deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, .7) 48%, rgba(255, 249, 225, .5) 54%, rgba(255, 255, 255, 0) 100%);
+    transform: translateX(-130%) skewX(-16deg);
+    opacity: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Fields: a green line grows under the field in focus.
+   -------------------------------------------------------------------------- */
+.am-field { position: relative; display: block; }
+.am-field-line {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: 1px;
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--am-sprout), var(--am-leaf), var(--am-sprout));
+    transform: scaleX(0);
+    transform-origin: 50% 50%;
+    transition: transform .38s var(--am-ease-out);
+    pointer-events: none;
+}
+.am-field:focus-within > .am-field-line { transform: scaleX(1); }
+.am-field.am-field-invalid > .am-field-line {
+    background: linear-gradient(90deg, #f3a28b, #d6452a, #f3a28b);
+    transform: scaleX(1);
+}
+.am-field:focus-within.am-field-invalid > .am-field-line { background: linear-gradient(90deg, var(--am-sprout), var(--am-leaf), var(--am-sprout)); }
+
+/* One-time code boxes: a soft ring breathes while the box is in focus. */
+.am-field-code::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 10px;
+    box-shadow: 0 0 0 3px rgba(47, 158, 110, .32), 0 0 18px rgba(47, 158, 110, .28);
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+   Buttons: a light sheen on hover, a pressed state and a spinner on submit.
+   -------------------------------------------------------------------------- */
+body.am-auth :is(.ref-auth-submit, .company-auth-card .action-form > .button.dark) {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+}
+body.am-auth :is(.ref-auth-submit, .company-auth-card .action-form > .button.dark)::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 45%;
+    z-index: 1;
+    background: linear-gradient(105deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, .32), rgba(255, 255, 255, 0));
+    transform: translateX(-120%) skewX(-18deg);
+    opacity: 0;
+    pointer-events: none;
+}
+body.am-auth :is(.ref-auth-submit, .company-auth-card .action-form > .button):active { transform: scale(.975); }
+
+/* Spinner: shown after the form is sent. The button stays usable. */
+body.am-auth .am-loading { cursor: progress; }
+body.am-auth .am-loading::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    inset-inline-end: 16px;
+    z-index: 2;
+    width: 16px;
+    height: 16px;
+    margin-top: -8px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    opacity: .9;
+    animation: amSpin .7s linear infinite;
+    pointer-events: none;
+}
+body.am-auth .company-auth-card .action-form > .button.am-loading,
+body.am-auth .ref-auth-submit.am-loading { position: relative; }
+
+/* Visible keyboard focus on the primary buttons, on top of the sheen. */
+body.am-auth :is(.ref-auth-submit, .company-auth-card .action-form > .button):focus-visible {
+    outline: 2px solid var(--ds-focus, #006a4e);
+    outline-offset: 3px;
+}
+html[data-theme="dark"] body.am-auth :is(.ref-auth-submit, .company-auth-card .action-form > .button):focus-visible { outline-color: var(--am-sprout); }
+
+/* --------------------------------------------------------------------------
+   Captcha: the picture sits in a neat framed panel.
+   -------------------------------------------------------------------------- */
+body.am-auth .login-captcha {
+    padding: 12px;
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(227, 241, 235, .75), rgba(255, 255, 255, .45));
+    border: 1px solid rgba(47, 158, 110, .2);
+}
+body.am-auth .login-captcha-row img {
+    background: #fff;
+    border-color: rgba(47, 158, 110, .28);
+    box-shadow: 0 1px 2px rgba(15, 61, 46, .08), inset 0 0 0 1px rgba(255, 255, 255, .6);
+}
+html[data-theme="dark"] body.am-auth .login-captcha {
+    background: linear-gradient(180deg, rgba(12, 33, 25, .8), rgba(12, 33, 25, .4));
+    border-color: rgba(127, 209, 168, .18);
+}
+
+/* --------------------------------------------------------------------------
+   Motion (only when the visitor has not asked for less motion).
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: no-preference) {
+    .am-blob-a { animation: amDriftA 34s ease-in-out infinite alternate; }
+    .am-blob-b { animation: amDriftB 40s ease-in-out infinite alternate; }
+    .am-blob-c { animation: amDriftC 46s ease-in-out infinite alternate; }
+    .am-leaf { animation: amLeafFloat 16s ease-in-out infinite alternate; }
+    .am-leaf-2 { animation-duration: 19s; animation-delay: -4s; }
+    .am-leaf-3 { animation-duration: 22s; animation-delay: -9s; }
+    .am-leaf-4 { animation-duration: 25s; animation-delay: -2s; }
+    .am-leaf-5 { animation-duration: 14s; animation-delay: -7s; }
+
+    body.am-auth .ref-auth-main .ref-auth-card,
+    body.am-auth .company-auth-card { animation: amCardIn .75s var(--am-ease-out) .05s both; }
+    body.am-auth .ref-auth-card > * { animation: amRise .55s var(--am-ease-out) backwards; }
+    body.am-auth .ref-auth-card > :nth-child(1) { animation-delay: .12s; }
+    body.am-auth .ref-auth-card > :nth-child(2) { animation-delay: .17s; }
+    body.am-auth .ref-auth-card > :nth-child(3) { animation-delay: .22s; }
+    body.am-auth .ref-auth-card > :nth-child(4) { animation-delay: .27s; }
+    body.am-auth .ref-auth-card > :nth-child(n+5) { animation-delay: .32s; }
+
+    .am-shine-band { animation: amShine 9s ease-in-out 1.1s infinite; }
+    .am-brand-mark:hover .am-shine-band { animation-duration: 2.2s; animation-delay: 0s; }
+
+    body.am-auth :is(.ref-auth-submit, .company-auth-card .action-form > .button.dark)::after {
+        transition: transform .75s var(--am-ease-out), opacity .3s ease;
+    }
+    body.am-auth :is(.ref-auth-submit, .company-auth-card .action-form > .button.dark):hover::after {
+        transform: translateX(330%) skewX(-18deg);
+        opacity: 1;
+    }
+    body.am-auth :is(.ref-auth-submit, .company-auth-card .action-form > .button) { transition: transform .14s ease, background-color .2s ease, box-shadow .2s ease, border-color .2s ease; }
+
+    .am-field-code:focus-within::after { animation: amPulse 2.4s ease-in-out 3; }
+
+    body.am-auth .ref-auth-card .ref-alert.ref-error,
+    body.am-auth .company-auth-card .error[role="alert"] { animation: amShake .5s cubic-bezier(.36, .07, .19, .97) .35s both; }
+
+    .login-captcha-row img.am-captcha-fresh { animation: amFadeIn .45s ease both; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .am-layer { transform: none; }
+    body.am-auth .am-loading::before { animation-duration: 1.6s; }
+    .am-field-line { transition: none; }
+}
+
+@keyframes amDriftA { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(6vmax, 5vmax, 0) scale(1.12); } }
+@keyframes amDriftB { from { transform: translate3d(0, 0, 0) scale(1.05); } to { transform: translate3d(-7vmax, 4vmax, 0) scale(.94); } }
+@keyframes amDriftC { from { transform: translate3d(0, 0, 0) scale(.96); } to { transform: translate3d(5vmax, -6vmax, 0) scale(1.08); } }
+@keyframes amLeafFloat {
+    0%   { transform: translate3d(0, 0, 0) rotate(var(--am-turn, 0deg)); }
+    50%  { transform: translate3d(10px, -16px, 0) rotate(calc(var(--am-turn, 0deg) + 9deg)); }
+    100% { transform: translate3d(-6px, 10px, 0) rotate(calc(var(--am-turn, 0deg) - 6deg)); }
+}
+@keyframes amCardIn { from { opacity: 0; transform: translateY(22px) scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes amRise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes amShine {
+    0%   { transform: translateX(-130%) skewX(-16deg); opacity: 0; }
+    3%   { opacity: 1; }
+    16%  { transform: translateX(230%) skewX(-16deg); opacity: 1; }
+    18%, 100% { transform: translateX(230%) skewX(-16deg); opacity: 0; }
+}
+@keyframes amPulse {
+    0%, 100% { opacity: 0; transform: scale(1); }
+    45% { opacity: .9; transform: scale(1.025); }
+}
+@keyframes amShake {
+    0%   { opacity: 0; transform: translateX(0); }
+    15%  { opacity: 1; transform: translateX(-6px); }
+    35%  { transform: translateX(6px); }
+    55%  { transform: translateX(-4px); }
+    75%  { transform: translateX(2px); }
+    100% { opacity: 1; transform: none; }
+}
+@keyframes amSpin { to { transform: rotate(360deg); } }
+@keyframes amFadeIn { from { opacity: .35; } to { opacity: 1; } }

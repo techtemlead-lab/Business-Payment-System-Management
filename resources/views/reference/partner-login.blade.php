@@ -1,8 +1,12 @@
 @extends('reference.layout')
 @section('title', __('site.partner_login_title').' · '.\App\Support\SiteCustomization::brandName())
-@section('bodyClass', 'ref-partner-login-page')
+@section('bodyClass', 'ref-partner-login-page am-auth')
+@push('head')
+@vite(['resources/css/auth-motion.css','resources/js/auth-motion.ts'])
+@endpush
 @section('content')
 <main id="main" class="ref-container ref-auth-main">
+    @include('partials.auth-motion-scene')
     <section class="ref-auth-card ref-partner-login-card">
         <div class="ref-auth-brand" style="text-align:center;margin-bottom:20px;">
             <a href="/" aria-label="{{ __('site.back_home') }}">
