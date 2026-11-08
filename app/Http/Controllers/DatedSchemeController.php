@@ -22,6 +22,8 @@ class DatedSchemeController extends Controller
             'min_quantity' => 'required|integer|min:1|max:100000',
             'benefit_type' => ['required', Rule::in(DatedScheme::BenefitTypes)],
             'benefit_text' => 'required|string|max:500',
+            'free_product_id' => ['nullable', 'integer', 'required_with:free_quantity', 'prohibited_unless:benefit_type,free_goods', Rule::exists('products', 'id')->where('active', true)],
+            'free_quantity' => 'nullable|integer|min:1|max:100000|required_with:free_product_id|prohibited_unless:benefit_type,free_goods',
         ]);
         $schemes->add($request->user(), $data);
 

@@ -24,6 +24,7 @@ class OrderResource extends JsonResource
                 'mrp' => Money::decimal(Money::cents((string) $line->mrp)),
                 'unit_price' => Money::decimal(Money::cents((string) $line->unit_price)),
                 'total' => Money::decimal(Money::cents((string) $line->total)),
+                'is_free' => (bool) $line->is_free,
             ])),
         ];
     }

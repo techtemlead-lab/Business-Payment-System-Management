@@ -41,7 +41,7 @@ final class CommissionPosting
             foreach ($keys as $key) {
                 $rate += CommissionPolicy::rate($snapshot['rules'], $key)->basisPoints;
             }
-            $mrp = $order->lines->sum(fn ($line): int => Money::cents($line->mrp) * $line->quantity);
+            $mrp = $order->chargedLines()->sum(fn ($line): int => Money::cents($line->mrp) * $line->quantity);
             $cash = Money::cents($order->total);
             if ($mrp <= 0 || $cash * 10000 < $mrp * 3000 + $cash * $rate) {
                 throw ValidationException::withMessages(['items' => __('portal.err_post_price_funding')]);
@@ -106,6 +106,23 @@ final class CommissionPosting
     /** @return list<array<string, mixed>> */
     public function process(Order $order, ?int $actorId = null): array
     {
+        return $this->post($order, $actorId, false);
+    }
+
+    /**
+     * Posts commission on just the delivered parcels of a mixed-outcome order, after staff chose
+     * that. It runs through the same posting as a whole order and also posts only once.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function processDeliveredPart(Order $order, ?int $actorId = null): array
+    {
+        return $this->post($order, $actorId, true);
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function post(Order $order, ?int $actorId, bool $deliveredPartOnly): array
+    {
         if (
             $order->is_opening_balance
             || config('madina.preview_mode')
@@ -116,7 +133,7 @@ final class CommissionPosting
         }
         CommissionWallet::requireActive();
 
-        return DB::transaction(function () use ($order, $actorId): array {
+        return DB::transaction(function () use ($order, $actorId, $deliveredPartOnly): array {
             CommissionWallet::lock();
             $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             if ($order->is_opening_balance) {
@@ -126,16 +143,21 @@ final class CommissionPosting
                 return CommissionAllocation::where('order_id', $order->id)->get()->toArray();
             }
             $cash = Money::cents($order->total);
-            if ($order->status !== 'delivered' || $cash === 0 || Money::cents($order->paid) !== $cash) {
+            $deliveredPart = $deliveredPartOnly ? $this->deliveredPart($order) : null;
+            if ((! $deliveredPartOnly && $order->status !== 'delivered') || $cash === 0 || Money::cents($order->paid) !== $cash) {
                 return [];
             }
+            $cash = $deliveredPart['cash'] ?? $cash;
             $buyer = User::whereKey($order->user_id)->lockForUpdate()->firstOrFail();
             if (! in_array($buyer->role, ['dealer', 'sub_dealer'], true)) {
                 return [];
             }
             $snapshot = $order->commission_policy_snapshot ?? $this->capture($order, $buyer);
-            ['rows' => $rows, 'mrp' => $mrp, 'company' => $company, 'allocated' => $allocated, 'days' => $days, 'funding_decisions' => $decisions] = $this->calculate($order, $buyer, $snapshot);
+            ['rows' => $rows, 'mrp' => $mrp, 'company' => $company, 'allocated' => $allocated, 'days' => $days, 'funding_decisions' => $decisions] = $this->calculate($order, $buyer, $snapshot, $deliveredPart);
             $snapshot['funding_decisions'] = $decisions;
+            if ($deliveredPart !== null) {
+                $snapshot['delivered_part'] = ['order_total' => $order->total, 'line_quantities' => $deliveredPart['quantities']];
+            }
             $rules = $snapshot['rules'];
             $type = $snapshot['account_type'];
             $unallocated = $cash - $company - $allocated;
@@ -146,9 +168,10 @@ final class CommissionPosting
             $journal = [];
             foreach ($rows as $row) {
                 $metadata = [...$row['metadata'], 'rule_version' => $rules[$row['rule_key']]['version'], 'basis' => 'purchase_value',
-                    'period_month' => CommissionQualification::currentMonth(), 'maturation_due_at' => $days > 0 ? now()->addDays($days)->toIso8601String() : null];
+                    'period_month' => CommissionQualification::currentMonth(), 'maturation_due_at' => $days > 0 ? now()->addDays($days)->toIso8601String() : null,
+                    ...($deliveredPart !== null ? ['posting_scope' => 'delivered_part'] : [])];
                 CommissionAllocation::create(['order_id' => $order->id, 'user_id' => $row['user_id'], 'category' => $row['category'],
-                    'rate_percentage' => $row['rate_percentage'], 'cash_basis' => $order->total, 'amount' => Money::decimal($row['cents']),
+                    'rate_percentage' => $row['rate_percentage'], 'cash_basis' => Money::decimal($cash), 'amount' => Money::decimal($row['cents']),
                     'original_amount' => Money::decimal($row['cents']), 'status' => $row['status'], 'metadata' => $metadata]);
                 if (in_array($row['status'], ['available', 'maturing'], true) && $row['user_id']) {
                     $held = $row['status'] === 'maturing';
@@ -163,7 +186,7 @@ final class CommissionPosting
                     'user_id' => null,
                     'category' => 'company_commission_benefits_fund',
                     'rate_percentage' => number_format($rateBps / 100, 2, '.', ''),
-                    'cash_basis' => $order->total,
+                    'cash_basis' => Money::decimal($cash),
                     'amount' => Money::decimal($unallocated),
                     'original_amount' => Money::decimal($unallocated),
                     'status' => 'reserved',
@@ -174,6 +197,7 @@ final class CommissionPosting
                         'owner_only' => true,
                         'account_type' => $type,
                         'source' => 'purchase_surplus_after_company_share_and_commissions',
+                        ...($deliveredPart !== null ? ['posting_scope' => 'delivered_part'] : []),
                     ],
                 ]);
             }
@@ -191,29 +215,77 @@ final class CommissionPosting
             Audit::record($actorId, 'commissions.calculated', $order->id, [
                 'buyer_id' => $buyer->id,
                 'account_type' => $type,
-                'cash_basis' => $order->total,
+                'cash_basis' => Money::decimal($cash),
                 'allocated' => Money::decimal($allocated),
                 'benefits_fund' => Money::decimal($unallocated),
+                ...($deliveredPart !== null ? ['posting_scope' => 'delivered_part', 'order_total' => $order->total] : []),
             ]);
 
             return CommissionAllocation::where('order_id', $order->id)->get()->toArray();
         }, 3);
     }
 
-    /** @param array<string, mixed> $snapshot @return array<string, mixed> */
-    private function calculate(Order $order, User $buyer, array $snapshot): array
+    /**
+     * The delivered parcels of a mixed-outcome order, in money. Free lines are left out.
+     *
+     * @return array{cash: int, mrp: int, quantities: array<int, int>}
+     */
+    private function deliveredPart(Order $order): array
     {
-        $cash = Money::cents($order->total);
+        $delivered = [];
+        foreach (DB::table('shipments')->where('order_id', $order->id)->where('status', 'delivered')->orderBy('id')->lockForUpdate()->pluck('lines') as $parcel) {
+            foreach (json_decode((string) $parcel, true, 512, JSON_THROW_ON_ERROR) as $sent) {
+                $delivered[(int) $sent['line_id']] = ($delivered[(int) $sent['line_id']] ?? 0) + (int) $sent['quantity'];
+            }
+        }
+        $cash = 0;
+        $mrp = 0;
+        $quantities = [];
+        foreach ($order->chargedLines() as $line) {
+            $quantity = $delivered[$line->id] ?? 0;
+            if ($quantity === 0) {
+                continue;
+            }
+            $unitPrice = Money::cents($line->unit_price);
+            if ($quantity > $line->quantity || $unitPrice * $line->quantity !== Money::cents($line->total)) {
+                throw ValidationException::withMessages(['commissions' => __('portal.err_post_reconcile')]);
+            }
+            $cash += $unitPrice * $quantity;
+            $mrp += Money::cents($line->mrp) * $quantity;
+            $quantities[$line->id] = $quantity;
+        }
+        if ($cash <= 0 || $mrp <= 0) {
+            throw ValidationException::withMessages(['decision' => __('schemes_commission.err_nothing_paid_delivered')]);
+        }
+        if (Money::cents($order->paid) !== Money::cents($order->total)) {
+            throw ValidationException::withMessages(['decision' => __('schemes_commission.err_not_paid_in_full')]);
+        }
+
+        return ['cash' => $cash, 'mrp' => $mrp, 'quantities' => $quantities];
+    }
+
+    /**
+     * @param  array<string, mixed>  $snapshot
+     * @param  array{cash: int, mrp: int, quantities: array<int, int>}|null  $deliveredPart  set when only part of the order earns commission
+     * @return array<string, mixed>
+     */
+    private function calculate(Order $order, User $buyer, array $snapshot, ?array $deliveredPart = null): array
+    {
         $rules = $snapshot['rules'];
         $this->policies->validateSchedule($rules);
-        $mrp = 0;
-        $lineCash = 0;
-        foreach ($order->lines as $line) {
-            $mrp += Money::cents($line->mrp) * $line->quantity;
-            $lineCash += Money::cents($line->total);
-        }
-        if ($mrp <= 0 || $lineCash !== $cash) {
-            throw ValidationException::withMessages(['commissions' => __('portal.err_post_reconcile')]);
+        if ($deliveredPart !== null) {
+            ['cash' => $cash, 'mrp' => $mrp] = $deliveredPart;
+        } else {
+            $cash = Money::cents($order->total);
+            $mrp = 0;
+            $lineCash = 0;
+            foreach ($order->chargedLines() as $line) {
+                $mrp += Money::cents($line->mrp) * $line->quantity;
+                $lineCash += Money::cents($line->total);
+            }
+            if ($mrp <= 0 || $lineCash !== $cash) {
+                throw ValidationException::withMessages(['commissions' => __('portal.err_post_reconcile')]);
+            }
         }
         $company = Percentage::from($snapshot['company_mrp_percent'])->of($mrp, 'half_up');
         $type = $snapshot['account_type'];

@@ -256,20 +256,20 @@ class CourierDriversAndManualModeTest extends TestCase
                 ->where('data.courier_board.can_decide', true));
 
         $url = '/commands/orders/'.$order->id.'/mixed-outcome-decision';
-        $this->actingAs($reviewer)->onPortal('manage')->post($url, ['decision' => 'returned_part'])->assertSessionHasErrors('reason');
+        $this->actingAs($reviewer)->onPortal('manage')->post($url, ['decision' => 'no_commission'])->assertSessionHasErrors('reason');
         $this->assertDatabaseMissing('order_events', ['order_id' => $order->id, 'action' => 'order.mixed_outcome_decided']);
 
-        $this->actingAs($reviewer)->onPortal('manage')->post($url, ['decision' => 'returned_part', 'reason' => 'Dealer agreed on the phone'])->assertSessionHasNoErrors();
+        $this->actingAs($reviewer)->onPortal('manage')->post($url, ['decision' => 'no_commission', 'reason' => 'Dealer agreed on the phone'])->assertSessionHasNoErrors();
 
         $event = DB::table('order_events')->where('order_id', $order->id)->where('action', 'order.mixed_outcome_decided')->first();
-        $this->assertSame(['decision' => 'returned_part', 'reason' => 'Dealer agreed on the phone'], json_decode($event->metadata, true));
+        $this->assertSame(['decision' => 'no_commission', 'reason' => 'Dealer agreed on the phone'], json_decode($event->metadata, true));
         $this->assertDatabaseHas('audit_events', ['actor_id' => $reviewer->id, 'action' => 'order.mixed_outcome_decided', 'subject' => $order->id]);
         $locale = $this->dealer->preferredLocale();
         $this->assertDatabaseHas('account_notices', ['user_id' => $this->dealer->id, 'title' => __('courier_more.notice_decision_title', ['number' => $order->number], $locale)]);
 
         $this->actingAs($this->owner)->onPortal('sadmin')->get('/deliveries')->assertOk()
             ->assertInertia(fn (Assert $page) => $page->count('data.courier_board.needs_decision', 0));
-        $this->actingAs($reviewer)->onPortal('manage')->post($url, ['decision' => 'whole_sale', 'reason' => 'Changed my mind'])->assertSessionHasErrors('decision');
+        $this->actingAs($reviewer)->onPortal('manage')->post($url, ['decision' => 'delivered_part', 'reason' => 'Changed my mind'])->assertSessionHasErrors('decision');
 
         // Nothing moved: no commission on the order, and the order did not change state.
         app(CommissionPosting::class)->process($order->fresh(), $this->owner->id);
@@ -282,7 +282,7 @@ class CourierDriversAndManualModeTest extends TestCase
     {
         $order = $this->mixedOrder();
         $url = '/commands/orders/'.$order->id.'/mixed-outcome-decision';
-        $body = ['decision' => 'whole_sale', 'reason' => 'Dealer agreed on the phone'];
+        $body = ['decision' => 'no_commission', 'reason' => 'Dealer agreed on the phone'];
 
         $this->actingAs($this->store)->onPortal('manage')->post($url, $body)->assertForbidden();
         $this->actingAs($this->dealer)->onPortal('dealer')->post($url, $body)->assertForbidden();

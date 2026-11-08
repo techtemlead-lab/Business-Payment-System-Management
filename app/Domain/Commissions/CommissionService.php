@@ -202,7 +202,7 @@ final class CommissionService
             if (Money::cents($order->total) === Money::cents((string) ($refunds[$order->id] ?? '0.00'))) {
                 continue;
             }
-            $mrp = $order->lines->sum(fn ($line): int => Money::cents($line->mrp) * $line->quantity);
+            $mrp = $order->chargedLines()->sum(fn ($line): int => Money::cents($line->mrp) * $line->quantity);
             $cashCents = Money::cents($order->total);
             $basisPoints = $sum + (($order->commission_policy_snapshot['account_type'] ?? $order->user->role) === 'sub_dealer' ? $subExtras : 0);
             if ($mrp <= 0 || $cashCents * 10000 < $mrp * 3000 + $cashCents * $basisPoints) {

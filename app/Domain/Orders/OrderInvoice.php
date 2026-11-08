@@ -154,9 +154,11 @@ final class OrderInvoice
             $mrpCents = Money::cents((string) $line->mrp);
             $rateCents = Money::cents((string) $line->unit_price);
             $totalCents = Money::cents((string) $line->total);
-            $mrpBillCents = $mrpCents * $qty;
+            // Free scheme goods add nothing to the MRP bill or the trade discount.
+            $isFreeLine = (bool) $line->is_free;
+            $mrpBillCents = $isFreeLine ? 0 : $mrpCents * $qty;
             $commissionCents = max(0, $mrpBillCents - $totalCents);
-            $remarkPct = $mrpCents > 0
+            $remarkPct = $mrpCents > 0 && ! $isFreeLine
                 ? (int) round((($mrpCents - $rateCents) / $mrpCents) * 100)
                 : 0;
 
@@ -181,7 +183,7 @@ final class OrderInvoice
                 'mrp_bill' => Money::decimal($mrpBillCents),
                 'commission' => Money::decimal($commissionCents),
                 'total' => Money::decimal($totalCents),
-                'remark' => $remarkPct > 0 ? $remarkPct.'%' : '—',
+                'remark' => $isFreeLine ? __('schemes_commission.free_line_label') : ($remarkPct > 0 ? $remarkPct.'%' : '—'),
             ];
         }
 

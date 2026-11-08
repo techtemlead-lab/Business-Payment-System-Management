@@ -6,7 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
 /**
- * A dated offer shown to partners while they order. Display only: it never changes an order.
+ * A dated offer shown to partners while they order. With a free product and quantity set it also
+ * adds free lines to a qualifying order (see SchemeFreeLines); otherwise it is display only.
  *
  * @property list<int> $product_ids
  * @property Carbon $starts_on
