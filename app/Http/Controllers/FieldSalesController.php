@@ -54,10 +54,14 @@ class FieldSalesController extends Controller
     public function reviewApplication(Request $request, string $id, StaffOperations $operations): Response
     {
         $data = $request->validate(['decision' => 'required|in:approved,rejected', 'reason' => FinanceOperationsController::Reason,
-            'place_code' => 'nullable|string|max:32']);
-        $operations->review($request->user(), $id, $data['decision'], $data['reason'], $data['place_code'] ?? null);
+            'place_code' => 'nullable|string|max:32', 'sponsor_code' => 'nullable|string|max:40']);
+        $corrections = $request->has('sponsor_code') ? ['sponsor_code' => $data['sponsor_code'] ?? null] : [];
+        $operations->review($request->user(), $id, $data['decision'], $data['reason'], $data['place_code'] ?? null, $corrections);
+        if ($request->expectsJson()) {
+            return response()->json(['data' => []]);
+        }
 
-        return $this->done($request);
+        return back()->with('success', __('portal.flash_application_'.$data['decision']));
     }
 
     public function order(Request $request, TerritoryAccess $territories, OrderService $orders): Response

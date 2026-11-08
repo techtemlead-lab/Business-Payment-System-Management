@@ -3,9 +3,11 @@
 namespace App\Domain\Staff;
 
 use App\Domain\Accounts\AccountPhoneRules;
+use App\Domain\Accounts\PartnerAccountProvisioning;
 use App\Domain\Accounts\PartnerAge;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Geography\ManagementReferral;
 use App\Domain\Geography\PlaceTree;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
@@ -149,10 +151,16 @@ final class StaffOperations
         ];
     }
 
-    public function review(User $actor, string $id, string $decision, string $reason, ?string $placeCode = null): void
+    /**
+     * Records the decision on an application. An approved application becomes the same kind of
+     * account the Add dealer form makes: its code comes from the place and a dealer holds that place.
+     *
+     * @param  array{sponsor_code?: string|null}  $corrections  What the reviewer corrected from the application
+     */
+    public function review(User $actor, string $id, string $decision, string $reason, ?string $placeCode = null, array $corrections = []): void
     {
         abort_unless($actor->allows('accounts'), 403);
-        DB::transaction(function () use ($actor, $id, $decision, $reason, $placeCode): void {
+        DB::transaction(function () use ($actor, $id, $decision, $reason, $placeCode, $corrections): void {
             CommissionWallet::lock();
             abort_unless($actor->fresh()->allows('accounts'), 403);
             $application = DB::table('dealer_applications')->where('id', $id)->lockForUpdate()->first();
@@ -163,7 +171,8 @@ final class StaffOperations
             $userId = null;
             $payload = json_decode($application->data, true, flags: JSON_THROW_ON_ERROR);
             if ($decision === 'approved') {
-                $data = $payload;
+                $data = [...$payload, ...$corrections];
+                $partners = app(PartnerAccountProvisioning::class);
                 if (User::whereRaw('LOWER(email) = ?', [mb_strtolower($data['email'])])->exists()) {
                     throw ValidationException::withMessages(['email' => __('portal.err_staff_email_exists')]);
                 }
@@ -178,9 +187,11 @@ final class StaffOperations
                 // A partner is only created on a place code: the reviewer's, else the application's.
                 $place = $this->applicationPlace(filled($placeCode) ? $placeCode : ($payload['place_code'] ?? $payload['area_code'] ?? null), (string) $payload['role']);
                 $data = [...$data, ...$this->placeFields($place)];
+                $isSubDealer = $data['role'] === 'sub_dealer';
+                $partnerCode = $partners->codeForPlace($place, (string) $data['role']);
                 $sponsorId = $data['sponsor_id'] ?? null;
                 if (empty($sponsorId) && ! empty($data['sponsor_code'])) {
-                    $sponsorId = User::where('dealer_code', $data['sponsor_code'])->where('role', 'dealer')->where('status', 'active')->value('id');
+                    $sponsorId = $partners->findSponsor((string) $data['sponsor_code'])?->id;
                     if (! $sponsorId) {
                         throw ValidationException::withMessages(['sponsor_code' => __('portal.err_staff_sponsor_code')]);
                     }
@@ -190,16 +201,21 @@ final class StaffOperations
                 }
                 $user = (new User)->forceFill(['name' => $data['name'], 'email' => $application->email, 'phone' => $data['phone'],
                     'role' => $data['role'], 'status' => 'active', 'password' => Str::random(48),
-                    'dealer_code' => 'MN-'.Str::upper(Str::random(12)), 'sponsor_id' => $sponsorId,
+                    'dealer_code' => $partnerCode, 'refer_code' => $partnerCode, 'sponsor_id' => $sponsorId,
                     'division' => $data['division'], 'district' => $data['district'],
-                    'profile' => ['upazila' => $data['upazila'], 'union' => $data['union'], 'area_code' => $data['place_code'],
+                    'profile' => ['upazila' => $data['upazila'], 'union' => $data['union'], 'area_code' => $isSubDealer ? $partnerCode : $data['place_code'],
                         'place_code' => $data['place_code'], 'place_code_id' => $data['place_code_id'],
+                        'union_place_code' => $isSubDealer ? $data['place_code'] : null,
                         'application_source' => $application->source ?? 'staff', 'application_message' => $data['message'] ?? null,
                         ...(filled($data['date_of_birth'] ?? null) ? ['date_of_birth' => $data['date_of_birth']] : [])]]);
                 $user->save();
                 ReferralTreePath::attachUser($user->id, $user->sponsor_id);
                 DealerRank::firstOrCreate(['user_id' => $user->id]);
                 DB::table('wallets')->insert(['user_id' => $user->id, 'created_at' => now(), 'updated_at' => now()]);
+                if (! $isSubDealer) {
+                    $partners->seatDealer($user, $place);
+                }
+                app(ManagementReferral::class)->stamp($user);
                 $userId = $user->id;
                 DB::afterCommit(fn () => Password::sendResetLink(['email' => $user->email]));
             }

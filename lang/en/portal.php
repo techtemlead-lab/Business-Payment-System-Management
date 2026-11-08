@@ -6449,4 +6449,10 @@ return [
     'err_dealer_discount_too_small' => 'This dealer price is too high. Dealers must get at least 20% off the MRP, so the dealer price can be at most 80% of the MRP.',
     'err_sub_dealer_discount_too_small' => 'This sub-dealer price is too high. Sub-dealers must get at least 20% off the MRP, so the sub-dealer price can be at most 80% of the MRP.',
     'archive_product_prompt' => 'Archive ":name"? Write a reason (at least 5 letters):',
+    'partnership_place_code' => 'Place code (needed to approve)',
+    'partnership_place_code_hint' => 'The code of the place this partner will work in, for example MNHC-100001. A sub-dealer needs a union code.',
+    'partnership_sponsor_code' => 'Reference code from the applicant (optional)',
+    'partnership_sponsor_code_hint' => 'Correct it if the applicant typed it wrong, or clear it if it cannot be found.',
+    'flash_application_approved' => 'Application approved. The account has been created.',
+    'flash_application_rejected' => 'Application rejected.',
 ];
