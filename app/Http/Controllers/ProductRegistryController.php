@@ -308,7 +308,7 @@ class ProductRegistryController extends Controller
                     $attributes['video_external_url'] = $source === 'url' ? $external : null;
                     if ($source !== 'upload' || isset($stored['video'])) {
                         $old[] = $p->video_path;
-                        $attributes['video_path'] = $source === 'upload' ? ($stored['video'] ?? null) : null;
+                        $attributes['video_path'] = $source === 'upload' ? $stored['video'] : null;
                         $attributes['video_mime'] = $source === 'upload' ? $r->file('video')?->getMimeType() : null;
                     }
                 }
