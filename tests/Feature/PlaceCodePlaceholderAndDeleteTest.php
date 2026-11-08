@@ -89,6 +89,22 @@ class PlaceCodePlaceholderAndDeleteTest extends TestCase
         $this->assertTrue($management->isReadyForAssignment());
     }
 
+    public function test_a_new_place_keeps_its_name_while_it_waits_for_a_code(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+
+        $this->actingAs($admin)->onPortal('sadmin')->post('/commands/place-codes', [
+            'level' => PlaceCode::LevelManagement,
+            'code' => '',
+            'name' => 'Head team',
+            'parent_id' => null,
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $place = PlaceCode::query()->where('level', PlaceCode::LevelManagement)->sole();
+        $this->assertNull($place->code);
+        $this->assertSame('Head team', $place->name);
+    }
+
     public function test_admin_can_delete_place_without_children(): void
     {
         $admin = User::factory()->create(['role' => 'super_admin']);

@@ -19,6 +19,7 @@ use App\Support\PortalHost;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
 use Sentry\Laravel\Integration;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -55,9 +56,10 @@ return Application::configure(basePath: dirname(__DIR__))
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
 
-        // Addresses that match no route skip the web middleware, so pick the visitor's language here.
+        // Addresses that match no route skip the web middleware, and a rate limit stops the request
+        // before the language is chosen, so pick the visitor's language here for both.
         $exceptions->render(function (Throwable $e, Request $request) {
-            if ($e instanceof HttpExceptionInterface && $request->route() === null) {
+            if ($e instanceof HttpExceptionInterface && ($request->route() === null || $e instanceof ThrottleRequestsException)) {
                 ErrorPageLocale::apply($request);
             }
 
