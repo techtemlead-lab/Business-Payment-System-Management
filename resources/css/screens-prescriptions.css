@@ -19,6 +19,9 @@
 .rx-line-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 .rx-line-grid .rx-wide{grid-column:span 4}
 .rx-dosing{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.rx-queue.is-serving{border:2px solid var(--ds-brand,#006a4e)}
+.rx-queue.is-done,.rx-queue.is-cancelled{opacity:.6}
+.rx-vitals{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
 .rx-line-total{display:flex;flex-direction:column;justify-content:flex-end;gap:2px;font-size:13px}
 .rx-line-total b{font-size:15px}
 .rx-floor{display:inline-block;align-self:flex-start;padding:2px 8px;border-radius:999px;background:var(--ds-warn-bg);color:var(--ds-warn-fg);font-size:11px;font-weight:700}

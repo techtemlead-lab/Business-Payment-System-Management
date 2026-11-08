@@ -225,6 +225,64 @@ class ClinicRecordsTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page->where('data.prescription_tools.templates.0.lines.0.dose_schedule', '½+0+½'));
     }
 
+    public function test_vitals_are_saved_encrypted_shown_on_the_history_and_printed_in_bangla(): void
+    {
+        $patient = $this->patient();
+        $this->writePrescription($patient, [], ['vitals' => ['bp_systolic' => 120, 'bp_diastolic' => 80, 'weight_kg' => '65.5', 'pulse' => 72, 'temperature_f' => '98.6']])
+            ->assertRedirect()->assertSessionHasNoErrors();
+        $prescription = Prescription::query()->where('patient_id', $patient->id)->firstOrFail();
+
+        $this->assertSame(['bp_systolic' => '120', 'bp_diastolic' => '80', 'weight_kg' => '65.5', 'pulse' => '72', 'temperature_f' => '98.6'], $prescription->vitals);
+        $stored = (string) DB::table('prescriptions')->where('id', $prescription->id)->value('vitals');
+        $this->assertStringNotContainsString('120', $stored);
+        $this->assertStringNotContainsString('bp_systolic', $stored);
+
+        $this->actingAs($this->prescriber)->onPortal('dealer')->get('/prescriptions/'.$prescription->id.'/print?lang=bn')->assertOk()
+            ->assertSee('রক্তচাপ: ১২০/৮০ mmHg', false)
+            ->assertSee('ওজন: ৬৫.৫ কেজি', false)
+            ->assertSee('পালস: ৭২ /মিনিট', false)
+            ->assertSee('তাপমাত্রা: ৯৮.৬ °F', false);
+        $this->actingAs($this->prescriber)->onPortal('dealer')->get('/prescriptions/patients/'.$patient->id)->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('record.prescriptions.0.vitals.0.value', '120/80 mmHg'));
+
+        $this->assertHiddenFromOthers(fn (self $test) => $test->get('/prescriptions/'.$prescription->id.'/print?lang=en'));
+        foreach ([[$this->otherPrescriber, 'dealer'], [$this->owner, 'sadmin']] as [$viewer, $portal]) {
+            $this->actingAs($viewer)->onPortal($portal)->get('/prescriptions')->assertOk()->assertDontSee('120/80');
+        }
+    }
+
+    public function test_a_visit_without_vitals_stores_none_and_prints_no_heading(): void
+    {
+        $patient = $this->patient();
+        $this->writePrescription($patient, [], ['vitals' => ['bp_systolic' => null, 'pulse' => null]])->assertSessionHasNoErrors();
+        $prescription = Prescription::query()->where('patient_id', $patient->id)->firstOrFail();
+
+        $this->assertNull(DB::table('prescriptions')->where('id', $prescription->id)->value('vitals'));
+        $this->actingAs($this->prescriber)->onPortal('dealer')->get('/prescriptions/'.$prescription->id.'/print?lang=en')->assertOk()
+            ->assertDontSee('Vitals at this visit');
+    }
+
+    /** @return array<string, array{0: array<string, mixed>, 1: string}> */
+    public static function badVitals(): array
+    {
+        return [
+            'upper without lower' => [['bp_systolic' => 120], 'vitals.bp_diastolic'],
+            'lower without upper' => [['bp_diastolic' => 80], 'vitals.bp_systolic'],
+            'lower above upper' => [['bp_systolic' => 80, 'bp_diastolic' => 120], 'vitals.bp_diastolic'],
+            'impossible temperature' => [['temperature_f' => 200], 'vitals.temperature_f'],
+            'impossible pulse' => [['pulse' => 900], 'vitals.pulse'],
+            'text for weight' => [['weight_kg' => 'heavy'], 'vitals.weight_kg'],
+        ];
+    }
+
+    /** @param  array<string, mixed>  $vitals */
+    #[DataProvider('badVitals')]
+    public function test_impossible_vitals_are_refused(array $vitals, string $errorKey): void
+    {
+        $this->writePrescription($this->patient(), [], ['vitals' => $vitals])->assertSessionHasErrors($errorKey);
+        $this->assertSame(0, Prescription::query()->count());
+    }
+
     public function test_a_patient_save_that_does_not_mention_allergies_keeps_them_and_an_empty_value_clears_them(): void
     {
         $patient = $this->patient(['name' => 'Karim', 'allergies' => 'Sulfa']);

@@ -3,6 +3,8 @@ import { AlertTriangle, History, Printer, Repeat } from 'lucide-react';
 import Shell from '../components/Shell';
 import { Empty, date, money, number } from '../components/UI';
 import type { PatientRow } from '../components/PrescriptionsHub';
+import { PatientAccessLogList, type AccessLogRow } from '../components/PatientAccessLogList';
+import { PatientAttachmentsPanel, type AttachmentRow } from '../components/PatientAttachmentsPanel';
 import { useT } from '../shared/i18n/t';
 
 type HistoryLine = { medicine_name: string; dose: string | null; frequency: string | null; duration: string | null; instructions: string | null; dose_summary: string; quantity: number };
@@ -17,6 +19,7 @@ type HistoryRow = {
     complaints: string | null;
     diagnosis: string | null;
     advice: string | null;
+    vitals: { label: string; value: string }[];
     total: string;
     lines: HistoryLine[];
 };
@@ -24,6 +27,9 @@ type HistoryRow = {
 type PatientRecordData = {
     patient: PatientRow;
     prescriptions: HistoryRow[];
+    access_log: AccessLogRow[];
+    attachments: AttachmentRow[];
+    attachment_kinds: string[];
 };
 
 export default function PatientRecord({ record }: { record: PatientRecordData }) {
@@ -82,6 +88,7 @@ export default function PatientRecord({ record }: { record: PatientRecordData })
                                         </div>
                                         <span className={`rx-status is-${row.status}`}>{translate('prescription', `rx_status_${row.status}`)}</span>
                                     </div>
+                                    {row.vitals.length > 0 && <small>{row.vitals.map((reading) => `${reading.label}: ${reading.value}`).join(' · ')}</small>}
                                     {row.complaints && <small><b>{translate('prescription', 'rx_complaints')}:</b> {row.complaints}</small>}
                                     {row.diagnosis && <small><b>{translate('prescription', 'rx_diagnosis')}:</b> {row.diagnosis}</small>}
                                     <ol className="rx-card-lines">
@@ -104,6 +111,13 @@ export default function PatientRecord({ record }: { record: PatientRecordData })
                             ))}
                         </ul>
                     )}
+                </section>
+
+                <PatientAttachmentsPanel patientId={patient.id} kinds={record.attachment_kinds} rows={record.attachments} translate={translate} />
+
+                <section className="panel">
+                    <div className="panel-heading"><div><h2>{translate('clinic_records', 'access_log_patient_title')}</h2><p className="muted">{translate('clinic_records', 'access_log_intro')}</p></div></div>
+                    <PatientAccessLogList rows={record.access_log} showPatient={false} translate={translate} />
                 </section>
             </div>
         </Shell>

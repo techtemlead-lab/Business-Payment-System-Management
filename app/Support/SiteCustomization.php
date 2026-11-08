@@ -1156,7 +1156,7 @@ class SiteCustomization
                 'tag' => 'Special Offer',
                 'title' => 'Promotional Package #'.($idx + 1),
                 'desc' => 'Explore this limited-time wellness package and seasonal healthcare offer.',
-                'feat1' => '100% Pure Botanical Ingredients',
+                'feat1' => 'Available from authorized dealers',
                 'feat2' => 'Fast Nationwide Delivery & Support',
                 'price' => '2,500 Tk',
                 'mrp' => '3,000 Tk',

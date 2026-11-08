@@ -31,7 +31,7 @@ class PrescriptionTemplate extends Model
     /** @return array<string, string> */
     protected function casts(): array
     {
-        return ['lines' => 'array'];
+        return ['lines' => 'array', 'advice' => 'encrypted'];
     }
 
     /** @return BelongsTo<User, $this> */

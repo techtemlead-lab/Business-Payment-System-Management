@@ -91,7 +91,7 @@ final class PrescriptionBook
      * Writes a prescription. Partners type every medicine; company-stock prescribers pick
      * products, and the medicine name and MRP are copied from the product.
      *
-     * @param  array{patient_id: int, prescribed_on: string, complaints?: string|null, diagnosis?: string|null, advice?: string|null, follow_up_on?: string|null, lines: list<array<string, mixed>>, confirm_below_floor?: bool|null}  $data
+     * @param  array{patient_id: int, prescribed_on: string, complaints?: string|null, diagnosis?: string|null, advice?: string|null, vitals?: array<string, mixed>|null, follow_up_on?: string|null, lines: list<array<string, mixed>>, confirm_below_floor?: bool|null}  $data
      */
     public function create(User $prescriber, array $data): Prescription
     {
@@ -116,6 +116,7 @@ final class PrescriptionBook
                 'complaints' => $data['complaints'] ?? null,
                 'diagnosis' => $data['diagnosis'] ?? null,
                 'advice' => $data['advice'] ?? null,
+                'vitals' => Vitals::clean($data['vitals'] ?? null),
                 'follow_up_on' => $data['follow_up_on'] ?? null,
                 'subtotal' => Money::decimal($subtotal),
                 'discount_total' => Money::decimal($discount),

@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * @property CarbonInterface|null $expires_on
  * @property CarbonInterface|null $received_on
+ * @property CarbonInterface|null $held_at
  */
 class StockLot extends Model
 {
@@ -35,6 +36,7 @@ class StockLot extends Model
             'unit_cost' => 'decimal:2',
             'near_expiry_noticed_at' => 'datetime',
             'expired_noticed_at' => 'datetime',
+            'held_at' => 'datetime',
         ];
     }
 
@@ -48,6 +50,12 @@ class StockLot extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function heldBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'held_by');
     }
 
     /** Today's date at the company, which is when a lot's expiry is judged. */
@@ -69,14 +77,20 @@ class StockLot extends Model
     }
 
     /**
-     * Lots that may still leave the branch for a customer. A lot is good through its expiry date.
+     * Lots that may still leave the branch for a customer. A lot is good through its expiry date
+     * and for as long as it is not on hold.
      *
      * @param  Builder<StockLot>  $query
      */
     #[Scope]
     protected function usable(Builder $query): void
     {
-        $query->where(fn (Builder $lots) => $lots->whereNull('expires_on')->orWhereDate('expires_on', '>=', self::today()));
+        $query->whereNull('held_at')->where(fn (Builder $lots) => $lots->whereNull('expires_on')->orWhereDate('expires_on', '>=', self::today()));
+    }
+
+    public function isOnHold(): bool
+    {
+        return $this->held_at !== null;
     }
 
     public function isExpired(): bool

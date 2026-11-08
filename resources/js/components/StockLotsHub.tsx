@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { router } from '@inertiajs/react';
 import { ActionForm, Table, date, number, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
+import StockLotHoldTab from './StockLotHoldTab';
 
 const TABS = [
     { key: 'near', label: 'tab_near_expiry' },
     { key: 'recall', label: 'tab_recall' },
     { key: 'transfers', label: 'tab_transfers' },
     { key: 'reorder', label: 'tab_reorder' },
+    { key: 'hold', label: 'tab_hold' },
 ];
 
 function NearExpiry({ data }: { data: Row }) {
@@ -16,7 +18,7 @@ function NearExpiry({ data }: { data: Row }) {
     const columns = [
         { key: 'product', title: t('col_product') },
         { key: 'branch_code', title: t('col_branch') },
-        { key: 'batch_number', title: t('col_batch'), render: (row: Row) => row.batch_number || '—' },
+        { key: 'batch_number', title: t('col_batch'), render: (row: Row) => <>{row.batch_number || '—'}{row.on_hold && <small className="cell-sub">{t('on_hold_badge')}</small>}</> },
         { key: 'expires_on', title: t('col_expiry'), render: (row: Row) => date(row.expires_on) },
         { key: 'days_left', title: t('col_days_left'), align: 'right' as const, render: (row: Row) => number(row.days_left) },
         { key: 'quantity', title: t('col_quantity'), align: 'right' as const, render: (row: Row) => number(row.quantity) },
@@ -91,7 +93,7 @@ function Recall({ data }: { data: Row }) {
                     { key: 'product', title: t('col_product') },
                     { key: 'branch_code', title: t('col_branch') },
                     { key: 'expires_on', title: t('col_expiry'), render: (row: Row) => row.expires_on ? date(row.expires_on) : '—' },
-                    { key: 'quantity', title: t('col_quantity'), align: 'right', render: (row: Row) => number(row.quantity) },
+                    { key: 'quantity', title: t('col_quantity'), align: 'right', render: (row: Row) => <>{number(row.quantity)}{row.on_hold && <small className="cell-sub">{t('on_hold_badge')}</small>}</> },
                 ]} />
             </>}
         </section>
@@ -169,6 +171,7 @@ export default function StockLotsHub({ data }: { data: Row }) {
             {data.tab === 'recall' && <Recall data={data} />}
             {data.tab === 'transfers' && <Transfers data={data} />}
             {data.tab === 'reorder' && <Reorder data={data} />}
+            {data.tab === 'hold' && <StockLotHoldTab data={data} />}
         </div>
     );
 }

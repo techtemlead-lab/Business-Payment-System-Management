@@ -18,7 +18,30 @@ final class PatientRecords
     /** Prescriptions shown on one patient's history page. */
     public const HistoryLimit = 100;
 
-    public function __construct(private PrescriptionBook $book) {}
+    public function __construct(private PrescriptionBook $book, private PatientAccessLog $accessLog) {}
+
+    /** Opens a record for reading. Both the opening and a refused try are written to the access log. */
+    public function open(User $viewer, PrescriptionPatient $patient, string $action): void
+    {
+        if ((int) $patient->prescriber_id !== (int) $viewer->id) {
+            $this->accessLog->record($viewer, $patient, PatientAccessLog::Blocked);
+        }
+        $this->assertOwn($viewer, $patient);
+        $this->accessLog->record($viewer, $patient, $action);
+    }
+
+    /** The print page's check, written to the access log like any other opening. */
+    public function openForPrint(User $viewer, Prescription $prescription): void
+    {
+        $patient = $prescription->patient;
+        if ($patient !== null && (int) $prescription->prescriber_id !== (int) $viewer->id) {
+            $this->accessLog->record($viewer, $patient, PatientAccessLog::Blocked);
+        }
+        $this->book->assertVisible($viewer, $prescription);
+        if ($patient !== null) {
+            $this->accessLog->record($viewer, $patient, PatientAccessLog::Printed);
+        }
+    }
 
     /**
      * Ownership is checked first, so a person outside the record gets the same 404 whether
@@ -32,11 +55,11 @@ final class PatientRecords
     }
 
     /**
-     * @return array{patient: array<string, mixed>, prescriptions: list<array<string, mixed>>}
+     * @return array{patient: array<string, mixed>, prescriptions: list<array<string, mixed>>, access_log: list<array<string, mixed>>}
      */
     public function page(User $viewer, PrescriptionPatient $patient): array
     {
-        $this->assertOwn($viewer, $patient);
+        $this->open($viewer, $patient, PatientAccessLog::Opened);
         $prescriptions = $this->newestFirst($viewer, $patient)
             ->with('lines')
             ->limit(self::HistoryLimit)
@@ -54,6 +77,7 @@ final class PatientRecords
                 'complaints' => $prescription->complaints,
                 'diagnosis' => $prescription->diagnosis,
                 'advice' => $prescription->advice,
+                'vitals' => Vitals::lines($prescription->vitals, app()->getLocale()),
                 'total' => $prescription->total,
                 'lines' => $prescription->lines->map(fn (PrescriptionLine $line): array => [
                     'medicine_name' => $line->medicine_name,
@@ -65,6 +89,7 @@ final class PatientRecords
                     'quantity' => $line->quantity,
                 ])->all(),
             ])->values()->all(),
+            'access_log' => $this->accessLog->forPrescriber($viewer, $patient),
         ];
     }
 
@@ -77,7 +102,7 @@ final class PatientRecords
      */
     public function repeatDraft(User $viewer, PrescriptionPatient $patient): array
     {
-        $this->assertOwn($viewer, $patient);
+        $this->open($viewer, $patient, PatientAccessLog::Repeated);
         $last = $this->newestFirst($viewer, $patient)->with('lines')->first();
 
         return [

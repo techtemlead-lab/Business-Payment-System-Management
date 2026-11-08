@@ -692,7 +692,7 @@ return [
     'ops_warn_verified_backup_missing' => 'সম্প্রতি পরীক্ষা করা কোনো ব্যাকআপ নেই। একটি ব্যাকআপ নিয়ে পরীক্ষা করতে টেকনিশিয়ানকে বলুন। টেকনিশিয়ানের জন্য: `php artisan app:backup` তারপর `php artisan app:backup-verify`।',
     'a11y_qty_of' => ':name-এর পরিমাণ',
     'a11y_view_order' => ':number দেখুন',
-    'brand_natural_care' => 'প্রাকৃতিক যত্ন',
+    'product_art_tagline' => 'পণ্য',
     'reward_program_bike' => 'বাইক',
     'reward_program_car' => 'কার',
     'reward_program_marketing' => 'মার্কেটিং',
@@ -6399,4 +6399,7 @@ return [
     'event_contest_removed' => 'প্রতিযোগিতা সরানো হয়েছে',
     'partner_scorecard' => 'পার্টনার স্কোরকার্ড',
     'section_hint_partner_scorecard' => 'প্রতিটি পার্টনারের পেমেন্ট, বাতিল ও ফেরত।',
+    'event_stock_lot_held' => 'ব্যাচ আটকে রাখা হয়েছে',
+    'event_stock_lot_released' => 'আটকে রাখা ব্যাচ ছাড় দেওয়া হয়েছে',
+    'event_stock_lot_written_off' => 'আটকে রাখা ব্যাচ লোকসান হিসেবে বাদ',
 ];

@@ -41,7 +41,7 @@ class ConsultationRequest extends Model
     /** @return array<string, string> */
     protected function casts(): array
     {
-        return ['consented_at' => 'datetime', 'handled_at' => 'datetime'];
+        return ['phone' => 'encrypted', 'problem' => 'encrypted', 'consented_at' => 'datetime', 'handled_at' => 'datetime'];
     }
 
     /** @return BelongsTo<User, $this> */

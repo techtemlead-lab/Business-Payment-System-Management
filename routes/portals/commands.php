@@ -119,6 +119,9 @@ return function (string $portal): void {
     Route::delete('/commands/product-units/{productUnit}', [ProductUnitController::class, 'destroy']);
     Route::post('/commands/stock', [CommandController::class, 'stock']);
     Route::post('/commands/stock-lots/near-expiry-days', [StockLotController::class, 'saveNearExpiryDays']);
+    Route::post('/commands/stock-lots/{stockLot}/hold', [StockLotController::class, 'hold'])->whereNumber('stockLot');
+    Route::post('/commands/stock-lots/{stockLot}/release', [StockLotController::class, 'release'])->whereNumber('stockLot');
+    Route::post('/commands/stock-lots/{stockLot}/write-off', [StockLotController::class, 'writeOff'])->whereNumber('stockLot');
     Route::post('/commands/stock-transfers', [StockLotController::class, 'requestTransfer']);
     Route::post('/commands/stock-transfers/{stockTransfer}/send', [StockLotController::class, 'sendTransfer'])->whereNumber('stockTransfer');
     Route::post('/commands/stock-transfers/{stockTransfer}/receive', [StockLotController::class, 'receiveTransfer'])->whereNumber('stockTransfer');
@@ -241,4 +244,9 @@ return function (string $portal): void {
     // A prescriber's own clinical records; ClinicRecordsController answers 404 to anyone else.
     Route::get('/prescriptions/patients/{patient}', [ClinicRecordsController::class, 'patient'])->whereNumber('patient')->middleware('throttle:60,1');
     Route::get('/commands/prescriptions/patients/{patient}/repeat', [ClinicRecordsController::class, 'repeatDraft'])->whereNumber('patient')->middleware('throttle:60,1');
+    Route::post('/commands/prescriptions/patients/{patient}/attachments', [ClinicRecordsController::class, 'storeAttachment'])->whereNumber('patient')->middleware('throttle:20,1');
+    Route::get('/commands/prescriptions/patients/{patient}/attachments/{attachment}', [ClinicRecordsController::class, 'downloadAttachment'])->whereNumber(['patient', 'attachment'])->middleware('throttle:60,1');
+    Route::delete('/commands/prescriptions/patients/{patient}/attachments/{attachment}', [ClinicRecordsController::class, 'destroyAttachment'])->whereNumber(['patient', 'attachment'])->middleware('throttle:30,1');
+    Route::post('/commands/prescriptions/appointments', [ClinicRecordsController::class, 'storeAppointment'])->middleware('throttle:60,1');
+    Route::post('/commands/prescriptions/appointments/{appointment}/status', [ClinicRecordsController::class, 'updateAppointmentStatus'])->whereNumber('appointment')->middleware('throttle:120,1');
 };
