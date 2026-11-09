@@ -4,7 +4,9 @@ namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\BranchScope;
+use App\Domain\Inventory\StockLotReports;
 use App\Models\BranchProductStock;
+use App\Models\StockLot;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -55,7 +57,7 @@ final class InventorySection implements WorkspaceSection
                 return $product;
             })->all();
         }
-        $props['products'] = $this->withBookedUnits($props['products'] ?? $data['products'] ?? []);
+        $props['products'] = $this->withBatchOnHand($this->withBookedUnits($props['products'] ?? $data['products'] ?? []), $activeBranchId);
         // The movement log follows the same branch as the stock on hand above it.
         $branchScope = $viewingAllBranches && $branchOps->canViewAllBranches($user)
             ? new BranchScope(true, [])
@@ -72,6 +74,32 @@ final class InventorySection implements WorkspaceSection
             ->paginate(20);
 
         return $props;
+    }
+
+    /**
+     * The expiry and batch on a stock row come from the goods still on that row: the lot that
+     * goes out next, or a lot on hold or expired when nothing else is left. A row with no
+     * units names nothing, so an emptied lot stops showing. Stock from before lots were
+     * recorded has no lot row and keeps the details saved on the product.
+     *
+     * @param  list<array<string, mixed>>  $products
+     * @return list<array<string, mixed>>
+     */
+    private function withBatchOnHand(array $products, int $activeBranchId): array
+    {
+        $lotsByProduct = app(StockLotReports::class)->lotsOnHand(array_map(intval(...), array_column($products, 'id')))->groupBy('product_id');
+
+        return array_map(function (array $product) use ($lotsByProduct, $activeBranchId): array {
+            $productLots = $lotsByProduct->get($product['id'], collect());
+            if ($productLots->isEmpty() && (int) ($product['company_stock'] ?? $product['stock'] ?? 0) > 0) {
+                return $product;
+            }
+            $branchId = isset($product['branch_stock']) ? (int) ($product['branch_id'] ?? $activeBranchId) : 0;
+            $lots = $branchId > 0 ? $productLots->where('branch_id', $branchId) : $productLots;
+            $next = $lots->first(fn (StockLot $lot): bool => ! $lot->isOnHold() && ! $lot->isExpired()) ?? $lots->first();
+
+            return [...$product, 'expires_on' => $next?->expires_on?->toDateString(), 'batch_number' => $next?->batch_number];
+        }, $products);
     }
 
     /**

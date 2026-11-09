@@ -10,6 +10,7 @@ use App\Support\Audit;
 use App\Support\SiteCustomization;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -194,6 +195,21 @@ final class StockLotReports
                 'suggested' => (int) max(0, ceil($target - (int) $row->quantity - $onTheWay)),
             ];
         })->all();
+    }
+
+    /**
+     * Lots that still hold stock for these products, the next to go out first.
+     *
+     * @param  list<int>  $productIds
+     * @return Collection<int, StockLot>
+     */
+    public function lotsOnHand(array $productIds): Collection
+    {
+        return StockLot::query()
+            ->whereIn('product_id', $productIds)
+            ->where('quantity', '>', 0)
+            ->fefo()
+            ->get(['id', 'branch_id', 'product_id', 'batch_number', 'expires_on', 'held_at']);
     }
 
     /**
