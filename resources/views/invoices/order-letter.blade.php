@@ -34,9 +34,9 @@
             }
         }
 
-        /* Print Page Layout */
+        /* Print Page Layout. A4 is written in millimetres because the PDF maker misreads the word "A4" here. */
         @page {
-            size: A4 portrait;
+            size: 210mm 297mm;
             margin: 10mm 12mm 12mm 12mm;
         }
 
@@ -358,7 +358,8 @@
     </div>
 @endif
 
-@if (! empty($watermark_label))
+{{-- The PDF draws its own see-through watermark in OrderInvoice::downloadPdf(). --}}
+@if (! empty($watermark_label) && ! empty($printable))
     <div class="watermark">{{ $watermark_label }}</div>
 @endif
 

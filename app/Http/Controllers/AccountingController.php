@@ -8,6 +8,7 @@ use App\Domain\Finance\WithdrawalApprovalLimit;
 use App\Domain\Payouts\PayoutBatch;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\PdfFonts;
 use App\Support\PortalHost;
 use App\Support\SpreadsheetCell;
 use Carbon\CarbonImmutable;
@@ -297,7 +298,7 @@ class AccountingController extends Controller
                 : '<th>'.e($column === $report['columns'][0] ? __('portal.ops_export_total') : '').'</th>';
         }
         $html .= '</tr></tfoot></table><p><small>'.e(__('portal.ops_export_generated_footer', ['when' => $generatedAt])).'</small></p>';
-        $pdf = new Mpdf(['tempDir' => Storage::disk('local')->path('report-exports'), 'format' => 'A4', 'default_font' => 'freeserif', 'autoScriptToLang' => true, 'autoLangToFont' => true]);
+        $pdf = new Mpdf(['tempDir' => Storage::disk('local')->path('report-exports'), 'format' => 'A4', ...PdfFonts::options()]);
         $pdf->SetTitle($name);
         $pdf->SetHTMLFooter('<div style="text-align:right;font-size:8pt">'.e($notice).'</div>');
         $pdf->WriteHTML($html);

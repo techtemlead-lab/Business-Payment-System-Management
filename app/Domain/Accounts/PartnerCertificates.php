@@ -7,6 +7,7 @@ use App\Models\TrainingCompletion;
 use App\Models\TrainingItem;
 use App\Models\User;
 use App\Support\Money;
+use App\Support\PdfFonts;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -196,9 +197,7 @@ final class PartnerCertificates
                 'margin_right' => 12,
                 'margin_top' => 12,
                 'margin_bottom' => 12,
-                'default_font' => 'freeserif',
-                'autoScriptToLang' => true,
-                'autoLangToFont' => true,
+                ...PdfFonts::options(),
             ]);
             $pdf->SetTitle($title);
             $pdf->WriteHTML($html);
