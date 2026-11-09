@@ -43,10 +43,11 @@ export default function TreasuryFund({ card, view, table, spend }: { card: FundC
     const [spending, setSpending] = useState(false);
 
     const columnsIn: MoneyColumn<MoneyInRow>[] = [
-        { key: 'created_at', title: translate('treasury', 'col_date'), sortKey: 'created_at', phone: 'sub', render: (row) => date(row.created_at) },
+        { key: 'created_at', title: translate('treasury', 'col_date'), sortKey: 'date', phone: 'sub', render: (row) => date(row.created_at) },
         {
             key: 'order',
             title: translate('treasury', 'col_order_who'),
+            sortKey: 'order',
             phone: 'title',
             render: (row) => (
                 <>
@@ -73,7 +74,7 @@ export default function TreasuryFund({ card, view, table, spend }: { card: FundC
 
     const columnsOut: MoneyColumn<MoneyOutRow>[] = [
         { key: 'date', title: translate('treasury', 'col_date'), sortKey: 'date', phone: 'sub', render: (row) => date(row.date) },
-        { key: 'what', title: translate('treasury', 'col_for'), sortKey: 'what', phone: 'title', render: (row) => <><b>{row.what}</b>{row.reference && <small className="cell-sub">{row.reference}</small>}</> },
+        { key: 'what', title: translate('treasury', 'col_for'), phone: 'title', render: (row) => <><b>{row.what}</b>{row.reference && <small className="cell-sub">{row.reference}</small>}</> },
         { key: 'to', title: translate('treasury', 'col_to'), phone: 'sub', render: (row) => row.to ?? '—' },
         { key: 'amount', title: translate('treasury', 'went_out'), sortKey: 'amount', money: true, total: 'amount', phone: 'amount', render: (row) => <b>{money(row.amount)}</b> },
         { key: 'receipt', title: translate('treasury', 'col_receipt'), phone: 'hide', render: (row) => (row.receipt_url ? <a className="text-link" href={row.receipt_url}>{translate('treasury', 'view')}</a> : '—') },

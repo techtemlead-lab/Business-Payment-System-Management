@@ -20,8 +20,8 @@ type OrderRow = {
 export default function TreasuryOrders({ table, downloads }: { table: MoneyTableData<OrderRow>; downloads: DownloadChoices }) {
     const translate = useT();
     const columns: MoneyColumn<OrderRow>[] = [
-        { key: 'created_at', title: translate('treasury', 'col_date'), sortKey: 'created_at', phone: 'sub', render: (row) => <>{date(row.created_at)}<small className="cell-sub">{row.number}</small></> },
-        { key: 'partner', title: translate('treasury', 'col_who'), sortKey: 'partner_name', phone: 'title', render: (row) => <><b>{row.partner_name}</b><small className="cell-sub">{joined([row.partner_code, label(row.partner_role, translate)])}</small></> },
+        { key: 'created_at', title: translate('treasury', 'col_date'), sortKey: 'date', phone: 'sub', render: (row) => <>{date(row.created_at)}<small className="cell-sub">{row.number}</small></> },
+        { key: 'partner', title: translate('treasury', 'col_who'), sortKey: 'partner', phone: 'title', render: (row) => <><b>{row.partner_name}</b><small className="cell-sub">{joined([row.partner_code, label(row.partner_role, translate)])}</small></> },
         { key: 'mrp_total', title: translate('treasury', 'col_mrp_total'), sortKey: 'mrp_total', money: true, total: 'mrp_total', phone: 'hide', render: (row) => money(row.mrp_total) },
         { key: 'paid', title: translate('treasury', 'col_paid'), sortKey: 'paid', money: true, total: 'paid', phone: 'amount', render: (row) => <b>{money(row.paid)}</b> },
     ];

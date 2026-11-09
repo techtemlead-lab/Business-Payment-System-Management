@@ -34,6 +34,11 @@ export default function TreasuryEvents({ table }: { table: MoneyTableData<EventR
         row.order_number,
         row.product_name,
     ]);
+    const eventName = (row: EventRow): string => {
+        const hasPlainLabel = row.label !== null && !/^[a-z0-9_]+$/.test(row.label);
+
+        return hasPlainLabel ? `${row.action_label}: ${row.label}` : row.action_label;
+    };
     const figure = (row: EventRow): string => {
         if (row.amount !== null && row.amount !== undefined) {
             return money(row.amount);
@@ -42,8 +47,8 @@ export default function TreasuryEvents({ table }: { table: MoneyTableData<EventR
         return row.quantity !== null && row.quantity !== undefined ? translate('treasury', 'pieces', { count: number(Math.abs(row.quantity)) }) : '—';
     };
     const columns: MoneyColumn<EventRow>[] = [
-        { key: 'occurred_at', title: translate('treasury', 'col_time'), sortKey: 'occurred_at', phone: 'sub', render: (row) => dateTime(row.occurred_at) },
-        { key: 'action', title: translate('treasury', 'col_event'), sortKey: 'action', phone: 'title', render: (row) => <b>{joined([row.action_label, row.label])}</b> },
+        { key: 'occurred_at', title: translate('treasury', 'col_time'), sortKey: 'date', phone: 'sub', render: (row) => dateTime(row.occurred_at) },
+        { key: 'action', title: translate('treasury', 'col_event'), sortKey: 'action', phone: 'title', render: (row) => <b>{eventName(row)}</b> },
         { key: 'detail', title: translate('treasury', 'col_detail'), phone: 'sub', render: (row) => detail(row) || '—' },
         { key: 'amount', title: translate('treasury', 'col_amount_or_quantity'), sortKey: 'amount', money: true, total: 'amount', phone: 'amount', render: (row) => <b>{figure(row)}</b> },
     ];

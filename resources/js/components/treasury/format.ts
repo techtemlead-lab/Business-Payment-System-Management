@@ -17,7 +17,9 @@ export function percentText(translate: Translate, percent: unknown, percentOf: '
     return percentOf === 'mrp' ? translate('treasury', 'percent_of_mrp', { percent: value }) : `${value}%`;
 }
 
-/** Joins the parts of a line that exist with a middle dot. */
+/** Joins the parts of a line that exist with a middle dot, saying nothing twice. */
 export function joined(parts: Array<string | null | undefined | false>): string {
-    return parts.filter(Boolean).join(' · ');
+    const pieces = parts.filter(Boolean).flatMap((part) => String(part).split(' · '));
+
+    return [...new Set(pieces)].join(' · ');
 }
