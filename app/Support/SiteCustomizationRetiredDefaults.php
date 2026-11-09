@@ -23,6 +23,8 @@ final class SiteCustomizationRetiredDefaults
             // Text that used to have the phone, address, licence or company name typed in. Each one now reads it from the one saved fact.
             'contact_company_desc' => ['Madina Natural Health Care (Owner: Md Anowar Hossain). Head office: Thana Road, Pirganj 5470, Rangpur. Hotline: 01730532966 · 01723731877.'],
             'contact_phone_hours' => ['Hotline also: 01723731877'],
+            // Never a company number. The owner's two numbers are 01730532966 and 01730532967.
+            'footer_phone' => ['01723731877'],
             'map_subtitle' => ['Visit Madina Natural Health Care at our licensed Pirganj head office or navigate with map directions.'],
             'map_facility' => ['Madina Natural Health Care — Thana Road, Pirganj', 'Madina Natural Health Care & Physiotherapy Center'],
             'legal_meta_governance' => ['Madina Natural Health Care · Operational policy'],

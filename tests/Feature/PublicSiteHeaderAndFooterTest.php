@@ -44,11 +44,11 @@ class PublicSiteHeaderAndFooterTest extends TestCase
 
     public function test_a_different_hotline_number_still_shows_in_the_footer(): void
     {
-        SiteCustomization::save(['footer_support_title' => '+8801730532966', 'footer_phone' => '01723731877']);
+        SiteCustomization::save(['footer_support_title' => '+8801730532966', 'footer_phone' => '01730532967']);
 
         $this->get('/')->assertOk()
             ->assertSee('ref-footer-contact-link is-hotline', false)
-            ->assertSee('01723731877');
+            ->assertSee('01730532967');
     }
 
     public function test_the_footer_shows_the_location_only_once(): void
