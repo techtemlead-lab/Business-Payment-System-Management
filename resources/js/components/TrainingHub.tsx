@@ -557,7 +557,15 @@ function StaffEditor({ data }: { data: StaffData }) {
                 />
             </div>
             {opened && (
-                <Modal variant="drawer" title={titleOf(opened).main} onClose={() => setOpenedId(null)}>
+                <Modal variant="drawer" title={titleOf(opened).main} onClose={() => setOpenedId(null)} footer={data.can_edit ? <>
+                            <button type="button" className="button small" onClick={() => togglePublished(opened)}>
+                                {opened.published ? <EyeOff size={15} aria-hidden="true" /> : <Eye size={15} aria-hidden="true" />}
+                                {translate('portal', opened.published ? 'training_unpublish' : 'training_publish')}
+                            </button>
+                            <button type="button" className="button small dark" onClick={() => { setOpenedId(null); setEditing(opened); }}><Pencil size={15} aria-hidden="true" />{translate('office_website', 'edit')}</button>
+                            <button type="button" className="button small" onClick={() => { setOpenedId(null); setQuizFor(opened); }}><ListChecks size={15} aria-hidden="true" />{translate('portal', 'training_quiz_edit')}</button>
+                            <button type="button" className="button small danger" onClick={() => remove(opened)}><Trash2 size={15} aria-hidden="true" />{translate('portal', 'training_delete')}</button>
+                    </> : undefined}>
                     <TrainingCard item={opened} translate={translate}>
                         <div className="training-meta">
                             <span className={`badge ${opened.published ? 'approved' : 'draft'}`}>{translate('portal', opened.published ? 'training_status_published' : 'training_status_draft')}</span>
@@ -566,17 +574,6 @@ function StaffEditor({ data }: { data: StaffData }) {
                             {(opened.quiz?.questions.length ?? 0) > 0 && <span className="training-chip">{translate('portal', 'training_quiz_count', { count: String(opened.quiz?.questions.length ?? 0) })}</span>}
                         </div>
                     </TrainingCard>
-                    {data.can_edit && (
-                        <div className="ow-drawer-actions">
-                            <button type="button" className="button small" onClick={() => togglePublished(opened)}>
-                                {opened.published ? <EyeOff size={15} aria-hidden="true" /> : <Eye size={15} aria-hidden="true" />}
-                                {translate('portal', opened.published ? 'training_unpublish' : 'training_publish')}
-                            </button>
-                            <button type="button" className="button small dark" onClick={() => { setOpenedId(null); setEditing(opened); }}><Pencil size={15} aria-hidden="true" />{translate('office_website', 'edit')}</button>
-                            <button type="button" className="button small" onClick={() => { setOpenedId(null); setQuizFor(opened); }}><ListChecks size={15} aria-hidden="true" />{translate('portal', 'training_quiz_edit')}</button>
-                            <button type="button" className="button small danger" onClick={() => remove(opened)}><Trash2 size={15} aria-hidden="true" />{translate('portal', 'training_delete')}</button>
-                        </div>
-                    )}
                 </Modal>
             )}
             {editing && (

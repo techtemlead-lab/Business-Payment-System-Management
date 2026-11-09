@@ -398,16 +398,7 @@ function StaffCalendar({ data }: { data: StaffData }) {
                 />
             </div>
             {opened && (
-                <Modal variant="drawer" title={titleOf(opened)} onClose={() => setOpenedId(null)}>
-                    <EventCard event={opened} translate={translate} showDate>
-                        <div className="training-meta">
-                            {opened.status === 'published' && <span className="badge approved">{translate('portal', 'events_status_published')}</span>}
-                            <span className="training-chip">{audience(opened)}</span>
-                            {opened.send_sms && <span className="training-chip"><MessageSquareText size={13} aria-hidden="true" /> {translate('portal', 'events_sms_on')}</span>}
-                        </div>
-                    </EventCard>
-                    {data.can_edit && opened.status !== 'cancelled' && (
-                        <div className="ow-drawer-actions">
+                <Modal variant="drawer" title={titleOf(opened)} onClose={() => setOpenedId(null)} footer={data.can_edit && opened.status !== 'cancelled' ? <>
                             {opened.status === 'draft' && (
                                 <button type="button" className="button small dark" onClick={() => publish(opened)}>
                                     <Send size={15} aria-hidden="true" />{translate('portal', 'events_publish')}
@@ -424,8 +415,14 @@ function StaffCalendar({ data }: { data: StaffData }) {
                                     <Trash2 size={15} aria-hidden="true" />{translate('portal', 'events_delete')}
                                 </button>
                             )}
+                    </> : undefined}>
+                    <EventCard event={opened} translate={translate} showDate>
+                        <div className="training-meta">
+                            {opened.status === 'published' && <span className="badge approved">{translate('portal', 'events_status_published')}</span>}
+                            <span className="training-chip">{audience(opened)}</span>
+                            {opened.send_sms && <span className="training-chip"><MessageSquareText size={13} aria-hidden="true" /> {translate('portal', 'events_sms_on')}</span>}
                         </div>
-                    )}
+                    </EventCard>
                 </Modal>
             )}
             {editing && (

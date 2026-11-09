@@ -263,15 +263,14 @@ function DocumentsSection({ data, label }: HubProps) {
                 </Modal>
             )}
             {opened && (
-                <Modal variant="drawer" title={opened.title} onClose={() => setOpenedId(null)}>
-                    <dl className="ow-lines">
+                <Modal variant="drawer" title={opened.title} onClose={() => setOpenedId(null)} footer={<>
+                        <button type="button" className="button small" onClick={() => toggleShown(opened)}>{label(opened.is_published ? 'admin_document_hide' : 'admin_document_show')}</button>
+                        <button type="button" className="button small danger" onClick={() => confirmThenDelete(`/commands/public-trust/documents/${opened.id}/delete`, label('admin_delete_confirm'), () => setOpenedId(null))}><Trash2 size={15} aria-hidden="true" /> {label('admin_delete')}</button>
+                </>}>
+                    <dl className="office-facts">
                         <div><dt>{label('admin_document_file')}</dt><dd>{opened.original_name}</dd></div>
                         <div><dt>{translate('portal', 'enquiry_status')}</dt><dd><ShownBadge shown={opened.is_published} label={label} /></dd></div>
                     </dl>
-                    <div className="ow-drawer-actions">
-                        <button type="button" className="button small" onClick={() => toggleShown(opened)}>{label(opened.is_published ? 'admin_document_hide' : 'admin_document_show')}</button>
-                        <button type="button" className="button small danger" onClick={() => confirmThenDelete(`/commands/public-trust/documents/${opened.id}/delete`, label('admin_delete_confirm'), () => setOpenedId(null))}><Trash2 size={15} aria-hidden="true" /> {label('admin_delete')}</button>
-                    </div>
                 </Modal>
             )}
         </>
@@ -364,11 +363,10 @@ function ArticlesSection({ data, label }: HubProps) {
                 </Modal>
             )}
             {editing && (
-                <Modal title={label('admin_article_edit')} onClose={() => setEditingId(null)}>
-                    <ArticleForm key={editing.id} article={editing} label={label} onDone={() => setEditingId(null)} />
-                    <div className="ow-drawer-actions">
+                <Modal title={label('admin_article_edit')} onClose={() => setEditingId(null)} footer={<>
                         <button type="button" className="button small danger" onClick={() => confirmThenDelete(`/commands/public-trust/articles/${editing.id}/delete`, label('admin_delete_confirm'), () => setEditingId(null))}><Trash2 size={15} aria-hidden="true" /> {label('admin_delete')}</button>
-                    </div>
+                </>}>
+                    <ArticleForm key={editing.id} article={editing} label={label} onDone={() => setEditingId(null)} />
                 </Modal>
             )}
         </>

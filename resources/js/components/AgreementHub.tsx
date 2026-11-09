@@ -136,7 +136,7 @@ function OfficeAgreementView({ agreement }: { agreement: OfficeAgreement }) {
     const { locale } = page.props;
     const hub = page.props.data?.hub ?? null;
     const latest = agreement.versions[0] ?? null;
-    const [view, setView] = useState<'partners' | 'versions'>('partners');
+    const view = new URLSearchParams(page.url.split('?')[1] ?? '').get('view') === 'versions' ? 'versions' : 'partners';
     const [publishing, setPublishing] = useState(false);
 
     return (
@@ -147,10 +147,10 @@ function OfficeAgreementView({ agreement }: { agreement: OfficeAgreement }) {
         >
             <div className="agr-office">
                 <RequirementSwitch setting={agreement.setting} canEdit={agreement.can_edit} summary={translate('portal', 'agr_summary', { accepted: String(agreement.summary.accepted_latest), partners: String(agreement.summary.partners) })} />
-                <div className="ow-switch" role="group" aria-label={translate('office_website', 'agreement_view_label')}>
-                    <button type="button" className={view === 'partners' ? 'is-active' : ''} aria-pressed={view === 'partners'} onClick={() => setView('partners')}>{translate('portal', 'agr_partners_title')}</button>
-                    <button type="button" className={view === 'versions' ? 'is-active' : ''} aria-pressed={view === 'versions'} onClick={() => setView('versions')}>{translate('portal', 'agr_history_title')}</button>
-                </div>
+                <nav className="office-switch" aria-label={translate('office_website', 'agreement_view_label')}>
+                    <Link href="/agreement" className={view === 'partners' ? 'is-active' : ''} aria-current={view === 'partners' ? 'page' : undefined}>{translate('portal', 'agr_partners_title')}</Link>
+                    <Link href="/agreement?view=versions" className={view === 'versions' ? 'is-active' : ''} aria-current={view === 'versions' ? 'page' : undefined}>{translate('portal', 'agr_history_title')}</Link>
+                </nav>
                 {view === 'partners' && <AcceptanceList partners={agreement.partners} latestVersion={latest?.version ?? null} />}
                 {view === 'versions' && (agreement.versions.length ? (
                     <ol className="agr-history">

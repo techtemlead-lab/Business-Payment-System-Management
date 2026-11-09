@@ -167,8 +167,11 @@ export default function SchemesHub({ data }: { data: SchemesData }) {
                 </Modal>
             )}
             {opened && (
-                <Modal variant="drawer" title={opened.title} onClose={() => setOpenedId(null)}>
-                    <dl className="ow-lines">
+                <Modal variant="drawer" title={opened.title} onClose={() => setOpenedId(null)} footer={<>
+                        <button type="button" className="button small dark" onClick={() => { setOpenedId(null); setEditingId(opened.id); }}><Pencil size={14} aria-hidden="true" /> {translate('office_website', 'edit')}</button>
+                        <button type="button" className="button small danger" onClick={() => remove(opened)}><Trash2 size={14} aria-hidden="true" /> {translate('dealer_tools', 'scheme_remove')}</button>
+                </>}>
+                    <dl className="office-facts">
                         <div><dt>{translate('dealer_tools', 'scheme_benefit_field')}</dt><dd>{opened.benefit_text}</dd></div>
                         <div><dt>{translate('office_website', 'col_period')}</dt><dd>{period(opened)}</dd></div>
                         <div><dt>{translate('office_website', 'col_condition')}</dt><dd>{translate('dealer_tools', 'scheme_min', { count: number(opened.min_quantity) })} · {typeName(opened)}</dd></div>
@@ -176,10 +179,6 @@ export default function SchemesHub({ data }: { data: SchemesData }) {
                         {opened.free_product_id !== null && <div><dt>{translate('schemes_commission', 'scheme_free_product')}</dt><dd>{freeLine(opened)}</dd></div>}
                         <div><dt>{translate('office_website', 'col_orders_using')}</dt><dd>{number(opened.orders_using)}</dd></div>
                     </dl>
-                    <div className="ow-drawer-actions">
-                        <button type="button" className="button small dark" onClick={() => { setOpenedId(null); setEditingId(opened.id); }}><Pencil size={14} aria-hidden="true" /> {translate('office_website', 'edit')}</button>
-                        <button type="button" className="button small danger" onClick={() => remove(opened)}><Trash2 size={14} aria-hidden="true" /> {translate('dealer_tools', 'scheme_remove')}</button>
-                    </div>
                 </Modal>
             )}
             {editing && (

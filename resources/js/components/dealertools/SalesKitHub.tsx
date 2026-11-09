@@ -118,20 +118,19 @@ function OfficeKit({ data }: { data: SalesKitData }) {
                 </Modal>
             )}
             {opened && (
-                <Modal variant="drawer" title={opened.title} onClose={() => setOpenedId(null)}>
+                <Modal variant="drawer" title={opened.title} onClose={() => setOpenedId(null)} footer={<>
+                        <a className="button small" href={opened.view_url} target="_blank" rel="noreferrer"><Eye size={14} aria-hidden="true" /> {translate('dealer_tools', 'kit_view')}</a>
+                        <a className="button small" href={opened.download_url}><Download size={14} aria-hidden="true" /> {translate('dealer_tools', 'kit_download')}</a>
+                        <button type="button" className="button small dark" onClick={() => { setOpenedId(null); setEditingId(opened.id); }}><Pencil size={14} aria-hidden="true" /> {translate('office_website', 'edit')}</button>
+                        <button type="button" className="button small danger" onClick={() => remove(opened)}><Trash2 size={14} aria-hidden="true" /> {translate('dealer_tools', 'kit_remove')}</button>
+                </>}>
                     {opened.is_image && <img className="ow-drawer-image" src={opened.view_url} alt="" loading="lazy" />}
-                    <dl className="ow-lines">
+                    <dl className="office-facts">
                         <div><dt>{translate('dealer_tools', 'kit_kind_field')}</dt><dd>{kindLabel(opened.kind)}</dd></div>
                         <div><dt>{translate('dealer_tools', 'kit_language_field')}</dt><dd>{languageLabel(opened.language)}</dd></div>
                         <div><dt>{translate('dealer_tools', 'kit_file_field')}</dt><dd>{opened.file_name}</dd></div>
                         {opened.caption && <div><dt>{translate('dealer_tools', 'kit_caption_field')}</dt><dd className="ptl-prewrap">{opened.caption}</dd></div>}
                     </dl>
-                    <div className="ow-drawer-actions">
-                        <a className="button small" href={opened.view_url} target="_blank" rel="noreferrer"><Eye size={14} aria-hidden="true" /> {translate('dealer_tools', 'kit_view')}</a>
-                        <a className="button small" href={opened.download_url}><Download size={14} aria-hidden="true" /> {translate('dealer_tools', 'kit_download')}</a>
-                        <button type="button" className="button small dark" onClick={() => { setOpenedId(null); setEditingId(opened.id); }}><Pencil size={14} aria-hidden="true" /> {translate('office_website', 'edit')}</button>
-                        <button type="button" className="button small danger" onClick={() => remove(opened)}><Trash2 size={14} aria-hidden="true" /> {translate('dealer_tools', 'kit_remove')}</button>
-                    </div>
                 </Modal>
             )}
             {editing && (

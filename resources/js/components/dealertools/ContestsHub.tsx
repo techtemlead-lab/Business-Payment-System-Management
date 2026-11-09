@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { router, useForm, usePage } from '@inertiajs/react';
 import { Pencil, Plus, Trash2, Trophy } from 'lucide-react';
-import { ActionForm, Badge, DateInput, Empty, FormErrors, Modal, Table, date, money, number, type Field, type Row } from '../UI';
+import { ActionForm, DateInput, Empty, FormErrors, Modal, Table, date, money, number, type Field, type Row } from '../UI';
 import OfficePage from '../office/OfficePage';
 import { useT } from '../../shared/i18n/t';
 
@@ -156,7 +156,7 @@ function OfficeContests({ data }: { data: ContestsData }) {
                     { key: 'starts_on', title: translate('office_website', 'col_period'), sortable: true, render: (contest: Contest) => period(contest) },
                     { key: 'metric', title: translate('dealer_tools', 'contest_metric_field'), render: (contest: Contest) => metricLabel(contest.metric) },
                     { key: 'leader', title: translate('office_website', 'col_leader'), render: (contest: Contest) => contest.standings[0]?.name ?? '—' },
-                    { key: 'status', title: translate('portal', 'enquiry_status'), render: (contest: Contest) => <Badge status={contest.status} /> },
+                    { key: 'status', title: translate('portal', 'enquiry_status'), render: (contest: Contest) => <span className={`badge ${contest.status === 'running' ? 'approved' : ''}`}>{statusLabel(contest)}</span> },
                 ]}
             />
             {adding && (
@@ -165,18 +165,17 @@ function OfficeContests({ data }: { data: ContestsData }) {
                 </Modal>
             )}
             {opened && (
-                <Modal variant="drawer" title={opened.title} onClose={() => setOpenedId(null)}>
-                    <dl className="ow-lines">
+                <Modal variant="drawer" title={opened.title} onClose={() => setOpenedId(null)} footer={<>
+                        <button type="button" className="button small dark" onClick={() => { setOpenedId(null); setEditingId(opened.id); }}><Pencil size={14} aria-hidden="true" /> {translate('office_website', 'edit')}</button>
+                        <button type="button" className="button small danger" onClick={() => remove(opened)}><Trash2 size={14} aria-hidden="true" /> {translate('dealer_tools', 'contest_remove')}</button>
+                </>}>
+                    <dl className="office-facts">
                         <div><dt>{translate('portal', 'enquiry_status')}</dt><dd>{statusLabel(opened)}</dd></div>
                         <div><dt>{translate('office_website', 'col_period')}</dt><dd>{period(opened)}</dd></div>
                         <div><dt>{translate('dealer_tools', 'contest_metric_field')}</dt><dd>{metricLabel(opened.metric)}</dd></div>
                         {opened.prize_text && <div><dt>{translate('dealer_tools', 'contest_prize_field')}</dt><dd className="ptl-prewrap">{opened.prize_text}</dd></div>}
                     </dl>
                     <Standings contest={opened} metricLabel={metricLabel} />
-                    <div className="ow-drawer-actions">
-                        <button type="button" className="button small dark" onClick={() => { setOpenedId(null); setEditingId(opened.id); }}><Pencil size={14} aria-hidden="true" /> {translate('office_website', 'edit')}</button>
-                        <button type="button" className="button small danger" onClick={() => remove(opened)}><Trash2 size={14} aria-hidden="true" /> {translate('dealer_tools', 'contest_remove')}</button>
-                    </div>
                 </Modal>
             )}
             {editing && (
