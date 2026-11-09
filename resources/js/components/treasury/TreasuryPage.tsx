@@ -1,13 +1,10 @@
 import type { ReactNode } from 'react';
-import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft } from 'lucide-react';
+import { Head } from '@inertiajs/react';
 import Shell from '../Shell';
-import TreasuryTabs from './TreasuryTabs';
+import OfficePage from '../office/OfficePage';
+import { useTreasuryHub } from './TreasuryTabs';
 
-/**
- * The one shape of every Treasury page: a title, the tab strip on the five main places,
- * then the page's own row of cards and its one table.
- */
+/** A Treasury page: the shared office page shape, with the five Treasury places as its tab strip. */
 export default function TreasuryPage({ title, subtitle, back, action, showTabs = false, children }: {
     title: string;
     subtitle?: string;
@@ -16,25 +13,14 @@ export default function TreasuryPage({ title, subtitle, back, action, showTabs =
     showTabs?: boolean;
     children: ReactNode;
 }) {
+    const hub = useTreasuryHub();
+
     return (
         <Shell section="treasury">
             <Head title={title} />
-            <div className="tsy-page">
-                {back && (
-                    <Link className="tsy-back" href={back.href}>
-                        <ArrowLeft size={16} aria-hidden="true" /> {back.label}
-                    </Link>
-                )}
-                <header className="tsy-head">
-                    <div className="tsy-head-text">
-                        <h1>{title}</h1>
-                        {subtitle && <p>{subtitle}</p>}
-                    </div>
-                    {action && <div className="tsy-head-action">{action}</div>}
-                </header>
-                {showTabs && <TreasuryTabs />}
+            <OfficePage title={title} subtitle={subtitle} back={back} action={action} hub={showTabs ? hub : null}>
                 {children}
-            </div>
+            </OfficePage>
         </Shell>
     );
 }
