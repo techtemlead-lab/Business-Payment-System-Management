@@ -621,6 +621,8 @@ final class PartnerAccountProvisioning
                 $q->where('dealer_code', 'like', $prefix.'%')
                     ->orWhere('dealer_code', 'like', $legacyPrefix.'%');
             })
+            // Only regular serials count; an imported code in another shape would sort last and restart the count.
+            ->whereRaw('dealer_code ~ ?', ['-[0-9]{6}$'])
             ->orderByDesc('dealer_code')
             ->value('dealer_code');
         $next = 1;
