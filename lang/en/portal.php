@@ -6521,4 +6521,5 @@ return [
     'kyc_note_added_with_account' => 'Added with the new account',
     'acct_password_copy_failed' => 'Could not copy. Select the password and copy it by hand.',
     'acct_created_flash_no_code' => ':type account created. An email to set the password has been sent.',
+    'reward_program_additional_rank' => 'additional rank',
 ];

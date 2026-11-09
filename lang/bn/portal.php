@@ -6521,4 +6521,5 @@ return [
     'kyc_note_added_with_account' => 'অ্যাকাউন্ট তৈরির সময় যোগ করা হয়েছে',
     'acct_password_copy_failed' => 'কপি হয়নি। পাসওয়ার্ডটি নিজে সিলেক্ট করে কপি করুন।',
     'acct_created_flash_no_code' => ':type অ্যাকাউন্ট তৈরি হয়েছে। পাসওয়ার্ড ঠিক করার ইমেইল পাঠানো হয়েছে।',
+    'reward_program_additional_rank' => 'অতিরিক্ত পদবী',
 ];
