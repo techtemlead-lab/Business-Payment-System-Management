@@ -23,7 +23,7 @@ use stdClass;
  * taka of that order went. Money counts only after delivery, so a partly delivered order counts
  * only what was delivered.
  *
- * @phpstan-type OrderMoney array{order: array<string, mixed>, posting: string, no_commission: array{reason: ?string, amount: string}|null, basis: array{cash: string, mrp: string, refunded: string}|null, lines: list<array<string, mixed>>, lines_total: string, adds_up: bool}
+ * @phpstan-type OrderMoney array{order: array<string, mixed>, posting: string, no_commission: array{reason: ?string, amount: string, taken_back?: string, still_owed?: string}|null, basis: array{cash: string, mrp: string, refunded: string}|null, lines: list<array<string, mixed>>, lines_total: string, adds_up: bool}
  */
 final class OrderMoneyReport
 {
@@ -338,7 +338,7 @@ final class OrderMoneyReport
      *
      * @param  Collection<int, stdClass>  $noCommissionRows
      * @param  array<string, mixed>|null  $decision
-     * @return array{reason: ?string, amount: string}|null
+     * @return array{reason: ?string, amount: string, taken_back?: string, still_owed?: string}|null
      */
     private function noCommission(?object $batch, Collection $noCommissionRows, ?array $decision): ?array
     {
@@ -349,9 +349,13 @@ final class OrderMoneyReport
         $rowReason = $noCommissionRows->map(fn (object $row): mixed => is_string($row->metadata) ? (json_decode($row->metadata, true)['reason'] ?? null) : null)->filter()->first();
         $reason = $rowReason ?? ($decision['reason'] ?? null) ?? ($policy['no_commission']['reason'] ?? null);
 
+        // Staff chose no commission after it was posted: the money came back from the partners.
+        $moved = $noCommissionRows->map(fn (object $row): array => is_string($row->metadata) ? (array) json_decode($row->metadata, true) : [])->first(fn (array $meta): bool => isset($meta['source_allocation_id']));
+
         return [
             'reason' => is_string($reason) ? $reason : null,
             'amount' => Money::decimal($noCommissionRows->sum(fn (object $row): int => FundCatalog::centsOf($row->amount))),
+            ...array_filter(['taken_back' => $moved['taken_back'] ?? null, 'still_owed' => $moved['still_owed'] ?? null], fn (mixed $value): bool => is_string($value) && Money::cents($value) > 0),
         ];
     }
 }

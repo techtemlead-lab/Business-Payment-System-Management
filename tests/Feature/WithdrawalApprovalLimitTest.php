@@ -85,7 +85,7 @@ class WithdrawalApprovalLimitTest extends TestCase
     {
         $finance = User::factory()->staff('finance')->create(['status' => 'active']);
 
-        $this->actingAs($finance)->onPortal('manage')->get('/operations/accounting?tab=limit')
+        $this->actingAs($finance)->onPortal('manage')->get('/operations/finance-settings')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('approvalLimit.amount', '100000.00')

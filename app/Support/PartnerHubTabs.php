@@ -9,9 +9,6 @@ namespace App\Support;
 final class PartnerHubTabs
 {
     /** @var list<string> */
-    private const MoneySections = ['earnings', 'withdrawals', 'payment-receipts', 'full-report'];
-
-    /** @var list<string> */
     private const NoticeSections = ['circulars', 'notifications'];
 
     /**
@@ -24,33 +21,11 @@ final class PartnerHubTabs
         if ($isStaff) {
             return null;
         }
-        if (in_array($section, self::MoneySections, true)) {
-            return self::money($section);
-        }
         if (in_array($section, self::NoticeSections, true)) {
             return self::notices($section);
         }
 
         return null;
-    }
-
-    /**
-     * "আমার টাকা": earnings, withdrawals, payment receipts and every record together.
-     *
-     * @return array{title: string, active: string, tabs: list<array{key: string, path: string, label: string}>}
-     */
-    public static function money(string $active): array
-    {
-        return [
-            'title' => __('partner_hub.money_title'),
-            'active' => $active,
-            'tabs' => [
-                ['key' => 'earnings', 'path' => '/earnings', 'label' => __('partner_hub.tab_earnings')],
-                ['key' => 'withdrawals', 'path' => '/withdrawals', 'label' => __('partner_hub.tab_withdrawals')],
-                ['key' => 'payment-receipts', 'path' => '/payment-receipts', 'label' => __('partner_hub.tab_receipts')],
-                ['key' => 'full-report', 'path' => '/full-report', 'label' => __('partner_hub.tab_all_records')],
-            ],
-        ];
     }
 
     /**

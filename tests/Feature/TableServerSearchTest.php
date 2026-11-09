@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Domain\Commissions\RetainedFundLedger;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Order;
 use App\Models\User;
@@ -59,23 +58,6 @@ class TableServerSearchTest extends TestCase
         $this->assertSame('Karim Traders', $byName['data'][0]['name']);
         $this->assertSame(1, $this->sectionData('/partnerships?status=rejected')['applications']['total']);
         $this->assertSame(22, $this->sectionData('/partnerships?status=pending')['applications']['total']);
-    }
-
-    public function test_benefits_fund_search_and_status_cover_every_page(): void
-    {
-        $buyer = User::factory()->dealer()->create(['name' => 'Benefit Buyer']);
-        foreach (range(1, 27) as $index) {
-            $this->benefitsEntry($this->order($buyer, 'ORD-B-'.$index), 'reserved');
-        }
-        $other = User::factory()->dealer()->create(['name' => 'Selim Store']);
-        $this->benefitsEntry($this->order($other, 'ORD-SELIM-1'), 'reversed', now()->subYear());
-
-        $byBuyer = $this->sectionData('/benefits-fund?q=selim')['benefits_entries'];
-        $this->assertSame(1, $byBuyer['total']);
-        $this->assertSame('ORD-SELIM-1', $byBuyer['data'][0]['order_number']);
-        $this->assertSame(1, $this->sectionData('/benefits-fund?q=ord-selim')['benefits_entries']['total']);
-        $this->assertSame(1, $this->sectionData('/benefits-fund?status=reversed')['benefits_entries']['total']);
-        $this->assertSame(27, $this->sectionData('/benefits-fund?status=reserved')['benefits_entries']['total']);
     }
 
     public function test_operations_tables_search_and_filter_each_table_on_the_server(): void
@@ -153,20 +135,6 @@ class TableServerSearchTest extends TestCase
             'paid' => '100.00',
             'idempotency_key' => (string) Str::uuid(),
             'payload_hash' => hash('sha256', Str::random()),
-        ]);
-    }
-
-    private function benefitsEntry(Order $order, string $status, $createdAt = null): void
-    {
-        DB::table('commission_allocations')->insert([
-            'order_id' => $order->id,
-            'category' => RetainedFundLedger::BenefitsCategory,
-            'rate_percentage' => '0.00',
-            'cash_basis' => '100.00',
-            'amount' => '5.00',
-            'status' => $status,
-            'created_at' => $createdAt ?? now(),
-            'updated_at' => $createdAt ?? now(),
         ]);
     }
 }

@@ -3,12 +3,14 @@
 namespace Tests\Feature;
 
 use App\Domain\Commissions\CommissionPosting;
+use App\Domain\Commissions\RetainedFundLedger;
 use App\Domain\Orders\OrderService;
 use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
+use Illuminate\Testing\Fluent\AssertableJson;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -43,40 +45,29 @@ class RetainedFundDetailsTest extends TestCase
         $order->refresh()->update(['paid' => $order->total, 'status' => 'delivered']);
         app(CommissionPosting::class)->process($order->fresh());
 
-        $this->actingAs($finance)->onPortal('manage')->get('/treasury')
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->has('data.retained_fund_details.company_profit')
-                ->has('data.retained_fund_details.company_share_batches', 1)
-                ->where('data.retained_fund_details.company_share_batches.0.order_number', $order->number)
-                ->where('data.retained_fund_details.company_share_batches.0.company_share', '60.00')
-                ->where('data.retained_fund_details.company_share_batches.0.division', 'Rangpur')
+        $this->assertDetails(app(RetainedFundLedger::class)->detail(false), fn (AssertableJson $page) => $page
+            ->has('data.retained_fund_details.company_profit')
+            ->has('data.retained_fund_details.company_share_batches', 1)
+            ->where('data.retained_fund_details.company_share_batches.0.order_number', $order->number)
+            ->where('data.retained_fund_details.company_share_batches.0.company_share', '60.00')
+            ->where('data.retained_fund_details.company_share_batches.0.division', 'Rangpur')
                 // Owner rule: an area level with no dealer seat is company profit at order time.
-                ->where('data.retained_fund_details.company_profit', fn ($rows): bool => collect($rows)->contains(fn ($row): bool => ($row['district'] ?? null) === 'Pirganj' && $row['amount'] === '2.40'))
-                ->where('data.flow.gross_cash_inflow', 120)
-                ->where('data.flow.dealer_cash_inflow', 120)
-                ->where('data.flow.sub_dealer_cash_inflow', 0)
-                ->missing('data.retained_fund_details.company_share_batches.0.batch_unallocated')
-                ->missing('data.retained_fund_details.benefits_fund.0'));
+            ->where('data.retained_fund_details.company_profit', fn ($rows): bool => collect($rows)->contains(fn ($row): bool => ($row['district'] ?? null) === 'Pirganj' && $row['amount'] === '2.40'))
+            ->missing('data.retained_fund_details.company_share_batches.0.batch_unallocated')
+            ->missing('data.retained_fund_details.benefits_fund.0'));
 
         $owner = User::factory()->create(['role' => 'super_admin']);
-        $this->actingAs($owner)->onPortal('sadmin')->get('/treasury')
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->has('data.retained_fund_details.benefits_fund', 1)
-                ->where('data.retained_fund_details.benefits_fund.0.amount', '12.00')
-                ->where('data.retained_fund_details.benefits_fund.0.buyer_name', $buyer->name));
+        $this->assertDetails(app(RetainedFundLedger::class)->detail(true), fn (AssertableJson $page) => $page
+            ->has('data.retained_fund_details.benefits_fund', 1)
+            ->where('data.retained_fund_details.benefits_fund.0.amount', '12.00')
+            ->where('data.retained_fund_details.benefits_fund.0.buyer_name', $buyer->name));
 
-        $this->actingAs($owner)->onPortal('sadmin')->get('/benefits-fund')
+        $this->actingAs($owner)->onPortal('sadmin')->get('/treasury/funds/benefits?period=')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->has('data.benefits_entries.data', 1)
-                ->where('data.benefits_entries.data.0.amount', '12.00')
-                ->where('data.benefits_entries.data.0.company_share', '60.00')
-                ->where('data.benefits_entries.data.0.total_allocated', '48.00')
-                ->where('data.benefits_entries.data.0.division', 'Rangpur')
-                ->where('data.benefits_entries.data.0.district', 'Pirganj')
-                ->where('data.benefits_entries.data.0.reason', __('portal.retained_reason_benefits_surplus', ['account' => __('portal.retained_account_dealer')])));
+                ->has('table.rows.data', 1)
+                ->where('table.rows.data.0.amount', '12.00')
+                ->where('table.rows.data.0.order_number', $order->number));
     }
 
     public function test_sub_dealer_purchases_post_detailed_unassigned_and_benefits_fund_rows(): void
@@ -120,23 +111,25 @@ class RetainedFundDetailsTest extends TestCase
         ]);
 
         $owner = User::factory()->create(['role' => 'super_admin']);
-        $this->actingAs($owner)->onPortal('sadmin')->get('/treasury')
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->where('data.retained_fund_details.company_share_batches.0.buyer_role', 'sub_dealer')
-                ->where('data.retained_fund_details.company_profit', fn ($rows): bool => collect($rows)->contains(fn ($row): bool => ($row['buyer_role'] ?? null) === 'sub_dealer' && $row['amount'] === '2.80'))
-                ->where('data.retained_fund_details.benefits_fund.0.amount', '10.00')
-                ->where('data.retained_fund_details.benefits_fund.0.buyer_role', 'sub_dealer')
-                ->where('data.flow.gross_cash_inflow', 140)
-                ->where('data.flow.sub_dealer_cash_inflow', 140));
+        $this->assertDetails(app(RetainedFundLedger::class)->detail(true), fn (AssertableJson $page) => $page
+            ->where('data.retained_fund_details.company_share_batches.0.buyer_role', 'sub_dealer')
+            ->where('data.retained_fund_details.company_profit', fn ($rows): bool => collect($rows)->contains(fn ($row): bool => ($row['buyer_role'] ?? null) === 'sub_dealer' && $row['amount'] === '2.80'))
+            ->where('data.retained_fund_details.benefits_fund.0.amount', '10.00')
+            ->where('data.retained_fund_details.benefits_fund.0.buyer_role', 'sub_dealer'));
 
-        $this->actingAs($owner)->onPortal('sadmin')->get('/benefits-fund')
+        $this->actingAs($owner)->onPortal('sadmin')->get('/treasury/funds/benefits?period=')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('data.benefits_entries.data.0.buyer_role', 'sub_dealer')
-                ->where('data.benefits_entries.data.0.amount', '10.00')
-                ->where('data.benefits_entries.data.0.company_share', '60.00')
-                ->where('data.benefits_entries.data.0.total_allocated', '70.00')
-                ->where('data.benefits_entries.data.0.reason', __('portal.retained_reason_benefits_surplus', ['account' => __('portal.retained_account_sub_dealer')])));
+                ->where('table.rows.data.0.partner_role', 'sub_dealer')
+                ->where('table.rows.data.0.amount', '10.00'));
+    }
+
+    /**
+     * @param  array<string, mixed>  $details
+     * @param  \Closure(AssertableJson): mixed  $assertions
+     */
+    private function assertDetails(array $details, \Closure $assertions): void
+    {
+        $assertions(AssertableJson::fromArray(['data' => ['retained_fund_details' => json_decode((string) json_encode($details), true)]]));
     }
 }

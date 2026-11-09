@@ -2,7 +2,7 @@ import { Link, usePage } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
 import {
     ArrowUpRight, ShoppingBag, Package, Truck, Wallet, Users, ShieldCheck, FileText, Bell, Settings,
-    GitBranch, Coins, BadgeCheck, Target, Bike, TrendingUp, Share2, Copy, Check, FileBarChart2, Plane,
+    GitBranch, Coins, BadgeCheck, Target, Bike, TrendingUp, Share2, Copy, Check, FileBarChart2, Landmark, Plane,
     Phone, MessageCircle, ListChecks, BarChart3, Banknote, Boxes, UserPlus, History,
 } from 'lucide-react';
 import IncomeCards from './mymoney/IncomeCards';
@@ -155,13 +155,9 @@ const QUICK_ACTIONS: QuickAction[] = [
     { section: 'orders', label: 'ph_qa_my_orders', icon: ListChecks, tone: 'blue' },
     { section: 'deliveries', label: 'ph_qa_deliveries', icon: Truck, tone: 'amber' },
     { section: 'my-money', label: 'title', icon: Wallet, tone: 'rose', wordGroup: 'my_money' },
-    { section: 'withdrawals', label: 'ph_qa_withdraw', icon: Wallet, tone: 'rose' },
-    { section: 'earnings', label: 'ph_qa_earnings', icon: Coins, tone: 'green' },
     { section: 'network', label: 'ph_qa_team', icon: Users, tone: 'blue' },
-    { section: 'salary', label: 'ph_qa_salary', icon: BadgeCheck, tone: 'amber' },
     { section: 'ranks', label: 'ph_qa_ranks', icon: Target, tone: 'rose' },
     { section: 'catalog', label: 'ph_qa_products', icon: Package, tone: 'green' },
-    { section: 'full-report', label: 'ph_qa_report', icon: FileBarChart2, tone: 'blue' },
     { section: 'help', label: 'ph_qa_help', icon: MessageCircle, tone: 'amber' },
 ];
 
@@ -185,7 +181,7 @@ function QuickActions({ base }: { base: string }) {
     );
 }
 
-function PartnerHome({ home, orders, tools, moneyCards = [] }: { home: Row; orders: React.ReactNode; tools?: Row; moneyCards?: IncomeCard[] }) {
+function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: React.ReactNode; tools?: Row; moneyCards?: IncomeCard[] }) {
     const { portalBase: base } = usePage<any>().props;
     const translate = useT();
     const profile = home.profile ?? {};
@@ -484,9 +480,10 @@ const OFFICE_TILES: OfficeTile[] = [
     { section: 'catalog', label: 'admin_tile_catalog', hint: 'admin_tile_catalog_hint', icon: Package, tone: 'blue' },
     { section: 'accounts', label: 'admin_tile_accounts', hint: 'admin_tile_accounts_hint', icon: Users, tone: 'amber' },
     { section: 'partnerships', label: 'admin_tile_partnerships', hint: 'admin_tile_partnerships_hint', icon: UserPlus, tone: 'rose' },
+    { section: 'treasury', label: 'treasury', icon: Landmark, tone: 'amber' },
+    { section: 'treasury-orders', label: 'admin_tile_reports', hint: 'admin_tile_reports_hint', icon: FileBarChart2, tone: 'green' },
     { section: 'financial-reports', label: 'admin_tile_reports', hint: 'admin_tile_reports_hint', icon: FileBarChart2, tone: 'green' },
     { section: 'top-sellers', label: 'top_sellers', icon: TrendingUp, tone: 'blue' },
-    { section: 'ledger', label: 'admin_tile_ledger', hint: 'admin_tile_ledger_hint', icon: FileText, tone: 'amber' },
     { section: 'policies', label: 'admin_tile_policies', hint: 'admin_tile_policies_hint', icon: ShieldCheck, tone: 'rose' },
     { section: 'enquiries', label: 'admin_tile_enquiries', hint: 'admin_tile_enquiries_hint', icon: MessageCircle, tone: 'green' },
     { section: 'content', label: 'admin_tile_content', hint: 'admin_tile_content_hint', icon: FileText, tone: 'blue' },
@@ -500,7 +497,7 @@ function OfficeTiles({ base }: { base: string }) {
     const catalogSections: string[] = portalCatalog?.sections ?? [];
     const available = buildStaffAvailable({ capabilities: auth.capabilities ?? [], role: auth.user?.role ?? '', ownerPortal: portal === 'sadmin', chatAnswerer: Boolean(auth.chatAnswerer) });
     const offered = new Set(pick(available, OFFICE_TILES.map((tile) => tile.section)));
-    const tiles = OFFICE_TILES.filter((tile) => offered.has(tile.section) && (catalogSections.length === 0 || catalogSections.includes(tile.section) || OPERATIONS_SECTIONS.has(tile.section)));
+    const tiles = OFFICE_TILES.filter((tile) => offered.has(tile.section) && (catalogSections.length === 0 || catalogSections.includes(tile.section) || OPERATIONS_SECTIONS.has(tile.section) || tile.section.startsWith('treasury')));
     if (tiles.length === 0) {
         return null;
     }
@@ -658,7 +655,7 @@ export default function DashboardOverview({ data, orders }: { data: Row; orders:
     const staff = caps.length > 0;
 
     if (data.partner_home && (u.role === 'dealer' || u.role === 'sub_dealer')) {
-        return <PartnerHome home={data.partner_home} orders={orders} tools={data.partner_tools} moneyCards={data.money_cards ?? []} />;
+        return <PartnerHome home={data.partner_home} orders={orders} tools={data.partner_tools} moneyCards={data.money_cards} />;
     }
     if (data.admin_home && staff) {
         return <AdminHome home={data.admin_home} data={data} orders={orders} />;
@@ -669,7 +666,7 @@ export default function DashboardOverview({ data, orders }: { data: Row; orders:
     const cards = [
         { route: 'catalog', name: translate('portal','dash_card_catalog'), description: translate('portal','dash_card_catalog_desc'), icon: Package, show: true },
         { route: 'orders', name: translate('portal','dash_card_orders'), description: translate('portal','dash_card_orders_desc'), icon: ShoppingBag, show: commerce },
-        { route: 'earnings', name: translate('portal','nav_my_earnings'), description: translate('portal','dash_card_earnings_desc'), icon: Coins, show: !staff },
+        { route: 'my-money', name: translate('portal','nav_my_earnings'), description: translate('portal','dash_card_earnings_desc'), icon: Coins, show: !staff },
         { route: 'network', name: translate('portal','dash_card_network'), description: translate('portal','dash_card_network_desc'), icon: GitBranch, show: u.role === 'dealer' },
         { route: 'ranks', name: translate('portal','dash_card_ranks'), description: translate('portal','dash_card_ranks_desc'), icon: BadgeCheck, show: u.role === 'dealer' },
         { route: 'profile', name: translate('portal','dash_card_profile'), description: translate('portal','dash_card_profile_desc'), icon: Users, show: true },

@@ -52,32 +52,29 @@ class WithdrawalHistoryFilterTest extends TestCase
 
         $this->actingAs($owner)->onPortal('sadmin')->get('/payouts-hub?q=WD-DEALER-1')->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->has('data.withdrawals.data', 1)
-                ->where('data.withdrawals.data.0.user_name', 'History Dealer')
-                ->where('data.withdrawals.data.0.phone', '01715550021')
-                ->where('data.withdrawals.data.0.district', 'Bogura')
-                ->where('data.withdrawals.data.0.division', 'Rajshahi')
-                ->where('data.withdrawals.data.0.net_amount', '190.00')
-                ->where('data.withdrawals.data.0.withheld_amount', '10.00')
-                ->where('data.withdrawals.data.0.destination_masked', '•••••••2222')
-                ->missing('data.withdrawals.data.0.destination')
+                ->has('data.payouts_table.rows.data', 1)
+                ->where('data.payouts_table.rows.data.0.user_name', 'History Dealer')
+                ->where('data.payouts_table.rows.data.0.phone', '01715550021')
+                ->where('data.payouts_table.rows.data.0.district', 'Bogura')
+                ->where('data.payouts_table.rows.data.0.division', 'Rajshahi')
+                ->where('data.payouts_table.rows.data.0.net_amount', '190.00')
+                ->where('data.payouts_table.rows.data.0.withheld_amount', '10.00')
+                ->where('data.payouts_table.rows.data.0.destination_masked', '•••••••2222')
+                ->missing('data.payouts_table.rows.data.0.destination')
                 ->where('filters.q', 'WD-DEALER-1'));
 
         $this->actingAs($owner)->onPortal('sadmin')->get('/payouts-hub?buyer_role=sub_dealer&status=paid&channel=Bank')->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->has('data.withdrawals.data', 1)
-                ->where('data.withdrawals.data.0.payment_reference', 'WD-SUB-1')
-                ->where('data.withdrawals.data.0.role', 'sub_dealer'));
+                ->has('data.payouts_table.rows.data', 1)
+                ->where('data.payouts_table.rows.data.0.payment_reference', 'WD-SUB-1')
+                ->where('data.payouts_table.rows.data.0.role', 'sub_dealer'));
 
         $this->actingAs($owner)->onPortal('sadmin')->get('/payouts-hub?period=year')->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->has('data.withdrawals.data', 1)
-                ->where('data.withdrawals.data.0.payment_reference', 'WD-DEALER-1'));
+                ->has('data.payouts_table.rows.data', 1)
+                ->where('data.payouts_table.rows.data.0.payment_reference', 'WD-DEALER-1'));
 
-        $this->actingAs($dealer)->onPortal('dealer')->get('/withdrawals')->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->has('data.withdrawals.data', 1)
-                ->where('data.withdrawals.data.0.payment_reference', 'WD-DEALER-1'));
+        $this->actingAs($dealer)->onPortal('dealer')->get('/withdrawals')->assertRedirect('/my-money');
     }
 
     /**

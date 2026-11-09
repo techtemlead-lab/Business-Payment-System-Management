@@ -90,6 +90,8 @@ return [
     'posting_waiting' => 'ডেলিভারি হলে কমিশন ভাগ হবে',
     'posting_part_delivered' => 'ডেলিভারি হওয়া অংশের উপর ভাগ হয়েছে',
     'posting_no_commission' => 'কমিশন দেওয়া হয়নি',
+    'posting_taken_back' => 'পার্টনারদের কাছ থেকে ফেরত নেওয়া: :amount',
+    'posting_still_owed' => 'পার্টনারদের কাছে এখনো পাওনা: :amount',
     'of_paid' => 'দামের',
     'of_mrp' => 'এমআরপির',
 
@@ -196,7 +198,8 @@ return [
     'empty_partners' => 'কোনো পার্টনার পাওয়া যায়নি',
     'posting_part' => 'ডেলিভারি হওয়া অংশের উপর ভাগ হয়েছে',
     'work_waiting' => 'অপেক্ষায়',
-    'work_heads' => 'খরচের খাত ও বাজেট',
+    'work_heads' => 'খরচের খাত',
+    'work_budgets' => 'বাজেট',
     'approvals_title' => 'খরচ অনুমোদন (:count)',
     'approval_title' => 'খরচ অনুমোদন',
     'approvals_empty' => 'অনুমোদনের জন্য কোনো খরচ অপেক্ষায় নেই',

@@ -63,9 +63,7 @@ export const orderStatuses=['submitted','held','approved','partially_dispatched'
 /** The Deliveries list only holds orders with goods still to send (OrderListFilter::AwaitingDispatch), plus the overdue view. */
 export const deliveryStatuses=['overdue_delivery','approved','partially_dispatched','dispatched'];
 export const claimStatuses=['pending','verified','rejected'];
-export const withdrawalStatuses=['requested','approved','rejected','paid'];
 export const accountStatuses=['active','pending','suspended','closed'];
-export const paymentChannels=['Bank','bKash','Nagad','Rocket'];
 /**
  * Status tabs with counts above a list (orders, payments, withdrawals — as in Shopify
  * or Daraz Seller Center): one click switches status and keeps the other filters.
@@ -141,7 +139,7 @@ export function Filter({section,filters,actions,selects=[]}:{section:string,filt
  const staff=portal==='manage'||portal==='sadmin';
  const listsOrders=['orders','deliveries','reports'].includes(section);
  const isAccountSection=['accounts','sub-dealers'].includes(section);
- const showListFilters=listsOrders||['payments','withdrawals','ledger','audit','inventory'].includes(section)||isAccountSection;
+ const showListFilters=listsOrders||section==='inventory'||isAccountSection;
  const [q,setQ]=useState(filters.q??'');
  const [from,setFrom]=useState(String(filters.from||''));
  const [to,setTo]=useState(String(filters.to||''));
@@ -179,16 +177,15 @@ export function Filter({section,filters,actions,selects=[]}:{section:string,filt
   {value:'custom',label:translate('portal','orders_period_custom')},
  ];
  const filtered=Boolean(filters.q||filters.buyer_role||filters.status||filters.channel||filters.period||filters.from||filters.to||selects.some(select=>filters[select.name]));
- const statusChoices=section==='payments'?claimStatuses:section==='withdrawals'?withdrawalStatuses:isAccountSection?accountStatuses:section==='deliveries'?deliveryStatuses:orderStatuses;
+ const statusChoices=isAccountSection?accountStatuses:section==='deliveries'?deliveryStatuses:orderStatuses;
  return <form className="filter-bar order-filters" onSubmit={e=>{e.preventDefault();apply({q,buyer_role:buyerRole})}}>
   <div className="order-search">
-   <div className="search-input"><Search size={16}/><input aria-label={translate('portal','search_records')} placeholder={translate('portal',section==='ledger'?'ledger_search_hint':section==='audit'?'audit_search_hint':section==='inventory'?'inv_search_hint':'search_by_name_or_reference')} value={q} onChange={e=>setQ(e.target.value)}/></div>
+   <div className="search-input"><Search size={16}/><input aria-label={translate('portal','search_records')} placeholder={translate('portal',section==='inventory'?'inv_search_hint':'search_by_name_or_reference')} value={q} onChange={e=>setQ(e.target.value)}/></div>
    <button className="button small dark" type="submit">{translate('portal','search')}</button>
   </div>
   {staff&&['orders','payments','withdrawals'].includes(section)&&<select className="order-partner-select" data-tour="orders-buyer-role" aria-label={translate('portal','orders_filter_all')} value={buyerRole} onChange={e=>apply({buyer_role:e.target.value})}><option value="">{translate('portal','orders_filter_all')}</option><option value="dealer">{section==='withdrawals'?translate('portal','wd_filter_dealers'):translate('portal','orders_filter_dealers')}</option><option value="sub_dealer">{section==='withdrawals'?translate('portal','wd_filter_sub_dealers'):translate('portal','orders_filter_sub_dealers')}</option></select>}
   {showListFilters&&!isAccountSection&&<select className="order-period-select" data-tour="orders-period" aria-label={translate('portal','orders_period_all')} value={periodChoice} onChange={e=>{const next=e.target.value;setPeriodChoice(next);apply({period:next});}}>{periods.map(option=><option key={option.value||'all-dates'} value={option.value}>{option.label}</option>)}</select>}
   {showListFilters&&!['orders','payments','withdrawals','accounts','sub-dealers','ledger','audit','inventory'].includes(section)&&<select className="order-status-select" aria-label={translate('portal','orders_filter_status')} value={status} onChange={e=>apply({status:e.target.value})}><option value="">{translate('portal','orders_filter_status')}</option>{statusChoices.map(item=><option key={item} value={item}>{label(item,translate)}</option>)}</select>}
-  {(section==='payments'||section==='withdrawals')&&<select className="order-channel-select" aria-label={translate('portal','pay_filter_channel')} value={channel} onChange={e=>apply({channel:e.target.value})}><option value="">{translate('portal','pay_filter_channel')}</option>{paymentChannels.map(item=><option key={item} value={item}>{translate('portal',item==='Bank'?'pay_channel_bank':item==='bKash'?'pay_channel_bkash':item==='Nagad'?'pay_channel_nagad':'pay_channel_rocket')}</option>)}</select>}
   {selects.map(select=><select key={select.name} className="order-extra-select" aria-label={select.label} value={String(filters[select.name]??'')} onChange={e=>apply({[select.name]:e.target.value,...Object.fromEntries((select.resets??[]).map(name=>[name,'']))})}><option value="">{select.label}</option>{select.options.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select>)}
   {showListFilters&&periodChoice==='day'&&<div className="order-dates"><DateInput aria-label={translate('portal','orders_period_day')} value={from} onChange={e=>{setFrom(e.target.value);if(/^\d{4}-\d{2}-\d{2}$/.test(e.target.value))apply({period:'day',from:e.target.value});}}/></div>}
   {showListFilters&&periodChoice==='custom'&&<div className="order-dates"><DateInput aria-label={translate('portal','orders_period_custom')} value={from} onChange={e=>{setFrom(e.target.value);if(/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)&&/^\d{4}-\d{2}-\d{2}$/.test(to))apply({period:'custom',from:e.target.value,to});}}/><DateInput aria-label={translate('portal','orders_period_custom')} value={to} onChange={e=>{setTo(e.target.value);if(/^\d{4}-\d{2}-\d{2}$/.test(from)&&/^\d{4}-\d{2}-\d{2}$/.test(e.target.value))apply({period:'custom',from,to:e.target.value});}}/></div>}

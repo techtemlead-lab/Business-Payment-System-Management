@@ -28,63 +28,6 @@ class PartnerMoneySupportHubTest extends TestCase
     /**
      * @return array<string, array{0: string, 1: string}>
      */
-    public static function moneyRoutes(): array
-    {
-        return [
-            'earnings' => ['/earnings', 'earnings'],
-            'withdrawals' => ['/withdrawals', 'withdrawals'],
-            'payment receipts' => ['/payment-receipts', 'payment-receipts'],
-            'full report' => ['/full-report', 'full-report'],
-        ];
-    }
-
-    #[DataProvider('moneyRoutes')]
-    public function test_every_old_money_address_opens_its_tab(string $path, string $tab): void
-    {
-        $this->actingAs($this->dealer())->onPortal('dealer')
-            ->get($path)
-            ->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->component('portals/dealer/Dashboard')
-                ->where('section', $tab)
-                ->where('data.partner_hub.active', $tab)
-                ->where('data.partner_hub.title', 'My money')
-                ->missing('data.hub')
-                ->where('data.partner_hub.tabs', fn ($tabs) => collect($tabs)->pluck('path')->all() === ['/earnings', '/withdrawals', '/payment-receipts', '/full-report']));
-    }
-
-    public function test_statement_opens_the_all_records_tab_for_dealers_and_sub_dealers(): void
-    {
-        $this->actingAs($this->dealer())->onPortal('dealer')
-            ->get('/statement')
-            ->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->component('PartnerStatement')
-                ->where('partner_hub.active', 'full-report')
-                ->where('staffView', false));
-
-        $subDealer = User::factory()->create(['role' => 'sub_dealer', 'status' => 'active', 'dealer_code' => 'MNHC-SUB1', 'phone' => '01710000102']);
-        $this->actingAs($subDealer)->onPortal('subdealer')
-            ->get('/statement')
-            ->assertOk()
-            ->assertInertia(fn ($page) => $page->component('PartnerStatement')->where('partner_hub.active', 'full-report'));
-    }
-
-    public function test_money_tabs_keep_the_figures_each_tab_needs(): void
-    {
-        $this->actingAs($this->dealer())->onPortal('dealer')
-            ->get('/earnings')
-            ->assertInertia(fn ($page) => $page
-                ->has('data.earnings')
-                ->has('data.wallet_statement')
-                ->has('data.settlement_payouts')
-                ->has('data.withdrawal_balances')
-                ->has('data.period_totals.commission'));
-    }
-
-    /**
-     * @return array<string, array{0: string, 1: string}>
-     */
     public static function noticeRoutes(): array
     {
         return [
@@ -292,7 +235,7 @@ class PartnerMoneySupportHubTest extends TestCase
     public function test_partner_pages_receive_the_new_labels(): void
     {
         $this->actingAs($this->dealer())->onPortal('dealer')
-            ->get('/earnings')
+            ->get('/circulars')
             ->assertInertia(fn ($page) => $page->where('translations.partner_hub.money_title', 'My money'));
     }
 }

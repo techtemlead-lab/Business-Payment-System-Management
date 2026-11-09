@@ -64,21 +64,12 @@ class UserManualGuideTest extends TestCase
     public function test_prerequisite_helper_blocks_withdrawals_until_orders_exist(): void
     {
         $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active', 'phone' => '01710000000']);
-        $guide = app(GuidePrerequisites::class)->forSection($dealer, 'withdrawals');
+        $guide = app(GuidePrerequisites::class)->forSection($dealer, 'my-money');
 
         $this->assertFalse($guide['ready']);
         $this->assertNotEmpty($guide['missing']);
         $this->assertContains('orders', collect($guide['missing'])->pluck('key')->all());
         $this->assertContains('catalog', collect($guide['missing'])->pluck('key')->all());
-
-        $this->actingAs($dealer)
-            ->onPortal('dealer')
-            ->get('/withdrawals')
-            ->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->where('section', 'withdrawals')
-                ->where('data.guide_prerequisites.ready', false)
-                ->where('data.guide_prerequisites.message', fn ($message) => is_string($message) && $message !== ''));
 
         Order::create([
             'user_id' => $dealer->id,
@@ -90,7 +81,7 @@ class UserManualGuideTest extends TestCase
             'payload_hash' => hash('sha256', 'MANUAL-1'),
         ]);
 
-        $after = app(GuidePrerequisites::class)->forSection($dealer->fresh(), 'withdrawals');
+        $after = app(GuidePrerequisites::class)->forSection($dealer->fresh(), 'my-money');
         $this->assertFalse(collect($after['missing'])->contains(fn ($row) => $row['key'] === 'orders'));
     }
 
@@ -150,7 +141,8 @@ class UserManualGuideTest extends TestCase
 
         $this->assertArrayHasKey('network', $dealerDefs);
         $this->assertArrayNotHasKey('salary', $dealerDefs);
-        $this->assertArrayHasKey('salary', $subDefs);
+        $this->assertArrayNotHasKey('salary', $subDefs);
+        $this->assertArrayHasKey('my-money', $subDefs);
         $this->assertArrayNotHasKey('network', $subDefs);
         $this->assertGreaterThanOrEqual(5, count($dealerDefs['overview']['steps']));
         $this->assertNotEmpty($dealerDefs['overview']['steps'][0]['tip'] ?? null);
@@ -161,7 +153,7 @@ class UserManualGuideTest extends TestCase
         $this->assertArrayNotHasKey('earnings', $staffDefs);
 
         $this->assertArrayHasKey('treasury', $ownerDefs);
-        $this->assertArrayHasKey('benefits-fund', $ownerDefs);
+        $this->assertArrayNotHasKey('benefits-fund', $ownerDefs);
     }
 
     public function test_every_dashboard_tour_step_has_bangla_and_english_text_and_a_live_target(): void

@@ -11,6 +11,8 @@ use App\Domain\Finance\FundSpending;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Finance\ReportData;
 use App\Domain\Finance\ReserveService;
+use App\Domain\Finance\TreasuryAccess;
+use App\Domain\Finance\WithdrawalApprovalLimit;
 use App\Domain\Integrations\IntegrationSettings;
 use App\Domain\Security\SelfApproval;
 use App\Domain\Staff\StaffPermissions;
@@ -23,6 +25,7 @@ use App\Support\OfficeHubs;
 use App\Support\ProductVideo;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -55,7 +58,7 @@ class OperationsController extends Controller
 
     public const Sections = ['field-sales', 'staff-operations', 'payroll', 'my-payroll', 'payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'financial-reports', 'finance-settings', 'access-management', 'video-marketing'];
 
-    public function index(Request $request, string $section): Response|JsonResponse
+    public function index(Request $request, string $section): Response|JsonResponse|RedirectResponse
     {
         $actor = $request->user();
         $capability = match ($section) {
@@ -64,6 +67,10 @@ class OperationsController extends Controller
             'financial-reports' => $actor->allows('finance') ? 'finance' : ($actor->allows('field_sales') ? 'field_sales' : 'reports'), default => 'finance'
         };
         abort_unless(in_array($section, self::Sections, true) && $actor->staff() && ($capability === null || $actor->allows($capability)), 403);
+        if ($section === 'financial-reports' && TreasuryAccess::mayOpenOrders($actor)) {
+            // Field staff cannot open the money report, so they keep this list of their files.
+            return redirect(OfficeHubs::OrderReport, 301);
+        }
         $request->validate(['q' => 'nullable|string|max:100']);
         $tables = [];
         $data = ['section' => $section, 'tables' => [], 'paymentAccounts' => [], 'partners' => [], 'staff' => [], 'summary' => [], 'partnerSearch' => (string) $request->string('q')];
@@ -161,6 +168,7 @@ class OperationsController extends Controller
             $data['autoApproval'] = app(FinanceSettings::class)->autoApproval();
             $data['kycBeforeFirstWithdrawal'] = [...app(FinanceSettings::class)->kycBeforeFirstWithdrawal(), 'can_edit' => $actor->owner()];
             $data['fullPaymentWhenOrdering'] = [...app(FinanceSettings::class)->fullPaymentWhenOrdering(), 'can_edit' => $actor->owner()];
+            $data['approvalLimit'] = [...app(WithdrawalApprovalLimit::class)->current(), 'default' => WithdrawalApprovalLimit::DefaultAmount, 'can_edit' => $actor->owner()];
         }
         if ($section === 'access-management') {
             abort_unless($actor->role === 'super_admin', 403);

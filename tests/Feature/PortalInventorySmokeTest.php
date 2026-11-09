@@ -23,7 +23,7 @@ class PortalInventorySmokeTest extends TestCase
     {
         return [
             '/', '/orders', '/purchase', '/catalog', '/deliveries',
-            '/network', '/ranks', '/earnings', '/full-report', '/withdrawals',
+            '/network', '/ranks', '/my-money',
             '/profile', '/security', '/notifications', '/circulars', '/help',
         ];
     }
@@ -35,7 +35,7 @@ class PortalInventorySmokeTest extends TestCase
     {
         return [
             '/', '/orders', '/purchase', '/catalog', '/deliveries',
-            '/salary', '/earnings', '/full-report', '/withdrawals',
+            '/my-money',
             '/profile', '/security', '/notifications', '/circulars', '/help',
         ];
     }
@@ -49,16 +49,16 @@ class PortalInventorySmokeTest extends TestCase
             '/', '/employees', '/operations/staff-operations', '/operations/payroll', '/operations/my-payroll',
             '/operations/field-sales', '/operations/access-management',
             '/orders', '/deliveries',
-            '/treasury', '/payments', '/operations/payment-accounts', '/ledger',
-            '/operations/policy-schedules', '/operations/commission-holds', '/settlements', '/rewards', '/payouts-hub',
+            '/treasury/funds', '/treasury/orders', '/treasury/events', '/treasury/partners', '/treasury/work', '/payments', '/operations/payment-accounts',
+            '/operations/policy-schedules', '/operations/commission-holds', '/settlements', '/payouts-hub',
             '/operations/reserve-payouts', '/operations/finance-settings', '/operations/financial-readiness',
             '/catalog', '/inventory', '/branches', '/branch-performance', '/place-codes',
-            '/operations/financial-reports', '/dashboards', '/operations/data-imports',
+            '/dashboards', '/operations/data-imports',
             '/website', '/content', '/operations/video-marketing', '/enquiries', '/operations/service-integrations',
             '/audit', '/support-admin',
             '/profile', '/security', '/notifications', '/help',
             '/accounts', '/partnerships', '/commissions', '/policies', '/simulator', '/network-tree', '/area-dealers', '/ranks',
-            '/sub-dealers', '/sub-dealer-orders', '/salary',
+            '/sub-dealers', '/sub-dealer-orders',
         ];
     }
 
@@ -86,7 +86,7 @@ class PortalInventorySmokeTest extends TestCase
     {
         $owner = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
 
-        foreach ([...$this->staffCompanySections(), '/benefits-fund'] as $path) {
+        foreach ([...$this->staffCompanySections(), '/treasury/funds/benefits'] as $path) {
             $response = $this->actingAs($owner)->onPortal('sadmin')->get($path);
             if ($path === '/sub-dealer-orders') {
                 $response->assertRedirect();
@@ -108,11 +108,11 @@ class PortalInventorySmokeTest extends TestCase
 
         $paths = [
             '/', '/orders', '/deliveries',
-            '/treasury', '/payments', '/operations/payment-accounts', '/ledger',
-            '/operations/policy-schedules', '/operations/commission-holds', '/settlements', '/rewards', '/payouts-hub',
+            '/treasury/funds', '/treasury/orders', '/treasury/events', '/treasury/partners', '/treasury/work', '/payments', '/operations/payment-accounts',
+            '/operations/policy-schedules', '/operations/commission-holds', '/settlements', '/payouts-hub',
             '/operations/reserve-payouts', '/operations/finance-settings', '/operations/financial-readiness',
-            '/catalog', '/operations/financial-reports', '/operations/data-imports',
-            '/commissions', '/policies', '/simulator', '/salary',
+            '/catalog', '/operations/data-imports',
+            '/commissions', '/policies', '/simulator',
             '/profile', '/security', '/notifications', '/help',
         ];
 

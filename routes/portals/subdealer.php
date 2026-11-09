@@ -34,7 +34,6 @@ Route::middleware(['auth', 'active', 'portal:subdealer', 'agreement'])->group(fu
     Route::get('/orders/{order}/invoice', [DashboardController::class, 'orderInvoice'])->middleware('throttle:20,1');
     Route::get('/orders/{order}/invoice/print', [DashboardController::class, 'orderInvoicePrint'])->middleware('throttle:20,1');
     Route::get('/full-report/pdf', [DashboardController::class, 'fullReportPdf'])->middleware('throttle:10,1');
-    Route::get('/statement', [PartnerStatementController::class, 'show']);
     Route::get('/statement/{format}', [PartnerStatementController::class, 'download'])->whereIn('format', ['xlsx', 'pdf'])->middleware('throttle:10,1');
     Route::get('/team-orders', [TeamOrdersController::class, 'show']);
     Route::get('/my-progress', [PartnerProgressController::class, 'show'])->middleware('throttle:30,1');

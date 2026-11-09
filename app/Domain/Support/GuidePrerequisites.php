@@ -20,9 +20,7 @@ final class GuidePrerequisites
         'profile',
         'catalog',
         'orders',
-        'earnings',
-        'withdrawals',
-        'full-report',
+        'my-money',
         'help',
     ];
 
@@ -47,9 +45,7 @@ final class GuidePrerequisites
             ];
         }
 
-        $path = $user->role === 'sub_dealer'
-            ? array_values(array_filter(self::PartnerPath, fn (string $key): bool => $key !== 'network'))
-            : self::PartnerPath;
+        $path = self::PartnerPath;
 
         if (! in_array($section, $path, true)) {
             $section = 'overview';
@@ -135,14 +131,10 @@ final class GuidePrerequisites
                 || $hasOrders(),
             'orders' => $hasOrders()
                 || $tourDone('orders'),
-            'earnings' => $tourDone('earnings')
+            'my-money' => $tourDone('my-money')
+                || $tourDone('earnings')
                 || DB::table('commission_allocations')->where('user_id', $user->id)->exists()
                 || Order::query()->where('user_id', $user->id)->whereIn('status', OrderListFilter::Confirmed)->exists(),
-            'withdrawals' => $tourDone('earnings')
-                || DB::table('withdrawals')->where('user_id', $user->id)->exists()
-                || (float) (DB::table('wallets')->where('user_id', $user->id)->value('available') ?? 0) > 0,
-            'full-report' => $tourDone('full-report')
-                || $hasOrders(),
             'help' => true,
             default => $tourDone($key),
         };

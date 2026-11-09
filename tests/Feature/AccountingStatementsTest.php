@@ -185,18 +185,17 @@ class AccountingStatementsTest extends TestCase
         $this->assertSame($lines, DB::table('journal_lines')->count());
     }
 
-    public function test_owner_and_finance_can_open_the_page_and_see_the_management_notice(): void
+    public function test_owner_and_finance_can_open_the_bank_check_and_the_statements_still_tie_to_the_journal(): void
     {
         $this->seedJournal();
         $owner = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
         $finance = User::factory()->staff('finance')->create(['status' => 'active']);
 
-        $this->actingAs($owner)->onPortal('sadmin')->get('/operations/accounting?from=2026-10-01&to=2026-10-31')
+        $this->actingAs($owner)->onPortal('sadmin')->get('/operations/accounting')
             ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->component('Accounting')
-                ->where('statements.checks.ties_to_journal', true)
-                ->where('translations.accounting.management_notice', __('accounting.management_notice')));
+            ->assertInertia(fn (Assert $page) => $page->component('Accounting')->has('history'));
+        $this->actingAs($owner)->onPortal('sadmin')->get('/operations/accounting?tab=statements')->assertRedirect('/treasury/work');
+        $this->assertTrue(app(AccountingStatements::class)->build('2026-10-01', '2026-10-31', true)['checks']['ties_to_journal']);
 
         $this->actingAs($finance)->onPortal('manage')->get('/operations/accounting')->assertOk();
     }

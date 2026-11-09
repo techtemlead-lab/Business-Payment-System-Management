@@ -19,6 +19,7 @@
 .mm-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--ds-s-3)}
 .mm-card{display:flex;flex-direction:column;align-items:flex-start;gap:var(--ds-s-1);min-width:0;padding:var(--ds-s-4);background:var(--ds-surface);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);color:var(--ds-text);text-align:left;cursor:pointer;transition:border-color .15s}
 .mm-card:hover{border-color:var(--ds-brand)}
+.mm-card-loading{min-height:86px;border-color:transparent;pointer-events:none}
 .mm-card.is-selected{border-color:var(--ds-brand);box-shadow:inset 0 0 0 1px var(--ds-brand)}
 .mm-card span{font-size:var(--ds-fs-base);line-height:1.35;color:var(--ds-text-2)}
 .mm-card strong{font-size:var(--ds-fs-2xl);font-weight:700;line-height:var(--ds-lh-tight);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}

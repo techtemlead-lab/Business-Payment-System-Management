@@ -4,7 +4,7 @@ import Shell from '../components/Shell';
 import StaffAccessEditor from '../components/StaffAccessEditor';
 import OfficeHubTabs,{ReportGroupTabs,type ReportGroup} from '../components/OfficeHubTabs';
 import {actionAllowed} from '../components/action-permissions';
-import {Badge, Empty, Modal, Pagination, Row, Table, label, money, date, dateTime, DateInput} from '../components/UI';
+import {Badge, Empty, FormErrors, Modal, Pagination, Row, Table, label, money, date, dateTime, DateInput} from '../components/UI';
 import {businessMonth} from '../business-date';
 import {useT} from '../shared/i18n/t';
 import {randomUuid} from '../shared/randomUuid';
@@ -291,6 +291,23 @@ function KycFirstWithdrawalPanel({setting,root}:{setting:Row,root:string}){
  * partners and staff can only send an order together with the whole payment and
  * its screenshot. Only owners can change it; others just see it.
  */
+/** The withdrawal size that gets a "large payout" mark in the activity log. Only the owner changes it. */
+function ApprovalLimitPanel({limit}:{limit:Row}){
+    const translate=useT();
+    const t=(key:string,replace:Record<string,string>={})=>translate('accounting',key,replace);
+    const form=useForm({amount:limit.amount,version:limit.version,reason:''});
+    return <section className="panel" data-tour="approval-limit">
+        <h2>{t('limit_title')}</h2>
+        <p className="muted">{t('limit_hint')}</p>
+        <div className="metric"><span>{t('limit_current')}</span><strong>{money(limit.amount)}</strong><small>{t('limit_default',{amount:money(limit.default)})}</small></div>
+        {limit.can_edit?<form className="action-form" onSubmit={event=>{event.preventDefault();form.post('/commands/operations/accounting/approval-limit',{preserveScroll:true,onSuccess:()=>form.setData('reason','')});}}>
+            <label>{t('limit_new_amount')}<input required inputMode="decimal" value={form.data.amount} onChange={event=>form.setData('amount',event.target.value)}/></label>
+            <label>{t('limit_reason')}<textarea required minLength={5} maxLength={1000} rows={2} value={form.data.reason} onChange={event=>form.setData('reason',event.target.value)}/></label>
+            <FormErrors errors={form.errors}/>
+            <button className="button dark" disabled={form.processing}>{t('limit_save')}</button>
+        </form>:<p className="notice">{t('limit_owner_only')}</p>}
+    </section>;
+}
 function FullPaymentOrderingPanel({setting,root}:{setting:Row,root:string}){
     const translate=useT();
     const action=root+'/settings/full-payment-when-ordering';
@@ -313,7 +330,7 @@ function FullPaymentOrderingPanel({setting,root}:{setting:Row,root:string}){
     </section>;
 }
 
-export default function Operations({section,tables,hub=null,reportTypes=[],reportGroups=[],paymentAccounts=[],partners=[],partnerSearch='',staff=[],secondApprovers=[],summary={},policy,readiness,deploymentStatus,startupMode,regions=[],products=[],accountHistory=[],withdrawalSetting,autoApproval,kycBeforeFirstWithdrawal,fullPaymentWhenOrdering,permissionModules=[],staffAccess=[],customRoles=[],rolePresets=[],videoManagedOnWebsite=false,videoSetting={},videoProducts=[]}:Row) {
+export default function Operations({section,tables,hub=null,reportTypes=[],reportGroups=[],paymentAccounts=[],partners=[],partnerSearch='',staff=[],secondApprovers=[],summary={},policy,readiness,deploymentStatus,startupMode,regions=[],products=[],accountHistory=[],withdrawalSetting,autoApproval,kycBeforeFirstWithdrawal,fullPaymentWhenOrdering,approvalLimit,permissionModules=[],staffAccess=[],customRoles=[],rolePresets=[],videoManagedOnWebsite=false,videoSetting={},videoProducts=[]}:Row) {
     const translate=useT();
     const metricLabel=(key:string)=>{const localized=translate('portal',`ops_chk_${key}`);return localized===`ops_chk_${key}`?label(key,translate):localized;};
     const sectionTitle=translate('portal', sectionTitleKeys[section] ?? section);
@@ -386,10 +403,10 @@ export default function Operations({section,tables,hub=null,reportTypes=[],repor
         {section==='video-marketing'&&videoManagedOnWebsite&&<section className="panel"><h2>{translate('website_admin','video_moved_title')}</h2><p>{translate('website_admin','video_moved_body')}</p><Link className="button dark" href="/website#website-video">{translate('website_admin','video_moved_link')}</Link></section>}
         {section==='video-marketing'&&!videoManagedOnWebsite&&<section className="panel"><h2>{translate('portal','ops_promote_video')}</h2><p>{translate('portal','ops_promote_video_body')} <Link className="text-link" href="/catalog">{translate('portal','product_management')}</Link>. {translate('portal','ops_promote_video_hide')}</p>{videoProducts.length===0&&<p className="muted">{translate('portal','ops_no_product_videos')}</p>}</section>}
         {section==='access-management'&&<StaffAccessEditor modules={permissionModules} staff={staffAccess} roles={customRoles} presets={rolePresets}/>}
-        {section==='finance-settings'&&autoApproval&&<AutoApprovalPanel setting={autoApproval} root={root}/>}{section==='finance-settings'&&fullPaymentWhenOrdering&&<FullPaymentOrderingPanel setting={fullPaymentWhenOrdering} root={root}/>}{section==='finance-settings'&&kycBeforeFirstWithdrawal&&<KycFirstWithdrawalPanel setting={kycBeforeFirstWithdrawal} root={root}/>}{section==='finance-settings'&&withdrawalSetting&&<section className="panel"><h2>{translate('portal','ops_withdrawal_policy')}</h2><p>{translate('portal','ops_withdrawal_policy_body',{amount:money(withdrawalSetting.amount)})}</p></section>}
+        {section==='finance-settings'&&autoApproval&&<AutoApprovalPanel setting={autoApproval} root={root}/>}{section==='finance-settings'&&approvalLimit&&<ApprovalLimitPanel limit={approvalLimit}/>}{section==='finance-settings'&&fullPaymentWhenOrdering&&<FullPaymentOrderingPanel setting={fullPaymentWhenOrdering} root={root}/>}{section==='finance-settings'&&kycBeforeFirstWithdrawal&&<KycFirstWithdrawalPanel setting={kycBeforeFirstWithdrawal} root={root}/>}{section==='finance-settings'&&withdrawalSetting&&<section className="panel"><h2>{translate('portal','ops_withdrawal_policy')}</h2><p>{translate('portal','ops_withdrawal_policy_body',{amount:money(withdrawalSetting.amount)})}</p></section>}
         {section==='policy-schedules'&&<p>{translate('portal','ops_policy_schedules_hint')}</p>}
         {section==='payroll'&&<p>{translate('portal','ops_payroll_hint')}</p>}
-        {section==='reserve-payouts'&&<p>{translate('wave3_ops','reserve_hint')} <Link className="text-link" href={`${portalBase??''}/company-funds?fund=marketing`}>{translate('wave3_ops','marketing_moved_link')}</Link></p>}
+        {section==='reserve-payouts'&&<p>{translate('wave3_ops','reserve_hint')} <Link className="text-link" href={`${portalBase??''}/treasury/funds/marketing`}>{translate('wave3_ops','marketing_moved_link')}</Link></p>}
         {Object.keys(summary).length>0&&<section className="panel"><dl className="profile-grid">{Object.entries(summary).map(([key,value])=><div key={key}><dt>{metricLabel(key)}</dt><dd>{money(value)}</dd></div>)}</dl></section>}
         {section==='field-sales'&&<section className="panel"><h2>{translate('portal','ops_my_territories')}</h2>{regions.length?regions.map((r:Row)=><p key={r.id}>{[r.division,r.district,r.upazila,r.union].filter(Boolean).join(' / ')}</p>):<Empty title={translate('portal','ops_no_territory')} body={translate('portal','ops_no_territory_body')}/>}{capabilities.includes('accounts')&&<p className="muted ops-mt-3">{translate('portal','ops_accounts_partnerships_hint')} <Link className="text-link" href="/partnerships">{translate('portal','partnerships')}</Link>.</p>}</section>}
         {['field-sales','policy-schedules','reserve-payouts','commission-holds'].includes(section)&&<form method="get" className="action-form"><label>{translate('portal','ops_find_partner')}<input name="q" type="search" defaultValue={partnerSearch}/></label><button className="button">{translate('portal','ops_search_partners')}</button></form>}

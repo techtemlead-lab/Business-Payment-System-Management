@@ -4,7 +4,7 @@ function flagEnabled(controls: DashboardControls, key: string): boolean {
     return controls[key] !== false;
 }
 
-export type PartnerChromeItem = 'catalog' | 'orders' | 'network' | 'salary' | 'earnings';
+export type PartnerChromeItem = 'catalog' | 'orders' | 'network' | 'earnings';
 
 /** Bottom/header chrome links that mirror Shell partnerAvailable toggles. */
 export function partnerChromeEnabled(
@@ -31,8 +31,6 @@ function matchDealer(controls: DashboardControls, item: PartnerChromeItem): bool
             return flagEnabled(controls, 'dealer_orders_enabled');
         case 'network':
             return flagEnabled(controls, 'dealer_network_tree_enabled');
-        case 'salary':
-            return false;
         case 'earnings':
             return true;
         default:
@@ -48,8 +46,6 @@ function matchSubDealer(controls: DashboardControls, item: PartnerChromeItem): b
             return flagEnabled(controls, 'subdealer_orders_enabled');
         case 'network':
             return true;
-        case 'salary':
-            return flagEnabled(controls, 'subdealer_salary_enabled');
         case 'earnings':
             return true;
         default:

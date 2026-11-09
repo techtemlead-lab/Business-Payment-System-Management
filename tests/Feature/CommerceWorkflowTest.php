@@ -59,18 +59,18 @@ class CommerceWorkflowTest extends TestCase
         $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active', 'dealer_code' => 'D-SMOKE']);
         $finance = User::factory()->create(['role' => 'finance', 'status' => 'active']);
 
-        foreach (['/', '/catalog', '/orders', '/withdrawals', '/earnings', '/network', '/circulars', '/profile'] as $path) {
+        foreach (['/', '/catalog', '/orders', '/my-money', '/network', '/circulars', '/profile'] as $path) {
             $this->actingAs($dealer)->onPortal('dealer')->get($path)->assertOk();
         }
 
         $subDealer = User::factory()->create(['role' => 'sub_dealer', 'status' => 'active', 'dealer_code' => 'SD-SMOKE']);
-        foreach (['/', '/catalog', '/orders', '/withdrawals', '/earnings', '/circulars', '/profile'] as $path) {
+        foreach (['/', '/catalog', '/orders', '/my-money', '/circulars', '/profile'] as $path) {
             $this->actingAs($subDealer)->onPortal('subdealer')->get($path)->assertOk();
         }
 
         foreach ([
-            '/', '/orders', '/treasury',
-            '/operations/financial-reports', '/operations/payment-accounts',
+            '/', '/orders', '/treasury/funds', '/treasury/orders',
+            '/operations/payment-accounts',
             '/operations/financial-readiness',
             '/operations/policy-schedules', '/operations/reserve-payouts',
             '/operations/commission-holds', '/operations/data-imports',
@@ -83,7 +83,7 @@ class CommerceWorkflowTest extends TestCase
         $this->actingAs($editor)->onPortal('manage')->get('/enquiries')->assertOk();
 
         $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
-        foreach (['/', '/accounts', '/orders', '/treasury', '/enquiries', '/network-tree'] as $path) {
+        foreach (['/', '/accounts', '/orders', '/treasury/funds', '/enquiries', '/network-tree'] as $path) {
             $this->actingAs($admin)->onPortal('sadmin')->get($path)->assertOk();
         }
     }

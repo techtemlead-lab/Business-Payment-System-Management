@@ -136,9 +136,10 @@ class CommissionReportHubTest extends TestCase
     public static function oldReportAddressPeople(): array
     {
         return [
-            'finance goes to the centre' => [['finance'], '/operations/financial-reports?group=orders'],
-            'reports goes to the centre' => [['reports'], '/operations/financial-reports?group=orders'],
-            'orders and reports goes to the centre' => [['orders', 'reports'], '/operations/financial-reports?group=orders'],
+            'finance goes to the money report' => [['finance'], '/treasury/orders'],
+            'reports goes to the money report' => [['reports'], '/treasury/orders'],
+            'orders and reports goes to the money report' => [['orders', 'reports'], '/treasury/orders'],
+            'field staff go to their report files' => [['field_sales'], '/operations/financial-reports'],
             'orders only goes to the order list' => [['orders'], '/orders'],
         ];
     }
@@ -165,7 +166,7 @@ class CommissionReportHubTest extends TestCase
     public function test_filters_do_not_send_someone_to_an_order_list_they_cannot_open(): void
     {
         $this->office($this->staffWith(['reports']))->get('/reports?status=delivered')
-            ->assertRedirect('/operations/financial-reports?group=orders');
+            ->assertRedirect('/treasury/orders');
     }
 
     /**
@@ -174,7 +175,6 @@ class CommissionReportHubTest extends TestCase
     public static function peopleWithoutTheOldOrderTable(): array
     {
         return [
-            'field sales' => [['field_sales']],
             'accounts' => [['accounts']],
             'inventory' => [['inventory']],
             'content' => [['content']],
@@ -192,9 +192,9 @@ class CommissionReportHubTest extends TestCase
 
     public function test_company_wide_staff_get_every_report_once_in_its_group(): void
     {
-        $this->office($this->staffWith(['finance', 'payroll']))->get('/operations/financial-reports')->assertOk()
+        $this->office($this->staffWith(['finance', 'payroll']))->get('/treasury/orders')->assertOk()
             ->assertInertia(function (Assert $page): void {
-                $page->where('reportGroups', function ($groups): bool {
+                $page->where('downloads.groups', function ($groups): bool {
                     $groups = collect($groups)->mapWithKeys(fn ($group): array => [$group['key'] => $group['reports']])->all();
 
                     $this->assertSame([
@@ -216,11 +216,10 @@ class CommissionReportHubTest extends TestCase
         $branch = CompanyBranch::factory()->create();
         $person = User::factory()->staff('employee')->create(['profile' => ['permissions' => ['orders', 'reports']], 'active_branch_id' => $branch->id]);
 
-        $this->office($person)->get('/operations/financial-reports')->assertOk()
+        $this->office($person)->get('/treasury/orders')->assertOk()
             ->assertInertia(function (Assert $page) use ($person): void {
                 $available = app(ReportData::class)->availableTo($person);
-                $page->where('reportTypes', $available);
-                $page->where('reportGroups', function ($groups) use ($available): bool {
+                $page->where('downloads.groups', function ($groups) use ($available): bool {
                     $listed = collect($groups)->pluck('reports')->flatten()->all();
                     $this->assertEqualsCanonicalizing($available, $listed);
                     $this->assertNotContains('commissions', $listed);
@@ -235,7 +234,7 @@ class CommissionReportHubTest extends TestCase
         $this->office($person)->get('/commands/operations/reports?type=commissions&format=xlsx&from=2026-01-01&to=2026-01-31')->assertForbidden();
     }
 
-    public function test_field_sales_staff_see_only_their_two_files_in_the_centre(): void
+    public function test_field_sales_staff_see_only_their_two_files_in_the_file_list(): void
     {
         $this->office($this->staffWith(['field_sales', 'sr_orders']))->get('/operations/financial-reports')->assertOk()
             ->assertInertia(fn (Assert $page) => $page
@@ -272,15 +271,6 @@ class CommissionReportHubTest extends TestCase
             $labels = require lang_path($locale.'/portal.php');
             $this->assertNotSame($labels['ledger'], $labels['tr_tab_ledger'], $locale);
         }
-    }
-
-    public function test_the_spending_tab_links_to_the_fund_page_and_everyone_on_the_tab_can_open_it(): void
-    {
-        $this->assertStringContainsString('/company-funds', (string) file_get_contents(resource_path('js/components/CompanyTreasuryHub.tsx')));
-
-        $person = $this->staffWith(['finance']);
-        $this->office($person)->get('/treasury')->assertOk();
-        $this->office($person)->get('/company-funds')->assertOk();
     }
 
     /**

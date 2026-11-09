@@ -90,6 +90,8 @@ return [
     'posting_waiting' => 'Commission is shared out once this is delivered',
     'posting_part_delivered' => 'Shared on the delivered part',
     'posting_no_commission' => 'No commission given',
+    'posting_taken_back' => 'Taken back from partners: :amount',
+    'posting_still_owed' => 'Still owed by partners: :amount',
     'of_paid' => 'of price',
     'of_mrp' => 'of MRP',
 
@@ -196,7 +198,8 @@ return [
     'empty_partners' => 'No partners found',
     'posting_part' => 'Shared out on the delivered part',
     'work_waiting' => 'Waiting',
-    'work_heads' => 'Spending heads and budgets',
+    'work_heads' => 'Spending heads',
+    'work_budgets' => 'Budgets',
     'approvals_title' => 'Spends to approve (:count)',
     'approval_title' => 'Approve a spend',
     'approvals_empty' => 'No spends are waiting for approval',
