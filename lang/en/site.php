@@ -422,7 +422,7 @@ Questions about these terms, partnership rules or the website:
     'division' => 'Division',
     'district' => 'District',
     'upazila_optional' => 'Upazila (optional)',
-    'sponsor_code_optional' => 'Referrer\'s dealer code (optional)',
+    'sponsor_code_optional' => 'Referrer\'s code (optional)',
     'message_optional' => 'Message (optional)',
     'submit_application' => 'Submit application',
     'partner_section_personal' => 'Applicant & Contact Information',
@@ -437,7 +437,7 @@ Questions about these terms, partnership rules or the website:
     'partner_trust_badge_confidential' => 'Private & Direct',
     'partner_trust_badge_support' => 'Company Support',
     'partner_security_note' => 'Your application is kept private and is checked directly by Madina Natural Health Care management.',
-    'partner_sponsor_hint' => 'If an authorized dealer introduced you, provide their dealer code.',
+    'partner_sponsor_hint' => 'If an authorized dealer or sub-dealer introduced you, provide their code.',
     'optional' => 'Optional',
 
     'offers' => 'Offers',

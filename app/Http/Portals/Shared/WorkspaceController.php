@@ -3,6 +3,7 @@
 namespace App\Http\Portals\Shared;
 
 use App\Domain\Accounts\PartnerAccountList;
+use App\Domain\Accounts\PartnerAccountProvisioning;
 use App\Domain\Accounts\PartnerCertificates;
 use App\Domain\Accounts\PartnerEarningsPresenter;
 use App\Domain\Accounts\PartnerFullReport;
@@ -235,7 +236,7 @@ class WorkspaceController extends Controller
         abort_if($intent === 'staff' && $u->role !== 'super_admin', 403);
         // Only the staff form has the sponsor dropdown; partners get their sponsor from a typed reference code.
         $sponsors = $intent === 'staff'
-            ? User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code'])
+            ? User::whereIn('role', PartnerAccountProvisioning::SponsorRoles)->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code'])
             : collect();
         $divisions = PlaceCode::query()
             ->where('level', PlaceCode::LevelDivision)
