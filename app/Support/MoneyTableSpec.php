@@ -20,6 +20,7 @@ final class MoneyTableSpec
      * @param  ?string  $defaultPeriod  the view when the address names none; null for all time
      * @param  Closure(array<string, string>): bool|null  $sumsWhen  gets the applied filters; false skips sums when they would mean nothing
      * @param  int|null  $countCap  stop counting past this many rows
+     * @param  list<string>  $extraPeriods  date views beyond the usual ones, such as last_month; each must be a keyword OrderListFilter::createdRange knows
      */
     public function __construct(
         public ?string $dateColumn,
@@ -34,5 +35,6 @@ final class MoneyTableSpec
         public ?Closure $sumsWhen = null,
         public ?int $countCap = null,
         public int $perPage = 25,
+        public array $extraPeriods = [],
     ) {}
 }
