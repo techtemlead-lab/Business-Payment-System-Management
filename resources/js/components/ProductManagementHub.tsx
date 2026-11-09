@@ -26,6 +26,7 @@ export default function ProductManagementHub({
     featuredOrderProducts = [],
     categories = [],
     catalogCategories = [],
+    usedCategories = [],
     catalogUnits = [],
     customization = {},
     defaults = {},
@@ -39,6 +40,7 @@ export default function ProductManagementHub({
     featuredOrderProducts?: FeaturedOrderProduct[];
     categories?: string[];
     catalogCategories?: any[];
+    usedCategories?: string[];
     catalogUnits?: any[];
     customization?: CustomizationData;
     defaults?: CustomizationData;
@@ -136,9 +138,11 @@ export default function ProductManagementHub({
         window.history.replaceState({}, '', url.toString());
     };
 
-    const categoryOptions = catalogCategories
-        .map((item: { name?: string }) => item.name)
-        .filter((name): name is string => Boolean(name));
+    // Older products keep the free-text category they were saved with, so those need a filter too.
+    const categoryOptions = Array.from(new Set([
+        ...catalogCategories.map((item: { name?: string }) => item.name).filter((name): name is string => Boolean(name)),
+        ...usedCategories,
+    ]));
     const selectedCatalogCategory = catalogCategories.find((item: { name?: string }) => item.name === category);
     const subCategoryOptions = (selectedCatalogCategory?.subcategories ?? [])
         .map((item: { name?: string }) => item.name)

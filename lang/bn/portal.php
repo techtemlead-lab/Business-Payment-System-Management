@@ -3655,7 +3655,7 @@ return [
     'cms_edit' => 'এডিট',
     'cms_remove' => 'সরান',
     'cms_remove_category_prompt' => 'ক্যাটাগরি ":name" সরাতে চান? কারণ লিখুন (কমপক্ষে ৫ অক্ষর):',
-    'cms_remove_category_force_prompt' => 'ক্যাটাগরি ":name" ও এর :countটি খালি সাবক্যাটাগরি সরাতে চান? কারণ লিখুন (কমপক্ষে ৫ অক্ষর):',
+    'cms_remove_category_force_prompt' => 'ক্যাটাগরি ":name" ও এর :countটি সাবক্যাটাগরি সরাতে চান? কোনো পণ্য এগুলো ব্যবহার করলে সরানো যাবে না। কারণ লিখুন (কমপক্ষে ৫ অক্ষর):',
     'cms_remove_subcategory_prompt' => 'সাবক্যাটাগরি ":name" সরাতে চান? কারণ লিখুন (কমপক্ষে ৫ অক্ষর):',
     'cms_remove_unit_prompt' => 'ইউনিট ":name" সরাতে চান? কারণ লিখুন (কমপক্ষে ৫ অক্ষর):',
     'cms_create_category' => 'ক্যাটাগরি তৈরি',
