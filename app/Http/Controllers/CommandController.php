@@ -178,7 +178,13 @@ class CommandController extends Controller
 
             $redirect = $created['user']->role === 'sub_dealer' ? '/sub-dealers' : '/accounts';
 
-            return redirect($redirect)->with('success', __($created['credentials_sent'] ? 'portal.acct_partner_created_sent' : 'portal.acct_partner_created_not_sent', [
+            $deliveryMessage = match (true) {
+                $created['credentials_sent'] => 'portal.acct_partner_created_sent',
+                $created['password_link_sent'] => 'portal.acct_partner_created_not_sent',
+                default => 'portal.acct_partner_created_nothing_sent',
+            };
+
+            return redirect($redirect)->with('success', __($deliveryMessage, [
                 'role' => __($created['user']->role === 'sub_dealer' ? 'portal.acct_role_sub_dealer' : 'portal.acct_role_dealer'),
                 'code' => $created['user']->dealer_code,
                 'phone' => $created['user']->phone,

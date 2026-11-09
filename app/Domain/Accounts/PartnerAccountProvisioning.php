@@ -19,8 +19,11 @@ use App\Models\User;
 use App\Support\Audit;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 final class PartnerAccountProvisioning
 {
@@ -34,7 +37,7 @@ final class PartnerAccountProvisioning
 
     /**
      * @param  array<string, mixed>  $input
-     * @return array{user: User, place_label: ?string, commission_consumers: array<string, mixed>, credentials_sent: bool}
+     * @return array{user: User, place_label: ?string, commission_consumers: array<string, mixed>, credentials_sent: bool, password_link_sent: bool}
      */
     public function create(User $actor, array $input): array
     {
@@ -239,6 +242,7 @@ final class PartnerAccountProvisioning
 
         // One-time credentials travel only through the SMS channel — never JSON/Inertia props.
         $credentialsSent = $this->sms->send($user, $plainPassword);
+        $passwordLinkSent = ! $credentialsSent && $this->sendPasswordLink($user);
         app(PartnerEventEmail::class)->sendTranslated($user, 'account.created', 'event_emails.account_created_title', 'event_emails.account_created_body');
 
         return [
@@ -246,7 +250,20 @@ final class PartnerAccountProvisioning
             'place_label' => $this->placeLabel($place),
             'commission_consumers' => $this->commissionConsumers($sponsor, $managementReferral),
             'credentials_sent' => $credentialsSent,
+            'password_link_sent' => $passwordLinkSent,
         ];
+    }
+
+    /** The account already exists by now, so a mail problem must not turn into an error page. */
+    private function sendPasswordLink(User $user): bool
+    {
+        try {
+            return Password::sendResetLink(['email' => $user->email]) === Password::ResetLinkSent;
+        } catch (Throwable $exception) {
+            Log::warning('account.created.password_link_failed', ['user_id' => $user->id, 'error' => $exception->getMessage()]);
+
+            return false;
+        }
     }
 
     /**

@@ -73,13 +73,13 @@
                         @endif
                     </div>
                     <div class="ref-password-field">
-                        <input id="account-password" type="password" name="password" required @if($mode === 'reset') minlength="12" autocomplete="new-password" @else autocomplete="current-password" @endif maxlength="200" placeholder="{{ __('auth_ui.password_placeholder') }}">
+                        <input id="account-password" type="password" name="password" required @if($mode === 'reset') minlength="8" autocomplete="new-password" @else autocomplete="current-password" @endif maxlength="200" placeholder="{{ __('auth_ui.password_placeholder') }}">
                         <button type="button" data-toggle-password="account-password" aria-label="{{ __('auth_ui.show_password') }}" aria-pressed="false"><i class="fa-regular fa-eye" aria-hidden="true"></i></button>
                     </div>
                 @endif
                 @if($mode === 'reset')
                     <label for="account-password-confirmation">{{ __('auth_ui.confirm_password') }}</label>
-                    <input id="account-password-confirmation" type="password" name="password_confirmation" minlength="12" maxlength="200" required autocomplete="new-password">
+                    <input id="account-password-confirmation" type="password" name="password_confirmation" minlength="8" maxlength="200" required autocomplete="new-password">
                     <p class="ref-form-hint">{{ __('auth_ui.password_rules') }}</p>
                 @endif
                 @if($mode === 'login')

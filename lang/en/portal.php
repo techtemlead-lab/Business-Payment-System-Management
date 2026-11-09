@@ -339,7 +339,7 @@ return [
     'company_staff' => 'Company staff',
     'log_out_session' => 'Log out',
     'change_password' => 'Change password',
-    'password_rules_hint' => 'Use at least 12 characters, with a capital letter, a small letter and a number. You will be logged out on other devices.',
+    'password_rules_hint' => 'Use at least 8 characters. You will be logged out on other devices.',
     'current_password' => 'Current password',
     'new_password' => 'New password',
     'confirm_new_password' => 'Confirm new password',
@@ -6493,7 +6493,7 @@ return [
     'col_ordered_quantity' => 'Quantity ordered',
     'event_shipment_received_back' => 'Parcel received back',
     'acct_partner_created_sent' => ':role account added. Code: :code. The login details went to :phone / :email. The username is the mobile number.',
-    'acct_partner_created_not_sent' => ':role account added. Code: :code. The password could not be sent because SMS and email are not on. Open this account and use Login password to see it, then give it to them. The username is the mobile number.',
+    'acct_partner_created_not_sent' => ':role account added. Code: :code. The SMS could not be sent, so a link to set the password went to :email. The username is the mobile number.',
     'field_need_fill' => 'Please fill in this box.',
     'field_need_choice' => 'Please choose one from the list.',
     'field_need_tick' => 'Please tick this box to go on.',
@@ -6587,4 +6587,5 @@ return [
     'label_upazila' => 'Upazila',
     'label_union' => 'Union / Pourashava',
     'acct_val_sub_dealer_code_just_used' => 'Someone just added a sub-dealer with this code. Press save again and the next code will be used.',
+    'acct_partner_created_nothing_sent' => ':role account added. Code: :code. Neither the SMS nor the password link could be sent. Check the SMS and email settings, then open this account and use Login password to send a new one. The username is the mobile number.',
 ];

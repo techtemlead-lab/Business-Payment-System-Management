@@ -9,8 +9,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 /**
- * Delivers onboarding username/password. Prefers an enabled SMS gateway; when SMS
- * is inactive, uses enabled SMTP email; otherwise falls back to the log/array driver.
+ * Delivers a new account's username and password by SMS, and a reset password by SMS or
+ * enabled SMTP email. On a server with no SMS service it falls back to the log/array driver.
  */
 final class AccountCreatedSms
 {
@@ -21,7 +21,7 @@ final class AccountCreatedSms
 
     public function send(User $user, string $plainPassword): bool
     {
-        return $this->deliverTemporaryPassword($user, $plainPassword, 'account_created', 'account_created_redacted', 'account.created');
+        return $this->deliverTemporaryPassword($user, $plainPassword, 'account_created', 'account_created_redacted', 'account.created', true);
     }
 
     public function sendPasswordReset(User $user, string $plainPassword): bool
@@ -29,7 +29,11 @@ final class AccountCreatedSms
         return $this->deliverTemporaryPassword($user, $plainPassword, 'password_reset_by_admin', 'password_reset_by_admin_redacted', 'account.password_reset');
     }
 
-    private function deliverTemporaryPassword(User $user, string $plainPassword, string $messageKey, string $redactedKey, string $logPrefix): bool
+    /**
+     * @param  bool  $smsOnly  A new person's password goes by SMS or not at all, so a failed SMS never turns into
+     *                         a plain password in an email. The caller sends a set-your-password link instead.
+     */
+    private function deliverTemporaryPassword(User $user, string $plainPassword, string $messageKey, string $redactedKey, string $logPrefix, bool $smsOnly = false): bool
     {
         $phone = preg_replace('/\D+/', '', (string) $user->phone) ?: '';
         $locale = $this->localeFor($user);
@@ -55,7 +59,13 @@ final class AccountCreatedSms
             }
         }
 
-        if ($this->smtp->enabled() && filled($user->email)) {
+        if ($smsOnly && ($this->gateway->anyEnabled() || app()->isProduction())) {
+            Log::warning($logPrefix.'.sms.undelivered', ['user_id' => $user->id, 'phone' => $phone]);
+
+            return false;
+        }
+
+        if (! $smsOnly && $this->smtp->enabled() && filled($user->email)) {
             $this->smtp->apply();
             try {
                 Mail::raw((string) __('sms.'.$messageKey, $replace, $locale), function ($mail) use ($user): void {
