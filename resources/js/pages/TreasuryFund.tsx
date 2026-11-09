@@ -87,7 +87,7 @@ export default function TreasuryFund({ card, view, table, spend }: { card: FundC
             action={spend && card.spendable ? <button type="button" className="button dark" onClick={() => setSpending(true)}>{translate('treasury', 'spend')}</button> : undefined}
         >
             <FundFigures card={card} />
-            <div className="tsy-switch" role="group" aria-label={card.name}>
+            <div className="office-switch" role="group" aria-label={card.name}>
                 {(['in', 'out'] as FundView[]).map((option) => (
                     <Link key={option} href={option === 'in' ? path : `${path}?view=out`} preserveScroll className={option === view ? 'is-active' : undefined} aria-current={option === view ? 'true' : undefined}>
                         {translate('treasury', option === 'in' ? 'came_in' : 'went_out')}

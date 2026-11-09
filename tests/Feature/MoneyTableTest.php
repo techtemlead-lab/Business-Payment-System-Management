@@ -272,6 +272,109 @@ class MoneyTableTest extends TestCase
         $this->assertSame(['key' => 'kind', 'label' => 'Kind', 'options' => [['value' => 'odd', 'label' => 'Odd'], ['value' => 'even', 'label' => 'Even']]], $good['filters'][0]);
     }
 
+    public function test_a_number_range_filter_keeps_rows_between_both_ends(): void
+    {
+        $this->seedRows(5);
+        $spec = ['filters' => [MoneyTableFilter::numberRange('amount', 'Amount', 'amount', 'min_amount', 'max_amount', decimal: true)]];
+
+        $between = $this->table(['period' => '', 'min_amount' => '২', 'max_amount' => '4.50'], $spec);
+        $lowerOnly = $this->table(['period' => '', 'min_amount' => '4'], $spec);
+        $junk = $this->table(['period' => '', 'min_amount' => "1' OR 1=1", 'max_amount' => '-3'], $spec);
+
+        $this->assertSame(3, $between['totals']['count']);
+        $this->assertSame(['min_amount' => '2', 'max_amount' => '4.50'], $between['state']['filters']);
+        $this->assertSame(2, $lowerOnly['totals']['count']);
+        $this->assertSame(5, $junk['totals']['count']);
+        $this->assertSame([], $junk['state']['filters']);
+    }
+
+    public function test_a_whole_number_range_refuses_decimals(): void
+    {
+        $this->seedRows(3);
+        $spec = ['filters' => [MoneyTableFilter::numberRange('amount', 'Amount', 'amount', 'min_amount', 'max_amount')]];
+
+        $this->assertSame([], $this->table(['period' => '', 'min_amount' => '1.5'], $spec)['state']['filters']);
+    }
+
+    public function test_a_date_range_filter_reads_either_order_and_ignores_bad_dates(): void
+    {
+        $this->addRow(['who' => 'early', 'happened_at' => '2026-10-02 05:00:00']);
+        $this->addRow(['who' => 'late', 'happened_at' => '2026-11-02 05:00:00']);
+        $spec = ['filters' => [MoneyTableFilter::dateRange('when', 'When', 'happened_at::date', 'when_from', 'when_to')]];
+
+        $forwards = $this->table(['period' => '', 'when_from' => '2026-11-01', 'when_to' => '2026-11-30'], $spec);
+        $backwards = $this->table(['period' => '', 'when_from' => '2026-10-31', 'when_to' => '2026-10-01'], $spec);
+        $impossible = $this->table(['period' => '', 'when_from' => '2026-02-31'], $spec);
+
+        $this->assertSame('late', $forwards['rows']->items()[0]->who);
+        $this->assertSame(1, $forwards['totals']['count']);
+        $this->assertSame('early', $backwards['rows']->items()[0]->who);
+        $this->assertSame(['when_from' => '2026-10-01', 'when_to' => '2026-10-31'], $backwards['state']['filters']);
+        $this->assertSame(2, $impossible['totals']['count']);
+    }
+
+    public function test_a_text_filter_matches_part_of_a_value_literally(): void
+    {
+        $this->addRow(['who' => 'Batch 50% off']);
+        $this->addRow(['who' => 'Batch 500']);
+        $spec = ['filters' => [MoneyTableFilter::text('batch', 'Batch', 'who')]];
+
+        $result = $this->table(['period' => '', 'batch' => '  50%  '], $spec);
+
+        $this->assertSame(1, $result['totals']['count']);
+        $this->assertSame('Batch 50% off', $result['rows']->items()[0]->who);
+        $this->assertSame(['batch' => '50%'], $result['state']['filters']);
+    }
+
+    public function test_a_filter_with_no_column_is_reported_but_left_to_the_read_model(): void
+    {
+        $this->seedRows(4);
+        $spec = ['filters' => [new MoneyTableFilter('kind', 'Kind', null, [['value' => 'odd', 'label' => 'Odd']])]];
+
+        $result = $this->table(['period' => '', 'kind' => 'odd'], $spec);
+
+        $this->assertSame(4, $result['totals']['count']);
+        $this->assertSame(['kind' => 'odd'], $result['state']['filters']);
+    }
+
+    public function test_the_screen_is_told_how_to_draw_each_filter_and_its_option_counts(): void
+    {
+        $spec = ['filters' => [
+            new MoneyTableFilter('kind', 'Kind', 'kind', [['value' => 'odd', 'label' => 'Odd', 'count' => 7]], group: 'more'),
+            MoneyTableFilter::numberRange('amount', 'Amount', 'amount', 'min_amount', 'max_amount', decimal: true),
+            MoneyTableFilter::dateRange('when', 'When', 'happened_at::date', 'when_from', 'when_to', group: 'main'),
+            MoneyTableFilter::text('batch', 'Batch', 'who'),
+        ]];
+
+        $filters = $this->table(['period' => ''], $spec)['filters'];
+
+        $this->assertSame(['key' => 'kind', 'label' => 'Kind', 'options' => [['value' => 'odd', 'label' => 'Odd', 'count' => 7]], 'group' => 'more'], $filters[0]);
+        $this->assertSame(['key' => 'amount', 'label' => 'Amount', 'options' => [], 'type' => 'range', 'group' => 'more', 'from' => 'min_amount', 'to' => 'max_amount', 'decimal' => true], $filters[1]);
+        $this->assertSame(['key' => 'when', 'label' => 'When', 'options' => [], 'type' => 'date_range', 'from' => 'when_from', 'to' => 'when_to'], $filters[2]);
+        $this->assertSame(['key' => 'batch', 'label' => 'Batch', 'options' => [], 'type' => 'text', 'group' => 'more'], $filters[3]);
+    }
+
+    public function test_an_extra_period_works_only_where_the_table_offers_it(): void
+    {
+        $this->addRow(['who' => 'October', 'happened_at' => '2026-10-15 05:00:00']);
+        $this->addRow(['who' => 'November']);
+
+        $offered = $this->table(['period' => 'last_month'], ['extraPeriods' => ['last_month']]);
+        $notOffered = $this->table(['period' => 'last_month']);
+
+        $this->assertSame('last_month', $offered['state']['period']);
+        $this->assertSame('October', $offered['rows']->items()[0]->who);
+        $this->assertSame(1, $offered['totals']['count']);
+        $this->assertSame(['last_month'], $offered['extra_periods']);
+        $this->assertSame('month', $notOffered['state']['period']);
+        $this->assertSame('November', $notOffered['rows']->items()[0]->who);
+        $this->assertSame([], $notOffered['extra_periods']);
+
+        $request = Request::create('/x', 'GET', ['period' => 'last_month']);
+        $this->assertSame('2026-09-30 18:00:00', MoneyTable::range($request, null, ['last_month'])['from']->format('Y-m-d H:i:s'));
+        $this->assertNull(MoneyTable::range($request, null));
+    }
+
     public function test_a_range_over_366_days_is_refused_and_366_days_is_allowed(): void
     {
         $this->assertSame('custom', $this->table(['period' => 'custom', 'from' => '2025-01-01', 'to' => '2026-01-02'])['state']['period']);

@@ -7,8 +7,8 @@ use App\Models\CompanyBranch;
 use App\Models\Product;
 use App\Models\StockLot;
 use App\Models\User;
-use App\Support\LocalDigits;
 use App\Support\MoneyTable;
+use App\Support\MoneyTableFilter;
 use App\Support\MoneyTableSpec;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
@@ -42,7 +42,7 @@ final class StockRegister
     {
         $branchId = $scope->allBranches ? null : ($scope->branchIds[0] ?? null);
         $fields = $this->fields(branchChoice: $branchId === null, showsStock: true, branchChoices: $branchId === null ? $this->branchOptions() : []);
-        $active = $this->activeFilters($request, $fields);
+        $active = MoneyTable::chosenFilters($request, $fields);
         $rows = $this->rows($branchId, wholeProduct: false, catalogRules: false);
         $this->applyFilters($rows, $active);
         if (($range = MoneyTable::range($request, null)) !== null) {
@@ -53,7 +53,7 @@ final class StockRegister
         $table = MoneyTable::make($request, $rows, new MoneyTableSpec(
             dateColumn: null,
             search: ['stock_row.name', 'stock_row.sku', 'stock_row.strength', 'stock_row.category', 'stock_row.sub_category', 'stock_row.unit', 'stock_row.next_batch', 'stock_row.branch_name'],
-            filters: [],
+            filters: $fields,
             sorts: [
                 'name' => 'stock_row.name',
                 'sku' => 'stock_row.sku',
@@ -82,11 +82,6 @@ final class StockRegister
         /** @var LengthAwarePaginator<int, object> $page */
         $page = $table['rows'];
         $page->through(fn (object $row): array => $this->rowForScreen($row, $matchedExpiry, $showsCost, $showsDealerPrice));
-        // The shared table draws the main filters itself; the rest live in the "More filters" sheet.
-        $main = array_values(array_filter($fields, fn (array $field): bool => $field['group'] === 'main'));
-        $table['filters'] = array_map(fn (array $field): array => ['key' => $field['key'], 'label' => $field['label'], 'options' => $field['options']], $main);
-        $table['state']['filters'] = array_intersect_key($active, array_flip(array_column($main, 'key')));
-        $table['filter_bar'] = ['fields' => $fields, 'active' => $active];
 
         return $table;
     }
@@ -101,7 +96,7 @@ final class StockRegister
     {
         $fields = $this->fields(branchChoice: $showsStock, showsStock: $showsStock, branchChoices: $showsStock ? $this->branchOptions() : []);
 
-        return ['fields' => $fields, 'active' => $this->activeFilters($request, $fields)];
+        return ['fields' => array_map(fn (MoneyTableFilter $field): array => $field->forScreen(), $fields), 'active' => MoneyTable::chosenFilters($request, $fields)];
     }
 
     /**
@@ -375,7 +370,7 @@ final class StockRegister
      * "More filters" sheet.
      *
      * @param  list<array{value: string, label: string}>  $branchChoices
-     * @return list<array<string, mixed>>
+     * @return list<MoneyTableFilter>
      */
     private function fields(bool $branchChoice, bool $showsStock, array $branchChoices): array
     {
@@ -394,13 +389,13 @@ final class StockRegister
         $fields[] = $this->select('sub_category', __('portal.col_subcategory'), $choices['sub_category'], 'more');
         $fields[] = $this->select('unit', __('portal.col_unit'), $choices['unit'], 'more');
         if ($showsStock) {
-            $fields[] = ['key' => 'qty', 'type' => 'range', 'label' => __('stock_lots.filter_qty'), 'from' => 'qty_min', 'to' => 'qty_max', 'group' => 'more'];
+            $fields[] = MoneyTableFilter::numberRange('qty', (string) __('stock_lots.filter_qty'), null, 'qty_min', 'qty_max');
         }
-        $fields[] = ['key' => 'mrp', 'type' => 'range', 'label' => __('stock_lots.filter_mrp'), 'from' => 'min_mrp', 'to' => 'max_mrp', 'group' => 'more', 'decimal' => true];
+        $fields[] = MoneyTableFilter::numberRange('mrp', (string) __('stock_lots.filter_mrp'), null, 'min_mrp', 'max_mrp', decimal: true);
         if ($showsStock) {
-            $fields[] = ['key' => 'expiry_range', 'type' => 'date_range', 'label' => __('stock_lots.filter_expiry_range'), 'from' => 'expiry_from', 'to' => 'expiry_to', 'group' => 'more'];
+            $fields[] = MoneyTableFilter::dateRange('expiry_range', (string) __('stock_lots.filter_expiry_range'), null, 'expiry_from', 'expiry_to');
             $fields[] = $this->select('expiry', __('stock_lots.filter_expiry'), $this->labelled(self::ExpiryStates, 'stock_lots.expiry_filter_'), 'more');
-            $fields[] = ['key' => 'batch', 'type' => 'text', 'label' => __('stock_lots.filter_batch'), 'group' => 'more'];
+            $fields[] = MoneyTableFilter::text('batch', (string) __('stock_lots.filter_batch'), null);
             $fields[] = $this->select('missing', __('stock_lots.filter_missing'), $this->labelled(self::MissingDetails, 'stock_lots.missing_filter_'), 'more');
             $fields[] = $this->select('idle', __('stock_lots.filter_idle'), array_map(fn (int $days): array => ['value' => (string) $days, 'label' => __('stock_lots.days_option', ['days' => $days])], self::IdleDays), 'more');
         }
@@ -413,11 +408,11 @@ final class StockRegister
 
     /**
      * @param  list<array{value: string, label: string}>  $options
-     * @return array{key: string, type: string, label: string, options: list<array{value: string, label: string}>, group: string}
+     * @param  'main'|'more'  $group
      */
-    private function select(string $key, string $label, array $options, string $group): array
+    private function select(string $key, string $label, array $options, string $group): MoneyTableFilter
     {
-        return ['key' => $key, 'type' => 'select', 'label' => $label, 'options' => $options, 'group' => $group];
+        return new MoneyTableFilter($key, $label, null, $options, group: $group);
     }
 
     /**
@@ -453,94 +448,5 @@ final class StockRegister
     {
         return CompanyBranch::query()->orderBy('name')->get(['id', 'name', 'code'])
             ->map(fn (CompanyBranch $branch): array => ['value' => (string) $branch->id, 'label' => $branch->name.' · '.$branch->code])->values()->all();
-    }
-
-    /**
-     * What the address really asks for, kept to the choices offered: anything else is ignored.
-     *
-     * @param  list<array<string, mixed>>  $fields
-     * @return array<string, string>
-     */
-    private function activeFilters(Request $request, array $fields): array
-    {
-        $active = [];
-        foreach ($fields as $field) {
-            match ($field['type']) {
-                'select' => $this->keepChoice($active, $request, $field),
-                'range' => $this->keepRange($active, $request, $field),
-                'date_range' => $this->keepDates($active, $request, $field),
-                default => $this->keepText($active, $request, $field),
-            };
-        }
-
-        return $active;
-    }
-
-    /**
-     * @param  array<string, string>  $active
-     * @param  array<string, mixed>  $field
-     */
-    private function keepChoice(array &$active, Request $request, array $field): void
-    {
-        $value = $this->queryText($request, $field['key']);
-        if (in_array($value, array_column($field['options'], 'value'), true)) {
-            $active[(string) $field['key']] = $value;
-        }
-    }
-
-    /**
-     * @param  array<string, string>  $active
-     * @param  array<string, mixed>  $field
-     */
-    private function keepRange(array &$active, Request $request, array $field): void
-    {
-        foreach ([(string) $field['from'], (string) $field['to']] as $name) {
-            $value = LocalDigits::latin(trim($this->queryText($request, $name)));
-            $valid = $field['decimal'] ?? false ? preg_match('/^\d{1,10}(\.\d{1,2})?$/D', $value) === 1 : preg_match('/^\d{1,9}$/D', $value) === 1;
-            if ($valid) {
-                $active[$name] = $value;
-            }
-        }
-    }
-
-    /**
-     * @param  array<string, string>  $active
-     * @param  array<string, mixed>  $field
-     */
-    private function keepDates(array &$active, Request $request, array $field): void
-    {
-        $from = (string) $field['from'];
-        $to = (string) $field['to'];
-        $dates = [];
-        foreach ([$from, $to] as $name) {
-            $value = $this->queryText($request, $name);
-            if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/D', $value, $parts) === 1 && checkdate((int) $parts[2], (int) $parts[3], (int) $parts[1])) {
-                $dates[$name] = $value;
-            }
-        }
-        // Dates picked the wrong way round still mean the same period.
-        if (count($dates) === 2 && $dates[$from] > $dates[$to]) {
-            [$dates[$from], $dates[$to]] = [$dates[$to], $dates[$from]];
-        }
-        $active += $dates;
-    }
-
-    /**
-     * @param  array<string, string>  $active
-     * @param  array<string, mixed>  $field
-     */
-    private function keepText(array &$active, Request $request, array $field): void
-    {
-        $value = mb_substr(trim((string) preg_replace('/\p{Cc}+/u', ' ', mb_scrub($this->queryText($request, $field['key']), 'UTF-8'))), 0, 60);
-        if ($value !== '') {
-            $active[(string) $field['key']] = $value;
-        }
-    }
-
-    private function queryText(Request $request, string $name): string
-    {
-        $value = $request->query($name);
-
-        return is_string($value) ? $value : '';
     }
 }

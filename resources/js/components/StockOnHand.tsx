@@ -2,7 +2,7 @@ import { router } from '@inertiajs/react';
 import { Pause, Play } from 'lucide-react';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from './MoneyTable';
 import { date, money, number } from './UI';
-import { StockFilterControls, useAddressVisit, type StockFilterBarData } from './StockFilterBar';
+import { useAddressVisit } from './MoneyTableFilters';
 import { useT } from '../shared/i18n/t';
 import { localizeDigits } from '../business-date';
 
@@ -38,7 +38,7 @@ type StockRow = {
     active?: boolean;
 };
 
-export type StockTableData = MoneyTableData<StockRow> & { filter_bar: StockFilterBarData };
+export type StockTableData = MoneyTableData<StockRow>;
 
 function percentLabel(value?: string | null): string {
     if (value == null || value === '') {
@@ -80,7 +80,7 @@ export default function StockOnHand({ table, canToggle, showBranch }: {
     const sums = table.totals.sums ?? {};
     const units = (key: string) => number(Number(sums[key] ?? 0));
     const totalUnits = Number(sums.in_stock ?? 0) + Number(sums.on_hold ?? 0) + Number(sums.expired ?? 0) + Number(sums.with_courier ?? 0);
-    const activeStage = table.filter_bar.active.stage;
+    const activeStage = table.state.filters.stage;
 
     const stageCards: { key: string; label: string; value: string; stage?: string }[] = [
         { key: 'total', label: translate('stock_lots', 'stage_total'), value: number(totalUnits) },
@@ -181,8 +181,6 @@ export default function StockOnHand({ table, canToggle, showBranch }: {
         },
     ];
 
-    const sortOptions = columns.filter((column) => column.sortKey).map((column) => ({ key: column.sortKey as string, title: column.title }));
-
     return (
         <section className="stock-register-page">
             <div className="sf-stage-cards">
@@ -206,7 +204,6 @@ export default function StockOnHand({ table, canToggle, showBranch }: {
                     columns={columns}
                     searchPlaceholder={translate('portal', 'search_products')}
                     empty={translate('portal', 'stock_no_matches')}
-                    actions={<StockFilterControls bar={table.filter_bar} prop="data" sortOptions={sortOptions} sortState={{ sort: table.state.sort, dir: table.state.dir }} />}
                 />
             </div>
         </section>

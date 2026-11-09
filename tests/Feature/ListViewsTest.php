@@ -70,6 +70,20 @@ class ListViewsTest extends TestCase
         $this->assertSame(['status' => 'held'], json_decode((string) DB::table('saved_list_filters')->value('filters'), true));
     }
 
+    public function test_the_chosen_sort_is_saved_with_the_filters(): void
+    {
+        $owner = User::factory()->staff()->create();
+
+        foreach (['orders', 'accounts'] as $list) {
+            $this->actingAs($owner)->onPortal('sadmin')
+                ->postJson("/commands/list-views/{$list}", ['name' => 'Biggest first', 'filters' => ['status' => 'held', 'sort' => 'total', 'dir' => 'desc']])
+                ->assertOk()
+                ->assertJsonPath('data.views.0.filters.status', 'held')
+                ->assertJsonPath('data.views.0.filters.sort', 'total')
+                ->assertJsonPath('data.views.0.filters.dir', 'desc');
+        }
+    }
+
     public function test_a_filter_with_nothing_chosen_is_refused(): void
     {
         $owner = User::factory()->staff()->create();

@@ -1,7 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { Badge, channelLabel, date, money, number } from '../components/UI';
 import TreasuryPage from '../components/treasury/TreasuryPage';
-import { Figures } from '../components/treasury/FundCard';
+import Figures from '../components/office/Figures';
 import { useTreasuryViewer } from '../components/treasury/TreasuryTabs';
 import { joined, percentText } from '../components/treasury/format';
 import { useT } from '../shared/i18n/t';

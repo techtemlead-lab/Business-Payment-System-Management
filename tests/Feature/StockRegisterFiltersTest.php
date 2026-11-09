@@ -192,15 +192,15 @@ class StockRegisterFiltersTest extends TestCase
         $this->product('Oil', ['category' => 'Oil']);
 
         $table = $this->table('level=low&qty_min=3&category=Oil');
-        $keys = array_column($table['filter_bar']['fields'], 'key');
+        $keys = array_column($table['filters'], 'key');
 
         foreach (['level', 'category', 'stage', 'sub_category', 'unit', 'qty', 'expiry_range', 'expiry', 'batch', 'product_state', 'featured', 'paused', 'mrp', 'missing', 'idle'] as $key) {
             $this->assertContains($key, $keys);
         }
-        $this->assertSame(['level' => 'low', 'category' => 'Oil', 'qty_min' => '3'], $table['filter_bar']['active']);
-        $this->assertSame(['level' => 'low', 'category' => 'Oil'], $table['state']['filters'], 'The shared table shows the main filters as chosen.');
-        $this->assertContains('level', array_column($table['filters'], 'key'));
-        $this->assertNotContains('sub_category', array_column($table['filters'], 'key'), 'The rest stay in the More filters sheet.');
+        $this->assertSame(['level' => 'low', 'category' => 'Oil', 'qty_min' => '3'], $table['state']['filters']);
+        $groups = array_column($table['filters'], 'group', 'key');
+        $this->assertArrayNotHasKey('level', $groups, 'A main filter sits on the toolbar.');
+        $this->assertSame('more', $groups['sub_category'], 'The rest stay in the More filters sheet.');
     }
 
     public function test_all_branches_view_lists_each_branch_and_can_narrow_to_one(): void
@@ -216,7 +216,7 @@ class StockRegisterFiltersTest extends TestCase
         $narrow = $this->table('branch_id='.$this->otherBranch->id, allBranches: true);
         $this->assertSame(1, $narrow['totals']['count']);
         $this->assertSame(2, $narrow['rows']['data'][0]['in_stock']);
-        $this->assertContains('branch_id', array_column($table['filter_bar']['fields'], 'key'));
+        $this->assertContains('branch_id', array_column($table['filters'], 'key'));
     }
 
     public function test_a_branch_view_counts_only_that_branch(): void
@@ -228,7 +228,7 @@ class StockRegisterFiltersTest extends TestCase
         $row = $this->table('')['rows']['data'][0];
 
         $this->assertSame(6, $row['in_stock']);
-        $this->assertNotContains('branch_id', array_column($this->table('')['filter_bar']['fields'], 'key'));
+        $this->assertNotContains('branch_id', array_column($this->table('')['filters'], 'key'));
     }
 
     public function test_staff_without_cost_rights_never_get_cost_figures(): void
