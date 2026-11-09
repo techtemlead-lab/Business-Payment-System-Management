@@ -101,6 +101,7 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
     latestUrl.current = url;
     const searchTimer = useRef<number | undefined>(undefined);
     const lastSearched = useRef(state.q);
+    const viewChips = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         // A slower answer for earlier words must not wipe what is being typed now.
@@ -160,6 +161,15 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
     };
 
     const activeView = choosingView ?? state.period;
+
+    useEffect(() => {
+        // On a phone the chips scroll sideways; keep the chosen one in sight.
+        const strip = viewChips.current;
+        const chosen = strip?.querySelector<HTMLElement>('[aria-pressed="true"]');
+        if (strip && chosen) {
+            strip.scrollLeft = chosen.offsetLeft - (strip.clientWidth - chosen.offsetWidth) / 2;
+        }
+    }, [activeView]);
 
     const chooseView = (value: string) => {
         if (value === 'day' || value === 'custom') {
@@ -259,11 +269,10 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
         <div className={`money-table${busy ? ' is-busy' : ''}`} aria-busy={busy}>
             <div className="mt-toolbar">
                 <form className="mt-search" role="search" onSubmit={(event) => { event.preventDefault(); search(text); }}>
-                    <label className="search-input">
+                    <div className="search-input">
                         <Search size={16} aria-hidden="true" />
-                        <span className="sr-only">{searchPlaceholder}</span>
-                        <input type="search" value={text} placeholder={searchPlaceholder} maxLength={100} onChange={(event) => typeSearch(event.target.value)} />
-                    </label>
+                        <input type="search" aria-label={searchPlaceholder} value={text} placeholder={searchPlaceholder} maxLength={100} onChange={(event) => typeSearch(event.target.value)} />
+                    </div>
                 </form>
                 {(filters.length > 0 || sortableColumns.length > 0) && (
                     <button type="button" className="button small mt-sheet-button" onClick={() => setSheetOpen(true)}>
@@ -273,7 +282,7 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
                     </button>
                 )}
                 {!hideViewChips && (
-                    <div className="mt-views" role="group" aria-label={translate('portal', 'mt_view_label')}>
+                    <div className="mt-views" ref={viewChips} role="group" aria-label={translate('portal', 'mt_view_label')}>
                         {VIEW_CHOICES.map((choice) => (
                             <button key={choice.value || 'all'} type="button" className="mt-view" aria-pressed={activeView === choice.value} onClick={() => chooseView(choice.value)}>
                                 {translate('portal', choice.word)}
