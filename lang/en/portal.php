@@ -3819,7 +3819,7 @@ return [
     // Chapter 18: inventory_branches
     // Chapter 19: payment_claims_gateways
     // Chapter 20: commission_simulator
-    'tour_welcome_badge' => 'Welcome to Madina Natural Care',
+    'tour_welcome_badge' => 'Welcome to Madina Natural Health Care',
     'tour_welcome_title' => 'Your step-by-step guide & user manual',
     'tour_welcome_subtitle' => 'Learn every feature, big and small, with step-by-step guides that point to each part of the screen.',
     'tour_welcome_pillar_ops' => 'Orders & delivery',
