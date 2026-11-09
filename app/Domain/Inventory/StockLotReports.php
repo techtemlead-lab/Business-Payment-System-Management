@@ -236,8 +236,9 @@ final class StockLotReports
     }
 
     /**
-     * Lots a stock count added with no batch number or expiry date. Nothing can warn about
-     * their expiry until someone fills these in.
+     * Goods that came in with no batch number or expiry date, whether by a direct stock-in, a
+     * goods receipt or a stock count. Nothing can warn about their expiry until someone fills
+     * these in. Returns and transfers carry the details of the lot they came from.
      *
      * @return list<array<string, mixed>>
      */
@@ -321,10 +322,8 @@ final class StockLotReports
     {
         $query = StockLot::query()
             ->where('quantity', '>', 0)
-            ->where(fn (Builder $lots) => $lots->whereNull('batch_number')->orWhereNull('expires_on'))
-            ->where(fn (Builder $lots) => $lots
-                ->whereIn('reference', DB::table('stock_count_lines')->whereNotNull('stock_reference')->select('stock_reference'))
-                ->orWhereIn('reference', DB::table('goods_receipt_lines')->select('stock_reference')));
+            ->where('source', StockLots::SourceStockIn)
+            ->where(fn (Builder $lots) => $lots->whereNull('batch_number')->orWhereNull('expires_on'));
         $scope->restrict($query, 'branch_id');
 
         return $query;
