@@ -6521,4 +6521,5 @@ return [
     'kyc_note_added_with_account' => 'Added with the new account',
     'acct_password_copy_failed' => 'Could not copy. Select the password and copy it by hand.',
     'acct_created_flash_no_code' => ':type account created. An email to set the password has been sent.',
+    'err_pay_acct_number' => 'Enter the full mobile number of this account, starting with 01.',
 ];
