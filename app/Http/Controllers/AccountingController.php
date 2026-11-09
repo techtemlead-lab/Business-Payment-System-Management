@@ -11,6 +11,7 @@ use App\Support\Audit;
 use App\Support\PdfFonts;
 use App\Support\PortalHost;
 use App\Support\SpreadsheetCell;
+use App\Support\TableWorkbook;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -105,7 +106,7 @@ class AccountingController extends Controller
         $path = Storage::disk('local')->path('report-exports/'.Str::uuid().'.'.$format);
         try {
             $format === 'xlsx'
-                ? $this->writeSpreadsheet($path, $type, $name, $report, $from, $to, $generatedAt, $notice, $scope)
+                ? $this->writeSpreadsheet($path, $name, $report, $from, $to, $generatedAt, $notice, $scope)
                 : $this->writePdf($path, $name, $report, $from, $to, $generatedAt, $notice, $scope);
         } catch (\Throwable $exception) {
             @unlink($path);
@@ -234,12 +235,12 @@ class AccountingController extends Controller
     }
 
     /** @param array{columns: list<string>, money: list<string>, rows: list<array<string, string>>, totals: array<string, string>} $report */
-    private function writeSpreadsheet(string $path, string $type, string $name, array $report, string $from, string $to, string $generatedAt, string $notice, string $scope): void
+    private function writeSpreadsheet(string $path, string $name, array $report, string $from, string $to, string $generatedAt, string $notice, string $scope): void
     {
         $writer = new Writer(new Options(DEFAULT_COLUMN_WIDTH: 28));
         $writer->openToFile($path);
         try {
-            $writer->getCurrentSheet()->setName(Str::headline($type));
+            $writer->getCurrentSheet()->setName(TableWorkbook::sheetName($name));
             $writer->addRow(new Row([new StringCell($notice, (new Style)->withFontBold(true))]));
             $writer->addRow(Row::fromValuesWithStyle(array_map($this->columnLabel(...), $report['columns']), (new Style)->withFontBold(true)->withFontColor('FFFFFF')->withBackgroundColor('153D30')));
             foreach ($report['rows'] as $row) {

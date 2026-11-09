@@ -16,6 +16,7 @@ use App\Support\Audit;
 use App\Support\Money;
 use App\Support\PdfFonts;
 use App\Support\SpreadsheetCell;
+use App\Support\TableWorkbook;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
@@ -288,7 +289,7 @@ class FinanceOperationsController extends Controller
                 $writer = new Writer(new Options(DEFAULT_COLUMN_WIDTH: 22));
                 $writer->openToFile($path);
                 try {
-                    $writer->getCurrentSheet()->setName(Str::headline($data['type']))->setSheetView(new SheetView(freezeRow: 2));
+                    $writer->getCurrentSheet()->setName(TableWorkbook::sheetName($reportName))->setSheetView(new SheetView(freezeRow: 2));
                     $writer->addRow(Row::fromValuesWithStyle(array_map(fn ($v) => $this->reportColumnLabel($v), $report['columns']), (new Style)->withFontBold(true)->withFontColor('FFFFFF')->withBackgroundColor('153D30')));
                     $rowCount = 0;
                     foreach ($report['query']->cursor() as $item) {

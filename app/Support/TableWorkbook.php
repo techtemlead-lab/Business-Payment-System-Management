@@ -151,7 +151,7 @@ final class TableWorkbook
     }
 
     /** Excel sheet names allow at most 31 characters and no []:*?/\ characters. */
-    private static function sheetName(string $title): string
+    public static function sheetName(string $title): string
     {
         $clean = trim((string) preg_replace('/[\[\]:*?\/\\\\]+/u', ' ', $title));
 

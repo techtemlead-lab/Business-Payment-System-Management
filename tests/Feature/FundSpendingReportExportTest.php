@@ -40,6 +40,16 @@ class FundSpendingReportExportTest extends TestCase
         $this->assertStringContainsString('<v>200</v>', $sheet, 'Two rows of 100 add up to the total line.');
     }
 
+    public function test_the_excel_tab_of_a_bangla_report_is_in_bangla(): void
+    {
+        $finance = User::factory()->staff('finance')->create(['locale' => 'bn']);
+
+        $response = $this->actingAs($finance)->get('/api/v1/operations/reports?type=fund-spending&format=xlsx&from=2026-11-01&to=2026-11-09')->assertOk();
+
+        $this->assertStringNotContainsString('Fund Spending', $this->workbookPart($response, 'xl/workbook.xml'));
+        $this->assertStringContainsString('name="'.mb_substr(__('funds.ops_export_name_fund_spending', [], 'bn'), 0, 8), $this->workbookPart($response, 'xl/workbook.xml'));
+    }
+
     public function test_the_heading_of_a_bangla_report_is_in_bangla(): void
     {
         $finance = User::factory()->staff('finance')->create(['locale' => 'bn']);
