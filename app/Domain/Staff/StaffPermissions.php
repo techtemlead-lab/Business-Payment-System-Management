@@ -147,9 +147,7 @@ final class StaffPermissions
             // People who hold the role follow it: a copy saved on the person when the role was given would keep the old permissions.
             $holders = User::query()->where('role', $key)->lockForUpdate()->get();
             foreach ($holders as $holder) {
-                $profile = (array) ($holder->profile ?? []);
-                unset($profile['action_permissions']);
-                $holder->forceFill(['profile' => $profile])->save();
+                $holder->forceFill(['profile' => array_diff_key((array) ($holder->profile ?? []), ['action_permissions' => true])])->save();
             }
             Audit::record($actor->id, 'staff.role_saved', $key, ['before' => $before, 'after' => ['name' => $name, 'permissions' => $matrix, 'people_updated' => $holders->pluck('id')->all()], 'reason' => $reason]);
 
