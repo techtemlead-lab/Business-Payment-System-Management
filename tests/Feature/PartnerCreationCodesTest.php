@@ -103,10 +103,9 @@ class PartnerCreationCodesTest extends TestCase
 
         $this->submit($this->partnerForm([
             'place_code' => '100001',
-            'dealer_code' => '100001',
+            'dealer_code' => '57481252',
             'reference_code' => '57481252',
-            'refer_code' => 'MNHC-57481252',
-        ]))->assertSessionHasErrors(['reference_code', 'refer_code']);
+        ]))->assertSessionHasErrors(['dealer_code' => __('portal.acct_val_dealer_code_taken')]);
     }
 
     public function test_a_refer_code_in_use_is_caught_with_or_without_the_prefix(): void

@@ -28,7 +28,7 @@ type TargetRow = {
 };
 
 
-function ReferralShare({ referral }: { referral: { code?: string; url?: string; qr_url?: string; hint?: string } | null }) {
+function ReferralShare({ referral, role }: { referral: { code?: string; url?: string; qr_url?: string; hint?: string } | null; role?: string }) {
     const translate = useT();
     const [copied, setCopied] = useState(false);
     if (!referral?.url || !referral?.code) {
@@ -92,7 +92,7 @@ function ReferralShare({ referral }: { referral: { code?: string; url?: string; 
                 </div>
                 <div className="partner-home-referral-meta">
                     <div className="partner-home-referral-code">
-                        <span>{translate('portal', 'refer_code')}</span>
+                        <span>{translate('portal', role === 'sub_dealer' ? 'acct_my_sub_dealer_code' : 'acct_my_dealer_code')}</span>
                         <strong>{referral.code}</strong>
                     </div>
                     <code className="partner-home-referral-url">{referral.url}</code>
@@ -352,7 +352,7 @@ function PartnerHome({ home, orders, tools }: { home: Row; orders: React.ReactNo
                     )}
                 </section>
             )}
-            <ReferralShare referral={home.referral ?? null} />
+            <ReferralShare referral={home.referral ?? null} role={profile.role} />
 
             <section className="ph-card ph-profile">
                 <div className="ph-card-head">
@@ -364,7 +364,6 @@ function PartnerHome({ home, orders, tools }: { home: Row; orders: React.ReactNo
                     <div><dt>{translate('portal', 'label_email')}</dt><dd>{profile.email || '—'}</dd></div>
                     <div><dt>{translate('portal', 'label_area_code')}</dt><dd>{profile.area_code || '—'}</dd></div>
                     {location && <div><dt>{translate('portal', 'label_location')}</dt><dd>{location}</dd></div>}
-                    {profile.refer_code && <div><dt>{translate('portal', 'refer_code')}</dt><dd>{profile.refer_code}</dd></div>}
                 </dl>
                 <div className="ph-profile-links">
                     <Link href={`${base}/profile`} className="button small">{translate('portal', 'full_profile')}</Link>
