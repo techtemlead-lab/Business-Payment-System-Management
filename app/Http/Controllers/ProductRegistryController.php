@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Catalog\ProductFacts;
+use App\Domain\Catalog\ProductRemoval;
 use App\Domain\Finance\Percentage;
 use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\StockLots;
@@ -78,6 +79,7 @@ class ProductRegistryController extends Controller
         return Inertia::render('ProductEditor', [
             'product' => $data,
             'stock_stages' => $product && $r->user()->allows('inventory') ? app(StockStages::class)->forProduct($product) : null,
+            'removal' => $product && $r->user()->allows('catalog') ? app(ProductRemoval::class)->forProduct($product, $r->user()->allows('inventory')) : null,
             'catalog_categories' => CatalogCms::categoryOptions($product),
             'catalog_units' => CatalogCms::unitOptions($product),
             'categories' => SiteCustomization::getConfiguredCategoryNames(),
@@ -106,14 +108,14 @@ class ProductRegistryController extends Controller
     {
         abort_unless($r->user()->allows('catalog'), 403);
         $data = $r->validate(['reason' => 'required|string|min:5|max:1000']);
-        $archived = DB::transaction(function () use ($r, $product, $data): bool {
+        $reasonsItStays = DB::transaction(function () use ($r, $product, $data): ?array {
             $locked = Product::whereKey($product->id)->lockForUpdate()->firstOrFail();
             $hasHistory = $locked->stock > 0 || $locked->isReferenced();
             if ($hasHistory) {
                 $locked->update(['active' => false, 'featured' => false, 'featured_position' => null, 'registry_version' => $locked->registry_version + 1]);
                 Audit::record($r->user()->id, 'product.archived', (string) $locked->id, ['reason' => $data['reason']]);
 
-                return true;
+                return app(ProductRemoval::class)->forProduct($locked, $r->user()->allows('inventory'))['reasons'];
             }
             $media = array_filter([$locked->image_path, $locked->image_original_path, $locked->video_path]);
             $locked->delete();
@@ -124,13 +126,41 @@ class ProductRegistryController extends Controller
             });
             Audit::record($r->user()->id, 'product.deleted', (string) $product->id, ['name' => $product->name, 'reason' => $data['reason']]);
 
-            return false;
+            return null;
         }, 3);
         SiteCustomization::forgetCache();
 
-        return redirect('/catalog')->with('success', $archived
-            ? __('portal.flash_product_archived')
-            : __('portal.flash_product_deleted'));
+        if ($reasonsItStays === null) {
+            return redirect('/catalog')->with('success', __('office_stock.flash_deleted', ['name' => $product->name]));
+        }
+
+        return redirect('/catalog?product_state=archived')->with('success', __('office_stock.flash_archived', [
+            'name' => $product->name,
+            'reasons' => implode(', ', $reasonsItStays),
+        ]));
+    }
+
+    /**
+     * Puts an archived product back on sale, as it was before.
+     */
+    public function restore(Request $r, Product $product): RedirectResponse
+    {
+        abort_unless($r->user()->allows('catalog'), 403);
+        $restored = DB::transaction(function () use ($r, $product): bool {
+            $locked = Product::whereKey($product->id)->lockForUpdate()->firstOrFail();
+            if ($locked->active) {
+                return false;
+            }
+            $locked->update(['active' => true, 'registry_version' => $locked->registry_version + 1]);
+            Audit::record($r->user()->id, 'product.restored', (string) $locked->id, []);
+
+            return true;
+        }, 3);
+        SiteCustomization::forgetCache();
+
+        return redirect('/catalog')->with('success', $restored
+            ? __('office_stock.flash_restored', ['name' => $product->name])
+            : __('office_stock.flash_already_on_sale', ['name' => $product->name]));
     }
 
     /**

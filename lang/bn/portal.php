@@ -5923,6 +5923,7 @@ return [
     'event_privacy_purged' => 'পুরোনো ব্যক্তিগত তথ্য মুছে ফেলা হয়েছে',
     'event_privacy_subject_access_export' => 'ব্যক্তিগত তথ্যের কপি ডাউনলোড',
     'event_product_archived' => 'পণ্য লুকানো হয়েছে',
+    'event_product_restored' => 'পণ্য ফিরিয়ে আনা হয়েছে',
     'event_product_created' => 'পণ্য যোগ হয়েছে',
     'event_product_deleted' => 'পণ্য মুছে ফেলা হয়েছে',
     'event_product_updated' => 'পণ্যের তথ্য বদলানো হয়েছে',

@@ -92,7 +92,7 @@ final class InventorySection implements WorkspaceSection
         return array_map(function (array $product) use ($lotsByProduct, $activeBranchId): array {
             $productLots = $lotsByProduct->get($product['id'], collect());
             if ($productLots->isEmpty() && (int) ($product['company_stock'] ?? $product['stock'] ?? 0) > 0) {
-                return [...$product, 'held_units' => 0];
+                return [...$product, 'held_units' => 0, 'lots_on_hand' => []];
             }
             $branchId = isset($product['branch_stock']) ? (int) ($product['branch_id'] ?? $activeBranchId) : 0;
             $lots = $branchId > 0 ? $productLots->where('branch_id', $branchId) : $productLots;
@@ -103,6 +103,13 @@ final class InventorySection implements WorkspaceSection
                 'expires_on' => $next?->expires_on?->toDateString(),
                 'batch_number' => $next?->batch_number,
                 'held_units' => (int) $lots->filter(fn (StockLot $lot): bool => $lot->isOnHold())->sum('quantity'),
+                'lots_on_hand' => $lots->values()->map(fn (StockLot $lot): array => [
+                    'batch_number' => $lot->batch_number,
+                    'expires_on' => $lot->expires_on?->toDateString(),
+                    'quantity' => (int) $lot->quantity,
+                    'on_hold' => $lot->isOnHold(),
+                    'expired' => $lot->isExpired(),
+                ])->all(),
             ];
         }, $products);
     }

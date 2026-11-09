@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { router } from '@inertiajs/react';
-import { ActionForm, Table, date, number, type Row } from './UI';
+import { ActionForm, Modal, Table, date, number, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
 import StockLotHoldTab from './StockLotHoldTab';
 import StockLotDetailsTab from './StockLotDetailsTab';
@@ -27,27 +27,31 @@ function NearExpiry({ data }: { data: Row }) {
         { key: 'received_on', title: t('col_received'), render: (row: Row) => date(row.received_on) },
     ];
     const choices = (data.day_choices ?? []).map((days: number) => ({ value: String(days), label: t('days_option', { days: String(days) }) }));
+    const [askingDays, setAskingDays] = useState(false);
+    const [showingExpired, setShowingExpired] = useState(false);
 
     return (
-        <>
-            <section className="panel">
-                <div className="preset-chips">
+        <section className="panel">
+            <div className="os-tab-actions">
+                <div className="preset-chips" role="group">
                     {(data.day_choices ?? []).map((days: number) => (
-                        <button key={days} type="button" className={`button small ${data.days === days ? 'dark' : ''}`} onClick={() => router.get('/stock-lots', { tab: 'near', days }, { preserveState: true, replace: true })}>
+                        <button key={days} type="button" className={`button small ${!showingExpired && data.days === days ? 'dark' : ''}`} onClick={() => { setShowingExpired(false); router.get('/stock-lots', { tab: 'near', days }, { preserveState: true, replace: true }); }}>
                             {t('days_option', { days: String(days) })}
                         </button>
                     ))}
+                    <button type="button" className={`button small ${showingExpired ? 'dark' : ''}`} onClick={() => setShowingExpired(true)}>{translate('office_stock', 'already_expired')}</button>
                 </div>
-                <h3>{t('near_heading', { days: String(data.days) })}</h3>
-                <Table rows={data.expiry?.near ?? []} columns={columns} tools={false} empty={t('none_near')} />
-                <ActionForm action="/commands/stock-lots/near-expiry-days" defaults={{ days: String(data.saved_days) }} fields={[{ name: 'days', label: t('near_expiry_window'), required: true, options: choices }]} submit={t('save_window')} />
-            </section>
-            <section className="panel">
-                <h3>{t('expired_heading')}</h3>
-                <p className="muted">{t('expired_note')}</p>
-                <Table rows={data.expiry?.expired ?? []} columns={columns.filter((column) => column.key !== 'days_left')} tools={false} empty={t('none_expired')} />
-            </section>
-        </>
+                <button type="button" className="button small" onClick={() => setAskingDays(true)}>{translate('office_stock', 'warning_days_button')}</button>
+            </div>
+            {showingExpired
+                ? <Table rows={data.expiry?.expired ?? []} columns={columns.filter((column) => column.key !== 'days_left')} tools={false} empty={t('none_expired')} />
+                : <Table rows={data.expiry?.near ?? []} columns={columns} tools={false} empty={t('none_near')} />}
+            {askingDays && (
+                <Modal title={translate('office_stock', 'warning_days_title')} onClose={() => setAskingDays(false)}>
+                    <ActionForm action="/commands/stock-lots/near-expiry-days" defaults={{ days: String(data.saved_days) }} fields={[{ name: 'days', label: t('near_expiry_window'), required: true, options: choices }]} submit={t('save_window')} onDone={() => setAskingDays(false)} />
+                </Modal>
+            )}
+        </section>
     );
 }
 
@@ -105,19 +109,25 @@ function Recall({ data }: { data: Row }) {
 function Transfers({ data }: { data: Row }) {
     const translate = useT();
     const t = (key: string) => translate('stock_lots', key);
+    const [askingTransfer, setAskingTransfer] = useState(false);
 
     return (
         <>
-            <section className="panel">
-                <h3>{t('transfer_new')}</h3>
-                <ActionForm action="/commands/stock-transfers" submit={t('transfer_request')} fields={[
-                    { name: 'product_id', label: t('col_product'), required: true, options: data.product_options ?? [] },
-                    { name: 'source_branch_id', label: t('col_from'), required: true, options: data.branch_options ?? [] },
-                    { name: 'destination_branch_id', label: t('col_to'), required: true, options: data.branch_options ?? [] },
-                    { name: 'quantity', label: t('col_quantity'), type: 'number', required: true },
-                    { name: 'note', label: t('transfer_note') },
-                ]} />
-            </section>
+            <div className="os-tab-actions">
+                <span />
+                <button type="button" className="button small dark" onClick={() => setAskingTransfer(true)}>{translate('office_stock', 'new_transfer_button')}</button>
+            </div>
+            {askingTransfer && (
+                <Modal title={t('transfer_new')} onClose={() => setAskingTransfer(false)}>
+                    <ActionForm action="/commands/stock-transfers" submit={t('transfer_request')} onDone={() => setAskingTransfer(false)} fields={[
+                        { name: 'product_id', label: t('col_product'), required: true, options: data.product_options ?? [] },
+                        { name: 'source_branch_id', label: t('col_from'), required: true, options: data.branch_options ?? [] },
+                        { name: 'destination_branch_id', label: t('col_to'), required: true, options: data.branch_options ?? [] },
+                        { name: 'quantity', label: t('col_quantity'), type: 'number', required: true },
+                        { name: 'note', label: t('transfer_note') },
+                    ]} />
+                </Modal>
+            )}
             <section className="panel">
                 <Table rows={data.transfers ?? []} tools={false} empty={t('none_transfers')} columns={[
                     { key: 'number', title: t('col_number') },

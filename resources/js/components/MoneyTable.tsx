@@ -3,7 +3,7 @@ import { Link, router, usePage } from '@inertiajs/react';
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronRight, Search, SlidersHorizontal } from 'lucide-react';
 import { useT } from '../shared/i18n/t';
 import { DateInput, FormErrors, Modal, Pagination, money, number } from './UI';
-import { MoreFilterControls, filterKeys, isToolbarFilter, optionText, type MoneyFilter } from './MoneyTableFilters';
+import { MoreFilterControls, filterKeys, isToolbarFilter, optionText, type MoneyFilter, type SortOption } from './MoneyTableFilters';
 import { BulkBar, type BulkKind } from './OfficeListTools';
 
 export type MoneyColumn<T> = {
@@ -41,6 +41,8 @@ type MoneyTableProps<T> = {
     rowArrow?: boolean;
     /** Opens the row in a drawer instead of following a link. Wins over rowHref. */
     onRowOpen?: (row: T) => void;
+    /** Sort choices for what the table has no column for. They appear in the filter sheet only. */
+    extraSorts?: SortOption[];
     /** Tick boxes and the bulk bar, shown while the page's own "Select" toggle is on. */
     bulk?: { kind: BulkKind; selecting: boolean };
     /** The "( A | B )" switch above the toolbar: an .office-switch. */
@@ -95,7 +97,7 @@ export default function MoneyTable<T>(props: MoneyTableProps<T>) {
     return <LoadedMoneyTable {...props} data={props.data} />;
 }
 
-function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, rowArrow = true, onRowOpen, bulk, segments, actions, hideViewChips = false, empty }: MoneyTableProps<T> & { data: MoneyTableData<T> }) {
+function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, rowArrow = true, onRowOpen, extraSorts = [], bulk, segments, actions, hideViewChips = false, empty }: MoneyTableProps<T> & { data: MoneyTableData<T> }) {
     const translate = useT();
     const { url, props: pageProps } = usePage<{ errors?: Record<string, string> }>();
     const { state, totals, filters, sortable } = data;
@@ -357,13 +359,16 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
                     <MoreFilterControls
                         bar={{ fields: filters, active: state.filters }}
                         visit={visit}
-                        sortOptions={sortableColumns.map((column) => ({ key: column.sortKey as string, title: column.title }))}
+                        sortOptions={[...sortableColumns.map((column) => ({ key: column.sortKey as string, title: column.title })), ...extraSorts.filter((option) => sortable.includes(option.key))]}
                         sortState={{ sort: state.sort, dir: state.dir }}
                         onSort={(key) => {
                             const column = sortableColumns.find((candidate) => candidate.sortKey === key);
                             if (column) {
                                 sortBy(column);
+
+                                return;
                             }
+                            visit({ sort: key, dir: state.sort === key && state.dir === 'asc' ? 'desc' : 'asc' });
                         }}
                     />
                 )}
