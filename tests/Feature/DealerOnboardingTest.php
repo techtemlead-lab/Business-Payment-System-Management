@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\PlaceCode;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -39,10 +40,14 @@ class DealerOnboardingTest extends TestCase
     public function test_staff_can_create_dealer_with_manual_code_and_pdf_kyc_fields(): void
     {
         Notification::fake();
+        $this->seedClassicPlaceCodes();
         $admin = User::factory()->create(['role' => 'super_admin']);
 
         $payload = [
             'role' => 'dealer',
+            'identity_type' => 'nid',
+            'date_of_birth' => '1985-03-03',
+            'place_code' => 'MNHC-102',
             'dealer_code' => 'D-DHK-001',
             'name' => 'Md. Rafiqul Islam',
             'name_bn' => 'মোঃ রফিকুল ইসলাম',
@@ -98,6 +103,7 @@ class DealerOnboardingTest extends TestCase
     public function test_staff_can_create_subdealer_and_link_active_sponsor(): void
     {
         Notification::fake();
+        $this->seedClassicPlaceCodes();
         $admin = User::factory()->create(['role' => 'super_admin']);
         $sponsor = User::factory()->create([
             'role' => 'dealer',
@@ -105,89 +111,111 @@ class DealerOnboardingTest extends TestCase
             'dealer_code' => 'D-DHK-SPONSOR',
         ]);
 
-        $payload = [
+        $res = $this->actingAs($admin)->post('/commands/accounts', $this->placeOnboarding([
             'role' => 'sub_dealer',
-            'dealer_code' => 'SD-CTG-001',
+            'place_code' => $this->unionCode(),
             'name' => 'Abul Kashem',
             'email' => 'kashem@example.com',
             'phone' => '01811223344',
-            'division' => 'Chittagong',
-            'district' => 'Cumilla',
-            'sponsor_id' => $sponsor->id,
+            'reference_code' => $sponsor->dealer_code,
             'status' => 'active',
             'reason' => 'Sub-dealer assigned under Gazipur dealer.',
-        ];
-
-        $res = $this->actingAs($admin)->post('/commands/accounts', $payload);
-        $res->assertRedirect('/accounts');
+        ]));
+        $res->assertRedirect('/sub-dealers');
 
         $sub = User::where('email', 'kashem@example.com')->first();
         $this->assertNotNull($sub);
         $this->assertSame('sub_dealer', $sub->role);
-        $this->assertSame('SD-CTG-001', $sub->dealer_code);
+        $this->assertSame('MNHC-561-000001', $sub->dealer_code);
         $this->assertSame($sponsor->id, $sub->sponsor_id);
     }
 
     public function test_subdealer_cannot_be_published_in_public_directory(): void
     {
+        $this->seedClassicPlaceCodes();
         $admin = User::factory()->create(['role' => 'super_admin']);
 
-        $payload = [
+        $this->actingAs($admin)->post('/commands/accounts', $this->placeOnboarding([
             'role' => 'sub_dealer',
-            'dealer_code' => 'SD-ERR-001',
-            'name' => 'Invalid Sub',
+            'place_code' => $this->unionCode(),
+            'name' => 'Listed Sub',
             'email' => 'err@example.com',
             'phone' => '01811110001',
             'directory_visible' => '1',
-            'reason' => 'Test invalid sub-dealer publication',
-        ];
+        ]))->assertSessionHasNoErrors();
 
-        $res = $this->actingAs($admin)->post('/commands/accounts', $payload);
-        $res->assertSessionHasErrors('directory_visible');
-        $this->assertDatabaseMissing('users', ['email' => 'err@example.com']);
+        $this->assertFalse(User::where('email', 'err@example.com')->firstOrFail()->directory_visible);
     }
 
-    public function test_dealer_code_is_required_for_partners_and_must_be_unique(): void
+    public function test_a_partner_needs_a_place_and_a_free_dealer_code(): void
     {
+        $this->seedClassicPlaceCodes();
         $admin = User::factory()->create(['role' => 'super_admin']);
         User::factory()->create([
             'role' => 'dealer',
-            'dealer_code' => 'D-EXISTING',
+            'dealer_code' => 'MNHC-102',
             'email' => 'existing@example.com',
         ]);
 
-        // Missing dealer_code
+        // No place
         $res = $this->actingAs($admin)->post('/commands/accounts', [
             'role' => 'dealer',
-            'name' => 'No Code Dealer',
-            'email' => 'nocode@example.com',
+            'name' => 'No Place Dealer',
+            'email' => 'noplace@example.com',
         ]);
-        $res->assertSessionHasErrors('dealer_code');
+        $res->assertSessionHasErrors('place_code');
 
-        // Duplicate dealer_code
-        $res = $this->actingAs($admin)->post('/commands/accounts', [
-            'role' => 'dealer',
-            'dealer_code' => 'D-EXISTING',
+        // The place's code is already someone's dealer code
+        $res = $this->actingAs($admin)->post('/commands/accounts', $this->placeOnboarding([
             'name' => 'Duplicate Code Dealer',
             'email' => 'dup@example.com',
-        ]);
+            'phone' => '01811110001',
+        ]));
         $res->assertSessionHasErrors('dealer_code');
     }
 
     public function test_sponsor_must_be_active_dealer(): void
     {
         $admin = User::factory()->create(['role' => 'super_admin']);
-        $suspendedDealer = User::factory()->create(['role' => 'dealer', 'status' => 'suspended']);
+        $this->seedClassicPlaceCodes();
+        $suspendedDealer = User::factory()->create(['role' => 'dealer', 'status' => 'suspended', 'dealer_code' => 'D-SUSPENDED']);
 
-        $res = $this->actingAs($admin)->post('/commands/accounts', [
-            'role' => 'sub_dealer',
-            'dealer_code' => 'SD-SPONSOR-TEST',
-            'name' => 'Sub Test',
+        $res = $this->actingAs($admin)->post('/commands/accounts', $this->placeOnboarding([
+            'name' => 'Sponsor Test',
             'email' => 'subtest@example.com',
             'phone' => '01811110002',
-            'sponsor_id' => $suspendedDealer->id,
-        ]);
-        $res->assertStatus(422);
+            'reference_code' => $suspendedDealer->dealer_code,
+        ]));
+        $res->assertSessionHasErrors('reference_code');
+    }
+
+    private function unionCode(): string
+    {
+        $division = PlaceCode::query()->where('code', 'MNHC-102')->firstOrFail();
+        $district = PlaceCode::factory()->district($division)->create(['code' => 'MNHC-361', 'name' => 'Test District']);
+        $upazila = PlaceCode::factory()->upazila($district)->create(['code' => 'MNHC-461', 'name' => 'Test Upazila']);
+
+        return (string) PlaceCode::factory()->union($upazila)->create(['code' => 'MNHC-561', 'name' => 'Test Union'])->code;
+    }
+
+    /**
+     * @param  array<string, string>  $overrides
+     * @return array<string, string>
+     */
+    private function placeOnboarding(array $overrides): array
+    {
+        return [
+            'role' => 'dealer',
+            'identity_type' => 'birth_certificate',
+            'birth_certificate_number' => '19911234567890111',
+            'date_of_birth' => '1991-02-02',
+            'name_bn' => 'পরীক্ষা ডিলার',
+            'father_name' => 'Father',
+            'mother_name' => 'Mother',
+            'place_code' => 'MNHC-102',
+            'reason' => 'Onboarding test',
+            ...$overrides,
+        ];
     }
 
     public function test_staff_can_update_dealer_map_coordinates(): void

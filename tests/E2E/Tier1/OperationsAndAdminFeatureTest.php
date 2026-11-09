@@ -37,6 +37,21 @@ class OperationsAndAdminFeatureTest extends E2ETestCase
     // F13: Partner Account Provisioning
     // ==========================================
 
+    /** @return array<string, string> */
+    private function placeOnboarding(): array
+    {
+        return [
+            'role' => 'dealer',
+            'identity_type' => 'birth_certificate',
+            'birth_certificate_number' => '19911234567890111',
+            'date_of_birth' => '1991-02-02',
+            'name_bn' => 'পরীক্ষা ডিলার',
+            'father_name' => 'Father',
+            'mother_name' => 'Mother',
+            'place_code' => 'MNHC-102',
+        ];
+    }
+
     /**
      * F13: Super admin provisions a new dealer account with referral sponsor linking.
      */
@@ -45,17 +60,16 @@ class OperationsAndAdminFeatureTest extends E2ETestCase
         $admin = $this->createStaff('super_admin');
         $sponsor = $this->createDealer(['name' => 'Sponsor Dealer']);
 
-        $dealerCode = 'SYN-D-'.Str::upper(Str::random(6));
-        $email = 'newdealer.'.Str::random(5).'@example.com';
+        $this->seedClassicPlaceCodes();
+        $email = 'newdealer.'.Str::lower(Str::random(5)).'@example.com';
         $phone = '017'.fake()->unique()->numerify('########');
 
         $response = $this->actingAs($admin)->onPortal('sadmin')->post('/commands/accounts', [
-            'role' => 'dealer',
+            ...$this->placeOnboarding(),
             'name' => 'New Provisioned Dealer',
             'email' => $email,
             'phone' => $phone,
-            'dealer_code' => $dealerCode,
-            'sponsor_id' => $sponsor->id,
+            'reference_code' => $sponsor->dealer_code,
             'status' => 'active',
             'reason' => 'Provisioning verified partner',
         ]);
@@ -87,14 +101,14 @@ class OperationsAndAdminFeatureTest extends E2ETestCase
     public function test_provisioning_fails_with_duplicate_dealer_code(): void
     {
         $admin = $this->createStaff('super_admin');
-        $existing = $this->createDealer(['dealer_code' => 'SYN-DUP-01']);
+        $this->seedClassicPlaceCodes();
+        $this->createDealer(['dealer_code' => 'MNHC-102']);
 
         $response = $this->actingAs($admin)->onPortal('sadmin')->post('/commands/accounts', [
-            'role' => 'dealer',
+            ...$this->placeOnboarding(),
             'name' => 'Duplicate Code Partner',
             'email' => 'duplicate.code@example.com',
             'phone' => '017'.fake()->unique()->numerify('########'),
-            'dealer_code' => 'SYN-DUP-01',
             'status' => 'active',
             'reason' => 'Attempting duplicate',
         ]);

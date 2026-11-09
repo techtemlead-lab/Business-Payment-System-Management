@@ -341,25 +341,6 @@ class ManagementReferralTest extends TestCase
         $this->assertArrayNotHasKey('referred_by', $sponsor->profile ?? []);
     }
 
-    public function test_legacy_account_without_sponsor_is_stamped_when_management_code_exists(): void
-    {
-        $admin = User::factory()->create(['role' => 'super_admin']);
-
-        $this->actingAs($admin)->onPortal('sadmin')->post('/commands/accounts', [
-            'role' => 'dealer',
-            'dealer_code' => 'LEG-440',
-            'name' => 'Legacy Blank',
-            'email' => 'legacy-blank@example.com',
-            'phone' => '01712000031',
-            'reason' => 'Created without a personal referrer',
-        ])->assertRedirect('/accounts');
-
-        $user = User::query()->where('email', 'legacy-blank@example.com')->firstOrFail();
-        $this->assertNull($user->sponsor_id);
-        $this->assertSame('management', $user->profile['referred_by'] ?? null);
-        $this->assertSame('MNHC-100', $user->profile['management_refer_code'] ?? null);
-    }
-
     /** @param array<string, mixed> $overrides @return array<string, mixed> */
     private function dealerPayload(array $overrides): array
     {
