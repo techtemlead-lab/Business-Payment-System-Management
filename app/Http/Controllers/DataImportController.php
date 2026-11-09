@@ -40,6 +40,7 @@ class DataImportController extends Controller
             $page = $request->integer('row_page', 1);
             $preview = [...collect((array) $batch)->except(['rows', 'file_path'])->all(),
                 'summary' => json_decode($batch->summary, true, 512, JSON_THROW_ON_ERROR),
+                'review_reason' => $batch->status === 'failed' ? __('portal.import_failed_reason') : $batch->review_reason,
                 'rows' => array_slice($rows, ($page - 1) * 50, 50), 'row_page' => $page, 'row_pages' => (int) ceil(count($rows) / 50)];
         }
         $data = ['types' => array_map(fn (string $type): array => ['key' => $type, 'columns' => ImportWorkbook::Columns[$type],
