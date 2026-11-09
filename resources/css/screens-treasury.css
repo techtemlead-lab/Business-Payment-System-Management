@@ -8,7 +8,6 @@
 
 /* Shared table: the search icon sits beside the words, and the filter sheet is only for phones. */
 .app-shell .money-table .mt-search .search-input{flex-direction:row}
-.app-shell .money-table .mt-card-lines .cell-sub::before{content:" · "}
 @media (min-width:768px){
   .app-shell .money-table .mt-sheet-button{display:none}
 }

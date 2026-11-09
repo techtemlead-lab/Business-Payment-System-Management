@@ -95,7 +95,7 @@ return [
 
     'tile_payments' => 'Check payments',
     'tile_payouts' => 'Withdrawal requests',
-    'tile_settlements' => 'Month settlement',
+    'tile_settlements' => 'Month close',
     'tile_holds' => 'Held commission',
     'tile_rewards' => 'Rewards',
     'tile_payroll' => 'Salary',
@@ -139,7 +139,7 @@ return [
     'kind_fund_out' => 'Spent from a fund',
     'kind_withdrawal' => 'Withdrawal',
     'kind_stock' => 'Product',
-    'kind_month_close' => 'Month settlement',
+    'kind_month_close' => 'Month close',
     'card_in' => 'Came in',
     'card_out' => 'Went out',
     'card_now' => 'In it now',
