@@ -115,6 +115,7 @@ return function (string $portal): void {
     Route::post('/commands/products/featured-order', [ProductRegistryController::class, 'featuredOrder']);
     Route::patch('/commands/products/{product}', [ProductRegistryController::class, 'update']);
     Route::delete('/commands/products/{product}', [ProductRegistryController::class, 'destroy']);
+    Route::post('/commands/products/{product}/restore', [ProductRegistryController::class, 'restore']);
     Route::post('/commands/products/{product}/toggle-stock', [ProductRegistryController::class, 'toggleStock']);
     Route::post('/commands/product-concerns', [ProductConcernController::class, 'store']);
     Route::patch('/commands/product-concerns/{productConcern}', [ProductConcernController::class, 'update']);

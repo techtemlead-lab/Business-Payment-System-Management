@@ -3,6 +3,7 @@
 namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Catalog\CatalogTaxonomy;
+use App\Domain\Catalog\ProductRemoval;
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Inventory\StockRegister;
 use App\Domain\Orders\AccountOrderPayment;
@@ -13,6 +14,8 @@ use App\Support\Money;
 use App\Support\MoneyTable;
 use App\Support\SiteCustomization;
 use App\Support\StockImage;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -49,22 +52,10 @@ final class CatalogSection implements WorkspaceSection
             ->when($context->section === 'catalog' && $request->string('availability')->toString() === 'draft', fn ($q) => $q->where('active', false))
             ->when($context->section === 'catalog' && $request->string('availability')->toString() === 'in_stock', fn ($q) => $q->whereSellable()->where(fn ($stock) => $stock->where('is_stock_paused', false)->orWhereNull('is_stock_paused')))
             ->when($context->section === 'catalog' && $request->string('availability')->toString() === 'out_of_stock', fn ($q) => $q->where(fn ($stock) => $stock->whereNotSellable()->orWhere('is_stock_paused', true)))
-            ->when(
-                $context->section === 'catalog' && in_array($request->string('sort')->toString(), ['name_desc', 'price_asc', 'price_desc', 'newest', 'stock_asc', 'stock_desc'], true),
-                function ($q) use ($request) {
-                    match ($request->string('sort')->toString()) {
-                        'name_desc' => $q->orderByDesc('name'),
-                        'price_asc' => $q->orderBy('mrp')->orderBy('name'),
-                        'price_desc' => $q->orderByDesc('mrp')->orderBy('name'),
-                        'newest' => $q->orderByDesc('created_at')->orderByDesc('id'),
-                        'stock_asc' => $q->orderBySellable()->orderBy('name'),
-                        'stock_desc' => $q->orderBySellable('desc')->orderBy('name'),
-                    };
-                },
-                fn ($q) => $q->orderBy('name'),
-            );
+            ->when($context->section === 'catalog', fn ($q) => $this->sortCatalog($q, $request), fn ($q) => $q->orderBy('name'));
         $revealStock = ! $context->isStaff || $user->allows('inventory');
         $stagesByProduct = [];
+        $removalByProduct = [];
         if ($context->isStaff && $context->section === 'catalog') {
             $register = app(StockRegister::class);
             $props['catalog_filters'] = $register->catalogFilters($request, $revealStock);
@@ -73,11 +64,19 @@ final class CatalogSection implements WorkspaceSection
             if ($addedBetween !== null) {
                 $productQuery->where('products.created_at', '>=', $addedBetween['from'])->where('products.created_at', '<=', $addedBetween['until']);
             }
+            $searchesArchived = isset($props['catalog_filters']['active']['product_state']) || in_array($request->string('availability')->toString(), ['published', 'draft'], true);
+            if (! $searchesArchived) {
+                $productQuery->where('products.active', true);
+            }
+            $props['archived_count'] = Product::query()->where('active', false)
+                ->when($request->filled('q'), fn ($q) => $q->where(fn ($match) => $match->where('name', 'ilike', '%'.$request->string('q').'%')->orWhere('sku', 'ilike', '%'.$request->string('q').'%')->orWhere('category', 'ilike', '%'.$request->string('q').'%')))
+                ->count();
             $page = $productQuery->paginate(self::StaffProductsPerPage)->withQueryString();
             $props['products_truncated'] = false;
             $props['products_page'] = Arr::except($page->toArray(), ['data']);
             $products = $page->getCollection();
             $stagesByProduct = $revealStock ? $register->stagesByProduct($products->pluck('id')->map(fn (mixed $id): int => (int) $id)->all()) : [];
+            $removalByProduct = $user->allows('catalog') ? app(ProductRemoval::class)->forProducts($products, $user->allows('inventory')) : [];
         } else {
             $productLimit = $context->isStaff ? 250 : 200;
             $props['products_truncated'] = (clone $productQuery)->count() > $productLimit;
@@ -86,7 +85,7 @@ final class CatalogSection implements WorkspaceSection
         $revealDealerPrice = ! $context->isStaff || $user->allows('pricing') || $user->allows('orders') || $user->allows('finance');
         // Each Schema::hasColumn() call reads the database catalogue, so ask once per request, not once per product.
         $supportsProductExpiry = $context->section === 'inventory' && Schema::hasColumn('products', 'expires_on');
-        $props['products'] = $products->map(function ($p) use ($user, $context, $revealStock, $revealDealerPrice, $supportsProductExpiry, $stagesByProduct) {
+        $props['products'] = $products->map(function ($p) use ($user, $context, $revealStock, $revealDealerPrice, $supportsProductExpiry, $stagesByProduct, $removalByProduct) {
             $base = [...$p->only(['id', 'sku', 'name', 'category', 'sub_category', 'strength', 'description', 'unit', 'mrp', 'active', 'featured', 'tone', 'is_stock_paused']), 'stock_status' => $p->stockStatus(), ...$p->media(), 'image_fallback' => $p->image_path ? null : StockImage::forCategory($p->category, $p->name), ...($user->allows('cost_read') ? ['cost_price' => $p->cost_price] : [])];
             if (! $context->isStaff) {
                 try {
@@ -96,6 +95,17 @@ final class CatalogSection implements WorkspaceSection
                 }
             } elseif ($revealDealerPrice) {
                 $base['price'] = $p->dealer_price;
+                if ($context->section === 'catalog') {
+                    $base += [
+                        'dealer_price' => $p->dealer_price,
+                        'sub_dealer_price' => $p->sub_dealer_price,
+                        'dealer_discount_pct' => $p->discountPercentFromRetail($p->dealer_price),
+                        'sub_dealer_discount_pct' => $p->discountPercentFromRetail($p->sub_dealer_price),
+                    ];
+                }
+            }
+            if (isset($removalByProduct[$p->id])) {
+                $base['removal'] = $removalByProduct[$p->id];
             }
             if ($revealStock) {
                 // The stock screen counts what is on the shelf; everywhere else counts what can be sold.
@@ -183,5 +193,32 @@ final class CatalogSection implements WorkspaceSection
         }
 
         return $props;
+    }
+
+    /**
+     * Column sorts send a key and a direction. Links saved from the old drop-down still work.
+     *
+     * @param  Builder<Product>  $query
+     */
+    private function sortCatalog(Builder $query, Request $request): void
+    {
+        $sort = $request->string('sort')->toString();
+        $direction = $request->string('dir')->toString() === 'desc' ? 'desc' : 'asc';
+        [$key, $direction] = match ($sort) {
+            'name_desc' => ['name', 'desc'],
+            'price_asc' => ['mrp', 'asc'],
+            'price_desc' => ['mrp', 'desc'],
+            'newest' => ['created', 'desc'],
+            'stock_asc' => ['stock', 'asc'],
+            'stock_desc' => ['stock', 'desc'],
+            'name', 'mrp', 'stock', 'created' => [$sort, $direction],
+            default => ['name', 'asc'],
+        };
+        match ($key) {
+            'mrp' => $query->orderBy('mrp', $direction)->orderBy('name'),
+            'created' => $query->orderBy('created_at', $direction)->orderBy('id', $direction),
+            'stock' => $query->orderBySellable($direction)->orderBy('name'),
+            default => $query->orderBy('name', $direction),
+        };
     }
 }

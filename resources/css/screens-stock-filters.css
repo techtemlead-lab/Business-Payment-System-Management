@@ -1,3 +1,4 @@
+@import './screens-office-stock.css';
 /* The filter bar of the Stock and Product pages, and the stock stage cards. */
 .stock-register-page{display:grid;gap:12px;min-width:0}
 .sf-page-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}

@@ -154,7 +154,7 @@ return [
     'filter_idle' => 'যতদিন বিক্রি হয়নি',
     'filter_product_state' => 'পণ্যের অবস্থা',
     'product_state_active' => 'চালু',
-    'product_state_archived' => 'লুকানো',
+    'product_state_archived' => 'আর্কাইভ করা',
     'filter_featured' => 'ফিচার্ড',
     'filter_paused' => 'অর্ডার বন্ধ',
     'answer_yes' => 'হ্যাঁ',

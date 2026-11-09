@@ -156,15 +156,15 @@ class ProductRegistryTest extends TestCase
         // 2. Unordered product is completely deleted
         $this->actingAs($admin)->delete('/commands/products/'.$p1->id, ['reason' => 'Obsolete product'])
             ->assertRedirect('/catalog')
-            ->assertSessionHas('success', __('portal.flash_product_deleted'));
+            ->assertSessionHas('success', __('office_stock.flash_deleted', ['name' => $p1->name]));
         $this->assertNull(Product::find($p1->id));
 
         // 3. Product with order history is safely deactivated/archived to preserve financial records
         $p2 = $this->product();
         $order = app(OrderService::class)->create($dealer, ['items' => [['product_id' => $p2->id, 'quantity' => 1]], 'idempotency_key' => (string) Str::uuid()]);
         $this->actingAs($admin)->delete('/commands/products/'.$p2->id, ['reason' => 'Discontinue with history'])
-            ->assertRedirect('/catalog')
-            ->assertSessionHas('success', __('portal.flash_product_archived'));
+            ->assertRedirect('/catalog?product_state=archived')
+            ->assertSessionHas('success', fn (string $message): bool => str_contains($message, $p2->name));
 
         $freshP2 = Product::find($p2->id);
         $this->assertNotNull($freshP2);

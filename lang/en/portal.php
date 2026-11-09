@@ -5921,6 +5921,7 @@ return [
     'event_privacy_purged' => 'Old personal data removed',
     'event_privacy_subject_access_export' => 'Personal data copy downloaded',
     'event_product_archived' => 'Product hidden',
+    'event_product_restored' => 'Product brought back',
     'event_product_created' => 'Product added',
     'event_product_deleted' => 'Product deleted',
     'event_product_updated' => 'Product changed',

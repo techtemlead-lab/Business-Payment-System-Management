@@ -75,6 +75,7 @@ final class StockRegister
                 'with_courier' => 'stock_row.with_courier',
                 'expired' => 'stock_row.expired',
                 'stock_value' => 'stock_row.stock_value',
+                'low_count' => "CASE WHEN stock_row.level = 'low' THEN 1 ELSE 0 END",
             ],
             defaultPeriod: null,
         ));
