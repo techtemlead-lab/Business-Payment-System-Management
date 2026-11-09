@@ -270,7 +270,8 @@ class FinanceOperationsController extends Controller
         $reportNoteKey = $langFile.'.ops_export_note_'.$reportKey;
         $reportName = __($reportNameKey);
         if ($reportName === $reportNameKey) {
-            $reportName = Str::headline($data['type']);
+            $screenName = __('portal.ops_report_'.$reportKey);
+            $reportName = $screenName === 'portal.ops_report_'.$reportKey ? Str::headline($data['type']) : $screenName;
         }
         $reportNote = __($reportNoteKey);
         if ($reportNote === $reportNoteKey) {

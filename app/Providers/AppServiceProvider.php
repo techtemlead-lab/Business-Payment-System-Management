@@ -30,6 +30,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
@@ -54,6 +55,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Nobody using the portal should be asked for "Y-m-d"; the date boxes are filled in as day/month/year.
+        Validator::replacer('date_format', static fn (string $message, string $attribute, string $rule, array $parameters): string => str_replace(':format', match ($parameters[0] ?? '') {
+            'Y-m-d' => __('portal.date_format_day_month_year'),
+            'H:i' => __('portal.date_format_hour_minute'),
+            default => (string) ($parameters[0] ?? ''),
+        }, $message));
         $trustedProxies = trim((string) config('madina.trusted_proxies'));
         if ($trustedProxies === '*') {
             TrustProxies::at('*');

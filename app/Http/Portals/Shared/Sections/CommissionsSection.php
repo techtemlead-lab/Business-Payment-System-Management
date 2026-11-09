@@ -13,6 +13,7 @@ use App\Models\DealerRank;
 use App\Models\RewardMilestoneProgress;
 use App\Support\ListPage;
 use App\Support\Money;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -89,9 +90,12 @@ final class CommissionsSection implements WorkspaceSection
             $counts = collect($props['ranks'])->countBy('current_rank')->all();
         } else {
             // Staff get 25 leaders a page, searched and filtered on the server; the rank counts cover everyone.
+            // Staff accounts added in the past also got a rank row, so only partners are listed and counted.
+            $partnersOnly = fn (Builder $ranks) => $ranks->whereHas('user', fn (Builder $users) => $users->whereIn('role', ['dealer', 'sub_dealer']));
             $search = ListPage::query($request);
             $rankFilter = in_array($request->query('rank'), self::RankCodes, true) ? (string) $request->query('rank') : null;
             $props['ranks'] = $query
+                ->tap($partnersOnly)
                 ->when($search !== '', fn ($q) => $q->whereHas('user', function ($users) use ($search): void {
                     $like = '%'.OrderListFilter::escapeLike($search).'%';
                     $users->where(fn ($match) => $match->where('name', 'ilike', $like)->orWhere('dealer_code', 'ilike', $like)->orWhere('phone', 'like', $like));
@@ -102,7 +106,7 @@ final class CommissionsSection implements WorkspaceSection
                 ->paginate(ListPage::PerPage)
                 ->withQueryString()
                 ->through($mapRank);
-            $counts = DealerRank::query()->groupBy('current_rank')->selectRaw('current_rank, COUNT(*) AS total')->pluck('total', 'current_rank')->all();
+            $counts = DealerRank::query()->tap($partnersOnly)->groupBy('current_rank')->selectRaw('current_rank, COUNT(*) AS total')->pluck('total', 'current_rank')->all();
         }
         $props['stats'] = [];
         foreach (self::RankCodes as $code) {

@@ -49,7 +49,7 @@ function useListView(listKey: string) {
     return { view, setView, remember };
 }
 
-function ToolMenu({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
+function ToolMenu({ icon, title, children, opensRight = false }: { icon: ReactNode; title: string; children: ReactNode; opensRight?: boolean }) {
     const root = useRef<HTMLDivElement>(null);
     const [open, setOpen] = useState(false);
 
@@ -81,7 +81,7 @@ function ToolMenu({ icon, title, children }: { icon: ReactNode; title: string; c
                 {icon}
                 <span>{title}</span>
             </button>
-            {open && <div className="list-tool-panel">{children}</div>}
+            {open && <div className={`list-tool-panel${opensRight ? ' opens-right' : ''}`}>{children}</div>}
         </div>
     );
 }
@@ -267,7 +267,7 @@ function ChoosableTable<T extends Row = any>({ listKey, bulk, columns, extraTool
                             )}
                         </span>
                     )}
-                    <ToolMenu icon={<Columns3 size={14} aria-hidden="true" />} title={translate('productivity', 'views_columns')}>
+                    <ToolMenu opensRight icon={<Columns3 size={14} aria-hidden="true" />} title={translate('productivity', 'views_columns')}>
                         <ul className="list-tool-list">
                             {choosable.map((column) => (
                                 <li key={column.key}>

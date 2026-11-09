@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Head, Link, useForm, usePage, usePoll } from '@inertiajs/react';
 import Shell from '../components/Shell';
 import { Row, Table, Badge, money, number, date, label, ActionForm, DateInput, FormErrors } from '../components/UI';
+import { actionAllowed } from '../components/action-permissions';
 import { useT } from '../shared/i18n/t';
 import { randomUuid } from '../shared/randomUuid';
 import TransactionProgressStepper from '../components/TransactionProgressStepper';
@@ -67,6 +68,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
     const { auth,staffActions,portalBase:base,collectionAccounts=[] } = usePage<any>().props;
     const capabilities: string[] = auth.capabilities;
     const owner = auth.user.id === order.user_id && capabilities.length === 0;
+    const canVerify = actionAllowed('/commands/claims/0/verify', staffActions);
     const open = !['rejected', 'cancelled'].includes(order.status);
     const itemsLeft = (order.lines ?? []).some((line: Row) => Number(line.dispatched) < Number(line.quantity));
     const [shareOpen, setShareOpen] = useState(false);
@@ -160,7 +162,8 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                     { key: 'status', title: translate('portal', 'col_status'), render: claim => <Badge status={claim.status} /> }, { key: 'reason', title: translate('portal', 'review_note') },
                 ]} />
                 <p className="muted">{translate('portal', 'claim_not_verified_hint')}</p>
-                {capabilities.includes('finance') && claims.filter(claim => claim.status === 'pending').map(claim => <div className="panel" key={claim.id}>
+                {capabilities.includes('finance') && !canVerify && claims.some(claim => claim.status === 'pending') && <p className="notice">{translate('portal', 'payment_view_only_note')}</p>}
+                {capabilities.includes('finance') && canVerify && claims.filter(claim => claim.status === 'pending').map(claim => <div className="panel" key={claim.id}>
                     <h3>{translate('portal', 'review_claim', { reference: claim.reference })}</h3>
                     <ActionForm action={`/commands/claims/${claim.id}/verify`} fields={[
                         { name: 'approve', label: translate('portal', 'decision'), required: true, options: [{ value: '1', label: translate('portal', 'verify_received_payment') }, { value: '0', label: translate('portal', 'reject_claim') }] },

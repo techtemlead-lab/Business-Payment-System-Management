@@ -112,7 +112,7 @@ class TrainingController extends Controller
             'pass' => (string) $trainingItem->quiz_pass_percent,
         ]);
 
-        return back()->with($result['passed'] ? 'success' : 'error', $message);
+        return back()->with($result['passed'] ? 'success' : 'warning', $message);
     }
 
     /** Owners set how many quiz tries a partner gets per quiz in one hour. */
