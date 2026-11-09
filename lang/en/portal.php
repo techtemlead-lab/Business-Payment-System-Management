@@ -6666,4 +6666,13 @@ return [
     'acct_more_address' => 'More (search places, map location)',
     'acct_section_last' => 'Last step',
     'acct_enter_moves' => 'Press Enter to go to the next box.',
+    'mt_view_day' => 'One date',
+    'mt_view_range' => 'Date range',
+    'mt_view_label' => 'Which dates',
+    'mt_filters' => 'Filters',
+    'mt_sort' => 'Sort',
+    'mt_total_count' => 'Total (:count)',
+    'mt_date_from' => 'From',
+    'mt_date_to' => 'To',
+    'mt_open_row' => 'See details',
 ];

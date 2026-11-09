@@ -6666,4 +6666,13 @@ return [
     'acct_more_address' => 'আরও (স্থান খোঁজা, ম্যাপের লোকেশন)',
     'acct_section_last' => 'শেষ ধাপ',
     'acct_enter_moves' => 'Enter চাপলে পরের ঘরে যাবে।',
+    'mt_view_day' => 'একটি তারিখ',
+    'mt_view_range' => 'তারিখের মধ্যে',
+    'mt_view_label' => 'কোন সময়ের হিসাব',
+    'mt_filters' => 'ফিল্টার',
+    'mt_sort' => 'সাজান',
+    'mt_total_count' => 'মোট (:countটি)',
+    'mt_date_from' => 'শুরুর তারিখ',
+    'mt_date_to' => 'শেষের তারিখ',
+    'mt_open_row' => 'বিস্তারিত দেখুন',
 ];

@@ -17,6 +17,9 @@
 @import './portal-motion.css';
 @import './portal-polish.css';
 @import './screens-phone-topbar.css';
+@import './screens-money-table.css';
+@import './screens-treasury.css';
+@import './screens-my-money.css';
 @import url('https://fonts.bunny.net/css?family=instrument-serif:400,400i,700&display=swap');
 @import url('https://fonts.bunny.net/css?family=hind-siliguri:400,500,600,700&display=swap');
 /* Bangla digits ০-৯ come from Noto Sans Bengali, where every digit has the same width, so
