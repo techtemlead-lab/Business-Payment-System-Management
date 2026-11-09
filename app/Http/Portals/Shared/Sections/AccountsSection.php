@@ -9,7 +9,6 @@ use App\Support\DashboardManagement;
 use App\Support\MoneyTable;
 use App\Support\MoneyTableFilter;
 use App\Support\MoneyTableSpec;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -124,7 +123,7 @@ final class AccountsSection implements WorkspaceSection
     }
 
     /**
-     * @return array{applications: LengthAwarePaginator<int, array<string, mixed>>, applications_table: array<string, mixed>, application_counts: array{total: int, pending: int, approved: int, rejected: int}}
+     * @return array<string, mixed>
      */
     private function partnerApplications(Request $request, string $role): array
     {
