@@ -107,7 +107,8 @@ final class ReportData
             // Tax cut (TDS) on money sent to partners, for the tax return.
             'fund-spending' => [CompanyFunds::paidSpendRows(['from' => $from, 'to' => $to, ...$filters], $actor->owner() && PortalHost::current() === 'sadmin'),
                 [DB::raw('COALESCE(r.spent_on, r.paid_at::date) AS spent_on'), DB::raw("COALESCE(r.fund_key, 'marketing') AS fund"), DB::raw('COALESCE(h.name_en, \'\') AS head'), DB::raw('r.payee_name AS payee'), 'r.payment_method', 'r.payment_reference', 'r.amount', 'r.reason', 'r.status'],
-                ['amount'], DB::raw('COALESCE(r.spent_on, r.paid_at::date)'), 'r.created_by'],
+                // Cast to a time so the day-range check below counts the last day (a plain date would drop it).
+                ['amount'], DB::raw('COALESCE(r.spent_on, r.paid_at::date)::timestamp'), 'r.created_by'],
             'tds-register' => [DB::table('withdrawals as w')->join('users as u', 'u.id', '=', 'w.user_id')->where('w.status', 'paid'),
                 ['w.paid_at', 'u.dealer_code', 'u.name', 'u.phone', 'u.role', 'w.amount', 'w.withheld_amount', 'w.net_amount', 'w.channel', 'w.payment_reference'],
                 ['amount', 'withheld_amount', 'net_amount'], 'w.paid_at', 'w.user_id'],

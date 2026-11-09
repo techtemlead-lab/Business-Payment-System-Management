@@ -360,6 +360,10 @@ class ProductRegistryController extends Controller
                 $p->fill($attributes);
                 $p->updated_at = now();
                 $p->save();
+                if ($p->wasChanged('low_stock_at')) {
+                    // The reorder list and branch dashboards read this level from each branch's row.
+                    BranchProductStock::query()->where('product_id', $p->id)->update(['low_stock_at' => $p->low_stock_at]);
+                }
                 if ($r->boolean('sync_concerns')) {
                     $p->concerns()->sync($d['concern_ids'] ?? []);
                     $attributes['concern_ids'] = true;

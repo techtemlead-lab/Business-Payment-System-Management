@@ -264,7 +264,9 @@ class CommandController extends Controller
             $u->save();
             DB::table('wallets')->insert(['user_id' => $u->id, 'created_at' => now(), 'updated_at' => now()]);
             ReferralTreePath::attachUser($u->id, $u->sponsor_id);
-            DealerRank::firstOrCreate(['user_id' => $u->id], ['current_rank' => 'dealer']);
+            if ($isPartner) {
+                DealerRank::firstOrCreate(['user_id' => $u->id], ['current_rank' => 'dealer']);
+            }
             Audit::record($r->user()->id, 'account.created', (string) $u->id, [
                 'role' => $role,
                 'dealer_code' => $dealerCode,
