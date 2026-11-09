@@ -6684,4 +6684,5 @@ return [
     'mt_date_from' => 'From',
     'mt_date_to' => 'To',
     'mt_open_row' => 'See details',
+    'my_money' => 'My money',
 ];

@@ -5,6 +5,8 @@ import {
     GitBranch, Coins, BadgeCheck, Target, Bike, TrendingUp, Share2, Copy, Check, FileBarChart2, Plane,
     Phone, MessageCircle, ListChecks, BarChart3, Banknote, Boxes, UserPlus, History,
 } from 'lucide-react';
+import IncomeCards from './mymoney/IncomeCards';
+import type { IncomeCard } from './mymoney/types';
 import { PartnerProgressButton } from './PartnerProgress';
 import PartnerAlertsCard from './dealertools/PartnerAlertsCard';
 import NextStepsCard from './dealertools/NextStepsCard';
@@ -146,12 +148,13 @@ function BalancePill({ amount }: { amount: unknown }) {
     );
 }
 
-type QuickAction = { section: string; label: string; icon: React.ComponentType<{ size?: number }>; tone: string };
+type QuickAction = { section: string; label: string; icon: React.ComponentType<{ size?: number }>; tone: string; wordGroup?: string };
 
 const QUICK_ACTIONS: QuickAction[] = [
     { section: 'purchase', label: 'ph_qa_new_order', icon: ShoppingBag, tone: 'green' },
     { section: 'orders', label: 'ph_qa_my_orders', icon: ListChecks, tone: 'blue' },
     { section: 'deliveries', label: 'ph_qa_deliveries', icon: Truck, tone: 'amber' },
+    { section: 'my-money', label: 'title', icon: Wallet, tone: 'rose', wordGroup: 'my_money' },
     { section: 'withdrawals', label: 'ph_qa_withdraw', icon: Wallet, tone: 'rose' },
     { section: 'earnings', label: 'ph_qa_earnings', icon: Coins, tone: 'green' },
     { section: 'network', label: 'ph_qa_team', icon: Users, tone: 'blue' },
@@ -172,17 +175,17 @@ function QuickActions({ base }: { base: string }) {
 
     return (
         <nav className="ph-actions" aria-label={translate('portal', 'ph_quick_actions')}>
-            {actions.map(({ section, label, icon: Icon, tone }) => (
+            {actions.map(({ section, label, icon: Icon, tone, wordGroup }) => (
                 <Link key={section} href={`${base}/${section}`} className="ph-action">
                     <span className={`ph-action-icon tone-${tone}`} aria-hidden="true"><Icon size={22} /></span>
-                    <span className="ph-action-label">{translate('portal', label)}</span>
+                    <span className="ph-action-label">{translate(wordGroup ?? 'portal', label)}</span>
                 </Link>
             ))}
         </nav>
     );
 }
 
-function PartnerHome({ home, orders, tools }: { home: Row; orders: React.ReactNode; tools?: Row }) {
+function PartnerHome({ home, orders, tools, moneyCards = [] }: { home: Row; orders: React.ReactNode; tools?: Row; moneyCards?: IncomeCard[] }) {
     const { portalBase: base } = usePage<any>().props;
     const translate = useT();
     const profile = home.profile ?? {};
@@ -227,7 +230,7 @@ function PartnerHome({ home, orders, tools }: { home: Row; orders: React.ReactNo
                             </dd>
                         ))}
                         {waitingAmounts.length > 3 && (
-                            <dd className="ph-hero-note"><Link href={`${base}/earnings`}>{translate('portal', 'commission_waiting_more', { count: number(waitingAmounts.length - 3) })}</Link></dd>
+                            <dd className="ph-hero-note"><Link href={`${base}/my-money`}>{translate('portal', 'commission_waiting_more', { count: number(waitingAmounts.length - 3) })}</Link></dd>
                         )}
                     </div>
                 </dl>
@@ -244,6 +247,8 @@ function PartnerHome({ home, orders, tools }: { home: Row; orders: React.ReactNo
             )}
 
             <QuickActions base={base} />
+
+            <IncomeCards cards={moneyCards} hrefFor={(type) => `${base}/my-money?type=${encodeURIComponent(type)}`} />
 
             <section className="ph-today" data-tour="home-metrics" aria-labelledby="ph-today-title">
                 <h3 id="ph-today-title">{translate('portal', 'today_activity')}</h3>
@@ -653,7 +658,7 @@ export default function DashboardOverview({ data, orders }: { data: Row; orders:
     const staff = caps.length > 0;
 
     if (data.partner_home && (u.role === 'dealer' || u.role === 'sub_dealer')) {
-        return <PartnerHome home={data.partner_home} orders={orders} tools={data.partner_tools} />;
+        return <PartnerHome home={data.partner_home} orders={orders} tools={data.partner_tools} moneyCards={data.money_cards ?? []} />;
     }
     if (data.admin_home && staff) {
         return <AdminHome home={data.admin_home} data={data} orders={orders} />;
