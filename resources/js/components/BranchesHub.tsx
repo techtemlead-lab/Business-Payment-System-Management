@@ -42,6 +42,7 @@ interface AssignableStaff {
     email?: string | null;
     phone?: string | null;
     role: string;
+    role_name?: string | null;
 }
 
 interface BranchesPage {
@@ -373,7 +374,7 @@ export default function BranchesHub({
                             <select value={assignForm.data.user_id} onChange={(e) => assignForm.setData('user_id', e.target.value)} required>
                                 <option value="">{translate('portal', 'branch_pick_staff')}</option>
                                 {assignable_staff.map((staff) => (
-                                    <option key={staff.id} value={staff.id}>{staff.name} · {label(staff.role, translate)}</option>
+                                    <option key={staff.id} value={staff.id}>{staff.name} · {staff.role_name || label(staff.role, translate)}</option>
                                 ))}
                             </select>
                         </label>
