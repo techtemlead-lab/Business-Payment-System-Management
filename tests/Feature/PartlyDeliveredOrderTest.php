@@ -6,6 +6,7 @@ use App\Domain\Accounts\PartnerDashboardHome;
 use App\Domain\Accounts\PartnerFullReport;
 use App\Domain\Inventory\StockService;
 use App\Domain\Orders\MixedOutcomeDecisions;
+use App\Domain\Orders\OrderListFilter;
 use App\Domain\Orders\OrderService;
 use App\Domain\Orders\OverdueDeliveries;
 use App\Models\CompanyBranch;
@@ -133,6 +134,17 @@ class PartlyDeliveredOrderTest extends TestCase
                 ->where('data.order_status_counts.partly_delivered', 1));
         $this->actingAs($this->dealer)->onPortal('dealer')->get('/orders/'.$order->id)->assertOk()
             ->assertInertia(fn (Assert $page) => $page->where('order.status', 'partly_delivered'));
+    }
+
+    public function test_the_deliveries_filter_offers_only_the_statuses_that_list_can_show(): void
+    {
+        $portal = (string) file_get_contents(resource_path('js/pages/Portal.tsx'));
+        $this->assertSame(1, preg_match("/const deliveryStatuses=\[([^\]]+)\];/", $portal, $match), 'The Deliveries list needs its own status choices.');
+        $offered = array_map(fn (string $status): string => trim($status, " '"), explode(',', $match[1]));
+
+        $this->assertSame(['overdue_delivery', ...OrderListFilter::AwaitingDispatch], $offered);
+        $this->assertStringContainsString("section==='deliveries'?deliveryStatuses:orderStatuses", $portal);
+        $this->assertStringNotContainsString("['overdue_delivery',...orderStatuses]", $portal);
     }
 
     public function test_the_status_reads_plainly_in_both_languages(): void
