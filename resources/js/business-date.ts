@@ -16,10 +16,12 @@ export function localizeDigits(text: string): string {
 }
 
 function dateFormatter(withTime = false): Intl.DateTimeFormat {
-    const locale = isBanglaDocument() ? 'bn-BD' : 'en-GB';
+    const bangla = isBanglaDocument();
+    const locale = bangla ? 'bn-BD' : 'en-GB';
 
     return new Intl.DateTimeFormat(locale, withTime
-        ? { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Dhaka' }
+        // Without a day period, Bangla time ends in the English letters "AM" or "PM".
+        ? { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, ...(bangla ? { dayPeriod: 'short' as const } : {}), timeZone: 'Asia/Dhaka' }
         : { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Dhaka' });
 }
 
