@@ -237,13 +237,44 @@ function ChoosableTable<T extends Row = any>({ listKey, bulk, columns, extraTool
         ),
     };
 
+    /** One save runs at a time. Ticks made while it runs wait here and go in the next save, so none is lost. */
+    const unsavedColumns = useRef<string[] | null>(null);
+    const lastSavedColumns = useRef<string[]>([]);
+    const savingColumns = useRef(false);
+
+    const saveColumns = () => {
+        const sending = unsavedColumns.current;
+        if (savingColumns.current || sending === null) {
+            return;
+        }
+        savingColumns.current = true;
+        unsavedColumns.current = null;
+        jsonRequest<{ data: ListView }>(`/commands/list-views/${listKey}/columns`, { method: 'PUT', body: { hidden: sending } })
+            .then(({ data }) => {
+                lastSavedColumns.current = data.hidden;
+                if (unsavedColumns.current === null) {
+                    remember(data);
+                }
+            })
+            .catch(() => {
+                if (unsavedColumns.current === null) {
+                    setView((current) => ({ ...current, hidden: lastSavedColumns.current }));
+                }
+            })
+            .finally(() => {
+                savingColumns.current = false;
+                saveColumns();
+            });
+    };
+
     const toggle = (key: string) => {
-        const previous = view;
+        if (!savingColumns.current) {
+            lastSavedColumns.current = view.hidden;
+        }
         const next = hidden.has(key) ? view.hidden.filter((item) => item !== key) : [...view.hidden, key];
         setView({ ...view, hidden: next });
-        jsonRequest<{ data: ListView }>(`/commands/list-views/${listKey}/columns`, { method: 'PUT', body: { hidden: next } })
-            .then(({ data }) => remember(data))
-            .catch(() => setView(previous));
+        unsavedColumns.current = next;
+        saveColumns();
     };
 
     return (
