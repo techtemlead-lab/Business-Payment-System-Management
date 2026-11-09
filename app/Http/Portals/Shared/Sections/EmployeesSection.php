@@ -5,14 +5,23 @@ namespace App\Http\Portals\Shared\Sections;
 use App\Domain\Inventory\BranchScope;
 use App\Domain\Staff\StaffPermissions;
 use App\Models\BranchStaffAssignment;
+use App\Models\CompanyBranch;
 use App\Models\User;
+use App\Support\MoneyTable;
+use App\Support\MoneyTableFilter;
+use App\Support\MoneyTableSpec;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Arr;
+use stdClass;
 
 /**
  * Staff accounts with their effective permissions, and the permission catalog the staff editor offers.
  */
 final class EmployeesSection implements WorkspaceSection
 {
+    /** Columns of the staff list. */
+    private const ListColumns = ['id', 'name', 'email', 'phone', 'role', 'status', 'profile', 'created_at', 'active_branch_id'];
+
     public function data(SectionContext $context, array $data): array
     {
         if ($context->section !== 'employees') {
@@ -22,25 +31,21 @@ final class EmployeesSection implements WorkspaceSection
         $props = [];
         $query = $this->officeStaff();
         $this->onScopedBranches($query, $context->branchScope);
-        if ($request->filled('q')) {
-            $term = '%'.$request->string('q').'%';
-            $query->where(function ($sub) use ($term) {
-                $sub->where('name', 'ilike', $term)
-                    ->orWhere('email', 'ilike', $term)
-                    ->orWhere('phone', 'ilike', $term);
-            });
-        }
-        if ($request->filled('status')) {
-            $query->where('status', $request->string('status'));
-        }
         $customRoleNames = app(StaffPermissions::class)->customRoleNames();
-        $props['employees'] = $query->with('activeBranch:id,name,code')->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'status', 'profile', 'created_at', 'active_branch_id'])
-            ->through(fn (User $employee) => [
+        $table = MoneyTable::make($request, $query->select(self::ListColumns)->toBase(), $this->tableSpec($customRoleNames, $context->branchScope));
+        $people = User::hydrate($table['rows']->items())->load('activeBranch:id,name,code')->keyBy('id');
+        $rows = $table['rows']->through(function (stdClass $row) use ($people, $customRoleNames): array {
+            /** @var User $employee */
+            $employee = $people[$row->id];
+
+            return [
                 ...$employee->toArray(),
                 'role_name' => $customRoleNames[$employee->role] ?? null,
                 'effective_permissions' => $employee->capabilities(),
                 'branch_name' => $employee->activeBranch?->name,
-            ]);
+            ];
+        });
+        $props['employees'] = [...$rows->toArray(), 'table' => Arr::except($table, ['rows'])];
         $staffQuery = $this->officeStaff();
         $this->onScopedBranches($staffQuery, $context->branchScope);
         $props['employee_stats'] = [
@@ -84,6 +89,49 @@ final class EmployeesSection implements WorkspaceSection
         );
 
         return $props;
+    }
+
+    /**
+     * Search, filters and sort of the staff list. The branch filter has its own name so it
+     * never touches the branch chosen in the top bar.
+     *
+     * @param  array<string, string>  $customRoleNames
+     */
+    private function tableSpec(array $customRoleNames, ?BranchScope $branchScope): MoneyTableSpec
+    {
+        $builtInRoles = ['employee', ...array_diff(array_keys(config('madina.roles')), ['super_admin', 'md', 'chairman'])];
+        $roleOptions = array_map(fn (string $role): array => ['value' => $role, 'label' => (string) __('portal.staff_role_'.$role)], array_values(array_unique($builtInRoles)));
+        foreach ($customRoleNames as $key => $name) {
+            $roleOptions[] = ['value' => (string) $key, 'label' => $name];
+        }
+
+        $branches = CompanyBranch::query()->orderBy('name');
+        if ($branchScope !== null && ! $branchScope->allBranches) {
+            $branches->whereIn('id', $branchScope->branchIds);
+        }
+        $branchOptions = $branches->get(['id', 'name'])
+            ->map(fn (CompanyBranch $branch): array => ['value' => (string) $branch->id, 'label' => (string) $branch->name])
+            ->all();
+
+        $filters = [new MoneyTableFilter('role', (string) __('office_staff.filter_role'), 'users.role', $roleOptions)];
+        if (count($branchOptions) > 1) {
+            $filters[] = new MoneyTableFilter('staff_branch', (string) __('office_staff.filter_branch'), 'CAST(users.active_branch_id AS text)', $branchOptions);
+        }
+        $filters[] = new MoneyTableFilter('status', (string) __('office_staff.filter_status'), 'users.status', [
+            ['value' => 'active', 'label' => (string) __('portal.status_active')],
+            ['value' => 'suspended', 'label' => (string) __('portal.status_suspended')],
+        ]);
+
+        return new MoneyTableSpec(
+            dateColumn: null,
+            search: ['users.name', 'users.email', 'users.phone'],
+            filters: $filters,
+            sorts: ['newest' => 'users.id', 'name' => 'LOWER(users.name)', 'role' => 'users.role', 'joined' => 'users.created_at', 'status' => 'users.status'],
+            defaultSort: 'newest',
+            tieBreaker: 'users.id',
+            defaultPeriod: null,
+            perPage: 20,
+        );
     }
 
     /**
