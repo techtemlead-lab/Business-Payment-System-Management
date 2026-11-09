@@ -12,6 +12,7 @@ use App\Http\Middleware\RequireAuthenticatorSetup;
 use App\Http\Middleware\RequirePartnerAgreement;
 use App\Http\Middleware\RestrictAdminIp;
 use App\Http\Middleware\SetLocale;
+use App\Http\Middleware\ThrottlePublicPagesSeparately;
 use App\Http\Middleware\UseSharedPreviewPortal;
 use App\Support\DatabaseConnectionFailure;
 use App\Support\ErrorPageLocale;
@@ -44,7 +45,7 @@ return Application::configure(basePath: dirname(__DIR__))
             EnforceStaffActions::class,
             HandleInertiaRequests::class,
         ]);
-        $middleware->alias(['active' => ActiveAccount::class, 'portal' => PortalArea::class, 'agreement' => RequirePartnerAgreement::class, 'authenticator' => RequireAuthenticatorSetup::class]);
+        $middleware->alias(['throttle' => ThrottlePublicPagesSeparately::class, 'active' => ActiveAccount::class, 'portal' => PortalArea::class, 'agreement' => RequirePartnerAgreement::class, 'authenticator' => RequireAuthenticatorSetup::class]);
         $middleware->redirectGuestsTo(fn (Request $r) => '/login');
         $middleware->redirectUsersTo(fn (Request $r) => $r->user() ? PortalHost::homeUrl($r->user()) : '/');
     })

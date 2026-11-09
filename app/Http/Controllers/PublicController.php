@@ -16,6 +16,7 @@ use App\Models\ProductConcern;
 use App\Models\SiteFeedback;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\LocalDigits;
 use App\Support\PortalHost;
 use App\Support\ProductVideo;
 use App\Support\SiteChrome;
@@ -403,6 +404,7 @@ class PublicController extends Controller
             'website' => 'nullable|max:0',
         ]);
         unset($data['website']);
+        $data['phone'] = LocalDigits::latin($data['phone']);
         $data['topic'] = match ($data['topic']) {
             'Dealer enquiry', 'dealer_enquiry' => 'dealer_enquiry',
             'Partnership enquiry', 'partnership_enquiry' => 'partnership_enquiry',
@@ -569,6 +571,7 @@ class PublicController extends Controller
             'website' => 'nullable|max:0',
         ]);
         unset($data['website']);
+        $data['phone'] = LocalDigits::latin($data['phone']);
         if (! empty($data['sponsor_code'])) {
             $data['sponsor_code'] = strtoupper(trim((string) $data['sponsor_code']));
         }

@@ -19,4 +19,10 @@ final class LocalDigits
             ? str_replace(range(0, 9), self::Bangla, $text)
             : $text;
     }
+
+    /** The same text with Bangla digits turned into 0–9, for numbers typed on a Bangla keyboard. */
+    public static function latin(string $value): string
+    {
+        return str_replace(self::Bangla, range(0, 9), $value);
+    }
 }

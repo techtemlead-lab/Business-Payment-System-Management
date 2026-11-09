@@ -7,6 +7,7 @@ use App\Domain\Content\GrievanceInbox;
 use App\Domain\Content\PublicTrustContent;
 use App\Models\HealthArticle;
 use App\Models\QualityDocument;
+use App\Support\LocalDigits;
 use App\Support\SiteCustomization;
 use App\Support\SocialShareMeta;
 use Illuminate\Contracts\View\View;
@@ -81,6 +82,7 @@ class PublicTrustController extends Controller
             'website' => 'nullable|max:0',
         ]);
         unset($data['website']);
+        $data['phone'] = LocalDigits::latin($data['phone']);
 
         $trackingNumber = $inbox->submit($data);
 
