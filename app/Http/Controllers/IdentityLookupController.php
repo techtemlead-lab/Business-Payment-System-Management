@@ -44,8 +44,9 @@ class IdentityLookupController extends Controller
         $reference = strtoupper(trim((string) ($data['reference_code'] ?? '')));
         $own = strtoupper(trim((string) ($data['refer_code'] ?? '')));
         $warnings = [];
+        $referenceWarnings = [];
         if ($reference !== '' && $own !== '' && $provisioning->isSameCode($reference, $own)) {
-            $warnings[] = __('portal.acct_val_reference_same_as_refer');
+            $warnings[] = $referenceWarnings[] = __('portal.acct_val_reference_same_as_refer');
         }
         if ($own !== '' && $provisioning->referCodeInUse($own, openAccountsOnly: true)) {
             $warnings[] = __('portal.acct_val_refer_taken');
@@ -56,13 +57,14 @@ class IdentityLookupController extends Controller
         if ($reference !== '' && ! $management) {
             $sponsor = $provisioning->findSponsor($reference);
             if (! $sponsor) {
-                $warnings[] = __('portal.acct_val_reference_missing');
+                $warnings[] = $referenceWarnings[] = __('portal.acct_val_reference_missing');
             }
         }
 
         return response()->json([
             'data' => [
                 'warnings' => $warnings,
+                'reference_warnings' => $referenceWarnings,
                 'consumers' => $provisioning->commissionConsumers($sponsor, $management),
                 'place_options_hint' => PlaceCode::query()->where('is_active', true)->count(),
             ],
