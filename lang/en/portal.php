@@ -6652,4 +6652,13 @@ return [
     'sce_video_link_refused' => 'This link cannot be played on the website. Paste a YouTube or Facebook video link.',
     'sce_language_bangla' => 'Bangla',
     'sce_language_english' => 'English',
+    'mt_view_day' => 'One date',
+    'mt_view_range' => 'Date range',
+    'mt_view_label' => 'Which dates',
+    'mt_filters' => 'Filters',
+    'mt_sort' => 'Sort',
+    'mt_total_count' => 'Total (:count)',
+    'mt_date_from' => 'From',
+    'mt_date_to' => 'To',
+    'mt_open_row' => 'See details',
 ];
