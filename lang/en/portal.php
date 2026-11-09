@@ -6577,4 +6577,13 @@ return [
     'import_failed_reason' => 'The import did not finish and nothing was saved. Check the current records and upload a new preview.',
     'event_support_attachment_opened' => 'Support request file opened',
     'support_open_attachment' => 'Open file: :name',
+    'ops_period_range' => ':from to :to',
+    'status_credited' => 'Added to earnings',
+    'rpt_val_award' => 'Reward #:id',
+    'rpt_val_rank_award' => 'Rank reward (:rank)',
+    'rpt_val_rank_incentive' => 'Rank reward',
+    'label_division' => 'Division',
+    'label_district' => 'District',
+    'label_upazila' => 'Upazila',
+    'label_union' => 'Union / Pourashava',
 ];

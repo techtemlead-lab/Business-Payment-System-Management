@@ -318,7 +318,7 @@ class FinanceOperationsController extends Controller
                     foreach ([
                         ['Madina Natural Health Care'],
                         [$reportHeading],
-                        [__('portal.ops_period'), $data['from'].' '.__('portal.ops_through').' '.$data['to']],
+                        [__('portal.ops_period'), __('portal.ops_period_range', ['from' => $data['from'], 'to' => $data['to']])],
                         [__('portal.ops_export_currency'), 'BDT'],
                         [__('portal.ops_export_timezone'), 'Asia/Dhaka'],
                         [__('portal.ops_export_records'), $rowCount],
@@ -446,7 +446,14 @@ class FinanceOperationsController extends Controller
         if ($value === '') {
             return '';
         }
-        foreach (['portal.status_'.$value, 'portal.rpt_val_'.$value] as $key) {
+        if (preg_match('/^award_(\d+)$/D', $value, $award) === 1) {
+            return __('portal.rpt_val_award', ['id' => $award[1]]);
+        }
+        if (preg_match('/^rank_(mo|am|sm|me)$/D', $value, $rank) === 1) {
+            return __('portal.rpt_val_rank_award', ['rank' => strtoupper($rank[1])]);
+        }
+        foreach (['portal.status_', 'portal.rpt_val_', 'portal.settle_kind_', 'portal.report_cat_', 'portal.reward_program_', 'accounting.account_'] as $prefix) {
+            $key = $prefix.$value;
             $label = __($key);
             if ($label !== $key) {
                 return $label;

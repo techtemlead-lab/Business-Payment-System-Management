@@ -6577,4 +6577,13 @@ return [
     'import_failed_reason' => 'ইমপোর্ট শেষ হয়নি, কিছুই সেভ হয়নি। এখনকার তথ্য দেখে নিয়ে নতুন করে ফাইল আপলোড করুন।',
     'event_support_attachment_opened' => 'সাপোর্ট অনুরোধের ফাইল খোলা হয়েছে',
     'support_open_attachment' => 'ফাইল খুলুন: :name',
+    'ops_period_range' => ':from থেকে :to',
+    'status_credited' => 'আয়ে জমা হয়েছে',
+    'rpt_val_award' => 'পুরস্কার #:id',
+    'rpt_val_rank_award' => 'র‍্যাঙ্ক পুরস্কার (:rank)',
+    'rpt_val_rank_incentive' => 'র‍্যাঙ্ক পুরস্কার',
+    'label_division' => 'বিভাগ',
+    'label_district' => 'জেলা',
+    'label_upazila' => 'উপজেলা',
+    'label_union' => 'ইউনিয়ন / পৌরসভা',
 ];
