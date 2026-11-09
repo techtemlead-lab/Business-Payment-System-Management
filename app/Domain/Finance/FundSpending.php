@@ -140,7 +140,8 @@ final class FundSpending
                 throw ValidationException::withMessages(['spend' => __('self_approval.err_cancel_spend')]);
             }
             DB::table('reserve_disbursements')->where('id', $id)->update(['status' => 'cancelled', 'updated_at' => now()]);
-            Audit::record($actor->id, 'fund.spend_cancelled', (string) $id, ['fund' => $row->fund_key, 'amount' => (string) $row->amount, 'reason' => $reason]);
+            $this->freeReference($id);
+            Audit::record($actor->id, 'fund.spend_cancelled', (string) $id, ['fund' => $row->fund_key, 'amount' => (string) $row->amount, 'reference' => $row->payment_reference, 'reason' => $reason]);
         }, 3);
     }
 
@@ -185,7 +186,10 @@ final class FundSpending
                 'paid_at' => $decision === 'approved' ? now() : null,
                 'updated_at' => now(),
             ]);
-            Audit::record($actor->id, $decision === 'approved' ? 'fund.spend_approved' : 'fund.spend_rejected', (string) $id, ['fund' => $row->fund_key, 'amount' => (string) $row->amount, 'reason' => $reason, ...($selfApproved ? ['self_approved' => true] : [])]);
+            if ($decision === 'rejected') {
+                $this->freeReference($id);
+            }
+            Audit::record($actor->id, $decision === 'approved' ? 'fund.spend_approved' : 'fund.spend_rejected', (string) $id, ['fund' => $row->fund_key, 'amount' => (string) $row->amount, 'reference' => $row->payment_reference, 'reason' => $reason, ...($selfApproved ? ['self_approved' => true] : [])]);
         }, 3);
     }
 
@@ -287,6 +291,12 @@ final class FundSpending
         if ($reference !== null && DB::table('reserve_disbursements')->where('payment_reference', $reference)->exists()) {
             throw ValidationException::withMessages(['reference' => __('funds.err_reference_used')]);
         }
+    }
+
+    /** A withdrawn or refused spend never happened, so its bank reference is free for the corrected entry. The audit log keeps it. */
+    private function freeReference(int $id): void
+    {
+        DB::table('reserve_disbursements')->where('id', $id)->update(['payment_reference' => null]);
     }
 
     private function reference(?string $reference): ?string
