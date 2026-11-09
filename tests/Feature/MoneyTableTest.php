@@ -281,7 +281,7 @@ class MoneyTableTest extends TestCase
             $this->table(['period' => 'custom', 'from' => '2025-01-01', 'to' => '2026-01-03']);
             $this->fail('A range over 366 days must be refused.');
         } catch (ValidationException $refused) {
-            $this->assertSame(['সর্বোচ্চ ৩৬৬ দিনের তারিখ বেছে নিন।'], $refused->errors()['to']);
+            $this->assertSame(['সর্বোচ্চ ৩৬৬ দিনের তারিখ বেছে নিন।'], $refused->errors()['money_table_range']);
         }
     }
 

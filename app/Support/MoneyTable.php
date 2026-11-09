@@ -108,11 +108,11 @@ final class MoneyTable
     private static function refuseBadRange(string $from, string $to): void
     {
         if ($to < $from) {
-            throw ValidationException::withMessages(['to' => __('accounting.err_period_order')]);
+            throw ValidationException::withMessages(['money_table_range' => __('accounting.err_period_order')]);
         }
 
         if (CarbonImmutable::parse($from)->diffInDays(CarbonImmutable::parse($to)) > self::LongestRangeInDays) {
-            throw ValidationException::withMessages(['to' => __('portal.ops_val_date_range')]);
+            throw ValidationException::withMessages(['money_table_range' => __('portal.ops_val_date_range')]);
         }
     }
 

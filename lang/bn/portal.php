@@ -6652,4 +6652,13 @@ return [
     'sce_video_link_refused' => 'এই লিংকটি ওয়েবসাইটে চালানো যাবে না। ইউটিউব বা ফেসবুকের ভিডিও লিংক দিন।',
     'sce_language_bangla' => 'বাংলা',
     'sce_language_english' => 'ইংরেজি',
+    'mt_view_day' => 'একটি তারিখ',
+    'mt_view_range' => 'তারিখের মধ্যে',
+    'mt_view_label' => 'কোন সময়ের হিসাব',
+    'mt_filters' => 'ফিল্টার',
+    'mt_sort' => 'সাজান',
+    'mt_total_count' => 'মোট (:countটি)',
+    'mt_date_from' => 'শুরুর তারিখ',
+    'mt_date_to' => 'শেষের তারিখ',
+    'mt_open_row' => 'বিস্তারিত দেখুন',
 ];
