@@ -11,11 +11,8 @@
 .app-shell .sf-stage-card.is-button:hover{background:var(--ds-surface-2)}
 .app-shell .sf-stage-card.is-on{border-color:var(--ds-brand);background:var(--ds-brand-soft)}
 
-/* The shared table's own Clear and phone button give way to this bar, which covers every filter. */
-.app-shell .sf-table .mt-clear,.app-shell .sf-table .money-table .mt-sheet-button{display:none}
 .app-shell .sf-table .mt-table :is(th,td){padding-inline:8px}
 .app-shell .sf-catalog .mt-search .search-input{flex-direction:row}
-.sf-table .mt-actions{display:contents}
 .sf-none{color:var(--ds-text-faint)}
 .app-shell .sf-table .sf-pause{width:28px;height:28px;min-height:0;padding:0}
 .app-shell .sf-table .mt-table :is(th,td):last-child{padding-inline:2px 6px}
