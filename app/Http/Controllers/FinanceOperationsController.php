@@ -14,6 +14,7 @@ use App\Domain\Inventory\BranchOperations;
 use App\Domain\Payouts\PayoutReceipts;
 use App\Support\Audit;
 use App\Support\Money;
+use App\Support\PdfFonts;
 use App\Support\SpreadsheetCell;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
@@ -372,7 +373,7 @@ class FinanceOperationsController extends Controller
                         : '<th>'.e($column === $report['columns'][0] ? __('portal.ops_export_total') : '').'</th>';
                 }
                 $html .= '</tr></tfoot></table><p><small>'.e(__('portal.ops_export_generated_footer', ['when' => $generatedAt])).'</small></p>';
-                $pdf = new Mpdf(['tempDir' => Storage::disk('local')->path('report-exports'), 'format' => 'A4-L', 'default_font' => 'freeserif', 'autoScriptToLang' => true, 'autoLangToFont' => true]);
+                $pdf = new Mpdf(['tempDir' => Storage::disk('local')->path('report-exports'), 'format' => 'A4-L', ...PdfFonts::options()]);
                 $pdf->SetTitle(__('portal.ops_export_pdf_title', ['name' => $reportName]));
                 $pdf->SetHTMLFooter('<div style="text-align:right;font-size:8pt">'.e(__('portal.ops_export_pdf_footer')).'</div>');
                 $pdf->WriteHTML($html);

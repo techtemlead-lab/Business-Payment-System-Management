@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\User;
 use App\Support\AmountInWords;
 use App\Support\Money;
+use App\Support\PdfFonts;
 use App\Support\PortalHost;
 use App\Support\SiteCustomization;
 use Carbon\CarbonImmutable;
@@ -68,14 +69,17 @@ final class OrderInvoice
         $pdf = new Mpdf([
             'tempDir' => $dir,
             'format' => 'A4',
-            'default_font' => 'freeserif',
-            'autoScriptToLang' => true,
-            'autoLangToFont' => true,
+            ...PdfFonts::options(),
             'margin_left' => 12,
             'margin_right' => 12,
             'margin_top' => 10,
             'margin_bottom' => 12,
         ]);
+        if (filled($payload['watermark_label'])) {
+            $pdf->watermark_font = PdfFonts::BanglaFamily;
+            $pdf->SetWatermarkText((string) $payload['watermark_label'], 0.08);
+            $pdf->showWatermarkText = true;
+        }
         $pdf->WriteHTML($html);
         $pdf->Output($path, Destination::FILE);
 
