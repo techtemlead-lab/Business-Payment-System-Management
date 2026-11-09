@@ -172,4 +172,5 @@ return [
     'scorecard_col_returned' => 'Parcels returned',
     'scorecard_empty_title' => 'No partners found',
     'scorecard_empty_body' => 'Try another search or period.',
+    'events_val_divisions_required' => 'Choose at least one division.',
 ];
