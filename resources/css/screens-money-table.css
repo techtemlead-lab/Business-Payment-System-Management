@@ -18,7 +18,7 @@
 .app-shell .mt-filters select{width:auto;max-width:190px;min-height:0;height:34px;margin:0;padding-block:0;font-size:var(--ds-fs-sm)}
 .app-shell .mt-clear{padding:0;border:0;background:none;box-shadow:none;font-size:var(--ds-fs-sm);cursor:pointer}
 .mt-actions{display:flex;align-items:center;gap:8px;margin-inline-start:auto}
-.app-shell .mt-sheet-button{display:none}
+.app-shell .button.mt-sheet-button{display:none}
 
 .mt-dates{display:flex;flex-wrap:wrap;gap:8px 12px}
 .app-shell .mt-dates label{display:grid;gap:3px;margin:0;color:var(--ds-text-muted);font-size:var(--ds-fs-xs)}
@@ -58,7 +58,7 @@
 @media (max-width:767px){
   .mt-toolbar{gap:8px}
   .mt-search{flex:1 1 150px;min-width:0}
-  .app-shell .mt-sheet-button{display:inline-flex;align-items:center;gap:5px;flex:none}
+  .app-shell .button.mt-sheet-button{display:inline-flex;align-items:center;gap:5px;flex:none}
   .mt-filters{display:none}
   .mt-views{order:5;flex:0 0 100%;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
   .mt-views::-webkit-scrollbar{display:none}
