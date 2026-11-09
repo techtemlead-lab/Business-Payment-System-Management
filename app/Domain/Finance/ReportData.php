@@ -53,6 +53,9 @@ final class ReportData
         if ($type === 'fund-spending' && ! FundSpending::canManage($actor)) {
             return false;
         }
+        if ($type === 'payroll' && ! $actor->allows('payroll')) {
+            return false;
+        }
 
         return in_array($type, self::OrderBasedReports, true) || app(BranchOperations::class)->canViewAllBranches($actor);
     }
@@ -63,7 +66,7 @@ final class ReportData
      */
     public function query(User $actor, string $type, string $from, string $to, ?string $accountType = null, array $filters = []): array
     {
-        $company = $actor->allows('finance') || $actor->allows('reports');
+        $company = ($actor->allows('finance') || $actor->allows('reports')) && ($type !== 'payroll' || $actor->allows('payroll'));
         $sales = $actor->allows('field_sales');
         if (! $company && $sales && $type === 'orders') {
             abort_unless($actor->allows('sr_orders'), 403);

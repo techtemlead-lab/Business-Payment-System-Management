@@ -254,7 +254,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
         items.add('purchasing');
         items.add('stock-counts');
     }
-    if (capabilities.includes('accounts') && !items.has('branches')) items.add('branches');
+    if ((capabilities.includes('accounts') || OWNER_ROLES.includes(role)) && !items.has('branches')) items.add('branches');
     if (capabilities.some((cap) => ['reports', 'finance', 'inventory'].includes(cap)) || ['super_admin', 'md', 'chairman'].includes(role)) {
         items.add('branch-performance');
     }
