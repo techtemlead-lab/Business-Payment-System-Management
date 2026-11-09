@@ -484,7 +484,7 @@ final class StockRegister
     {
         $value = $this->queryText($request, $field['key']);
         if (in_array($value, array_column($field['options'], 'value'), true)) {
-            $active[$field['key']] = $value;
+            $active[(string) $field['key']] = $value;
         }
     }
 
@@ -494,7 +494,7 @@ final class StockRegister
      */
     private function keepRange(array &$active, Request $request, array $field): void
     {
-        foreach ([$field['from'], $field['to']] as $name) {
+        foreach ([(string) $field['from'], (string) $field['to']] as $name) {
             $value = LocalDigits::latin(trim($this->queryText($request, $name)));
             $valid = $field['decimal'] ?? false ? preg_match('/^\d{1,10}(\.\d{1,2})?$/D', $value) === 1 : preg_match('/^\d{1,9}$/D', $value) === 1;
             if ($valid) {
@@ -510,7 +510,7 @@ final class StockRegister
     private function keepDates(array &$active, Request $request, array $field): void
     {
         $dates = [];
-        foreach ([$field['from'], $field['to']] as $name) {
+        foreach ([(string) $field['from'], (string) $field['to']] as $name) {
             $value = $this->queryText($request, $name);
             if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/D', $value, $parts) === 1 && checkdate((int) $parts[2], (int) $parts[3], (int) $parts[1])) {
                 $dates[$name] = $value;
@@ -531,7 +531,7 @@ final class StockRegister
     {
         $value = mb_substr(trim((string) preg_replace('/\p{Cc}+/u', ' ', mb_scrub($this->queryText($request, $field['key']), 'UTF-8'))), 0, 60);
         if ($value !== '') {
-            $active[$field['key']] = $value;
+            $active[(string) $field['key']] = $value;
         }
     }
 
