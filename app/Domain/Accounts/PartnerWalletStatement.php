@@ -18,6 +18,20 @@ final class PartnerWalletStatement
     /** Journal key of the commissions credited for one order (order ids are UUIDs). */
     private const OrderEvent = '/^commissions\.order\.([0-9a-f-]{36})$/i';
 
+    /** The sentence each money event was written from, by the start of its journal key. */
+    private const Sentences = [
+        'commissions.order.' => 'jr_commissions_earned',
+        'commissions.reversal.' => 'jr_commission_reversal',
+        'commissions.settlement.' => 'jr_commission_settlement',
+        'commissions.matured.' => 'jr_commission_matured',
+        'commissions.debt_recovery.' => 'jr_clawback_offset',
+        'commission.hold_release.' => 'jr_hold_release',
+        'opening.hold_release.' => 'jr_opening_hold_release',
+        'opening.import.' => 'ob_journal_approved',
+        'reserve.award.' => 'jr_reserve_award',
+        'manual-payout:' => 'wd_journal_manual_payout',
+    ];
+
     /**
      * Build a partner wallet statement from liability journal lines.
      * Credits increase what the company owes the partner; debits reduce it.
@@ -79,7 +93,7 @@ final class PartnerWalletStatement
                 'id' => (int) $row->id,
                 'entry_id' => (string) $row->entry_id,
                 'occurred_at' => CarbonImmutable::parse((string) $row->created_at)->toIso8601String(),
-                'description' => (string) ($row->description ?: $row->event_key),
+                'description' => $this->wording($row),
                 'event_key' => (string) $row->event_key,
                 'account' => (string) $row->account,
                 'debit' => Money::decimal($debitCents),
@@ -224,7 +238,7 @@ final class PartnerWalletStatement
             return [
                 'entry_id' => (string) $entry->entry_id,
                 'occurred_at' => CarbonImmutable::parse((string) $entry->created_at, 'UTC')->toIso8601String(),
-                'description' => (string) ($entry->description ?: $entry->event_key),
+                'description' => $this->wording($entry),
                 'reference' => $reference,
                 'order_id' => $orderId,
                 'withdrawal_id' => $withdrawalId,
@@ -233,6 +247,72 @@ final class PartnerWalletStatement
                 'balance' => $this->signedDecimal($openingCents + $this->signedCents((string) $entry->running)),
             ];
         }, array_values($entries));
+    }
+
+    /**
+     * The words of a ledger line in the reader's language. A journal row keeps the sentence
+     * in the language it was written in, so a known event is worded again from its key.
+     * Typed words (a refund reason, an import reference) stay as typed, and a line that
+     * matches no known sentence shows its stored words.
+     *
+     * @param  object{event_key: string, description: ?string}  $entry
+     */
+    private function wording(object $entry): string
+    {
+        $eventKey = (string) $entry->event_key;
+        $stored = (string) ($entry->description ?: $eventKey);
+        foreach (self::Sentences as $start => $sentence) {
+            if (str_starts_with($eventKey, $start)) {
+                $values = $this->sentenceValues($sentence, $stored);
+
+                return $values === null ? $stored : (string) __('portal.'.$sentence, $this->valuesInReaderLanguage($eventKey, $values));
+            }
+        }
+
+        return $stored;
+    }
+
+    /**
+     * The changing parts of a stored sentence, found by matching it to that sentence in each language.
+     *
+     * @return array<string, string>|null Null when the words match neither language
+     */
+    private function sentenceValues(string $sentence, string $stored): ?array
+    {
+        foreach (['bn', 'en'] as $locale) {
+            $pattern = preg_replace('/\\\\:([a-z]+)/', '(?<$1>.+)', preg_quote((string) __('portal.'.$sentence, [], $locale), '/'));
+            if (preg_match('/^'.$pattern.'$/u', $stored, $matches) === 1) {
+                return array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Swaps a settlement kind or reward program for its name in the reader's language.
+     *
+     * @param  array<string, string>  $values
+     * @return array<string, string>
+     */
+    private function valuesInReaderLanguage(string $eventKey, array $values): array
+    {
+        if (isset($values['kind']) && preg_match('/^commissions\.settlement\.(?:([a-z_]+)\.\d{4}-\d{2}\.|.+\.([a-z_]+)$)/', $eventKey, $match) === 1) {
+            $values['kind'] = $this->labelOr('portal.settle_kind_'.($match[1] ?: $match[2]), $values['kind']);
+        }
+        if (isset($values['program'])) {
+            $program = DB::table('reserve_disbursements')->where('id', substr($eventKey, strlen('reserve.award.')))->value('program');
+            $values['program'] = $program !== null ? $this->labelOr('portal.reward_program_'.$program, $values['program']) : $values['program'];
+        }
+
+        return $values;
+    }
+
+    private function labelOr(string $key, string $fallback): string
+    {
+        $label = (string) __($key);
+
+        return $label === $key ? $fallback : $label;
     }
 
     /**
