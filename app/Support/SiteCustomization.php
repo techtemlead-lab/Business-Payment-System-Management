@@ -851,31 +851,24 @@ class SiteCustomization
             );
         }
 
-        $matchesDefault = count($normalized) === count($defaults);
-        if ($matchesDefault) {
-            foreach ($normalized as $idx => $item) {
-                $defaultItem = $defaults[$idx] ?? ['question' => '', 'answer' => ''];
-                if ($item['question'] !== trim((string) ($defaultItem['question'] ?? ''))
-                    || $item['answer'] !== trim((string) ($defaultItem['answer'] ?? ''))) {
-                    $matchesDefault = false;
-                    break;
-                }
-            }
+        if (app()->getLocale() !== 'bn') {
+            return $normalized;
         }
 
-        if (app()->getLocale() === 'bn' && $matchesDefault) {
-            $localized = [];
-            foreach (range(1, count($defaults)) as $i) {
-                $localized[] = [
-                    'question' => (string) __('site.faq_item'.$i.'_question'),
-                    'answer' => (string) __('site.faq_item'.$i.'_answer'),
-                ];
-            }
-
-            return $localized;
+        // Each untouched built-in row keeps its Bangla words; rows the owner typed stay as typed.
+        $builtInRows = [];
+        foreach (array_values($defaults) as $index => $default) {
+            $builtInRows[trim((string) ($default['question'] ?? ''))."\0".trim((string) ($default['answer'] ?? ''))] = $index + 1;
         }
 
-        return $normalized;
+        return array_map(static function (array $item) use ($builtInRows): array {
+            $rowNumber = $builtInRows[$item['question']."\0".$item['answer']] ?? null;
+
+            return $rowNumber === null ? $item : [
+                'question' => (string) __('site.faq_item'.$rowNumber.'_question'),
+                'answer' => (string) __('site.faq_item'.$rowNumber.'_answer'),
+            ];
+        }, $normalized);
     }
 
     /** True for a setting that only repeats another one, so it is never stored. */
