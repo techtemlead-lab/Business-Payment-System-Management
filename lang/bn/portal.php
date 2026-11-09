@@ -6661,4 +6661,7 @@ return [
     'mt_date_from' => 'শুরুর তারিখ',
     'mt_date_to' => 'শেষের তারিখ',
     'mt_open_row' => 'বিস্তারিত দেখুন',
+    "pay_channel_office" => "বাই অফিস (অফিসে নগদ)",
+    "pay_channel_account" => "আমার অ্যাকাউন্ট থেকে",
+    "section_hint_partner_my_money" => "আপনার সব টাকা এক জায়গায়: কত আছে, কোথা থেকে এসেছে, প্রতিটি হিসাব।",
 ];

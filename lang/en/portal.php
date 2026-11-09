@@ -6661,4 +6661,7 @@ return [
     'mt_date_from' => 'From',
     'mt_date_to' => 'To',
     'mt_open_row' => 'See details',
+    "pay_channel_office" => "By Office (cash at office)",
+    "pay_channel_account" => "From My Account",
+    "section_hint_partner_my_money" => "All your money in one place: what you have, where it came from, every movement.",
 ];

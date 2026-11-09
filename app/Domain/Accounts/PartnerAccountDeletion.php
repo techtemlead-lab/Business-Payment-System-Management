@@ -4,6 +4,7 @@ namespace App\Domain\Accounts;
 
 use App\Domain\Auth\LoginOtpChallenge;
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Finance\EventLogProjector;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
 use App\Models\AreaDealerAssignment;
@@ -148,6 +149,7 @@ final class PartnerAccountDeletion
         if ($newlySuspended) {
             $this->tellPartnerAccountWasClosed($partner, $reason);
         }
+        app(EventLogProjector::class)->rebuild();
 
         return $result;
     }

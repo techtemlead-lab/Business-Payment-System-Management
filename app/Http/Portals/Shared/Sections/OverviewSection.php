@@ -3,6 +3,7 @@
 namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Accounts\PartnerDashboardHome;
+use App\Domain\Accounts\PartnerMoneyBook;
 use App\Domain\Inventory\BranchScope;
 use App\Domain\Orders\OrderOverviewTotals;
 use App\Domain\Orders\StaffDashboardSummary;
@@ -34,6 +35,7 @@ final class OverviewSection implements WorkspaceSection
         $props['lowStock'] = $user->allows('inventory') ? app(StaffDashboardSummary::class)->lowStockProducts($context->branchScope)->limit(5)->get() : [];
         if (in_array($user->role, ['dealer', 'sub_dealer'], true) && ! $context->usingStaffWorkspace) {
             $props['partner_home'] = app(PartnerDashboardHome::class)->for($user);
+            $props['money_cards'] = app(PartnerMoneyBook::class)->incomeCards($user);
         } elseif ($context->isStaff) {
             $staffProfile = is_array($user->profile) ? $user->profile : [];
             $props['admin_home'] = [

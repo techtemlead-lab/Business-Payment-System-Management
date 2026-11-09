@@ -1,0 +1,31 @@
+<?php
+
+return [
+    'title' => 'My money',
+    'usable' => 'You can use',
+    'waiting' => 'Waiting',
+    'asked' => 'Asked to withdraw',
+    'withdraw' => 'Withdraw',
+    'order' => 'Place an order',
+    'where_from' => 'Where it came from',
+    'running_total' => 'Total',
+    'ordered_mrp' => 'Ordered at MRP',
+    'cash_given' => 'Cash given',
+    'withdrawn' => 'Withdrawn',
+    'spent' => 'Spent on orders',
+    'earned' => 'Total earned',
+
+    'type_own' => 'Own purchase cashback',
+    'type_referral' => 'Direct referral',
+    'type_team' => 'Team referral',
+    'type_area' => 'Area commission',
+    'type_salary' => 'Monthly salary',
+    'type_royalty' => 'Rank royalty',
+    'type_rank_bonus' => 'Rank bonus',
+    'type_reward' => 'Reward',
+    'type_opening' => 'Old balance',
+    'type_returned' => 'Order money returned',
+    'type_withdrawn' => 'Withdrawn',
+    'type_spent' => 'Spent on an order',
+    'type_taken_back' => 'Taken back',
+];
