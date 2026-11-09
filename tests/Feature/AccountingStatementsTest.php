@@ -48,6 +48,21 @@ class AccountingStatementsTest extends TestCase
         $this->entry('2026-11-02 06:00:00', [['commission_expense', '999.99', '0.00'], ['wallet_liability', '0.00', '999.99']]);
     }
 
+    public function test_the_excel_tab_of_a_bangla_statement_is_in_bangla(): void
+    {
+        $finance = User::factory()->staff('finance')->create(['locale' => 'bn']);
+
+        $response = $this->actingAs($finance)->onPortal('manage')->get('/commands/operations/accounting/export?type=trial-balance&format=xlsx&from=2026-10-01&to=2026-10-31')->assertOk();
+
+        $zip = new \ZipArchive;
+        $this->assertTrue($zip->open($response->baseResponse->getFile()->getPathname()));
+        $workbook = (string) $zip->getFromName('xl/workbook.xml');
+        $zip->close();
+
+        $this->assertStringNotContainsString('Trial Balance', $workbook);
+        $this->assertStringContainsString('name="'.__('accounting.statement_trial_balance', [], 'bn').'"', $workbook);
+    }
+
     public function test_trial_balance_ties_exactly_to_the_journal_for_the_period(): void
     {
         $this->seedJournal();
