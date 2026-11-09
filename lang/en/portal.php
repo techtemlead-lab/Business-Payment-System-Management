@@ -6575,4 +6575,6 @@ return [
     'err_file_too_large' => 'The :field must be :size or smaller.',
     'err_pc_deactivate_has_partners' => 'Partners are on this place. Move them to another place before you switch it off.',
     'import_failed_reason' => 'The import did not finish and nothing was saved. Check the current records and upload a new preview.',
+    'event_support_attachment_opened' => 'Support request file opened',
+    'support_open_attachment' => 'Open file: :name',
 ];

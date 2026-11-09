@@ -186,6 +186,7 @@ return function (string $portal): void {
 
     Route::post('/commands/support-tickets', [CommandController::class, 'supportTicket'])->middleware('throttle:10,1');
     Route::post('/commands/support-tickets/{id}/reply', [CommandController::class, 'supportTicketReply'])->middleware('throttle:20,1');
+    Route::get('/commands/support-tickets/{id}/attachment', [CommandController::class, 'supportTicketAttachment'])->whereUuid('id')->middleware('throttle:60,1');
     Route::post('/commands/tours/{page}/complete', [CommandController::class, 'completeTour'])->middleware('throttle:30,1');
     Route::post('/commands/tours/restart', [CommandController::class, 'restartTour'])->middleware('throttle:20,1');
     Route::post('/commands/workspace-mode', [CommandController::class, 'switchWorkspaceMode'])->middleware('throttle:30,1');

@@ -6575,4 +6575,6 @@ return [
     'err_file_too_large' => ':field :sizeর বেশি হতে পারবে না।',
     'err_pc_deactivate_has_partners' => 'এই জায়গায় পার্টনার আছেন। বন্ধ করার আগে তাঁদের অন্য জায়গায় সরিয়ে নিন।',
     'import_failed_reason' => 'ইমপোর্ট শেষ হয়নি, কিছুই সেভ হয়নি। এখনকার তথ্য দেখে নিয়ে নতুন করে ফাইল আপলোড করুন।',
+    'event_support_attachment_opened' => 'সাপোর্ট অনুরোধের ফাইল খোলা হয়েছে',
+    'support_open_attachment' => 'ফাইল খুলুন: :name',
 ];

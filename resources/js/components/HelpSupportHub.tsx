@@ -23,6 +23,7 @@ import { Badge, date, Empty, Table, type Row, number } from './UI';
 import PrerequisiteHelper from './PrerequisiteHelper';
 import { restartOnboardingTour } from './OnboardingTour';
 import { useT } from '../shared/i18n/t';
+import '../../css/partner-hub.css';
 
 export default function HelpSupportHub({ data }: { data: Row }) {
     const translate = useT();
@@ -504,6 +505,21 @@ export default function HelpSupportHub({ data }: { data: Row }) {
     );
 }
 
+/** The file a partner attached to a support request, if there is one. */
+function AttachmentLink({ ticket }: { ticket: Row }) {
+    const translate = useT();
+    if (!ticket.has_attachment) {
+        return null;
+    }
+    return (
+        <p>
+            <a className="button small" href={`/commands/support-tickets/${ticket.id}/attachment`} target="_blank" rel="noopener">
+                <FileText size={15} aria-hidden="true" />{translate('portal', 'support_open_attachment', { name: String(ticket.attachment_name ?? '') })}
+            </a>
+        </p>
+    );
+}
+
 /** One request in the partner's list: what they wrote and what the office answered. */
 function SupportRequestDetails({ request, canReply }: { request: Row; canReply: boolean }) {
     const translate = useT();
@@ -513,6 +529,7 @@ function SupportRequestDetails({ request, canReply }: { request: Row; canReply: 
         <details className="support-request">
             <summary>{request.subject}</summary>
             <p className="ptl-prewrap">{request.body}</p>
+            <AttachmentLink ticket={request} />
             {request.earlier && <small className="muted">{translate('partner_hub', 'earlier_request_note')}</small>}
             {replies.map((reply, index) => (
                 <div className="support-request-reply" key={index}>
@@ -602,8 +619,15 @@ export function SupportAdminHub({ data }: { data: Row }) {
                         </div>
                         <Badge status={ticket.status} />
                     </div>
-                    <p>{ticket.body}</p>
-                    <Form action={`/commands/support-tickets/${ticket.id}/reply`} method="post" className="action-form ops-mt-3">
+                    <p className="ptl-prewrap">{ticket.body}</p>
+                    <AttachmentLink ticket={ticket} />
+                    {(ticket.replies || []).map((reply: Row) => (
+                        <div className="support-request-reply" key={reply.id}>
+                            <b>{reply.author_name}</b> <small className="muted">{date(reply.created_at)}</small>
+                            <p className="ptl-prewrap">{reply.body}</p>
+                        </div>
+                    ))}
+                    <Form action={`/commands/support-tickets/${ticket.id}/reply`} method="post" className="action-form ops-mt-3" resetOnSuccess options={{ preserveScroll: true }}>
                         {({ processing }) => (
                             <>
                                 <label>
