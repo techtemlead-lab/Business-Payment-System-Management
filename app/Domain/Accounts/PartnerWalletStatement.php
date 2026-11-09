@@ -16,7 +16,7 @@ final class PartnerWalletStatement
     private const Accounts = ['wallet_liability', 'commission_held_liability'];
 
     /** Journal key of the commissions credited for one order (order ids are UUIDs). */
-    private const OrderEvent = '/^commissions\.order\.([0-9a-f-]{36})$/i';
+    private const OrderEvent = '/^(?:commissions\.order|order\.account_pay)\.([0-9a-f-]{36})$/i';
 
     /** The sentence each money event was written from, by the start of its journal key. */
     private const Sentences = [
@@ -30,6 +30,8 @@ final class PartnerWalletStatement
         'opening.import.' => 'ob_journal_approved',
         'reserve.award.' => 'jr_reserve_award',
         'manual-payout:' => 'wd_journal_manual_payout',
+        'order.account_pay.' => 'order_payment.jr_account_pay',
+        'order.account_return.' => 'order_payment.jr_account_return',
     ];
 
     /**
@@ -265,11 +267,17 @@ final class PartnerWalletStatement
             if (str_starts_with($eventKey, $start)) {
                 $values = $this->sentenceValues($sentence, $stored);
 
-                return $values === null ? $stored : (string) __('portal.'.$sentence, $this->valuesInReaderLanguage($eventKey, $values));
+                return $values === null ? $stored : (string) __($this->sentenceKey($sentence), $this->valuesInReaderLanguage($eventKey, $values));
             }
         }
 
         return $stored;
+    }
+
+    /** Sentences without a group of their own live in the portal language file. */
+    private function sentenceKey(string $sentence): string
+    {
+        return str_contains($sentence, '.') ? $sentence : 'portal.'.$sentence;
     }
 
     /**
@@ -280,7 +288,7 @@ final class PartnerWalletStatement
     private function sentenceValues(string $sentence, string $stored): ?array
     {
         foreach (['bn', 'en'] as $locale) {
-            $pattern = preg_replace('/\\\\:([a-z]+)/', '(?<$1>.+)', preg_quote((string) __('portal.'.$sentence, [], $locale), '/'));
+            $pattern = preg_replace('/\\\\:([a-z]+)/', '(?<$1>.+)', preg_quote((string) __($this->sentenceKey($sentence), [], $locale), '/'));
             if (preg_match('/^'.$pattern.'$/u', $stored, $matches) === 1) {
                 return array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
             }

@@ -143,8 +143,9 @@ final class ReportData
             'rewards' => [DB::table('reserve_disbursements as r')->where('r.program', '!=', FundSpending::Program)->leftJoin('users as u', 'u.id', '=', 'r.user_id'),
                 ['r.id', 'u.dealer_code', 'u.name', 'r.payee_name', 'r.program', 'r.amount', 'r.status', 'r.payment_reference', 'r.created_at'], ['amount'], 'r.created_at', 'r.user_id'],
             // Every payment a partner sent with its TrxID, who checked it and when: the daily collection sheet.
+            // A partner's own account paying for an order is not money coming in, so it stays off this sheet.
             'collections' => [DB::table('payment_claims as c')->join('orders as o', 'o.id', '=', 'c.order_id')->join('users as u', 'u.id', '=', 'o.user_id')
-                ->leftJoin('users as checker', 'checker.id', '=', 'c.verified_by'),
+                ->leftJoin('users as checker', 'checker.id', '=', 'c.verified_by')->where('c.channel', '<>', 'Account'),
                 ['c.created_at', 'o.number', 'u.dealer_code', 'u.name', 'u.phone', 'u.district', 'u.division', 'c.channel', 'c.reference', 'c.amount', 'c.status',
                     DB::raw('checker.name AS checked_by'), DB::raw("CASE WHEN c.status <> 'pending' THEN c.updated_at END AS checked_at")],
                 ['amount'], 'c.created_at', 'o.user_id'],

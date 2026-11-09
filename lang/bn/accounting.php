@@ -73,6 +73,7 @@ return [
     'account_manual_collection_clearing' => 'হাতে নেওয়া টাকা (মেলানো চলছে)',
     'account_opening_collection_clearing' => 'শুরুর আদায় (মেলানো চলছে)',
     'account_manual_payout_clearing' => 'হাতে দেওয়া পেমেন্ট (মেলানো চলছে)',
+    'account_wallet_order_clearing' => 'পার্টনারের অ্যাকাউন্টের টাকায় দেওয়া অর্ডার',
     'account_opening_receivables' => 'পার্টনারদের কাছে শুরুর পাওনা',
     'account_commission_clawback_receivable' => 'পার্টনারদের কাছ থেকে ফেরত পাওয়ার কমিশন',
     'account_company_reserve_clawback_receivable' => 'রিজার্ভের ফেরত পাওয়ার টাকা',

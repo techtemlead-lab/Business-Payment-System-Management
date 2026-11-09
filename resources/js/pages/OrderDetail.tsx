@@ -63,7 +63,32 @@ function SupplyDateForm({ order }: { order: Row }) {
     </form></div>;
 }
 
-export default function OrderDetail({ order, claims, shipments, events = [], outstanding, paymentPrompt, backUrl, replacementSlots=[], replacementCandidates=[], refund=null, canRefund=false, fullPaymentRequired=false, courierChoices=[] }: { order: Row; claims: Row[]; shipments: Row[]; events: Row[]; outstanding: string; paymentPrompt: { ask_for_payment: boolean; waiting_for_check: boolean; waiting_amount: string }; backUrl?:string; replacementSlots?:Row[]; replacementCandidates?:Row[]; refund?:Row|null; canRefund?:boolean; fullPaymentRequired?:boolean; courierChoices?:{ key: string; label: string }[] }) {
+/** Pay what is due on this order without typing anything: cash at the office, or the partner's own account. */
+function PayWithoutDetails({ orderId, outstanding, payOptions }: { orderId: string; outstanding: string; payOptions?: { account_available: string; account_usable: boolean; account_block: null | 'debt' | 'off' } | null }) {
+    const translate = useT();
+    const balance = Number(payOptions?.account_available ?? 0);
+    const due = Number(outstanding);
+    const short = Math.round(due * 100) - Math.round(balance * 100);
+    return <>
+        <section className="panel narrow-panel" data-testid="pay-at-office">
+            <h2>{translate('order_payment', 'office_pay_title')}</h2>
+            <p className="muted">{translate('order_payment', 'office_pay_hint', { amount: money(outstanding) })}</p>
+            <ActionForm action={`/commands/orders/${orderId}/payments`} fields={[]} defaults={{ channel: 'Office' }} submit={translate('order_payment', 'office_pay_button')} />
+        </section>
+        {payOptions && payOptions.account_block !== 'off' && <section className="panel narrow-panel" data-testid="pay-from-account">
+            <h2>{translate('order_payment', 'account_pay_title')}</h2>
+            <p className="muted">{translate('order_payment', 'account_balance')}: <b>{money(balance)}</b></p>
+            {payOptions.account_block === 'debt' && <p className="field-hint is-warn" role="status">{translate('order_payment', 'account_block_debt')}</p>}
+            {payOptions.account_usable && short > 0 && <p className="field-hint is-warn" role="status">{translate('order_payment', 'account_short', { amount: money(short / 100) })}</p>}
+            {payOptions.account_usable && short <= 0 && <>
+                <p className="muted">{translate('order_payment', 'account_after')}: <b>{money(balance - due)}</b></p>
+                <ActionForm action={`/commands/orders/${orderId}/pay-from-account`} fields={[]} submit={translate('order_payment', 'account_pay_button', { amount: money(outstanding) })} />
+            </>}
+        </section>}
+    </>;
+}
+
+export default function OrderDetail({ order, claims, shipments, events = [], outstanding, paymentPrompt, backUrl, replacementSlots=[], replacementCandidates=[], refund=null, canRefund=false, fullPaymentRequired=false, courierChoices=[], payOptions=null }: { order: Row; claims: Row[]; shipments: Row[]; events: Row[]; outstanding: string; paymentPrompt: { ask_for_payment: boolean; waiting_for_check: boolean; waiting_amount: string }; backUrl?:string; replacementSlots?:Row[]; replacementCandidates?:Row[]; refund?:Row|null; canRefund?:boolean; fullPaymentRequired?:boolean; courierChoices?:{ key: string; label: string }[]; payOptions?:{ account_available: string; account_usable: boolean; account_block: null | 'debt' | 'off' } | null }) {
     const translate = useT();
     const { auth,staffActions,portalBase:base,collectionAccounts=[] } = usePage<any>().props;
     const capabilities: string[] = auth.capabilities;
@@ -71,6 +96,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
     const canVerify = actionAllowed('/commands/claims/0/verify', staffActions);
     const open = !['rejected', 'cancelled'].includes(order.status);
     const itemsLeft = (order.lines ?? []).some((line: Row) => Number(line.dispatched) < Number(line.quantity));
+    const officeCashWaiting = claims.some(claim => claim.status === 'pending' && claim.channel === 'Office');
     const [shareOpen, setShareOpen] = useState(false);
     const [copied, setCopied] = useState(false);
     const printUrl = `/orders/${order.id}/invoice/print`;
@@ -139,10 +165,10 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
             <div className="metric"><span>{translate('portal', 'order_total')}</span><strong>{money(order.total)}</strong></div>
             <div className="metric"><span>{translate('portal', 'verified_payment')}</span><strong>{money(order.paid)}</strong></div>
             {paymentPrompt.waiting_for_check
-                ? <div className="metric"><span>{translate('order_payment', 'waiting_metric')}</span><strong>{money(paymentPrompt.waiting_amount)}</strong>{owner && <small>{translate('order_payment', 'waiting_metric_hint')}</small>}</div>
+                ? <div className="metric"><span>{translate('order_payment', officeCashWaiting ? 'office_waiting_metric' : 'waiting_metric')}</span><strong>{money(paymentPrompt.waiting_amount)}</strong>{owner && !officeCashWaiting && <small>{translate('order_payment', 'waiting_metric_hint')}</small>}</div>
                 : <div className="metric"><span>{translate('portal', 'remaining_payment')}</span><strong>{money(outstanding)}</strong>{paymentPrompt.ask_for_payment && <small>{translate('portal', 'remaining_payment_hint')}</small>}</div>}
         </div>
-        {owner && paymentPrompt.waiting_for_check && <div className="notice" role="status"><b>{translate('order_payment', 'waiting_title')}</b><p>{translate('order_payment', 'waiting_body', { amount: money(paymentPrompt.waiting_amount) })}</p></div>}
+        {owner && paymentPrompt.waiting_for_check && <div className="notice" role="status"><b>{translate('order_payment', officeCashWaiting ? 'office_waiting_title' : 'waiting_title')}</b><p>{translate('order_payment', officeCashWaiting ? 'office_waiting_body' : 'waiting_body', { amount: money(paymentPrompt.waiting_amount) })}</p></div>}
         <section className="panel"><div className="panel-heading"><h2>{translate('portal', 'products_fulfilment')}</h2><span>{translate('portal', 'prices_saved_at_submission')}</span></div>
             <Table rows={order.lines} columns={[
                 { key: 'name', title: translate('portal', 'col_product'), render: line => line.is_free ? <>{line.name}<small className="cell-sub">{translate('schemes_commission', 'free_line_scheme', { scheme: line.scheme_title ?? translate('schemes_commission', 'free_line_label') })}</small></> : line.name }, { key: 'quantity', title: translate('portal', 'col_ordered_quantity'), align: 'right', render: line => number(line.quantity) }, { key: 'dispatched', title: translate('portal', 'col_dispatched'), align: 'right', render: line => number(line.dispatched) },
@@ -167,7 +193,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                     <h3>{translate('portal', 'review_claim', { reference: claim.reference })}</h3>
                     <ActionForm action={`/commands/claims/${claim.id}/verify`} fields={[
                         { name: 'approve', label: translate('portal', 'decision'), required: true, options: [{ value: '1', label: translate('portal', 'verify_received_payment') }, { value: '0', label: translate('portal', 'reject_claim') }] },
-                        { name: 'reason', label: translate('portal', 'verification_evidence'), type: 'textarea', required: true },
+                        { name: 'reason', label: translate(claim.channel === 'Office' ? 'order_payment' : 'portal', claim.channel === 'Office' ? 'office_who_took' : 'verification_evidence'), type: 'textarea', required: true },
                     ]} submit={translate('portal', 'record_payment_review')} />
                 </div>)}
             </section>
@@ -198,13 +224,14 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
         </div>
         {order.note && <div className="notice"><b>{translate('portal', 'order_note')}</b><p>{order.note}</p></div>}
         {order.decision_reason && <div className="notice"><b>{translate('portal', 'staff_decision')}</b><p>{order.decision_reason}</p></div>}
-        {refund && <section className="panel" data-testid="order-refund"><h2>{translate('portal', 'order_refund_recorded')}</h2><p>{translate('portal', 'order_refund_recorded_body', { amount: money(refund.amount), name: String(refund.refunded_by), date: date(refund.created_at) })}</p><p className="muted">{refund.reason}</p></section>}
+        {refund && <section className="panel" data-testid="order-refund"><h2>{translate('portal', 'order_refund_recorded')}</h2><p>{translate('portal', 'order_refund_recorded_body', { amount: money(refund.amount), name: String(refund.refunded_by), date: date(refund.created_at) })}</p>{Number(refund.to_account) > 0 && <p data-testid="refund-to-account">{translate('order_payment', 'refund_to_account', { amount: money(refund.to_account) })}</p>}<p className="muted">{refund.reason}</p></section>}
         {canRefund && !refund && <section className="panel narrow-panel"><h2>{translate('portal', 'order_refund_title')}</h2><p className="muted">{translate('portal', 'order_refund_hint')}</p><p className="notice" data-testid="order-refund-part-warning">{translate('portal', 'order_refund_part_warning')}</p>
             <ActionForm action={`/commands/orders/${order.id}/refund`} fields={[
                 { name: 'amount', label: translate('portal', 'order_refund_amount'), type: 'number', required: true, value: String(order.paid) },
                 { name: 'reason', label: translate('portal', 'order_refund_reason'), type: 'textarea', required: true },
             ]} submit={translate('portal', 'order_refund_submit')} />
         </section>}
+        {owner && paymentPrompt.ask_for_payment && <PayWithoutDetails orderId={String(order.id)} outstanding={outstanding} payOptions={payOptions} />}
         {owner && paymentPrompt.ask_for_payment && <section className="panel narrow-panel">
             <h2>{translate('portal', 'submit_payment_reference')}</h2><p className="muted">{fullPaymentRequired ? translate('portal', 'submit_full_payment_hint', { amount: money(outstanding) }) : translate('portal', 'submit_payment_reference_hint')}</p>
             <ActionForm action={`/commands/orders/${order.id}/payments`} fields={[
