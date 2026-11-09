@@ -17,7 +17,7 @@ export default function TreasuryWork({ tiles, approvals, heads, budgets, budget_
 
     return (
         <TreasuryPage title={translate('treasury', 'title')} showTabs>
-            <div className="tsy-switch" role="group" aria-label={translate('treasury', 'tab_work')}>
+            <div className="office-switch" role="group" aria-label={translate('treasury', 'tab_work')}>
                 <Link href="/treasury/work" preserveState preserveScroll className={showsHeads ? undefined : 'is-active'} aria-current={showsHeads ? undefined : 'true'}>{translate('treasury', 'work_waiting')}</Link>
                 <Link href="/treasury/work?tab=heads" preserveState preserveScroll className={showsHeads ? 'is-active' : undefined} aria-current={showsHeads ? 'true' : undefined}>{translate('treasury', 'work_heads')}</Link>
             </div>
