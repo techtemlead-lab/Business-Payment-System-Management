@@ -91,6 +91,9 @@ final class ReportData
         if ($type === 'fund-spending' && ! FundSpending::canManage($actor)) {
             return false;
         }
+        if ($type === 'payroll' && ! $actor->allows('payroll')) {
+            return false;
+        }
 
         return in_array($type, self::OrderBasedReports, true) || app(BranchOperations::class)->canViewAllBranches($actor);
     }

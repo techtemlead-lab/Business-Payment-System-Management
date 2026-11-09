@@ -192,7 +192,7 @@ class CommissionReportHubTest extends TestCase
 
     public function test_company_wide_staff_get_every_report_once_in_its_group(): void
     {
-        $this->office($this->staffWith(['finance']))->get('/operations/financial-reports')->assertOk()
+        $this->office($this->staffWith(['finance', 'payroll']))->get('/operations/financial-reports')->assertOk()
             ->assertInertia(function (Assert $page): void {
                 $page->where('reportGroups', function ($groups): bool {
                     $groups = collect($groups)->mapWithKeys(fn ($group): array => [$group['key'] => $group['reports']])->all();
