@@ -38,7 +38,7 @@ class MyMoneyPageTest extends TestCase
         $this->actingAs($dealer)->onPortal('dealer')
             ->get('/')
             ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page->has('data.money_cards'));
+            ->assertInertia(fn (AssertableInertia $page) => $page->loadDeferredProps(fn (AssertableInertia $reload) => $reload->has('data.money_cards')));
     }
 
     public function test_every_my_money_word_is_there_in_both_languages(): void
