@@ -4,6 +4,7 @@ namespace App\Domain\Orders;
 
 use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Inventory\BranchOperations;
 use App\Models\Order;
 use App\Models\User;
 use App\Support\Audit;
@@ -35,7 +36,10 @@ final class MixedOutcomeDecisions
     /** Most orders listed at a time. */
     private const ListLimit = 50;
 
-    public function __construct(private readonly CommissionPosting $commissions) {}
+    public function __construct(
+        private readonly CommissionPosting $commissions,
+        private readonly BranchOperations $branches,
+    ) {}
 
     /**
      * @param  Builder  $orderIds  the order ids this reader may see
@@ -56,6 +60,7 @@ final class MixedOutcomeDecisions
     {
         abort_unless($actor->allows('order_review'), 403);
         abort_if((int) $actor->id === (int) $order->user_id, 403, __('portal.err_self_review_order'));
+        abort_unless($this->branches->mayOpenOrder($actor, $order), 403);
         DB::transaction(function () use ($actor, $order, $choice, $reason): void {
             CommissionWallet::lock();
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
