@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
 use App\Support\PartnerHubTabs;
+use App\Support\PdfFonts;
 use App\Support\TableWorkbook;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
@@ -166,7 +167,7 @@ class PartnerStatementController extends Controller
         Storage::disk('local')->makeDirectory('report-exports');
         $path = Storage::disk('local')->path('report-exports/'.Str::uuid().'.pdf');
         try {
-            $pdf = new Mpdf(['tempDir' => Storage::disk('local')->path('report-exports'), 'format' => 'A4', 'default_font' => 'freeserif', 'autoScriptToLang' => true, 'autoLangToFont' => true]);
+            $pdf = new Mpdf(['tempDir' => Storage::disk('local')->path('report-exports'), 'format' => 'A4', ...PdfFonts::options()]);
             $pdf->SetTitle($t('stmt_title'));
             $pdf->SetHTMLFooter('<div style="text-align:right;font-size:8pt">'.e($t('ops_export_pdf_footer')).'</div>');
             $pdf->WriteHTML($html);
