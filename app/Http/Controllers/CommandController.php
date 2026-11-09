@@ -662,7 +662,8 @@ class CommandController extends Controller
         $r->validate($rules);
         $payload = (array) $r->input('customization', []);
         if (! $r->user()->allows('content')) {
-            $payload = array_diff_key($payload, PublicTrustContent::defaults());
+            // Staff with only the catalog permission edit the featured products block; the rest of the website is not theirs.
+            $payload = array_filter($payload, fn (string $key): bool => $key === 'public_products_subtitle' || str_starts_with($key, 'featured_products_'), ARRAY_FILTER_USE_KEY);
         }
         SiteCustomization::save($payload);
         Audit::record($r->user()->id, 'customization.updated', 'frontend');
