@@ -227,6 +227,6 @@ return [
     'dl_profit_loss' => 'Profit and loss',
     'dl_balance_sheet' => 'Balance sheet',
     'dl_trial_balance' => 'Trial balance',
-    'dl_group_statements' => 'Accountant's files',
+    'dl_group_statements' => "Accountant's files",
     'dl_too_many' => 'You can download up to 15 files a minute. Please try again shortly.',
 ];
