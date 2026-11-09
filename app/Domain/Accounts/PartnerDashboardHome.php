@@ -19,12 +19,12 @@ use Illuminate\Support\Facades\DB;
 
 final class PartnerDashboardHome
 {
-    public function __construct(private CommissionQualification $qualification, private PartnerProgress $progress, private PartnerEarningsPresenter $earnings) {}
+    public function __construct(private CommissionQualification $qualification, private PartnerProgress $progress, private PartnerEarningsPresenter $earnings, private PartnerMoneyBook $moneyBook) {}
 
     /**
      * @return array{
      *   profile: array<string, mixed>,
-     *   snapshot: array{own_sales_today: string, team_sales_today: string, commission_month: string},
+     *   snapshot: array{own_sales_today: string, team_sales_today: string, commission_month: string, commission_today: string},
      *   targets: list<array<string, mixed>>,
      *   referral: array{code: string, url: string, qr_url: string}|null,
      *   sponsor: array{id: int, name: string, dealer_code: string|null, phone: string|null}|null,
@@ -53,17 +53,8 @@ final class PartnerDashboardHome
         $teamSalesToday = $this->purchaseTotal(
             Order::query()->whereIn('user_id', $teamIds)->where('created_at', '>=', $todayUtc),
         );
-        $activeStatuses = ['pending', 'available', 'maturing', 'held', 'reserved', 'settled', 'partially_settled'];
-        $commissionMonth = Money::cents((string) DB::table('commission_allocations')
-            ->where('user_id', $user->id)
-            ->where('created_at', '>=', $monthStartUtc)
-            ->whereIn('status', $activeStatuses)
-            ->sum('amount'));
-        $commissionToday = Money::cents((string) DB::table('commission_allocations')
-            ->where('user_id', $user->id)
-            ->where('created_at', '>=', $todayUtc)
-            ->whereIn('status', $activeStatuses)
-            ->sum('amount'));
+        $commissionMonth = $this->moneyBook->earnedTotal((int) $user->id, $monthStartUtc);
+        $commissionToday = $this->moneyBook->earnedTotal((int) $user->id, $todayUtc);
 
         return [
             'profile' => [

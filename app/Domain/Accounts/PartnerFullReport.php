@@ -2,6 +2,7 @@
 
 namespace App\Domain\Accounts;
 
+use App\Domain\Orders\DeliveredMoney;
 use App\Domain\Orders\OrderListFilter;
 use App\Models\Order;
 use App\Models\ReferralTreePath;
@@ -20,30 +21,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 final class PartnerFullReport
 {
-    /** @var list<string> */
-    private const CategoryKeys = [
-        'own_dealer_cashback',
-        'direct_referral',
-        'direct_referral_breakage',
-        'd2d_gen2',
-        'd2d_gen2_breakage',
-        'd2d_gen3',
-        'd2d_gen3_breakage',
-        'd2d_multitier',
-        'area_division',
-        'area_district',
-        'area_upazila',
-        'area_union',
-        'area_management',
-        'dealer_monthly_salary_pool',
-        'sub_dealer_salary',
-        'sub_dealer_tour',
-        'additional_rank_pool',
-        'rank_royalty_pool',
-        'rank_incentive_pool',
-        'car_bike_incentive_fund',
-        'company_marketing_fund',
-    ];
+    public function __construct(private PartnerMoneyBook $moneyBook) {}
 
     /**
      * @return array<string, mixed>
@@ -57,7 +35,9 @@ final class PartnerFullReport
             ->when($fromUtc, fn ($query) => $query->where('created_at', '>=', $fromUtc))
             ->when($toUtc, fn ($query) => $query->where('created_at', '<', $toUtc))
             ->orderByDesc('created_at')
-            ->get(['id', 'number', 'status', 'total', 'paid', 'due_credit', 'created_at']);
+            ->select(['id', 'number', 'status', 'total', 'paid', 'due_credit', 'created_at'])
+            ->selectRaw(DeliveredMoney::valueSql().' AS delivered_value, '.DeliveredMoney::paidSql().' AS delivered_paid')
+            ->get();
 
         $orderIds = $orders->pluck('id');
         $claims = $orderIds->isEmpty()
@@ -73,8 +53,8 @@ final class PartnerFullReport
         $due = 0;
         $orderRows = [];
         foreach ($orders as $order) {
-            $ordered += Money::cents((string) $order->total);
-            $paid += Money::cents((string) $order->paid);
+            $ordered += Money::cents((string) $order->getAttribute('delivered_value'));
+            $paid += Money::cents((string) $order->getAttribute('delivered_paid'));
             $due += Money::cents($order->outstanding());
             $orderClaims = ($claims[$order->id] ?? collect())->map(fn ($claim) => [
                 'channel' => $claim->channel,
@@ -87,38 +67,21 @@ final class PartnerFullReport
                 'id' => $order->id,
                 'number' => $order->number,
                 'status' => $order->status,
-                'total' => Money::decimal(Money::cents((string) $order->total)),
-                'paid' => Money::decimal(Money::cents((string) $order->paid)),
+                'total' => Money::decimal(Money::cents((string) $order->getAttribute('delivered_value'))),
+                'paid' => Money::decimal(Money::cents((string) $order->getAttribute('delivered_paid'))),
                 'due' => $order->outstanding(),
                 'created_at' => optional($order->created_at)?->toIso8601String(),
                 'payments' => $orderClaims,
             ];
         }
 
-        $allocations = DB::table('commission_allocations')
-            ->where('user_id', $user->id)
-            ->whereNotIn('status', ['reversed', 'forfeited'])
-            ->when($fromUtc, fn ($query) => $query->where('created_at', '>=', $fromUtc))
-            ->when($toUtc, fn ($query) => $query->where('created_at', '<', $toUtc))
-            ->selectRaw('category, COALESCE(SUM(amount), 0) as total, COUNT(*) as entries')
-            ->groupBy('category')
-            ->orderBy('category')
-            ->get();
-
-        $commissionTotal = 0;
-        $byCategory = [];
-        foreach ($allocations as $row) {
-            $cents = Money::cents((string) $row->total);
-            $commissionTotal += $cents;
-            $byCategory[] = [
-                'category' => $row->category,
-                'label' => in_array((string) $row->category, self::CategoryKeys, true)
-                    ? __('portal.report_cat_'.$row->category)
-                    : ucfirst(str_replace('_', ' ', (string) $row->category)),
-                'amount' => Money::decimal($cents),
-                'entries' => (int) $row->entries,
-            ];
-        }
+        $earned = $this->moneyBook->earnedByHead((int) $user->id, $fromUtc, $toUtc);
+        $byCategory = array_map(fn (array $row): array => [
+            'category' => $row['head'],
+            'label' => PartnerMoneyBook::headWord($row['head'], $user->preferredLocale()),
+            'amount' => Money::decimal($row['amount']),
+            'entries' => $row['entries'],
+        ], $earned);
 
         $teamIds = ReferralTreePath::query()
             ->where('ancestor_id', $user->id)
@@ -138,7 +101,9 @@ final class PartnerFullReport
                 ->when($toUtc, fn ($query) => $query->where('created_at', '<', $toUtc))
                 ->latest()
                 ->limit(40)
-                ->get(['id', 'user_id', 'number', 'status', 'total', 'paid', 'due_credit', 'created_at']);
+                ->select(['id', 'user_id', 'number', 'status', 'total', 'paid', 'due_credit', 'created_at'])
+                ->selectRaw(DeliveredMoney::valueSql().' AS delivered_value, '.DeliveredMoney::paidSql().' AS delivered_paid')
+                ->get();
 
         $teamOrderUserIds = $teamOrders->pluck('user_id')->unique();
         $teamNames = $teamMembers->keyBy('id');
@@ -152,21 +117,18 @@ final class PartnerFullReport
                 'member_name' => $member?->name ?? '—',
                 'member_code' => $member?->dealer_code,
                 'status' => $order->status,
-                'total' => Money::decimal(Money::cents((string) $order->total)),
-                'paid' => Money::decimal(Money::cents((string) $order->paid)),
+                'total' => Money::decimal(Money::cents((string) $order->getAttribute('delivered_value'))),
+                'paid' => Money::decimal(Money::cents((string) $order->getAttribute('delivered_paid'))),
                 'due' => $order->outstanding(),
                 'created_at' => optional($order->created_at)?->toIso8601String(),
             ];
         })->values()->all();
 
-        $teamCommission = $teamIds->isEmpty()
-            ? '0.00'
-            : Money::decimal(Money::cents((string) DB::table('commission_allocations')
-                ->whereIn('user_id', $teamIds)
-                ->whereNotIn('status', ['reversed', 'forfeited'])
-                ->when($fromUtc, fn ($query) => $query->where('created_at', '>=', $fromUtc))
-                ->when($toUtc, fn ($query) => $query->where('created_at', '<', $toUtc))
-                ->sum('amount')));
+        $teamCommission = Money::decimal($this->moneyBook->earnedTotal(
+            ReferralTreePath::query()->where('ancestor_id', $user->id)->where('depth', '>', 0)->select('descendant_id')->toBase(),
+            $fromUtc,
+            $toUtc,
+        ));
 
         return [
             'filters' => [
@@ -178,7 +140,7 @@ final class PartnerFullReport
                 'ordered' => Money::decimal($ordered),
                 'paid' => Money::decimal($paid),
                 'due' => Money::decimal($due),
-                'commission' => Money::decimal($commissionTotal),
+                'commission' => Money::decimal(array_sum(array_column($earned, 'amount'))),
                 'team_members' => $teamMembers->count(),
                 'team_commission' => $teamCommission,
             ],

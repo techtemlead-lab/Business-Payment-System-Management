@@ -460,7 +460,7 @@ export default function ProductPurchaseMatrix({
                                         <strong className="hub-strong ops-fs-sm">{p.name}</strong>
                                         {p.strength && <span className="ppm-strength">({p.strength})</span>}
                                         <div className="ops-meta">
-                                            {p.category} {p.sub_category ? `› ${p.sub_category}` : ''} · SKU: {p.sku}
+                                            {p.category} {p.sub_category ? `› ${p.sub_category}` : ''} · {translate('portal', 'product_code_value', { sku: String(p.sku) })}
                                         </div>
                                     </div>
                                     <div className="ops-right">
@@ -553,7 +553,7 @@ export default function ProductPurchaseMatrix({
                                     const specText = v.strength || v.unit || translate('portal', 'b2b_single_spec');
                                     return (
                                         <option key={v.id} value={v.id}>
-                                            {specText} — {money(vPrice)} (MRP {money(vMrp)}{vDisc > 0 ? ` · ${translate('portal', 'pct_off', { pct: String(vDisc) })}` : ''})
+                                            {specText} — {money(vPrice)} ({translate('portal', 'mrp_label', { amount: money(vMrp) })}{vDisc > 0 ? ` · ${translate('portal', 'pct_off', { pct: String(vDisc) })}` : ''})
                                         </option>
                                     );
                                 })}
@@ -618,7 +618,7 @@ export default function ProductPurchaseMatrix({
                                 <div className="ppm-sel-name">
                                     {activeProduct.name} {activeProduct.strength ? `(${activeProduct.strength})` : ''}
                                     <span className="ppm-sel-sku">
-                                        SKU: {activeProduct.sku} · {activeProduct.category}{activeProduct.sub_category ? ` / ${activeProduct.sub_category}` : ''}
+                                        {translate('portal', 'product_code_value', { sku: String(activeProduct.sku) })} · {activeProduct.category}{activeProduct.sub_category ? ` / ${activeProduct.sub_category}` : ''}
                                     </span>
                                 </div>
                                 <span className={`hub-pill ${activeProduct.stock > 0 && !activeProduct.is_stock_paused ? 'tone-ok' : 'tone-danger'}`}>

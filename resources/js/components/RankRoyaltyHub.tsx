@@ -274,17 +274,10 @@ export default function RankRoyaltyHub({ ranks: rankList, stats, policy, filters
                                 <div>
                                     <div className="hub-strong">{r.name || translate('portal', 'rank_unnamed')}</div>
                                     <div className="cell-sub">
-                                        {r.phone || translate('portal', 'net_no_phone')} {r.district ? `• ${r.district}` : ''}
+                                        {r.dealer_code || '—'} • {r.phone || translate('portal', 'net_no_phone')} {r.district ? `• ${r.district}` : ''}
                                     </div>
                                 </div>
                             ),
-                        },
-                        {
-                            key: 'dealer_code',
-                            title: translate('portal', 'net_code'),
-                            sortable: true,
-                            sortValue: (r: RankRecord) => r.dealer_code || '',
-                            render: (r: RankRecord) => <span className="hub-strong">{r.dealer_code || '—'}</span>,
                         },
                         {
                             key: 'current_rank',
@@ -294,9 +287,12 @@ export default function RankRoyaltyHub({ ranks: rankList, stats, policy, filters
                             render: (r: RankRecord) => {
                                 const rankCfg = rankHierarchy.find(x => x.key === r.current_rank) || rankHierarchy[0];
                                 return (
-                                    <span className={`hub-pill ${rankCfg.badge.tone}`}>
-                                        {rankCfg.badge.label}
-                                    </span>
+                                    <>
+                                        <span className={`hub-pill ${rankCfg.badge.tone}`}>
+                                            {rankCfg.badge.label}
+                                        </span>
+                                        {r.achieved_at && <small className="cell-sub">{translate('portal', 'rank_col_achieved')}: {date(r.achieved_at)}</small>}
+                                    </>
                                 );
                             },
                         },
@@ -321,17 +317,6 @@ export default function RankRoyaltyHub({ ranks: rankList, stats, policy, filters
                             render: (r: RankRecord) => (
                                 <span>
                                     {money(r.monthly_purchase_total)}
-                                </span>
-                            ),
-                        },
-                        {
-                            key: 'achieved_at',
-                            title: translate('portal', 'rank_col_achieved'),
-                            sortable: true,
-                            sortValue: (r: RankRecord) => r.achieved_at || '',
-                            render: (r: RankRecord) => (
-                                <span className="muted">
-                                    {r.achieved_at ? date(r.achieved_at) : '—'}
                                 </span>
                             ),
                         },

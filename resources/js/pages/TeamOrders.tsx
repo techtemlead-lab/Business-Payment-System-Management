@@ -56,7 +56,7 @@ export default function TeamOrders({ partner, filters, statuses, orders, totals,
     const backHref = staffView ? `${base}/${partner.role === 'sub_dealer' ? 'sub-dealers' : 'accounts'}` : `${base}/my-money`;
     const tile = (title: string, value: string, hint?: string) => <div className="metric"><span>{translate('portal', title)}</span><strong>{value}</strong>{hint && <small>{hint}</small>}</div>;
 
-    return <Shell section={staffView ? (partner.role === 'sub_dealer' ? 'sub-dealers' : 'accounts') : 'full-report'}>
+    return <Shell section={staffView ? (partner.role === 'sub_dealer' ? 'sub-dealers' : 'accounts') : 'team-orders'}>
         <Head title={translate('portal', 'team_orders_title')} />
         <Link className="text-link" href={backHref}>{translate('portal', staffView ? 'team_orders_back_statement' : 'team_orders_back_report')}</Link>
         <section className="panel table-panel stmt-panel">
@@ -105,8 +105,7 @@ export default function TeamOrders({ partner, filters, statuses, orders, totals,
                 rows={orders.data ?? []}
                 empty={translate('portal', 'team_orders_empty')}
                 columns={[
-                    { key: 'created_at', title: translate('portal', 'col_date'), render: (r: Row) => dateTime(r.created_at) },
-                    { key: 'number', title: translate('portal', 'report_col_order'), render: (r: Row) => staffView ? <Link className="text-link" href={`${base}/orders/${r.id}`}>{r.number}</Link> : <b>{r.number}</b> },
+                    { key: 'number', title: translate('portal', 'report_col_order'), render: (r: Row) => <>{staffView ? <Link className="text-link" href={`${base}/orders/${r.id}`}>{r.number}</Link> : <b>{r.number}</b>}<small className="cell-sub">{dateTime(r.created_at)}</small></> },
                     { key: 'member_name', title: translate('portal', 'report_col_member'), render: (r: Row) => <><b>{r.member_name}</b><small className="cell-sub">{r.member_code}</small></> },
                     { key: 'status', title: translate('portal', 'col_status'), render: (r: Row) => <Badge status={r.status} /> },
                     { key: 'total', title: translate('portal', 'report_col_ordered'), align: 'right', render: (r: Row) => money(r.total) },

@@ -130,7 +130,7 @@ export const NAV_LINK_SPECS: Record<string, NavLinkSpec> = {
         labelKey: 'nav_module_earnings',
         hrefPath: 'my-money',
         iconKey: 'my-money',
-        match: ({ section }) => section === 'my-money',
+        match: ({ section }) => section === 'my-money' || section === 'team-orders',
     },
     /** One office row for everything in Treasury; its tab strip opens the rest. */
     treasury: {
@@ -516,6 +516,7 @@ export function staffBottomLinks(available: Set<string>): string[] {
 
 /** Partners read shorter names for the pages they share with the office. */
 const PARTNER_LABEL_KEYS: Record<string, string> = {
+    'team-orders': 'team_orders_title',
     overview: 'nav_module_home',
     orders: 'nav_partner_orders',
     catalog: 'nav_products',

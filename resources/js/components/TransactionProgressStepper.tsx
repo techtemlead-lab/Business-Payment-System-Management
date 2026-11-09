@@ -595,7 +595,7 @@ export default function TransactionProgressStepper({
                 {steps.map((step) => (
                     <article key={step.id} className={`step-card state-${step.state}`}>
                         <div className="step-top">
-                            <div className={`step-indicator state-${step.state}`} aria-label={`Step ${step.stepNumber}: ${step.title}`}>
+                            <div className={`step-indicator state-${step.state}`} aria-label={translate('portal', 'step_aria', { n: String(step.stepNumber), title: step.title })}>
                                 {step.icon}
                             </div>
                             <span className={`step-badge state-${step.state}`}>

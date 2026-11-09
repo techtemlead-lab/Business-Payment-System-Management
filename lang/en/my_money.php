@@ -40,7 +40,7 @@ return [
     'col_date' => 'Date',
     'col_what' => 'What happened',
     'col_in_out' => 'In or out',
-    'search' => 'Search',
+    'search' => 'Search by order number or name',
     'empty' => 'Nothing here yet',
     'downloads' => 'Download',
     'full_report_pdf' => 'Full report (PDF)',
