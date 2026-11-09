@@ -6565,6 +6565,7 @@ return [
     'content_page_faq' => 'FAQ',
     'content_page_privacy' => 'Privacy',
     'content_page_terms' => 'Terms',
+    'pay_view_only_notice' => 'You can see these requests. Only the owner, or someone the owner has allowed, can approve and pay them.',
     'content_page_products' => 'Products',
     'content_page_dealers' => 'Dealers',
     'date_format_day_month_year' => 'DD/MM/YYYY',
