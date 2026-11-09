@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { router, useForm, usePage } from '@inertiajs/react';
 import { ArrowDown, ArrowUp, Award, BookOpen, Download, Eye, EyeOff, FileText, ListChecks, Pencil, PlayCircle, Plus, Trash2 } from 'lucide-react';
-import { Empty, FormErrors, Modal } from './UI';
+import { Badge, Empty, FormErrors, Modal, Table } from './UI';
+import OfficePage from './office/OfficePage';
 import { useT } from '../shared/i18n/t';
 
 export type TrainingItem = {
@@ -475,15 +476,14 @@ function TrainingForm({ data, item, onDone }: { data: StaffData; item: TrainingI
 }
 
 /** Owners: how many quiz tries a partner gets per quiz in one hour. */
-function QuizLimitForm({ limit }: { limit: NonNullable<StaffData['quiz_limit']> }) {
+function QuizLimitForm({ limit, onDone }: { limit: NonNullable<StaffData['quiz_limit']>; onDone?: () => void }) {
     const translate = useT();
     const form = useForm({ per_hour: String(limit.per_hour), version: limit.version });
     return (
-        <form className="action-form training-quiz-limit" onSubmit={(event) => { event.preventDefault(); form.post('/commands/training/quiz-limit', { preserveScroll: true }); }}>
+        <form className="action-form training-quiz-limit" onSubmit={(event) => { event.preventDefault(); form.post('/commands/training/quiz-limit', { preserveScroll: true, onSuccess: onDone }); }}>
             <label>{translate('portal', 'training_quiz_limit_label')}
                 <input type="number" min={1} max={limit.max} required value={form.data.per_hour} onChange={(event) => form.setData('per_hour', event.target.value)} />
             </label>
-            <p className="muted">{translate('portal', 'training_quiz_limit_hint')}</p>
             {form.errors.per_hour && <p className="error">{form.errors.per_hour}</p>}
             <button type="submit" className="button small" disabled={form.processing}>{translate('portal', 'training_quiz_limit_save')}</button>
         </form>
@@ -493,13 +493,18 @@ function QuizLimitForm({ limit }: { limit: NonNullable<StaffData['quiz_limit']> 
 function StaffEditor({ data }: { data: StaffData }) {
     const translate = useT();
     const titleOf = useTitle();
+    const hub = usePage<any>().props.data?.hub ?? null;
     const [editing, setEditing] = useState<TrainingItem | 'new' | null>(null);
     const [quizFor, setQuizFor] = useState<TrainingItem | null>(null);
+    const [openedId, setOpenedId] = useState<number | null>(null);
+    const [choosingLimit, setChoosingLimit] = useState(false);
     const items = data.items;
+    const opened = items.find((item) => item.id === openedId) ?? null;
 
-    const move = (index: number, step: -1 | 1) => {
+    const move = (id: number, step: -1 | 1) => {
+        const index = items.findIndex((item) => item.id === id);
         const target = index + step;
-        if (target < 0 || target >= items.length) {
+        if (index < 0 || target < 0 || target >= items.length) {
             return;
         }
         const ids = items.map((item) => item.id);
@@ -511,64 +516,69 @@ function StaffEditor({ data }: { data: StaffData }) {
     };
     const remove = (item: TrainingItem) => {
         if (window.confirm(translate('portal', 'training_delete_confirm', { title: titleOf(item).main }))) {
-            router.delete(`/commands/training/${item.id}`, { preserveScroll: true });
+            router.delete(`/commands/training/${item.id}`, { preserveScroll: true, onSuccess: () => setOpenedId(null) });
         }
     };
 
     return (
-        <div className="training-hub" data-tour="training-editor">
-            <section className="panel training-intro">
-                <div className="panel-heading">
-                    <div>
-                        <h2>{translate('portal', 'training')}</h2>
-                        <p className="muted">{translate('portal', 'training_staff_intro')}</p>
-                        {data.quiz_limit?.can_edit && <QuizLimitForm key={data.quiz_limit.version} limit={data.quiz_limit} />}
-                    </div>
-                    {data.can_create && (
-                        <button type="button" className="button dark" onClick={() => setEditing('new')}>
-                            <Plus size={17} aria-hidden="true" />{translate('portal', 'training_add')}
-                        </button>
-                    )}
-                </div>
-            </section>
-            {items.length === 0 && (
-                <section className="panel"><Empty title={translate('portal', 'training_empty_title')} body={translate('portal', 'training_staff_empty_body')} /></section>
+        <OfficePage
+            title={translate('office_website', 'partners_title')}
+            hub={hub}
+            action={(
+                <>
+                    {data.quiz_limit?.can_edit && <button type="button" className="button" onClick={() => setChoosingLimit(true)}>{translate('office_website', 'quiz_limit_button')}</button>}
+                    {data.can_create && <button type="button" className="button dark" onClick={() => setEditing('new')}><Plus size={17} aria-hidden="true" />{translate('portal', 'training_add')}</button>}
+                </>
             )}
-            <div className="training-grid">
-                {items.map((item, index) => (
-                    <TrainingCard key={item.id} item={item} translate={translate}>
-                        <div className="training-meta">
-                            <span className={`badge ${item.published ? 'approved' : 'draft'}`}>{translate('portal', item.published ? 'training_status_published' : 'training_status_draft')}</span>
-                            <span className="training-chip">{translate('portal', `training_topic_${item.topic}`)}</span>
-                            <span className="training-chip">{translate('portal', `training_audience_${item.audience}`)}</span>
-                            {(item.quiz?.questions.length ?? 0) > 0 && <span className="training-chip">{translate('portal', 'training_quiz_count', { count: String(item.quiz?.questions.length ?? 0) })}</span>}
-                        </div>
-                        {data.can_edit && (
-                            <div className="training-actions">
-                                <button type="button" className="button small" onClick={() => togglePublished(item)}>
-                                    {item.published ? <EyeOff size={15} aria-hidden="true" /> : <Eye size={15} aria-hidden="true" />}
-                                    {translate('portal', item.published ? 'training_unpublish' : 'training_publish')}
-                                </button>
-                                <button type="button" className="button small" onClick={() => setEditing(item)}>
-                                    <Pencil size={15} aria-hidden="true" />{translate('portal', 'training_edit')}
-                                </button>
-                                <button type="button" className="button small" onClick={() => setQuizFor(item)}>
-                                    <ListChecks size={15} aria-hidden="true" />{translate('portal', 'training_quiz_edit')}
-                                </button>
-                                <button type="button" className="icon-button" disabled={index === 0} onClick={() => move(index, -1)} aria-label={translate('portal', 'training_move_up')} title={translate('portal', 'training_move_up')}>
-                                    <ArrowUp size={16} />
-                                </button>
-                                <button type="button" className="icon-button" disabled={index === items.length - 1} onClick={() => move(index, 1)} aria-label={translate('portal', 'training_move_down')} title={translate('portal', 'training_move_down')}>
-                                    <ArrowDown size={16} />
-                                </button>
-                                <button type="button" className="icon-button training-delete" onClick={() => remove(item)} aria-label={translate('portal', 'training_delete')} title={translate('portal', 'training_delete')}>
-                                    <Trash2 size={16} />
-                                </button>
-                            </div>
-                        )}
-                    </TrainingCard>
-                ))}
+        >
+            <div className="training-hub" data-tour="training-editor">
+                <Table
+                    rows={items}
+                    onRowClick={(row: TrainingItem) => setOpenedId(row.id)}
+                    empty={translate('portal', 'training_empty_title')}
+                    emptyBody=""
+                    columns={[
+                        ...(data.can_edit ? [{
+                            key: 'order',
+                            title: '',
+                            render: (row: TrainingItem) => (
+                                <span className="ow-move" onClick={(event) => event.stopPropagation()}>
+                                    <button type="button" className="icon-button" disabled={items[0]?.id === row.id} onClick={() => move(row.id, -1)} aria-label={translate('portal', 'training_move_up')} title={translate('portal', 'training_move_up')}><ArrowUp size={16} /></button>
+                                    <button type="button" className="icon-button" disabled={items[items.length - 1]?.id === row.id} onClick={() => move(row.id, 1)} aria-label={translate('portal', 'training_move_down')} title={translate('portal', 'training_move_down')}><ArrowDown size={16} /></button>
+                                </span>
+                            ),
+                        }] : []),
+                        { key: 'title', title: translate('office_website', 'col_lesson'), render: (row: TrainingItem) => { const { main, other } = titleOf(row); return <><button type="button" className="text-link" onClick={() => setOpenedId(row.id)}>{main}</button>{other && other !== main && <small className="cell-sub">{other}</small>}</>; } },
+                        { key: 'type', title: translate('portal', 'training_field_type'), render: (row: TrainingItem) => translate('portal', `training_type_${row.type}`) },
+                        { key: 'topic', title: translate('portal', 'training_field_topic'), render: (row: TrainingItem) => translate('portal', `training_topic_${row.topic}`) },
+                        { key: 'audience', title: translate('portal', 'training_field_audience'), render: (row: TrainingItem) => translate('portal', `training_audience_${row.audience}`) },
+                        { key: 'published', title: translate('portal', 'enquiry_status'), render: (row: TrainingItem) => <Badge status={row.published ? 'published' : 'draft'} /> },
+                    ]}
+                />
             </div>
+            {opened && (
+                <Modal variant="drawer" title={titleOf(opened).main} onClose={() => setOpenedId(null)}>
+                    <TrainingCard item={opened} translate={translate}>
+                        <div className="training-meta">
+                            <span className={`badge ${opened.published ? 'approved' : 'draft'}`}>{translate('portal', opened.published ? 'training_status_published' : 'training_status_draft')}</span>
+                            <span className="training-chip">{translate('portal', `training_topic_${opened.topic}`)}</span>
+                            <span className="training-chip">{translate('portal', `training_audience_${opened.audience}`)}</span>
+                            {(opened.quiz?.questions.length ?? 0) > 0 && <span className="training-chip">{translate('portal', 'training_quiz_count', { count: String(opened.quiz?.questions.length ?? 0) })}</span>}
+                        </div>
+                    </TrainingCard>
+                    {data.can_edit && (
+                        <div className="ow-drawer-actions">
+                            <button type="button" className="button small" onClick={() => togglePublished(opened)}>
+                                {opened.published ? <EyeOff size={15} aria-hidden="true" /> : <Eye size={15} aria-hidden="true" />}
+                                {translate('portal', opened.published ? 'training_unpublish' : 'training_publish')}
+                            </button>
+                            <button type="button" className="button small dark" onClick={() => { setOpenedId(null); setEditing(opened); }}><Pencil size={15} aria-hidden="true" />{translate('office_website', 'edit')}</button>
+                            <button type="button" className="button small" onClick={() => { setOpenedId(null); setQuizFor(opened); }}><ListChecks size={15} aria-hidden="true" />{translate('portal', 'training_quiz_edit')}</button>
+                            <button type="button" className="button small danger" onClick={() => remove(opened)}><Trash2 size={15} aria-hidden="true" />{translate('portal', 'training_delete')}</button>
+                        </div>
+                    )}
+                </Modal>
+            )}
             {editing && (
                 <Modal title={translate('portal', editing === 'new' ? 'training_modal_add' : 'training_modal_edit')} onClose={() => setEditing(null)}>
                     <TrainingForm data={data} item={editing === 'new' ? null : editing} onDone={() => setEditing(null)} />
@@ -579,7 +589,12 @@ function StaffEditor({ data }: { data: StaffData }) {
                     <QuizEditor item={quizFor} onDone={() => setQuizFor(null)} />
                 </Modal>
             )}
-        </div>
+            {choosingLimit && data.quiz_limit?.can_edit && (
+                <Modal title={translate('office_website', 'quiz_limit_button')} onClose={() => setChoosingLimit(false)}>
+                    <QuizLimitForm key={data.quiz_limit.version} limit={data.quiz_limit} onDone={() => setChoosingLimit(false)} />
+                </Modal>
+            )}
+        </OfficePage>
     );
 }
 

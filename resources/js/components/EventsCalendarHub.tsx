@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { router, useForm, usePage } from '@inertiajs/react';
 import { CalendarDays, Clock, MapPin, MessageSquareText, Pencil, Plus, Send, Trash2, Video, XCircle } from 'lucide-react';
-import { DateInput, Empty, FormErrors, Modal } from './UI';
+import { Badge, DateInput, Empty, FormErrors, Modal, Table } from './UI';
+import OfficePage from './office/OfficePage';
 import { useT } from '../shared/i18n/t';
 import { isBanglaDocument } from '../business-date';
 import { banglaSmsSegments, hasBanglaLetters } from '../shared/smsRules';
@@ -353,8 +354,11 @@ function CancelForm({ event, onDone }: { event: PartnerEventRow; onDone: () => v
 function StaffCalendar({ data }: { data: StaffData }) {
     const translate = useT();
     const titleOf = useEventTitle();
+    const hub = usePage<any>().props.data?.hub ?? null;
     const [editing, setEditing] = useState<PartnerEventRow | 'new' | null>(null);
     const [cancelling, setCancelling] = useState<PartnerEventRow | null>(null);
+    const [openedId, setOpenedId] = useState<number | null>(null);
+    const opened = data.events.find((event) => event.id === openedId) ?? null;
 
     const publish = (event: PartnerEventRow) => {
         if (window.confirm(translate('portal', 'events_publish_confirm', { title: titleOf(event) }))) {
@@ -363,63 +367,67 @@ function StaffCalendar({ data }: { data: StaffData }) {
     };
     const remove = (event: PartnerEventRow) => {
         if (window.confirm(translate('portal', 'events_delete_confirm', { title: titleOf(event) }))) {
-            router.delete(`/commands/events/${event.id}`, { preserveScroll: true });
+            router.delete(`/commands/events/${event.id}`, { preserveScroll: true, onSuccess: () => setOpenedId(null) });
         }
     };
+    const audience = (event: PartnerEventRow) => (event.audience === 'divisions'
+        ? translate('portal', 'events_divisions_label', { list: (event.divisions ?? []).join(', ') })
+        : translate('portal', 'events_audience_all'));
 
     return (
-        <div className="events-hub" data-tour="events-editor">
-            <section className="panel training-intro">
-                <div className="panel-heading">
-                    <div>
-                        <h2>{translate('portal', 'events')}</h2>
-                        <p className="muted">{translate('portal', 'events_staff_intro')}</p>
-                    </div>
-                    {data.can_create && (
-                        <button type="button" className="button dark" onClick={() => setEditing('new')}>
-                            <Plus size={17} aria-hidden="true" />{translate('portal', 'events_add')}
-                        </button>
-                    )}
-                </div>
-            </section>
-            {data.events.length === 0 && (
-                <section className="panel"><Empty title={translate('portal', 'events_empty_title')} body={translate('portal', 'events_staff_empty_body')} /></section>
-            )}
-            <div className="events-list is-grid">
-                {data.events.map((event) => (
-                    <EventCard key={event.id} event={event} translate={translate} showDate>
-                        <div className="training-meta">
-                            {event.status === 'published' && <span className="badge approved">{translate('portal', 'events_status_published')}</span>}
-                            <span className="training-chip">
-                                {event.audience === 'divisions'
-                                    ? translate('portal', 'events_divisions_label', { list: (event.divisions ?? []).join(', ') })
-                                    : translate('portal', 'events_audience_all')}
-                            </span>
-                            {event.send_sms && <span className="training-chip"><MessageSquareText size={13} aria-hidden="true" /> {translate('portal', 'events_sms_on')}</span>}
-                        </div>
-                        {data.can_edit && event.status !== 'cancelled' && (
-                            <div className="training-actions">
-                                {event.status === 'draft' && (
-                                    <button type="button" className="button small dark" onClick={() => publish(event)}>
-                                        <Send size={15} aria-hidden="true" />{translate('portal', 'events_publish')}
-                                    </button>
-                                )}
-                                <button type="button" className="button small" onClick={() => setEditing(event)}>
-                                    <Pencil size={15} aria-hidden="true" />{translate('portal', 'events_edit')}
-                                </button>
-                                <button type="button" className="button small" onClick={() => setCancelling(event)}>
-                                    <XCircle size={15} aria-hidden="true" />{translate('portal', 'events_cancel')}
-                                </button>
-                                {event.status === 'draft' && (
-                                    <button type="button" className="icon-button training-delete" onClick={() => remove(event)} aria-label={translate('portal', 'events_delete')} title={translate('portal', 'events_delete')}>
-                                        <Trash2 size={16} />
-                                    </button>
-                                )}
-                            </div>
-                        )}
-                    </EventCard>
-                ))}
+        <OfficePage
+            title={translate('office_website', 'partners_title')}
+            hub={hub}
+            action={data.can_create ? <button type="button" className="button dark" onClick={() => setEditing('new')}><Plus size={17} aria-hidden="true" />{translate('portal', 'events_add')}</button> : undefined}
+        >
+            <div className="events-hub" data-tour="events-editor">
+                <Table
+                    rows={data.events}
+                    onRowClick={(row: PartnerEventRow) => setOpenedId(row.id)}
+                    empty={translate('portal', 'events_empty_title')}
+                    emptyBody=""
+                    defaultSortKey="date"
+                    defaultSortDir="desc"
+                    columns={[
+                        { key: 'date', title: translate('portal', 'events_field_date'), sortable: true, render: (row: PartnerEventRow) => <>{shortDate(row.date)}<small className="cell-sub">{clock(row.start_time)} – {clock(row.end_time)}</small></> },
+                        { key: 'title', title: translate('office_website', 'col_event'), render: (row: PartnerEventRow) => <><button type="button" className="text-link" onClick={() => setOpenedId(row.id)}>{titleOf(row)}</button>{row.place && <small className="cell-sub">{row.place}</small>}</> },
+                        { key: 'audience', title: translate('portal', 'events_field_audience'), render: (row: PartnerEventRow) => audience(row) },
+                        { key: 'send_sms', title: translate('office_website', 'col_sms'), render: (row: PartnerEventRow) => (row.send_sms ? translate('portal', 'events_sms_on') : '—') },
+                        { key: 'status', title: translate('portal', 'enquiry_status'), render: (row: PartnerEventRow) => <Badge status={row.status} /> },
+                    ]}
+                />
             </div>
+            {opened && (
+                <Modal variant="drawer" title={titleOf(opened)} onClose={() => setOpenedId(null)}>
+                    <EventCard event={opened} translate={translate} showDate>
+                        <div className="training-meta">
+                            {opened.status === 'published' && <span className="badge approved">{translate('portal', 'events_status_published')}</span>}
+                            <span className="training-chip">{audience(opened)}</span>
+                            {opened.send_sms && <span className="training-chip"><MessageSquareText size={13} aria-hidden="true" /> {translate('portal', 'events_sms_on')}</span>}
+                        </div>
+                    </EventCard>
+                    {data.can_edit && opened.status !== 'cancelled' && (
+                        <div className="ow-drawer-actions">
+                            {opened.status === 'draft' && (
+                                <button type="button" className="button small dark" onClick={() => publish(opened)}>
+                                    <Send size={15} aria-hidden="true" />{translate('portal', 'events_publish')}
+                                </button>
+                            )}
+                            <button type="button" className="button small" onClick={() => { setOpenedId(null); setEditing(opened); }}>
+                                <Pencil size={15} aria-hidden="true" />{translate('office_website', 'edit')}
+                            </button>
+                            <button type="button" className="button small" onClick={() => { setOpenedId(null); setCancelling(opened); }}>
+                                <XCircle size={15} aria-hidden="true" />{translate('portal', 'events_cancel')}
+                            </button>
+                            {opened.status === 'draft' && (
+                                <button type="button" className="button small danger" onClick={() => remove(opened)}>
+                                    <Trash2 size={15} aria-hidden="true" />{translate('portal', 'events_delete')}
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </Modal>
+            )}
             {editing && (
                 <Modal title={translate('portal', editing === 'new' ? 'events_modal_add' : 'events_modal_edit')} onClose={() => setEditing(null)}>
                     <EventForm data={data} event={editing === 'new' ? null : editing} onDone={() => setEditing(null)} />
@@ -431,7 +439,7 @@ function StaffCalendar({ data }: { data: StaffData }) {
                     <CancelForm event={cancelling} onDone={() => setCancelling(null)} />
                 </Modal>
             )}
-        </div>
+        </OfficePage>
     );
 }
 

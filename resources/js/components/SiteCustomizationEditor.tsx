@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useForm } from '@inertiajs/react';
-import { ExternalLink, RotateCcw, Save, SlidersHorizontal } from 'lucide-react';
+import { useForm, usePage } from '@inertiajs/react';
+import { ExternalLink, RotateCcw, Save } from 'lucide-react';
+import OfficePage from './office/OfficePage';
 import { useT } from '../shared/i18n/t';
 import { notify } from '../shared/notify';
 import { buildCustomizationFormData } from './website/initialCustomization';
@@ -37,6 +38,7 @@ export default function SiteCustomizationEditor({
     trustEditor?: TrustEditorData | null;
 }) {
     const translate = useT();
+    const hub = usePage<any>().props.data?.hub ?? null;
     const pageRef = useRef<HTMLDivElement>(null);
     const form = useForm<{ customization: CustomizationData }>({
         customization: { ...buildCustomizationFormData(customization, defaults), ...(trustEditor?.values ?? {}) },
@@ -129,19 +131,13 @@ export default function SiteCustomizationEditor({
     const moduleTitle = (id: string): string => translate('website_admin', `module_${id}`);
 
     return (
+        <OfficePage
+            title={translate('website_admin', 'heading')}
+            hub={hub}
+            action={<a href={liveSiteHref} target="_blank" rel="noopener noreferrer" className="button"><ExternalLink size={15} aria-hidden="true" /> {translate('portal', 'cms_preview_live')}</a>}
+        >
         <div className="site-customization-container ws-page" ref={pageRef}>
             <div className="panel ws-hero">
-                <div className="ed-head is-flush">
-                    <div>
-                        <h2 className="ed-row is-loose">
-                            <SlidersHorizontal size={22} className="icon-brand" /> {translate('website_admin', 'heading')}
-                        </h2>
-                        <p className="ed-desc">{translate('website_admin', 'heading_hint')}</p>
-                    </div>
-                    <a href={liveSiteHref} target="_blank" rel="noopener noreferrer" className="button small">
-                        <ExternalLink size={14} /> {translate('portal', 'cms_preview_live')}
-                    </a>
-                </div>
                 <WebsiteFieldSearch pageRef={pageRef} onReveal={revealBox} />
                 <div className="ws-areas" role="tablist" aria-label={translate('website_admin', 'heading')}>
                     {WEBSITE_AREAS.map(({ id, icon: Icon }) => (
@@ -243,5 +239,6 @@ export default function SiteCustomizationEditor({
                 </button>
             </div>
         </div>
+        </OfficePage>
     );
 }

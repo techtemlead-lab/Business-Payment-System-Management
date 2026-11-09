@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { ArrowUpRight, CheckCircle2, Languages, LifeBuoy, ScrollText, Search } from 'lucide-react';
-import { Badge, Empty, FormErrors, Pagination, Table, dateTime, label, type Row } from './UI';
+import { Badge, Empty, FormErrors, Modal, Pagination, Table, dateTime, label, type Row } from './UI';
+import OfficePage from './office/OfficePage';
 import { useT } from '../shared/i18n/t';
 
 type Language = 'bn' | 'en';
@@ -131,35 +132,27 @@ function PartnerAgreementView({ agreement }: { agreement: PartnerAgreement }) {
 
 function OfficeAgreementView({ agreement }: { agreement: OfficeAgreement }) {
     const translate = useT();
-    const { locale } = usePage<any>().props;
+    const page = usePage<any>();
+    const { locale } = page.props;
+    const hub = page.props.data?.hub ?? null;
     const latest = agreement.versions[0] ?? null;
+    const [view, setView] = useState<'partners' | 'versions'>('partners');
+    const [publishing, setPublishing] = useState(false);
 
     return (
-        <div className="agr-office">
-            <section className="panel">
-                <div className="panel-heading">
-                    <div>
-                        <h2>{translate('portal', 'agreement')}</h2>
-                        <p className="muted">{translate('portal', 'agr_office_hint')}</p>
-                    </div>
+        <OfficePage
+            title={translate('office_website', 'partners_title')}
+            hub={hub}
+            action={agreement.can_edit ? <button type="button" className="button dark" onClick={() => setPublishing(true)}>{translate('portal', 'agr_edit_title')}</button> : undefined}
+        >
+            <div className="agr-office">
+                <RequirementSwitch setting={agreement.setting} canEdit={agreement.can_edit} summary={translate('portal', 'agr_summary', { accepted: String(agreement.summary.accepted_latest), partners: String(agreement.summary.partners) })} />
+                <div className="ow-switch" role="group" aria-label={translate('office_website', 'agreement_view_label')}>
+                    <button type="button" className={view === 'partners' ? 'is-active' : ''} aria-pressed={view === 'partners'} onClick={() => setView('partners')}>{translate('portal', 'agr_partners_title')}</button>
+                    <button type="button" className={view === 'versions' ? 'is-active' : ''} aria-pressed={view === 'versions'} onClick={() => setView('versions')}>{translate('portal', 'agr_history_title')}</button>
                 </div>
-                <RequirementSwitch setting={agreement.setting} canEdit={agreement.can_edit} />
-                <p className="agr-summary">
-                    {translate('portal', 'agr_summary', {
-                        accepted: String(agreement.summary.accepted_latest),
-                        partners: String(agreement.summary.partners),
-                    })}
-                </p>
-            </section>
-            {agreement.can_edit && <PublishForm latest={latest} />}
-            <section className="panel">
-                <div className="panel-heading">
-                    <div>
-                        <h2>{translate('portal', 'agr_history_title')}</h2>
-                        <p className="muted">{translate('portal', 'agr_history_hint')}</p>
-                    </div>
-                </div>
-                {agreement.versions.length ? (
+                {view === 'partners' && <AcceptanceList partners={agreement.partners} latestVersion={latest?.version ?? null} />}
+                {view === 'versions' && (agreement.versions.length ? (
                     <ol className="agr-history">
                         {agreement.versions.map((version, index) => (
                             <li key={version.id}>
@@ -180,16 +173,20 @@ function OfficeAgreementView({ agreement }: { agreement: OfficeAgreement }) {
                         ))}
                     </ol>
                 ) : (
-                    <Empty title={translate('portal', 'agr_none')} body="" />
-                )}
-            </section>
-            <AcceptanceList partners={agreement.partners} latestVersion={latest?.version ?? null} />
-        </div>
+                    <Empty line title={translate('portal', 'agr_none')} />
+                ))}
+            </div>
+            {publishing && (
+                <Modal title={translate('portal', 'agr_edit_title')} onClose={() => setPublishing(false)}>
+                    <PublishForm latest={latest} onDone={() => setPublishing(false)} />
+                </Modal>
+            )}
+        </OfficePage>
     );
 }
 
 /** The owner switch "Partners must accept the agreement". Staff only see its state. */
-function RequirementSwitch({ setting, canEdit }: { setting: OfficeAgreement['setting']; canEdit: boolean }) {
+function RequirementSwitch({ setting, canEdit, summary }: { setting: OfficeAgreement['setting']; canEdit: boolean; summary: string }) {
     const translate = useT();
     const form = useForm({ required: '', version: '' });
     const state = translate('portal', setting.required ? 'agr_switch_on' : 'agr_switch_off');
@@ -197,9 +194,9 @@ function RequirementSwitch({ setting, canEdit }: { setting: OfficeAgreement['set
     return (
         <div className="agr-switch">
             <div>
-                <h3>{translate('portal', 'agr_switch_title')}</h3>
-                <p className="muted">{translate('portal', 'agr_switch_body')}</p>
-                <span className={`badge ${setting.required ? 'approved' : ''}`}>{translate('portal', 'agr_switch_now', { state })}</span>
+                <h3>{translate('portal', 'agr_switch_title')} <span className={`badge ${setting.required ? 'approved' : ''}`}>{translate('portal', 'agr_switch_now', { state })}</span></h3>
+                <p className="field-hint">{translate('portal', 'agr_switch_body')}</p>
+                <p className="agr-summary">{summary}</p>
             </div>
             {canEdit && (
                 <form
@@ -221,45 +218,38 @@ function RequirementSwitch({ setting, canEdit }: { setting: OfficeAgreement['set
 }
 
 /** Owner only: edit both texts and publish them as the next version. */
-function PublishForm({ latest }: { latest: AgreementVersion | null }) {
+function PublishForm({ latest, onDone }: { latest: AgreementVersion | null; onDone: () => void }) {
     const translate = useT();
     const form = useForm({ body_bn: latest?.body_bn ?? '', body_en: latest?.body_en ?? '' });
     const nextVersion = String((latest?.version ?? 0) + 1);
 
     return (
-        <section className="panel">
-            <div className="panel-heading">
-                <div>
-                    <h2>{translate('portal', 'agr_edit_title')}</h2>
-                    <p className="muted">{translate('portal', 'agr_edit_hint')}</p>
-                </div>
-            </div>
-            <form
-                className="action-form agr-editor"
-                onSubmit={(event) => {
-                    event.preventDefault();
-                    if (!window.confirm(translate('portal', 'agr_publish_confirm', { version: nextVersion }))) {
-                        return;
-                    }
-                    form.post('/commands/agreement/publish', { preserveScroll: true });
-                }}
-            >
-                <label lang="bn">
-                    {translate('portal', 'agr_body_bn')}
-                    <textarea rows={16} value={form.data.body_bn} required onChange={(event) => form.setData('body_bn', event.target.value)} />
-                    {form.errors.body_bn && <span className="field-error" role="alert">{form.errors.body_bn}</span>}
-                </label>
-                <label lang="en">
-                    {translate('portal', 'agr_body_en')}
-                    <textarea rows={16} value={form.data.body_en} required onChange={(event) => form.setData('body_en', event.target.value)} />
-                    {form.errors.body_en && <span className="field-error" role="alert">{form.errors.body_en}</span>}
-                </label>
-                <button type="submit" className="button dark" disabled={form.processing}>
-                    {form.processing ? translate('portal', 'saving') : translate('portal', 'agr_publish')}
-                    <ArrowUpRight size={17} />
-                </button>
-            </form>
-        </section>
+        <form
+            className="action-form agr-editor"
+            onSubmit={(event) => {
+                event.preventDefault();
+                if (!window.confirm(translate('portal', 'agr_publish_confirm', { version: nextVersion }))) {
+                    return;
+                }
+                form.post('/commands/agreement/publish', { preserveScroll: true, onSuccess: onDone });
+            }}
+        >
+            <p className="field-hint">{translate('portal', 'agr_edit_hint')}</p>
+            <label lang="bn">
+                {translate('portal', 'agr_body_bn')}
+                <textarea rows={16} value={form.data.body_bn} required onChange={(event) => form.setData('body_bn', event.target.value)} />
+                {form.errors.body_bn && <span className="field-error" role="alert">{form.errors.body_bn}</span>}
+            </label>
+            <label lang="en">
+                {translate('portal', 'agr_body_en')}
+                <textarea rows={16} value={form.data.body_en} required onChange={(event) => form.setData('body_en', event.target.value)} />
+                {form.errors.body_en && <span className="field-error" role="alert">{form.errors.body_en}</span>}
+            </label>
+            <button type="submit" className="button dark" disabled={form.processing}>
+                {form.processing ? translate('portal', 'saving') : translate('portal', 'agr_publish')}
+                <ArrowUpRight size={17} />
+            </button>
+        </form>
     );
 }
 
@@ -269,13 +259,7 @@ function AcceptanceList({ partners, latestVersion }: { partners: Row; latestVers
     const [query, setQuery] = useState(() => (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('q') ?? '' : ''));
 
     return (
-        <section className="panel table-panel">
-            <div className="panel-heading">
-                <div>
-                    <h2>{translate('portal', 'agr_partners_title')}</h2>
-                    <p className="muted">{translate('portal', 'agr_partners_hint')}</p>
-                </div>
-            </div>
+        <>
             <form
                 className="agr-search"
                 role="search"
@@ -293,10 +277,8 @@ function AcceptanceList({ partners, latestVersion }: { partners: Row; latestVers
                 searchable={false}
                 rows={partners?.data ?? []}
                 columns={[
-                    { key: 'name', title: translate('portal', 'col_name') },
-                    { key: 'dealer_code', title: translate('portal', 'col_dealer_code') },
-                    { key: 'role', title: translate('portal', 'col_role'), render: (row: Row) => label(String(row.role ?? ''), translate) },
-                    { key: 'status', title: translate('portal', 'col_status'), render: (row: Row) => <Badge status={String(row.status ?? '')} /> },
+                    { key: 'name', title: translate('portal', 'col_name'), render: (row: Row) => <>{row.name}<small className="cell-sub">{row.dealer_code}</small></> },
+                    { key: 'role', title: translate('portal', 'col_role'), render: (row: Row) => <>{label(String(row.role ?? ''), translate)}<small className="cell-sub"><Badge status={String(row.status ?? '')} /></small></> },
                     {
                         key: 'accepted_version',
                         title: translate('portal', 'agr_col_version'),
@@ -309,6 +291,6 @@ function AcceptanceList({ partners, latestVersion }: { partners: Row; latestVers
                 ]}
             />
             <Pagination page={partners} />
-        </section>
+        </>
     );
 }
