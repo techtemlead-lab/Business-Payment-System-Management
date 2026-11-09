@@ -172,9 +172,11 @@ final class CommissionsSection implements WorkspaceSection
         $rankPoolAllocations = CommissionAllocation::where('category', 'rank_royalty_pool')->where('metadata->period_month', $currentMonth)
             ->where('status', 'pending')
             ->get();
-        $maturingAllocations = CommissionAllocation::where('status', 'maturing')
+        $maturing = CommissionAllocation::where('status', 'maturing')
             ->whereNotNull('user_id')
-            ->get();
+            ->toBase()
+            ->selectRaw('COUNT(*) AS total, COALESCE(SUM(amount), 0) AS amount')
+            ->first();
 
         // Built by the same code that pays, so the list staff check is the list that gets paid.
         $salaryPlan = app(CommissionSettlement::class)->salaryPlan($currentMonth, $salaryPoolAllocations);
@@ -243,8 +245,8 @@ final class CommissionsSection implements WorkspaceSection
             'qualified_rank_leaders_count' => $qualifiedRankLeaders->where('paid_as_rank', '!=', 'dealer')->count(),
             'qualified_rank_leaders' => ListPage::of(ListPage::search($qualifiedRankLeaders, $search, ['name', 'dealer_code', 'rank']), $request, 'leaders_page'),
             'search' => $search,
-            'maturing_count' => $maturingAllocations->count(),
-            'maturing_amount' => (float) $maturingAllocations->sum('amount'),
+            'maturing_count' => (int) ($maturing->total ?? 0),
+            'maturing_amount' => (float) ($maturing->amount ?? 0),
             'settled_history' => $settledHistory,
         ];
 
