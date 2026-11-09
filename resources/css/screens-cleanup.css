@@ -56,3 +56,7 @@
   .app-shell .cleanup-table tr{padding:var(--ds-s-2) 0;border-bottom:1px solid var(--ds-line-soft)}
   .app-shell .cleanup-table td{padding:2px var(--ds-s-3);border-bottom:0}
 }
+
+/* Inside a form, a label stacks its field under its words. These rows keep the box beside the words. */
+.app-shell form label.aa-switch,.app-shell form label.set-toggle{display:flex;flex-direction:row}
+.app-shell form .set-radios label,.app-shell .set-segments-field label{display:inline-flex;flex-direction:row}

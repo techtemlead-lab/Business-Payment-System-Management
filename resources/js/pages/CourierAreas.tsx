@@ -105,7 +105,12 @@ export default function CourierAreas({ provider: providerKey, providers, filters
     const hub = {
         home: 'service-integrations',
         label: translate('courier_areas', 'page_title'),
-        tabs: providers.map(item => ({ key: item.key, label: item.label, href: `/operations/courier-areas?provider=${item.key}`, active: item.key === providerKey })),
+        tabs: providers.map(item => ({
+            key: item.key,
+            label: item.label,
+            href: `/operations/courier-areas?${new URLSearchParams(Object.entries({ ...filters, provider: item.key }).filter(([, value]) => Boolean(value))).toString()}`,
+            active: item.key === providerKey,
+        })),
     };
     const stateText = (place: Row) => place.mapping
         ? translate('courier_areas', 'status_mapped')
