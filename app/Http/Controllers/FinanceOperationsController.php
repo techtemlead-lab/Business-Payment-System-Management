@@ -17,6 +17,7 @@ use App\Support\Money;
 use App\Support\PdfFonts;
 use App\Support\SpreadsheetCell;
 use App\Support\TableWorkbook;
+use App\Support\TransactionReference;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
@@ -137,6 +138,7 @@ class FinanceOperationsController extends Controller
     public function reservePay(Request $request, int $id, ReserveService $reserves): Response
     {
         abort_unless($request->user()->allows('finance'), 403);
+        TransactionReference::tidy($request, 'payment_reference');
         // Owner decision: every manual payout records how it was paid and gets a numbered receipt.
         $data = $request->validate([...PayoutReceipts::rules(),
             'payment_account_id' => 'nullable|required_unless:method,cash|integer|exists:payment_accounts,id',
@@ -145,7 +147,7 @@ class FinanceOperationsController extends Controller
                     $fail(__('portal.err_wd_paid_at_future'));
                 }
             }],
-            'receipt' => 'nullable|required_unless:method,cash|file|mimes:pdf,jpg,jpeg,png|max:5120', 'reason' => self::Reason]);
+            'receipt' => 'nullable|required_unless:method,cash|file|mimes:pdf,jpg,jpeg,png|max:5120', 'reason' => self::Reason], TransactionReference::messages('payment_reference'));
         $data['paid_at'] = CarbonImmutable::parse($data['paid_at'], 'Asia/Dhaka')->utc()->toDateTimeString();
         $number = $reserves->pay($request->user(), $id, $data, $request->file('receipt'), $request->boolean('self_approve'));
 
@@ -400,12 +402,13 @@ class FinanceOperationsController extends Controller
     private function payment(Request $request): array
     {
         abort_unless($request->user()->allows('finance'), 403);
-        $data = $request->validate(['payment_account_id' => 'required|integer|exists:payment_accounts,id', 'payment_reference' => 'required|string|max:100',
+        TransactionReference::tidy($request, 'payment_reference');
+        $data = $request->validate(['payment_account_id' => 'required|integer|exists:payment_accounts,id', 'payment_reference' => 'required|string|'.TransactionReference::MinRule.'|max:100',
             'paid_at' => ['required', 'date', function (string $attribute, mixed $value, \Closure $fail): void {
                 if (CarbonImmutable::parse($value, 'Asia/Dhaka')->isFuture()) {
                     $fail(__('portal.err_wd_paid_at_future'));
                 }
-            }], 'receipt' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120', 'reason' => self::Reason]);
+            }], 'receipt' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120', 'reason' => self::Reason], TransactionReference::messages('payment_reference'));
         $data['paid_at'] = CarbonImmutable::parse($data['paid_at'], 'Asia/Dhaka')->utc()->toDateTimeString();
 
         return $data;

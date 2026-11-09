@@ -6618,4 +6618,5 @@ return [
     'owner_status_reason' => 'কারণ',
     'owner_status_cancel' => 'বাতিল',
     'owner_status_empty' => 'এখনো কোনো এমডি বা চেয়ারম্যান অ্যাকাউন্ট যোগ হয়নি।',
+    'err_reference_min' => 'ট্রানজেকশন রেফারেন্স কমপক্ষে :min অক্ষরের হতে হবে।',
 ];

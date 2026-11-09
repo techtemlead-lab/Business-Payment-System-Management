@@ -10,6 +10,7 @@ use App\Domain\Payouts\ManualPayoutService;
 use App\Domain\Payouts\PayoutReceipts;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\TransactionReference;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -76,12 +77,13 @@ class WithdrawalController extends Controller
     public function settle(Request $r, string $id, ManualPayoutService $s): RedirectResponse
     {
         abort_unless($r->user()->allows('finance'), 403);
+        TransactionReference::tidy($r, 'payment_reference');
         // Owner decision: every manual payout records how it was paid, and a numbered receipt is issued.
         $d = $r->validate([...PayoutReceipts::rules(), 'payment_account_id' => 'nullable|integer|exists:payment_accounts,id', 'receipt' => 'nullable|required_unless:method,cash|file|mimes:pdf,jpg,jpeg,png|max:5120', 'paid_at' => ['required', 'date', function ($attribute, $value, $fail) {
             if (Carbon::parse($value, 'Asia/Dhaka')->isFuture()) {
                 $fail(__('portal.err_wd_paid_at_future'));
             }
-        }], 'note' => 'required|string|max:1000', 'self_approve' => 'sometimes|boolean']);
+        }], 'note' => 'required|string|max:1000', 'self_approve' => 'sometimes|boolean'], TransactionReference::messages('payment_reference'));
         $reference = isset($d['payment_reference']) ? strtoupper(trim($d['payment_reference'])) : null;
         $number = $s->settle($r->user(), $id, $d, $r->file('receipt'), $reference, Carbon::parse($d['paid_at'], 'Asia/Dhaka')->utc()->toDateTimeString(), $d['note'], isset($d['payment_account_id']) ? (int) $d['payment_account_id'] : null, $r->boolean('self_approve'));
         $this->notifyPartnerWithdrawal($id, 'paid');

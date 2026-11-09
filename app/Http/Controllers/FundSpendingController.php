@@ -6,6 +6,7 @@ use App\Domain\Finance\CompanyFunds;
 use App\Domain\Finance\FundBudgets;
 use App\Domain\Finance\FundSpending;
 use App\Domain\Payouts\PayoutReceipts;
+use App\Support\TransactionReference;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -22,6 +23,7 @@ class FundSpendingController extends Controller
     public function store(Request $request, FundSpending $spending): RedirectResponse|JsonResponse
     {
         abort_unless(FundSpending::canManage($request->user()), 403);
+        TransactionReference::tidy($request, 'reference');
         $data = $request->validate([
             'fund' => ['required', Rule::in(CompanyFunds::keys())],
             'expense_head_id' => 'required|integer|exists:fund_expense_heads,id',
@@ -33,11 +35,11 @@ class FundSpendingController extends Controller
             }],
             'payee' => 'required|string|max:150',
             'payment_method' => ['required', Rule::in(PayoutReceipts::Methods)],
-            'reference' => 'nullable|required_unless:payment_method,cash|string|max:100',
+            'reference' => 'nullable|required_unless:payment_method,cash|string|'.TransactionReference::MinRule.'|max:100',
             'receipt' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
             'note' => 'nullable|string|max:1000',
             'request_key' => 'required|uuid',
-        ]);
+        ], TransactionReference::messages('reference'));
         $id = $spending->request($request->user(), $data, $request->file('receipt'));
 
         return $this->done($request, ['id' => $id], __('funds.flash_spend_recorded'), $this->budgets->warningFor($id));

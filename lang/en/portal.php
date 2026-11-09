@@ -6618,4 +6618,5 @@ return [
     'owner_status_reason' => 'Reason',
     'owner_status_cancel' => 'Cancel',
     'owner_status_empty' => 'No MD or Chairman account has been added yet.',
+    'err_reference_min' => 'The transaction reference must be at least :min characters.',
 ];

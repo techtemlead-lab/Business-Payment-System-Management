@@ -4,6 +4,7 @@ namespace App\Http\Requests\Backend;
 
 use App\Domain\Orders\PaymentProof;
 use App\Models\Order;
+use App\Support\TransactionReference;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ClaimPaymentRequest extends FormRequest
@@ -16,14 +17,27 @@ class ClaimPaymentRequest extends FormRequest
         return $this->user()?->status === 'active' && in_array($this->user()?->role, ['dealer', 'sub_dealer'], true);
     }
 
+    protected function prepareForValidation(): void
+    {
+        TransactionReference::tidy($this, 'reference');
+    }
+
     public function rules(): array
     {
         return [
             'payment_account_id' => 'nullable|integer|exists:payment_accounts,id',
-            'channel' => 'required|in:bKash,Nagad,Rocket,Bank', 'reference' => 'required|string|max:100',
+            'channel' => 'required|in:bKash,Nagad,Rocket,Bank', 'reference' => 'required|string|'.TransactionReference::MinRule.'|max:100',
             'amount' => ['required', 'regex:/^\d{1,9}(\.\d{1,2})?$/D'],
             // No payment gateway yet, so finance needs a screenshot of the transfer to check it.
             'proof' => 'required|'.PaymentProof::Rules,
         ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return TransactionReference::messages('reference');
     }
 }
