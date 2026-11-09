@@ -151,9 +151,9 @@ export function CategoryManager({
                 },
             });
 
-            const payload = await response.json().catch(() => null) as { ok?: boolean; url?: string; message?: string } | null;
+            const payload = await response.json().catch(() => null) as { ok?: boolean; url?: string; message?: string; errors?: { image?: string[] } } | null;
             if (!response.ok || !payload?.ok || !payload.url) {
-                throw new Error(payload?.message || translate('portal', 'sce_category_image_upload_failed'));
+                throw new Error(payload?.errors?.image?.[0] || payload?.message || translate('portal', 'sce_category_image_upload_failed'));
             }
 
             handleFieldChange(index, 'icon', payload.url);

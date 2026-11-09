@@ -33,9 +33,9 @@ function usePhotoUpload(onUploaded: (url: string) => void) {
                     ...(token ? { 'X-CSRF-TOKEN': token } : {}),
                 },
             });
-            const payload = await response.json().catch(() => null) as { ok?: boolean; url?: string; message?: string } | null;
+            const payload = await response.json().catch(() => null) as { ok?: boolean; url?: string; message?: string; errors?: { image?: string[] } } | null;
             if (!response.ok || !payload?.ok || !payload.url) {
-                throw new Error(payload?.message || translate('portal', 'sce_md_photo_upload_failed'));
+                throw new Error(payload?.errors?.image?.[0] || payload?.message || translate('portal', 'sce_md_photo_upload_failed'));
             }
             onUploaded(payload.url);
         } catch (error) {
