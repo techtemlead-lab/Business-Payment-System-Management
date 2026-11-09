@@ -3,20 +3,18 @@ import { Plus } from 'lucide-react';
 import { ActionForm, Badge, Modal, type Field, type Row } from '../../UI';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from '../../MoneyTable';
 import OfficePage from '../OfficePage';
-import type { OfficeHub } from '../../OfficeHubTabs';
+import { contentPageLabel, type PortalSectionProps } from '../portalShared';
 import { useT } from '../../../shared/i18n/t';
 
 type PageRow = Row & { id: number; slug: string; title: string; body: string; published: boolean };
 
-type ContentData = { hub?: OfficeHub | null; pages_table?: MoneyTableData<PageRow>; page_slugs?: string[] };
-
 /** "পাতার লেখা": the text of the website's information pages, one row each. */
-export default function Content({ data }: { data: ContentData }) {
+export default function Content({ data }: PortalSectionProps) {
     const translate = useT();
     const [editing, setEditing] = useState<PageRow | 'new' | null>(null);
-    const pageName = (slug: string): string => translate('portal', `content_page_${slug.replace('-', '_')}`);
+    const pageName = (slug: string): string => contentPageLabel(slug, translate);
     const fields: Field[] = [
-        { name: 'slug', label: translate('portal', 'content_field_page'), required: true, options: (data.page_slugs ?? []).map((slug) => ({ value: slug, label: pageName(slug) })) },
+        { name: 'slug', label: translate('portal', 'content_field_page'), required: true, options: ((data.page_slugs ?? []) as string[]).map((slug) => ({ value: slug, label: pageName(slug) })) },
         { name: 'title', label: translate('portal', 'content_field_title'), required: true },
         { name: 'body', label: translate('portal', 'content_field_body'), type: 'textarea', required: true },
         { name: 'published', label: translate('portal', 'content_field_publication'), required: true, options: [{ value: '1', label: translate('portal', 'content_published') }, { value: '0', label: translate('portal', 'content_draft') }] },
@@ -35,7 +33,7 @@ export default function Content({ data }: { data: ContentData }) {
             action={<button type="button" className="button dark" onClick={() => setEditing('new')}><Plus size={17} aria-hidden="true" />{translate('office_website', 'page_text_write')}</button>}
         >
             <MoneyTable<PageRow>
-                data={data.pages_table}
+                data={data.pages_table as MoneyTableData<PageRow> | undefined}
                 prop="data"
                 columns={columns}
                 searchPlaceholder={translate('office_website', 'page_text_search')}

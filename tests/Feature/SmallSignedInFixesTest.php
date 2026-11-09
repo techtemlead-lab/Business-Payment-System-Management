@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
+use Tests\Support\PortalSource;
 use Tests\TestCase;
 
 /**
@@ -56,7 +57,7 @@ class SmallSignedInFixesTest extends TestCase
     public function test_both_join_poster_buttons_are_hidden_without_a_refer_code(): void
     {
         $dashboard = (string) file_get_contents(resource_path('js/components/DashboardOverview.tsx'));
-        $portal = (string) file_get_contents(resource_path('js/pages/Portal.tsx'));
+        $portal = PortalSource::text();
 
         $this->assertStringContainsString('{profile.refer_code && <a href={`${base}/join-poster/pdf`}', $dashboard);
         $this->assertStringContainsString('includes(u.role)&&d.profile?.refer_code&&<a className="button small" href={`${base}/join-poster/pdf`}', $portal);

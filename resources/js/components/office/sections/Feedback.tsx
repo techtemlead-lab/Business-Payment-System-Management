@@ -3,15 +3,13 @@ import { Plus } from 'lucide-react';
 import { ActionForm, Badge, Modal, date, number, type Field, type Row } from '../../UI';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from '../../MoneyTable';
 import OfficePage from '../OfficePage';
-import type { OfficeHub } from '../../OfficeHubTabs';
+import type { PortalSectionProps } from '../portalShared';
 import { useT } from '../../../shared/i18n/t';
 
 type FeedbackRow = Row & { id: number; name: string; role: string; location: string; rating: number; message: string; source: string; product_name: string | null; status: string; created_at: string };
 
-type FeedbackData = { hub?: OfficeHub | null; feedback_table?: MoneyTableData<FeedbackRow> };
-
 /** "গ্রাহকের মতামত": what visitors and partners wrote, waiting ones first. A row opens its status; the top button adds one received elsewhere. */
-export default function Feedback({ data }: { data: FeedbackData }) {
+export default function Feedback({ data }: PortalSectionProps) {
     const translate = useT();
     const [moderating, setModerating] = useState<FeedbackRow | null>(null);
     const [adding, setAdding] = useState(false);
@@ -57,7 +55,7 @@ export default function Feedback({ data }: { data: FeedbackData }) {
             action={<button type="button" className="button dark" onClick={() => setAdding(true)}><Plus size={17} aria-hidden="true" />{translate('portal', 'feedback_add_title')}</button>}
         >
             <MoneyTable<FeedbackRow>
-                data={data.feedback_table}
+                data={data.feedback_table as MoneyTableData<FeedbackRow> | undefined}
                 prop="data"
                 columns={columns}
                 searchPlaceholder={translate('office_website', 'feedback_search')}

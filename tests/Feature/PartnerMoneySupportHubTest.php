@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\PortalSource;
 use Tests\TestCase;
 
 class PartnerMoneySupportHubTest extends TestCase
@@ -259,7 +260,7 @@ class PartnerMoneySupportHubTest extends TestCase
 
     public function test_only_one_support_form_is_left_on_partner_pages(): void
     {
-        $this->assertStringNotContainsString('/commands/partner-support', file_get_contents(resource_path('js/pages/Portal.tsx')));
+        $this->assertStringNotContainsString('/commands/partner-support', PortalSource::text());
         $this->assertStringContainsString('/commands/support-tickets', file_get_contents(resource_path('js/components/HelpSupportHub.tsx')));
     }
 

@@ -2,15 +2,13 @@ import { useState } from 'react';
 import { ActionForm, Badge, Modal, date, label, type Row } from '../../UI';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from '../../MoneyTable';
 import OfficePage from '../OfficePage';
-import type { OfficeHub } from '../../OfficeHubTabs';
+import { supportTopicLabel, type PortalSectionProps } from '../portalShared';
 import { useT } from '../../../shared/i18n/t';
 
 type EnquiryRow = Row & { id: number; name: string; phone: string; topic: string | null; message: string; status: string; tracking_number: string | null; product_name: string | null; batch_number: string | null; created_at: string };
 
-type EnquiriesData = { hub?: OfficeHub | null; enquiries_table?: MoneyTableData<EnquiryRow> };
-
 /** "ওয়েবসাইটের জিজ্ঞাসা": messages sent from the website. A row opens its status. */
-export default function Enquiries({ data, topicLabel }: { data: EnquiriesData; topicLabel: (topic: string) => string }) {
+export default function Enquiries({ data }: PortalSectionProps) {
     const translate = useT();
     const [updating, setUpdating] = useState<EnquiryRow | null>(null);
     const columns: MoneyColumn<EnquiryRow>[] = [
@@ -26,7 +24,7 @@ export default function Enquiries({ data, topicLabel }: { data: EnquiriesData; t
             key: 'topic',
             title: translate('portal', 'enquiry_topic'),
             phone: 'hide',
-            render: (row) => <>{topicLabel(String(row.topic ?? ''))}{row.tracking_number ? <small className="cell-sub">{row.tracking_number}</small> : null}</>,
+            render: (row) => <>{supportTopicLabel(String(row.topic ?? ''), translate)}{row.tracking_number ? <small className="cell-sub">{row.tracking_number}</small> : null}</>,
         },
         {
             key: 'message',
@@ -40,7 +38,7 @@ export default function Enquiries({ data, topicLabel }: { data: EnquiriesData; t
     return (
         <OfficePage title={translate('office_website', 'messages_title')} hub={data.hub}>
             <MoneyTable<EnquiryRow>
-                data={data.enquiries_table}
+                data={data.enquiries_table as MoneyTableData<EnquiryRow> | undefined}
                 prop="data"
                 columns={columns}
                 searchPlaceholder={translate('office_website', 'enquiries_search')}
