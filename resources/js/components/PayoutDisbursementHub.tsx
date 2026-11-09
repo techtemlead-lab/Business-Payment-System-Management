@@ -66,9 +66,13 @@ function PayoutsTable({ data, rowActions }: { data: MoneyTableData<WithdrawalRec
     const translate = useT();
     const columns: MoneyColumn<WithdrawalRecord>[] = [
         { key: 'created_at', title: translate('portal', 'pay_col_date'), sortKey: 'date', phone: 'sub', render: (w) => date(w.created_at) },
-        { key: 'user_name', title: translate('portal', 'pay_col_partner'), sortKey: 'partner', phone: 'title', render: (w) => <><b>{w.user_name}</b><small className="cell-sub">{[w.dealer_code, w.district, w.division].filter(Boolean).join(' · ')}</small></> },
-        { key: 'channel', title: translate('portal', 'pay_col_method'), phone: 'sub', render: (w) => <>{channelName(w.channel, translate)}<small className="cell-sub">{w.destination_masked || '—'}</small></> },
+        { key: 'user_name', title: translate('portal', 'pay_col_partner'), sortKey: 'partner', phone: 'title', render: (w) => <><b>{w.user_name}</b><small className="cell-sub">{[w.dealer_code, w.phone, w.district, w.division].filter(Boolean).join(' · ')}</small></> },
+        { key: 'channel', title: translate('portal', 'pay_col_method'), sortKey: 'method', phone: 'sub', render: (w) => channelName(w.channel, translate) },
+        { key: 'destination', title: translate('portal', 'wd_destination'), phone: 'hide', render: (w) => w.destination_masked || '—' },
+        { key: 'payment_reference', title: translate('portal', 'col_reference'), sortKey: 'reference', phone: 'hide', render: (w) => <>{w.payment_reference || '—'}{w.paid_at && <small className="cell-sub">{date(w.paid_at)}</small>}</> },
         { key: 'amount', title: translate('portal', 'pay_col_gross'), sortKey: 'amount', money: true, total: 'amount', phone: 'amount', render: (w) => <b>{money(w.amount)}</b> },
+        { key: 'withheld_amount', title: translate('portal', 'pay_col_withholding'), sortKey: 'withheld', money: true, phone: 'hide', render: (w) => money(w.withheld_amount ?? 0) },
+        { key: 'net_amount', title: translate('portal', 'pay_col_net'), sortKey: 'net', money: true, phone: 'hide', render: (w) => money(w.net_amount ?? w.amount) },
         { key: 'status', title: translate('portal', 'pay_col_status'), sortKey: 'status', phone: 'sub', render: (w) => <span className={`badge hub-capital ${w.status}`}>{translate('portal', `pay_status_${w.status}`)}</span> },
         { key: 'actions', title: translate('portal', 'pay_col_actions'), phone: 'sub', render: rowActions },
     ];

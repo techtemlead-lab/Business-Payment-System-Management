@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { actionAllowed } from '../../action-permissions';
-import { Badge, Empty, Pagination, label, money, type Row } from '../../UI';
+import { Badge, Empty, Pagination, date, label, money, type Row } from '../../UI';
 import type { OfficeHub } from '../../OfficeHubTabs';
 import Figures from '../Figures';
 import OfficePage from '../OfficePage';
@@ -118,6 +118,7 @@ export default function FieldSales({ tables, partners, partnerSearch = '', produ
                         rowClassName={() => (capabilities.includes('sr_orders') ? 'is-link' : undefined)}
                         columns={[
                             { key: 'number', title: translate('office_staff', 'col_order'), render: (row: Row) => <b>{row.number}</b> },
+                            { key: 'created_at', title: translate('office_staff', 'col_date'), render: (row: Row) => date(String(row.created_at)) },
                             { key: 'name', title: translate('office_staff', 'col_partner') },
                             { key: 'status', title: translate('office_staff', 'col_status'), render: (row: Row) => <Badge status={String(row.status)} /> },
                             { key: 'total', title: translate('office_staff', 'col_total'), money: true, total: true, render: (row: Row) => money(row.total) },

@@ -110,7 +110,7 @@ class OperationsController extends Controller
             $data['fullPaymentWhenOrdering'] = app(FinanceSettings::class)->fullPaymentWhenOrdering();
             $scope = $territories->partners($actor)->select('users.id');
             if ($actor->allows('sr_orders')) {
-                $columns = ['o.id', 'o.number', 'u.name', 'o.status', 'o.total', 'o.submitted_by'];
+                $columns = ['o.id', 'o.number', 'u.name', 'o.status', 'o.total', 'o.submitted_by', 'o.created_at'];
                 $tables['territory_orders'] = DB::table('orders as o')->join('users as u', 'u.id', '=', 'o.user_id')->whereIn('o.user_id', $scope)->select($columns)->orderByDesc('o.created_at');
             }
             $tables['my_targets'] = DB::table('staff_targets')->where('staff_id', $actor->id)->orderByDesc('period_month');

@@ -1,21 +1,18 @@
 import { useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
-import { Row, Modal, dateTime, label, money, number } from './UI';
+import { Row, Modal, dateTime, label, number } from './UI';
 import { useT } from '../shared/i18n/t';
 import MixedOutcomeDecisionList from './MixedOutcomeDecisionList';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from './MoneyTable';
 import Figures, { type FigureItem } from './office/Figures';
 import OfficePage from './office/OfficePage';
-import { AgingPill, deliveryStatuses } from './office/portalShared';
+import { deliveryStatuses } from './office/portalShared';
 import {
     FactList,
     OrderDrawer,
     OrderFilesMenu,
-    OrderNumberCell,
-    OrderPartnerCell,
-    OrderStatusCell,
     chosenOrderFilters,
-    orderItemsText,
+    orderListColumns,
     parcelStepLabel,
     useOrderFilters,
     type OrderTableFacts,
@@ -103,24 +100,7 @@ function OrdersToSend({ data }: { data: Row }) {
         filters: [{ key: 'status', label: translate('portal', 'col_status'), options: deliveryStatuses.map((status) => ({ value: status, label: label(status, translate) })) }, ...shared],
     };
 
-    const columns: MoneyColumn<Row>[] = [
-        { key: 'number', title: translate('office_orders', 'col_order'), sortKey: 'created_at', phone: 'title', render: (row) => <OrderNumberCell row={row} /> },
-        { key: 'partner', title: translate('portal', 'col_partner'), sortKey: 'partner', phone: 'sub', render: (row) => <OrderPartnerCell row={row} /> },
-        { key: 'items', title: translate('office_orders', 'col_items'), align: 'right', phone: 'sub', render: (row) => orderItemsText(row, translate) },
-        { key: 'branch', title: translate('portal', 'col_branch'), sortKey: 'branch', phone: 'hide', render: (row) => row.fulfillment_branch?.name || '—' },
-        { key: 'total', title: translate('office_orders', 'col_price'), sortKey: 'total', money: true, phone: 'amount', render: (row) => <>{money(row.total)}<span className="orders-status-on-phone"><OrderStatusCell row={row} /></span></> },
-        {
-            key: 'status',
-            title: translate('portal', 'col_status'),
-            phone: 'hide',
-            render: (row) => (
-                <>
-                    <OrderStatusCell row={row} />
-                    {row.days_since_sent != null && <small className="cell-sub"><AgingPill days={Number(row.days_since_sent)} /> {[row.last_courier, row.last_tracking].filter(Boolean).join(' · ')}</small>}
-                </>
-            ),
-        },
-    ];
+    const columns = orderListColumns(translate, { overdue: table.state.filters.status === 'overdue_delivery' });
 
     return (
         <>
@@ -149,6 +129,7 @@ function ParcelTable({ table, failedOnly }: { table: MoneyTableData<Row>; failed
     const columns: MoneyColumn<Row>[] = [
         { key: 'number', title: translate('courier', 'col_order'), sortKey: 'number', phone: 'title', render: (row) => <b>{row.number}</b> },
         { key: 'partner', title: translate('courier', 'col_partner'), sortKey: 'partner', phone: 'sub', render: (row) => <>{row.partner}<small className="cell-sub">{row.dealer_code}</small></> },
+        { key: 'phone', title: translate('portal', 'ops_fld_phone'), phone: 'hide', render: (row) => row.phone || '—' },
         { key: 'courier', title: translate('courier', 'col_courier'), sortKey: 'courier', phone: 'sub' },
         failedOnly
             ? { key: 'courier_booking_error', title: translate('courier', 'col_problem'), phone: 'sub' }

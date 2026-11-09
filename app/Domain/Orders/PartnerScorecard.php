@@ -57,6 +57,7 @@ final class PartnerScorecard
                 'payments_verified' => 'x.payments_verified',
                 'payments_verified_amount' => 'x.payments_verified_amount',
                 'payments_rejected' => 'x.payments_rejected',
+                'payments_pending' => 'x.payments_pending',
                 'cancelled' => 'x.cancelled',
                 'returned' => 'x.returned',
             ],

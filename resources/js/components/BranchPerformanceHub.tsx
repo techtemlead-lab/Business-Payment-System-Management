@@ -306,10 +306,12 @@ export default function BranchPerformanceHub({ performance, branch_options = [] 
     const orderTable: MoneyTableData<PerformanceOrder> | undefined = performance.orders_table && { ...performance.orders_table, rows: performance.orders };
     const orderColumns: MoneyColumn<PerformanceOrder>[] = [
         { key: 'number', title: translate('portal', 'col_order'), sortKey: 'number', phone: 'title', render: (row) => <><b>{row.number}</b><small className="cell-sub">{row.partner_name}{row.dealer_code ? ` · ${row.dealer_code}` : ''}</small></> },
-        { key: 'created_at', title: translate('portal', 'col_date'), sortKey: 'date', phone: 'sub', render: (row) => <>{date(row.created_at)}<small className="cell-sub">{row.branch_code ? `${row.branch_name} · ${row.branch_code}` : (row.branch_name || '—')}</small></> },
+        { key: 'created_at', title: translate('portal', 'col_date'), sortKey: 'date', phone: 'sub', render: (row) => date(row.created_at) },
+        { key: 'branch_name', title: translate('portal', 'col_branch'), sortKey: 'branch', phone: 'hide', render: (row) => (row.branch_code ? `${row.branch_name} · ${row.branch_code}` : (row.branch_name || '—')) },
         { key: 'status', title: translate('portal', 'col_status'), sortKey: 'status', phone: 'sub', render: (row) => <Badge status={row.status} /> },
         { key: 'delivered_value', title: translate('portal', 'branch_perf_order_value'), sortKey: 'delivered_value', money: true, total: 'delivered_value', phone: 'amount', render: (row) => money(row.delivered_value) },
-        { key: 'delivered_paid', title: translate('portal', 'branch_perf_income'), sortKey: 'delivered_paid', money: true, total: 'delivered_paid', phone: 'hide', render: (row) => <>{money(row.delivered_paid)}<small className="cell-sub">{translate('portal', 'branch_perf_outstanding')}: {money(row.outstanding)}</small></> },
+        { key: 'delivered_paid', title: translate('portal', 'branch_perf_income'), sortKey: 'delivered_paid', money: true, total: 'delivered_paid', phone: 'hide', render: (row) => money(row.delivered_paid) },
+        { key: 'outstanding', title: translate('portal', 'branch_perf_outstanding'), sortKey: 'outstanding', money: true, phone: 'hide', render: (row) => money(row.outstanding) },
         { key: 'estimated_profit', title: translate('portal', 'branch_perf_profit'), sortKey: 'estimated_profit', money: true, total: 'estimated_profit', phone: 'hide', render: (row) => money(row.estimated_profit) },
     ];
 
