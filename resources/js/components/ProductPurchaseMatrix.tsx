@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { useForm, router, Link } from '@inertiajs/react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useForm, usePage, Link } from '@inertiajs/react';
 import {
     Trash2, ShoppingBag, ArrowRight, CheckCircle2, RotateCcw,
     AlertCircle, Sparkles, Package, Layers, Info, Search, X
@@ -29,6 +29,19 @@ interface Props {
 /** The most the server accepts on one order line. */
 const MAX_ORDER_QUANTITY = 10000;
 
+/** By Office and From My Account: the partner enters nothing, the server sets the payment details. */
+const OFFICE_CHANNEL = 'Office';
+const ACCOUNT_CHANNEL = 'Account';
+
+interface PayOptions {
+    account_available: string;
+    account_usable: boolean;
+    account_block: null | 'debt' | 'off';
+}
+
+/** Whole paisa, so a balance and a total compare exactly. */
+const paisa = (amount: number): number => Math.round(amount * 100);
+
 interface CartItem {
     product: Row;
     quantity: number;
@@ -46,6 +59,14 @@ export default function ProductPurchaseMatrix({
     runningSchemes = [],
 }: Props) {
     const translate = useT();
+    const { url, props: pageProps } = usePage<any>();
+    const payOptions: PayOptions = pageProps.data?.pay_options ?? { account_available: '0', account_usable: false, account_block: 'off' };
+    // Opened from "order with this money" on the withdraw form: /purchase?pay=account&budget=5000
+    const openedWithAccount = useMemo(() => new URLSearchParams(url.split('?')[1] ?? '').get('pay') === 'account', [url]);
+    const budget = useMemo(() => {
+        const planned = Number(new URLSearchParams(url.split('?')[1] ?? '').get('budget'));
+        return openedWithAccount && Number.isFinite(planned) && planned > 0 ? planned : null;
+    }, [url, openedWithAccount]);
 
     // Cascading selection state
     const [selectedCategory, setSelectedCategory] = useState<string>('');
@@ -265,10 +286,9 @@ export default function ProductPurchaseMatrix({
     // Checkout form
     const f = useForm({
         items: [] as { product_id: number; quantity: number }[],
-        idempotency_key: randomUuid(),
         reference: '',
         payment_account_id: '',
-        channel: 'Bank',
+        channel: openedWithAccount && payOptions.account_usable ? ACCOUNT_CHANNEL : 'Bank',
         amount: '',
         note: '',
         courier_choice: 'company',
@@ -287,29 +307,51 @@ export default function ProductPurchaseMatrix({
         }
     }, [channelAccounts, f.data.payment_account_id]);
 
+    const paysFromAccount = f.data.channel === ACCOUNT_CHANNEL;
+    const paysAtOffice = f.data.channel === OFFICE_CHANNEL;
+    const serverSetsPayment = paysFromAccount || paysAtOffice;
+    const accountBalance = Number(payOptions.account_available);
+    const accountAfter = accountBalance - cartSummary.totalPayable;
+    const accountIsShort = paisa(cartSummary.totalPayable) > paisa(accountBalance);
+    const budgetLeft = budget === null ? 0 : budget - cartSummary.totalPayable;
+
+    // One key for one order: a retry of the same order is charged once, and only a changed order gets a new key.
+    const retryKey = useRef<{ key: string; order: string } | null>(null);
+    const orderRetryKey = (order: Record<string, unknown>): string => {
+        const asText = JSON.stringify(order, (_name, value) => value instanceof File ? `${value.name}:${value.size}:${value.lastModified}` : value);
+        if (retryKey.current?.order !== asText) {
+            retryKey.current = { key: randomUuid(), order: asText };
+        }
+        return retryKey.current.key;
+    };
+
     const submitOrder = (e: React.FormEvent) => {
         e.preventDefault();
         if (cart.length === 0) return;
 
-        f.transform(() => ({
+        const order = {
             items: cart.map(item => ({
                 product_id: item.product.id,
                 quantity: item.quantity,
             })),
-            idempotency_key: randomUuid(),
-            reference: f.data.reference,
-            payment_account_id: f.data.payment_account_id,
             channel: f.data.channel,
-            amount: fullPaymentRequired ? cartSummary.totalPayable.toFixed(2) : f.data.amount,
             note: f.data.note,
             courier_choice: courierChoices.length ? f.data.courier_choice : undefined,
-            proof: f.data.proof,
-        }));
+            ...(serverSetsPayment ? {} : {
+                reference: f.data.reference,
+                payment_account_id: f.data.payment_account_id,
+                amount: fullPaymentRequired ? cartSummary.totalPayable.toFixed(2) : f.data.amount,
+                proof: f.data.proof,
+            }),
+        };
+        const withKey = { ...order, idempotency_key: orderRetryKey(order) };
+        f.transform(() => withKey as never);
 
         f.post('/commands/orders', {
             // Stay where the dealer is when something needs fixing (the page used to jump to the top).
             preserveScroll: 'errors',
             onSuccess: () => {
+                retryKey.current = null;
                 setCart([]);
                 f.reset('reference', 'amount', 'note', 'proof');
             },
@@ -343,6 +385,18 @@ export default function ProductPurchaseMatrix({
                     <Package size={15} /> {translate('portal', 'b2b_catalog_list_title')} ↗
                 </Link>
             </div>
+
+            {budget !== null && (
+                <div className="notice" role="status" data-testid="order-with-money">
+                    <p>
+                        <b>{translate('order_payment', 'account_balance')}: {money(accountBalance)}</b>
+                        {' · '}
+                        {budgetLeft >= 0
+                            ? translate('order_payment', 'budget_line', { budget: money(budget), left: money(budgetLeft) })
+                            : translate('order_payment', 'budget_over', { budget: money(budget), over: money(-budgetLeft) })}
+                    </p>
+                </div>
+            )}
 
             <RepeatOrderPanel orders={repeatOrders} onFill={fillCartFromOrder} />
             <SchemeNotices schemes={runningSchemes} cartQuantities={Object.fromEntries(cart.map(item => [Number(item.product.id), item.quantity]))} />
@@ -781,7 +835,7 @@ export default function ProductPurchaseMatrix({
                                 {translate('portal', 'ppm_confirm_title')}
                             </h4>
 
-                            {fullPaymentRequired && (
+                            {fullPaymentRequired && !serverSetsPayment && (
                                 <div className="notice" role="note">
                                     <Info size={18} className="ops-shrink-0" />
                                     <p>{translate('portal', 'ppm_full_payment_notice', { amount: money(cartSummary.totalPayable) })}</p>
@@ -798,12 +852,19 @@ export default function ProductPurchaseMatrix({
                                             f.setData('payment_account_id', '');
                                         }}
                                     >
-                                        {['Bank', 'bKash', 'Nagad', 'Rocket'].map(x => (
+                                        {['Bank', 'bKash', 'Nagad', 'Rocket', OFFICE_CHANNEL].map(x => (
                                             <option key={x} value={x}>{translate('portal', `pay_channel_${x.toLowerCase()}`)}</option>
                                         ))}
+                                        {payOptions.account_block !== 'off' && (
+                                            <option value={ACCOUNT_CHANNEL} disabled={!payOptions.account_usable}>{translate('portal', 'pay_channel_account')}</option>
+                                        )}
                                     </select>
+                                    {paysAtOffice && <small className="field-hint">{translate('order_payment', 'method_office_hint')}</small>}
+                                    {paysFromAccount && <small className="field-hint">{translate('order_payment', 'method_account_hint')}</small>}
+                                    {payOptions.account_block === 'debt' && <small className="field-hint is-warn" role="status">{translate('order_payment', 'account_block_debt')}</small>}
                                 </label>
 
+                                {!serverSetsPayment && <>
                                 <label>
                                     {translate('portal', 'collection_account')}
                                     <select
@@ -869,7 +930,30 @@ export default function ProductPurchaseMatrix({
                                     <small className="field-hint">{translate('portal', 'payment_proof_hint')}</small>
                                     {f.errors.proof && <span className="field-error" role="alert">{f.errors.proof}</span>}
                                 </label>
+                                </>}
                             </div>
+
+                            {paysFromAccount && (
+                                <div className="ppm-summary" data-testid="account-pay-summary">
+                                    <div>
+                                        <small className="ppm-sum-label">{translate('order_payment', 'account_balance')}</small>
+                                        <strong className="ppm-sum-value">{money(accountBalance)}</strong>
+                                    </div>
+                                    <div>
+                                        <small className="ppm-sum-label">{translate('order_payment', 'account_cut')}</small>
+                                        <strong className="ppm-sum-value">{money(cartSummary.totalPayable)}</strong>
+                                    </div>
+                                    <div className="ppm-sum-net">
+                                        <small className="ppm-sum-label">{translate('order_payment', 'account_after')}</small>
+                                        <strong className="ppm-sum-value is-net">{money(Math.max(0, accountAfter))}</strong>
+                                    </div>
+                                </div>
+                            )}
+                            {paysFromAccount && accountIsShort && (
+                                <p className="field-error" role="alert" data-testid="account-short">
+                                    {translate('order_payment', 'account_short', { amount: money(-accountAfter) })}
+                                </p>
+                            )}
 
                             {courierChoices.length > 0 && (
                                 <label>
@@ -904,9 +988,13 @@ export default function ProductPurchaseMatrix({
                                 <button
                                     type="submit"
                                     className="button dark ppm-submit"
-                                    disabled={f.processing}
+                                    disabled={f.processing || (paysFromAccount && accountIsShort)}
                                 >
-                                    {f.processing ? translate('portal', 'submitting') : translate('portal', 'submit_purchase_request')}
+                                    {f.processing
+                                        ? translate('portal', 'submitting')
+                                        : paysFromAccount
+                                            ? translate('order_payment', 'account_submit', { amount: money(cartSummary.totalPayable) })
+                                            : translate('portal', 'submit_purchase_request')}
                                     <ArrowRight size={17} />
                                 </button>
                             </div>

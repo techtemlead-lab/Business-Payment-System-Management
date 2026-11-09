@@ -15,6 +15,7 @@ use App\Domain\Identity\BdrisLookup;
 use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\BranchScope;
 use App\Domain\Inventory\StockMovementList;
+use App\Domain\Orders\AccountOrderPayment;
 use App\Domain\Orders\CourierOptions;
 use App\Domain\Orders\OrderInvoice;
 use App\Domain\Orders\OrderPaymentPrompt;
@@ -353,7 +354,8 @@ class WorkspaceController extends Controller
             'shipments' => $this->shipmentsWithTracking($order, showBookingErrors: (int) $order->user_id !== (int) $u->id),
             'courierChoices' => $u->allows('inventory') || $u->allows('order_review') ? app(CourierOptions::class)->enabled() : [],
             'refund' => DB::table('order_refunds as f')->join('users as staff', 'staff.id', '=', 'f.refunded_by')->where('f.order_id', $order->id)
-                ->first(['f.amount', 'f.reason', 'f.created_at', 'staff.name as refunded_by']),
+                ->first(['f.amount', 'f.to_account', 'f.reason', 'f.created_at', 'staff.name as refunded_by']),
+            'payOptions' => (int) $u->id === (int) $order->user_id && ! $u->staff() && ! $order->is_opening_balance ? app(AccountOrderPayment::class)->options($u) : null,
             'canRefund' => OrderRefund::canRefund($u) && (int) $u->id !== (int) $order->user_id
                 && in_array($order->status, OrderRefund::RefundableStatuses, true) && Money::cents($order->paid) > 0]);
     }

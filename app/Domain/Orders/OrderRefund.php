@@ -26,7 +26,10 @@ final class OrderRefund
     /** Order statuses where money is in but no goods have left the warehouse. */
     public const RefundableStatuses = ['submitted', 'held', 'approved'];
 
-    public function __construct(private readonly CommissionReversal $reversal) {}
+    public function __construct(
+        private readonly CommissionReversal $reversal,
+        private readonly AccountOrderPayment $accountPayment,
+    ) {}
 
     /** Owners always may; other staff need the finance right with approval allowed. */
     public static function canRefund(User $actor): bool
@@ -61,17 +64,22 @@ final class OrderRefund
                 throw ValidationException::withMessages(['amount' => __('portal.err_refund_amount', ['amount' => Money::grouped($locked->paid)])]);
             }
             $id = (string) Str::uuid();
+            // Money paid from the partner's own account goes back there first; only the rest is handed over by hand.
+            $toAccount = min($cents, $this->accountPayment->paidFromAccount($locked));
             DB::table('order_refunds')->insert([
                 'id' => $id, 'order_id' => $locked->id, 'user_id' => $locked->user_id, 'amount' => Money::decimal($cents),
-                'paid_before' => Money::decimal($paid), 'reason' => $reason, 'refunded_by' => $actor->id,
+                'paid_before' => Money::decimal($paid), 'to_account' => Money::decimal($toAccount), 'reason' => $reason, 'refunded_by' => $actor->id,
                 'created_at' => now(), 'updated_at' => now(),
             ]);
+            if ($toAccount > 0) {
+                $this->accountPayment->giveBack($locked, $actor, $toAccount, $id);
+            }
             $reversed = [];
             if (DB::table('commission_batches')->where('order_id', $locked->id)->whereColumn('refunded_amount', '<', 'cash_basis')->exists()) {
                 $reversed = $this->reversal->refund($locked, null, $reason, 'order-refund:'.$id, $actor->id);
             }
             $locked->update(['status' => 'cancelled', 'decision_reason' => $reason]);
-            $metadata = ['refund_id' => $id, 'amount' => Money::decimal($cents), 'paid_before' => Money::decimal($paid),
+            $metadata = ['refund_id' => $id, 'amount' => Money::decimal($cents), 'paid_before' => Money::decimal($paid), 'to_account' => Money::decimal($toAccount),
                 'reason' => $reason, 'commissions_reversed' => count($reversed)];
             DB::table('order_events')->insert(['order_id' => $locked->id, 'actor_id' => $actor->id, 'action' => 'order.refunded',
                 'metadata' => json_encode($metadata, JSON_THROW_ON_ERROR), 'created_at' => now()]);

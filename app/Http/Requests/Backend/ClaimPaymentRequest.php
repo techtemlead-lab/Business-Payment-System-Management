@@ -24,12 +24,16 @@ class ClaimPaymentRequest extends FormRequest
 
     public function rules(): array
     {
+        // By Office: the partner enters nothing, the server sets the reference and the amount.
+        $typedDetail = ['required_unless:channel,Office', 'nullable', 'prohibited_if:channel,Office'];
+
         return [
-            'payment_account_id' => 'nullable|integer|exists:payment_accounts,id',
-            'channel' => 'required|in:bKash,Nagad,Rocket,Bank', 'reference' => 'required|string|'.TransactionReference::MinRule.'|max:100',
-            'amount' => ['required', 'regex:/^\d{1,9}(\.\d{1,2})?$/D'],
+            'payment_account_id' => 'nullable|prohibited_if:channel,Office|integer|exists:payment_accounts,id',
+            'channel' => 'required|in:bKash,Nagad,Rocket,Bank,Office',
+            'reference' => [...$typedDetail, 'string', TransactionReference::MinRule, 'max:100'],
+            'amount' => [...$typedDetail, 'regex:/^\d{1,9}(\.\d{1,2})?$/D'],
             // No payment gateway yet, so finance needs a screenshot of the transfer to check it.
-            'proof' => 'required|'.PaymentProof::Rules,
+            'proof' => [...$typedDetail, ...explode('|', PaymentProof::Rules)],
         ];
     }
 
@@ -38,6 +42,9 @@ class ClaimPaymentRequest extends FormRequest
      */
     public function messages(): array
     {
-        return TransactionReference::messages('reference');
+        return [
+            ...TransactionReference::messages('reference'),
+            ...array_fill_keys(['reference.prohibited_if', 'amount.prohibited_if', 'proof.prohibited_if', 'payment_account_id.prohibited_if'], __('order_payment.val_nothing_needed')),
+        ];
     }
 }

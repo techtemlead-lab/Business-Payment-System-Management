@@ -83,6 +83,7 @@ return function (string $portal): void {
     Route::post('/commands/orders/{order}/decision', [CommandController::class, 'decision']);
     Route::post('/commands/orders/{order}/dispatch', [CommandController::class, 'dispatch']);
     Route::post('/commands/orders/{order}/payments', [CommandController::class, 'claim'])->middleware('throttle:10,1');
+    Route::post('/commands/orders/{order}/pay-from-account', [CommandController::class, 'payFromAccount'])->middleware('throttle:10,1');
     Route::post('/commands/orders/{order}/shipments/{shipment}/delivered', [CommandController::class, 'delivered']);
     Route::post('/commands/orders/{order}/supply-date', [CommandController::class, 'supplyDate'])->middleware('throttle:30,1');
     Route::post('/commands/orders/{order}/courier', [CourierShipmentController::class, 'change'])->middleware('throttle:20,1');

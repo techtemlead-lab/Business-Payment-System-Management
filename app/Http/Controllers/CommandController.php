@@ -1005,6 +1005,15 @@ class CommandController extends Controller
         return back()->with('success', __('portal.flash_payment_claim'));
     }
 
+    /** Pays what is still due on the partner's own order from their usable balance. */
+    public function payFromAccount(Request $r, Order $order, OrderService $service): JsonResponse|RedirectResponse
+    {
+        $service->payFromAccount($r->user(), $order);
+        $message = __('order_payment.flash_paid_from_account');
+
+        return $r->expectsJson() ? response()->json(['data' => ['message' => $message]]) : back()->with('success', $message);
+    }
+
     public function delivered(ConfirmDeliveryRequest $r, Order $order, int $shipment, OrderService $service): RedirectResponse
     {
         $data = $r->validated();
