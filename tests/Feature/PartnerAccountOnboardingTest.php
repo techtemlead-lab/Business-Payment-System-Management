@@ -132,7 +132,7 @@ class PartnerAccountOnboardingTest extends TestCase
         $this->assertStringContainsString('পাসওয়ার্ড:', $sent[0]['message']);
     }
 
-    public function test_admin_can_override_refer_code_away_from_dealer_code(): void
+    public function test_a_refer_code_sent_with_the_form_is_ignored(): void
     {
         $admin = User::factory()->create(['role' => 'super_admin']);
 
@@ -154,7 +154,7 @@ class PartnerAccountOnboardingTest extends TestCase
 
         $user = User::query()->where('email', 'custom-refer@example.com')->firstOrFail();
         $this->assertSame('MNHC-101', $user->dealer_code);
-        $this->assertSame('REF-CUSTOM-01', $user->refer_code);
+        $this->assertSame('MNHC-101', $user->refer_code);
     }
 
     public function test_sub_dealer_defaults_refer_code_to_auto_dealer_code(): void
@@ -290,7 +290,7 @@ class PartnerAccountOnboardingTest extends TestCase
             ->assertJsonPath('data.warnings.0', __('portal.acct_val_reference_same_as_refer', [], 'bn'));
     }
 
-    public function test_duplicate_refer_code_is_rejected(): void
+    public function test_a_dealer_code_someone_refers_with_is_rejected(): void
     {
         $admin = User::factory()->create(['role' => 'super_admin']);
         User::factory()->dealer()->create(['refer_code' => 'REF-TAKEN', 'dealer_code' => 'D-TAKEN']);
@@ -305,11 +305,11 @@ class PartnerAccountOnboardingTest extends TestCase
             'father_name' => 'Father',
             'mother_name' => 'Mother',
             'place_code' => 'MNHC-103',
-            'refer_code' => 'REF-TAKEN',
+            'dealer_code' => 'REF-TAKEN',
             'phone' => '01910000001',
             'email' => 'clone@example.com',
             'reason' => 'Duplicate refer code',
-        ])->assertRedirect('/accounts/create')->assertSessionHasErrors('refer_code');
+        ])->assertRedirect('/accounts/create')->assertSessionHasErrors('dealer_code');
     }
 
     public function test_place_preview_shows_label_and_commission_path(): void

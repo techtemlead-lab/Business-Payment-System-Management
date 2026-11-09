@@ -283,7 +283,7 @@ return [
     'network_genealogy_o2' => 'You can guide your team using up-to-date lists you download.',
     'network_genealogy_o3' => 'Rank progress is shown next to your team\'s health.',
     'network_genealogy_purpose' => 'The team tree drives referral commissions, rank qualification, and the leader\'s view of the team.',
-    'network_genealogy_s1' => 'Open My team → Team members to copy your referral code and share the Join Poster or QR code.',
+    'network_genealogy_s1' => 'Open My team → Team members to copy your code and share the Join Poster or QR code.',
     'network_genealogy_s10' => 'If you suspect someone has opened fake extra accounts, report it to Support with proof.',
     'network_genealogy_s2' => 'Send interested people to the official join form on the website, with your code already filled in.',
     'network_genealogy_s3' => 'Check how deep your team goes and who is active.',

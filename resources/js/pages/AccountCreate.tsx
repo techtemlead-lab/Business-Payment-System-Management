@@ -1,23 +1,32 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import Shell from '../components/Shell';
-import { label, type Row, DateInput } from '../components/UI';
-import {
-    ArrowLeft, UserPlus, ShieldAlert, MapPin, Store, Building2, BadgeCheck,
-    Search, IdCard, Phone, Hash, AlertTriangle, CheckCircle2,
-} from 'lucide-react';
+import { label, type Row, DateInput, FormErrors } from '../components/UI';
+import { ArrowLeft, Search, AlertTriangle, CheckCircle2, Check } from 'lucide-react';
 import { useT } from '../shared/i18n/t';
 import { toLatin } from '../shared/countUp';
+import { localizeDigits } from '../business-date';
 
 type PlaceOption = { id: number; code: string; name: string; level: string; parent_id: number | null };
 type CommissionPlace = { level: string; code: string | null; name: string | null; rate?: string | null; pool?: string | null };
 type Consumer = { id: number | null; name: string; refer_code: string | null; rate: string; fund?: string } | null;
+type PlacePreview = {
+    label: string;
+    available: boolean;
+    commission_places: CommissionPlace[];
+    area_pool_rate?: string;
+    management_rate?: string;
+    next_sub_dealer_code?: string | null;
+};
+type Section = { key: string; title: string; hint?: string; required: string[]; boxes: string[] };
 
 const availablePermissionKeys = [
     'field_sales', 'sr_orders', 'sr_onboarding', 'staff_admin', 'payroll',
     'orders', 'order_review', 'inventory', 'catalog', 'accounts', 'finance', 'reports',
     'content', 'audit', 'pricing', 'cost_read', 'identity_write', 'partner_chat', 'support_desk', 'prescriber_verify',
 ] as const;
+
+const kycBoxes = ['kyc_photo', 'kyc_nid_front', 'kyc_nid_back', 'kyc_birth_certificate', 'kyc_agreement', 'kyc_other'] as const;
 
 /** The latest date of birth for someone who is 18 today (Dhaka calendar), as YYYY-MM-DD. */
 function latestAdultBirthDate(): string {
@@ -37,6 +46,22 @@ async function fetchJson<T>(url: string, failedMessage: string): Promise<T> {
         throw new Error(body?.message || body?.errors?.place_code?.[0] || failedMessage);
     }
     return response.json();
+}
+
+/** One box with its label, and its own error directly underneath. */
+function Box({ text, error, hint, wide, children }: { text: string; error?: string | false | null; hint?: React.ReactNode; wide?: boolean; children: React.ReactNode }) {
+    const control = React.isValidElement(children) && children.type !== 'div'
+        ? React.cloneElement(children as React.ReactElement<{ 'aria-invalid'?: boolean }>, { 'aria-invalid': Boolean(error) })
+        : children;
+
+    return (
+        <label className={`acf-box${wide ? ' is-wide' : ''}${error ? ' has-error' : ''}`}>
+            <span className="acf-label">{text}</span>
+            {control}
+            {hint && !error && <small className="field-hint">{hint}</small>}
+            {error && <span className="field-error" role="alert">{error}</span>}
+        </label>
+    );
 }
 
 export default function AccountCreate({
@@ -66,7 +91,6 @@ export default function AccountCreate({
     const shellSection = intent === 'sub_dealer' ? 'sub-dealers' : intent === 'staff' ? 'employees' : 'accounts';
     const singlePartnerRole = roles.length === 1 && ['dealer', 'sub_dealer'].includes(roles[0]);
 
-    const [referCodeTouched, setReferCodeTouched] = useState(false);
     const [dealerCodeTouched, setDealerCodeTouched] = useState(false);
     const form = useForm({
         role: defaultRole,
@@ -88,7 +112,6 @@ export default function AccountCreate({
         place_code: '',
         dealer_code: '',
         reference_code: '',
-        refer_code: '',
         phone: '',
         phone_share_reason: '',
         email: '',
@@ -108,40 +131,33 @@ export default function AccountCreate({
         kyc_birth_certificate: null as File | null,
         kyc_agreement: null as File | null,
         kyc_other: null as File | null,
-        profile: {
-            name_bn: '',
-            father_name: '',
-            mother_name: '',
-            village: '',
-            post_office: '',
-            upazila: '',
-            union: '',
-            pharmacy: '',
-            shop_name: '',
-            area_code: '',
-        },
     });
+    type FormField = keyof typeof form.data & string;
+    const errorOf = (field: string): string | undefined => (form.errors as Record<string, string | undefined>)[field];
+    /** Sets one box and takes away its error at once, so a corrected box stops being red. */
+    const setBox = <K extends FormField>(field: K, value: (typeof form.data)[K]) => {
+        form.setData(field, value as never);
+        if (errorOf(field)) {
+            form.clearErrors(field as never);
+        }
+    };
 
     const isPartner = ['dealer', 'sub_dealer'].includes(form.data.role);
+    const isSubDealer = form.data.role === 'sub_dealer';
+    const hasPermissionChoice = ['employee', 'sr'].includes(form.data.role);
+
     const [bdrisMessage, setBdrisMessage] = useState('');
     const [bdrisLoading, setBdrisLoading] = useState(false);
-    const [placePreview, setPlacePreview] = useState<{
-        label: string;
-        available: boolean;
-        commission_places: CommissionPlace[];
-        area_pool_rate?: string;
-        management_rate?: string;
-        next_sub_dealer_code?: string | null;
-    } | null>(null);
+    const [placePreview, setPlacePreview] = useState<PlacePreview | null>(null);
     const [placeError, setPlaceError] = useState('');
-    const [referWarnings, setReferWarnings] = useState<string[]>([]);
+    const [placeChecking, setPlaceChecking] = useState(false);
+    const placeLastChecked = useRef('');
+    const placeLatestTyped = useRef('');
+    const [ownCodeWarning, setOwnCodeWarning] = useState('');
+    const [referenceWarnings, setReferenceWarnings] = useState<string[]>([]);
     const [referPreviewError, setReferPreviewError] = useState<string | null>(null);
-    const [consumers, setConsumers] = useState<{
-        direct_referral: Consumer;
-        d2d_gen2: Consumer;
-        d2d_gen3: Consumer;
-        unassigned: Record<string, string>;
-    } | null>(null);
+    const [directReferrer, setDirectReferrer] = useState<Consumer>(null);
+    const referRequest = useRef(0);
 
     const [divisionId, setDivisionId] = useState('');
     const [districtId, setDistrictId] = useState('');
@@ -151,6 +167,11 @@ export default function AccountCreate({
     const [upazilas, setUpazilas] = useState<PlaceOption[]>([]);
     const [unions, setUnions] = useState<PlaceOption[]>([]);
     const [addressSearch, setAddressSearch] = useState('');
+    const [papersOpen, setPapersOpen] = useState(false);
+
+    const formRef = useRef<HTMLFormElement>(null);
+    const pageRef = useRef<HTMLDivElement>(null);
+    const focusFirstErrorNext = useRef(false);
 
     const loadChildren = async (level: string, parentId: string, q = '') => {
         const params = new URLSearchParams({ level });
@@ -204,6 +225,37 @@ export default function AccountCreate({
         }));
     }, [divisionId, districtId, upazilaId, unionId, districts, upazilas, unions, place_divisions]);
 
+    /** The progress stays in view just under the top bar, whose height changes with the screen. */
+    useEffect(() => {
+        const topBar = document.querySelector<HTMLElement>('.workspace-header');
+        if (!topBar) {
+            return undefined;
+        }
+        const observer = new ResizeObserver(() => pageRef.current?.style.setProperty('--acf-sticky-top', `${topBar.offsetHeight + 8}px`));
+        observer.observe(topBar);
+        return () => observer.disconnect();
+    }, []);
+
+    /** Staff start typing as soon as the page opens. On phones this would throw up the keyboard, so it stays off there. */
+    useEffect(() => {
+        if (window.matchMedia('(min-width: 981px)').matches) {
+            formRef.current?.querySelector<HTMLElement>('.acf-section input:not([type="radio"]):not([readonly]), .acf-section select')?.focus();
+        }
+    }, []);
+
+    /** After a refusal, the first wrong box comes into view and takes the cursor. */
+    useEffect(() => {
+        if (!focusFirstErrorNext.current || Object.keys(form.errors).length === 0) {
+            return;
+        }
+        focusFirstErrorNext.current = false;
+        const firstWrong = formRef.current?.querySelector<HTMLElement>('.has-error input:not([type="file"]):not([readonly]), .has-error select, .has-error textarea')
+            ?? formRef.current?.querySelector<HTMLElement>('.has-error input');
+        firstWrong?.closest('details')?.setAttribute('open', '');
+        firstWrong?.scrollIntoView({ block: 'center', behavior: 'auto' });
+        firstWrong?.focus({ preventScroll: true });
+    }, [form.errors]);
+
     const lookupBdris = async () => {
         setBdrisLoading(true);
         setBdrisMessage('');
@@ -224,7 +276,7 @@ export default function AccountCreate({
             });
             const json = await response.json();
             const result = json.data;
-            setBdrisMessage(result?.message || translate('portal','acct_lookup_finished'));
+            setBdrisMessage(result?.message || translate('portal', 'acct_lookup_finished'));
             if (result?.success && result.details) {
                 form.setData((prev) => ({
                     ...prev,
@@ -237,91 +289,162 @@ export default function AccountCreate({
                 }));
             }
         } catch {
-            setBdrisMessage(translate('portal','acct_bdris_unreachable'));
+            setBdrisMessage(translate('portal', 'acct_bdris_unreachable'));
         } finally {
             setBdrisLoading(false);
         }
     };
 
-    const previewPlace = async () => {
-        setPlaceError('');
-        setPlacePreview(null);
-        if (!form.data.place_code.trim()) {
-            setPlaceError(translate('portal', form.data.role === 'sub_dealer' ? 'acct_val_place_sub' : 'acct_val_place_dealer'));
+    /** Checks the place code once it is typed: the code the person will get comes from this. */
+    const previewPlace = async (force = false) => {
+        const code = form.data.place_code.trim();
+        if (!code) {
+            if (force) {
+                setPlaceError(translate('portal', isSubDealer ? 'acct_val_place_sub' : 'acct_val_place_dealer'));
+            }
             return;
         }
+        if (!force && code === placeLastChecked.current) {
+            return;
+        }
+        placeLastChecked.current = code;
+        setPlaceError('');
+        setPlacePreview(null);
+        setPlaceChecking(true);
+        const role = form.data.role;
         try {
-            const params = new URLSearchParams({
-                place_code: form.data.place_code.trim(),
-                role: form.data.role,
-            });
-            const json = await fetchJson<{ data: any }>(
-                `/commands/identity/place-preview?${params}`,
-                translate('portal', 'acct_request_failed'),
-            );
+            const params = new URLSearchParams({ place_code: code, role });
+            const json = await fetchJson<{ data: any }>(`/commands/identity/place-preview?${params}`, translate('portal', 'acct_request_failed'));
+            if (placeLatestTyped.current.trim() !== code) {
+                return;
+            }
             setPlacePreview(json.data);
-            if (form.data.role === 'sub_dealer' && json.data.next_sub_dealer_code) {
-                const nextCode = String(json.data.next_sub_dealer_code).toUpperCase();
-                form.setData((prev) => ({
-                    ...prev,
-                    dealer_code: nextCode,
-                    refer_code: referCodeTouched && prev.refer_code ? prev.refer_code : nextCode,
-                }));
-            } else if (form.data.role === 'dealer') {
-                const placeCode = String(json.data.path?.origin_place_code || form.data.place_code).trim().toUpperCase();
-                const nextCode = dealerCodeTouched && form.data.dealer_code.trim() ? form.data.dealer_code.trim().toUpperCase() : placeCode;
-                form.setData((prev) => ({
-                    ...prev,
-                    dealer_code: nextCode,
-                    refer_code: referCodeTouched && prev.refer_code ? prev.refer_code : nextCode,
-                }));
-            }
-            if (json.data.path) {
-                form.setData((prev) => ({
-                    ...prev,
-                    division: json.data.path.division || prev.division,
-                    district: json.data.path.district || prev.district,
-                    upazila: json.data.path.upazila || prev.upazila,
-                    union: json.data.path.union || prev.union,
-                }));
-            }
+            const path = json.data.path;
+            form.setData((prev) => ({
+                ...prev,
+                dealer_code: role === 'sub_dealer'
+                    ? String(json.data.next_sub_dealer_code ?? '').toUpperCase()
+                    : (dealerCodeTouched && prev.dealer_code.trim() ? prev.dealer_code.trim().toUpperCase() : String(path?.origin_place_code || code).trim().toUpperCase()),
+                division: path?.division || prev.division,
+                district: path?.district || prev.district,
+                upazila: path?.upazila || prev.upazila,
+                union: path?.union || prev.union,
+            }));
         } catch (error: any) {
-            setPlaceError(error.message || translate('portal','acct_place_not_found'));
+            setPlaceError(error.message || translate('portal', 'acct_place_not_found'));
+        } finally {
+            setPlaceChecking(false);
         }
     };
 
+    const changePlaceCode = (typed: string) => {
+        const placeCode = toLatin(typed);
+        placeLatestTyped.current = placeCode;
+        placeLastChecked.current = '';
+        setPlacePreview(null);
+        setPlaceError('');
+        form.setData((prev) => ({ ...prev, place_code: placeCode, dealer_code: !isSubDealer && dealerCodeTouched ? prev.dealer_code : '' }));
+        form.clearErrors('place_code');
+    };
+
     useEffect(() => {
+        if (!isPartner) {
+            return undefined;
+        }
         const handle = window.setTimeout(() => {
+            const request = ++referRequest.current;
             const params = new URLSearchParams({
                 reference_code: form.data.reference_code,
-                refer_code: form.data.refer_code,
+                refer_code: form.data.dealer_code,
             });
-            fetchJson<{ data: { warnings: string[]; consumers: any } }>(
+            fetchJson<{ data: { warnings: string[]; reference_warnings?: string[]; consumers: { direct_referral?: Consumer } | null } }>(
                 `/commands/identity/refer-preview?${params}`,
                 translate('portal', 'acct_request_failed'),
             )
                 .then((json) => {
-                    setReferWarnings(json.data.warnings || []);
-                    setConsumers(json.data.consumers || null);
+                    if (request !== referRequest.current) {
+                        return;
+                    }
+                    const aboutTheBox = json.data.reference_warnings || [];
+                    setReferenceWarnings(aboutTheBox);
+                    setOwnCodeWarning((json.data.warnings || []).find((warning) => !aboutTheBox.includes(warning)) ?? '');
+                    setDirectReferrer(json.data.consumers?.direct_referral ?? null);
                     setReferPreviewError(null);
                 })
                 .catch(() => {
-                    setReferWarnings([]);
-                    setConsumers(null);
-                    setReferPreviewError(translate('portal','acct_refer_preview_failed'));
+                    if (request !== referRequest.current) {
+                        return;
+                    }
+                    setOwnCodeWarning('');
+                    setReferenceWarnings([]);
+                    setDirectReferrer(null);
+                    setReferPreviewError(translate('portal', 'acct_refer_preview_failed'));
                 });
         }, 350);
         return () => window.clearTimeout(handle);
-    }, [form.data.reference_code, form.data.refer_code]);
+    }, [form.data.reference_code, form.data.dealer_code, isPartner]);
+
+    const sections: Section[] = useMemo(() => {
+        const finishKyc = isPartner ? [...kycBoxes] : [];
+        const typeSection: Section[] = singlePartnerRole ? [] : [{ key: 'type', title: translate('portal', 'acct_step_type'), hint: translate('portal', 'acct_step_type_hint'), required: [], boxes: ['role'] }];
+        if (!isPartner) {
+            return [
+                ...typeSection,
+                ...(hasPermissionChoice ? [{ key: 'privileges', title: translate('portal', 'acct_employee_privileges'), required: [], boxes: ['permissions'] }] : []),
+                { key: 'person', title: translate('portal', 'acct_step_contact'), required: ['name', 'email', 'phone'], boxes: ['name', 'email', 'phone', 'phone_share_reason'] },
+                { key: 'last', title: translate('portal', 'acct_section_last'), required: ['reason'], boxes: ['reason', 'sponsor_id'] },
+            ];
+        }
+        const identityNumber = form.data.identity_type === 'nid' ? 'nid' : 'birth_certificate_number';
+        return [
+            ...typeSection,
+            { key: 'identity', title: translate('portal', 'acct_step_identity'), hint: translate('portal', 'acct_step_identity_hint'), required: [identityNumber, 'date_of_birth', 'name', 'name_bn', 'father_name', 'mother_name'], boxes: ['identity_type', identityNumber, 'date_of_birth', 'name', 'name_bn', 'father_name', 'mother_name', 'occupation'] },
+            { key: 'address', title: translate('portal', 'acct_step_address'), hint: translate('portal', 'acct_step_address_hint'), required: [], boxes: ['village', 'post_office', 'latitude', 'longitude'] },
+            { key: 'place', title: translate('portal', 'acct_step_area'), hint: translate('portal', isSubDealer ? 'acct_area_hint_sub' : 'acct_area_hint_dealer'), required: ['place_code'], boxes: ['place_code', 'dealer_code'] },
+            { key: 'refer', title: translate('portal', 'acct_step_refer'), required: [], boxes: ['reference_code'] },
+            { key: 'contact', title: translate('portal', 'acct_step_contact'), hint: translate('portal', 'acct_step_contact_hint'), required: ['phone', 'email', ...(isSubDealer ? ['shop_name'] : [])], boxes: ['phone', 'phone_share_reason', 'email', 'extra_contact', 'shop_name', 'pharmacy'] },
+            { key: 'last', title: translate('portal', 'acct_section_last'), required: ['reason'], boxes: ['reason', 'directory_visible', ...finishKyc] },
+        ];
+    }, [isPartner, isSubDealer, hasPermissionChoice, singlePartnerRole, form.data.identity_type, translate]);
+
+    const isFilled = (field: string): boolean => String((form.data as Record<string, unknown>)[field] ?? '').trim() !== '';
+    const requiredBoxes = sections.flatMap((section) => section.required);
+    const requiredFilled = requiredBoxes.filter(isFilled).length;
+    const progressPercent = requiredBoxes.length === 0 ? 100 : Math.round((requiredFilled / requiredBoxes.length) * 100);
+    const allBoxes = sections.flatMap((section) => section.boxes);
+    const errorCount = Object.entries(form.errors).filter(([field, message]) => message && allBoxes.includes(field)).length;
+    const progressText = translate('portal', 'acct_progress_count', { done: requiredFilled, total: requiredBoxes.length });
+
+    const stateOf = (section: Section) => {
+        const errors = section.boxes.filter((box) => errorOf(box)).length;
+        const filled = section.required.filter(isFilled).length;
+        const isOptional = section.required.length === 0;
+        return { errors, filled, isOptional, isDone: errors === 0 && (isOptional ? section.boxes.some(isFilled) : filled === section.required.length) };
+    };
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
+        form.clearErrors();
+        const refusals: Record<string, string> = {};
+        requiredBoxes.filter((field) => !isFilled(field)).forEach((field) => { refusals[field] = translate('portal', 'acct_box_required'); });
+        if (isPartner && referenceWarnings.length > 0) {
+            refusals.reference_code = referenceWarnings[0];
+        }
+        if (isPartner && ownCodeWarning && !isSubDealer) {
+            refusals.dealer_code = ownCodeWarning;
+        }
+        if (Object.keys(refusals).length > 0) {
+            focusFirstErrorNext.current = true;
+            form.setError(refusals as never);
+            return;
+        }
+        const afterRefusal = { onError: () => { focusFirstErrorNext.current = true; } };
         if (!isPartner) {
             form.transform((data) => {
                 const { permissions, ...rest } = data;
-                return ['employee', 'sr'].includes(data.role) ? { ...rest, permissions } : rest;
+                return hasPermissionChoice ? { ...rest, permissions } : rest;
             });
-            form.post('/commands/accounts', { preserveScroll: true });
+            form.post('/commands/accounts', { preserveScroll: true, ...afterRefusal });
             return;
         }
         form.transform((data) => ({
@@ -346,8 +469,6 @@ export default function AccountCreate({
             place_code: data.place_code,
             dealer_code: data.dealer_code,
             reference_code: data.reference_code,
-            // Empty refer_code falls back to dealer/sub-dealer code (admin may override).
-            refer_code: (data.refer_code || data.dealer_code || '').trim(),
             phone: data.phone,
             phone_share_reason: data.phone_share_reason,
             email: data.email,
@@ -364,52 +485,115 @@ export default function AccountCreate({
             kyc_agreement: data.kyc_agreement,
             kyc_other: data.kyc_other,
         }));
-        form.post('/commands/accounts', { preserveScroll: true, forceFormData: true });
+        form.post('/commands/accounts', { preserveScroll: true, forceFormData: true, ...afterRefusal });
     };
 
-    const commissionLines = useMemo(() => placePreview?.commission_places || [], [placePreview]);
+    /** Enter never sends a half-filled form. It moves to the next box, as staff expect when copying from paper. */
+    const goToNextBoxOnEnter = (e: React.KeyboardEvent<HTMLFormElement>) => {
+        const box = e.target as HTMLElement;
+        if (e.key !== 'Enter' || !(box instanceof HTMLInputElement) || box.type === 'submit' || box.type === 'file') {
+            return;
+        }
+        e.preventDefault();
+        if (box.dataset.placeCode !== undefined) {
+            void previewPlace(true);
+        }
+        const boxes = Array.from(formRef.current?.querySelectorAll<HTMLElement>('input:not([type="hidden"]):not([type="date"]):not([readonly]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button[type="submit"]') ?? [])
+            .filter((candidate) => candidate.tabIndex >= 0 && candidate.offsetParent !== null);
+        boxes[boxes.indexOf(box) + 1]?.focus();
+    };
+
+    const jumpTo = (e: React.MouseEvent<HTMLAnchorElement>, key: string) => {
+        e.preventDefault();
+        const section = document.getElementById(`acf-${key}`);
+        section?.scrollIntoView({ block: 'start' });
+        section?.querySelector<HTMLElement>('input:not([readonly]), select, textarea')?.focus({ preventScroll: true });
+    };
+
+    const commissionLines = placePreview?.commission_places ?? [];
+    const placeLevelTitle = (level: string) => translate('portal', ({ management: 'acct_level_management', division: 'acct_level_div', district: 'acct_level_dist', upazila: 'acct_level_upazila' } as Record<string, string>)[level] ?? 'acct_level_union');
+    // Only needed once the server says the number is in use, so it stays out of the way until then.
+    const phoneRefused = Boolean(errorOf('phone')) && errorOf('phone') !== translate('portal', 'acct_box_required');
+    const [phoneWasRefused, setPhoneWasRefused] = useState(false);
+    useEffect(() => {
+        if (phoneRefused) {
+            setPhoneWasRefused(true);
+        }
+    }, [phoneRefused]);
+    const showsPhoneShareReason = isOwner && (phoneWasRefused || form.data.phone_share_reason !== '');
+    const phoneShareReason = showsPhoneShareReason && (
+        <Box text={translate('portal', 'acct_phone_share_reason')} error={errorOf('phone_share_reason')} hint={translate('portal', 'acct_phone_share_reason_hint')} wide>
+            <input maxLength={500} autoComplete="off" value={form.data.phone_share_reason} onChange={(e) => setBox('phone_share_reason', e.target.value)} />
+        </Box>
+    );
+    const typedReference = form.data.reference_code.trim() !== '';
+    const referenceHint = !typedReference && management_referral?.enabled && management_referral.auto_blank_reference && management_referral.place_code
+        ? translate('portal', 'acct_reference_blank_hint', { code: management_referral.place_code })
+        : undefined;
+    const referrerName = typedReference && directReferrer && referenceWarnings.length === 0
+        ? `${directReferrer.name}${directReferrer.refer_code ? ` (${directReferrer.refer_code})` : ''}`
+        : '';
+    const summaryRows = isPartner ? [
+        { term: translate('portal', 'acct_summary_person'), value: form.data.name_bn || form.data.name },
+        { term: translate('portal', 'acct_summary_code'), value: form.data.dealer_code },
+        { term: translate('portal', 'acct_summary_place'), value: placePreview?.label ?? '' },
+        { term: translate('portal', 'acct_summary_referrer'), value: referrerName || (typedReference ? '' : (referenceHint ? translate('portal', 'acct_management_referrer') : translate('portal', 'acct_summary_blank_referrer'))) },
+    ] : [];
+    const renderNumber = (position: number) => localizeDigits(String(position));
+    const sectionNumber = (key: string) => renderNumber(sections.findIndex((section) => section.key === key) + 1);
+    const heading = (key: string, section: Section | undefined) => {
+        if (!section) {
+            return null;
+        }
+        const state = stateOf(section);
+
+        return (
+            <header className="acf-section-head">
+                <span className={`acf-number${state.isDone ? ' is-done' : ''}`} aria-hidden="true">{state.isDone ? <Check size={14} strokeWidth={3} /> : sectionNumber(key)}</span>
+                <div>
+                    <h3>{section.title}</h3>
+                    {section.hint && <p>{section.hint}</p>}
+                </div>
+            </header>
+        );
+    };
+    const sectionFor = (key: string) => sections.find((section) => section.key === key);
 
     return (
         <Shell section={shellSection}>
-            <Head title={intent === 'sub_dealer' ? translate('portal','acct_head_title_sub') : intent === 'staff' ? translate('portal','acct_head_title') : translate('portal','acct_head_title_dealer')} />
+            <Head title={intent === 'sub_dealer' ? translate('portal', 'acct_head_title_sub') : intent === 'staff' ? translate('portal', 'acct_head_title') : translate('portal', 'acct_head_title_dealer')} />
             <div className="section-header-row">
                 <Link href={intent === 'sub_dealer' ? '/sub-dealers' : intent === 'staff' ? '/employees' : '/accounts'} className="text-link flex-center">
-                    <ArrowLeft size={16} /> {intent === 'sub_dealer' ? translate('portal','acct_back_subdealers') : intent === 'staff' ? translate('portal','acct_back') : translate('portal','acct_back_dealers')}
+                    <ArrowLeft size={16} /> {intent === 'sub_dealer' ? translate('portal', 'acct_back_subdealers') : intent === 'staff' ? translate('portal', 'acct_back') : translate('portal', 'acct_back_dealers')}
                 </Link>
             </div>
 
             <div className="registry-heading">
                 <div>
-                    <h2>{intent === 'sub_dealer' ? translate('portal','acct_heading_sub') : translate('portal','acct_heading')}</h2>
-                    <p>
-                        {intent === 'sub_dealer' ? translate('portal','acct_intro_sub') : translate('portal','acct_intro')}
-                    </p>
+                    <h2>{intent === 'sub_dealer' ? translate('portal', 'acct_heading_sub') : translate('portal', 'acct_heading')}</h2>
+                    <p>{intent === 'sub_dealer' ? translate('portal', 'acct_intro_sub') : translate('portal', 'acct_intro')}</p>
                 </div>
             </div>
 
-            <form onSubmit={submit} className="account-create-layout">
-                <div className="account-create-main">
-                    <section className="panel">
-                        <div className="panel-heading">
-                            <div>
-                                <h3>{translate('portal','acct_step_type')}</h3>
-                                <p>{singlePartnerRole
-                                    ? (form.data.role === 'sub_dealer' ? translate('portal','acct_role_fixed_sub') : translate('portal','acct_role_fixed_dealer'))
-                                    : translate('portal','acct_step_type_hint')}</p>
-                            </div>
-                            <UserPlus size={22} className="text-muted" />
-                        </div>
-                        <div className="form-grid">
-                            <label>
-                                {translate('portal','acct_role')}
-                                {singlePartnerRole ? (
-                                    <input readOnly value={form.data.role === 'sub_dealer' ? translate('portal','acct_role_sub_dealer') : translate('portal','acct_role_dealer')} />
-                                ) : (
+            <div ref={pageRef} className="acf-page">
+            <div className="acf-phone-progress" aria-hidden="true">
+                <div className="acf-bar"><span style={{ width: `${progressPercent}%` }} /></div>
+                <small>{errorCount > 0 ? translate('portal', 'acct_issues_count', { count: errorCount }) : progressText}</small>
+            </div>
+
+            <form ref={formRef} onSubmit={submit} onKeyDown={goToNextBoxOnEnter} className="acf-layout" noValidate>
+                <div className="acf-main">
+                    {!singlePartnerRole && (
+                        <section className="panel acf-section" id="acf-type">
+                            {heading('type', sectionFor('type'))}
+                            <div className="acf-grid">
+                                <Box text={translate('portal', 'acct_role')} error={errorOf('role')}>
                                     <select
                                         value={form.data.role}
                                         onChange={(e) => {
                                             const newRole = e.target.value;
                                             setDealerCodeTouched(false);
+                                            placeLastChecked.current = '';
                                             form.setData((prev) => ({
                                                 ...prev,
                                                 role: newRole,
@@ -419,418 +603,345 @@ export default function AccountCreate({
                                             }));
                                             setPlacePreview(null);
                                         }}
-                                        required
                                     >
                                         {roles.map((r) => (
                                             <option key={r} value={r}>
-                                                {r === 'dealer' ? translate('portal','acct_role_dealer') : r === 'sub_dealer' ? translate('portal','acct_role_sub_dealer') : label(r, translate)}
+                                                {r === 'dealer' ? translate('portal', 'acct_role_dealer') : r === 'sub_dealer' ? translate('portal', 'acct_role_sub_dealer') : label(r, translate)}
                                             </option>
                                         ))}
                                     </select>
-                                )}
-                            </label>
-                        </div>
-                    </section>
-
-                    {['employee', 'sr'].includes(form.data.role) && (
-                        <section className="panel acr-accent">
-                            <div className="panel-heading">
-                                <div>
-                                    <h3>{translate('portal','acct_employee_privileges')}</h3>
-                                </div>
+                                </Box>
                             </div>
+                        </section>
+                    )}
+
+                    {hasPermissionChoice && (
+                        <section className="panel acf-section" id="acf-privileges">
+                            {heading('privileges', sectionFor('privileges'))}
                             <div className="hub-grid is-wide acr-option-grid">
                                 {availablePermissionKeys.filter((key) => form.data.role !== 'sr' || ['field_sales', 'sr_orders', 'sr_onboarding'].includes(key)).map((key) => {
                                     const checked = form.data.permissions.includes(key);
                                     return (
-                                        <label
-                                            key={key}
-                                            onClick={() => {
-                                                const cur = form.data.permissions;
-                                                form.setData('permissions', cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key]);
-                                            }}
-                                            className={`acr-option${checked ? ' is-checked' : ''}`}
-                                        >
-                                            <input type="checkbox" checked={checked} onChange={() => {}} />
+                                        <label key={key} className={`acr-option${checked ? ' is-checked' : ''}`}>
+                                            <input type="checkbox" checked={checked} onChange={() => form.setData('permissions', checked ? form.data.permissions.filter((k) => k !== key) : [...form.data.permissions, key])} />
                                             <div>
-                                                <b className="ops-fs-xs">{translate('portal',`perm_${key}`)}</b>
-                                                <small className="ops-block ops-muted">{translate('portal',`perm_${key}_hint`)}</small>
+                                                <b className="ops-fs-xs">{translate('portal', `perm_${key}`)}</b>
+                                                <small className="ops-block ops-muted">{translate('portal', `perm_${key}_hint`)}</small>
                                             </div>
                                         </label>
                                     );
                                 })}
                             </div>
-                            <div className="form-grid ops-mt-4">
-                                <label>{translate('portal','acct_full_name')}<input required value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} /></label>
-                                <label>{translate('portal','acct_email')}<input type="email" required value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} /></label>
-                                <label>{translate('portal','acct_phone')}<input required value={form.data.phone} onChange={(e) => form.setData('phone', e.target.value)} placeholder={translate('portal', 'acct_phone_ph')} />{form.errors.phone && <span className="field-error">{form.errors.phone}</span>}</label>
-                                {isOwner && (
-                                    <label>
-                                        {translate('portal', 'acct_phone_share_reason')}
-                                        <input maxLength={500} value={form.data.phone_share_reason} onChange={(e) => form.setData('phone_share_reason', e.target.value)} />
-                                        <small className="ops-muted">{translate('portal', 'acct_phone_share_reason_hint')}</small>
-                                        {form.errors.phone_share_reason && <span className="field-error">{form.errors.phone_share_reason}</span>}
-                                    </label>
-                                )}
+                        </section>
+                    )}
+
+                    {!isPartner && (
+                        <section className="panel acf-section" id="acf-person">
+                            {heading('person', sectionFor('person'))}
+                            <div className="acf-grid">
+                                <Box text={translate('portal', 'acct_full_name')} error={errorOf('name')}><input autoComplete="off" value={form.data.name} onChange={(e) => setBox('name', e.target.value)} /></Box>
+                                <Box text={translate('portal', 'acct_email')} error={errorOf('email')}><input type="email" autoComplete="off" value={form.data.email} onChange={(e) => setBox('email', e.target.value)} /></Box>
+                                <Box text={translate('portal', 'acct_phone')} error={errorOf('phone')}><input type="tel" inputMode="tel" autoComplete="off" value={form.data.phone} onChange={(e) => setBox('phone', e.target.value)} placeholder={translate('portal', 'acct_phone_ph')} /></Box>
+                                {phoneShareReason}
                             </div>
                         </section>
                     )}
 
                     {isPartner && (
                         <>
-                            <section className="panel">
-                                <div className="panel-heading">
-                                    <div>
-                                        <h3>{translate('portal','acct_step_identity')}</h3>
-                                        <p>{translate('portal','acct_step_identity_hint')}</p>
-                                    </div>
-                                    <IdCard size={22} className="text-muted" />
-                                </div>
-                                <div className="ops-row ops-mb-3">
-                                    <button type="button" className={`button small ${form.data.identity_type === 'birth_certificate' ? 'dark' : ''}`} onClick={() => form.setData('identity_type', 'birth_certificate')}>{translate('portal','acct_birth_certificate')}</button>
-                                    {canEnterNid && <button type="button" className={`button small ${form.data.identity_type === 'nid' ? 'dark' : ''}`} onClick={() => form.setData('identity_type', 'nid')}>{translate('portal','acct_nid')}</button>}
-                                </div>
-                                {!canEnterNid && <p className="muted ops-fs-sm ops-mb-3">{translate('portal','acct_nid_needs_permission')}</p>}
-                                <div className="form-grid">
-                                    {form.data.identity_type === 'birth_certificate' ? (
-                                        <label>
-                                            {translate('portal','acct_birth_cert_number')}
-                                            <input required value={form.data.birth_certificate_number} onChange={(e) => form.setData('birth_certificate_number', e.target.value)} />
-                                            {form.errors.birth_certificate_number && <span className="field-error">{form.errors.birth_certificate_number}</span>}
-                                        </label>
-                                    ) : (
-                                        <label>
-                                            {translate('portal','acct_nid_number')}
-                                            <input required value={form.data.nid} onChange={(e) => form.setData('nid', e.target.value)} />
-                                            {form.errors.nid && <span className="field-error">{form.errors.nid}</span>}
+                            <section className="panel acf-section" id="acf-identity">
+                                {heading('identity', sectionFor('identity'))}
+                                <div className="acf-segment" role="radiogroup" aria-label={translate('portal', 'acct_step_identity')}>
+                                    <label className={form.data.identity_type === 'birth_certificate' ? 'is-on' : ''}>
+                                        <input type="radio" name="identity_type" checked={form.data.identity_type === 'birth_certificate'} onChange={() => { setBox('identity_type', 'birth_certificate'); form.clearErrors('nid'); }} />
+                                        <span>{translate('portal', 'acct_birth_certificate')}</span>
+                                    </label>
+                                    {canEnterNid && (
+                                        <label className={form.data.identity_type === 'nid' ? 'is-on' : ''}>
+                                            <input type="radio" name="identity_type" checked={form.data.identity_type === 'nid'} onChange={() => { setBox('identity_type', 'nid'); form.clearErrors('birth_certificate_number'); }} />
+                                            <span>{translate('portal', 'acct_nid')}</span>
                                         </label>
                                     )}
-                                    <label>
-                                        {translate('portal','acct_dob')}
-                                        <DateInput required max={latestAdultBirthDate()} value={form.data.date_of_birth} onChange={(e) => form.setData('date_of_birth', e.target.value)} />
-                                        <small className="field-hint">{translate('portal','acct_dob_age_hint')}</small>
-                                        {form.errors.date_of_birth && <span className="field-error">{form.errors.date_of_birth}</span>}
-                                    </label>
                                 </div>
-                                {form.data.identity_type === 'birth_certificate' && (
-                                    <div className="ops-row is-wrap is-loose ops-mt-3">
-                                        {bdris_enabled ? (
+                                {!canEnterNid && <p className="acf-note">{translate('portal', 'acct_nid_needs_permission')}</p>}
+                                <div className="acf-grid">
+                                    {form.data.identity_type === 'birth_certificate' ? (
+                                        <Box text={translate('portal', 'acct_birth_cert_number')} error={errorOf('birth_certificate_number')}>
+                                            <input inputMode="numeric" autoComplete="off" value={form.data.birth_certificate_number} onChange={(e) => setBox('birth_certificate_number', e.target.value)} />
+                                        </Box>
+                                    ) : (
+                                        <Box text={translate('portal', 'acct_nid_number')} error={errorOf('nid')}>
+                                            <input inputMode="numeric" autoComplete="off" value={form.data.nid} onChange={(e) => setBox('nid', e.target.value)} />
+                                        </Box>
+                                    )}
+                                    <Box text={translate('portal', 'acct_dob')} error={errorOf('date_of_birth')} hint={translate('portal', 'acct_dob_age_hint')}>
+                                        <DateInput max={latestAdultBirthDate()} value={form.data.date_of_birth} onChange={(e) => setBox('date_of_birth', e.target.value)} />
+                                    </Box>
+                                    {form.data.identity_type === 'birth_certificate' && bdris_enabled && (
+                                        <div className="acf-box is-wide acf-inline">
                                             <button type="button" className="button dark" onClick={lookupBdris} disabled={bdrisLoading}>
-                                                <Search size={16} /> {bdrisLoading ? translate('portal','acct_searching_bdris') : translate('portal','acct_search_bdris')}
+                                                <Search size={16} /> {bdrisLoading ? translate('portal', 'acct_searching_bdris') : translate('portal', 'acct_search_bdris')}
                                             </button>
-                                        ) : (
-                                            <span className="muted ops-fs-sm">{translate('portal','acct_bdris_disabled')}</span>
-                                        )}
-                                        {bdrisMessage && <span className="muted ops-fs-sm">{bdrisMessage}</span>}
-                                    </div>
-                                )}
-                                <div className="form-grid ops-mt-4">
-                                    <label>{translate('portal','acct_name_en')}<input required value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} />{form.errors.name && <span className="field-error">{form.errors.name}</span>}</label>
-                                    <label>{translate('portal','acct_name_bn')}<input required value={form.data.name_bn} onChange={(e) => form.setData('name_bn', e.target.value)} />{form.errors.name_bn && <span className="field-error">{form.errors.name_bn}</span>}</label>
-                                    <label>{translate('portal','acct_father_name')}<input required value={form.data.father_name} onChange={(e) => form.setData('father_name', e.target.value)} />{form.errors.father_name && <span className="field-error">{form.errors.father_name}</span>}</label>
-                                    <label>{translate('portal','acct_mother_name')}<input required value={form.data.mother_name} onChange={(e) => form.setData('mother_name', e.target.value)} />{form.errors.mother_name && <span className="field-error">{form.errors.mother_name}</span>}</label>
-                                    <label>{translate('portal','acct_occupation')}<input value={form.data.occupation} onChange={(e) => form.setData('occupation', e.target.value)} /></label>
+                                            {bdrisMessage && <span className="muted ops-fs-sm">{bdrisMessage}</span>}
+                                        </div>
+                                    )}
+                                    <Box text={translate('portal', 'acct_name_en')} error={errorOf('name')}><input autoComplete="off" value={form.data.name} onChange={(e) => setBox('name', e.target.value)} /></Box>
+                                    <Box text={translate('portal', 'acct_name_bn')} error={errorOf('name_bn')}><input autoComplete="off" value={form.data.name_bn} onChange={(e) => setBox('name_bn', e.target.value)} /></Box>
+                                    <Box text={translate('portal', 'acct_father_name')} error={errorOf('father_name')}><input autoComplete="off" value={form.data.father_name} onChange={(e) => setBox('father_name', e.target.value)} /></Box>
+                                    <Box text={translate('portal', 'acct_mother_name')} error={errorOf('mother_name')}><input autoComplete="off" value={form.data.mother_name} onChange={(e) => setBox('mother_name', e.target.value)} /></Box>
+                                    <Box text={translate('portal', 'acct_occupation')} error={errorOf('occupation')}><input autoComplete="off" value={form.data.occupation} onChange={(e) => setBox('occupation', e.target.value)} /></Box>
                                 </div>
                             </section>
 
-                            <section className="panel">
-                                <div className="panel-heading">
-                                    <div>
-                                        <h3>{translate('portal','acct_step_address')}</h3>
-                                        <p>{translate('portal','acct_step_address_hint')}</p>
-                                    </div>
-                                    <MapPin size={22} className="text-muted" />
-                                </div>
-                                <label className="ops-block ops-mb-3">
-                                    {translate('portal','acct_search_places')}
-                                    <input value={addressSearch} onChange={(e) => setAddressSearch(e.target.value)} placeholder={translate('portal','acct_filter_places')} />
-                                </label>
-                                <div className="form-grid">
-                                    <label>
-                                        {translate('portal','acct_division')}
+                            <section className="panel acf-section" id="acf-address">
+                                {heading('address', sectionFor('address'))}
+                                <div className="acf-grid">
+                                    <Box text={translate('portal', 'acct_division')}>
                                         <select value={divisionId} onChange={(e) => { setDivisionId(e.target.value); setDistrictId(''); setUpazilaId(''); setUnionId(''); }}>
-                                            <option value="">{translate('portal','acct_select_division')}</option>
+                                            <option value="">{translate('portal', 'acct_select_division')}</option>
                                             {place_divisions.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}
                                         </select>
-                                    </label>
-                                    <label>
-                                        {translate('portal','acct_district')}
+                                    </Box>
+                                    <Box text={translate('portal', 'acct_district')}>
                                         <select value={districtId} onChange={(e) => { setDistrictId(e.target.value); setUpazilaId(''); setUnionId(''); }} disabled={!divisionId}>
-                                            <option value="">{translate('portal','acct_select_district')}</option>
+                                            <option value="">{translate('portal', 'acct_select_district')}</option>
                                             {districts.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}
                                         </select>
-                                    </label>
-                                    <label>
-                                        {translate('portal','acct_upazila')}
+                                    </Box>
+                                    <Box text={translate('portal', 'acct_upazila')}>
                                         <select value={upazilaId} onChange={(e) => { setUpazilaId(e.target.value); setUnionId(''); }} disabled={!districtId}>
-                                            <option value="">{translate('portal','acct_select_upazila')}</option>
+                                            <option value="">{translate('portal', 'acct_select_upazila')}</option>
                                             {upazilas.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}
                                         </select>
-                                    </label>
-                                    <label>
-                                        {translate('portal','acct_union')}
+                                    </Box>
+                                    <Box text={translate('portal', 'acct_union')}>
                                         <select value={unionId} onChange={(e) => setUnionId(e.target.value)} disabled={!upazilaId}>
-                                            <option value="">{translate('portal','acct_select_union')}</option>
+                                            <option value="">{translate('portal', 'acct_select_union')}</option>
                                             {unions.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}
                                         </select>
-                                    </label>
-                                    <label>{translate('portal','acct_village')}<input value={form.data.village} onChange={(e) => form.setData('village', e.target.value)} /></label>
-                                    <label>{translate('portal','acct_post_office')}<input value={form.data.post_office} onChange={(e) => form.setData('post_office', e.target.value)} /></label>
-                                    <label>
-                                        {translate('portal','acct_latitude')}
-                                        <input type="number" step="any" min="-90" max="90" value={form.data.latitude} onChange={(e) => form.setData('latitude', e.target.value)} placeholder={translate('portal','acct_latitude_ph')} />
-                                        {form.errors.latitude && <span className="field-error">{form.errors.latitude}</span>}
-                                    </label>
-                                    <label>
-                                        {translate('portal','acct_longitude')}
-                                        <input type="number" step="any" min="-180" max="180" value={form.data.longitude} onChange={(e) => form.setData('longitude', e.target.value)} placeholder={translate('portal','acct_longitude_ph')} />
-                                        {form.errors.longitude && <span className="field-error">{form.errors.longitude}</span>}
-                                    </label>
+                                    </Box>
+                                    <Box text={translate('portal', 'acct_village')} error={errorOf('village')}><input autoComplete="off" value={form.data.village} onChange={(e) => setBox('village', e.target.value)} /></Box>
+                                    <Box text={translate('portal', 'acct_post_office')} error={errorOf('post_office')}><input autoComplete="off" value={form.data.post_office} onChange={(e) => setBox('post_office', e.target.value)} /></Box>
                                 </div>
-                                <p className="muted ops-mt-3 ops-fs-sm">
-                                    {translate('portal','acct_gps_hint')}
-                                </p>
+                                <details className="acf-more" open={Boolean(errorOf('latitude') || errorOf('longitude')) || undefined}>
+                                    <summary>{translate('portal', 'acct_more_address')}</summary>
+                                    <div className="acf-grid">
+                                        <Box text={translate('portal', 'acct_search_places')} wide>
+                                            <input autoComplete="off" value={addressSearch} onChange={(e) => setAddressSearch(e.target.value)} placeholder={translate('portal', 'acct_filter_places')} />
+                                        </Box>
+                                        <Box text={translate('portal', 'acct_latitude')} error={errorOf('latitude')}>
+                                            <input type="number" step="any" min="-90" max="90" value={form.data.latitude} onChange={(e) => setBox('latitude', e.target.value)} placeholder={translate('portal', 'acct_latitude_ph')} />
+                                        </Box>
+                                        <Box text={translate('portal', 'acct_longitude')} error={errorOf('longitude')}>
+                                            <input type="number" step="any" min="-180" max="180" value={form.data.longitude} onChange={(e) => setBox('longitude', e.target.value)} placeholder={translate('portal', 'acct_longitude_ph')} />
+                                        </Box>
+                                    </div>
+                                    <p className="acf-note">{translate('portal', 'acct_gps_hint')}</p>
+                                </details>
                             </section>
 
-                            <section className="panel">
-                                <div className="panel-heading">
-                                    <div>
-                                        <h3>{translate('portal','acct_step_area')}</h3>
-                                        <p>
-                                            {form.data.role === 'sub_dealer'
-                                                ? translate('portal','acct_area_hint_sub')
-                                                : translate('portal','acct_area_hint_dealer')}
-                                        </p>
-                                    </div>
-                                    <Hash size={22} className="text-muted" />
-                                </div>
-                                <div className="form-grid">
-                                    <label>
-                                        {form.data.role === 'sub_dealer' ? translate('portal','acct_union_code') : translate('portal','acct_place_code')}
-                                        <div className="ops-row is-stretch">
-                                            <input required value={form.data.place_code} onChange={(e) => form.setData('place_code', toLatin(e.target.value))} placeholder={form.data.role === 'sub_dealer' ? translate('portal','acct_union_code_ph') : translate('portal','acct_place_code_ph')} />
-                                            <button type="button" className="button dark" onClick={previewPlace}>{translate('portal','acct_resolve')}</button>
+                            <section className="panel acf-section" id="acf-place">
+                                {heading('place', sectionFor('place'))}
+                                <div className="acf-grid">
+                                    <Box text={translate('portal', isSubDealer ? 'acct_union_code' : 'acct_place_code')} error={errorOf('place_code') || placeError}>
+                                        <div className="acf-with-button">
+                                            <input
+                                                data-place-code=""
+                                                autoComplete="off"
+                                                aria-invalid={Boolean(errorOf('place_code') || placeError)}
+                                                value={form.data.place_code}
+                                                onChange={(e) => changePlaceCode(e.target.value)}
+                                                onBlur={() => void previewPlace()}
+                                                placeholder={translate('portal', isSubDealer ? 'acct_union_code_ph' : 'acct_place_code_ph')}
+                                            />
+                                            <button type="button" className="button" tabIndex={-1} disabled={placeChecking} onClick={() => void previewPlace(true)}>{translate('portal', 'acct_resolve')}</button>
                                         </div>
-                                        {form.errors.place_code && <span className="field-error">{form.errors.place_code}</span>}
-                                        {placeError && <span className="field-error">{placeError}</span>}
-                                    </label>
-                                    {form.data.role === 'dealer' && (
-                                        <label>
-                                            {translate('portal','acct_dealer_code_override')}
-                                            <input value={form.data.dealer_code} onChange={(e) => {
-                                                const next = e.target.value.toUpperCase();
-                                                setDealerCodeTouched(next.trim() !== '');
-                                                form.setData((prev) => ({
-                                                    ...prev,
-                                                    dealer_code: next,
-                                                    refer_code: referCodeTouched ? prev.refer_code : next,
-                                                }));
-                                            }} placeholder={translate('portal','acct_dealer_code_default')} />
-                                            {form.errors.dealer_code && <span className="field-error">{form.errors.dealer_code}</span>}
-                                        </label>
-                                    )}
-                                    {form.data.role === 'sub_dealer' && (
-                                        <label>
-                                            {translate('portal','acct_auto_sub_code')}
-                                            <input value={form.data.dealer_code} readOnly />
-                                        </label>
+                                    </Box>
+                                    {isSubDealer ? (
+                                        <Box text={translate('portal', 'acct_auto_sub_code')} hint={translate('portal', 'acct_code_is_refer')}>
+                                            <input value={form.data.dealer_code} readOnly tabIndex={-1} />
+                                        </Box>
+                                    ) : (
+                                        <Box text={translate('portal', 'acct_dealer_code_override')} error={errorOf('dealer_code') || ownCodeWarning} hint={translate('portal', 'acct_code_is_refer')}>
+                                            <input
+                                                autoComplete="off"
+                                                value={form.data.dealer_code}
+                                                onChange={(e) => {
+                                                    const next = toLatin(e.target.value).toUpperCase();
+                                                    setDealerCodeTouched(next.trim() !== '');
+                                                    setBox('dealer_code', next);
+                                                }}
+                                                placeholder={translate('portal', 'acct_dealer_code_default')}
+                                            />
+                                        </Box>
                                     )}
                                 </div>
                                 {placePreview && (
-                                    <div className={`ops-card is-tight is-tinted ops-mt-3 acr-place ${placePreview.available ? 'tone-ok' : 'tone-orange'}`}>
-                                        <div className="ops-row is-snug ops-bold">
+                                    <div className={`acf-place${placePreview.available ? '' : ' is-taken'}`}>
+                                        <div className="acf-place-head">
                                             {placePreview.available ? <CheckCircle2 size={16} className="icon-ok" /> : <AlertTriangle size={16} className="icon-warn" />}
-                                            {placePreview.label}
+                                            <b>{placePreview.label}</b>
                                         </div>
-                                        {!placePreview.available && <p className="muted ops-m-0 ops-mt-2">{translate('portal','acct_area_taken')}</p>}
-                                        <div className="ops-stack is-tight ops-mt-3">
-                                            <div className="ops-fs-xs ops-bold tone-teal">
-                                                {translate('portal','acct_area_pool',{pool:String(placePreview.area_pool_rate||'10.00'),mgmt:String(placePreview.management_rate||'2.00')})}
-                                            </div>
-                                            {commissionLines.map((row) => {
-                                                const title = row.level === 'management' ? translate('portal','acct_level_management') : row.level === 'division' ? translate('portal','acct_level_div') : row.level === 'district' ? translate('portal','acct_level_dist') : row.level === 'upazila' ? translate('portal','acct_level_upazila') : translate('portal','acct_level_union');
-                                                return (
-                                                    <div key={row.level} className="ops-fs-sm">
-                                                        <b>{title}{row.rate ? ` (${row.rate}%)` : ''}:</b>{' '}
-                                                        {row.code ? `${row.code} — ${row.name || '—'}` : (row.level === 'management' ? translate('portal','acct_mgmt_reserve') : translate('portal','acct_not_on_path'))}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
+                                        {!placePreview.available && <p className="acf-note">{translate('portal', 'acct_area_taken')}</p>}
+                                        <details className="acf-more is-quiet">
+                                            <summary tabIndex={-1}>{translate('portal', 'acct_place_shares')}</summary>
+                                            <p className="acf-note">{translate('portal', 'acct_area_pool', { pool: String(placePreview.area_pool_rate || '10.00'), mgmt: String(placePreview.management_rate || '2.00') })}</p>
+                                            <ul className="acf-shares">
+                                                {commissionLines.map((row) => (
+                                                    <li key={row.level}>
+                                                        <b>{placeLevelTitle(row.level)}{row.rate ? ` (${row.rate}%)` : ''}:</b>{' '}
+                                                        {row.code ? `${row.code} — ${row.name || '—'}` : (row.level === 'management' ? translate('portal', 'acct_mgmt_reserve') : translate('portal', 'acct_not_on_path'))}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </details>
                                     </div>
                                 )}
                             </section>
 
-                            <section className="panel">
-                                <div className="panel-heading">
-                                    <div>
-                                        <h3>{translate('portal','acct_step_refer')}</h3>
-                                        <p>{translate('portal','acct_step_refer_hint')}</p>
-                                    </div>
-                                    <BadgeCheck size={22} className="text-muted" />
+                            <section className="panel acf-section" id="acf-refer">
+                                {heading('refer', sectionFor('refer'))}
+                                <div className="acf-grid">
+                                    <Box
+                                        text={translate('portal', 'acct_your_reference')}
+                                        error={errorOf('reference_code') || referenceWarnings[0]}
+                                        hint={referrerName ? <span className="acf-ok"><CheckCircle2 size={14} /> {translate('portal', 'acct_refer_belongs_to', { name: referrerName })}</span> : (referPreviewError || referenceHint)}
+                                        wide
+                                    >
+                                        <input
+                                            autoComplete="off"
+                                            value={form.data.reference_code}
+                                            onChange={(e) => {
+                                                setDirectReferrer(null);
+                                                setReferenceWarnings([]);
+                                                setBox('reference_code', toLatin(e.target.value).toUpperCase());
+                                            }}
+                                            placeholder={translate('portal', 'acct_reference_placeholder')}
+                                        />
+                                    </Box>
                                 </div>
-                                <div className="form-grid">
-                                    <label>
-                                        {translate('portal','acct_your_reference')}
-                                        <input value={form.data.reference_code} onChange={(e) => form.setData('reference_code', e.target.value.toUpperCase())} placeholder={translate('portal','acct_reference_placeholder')} />
-                                        {management_referral?.enabled && management_referral.auto_blank_reference && management_referral.place_code && (
-                                            <span className="muted ops-block ops-mt-1 ops-fs-xs">{translate('portal','acct_reference_blank_hint',{code:management_referral.place_code})}</span>
-                                        )}
-                                        {form.errors.reference_code && <span className="field-error">{form.errors.reference_code}</span>}
-                                    </label>
-                                    <label>
-                                        {translate('portal','acct_your_refer_code')}
-                                        <input value={form.data.refer_code} onChange={(e) => {
-                                            const next = e.target.value.toUpperCase();
-                                            if (next === '') {
-                                                setReferCodeTouched(false);
-                                                form.setData('refer_code', form.data.dealer_code || '');
-                                                return;
-                                            }
-                                            setReferCodeTouched(true);
-                                            form.setData('refer_code', next);
-                                        }} placeholder={form.data.dealer_code || translate('portal','acct_refer_placeholder')} />
-                                        <span className="muted ops-block ops-mt-1 ops-fs-xs">{translate('portal','acct_refer_defaults_hint')}</span>
-                                        {form.errors.refer_code && <span className="field-error">{form.errors.refer_code}</span>}
-                                    </label>
-                                </div>
-                                {referPreviewError && (
-                                    <p className="muted ops-mt-3 ops-fs-sm">{referPreviewError}</p>
-                                )}
-                                {referWarnings.length > 0 && (
-                                    <div className="error ops-mt-3">
-                                        {referWarnings.map((warning) => <div key={warning}>{warning}</div>)}
-                                    </div>
-                                )}
-                                {consumers && (
-                                    <div className="ops-mt-3 ops-fs-sm">
-                                        <b>{translate('portal','acct_commission_consumers')}</b>
-                                        <div>{translate('portal','acct_direct_referral')}: {consumers.direct_referral ? `${consumers.direct_referral.name}${consumers.direct_referral.refer_code ? ` (${consumers.direct_referral.refer_code})` : ''}` : `→ ${translate('portal','acct_unassigned_reserve')}`}</div>
-                                        <div>{translate('portal','acct_d2d_gen2')}: {consumers.d2d_gen2 ? `${consumers.d2d_gen2.name}${consumers.d2d_gen2.refer_code ? ` (${consumers.d2d_gen2.refer_code})` : ''}` : `→ ${translate('portal','acct_unassigned_reserve')}`}</div>
-                                        <div>{translate('portal','acct_d2d_gen3')}: {consumers.d2d_gen3 ? `${consumers.d2d_gen3.name}${consumers.d2d_gen3.refer_code ? ` (${consumers.d2d_gen3.refer_code})` : ''}` : `→ ${translate('portal','acct_unassigned_reserve')}`}</div>
-                                    </div>
-                                )}
                             </section>
 
-                            <section className="panel">
-                                <div className="panel-heading">
-                                    <div>
-                                        <h3>{translate('portal','acct_step_contact')}</h3>
-                                        <p>{translate('portal','acct_step_contact_hint')}</p>
-                                    </div>
-                                    <Phone size={22} className="text-muted" />
-                                </div>
-                                <div className="form-grid">
-                                    <label>
-                                        {translate('portal','acct_mobile')}
-                                        <input required value={form.data.phone} onChange={(e) => form.setData('phone', e.target.value)} placeholder={translate('portal', 'acct_phone_ph')} />
-                                        {form.errors.phone && <span className="field-error">{form.errors.phone}</span>}
-                                    </label>
-                                    {isOwner && (
-                                    <label>
-                                        {translate('portal', 'acct_phone_share_reason')}
-                                        <input maxLength={500} value={form.data.phone_share_reason} onChange={(e) => form.setData('phone_share_reason', e.target.value)} />
-                                        <small className="ops-muted">{translate('portal', 'acct_phone_share_reason_hint')}</small>
-                                        {form.errors.phone_share_reason && <span className="field-error">{form.errors.phone_share_reason}</span>}
-                                    </label>
-                                )}
-                                    <label>
-                                        {translate('portal','acct_email')}
-                                        <input type="email" required value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} />
-                                        {form.errors.email && <span className="field-error">{form.errors.email}</span>}
-                                    </label>
-                                    <label>
-                                        {translate('portal','acct_extra_contact')}
-                                        <input value={form.data.extra_contact} onChange={(e) => form.setData('extra_contact', e.target.value)} />
-                                    </label>
-                                    {form.data.role === 'sub_dealer' ? (
-                                        <label>
-                                            {translate('portal','acct_shop_name')}
-                                            <input required value={form.data.shop_name} onChange={(e) => form.setData('shop_name', e.target.value)} placeholder={translate('portal','acct_shop_placeholder')} />
-                                            {form.errors.shop_name && <span className="field-error">{form.errors.shop_name}</span>}
-                                        </label>
+                            <section className="panel acf-section" id="acf-contact">
+                                {heading('contact', sectionFor('contact'))}
+                                <div className="acf-grid">
+                                    <Box text={translate('portal', 'acct_mobile')} error={errorOf('phone')}>
+                                        <input type="tel" inputMode="tel" autoComplete="off" value={form.data.phone} onChange={(e) => setBox('phone', e.target.value)} placeholder={translate('portal', 'acct_phone_ph')} />
+                                    </Box>
+                                    {phoneShareReason}
+                                    <Box text={translate('portal', 'acct_email')} error={errorOf('email')}>
+                                        <input type="email" inputMode="email" autoComplete="off" value={form.data.email} onChange={(e) => setBox('email', e.target.value)} />
+                                    </Box>
+                                    <Box text={translate('portal', 'acct_extra_contact')} error={errorOf('extra_contact')}>
+                                        <input autoComplete="off" value={form.data.extra_contact} onChange={(e) => setBox('extra_contact', e.target.value)} />
+                                    </Box>
+                                    {isSubDealer ? (
+                                        <Box text={translate('portal', 'acct_shop_name')} error={errorOf('shop_name')}>
+                                            <input autoComplete="off" value={form.data.shop_name} onChange={(e) => setBox('shop_name', e.target.value)} placeholder={translate('portal', 'acct_shop_placeholder')} />
+                                        </Box>
                                     ) : (
-                                        <label>
-                                            {translate('portal','acct_pharmacy')}
-                                            <input value={form.data.pharmacy} onChange={(e) => form.setData('pharmacy', e.target.value)} />
-                                        </label>
+                                        <Box text={translate('portal', 'acct_pharmacy')} error={errorOf('pharmacy')}>
+                                            <input autoComplete="off" value={form.data.pharmacy} onChange={(e) => setBox('pharmacy', e.target.value)} />
+                                        </Box>
                                     )}
                                 </div>
                             </section>
                         </>
                     )}
+
+                    <section className="panel acf-section" id="acf-last">
+                        {heading('last', sectionFor('last'))}
+                        <div className="acf-grid">
+                            <Box text={translate('portal', 'acct_verification_note')} error={errorOf('reason')} wide>
+                                <textarea rows={2} value={form.data.reason} onChange={(e) => setBox('reason', e.target.value)} />
+                            </Box>
+                            {form.data.role === 'dealer' && (
+                                <label className="checkbox-label acf-box is-wide acf-check">
+                                    <input type="checkbox" checked={!!form.data.directory_visible} onChange={(e) => form.setData('directory_visible', e.target.checked)} />
+                                    <span>{translate('portal', 'acct_directory_visible')}</span>
+                                </label>
+                            )}
+                            {!isPartner && (
+                                <Box text={translate('portal', 'acct_sponsoring_dealer')} error={errorOf('sponsor_id')} wide>
+                                    <select value={form.data.sponsor_id} onChange={(e) => setBox('sponsor_id', e.target.value)}>
+                                        <option value="">{translate('portal', 'acct_no_sponsor')}</option>
+                                        {sponsors.map((s) => <option key={s.id} value={s.id}>{s.name} ({s.dealer_code})</option>)}
+                                    </select>
+                                </Box>
+                            )}
+                        </div>
+                        {isPartner && (
+                            <details className="acf-more" open={papersOpen || kycBoxes.some((box) => errorOf(box)) || undefined} onToggle={(e) => setPapersOpen(e.currentTarget.open)}>
+                                <summary>{translate('portal', 'optional_media_title')}{kycBoxes.some((box) => form.data[box]) ? ` · ${localizeDigits(String(kycBoxes.filter((box) => form.data[box]).length))}` : ''}</summary>
+                                <p className="acf-note">{translate('portal', 'optional_media_hint')}</p>
+                                <div className="acf-grid">
+                                    {kycBoxes.map((box) => (
+                                        <Box key={box} text={translate('portal', box)} error={errorOf(box)}>
+                                            <input type="file" accept={box === 'kyc_photo' ? 'image/*' : 'image/*,.pdf'} onChange={(e) => { form.setData(box, e.target.files?.[0] || null); form.clearErrors(box); }} />
+                                        </Box>
+                                    ))}
+                                </div>
+                            </details>
+                        )}
+                    </section>
                 </div>
 
-                <div className="account-create-sidebar">
-                    <section className="panel">
-                        <div className="panel-heading">
-                            <div>
-                                <h3>{translate('portal','acct_staff_audit')}</h3>
-                            </div>
-                            <ShieldAlert size={20} className="text-muted" />
+                <aside className="acf-rail">
+                    <section className="panel acf-progress">
+                        <div className="acf-progress-head">
+                            <h3>{translate('portal', 'acct_progress_title')}</h3>
+                            <b>{localizeDigits(String(progressPercent))}%</b>
                         </div>
-                        <label>
-                            {translate('portal','acct_verification_note')}
-                            <textarea rows={3} required value={form.data.reason} onChange={(e) => form.setData('reason', e.target.value)} />
-                        </label>
-                        {form.data.role === 'dealer' && (
-                            <label className="checkbox-label ops-mt-3">
-                                <input type="checkbox" checked={!!form.data.directory_visible} onChange={(e) => form.setData('directory_visible', e.target.checked)} />
-                                <span>{translate('portal','acct_directory_visible')}</span>
-                            </label>
-                        )}
-                        {isPartner && (
-                            <fieldset className="optional-media-fieldset ops-mt-4">
-                                <legend>{translate('portal', 'optional_media_title')}</legend>
-                                <p className="muted ops-fs-xs">{translate('portal', 'optional_media_hint')}</p>
-                                <label>{translate('portal', 'kyc_photo')}<input type="file" accept="image/*" onChange={(e) => form.setData('kyc_photo', e.target.files?.[0] || null)} /></label>
-                                <label>{translate('portal', 'kyc_nid_front')}<input type="file" accept="image/*,.pdf" onChange={(e) => form.setData('kyc_nid_front', e.target.files?.[0] || null)} /></label>
-                                <label>{translate('portal', 'kyc_nid_back')}<input type="file" accept="image/*,.pdf" onChange={(e) => form.setData('kyc_nid_back', e.target.files?.[0] || null)} /></label>
-                                <label>{translate('portal', 'kyc_birth_certificate')}<input type="file" accept="image/*,.pdf" onChange={(e) => form.setData('kyc_birth_certificate', e.target.files?.[0] || null)} /></label>
-                                <label>{translate('portal', 'kyc_agreement')}<input type="file" accept="image/*,.pdf" onChange={(e) => form.setData('kyc_agreement', e.target.files?.[0] || null)} /></label>
-                                <label>{translate('portal', 'kyc_other')}<input type="file" accept="image/*,.pdf" onChange={(e) => form.setData('kyc_other', e.target.files?.[0] || null)} /></label>
-                            </fieldset>
-                        )}
-                        {Object.keys(form.errors).length > 0 && (
-                            <div className="error ops-mt-3" role="alert">
-                                {[...new Set(Object.values(form.errors))].map((message) => <div key={String(message)}>{message}</div>)}
-                                <div>{translate('portal','acct_fix_errors')}</div>
-                            </div>
-                        )}
-                        {isPartner && referWarnings.length > 0 && (
-                            <div className="error ops-mt-3">
-                                {referWarnings.map((warning) => <div key={warning}>{warning}</div>)}
-                            </div>
-                        )}
-                        <button type="submit" className="button dark full-width ops-mt-4" disabled={form.processing || (isPartner && referWarnings.length > 0)}>
-                            {form.processing ? translate('portal','acct_creating') : isPartner ? translate('portal','acct_submit_partner') : translate('portal','acct_submit_staff')}
-                        </button>
+                        <div className="acf-bar"><span style={{ width: `${progressPercent}%` }} /></div>
+                        <p className="acf-note">{progressText}</p>
+                        <ol>
+                            {sections.map((section, index) => {
+                                const state = stateOf(section);
+                                return (
+                                    <li key={section.key} className={state.errors > 0 ? 'is-wrong' : state.isDone ? 'is-done' : ''}>
+                                        <a href={`#acf-${section.key}`} tabIndex={-1} onClick={(e) => jumpTo(e, section.key)}>
+                                            <span className="acf-number" aria-hidden="true">{state.isDone ? <Check size={12} strokeWidth={3} /> : renderNumber(index + 1)}</span>
+                                            <span className="acf-rail-title">{section.title}</span>
+                                            <small>
+                                                {state.errors > 0
+                                                    ? localizeDigits(String(state.errors))
+                                                    : state.isOptional
+                                                        ? (state.isDone ? '' : translate('portal', 'acct_progress_optional'))
+                                                        : `${localizeDigits(String(state.filled))}/${localizeDigits(String(section.required.length))}`}
+                                            </small>
+                                        </a>
+                                    </li>
+                                );
+                            })}
+                        </ol>
                     </section>
+
                     {isPartner && (
-                        <section className="panel">
-                            <div className="panel-heading">
-                                <div><h3>{translate('portal','acct_business_point')}</h3></div>
-                                <Store size={20} className="text-muted" />
-                            </div>
-                            <p className="muted ops-m-0 ops-fs-sm">
-                                {translate('portal','acct_sms_hint')}
-                            </p>
+                        <section className="panel acf-summary">
+                            <h3>{translate('portal', 'acct_summary_title')}</h3>
+                            <dl>
+                                {summaryRows.map((row) => (
+                                    <div key={row.term}>
+                                        <dt>{row.term}</dt>
+                                        <dd className={row.value ? '' : 'is-empty'}>{row.value || translate('portal', 'acct_summary_empty')}</dd>
+                                    </div>
+                                ))}
+                            </dl>
+                            <p className="acf-note">{translate('portal', 'acct_sms_hint')}</p>
                         </section>
                     )}
-                    {!isPartner && (
-                        <section className="panel">
-                            <div className="panel-heading"><div><h3>{translate('portal','acct_sponsor_legacy')}</h3></div><Building2 size={20} className="text-muted" /></div>
-                            <label>
-                                {translate('portal','acct_sponsoring_dealer')}
-                                <select value={form.data.sponsor_id} onChange={(e) => form.setData('sponsor_id', e.target.value)}>
-                                    <option value="">{translate('portal','acct_no_sponsor')}</option>
-                                    {sponsors.map((s) => <option key={s.id} value={s.id}>{s.name} ({s.dealer_code})</option>)}
-                                </select>
-                            </label>
-                        </section>
-                    )}
-                </div>
+
+                    <div className="acf-submit">
+                        <FormErrors errors={form.errors} besideFields={allBoxes} />
+                        {errorCount > 0 && <p className="acf-issues" role="status">{translate('portal', 'acct_issues_count', { count: errorCount })}</p>}
+                        <button type="submit" className="button dark full-width" disabled={form.processing}>
+                            {form.processing ? translate('portal', 'acct_creating') : isPartner ? translate('portal', 'acct_submit_partner') : translate('portal', 'acct_submit_staff')}
+                        </button>
+                        <small className="acf-note">{translate('portal', 'acct_enter_moves')}</small>
+                    </div>
+                </aside>
             </form>
+            </div>
         </Shell>
     );
 }

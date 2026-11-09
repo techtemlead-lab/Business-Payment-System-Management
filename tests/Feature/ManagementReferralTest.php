@@ -78,7 +78,7 @@ class ManagementReferralTest extends TestCase
         $this->assertDatabaseMissing('users', ['email' => 'missing-refer@example.com']);
     }
 
-    public function test_personal_refer_code_cannot_copy_the_management_code(): void
+    public function test_a_partner_code_cannot_copy_the_management_code(): void
     {
         $admin = User::factory()->create(['role' => 'super_admin']);
 
@@ -86,8 +86,8 @@ class ManagementReferralTest extends TestCase
             'email' => 'copied-mgmt@example.com',
             'phone' => '01712000004',
             'place_code' => 'MNHC-104',
-            'refer_code' => 'MNHC-100',
-        ]))->assertRedirect('/accounts/create')->assertSessionHasErrors('refer_code');
+            'dealer_code' => 'MNHC-100',
+        ]))->assertRedirect('/accounts/create')->assertSessionHasErrors('dealer_code');
     }
 
     public function test_owner_saves_management_referral_and_staff_is_forbidden(): void
