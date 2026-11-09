@@ -230,7 +230,10 @@ class WorkspaceController extends Controller
             default => ['dealer'],
         };
         abort_if($intent === 'staff' && $u->role !== 'super_admin', 403);
-        $sponsors = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code']);
+        // Only the staff form has the sponsor dropdown; partners get their sponsor from a typed reference code.
+        $sponsors = $intent === 'staff'
+            ? User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code'])
+            : collect();
         $divisions = PlaceCode::query()
             ->where('level', PlaceCode::LevelDivision)
             ->where('is_active', true)
