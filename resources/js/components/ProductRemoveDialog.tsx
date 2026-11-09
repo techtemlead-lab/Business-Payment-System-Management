@@ -34,10 +34,12 @@ export function removalLine(removal: ProductRemoval | null | undefined, isArchiv
  * Asks for a reason and says exactly what will happen first. A product with stock or history can
  * only be archived; an unused one is deleted for good. The server checks this again when pressed.
  */
-export default function ProductRemoveDialog({ product, removal, onClose }: {
+export default function ProductRemoveDialog({ product, removal, onClose, onDone = onClose }: {
     product: RemovableProduct;
     removal: ProductRemoval;
     onClose: () => void;
+    /** Runs after the server has archived or deleted the product. */
+    onDone?: () => void;
 }) {
     const translate = useT();
     const t = (key: string, replace?: Record<string, string>) => translate('office_stock', key, replace);
@@ -46,7 +48,7 @@ export default function ProductRemoveDialog({ product, removal, onClose }: {
 
     const submit = (event: React.FormEvent) => {
         event.preventDefault();
-        form.delete(`/commands/products/${product.id}`, { preserveScroll: true, onSuccess: onClose });
+        form.delete(`/commands/products/${product.id}`, { onSuccess: onDone });
     };
 
     return (

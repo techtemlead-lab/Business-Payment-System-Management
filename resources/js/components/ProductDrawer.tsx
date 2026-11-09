@@ -82,6 +82,7 @@ export default function ProductDrawer({ product, canStock, canEditCatalog, onClo
                     product={{ id: product.id, name: String(product.name), active: !isArchived }}
                     removal={removal}
                     onClose={() => setAsking(false)}
+                    onDone={onClose}
                 />
             )}
         </>
