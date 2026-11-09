@@ -98,7 +98,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
         await copyLink();
     };
     const inFlight = ['submitted', 'held', 'approved', 'partially_dispatched', 'dispatched'].includes(order.status);
-    const { stop } = usePoll(5000, { only: ['order', 'claims', 'shipments', 'outstanding', 'paymentPrompt'] }, { autoStart: inFlight });
+    const { stop } = usePoll(5000, { only: ['order', 'claims', 'shipments', 'events', 'outstanding', 'paymentPrompt'] }, { autoStart: inFlight });
     useEffect(() => {
         if (!inFlight) {
             stop();
