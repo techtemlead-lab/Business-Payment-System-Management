@@ -137,6 +137,7 @@ class CompleteAccountingStatementsTest extends TestCase
      */
     public function test_the_real_flows_from_goods_receipt_to_delivery_tie_out(): void
     {
+        $this->enableFinancialPosting();
         $this->travelTo(now()->setDate(2026, 11, 8)->setTime(12, 0));
         $day = '2026-11-08';
         $hub = CompanyBranch::query()->where('code', 'HO-PIRGANJ')->firstOrFail();
