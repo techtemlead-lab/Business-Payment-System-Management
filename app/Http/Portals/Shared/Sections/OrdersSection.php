@@ -62,14 +62,14 @@ final class OrdersSection implements WorkspaceSection
         $deliveryView = $this->deliveryView($context);
         $filteredOrders = app(OrderListFilter::class)->apply(clone $context->orders, $request, $context->section, $context->isStaff);
         // Overview only needs ordered and sent quantities for the items and delivered columns — keep the payload slim.
-        $lineRelation = $context->section === 'overview' ? 'lines:id,order_id,quantity,dispatched' : 'lines';
+        $lineRelation = $context->section === 'overview' && $context->isStaff ? 'lines:id,order_id,quantity,dispatched' : 'lines';
         $orderWith = ['user:id,name,dealer_code,role,phone,division,district', $lineRelation];
         // Partners see which branch is sending their order; only the name and code are loaded.
         if (Schema::hasColumn('orders', 'fulfillment_branch_id')) {
             $orderWith[] = 'fulfillmentBranch:id,name,code';
         }
         // The side panel opened from a row shows these without asking the server again.
-        if ($usesSharedTable) {
+        if ($usesSharedTable || ! $context->isStaff) {
             $orderWith[] = 'paymentClaims:id,order_id,channel,reference,amount,status';
             $orderWith[] = 'shipments:id,order_id,courier,courier_provider,tracking,status,courier_status,courier_booking_status';
         }

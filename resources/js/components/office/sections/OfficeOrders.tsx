@@ -126,10 +126,14 @@ export function OrderDrawer({ order, onClose }: { order: Row; onClose: () => voi
     const { portalBase: base, auth, staffActions } = usePage<any>().props;
     const caps: string[] = auth.capabilities;
     const mayPrintLabel = caps.includes('inventory') && (staffActions?.inventory?.edit ?? true) && auth.user.id !== order.user_id && ['approved', 'partially_dispatched', 'dispatched'].includes(order.status);
+    const isOwnOrder = auth.user.id === order.user_id;
     const facts: [string, React.ReactNode][] = [
-        [translate('portal', 'col_partner'), [order.user?.name, order.user?.dealer_code].filter(Boolean).join(' · ')],
-        [translate('portal', 'ops_fld_phone'), order.user?.phone],
-        [translate('portal', 'col_area'), [order.user?.district, order.user?.division].filter(Boolean).join(', ')],
+        ...(isOwnOrder ? [] : [
+            [translate('portal', 'col_partner'), [order.user?.name, order.user?.dealer_code].filter(Boolean).join(' · ')],
+            [translate('portal', 'ops_fld_phone'), order.user?.phone],
+            [translate('portal', 'col_area'), [order.user?.district, order.user?.division].filter(Boolean).join(', ')],
+        ] as [string, React.ReactNode][]),
+        [translate('portal', 'col_date'), order.created_at ? date(order.created_at) : null],
         [translate('portal', 'col_branch'), order.fulfillment_branch?.name],
         [translate('office_orders', 'detail_reason'), CLOSED_STATUSES.includes(order.status) ? order.decision_reason : null],
     ];

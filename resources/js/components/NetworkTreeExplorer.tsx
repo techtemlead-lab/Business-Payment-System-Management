@@ -57,6 +57,7 @@ function salesOf(d: DealerNode): number {
 
 const rankBadgeStyles: Record<string, { labelKey: string; tone: string }> = {
     dealer: { labelKey: 'net_badge_dealer', tone: 'tone-neutral' },
+    sub_dealer: { labelKey: 'net_badge_sub_dealer', tone: 'tone-neutral' },
     mo: { labelKey: 'net_badge_mo', tone: 'tone-ok' },
     am: { labelKey: 'net_badge_am', tone: 'tone-info' },
     sm: { labelKey: 'net_badge_sm', tone: 'tone-violet' },
@@ -135,6 +136,27 @@ export default function NetworkTreeExplorer({ dealers, treeStats = null }: Netwo
         });
     }, [dealers, searchQuery, rankFilter]);
 
+    const isFiltering = searchQuery !== '' || rankFilter !== 'all';
+
+    /** While searching: the people who match and everyone above them, so each match stays in its branch. */
+    const shownInTree = useMemo(() => {
+        if (!isFiltering) {
+            return null;
+        }
+        const shown = new Set<number>();
+        filteredDealers.forEach(match => {
+            let person: DealerNode | undefined = match;
+            while (person && !shown.has(person.id)) {
+                shown.add(person.id);
+                person = person.sponsor_id ? dealerMap[person.sponsor_id] : undefined;
+            }
+        });
+
+        return shown;
+    }, [isFiltering, filteredDealers, dealerMap]);
+
+    const treeRoots = shownInTree ? roots.filter(root => shownInTree.has(root.id)) : roots;
+
     // Calculate network tree stats
     const stats = useMemo(() => {
         if (treeStats) {
@@ -169,7 +191,8 @@ export default function NetworkTreeExplorer({ dealers, treeStats = null }: Netwo
     // Recursive tree node renderer
     const renderTreeNode = (dealer: DealerNode, depth: number = 0) => {
         const children = childrenMap[dealer.id] || [];
-        const isCollapsed = !!collapsedNodes[dealer.id];
+        const shownChildren = shownInTree ? children.filter(child => shownInTree.has(child.id)) : children;
+        const isCollapsed = !shownInTree && !!collapsedNodes[dealer.id];
         const isSelected = selectedDealerId === dealer.id;
         const badge = rankBadgeStyles[dealer.rank] || rankBadgeStyles.dealer;
         const directCount = dealer.direct_count ?? children.length;
@@ -253,9 +276,9 @@ export default function NetworkTreeExplorer({ dealers, treeStats = null }: Netwo
                     </div>
                 </div>
 
-                {!isCollapsed && children.length > 0 && (
+                {!isCollapsed && shownChildren.length > 0 && (
                     <div className="ntx-branch">
-                        {children.map(child => renderTreeNode(child, depth + 1))}
+                        {shownChildren.map(child => renderTreeNode(child, depth + 1))}
                     </div>
                 )}
             </div>
@@ -329,6 +352,7 @@ export default function NetworkTreeExplorer({ dealers, treeStats = null }: Netwo
                         >
                             <option value="all">{translate('portal','net_all_ranks')}</option>
                             <option value="dealer">{translate('portal','acct_role_dealer')}</option>
+                            <option value="sub_dealer">{translate('portal','acct_role_sub_dealer')}</option>
                             <option value="mo">{translate('portal','net_rank_mo')}</option>
                             <option value="am">{translate('portal','net_rank_am')}</option>
                             <option value="sm">{translate('portal','net_rank_sm')}</option>
@@ -413,11 +437,11 @@ export default function NetworkTreeExplorer({ dealers, treeStats = null }: Netwo
                         <div className="ntx-forest">
                             {focusedRootId ? (
                                 dealerMap[focusedRootId] ? renderTreeNode(dealerMap[focusedRootId], 0) : <p>{translate('portal','net_root_missing')}</p>
-                            ) : roots.length > 0 ? (
-                                roots.map(rootNode => renderTreeNode(rootNode, 0))
+                            ) : treeRoots.length > 0 ? (
+                                treeRoots.map(rootNode => renderTreeNode(rootNode, 0))
                             ) : (
                                 <div className="hub-empty is-plain ntx-empty">
-                                    {translate('portal','net_no_roots')}
+                                    {translate('portal', isFiltering ? 'net_no_match' : 'net_no_roots')}
                                 </div>
                             )}
                         </div>
@@ -435,16 +459,9 @@ export default function NetworkTreeExplorer({ dealers, treeStats = null }: Netwo
                                     render: (d: DealerNode) => (
                                         <div>
                                             <div className="hub-strong">{d.name}</div>
-                                            <div className="ops-meta">{d.phone || translate('portal', 'net_no_phone')}</div>
+                                            <div className="ops-meta">{d.dealer_code || '—'} · {d.phone || translate('portal', 'net_no_phone')}</div>
                                         </div>
                                     ),
-                                },
-                                {
-                                    key: 'dealer_code',
-                                    title: translate('portal', 'net_code'),
-                                    sortable: true,
-                                    sortValue: (d: DealerNode) => d.dealer_code || '',
-                                    render: (d: DealerNode) => <span className="ops-semibold">{d.dealer_code || '—'}</span>,
                                 },
                                 {
                                     key: 'rank',
@@ -483,38 +500,6 @@ export default function NetworkTreeExplorer({ dealers, treeStats = null }: Netwo
                                         </span>
                                     ),
                                 },
-                                {
-                                    key: 'sales_month',
-                                    title: translate('portal', 'net_sales_month'),
-                                    sortable: true,
-                                    align: 'right',
-                                    sortValue: (d: DealerNode) => Number(d.sales_month) || 0,
-                                    render: (d: DealerNode) => money(d.sales_month ?? 0),
-                                },
-                                {
-                                    key: 'qualifying_volume_month',
-                                    title: translate('portal', 'net_qualifying_volume_month'),
-                                    sortable: true,
-                                    align: 'right',
-                                    sortValue: (d: DealerNode) => Number(d.qualifying_volume_month) || 0,
-                                    render: (d: DealerNode) => money(d.qualifying_volume_month ?? 0),
-                                },
-                                {
-                                    key: 'sponsor_earned',
-                                    title: translate('portal', 'net_referrer_earned'),
-                                    sortable: true,
-                                    align: 'right',
-                                    sortValue: (d: DealerNode) => Number(d.sponsor_earned) || 0,
-                                    render: (d: DealerNode) => d.sponsor_id ? <span className="tone-ok">{money(d.sponsor_earned ?? 0)}</span> : '—',
-                                },
-                                ...(showsViewerEarnings ? [{
-                                    key: 'viewer_earned',
-                                    title: translate('portal', 'net_you_earned'),
-                                    sortable: true,
-                                    align: 'right' as const,
-                                    sortValue: (d: DealerNode) => Number(d.viewer_earned) || 0,
-                                    render: (d: DealerNode) => d.id === viewerId ? '—' : <b className="tone-ok">{money(d.viewer_earned ?? 0)}</b>,
-                                }] : []),
                                 {
                                     key: 'directs',
                                     title: translate('portal', 'net_directs'),
