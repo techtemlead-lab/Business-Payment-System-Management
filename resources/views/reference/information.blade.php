@@ -337,7 +337,9 @@
         <p>{{ $chrome('partnership_cta_body', $siteCustomization['partnership_cta_body'] ?? null) }}</p>
     </div>
     <div class="ref-information-links">
-        <a href="{{ $siteCustomization['partnership_cta_link'] ?? '#partner-apply' }}" class="ref-primary-button">{{ $chrome('partnership_cta_btn', $siteCustomization['partnership_cta_btn'] ?? null) }}</a>
+        @if($partnershipCta = \App\Support\SiteCustomization::publicHref($siteCustomization['partnership_cta_link'] ?? '#partner-apply'))
+        <a href="{{ $partnershipCta }}" class="ref-primary-button">{{ $chrome('partnership_cta_btn', $siteCustomization['partnership_cta_btn'] ?? null) }}</a>
+        @endif
         @if($publicPageEnabled['dealers'] ?? true)
         <a href="/dealers" class="ref-secondary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ __('site.find_a_dealer') }}</a>
         @endif
