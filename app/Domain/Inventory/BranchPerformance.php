@@ -7,16 +7,16 @@ use App\Models\CompanyBranch;
 use App\Models\User;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
+use Generator;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 final class BranchPerformance
 {
-    /** How many of the period's latest orders the report lists; totals always cover every order. */
-    public const RecentOrderLimit = 200;
-
     /**
-     * @return array{from:string,to:string,label:string,timezone:string}
+     * @return array{period:string,from:string,to:string,label:string,timezone:string,from_utc:CarbonImmutable,to_utc_exclusive:CarbonImmutable}
      */
     public function resolvePeriod(?string $period, ?string $from, ?string $to): array
     {
@@ -56,9 +56,10 @@ final class BranchPerformance
     /**
      * Owner/staff financial snapshot per company branch for a period.
      *
-     * Totals come from SQL sums over every confirmed order in the period (the same
-     * {@see OrderListFilter::Confirmed} rule the staff dashboard and sales reports use),
-     * so they stay right however many orders there are. Only the order list is capped.
+     * Branch figures and the grand totals come from SQL sums over every confirmed order
+     * in the period (the same {@see OrderListFilter::Confirmed} rule the staff dashboard
+     * and sales reports use), so they stay right however many orders there are. The order
+     * list below them is paged on the server, 25 orders at a time.
      *
      * Staff who may not view every branch see only the branches they are assigned to
      * ({@see BranchOperations::visibleBranches()}); asking for any other branch is refused.
@@ -69,48 +70,16 @@ final class BranchPerformance
      *   totals: array<string, mixed>,
      *   branches: list<array<string, mixed>>,
      *   unassigned: array<string, mixed>,
-     *   orders: list<array<string, mixed>>,
+     *   orders: LengthAwarePaginator<int, array<string, mixed>>,
      *   selected_branch_id: int|null,
      *   can_view_all_branches: bool,
      *   branch_options: list<array<string, mixed>>
      * }
      */
-    public function summary(User $actor, array $filters = []): array
+    public function summary(User $actor, array $filters = [], int $perPage = 25): array
     {
-        abort_unless($actor->owner() || $actor->allows('reports') || $actor->allows('finance') || $actor->allows('inventory'), 403);
-
-        $period = $this->resolvePeriod(
-            isset($filters['period']) ? (string) $filters['period'] : null,
-            isset($filters['from']) ? (string) $filters['from'] : null,
-            isset($filters['to']) ? (string) $filters['to'] : null,
-        );
-
-        $branchOperations = app(BranchOperations::class);
-        $canViewAllBranches = $branchOperations->canViewAllBranches($actor);
-        $branches = $branchOperations->visibleBranches($actor)->keyBy('id');
-
-        $branchFilter = isset($filters['branch_id']) ? (int) $filters['branch_id'] : null;
-        if ($branchFilter !== null && $branchFilter < 1) {
-            $branchFilter = null;
-        }
-        if ($branchFilter === null && ($filters['follow_workspace_branch'] ?? false)) {
-            $branchFilter = $branchOperations->preferredAmong($branches->values(), $actor)?->id;
-        }
-        abort_if($branchFilter !== null && ! $branches->has($branchFilter), 403);
-
-        $confirmedOrders = DB::table('orders as o')
-            ->whereIn('o.status', OrderListFilter::Confirmed)
-            ->where('o.created_at', '>=', $period['from_utc'])
-            ->where('o.created_at', '<', $period['to_utc_exclusive'])
-            ->when(
-                $branchFilter !== null,
-                fn (Builder $orders) => $orders->where('o.fulfillment_branch_id', $branchFilter),
-                fn (Builder $orders) => $orders->when(
-                    ! $canViewAllBranches,
-                    fn (Builder $scoped) => $scoped->whereIn('o.fulfillment_branch_id', $branches->keys()->all()),
-                ),
-            )
-            ->leftJoinLateral($this->orderCostQuery(), 'lc');
+        ['period' => $period, 'branch_id' => $branchFilter, 'branches' => $branches, 'can_view_all_branches' => $canViewAllBranches] = $this->reportScope($actor, $filters);
+        $confirmedOrders = $this->confirmedOrders($period, $branchFilter, $branches, $canViewAllBranches);
 
         $bucket = [];
         foreach ($branches as $branch) {
@@ -151,49 +120,6 @@ final class BranchPerformance
             }
         }
 
-        $recentOrders = (clone $confirmedOrders)
-            ->leftJoin('users as u', 'u.id', '=', 'o.user_id')
-            ->orderByDesc('o.created_at')
-            ->limit(self::RecentOrderLimit)
-            ->get([
-                'o.id',
-                'o.number',
-                'o.status',
-                'o.total',
-                'o.paid',
-                'o.due_credit',
-                'o.fulfillment_branch_id',
-                'o.created_at',
-                'u.name as partner_name',
-                'u.dealer_code',
-                DB::raw('COALESCE(lc.estimated_profit, 0) AS estimated_profit'),
-                DB::raw('COALESCE(lc.estimated_cost, 0) AS estimated_cost'),
-            ]);
-
-        $ordersOut = [];
-        foreach ($recentOrders as $order) {
-            $branchId = $order->fulfillment_branch_id !== null ? (int) $order->fulfillment_branch_id : null;
-            $outstandingCents = Money::cents((string) $order->total)
-                - Money::cents((string) $order->paid)
-                - Money::cents((string) ($order->due_credit ?? '0'));
-            $ordersOut[] = [
-                'id' => $order->id,
-                'number' => $order->number,
-                'status' => $order->status,
-                'partner_name' => $order->partner_name,
-                'dealer_code' => $order->dealer_code,
-                'total' => Money::decimal(Money::cents((string) $order->total)),
-                'paid' => Money::decimal(Money::cents((string) $order->paid)),
-                'outstanding' => Money::decimal(max($outstandingCents, 0)),
-                'estimated_profit' => $this->signedDecimal($this->signedCents($order->estimated_profit)),
-                'estimated_cost' => $this->signedDecimal($this->signedCents($order->estimated_cost)),
-                'fulfillment_branch_id' => $branchId,
-                'branch_code' => $branchId && isset($branches[$branchId]) ? $branches[$branchId]->code : null,
-                'branch_name' => $branchId && isset($branches[$branchId]) ? $branches[$branchId]->name : __('portal.branch_unassigned'),
-                'created_at' => CarbonImmutable::parse($order->created_at)->timezone($period['timezone'])->toIso8601String(),
-            ];
-        }
-
         $branchSummaries = array_values(array_map(fn (array $row) => $this->finalizeMetrics($row), $bucket));
         usort($branchSummaries, fn (array $a, array $b) => $b['order_value_cents'] <=> $a['order_value_cents']);
 
@@ -207,6 +133,12 @@ final class BranchPerformance
             $totals['cost_cents'] += $row['cost_cents'];
         }
 
+        // The branch figures already counted the orders, so the page needs no count query of its own.
+        $orders = $this->listedOrders($confirmedOrders)
+            ->paginate($perPage, ['*'], 'page', null, (int) $totals['order_count'])
+            ->withQueryString();
+        $orders->setCollection($orders->getCollection()->map(fn (object $order): array => $this->orderRow($order, $branches, $period['timezone'])));
+
         return [
             'period' => [
                 'period' => $period['period'],
@@ -218,10 +150,138 @@ final class BranchPerformance
             'totals' => $this->finalizeMetrics($totals),
             'branches' => $branchSummaries,
             'unassigned' => $this->finalizeMetrics($unassigned),
-            'orders' => $ordersOut,
+            'orders' => $orders,
             'selected_branch_id' => $branchFilter,
             'can_view_all_branches' => $canViewAllBranches,
             'branch_options' => $branches->values()->map(fn (CompanyBranch $branch) => $branch->summary())->all(),
+        ];
+    }
+
+    /**
+     * Every order behind the report for these filters, newest first, for the Excel download.
+     *
+     * @param  array{period?:string|null,from?:string|null,to?:string|null,branch_id?:int|string|null,follow_workspace_branch?:bool}  $filters
+     * @return Generator<int, array<string, mixed>>
+     */
+    public function orderRows(User $actor, array $filters = []): Generator
+    {
+        ['period' => $period, 'branch_id' => $branchFilter, 'branches' => $branches, 'can_view_all_branches' => $canViewAllBranches] = $this->reportScope($actor, $filters);
+        foreach ($this->listedOrders($this->confirmedOrders($period, $branchFilter, $branches, $canViewAllBranches))->lazy(500) as $order) {
+            yield $this->orderRow($order, $branches, $period['timezone']);
+        }
+    }
+
+    /**
+     * The period, the branch and the branches this reader may see for these filters.
+     * Refuses a branch they may not see.
+     *
+     * @param  array{period?:string|null,from?:string|null,to?:string|null,branch_id?:int|string|null,follow_workspace_branch?:bool}  $filters
+     * @return array{period: array{period:string,from:string,to:string,label:string,timezone:string,from_utc:CarbonImmutable,to_utc_exclusive:CarbonImmutable}, branch_id: int|null, branches: Collection<int, CompanyBranch>, can_view_all_branches: bool}
+     */
+    public function reportScope(User $actor, array $filters): array
+    {
+        abort_unless($actor->owner() || $actor->allows('reports') || $actor->allows('finance') || $actor->allows('inventory'), 403);
+
+        $period = $this->resolvePeriod(
+            isset($filters['period']) ? (string) $filters['period'] : null,
+            isset($filters['from']) ? (string) $filters['from'] : null,
+            isset($filters['to']) ? (string) $filters['to'] : null,
+        );
+
+        $branchOperations = app(BranchOperations::class);
+        $branches = $branchOperations->visibleBranches($actor)->keyBy('id');
+
+        $branchFilter = isset($filters['branch_id']) ? (int) $filters['branch_id'] : null;
+        if ($branchFilter !== null && $branchFilter < 1) {
+            $branchFilter = null;
+        }
+        if ($branchFilter === null && ($filters['follow_workspace_branch'] ?? false)) {
+            $branchFilter = $branchOperations->preferredAmong($branches->values(), $actor)?->id;
+        }
+        abort_if($branchFilter !== null && ! $branches->has($branchFilter), 403);
+
+        return [
+            'period' => $period,
+            'branch_id' => $branchFilter,
+            'branches' => $branches,
+            'can_view_all_branches' => $branchOperations->canViewAllBranches($actor),
+        ];
+    }
+
+    /**
+     * Every confirmed order in the period for the chosen branch, joined to its estimated cost and profit.
+     *
+     * @param  array{from_utc:CarbonImmutable,to_utc_exclusive:CarbonImmutable}  $period
+     * @param  Collection<int, CompanyBranch>  $branches
+     */
+    private function confirmedOrders(array $period, ?int $branchFilter, Collection $branches, bool $canViewAllBranches): Builder
+    {
+        return DB::table('orders as o')
+            ->whereIn('o.status', OrderListFilter::Confirmed)
+            ->where('o.created_at', '>=', $period['from_utc'])
+            ->where('o.created_at', '<', $period['to_utc_exclusive'])
+            ->when(
+                $branchFilter !== null,
+                fn (Builder $orders) => $orders->where('o.fulfillment_branch_id', $branchFilter),
+                fn (Builder $orders) => $orders->when(
+                    ! $canViewAllBranches,
+                    fn (Builder $scoped) => $scoped->whereIn('o.fulfillment_branch_id', $branches->keys()->all()),
+                ),
+            )
+            ->leftJoinLateral($this->orderCostQuery(), 'lc');
+    }
+
+    /**
+     * The confirmed orders with partner details and money columns, newest first.
+     */
+    private function listedOrders(Builder $confirmedOrders): Builder
+    {
+        return (clone $confirmedOrders)
+            ->leftJoin('users as u', 'u.id', '=', 'o.user_id')
+            ->select([
+                'o.id',
+                'o.number',
+                'o.status',
+                'o.total',
+                'o.paid',
+                'o.due_credit',
+                'o.fulfillment_branch_id',
+                'o.created_at',
+                'u.name as partner_name',
+                'u.dealer_code',
+                DB::raw('COALESCE(lc.estimated_profit, 0) AS estimated_profit'),
+                DB::raw('COALESCE(lc.estimated_cost, 0) AS estimated_cost'),
+            ])
+            ->orderByDesc('o.created_at')
+            ->orderByDesc('o.id');
+    }
+
+    /**
+     * @param  Collection<int, CompanyBranch>  $branches
+     * @return array<string, mixed>
+     */
+    private function orderRow(object $order, Collection $branches, string $timezone): array
+    {
+        $branchId = $order->fulfillment_branch_id !== null ? (int) $order->fulfillment_branch_id : null;
+        $outstandingCents = Money::cents((string) $order->total)
+            - Money::cents((string) $order->paid)
+            - Money::cents((string) ($order->due_credit ?? '0'));
+
+        return [
+            'id' => $order->id,
+            'number' => $order->number,
+            'status' => $order->status,
+            'partner_name' => $order->partner_name,
+            'dealer_code' => $order->dealer_code,
+            'total' => Money::decimal(Money::cents((string) $order->total)),
+            'paid' => Money::decimal(Money::cents((string) $order->paid)),
+            'outstanding' => Money::decimal(max($outstandingCents, 0)),
+            'estimated_profit' => $this->signedDecimal($this->signedCents($order->estimated_profit)),
+            'estimated_cost' => $this->signedDecimal($this->signedCents($order->estimated_cost)),
+            'fulfillment_branch_id' => $branchId,
+            'branch_code' => $branchId && isset($branches[$branchId]) ? $branches[$branchId]->code : null,
+            'branch_name' => $branchId && isset($branches[$branchId]) ? $branches[$branchId]->name : __('portal.branch_unassigned'),
+            'created_at' => CarbonImmutable::parse($order->created_at)->timezone($timezone)->toIso8601String(),
         ];
     }
 

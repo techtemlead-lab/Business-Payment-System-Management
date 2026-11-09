@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccountListExportController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BranchController;
+use App\Http\Controllers\BranchPerformanceExportController;
 use App\Http\Controllers\ClinicRecordsController;
 use App\Http\Controllers\CommandController;
 use App\Http\Controllers\CourierShipmentController;
@@ -77,6 +78,7 @@ return function (string $portal): void {
     Route::get('/exports/genealogy', [ReportController::class, 'genealogy'])->middleware('throttle:5,1');
     Route::get('/exports/accounts', AccountListExportController::class)->middleware('throttle:5,1');
     Route::get('/exports/stock-movements', StockMovementExportController::class)->middleware('throttle:5,1');
+    Route::get('/exports/branch-performance', BranchPerformanceExportController::class)->middleware('throttle:5,1');
 
     Route::post('/commands/orders/{order}/decision', [CommandController::class, 'decision']);
     Route::post('/commands/orders/{order}/dispatch', [CommandController::class, 'dispatch']);
