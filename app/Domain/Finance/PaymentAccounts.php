@@ -37,7 +37,8 @@ final class PaymentAccounts
 
         return in_array($actor->role, ['dealer', 'sub_dealer'], true)
             || $actor->allows('finance')
-            || $actor->allows('orders');
+            || $actor->allows('orders')
+            || $actor->allows('sr_orders');
     }
 
     /** @param array<string, mixed> $data */
