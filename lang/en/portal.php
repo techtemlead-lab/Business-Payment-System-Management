@@ -6554,7 +6554,7 @@ return [
     'branch_perf_no_orders' => 'No orders in this period.',
     'branch_perf_export_hint' => 'Every order in this period and branch, not only this page',
     'branch_perf_export_note_label' => 'Note',
-    'branch_perf_export_note' => 'Orders counts approved, sent and delivered orders. Order value totals, money collected and profit count delivered goods only, and only the delivered part of a partly delivered order. Awaiting payment is what is still unpaid. Estimated profit uses the cost saved with each order.',
+    'branch_perf_export_note' => 'The list holds approved, sent and delivered orders. Order value, money collected and profit count delivered goods only, and only the delivered part of a partly delivered order. Ordered is the full price of the order. Awaiting payment is what is still unpaid. Estimated profit uses the cost saved with each order.',
     'reward_program_additional_rank' => 'additional rank',
     'content_page_home' => 'Home page',
     'content_page_about' => 'About us',

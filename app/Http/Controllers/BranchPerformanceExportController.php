@@ -36,10 +36,11 @@ class BranchPerformanceExportController extends Controller
             ['key' => 'branch', 'label' => $label('col_branch')],
             ['key' => 'status', 'label' => $label('col_status')],
             ['key' => 'date', 'label' => $label('col_date')],
-            ['key' => 'total', 'label' => $label('branch_perf_order_value'), 'type' => 'money', 'total' => true],
-            ['key' => 'paid', 'label' => $label('branch_perf_income'), 'type' => 'money', 'total' => true],
+            ['key' => 'delivered_value', 'label' => $label('branch_perf_order_value'), 'type' => 'money', 'total' => true],
+            ['key' => 'delivered_paid', 'label' => $label('branch_perf_income'), 'type' => 'money', 'total' => true],
             ['key' => 'outstanding', 'label' => $label('branch_perf_outstanding'), 'type' => 'money', 'total' => true],
             ['key' => 'estimated_profit', 'label' => $label('branch_perf_profit'), 'type' => 'money', 'total' => true],
+            ['key' => 'total', 'label' => $label('report_col_ordered'), 'type' => 'money'],
         ];
         Audit::record($user->id, 'report.exported', 'branch-performance', ['from' => $period['from'], 'to' => $period['to'], 'branch_id' => $branchId]);
         $branchName = match (true) {
