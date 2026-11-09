@@ -57,7 +57,8 @@
 .app-shell .office-figure.is-active{border-color:var(--ds-brand);background:var(--ds-brand-soft)}
 
 /* Choice between two views of one page. */
-.app-shell .office-switch{display:inline-flex;align-self:flex-start;max-width:100%;overflow-x:auto;padding:3px;background:var(--ds-surface-3);border-radius:var(--ds-r-md)}
+.app-shell .office-switch{position:relative;display:inline-flex;align-self:flex-start;max-width:100%;overflow-x:auto;scrollbar-width:none;padding:3px;background:var(--ds-surface-3);border-radius:var(--ds-r-md)}
+.app-shell .office-switch::-webkit-scrollbar{display:none}
 .app-shell .office-switch a{display:inline-flex;align-items:center;min-height:36px;padding:0 var(--ds-s-4);border-radius:var(--ds-r-sm);font-size:var(--ds-fs-sm);font-weight:600;color:var(--ds-text-muted);white-space:nowrap}
 .app-shell .office-switch a.is-active{background:var(--ds-surface);color:var(--ds-text);box-shadow:var(--ds-shadow-xs)}
 .app-shell .office-switch a:focus-visible{outline:2px solid var(--ds-brand);outline-offset:1px}

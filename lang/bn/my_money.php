@@ -45,6 +45,7 @@ return [
     'downloads' => 'ফাইল নামান',
     'full_report_pdf' => 'পুরো রিপোর্ট (PDF)',
     'certificate_year' => 'সনদের বছর',
+    'receipt_number' => 'রসিদ :number',
     'take_money' => 'ব্যাংক বা মোবাইলে নিন',
     'order_with_money' => 'এই টাকায় অর্ডার করুন',
     'below_minimum' => 'কমপক্ষে :amount থাকলে টাকা তোলা যাবে',

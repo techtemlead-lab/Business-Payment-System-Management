@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
 /**
@@ -64,6 +65,39 @@ class LeaderListPaginationTest extends TestCase
         $this->assertCount(self::Leaders - ListPage::PerPage, $this->pageProp('/treasury/funds/car_bike?page=2', 'table')['rows']['data']);
         $found = $this->pageProp('/treasury/funds/car_bike?q=RW-012', 'table');
         $this->assertSame(['RW-012'], array_column($found['rows']['data'], 'order_number'));
+    }
+
+    public function test_car_and_bike_fund_page_sends_only_the_leaders_tab_on_screen_one_page_at_a_time(): void
+    {
+        $leaders = $this->leaders(self::Leaders);
+        foreach ($leaders as $index => $leader) {
+            DB::table('users')->where('id', $leader->id)->update(['dealer_code' => sprintf('LD-%03d', $index + 1)]);
+            $this->milestone($leader, 'bike', 1000 * ($index + 1));
+        }
+        foreach ($leaders->take(3) as $leader) {
+            $this->milestone($leader, 'car', 500);
+        }
+
+        $bike = $this->pageProp('/treasury/funds/car_bike?view=bike', 'table');
+        $this->assertCount(ListPage::PerPage, $bike['rows']['data']);
+        $this->assertSame(self::Leaders, $bike['rows']['total']);
+        $this->assertEquals(['bike' => self::Leaders, 'car' => 3], $this->pageProp('/treasury/funds/car_bike?view=bike', 'leaders')['counts']);
+        $this->assertSame('Leader 30', $bike['rows']['data'][0]['partner_name'], 'Highest qualifying volume first.');
+        $this->assertSame('30000.00', $bike['rows']['data'][0]['qualifying_volume']);
+
+        $this->assertCount(self::Leaders - ListPage::PerPage, $this->pageProp('/treasury/funds/car_bike?view=bike&page=2', 'table')['rows']['data']);
+        $car = $this->pageProp('/treasury/funds/car_bike?view=car', 'table');
+        $this->assertCount(3, $car['rows']['data'], 'The other award is not sent.');
+        $this->assertSame(1, $this->pageProp('/treasury/funds/car_bike?view=bike&q=leader+12', 'table')['rows']['total']);
+
+        $byName = $this->pageProp('/treasury/funds/car_bike?view=bike&sort=name&dir=asc', 'table');
+        $this->assertSame('Leader 1', $byName['rows']['data'][0]['partner_name'], 'Sorting by a column covers every page.');
+    }
+
+    public function test_leaders_tabs_belong_only_to_the_car_and_bike_fund(): void
+    {
+        $this->actingAs($this->owner)->onPortal('sadmin')->get('/treasury/funds/marketing?view=bike')->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('view', 'in')->where('leaders', null));
     }
 
     public function test_month_closing_lists_are_paged_and_the_counts_cover_every_leader(): void
@@ -125,6 +159,15 @@ class LeaderListPaginationTest extends TestCase
         }
 
         return $leaders;
+    }
+
+    private function milestone(User $user, string $type, int $volume): void
+    {
+        DB::table('reward_milestone_progress')->insert([
+            'user_id' => $user->id, 'milestone_type' => $type, 'target_amount' => '5000000.00', 'leg_cap_amount' => '800000.00',
+            'raw_team_volume' => $volume, 'qualifying_volume' => $volume, 'leg_breakdown' => json_encode([]),
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
     }
 
     private function carBikeFundRow(User $leader, string $orderNumber): void

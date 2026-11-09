@@ -238,7 +238,7 @@ class PortalQueryBudgetTest extends TestCase
         };
         $this->rankLeaders(2);
         $bikeProgress();
-        $pages = ['/ranks' => 'data.ranks', '/area-dealers' => 'data.assignments', '/settlements' => 'data.settlement_state.qualified_rank_leaders'];
+        $pages = ['/ranks' => 'data.ranks', '/treasury/funds/car_bike?view=bike' => 'table.rows', '/area-dealers' => 'data.assignments', '/settlements' => 'data.settlement_state.qualified_rank_leaders'];
         $before = [];
         foreach (array_keys($pages) as $path) {
             [$response, $before[$path]] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get($path));

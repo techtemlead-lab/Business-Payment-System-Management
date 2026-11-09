@@ -2714,10 +2714,10 @@ html[data-theme="dark"] .app-shell select:not([multiple]):not([style*="backgroun
 .app-shell .badge:is(.submitted,.new,.open,.info){background:var(--ds-info-bg);color:var(--ds-info-fg)}
 .app-shell .badge:is(.pending,.requested,.unpaid,.awaiting,.waiting,.scheduled,.due){background:var(--ds-warn-bg);color:var(--ds-warn-fg)}
 .app-shell .badge:is(.held,.on_hold,.partial,.partially_paid,.overdue,.flagged){background:var(--ds-orange-bg);color:var(--ds-orange-fg)}
-.app-shell .badge:is(.approved,.verified,.confirmed,.accepted){background:var(--ds-teal-bg);color:var(--ds-teal-fg)}
+.app-shell .badge:is(.approved,.verified,.confirmed,.accepted,.reached){background:var(--ds-teal-bg);color:var(--ds-teal-fg)}
 .app-shell .badge:is(.partially_dispatched,.partly_delivered,.in_progress,.processing,.contacted,.packed,.ready){background:var(--ds-partial-bg);color:var(--ds-partial-fg)}
 .app-shell .badge:is(.dispatched,.shipped,.in_transit,.out_for_delivery){background:var(--ds-transit-bg);color:var(--ds-transit-fg)}
-.app-shell .badge:is(.delivered,.paid,.completed,.complete,.resolved,.active,.published,.success,.settled,.disbursed,.released){background:var(--ds-ok-bg);color:var(--ds-ok-fg)}
+.app-shell .badge:is(.delivered,.paid,.completed,.complete,.resolved,.active,.published,.success,.settled,.disbursed,.released,.given){background:var(--ds-ok-bg);color:var(--ds-ok-fg)}
 .app-shell .badge:is(.rejected,.failed,.suspended,.blocked,.declined,.error,.reversed,.bounced){background:var(--ds-danger-bg);color:var(--ds-danger-fg)}
 .app-shell .badge:is(.cancelled,.canceled,.closed,.inactive,.draft,.expired,.archived,.void,.disabled){background:var(--ds-neutral-bg);color:var(--ds-neutral-fg)}
 .app-shell .badge:is(.cancelled,.canceled,.void)::before{border-radius:1px;height:2px;width:7px}

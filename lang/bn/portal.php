@@ -4133,6 +4133,8 @@ return [
     'archive_btn' => 'আর্কাইভ করুন',
     'retail_mrp' => 'খুচরা মূল্য (MRP)',
     'status_in_progress' => 'কাজ চলছে',
+    'status_reached' => 'টার্গেট পূরণ',
+    'status_given' => 'পুরস্কার দেওয়া হয়েছে',
     'status_processing' => 'যাচাই চলছে',
     'cart_remove_item' => 'সরান',
     'status_resolved' => 'সমাধান হয়েছে',
