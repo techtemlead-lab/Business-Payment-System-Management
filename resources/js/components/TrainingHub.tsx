@@ -397,7 +397,7 @@ function TrainingForm({ data, item, onDone }: { data: StaffData; item: TrainingI
     const keepingPdf = item?.type === 'pdf' && item.pdf_name;
     return (
         <form className="action-form training-form" onSubmit={submit}>
-            <FormErrors errors={form.errors} />
+            <FormErrors errors={form.errors} besideFields={['title_bn', 'title_en', 'summary', 'body', 'video_url', 'video_file', 'pdf']} />
             <label>{translate('portal', 'training_field_title_bn')}
                 <input type="text" lang="bn" required maxLength={200} value={form.data.title_bn} onChange={(e) => form.setData('title_bn', e.target.value)} />{error('title_bn')}
             </label>

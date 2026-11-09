@@ -6542,4 +6542,7 @@ return [
     'content_page_dealers' => 'Dealers',
     'date_format_day_month_year' => 'DD/MM/YYYY',
     'date_format_hour_minute' => 'HH:MM',
+    'file_size_mb' => ':size MB',
+    'file_size_kb' => ':size KB',
+    'err_file_too_large' => 'The :field must be :size or smaller.',
 ];

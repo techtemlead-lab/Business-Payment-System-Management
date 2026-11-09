@@ -6542,4 +6542,7 @@ return [
     'content_page_dealers' => 'ডিলার',
     'date_format_day_month_year' => 'দিন/মাস/বছর',
     'date_format_hour_minute' => 'ঘণ্টা:মিনিট',
+    'file_size_mb' => ':size এমবি',
+    'file_size_kb' => ':size কেবি',
+    'err_file_too_large' => ':field :sizeর বেশি হতে পারবে না।',
 ];

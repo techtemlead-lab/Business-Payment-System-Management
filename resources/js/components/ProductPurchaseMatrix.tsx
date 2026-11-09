@@ -898,7 +898,7 @@ export default function ProductPurchaseMatrix({
                             </label>
 
                             {/* FormErrors also keeps the page-top message quiet, so errors are not shown twice. */}
-                            <FormErrors errors={f.errors} className="error ppm-error" />
+                            <FormErrors errors={f.errors} className="error ppm-error" besideFields={['payment_account_id', 'proof', 'courier_choice']} />
 
                             <div className="ops-row is-end ops-mt-3">
                                 <button
