@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Commissions\CommissionQualification;
+use App\Domain\Inventory\BranchOperations;
 use App\Domain\Support\GuidePrerequisites;
 use App\Models\CompanyBranch;
 use App\Models\Order;
@@ -265,6 +266,25 @@ class PortalQueryBudgetTest extends TestCase
         $this->assertCount(count($queries), $moreQueries, 'Accounts list queries must not grow with the number of dealers.');
     }
 
+    public function test_stock_movement_totals_also_count_the_rows_for_the_page(): void
+    {
+        $owner = User::factory()->staff()->create();
+        $product = Product::factory()->create(['active' => true]);
+        $this->stockMovements($owner, $product, 3);
+        $url = '/inventory?period=month&product_id='.$product->id;
+        $visit = fn () => $this->actingAs($owner)->onPortal('sadmin')->withSession([BranchOperations::SessionView => 'all'])->get($url);
+        $visit()->assertOk();
+
+        [$response, $queries] = $this->measure($visit);
+        $response->assertOk()->assertInertia(fn (Assert $page) => $page->where('data.movement_totals.count', 3)->where('data.movements.total', 3));
+        $this->assertSame(1, $this->matching($queries, 'as movement_count'), 'Totals and the row count come from one query.');
+        $this->assertSame(0, $this->matching($queries, 'select count(*) as "aggregate" from "stock_movements"'), 'The page must not count the movements a second time.');
+
+        $this->stockMovements($owner, $product, 30);
+        [, $moreQueries] = $this->measure($visit);
+        $this->assertCount(count($queries), $moreQueries, 'Stock movement queries must not grow with the number of movements.');
+    }
+
     public function test_dashboard_filter_columns_are_indexed(): void
     {
         $indexes = collect(DB::select("select indexname from pg_indexes where schemaname = 'public'"))->pluck('indexname');
@@ -349,6 +369,14 @@ class PortalQueryBudgetTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+    }
+
+    private function stockMovements(User $actor, Product $product, int $count): void
+    {
+        foreach (range(1, $count) as $index) {
+            DB::table('stock_movements')->insert(['product_id' => $product->id, 'quantity' => $index % 2 === 0 ? -1 : 2, 'kind' => $index % 2 === 0 ? 'product_out' : 'product_in',
+                'reference' => (string) Str::uuid(), 'reason' => 'Count '.$index, 'actor_id' => $actor->id, 'created_at' => now(), 'updated_at' => now()]);
+        }
     }
 
     private function rankLeaders(int $count): void
