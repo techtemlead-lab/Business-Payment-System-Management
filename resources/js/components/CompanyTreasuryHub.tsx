@@ -28,6 +28,7 @@ interface CapitalFlowData {
     unallocated_pool_buffer?: number;
     commission_benefits_fund?: number;
     owner_benefits_fund_visible?: boolean;
+    books_match?: boolean;
 }
 
 interface CategoryAllocation {
@@ -43,7 +44,7 @@ interface AllocationRecord {
     category: string;
     percentage: number | string;
     amount: number | string;
-    is_settled: boolean;
+    status: string;
     created_at: string;
     user?: {
         id: number;
@@ -412,9 +413,16 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                                     {translate('portal', 'tr_flow_title')}
                                 </h3>
                             </div>
-                            <div className="hub-pill tone-ok">
-                                {translate('portal', 'tr_flow_balanced')}
-                            </div>
+                            {flow.books_match ? (
+                                <div className="hub-pill tone-ok">
+                                    {translate('portal', 'tr_flow_balanced')}
+                                </div>
+                            ) : (
+                                <div className="hub-pill tone-danger" role="status">
+                                    {translate('portal', 'tr_flow_not_balanced')}{' '}
+                                    <Link className="text-link" href={`${base}/operations/financial-readiness`}>{translate('portal', 'tr_flow_check_link')}</Link>
+                                </div>
+                            )}
                         </div>
 
                         <div className="hub-grid">
@@ -886,14 +894,10 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                                     render: (rec: AllocationRecord) => <b className="tone-brand">{money(rec.amount)}</b>,
                                 },
                                 {
-                                    key: 'is_settled',
+                                    key: 'status',
                                     title: translate('portal', 'col_status'),
                                     sortable: true,
-                                    render: (rec: AllocationRecord) => (
-                                        <span className={`badge ${rec.is_settled ? 'tone-ok' : 'tone-warn'}`}>
-                                            {rec.is_settled ? translate('portal', 'tr_status_settled') : translate('portal', 'tr_status_pending')}
-                                        </span>
-                                    ),
+                                    render: (rec: AllocationRecord) => <Badge status={rec.status} />,
                                 },
                             ]}
                         />

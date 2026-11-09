@@ -5,6 +5,7 @@ namespace App\Http\Portals\Shared\Sections;
 use App\Domain\Commissions\CommissionSettlement;
 use App\Domain\Commissions\RetainedFundLedger;
 use App\Domain\Finance\CompanyFunds;
+use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Geography\ManagementReferral;
 use App\Domain\Inventory\BranchScope;
@@ -201,19 +202,17 @@ final class FinanceSection implements WorkspaceSection
     {
         $user = $context->user;
         $props = [];
+        $receiptTotals = DB::table('receipts')->selectRaw('order_id, SUM(amount) AS collected')->groupBy('order_id');
+        // Money sent back for a paid order is no longer the company's, as the accounting page also counts it.
+        $refundTotals = DB::table('order_refunds')->selectRaw('order_id, SUM(amount) AS refunded')->groupBy('order_id');
         $collected = DB::table('orders')
             ->join('users', 'users.id', '=', 'orders.user_id')
-            ->leftJoinSub(
-                DB::table('receipts')->selectRaw('order_id, SUM(amount) AS collected')->groupBy('order_id'),
-                'receipt_totals',
-                'receipt_totals.order_id',
-                '=',
-                'orders.id',
-            )
+            ->leftJoinSub($receiptTotals, 'receipt_totals', 'receipt_totals.order_id', '=', 'orders.id')
+            ->leftJoinSub($refundTotals, 'refund_totals', 'refund_totals.order_id', '=', 'orders.id')
             ->whereIn('users.role', ['dealer', 'sub_dealer'])
             ->where('orders.is_opening_balance', false)
             ->groupBy('users.role')
-            ->selectRaw('users.role AS role, COALESCE(SUM(GREATEST(orders.paid, COALESCE(receipt_totals.collected, 0))), 0) AS amount')
+            ->selectRaw('users.role AS role, COALESCE(SUM(GREATEST(orders.paid, COALESCE(receipt_totals.collected, 0)) - COALESCE(refund_totals.refunded, 0)), 0) AS amount')
             ->pluck('amount', 'role');
         $dealerCash = (float) ($collected['dealer'] ?? 0);
         $subDealerCash = (float) ($collected['sub_dealer'] ?? 0);
@@ -251,7 +250,13 @@ final class FinanceSection implements WorkspaceSection
             'gross_cash_inflow' => $cash,
             'dealer_cash_inflow' => $dealerCash,
             'sub_dealer_cash_inflow' => $subDealerCash,
-            'channel_breakdown' => DB::table('receipts')->selectRaw('channel, SUM(amount) AS total_amount, COUNT(*) AS count')->groupBy('channel')->get(),
+            // A refund comes off the channels that order was paid through, so these add up to the total above.
+            'channel_breakdown' => DB::table('receipts')
+                ->joinSub($receiptTotals, 'receipt_totals', 'receipt_totals.order_id', '=', 'receipts.order_id')
+                ->leftJoinSub($refundTotals, 'refund_totals', 'refund_totals.order_id', '=', 'receipts.order_id')
+                ->groupBy('receipts.channel')
+                ->selectRaw('receipts.channel AS channel, ROUND(SUM(receipts.amount - COALESCE(refund_totals.refunded, 0) * receipts.amount / receipt_totals.collected), 2) AS total_amount, COUNT(*) AS count')
+                ->get(),
             'company_share_60' => round((float) $company, 2),
             'management_reserve_2' => (float) $management,
             'unassigned_territory_reserve' => (float) $unassigned,
@@ -266,6 +271,7 @@ final class FinanceSection implements WorkspaceSection
             'tds_tax_withheld' => (float) $totals->tds_tax_withheld,
             'refunded_purchase_value' => (float) $totals->refunded,
             'unclaimed_to_company_profit' => (float) $unclaimedToCompany,
+            'books_match' => app(FinancialReadiness::class)->booksMatch(),
         ];
         $ownerBenefits = $user->owner() && $context->portal === 'sadmin';
         // Owner-only: purchase surplus after company share + commissions.
