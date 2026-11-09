@@ -461,6 +461,7 @@ export function buildCustomizationFormData(customization: CustomizationData, def
             contact_phone_hours: customization.contact_phone_hours ?? defaults.contact_phone_hours ?? '',
             contact_email_title: customization.contact_email_title || '',
             contact_email: customization.contact_email || '',
+            contact_email_enabled: customization.contact_email_enabled !== undefined ? customization.contact_email_enabled : '1',
             contact_social_title: customization.contact_social_title || '',
             footer_support_icon: customization.footer_support_icon || '',
             footer_directory_icon: customization.footer_directory_icon || '',

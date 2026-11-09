@@ -232,6 +232,12 @@ final class OfficeHubs
         return $groups;
     }
 
+    /** False when no Settings link is open to this person, so the Settings page has nothing for them. */
+    public static function hasSettingsToOpen(User $user, string $portal, bool $onOfficeHost): bool
+    {
+        return self::settingsGroups($user, $portal, $onOfficeHost) !== [];
+    }
+
     /** The same check the portal page runs before it opens, for offering a link to it. */
     public static function mayOpenSection(User $user, string $portal, string $section): bool
     {

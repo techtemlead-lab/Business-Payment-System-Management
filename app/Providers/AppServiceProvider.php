@@ -127,7 +127,7 @@ class AppServiceProvider extends ServiceProvider
 
         View::composer('*', function ($view) {
             try {
-                $customization = SiteCustomization::all();
+                $customization = SiteCustomization::forPublicPages();
             } catch (\Throwable $e) {
                 $customization = SiteCustomization::defaults();
             }
