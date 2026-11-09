@@ -39,9 +39,9 @@ export function FundFigures({ card }: { card: FundCardData }) {
     return (
         <Figures
             items={[
-                { key: 'in', label: translate('treasury', 'card_in'), value: card.money_in },
-                { key: 'out', label: translate('treasury', 'card_out'), value: card.money_out },
-                { key: 'now', label: translate('treasury', 'card_now'), value: card.balance, headline: true },
+                { key: 'in', label: translate('treasury', 'came_in'), value: card.money_in },
+                { key: 'out', label: translate('treasury', 'went_out'), value: card.money_out },
+                { key: 'now', label: translate('treasury', 'in_it_now'), value: card.balance, headline: true },
             ]}
         />
     );
@@ -54,15 +54,15 @@ export default function FundCard({ card }: { card: FundCardData }) {
     return (
         <Link className="tsy-fund" href={card.href}>
             <h2>{card.name}</h2>
-            <span className="tsy-fund-label">{translate('treasury', 'card_now')}</span>
+            <span className="tsy-fund-label">{translate('treasury', 'in_it_now')}</span>
             <strong className={isNegative(card.balance) ? 'is-negative' : undefined}>{money(card.balance)}</strong>
             <dl>
                 <div>
-                    <dt>{translate('treasury', 'card_in')}</dt>
+                    <dt>{translate('treasury', 'came_in')}</dt>
                     <dd>{money(card.money_in)}</dd>
                 </div>
                 <div>
-                    <dt>{translate('treasury', 'card_out')}</dt>
+                    <dt>{translate('treasury', 'went_out')}</dt>
                     <dd>{money(card.money_out)}</dd>
                 </div>
             </dl>

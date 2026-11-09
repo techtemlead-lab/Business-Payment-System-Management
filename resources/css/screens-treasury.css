@@ -6,6 +6,13 @@
 /* The page draws its own title, so a fund or an order can be the title. */
 .app-shell .workspace-main:has(.tsy-page)>.page-heading{display:none}
 
+/* Shared table: the search icon sits beside the words, and the filter sheet is only for phones. */
+.app-shell .money-table .mt-search .search-input{flex-direction:row}
+.app-shell .money-table .mt-card-lines .cell-sub::before{content:" · "}
+@media (min-width:768px){
+  .app-shell .money-table .mt-sheet-button{display:none}
+}
+
 .app-shell .tsy-page{display:flex;flex-direction:column;gap:var(--ds-s-4);min-width:0}
 .app-shell .tsy-page>*{min-width:0}
 
@@ -68,6 +75,8 @@
 .app-shell .tsy-lines .is-money{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums lining-nums}
 .app-shell .tsy-lines tbody td[data-part="amount"]{font-weight:600}
 .app-shell .tsy-lines tfoot td{padding:14px var(--ds-s-5);font-size:var(--ds-fs-md);font-weight:700;border-top:2px solid var(--ds-line);border-bottom:0}
+.app-shell .tsy-lines td[data-part="action"]{text-align:right;white-space:nowrap}
+.app-shell .tsy-phone-only{display:none}
 
 /* Money tasks. */
 .app-shell .tsy-work{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--ds-line);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);overflow:hidden}
@@ -119,16 +128,22 @@
   /* Each line of an order becomes a small card: type and who on the left, the amount on the right. */
   .app-shell .tsy-lines thead{display:none}
   .app-shell .tsy-lines,.app-shell .tsy-lines tbody,.app-shell .tsy-lines tfoot{display:block}
-  .app-shell .tsy-lines tbody tr{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"type amount" "to amount" "rate returned";column-gap:var(--ds-s-3);row-gap:2px;padding:var(--ds-s-3) var(--ds-s-4);border-bottom:1px solid var(--ds-line-soft)}
+  .app-shell .tsy-lines tbody tr{display:grid;grid-template-columns:minmax(0,max-content) minmax(0,1fr) auto;grid-template-areas:"type rate amount" "to to amount" "to to returned" "action action action";column-gap:var(--ds-s-2);row-gap:2px;padding:var(--ds-s-3) var(--ds-s-4);border-bottom:1px solid var(--ds-line-soft)}
   .app-shell .tsy-lines tbody tr:last-child{border-bottom:0}
-  .app-shell .tsy-lines tbody td{display:block;padding:0;border:0;font-size:var(--ds-fs-sm)}
+  .app-shell .tsy-page .tsy-lines tbody td,.app-shell .tsy-page .tsy-lines tfoot td{display:block;padding:0;border:0}
+  .app-shell .tsy-lines tbody td{font-size:var(--ds-fs-sm)}
   .app-shell .tsy-lines td[data-part="type"]{grid-area:type}
   .app-shell .tsy-lines td[data-part="to"]{grid-area:to}
-  .app-shell .tsy-lines td[data-part="rate"]{grid-area:rate;font-size:var(--ds-fs-xs);color:var(--ds-text-muted)}
+  .app-shell .tsy-lines td[data-part="rate"]{grid-area:rate;color:var(--ds-text-muted)}
+  .app-shell .tsy-lines td[data-part="rate"]::before{content:"· "}
+  .app-shell .tsy-lines td[data-part="rate"].is-blank{display:none}
   .app-shell .tsy-lines td[data-part="returned"]{grid-area:returned;font-size:var(--ds-fs-xs);color:var(--ds-text-muted)}
   .app-shell .tsy-lines td[data-part="amount"]{grid-area:amount;align-self:start;font-size:var(--ds-fs-base)}
+  .app-shell .tsy-lines td[data-part="action"]{grid-area:action;justify-self:start;margin-top:var(--ds-s-2);text-align:left}
+  .app-shell .tsy-page .tsy-lines td[data-part="extra"]{display:none}
+  .app-shell .tsy-lines td.tsy-money-line{color:var(--ds-text-muted);text-align:left;white-space:normal}
+  .app-shell .tsy-phone-only{display:inline}
   .app-shell .tsy-lines tfoot tr{display:flex;justify-content:space-between;gap:var(--ds-s-3);padding:var(--ds-s-3) var(--ds-s-4);border-top:2px solid var(--ds-line)}
-  .app-shell .tsy-lines tfoot td{display:block;padding:0;border:0}
 
   .app-shell .tsy-menu-list{right:auto;left:0;max-width:calc(100vw - 32px)}
 }

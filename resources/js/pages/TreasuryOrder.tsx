@@ -42,8 +42,7 @@ type OrderMoney = {
     lines: MoneyLine[];
     lines_total: string;
     adds_up: boolean;
-    reason?: string | null;
-    amount?: string | null;
+    no_commission: { reason: string | null; amount: string } | null;
 };
 
 const STATUS_BADGE: Record<LineStatus, string> = { done: 'active', waiting: 'pending', held: 'held', moved: 'closed', returned: 'reversed' };
@@ -67,12 +66,28 @@ function WentTo({ to, reason }: { to: LineTarget; reason?: string | null }) {
     );
 }
 
-/** Where every taka of one order went: the percent, the type and who or which fund received it. */
-export default function TreasuryOrder(props: OrderMoney & { detail?: OrderMoney }) {
+/** The one plain line that says why the split below is what it is. */
+function usePostingLine({ posting, basis, lines, no_commission: noCommission }: OrderMoney): string | null {
     const translate = useT();
-    const { order, posting, basis, lines, lines_total: linesTotal, adds_up: addsUp, reason } = props.detail ?? props;
+    if (posting === 'waiting_delivery') {
+        return translate('treasury', 'posting_waiting');
+    }
+    if (posting === 'part_delivered') {
+        return joined([translate('treasury', 'posting_part_delivered'), basis ? money(basis.cash) : null]);
+    }
+    if (posting === 'no_commission' && lines.length === 0) {
+        return joined([translate('treasury', 'posting_no_commission'), noCommission ? money(noCommission.amount) : null, noCommission?.reason ? translate('treasury', 'reason_line', { reason: noCommission.reason }) : null]);
+    }
+
+    return null;
+}
+
+/** Where every taka of one order went: the percent, the type and who or which fund received it. */
+export default function TreasuryOrder({ detail }: { detail: OrderMoney }) {
+    const translate = useT();
+    const { order, posting, basis, lines, lines_total: linesTotal, adds_up: addsUp, no_commission: noCommission } = detail;
     const showsReturned = lines.some((line) => isAboveZero(line.returned));
-    const postingLine = posting === 'waiting_delivery' ? translate('treasury', 'posting_waiting') : posting === 'part_delivered' ? `${translate('treasury', 'posting_part')}${basis ? ` · ${money(basis.cash)}` : ''}` : null;
+    const postingLine = usePostingLine(detail);
 
     return (
         <TreasuryPage
@@ -113,8 +128,8 @@ export default function TreasuryOrder(props: OrderMoney & { detail?: OrderMoney 
                                         <b>{line.type_label}</b>
                                         {line.status !== 'done' && <span className={`badge ${STATUS_BADGE[line.status]}`}>{line.status_label}</span>}
                                     </td>
-                                    <td data-part="rate">{percentText(translate, line.percent, line.percent_of) || '—'}</td>
-                                    <td data-part="to"><WentTo to={line.to} reason={line.reason ?? (posting === 'no_commission' ? reason : null)} /></td>
+                                    <td data-part="rate" className={line.percent === null ? 'is-blank' : undefined}>{percentText(translate, line.percent, line.percent_of) || '—'}</td>
+                                    <td data-part="to"><WentTo to={line.to} reason={line.reason ?? (posting === 'no_commission' ? noCommission?.reason : null)} /></td>
                                     {showsReturned && <td data-part="returned" className="is-money">{isAboveZero(line.returned) ? money(line.returned) : '—'}</td>}
                                     <td data-part="amount" className="is-money">{money(line.amount)}</td>
                                 </tr>

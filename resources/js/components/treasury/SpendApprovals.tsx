@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useForm } from '@inertiajs/react';
-import { Badge, FormErrors, Modal, Table, date, money, type Row } from '../UI';
+import { Badge, FormErrors, Modal, date, money, type Row } from '../UI';
 import { useT } from '../../shared/i18n/t';
 import { FUNDS_COMMAND_ROOT, useHeadName } from './FundSpendForm';
 
@@ -11,28 +11,39 @@ export default function SpendApprovals({ approvals }: { approvals: SpendApproval
     const translate = useT();
     const headName = useHeadName();
     const [viewing, setViewing] = useState<SpendApproval | null>(null);
-    const fundName = (row: Row) => translate('funds', `fund_${row.fund_key}`);
+    const fundName = (row: Row) => translate('treasury', `fund_${row.fund_key}`);
 
     return (
         <section className="tsy-block">
             <h2>{translate('treasury', 'approvals_title', { count: String(approvals.length) })}</h2>
-            <div className="panel table-panel">
-                <Table
-                    tools={false}
-                    rows={approvals}
-                    empty={translate('funds', 'approvals_empty_title')}
-                    emptyBody=""
-                    phoneColumns={['spent_on', 'payee_name', 'amount', 'action']}
-                    columns={[
-                        { key: 'spent_on', title: translate('treasury', 'col_date'), render: (row: SpendApproval) => date(row.spent_on) },
-                        { key: 'head', title: translate('treasury', 'col_fund_head'), render: (row: SpendApproval) => <><b>{fundName(row)}</b><small className="cell-sub">{headName(row)}</small></> },
-                        { key: 'payee_name', title: translate('treasury', 'col_to') },
-                        { key: 'amount', title: translate('treasury', 'col_amount'), money: true, render: (row: SpendApproval) => <b>{money(row.amount)}</b> },
-                        { key: 'maker_name', title: translate('treasury', 'col_recorded_by') },
-                        { key: 'action', title: '', render: (row: SpendApproval) => <button type="button" className="button small" onClick={() => setViewing(row)}>{translate('treasury', 'view')}</button> },
-                    ]}
-                />
-            </div>
+            {approvals.length === 0 ? <p className="mt-empty">{translate('treasury', 'approvals_empty')}</p> : (
+                <div className="panel table-panel">
+                    <table className="tsy-lines">
+                        <thead>
+                            <tr>
+                                <th>{translate('treasury', 'col_date')}</th>
+                                <th>{translate('treasury', 'col_fund_head')}</th>
+                                <th>{translate('treasury', 'col_to')}</th>
+                                <th className="is-money">{translate('treasury', 'col_amount')}</th>
+                                <th>{translate('treasury', 'col_recorded_by')}</th>
+                                <th><span className="sr-only">{translate('treasury', 'view')}</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {approvals.map((row) => (
+                                <tr key={row.id}>
+                                    <td data-part="rate">{date(row.spent_on)}</td>
+                                    <td data-part="type"><b>{fundName(row)}</b><small className="cell-sub">{headName(row)}</small></td>
+                                    <td data-part="to">{row.payee_name}</td>
+                                    <td data-part="amount" className="is-money">{money(row.amount)}</td>
+                                    <td data-part="extra">{row.maker_name}</td>
+                                    <td data-part="action"><button type="button" className="button small" onClick={() => setViewing(row)}>{translate('treasury', 'view')}</button></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
             {viewing && <ApprovalBox row={viewing} onClose={() => setViewing(null)} />}
         </section>
     );
@@ -47,7 +58,7 @@ function ApprovalBox({ row, onClose }: { row: SpendApproval; onClose: () => void
     const cancelForm = useForm<Row>({ reason: '' });
     const facts: Array<[string, React.ReactNode]> = [
         [translate('treasury', 'col_date'), date(row.spent_on)],
-        [translate('funds', 'col_fund'), translate('funds', `fund_${row.fund_key}`)],
+        [translate('funds', 'col_fund'), translate('treasury', `fund_${row.fund_key}`)],
         [translate('funds', 'col_head'), headName(row)],
         [translate('funds', 'col_payee'), row.payee_name],
         [translate('funds', 'col_method'), translate('funds', `method_${row.payment_method}`)],

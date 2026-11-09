@@ -6,7 +6,7 @@ import { useTreasuryViewer } from '../components/treasury/TreasuryTabs';
 import { useT } from '../shared/i18n/t';
 
 /** Every company fund, each with what is in it now, what came in and what went out. */
-export default function TreasuryFunds({ cards, partners }: { cards: FundCardData[]; partners?: { total: string } | null }) {
+export default function TreasuryFunds({ cards, partner_totals: partnerTotals }: { cards: FundCardData[]; partner_totals?: { total: string } | null }) {
     const translate = useT();
     const viewer = useTreasuryViewer();
 
@@ -14,11 +14,11 @@ export default function TreasuryFunds({ cards, partners }: { cards: FundCardData
         <TreasuryPage title={translate('treasury', 'title')} showTabs>
             <div className="tsy-funds">
                 {cards.map((card) => <FundCard key={card.key} card={card} />)}
-                {partners && viewer.finance && (
+                {partnerTotals && viewer.finance && (
                     <Link className="tsy-fund" href="/treasury/partners">
-                        <h2>{translate('treasury', 'tab_partners')}</h2>
-                        <span className="tsy-fund-label">{translate('treasury', 'card_now')}</span>
-                        <strong>{money(partners.total)}</strong>
+                        <h2>{translate('treasury', 'partner_money_card')}</h2>
+                        <span className="tsy-fund-label">{translate('treasury', 'in_it_now')}</span>
+                        <strong>{money(partnerTotals.total)}</strong>
                     </Link>
                 )}
             </div>

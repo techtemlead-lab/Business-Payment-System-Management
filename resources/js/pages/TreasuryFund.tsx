@@ -55,7 +55,7 @@ export default function TreasuryFund({ card, view, table, spend }: { card: FundC
                 </>
             ),
         },
-        { key: 'amount', title: translate('treasury', 'card_in'), sortKey: 'amount', money: true, total: 'amount', phone: 'amount', render: (row) => <b>{money(row.amount)}</b> },
+        { key: 'amount', title: translate('treasury', 'came_in'), sortKey: 'amount', money: true, total: 'amount', phone: 'amount', render: (row) => <b>{money(row.amount)}</b> },
         {
             key: 'type',
             title: translate('treasury', 'col_type'),
@@ -75,7 +75,7 @@ export default function TreasuryFund({ card, view, table, spend }: { card: FundC
         { key: 'date', title: translate('treasury', 'col_date'), sortKey: 'date', phone: 'sub', render: (row) => date(row.date) },
         { key: 'what', title: translate('treasury', 'col_for'), sortKey: 'what', phone: 'title', render: (row) => <><b>{row.what}</b>{row.reference && <small className="cell-sub">{row.reference}</small>}</> },
         { key: 'to', title: translate('treasury', 'col_to'), phone: 'sub', render: (row) => row.to ?? '—' },
-        { key: 'amount', title: translate('treasury', 'card_out'), sortKey: 'amount', money: true, total: 'amount', phone: 'amount', render: (row) => <b>{money(row.amount)}</b> },
+        { key: 'amount', title: translate('treasury', 'went_out'), sortKey: 'amount', money: true, total: 'amount', phone: 'amount', render: (row) => <b>{money(row.amount)}</b> },
         { key: 'receipt', title: translate('treasury', 'col_receipt'), phone: 'hide', render: (row) => (row.receipt_url ? <a className="text-link" href={row.receipt_url}>{translate('treasury', 'view')}</a> : '—') },
     ];
 
@@ -89,7 +89,7 @@ export default function TreasuryFund({ card, view, table, spend }: { card: FundC
             <div className="tsy-switch" role="group" aria-label={card.name}>
                 {(['in', 'out'] as FundView[]).map((option) => (
                     <Link key={option} href={option === 'in' ? path : `${path}?view=out`} preserveScroll className={option === view ? 'is-active' : undefined} aria-current={option === view ? 'true' : undefined}>
-                        {translate('treasury', option === 'in' ? 'card_in' : 'card_out')}
+                        {translate('treasury', option === 'in' ? 'came_in' : 'went_out')}
                     </Link>
                 ))}
             </div>

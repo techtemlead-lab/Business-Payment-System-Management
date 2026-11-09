@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { router, useForm } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
-import { FormErrors, Modal, Table, money, type Row } from '../UI';
+import { FormErrors, Modal, money, type Row } from '../UI';
 import { useT } from '../../shared/i18n/t';
 import { FUNDS_COMMAND_ROOT, useHeadName, type ExpenseHead } from './FundSpendForm';
+import { isNegative } from './format';
 
 export type HeadBudget = { head_id: number; name_en: string; name_bn: string; budget: string; used: string; left: string; over: boolean };
 
@@ -27,30 +28,35 @@ export default function HeadsAndBudgets({ heads, budgets, month }: { heads: Expe
                     <h2>{translate('treasury', 'heads_title')}</h2>
                     <button type="button" className="button dark" onClick={() => setEditing('new')}><Plus size={16} aria-hidden="true" /> {translate('funds', 'heads_add')}</button>
                 </div>
-                <div className="panel table-panel">
-                    <Table
-                        tools={false}
-                        rows={heads}
-                        empty={translate('treasury', 'heads_empty')}
-                        emptyBody=""
-                        phoneColumns={['name_bn', 'action']}
-                        columns={[
-                            { key: 'name_bn', title: translate('funds', 'col_name_bn'), render: (head: ExpenseHead) => <><b>{head.name_bn}</b>{head.for_tours && <small className="cell-sub">{translate('funds', 'for_tours')}</small>}</> },
-                            { key: 'name_en', title: translate('funds', 'col_name_en') },
-                            { key: 'status', title: translate('funds', 'col_status'), render: (head: ExpenseHead) => translate('funds', head.is_active ? 'heads_active' : 'heads_inactive') },
-                            {
-                                key: 'action',
-                                title: '',
-                                render: (head: ExpenseHead) => (
-                                    <div className="ops-row is-inline">
-                                        <button type="button" className="button small" onClick={() => setEditing(head)}>{translate('funds', 'heads_edit')}</button>
-                                        <button type="button" className="button small" onClick={() => toggle(head)}>{translate('funds', head.is_active ? 'head_deactivate' : 'head_activate')}</button>
-                                    </div>
-                                ),
-                            },
-                        ]}
-                    />
-                </div>
+                {heads.length === 0 ? <p className="mt-empty">{translate('treasury', 'heads_empty')}</p> : (
+                    <div className="panel table-panel">
+                        <table className="tsy-lines">
+                            <thead>
+                                <tr>
+                                    <th>{translate('funds', 'col_name_bn')}</th>
+                                    <th>{translate('funds', 'col_name_en')}</th>
+                                    <th>{translate('funds', 'col_status')}</th>
+                                    <th><span className="sr-only">{translate('funds', 'heads_edit')}</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {heads.map((head) => (
+                                    <tr key={head.id}>
+                                        <td data-part="type"><b>{head.name_bn}</b>{head.for_tours && <small className="cell-sub">{translate('funds', 'for_tours')}</small>}</td>
+                                        <td data-part="to">{head.name_en}</td>
+                                        <td data-part="amount">{translate('funds', head.is_active ? 'heads_active' : 'heads_inactive')}</td>
+                                        <td data-part="action">
+                                            <div className="ops-row is-inline">
+                                                <button type="button" className="button small" onClick={() => setEditing(head)}>{translate('funds', 'heads_edit')}</button>
+                                                <button type="button" className="button small" onClick={() => toggle(head)}>{translate('funds', head.is_active ? 'head_deactivate' : 'head_activate')}</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </section>
             <section className="tsy-block">
                 <div className="tsy-block-head">
@@ -58,26 +64,37 @@ export default function HeadsAndBudgets({ heads, budgets, month }: { heads: Expe
                     <div className="tsy-block-tools">
                         <label className="tsy-month">
                             <span className="sr-only">{translate('funds', 'budget_month')}</span>
-                            <input type="month" value={month} aria-label={translate('funds', 'budget_month')} onChange={(event) => changeMonth(event.target.value)} />
+                            <input type="month" value={month} onChange={(event) => changeMonth(event.target.value)} />
                         </label>
-                        <button type="button" className="button small" onClick={() => setSettingBudget(true)}>{translate('funds', 'budget_save')}</button>
+                        <button type="button" className="button small" onClick={() => setSettingBudget(true)}>{translate('treasury', 'budget_set')}</button>
                     </div>
                 </div>
-                <div className="panel table-panel">
-                    <Table
-                        tools={false}
-                        rows={budgets}
-                        empty={translate('funds', 'budget_none')}
-                        emptyBody=""
-                        phoneColumns={['head', 'left']}
-                        columns={[
-                            { key: 'head', title: translate('funds', 'budget_head'), render: (row: HeadBudget) => <><b>{headName(row)}</b>{row.over && <small className="cell-sub text-danger">{translate('funds', 'budget_status_over')}</small>}</> },
-                            { key: 'budget', title: translate('funds', 'budget_col_budget'), money: true, render: (row: HeadBudget) => money(row.budget) },
-                            { key: 'used', title: translate('funds', 'budget_col_used'), money: true, render: (row: HeadBudget) => money(row.used) },
-                            { key: 'left', title: translate('funds', 'budget_col_left'), money: true, render: (row: HeadBudget) => <b>{money(row.left)}</b> },
-                        ]}
-                    />
-                </div>
+                {budgets.length === 0 ? <p className="mt-empty">{translate('funds', 'budget_none')}</p> : (
+                    <div className="panel table-panel">
+                        <table className="tsy-lines">
+                            <thead>
+                                <tr>
+                                    <th>{translate('funds', 'budget_head')}</th>
+                                    <th className="is-money">{translate('funds', 'budget_col_budget')}</th>
+                                    <th className="is-money">{translate('funds', 'budget_col_used')}</th>
+                                    <th className="is-money">{translate('funds', 'budget_col_left')}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {budgets.map((row) => (
+                                    <tr key={row.head_id}>
+                                        <td data-part="type"><b>{headName(row)}</b>{row.over && <small className="cell-sub text-danger">{translate('funds', 'budget_status_over')}</small>}</td>
+                                        <td data-part="extra" className="is-money">{money(row.budget)}</td>
+                                        <td data-part="to" className="is-money tsy-money-line">
+                                            <span className="tsy-phone-only">{translate('funds', 'budget_col_used')}: </span>{money(row.used)}<span className="tsy-phone-only"> / {money(row.budget)}</span>
+                                        </td>
+                                        <td data-part="amount" className={`is-money${isNegative(row.left) ? ' is-negative' : ''}`}>{money(row.left)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </section>
             {editing && <HeadForm head={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
             {settingBudget && <BudgetForm heads={heads} month={month} onClose={() => setSettingBudget(false)} />}
@@ -96,12 +113,12 @@ function BudgetForm({ heads, month, onClose }: { heads: ExpenseHead[]; month: st
     };
 
     return (
-        <Modal title={translate('funds', 'budget_title')} onClose={onClose}>
+        <Modal title={translate('treasury', 'budget_set')} onClose={onClose}>
             <form className="action-form" onSubmit={submit}>
                 <label>{translate('funds', 'budget_head')}
                     <select required value={form.data.expense_head_id} onChange={(event) => form.setData('expense_head_id', event.target.value)}>
                         <option value="">—</option>
-                        {heads.filter((head) => head.is_active).map((head) => <option key={head.id} value={head.id}>{headName(head)}</option>)}
+                        {heads.filter((head) => head.is_active !== false).map((head) => <option key={head.id} value={head.id}>{headName(head)}</option>)}
                     </select>
                 </label>
                 <label>{translate('funds', 'budget_amount')}
