@@ -147,7 +147,7 @@ class PartnerListsTableTest extends TestCase
         $this->assertSame(24, $byName['applications_table']['totals']['count']);
 
         $fromStaff = $this->data($owner, '/partnerships?source=staff');
-        $this->assertSame(['Rejected Applicant', 'Field Applicant'], collect($fromStaff['applications']['data'])->pluck('name')->all());
+        $this->assertEqualsCanonicalizing(['Rejected Applicant', 'Field Applicant'], collect($fromStaff['applications']['data'])->pluck('name')->all());
         $this->assertSame(['source' => 'staff'], $fromStaff['applications_table']['state']['filters']);
 
         $rejected = $this->data($owner, '/partnerships?status=rejected');

@@ -70,6 +70,7 @@ function ReviewPanel({ application, onClose, onReject }: { application: Row; onC
     const mayDecide = !(portal === 'manage' || portal === 'sadmin') || actionAllowed(reviewAddress, staffActions, 'post');
     const reviewable = application.status === 'pending' && application.submitted_by !== auth?.user?.id;
     const isOwnApplication = application.status === 'pending' && application.submitted_by === auth?.user?.id;
+    const canDecide = reviewable && mayDecide;
     const form = useForm({ decision: 'approved', place_code: application.place_code || '', sponsor_code: application.sponsor_code || '', reason: '' });
 
     const lines: [string, React.ReactNode][] = [
@@ -77,14 +78,13 @@ function ReviewPanel({ application, onClose, onReject }: { application: Row; onC
         [translate('office_partners', 'detail_phone'), application.phone],
         [translate('portal', 'partnership_type'), label(application.role || '', translate)],
         [translate('office_partners', 'detail_area'), placeLine(application)],
-        [translate('portal', 'col_place'), application.place_code],
-        [translate('office_partners', 'detail_sponsor_code'), application.sponsor_code],
+        ...(canDecide ? [] : [[translate('portal', 'col_place'), application.place_code], [translate('office_partners', 'detail_sponsor_code'), application.sponsor_code]] as [string, React.ReactNode][]),
         [translate('portal', 'partnership_source'), sourceName(application.source || 'staff', translate)],
         [translate('office_partners', 'col_date'), date(application.created_at)],
         [translate('office_partners', 'detail_reason'), application.reason],
     ];
 
-    const footer = reviewable && mayDecide ? (
+    const footer = canDecide ? (
         <>
             <button type="button" className="button" disabled={form.processing} onClick={onReject}>{translate('office_partners', 'reject')}</button>
             <button type="submit" form="application-approve" className="button dark" disabled={form.processing}>{translate('office_partners', 'approve')}</button>
@@ -100,7 +100,7 @@ function ReviewPanel({ application, onClose, onReject }: { application: Row; onC
             </dl>
             {application.message && <p className="prose">{application.message}</p>}
             {isOwnApplication && <p className="field-hint">{translate('office_partners', 'cannot_review_own')}</p>}
-            {reviewable && mayDecide && (
+            {canDecide && (
                 <form
                     id="application-approve"
                     className="action-form"
