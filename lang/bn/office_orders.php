@@ -1,4 +1,27 @@
 <?php
 
 return [
+    'orders_title' => 'অর্ডার',
+    'deliveries_title' => 'ডেলিভারি',
+    'search_orders' => 'অর্ডার নম্বর, পার্টনার, কোড বা ফোন দিয়ে খুঁজুন',
+    'search_parcels' => 'অর্ডার নম্বর, পার্টনার, কোড বা ট্র্যাকিং দিয়ে খুঁজুন',
+    'col_order' => 'অর্ডার',
+    'col_items' => 'পণ্য',
+    'col_price' => 'দাম',
+    'col_given' => 'দেওয়া',
+    'col_to_pay' => 'বাকি',
+    'items_sent' => ':sent / :total',
+    'delivered_part' => 'ডেলিভারি :amount',
+    'filter_buyer' => 'পার্টনারের ধরন',
+    'filter_branch' => 'ব্রাঞ্চ',
+    'open_order' => 'অর্ডার খুলুন',
+    'detail_reason' => 'কারণ',
+    'line_sent' => ':total টির মধ্যে :sent টি পাঠানো',
+    'section_payment' => 'টাকা দেওয়া',
+    'section_history' => 'পার্সেলের ধাপ',
+    'view_send' => 'পাঠাতে হবে',
+    'view_parcels' => 'কুরিয়ারে আছে',
+    'view_failed' => 'বুকিং হয়নি',
+    'view_decisions' => 'সিদ্ধান্ত বাকি',
+    'stage_with_courier' => 'কুরিয়ারে আছে',
 ];
