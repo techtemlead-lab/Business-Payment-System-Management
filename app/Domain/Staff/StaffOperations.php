@@ -189,7 +189,8 @@ final class StaffOperations
                 $data = [...$data, ...$this->placeFields($place)];
                 $isSubDealer = $data['role'] === 'sub_dealer';
                 $partnerCode = $partners->codeForPlace($place, (string) $data['role']);
-                $sponsorId = $data['sponsor_id'] ?? null;
+                // A sponsor code the reviewer corrected wins over the sponsor picked on the application.
+                $sponsorId = filled($corrections['sponsor_code'] ?? null) ? null : ($data['sponsor_id'] ?? null);
                 if (empty($sponsorId) && ! empty($data['sponsor_code'])) {
                     $sponsorId = $partners->findSponsor((string) $data['sponsor_code'])?->id;
                     if (! $sponsorId) {
