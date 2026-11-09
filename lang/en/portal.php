@@ -6587,4 +6587,8 @@ return [
     'label_upazila' => 'Upazila',
     'label_union' => 'Union / Pourashava',
     'acct_val_sub_dealer_code_just_used' => 'Someone just added a sub-dealer with this code. Press save again and the next code will be used.',
+    'ph_commission_waiting' => 'Commission in waiting period',
+    'commission_waiting_until' => 'Waiting period ends: :date',
+    'commission_waiting_no_date' => 'No date set',
+    'commission_waiting_more' => ':count more dates under My income',
 ];

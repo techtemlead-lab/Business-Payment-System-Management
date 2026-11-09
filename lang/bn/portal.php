@@ -6587,4 +6587,8 @@ return [
     'label_upazila' => 'উপজেলা',
     'label_union' => 'ইউনিয়ন / পৌরসভা',
     'acct_val_sub_dealer_code_just_used' => 'এইমাত্র অন্য কেউ এই কোডে সাব-ডিলার যোগ করেছেন। আবার সেভ করুন, পরের কোডটি নেওয়া হবে।',
+    'ph_commission_waiting' => 'অপেক্ষার সময়ে থাকা কমিশন',
+    'commission_waiting_until' => 'অপেক্ষার সময় শেষ: :date',
+    'commission_waiting_no_date' => 'তারিখ ঠিক করা নেই',
+    'commission_waiting_more' => 'আরও :countটি তারিখ “আমার আয়” পাতায়',
 ];

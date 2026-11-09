@@ -43,6 +43,39 @@ final class PartnerEarningsPresenter
     }
 
     /**
+     * Commission still in its waiting period: the total, and how much of it ends that period on
+     * each date (business time, earliest first). The date comes from the commission row itself.
+     * A balance brought over from the old books has no date and comes last.
+     *
+     * @return array{total: string, amounts: list<array{ready_on: ?string, amount: string}>}
+     */
+    public function waitingCommission(User $user): array
+    {
+        $timezone = (string) config('madina.business_timezone', config('app.timezone'));
+        $amounts = [];
+        $total = 0;
+        $rows = DB::table('commission_allocations')
+            ->where('user_id', $user->id)
+            ->where('status', 'maturing')
+            ->groupByRaw('1')
+            ->orderByRaw('1 NULLS LAST')
+            ->selectRaw("((metadata->>'maturation_due_at')::timestamptz AT TIME ZONE ?)::date AS ready_on, SUM(amount) AS amount", [$timezone])
+            ->get();
+        foreach ($rows as $row) {
+            $cents = Money::cents((string) $row->amount);
+            $total += $cents;
+            $amounts[] = ['ready_on' => $row->ready_on !== null ? (string) $row->ready_on : null, 'amount' => Money::decimal($cents)];
+        }
+        $broughtOver = Money::cents((string) DB::table('opening_balance_entries')->where('user_id', $user->id)->sum(DB::raw('held - held_released')));
+        if ($broughtOver > 0) {
+            $total += $broughtOver;
+            $amounts[] = ['ready_on' => null, 'amount' => Money::decimal($broughtOver)];
+        }
+
+        return ['total' => Money::decimal($total), 'amounts' => $amounts];
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
     public function ledgerRows(User $user, ?CarbonImmutable $fromUtc, ?CarbonImmutable $toUtc, int $limit = 50): array
@@ -72,6 +105,7 @@ final class PartnerEarningsPresenter
                 'rate_percentage' => (string) $row->rate_percentage,
                 'amount' => (string) $row->amount,
                 'status' => $row->status,
+                'waiting_until' => $row->status === 'maturing' ? ($metadata['maturation_due_at'] ?? null) : null,
                 'order_id' => $row->order_id,
                 'order_number' => $row->order?->number,
                 'source_user_id' => $buyer?->id,

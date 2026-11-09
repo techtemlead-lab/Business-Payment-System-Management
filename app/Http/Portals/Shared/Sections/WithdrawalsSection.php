@@ -56,6 +56,7 @@ final class WithdrawalsSection implements WorkspaceSection
         [$earningsFromUtc, $earningsToUtc] = SectionDates::businessDayBounds($earningsFrom, $earningsTo);
         $props['wallet'] = DB::table('wallets')->where('user_id', $user->id)->first(['available', 'held', 'commission_held']);
         $props['withdrawal_balances'] = $presenter->withdrawalBalances($user);
+        $props['commission_waiting'] = $presenter->waitingCommission($user);
         $props['withdrawal_kyc_block'] = app(FinanceSettings::class)->needsKycBeforeWithdrawal($user);
         $props['earnings_filters'] = ['from' => $earningsFrom, 'to' => $earningsTo, 'preset' => $preset];
         $props['earnings'] = $presenter->ledgerRows($user, $earningsFromUtc, $earningsToUtc, 500);

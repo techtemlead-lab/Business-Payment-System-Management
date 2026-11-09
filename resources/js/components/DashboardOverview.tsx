@@ -9,7 +9,7 @@ import { PartnerProgressButton } from './PartnerProgress';
 import PartnerAlertsCard from './dealertools/PartnerAlertsCard';
 import NextStepsCard from './dealertools/NextStepsCard';
 import { ProfilePhoto } from './ProfilePhoto';
-import { Badge, humanize, money, type Row, number } from './UI';
+import { Badge, date, humanize, money, type Row, number } from './UI';
 import { localizeDigits } from '../business-date';
 import { useT } from '../shared/i18n/t';
 import { OPERATIONS_SECTIONS, buildStaffAvailable, pick, sectionHref } from '../shared/portalNav';
@@ -189,6 +189,7 @@ function PartnerHome({ home, orders, tools }: { home: Row; orders: React.ReactNo
     const targets: TargetRow[] = home.targets ?? [];
     const snapshot = home.snapshot ?? {};
     const wallet = home.wallet ?? {};
+    const waitingAmounts: Row[] = wallet.commission_waiting?.amounts ?? [];
     const location = [profile.district, profile.division].filter(Boolean).join(', ');
 
     return (
@@ -214,8 +215,20 @@ function PartnerHome({ home, orders, tools }: { home: Row; orders: React.ReactNo
                         <dd>{money(snapshot.commission_month)}</dd>
                     </div>
                     <div>
-                        <dt>{translate('portal', 'ph_pending_withdrawal')}</dt>
+                        <dt>{translate('portal', 'pending_withdrawal')}</dt>
                         <dd>{money(wallet.pending_withdrawal)}</dd>
+                    </div>
+                    <div className="ph-hero-waiting" data-testid="home-commission-waiting">
+                        <dt>{translate('portal', 'ph_commission_waiting')}</dt>
+                        <dd>{money(wallet.commission_waiting?.total)}</dd>
+                        {waitingAmounts.slice(0, 3).map((item) => (
+                            <dd className="ph-hero-note" key={item.ready_on ?? 'no-date'}>
+                                {money(item.amount)} · {item.ready_on ? translate('portal', 'commission_waiting_until', { date: date(item.ready_on) }) : translate('portal', 'commission_waiting_no_date')}
+                            </dd>
+                        ))}
+                        {waitingAmounts.length > 3 && (
+                            <dd className="ph-hero-note"><Link href={`${base}/earnings`}>{translate('portal', 'commission_waiting_more', { count: number(waitingAmounts.length - 3) })}</Link></dd>
+                        )}
                     </div>
                 </dl>
             </section>
