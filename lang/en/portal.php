@@ -6568,4 +6568,5 @@ return [
     'content_page_dealers' => 'Dealers',
     'date_format_day_month_year' => 'DD/MM/YYYY',
     'date_format_hour_minute' => 'HH:MM',
+    'import_failed_reason' => 'The import did not finish and nothing was saved. Check the current records and upload a new preview.',
 ];

@@ -6568,4 +6568,5 @@ return [
     'content_page_dealers' => 'ডিলার',
     'date_format_day_month_year' => 'দিন/মাস/বছর',
     'date_format_hour_minute' => 'ঘণ্টা:মিনিট',
+    'import_failed_reason' => 'ইমপোর্ট শেষ হয়নি, কিছুই সেভ হয়নি। এখনকার তথ্য দেখে নিয়ে নতুন করে ফাইল আপলোড করুন।',
 ];
