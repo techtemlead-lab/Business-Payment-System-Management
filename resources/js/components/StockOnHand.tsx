@@ -52,12 +52,12 @@ function percentLabel(value?: string | null): string {
     return `${localizeDigits(trimmed)}%`;
 }
 
-function Units({ value, tone }: { value: number; tone?: 'danger' | 'warning' }) {
+function Units({ value, tone }: { value: number; tone?: 'warning' }) {
     if (value <= 0) {
         return <span className="sf-none">—</span>;
     }
 
-    return <b className={tone === 'danger' ? 'text-danger' : tone === 'warning' ? 'text-amber' : undefined}>{number(value)}</b>;
+    return <b className={tone === 'warning' ? 'text-amber' : undefined}>{number(value)}</b>;
 }
 
 function LevelBadge({ level }: { level: StockRow['level'] }) {
@@ -69,10 +69,8 @@ function LevelBadge({ level }: { level: StockRow['level'] }) {
     return <span className={`badge ${level === 'out_of_stock' ? 'rejected' : 'held'}`}>{translate('stock_lots', level === 'out_of_stock' ? 'level_out_of_stock' : 'level_low')}</span>;
 }
 
-export default function StockOnHand({ table, branchName, branchCount, canToggle, showBranch }: {
+export default function StockOnHand({ table, canToggle, showBranch }: {
     table: StockTableData;
-    branchName: string;
-    branchCount: number;
     canToggle: boolean;
     showBranch: boolean;
 }) {
@@ -82,8 +80,6 @@ export default function StockOnHand({ table, branchName, branchCount, canToggle,
     const units = (key: string) => number(Number(sums[key] ?? 0));
     const totalUnits = Number(sums.in_stock ?? 0) + Number(sums.on_hold ?? 0) + Number(sums.expired ?? 0) + Number(sums.with_courier ?? 0);
     const activeStage = table.filter_bar.active.stage;
-
-    const branchSummary = branchCount > 0 ? `${branchName} · ${branchCount} ${translate('portal', 'branches_short')}` : branchName;
 
     const stageCards: { key: string; label: string; value: string; stage?: string }[] = [
         { key: 'total', label: translate('stock_lots', 'stage_total'), value: number(totalUnits) },
@@ -120,11 +116,15 @@ export default function StockOnHand({ table, branchName, branchCount, canToggle,
             sortKey: 'in_stock',
             align: 'right',
             phone: 'amount',
-            render: (row) => <b className={row.level === 'out_of_stock' ? 'text-danger' : row.level === 'low' ? 'text-amber' : undefined}>{number(row.in_stock)}</b>,
+            render: (row) => (
+                <>
+                    <b className={row.level === 'out_of_stock' ? 'text-danger' : row.level === 'low' ? 'text-amber' : undefined}>{number(row.in_stock)}</b>
+                    {row.expired > 0 ? <small className="cell-sub text-danger">{translate('stock_lots', 'stage_expired')} {number(row.expired)}</small> : null}
+                </>
+            ),
         },
         { key: 'on_hold', title: translate('stock_lots', 'stage_on_hold'), sortKey: 'on_hold', align: 'right', phone: 'hide', render: (row) => <Units value={row.on_hold} tone="warning" /> },
         { key: 'with_courier', title: translate('stock_lots', 'stage_with_courier'), sortKey: 'with_courier', align: 'right', phone: 'hide', render: (row) => <Units value={row.with_courier} /> },
-        { key: 'expired', title: translate('stock_lots', 'stage_expired'), align: 'right', phone: 'hide', render: (row) => <Units value={row.expired} tone="danger" /> },
         {
             key: 'booked',
             title: translate('portal', 'col_booked_units'),
@@ -155,8 +155,8 @@ export default function StockOnHand({ table, branchName, branchCount, canToggle,
                 <span className="sf-price">
                     {row.mrp != null && row.mrp !== '' ? money(row.mrp) : '—'}
                     {row.cost_price != null && row.cost_price !== '' ? <small className="cell-sub">{translate('portal', 'col_cost')} {money(row.cost_price)}</small> : null}
-                    {row.dealer_price != null && row.dealer_price !== '' ? <small className="cell-sub">{translate('portal', 'col_dealer_commission')} {money(row.dealer_price)} {percentLabel(row.dealer_discount_pct)}</small> : null}
-                    {row.sub_dealer_price != null && row.sub_dealer_price !== '' ? <small className="cell-sub">{translate('portal', 'col_subdealer_commission')} {money(row.sub_dealer_price)} {percentLabel(row.sub_dealer_discount_pct)}</small> : null}
+                    {row.dealer_price != null && row.dealer_price !== '' ? <small className="cell-sub">{translate('stock_lots', 'price_dealer_short')} {money(row.dealer_price)} {percentLabel(row.dealer_discount_pct)}</small> : null}
+                    {row.sub_dealer_price != null && row.sub_dealer_price !== '' ? <small className="cell-sub">{translate('stock_lots', 'price_subdealer_short')} {money(row.sub_dealer_price)} {percentLabel(row.sub_dealer_discount_pct)}</small> : null}
                 </span>
             ),
         },
@@ -182,10 +182,6 @@ export default function StockOnHand({ table, branchName, branchCount, canToggle,
 
     return (
         <section className="stock-register-page">
-            <div className="sf-heading">
-                <h2>{translate('portal', 'stock_on_hand')}</h2>
-                <span>{branchSummary}</span>
-            </div>
             <div className="sf-stage-cards">
                 {stageCards.map((card) => {
                     const content = (<><span>{card.label}</span><b>{card.value}</b></>);

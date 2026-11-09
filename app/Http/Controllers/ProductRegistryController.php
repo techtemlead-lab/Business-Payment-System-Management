@@ -7,6 +7,7 @@ use App\Domain\Finance\Percentage;
 use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\StockLots;
 use App\Domain\Inventory\StockNotifications;
+use App\Domain\Inventory\StockStages;
 use App\Models\BranchProductStock;
 use App\Models\Product;
 use App\Models\ProductConcern;
