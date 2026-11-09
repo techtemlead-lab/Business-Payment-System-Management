@@ -1,0 +1,74 @@
+/* The filter bar of the Stock and Product pages, and the stock stage cards. */
+.stock-register-page{display:grid;gap:12px;min-width:0}
+.sf-heading{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.sf-heading h2{margin:0;font-size:var(--ds-fs-md);font-weight:650}
+.sf-heading span{color:var(--ds-text-muted);font-size:var(--ds-fs-sm)}
+
+.sf-stage-cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.sf-stage-card{display:grid;gap:2px;padding:12px 14px;border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);background:var(--ds-surface);text-align:left}
+.sf-stage-card span{color:var(--ds-text-muted);font-size:var(--ds-fs-sm)}
+.sf-stage-card b{color:var(--ds-text);font-size:var(--ds-fs-2xl);font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+.app-shell .sf-stage-card.is-button{min-height:0;box-shadow:none;cursor:pointer}
+.app-shell .sf-stage-card.is-button:hover{background:var(--ds-surface-2)}
+.app-shell .sf-stage-card.is-on{border-color:var(--ds-brand);background:var(--ds-brand-soft)}
+
+/* The shared table's own Clear and phone button give way to this bar, which covers every filter. */
+.sf-table .mt-clear,.sf-table .mt-sheet-button{display:none}
+.sf-table .mt-actions{display:contents}
+.sf-none{color:var(--ds-text-faint)}
+.sf-phone-stages:empty{display:none}
+.sf-phone-stages{display:none}
+.sf-price{display:inline-block;white-space:nowrap}
+
+.app-shell .sf-more{display:inline-flex;align-items:center;gap:5px;flex:none;height:34px;min-height:0;font-size:var(--ds-fs-sm);white-space:nowrap}
+.sf-all-word{display:none}
+.sf-count{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:var(--ds-r-pill);background:var(--ds-brand-soft);color:var(--ds-brand-text);font-size:var(--ds-fs-2xs);font-weight:700}
+
+.sf-chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px;flex:0 0 100%;min-width:0}
+.sf-chip{display:inline-flex;align-items:center;gap:2px;max-width:100%;padding:3px 3px 3px 10px;border:1px solid var(--ds-line);border-radius:var(--ds-r-pill);background:var(--ds-surface);color:var(--ds-text-2);font-size:var(--ds-fs-xs)}
+.sf-chip-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.app-shell .sf-chip button{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;min-height:0;padding:0;border:0;border-radius:var(--ds-r-pill);background:none;box-shadow:none;color:var(--ds-text-muted);cursor:pointer}
+.app-shell .sf-chip button:hover{background:var(--ds-surface-3);color:var(--ds-text)}
+.app-shell .sf-clear-all{padding:0 4px;border:0;background:none;box-shadow:none;font-size:var(--ds-fs-xs);cursor:pointer}
+
+.sf-sheet-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px}
+.sf-main-field{display:none}
+.sf-wide{grid-column:1/-1}
+.sf-field{display:grid;gap:4px;margin:0;padding:0;border:0;min-width:0}
+.app-shell .sf-field :is(input,select){width:100%;min-height:0;height:36px;margin:0;font-size:var(--ds-fs-sm)}
+.app-shell .sf-field>span,.sf-field legend{padding:0;color:var(--ds-text);font-size:var(--ds-fs-sm);font-weight:600}
+.sf-range-boxes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.app-shell .sf-range-boxes label{display:grid;gap:3px;margin:0;color:var(--ds-text-muted);font-size:var(--ds-fs-xs)}
+.app-shell .sf-range-boxes .date-input-wrapper{width:100%;margin:0}
+.sf-sort{display:none}
+.sf-sheet-actions{display:flex;gap:8px;padding-top:2px}
+.app-shell .sf-sheet-actions .button{flex:1;justify-content:center}
+
+.sf-catalog{display:grid;gap:10px;margin-bottom:16px;min-width:0}
+.sf-catalog-head{display:flex;justify-content:flex-end;margin-bottom:10px}
+.sf-product-stages{display:flex;flex-wrap:wrap;gap:2px 10px;margin-top:4px;color:var(--ds-text-muted);font-size:var(--ds-fs-xs)}
+.sf-product-stages b{color:var(--ds-text);font-weight:600}
+
+.pe-stages{margin:0;width:100%;border-collapse:collapse;font-size:var(--ds-fs-sm)}
+.pe-stages th,.pe-stages td{padding:6px 8px;border-bottom:1px solid var(--ds-line-soft);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pe-stages th:first-child,.pe-stages td:first-child{text-align:left;white-space:normal}
+.pe-stages th{color:var(--ds-text-muted);font-size:var(--ds-fs-xs);font-weight:600}
+.pe-stages tfoot td{font-weight:650;border-bottom:0}
+.pe-stages-wrap{overflow-x:auto}
+
+@media (max-width:767px){
+  .sf-stage-cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .sf-stage-card{padding:10px 12px}
+  .sf-stage-card b{font-size:var(--ds-fs-xl)}
+  .sf-more-word{display:none}
+  .sf-all-word{display:inline-flex}
+  .sf-chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;overscroll-behavior-x:contain}
+  .sf-chips::-webkit-scrollbar{display:none}
+  .sf-chip{flex:none;max-width:78vw}
+  .app-shell .sf-clear-all{flex:none;white-space:nowrap}
+  .sf-phone-stages{display:block}
+  .sf-sheet-grid{grid-template-columns:minmax(0,1fr)}
+  .sf-main-field{display:block}
+  .sf-sort{display:grid}
+  .sf-catalog .mt-filters{display:none}
+}
