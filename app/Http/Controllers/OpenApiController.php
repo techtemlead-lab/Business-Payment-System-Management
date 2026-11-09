@@ -58,7 +58,7 @@ class OpenApiController extends Controller
                             'id' => ['type' => 'string', 'format' => 'uuid'],
                             'number' => ['type' => 'string'],
                             'total' => ['type' => 'string', 'example' => '12500.00'],
-                            'status' => ['type' => 'string', 'enum' => ['submitted', 'held', 'approved', 'partially_dispatched', 'dispatched', 'delivered', 'rejected', 'cancelled']],
+                            'status' => ['type' => 'string', 'enum' => ['submitted', 'held', 'approved', 'partially_dispatched', 'dispatched', 'delivered', 'partly_delivered', 'rejected', 'cancelled']],
                             'created_at' => ['type' => 'string', 'format' => 'date-time'],
                         ],
                     ],

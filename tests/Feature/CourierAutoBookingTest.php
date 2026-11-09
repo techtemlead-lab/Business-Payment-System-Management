@@ -582,7 +582,7 @@ class CourierAutoBookingTest extends TestCase
         $this->actingAs($store)->onPortal('manage')->post($this->receivedBackUrl($order, $shipmentId))->assertSessionHasNoErrors();
 
         $this->assertSame(20, (int) $product->fresh()->stock);
-        $this->assertSame('dispatched', $order->fresh()->status);
+        $this->assertSame('partly_delivered', $order->fresh()->status);
         $this->assertSame(0, app(OverdueDeliveries::class)->count());
         $this->assertDatabaseCount('commission_batches', 0);
     }

@@ -6619,4 +6619,6 @@ return [
     'owner_status_cancel' => 'বাতিল',
     'owner_status_empty' => 'এখনো কোনো এমডি বা চেয়ারম্যান অ্যাকাউন্ট যোগ হয়নি।',
     'err_reference_min' => 'ট্রানজেকশন রেফারেন্স কমপক্ষে :min অক্ষরের হতে হবে।',
+    'status_partly_delivered' => 'আংশিক ডেলিভার্ড',
+    'stage_desc_partly_delivered' => 'কিছু পার্সেল ডেলিভারি হয়েছে, কিছু ফেরত এসেছে',
 ];

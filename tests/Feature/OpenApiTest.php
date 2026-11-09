@@ -66,6 +66,7 @@ class OpenApiTest extends TestCase
             'partially_dispatched',
             'dispatched',
             'delivered',
+            'partly_delivered',
             'rejected',
             'cancelled',
         ];

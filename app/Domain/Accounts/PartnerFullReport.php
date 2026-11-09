@@ -2,6 +2,7 @@
 
 namespace App\Domain\Accounts;
 
+use App\Domain\Orders\OrderListFilter;
 use App\Models\Order;
 use App\Models\ReferralTreePath;
 use App\Models\User;
@@ -52,7 +53,7 @@ final class PartnerFullReport
         [$fromUtc, $toUtc] = $this->bounds($from, $to);
         $orders = Order::query()
             ->where('user_id', $user->id)
-            ->whereIn('status', ['submitted', 'held', 'approved', 'partially_dispatched', 'dispatched', 'delivered'])
+            ->whereIn('status', ['submitted', 'held', 'approved', 'partially_dispatched', 'dispatched', 'delivered', 'partly_delivered'])
             ->when($fromUtc, fn ($query) => $query->where('created_at', '>=', $fromUtc))
             ->when($toUtc, fn ($query) => $query->where('created_at', '<', $toUtc))
             ->orderByDesc('created_at')
@@ -132,7 +133,7 @@ final class PartnerFullReport
             ? collect()
             : Order::query()
                 ->whereIn('user_id', $teamIds)
-                ->whereIn('status', ['approved', 'partially_dispatched', 'dispatched', 'delivered'])
+                ->whereIn('status', OrderListFilter::Confirmed)
                 ->when($fromUtc, fn ($query) => $query->where('created_at', '>=', $fromUtc))
                 ->when($toUtc, fn ($query) => $query->where('created_at', '<', $toUtc))
                 ->latest()

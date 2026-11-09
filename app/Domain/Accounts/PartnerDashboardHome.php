@@ -5,6 +5,7 @@ namespace App\Domain\Accounts;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Notifications\BirthdayGreetings;
+use App\Domain\Orders\OrderListFilter;
 use App\Models\DealerRank;
 use App\Models\Order;
 use App\Models\ReferralTreePath;
@@ -330,7 +331,7 @@ final class PartnerDashboardHome
     private function purchaseTotal($query): int
     {
         $total = (clone $query)
-            ->whereIn('status', ['approved', 'partially_dispatched', 'dispatched', 'delivered'])
+            ->whereIn('status', OrderListFilter::Confirmed)
             ->sum('total');
 
         return Money::cents((string) $total);

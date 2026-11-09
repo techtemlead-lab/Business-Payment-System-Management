@@ -14,7 +14,7 @@ use stdClass;
 final class OrderPaymentPrompt
 {
     /** Nobody is asked to pay for an order in one of these states. */
-    private const NoPaymentStatuses = ['rejected', 'cancelled', 'delivered'];
+    private const NoPaymentStatuses = ['rejected', 'cancelled', 'delivered', MixedOutcomeDecisions::PartlyDelivered];
 
     /**
      * @param  Collection<int, stdClass>  $claims  The order's payment claims, with amount and status.

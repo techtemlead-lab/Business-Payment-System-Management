@@ -20,7 +20,7 @@ class StatusLabelTranslationTest extends TestCase
     private const KnownStatuses = [
         'active', 'inactive', 'suspended', 'draft', 'published', 'new', 'contacted', 'closed', 'resolved', 'in_progress',
         'pending', 'requested', 'submitted', 'processing', 'approved', 'verified', 'rejected', 'cancelled', 'held',
-        'paid', 'unpaid', 'dispatched', 'partially_dispatched', 'delivered',
+        'paid', 'unpaid', 'dispatched', 'partially_dispatched', 'delivered', 'partly_delivered',
         'reserved', 'available', 'maturing', 'retained', 'reversed', 'settled', 'partially_settled', 'rolled_over',
         'qualified', 'grace_period', 'demoted', 'applied', 'queued', 'preview', 'invalid', 'failed', 'passed', 'needs_review',
     ];

@@ -40,7 +40,7 @@ class OperationsController extends Controller
     private const TableFilters = [
         'territories' => ['search' => ['u.name', 't.level', 't.division', 't.district', 't.upazila', 't."union"'], 'status' => null, 'statuses' => []],
         'monthly_targets' => ['search' => ['u.name', 't.period_month'], 'status' => null, 'statuses' => []],
-        'territory_orders' => ['search' => ['o.number', 'u.name'], 'status' => 'o.status', 'statuses' => ['submitted', 'held', 'approved', 'rejected', 'cancelled', 'partially_dispatched', 'dispatched', 'delivered']],
+        'territory_orders' => ['search' => ['o.number', 'u.name'], 'status' => 'o.status', 'statuses' => ['submitted', 'held', 'approved', 'rejected', 'cancelled', 'partially_dispatched', 'dispatched', 'delivered', 'partly_delivered']],
         'my_targets' => ['search' => ['period_month'], 'status' => null, 'statuses' => []],
         'dealer_applications' => ['search' => ['email', "data->>'name'", "data->>'phone'", "data->>'district'"], 'status' => 'status', 'statuses' => ['pending', 'approved', 'rejected']],
         'salary_register' => ['search' => ['u.name', 'p.period_month', 'p.payment_reference'], 'status' => 'p.status', 'statuses' => ['draft', 'approved', 'rejected', 'paid']],

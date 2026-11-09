@@ -26,7 +26,7 @@ class OrderController extends Controller
         $companyAccess = $user->allows('orders') || $user->allows('finance');
         abort_unless($companyAccess || in_array($user->role, ['dealer', 'sub_dealer'], true), 403);
         $data = $request->validate([
-            'status' => 'sometimes|in:submitted,held,approved,rejected,cancelled,partially_dispatched,dispatched,delivered',
+            'status' => 'sometimes|in:submitted,held,approved,rejected,cancelled,partially_dispatched,dispatched,delivered,partly_delivered',
             'q' => 'nullable|string|max:100', 'per_page' => 'sometimes|integer|min:1|max:100',
             'page' => 'sometimes|integer|min:1',
         ]);
