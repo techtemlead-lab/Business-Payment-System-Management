@@ -40,7 +40,7 @@ final class DealerVerification
             })
             ->orderByRaw('CASE WHEN UPPER(dealer_code) = ? THEN 0 ELSE 1 END', [$normalized])
             ->orderBy('id')
-            ->first(['id', 'name', 'role', 'status', 'profile']);
+            ->first(['id', 'name', 'role', 'status', 'profile']) ?? app(PartnerFormerCodes::class)->holder([$normalized]);
 
         if (! $partner instanceof User) {
             return null;

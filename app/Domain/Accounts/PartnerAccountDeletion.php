@@ -6,6 +6,8 @@ use App\Domain\Auth\LoginOtpChallenge;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
+use App\Models\AreaDealerAssignment;
+use App\Models\PlaceCode;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\PortalHost;
@@ -42,6 +44,7 @@ final class PartnerAccountDeletion
         'list_column_choices.user_id',
         'partner_anniversary_greetings.user_id',
         'partner_birthday_greetings.user_id',
+        'partner_former_codes.user_id',
         'referral_tree_paths.descendant_id',
         'saved_list_filters.user_id',
         'sessions.user_id',
@@ -320,11 +323,17 @@ final class PartnerAccountDeletion
             'status' => ['before' => $partner->status, 'after' => 'suspended'],
             'directory_visible' => ['before' => (bool) $partner->directory_visible, 'after' => false],
         ];
+        $freedPlaceIds = $this->freeSeats($partner);
+        $profile = is_array($partner->profile) ? $partner->profile : [];
+        if ($freedPlaceIds !== []) {
+            $profile[PartnerAccountProvisioning::FreedSeatsKey] = array_values(array_unique([...array_map(intval(...), (array) ($profile[PartnerAccountProvisioning::FreedSeatsKey] ?? [])), ...$freedPlaceIds]));
+        }
         $partner->forceFill([
             'status' => 'suspended',
             'directory_visible' => false,
             'closed_at' => $partner->closed_at ?? now(),
             'remember_token' => Str::random(60),
+            'profile' => $profile,
         ])->save();
         DB::table('sessions')->where('user_id', $partner->id)->delete();
 
@@ -333,9 +342,24 @@ final class PartnerAccountDeletion
             'reason' => $reason,
             'role' => $partner->role,
             'dealer_code' => $partner->dealer_code,
+            'freed_places' => PlaceCode::query()->whereKey($freedPlaceIds)->orderBy('code')->pluck('code')->all(),
             'changes' => $changes,
             'records' => $history,
         ]);
+    }
+
+    /**
+     * A closed dealer holds no place any more, so it can go to someone else.
+     *
+     * @return list<int> The places given up
+     */
+    private function freeSeats(User $partner): array
+    {
+        $seats = AreaDealerAssignment::query()->where('user_id', $partner->id)->where('is_active', true);
+        $placeIds = (clone $seats)->whereNotNull('place_code_id')->pluck('place_code_id')->map(fn (mixed $id): int => (int) $id)->all();
+        $seats->update(['is_active' => false, 'territory_key' => null, 'updated_at' => now()]);
+
+        return $placeIds;
     }
 
     /**

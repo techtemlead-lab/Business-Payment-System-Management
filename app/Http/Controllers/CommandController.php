@@ -392,8 +392,16 @@ class CommandController extends Controller
                     $tracedChanges[$field] = ['before' => $tracedBefore[$field], 'after' => $locked->{$field}];
                 }
             }
+            $reopening = ($d['status'] ?? '') === 'active' && $locked->closed_at !== null;
+            if ($reopening) {
+                $tracedChanges['closed_at'] = ['before' => Carbon::parse($locked->closed_at)->toIso8601String(), 'after' => null];
+                $locked->forceFill(['closed_at' => null])->save();
+            }
             if ($isPartner && $placeCode !== '') {
                 $partners->rebindGeography($r->user(), $locked->fresh(), $placeCode, $reason);
+            }
+            if ($reopening && $isPartner) {
+                $partners->returnSeatsOnReopen($r->user(), $locked->fresh());
             }
             if ($isPartner && array_key_exists('sponsor_id', $d)) {
                 app(ManagementReferral::class)->stamp($locked->fresh());
@@ -401,10 +409,6 @@ class CommandController extends Controller
             if (($d['status'] ?? '') === 'suspended') {
                 $locked->forceFill(['remember_token' => Str::random(60)])->save();
                 DB::table('sessions')->where('user_id', $user->id)->delete();
-            }
-            if (($d['status'] ?? '') === 'active' && $locked->closed_at !== null) {
-                $tracedChanges['closed_at'] = ['before' => Carbon::parse($locked->closed_at)->toIso8601String(), 'after' => null];
-                $locked->forceFill(['closed_at' => null])->save();
             }
             Audit::record($r->user()->id, 'account.updated', (string) $user->id, ['fields' => array_keys($d), 'changes' => $tracedChanges, 'reason' => $reason]);
             if ($phoneCheck !== null) {

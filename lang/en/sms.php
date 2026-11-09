@@ -56,4 +56,5 @@ return [
     'err_otp_send_limit' => 'Too many codes were sent to this account. Try again in :minutes minutes.',
     'err_otp_send_failed' => 'We could not send the SMS code. Please try again in a minute.',
     'birthday_greeting' => 'Happy birthday from the Madina family, :name! Have a lovely day.',
+    'dealer_code_changed' => 'Madina: your dealer code is now :code. Please use this code from now on.',
 ];
