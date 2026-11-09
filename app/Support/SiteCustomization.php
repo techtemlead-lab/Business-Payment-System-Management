@@ -27,6 +27,18 @@ class SiteCustomization
     private const RetiredDefaults = ['auth_login_title' => ['Account Login']];
 
     /**
+     * Links the owner can clear: a blank box hides the link on the website,
+     * while every other blank box goes back to its built-in value.
+     *
+     * @var list<string>
+     */
+    private const LinksHiddenWhenBlank = [
+        'social_whatsapp', 'footer_directory_link', 'featured_products_view_all_link', 'services_cta_link', 'partnership_cta_link', 'quality_cta_link',
+        'footer_link_about_url', 'footer_link_contact_url', 'footer_link_dealer_apply_url', 'footer_link_services_url', 'footer_link_quality_url',
+        'footer_link_partnership_url', 'footer_link_faq_url', 'footer_link_privacy_url', 'footer_link_terms_url',
+    ];
+
+    /**
      * Facts the website shows in more than one place. The key on the left has no
      * value of its own: it always shows what is stored under the key on the right,
      * so one edit reaches every place.
@@ -1101,7 +1113,7 @@ class SiteCustomization
                     } else {
                         // String scalar value
                         $trimmed = trim((string) $stored[$key]);
-                        if ($trimmed !== '' || $key === 'footer_phone') {
+                        if ($trimmed !== '' || $key === 'footer_phone' || in_array($key, self::LinksHiddenWhenBlank, true)) {
                             $merged[$key] = $trimmed;
                         }
                     }

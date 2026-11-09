@@ -98,7 +98,7 @@
     @php
         $featuredSectionEnabled = ($publicPageEnabled['products'] ?? true) && filter_var($siteCustomization['featured_products_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN);
         $tabsEnabled = filter_var($siteCustomization['featured_products_tabs_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN);
-        $viewAllLink = \App\Support\SiteCustomization::publicHref(!empty($siteCustomization['featured_products_view_all_link']) ? $siteCustomization['featured_products_view_all_link'] : '/products') ?? '/';
+        $viewAllLink = \App\Support\SiteCustomization::publicHref($siteCustomization['featured_products_view_all_link'] ?? '/products');
     @endphp
     @if($featuredSectionEnabled && !empty($featuredProducts))
     <section id="featured-products" class="ref-featured-products" aria-label="{{ $chrome('featured_products_title') }}">
@@ -110,7 +110,9 @@
                 <h2>{{ $chrome('featured_products_title', $siteCustomization['featured_products_title'] ?? null) }}</h2>
                 <p>{{ $chrome('featured_products_subtitle', $siteCustomization['public_products_subtitle'] ?? null) }}</p>
             </div>
+            @if($viewAllLink)
             <a href="{{ $viewAllLink }}" class="ref-view-all-link">{{ $chrome('view_all_products', $siteCustomization['featured_products_view_all'] ?? null) }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+            @endif
         </div>
 
         @if($tabsEnabled && !empty($featuredCategoryTabs) && count($featuredCategoryTabs) > 1)
