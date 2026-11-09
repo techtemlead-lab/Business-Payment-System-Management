@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\BranchScope;
 use App\Domain\Inventory\StockLotDetails;
 use App\Domain\Inventory\StockLotReports;
+use App\Domain\Inventory\StockLots;
 use App\Domain\Inventory\StockService;
 use App\Models\BranchProductStock;
 use App\Models\CompanyBranch;
@@ -59,10 +61,41 @@ class StockLotMissingDetailsTest extends TestCase
                 ->where('data.stock_lots.missing_details.0.quantity', 4));
     }
 
-    public function test_an_ordinary_delivery_with_no_expiry_is_not_flagged(): void
+    public function test_a_direct_stock_in_with_a_blank_batch_is_flagged(): void
     {
         $product = Product::factory()->create(['stock' => 0, 'batch_number' => null, 'expires_on' => null]);
-        app(StockService::class)->stockIn($this->owner, ['product_id' => $product->id, 'quantity' => 5, 'reference' => (string) Str::uuid(), 'branch_id' => $this->branch->id]);
+
+        $this->actingAs($this->owner)->onPortal('sadmin')->post('/commands/stock', [
+            'product_id' => $product->id, 'branch_id' => $this->branch->id, 'kind' => BranchOperations::KindProductIn, 'quantity' => 5,
+            'reason' => 'supplier_receipt', 'reference' => (string) Str::uuid(), 'expires_on' => now()->addYear()->toDateString(),
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $lot = StockLot::query()->where('product_id', $product->id)->firstOrFail();
+        $this->assertSame(1, app(StockLotReports::class)->missingDetailsCount($this->allBranches()));
+
+        $this->actingAs($this->owner)->onPortal('sadmin')
+            ->post('/commands/stock-lots/'.$lot->id.'/details', ['batch_number' => 'ON-THE-PACK'])
+            ->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertSame(0, app(StockLotReports::class)->missingDetailsCount($this->allBranches()));
+    }
+
+    public function test_a_direct_stock_in_with_its_details_is_not_flagged(): void
+    {
+        $product = Product::factory()->create(['stock' => 0, 'batch_number' => null, 'expires_on' => null]);
+        app(StockService::class)->stockIn($this->owner, [
+            'product_id' => $product->id, 'quantity' => 5, 'reference' => (string) Str::uuid(), 'branch_id' => $this->branch->id,
+            'batch_number' => 'COMPLETE-1', 'expires_on' => now()->addYear()->toDateString(),
+        ]);
+
+        $this->assertSame(0, app(StockLotReports::class)->missingDetailsCount($this->allBranches()));
+    }
+
+    public function test_opening_stock_and_goods_moved_between_branches_are_not_flagged(): void
+    {
+        foreach ([StockLots::SourceOpening, StockLots::SourceTransfer, StockLots::SourceReturn] as $source) {
+            StockLot::factory()->create(['branch_id' => $this->branch->id, 'batch_number' => null, 'expires_on' => null, 'source' => $source]);
+        }
 
         $this->assertSame(0, app(StockLotReports::class)->missingDetailsCount($this->allBranches()));
     }

@@ -5695,7 +5695,7 @@ return [
     'pe_batch_number_hint' => 'The batch printed on the pack of the stock you have now. Leave empty if you don\'t know it.',
     'col_batch_short' => 'Batch :batch',
     'stock_batch_number' => 'Batch number (optional)',
-    'stock_batch_number_hint' => 'Write the batch printed on the pack. It becomes the product\'s current batch.',
+    'stock_batch_number_hint' => 'Write the batch printed on the pack. If you do not have the batch number now, leave it blank. It will then wait under Missing details on the Batches and expiry page, where you can add it later.',
     'inv_batch' => 'Batch: :batch',
     'inv_expiry' => 'Expiry: :date',
     'cleanup_nav' => 'Data cleanup',
