@@ -48,6 +48,7 @@ return [
     'type_sub_dealer_tour' => 'Sub-dealer tour',
     'type_old_referral' => 'Old referral money',
     'type_company_profit_fund' => 'Moved to profit',
+    'type_area_target_missed' => 'Area dealer did not reach the month’s target',
     'type_no_commission_to_company' => 'No commission given',
     'type_dealer_salary_settlement_reserve' => 'Old salary money',
     'type_sub_dealer_salary_settlement_reserve' => 'Old salary money',

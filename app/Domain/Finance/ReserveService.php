@@ -30,6 +30,15 @@ final class ReserveService
     /** A fund closed at month end: its money has moved to company profit, so nothing more can be spent from it. */
     private const ClosedFundStatus = 'settled';
 
+    /**
+     * The first month the area target rule applies to. Shares still held from an earlier month
+     * stay where they are until the owner decides about them; a closed month is never rewritten.
+     */
+    public const AreaTargetRuleFirstMonth = '2026-11';
+
+    /** Why a share whose target was missed went to the company profit fund. */
+    public const AreaTargetMissedReason = 'retained_reason_profit_quota_missed';
+
     public function __construct(private CommissionWallet $wallets, private CommissionQualification $qualification, private PaymentAccounts $accounts) {}
 
     /** @param array<string, mixed> $data */
@@ -300,10 +309,11 @@ final class ReserveService
      * @return array{status: string, released_count: int, total_amount: string}
      */
     /**
-     * Month close for area commission (owner rule): a share still held at the end of its month
-     * because the area dealer missed that month's quota goes to the company profit fund.
-     * Shares whose quota was met are released first; holds for other reasons (a suspended
-     * dealer, cooling-off) are left alone. Running it again moves nothing twice.
+     * Month close for area commission (owner rule, 2026-11-08): a share still held at the end of
+     * its month because the area dealer missed that month's target goes to the company profit
+     * fund, even when the dealer has since been suspended. It does not roll over or stay held.
+     * Shares whose target was met are released first or stay held for Finance to release. Months
+     * before AreaTargetRuleFirstMonth are refused. Running it again moves nothing twice.
      *
      * @return array{status: string, period: string, forfeited_count: int, total_amount: string}
      */
@@ -313,6 +323,9 @@ final class ReserveService
         [, $end] = CommissionQualification::period($month);
         if ($end->isFuture()) {
             return ['status' => 'month_open', 'period' => $month, 'forfeited_count' => 0, 'total_amount' => '0.00'];
+        }
+        if ($month < self::AreaTargetRuleFirstMonth) {
+            return ['status' => 'before_rule', 'period' => $month, 'forfeited_count' => 0, 'total_amount' => '0.00'];
         }
         if (config('madina.auto_release_quota_holds')) {
             $this->releaseQualifiedQuotaHolds($actorId);
@@ -328,33 +341,73 @@ final class ReserveService
                 ->orderBy('id')
                 ->lockForUpdate()
                 ->get();
-            $partners = User::query()->whereIn('id', $funds->pluck('user_id')->unique()->values())->get()->keyBy('id');
             $volumes = $this->qualification->monthlyVolumesFor($funds->pluck('user_id')->map(fn ($id): int => (int) $id)->unique()->values()->all(), $month);
             $settlement = app(CommissionSettlement::class);
             $count = 0;
             $total = 0;
+            $missedByPartner = [];
             foreach ($funds as $fund) {
-                $partner = $partners->get($fund->user_id);
+                $partnerId = (int) $fund->user_id;
                 $quota = $fund->metadata['monthly_quota'] ?? null;
                 $quotaHold = ($fund->metadata['hold_reason'] ?? 'quota') === 'quota';
-                if (! $partner || $partner->status !== 'active' || $quota === null || ! $quotaHold
-                    || ($volumes[$partner->id] ?? 0) >= Money::cents((string) $quota)) {
+                if ($quota === null || ! $quotaHold || ($volumes[$partnerId] ?? 0) >= Money::cents((string) $quota)) {
                     continue;
                 }
                 $amount = Money::cents($fund->amount);
-                $profitId = $settlement->toCompanyProfit($fund, $amount, $month, 'area_quota', null, 'retained_reason_profit_quota_missed');
+                $profitId = $settlement->toCompanyProfit($fund, $amount, $month, 'area_quota', null, self::AreaTargetMissedReason);
                 $fund->update(['status' => 'forfeited', 'metadata' => [...$fund->metadata, 'forfeited_at' => now()->toIso8601String(),
                     'forfeited_to' => CommissionSettlement::CompanyProfitCategory, 'company_profit_allocation_id' => $profitId]]);
                 $count++;
                 $total += $amount;
+                $missedByPartner[$partnerId] = ($missedByPartner[$partnerId] ?? 0) + $amount;
             }
             if ($count > 0) {
                 Audit::record($actorId, 'commission.quota_holds_forfeited', $month, ['count' => $count, 'amount' => Money::decimal($total)]);
             }
+            $this->tellPartnersTargetMissed($missedByPartner, $month);
 
             return ['status' => $count > 0 ? 'forfeited' : 'nothing_to_forfeit', 'period' => $month,
                 'forfeited_count' => $count, 'total_amount' => Money::decimal($total)];
         }, 3);
+    }
+
+    /**
+     * Ended months since the rule began that still have area shares on hold, oldest first. Every
+     * one is checked, so a run that came late cannot leave a missed target's money held.
+     *
+     * @return list<string>
+     */
+    public function closedMonthsWithHeldAreaShares(): array
+    {
+        $current = CommissionQualification::currentMonth();
+
+        return DB::table('commission_allocations')
+            ->where('status', 'held')
+            ->where('category', 'like', 'area_%')
+            ->whereNotNull('user_id')
+            ->selectRaw("DISTINCT metadata->>'period_month' AS month")
+            ->pluck('month')
+            ->filter(fn (mixed $month): bool => is_string($month) && $month >= self::AreaTargetRuleFirstMonth && $month < $current)
+            ->sort()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * One notice per dealer for the month, in their language, naming what was not earned and why.
+     *
+     * @param  array<int, int>  $missedByPartner  user id => cents
+     */
+    private function tellPartnersTargetMissed(array $missedByPartner, string $month): void
+    {
+        foreach (User::query()->whereIn('id', array_keys($missedByPartner))->get() as $partner) {
+            $locale = $partner->preferredLocale();
+            Audit::notice(
+                $partner->id,
+                __('portal.notice_area_target_missed_title', [], $locale),
+                __('portal.notice_area_target_missed_body', ['month' => $month, 'amount' => Money::decimal($missedByPartner[$partner->id])], $locale),
+            );
+        }
     }
 
     /**

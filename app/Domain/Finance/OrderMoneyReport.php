@@ -246,6 +246,9 @@ final class OrderMoneyReport
             $amount = FundCatalog::centsOf($row->original_amount ?? $row->amount);
             $meta = $metadata[$row->id];
             $reason = $row->category === CompanyFunds::NoCommissionCategory && is_string($meta['reason'] ?? null) ? $meta['reason'] : null;
+            if ($row->status === 'forfeited') {
+                $reason = (string) __('portal.'.ReserveService::AreaTargetMissedReason);
+            }
             $status = $this->lineStatus((string) $row->status);
 
             return [

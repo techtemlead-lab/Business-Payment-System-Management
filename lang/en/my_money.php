@@ -34,6 +34,9 @@ return [
     'request_status_approved' => 'Approved, not paid yet',
     'request_status_rejected' => 'Refused',
 
+    'not_earned_heading' => 'Area commission not earned',
+    'not_earned_reason' => 'You did not reach your area target this month, so this money went to the company profit fund. It does not carry over.',
+
     'lifetime_heading' => 'So far',
     'lifetime_ordered' => 'Ordered at MRP (delivered)',
     'lifetime_cash' => 'Cash given (delivered goods)',

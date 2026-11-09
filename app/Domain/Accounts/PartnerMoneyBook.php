@@ -193,6 +193,27 @@ final class PartnerMoneyBook
             ->all();
     }
 
+    /**
+     * Area commission the partner did not earn because they missed that month's target, newest
+     * month first. None of it was ever in their wallet.
+     *
+     * @return list<array{month: string, amount: string}>
+     */
+    public function notEarnedAreaCommission(User $partner): array
+    {
+        return DB::table('commission_allocations')
+            ->where('user_id', $partner->id)
+            ->where('status', 'forfeited')
+            ->where('category', 'like', 'area_%')
+            ->groupByRaw("metadata->>'period_month'")
+            ->orderByRaw("metadata->>'period_month' DESC")
+            ->limit(12)
+            ->selectRaw("metadata->>'period_month' AS month, SUM(amount) AS amount")
+            ->get()
+            ->map(fn (object $row): array => ['month' => (string) $row->month, 'amount' => FundCatalog::decimalOf(FundCatalog::centsOf($row->amount))])
+            ->all();
+    }
+
     /** @return list<object> */
     private function totalsByType(User $partner): array
     {

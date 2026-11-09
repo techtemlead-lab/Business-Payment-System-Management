@@ -32,7 +32,7 @@ Use this before enabling financial posting on a production deployment. Keep `MAD
 - [ ] Partner benefit overrides (unconditional salary / rank) audited — none unintended; `app:readiness` must not warn `partner_benefit_overrides_active` (or each remaining override is documented)
 - [ ] Scheduler and queue worker are running (cron `* * * * * php artisan schedule:run` and a supervised `php artisan queue:work`). Automatic month-end salary, royalty and rank rewards (`finance:auto-approve`, hourly), the nightly audit check and the money reconciliation all depend on the scheduler
 - [ ] Automatic release of area commission decided: with `MADINA_AUTO_RELEASE_QUOTA_HOLDS=true` a held area share is paid as soon as the area dealer's monthly quota for that month is met; without it Finance releases each one by hand. Set `MADINA_AUTO_RELEASE_MATURED=true` too if a cooling-off period is configured
-- [ ] Owner decision recorded for area shares whose dealer never meets that month's quota: today they stay held with no end date
+- [ ] Owner decision recorded for area shares still held from months before November 2026: they stay held. From November 2026 a share whose target was missed goes to the company profit fund at month end
 - [ ] Payout TDS set in the commission rules if the owner wants it (percentage and monthly threshold; the default is 0%). TDS is worked out on the partner's monthly payout total
 - [ ] Only after the above: set `MADINA_FINANCIAL_ACTIVATION=true` on the production host and re-run `app:readiness`
 - [ ] Confirm `MADINA_PREVIEW_MODE=false` on production — `app:readiness` must not warn `preview_mode_enabled`

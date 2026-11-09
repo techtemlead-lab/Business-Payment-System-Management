@@ -88,7 +88,7 @@ final class TreasuryFunds
             'percent_of' => $row->percent_of,
             'mrp_total' => $row->mrp_total === null ? null : (string) $row->mrp_total,
             'paid' => $row->paid === null ? null : (string) $row->paid,
-            'reason' => $row->reason,
+            'reason' => $row->reason_key === ReserveService::AreaTargetMissedReason ? (string) __('portal.'.$row->reason_key) : $row->reason,
         ]);
 
         return $table;
@@ -231,7 +231,7 @@ final class TreasuryFunds
             ->leftJoin('commission_batches as b', 'b.order_id', '=', 'funds.order_id')
             ->where('funds.status', '!=', 'reversed')->where('funds.amount', '>', 0)
             ->whereRaw('('.FundCatalog::rowFundSql().') = ?', [$fund])
-            ->selectRaw("funds.id::text AS id, funds.created_at, o.id AS order_id, o.number AS order_number, u.name AS partner_name, u.dealer_code AS partner_code, u.role AS partner_role, funds.amount, funds.category, funds.rate_percentage AS percent, 'paid' AS percent_of, b.mrp_basis AS mrp_total, b.cash_basis AS paid, CASE WHEN funds.category = '".CompanyFunds::NoCommissionCategory."' THEN funds.metadata->>'reason' END AS reason");
+            ->selectRaw("funds.id::text AS id, funds.created_at, o.id AS order_id, o.number AS order_number, u.name AS partner_name, u.dealer_code AS partner_code, u.role AS partner_role, funds.amount, funds.category, funds.rate_percentage AS percent, 'paid' AS percent_of, b.mrp_basis AS mrp_total, b.cash_basis AS paid, CASE WHEN funds.category = '".CompanyFunds::NoCommissionCategory."' THEN funds.metadata->>'reason' END AS reason, funds.metadata->>'reason_key' AS reason_key");
     }
 
     /** The company share and the owners' share of each order, scaled down by what was refunded. */
@@ -243,13 +243,13 @@ final class TreasuryFunds
 
         return DB::table('commission_batches as b')->join('orders as o', 'o.id', '=', 'b.order_id')->leftJoin('users as u', 'u.id', '=', 'o.user_id')
             ->where($column, '>', 0)->whereColumn('b.refunded_amount', '<', 'b.cash_basis')
-            ->selectRaw("('b-' || b.id::text) AS id, b.created_at, o.id AS order_id, o.number AS order_number, u.name AS partner_name, u.dealer_code AS partner_code, u.role AS partner_role, ROUND({$column} * (b.cash_basis - b.refunded_amount) / NULLIF(b.cash_basis, 0), 2) AS amount, '".($company ? 'company_share' : 'owners_share')."' AS category, {$percent} AS percent, '".($company ? 'mrp' : 'paid')."' AS percent_of, b.mrp_basis AS mrp_total, b.cash_basis AS paid, NULL AS reason");
+            ->selectRaw("('b-' || b.id::text) AS id, b.created_at, o.id AS order_id, o.number AS order_number, u.name AS partner_name, u.dealer_code AS partner_code, u.role AS partner_role, ROUND({$column} * (b.cash_basis - b.refunded_amount) / NULLIF(b.cash_basis, 0), 2) AS amount, '".($company ? 'company_share' : 'owners_share')."' AS category, {$percent} AS percent, '".($company ? 'mrp' : 'paid')."' AS percent_of, b.mrp_basis AS mrp_total, b.cash_basis AS paid, NULL AS reason, NULL AS reason_key");
     }
 
     private function clinicRows(string $amount, string $condition): Builder
     {
         return DB::table('prescriptions as p')->where('p.kind', Prescription::KindClinic)->where('p.status', Prescription::StatusDispensed)->whereRaw($condition)
-            ->selectRaw("('p-' || p.id::text) AS id, p.dispensed_at AS created_at, NULL::uuid AS order_id, p.number AS order_number, NULL AS partner_name, NULL AS partner_code, NULL AS partner_role, {$amount} AS amount, 'clinic_sale' AS category, NULL::numeric AS percent, NULL AS percent_of, NULL::numeric AS mrp_total, NULL::numeric AS paid, NULL AS reason");
+            ->selectRaw("('p-' || p.id::text) AS id, p.dispensed_at AS created_at, NULL::uuid AS order_id, p.number AS order_number, NULL AS partner_name, NULL AS partner_code, NULL AS partner_role, {$amount} AS amount, 'clinic_sale' AS category, NULL::numeric AS percent, NULL AS percent_of, NULL::numeric AS mrp_total, NULL::numeric AS paid, NULL AS reason, NULL AS reason_key");
     }
 
     private function outRows(string $fund): Builder
