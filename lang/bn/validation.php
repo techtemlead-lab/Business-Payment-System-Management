@@ -73,7 +73,7 @@ return [
         'string' => ':attribute কমপক্ষে :value অক্ষরের হতে হবে।',
     ],
     'hex_color' => ':attribute সঠিক রঙের কোড হতে হবে।',
-    'image' => 'এখানে শুধু ছবি দেওয়া যাবে।',
+    'image' => '":attribute" ঘরে শুধু ছবি দেওয়া যাবে।',
     'in' => 'বেছে নেওয়া :attribute ঠিক নেই।',
     'in_array' => ':attribute :other এর মধ্যে থাকতে হবে।',
     'in_array_keys' => ':attribute এ এগুলোর অন্তত একটি থাকতে হবে: :values।',
