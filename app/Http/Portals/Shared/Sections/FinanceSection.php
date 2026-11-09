@@ -4,6 +4,7 @@ namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Commissions\CommissionSettlement;
 use App\Domain\Commissions\RetainedFundLedger;
+use App\Domain\Finance\CompanyFunds;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Geography\ManagementReferral;
 use App\Domain\Inventory\BranchScope;
