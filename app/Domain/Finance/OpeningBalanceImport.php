@@ -277,6 +277,7 @@ final class OpeningBalanceImport
         ];
         $partner = (new User)->forceFill([
             'dealer_code' => $data['dealer_code'],
+            'refer_code' => $data['dealer_code'],
             'name' => $data['name'],
             'email' => $data['email'],
             'phone' => $data['phone'],
