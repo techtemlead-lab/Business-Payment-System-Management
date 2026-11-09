@@ -1,3 +1,4 @@
+import {lazy} from 'react';
 import {Link,usePage} from '@inertiajs/react';
 import {ArrowUpRight,Download} from 'lucide-react';
 import {OfficeListTable,SavedFilterMenu} from '../../OfficeListTools';
@@ -23,9 +24,14 @@ function OrderTotals({totals}:{totals:Row}){
   <div className="metric"><span>{translate('portal','order_totals_to_pay')}</span><strong>{money(totals.to_pay)}</strong></div>
  </div><p className="muted" data-testid="order-totals-note">{translate('portal','order_totals_note')}</p></>;
 }
-/** Orders, deliveries and the order report, for the office and for partners alike. */
+/** Only the office downloads this, so a partner's phone does not. */
+const OfficeOrders=lazy(()=>import('./OfficeOrders'));
+/** Orders and deliveries: the office gets its own pages, partners keep this list. */
 export default function Orders(props:PortalSectionProps){
  const {section,d,filters,caps,staff,translate}=usePortalSection(props);
+ if(section==='orders'&&d.orders_table){return <OfficeOrders data={d}/>;}
+ // The courier board mounted beside this section draws the office's whole Deliveries page.
+ if(section==='deliveries'&&d.courier_board){return null;}
  const ordersEmpty=section==='deliveries'?{title:translate('portal','empty_deliveries_title'),body:translate('portal','empty_deliveries_body')}:{title:translate('portal','empty_orders_title'),body:translate('portal','empty_orders_body')};
  return <>
  {['orders','deliveries','reports'].includes(section)&&<section className="panel table-panel" data-tour="orders-table">{section==='orders'&&d.order_status_counts&&<StatusTabs counts={d.order_status_counts} filters={filters} section="orders" statuses={orderStatuses}/>}{section==='deliveries'&&d.delivery_summary&&<DeliverySummary summary={d.delivery_summary}/>}{section==='orders'&&d.order_totals&&<OrderTotals totals={d.order_totals}/>}<Filter section={section} filters={filters} actions={<>{staff&&section!=='reports'&&<SavedFilterMenu listKey={section} section={section} filters={filters}/>}{staff&&(caps.includes('reports')||caps.includes('finance'))&&<Link className="button small" href="/operations/financial-reports">{translate('portal','excel_pdf_reports')}</Link>}{(!staff||caps.includes('reports')||caps.includes('orders')||caps.includes('finance'))&&<a className="button small" data-tour="invoice-actions" href={ordersExportHref(section,filters)}><Download size={15}/>{staff?translate('portal','export_csv'):translate('partner_hub','export_excel')}</a>}</>}/><OrderTable page={d.orders} empty={ordersEmpty.title} emptyBody={ordersEmpty.body} searchable={false} report overdue={section==='deliveries'&&filters.status==='overdue_delivery'} listKey={staff&&section!=='reports'?section:undefined}/></section>}

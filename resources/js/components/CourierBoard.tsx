@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import { Row, Modal, dateTime, label, money, number } from './UI';
 import { useT } from '../shared/i18n/t';
@@ -97,11 +97,11 @@ function OrdersToSend({ data }: { data: Row }) {
     const [selecting, setSelecting] = useState(false);
     const table = data.orders_table as OrderTableFacts;
     const shared = useOrderFilters(data, table.state.filters.branch_id);
-    const tableData: MoneyTableData<Row> = useMemo(() => ({
+    const tableData: MoneyTableData<Row> = {
         ...table,
         rows: data.orders,
         filters: [{ key: 'status', label: translate('portal', 'col_status'), options: deliveryStatuses.map((status) => ({ value: status, label: label(status, translate) })) }, ...shared],
-    }), [data.orders, table, shared, translate]);
+    };
 
     const columns: MoneyColumn<Row>[] = [
         { key: 'number', title: translate('office_orders', 'col_order'), sortKey: 'created_at', phone: 'title', render: (row) => <OrderNumberCell row={row} /> },

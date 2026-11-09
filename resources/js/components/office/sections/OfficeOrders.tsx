@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import { Download } from 'lucide-react';
 import { useT } from '../../../shared/i18n/t';
@@ -206,7 +206,7 @@ export default function OfficeOrders({ data }: { data: Row }) {
     const table = data.orders_table as OrderTableFacts;
     const counts = (data.order_status_counts ?? {}) as Record<string, number>;
     const filters = useOrderFilters(data, table.state.filters.branch_id);
-    const tableData: MoneyTableData<Row> = useMemo(() => ({ ...table, rows: data.orders, filters }), [data.orders, table, filters]);
+    const tableData: MoneyTableData<Row> = { ...table, rows: data.orders, filters };
 
     const address = new URL(url || '/', 'http://orders.local');
     const activeStatus = address.searchParams.get('status') ?? '';
