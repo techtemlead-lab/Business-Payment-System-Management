@@ -509,16 +509,18 @@ final class StockRegister
      */
     private function keepDates(array &$active, Request $request, array $field): void
     {
+        $from = (string) $field['from'];
+        $to = (string) $field['to'];
         $dates = [];
-        foreach ([(string) $field['from'], (string) $field['to']] as $name) {
+        foreach ([$from, $to] as $name) {
             $value = $this->queryText($request, $name);
             if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/D', $value, $parts) === 1 && checkdate((int) $parts[2], (int) $parts[3], (int) $parts[1])) {
                 $dates[$name] = $value;
             }
         }
         // Dates picked the wrong way round still mean the same period.
-        if (count($dates) === 2 && $dates[$field['from']] > $dates[$field['to']]) {
-            [$dates[$field['from']], $dates[$field['to']]] = [$dates[$field['to']], $dates[$field['from']]];
+        if (count($dates) === 2 && $dates[$from] > $dates[$to]) {
+            [$dates[$from], $dates[$to]] = [$dates[$to], $dates[$from]];
         }
         $active += $dates;
     }
