@@ -7,6 +7,7 @@ import {
     Search, IdCard, Phone, Hash, AlertTriangle, CheckCircle2,
 } from 'lucide-react';
 import { useT } from '../shared/i18n/t';
+import { toLatin } from '../shared/countUp';
 
 type PlaceOption = { id: number; code: string; name: string; level: string; parent_id: number | null };
 type CommissionPlace = { level: string; code: string | null; name: string | null; rate?: string | null; pool?: string | null };
@@ -607,7 +608,7 @@ export default function AccountCreate({
                                     <label>
                                         {form.data.role === 'sub_dealer' ? translate('portal','acct_union_code') : translate('portal','acct_place_code')}
                                         <div className="ops-row is-stretch">
-                                            <input required value={form.data.place_code} onChange={(e) => form.setData('place_code', e.target.value)} placeholder={form.data.role === 'sub_dealer' ? translate('portal','acct_union_code_ph') : translate('portal','acct_place_code_ph')} />
+                                            <input required value={form.data.place_code} onChange={(e) => form.setData('place_code', toLatin(e.target.value))} placeholder={form.data.role === 'sub_dealer' ? translate('portal','acct_union_code_ph') : translate('portal','acct_place_code_ph')} />
                                             <button type="button" className="button dark" onClick={previewPlace}>{translate('portal','acct_resolve')}</button>
                                         </div>
                                         {form.errors.place_code && <span className="field-error">{form.errors.place_code}</span>}

@@ -28,6 +28,17 @@ class CatalogProductCapTest extends TestCase
                 ->where('data.all_catalog_products.0.name', 'Cap Beta'));
     }
 
+    public function test_staff_catalog_lists_categories_saved_only_on_older_products(): void
+    {
+        Product::factory()->create(['name' => 'Old Oil', 'category' => 'Old Free Text', 'active' => true]);
+
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+
+        $this->actingAs($admin)->onPortal('sadmin')->get('/catalog')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('data.used_categories', ['Old Free Text']));
+    }
+
     public function test_staff_catalog_filters_by_category_price_and_stock(): void
     {
         Product::factory()->create([

@@ -4,6 +4,7 @@ import { Link } from '@inertiajs/react';
 import { Building2, MapPin, Plus, Store, Truck, Users } from 'lucide-react';
 import { Badge, Modal, Table, Pagination, label, money, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
+import { toLatin } from '../shared/countUp';
 
 interface BranchStaff {
     user_id: number;
@@ -289,7 +290,7 @@ export default function BranchesHub({
                     >
                         <label>{translate('portal', 'branch_code')}<input value={createForm.data.code} onChange={(e) => createForm.setData('code', e.target.value)} required /></label>
                         <label>{translate('portal', 'branch_name')}<input value={createForm.data.name} onChange={(e) => createForm.setData('name', e.target.value)} required /></label>
-                        <label>{translate('portal', 'ops_fld_place_code')}<input value={createForm.data.place_code} onChange={(e) => createForm.setData('place_code', e.target.value)} placeholder="MNHC-" required /><span className="muted">{translate('portal', 'branch_place_code_hint')}</span>{createForm.errors.place_code && <span className="field-error">{createForm.errors.place_code}</span>}</label>
+                        <label>{translate('portal', 'ops_fld_place_code')}<input value={createForm.data.place_code} onChange={(e) => createForm.setData('place_code', toLatin(e.target.value))} placeholder="MNHC-" required /><span className="muted">{translate('portal', 'branch_place_code_hint')}</span>{createForm.errors.place_code && <span className="field-error">{createForm.errors.place_code}</span>}</label>
                         <label>{translate('portal', 'branch_phone')}<input value={createForm.data.phone} onChange={(e) => createForm.setData('phone', e.target.value)} /></label>
                         <label className="full">{translate('portal', 'branch_address')}<input value={createForm.data.address} onChange={(e) => createForm.setData('address', e.target.value)} /></label>
                         <label><input type="checkbox" checked={createForm.data.is_stock_hub} onChange={(e) => createForm.setData('is_stock_hub', e.target.checked)} /> {translate('portal', 'branch_stock_hub')}</label>
@@ -316,7 +317,7 @@ export default function BranchesHub({
                     >
                         <label>{translate('portal', 'branch_code')}<input value={editForm.data.code} onChange={(e) => editForm.setData('code', e.target.value)} required /></label>
                         <label>{translate('portal', 'branch_name')}<input value={editForm.data.name} onChange={(e) => editForm.setData('name', e.target.value)} required /></label>
-                        <label>{translate('portal', 'ops_fld_place_code')}<input value={editForm.data.place_code} onChange={(e) => editForm.setData('place_code', e.target.value)} placeholder="MNHC-" required /><span className="muted">{translate('portal', 'branch_place_code_hint')}</span>{editForm.errors.place_code && <span className="field-error">{editForm.errors.place_code}</span>}</label>
+                        <label>{translate('portal', 'ops_fld_place_code')}<input value={editForm.data.place_code} onChange={(e) => editForm.setData('place_code', toLatin(e.target.value))} placeholder="MNHC-" required /><span className="muted">{translate('portal', 'branch_place_code_hint')}</span>{editForm.errors.place_code && <span className="field-error">{editForm.errors.place_code}</span>}</label>
                         <label>{translate('portal', 'branch_phone')}<input value={editForm.data.phone} onChange={(e) => editForm.setData('phone', e.target.value)} /></label>
                         <label className="full">{translate('portal', 'branch_address')}<input value={editForm.data.address} onChange={(e) => editForm.setData('address', e.target.value)} /></label>
                         <label><input type="checkbox" checked={editForm.data.is_active} onChange={(e) => editForm.setData('is_active', e.target.checked)} /> {translate('portal', 'branch_active')}</label>

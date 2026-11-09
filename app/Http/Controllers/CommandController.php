@@ -284,10 +284,9 @@ class CommandController extends Controller
             ? __('portal.acct_type_employee')
             : __('portal.acct_type_partner');
 
-        return redirect($redirectUrl)->with('success', __('portal.acct_created_flash', [
-            'type' => $accountTypeLabel,
-            'code' => $u->dealer_code ?? $u->name,
-        ]));
+        return redirect($redirectUrl)->with('success', $u->dealer_code !== null
+            ? __('portal.acct_created_flash', ['type' => $accountTypeLabel, 'code' => $u->dealer_code])
+            : __('portal.acct_created_flash_no_code', ['type' => $accountTypeLabel]));
     }
 
     public function accountUpdate(Request $r, User $user, PartnerAccountProvisioning $partners): RedirectResponse
