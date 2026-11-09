@@ -90,7 +90,7 @@ class TeamOrdersController extends Controller
             $rows,
             [
                 [$label('col_partner'), $partner->name.' ('.($partner->dealer_code ?: '—').')'],
-                [__('portal.ops_period'), $filters['from'].' '.__('portal.ops_through').' '.$filters['to']],
+                [__('portal.ops_period'), __('portal.ops_period_range', ['from' => $filters['from'], 'to' => $filters['to']])],
                 [$label('team_orders_total_orders'), $totals['orders']],
                 [$label('team_orders_buyers'), $totals['buyers']],
                 [$label('report_col_ordered'), $totals['ordered']],

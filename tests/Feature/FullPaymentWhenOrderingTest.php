@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Finance\FinanceSettings;
+use App\Domain\Finance\PaymentAccounts;
 use App\Models\Order;
 use App\Models\PlaceCode;
 use App\Models\Product;
@@ -181,6 +182,32 @@ class FullPaymentWhenOrderingTest extends TestCase
     private function dealer(): User
     {
         return User::factory()->dealer()->create(['status' => 'active']);
+    }
+
+    public function test_a_sales_rep_chooses_the_company_account_when_the_company_has_one(): void
+    {
+        Storage::fake('local');
+        $admin = User::factory()->create(['role' => 'super_admin']);
+        $sr = User::factory()->create(['role' => 'sr']);
+        $account = app(PaymentAccounts::class)->save($admin, ['label' => 'Company bank', 'channel' => 'Bank', 'holder' => 'Madina', 'account_number' => '123456789012',
+            'details' => 'Pay here', 'collects_payments' => true, 'pays_out' => false, 'is_active' => true, 'reason' => 'Collection account for the sales rep order test.']);
+        $district = PlaceCode::factory()->district(PlaceCode::factory()->division()->create(['name' => 'Rangpur']))->create(['name' => 'Rangpur']);
+        $partner = User::factory()->inPlace($district)->create(['role' => 'dealer', 'status' => 'active']);
+        $product = $this->product();
+        $this->actingAs($admin)->postJson('/api/v1/operations/staff/territories', ['staff_id' => $sr->id, 'place_code' => $district->code])->assertOk();
+
+        $this->actingAs($sr)->onPortal('manage')->get('/operations/field-sales')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->has('collectionAccounts', 1)->where('collectionAccounts.0.id', $account));
+
+        $payload = ['user_id' => $partner->id, 'items' => [['product_id' => $product->id, 'quantity' => 1]], 'idempotency_key' => (string) Str::uuid(),
+            'channel' => 'Bank', 'reference' => 'BANK-SR-2', 'amount' => '100.00', 'proof' => UploadedFile::fake()->image('bank-slip.jpg')];
+        $this->actingAs($sr)->postJson('/api/v1/operations/staff/orders', $payload)
+            ->assertUnprocessable()->assertJsonValidationErrors(['payment_account_id']);
+        $this->assertDatabaseCount('orders', 0);
+
+        $this->actingAs($sr)->postJson('/api/v1/operations/staff/orders', [...$payload, 'payment_account_id' => $account])->assertOk();
+        $order = Order::where('user_id', $partner->id)->sole();
+        $this->assertDatabaseHas('payment_claims', ['order_id' => $order->id, 'amount' => '100.00', 'payment_account_id' => $account, 'status' => 'pending']);
     }
 
     private function product(): Product

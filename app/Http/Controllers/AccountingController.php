@@ -261,7 +261,7 @@ class AccountingController extends Controller
                 [$name],
                 [$notice],
                 [$scope],
-                [__('portal.ops_period'), $from.' '.__('portal.ops_through').' '.$to],
+                [__('portal.ops_period'), __('portal.ops_period_range', ['from' => $from, 'to' => $to])],
                 [__('portal.ops_export_currency'), 'BDT'],
                 [__('portal.ops_export_timezone'), 'Asia/Dhaka'],
                 [__('portal.ops_export_generated'), $generatedAt],

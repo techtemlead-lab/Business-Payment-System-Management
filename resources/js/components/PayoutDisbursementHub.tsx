@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { Search } from 'lucide-react';
-import { money, date, Table, Pagination, type Row } from './UI';
+import { FormErrors, money, date, Table, Pagination, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
 import { useEscape } from '../shared/useEscape';
-import { methodForChannel, payoutMethods, type PayoutMethod } from '../shared/payoutMethods';
+import { channelName, methodForChannel, payoutMethods, type PayoutMethod } from '../shared/payoutMethods';
 
 type WithdrawalStatus = 'requested' | 'approved' | 'paid' | 'rejected';
 
@@ -91,6 +91,8 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
     const [reviewDecision, setReviewDecision] = useState<'approved' | 'rejected'>('approved');
     const [reviewReason, setReviewReason] = useState('');
     const [processingReview, setProcessingReview] = useState(false);
+    // Why the office's last try in the open box was refused; the box stays open so nothing typed is lost.
+    const [modalErrors, setModalErrors] = useState<Record<string, string>>({});
 
     const [settleModalRecord, setSettleModalRecord] = useState<WithdrawalRecord | null>(null);
     useEscape(reviewModalRecord !== null, () => setReviewModalRecord(null));
@@ -132,6 +134,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
     const hasActiveFilters = activeSearch !== '' || activeStatus !== 'all' || activeChannel !== '' || activePeriod !== '' || activeBuyerRole !== '';
 
     const handleOpenReview = (record: WithdrawalRecord) => {
+        setModalErrors({});
         setReviewModalRecord(record);
         setReviewDecision('approved');
         setReviewReason('');
@@ -147,14 +150,14 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
                 ? translate('portal', 'pay_reason_approved')
                 : translate('portal', 'pay_reason_rejected'))
         }, {
-            onFinish: () => {
-                setProcessingReview(false);
-                setReviewModalRecord(null);
-            }
+            onSuccess: () => setReviewModalRecord(null),
+            onError: (errors) => setModalErrors(errors),
+            onFinish: () => setProcessingReview(false),
         });
     };
 
     const handleOpenSettle = (record: WithdrawalRecord) => {
+        setModalErrors({});
         setSettleModalRecord(record);
         setPaymentReference('');
         setPaidAt(new Date().toLocaleString('sv-SE',{timeZone:'Asia/Dhaka'}).slice(0,16).replace(' ','T'));
@@ -190,10 +193,9 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
 
         setProcessingSettle(true);
         router.post(`/commands/withdrawals/${settleModalRecord.id}/record-payment`, formData, {
-            onFinish: () => {
-                setProcessingSettle(false);
-                setSettleModalRecord(null);
-            }
+            onSuccess: () => setSettleModalRecord(null),
+            onError: (errors) => setModalErrors(errors),
+            onFinish: () => setProcessingSettle(false),
         });
     };
 
@@ -261,6 +263,8 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
                     </small>
                 </div>
             </div>
+
+            {!canProcess && <div className="notice" role="status"><p>{translate('portal', 'pay_view_only_notice')}</p></div>}
 
             {/* Filter & Search Bar */}
             <div className="panel hub-row is-between">
@@ -356,7 +360,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
                             key: 'channel',
                             title: translate('portal', 'pay_col_method'),
                             sortable: true,
-                            render: (w: WithdrawalRecord) => <span className="hub-strong">{w.channel}</span>,
+                            render: (w: WithdrawalRecord) => <span className="hub-strong">{channelName(w.channel, translate)}</span>,
                         },
                         {
                             key: 'destination_masked',
@@ -453,14 +457,13 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
                                         </button>
                                     )}
 
-                                    {w.status === 'paid' && (
-                                        <a
-                                            href={`/withdrawals/${w.id}`}
-                                            className="text-link"
-                                        >
-                                            {translate('portal', 'pay_details')}
-                                        </a>
-                                    )}
+                                    {/* The full number to send the money to is only on this page, where opening it is logged. */}
+                                    <a
+                                        href={`/withdrawals/${w.id}`}
+                                        className="text-link"
+                                    >
+                                        {translate('portal', 'pay_details')}
+                                    </a>
 
                                     {w.status === 'paid' && w.payout_receipt_id && (
                                         <a
@@ -554,6 +557,8 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
                                 />
                             </div>
 
+                            <FormErrors errors={modalErrors} />
+
                             <div className="hub-row is-end">
                                 <button
                                     type="button"
@@ -583,7 +588,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
                             {translate('portal', 'pay_settle_title')}
                         </h3>
                         <p className="hub-sub is-lead">
-                            {translate('portal', 'pay_settle_meta', { name: settleModalRecord.user_name, channel: settleModalRecord.channel, amount: money(settleModalRecord.net_amount ?? settleModalRecord.amount) })}
+                            {translate('portal', 'pay_settle_meta', { name: settleModalRecord.user_name, channel: channelName(settleModalRecord.channel, translate), amount: money(settleModalRecord.net_amount ?? settleModalRecord.amount) })}
                         </p>
 
                         <div className="portal-notice portal-notice-info">
@@ -699,6 +704,8 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
                                     onChange={(e) => setSettleNote(e.target.value)}
                                 />
                             </div>
+
+                            <FormErrors errors={modalErrors} />
 
                             <div className="hub-row is-end">
                                 <button

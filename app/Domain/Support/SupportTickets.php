@@ -9,8 +9,10 @@ use App\Support\DashboardManagement;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class SupportTickets
 {
@@ -64,8 +66,10 @@ final class SupportTickets
                 'users.role as user_role',
             ])
             ->selectRaw('('.self::waitingSinceSql().') AS waiting_since')
-            ->get()
-            ->map(function ($row) use ($now, $cutoff): array {
+            ->get();
+        $replies = $this->repliesByTicket($rows->pluck('id')->map(fn ($id): string => (string) $id)->all());
+        $tickets = $rows
+            ->map(function ($row) use ($now, $cutoff, $replies): array {
                 $waitingSince = $row->waiting_since ? CarbonImmutable::parse((string) $row->waiting_since, 'UTC') : null;
 
                 return [
@@ -76,11 +80,12 @@ final class SupportTickets
                     'waiting_since' => $waitingSince?->toIso8601String(),
                     'waiting_hours' => $waitingSince ? (int) floor($waitingSince->diffInMinutes($now) / 60) : null,
                     'overdue' => $waitingSince !== null && $waitingSince->lessThan($cutoff),
+                    'replies' => $replies[(string) $row->id] ?? [],
                 ];
             })
             ->all();
 
-        return ['tickets' => $rows, 'filters' => ['status' => $status], 'overdue_count' => $this->overdueCount(), 'overdue_hours' => $hours];
+        return ['tickets' => $tickets, 'filters' => ['status' => $status], 'overdue_count' => $this->overdueCount(), 'overdue_hours' => $hours];
     }
 
     /**
@@ -172,27 +177,58 @@ final class SupportTickets
         if ($viewer && ! $viewer->staff() && ! $viewer->owner() && (int) $ticket->user_id !== (int) $viewer->id) {
             abort(404);
         }
-        $replies = DB::table('support_ticket_replies')
+
+        return [...$this->mapTicket($ticket), 'replies' => $this->repliesByTicket([$id])[$id] ?? []];
+    }
+
+    /**
+     * Each ticket's replies, oldest first.
+     *
+     * @param  list<string>  $ticketIds
+     * @return array<string, list<array{id: mixed, body: mixed, is_staff: bool, author_name: mixed, created_at: string}>>
+     */
+    private function repliesByTicket(array $ticketIds): array
+    {
+        return DB::table('support_ticket_replies')
             ->join('users', 'users.id', '=', 'support_ticket_replies.user_id')
-            ->where('support_ticket_id', $id)
+            ->whereIn('support_ticket_id', $ticketIds)
             ->orderBy('support_ticket_replies.created_at')
+            ->orderBy('support_ticket_replies.id')
             ->get([
                 'support_ticket_replies.id',
+                'support_ticket_replies.support_ticket_id',
                 'support_ticket_replies.body',
                 'support_ticket_replies.is_staff',
                 'support_ticket_replies.created_at',
                 'users.name as author_name',
             ])
-            ->map(fn ($row) => [
+            ->groupBy(fn ($row): string => (string) $row->support_ticket_id)
+            ->map(fn ($rows): array => $rows->map(fn ($row): array => [
                 'id' => $row->id,
                 'body' => $row->body,
                 'is_staff' => (bool) $row->is_staff,
                 'author_name' => $row->author_name,
                 'created_at' => (string) $row->created_at,
-            ])
+            ])->all())
             ->all();
+    }
 
-        return [...$this->mapTicket($ticket), 'replies' => $replies];
+    /**
+     * Opens the file attached to a request. Only the partner who sent it and the
+     * office staff who run the support desk may open it; anyone else gets 404.
+     */
+    public function openAttachment(User $viewer, string $id): StreamedResponse
+    {
+        $ticket = DB::table('support_tickets')->where('id', $id)->first();
+        $mayOpen = $ticket && ((int) $ticket->user_id === (int) $viewer->id
+            || $viewer->owner() || $viewer->allows('accounts') || $viewer->allows('support_desk'));
+        abort_unless($mayOpen && $ticket->attachment_path && Storage::disk('local')->exists($ticket->attachment_path), 404);
+        Audit::record($viewer->id, 'support.attachment_opened', $id);
+
+        return Storage::disk('local')->response($ticket->attachment_path, 'support-file-'.$id.'.'.pathinfo($ticket->attachment_path, PATHINFO_EXTENSION), [
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     /**
@@ -240,7 +276,7 @@ final class SupportTickets
         if (! $isStaff) {
             $this->tellOfficeAboutPartnerReply($actor, $ticket);
         } elseif ((int) $ticket->user_id !== (int) $actor->id) {
-            $this->emailPartnerAboutOfficeReply($ticket);
+            $this->tellPartnerAboutOfficeReply($ticket);
         }
 
         return $this->show($id, $actor);
@@ -261,13 +297,16 @@ final class SupportTickets
     }
 
     /**
-     * The office answered: the partner gets an email pointing to the reply on the portal.
+     * The office answered: the partner gets a notice and an email pointing to the reply on the portal.
      */
-    private function emailPartnerAboutOfficeReply(object $ticket): void
+    private function tellPartnerAboutOfficeReply(object $ticket): void
     {
         $partner = User::query()->find((int) $ticket->user_id);
         if ($partner instanceof User) {
-            app(PartnerEventEmail::class)->sendTranslated($partner, 'support.reply_to_partner', 'event_emails.support_reply_title', 'event_emails.support_reply_body', ['subject' => Str::limit((string) $ticket->subject, 60)]);
+            $locale = $partner->preferredLocale();
+            $replace = ['subject' => Str::limit((string) $ticket->subject, 60)];
+            Audit::notice($partner->id, __('event_emails.support_reply_title', $replace, $locale), __('event_emails.support_reply_body', $replace, $locale));
+            app(PartnerEventEmail::class)->sendTranslated($partner, 'support.reply_to_partner', 'event_emails.support_reply_title', 'event_emails.support_reply_body', $replace);
         }
     }
 

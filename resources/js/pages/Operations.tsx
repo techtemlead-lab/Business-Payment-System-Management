@@ -139,7 +139,7 @@ function OperationForm({title,action,fields,defaults={},policy,policyRules={},fu
                 if(name==='rule_key')next.percentage=String(policyRules[value]?.percentage??'');
                 return next;
             });
-        } else form.setData(name,value);
+        } else if(name==='channel'&&'payment_account_id' in form.data){form.setData((current:Row)=>({...current,channel:value,payment_account_id:''}));} else form.setData(name,value);
     };
     return <form className="action-form" onSubmit={event=>{
         event.preventDefault();
@@ -165,7 +165,7 @@ function OperationForm({title,action,fields,defaults={},policy,policyRules={},fu
         form.post(action,{preserveScroll:true,onSuccess:()=>{form.reset();setItemCount(1);for(const key of ['idempotency_key','request_key'])if(key in form.data)form.setData(key,randomUuid());onDone?.();}});
     }} aria-label={title}>
         {visibleFields.map(f=>{
-            const choices = policy&&f.name==='rule_key'&&form.data.scope==='recipient' ? recipientKeys.map(value=>({value,label:label(value,translate)})) : f.options;
+            const choices = policy&&f.name==='rule_key'&&form.data.scope==='recipient' ? recipientKeys.map(value=>({value,label:label(value,translate)})) : f.name==='payment_account_id' ? f.options?.filter(o=>(o as Row).channel===form.data.channel) : f.options;
             const value=form.data[f.name]??f.value??'';
             return <label key={f.name}>{f.label}{choices?<select required={f.required} value={String(value)} onChange={e=>change(f.name,e.target.value)}><option value="">{translate('portal','ops_fld_select')}</option>{choices.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select>:f.type==='textarea'?<textarea rows={3} required={f.required} value={value} onChange={e=>change(f.name,e.target.value)}/>:f.type==='file'?<input required={f.required} type="file" accept={f.name==='evidence'?'application/pdf,image/jpeg,image/png,.xlsx':'application/pdf,image/jpeg,image/png'} onChange={e=>change(f.name,e.target.files?.[0]??null)}/>:<input required={f.required} type={f.type??'text'} step={f.type==='number'?(f.name.endsWith('.quantity')?'1':'0.01'):undefined} value={value} onChange={e=>change(f.name,e.target.value)}/>} {form.errors[f.name]&&<span className="field-error">{String(form.errors[f.name])}</span>}</label>;
         })}
@@ -317,7 +317,7 @@ export default function Operations({section,tables,hub=null,reportTypes=[],repor
     const translate=useT();
     const metricLabel=(key:string)=>{const localized=translate('portal',`ops_chk_${key}`);return localized===`ops_chk_${key}`?label(key,translate):localized;};
     const sectionTitle=translate('portal', sectionTitleKeys[section] ?? section);
-    const {auth,financeActive,staffActions,portalBase}=usePage<any>().props;
+    const {auth,financeActive,staffActions,portalBase,collectionAccounts=[]}=usePage<any>().props;
     const capabilities:string[]=auth.capabilities;
     const [selected,setSelected]=useState<Action|null>(null);
     const [account,setAccount]=useState<Row|null>(null);
@@ -343,7 +343,7 @@ export default function Operations({section,tables,hub=null,reportTypes=[],repor
     }
     if(section==='field-sales') {
         // "Full payment required when ordering": staff orders carry the whole payment and its screenshot too.
-        const orderPayment:Field[]=fullPaymentWhenOrdering?.enabled?[{name:'channel',label:translate('portal','payment_method'),required:true,options:[{value:'Bank',label:translate('portal','pay_channel_bank')},{value:'bKash',label:translate('portal','pay_channel_bkash')},{value:'Nagad',label:translate('portal','pay_channel_nagad')},{value:'Rocket',label:translate('portal','pay_channel_rocket')}]},field('reference',translate('portal','transaction_reference')),field('amount',translate('portal','ops_fld_full_order_amount'),'number'),field('proof',translate('portal','payment_proof_label'),'file')]:[];
+        const orderPayment:Field[]=fullPaymentWhenOrdering?.enabled?[{name:'channel',label:translate('portal','payment_method'),required:true,options:[{value:'Bank',label:translate('portal','pay_channel_bank')},{value:'bKash',label:translate('portal','pay_channel_bkash')},{value:'Nagad',label:translate('portal','pay_channel_nagad')},{value:'Rocket',label:translate('portal','pay_channel_rocket')}]},...(collectionAccounts.length?[{name:'payment_account_id',label:translate('portal','company_collection_account'),required:true,options:collectionAccounts.map((a:Row)=>({value:String(a.id),label:`${a.holder} · ${a.account_number}`,channel:a.channel}))}]:[]),field('reference',translate('portal','transaction_reference')),field('amount',translate('portal','ops_fld_full_order_amount'),'number'),field('proof',translate('portal','payment_proof_label'),'file')]:[];
         if(capabilities.includes('sr_orders'))forms.push({title:translate('portal','ops_submit_partner_order'),action:root+'/staff/orders',fields:[partnerField,choose(products,'items.0.product_id',translate('portal','ops_fld_product')),field('items.0.quantity',translate('portal','ops_fld_quantity'),'number'),...orderPayment,field('note',translate('portal','ops_fld_order_note'),'textarea',false)],defaults:{idempotency_key:randomUuid()}});
         if(capabilities.includes('sr_onboarding'))forms.push({title:translate('portal','ops_submit_dealer_application'),action:root+'/staff/applications',fields:[field('name',translate('portal','ops_fld_full_name')),field('email',translate('portal','ops_fld_email'),'email'),field('phone',translate('portal','ops_fld_phone')),choice('role',translate('portal','ops_fld_account_type'),['dealer','sub_dealer']),field('place_code',translate('portal','ops_fld_place_code')),choose(partners.filter((p:Row)=>p.role==='dealer'),'sponsor_id',translate('portal','ops_fld_sponsor_optional'),false)]});
     }
