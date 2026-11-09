@@ -184,7 +184,7 @@ export default function Payroll({ tables, staff, paymentAccounts, secondApprover
                             { label: translate('office_staff', 'detail_paid_at'), value: opened.paid_at ? dateTime(String(opened.paid_at)) : null },
                         ]}
                     />
-                    <h3 className="staff-drawer-heading">{translate('office_staff', 'detail_calculation')}</h3>
+                    <div className="emp-cat-title">{translate('office_staff', 'detail_calculation')}</div>
                     <div className="opr-json"><StoredDetails value={readStored(opened.snapshot)} /></div>
                 </Modal>
             )}

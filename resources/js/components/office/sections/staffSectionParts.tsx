@@ -53,7 +53,7 @@ export function ViewSwitch<T extends string>({ views, active, fallback, label: g
     };
 
     return (
-        <div className="tsy-switch office-switch" role="group" aria-label={groupLabel}>
+        <div className="office-switch" role="group" aria-label={groupLabel}>
             {views.map((view) => (
                 <Link key={view.key} href={hrefFor(view.key)} className={view.key === active ? 'is-active' : undefined} aria-current={view.key === active ? 'true' : undefined} preserveState preserveScroll replace only={['view']}>
                     {view.label}
@@ -266,7 +266,7 @@ export function DrawerLines({ lines }: { lines: { label: string; value: React.Re
     const shown = lines.filter((line) => line.value !== null && line.value !== undefined && line.value !== '');
 
     return (
-        <dl className="profile-grid staff-drawer-lines">
+        <dl className="office-facts">
             {shown.map((line) => <div key={line.label}><dt>{line.label}</dt><dd>{line.value}</dd></div>)}
         </dl>
     );

@@ -150,6 +150,20 @@ class PortalQueryBudgetTest extends TestCase
         $this->assertCount(count($queries), $moreQueries, 'Inventory queries must not grow with the number of products.');
     }
 
+    public function test_the_staff_list_query_count_does_not_grow_with_staff(): void
+    {
+        $owner = User::factory()->staff()->create();
+        User::factory()->staff('finance')->create();
+        $this->actingAs($owner)->onPortal('sadmin')->get('/employees')->assertOk();
+
+        [, $few] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/employees'));
+        User::factory()->staff('support')->count(8)->create();
+        [$response, $many] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/employees'));
+
+        $response->assertInertia(fn (Assert $page) => $page->where('data.employees.table.totals.count', 9));
+        $this->assertCount(count($few), $many, 'The staff list ran a query per person.');
+    }
+
     public function test_inventory_loads_the_branch_list_once_per_reader(): void
     {
         $branch = CompanyBranch::factory()->create(['code' => 'QB-01', 'name' => 'Query Hub', 'is_active' => true]);

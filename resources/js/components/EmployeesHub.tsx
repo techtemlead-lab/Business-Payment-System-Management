@@ -69,8 +69,8 @@ function PermissionPicker({ available, selected, onChange, adding, onlyKeys }: {
     const toggle = (key: string) => onChange(selected.includes(key) ? selected.filter((item) => item !== key) : [...selected, key]);
 
     return (
-        <fieldset className="staff-permissions">
-            <legend>{translate('portal', 'emp_perms_select')} <small>{translate('portal', 'emp_caps_selected', { count: number(selected.length) })}</small></legend>
+        <div className="ops-stack">
+            <div className="ops-row is-between"><b className="ops-fs-sm ops-text">{translate('portal', 'emp_perms_select')}</b><span className="ops-fs-2xs ops-semibold tone-ok">{translate('portal', 'emp_caps_selected', { count: number(selected.length) })}</span></div>
             <div className="ops-row is-wrap is-snug">
                 <button type="button" className="button small" onClick={() => applyPreset(available.map((item) => item.key))}>{translate('portal', 'emp_preset_all')}</button>
                 {PRESETS.filter((preset) => adding || !preset.onlyWhenAdding).map((preset) => (
@@ -98,7 +98,7 @@ function PermissionPicker({ available, selected, onChange, adding, onlyKeys }: {
                     </div>
                 </div>
             ))}
-        </fieldset>
+        </div>
     );
 }
 
@@ -260,7 +260,7 @@ function StaffDrawer({ employee, available, canManageStaff, onEdit, onClose }: {
                     { label: translate('office_staff', 'detail_joined'), value: date(employee.created_at) },
                 ]}
             />
-            <h3 className="staff-drawer-heading">{translate('office_staff', 'detail_permissions')}</h3>
+            <div className="emp-cat-title">{translate('office_staff', 'detail_permissions')}</div>
             {permissions.length === 0 ? (
                 <p className="muted">{translate('office_staff', 'no_permissions')}</p>
             ) : (

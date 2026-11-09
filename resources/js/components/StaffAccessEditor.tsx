@@ -63,11 +63,11 @@ export default function StaffAccessEditor({modules,staff,roles,presets,hub}:{mod
     const view=currentView<AccessView>(url,['staff','roles'],'staff');
     return <OfficePage title={translate('office_staff','page_title')} hub={hub}>
         <ViewSwitch views={views} active={view} fallback="staff" label={translate('office_staff','views_label')}/>
-        {view==='staff'&&<div className="staff-access">
+        {view==='staff'&&<div className="ops-stack">
             <label>{translate('portal', 'sa_staff_member')}<select value={staffId} onChange={e=>setStaffId(e.target.value)}><option value="">{translate('portal', 'sa_select_staff')}</option>{staff.map(user=><option key={user.id} value={user.id}>{user.name} · {roles.find(item=>item.key===user.role)?.name??label(user.role, translate)}</option>)}</select></label>
             {selected&&<PermissionForm key={selected.id+':'+selected.version} modules={modules} entry={selected} mode="staff" roles={[...presets,...roles]}/>}
         </div>}
-        {view==='roles'&&<div className="staff-access">
+        {view==='roles'&&<div className="ops-stack">
             <label>{translate('portal', 'sa_role')}<select value={roleKey} onChange={e=>setRoleKey(e.target.value)}><option value="">{translate('portal', 'sa_create_role')}</option>{roles.map(item=><option key={item.key} value={item.key}>{item.name}</option>)}</select></label>
             <PermissionForm key={roleKey+':'+(role.version??0)} modules={modules} entry={role} mode="role" roles={roles}/>
         </div>}
