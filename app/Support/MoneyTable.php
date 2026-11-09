@@ -64,7 +64,7 @@ final class MoneyTable
     {
         $filtered = (clone $query)->reorder();
         self::applySearch($filtered, self::searchText($request), $spec->search);
-        self::applyFilters($filtered, $request, $spec->filters);
+        self::applyFilters($filtered, $spec->filters, self::chosenFilters($request, $spec->filters));
         self::applyView($filtered, self::view($request, $spec->defaultPeriod), $spec->dateColumn);
 
         return $filtered;
