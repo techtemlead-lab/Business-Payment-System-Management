@@ -1,0 +1,152 @@
+/*
+ * Treasury office pages. Every page has the same shape: one title, the tab strip,
+ * up to one row of cards, one table. No notes and no panel inside a panel.
+ */
+
+/* The page draws its own title, so a fund or an order can be the title. */
+.app-shell .workspace-main:has(.tsy-page)>.page-heading{display:none}
+
+/* Shared table: the search icon sits beside the words, and the filter sheet is only for phones. */
+.app-shell .money-table .mt-search .search-input{flex-direction:row}
+@media (min-width:768px){
+  .app-shell .money-table .mt-sheet-button{display:none}
+}
+
+.app-shell .tsy-page{display:flex;flex-direction:column;gap:var(--ds-s-4);min-width:0}
+.app-shell .tsy-page>*{min-width:0}
+
+.app-shell .tsy-back{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;font-size:var(--ds-fs-sm);font-weight:600;color:var(--ds-text-muted)}
+.app-shell .tsy-back:hover{color:var(--ds-brand-text)}
+
+.app-shell .tsy-head{display:flex;align-items:center;justify-content:space-between;gap:var(--ds-s-4);flex-wrap:wrap}
+.app-shell .tsy-head-text{min-width:0}
+.app-shell .tsy-head h1{margin:0;font-size:var(--ds-fs-2xl);font-weight:700;line-height:1.2;letter-spacing:0;color:var(--ds-text);overflow-wrap:anywhere}
+.app-shell .tsy-head p{margin:4px 0 0;font-size:var(--ds-fs-sm);line-height:1.5;color:var(--ds-text-muted);overflow-wrap:anywhere}
+.app-shell .tsy-head-action{flex:0 0 auto}
+
+/* Tab strip: words with one underlined, so it never looks like the view choices below it. */
+.app-shell .tsy-tabs{display:flex;gap:var(--ds-s-1);overflow-x:auto;border-bottom:1px solid var(--ds-line);scrollbar-width:none;margin-top:calc(var(--ds-s-2) * -1)}
+.app-shell .tsy-tabs::-webkit-scrollbar{display:none}
+.app-shell .tsy-tab{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;min-height:44px;padding:0 var(--ds-s-3);border-bottom:2px solid transparent;margin-bottom:-1px;font-size:var(--ds-fs-base);font-weight:600;color:var(--ds-text-muted);white-space:nowrap}
+.app-shell .tsy-tab:hover{color:var(--ds-text)}
+.app-shell .tsy-tab.is-active{color:var(--ds-brand-text);border-bottom-color:var(--ds-brand)}
+.app-shell .tsy-tab:focus-visible{outline:2px solid var(--ds-brand);outline-offset:-2px}
+.app-shell .tsy-tab-count{min-width:20px;padding:0 6px;border-radius:var(--ds-r-pill);background:var(--ds-surface-3);color:var(--ds-text);font-size:var(--ds-fs-2xs);line-height:18px;text-align:center}
+
+/* A row of cards. */
+.app-shell .tsy-figures{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--ds-s-3)}
+.app-shell .tsy-figure{display:flex;flex-direction:column;gap:6px;min-width:0;padding:var(--ds-s-4) var(--ds-s-5);background:var(--ds-surface);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg)}
+.app-shell .tsy-figure span{font-size:var(--ds-fs-sm);font-weight:500;color:var(--ds-text-muted)}
+.app-shell .tsy-figure strong{font-size:var(--ds-fs-2xl);font-weight:700;line-height:1.2;color:var(--ds-text);font-variant-numeric:tabular-nums lining-nums;overflow-wrap:anywhere}
+.app-shell .tsy-figure strong.is-headline{font-size:var(--ds-fs-3xl)}
+.app-shell .tsy-page .is-negative{color:var(--ds-danger-fg)}
+
+/* Funds on the Treasury home page. */
+.app-shell .tsy-funds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--ds-s-3)}
+.app-shell .tsy-fund{display:flex;flex-direction:column;min-width:0;padding:var(--ds-s-4) var(--ds-s-5);background:var(--ds-surface);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);color:var(--ds-text)}
+.app-shell .tsy-fund:hover{border-color:var(--ds-brand)}
+.app-shell .tsy-fund:focus-visible{outline:2px solid var(--ds-brand);outline-offset:2px}
+.app-shell .tsy-fund h2{margin:0 0 var(--ds-s-3);font-size:var(--ds-fs-md);font-weight:700;letter-spacing:0;line-height:1.3;color:var(--ds-text)}
+.app-shell .tsy-fund-label{font-size:var(--ds-fs-xs);font-weight:500;color:var(--ds-text-muted)}
+.app-shell .tsy-fund>strong{margin-top:2px;font-size:var(--ds-fs-2xl);font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums lining-nums;overflow-wrap:anywhere}
+.app-shell .tsy-fund dl{display:flex;flex-direction:column;gap:4px;margin:var(--ds-s-3) 0 0;padding-top:var(--ds-s-3);border-top:1px solid var(--ds-line-soft)}
+.app-shell .tsy-fund dl>div{display:flex;justify-content:space-between;gap:var(--ds-s-3)}
+.app-shell .tsy-fund dt{font-size:var(--ds-fs-sm);color:var(--ds-text-muted)}
+.app-shell .tsy-fund dd{margin:0;font-size:var(--ds-fs-sm);font-weight:600;color:var(--ds-text);font-variant-numeric:tabular-nums lining-nums;white-space:nowrap}
+
+/* Choice between two views of one page. */
+.app-shell .tsy-switch{display:inline-flex;align-self:flex-start;padding:3px;background:var(--ds-surface-3);border-radius:var(--ds-r-md)}
+.app-shell .tsy-switch a{display:inline-flex;align-items:center;min-height:36px;padding:0 var(--ds-s-4);border-radius:var(--ds-r-sm);font-size:var(--ds-fs-sm);font-weight:600;color:var(--ds-text-muted);white-space:nowrap}
+.app-shell .tsy-switch a.is-active{background:var(--ds-surface);color:var(--ds-text);box-shadow:var(--ds-shadow-xs)}
+.app-shell .tsy-switch a:focus-visible{outline:2px solid var(--ds-brand);outline-offset:1px}
+
+/* One plain line of fact between the cards and the table. */
+.app-shell .tsy-line{margin:0;font-size:var(--ds-fs-sm);line-height:1.5;color:var(--ds-text-2);overflow-wrap:anywhere}
+
+/* Where the money of one order went. */
+.app-shell .tsy-page>.table-panel{margin:0}
+.app-shell .tsy-lines{width:100%;border-collapse:collapse;white-space:normal}
+.app-shell .tsy-lines th{padding:12px var(--ds-s-5);font-size:var(--ds-fs-xs);font-weight:600;letter-spacing:0;text-transform:none;text-align:left;color:var(--ds-text-muted);background:var(--ds-surface-2);border-top:0;border-bottom:1px solid var(--ds-line)}
+.app-shell .tsy-lines td{padding:13px var(--ds-s-5);font-size:var(--ds-fs-base);line-height:1.4;color:var(--ds-text);border-bottom:1px solid var(--ds-line-soft);vertical-align:top;overflow-wrap:anywhere}
+.app-shell .tsy-lines tbody tr:last-child td{border-bottom:0}
+.app-shell .tsy-lines tbody td b{font-weight:600}
+.app-shell .tsy-lines .badge{margin-left:var(--ds-s-2)}
+.app-shell .tsy-lines .is-money{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums lining-nums}
+.app-shell .tsy-lines tbody td[data-part="amount"]{font-weight:600}
+.app-shell .tsy-lines tfoot td{padding:14px var(--ds-s-5);font-size:var(--ds-fs-md);font-weight:700;border-top:2px solid var(--ds-line);border-bottom:0}
+.app-shell .tsy-lines td[data-part="action"]{text-align:right;white-space:nowrap}
+.app-shell .tsy-phone-only{display:none}
+
+/* Money tasks. */
+.app-shell .tsy-work{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--ds-line);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);overflow:hidden}
+.app-shell .tsy-work-row{display:flex;align-items:center;gap:var(--ds-s-2);min-height:52px;padding:0 var(--ds-s-4);background:var(--ds-surface);font-size:var(--ds-fs-base);font-weight:600;color:var(--ds-text)}
+.app-shell .tsy-work-row:hover{background:var(--ds-surface-2)}
+.app-shell .tsy-work-row:focus-visible{outline:2px solid var(--ds-brand);outline-offset:-2px}
+.app-shell .tsy-work-row span{flex:1;min-width:0}
+.app-shell .tsy-work-row b{min-width:24px;padding:0 7px;border-radius:var(--ds-r-pill);background:var(--ds-brand);color:var(--ds-on-brand);font-size:var(--ds-fs-xs);line-height:22px;text-align:center}
+.app-shell .tsy-work-row svg{flex:0 0 auto;color:var(--ds-text-faint)}
+.app-shell .tsy-work-row:nth-child(odd):last-child{grid-column:1/-1}
+
+.app-shell .tsy-block{display:flex;flex-direction:column;gap:var(--ds-s-3);min-width:0}
+.app-shell .tsy-block h2{margin:0;font-size:var(--ds-fs-md);font-weight:700;letter-spacing:0;color:var(--ds-text)}
+.app-shell .tsy-block>.table-panel{margin:0}
+.app-shell .tsy-block-head{display:flex;align-items:center;justify-content:space-between;gap:var(--ds-s-3);flex-wrap:wrap}
+.app-shell .tsy-block-tools{display:flex;align-items:center;gap:var(--ds-s-2)}
+.app-shell .tsy-month input{width:auto;min-height:36px;padding:4px 10px;font-size:var(--ds-fs-sm)}
+
+/* Box that opens from a table row. */
+.tsy-box-amount{margin:0 0 var(--ds-s-3);font-size:var(--ds-fs-2xl);font-weight:700;font-variant-numeric:tabular-nums lining-nums}
+.tsy-facts{display:flex;flex-direction:column;gap:var(--ds-s-2);margin:0 0 var(--ds-s-5)}
+.tsy-facts>div{display:flex;justify-content:space-between;gap:var(--ds-s-4)}
+.tsy-facts dt{font-size:var(--ds-fs-sm);color:var(--ds-text-muted)}
+.tsy-facts dd{margin:0;font-size:var(--ds-fs-sm);font-weight:600;text-align:right;overflow-wrap:anywhere}
+
+/* Downloads menu. */
+.app-shell .tsy-menu{position:relative;display:inline-flex}
+.app-shell .tsy-menu-list{position:absolute;right:0;top:calc(100% + 4px);z-index:30;display:flex;flex-direction:column;min-width:260px;max-height:min(60vh,520px);overflow-y:auto;padding:var(--ds-s-1);background:var(--ds-surface);border:1px solid var(--ds-line);border-radius:var(--ds-r-md);box-shadow:var(--ds-shadow-md)}
+.app-shell .tsy-menu-group{display:flex;flex-direction:column}
+.app-shell .tsy-menu-group+.tsy-menu-group{margin-top:var(--ds-s-1);padding-top:var(--ds-s-1);border-top:1px solid var(--ds-line-soft)}
+.app-shell .tsy-menu-group h3{margin:0;padding:7px var(--ds-s-3) 3px;font-size:var(--ds-fs-xs);font-weight:600;letter-spacing:0;color:var(--ds-text-muted)}
+.app-shell .tsy-menu-list a{padding:8px var(--ds-s-3);border-radius:var(--ds-r-sm);font-size:var(--ds-fs-sm);color:var(--ds-text);white-space:nowrap}
+.app-shell .tsy-menu-list a:hover,.app-shell .tsy-menu-list a:focus-visible{background:var(--ds-surface-2)}
+.app-shell .tsy-menu-note{margin:0;padding:8px var(--ds-s-3);font-size:var(--ds-fs-sm);color:var(--ds-danger-fg);white-space:normal}
+
+@media (max-width:1024px){
+  .app-shell .tsy-funds{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+@media (max-width:640px){
+  .app-shell .tsy-page{gap:var(--ds-s-3)}
+  .app-shell .tsy-head h1{font-size:var(--ds-fs-xl)}
+  .app-shell .tsy-funds{grid-template-columns:minmax(0,1fr)}
+  .app-shell .tsy-fund{padding:var(--ds-s-3) var(--ds-s-4)}
+  .app-shell .tsy-fund h2{margin-bottom:var(--ds-s-2)}
+
+  .app-shell .tsy-figures{grid-template-columns:minmax(0,1fr);gap:var(--ds-s-2)}
+  .app-shell .tsy-figure{flex-direction:row;align-items:center;justify-content:space-between;gap:var(--ds-s-3);padding:var(--ds-s-3) var(--ds-s-4)}
+  .app-shell .tsy-figure strong,.app-shell .tsy-figure strong.is-headline{font-size:var(--ds-fs-xl);text-align:right}
+
+  .app-shell .tsy-work{grid-template-columns:minmax(0,1fr)}
+
+  /* Each line of an order becomes a small card: type and who on the left, the amount on the right. */
+  .app-shell .tsy-lines thead{display:none}
+  .app-shell .tsy-lines,.app-shell .tsy-lines tbody,.app-shell .tsy-lines tfoot{display:block}
+  .app-shell .tsy-lines tbody tr{display:grid;grid-template-columns:minmax(0,max-content) minmax(0,1fr) auto;grid-template-areas:"type rate amount" "to to amount" "to to returned" "action action action";column-gap:var(--ds-s-2);row-gap:2px;padding:var(--ds-s-3) var(--ds-s-4);border-bottom:1px solid var(--ds-line-soft)}
+  .app-shell .tsy-lines tbody tr:last-child{border-bottom:0}
+  .app-shell .tsy-page .tsy-lines tbody td,.app-shell .tsy-page .tsy-lines tfoot td{display:block;padding:0;border:0}
+  .app-shell .tsy-lines tbody td{font-size:var(--ds-fs-sm)}
+  .app-shell .tsy-lines td[data-part="type"]{grid-area:type}
+  .app-shell .tsy-lines td[data-part="to"]{grid-area:to}
+  .app-shell .tsy-lines td[data-part="rate"]{grid-area:rate;color:var(--ds-text-muted)}
+  .app-shell .tsy-lines td[data-part="rate"]::before{content:"· "}
+  .app-shell .tsy-lines td[data-part="rate"].is-blank{display:none}
+  .app-shell .tsy-lines td[data-part="returned"]{grid-area:returned;font-size:var(--ds-fs-xs);color:var(--ds-text-muted)}
+  .app-shell .tsy-lines td[data-part="amount"]{grid-area:amount;align-self:start;font-size:var(--ds-fs-base)}
+  .app-shell .tsy-lines td[data-part="action"]{grid-area:action;justify-self:start;margin-top:var(--ds-s-2);text-align:left}
+  .app-shell .tsy-page .tsy-lines td[data-part="extra"]{display:none}
+  .app-shell .tsy-lines td.tsy-money-line{color:var(--ds-text-muted);text-align:left;white-space:normal}
+  .app-shell .tsy-phone-only{display:inline}
+  .app-shell .tsy-lines tfoot tr{display:flex;justify-content:space-between;gap:var(--ds-s-3);padding:var(--ds-s-3) var(--ds-s-4);border-top:2px solid var(--ds-line)}
+
+  .app-shell .tsy-menu-list{right:auto;left:0;max-width:calc(100vw - 32px)}
+}

@@ -6,6 +6,7 @@ use App\Domain\Accounts\PartnerMoneyBook;
 use App\Domain\Finance\EventLog;
 use App\Domain\Finance\OrderMoneyReport;
 use App\Domain\Finance\PartnerMoneyList;
+use App\Domain\Finance\ReportData;
 use App\Domain\Finance\TreasuryAccess;
 use App\Domain\Finance\TreasuryFunds;
 use App\Domain\Finance\TreasuryWork;
@@ -13,6 +14,7 @@ use App\Domain\Inventory\BranchOperations;
 use App\Domain\Payouts\PayoutReceipts;
 use App\Models\Order;
 use App\Models\User;
+use App\Support\OfficeHubs;
 use App\Support\PortalHost;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -59,7 +61,7 @@ class TreasuryController extends Controller
         abort_unless(TreasuryAccess::mayOpenOrders($viewer), 403);
         $scope = $branches->canViewAllBranches($viewer) ? null : $branches->scopeFor($viewer, $request);
 
-        return Inertia::render('TreasuryOrders', [...$this->shared($request), 'table' => $report->table($request, $scope)]);
+        return Inertia::render('TreasuryOrders', [...$this->shared($request), 'table' => $report->table($request, $scope), 'downloads' => ['groups' => OfficeHubs::reportGroups($viewer, app(ReportData::class)->availableTo($viewer)), 'statements' => $viewer->staff() && $viewer->allows('finance')]]);
     }
 
     public function order(Request $request, Order $order, OrderMoneyReport $report, BranchOperations $branches): Response

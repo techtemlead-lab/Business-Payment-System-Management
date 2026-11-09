@@ -39,7 +39,7 @@ final class EventLog
             dateColumn: 'x.occurred_at',
             search: ['x.order_number', 'x.partner_name', 'x.partner_code', 'x.product_name'],
             filters: $this->filters($showOwnerFunds),
-            sorts: ['date' => 'x.occurred_at', 'amount' => 'x.amount'],
+            sorts: ['date' => 'x.occurred_at', 'action' => 'x.action', 'amount' => 'x.amount'],
             defaultSort: 'date',
             tieBreaker: 'x.id',
             sums: ['amount' => 'x.amount'],
