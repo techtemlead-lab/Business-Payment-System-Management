@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class PartnerIdCardTest extends TestCase
@@ -107,5 +108,33 @@ class PartnerIdCardTest extends TestCase
             ->assertOk()
             ->assertHeader('content-type', 'application/pdf')
             ->assertHeader('content-disposition', 'attachment; filename=Madina-join-poster-MNHC-POSTER-1.pdf');
+    }
+
+    /** @return list<array{0: string}> */
+    public static function cardLanguages(): array
+    {
+        return [['en'], ['bn']];
+    }
+
+    #[DataProvider('cardLanguages')]
+    public function test_the_id_card_fits_on_one_card_even_with_a_long_name_and_place(string $locale): void
+    {
+        $dealer = User::factory()->create([
+            'role' => 'sub_dealer',
+            'status' => 'active',
+            'locale' => $locale,
+            'name' => 'QA Test Partner Long Name Rahman',
+            'dealer_code' => 'MNHC-LONG-1',
+            'refer_code' => 'MNHC-LONG-1',
+            'phone' => '01700000111',
+            'division' => 'Dhaka',
+            'district' => 'Gazipur',
+            'profile' => ['shop_name' => 'QA Test Pharmacy', 'upazila' => 'Sreepur'],
+        ]);
+
+        $response = $this->actingAs($dealer)->onPortal('subdealer')->get('/id-card/pdf')->assertOk();
+        $pdf = (string) file_get_contents($response->baseResponse->getFile()->getPathname());
+
+        $this->assertSame(1, preg_match_all('#/Type /Page\b(?!s)#', $pdf));
     }
 }

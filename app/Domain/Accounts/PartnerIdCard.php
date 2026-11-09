@@ -55,21 +55,21 @@ final class PartnerIdCard
         file_put_contents($qrPng, JoinQr::png(PortalHost::url('public', DealerVerification::path($user->dealer_code ?: $refer)), 140));
 
         $html = '<html><head><style>
-            body{font-family:freeserif,sans-serif;color:#011627;margin:0}
-            .card{border:2px solid #2e3192;border-radius:10px;padding:14px 16px;width:100%}
+            body{font-family:freeserif,sans-serif;color:#011627;margin:0;line-height:1.12}
+            .card{border:2px solid #2e3192;border-radius:10px;padding:6px 10px;width:100%}
             .row{width:100%}
-            .brand{font-size:10pt;letter-spacing:.08em;text-transform:uppercase;color:#2e3192;font-weight:700}
-            .role{display:inline-block;margin-top:4px;padding:2px 8px;background:#eef0fb;color:#2e3192;font-size:8pt;border-radius:4px}
-            h1{font-size:15pt;margin:10px 0 2px}
-            .meta{font-size:9pt;color:#475569;margin:0 0 8px}
-            table{width:100%;border-collapse:collapse;font-size:9pt}
-            td{padding:3px 0;vertical-align:top}
+            .brand{font-size:8pt;letter-spacing:.02em;text-transform:uppercase;color:#2e3192;font-weight:700}
+            .role{display:inline-block;margin-top:2px;padding:1px 6px;background:#eef0fb;color:#2e3192;font-size:8pt;border-radius:4px}
+            h1{font-size:12pt;margin:2px 0 0}
+            .meta{font-size:8pt;color:#475569;margin:0 0 3px}
+            table{width:100%;border-collapse:collapse;font-size:8pt}
+            td{padding:1px 0;vertical-align:top}
             td.k{width:30%;color:#64748b}
             td.v{font-weight:600}
-            .code{font-size:13pt;letter-spacing:.1em;color:#ef4a23}
-            .foot{margin-top:10px;padding-top:8px;border-top:1px solid #e2e8f0;font-size:7pt;color:#64748b}
+            .code{font-size:11pt;letter-spacing:.1em;color:#ef4a23}
+            .foot{margin-top:3px;padding-top:3px;border-top:1px solid #e2e8f0;font-size:6.5pt;color:#64748b}
             .url{word-break:break-all;font-size:7pt;color:#334155}
-            .qr{width:28mm;height:28mm}
+            .qr{width:24mm;height:24mm}
         </style></head><body><div class="card">
             <table class="row"><tr>
             <td style="width:68%;padding-right:8px;vertical-align:top">
@@ -95,7 +95,7 @@ final class PartnerIdCard
         try {
             $pdf = new Mpdf([
                 'tempDir' => $dir,
-                'format' => [90, 55],
+                'format' => [90, 62],
                 'margin_left' => 4,
                 'margin_right' => 4,
                 'margin_top' => 4,
