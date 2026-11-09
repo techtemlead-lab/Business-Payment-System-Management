@@ -81,7 +81,7 @@ function ApprovalBox({ row, onClose }: { row: SpendApproval; onClose: () => void
     return (
         <Modal title={translate('treasury', 'approval_title')} onClose={onClose}>
             <p className="tsy-box-amount">{money(row.amount)}</p>
-            <dl className="tsy-facts">
+            <dl className="office-facts">
                 {facts.map(([name, value]) => <div key={name}><dt>{name}</dt><dd>{value}</dd></div>)}
                 {row.reason && <div><dt>{translate('funds', 'fld_note')}</dt><dd>{row.reason}</dd></div>}
                 {row.has_receipt && <div><dt>{translate('treasury', 'col_receipt')}</dt><dd><a className="text-link" href={`/commands/operations/receipts/reserve/${row.id}`}>{translate('treasury', 'view')}</a></dd></div>}

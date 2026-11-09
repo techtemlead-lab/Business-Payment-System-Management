@@ -115,8 +115,12 @@ export function Badge({status}:{status:string}) {
  const localized=translate('portal',key);
  return <span className={`badge ${status}`}>{localized!==key?localized:label(status,translate)}</span>;
 }
-export function Empty({title,body}:{title?:string,body?:string}) {
+/** With `line`, one quiet line of text instead of the icon and two lines: pass the words, or `true` to use `title`. */
+export function Empty({title,body,line}:{title?:string,body?:string,line?:string|boolean}) {
  const translate=useT();
+ if(line){
+  return <p className="mt-empty">{typeof line==='string'?line:(title??translate('portal','empty_default_title'))}</p>;
+ }
  return <div className="empty"><Inbox size={30}/><h3>{title??translate('portal','empty_default_title')}</h3><p>{body??translate('portal','empty_default_body')}</p></div>;
 }
 /*
@@ -967,7 +971,8 @@ export function Pagination({page}:{page?:Row}){
 }
 /** How long the closing fade of a dialog lasts; keep in step with portalModalOut in dashboard CSS. */
 const MODAL_CLOSE_MS=160;
-export function Modal({title,onClose,children}:{title:string,onClose:()=>void,children:React.ReactNode}){
+/** A dialog. `drawer` opens one row from the right (full screen on a phone), with `badge` beside the title and `footer` for its buttons; `wide` is for permissions. */
+export function Modal({title,onClose,children,variant='dialog',badge,footer}:{title:string,onClose:()=>void,children:React.ReactNode,variant?:'dialog'|'drawer'|'wide',badge?:React.ReactNode,footer?:React.ReactNode}){
  const translate=useT();
  const ref=useRef<HTMLDialogElement>(null);
  const [closing,setClosing]=useState(false);
@@ -1001,15 +1006,17 @@ export function Modal({title,onClose,children}:{title:string,onClose:()=>void,ch
  return (
   <dialog
    ref={ref}
-   className={`portal-modal${closing?' is-closing':''}`}
+   className={`portal-modal${variant==='dialog'?'':` portal-modal-${variant}`}${closing?' is-closing':''}`}
    onCancel={e=>{e.preventDefault();requestClose()}}
    onClick={e=>{if(e.target===ref.current)requestClose()}}
   >
    <div className="modal-heading">
     <h2>{title}</h2>
+    {badge&&<span className="modal-badge">{badge}</span>}
     <button type="button" aria-label={translate('portal','close_dialog')} title={translate('portal','close_dialog')} className="icon-button" onClick={requestClose}><X/></button>
    </div>
    <div className="modal-body">{children}</div>
+   {footer&&<div className="modal-footer">{footer}</div>}
   </dialog>
  );
 }
