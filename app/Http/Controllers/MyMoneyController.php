@@ -26,6 +26,7 @@ class MyMoneyController extends Controller
             'summary' => $book->summary($partner),
             'cards' => $book->incomeCards($partner),
             'table' => $book->table($request, $partner),
+            'withdrawal_requests' => $book->withdrawalRequests($partner),
             'withdraw' => ['can' => ! $kycBlock, 'kyc_block' => $kycBlock, 'minimum' => (string) $settings->withdrawalMinimum()['amount']],
             'certificates' => [
                 'years' => range((int) now('Asia/Dhaka')->format('Y'), max(2024, (int) ($partner->created_at?->timezone('Asia/Dhaka')->format('Y') ?? 2024))),

@@ -4496,6 +4496,7 @@ return [
     'rpt_col_event_key' => 'এন্ট্রি কোড',
     'rpt_col_description' => 'বিবরণ',
     'rpt_col_account' => 'হিসাব',
+    'rpt_col_done_by' => 'কে করেছেন',
     'rpt_col_debit' => 'টাকা বের (৳)',
     'rpt_col_credit' => 'টাকা জমা (৳)',
     'rpt_col_payee_name' => 'প্রাপক',

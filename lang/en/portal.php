@@ -4496,6 +4496,7 @@ return [
     'rpt_col_event_key' => 'Entry code',
     'rpt_col_description' => 'Description',
     'rpt_col_account' => 'Account',
+    'rpt_col_done_by' => 'Done by',
     'rpt_col_debit' => 'Money out (৳)',
     'rpt_col_credit' => 'Money in (৳)',
     'rpt_col_payee_name' => 'Payee',

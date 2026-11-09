@@ -85,8 +85,8 @@ class PaymentProofTest extends TestCase
         $this->actingAs(User::factory()->staff()->create())->onPortal('sadmin')->get('/payments')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('data.claims.data.0.has_proof', true)
-                ->missing('data.claims.data.0.proof_path'));
+                ->where('data.payments_table.rows.data.0.has_proof', true)
+                ->missing('data.payments_table.rows.data.0.proof_path'));
     }
 
     public function test_an_order_placed_with_a_payment_reference_needs_the_screenshot_too(): void

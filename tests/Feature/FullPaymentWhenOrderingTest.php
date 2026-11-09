@@ -95,9 +95,9 @@ class FullPaymentWhenOrderingTest extends TestCase
         $this->actingAs($finance)->onPortal('manage')->get('/payments?status=pending')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('data.claims.data.0.id', $claim->id)
-                ->where('data.claims.data.0.number', $order->number)
-                ->where('data.claims.data.0.has_proof', true));
+                ->where('data.payments_table.rows.data.0.id', $claim->id)
+                ->where('data.payments_table.rows.data.0.number', $order->number)
+                ->where('data.payments_table.rows.data.0.has_proof', true));
 
         // A later payment for the same order must also be the whole amount still due.
         DB::table('payment_claims')->where('id', $claim->id)->update(['status' => 'rejected']);

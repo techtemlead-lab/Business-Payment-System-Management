@@ -30,6 +30,14 @@
 .mm-lifetime dt{font-size:var(--ds-fs-base);color:var(--ds-text-2)}
 .mm-lifetime dd{margin:0;font-size:var(--ds-fs-base);font-weight:600;color:var(--ds-text);white-space:nowrap;font-variant-numeric:tabular-nums}
 
+/* Withdrawal requests still open or refused */
+.mm-requests ul{display:flex;flex-direction:column;margin:0;padding:0;list-style:none;background:var(--ds-surface);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg)}
+.mm-requests li+li{border-top:1px solid var(--ds-line)}
+.mm-request{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--ds-s-1) var(--ds-s-4);padding:var(--ds-s-3) var(--ds-s-4);color:var(--ds-text);font-size:var(--ds-fs-base)}
+.mm-request time{color:var(--ds-text-2)}
+.mm-request strong{font-weight:600;font-variant-numeric:tabular-nums}
+.mm-request small{flex-basis:100%;font-size:var(--ds-fs-sm);color:var(--ds-text-2);overflow-wrap:anywhere}
+
 /* Statement */
 .mm-book{min-width:0;scroll-margin-top:84px}
 .mm-book .cell-sub,.mm-book .mt-card-lines{font-size:var(--ds-fs-sm)}

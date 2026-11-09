@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Accounts\PartnerWalletStatement;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 /**
@@ -75,12 +75,10 @@ class PartnerStatementWordsFollowReaderTest extends TestCase
     /** @return list<string> */
     private function wordsSeenBy(User $dealer): array
     {
-        $words = [];
-        $this->actingAs($dealer)->onPortal('dealer')->get('/statement')->assertOk()->assertInertia(function (Assert $page) use (&$words): void {
-            $words = array_column($page->toArray()['props']['statement']['lines']['data'], 'description');
-        });
+        app()->setLocale($dealer->preferredLocale());
+        $today = now('Asia/Dhaka')->toDateString();
 
-        return $words;
+        return array_column(app(PartnerWalletStatement::class)->ledger($dealer, $today, $today)['lines']->items(), 'description');
     }
 
     private function journal(User $dealer, string $eventKey, string $description): void

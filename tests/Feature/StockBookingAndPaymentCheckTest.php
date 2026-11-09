@@ -52,9 +52,9 @@ class StockBookingAndPaymentCheckTest extends TestCase
         $this->actingAs($owner)->onPortal('sadmin')->get('/payments')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('data.claims.data.0.checked_by', 'Rina Finance')
-                ->where('data.claims.data.0.reason', 'Transaction ID not found in statement')
-                ->has('data.claims.data.0.checked_at'));
+                ->where('data.payments_table.rows.data.0.checked_by', 'Rina Finance')
+                ->where('data.payments_table.rows.data.0.reason', 'Transaction ID not found in statement')
+                ->has('data.payments_table.rows.data.0.checked_at'));
     }
 
     private function orderWithLine(User $buyer, Product $product, string $status, int $quantity, int $dispatched): Order

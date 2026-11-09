@@ -582,8 +582,8 @@ class OrderPaymentMethodsTest extends TestCase
         $this->order($dealer, $this->product(), 1, 'Office')->assertSessionHasNoErrors();
 
         $this->actingAs(User::factory()->staff('finance')->create())->onPortal('manage')->get('/payments')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('data.claims.total', 1)
-            ->where('data.claims.data.0.channel', 'Office'));
+            ->where('data.payments_table.rows.total', 1)
+            ->where('data.payments_table.rows.data.0.channel', 'Office'));
     }
 
     public function test_the_books_check_catches_an_account_payment_with_no_matching_entry(): void

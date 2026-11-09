@@ -189,13 +189,28 @@ class BranchScopedExportsTest extends TestCase
 
     public function test_the_report_list_offers_branch_staff_only_the_files_they_can_download(): void
     {
-        $this->actingAs($this->branchStaff($this->dhaka, ['orders', 'reports']))->onPortal('manage')->get('/operations/financial-reports')
-            ->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('reportTypes', fn ($types) => $types->all() === array_values(array_intersect(ReportData::Types, ReportData::OrderBasedReports))));
+        $this->assertEqualsCanonicalizing(
+            array_values(array_intersect(ReportData::Types, ReportData::OrderBasedReports)),
+            $this->downloadsOfferedTo($this->branchStaff($this->dhaka, ['orders', 'reports'])),
+        );
 
-        $this->actingAs(User::factory()->staff('finance')->create())->onPortal('manage')->get('/operations/financial-reports')
-            ->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('reportTypes', fn ($types) => $types->all() === ReportData::Types));
+        $this->assertEqualsCanonicalizing(ReportData::Types, $this->downloadsOfferedTo(User::factory()->staff('finance')->create()));
+    }
+
+    /**
+     * The report files in the Downloads menu of the money report, which replaced the report list.
+     *
+     * @return list<string>
+     */
+    private function downloadsOfferedTo(User $staff): array
+    {
+        $files = [];
+        $this->actingAs($staff)->onPortal('manage')->get('/treasury/orders')->assertOk()
+            ->assertInertia(function (Assert $page) use (&$files): void {
+                $files = array_merge(...array_column($page->toArray()['props']['downloads']['groups'], 'reports'));
+            });
+
+        return $files;
     }
 
     private function reportUrl(string $type): string

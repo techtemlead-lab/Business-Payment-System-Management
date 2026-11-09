@@ -42,7 +42,7 @@ class PayoutRecordingScreensTest extends TestCase
         $this->actingAs($this->owner)->onPortal('sadmin')->get('/payouts-hub')->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('data.payment_accounts.0.id', $accountId)
-                ->where('data.withdrawals.data.0.payer_state', 'alone'));
+                ->where('data.payouts_table.rows.data.0.payer_state', 'alone'));
         $this->actingAs($this->owner)->onPortal('sadmin')->get('/withdrawals/'.$id)->assertOk()
             ->assertInertia(fn (Assert $page) => $page->where('withdrawal.payer_state', 'alone'));
 

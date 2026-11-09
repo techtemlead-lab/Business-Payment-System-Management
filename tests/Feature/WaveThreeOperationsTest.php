@@ -141,7 +141,7 @@ class WaveThreeOperationsTest extends TestCase
 
     public function test_the_four_lines_follow_the_single_owner_rules_in_both_languages(): void
     {
-        foreach (['payouts_settlements_t1', 'withdrawals_s7', 'dual_dashboard_s5', 'staff_fulfillment_w1'] as $key) {
+        foreach (['payouts_settlements_t1', 'withdrawals_s5', 'dual_dashboard_s5', 'staff_fulfillment_w1'] as $key) {
             $english = (string) __('manual.'.$key, [], 'en');
             $bangla = (string) __('manual.'.$key, [], 'bn');
             $this->assertNotSame('manual.'.$key, $english);
@@ -149,7 +149,7 @@ class WaveThreeOperationsTest extends TestCase
             $this->assertNotSame($english, $bangla);
             $this->assertStringNotContainsStringIgnoringCase('second person', $english, $key);
         }
-        foreach (['payouts_settlements_t1', 'withdrawals_s7'] as $key) {
+        foreach (['payouts_settlements_t1', 'withdrawals_s5'] as $key) {
             $this->assertStringContainsString('owner', __('manual.'.$key, [], 'en'));
             $this->assertStringContainsString('মালিক', __('manual.'.$key, [], 'bn'));
         }

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Accounts\PartnerFullReport;
 use App\Models\ReferralTreePath;
 use App\Models\User;
 use App\Support\PhoneIdentity;
@@ -76,12 +77,11 @@ class DownlinePhoneMaskingTest extends TestCase
 
     public function test_the_full_report_team_list_follows_the_same_rule(): void
     {
-        $this->actingAs($this->root)->onPortal('dealer')->get('/full-report')->assertOk()
-            ->assertInertia(function (Assert $page): void {
-                $phones = collect($page->toArray()['props']['data']['full_report']['team_members'])->pluck('phone', 'id');
-                $this->assertSame('+8801711000002', $phones[$this->child->id]);
-                $this->assertSame('••••5678', $phones[$this->grandchild->id]);
-            });
+        // The full report page is gone; its PDF, still on /full-report/pdf, prints this same list.
+        $phones = collect(app(PartnerFullReport::class)->for($this->root)['team_members'])->pluck('phone', 'id');
+
+        $this->assertSame('+8801711000002', $phones[$this->child->id]);
+        $this->assertSame('••••5678', $phones[$this->grandchild->id]);
     }
 
     public function test_staff_tree_view_is_unchanged(): void
