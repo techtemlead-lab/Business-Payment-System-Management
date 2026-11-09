@@ -6587,4 +6587,7 @@ return [
     'label_upazila' => 'Upazila',
     'label_union' => 'Union / Pourashava',
     'acct_val_sub_dealer_code_just_used' => 'Someone just added a sub-dealer with this code. Press save again and the next code will be used.',
+    'err_reserve_rule_amount' => 'The :program must be exactly ৳:amount, the amount set in the reward rule. Enter that amount.',
+    'err_reserve_rule_amount_blank' => 'No amount is set for the :program in the reward rule yet. Set it in the commission rules first.',
+    'pbc_owner_required' => 'Only the owner, MD or chairman can grant no-condition benefits.',
 ];

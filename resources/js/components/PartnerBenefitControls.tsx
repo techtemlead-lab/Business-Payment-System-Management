@@ -1,13 +1,13 @@
 import { useForm, usePage } from '@inertiajs/react';
 import { ShieldCheck } from 'lucide-react';
 import { type Row } from './UI';
-import { actionAllowed } from './action-permissions';
 import { useT } from '../shared/i18n/t';
 
 export default function PartnerBenefitControls({ account }: { account: Row }) {
     const translate = useT();
-    const { staffActions } = usePage<any>().props;
-    const canEdit = actionAllowed(`/commands/accounts/${account.id}/benefit-controls`, staffActions, 'post');
+    const { auth } = usePage<any>().props;
+    // Only owners can grant no-condition benefits (server: CommandController::benefitControls).
+    const canEdit = ['super_admin', 'md', 'chairman'].includes(auth?.user?.role);
     const existing = account.profile?.benefit_controls ?? {};
     const form = useForm({
         unconditional_salary: !!existing.unconditional_salary,

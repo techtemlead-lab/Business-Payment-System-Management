@@ -540,11 +540,7 @@ class CommandController extends Controller
 
     public function benefitControls(Request $r, User $user, PartnerBenefitControls $controls): RedirectResponse
     {
-        abort_unless(
-            $r->user()->canAct('finance', 'approve') || $r->user()->role === 'super_admin',
-            403,
-            __('portal.pbc_finance_required'),
-        );
+        abort_unless($r->user()->owner(), 403, __('portal.pbc_owner_required'));
         abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 422, __('portal.pbc_partners_only'));
         $d = $r->validate([
             'unconditional_salary' => 'sometimes|boolean',
