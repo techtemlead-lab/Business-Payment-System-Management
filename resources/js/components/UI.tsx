@@ -140,11 +140,15 @@ function useFormErrorsOwned(){
  * Fields named in besideFields show their own message under the box and are left out here.
  */
 export function FormErrors({errors,className='error',besideFields=[]}:{errors:Record<string,unknown>|undefined,className?:string,besideFields?:string[]}){
+ const translate=useT();
+ const {portal}=usePage<any>().props;
  const refusals=Object.entries(errors??{}).filter(([,message])=>Boolean(message));
  const messages=refusals.filter(([name])=>!besideFields.includes(name)).map(([,message])=>String(message));
  const anyRefusal=refusals.length>0;
  useEffect(()=>{if(!anyRefusal)return undefined;formErrorOwners++;notifyFormErrorOwners();return ()=>{formErrorOwners--;notifyFormErrorOwners()}},[anyRefusal]);
- return messages.length>0?<div className={className} role="alert">{messages.join(' ')}</div>:null;
+ // Before the owner's "new start" every money step is refused; the office gets the page that clears it.
+ const opensStartingBalances=['manage','sadmin'].includes(portal)&&messages.includes(translate('portal','err_wallet_posting_unverified'));
+ return messages.length>0?<div className={className} role="alert">{messages.join(' ')}{opensStartingBalances&&<> <Link className="text-link" href="/operations/financial-readiness">{translate('portal','financial_readiness')}</Link></>}</div>:null;
 }
 export function Flash(){const {flash,errors}=usePage<any>().props;const owned=useFormErrorsOwned();return <>{flash?.success&&<div className="success" role="status">{flash.success}</div>}{flash?.warning&&<div className="notice warning" role="alert">{flash.warning}</div>}{!owned&&Object.keys(errors??{}).length>0&&<div className="error" role="alert">{Object.values(errors).join(' ')}</div>}</>}
 function rowSearchText(value:unknown,depth=0):string{

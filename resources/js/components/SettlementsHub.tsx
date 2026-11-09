@@ -59,7 +59,8 @@ interface SettlementState {
     maturing_amount: number;
     settled_history: Array<{
         id: string;
-        event_key: string;
+        event_word: string;
+        order_number: string | null;
         description: string;
         created_at: string;
     }>;
@@ -519,10 +520,10 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                             render: entry => <span className="muted">{date(entry.created_at)}</span>,
                         },
                         {
-                            key: 'event_key',
+                            key: 'event_word',
                             title: translate('portal', 'st_col_event'),
                             sortable: true,
-                            render: entry => <span className="hub-mono hub-strong tone-info">{entry.event_key}</span>,
+                            render: entry => <>{entry.event_word}{entry.order_number && <small className="cell-sub">{entry.order_number}</small>}</>,
                         },
                         {
                             key: 'description',

@@ -99,7 +99,7 @@ return [
     'tile_payouts' => 'Withdrawal requests',
     'tile_settlements' => 'Month close',
     'tile_holds' => 'Held commission',
-    'tile_rewards' => 'Rewards',
+    'tile_rewards' => 'Spending from funds',
     'tile_payroll' => 'Salary',
     'tile_bank' => 'Bank check',
     'tile_opening' => 'Old balances',

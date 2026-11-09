@@ -121,7 +121,8 @@ class OrdersAndDeliveriesTableTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('data.delivery_view', 'parcels')
                 ->missing('data.orders')
-                ->has('data.parcels_table.rows.data', 3)
+                ->has('data.parcels_table.rows.data', 1)
+                ->where('data.parcels_table.rows.data.0.tracking', 'ST-1')
                 ->where('data.parcel_stages.with_courier', 1)
                 ->where('data.parcel_stages.delivered', 1)
                 ->where('data.parcel_stages.returned', 1));

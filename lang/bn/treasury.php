@@ -68,7 +68,7 @@ return [
     'role_dealer' => 'ডিলার',
     'role_sub_dealer' => 'সাব-ডিলার',
     'order_status_delivered' => 'ডেলিভারি হয়েছে',
-    'order_status_partly_delivered' => 'কিছু অংশ ডেলিভারি হয়েছে',
+    'order_status_partly_delivered' => 'আংশিক ডেলিভারি',
 
     'out_kind_spend' => 'খরচ',
     'out_kind_partners' => 'পার্টনারদের দেওয়া',
@@ -99,7 +99,7 @@ return [
     'tile_payouts' => 'টাকা তোলার আবেদন',
     'tile_settlements' => 'মাসের হিসাব',
     'tile_holds' => 'আটকে থাকা কমিশন',
-    'tile_rewards' => 'পুরস্কার',
+    'tile_rewards' => 'ফান্ড থেকে খরচ',
     'tile_payroll' => 'বেতন',
     'tile_bank' => 'ব্যাংক মেলানো',
     'tile_opening' => 'আগের ব্যালেন্স',

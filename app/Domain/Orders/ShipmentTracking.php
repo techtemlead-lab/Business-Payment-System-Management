@@ -77,6 +77,23 @@ final class ShipmentTracking
     }
 
     /**
+     * The columns that put a parcel on the "delivered" step when staff confirm its delivery, so
+     * the courier's last word cannot be left showing beside a finished parcel.
+     *
+     * @return array<string, mixed>
+     */
+    public static function confirmedDelivered(object $shipment): array
+    {
+        if ($shipment->courier_status === 'delivered') {
+            return [];
+        }
+        $timeline = json_decode((string) ($shipment->courier_timeline ?? '[]'), true) ?: [];
+        $timeline[] = self::timelineEntry('delivered', null, 'staff');
+
+        return ['courier_status' => 'delivered', 'courier_status_at' => now(), 'courier_timeline' => json_encode($timeline, JSON_THROW_ON_ERROR)];
+    }
+
+    /**
      * Whether the courier can still be asked about this parcel.
      */
     public static function isTrackable(?object $shipment): bool
@@ -156,9 +173,10 @@ final class ShipmentTracking
     }
 
     /**
-     * Store staff, for a courier with no booking system: type the consignment number and move
-     * the parcel forward. A step of "delivered" is still only the courier's word: staff confirm
-     * the delivery separately, which is what releases commission.
+     * Store staff, for a parcel no courier system reports on (a manual courier, or a parcel sent
+     * with a typed tracking number): type the consignment number and move the parcel forward. A
+     * step of "delivered" is still only the courier's word: staff confirm the delivery separately,
+     * which is what releases commission.
      */
     public function updateByHand(User $actor, Order $order, int $shipmentId, ?string $status, ?string $tracking): void
     {
@@ -170,7 +188,7 @@ final class ShipmentTracking
         }
         $shipment = DB::table('shipments')->where('id', $shipmentId)->where('order_id', $order->id)->first();
         abort_if($shipment === null, 404);
-        if ($shipment->courier_booking_status !== 'manual' || $shipment->status !== 'dispatched') {
+        if (! in_array($shipment->courier_booking_status, ['manual', null], true) || $shipment->status !== 'dispatched') {
             throw ValidationException::withMessages(['status' => __('courier_more.err_not_manual_parcel')]);
         }
         DB::transaction(function () use ($actor, $order, $shipment, $status, $tracking): void {
