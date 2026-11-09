@@ -2,6 +2,7 @@
 
 namespace App\Domain\Accounts;
 
+use App\Domain\Orders\DeliveredMoney;
 use App\Domain\Orders\OrderListFilter;
 use App\Models\ReferralTreePath;
 use App\Models\User;

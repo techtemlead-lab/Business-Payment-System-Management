@@ -137,7 +137,7 @@ final class CommissionPosting
             $order->is_opening_balance
             || config('madina.preview_mode')
             || ! config('madina.financial_activation')
-            || Money::cents($order->total) === 0
+            || Money::cents((string) $order->total) === 0
         ) {
             return null;
         }

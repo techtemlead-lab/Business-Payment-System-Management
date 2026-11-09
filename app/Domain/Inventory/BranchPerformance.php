@@ -2,6 +2,7 @@
 
 namespace App\Domain\Inventory;
 
+use App\Domain\Orders\DeliveredMoney;
 use App\Models\CompanyBranch;
 use App\Models\User;
 use App\Support\Money;
