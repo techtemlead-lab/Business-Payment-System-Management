@@ -19,7 +19,7 @@ final class EmployeesSection implements WorkspaceSection
         }
         $request = $context->request;
         $props = [];
-        $query = User::where(fn ($q) => $q->whereIn('role', ['employee', 'sr'])->orWhere('role', 'like', 'custom\\_%'));
+        $query = $this->officeStaff();
         $this->onScopedBranches($query, $context->branchScope);
         if ($request->filled('q')) {
             $term = '%'.$request->string('q').'%';
@@ -38,7 +38,7 @@ final class EmployeesSection implements WorkspaceSection
                 'effective_permissions' => $employee->capabilities(),
                 'branch_name' => $employee->activeBranch?->name,
             ]);
-        $staffQuery = User::where(fn ($q) => $q->whereIn('role', ['employee', 'sr'])->orWhere('role', 'like', 'custom\\_%'));
+        $staffQuery = $this->officeStaff();
         $this->onScopedBranches($staffQuery, $context->branchScope);
         $props['employee_stats'] = [
             'total' => (clone $staffQuery)->count(),
@@ -78,6 +78,18 @@ final class EmployeesSection implements WorkspaceSection
         );
 
         return $props;
+    }
+
+    /**
+     * Every office staff member. The owners (Super Admin, MD, Chairman) are not managed here.
+     *
+     * @return Builder<User>
+     */
+    private function officeStaff(): Builder
+    {
+        $roles = ['employee', ...array_diff(array_keys(config('madina.roles')), ['super_admin', 'md', 'chairman'])];
+
+        return User::where(fn (Builder $staff) => $staff->whereIn('role', $roles)->orWhere('role', 'like', 'custom\\_%'));
     }
 
     /**

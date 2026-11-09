@@ -77,6 +77,9 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
         router.get('/employees', { q: search }, { preserveState: true });
     };
 
+    // Mirrors the server: only an Employee or SR without their own access settings is edited with these boxes.
+    const usesPermissionBoxes = (employee: Row): boolean => ['employee', 'sr'].includes(String(employee.role)) && !employee.profile?.action_permissions;
+
     const handleOpenEdit = (employee: Row) => {
         setEditModalEmployee(employee);
         const currentPermissions: string[] = Array.isArray(employee.profile?.permissions)
@@ -130,10 +133,12 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
     const submitEdit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!editModalEmployee) return;
+        const sendsPermissions = usesPermissionBoxes(editModalEmployee);
+        // Someone added before phone numbers were needed can still be renamed or disabled.
+        const keepsNoPhone = !editModalEmployee.phone;
         editForm.transform(data => {
-            if (!editModalEmployee.profile?.action_permissions && !editModalEmployee.role.startsWith('custom_')) return data;
-            const {permissions, ...accountDetails} = data;
-            return accountDetails as typeof data;
+            const {permissions, phone, ...details} = data;
+            return {...details, ...(keepsNoPhone && phone.trim() === '' ? {} : {phone}), ...(sendsPermissions ? {permissions} : {})} as typeof data;
         });
         editForm.patch(`/commands/accounts/${editModalEmployee.id}`, {
             onSuccess: () => {
@@ -391,6 +396,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                 <label>
                                     {translate('portal', 'emp_fld_phone_login')}
                                     <input
+                                        required
                                         placeholder={translate('portal', 'emp_ph_phone')}
                                         value={createForm.data.phone}
                                         onChange={e => createForm.setData('phone', e.target.value)}
@@ -589,7 +595,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                 </label>
                             </div>
 
-                            {editModalEmployee.profile?.action_permissions || editModalEmployee.role.startsWith('custom_') ? <p className="notice">{translate('portal', 'emp_action_perms_notice')} <Link href="/operations/access-management" className="text-link">{translate('portal', 'emp_manage_roles')}</Link></p> : <>
+                            {!usesPermissionBoxes(editModalEmployee) ? <p className="notice">{translate('portal', 'emp_action_perms_notice')} <Link href="/operations/access-management" className="text-link">{translate('portal', 'emp_manage_roles')}</Link></p> : <>
                             {/* Preset Buttons */}
                             <div className="ops-mt-5 ops-mb-3">
                                 <div className="ops-row is-between ops-mb-2">
