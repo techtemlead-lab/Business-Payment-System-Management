@@ -209,7 +209,7 @@ class FeaturedProductsOrderTest extends TestCase
 
         $this->actingAs(User::factory()->staff()->create())
             ->delete('/commands/products/'.$product->id, ['reason' => 'No longer part of the range'])
-            ->assertRedirect('/catalog');
+            ->assertRedirect('/catalog?product_state=archived');
 
         $this->assertDatabaseHas('products', ['id' => $product->id, 'active' => false, 'featured' => false, 'featured_position' => null]);
         $this->get('/')->assertOk()->assertDontSee('Alpha Tonic');

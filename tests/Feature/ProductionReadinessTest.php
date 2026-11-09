@@ -109,7 +109,7 @@ class ProductionReadinessTest extends TestCase
     public function test_catalog_search_finds_skus_and_preserves_partner_publication_scope(): void
     {
         $draft = Product::factory()->create(['sku' => 'DRAFT-SKU-101', 'active' => false]);
-        $this->actingAs(User::factory()->staff()->create())->get('/company/catalog?q=DRAFT-SKU-101')
+        $this->actingAs(User::factory()->staff()->create())->get('/company/catalog?q=DRAFT-SKU-101&product_state=archived')
             ->assertOk()->assertInertia(fn (Assert $page) => $page->has('data.products', 1)->where('data.products.0.id', $draft->id));
         $this->actingAs(User::factory()->dealer()->create())->get('/workspace/catalog?q=DRAFT-SKU-101')
             ->assertOk()->assertInertia(fn (Assert $page) => $page->has('data.products', 0));
