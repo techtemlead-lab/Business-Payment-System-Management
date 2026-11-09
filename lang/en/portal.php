@@ -5366,6 +5366,7 @@ return [
     'chat_search' => 'Search name, code or phone',
     'chat_unread_only' => 'Unread',
     'chat_inbox_empty' => 'No partner messages yet.',
+    'chat_inbox_no_branch' => 'You see chats only from partners of your branches, and you have no branch yet. Ask the owner to give you a branch or to let you answer for the whole company.',
     'chat_you' => 'You',
     'chat_unread_count' => ':count unread',
     'chat_back' => 'Back to all chats',

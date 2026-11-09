@@ -93,6 +93,19 @@ class PartnerChatRoutingTest extends TestCase
         $this->assertFalse($this->page($northStaff, 'manage', '/')['auth']['chatAnswerer']);
     }
 
+    public function test_support_staff_with_no_branch_are_told_why_their_inbox_is_empty(): void
+    {
+        PartnerMessage::query()->delete();
+        $this->actingAs($this->northDealer)->onPortal('dealer')->post('/commands/messages', ['body' => 'Hello office'])->assertRedirect();
+        $support = User::factory()->staff('support')->create();
+
+        $data = $this->page($support, 'manage', '/partner-messages')['data'];
+
+        $this->assertSame([], $data['chat_inbox']['data']);
+        $this->assertTrue($data['chat_no_branch']);
+        $this->assertFalse($this->page($this->owner, 'sadmin', '/partner-messages')['data']['chat_no_branch']);
+    }
+
     public function test_branch_answerers_see_and_answer_only_their_own_branch(): void
     {
         $northStaff = $this->staffIn($this->north);
