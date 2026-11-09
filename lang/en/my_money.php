@@ -37,7 +37,6 @@ return [
     'col_in_out' => 'In or out',
     'search' => 'Search',
     'empty' => 'Nothing here yet',
-    'receipt' => 'Receipt',
     'downloads' => 'Download',
     'full_report_pdf' => 'Full report (PDF)',
     'certificate_year' => 'Certificate year',

@@ -22,7 +22,6 @@ function WhatHappened({ row }: { row: StatementRow }) {
             {row.type_label}{percent}
             {details && <small className="cell-sub">{details}</small>}
             {row.waiting_until && <small className="cell-sub">{translate('portal', 'commission_waiting_until', { date: date(row.waiting_until) })}</small>}
-            {row.receipt_url && <small className="cell-sub"><a className="text-link" href={row.receipt_url} target="_blank" rel="noopener noreferrer">{translate('my_money', 'receipt')}</a></small>}
         </>
     );
 }

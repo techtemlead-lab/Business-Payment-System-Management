@@ -37,7 +37,6 @@ return [
     'col_in_out' => 'এসেছে/গেছে',
     'search' => 'খুঁজুন',
     'empty' => 'এখানে এখনো কিছু নেই',
-    'receipt' => 'রসিদ',
     'downloads' => 'ফাইল নামান',
     'full_report_pdf' => 'পুরো রিপোর্ট (PDF)',
     'certificate_year' => 'সনদের বছর',

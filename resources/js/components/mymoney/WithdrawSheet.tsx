@@ -33,7 +33,7 @@ export default function WithdrawSheet({ available, withdraw, onClose }: { availa
 
     const takeRefusal = withdraw.kyc_block
         ? translate('portal', 'wd_kyc_needed_body')
-        : !withdraw.can
+        : !withdraw.can || !financeActive
             ? translate('portal', 'withdrawals_pending_activation_notice')
             : usable < Number(withdraw.minimum)
                 ? translate('my_money', 'below_minimum', { amount: money(withdraw.minimum) })
