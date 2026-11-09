@@ -2,7 +2,6 @@
 
 namespace App\Domain\Audience;
 
-use App\Domain\Accounts\AccountPhoneRules;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
 use App\Support\Audit;
@@ -12,19 +11,12 @@ use Illuminate\Validation\ValidationException;
 
 final class PublicPartnerApplication
 {
-    public function __construct(private AccountPhoneRules $phones) {}
-
     /**
      * @param  array<string, mixed>  $data
-     *
-     * @throws ValidationException when the mobile number already has an account or the email cannot be accepted
      */
     public function submit(array $data): string
     {
         $id = DB::transaction(function () use ($data): string {
-            if ($this->phones->holders((string) $data['phone']) !== []) {
-                throw ValidationException::withMessages(['phone' => __('portal.err_public_app_phone_taken')]);
-            }
             $email = mb_strtolower(trim((string) $data['email']));
             if (DB::table('users')->whereRaw('LOWER(email) = ?', [$email])->exists()
                 || DB::table('dealer_applications')->whereRaw('LOWER(email) = ?', [$email])->where('status', 'pending')->exists()) {
