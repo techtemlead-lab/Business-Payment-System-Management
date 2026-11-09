@@ -28,6 +28,72 @@ final class UserManual
         'getting_started_why' => 'getting_started_partner_why',
     ];
 
+    /**
+     * Which chapter explains each office page. The compass opens the guide at that chapter,
+     * because the pages themselves no longer carry long explanations.
+     *
+     * @var array<string, list<string>>
+     */
+    private const OfficeChapterPages = [
+        'staff_fulfillment' => ['orders', 'order', 'payments'],
+        'staff_people_accounts' => ['accounts', 'sub-dealers', 'partnerships', 'sub-dealer-applications', 'employees'],
+        'deliveries_board' => ['deliveries'],
+        'inventory_branches' => ['inventory', 'branches'],
+        'product_facts' => ['catalog'],
+        'stock_batches' => ['stock-lots'],
+        'purchasing_goods' => ['purchasing'],
+        'stock_counting' => ['stock-counts'],
+        'finance_treasury' => ['treasury'],
+        'payouts_settlements' => ['payouts-hub', 'settlements'],
+        'commission_tabs' => ['commissions', 'policies', 'simulator', 'policy-schedules'],
+        'network_genealogy' => ['network-tree'],
+        'area_dealers_places' => ['area-dealers'],
+        'ranks_royalties' => ['ranks'],
+        'office_chat' => ['partner-messages'],
+        'support' => ['support-admin', 'help'],
+        'branch_performance' => ['branch-performance'],
+        'partner_scorecard' => ['partner-scorecard'],
+        'report_centre' => ['financial-reports', 'reports'],
+        'website_editor' => ['website', 'customization'],
+        'website_customization' => ['content', 'enquiries'],
+        'trust_pages' => ['public-trust'],
+        'product_reviews' => ['feedback'],
+        'sales_kit_schemes_owner' => ['sales-kit', 'schemes'],
+        'contests_guide' => ['contests'],
+        'office_more_pages' => ['agreement', 'training', 'events', 'payroll', 'access-management'],
+        'settings_home' => ['settings', 'finance-settings', 'payment-accounts', 'dashboards', 'login-rules', 'service-integrations', 'courier-areas', 'data-imports', 'privacy-requests'],
+        'financial_activation_gates' => ['financial-readiness'],
+        'place_codes_admin' => ['place-codes'],
+        'duplicate_account_check' => ['identity-review'],
+        'ledger_audit_reports' => ['audit'],
+        'data_cleanup' => ['data-cleanup'],
+        'clinic_prescriptions' => ['prescriptions'],
+        'owner_benefits_fund' => ['benefits-fund'],
+        'profile_security' => ['profile', 'security'],
+        'notifications_circulars' => ['notifications'],
+    ];
+
+    /**
+     * Which chapter explains each dealer and sub-dealer page.
+     *
+     * @var array<string, list<string>>
+     */
+    private const PartnerChapterPages = [
+        'catalog_orders' => ['catalog', 'purchase', 'orders', 'order'],
+        'deliveries_dues' => ['deliveries'],
+        'my_money_tabs' => ['my-money'],
+        'network_genealogy' => ['network'],
+        'ranks_royalties' => ['ranks'],
+        'customer_book' => ['customers'],
+        'contests_guide' => ['contests'],
+        'sales_kit_partner' => ['sales-kit'],
+        'office_chat' => ['messages'],
+        'notifications_circulars' => ['circulars', 'notifications'],
+        'support' => ['help'],
+        'profile_security' => ['profile', 'security'],
+        'prescriptions_partner' => ['prescriptions'],
+    ];
+
     public function __construct(private CommissionPolicy $policy) {}
 
     /**
@@ -56,7 +122,8 @@ final class UserManual
      *   tips: list<string>,
      *   warnings: list<string>,
      *   faqs: list<array{q: string, a: string}>,
-     *   keywords: list<string>
+     *   keywords: list<string>,
+     *   pages: list<string>
      * }>
      */
     public function chaptersFor(User $user, ?string $query = null): array
@@ -66,9 +133,12 @@ final class UserManual
             $this->chapters(),
             fn (array $chapter): bool => count(array_intersect($chapter['audience'], $audience)) > 0,
         ));
-        if (array_intersect($audience, ['owner', 'staff']) === []) {
+        $isOffice = array_intersect($audience, ['owner', 'staff']) !== [];
+        if (! $isOffice) {
             $chapters = array_map(fn (array $chapter): array => $this->withPartnerWording($chapter), $chapters);
         }
+        $pages = $isOffice ? self::OfficeChapterPages : self::PartnerChapterPages;
+        $chapters = array_map(fn (array $chapter): array => [...$chapter, 'pages' => $pages[$chapter['key']] ?? []], $chapters);
 
         $query = trim((string) $query);
         if ($query === '') {
@@ -115,7 +185,8 @@ final class UserManual
      *   tips: list<string>,
      *   warnings: list<string>,
      *   faqs: list<array{q: string, a: string}>,
-     *   keywords: list<string>
+     *   keywords: list<string>,
+     *   pages: list<string>
      * }|null
      */
     public function chapter(string $key, User $user): ?array
@@ -176,7 +247,8 @@ final class UserManual
      *   tips: list<string>,
      *   warnings: list<string>,
      *   faqs: list<array{q: string, a: string}>,
-     *   keywords: list<string>
+     *   keywords: list<string>,
+     *   pages: list<string>
      * }
      */
     private function present(array $chapter): array
@@ -200,6 +272,7 @@ final class UserManual
                 ];
             }, $chapter['faq_keys'] ?? []))),
             'keywords' => $chapter['keywords'] ?? [],
+            'pages' => $chapter['pages'] ?? [],
         ];
     }
 
@@ -316,7 +389,7 @@ final class UserManual
             $this->ch('navigation_workspace', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 8, 2, 2, 1, ['navigation', 'sidebar', 'language', 'theme', 'day', 'night', 'module', 'নেভিগেশন', 'ভাষা', 'থিম']),
             $this->ch('profile_security', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 10, 3, 3, 2, ['profile', 'password', 'security', '2fa', 'totp', 'session', 'id_card', 'প্রোফাইল', 'পাসওয়ার্ড', 'নিরাপত্তা', 'কেওয়াইসি']),
             $this->ch('notifications_circulars', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 6, 2, 2, 1, ['notification', 'circular', 'notice', 'alert', 'নোটিশ', 'সার্কুলার', 'ঘোষণা']),
-            $this->ch('catalog_orders', ['partner', 'dealer', 'sub_dealer'], 12, 3, 3, 2, ['order', 'catalog', 'purchase', 'cart', 'invoice', 'mrp', 'payment', 'অর্ডার', 'ক্যাটালগ', 'ইনভয়েস', 'পাইকারি']),
+            $this->ch('catalog_orders', ['partner', 'dealer', 'sub_dealer'], 13, 3, 3, 2, ['order', 'catalog', 'purchase', 'cart', 'invoice', 'mrp', 'payment', 'অর্ডার', 'ক্যাটালগ', 'ইনভয়েস', 'পাইকারি']),
             $this->ch('deliveries_dues', ['partner', 'dealer', 'sub_dealer'], 9, 3, 2, 2, ['delivery', 'due', 'dispatch', 'courier', 'claim', 'ডেলিভারি', 'বাকি', 'চালান', 'কুরিয়ার']),
             $this->ch('commissions_pool', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 6, 1, 1, 1, ['commission', 'earnings', 'ledger', '40%', '60%', 'wallet', 'কমিশন', 'আয়', 'লেজার', 'ওয়ালেট']),
             $this->ch('withdrawals', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 5, 1, 1, 1, ['withdrawal', 'payout', 'bkash', 'nagad', 'bank', 'rocket', 'উত্তোলন', 'ওয়ালেট', 'পেআউট']),
@@ -329,7 +402,7 @@ final class UserManual
             $this->ch('subdealer_salary_tour', ['sub_dealer', 'dealer', 'staff', 'owner'], 9, 3, 2, 2, ['subdealer', 'salary', 'tour', 'tour fund', 'reserve', 'বেতন', 'সাব-ডিলার', 'ট্যুর', 'ট্যুর ফান্ড']),
             $this->ch('staff_people_accounts', ['staff', 'owner'], 11, 3, 3, 2, ['employees', 'accounts', 'onboarding', 'permissions', 'partner', 'স্টাফ', 'অ্যাকাউন্ট', 'পারমিশন']),
             $this->ch('staff_fulfillment', ['staff', 'owner'], 10, 3, 2, 2, ['orders', 'approve', 'dispatch', 'deliveries', 'claims', 'অনুমোদন', 'ডিসপ্যাচ', 'ফুলফিলমেন্ট']),
-            $this->ch('inventory_branches', ['staff', 'owner'], 11, 3, 3, 2, ['inventory', 'stock', 'branch', 'warehouse', 'hub', 'স্টক', 'ব্রাঞ্চ', 'গুদাম']),
+            $this->ch('inventory_branches', ['staff', 'owner'], 12, 3, 3, 2, ['inventory', 'stock', 'branch', 'warehouse', 'hub', 'স্টক', 'ব্রাঞ্চ', 'গুদাম']),
             $this->ch('branch_performance', ['staff', 'owner'], 9, 3, 2, 1, ['branch-performance', 'profit', 'income', 'today', 'month', 'প্রফিট', 'ইনকাম', 'ব্রাঞ্চ']),
             $this->ch('place_codes_admin', ['staff', 'owner'], 8, 2, 2, 2, ['place-codes', 'geography', 'bangladesh', 'union', 'pourashava', 'upazila', 'ভূগোল', 'ইউনিয়ন', 'পৌরসভা', 'উপজেলা']),
             $this->ch('finance_treasury', ['staff', 'owner'], 6, 1, 1, 1, ['treasury', 'capital', '60%', 'retained', 'collection', 'ট্রেজারি', 'মূলধন', 'ক্যাশ']),
@@ -356,6 +429,8 @@ final class UserManual
             $this->ch('clinic_prescriptions', ['owner'], 7, 3, 2, 1, ['clinic', 'prescription', 'dispense', 'manufacturer', 'mrp', 'চেম্বার', 'প্রেসক্রিপশন', 'তহবিল', 'এমআরপি']),
             $this->ch('menu_office', ['staff', 'owner'], 8, 1, 1, 1, ['menu', 'moved', 'sidebar', 'new names', 'where', 'মেনু', 'নতুন নাম', 'কোথায়']),
             $this->ch('menu_partner', ['dealer', 'sub_dealer'], 8, 1, 1, 1, ['menu', 'moved', 'sidebar', 'where', 'new order', 'my money', 'মেনু', 'আমার টাকা', 'কোথায়']),
+            $this->ch('settings_home', ['staff', 'owner'], 13, 1, 1, 1, ['settings', 'account rules', 'login rules', 'courier', 'excel', 'work log', 'সেটিংস', 'হিসাবের নিয়ম', 'লগইন', 'এক্সেল', 'কাজের রেকর্ড']),
+            $this->ch('office_more_pages', ['staff', 'owner'], 10, 1, 1, 1, ['applications', 'training', 'meetings', 'agreement', 'roles', 'salary', 'আবেদন', 'প্রশিক্ষণ', 'মিটিং', 'চুক্তি', 'পদ', 'বেতন']),
             $this->ch('commission_tabs', ['staff', 'owner'], 5, 1, 1, 1, ['commission', 'tabs', 'rules', 'rates', 'calculator', 'special rate', 'কমিশন', 'ট্যাব', 'হার', 'ক্যালকুলেটর']),
             $this->ch('report_centre', ['staff', 'owner'], 3, 1, 1, 1, ['report', 'report centre', 'download', 'excel', 'রিপোর্ট', 'রিপোর্ট সেন্টার', 'ডাউনলোড']),
             $this->ch('my_money_tabs', ['dealer', 'sub_dealer'], 4, 1, 1, 1, ['my money', 'tabs', 'earnings', 'withdraw', 'receipts', 'আমার টাকা', 'ট্যাব', 'আয়', 'টাকা তোলা', 'রসিদ']),
