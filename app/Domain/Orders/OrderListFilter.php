@@ -26,12 +26,19 @@ final class OrderListFilter
     public const CameBack = 'returned';
 
     /**
-     * SQL for a cancelled order with a parcel received back. Its status stays "cancelled", so every
-     * money rule is unchanged; this only tells it apart from an order cancelled for another reason.
+     * SQL for an order whose parcel was received back with nothing out or delivered: closed as
+     * "cancelled", or back to "approved" with goods still to send. Its status is unchanged, so every
+     * money rule is too; this only tells it apart from other cancelled or approved orders.
      */
     public static function cameBackSql(string $orders = 'orders'): string
     {
-        return "({$orders}.status = 'cancelled' AND EXISTS (SELECT 1 FROM shipments WHERE shipments.order_id = {$orders}.id AND shipments.status = 'returned'))";
+        return "({$orders}.status IN ('cancelled', 'approved') AND EXISTS (SELECT 1 FROM shipments WHERE shipments.order_id = {$orders}.id AND shipments.status = 'returned'))";
+    }
+
+    /** SQL for the units of an order that came back in parcels received at a branch. */
+    public static function returnedUnitsSql(string $orders = 'orders'): string
+    {
+        return "COALESCE((SELECT SUM((item.value->>'quantity')::int) FROM shipments AS parcel CROSS JOIN LATERAL json_array_elements(parcel.lines) AS item(value) WHERE parcel.order_id = {$orders}.id AND parcel.status = 'returned'), 0)";
     }
 
     public function apply(Builder $query, Request $request, string $section, bool $staff): Builder
@@ -53,7 +60,7 @@ final class OrderListFilter
                 $query->whereRaw(self::cameBackSql());
             } else {
                 $query->where('status', $chosenStatus)
-                    ->when($chosenStatus === 'cancelled', fn (Builder $orders) => $orders->whereRaw('NOT '.self::cameBackSql()));
+                    ->when($chosenStatus === 'cancelled' || ($chosenStatus === 'approved' && $section !== 'deliveries'), fn (Builder $orders) => $orders->whereRaw('NOT '.self::cameBackSql()));
             }
         }
 

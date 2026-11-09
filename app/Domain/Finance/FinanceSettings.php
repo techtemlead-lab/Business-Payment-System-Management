@@ -115,8 +115,7 @@ final class FinanceSettings
     {
         DB::transaction(function () use ($actor, $enabled, $version, $reason): void {
             CommissionWallet::lock();
-            $fresh = $actor->fresh();
-            abort_unless($fresh->owner(), 403);
+            abort_unless($actor->fresh()->role === 'super_admin', 403);
             $before = $this->kycBeforeFirstWithdrawal();
             if ($version !== $before['version']) {
                 throw ValidationException::withMessages(['version' => __('portal.err_fin_wd_stale')]);
@@ -153,7 +152,7 @@ final class FinanceSettings
     {
         DB::transaction(function () use ($actor, $enabled, $version, $reason): void {
             CommissionWallet::lock();
-            abort_unless($actor->fresh()->owner(), 403);
+            abort_unless($actor->fresh()->role === 'super_admin', 403);
             $before = $this->fullPaymentWhenOrdering();
             if ($version !== $before['version']) {
                 throw ValidationException::withMessages(['version' => __('portal.err_fin_wd_stale')]);

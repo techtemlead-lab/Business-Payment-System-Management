@@ -17,6 +17,8 @@ return [
     'filter_branch' => 'ব্রাঞ্চ',
     'open_order' => 'অর্ডার খুলুন',
     'detail_reason' => 'কারণ',
+    'col_returned' => 'ফেরত এসেছে',
+    'returned_units' => ':count টি ফেরত এসেছে',
     'line_sent' => ':total টির মধ্যে :sent টি পাঠানো',
     'section_payment' => 'টাকা দেওয়া',
     'section_history' => 'পার্সেলের ধাপ',

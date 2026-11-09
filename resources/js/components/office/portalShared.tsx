@@ -32,7 +32,12 @@ export const accountFields=(translate:TranslateFn):Field[]=>[{name:'name',label:
 export function parseJson<T>(value:unknown,fallback:T):T{if(typeof value!=='string'){return(value as T)??fallback;}try{return JSON.parse(value) as T;}catch{return fallback;}}
 export function orderDue(row:Row):number{if(['rejected','cancelled'].includes(String(row.status))){return 0;}const due=Number(row.total||0)-Number(row.paid||0)-Number(row.due_credit||0);return due>0?due:0;}
 export function orderItemCount(row:Row):number{return (row.lines??[]).reduce((n:number,l:Row)=>n+Number(l.quantity||0),0);}
-export function orderSentCount(row:Row):number{return (row.lines??[]).reduce((n:number,l:Row)=>n+Number(l.dispatched||0),0);}
+/** Units sent and not come back: a parcel received back at a branch no longer counts as sent. */
+export function orderSentCount(row:Row):number{return Math.max(0,(row.lines??[]).reduce((n:number,l:Row)=>n+Number(l.dispatched||0),0)-Number(row.returned_units||0));}
+/** Units received back at a branch, per order line, from the order's parcels. */
+export function returnedByLine(shipments:Row[]):Map<number,number>{const byLine=new Map<number,number>();shipments.filter(s=>s.status==='returned').forEach(s=>parseJson<Row[]>(s.lines,[]).forEach((l:Row)=>byLine.set(Number(l.line_id),(byLine.get(Number(l.line_id))??0)+Number(l.quantity||0))));return byLine;}
+/** The list's "sent / ordered" figure, with the returned units under it when any came back. */
+export function OrderSentCell({row}:{row:Row}){const translate=useT();return <span title={translate('portal','col_delivered_hint')}>{number(orderSentCount(row))} / {number(orderItemCount(row))}{Number(row.returned_units)>0&&<small className="cell-sub" data-testid="order-returned-units">{translate('office_orders','returned_units',{count:number(row.returned_units)})}</small>}</span>;}
 /** Statuses where nothing can have been sent yet, so the delivered column shows a dash. */
 export const notYetSendable=['submitted','held','cancelled','rejected'];
 export function AgingPill({days}:{days:number}){const translate=useT();const band=days>90?'is-90':days>60?'is-60':days>30?'is-30':'';return <span className={`aging-pill ${band}`.trim()}>{translate('portal','days_count',{n:number(days)})}</span>;}

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronRight, Search, SlidersHorizontal } from 'lucide-react';
 import { useT } from '../shared/i18n/t';
-import { DateInput, FormErrors, Modal, Pagination, money, number } from './UI';
+import { DateInput, FormErrors, Modal, Pagination, money, number, useTableOverflow } from './UI';
 import { MoreFilterControls, filterKeys, isToolbarFilter, optionText, type MoneyFilter, type SortOption } from './MoneyTableFilters';
 import { BulkBar, type BulkKind } from './OfficeListTools';
 
@@ -75,6 +75,10 @@ const startsDescending = <T,>(column: MoneyColumn<T>): boolean =>
 
 const isRightAligned = <T,>(column: MoneyColumn<T>): boolean => (column.align ?? (column.money ? 'right' : 'left')) === 'right';
 
+const STATUS_COLUMN_KEYS = ['status', 'order_status'];
+
+const isActionColumn = <T,>(column: MoneyColumn<T>): boolean => column.key === 'action' || column.key === 'actions' || column.title.trim() === '';
+
 const cellContent = <T,>(column: MoneyColumn<T>, row: T): React.ReactNode => {
     if (column.render) {
         return column.render(row);
@@ -120,6 +124,7 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
     const searchTimer = useRef<number | undefined>(undefined);
     const lastSearched = useRef(state.q);
     const viewChips = useRef<HTMLDivElement>(null);
+    const { scrollBox, isOverflowing } = useTableOverflow();
 
     useEffect(() => {
         // A slower answer for earlier words must not wipe what is being typed now.
@@ -322,6 +327,13 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
     const totalLabel = translate('portal', 'mt_total_count', { count: countText });
 
     const hasOpenColumn = rowHref !== undefined && onRowOpen === undefined && rowArrow;
+    // A table too wide for its box keeps Status and the row's action on screen; the other columns scroll under them.
+    const lastColumn = columns[columns.length - 1];
+    const pinnedActionKey = !hasOpenColumn && lastColumn && isActionColumn(lastColumn) ? lastColumn.key : null;
+    const statusCandidate = columns[columns.length - (pinnedActionKey ? 2 : 1)];
+    const pinnedStatusKey = statusCandidate && STATUS_COLUMN_KEYS.includes(statusCandidate.key) ? statusCandidate.key : null;
+    const pinClass = (column: MoneyColumn<T>): string => (column.key === pinnedActionKey ? 'table-pin-action' : column.key === pinnedStatusKey ? 'table-pin-status' : '');
+    const cellClass = (column: MoneyColumn<T>, isHeading = false): string | undefined => [isRightAligned(column) ? 'is-right' : '', !isHeading && column.money ? 'is-money' : '', pinClass(column)].filter(Boolean).join(' ') || undefined;
     const phoneTitle = columns.find((column) => column.phone === 'title') ?? columns.find((column) => !column.money && column.phone !== 'hide') ?? columns[0];
     const phoneAmount = columns.find((column) => column.phone === 'amount') ?? columns.find((column) => column.money && column.phone === undefined);
     const phoneLines = columns.filter((column) => column !== phoneTitle && column !== phoneAmount && column.phone !== 'hide' && column.phone !== 'title' && column.phone !== 'amount');
@@ -394,7 +406,7 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
                 <p className="mt-empty">{empty}</p>
             ) : (
                 <>
-                    <div className="mt-table-wrap">
+                    <div ref={scrollBox} className={`mt-table-wrap${isOverflowing ? ' is-overflowing' : ''}`}>
                         <table className="mt-table">
                             <thead>
                                 <tr>
@@ -404,7 +416,7 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
                                         const sorted = canSort && state.sort === column.sortKey;
 
                                         return (
-                                            <th key={column.key} className={isRightAligned(column) ? 'is-right' : undefined} aria-sort={!canSort ? undefined : sorted ? (state.dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                                            <th key={column.key} className={cellClass(column, true)} aria-sort={!canSort ? undefined : sorted ? (state.dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
                                                 {canSort ? (
                                                     <button type="button" className={`mt-sort${sorted ? ' is-active' : ''}`} onClick={() => sortBy(column)}>
                                                         {column.title}
@@ -414,7 +426,7 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
                                             </th>
                                         );
                                     })}
-                                    {hasOpenColumn && <th aria-hidden="true" />}
+                                    {hasOpenColumn && <th className="table-pin-action" aria-hidden="true" />}
                                 </tr>
                             </thead>
                             <tbody>
@@ -426,9 +438,9 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
                                         <tr key={index} className={open ? 'is-link' : undefined} onClick={(event) => openRow(event, open)}>
                                             {selecting && <td className="mt-check-cell">{pickBox(row)}</td>}
                                             {columns.map((column, columnIndex) => (
-                                                <td key={column.key} className={`${isRightAligned(column) ? 'is-right' : ''}${column.money ? ' is-money' : ''}`.trim() || undefined}>{cellContent(column, row)}{columnIndex === 0 && openRowControl(row, href)}</td>
+                                                <td key={column.key} className={cellClass(column)}>{cellContent(column, row)}{columnIndex === 0 && openRowControl(row, href)}</td>
                                             ))}
-                                            {hasOpenColumn && <td className="mt-open-cell">{href && <Link href={href} className="mt-open" aria-label={translate('portal', 'mt_open_row')}><ChevronRight size={16} aria-hidden="true" /></Link>}</td>}
+                                            {hasOpenColumn && <td className="mt-open-cell table-pin-action">{href && <Link href={href} className="mt-open" aria-label={translate('portal', 'mt_open_row')}><ChevronRight size={16} aria-hidden="true" /></Link>}</td>}
                                         </tr>
                                     );
                                 })}
@@ -437,11 +449,11 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
                                 <tr>
                                     {selecting && <td />}
                                     {columns.map((column, index) => (
-                                        <td key={column.key} className={`${isRightAligned(column) ? 'is-right' : ''}${column.money ? ' is-money' : ''}`.trim() || undefined}>
+                                        <td key={column.key} className={cellClass(column)}>
                                             {index === 0 ? totalLabel : (column.total !== undefined && sums?.[column.total] !== undefined ? money(sums[column.total]) : null)}
                                         </td>
                                     ))}
-                                    {hasOpenColumn && <td />}
+                                    {hasOpenColumn && <td className="table-pin-action" />}
                                 </tr>
                             </tfoot>
                         </table>

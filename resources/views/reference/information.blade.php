@@ -399,7 +399,6 @@
                 <span class="ref-section-num">1</span>
                 <div>
                     <h3 class="ref-section-title">{{ __('site.partner_section_tier') }}</h3>
-                    <p class="ref-section-desc">{{ __('site.partnership_type') }}</p>
                 </div>
             </div>
 
@@ -468,7 +467,7 @@
                         <input id="partner-phone" type="tel" name="phone" value="{{ old('phone') }}" required maxlength="30" autocomplete="tel" placeholder="01XXXXXXXXX" class="ref-input-control">
                     </div>
                     @error('phone_taken')
-                    <label class="ref-field-hint"><input type="checkbox" name="phone_taken_confirmed" value="{{ old('phone') }}"> {{ __('site.partner_phone_taken_confirm') }}</label>
+                    <label class="ref-field-hint ref-confirm-check"><input type="checkbox" name="phone_taken_confirmed" value="{{ old('phone') }}"> {{ __('site.partner_phone_taken_confirm') }}</label>
                     @enderror
                 </div>
 

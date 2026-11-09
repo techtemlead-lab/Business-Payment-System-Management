@@ -38,10 +38,10 @@ class ModuleCompletionController extends Controller
         return $this->done($request);
     }
 
-    /** Owner-only switch: approved ID papers needed before a partner's first withdrawal. */
+    /** Super Admin only: approved ID papers needed before a partner's first withdrawal. */
     public function kycBeforeFirstWithdrawal(Request $request, FinanceSettings $settings): Response
     {
-        abort_unless($request->user()->owner(), 403);
+        abort_unless($request->user()->role === 'super_admin', 403);
         $data = $request->validate([
             'enabled' => 'required|boolean',
             'version' => 'required|integer|min:0',
@@ -52,10 +52,10 @@ class ModuleCompletionController extends Controller
         return $this->done($request);
     }
 
-    /** Owner-only switch: an order must come with a payment for its whole total and a proof screenshot. */
+    /** Super Admin only: an order must come with a payment for its whole total and a proof screenshot. */
     public function fullPaymentWhenOrdering(Request $request, FinanceSettings $settings): Response
     {
-        abort_unless($request->user()->owner(), 403);
+        abort_unless($request->user()->role === 'super_admin', 403);
         $data = $request->validate([
             'enabled' => 'required|boolean',
             'version' => 'required|integer|min:0',

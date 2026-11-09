@@ -8,7 +8,7 @@ import { SavedFilterPanel } from '../../OfficeListTools';
 import { Badge, Modal, date, label, money, number, type Row } from '../../UI';
 import MoreMenu from '../MoreMenu';
 import OfficePage from '../OfficePage';
-import { AgingPill, channelName, notYetSendable, orderDue, orderItemCount, orderSentCount, orderStatuses, ordersExportHref, type TranslateFn } from '../portalShared';
+import { AgingPill, channelName, notYetSendable, OrderSentCell, orderDue, orderItemCount, orderSentCount, orderStatuses, ordersExportHref, returnedByLine, type TranslateFn } from '../portalShared';
 
 const CLOSED_STATUSES = ['rejected', 'cancelled'];
 
@@ -95,7 +95,7 @@ export function orderListColumns(translate: TranslateFn, { overdue = false }: { 
         { key: 'area', title: translate('portal', 'col_area'), sortKey: 'area', phone: 'hide', render: (row) => [row.user?.district, row.user?.division].filter(Boolean).join(', ') || '—' },
         { key: 'branch', title: translate('portal', 'col_branch'), sortKey: 'branch', phone: 'hide', render: (row) => row.fulfillment_branch?.name || '—' },
         { key: 'items', title: translate('office_orders', 'col_items'), sortKey: 'items', align: 'right', phone: 'hide', render: (row) => number(orderItemCount(row)) },
-        { key: 'delivered', title: translate('portal', 'col_delivered'), sortKey: 'delivered', align: 'right', phone: 'hide', render: (row) => (notYetSendable.includes(row.status) ? '—' : <span title={translate('portal', 'col_delivered_hint')}>{number(orderSentCount(row))} / {number(orderItemCount(row))}</span>) },
+        { key: 'delivered', title: translate('portal', 'col_delivered'), sortKey: 'delivered', align: 'right', phone: 'hide', render: (row) => (notYetSendable.includes(row.status) ? '—' : <OrderSentCell row={row} />) },
         {
             key: 'total',
             title: translate('office_orders', 'col_price'),
@@ -179,6 +179,7 @@ export function OrderDrawer({ order, onClose }: { order: Row; onClose: () => voi
     const lines: Row[] = order.lines ?? [];
     const claims: Row[] = order.payment_claims ?? [];
     const parcels: Row[] = order.shipments ?? [];
+    const returnedOf = returnedByLine(parcels);
 
     return (
         <Modal
@@ -193,7 +194,7 @@ export function OrderDrawer({ order, onClose }: { order: Row; onClose: () => voi
                 {lines.length > 0 && (
                     <section>
                         <h3>{translate('office_orders', 'col_items')}</h3>
-                        <FactList facts={lines.map((line) => [String(line.name), translate('office_orders', 'line_sent', { sent: number(line.dispatched ?? 0), total: number(line.quantity ?? 0) })])} />
+                        <FactList facts={lines.map((line) => [String(line.name), translate('office_orders', 'line_sent', { sent: number(Number(line.dispatched ?? 0) - (returnedOf.get(Number(line.id)) ?? 0)), total: number(line.quantity ?? 0) })])} />
                     </section>
                 )}
                 {claims.length > 0 && (

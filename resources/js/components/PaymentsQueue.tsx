@@ -40,8 +40,8 @@ export default function PaymentsQueue({ data, onReview, actions }: { data: Money
         },
         { key: 'amount', title: translate('portal', 'col_amount'), sortKey: 'amount', money: true, total: 'amount', phone: 'amount', render: (row) => <b>{money(row.amount)}</b> },
         { key: 'due', title: translate('portal', 'col_due'), sortKey: 'due', money: true, phone: 'hide', render: (row) => <>{money(orderDue({ ...row, status: row.order_status }))}<small className="cell-sub">{translate('portal', 'pay_order_value_paid', { value: money(row.total), paid: money(row.paid) })}</small></> },
-        { key: 'status', title: translate('portal', 'col_status'), sortKey: 'status', phone: 'sub', render: (row) => <><Badge status={row.status} />{row.status === 'rejected' && row.reason && <small className="cell-sub">{row.reason}</small>}</> },
         { key: 'checked_by', title: translate('portal', 'col_checked_by'), sortKey: 'checked_by', phone: 'hide', render: (row) => (row.status !== 'pending' && row.checked_by ? <>{row.checked_by}<small className="cell-sub">{dateTime(row.checked_at)}</small></> : '—') },
+        { key: 'status', title: translate('portal', 'col_status'), sortKey: 'status', phone: 'sub', render: (row) => <><Badge status={row.status} />{row.status === 'rejected' && row.reason && <small className="cell-sub">{row.reason}</small>}</> },
         {
             key: 'action',
             title: translate('portal', 'col_review'),

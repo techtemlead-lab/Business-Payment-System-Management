@@ -72,6 +72,9 @@ return [
     'col_change_number' => 'পরিবর্তন',
     'detail_payment_reference' => 'পেমেন্ট রেফারেন্স',
     'detail_paid_at' => 'পরিশোধের সময়',
+    'detail_sales_target' => 'বিক্রির লক্ষ্য',
+    'detail_sales_counted' => 'গণনা করা বিক্রি',
+    'detail_bonus_earned' => 'পাওয়া বোনাস',
     'detail_calculation' => 'বেতনের হিসাব',
     'detail_reason' => 'কারণ',
 

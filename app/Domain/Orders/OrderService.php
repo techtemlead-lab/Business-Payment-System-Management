@@ -496,8 +496,9 @@ class OrderService
 
     /**
      * A parcel the courier returned is physically back at the branch. The shipped quantity
-     * goes back into that branch's stock exactly once, and the order closes when nothing else
-     * is left on it. No commission is posted; any money is returned by hand outside the system.
+     * goes back into that branch's stock exactly once. The order closes when nothing else is
+     * left on it; when goods are still to send and nothing is out or delivered, it goes back to
+     * approved so the rest can be sent. No commission is posted; any money is returned by hand.
      */
     public function receiveReturnedParcel(User $actor, Order $order, int $shipmentId, ?string $note): void
     {
@@ -540,14 +541,18 @@ class OrderService
             $unsent = $locked->lines()->whereColumn('dispatched', '<', 'quantity')->exists();
             $otherParcels = DB::table('shipments')->where('order_id', $locked->id)->where('status', '!=', 'returned')->exists();
             $orderClosed = ! $unsent && ! $otherParcels;
+            $nothingOut = $unsent && ! $otherParcels;
             if ($orderClosed) {
                 $locked->update(['status' => 'cancelled', 'decision_reason' => __('courier.received_back_reason')]);
+            } elseif ($nothingOut) {
+                $locked->update(['status' => 'approved']);
             }
             MixedOutcomeDecisions::closeIfFinished($locked, $actor->id);
             $this->event($locked, $actor, 'shipment.received_back', [
                 'shipment_id' => $shipment->id,
                 'reason' => $note,
                 'order_closed' => $orderClosed,
+                'nothing_out' => $nothingOut,
                 'branch_id' => $shipment->branch_id,
             ]);
             $this->partnerNotice($locked->user_id, 'courier.notice_received_back_title', 'courier.notice_received_back_body', [

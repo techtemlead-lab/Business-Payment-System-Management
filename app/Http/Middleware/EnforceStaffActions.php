@@ -144,8 +144,8 @@ class EnforceStaffActions
             // The agreement text and its switch belong to the owners; the controller checks it again.
             return $next($request);
         }
-        if ($controller === 'ModuleCompletionController' && in_array($method, ['kycBeforeFirstWithdrawal', 'fullPaymentWhenOrdering'], true) && $actor->owner()) {
-            // The Finance settings page offers these two switches to every owner; the controller checks again.
+        if ($controller === 'ModuleCompletionController' && in_array($method, ['kycBeforeFirstWithdrawal', 'fullPaymentWhenOrdering'], true) && $actor->role === 'super_admin') {
+            // These two switches belong to the Super Admin alone; the controller checks again.
             return $next($request);
         }
         if ($controller === 'CourierAreaController' && $actor->owner()) {

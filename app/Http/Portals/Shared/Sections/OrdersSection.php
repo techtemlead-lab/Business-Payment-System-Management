@@ -42,7 +42,7 @@ final class OrdersSection implements WorkspaceSection
         'area' => '(SELECT users.district FROM users WHERE users.id = orders.user_id)',
         'branch' => '(SELECT company_branches.name FROM company_branches WHERE company_branches.id = orders.fulfillment_branch_id)',
         'items' => '(SELECT COALESCE(SUM(order_lines.quantity), 0) FROM order_lines WHERE order_lines.order_id = orders.id)',
-        'delivered' => '(SELECT COALESCE(SUM(order_lines.dispatched), 0) FROM order_lines WHERE order_lines.order_id = orders.id)',
+        'delivered' => "((SELECT COALESCE(SUM(order_lines.dispatched), 0) FROM order_lines WHERE order_lines.order_id = orders.id) - COALESCE((SELECT SUM((item.value->>'quantity')::int) FROM shipments AS parcel CROSS JOIN LATERAL json_array_elements(parcel.lines) AS item(value) WHERE parcel.order_id = orders.id AND parcel.status = 'returned'), 0))",
         'total' => 'orders.total',
         'paid' => 'orders.paid',
         'to_pay' => self::ToPaySql,
@@ -88,7 +88,7 @@ final class OrdersSection implements WorkspaceSection
         }
 
         $listQuery->with($orderWith)
-            ->selectRaw(DeliveredMoney::valueSql().' AS delivered_value, '.DeliveredMoney::paidSql().' AS delivered_paid, '.OrderListFilter::cameBackSql().' AS came_back');
+            ->selectRaw(DeliveredMoney::valueSql().' AS delivered_value, '.DeliveredMoney::paidSql().' AS delivered_paid, '.OrderListFilter::cameBackSql().' AS came_back, '.OrderListFilter::returnedUnitsSql().' AS returned_units');
         if ($usesSharedTable) {
             $listQuery->selectRaw('(SELECT order_refunds.amount FROM order_refunds WHERE order_refunds.order_id = orders.id LIMIT 1) AS refunded_amount');
         }

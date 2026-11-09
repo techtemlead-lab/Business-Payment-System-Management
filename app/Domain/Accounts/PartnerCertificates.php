@@ -6,6 +6,7 @@ use App\Models\DealerRank;
 use App\Models\TrainingCompletion;
 use App\Models\TrainingItem;
 use App\Models\User;
+use App\Support\LocalDigits;
 use App\Support\Money;
 use App\Support\PdfFonts;
 use Carbon\CarbonImmutable;
@@ -65,23 +66,25 @@ final class PartnerCertificates
         $locale = $user->preferredLocale();
         $t = static fn (string $key, array $replace = []): string => __('portal.'.$key, $replace, $locale);
         $income = $this->income($user, $year);
+        $yearText = LocalDigits::text((string) $year, $locale);
+        $amount = static fn (string $value): string => LocalDigits::text(Money::grouped($value), $locale);
 
         $rows = '';
         foreach ($income['lines'] as $line) {
-            $rows .= '<tr><td>'.e(PartnerMoneyBook::headWord($line['category'], $locale)).'</td><td class="num">৳ '.e(Money::grouped($line['amount'])).'</td></tr>';
+            $rows .= '<tr><td>'.e(PartnerMoneyBook::headWord($line['category'], $locale)).'</td><td class="num">৳ '.e($amount($line['amount'])).'</td></tr>';
         }
         if ($rows === '') {
             $rows = '<tr><td colspan="2" class="muted">'.e($t('cert_income_none')).'</td></tr>';
         }
-        $body = '<h1>'.e($t('cert_income_title', ['year' => (string) $year])).'</h1>'
-            .'<p class="lead">'.e($t('cert_income_lead', ['name' => $user->name, 'code' => (string) ($user->dealer_code ?? '—'), 'role' => $this->roleLabel($user, $locale), 'year' => (string) $year])).'</p>'
+        $body = '<h1>'.e($t('cert_income_title', ['year' => $yearText])).'</h1>'
+            .'<p class="lead">'.e($t('cert_income_lead', ['name' => $user->name, 'code' => (string) ($user->dealer_code ?? '—'), 'role' => $this->roleLabel($user, $locale), 'year' => $yearText])).'</p>'
             .'<table><thead><tr><th>'.e($t('cert_income_col_kind')).'</th><th class="num">'.e($t('cert_income_col_amount')).'</th></tr></thead><tbody>'.$rows.'</tbody>'
-            .'<tfoot><tr><td>'.e($t('cert_income_total')).'</td><td class="num">৳ '.e(Money::grouped($income['total'])).'</td></tr></tfoot></table>'
-            .'<table class="small"><tr><td>'.e($t('cert_income_withdrawn')).'</td><td class="num">৳ '.e(Money::grouped($income['withdrawn_net'])).'</td></tr>'
-            .'<tr><td>'.e($t('cert_income_tax_cut')).'</td><td class="num">৳ '.e(Money::grouped($income['tax_cut'])).'</td></tr></table>'
+            .'<tfoot><tr><td>'.e($t('cert_income_total')).'</td><td class="num">৳ '.e($amount($income['total'])).'</td></tr></tfoot></table>'
+            .'<table class="small"><tr><td>'.e($t('cert_income_withdrawn')).'</td><td class="num">৳ '.e($amount($income['withdrawn_net'])).'</td></tr>'
+            .'<tr><td>'.e($t('cert_income_tax_cut')).'</td><td class="num">৳ '.e($amount($income['tax_cut'])).'</td></tr></table>'
             .'<p class="note">'.e($t('cert_income_note')).'</p>';
 
-        return $this->render($user, $body, $t('cert_income_doc_title', ['year' => (string) $year]), 'Madina-income-certificate-'.$year, 'A4', $locale);
+        return $this->render($user, $body, $t('cert_income_doc_title', ['year' => $yearText]), 'Madina-income-certificate-'.$year, 'A4', $locale);
     }
 
     public function rankPdf(User $user): BinaryFileResponse
@@ -96,7 +99,7 @@ final class PartnerCertificates
         if ($rankName === $rankKey) {
             $rankName = Str::upper((string) $rank->current_rank);
         }
-        $achieved = $rank->achieved_at ? CarbonImmutable::parse($rank->achieved_at)->timezone('Asia/Dhaka')->format('d M Y') : '—';
+        $achieved = $rank->achieved_at ? $this->localDate(CarbonImmutable::parse($rank->achieved_at), $locale) : '—';
         $body = '<div class="award"><p class="kicker">'.e($t('cert_rank_kicker')).'</p>'
             .'<h1 class="big">'.e($user->name).'</h1>'
             .'<p class="lead">'.e($t('cert_rank_lead', ['code' => (string) ($user->dealer_code ?? '—')])).'</p>'
@@ -114,15 +117,21 @@ final class PartnerCertificates
         $locale = $user->preferredLocale();
         $t = static fn (string $key, array $replace = []): string => __('portal.'.$key, $replace, $locale);
         $title = $locale === 'bn' ? $item->title_bn : $item->title_en;
-        $passed = CarbonImmutable::parse($completion->passed_at)->timezone('Asia/Dhaka')->format('d M Y');
+        $passed = $this->localDate(CarbonImmutable::parse($completion->passed_at), $locale);
         $body = '<div class="award"><p class="kicker">'.e($t('cert_training_kicker')).'</p>'
             .'<h1 class="big">'.e($user->name).'</h1>'
             .'<p class="lead">'.e($t('cert_training_lead', ['code' => (string) ($user->dealer_code ?? '—'), 'role' => $this->roleLabel($user, $locale)])).'</p>'
             .'<p class="rank">'.e($title).'</p>'
-            .'<p class="lead">'.e($t('cert_training_score', ['score' => (string) $completion->best_score, 'date' => $passed])).'</p>'
+            .'<p class="lead">'.e($t('cert_training_score', ['score' => LocalDigits::text((string) $completion->best_score, $locale), 'date' => $passed])).'</p>'
             .'<p class="note">'.e($t('cert_training_note')).'</p></div>';
 
         return $this->render($user, $body, $t('cert_training_doc_title'), 'Madina-training-certificate-'.$item->id, 'A4-L', $locale);
+    }
+
+    /** A date in Dhaka time in the reader's language, with Bangla digits on a Bangla certificate. */
+    private function localDate(CarbonImmutable $moment, string $locale): string
+    {
+        return LocalDigits::text($moment->timezone('Asia/Dhaka')->locale($locale)->translatedFormat('d M Y'), $locale);
     }
 
     private function roleLabel(User $user, string $locale): string
@@ -168,7 +177,7 @@ final class PartnerCertificates
             <div class="brand">'.e($t('brand_madina_natural_health_care')).'</div>
             <div class="sub">'.e($t('cert_company_line')).'</div>
             '.$body.'
-            <div class="foot">'.e($t('cert_foot', ['date' => $issued, 'serial' => $serial])).'</div>
+            <div class="foot">'.e($t('cert_foot', ['date' => $this->localDate(CarbonImmutable::now(), $locale), 'serial' => $serial])).'</div>
         </div></body></html>';
         try {
             $pdf = new Mpdf([

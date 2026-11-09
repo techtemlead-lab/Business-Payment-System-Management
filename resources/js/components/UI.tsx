@@ -234,12 +234,11 @@ const STATUS_COLUMN_KEYS = new Set(['status', 'order_status']);
  * Watches a table's scrolling box. When the table is wider than its panel, the Status and
  * action columns stay pinned on the right and a hint says the table scrolls sideways.
  */
-function useTableOverflow() {
- const scrollBox = useRef<HTMLDivElement>(null);
+export function useTableOverflow() {
+ const [box, scrollBox] = useState<HTMLDivElement | null>(null);
  const [isOverflowing, setIsOverflowing] = useState(false);
 
  useEffect(() => {
-  const box = scrollBox.current;
   if (!box || typeof ResizeObserver === 'undefined') {
    return;
   }
@@ -255,7 +254,7 @@ function useTableOverflow() {
    observer.observe(table);
   }
   return () => observer.disconnect();
- }, []);
+ }, [box]);
 
  return { scrollBox, isOverflowing };
 }

@@ -7,6 +7,7 @@ use App\Domain\Orders\OrderListFilter;
 use App\Models\Order;
 use App\Models\ReferralTreePath;
 use App\Models\User;
+use App\Support\LocalDigits;
 use App\Support\Money;
 use App\Support\PaymentChannel;
 use App\Support\PdfFonts;
@@ -174,7 +175,9 @@ final class PartnerFullReport
         $path = $dir.'/partner-full-report-'.$safeCode.'-'.now('Asia/Dhaka')->format('Ymd-His').'-'.Str::lower(Str::random(6)).'.pdf';
 
         $none = $t('pdf_none');
-        $rows = static function (array $items, callable $cells) use ($none): string {
+        // Amounts and counts follow the reader's language; codes such as DL-1001 stay as they are.
+        $localize = static fn (string $value): string => preg_match('/^[\d.,]+$/', $value) === 1 ? LocalDigits::text($value, $locale) : $value;
+        $rows = static function (array $items, callable $cells) use ($none, $localize): string {
             if ($items === []) {
                 return '<tr><td colspan="6">'.e($none).'</td></tr>';
             }
@@ -182,7 +185,7 @@ final class PartnerFullReport
             foreach ($items as $item) {
                 $html .= '<tr>';
                 foreach ($cells($item) as $cell) {
-                    $html .= '<td>'.e((string) $cell).'</td>';
+                    $html .= '<td>'.e($localize((string) $cell)).'</td>';
                 }
                 $html .= '</tr>';
             }
@@ -199,7 +202,7 @@ final class PartnerFullReport
             $row['total'],
             $row['paid'],
             $row['due'],
-            collect($row['payments'] ?? [])->map(fn ($p) => PaymentChannel::word((string) ($p['channel'] ?? ''), $locale).' '.$p['amount'].' ('.self::statusWord((string) $p['status'], $locale).')')->implode('; ') ?: '—',
+            collect($row['payments'] ?? [])->map(fn ($p) => PaymentChannel::word((string) ($p['channel'] ?? ''), $locale).' '.$localize((string) $p['amount']).' ('.self::statusWord((string) $p['status'], $locale).')')->implode('; ') ?: '—',
         ]);
         $teamRows = $rows($report['team_members'], fn (array $row) => [
             $row['name'],
@@ -221,16 +224,16 @@ final class PartnerFullReport
         $html .= '<h1>'.e($t('pdf_partner_full_report_title')).'</h1>';
         $html .= '<p class="muted">'.e($user->name).' · '.e((string) ($user->dealer_code ?: '—')).' · '.e($roleLabel).'</p>';
         $html .= '<table class="metrics"><tr>
-            <td><b>'.e($t('report_col_ordered')).'</b><br>'.e($summary['ordered']).' ('.e((string) $summary['orders_count']).')</td>
-            <td><b>'.e($t('report_col_paid')).'</b><br>'.e($summary['paid']).'</td>
-            <td><b>'.e($t('report_col_due')).'</b><br>'.e($summary['due']).'</td>
-            <td><b>'.e($t('report_commission_earned')).'</b><br>'.e($summary['commission']).'</td>
-            <td><b>'.e($t('pdf_metric_team')).'</b><br>'.e((string) $summary['team_members']).' · '.e($summary['team_commission']).'</td>
+            <td><b>'.e($t('report_col_ordered')).'</b><br>'.e($localize($summary['ordered'])).' ('.e($localize((string) $summary['orders_count'])).')</td>
+            <td><b>'.e($t('pdf_metric_paid_for_delivered')).'</b><br>'.e($localize($summary['paid'])).'</td>
+            <td><b>'.e($t('pdf_metric_still_to_pay')).'</b><br>'.e($localize($summary['due'])).'</td>
+            <td><b>'.e($t('report_commission_earned')).'</b><br>'.e($localize($summary['commission'])).'</td>
+            <td><b>'.e($t('pdf_metric_team')).'</b><br>'.e($localize((string) $summary['team_members'])).' · '.e($localize($summary['team_commission'])).'</td>
         </tr></table>';
         $html .= '<h2>'.e($t('report_commission_by_head')).'</h2><table><thead><tr><th>'.e($t('report_col_head')).'</th><th>'.e($t('report_col_entries')).'</th><th>'.e($t('report_col_amount')).'</th></tr></thead><tbody>'.$commissionRows.'</tbody></table>';
         $html .= '<h2>'.e($t('report_order_payment_records')).'</h2><table><thead><tr><th>'.e($t('report_col_order')).'</th><th>'.e($t('col_status')).'</th><th>'.e($t('report_col_ordered')).'</th><th>'.e($t('report_col_paid')).'</th><th>'.e($t('report_col_due')).'</th><th>'.e($t('report_col_payments')).'</th></tr></thead><tbody>'.$orderRows.'</tbody></table>';
         $html .= '<h2>'.e($t('report_team_members')).'</h2><table><thead><tr><th>'.e($t('col_name')).'</th><th>'.e($t('pc_col_code')).'</th><th>'.e($t('partnership_type')).'</th><th>'.e($t('label_mobile')).'</th><th>'.e($t('col_status')).'</th><th></th></tr></thead><tbody>'.$teamRows.'</tbody></table>';
-        $html .= '<p class="muted">'.e($t('pdf_partner_full_report_generated', ['when' => now('Asia/Dhaka')->format('d M Y H:i')])).'</p></body></html>';
+        $html .= '<p class="muted">'.e($t('pdf_partner_full_report_generated', ['when' => LocalDigits::text(now('Asia/Dhaka')->locale($locale)->translatedFormat('d M Y H:i'), $locale)])).'</p></body></html>';
 
         try {
             $pdf = new Mpdf([

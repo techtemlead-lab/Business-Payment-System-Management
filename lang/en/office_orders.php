@@ -17,6 +17,8 @@ return [
     'filter_branch' => 'Branch',
     'open_order' => 'Open order',
     'detail_reason' => 'Reason',
+    'col_returned' => 'Returned',
+    'returned_units' => ':count came back',
     'line_sent' => ':sent of :total sent',
     'section_payment' => 'Payments',
     'section_history' => 'Parcel steps',
