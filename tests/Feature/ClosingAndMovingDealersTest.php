@@ -180,14 +180,14 @@ class ClosingAndMovingDealersTest extends TestCase
         ]);
     }
 
-    public function test_a_custom_referral_code_is_left_alone_on_a_move(): void
+    public function test_a_custom_referral_code_is_replaced_by_the_new_code_on_a_move(): void
     {
         $dealer = $this->seatedDealerWithHistory('MNHC-102', ['refer_code' => 'MY-OWN-CODE']);
 
         $this->move($dealer, 'MNHC-103')->assertSessionHasNoErrors();
 
         $this->assertSame('MNHC-103', $dealer->fresh()->dealer_code);
-        $this->assertSame('MY-OWN-CODE', $dealer->fresh()->refer_code);
+        $this->assertSame('MNHC-103', $dealer->fresh()->refer_code);
     }
 
     public function test_after_a_move_the_old_place_and_its_code_go_to_the_next_dealer(): void

@@ -125,25 +125,17 @@ final class PartnerAccountProvisioning
             $dealerCode = $this->nextSubDealerCode($place->code);
         }
 
-        // By default refer_code matches dealer/sub-dealer code; admin may override explicitly.
-        $referCode = strtoupper(trim((string) ($input['refer_code'] ?? '')));
-        if ($referCode === '' || PlaceCode::brandSerial($referCode) === strtoupper($dealerCode)) {
-            $referCode = strtoupper($dealerCode);
-        }
+        // A partner's dealer or sub-dealer code is also their refer code; there is no second code.
+        $referCode = $dealerCode;
+        $ownCodeBox = $role === 'dealer' ? 'dealer_code' : 'place_code';
         if ($referenceCode !== '' && $this->isSameCode($referenceCode, $referCode)) {
-            throw ValidationException::withMessages([
-                'refer_code' => __('portal.acct_val_refer_same_as_reference'),
-                'reference_code' => __('portal.acct_val_reference_same_as_refer'),
-            ]);
+            throw ValidationException::withMessages(['reference_code' => __('portal.acct_val_reference_same_as_refer')]);
         }
         if ($this->managementReferral->matchesReference($referCode)) {
-            throw ValidationException::withMessages(['refer_code' => __('portal.acct_val_refer_is_management')]);
+            throw ValidationException::withMessages([$ownCodeBox => __('portal.acct_val_refer_is_management')]);
         }
         if ($this->referCodeInUse($referCode, openAccountsOnly: true)) {
-            throw ValidationException::withMessages(['refer_code' => __('portal.acct_val_refer_taken')]);
-        }
-        if ($referCode !== strtoupper($dealerCode) && User::query()->whereNull('closed_at')->whereRaw('UPPER(dealer_code) = ?', [$referCode])->exists()) {
-            throw ValidationException::withMessages(['refer_code' => __('portal.acct_val_refer_taken')]);
+            throw ValidationException::withMessages([$ownCodeBox => __('portal.acct_val_refer_taken')]);
         }
 
         $path = $this->geography->expandFromAnchor($place);
@@ -202,7 +194,7 @@ final class PartnerAccountProvisioning
         try {
             $user = DB::transaction(function () use ($actor, $input, $role, $phone, $email, $referCode, $sponsor, $place, $path, $dealerCode, $profile, $plainPassword, $managementReferral, $managementSettings, $phoneCheck): User {
                 CommissionWallet::lock();
-                $this->claimCodes($actor, [$dealerCode, $referCode]);
+                $this->claimCodes($actor, [$dealerCode]);
                 $user = (new User)->forceFill([
                     'role' => $role,
                     'dealer_code' => $dealerCode,
@@ -289,7 +281,6 @@ final class PartnerAccountProvisioning
         return ValidationException::withMessages(match (true) {
             str_contains($constraint, 'email') => ['email' => __('portal.acct_val_email_taken')],
             str_contains($constraint, 'phone') => ['phone' => __('portal.acct_val_phone_taken')],
-            str_contains($constraint, 'refer_code') => ['refer_code' => __('portal.acct_val_refer_taken')],
             $role === 'sub_dealer' => ['place_code' => __('portal.acct_val_sub_dealer_code_just_used')],
             default => ['place_code' => __('portal.acct_val_place_taken')],
         });
@@ -354,8 +345,8 @@ final class PartnerAccountProvisioning
     }
 
     /**
-     * The dealer's code follows the place. A referral code the office chose by hand is left
-     * alone. Codes the dealer used before stay on record so old cards and links still work.
+     * The dealer's code follows the place, and it is also their refer code, so a code the
+     * office once chose by hand goes too. Codes used before stay on record for old cards and links.
      *
      * @return array{from_dealer_code: ?string, to_dealer_code: string, from_refer_code: ?string, to_refer_code: ?string}|null
      */
@@ -369,14 +360,9 @@ final class PartnerAccountProvisioning
         $this->assertCodeIsFree($dealer, $newCode, 'place_code');
 
         $oldReferCode = (string) $dealer->refer_code;
-        $referFollows = $oldReferCode === '' || strcasecmp($oldReferCode, $oldDealerCode) === 0 || str_contains($oldReferCode, self::RetiredCodeMark);
         $this->claimCodes($actor, [$newCode]);
-        $dealer->forceFill(['dealer_code' => $newCode, 'refer_code' => $referFollows ? $newCode : $oldReferCode])->save();
-        foreach (array_unique($referFollows ? [$oldDealerCode, $oldReferCode] : [$oldDealerCode]) as $formerCode) {
-            if (! str_contains($formerCode, self::RetiredCodeMark)) {
-                $this->formerCodes->remember($dealer, $formerCode);
-            }
-        }
+        $dealer->forceFill(['dealer_code' => $newCode, 'refer_code' => $newCode])->save();
+        $this->rememberFormerCodes($dealer, [$oldDealerCode, $oldReferCode], $newCode);
 
         return [
             'from_dealer_code' => $oldDealerCode !== '' ? $oldDealerCode : null,
@@ -384,6 +370,38 @@ final class PartnerAccountProvisioning
             'from_refer_code' => $oldReferCode !== '' ? $oldReferCode : null,
             'to_refer_code' => $dealer->refer_code,
         ];
+    }
+
+    /**
+     * The office corrected a partner's code by hand. The refer code is the same code, so the
+     * two change together, and what they used before stays on record for old cards and links.
+     *
+     * @return array{dealer_code: string, refer_code: string} The columns to save
+     *
+     * @throws ValidationException when an open account other than this partner uses the code
+     */
+    public function correctCode(User $actor, User $partner, string $newCode): array
+    {
+        $oldCodes = [(string) $partner->dealer_code, (string) $partner->refer_code];
+        if (strcasecmp($oldCodes[0], $newCode) !== 0) {
+            $this->assertCodeIsFree($partner, $newCode, 'dealer_code');
+            $this->claimCodes($actor, [$newCode]);
+        }
+        $this->rememberFormerCodes($partner, $oldCodes, $newCode);
+
+        return ['dealer_code' => $newCode, 'refer_code' => $newCode];
+    }
+
+    /**
+     * @param  list<string>  $oldCodes  The codes the partner held until now
+     */
+    private function rememberFormerCodes(User $partner, array $oldCodes, string $newCode): void
+    {
+        foreach (array_unique(array_map(strtoupper(...), $oldCodes)) as $formerCode) {
+            if ($formerCode !== strtoupper($newCode) && ! str_contains($formerCode, self::RetiredCodeMark)) {
+                $this->formerCodes->remember($partner, $formerCode);
+            }
+        }
     }
 
     /**
@@ -444,10 +462,7 @@ final class PartnerAccountProvisioning
         $dealer->forceFill(['profile' => $profile]);
         if ($homeCode !== '' && str_contains((string) $dealer->dealer_code, self::RetiredCodeMark)) {
             $this->assertCodeIsFree($dealer, $homeCode, 'status');
-            $dealer->forceFill([
-                'dealer_code' => $homeCode,
-                'refer_code' => str_contains((string) $dealer->refer_code, self::RetiredCodeMark) ? $homeCode : $dealer->refer_code,
-            ]);
+            $dealer->forceFill(['dealer_code' => $homeCode, 'refer_code' => $homeCode]);
         }
         $dealer->save();
         if ($notReturned !== []) {
