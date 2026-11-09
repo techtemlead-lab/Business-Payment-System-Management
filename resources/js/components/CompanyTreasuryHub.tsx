@@ -5,7 +5,7 @@ import {
     Building2, Wallet, Landmark, Layers, CheckCircle2, AlertCircle, FileText,
     PieChart, ArrowRight, Store, Users, ShoppingBag
 } from 'lucide-react';
-import { money, date, label, Table, Badge, type TableColumn } from './UI';
+import { money, date, label, channelLabel, Table, Badge, type TableColumn } from './UI';
 import { useT } from '../shared/i18n/t';
 
 interface CapitalFlowData {
@@ -541,7 +541,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                                         key: 'channel',
                                         title: translate('portal', 'tr_col_channel'),
                                         sortable: true,
-                                        render: (ch: any) => <b>{ch.channel}</b>,
+                                        render: (ch: any) => <b>{channelLabel(ch.channel, translate)}</b>,
                                     },
                                     {
                                         key: 'total_amount',
@@ -702,7 +702,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                                             <div key={account.id} className="hub-tile">
                                                 <b className="hub-strong">{account.label}</b>
                                                 <div className="hub-hint">
-                                                    {account.channel} · {account.account_number_masked || account.account_number || '••••'} · {account.holder}
+                                                    {channelLabel(account.channel, translate)} · {account.account_number_masked || account.account_number || '••••'} · {account.holder}
                                                 </div>
                                                 <div className="hub-label tone-teal">{roles || translate('portal', 'tr_account_configured')}</div>
                                             </div>

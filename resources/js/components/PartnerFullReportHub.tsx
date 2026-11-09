@@ -1,7 +1,7 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { Download, FileBarChart2 } from 'lucide-react';
-import { Badge, money, date, label, Table, type Row, DateInput } from './UI';
+import { Badge, money, date, label, channelLabel, Table, type Row, DateInput } from './UI';
 import { ALL_RECORDS_VIEWS, AllRecordsViews, useSubView } from './PartnerHubNav';
 import { useT } from '../shared/i18n/t';
 
@@ -170,7 +170,7 @@ export default function PartnerFullReportHub({ report }: { report: Row }) {
                                     {(order.payments ?? []).length === 0 && <span className="muted">—</span>}
                                     {(order.payments ?? []).map((payment: Row, index: number) => (
                                         <div key={`${order.id}-${index}`} className="ops-fs-2xs ops-mb-1">
-                                            <b>{payment.channel}</b> {money(payment.amount)} · {label(String(payment.status ?? ""), translate)}
+                                            <b>{channelLabel(payment.channel, translate)}</b> {money(payment.amount)} · {label(String(payment.status ?? ""), translate)}
                                             {payment.reference ? <small className="cell-sub">{payment.reference}</small> : null}
                                         </div>
                                     ))}
