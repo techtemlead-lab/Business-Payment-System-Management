@@ -283,7 +283,8 @@ class FinanceOperationsController extends Controller
         $generatedAt = now()->timezone('Asia/Dhaka')->format('d M Y H:i');
         Storage::disk('local')->makeDirectory('report-exports');
         $path = Storage::disk('local')->path('report-exports/'.Str::uuid().'.'.$data['format']);
-        $totals = array_fill_keys(array_diff($report['money'], ['unit_price']), 0);
+        $totals = array_fill_keys($report['totals'], 0);
+        $totalNote = $totals === [] ? null : __('portal.ops_total_note_'.$reportKey);
         try {
             if ($data['format'] === 'xlsx') {
                 $writer = new Writer(new Options(DEFAULT_COLUMN_WIDTH: 22));
@@ -294,6 +295,7 @@ class FinanceOperationsController extends Controller
                     $rowCount = 0;
                     foreach ($report['query']->cursor() as $item) {
                         $rowCount++;
+                        $counted = ReportData::countsTowardTotal($report, $item);
                         $cells = [];
                         foreach ($report['columns'] as $column) {
                             $value = $item->{$column} ?? '';
@@ -303,7 +305,7 @@ class FinanceOperationsController extends Controller
                             if ($value !== '' && str_ends_with($column, '_at')) {
                                 $value = CarbonImmutable::parse($value, 'UTC')->timezone('Asia/Dhaka')->format('d M Y H:i');
                             }
-                            if (isset($totals[$column])) {
+                            if ($counted && isset($totals[$column])) {
                                 $totals[$column] += $this->signedCents((string) $value);
                             }
                             $cells[] = in_array($column, $report['money'], true) ? new NumericCell((float) ($value === '' ? 0 : $value), (new Style)->withFormat('#,##0.00'))
@@ -315,6 +317,9 @@ class FinanceOperationsController extends Controller
                     $writer->addRow(new Row(array_map(fn ($column) => isset($totals[$column])
                         ? new NumericCell($totals[$column] / 100, $totalStyle->withFormat('#,##0.00'))
                         : new StringCell($column === $report['columns'][0] ? __('portal.ops_export_total') : '', $totalStyle), $report['columns'])));
+                    if ($totalNote !== null) {
+                        $writer->addRow(Row::fromValues([$totalNote]));
+                    }
                     $writer->addNewSheetAndMakeItCurrent()->setName(__('portal.ops_export_summary_sheet'));
                     foreach ([
                         ['Madina Natural Health Care'],
@@ -326,6 +331,7 @@ class FinanceOperationsController extends Controller
                         [__('portal.ops_export_generated'), $generatedAt],
                         [__('portal.ops_export_scope'), $reportNote],
                         ...($partnerScope !== null ? [[__('portal.ops_report_account_type'), $partnerScope]] : []),
+                        ...($totalNote !== null ? [[__('portal.ops_total_counts'), $totalNote]] : []),
                     ] as $summaryRow) {
                         $writer->addRow(Row::fromValues($summaryRow));
                     }
@@ -347,6 +353,7 @@ class FinanceOperationsController extends Controller
                 }
                 $html .= '</tr></thead><tbody>';
                 foreach ($items as $item) {
+                    $counted = ReportData::countsTowardTotal($report, $item);
                     $html .= '<tr>';
                     foreach ($report['columns'] as $column) {
                         $value = (string) ($item->{$column} ?? '');
@@ -356,7 +363,7 @@ class FinanceOperationsController extends Controller
                         if ($value !== '' && str_ends_with($column, '_at')) {
                             $value = CarbonImmutable::parse($value, 'UTC')->timezone('Asia/Dhaka')->format('d M Y H:i');
                         }
-                        if (isset($totals[$column])) {
+                        if ($counted && isset($totals[$column])) {
                             $totals[$column] += $this->signedCents((string) $value);
                         }
                         $numeric = in_array($column, $report['money'], true);
@@ -373,7 +380,7 @@ class FinanceOperationsController extends Controller
                         ? '<th class="num">'.e($this->signedGrouped($this->signedDecimal($totals[$column]))).'</th>'
                         : '<th>'.e($column === $report['columns'][0] ? __('portal.ops_export_total') : '').'</th>';
                 }
-                $html .= '</tr></tfoot></table><p><small>'.e(__('portal.ops_export_generated_footer', ['when' => $generatedAt])).'</small></p>';
+                $html .= '</tr></tfoot></table>'.($totalNote !== null ? '<p><strong>'.e(__('portal.ops_total_counts')).':</strong> '.e($totalNote).'</p>' : '').'<p><small>'.e(__('portal.ops_export_generated_footer', ['when' => $generatedAt])).'</small></p>';
                 $pdf = new Mpdf(['tempDir' => Storage::disk('local')->path('report-exports'), 'format' => 'A4-L', ...PdfFonts::options()]);
                 $pdf->SetTitle(__('portal.ops_export_pdf_title', ['name' => $reportName]));
                 $pdf->SetHTMLFooter('<div style="text-align:right;font-size:8pt">'.e(__('portal.ops_export_pdf_footer')).'</div>');

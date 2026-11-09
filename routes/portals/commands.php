@@ -74,11 +74,11 @@ return function (string $portal): void {
 
     Route::post('/commands/orders', [CommandController::class, 'order'])->middleware('throttle:10,1');
     Route::post('/commands/withdrawals', [WithdrawalController::class, 'store'])->middleware('throttle:10,1');
-    Route::get('/exports/orders', [ReportController::class, 'export'])->middleware('throttle:5,1');
-    Route::get('/exports/genealogy', [ReportController::class, 'genealogy'])->middleware('throttle:5,1');
-    Route::get('/exports/accounts', AccountListExportController::class)->middleware('throttle:5,1');
-    Route::get('/exports/stock-movements', StockMovementExportController::class)->middleware('throttle:5,1');
-    Route::get('/exports/branch-performance', BranchPerformanceExportController::class)->middleware('throttle:5,1');
+    Route::get('/exports/orders', [ReportController::class, 'export'])->middleware('throttle:15,1,data-exports');
+    Route::get('/exports/genealogy', [ReportController::class, 'genealogy'])->middleware('throttle:15,1,data-exports');
+    Route::get('/exports/accounts', AccountListExportController::class)->middleware('throttle:15,1,data-exports');
+    Route::get('/exports/stock-movements', StockMovementExportController::class)->middleware('throttle:15,1,data-exports');
+    Route::get('/exports/branch-performance', BranchPerformanceExportController::class)->middleware('throttle:15,1,data-exports');
 
     Route::post('/commands/orders/{order}/decision', [CommandController::class, 'decision']);
     Route::post('/commands/orders/{order}/dispatch', [CommandController::class, 'dispatch']);
