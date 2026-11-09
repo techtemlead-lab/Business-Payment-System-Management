@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
-import { PlugZap } from 'lucide-react';
 import Shell from '../components/Shell';
+import OfficePage from '../components/office/OfficePage';
+import { settingsBack } from '../components/office/sections/SettingsForm';
 import EmailEventSwitches, { EmailEventPanel } from '../components/EmailEventSwitches';
 import { Badge, Row, humanize } from '../components/UI';
 import { useT } from '../shared/i18n/t';
@@ -70,11 +71,11 @@ function ProviderForm({ group, provider, version, canEdit }: { group: string; pr
             }));
             form.post('/commands/operations/integrations/providers', { preserveScroll: true });
         }}>
-            <div className="profile-grid ops-mb-3">
-                <div><strong>{provider.label}</strong><p className="muted">{translate('portal', 'si_provider_key')}: {provider.key}</p></div>
-                <div><Badge status={provider.enabled ? 'active' : 'inactive'} /></div>
+            <div className="set-provider-head">
+                <h3>{provider.label}</h3>
+                <Badge status={provider.enabled ? 'active' : 'inactive'} />
             </div>
-            {hintText(`si_hint_${provider.key}`) && <p className="muted">{hintText(`si_hint_${provider.key}`)}</p>}
+            {hintText(`si_hint_${provider.key}`) && <p className="set-line">{hintText(`si_hint_${provider.key}`)}</p>}
             <label>{translate('portal', 'si_enabled')}
                 <select value={String(form.data.enabled)} onChange={e => form.setData('enabled', e.target.value)} disabled={!canEdit}>
                     <option value="0">{translate('portal', 'si_disabled_default')}</option>
@@ -122,7 +123,7 @@ function ProviderForm({ group, provider, version, canEdit }: { group: string; pr
                     </button>
                 )}
             </div>
-            {balanceMsg && <p className="muted ops-mt-3">{translate('portal', 'si_sms_balance')}: {balanceMsg}</p>}
+            {balanceMsg && <p className="set-line">{translate('portal', 'si_sms_balance')}: {balanceMsg}</p>}
         </form>
     );
 }
@@ -136,75 +137,68 @@ export default function ServiceIntegrations({ integrations, startup, canEdit, ow
     channelHint?: string;
 }) {
     const translate = useT();
-    const { flash, portal } = usePage<any>().props;
-    const [groupKey, setGroupKey] = useState(Object.keys(integrations.groups)[0] ?? 'bdris');
+    const page = usePage<any>();
+    const { portal } = page.props;
     const startupForm = useForm({ mode: startup.mode ?? 'fresh', version: startup.version, reason: '' });
-    const group = integrations.groups[groupKey];
+    const groupKeys = Object.keys(integrations.groups);
+    const search = new URLSearchParams(page.url.split('?')[1] ?? '');
+    const requested = search.get('group') ?? '';
+    const view = requested === 'startup' || groupKeys.includes(requested) ? requested : (groupKeys[0] ?? 'startup');
+    const group = view === 'startup' ? undefined : integrations.groups[view];
+    const hub = {
+        home: 'service-integrations',
+        label: translate('portal', 'si_heading'),
+        tabs: [
+            ...groupKeys.map(key => ({ key, label: integrations.groups[key].label, href: `/operations/service-integrations?group=${key}`, active: view === key })),
+            { key: 'startup', label: translate('office_settings', 'integrations_startup_tab'), href: '/operations/service-integrations?group=startup', active: view === 'startup' },
+        ],
+    };
 
     return (
         <Shell section="service-integrations">
             <Head title={translate('portal', 'si_head_title')} />
-            <div className="import-workspace">
-                <div className="section-header">
-                    <div>
-                        <h2>{translate('portal', 'si_heading')}</h2>
-                        <p className="muted">{translate('portal', 'si_heading_hint')}</p>
+            <OfficePage title={translate('portal', 'si_heading')} back={settingsBack(translate)} hub={hub}>
+                {view === 'startup' && (
+                    <div className="set-sheet">
+                        <section className="set-block">
+                            <p className="set-line">{translate('portal', 'si_current_selection')}: <strong>{startup.label}</strong></p>
+                            <form className="action-form" onSubmit={event => {
+                                event.preventDefault();
+                                startupForm.post('/commands/operations/integrations/startup-mode', { preserveScroll: true });
+                            }}>
+                                <label>{translate('portal', 'si_startup_how')}
+                                    <select value={String(startupForm.data.mode)} onChange={e => startupForm.setData('mode', e.target.value)} disabled={!canEdit}>
+                                        <option value="fresh">{translate('portal', 'si_mode_fresh')}</option>
+                                        <option value="import">{translate('portal', 'si_mode_import')}</option>
+                                    </select>
+                                </label>
+                                <label>{translate('portal', 'si_startup_reason')}
+                                    <textarea required minLength={5} maxLength={1000} rows={2} value={String(startupForm.data.reason)} onChange={e => startupForm.setData('reason', e.target.value)} disabled={!canEdit} />
+                                </label>
+                                {Object.keys(startupForm.errors).length > 0 && <div role="alert" className="error">{Object.values(startupForm.errors).join(' ')}</div>}
+                                <button className="button dark set-save" disabled={!canEdit || startupForm.processing}>{startupForm.processing ? translate('portal', 'si_saving') : translate('portal', 'si_save_startup')}</button>
+                            </form>
+                        </section>
                     </div>
-                    <PlugZap size={30} aria-hidden="true" />
-                </div>
-                {flash?.success && <div className="notice" role="status">{flash.success}</div>}
-                <p className="muted">{channelHint || translate('portal', 'si_channel_hint')}</p>
-
-                <section className="panel">
-                    <h2>{translate('portal', 'si_startup_title')}</h2>
-                    <p>{startup.description}</p>
-                    <p>{translate('portal', 'si_current_selection')}: <strong>{startup.label}</strong></p>
-                    <form className="action-form" onSubmit={event => {
-                        event.preventDefault();
-                        startupForm.post('/commands/operations/integrations/startup-mode', { preserveScroll: true });
-                    }}>
-                        <label>{translate('portal', 'si_startup_how')}
-                            <select value={String(startupForm.data.mode)} onChange={e => startupForm.setData('mode', e.target.value)} disabled={!canEdit}>
-                                <option value="fresh">{translate('portal', 'si_mode_fresh')}</option>
-                                <option value="import">{translate('portal', 'si_mode_import')}</option>
-                            </select>
-                        </label>
-                        <label>{translate('portal', 'si_startup_reason')}
-                            <textarea required minLength={5} maxLength={1000} rows={2} value={String(startupForm.data.reason)} onChange={e => startupForm.setData('reason', e.target.value)} disabled={!canEdit} />
-                        </label>
-                        {Object.keys(startupForm.errors).length > 0 && <div role="alert" className="error">{Object.values(startupForm.errors).join(' ')}</div>}
-                        <button className="button dark" disabled={!canEdit || startupForm.processing}>{startupForm.processing ? translate('portal', 'si_saving') : translate('portal', 'si_save_startup')}</button>
-                    </form>
-                    <p className="muted">{translate('portal', 'si_startup_note')}</p>
-                </section>
-
-                <section className="panel">
-                    <h2>{translate('portal', 'si_external_title')}</h2>
-                    <div className="import-options ops-mb-4">
-                        {Object.entries(integrations.groups).map(([key, item]) => (
-                            <label key={key} className="import-choice">
-                                <input type="radio" name="integration-group" checked={groupKey === key} onChange={() => setGroupKey(key)} />
-                                {item.label}
-                            </label>
-                        ))}
-                    </div>
-                    {group && <>
-                        <p>{group.description}</p>
-                        {groupKey === 'couriers' && portal === 'sadmin' && (
-                            <div className="notice ops-mb-3">
-                                <p>{translate('courier_areas', 'open_page_hint')}</p>
-                                <Link className="button small" href="/operations/courier-areas">{translate('courier_areas', 'open_page')}</Link>
-                            </div>
-                        )}
+                )}
+                {group && <>
+                    {view === 'sms' && channelHint && <p className="set-line">{channelHint}</p>}
+                    {view === 'sms' && !channelHint && <p className="set-line">{translate('portal', 'si_channel_hint')}</p>}
+                    {view === 'couriers' && portal === 'sadmin' && (
+                        <p className="set-line">
+                            <Link className="text-link" href="/operations/courier-areas">{translate('courier_areas', 'open_page')}</Link>
+                        </p>
+                    )}
+                    <div className="set-sheet">
                         {Object.values(group.providers).map(provider => (
-                            <section className="panel narrow-panel ops-mt-4" key={provider.key}>
-                                <ProviderForm group={groupKey} provider={provider} version={integrations.version} canEdit={canEdit && !ownerOnlyGroups.includes(groupKey)} />
+                            <section className="set-block" key={provider.key}>
+                                <ProviderForm group={view} provider={provider} version={integrations.version} canEdit={canEdit && !ownerOnlyGroups.includes(view)} />
                             </section>
                         ))}
-                        {groupKey === 'mail' && emailEvents && <EmailEventSwitches panel={emailEvents} canEdit={canEdit && !ownerOnlyGroups.includes('mail')} />}
-                    </>}
-                </section>
-            </div>
+                        {view === 'mail' && emailEvents && <EmailEventSwitches panel={emailEvents} canEdit={canEdit && !ownerOnlyGroups.includes('mail')} />}
+                    </div>
+                </>}
+            </OfficePage>
         </Shell>
     );
 }
