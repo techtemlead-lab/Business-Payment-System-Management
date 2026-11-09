@@ -8,23 +8,30 @@
         <span>{{ __('stock_lots.public_title') }}</span>
     </nav>
 
-    <h1>{{ __('stock_lots.public_title') }}</h1>
-    <p>{{ __('stock_lots.public_intro') }}</p>
+    @include('reference.partials.page-plate', [
+        'title' => __('stock_lots.public_title'),
+        'lead' => __('stock_lots.public_intro'),
+        'icon' => 'fa-barcode',
+    ])
 
-    <form method="get" action="/batch-check">
-        <label for="batch">{{ __('stock_lots.public_label') }}</label>
-        <input id="batch" name="batch" type="text" maxlength="60" required value="{{ $batch }}" autocomplete="off">
-        <button type="submit">{{ __('stock_lots.public_submit') }}</button>
-    </form>
+    <section class="ref-content-card ref-form-page">
+        <form class="ref-form ref-inline-search" method="get" action="/batch-check">
+            <label for="batch">{{ __('stock_lots.public_label') }}</label>
+            <div class="ref-inline-search-row">
+                <input id="batch" name="batch" type="text" maxlength="60" required value="{{ $batch }}" autocomplete="off">
+                <button class="ref-primary-button" type="submit">{{ __('stock_lots.public_submit') }} <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></button>
+            </div>
+        </form>
 
-    @if($batch !== '' && $results === [])
-        <div class="ref-alert ref-notice" role="status"><b>{{ __('stock_lots.public_not_found') }}</b></div>
-    @endif
+        @if($batch !== '' && $results === [])
+            <div class="ref-alert ref-notice ref-search-outcome" role="status"><b>{{ __('stock_lots.public_not_found') }}</b></div>
+        @endif
+    </section>
 
     @foreach($results as $result)
-        <section aria-label="{{ __('stock_lots.public_result_title', ['batch' => $batch]) }}">
+        <section class="ref-content-card ref-form-page" aria-label="{{ __('stock_lots.public_result_title', ['batch' => $batch]) }}">
             <h2>{{ __('stock_lots.public_result_title', ['batch' => $batch]) }}</h2>
-            <dl>
+            <dl class="ref-facts">
                 <dt>{{ __('stock_lots.public_product') }}</dt>
                 <dd>{{ $result['product'] }}</dd>
                 <dt>{{ __('stock_lots.public_expiry') }}</dt>

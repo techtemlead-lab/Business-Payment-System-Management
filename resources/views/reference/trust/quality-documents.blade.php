@@ -7,11 +7,8 @@
 @section('content')
 <main id="main" class="ref-container ref-inner-main">
     <nav class="ref-breadcrumb" aria-label="{{ __('site.breadcrumb') }}"><a href="/" aria-label="{{ __('site.home') }}"><i class="fa-solid fa-house" aria-hidden="true"></i></a><span>/</span><span>{{ $pageTitle }}</span></nav>
-    <article class="ref-content-card ref-about-hero">
-        <h1>{{ $pageTitle }}</h1>
-        <div class="ref-content-prose">{{ $trust('quality_documents_lead') }}</div>
-    </article>
-    <div class="ref-about-sections-grid">
+    @include('reference.partials.page-plate', ['title' => $pageTitle, 'lead' => $trust('quality_documents_lead'), 'icon' => 'fa-certificate'])
+    <div class="ref-about-sections-grid is-three">
         @foreach($documents as $document)
         <section class="ref-content-card">
             <div class="ref-about-icon"><i class="fa-solid {{ $document->isImage() ? 'fa-image' : 'fa-file-pdf' }}" aria-hidden="true"></i></div>

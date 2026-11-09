@@ -7,30 +7,27 @@
 @section('content')
 <main id="main" class="ref-container ref-inner-main">
     <nav class="ref-breadcrumb" aria-label="{{ __('site.breadcrumb') }}"><a href="/" aria-label="{{ __('site.home') }}"><i class="fa-solid fa-house" aria-hidden="true"></i></a><span>/</span><span>{{ $pageTitle }}</span></nav>
-    <article class="ref-content-card ref-about-hero">
-        <h1>{{ $pageTitle }}</h1>
-        <div class="ref-content-prose">{{ $trust('articles_lead') }}</div>
-    </article>
-    <div class="ref-about-sections-grid">
+    @include('reference.partials.page-plate', ['title' => $pageTitle, 'lead' => $trust('articles_lead'), 'icon' => 'fa-book-open'])
+    <div class="ref-about-sections-grid is-three">
         @foreach($articles as $article)
         <section class="ref-content-card">
             @if($article->image_url)
-            <img src="{{ $article->image_url }}" alt="" loading="lazy" decoding="async" style="width:100%;height:auto;max-height:200px;object-fit:cover;border-radius:8px;margin-bottom:14px;">
+            <img class="ref-article-picture" src="{{ $article->image_url }}" alt="" loading="lazy" decoding="async">
             @else
             @php
                 $stockImage = \App\Support\StockImage::forSection('article');
             @endphp
-            <img src="{{ $stockImage['url'] }}" alt="{{ $stockImage['alt'] }}" width="{{ $stockImage['width'] }}" height="{{ $stockImage['height'] }}" loading="lazy" decoding="async" style="width:100%;height:auto;max-height:200px;object-fit:cover;border-radius:8px;margin-bottom:14px;">
+            <img class="ref-article-picture" src="{{ $stockImage['url'] }}" alt="{{ $stockImage['alt'] }}" width="{{ $stockImage['width'] }}" height="{{ $stockImage['height'] }}" loading="lazy" decoding="async">
             @endif
             <h2>{{ $article->title }}</h2>
             <p>{{ $article->excerpt() }}</p>
-            <a class="ref-secondary-button" href="{{ route('public.articles.show', $article) }}">{{ __('public_trust.articles_read') }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+            <a class="ref-secondary-button" href="{{ route('public.articles.show', $article) }}">{{ __('public_trust.articles_read') }}</a>
         </section>
         @endforeach
     </div>
     @if($articles->hasPages())
-    <div style="margin-top:22px;">{{ $articles->links() }}</div>
+    <div class="ref-page-note">{{ $articles->links() }}</div>
     @endif
-    <p class="ref-form-hint" style="margin-top:22px;">{{ $trust('articles_disclaimer') }}</p>
+    <p class="ref-form-hint ref-page-note">{{ $trust('articles_disclaimer') }}</p>
 </main>
 @endsection

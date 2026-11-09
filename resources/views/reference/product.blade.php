@@ -21,21 +21,8 @@
     $encodedUrl = rawurlencode($shareUrl);
     $encodedText = rawurlencode($shareText.' '.$shareUrl);
 @endphp
-<div class="ref-share-bar" data-share-panel>
-    <span>{{ $chrome('product_share_label', $siteCustomization['product_share_label'] ?? null) }}</span>
-    <button type="button" data-share-url aria-label="{{ __('site.share_product') }}"><i class="fa-solid fa-share-nodes" aria-hidden="true"></i></button>
-    <button type="button" data-copy-url aria-label="{{ __('site.copy_product_link') }}"><i class="fa-solid fa-link" aria-hidden="true"></i></button>
-    <a href="https://wa.me/?text={{ $encodedText }}" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
-    <a href="https://www.facebook.com/dialog/send?link={{ $encodedUrl }}&app_id=0&redirect_uri={{ $encodedUrl }}" target="_blank" rel="noopener noreferrer" aria-label="{{ __('site.share_messenger') }}"><i class="fa-brands fa-facebook-messenger"></i></a>
-    <a href="https://www.facebook.com/sharer/sharer.php?u={{ $encodedUrl }}" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
-    <a href="https://twitter.com/intent/tweet?url={{ $encodedUrl }}&text={{ rawurlencode($shareText) }}" target="_blank" rel="noopener noreferrer" aria-label="X">{{-- Font Awesome 6.4.0 has no X glyph, so the logo is drawn inline --}}<svg class="ref-x-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true" focusable="false"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
-    <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ $encodedUrl }}" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
-    <a href="https://t.me/share/url?url={{ $encodedUrl }}&text={{ rawurlencode($shareText) }}" target="_blank" rel="noopener noreferrer" aria-label="Telegram"><i class="fa-brands fa-telegram"></i></a>
-    <a href="mailto:?subject={{ rawurlencode($item['name']) }}&body={{ $encodedText }}" aria-label="{{ __('site.share_email') }}"><i class="fa-solid fa-envelope"></i></a>
-    <a href="sms:?&body={{ $encodedText }}" aria-label="{{ __('site.share_sms') }}"><i class="fa-solid fa-comment-sms"></i></a>
-</div>
 @if(!empty($sharePartner))
-<div class="ref-content-card" style="margin-bottom:16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;">
+<div class="ref-content-card ref-share-partner">
     @if(!empty($social['partner']['photo']))
         <img src="{{ $social['partner']['photo'] }}" alt="{{ $sharePartner->name }}" width="64" height="64" style="border-radius:50%;object-fit:cover;">
     @endif
@@ -78,15 +65,18 @@
 
         <h1>{{ $item['name'] }}</h1>
 
-        <div class="ref-metadata">
-            <span>{{ __('site.mrp') }}: <b>৳ {{ \App\Support\LocalDigits::text(number_format((float) $item['mrp'], 2)) }}</b></span>
-            <span>{{ __('site.availability') }}: <b class="{{ $inStock ? 'ref-green' : 'ref-orange' }}">{{ $stockLabel }}</b></span>
-            <span>{{ __('site.product_code') }}: <b>{{ $item['sku'] }}</b></span>
-            <span>{{ __('site.category') }}: <b>{{ $item['category'] }}</b></span>
-            @if(!empty($item['unit']))
-                <span>{{ __('site.unit') }}: <b>{{ $item['unit'] }}</b></span>
-            @endif
+        <div class="ref-detail-price">
+            <span class="ref-detail-mrp"><small>{{ __('site.mrp') }}</small> <b>৳ {{ \App\Support\LocalDigits::text(number_format((float) $item['mrp'], 2)) }}</b></span>
+            <span class="ref-detail-stock {{ $inStock ? 'is-in' : 'is-out' }}"><span class="ref-sr-only">{{ __('site.availability') }}:</span> {{ $stockLabel }}</span>
         </div>
+
+        <dl class="ref-facts ref-detail-facts">
+            <dt>{{ __('site.product_code') }}</dt><dd>{{ $item['sku'] }}</dd>
+            <dt>{{ __('site.category') }}</dt><dd>{{ $item['category'] }}</dd>
+            @if(!empty($item['unit']))
+                <dt>{{ __('site.unit') }}</dt><dd>{{ $item['unit'] }}</dd>
+            @endif
+        </dl>
 
         <p class="ref-product-medical-note"><i class="fa-solid fa-user-doctor" aria-hidden="true"></i> <span>{{ $chrome('product_medical_note', $siteCustomization['product_medical_note'] ?? null) }}</span></p>
 
@@ -106,6 +96,20 @@
                     <a href="{{ \App\Support\PortalHost::url('dealer', '/login') }}" class="ref-secondary-button">{{ __('site.dealer_subdealer_login') }}</a>
                 @endif
             </div>
+        </div>
+
+        <div class="ref-share-bar" data-share-panel>
+            <span>{{ $chrome('product_share_label', $siteCustomization['product_share_label'] ?? null) }}</span>
+            <button type="button" data-share-url aria-label="{{ __('site.share_product') }}"><i class="fa-solid fa-share-nodes" aria-hidden="true"></i></button>
+            <button type="button" data-copy-url aria-label="{{ __('site.copy_product_link') }}"><i class="fa-solid fa-link" aria-hidden="true"></i></button>
+            <a href="https://wa.me/?text={{ $encodedText }}" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
+            <a href="https://www.facebook.com/dialog/send?link={{ $encodedUrl }}&app_id=0&redirect_uri={{ $encodedUrl }}" target="_blank" rel="noopener noreferrer" aria-label="{{ __('site.share_messenger') }}"><i class="fa-brands fa-facebook-messenger"></i></a>
+            <a href="https://www.facebook.com/sharer/sharer.php?u={{ $encodedUrl }}" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+            <a href="https://twitter.com/intent/tweet?url={{ $encodedUrl }}&text={{ rawurlencode($shareText) }}" target="_blank" rel="noopener noreferrer" aria-label="X">{{-- Font Awesome 6.4.0 has no X glyph, so the logo is drawn inline --}}<svg class="ref-x-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true" focusable="false"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+            <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ $encodedUrl }}" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
+            <a href="https://t.me/share/url?url={{ $encodedUrl }}&text={{ rawurlencode($shareText) }}" target="_blank" rel="noopener noreferrer" aria-label="Telegram"><i class="fa-brands fa-telegram"></i></a>
+            <a href="mailto:?subject={{ rawurlencode($item['name']) }}&body={{ $encodedText }}" aria-label="{{ __('site.share_email') }}"><i class="fa-solid fa-envelope"></i></a>
+            <a href="sms:?&body={{ $encodedText }}" aria-label="{{ __('site.share_sms') }}"><i class="fa-solid fa-comment-sms"></i></a>
         </div>
     </div>
 </section>

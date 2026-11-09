@@ -23,15 +23,16 @@
 <main id="main" class="ref-container ref-inner-main"><nav class="ref-breadcrumb" aria-label="{{ __('site.breadcrumb') }}"><a href="/" aria-label="{{ __('site.home') }}"><i class="fa-solid fa-house" aria-hidden="true"></i></a><span>/</span><span>{{ $pageTitle }}</span></nav>
 @if($notice)<div class="ref-alert ref-notice" role="status"><b>{{ $notice->title }}</b><p>{{ $notice->body }}</p></div>@endif
 @if($page==='about')
-<article class="ref-content-card ref-about-hero">
-    <h1>{{ $chrome('about_hero_title', $siteCustomization['about_hero_title'] ?? null) }}</h1>
-    <div class="ref-content-prose">{{ $chrome('about_hero_lead', $siteCustomization['about_hero_lead'] ?? null) }}</div>
-</article>
+@include('reference.partials.page-plate', [
+    'title' => $chrome('about_hero_title', $siteCustomization['about_hero_title'] ?? null),
+    'lead' => $chrome('about_hero_lead', $siteCustomization['about_hero_lead'] ?? null),
+    'icon' => 'fa-leaf',
+])
 
 @include('reference.partials.md-message', ['placement' => 'about'])
 
-<div class="ref-about-sections-grid">
-    <section class="ref-content-card">
+<div class="ref-about-story">
+    <section class="ref-content-card ref-about-history">
         <div class="ref-about-icon"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i></div>
         <h2>{{ $chrome('about_history_title', $siteCustomization['about_history_title'] ?? null) }}</h2>
         <p>{{ $chrome('about_history', $siteCustomization['about_history'] ?? null) }}</p>
@@ -48,30 +49,30 @@
         <h2>{{ $chrome('about_vision_title', $siteCustomization['about_vision_title'] ?? null) }}</h2>
         <p>{{ $chrome('about_vision', $siteCustomization['about_vision'] ?? null) }}</p>
     </section>
-
-    <section class="ref-content-card">
-        <div class="ref-about-icon"><i class="fa-solid fa-list-check" aria-hidden="true"></i></div>
-        <h2>{{ $chrome('about_objectives_title', $siteCustomization['about_objectives_title'] ?? null) }}</h2>
-        <ul class="ref-about-objectives">
-            @foreach([1,2,3,4] as $i)
-            <li><strong>{{ $chrome('about_obj'.$i.'_title', $siteCustomization['about_obj'.$i.'_title'] ?? null) }}:</strong> {{ $chrome('about_obj'.$i.'_desc', $siteCustomization['about_obj'.$i.'_desc'] ?? null) }}</li>
-            @endforeach
-        </ul>
-    </section>
 </div>
 
-<section class="ref-content-card ref-about-network">
-    <div class="ref-about-icon"><i class="fa-solid fa-sitemap" aria-hidden="true"></i></div>
-    <h2>{{ $chrome('about_network_title', $siteCustomization['about_network_title'] ?? null) }}</h2>
-    <p>{{ $chrome('about_network', $siteCustomization['about_network'] ?? null) }}</p>
+<section class="ref-content-card ref-about-goals">
+    <div class="ref-about-icon"><i class="fa-solid fa-list-check" aria-hidden="true"></i></div>
+    <h2>{{ $chrome('about_objectives_title', $siteCustomization['about_objectives_title'] ?? null) }}</h2>
+    <ul class="ref-about-objectives">
+        @foreach([1,2,3,4] as $i)
+        <li><strong>{{ $chrome('about_obj'.$i.'_title', $siteCustomization['about_obj'.$i.'_title'] ?? null) }}:</strong> {{ $chrome('about_obj'.$i.'_desc', $siteCustomization['about_obj'.$i.'_desc'] ?? null) }}</li>
+        @endforeach
+    </ul>
 </section>
 
-<div class="ref-information-links">
-    @if($publicPageEnabled['products'] ?? true)<a href="/products" class="ref-primary-button">{{ $chrome('about_btn_products', $siteCustomization['about_btn_products'] ?? null) }}</a>@endif
-    @if($publicPageEnabled['dealers'] ?? true)<a href="/dealers" class="ref-secondary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ $chrome('about_btn_dealers', $siteCustomization['about_btn_dealers'] ?? null) }}</a>@endif
-    @if($publicPageEnabled['partnership'] ?? true)<a href="/partnership" class="ref-ghost-button">{{ __('site.become_a_partner') }}</a>@endif
-    @if($publicPageEnabled['contact'] ?? true)<a href="/contact" class="ref-ghost-button">{{ $chrome('about_btn_contact', $siteCustomization['about_btn_contact'] ?? null) }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>@endif
-</div>
+<section class="ref-page-closer">
+    <div>
+        <h2>{{ $chrome('about_network_title', $siteCustomization['about_network_title'] ?? null) }}</h2>
+        <p>{{ $chrome('about_network', $siteCustomization['about_network'] ?? null) }}</p>
+    </div>
+    <div class="ref-information-links">
+        @if($publicPageEnabled['products'] ?? true)<a href="/products" class="ref-primary-button">{{ $chrome('about_btn_products', $siteCustomization['about_btn_products'] ?? null) }}</a>@endif
+        @if($publicPageEnabled['dealers'] ?? true)<a href="/dealers" class="ref-secondary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ $chrome('about_btn_dealers', $siteCustomization['about_btn_dealers'] ?? null) }}</a>@endif
+        @if($publicPageEnabled['partnership'] ?? true)<a href="/partnership" class="ref-ghost-button">{{ __('site.become_a_partner') }}</a>@endif
+        @if($publicPageEnabled['contact'] ?? true)<a href="/contact" class="ref-ghost-button">{{ $chrome('about_btn_contact', $siteCustomization['about_btn_contact'] ?? null) }}</a>@endif
+    </div>
+</section>
 @endif
 
 @if($page==='contact')
@@ -91,14 +92,17 @@
         'contact_topic_complaint' => 'complaint',
     ];
 @endphp
-<h1 class="ref-page-title">{{ $chrome('contact_title', $siteCustomization['contact_title'] ?? null) }}</h1>
+@include('reference.partials.page-plate', [
+    'title' => $chrome('contact_title', $siteCustomization['contact_title'] ?? null),
+    'lead' => $chrome('contact_company_desc', $siteCustomization['contact_company_desc'] ?? null),
+    'icon' => 'fa-headset',
+])
 <div class="ref-contact-grid">
     <section class="ref-content-card">
         <h2>{{ $chrome('contact_company_title', $siteCustomization['contact_company_title'] ?? null) }}</h2>
-        <p>{{ $chrome('contact_company_desc', $siteCustomization['contact_company_desc'] ?? null) }}</p>
         @if($content)<div class="ref-content-prose">{{ $content->body }}</div>@endif
         <div class="ref-contact-topic">
-            <i class="fa-solid fa-phone-volume" aria-hidden="true" style="color:#006837;"></i>
+            <i class="fa-solid fa-phone-volume" aria-hidden="true"></i>
             <div>
                 <h3>{{ $chrome('contact_phone_title', $siteCustomization['contact_phone_title'] ?? null) }}</h3>
                 <p>
@@ -123,7 +127,7 @@
 
         @if(!empty($siteCustomization['contact_email']))
         <div class="ref-contact-topic">
-            <i class="fa-solid fa-envelope-open-text" aria-hidden="true" style="color:#0284c7;"></i>
+            <i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i>
             <div>
                 <h3>{{ $chrome('contact_email_title', $siteCustomization['contact_email_title'] ?? null) }}</h3>
                 <p>
@@ -148,7 +152,7 @@
         @endif
 
         @if($publicPageEnabled['dealers'] ?? true)
-        <a href="/dealers" class="ref-primary-button" style="margin-top:18px;">{{ $chrome('about_btn_dealers', $siteCustomization['about_btn_dealers'] ?? null) }}</a>
+        <a href="/dealers" class="ref-primary-button ref-contact-dealers">{{ $chrome('about_btn_dealers', $siteCustomization['about_btn_dealers'] ?? null) }}</a>
         @endif
     </section>
     <section class="ref-content-card">
@@ -212,10 +216,12 @@
 @endif
 
 @if($page==='dealers')
-<section class="ref-directory-heading">
-    <h1>{{ $chrome('directory_title', $siteCustomization['directory_title'] ?? null) }}</h1>
-    <p>{{ $chrome('directory_subtitle', $siteCustomization['directory_subtitle'] ?? null) }}</p>
-
+@include('reference.partials.page-plate', [
+    'title' => $chrome('directory_title', $siteCustomization['directory_title'] ?? null),
+    'lead' => $chrome('directory_subtitle', $siteCustomization['directory_subtitle'] ?? null),
+    'icon' => 'fa-store',
+])
+<section class="ref-directory-heading ref-directory-tools">
     <div class="ref-location-search-bar">
         <button type="button" class="ref-location-btn" id="find-nearest-btn">
             <i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i> {{ $chrome('directory_gps_btn', $siteCustomization['directory_gps_btn'] ?? null) }}
@@ -224,9 +230,9 @@
     </div>
 
     @if(request()->filled(['lat', 'lng']))
-    <div class="ref-alert ref-notice" style="margin-top:16px; margin-bottom:12px;">
+    <div class="ref-alert ref-notice ref-directory-location-note">
         <i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ $chrome('directory_location_notice') }}
-        <a href="/dealers" style="margin-left:12px; font-weight:700; color:#ef4a23;">{{ $chrome('directory_clear_location') }}</a>
+        <a href="/dealers">{{ $chrome('directory_clear_location') }}</a>
     </div>
     @endif
 
@@ -299,12 +305,13 @@
 @endif
 
 @if($page==='partnership')
-<article class="ref-content-card ref-about-hero">
-    <h1>{{ $content->title ?? $chrome('partnership_hero_title', $siteCustomization['partnership_hero_title'] ?? null) }}</h1>
-    <div class="ref-content-prose">{{ $content->body ?? $chrome('partnership_hero_lead', $siteCustomization['partnership_hero_lead'] ?? null) }}</div>
-</article>
-<h2 class="ref-page-title" style="margin-top:28px;font-size:20px;">{{ $chrome('partnership_why_title', $siteCustomization['partnership_why_title'] ?? null) }}</h2>
-<div class="ref-about-sections-grid">
+@include('reference.partials.page-plate', [
+    'title' => $content->title ?? $chrome('partnership_hero_title', $siteCustomization['partnership_hero_title'] ?? null),
+    'lead' => $content->body ?? $chrome('partnership_hero_lead', $siteCustomization['partnership_hero_lead'] ?? null),
+    'icon' => 'fa-handshake-angle',
+])
+<h2 class="ref-section-heading">{{ $chrome('partnership_why_title', $siteCustomization['partnership_why_title'] ?? null) }}</h2>
+<div class="ref-about-sections-grid is-four">
     @foreach([1,2,3,4] as $i)
     <section class="ref-content-card">
         <div class="ref-about-icon"><i class="fa-solid {{ ['fa-leaf','fa-clipboard-check','fa-laptop','fa-map-location-dot'][$i-1] }}" aria-hidden="true"></i></div>
@@ -313,18 +320,23 @@
     </section>
     @endforeach
 </div>
-<section class="ref-content-card" style="margin-top:24px;">
+<section class="ref-content-card ref-steps-card">
     <h2>{{ $chrome('partnership_steps_title', $siteCustomization['partnership_steps_title'] ?? null) }}</h2>
-    <ol class="ref-about-objectives" style="list-style:decimal;padding-left:20px;">
+    <ol class="ref-steps">
         @foreach([1,2,3] as $i)
-        <li style="margin-bottom:12px;"><strong>{{ $chrome('partnership_step'.$i.'_title', $siteCustomization['partnership_step'.$i.'_title'] ?? null) }}:</strong> {{ $chrome('partnership_step'.$i.'_desc', $siteCustomization['partnership_step'.$i.'_desc'] ?? null) }}</li>
+        <li>
+            <h3>{{ $chrome('partnership_step'.$i.'_title', $siteCustomization['partnership_step'.$i.'_title'] ?? null) }}</h3>
+            <p>{{ $chrome('partnership_step'.$i.'_desc', $siteCustomization['partnership_step'.$i.'_desc'] ?? null) }}</p>
+        </li>
         @endforeach
     </ol>
 </section>
-<section class="ref-content-card" style="margin-top:24px;background:linear-gradient(135deg,#f3f7f4,#fff);">
-    <h2>{{ $chrome('partnership_cta_title', $siteCustomization['partnership_cta_title'] ?? null) }}</h2>
-    <p>{{ $chrome('partnership_cta_body', $siteCustomization['partnership_cta_body'] ?? null) }}</p>
-    <div class="ref-information-links" style="margin-top:16px;">
+<section class="ref-page-closer">
+    <div>
+        <h2>{{ $chrome('partnership_cta_title', $siteCustomization['partnership_cta_title'] ?? null) }}</h2>
+        <p>{{ $chrome('partnership_cta_body', $siteCustomization['partnership_cta_body'] ?? null) }}</p>
+    </div>
+    <div class="ref-information-links">
         <a href="{{ $siteCustomization['partnership_cta_link'] ?? '#partner-apply' }}" class="ref-primary-button">{{ $chrome('partnership_cta_btn', $siteCustomization['partnership_cta_btn'] ?? null) }}</a>
         @if($publicPageEnabled['dealers'] ?? true)
         <a href="/dealers" class="ref-secondary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ __('site.find_a_dealer') }}</a>
@@ -337,10 +349,7 @@
             <div class="ref-partner-icon-badge">
                 <i class="fa-solid fa-handshake-angle" aria-hidden="true"></i>
             </div>
-            <div>
-                <span class="ref-partner-pretitle">{{ __('site.partnership_hero_title') }}</span>
-                <h2 class="ref-partner-title">{{ __('site.partnership_form_title') }}</h2>
-            </div>
+            <h2 class="ref-partner-title">{{ __('site.partnership_form_title') }}</h2>
         </div>
         <p class="ref-partner-lead">{{ __('site.partnership_form_hint') }}</p>
 
@@ -592,11 +601,12 @@
 @endif
 
 @if($page==='services')
-<article class="ref-content-card ref-about-hero">
-    <h1>{{ $chrome('services_hero_title', $siteCustomization['services_hero_title'] ?? null) }}</h1>
-    <div class="ref-content-prose">{{ $chrome('services_hero_lead', $siteCustomization['services_hero_lead'] ?? null) }}</div>
-</article>
-<div class="ref-about-sections-grid">
+@include('reference.partials.page-plate', [
+    'title' => $chrome('services_hero_title', $siteCustomization['services_hero_title'] ?? null),
+    'lead' => $chrome('services_hero_lead', $siteCustomization['services_hero_lead'] ?? null),
+    'icon' => 'fa-hand-holding-medical',
+])
+<div class="ref-about-sections-grid is-three">
     @foreach([1,2,3] as $i)
     <section class="ref-content-card">
         <div class="ref-about-icon"><i class="fa-solid {{ ['fa-stethoscope','fa-hand-holding-medical','fa-store'][$i-1] }}" aria-hidden="true"></i></div>
@@ -614,11 +624,12 @@
 @endif
 
 @if($page==='quality')
-<article class="ref-content-card ref-about-hero">
-    <h1>{{ $content->title ?? $chrome('quality_hero_title', $siteCustomization['quality_hero_title'] ?? null) }}</h1>
-    <div class="ref-content-prose">{{ $content->body ?? $chrome('quality_hero_lead', $siteCustomization['quality_hero_lead'] ?? null) }}</div>
-</article>
-<div class="ref-about-sections-grid">
+@include('reference.partials.page-plate', [
+    'title' => $content->title ?? $chrome('quality_hero_title', $siteCustomization['quality_hero_title'] ?? null),
+    'lead' => $content->body ?? $chrome('quality_hero_lead', $siteCustomization['quality_hero_lead'] ?? null),
+    'icon' => 'fa-award',
+])
+<div class="ref-about-sections-grid is-three">
     @foreach([1,2,3] as $i)
     <section class="ref-content-card">
         <div class="ref-about-icon"><i class="fa-solid {{ ['fa-shield-heart','fa-certificate','fa-file-circle-check'][$i-1] }}" aria-hidden="true"></i></div>
@@ -631,115 +642,84 @@
     @if($cta = \App\Support\SiteCustomization::publicHref($siteCustomization['quality_cta_link'] ?? '/products'))
     <a href="{{ $cta }}" class="ref-primary-button">{{ $chrome('quality_cta_btn', $siteCustomization['quality_cta_btn'] ?? null) }}</a>
     @endif
-    @if($publicPageEnabled['partnership'] ?? true)<a href="/partnership" class="ref-ghost-button">{{ __('site.become_a_partner') }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>@endif
+    @if($publicPageEnabled['partnership'] ?? true)<a href="/partnership" class="ref-ghost-button">{{ __('site.become_a_partner') }}</a>@endif
 </div>
 @endif
 
 @if($page==='faq')
 @php
     $faqItems = \App\Support\SiteCustomization::faqItemsForDisplay($siteCustomization);
+    $faqSecondPhone = \App\Support\SiteCustomization::secondPhone();
 @endphp
-<article class="ref-content-card ref-about-hero">
-    <h1>{{ $chrome('faq_hero_title', $siteCustomization['faq_hero_title'] ?? null) }}</h1>
-    <div class="ref-content-prose">{{ $chrome('faq_hero_lead', $siteCustomization['faq_hero_lead'] ?? null) }}</div>
-</article>
-<div style="display:flex;flex-direction:column;gap:14px;margin-top:22px;">
-    @foreach($faqItems as $item)
-    <details class="ref-content-card" style="padding:18px 22px;">
-        <summary style="cursor:pointer;font-weight:700;color:#011627;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;">
-            <span>{{ $item['question'] ?? '' }}</span>
-            <i class="fa-solid fa-chevron-down" aria-hidden="true" style="color:#64748b;font-size:12px;"></i>
-        </summary>
-        <p style="margin:14px 0 0;color:#475569;line-height:1.7;">{{ $item['answer'] ?? '' }}</p>
-    </details>
-    @endforeach
-</div>
-<div class="ref-information-links">
-    @if($publicPageEnabled['contact'] ?? true)<a href="/contact" class="ref-primary-button">{{ $chrome('faq_still_need_help') }}</a>@endif
-    @if($publicPageEnabled['partnership'] ?? true)<a href="/partnership" class="ref-secondary-button">{{ __('site.partnership_enquiries') }}</a>@endif
+@include('reference.partials.page-plate', [
+    'title' => $chrome('faq_hero_title', $siteCustomization['faq_hero_title'] ?? null),
+    'lead' => $chrome('faq_hero_lead', $siteCustomization['faq_hero_lead'] ?? null),
+    'icon' => 'fa-circle-question',
+])
+<div class="ref-faq-layout">
+    <div class="ref-faq-list">
+        @foreach($faqItems as $item)
+        <details class="ref-faq-item" name="faq">
+            <summary>
+                <span>{{ $item['question'] ?? '' }}</span>
+                <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+            </summary>
+            <p>{{ $item['answer'] ?? '' }}</p>
+        </details>
+        @endforeach
+    </div>
+    <aside class="ref-faq-help">
+        <h2>{{ $chrome('contact_phone_title', $siteCustomization['contact_phone_title'] ?? null) }}</h2>
+        <a class="ref-faq-help-phone" href="{{ \App\Support\SiteCustomization::phoneLink((string) ($siteCustomization['contact_phone'] ?? '')) }}">{{ $siteCustomization['contact_phone'] ?? '' }}</a>
+        @if($faqSecondPhone)
+        <a class="ref-faq-help-phone" href="{{ \App\Support\SiteCustomization::phoneLink($faqSecondPhone) }}">{{ $faqSecondPhone }}</a>
+        @endif
+        @if($publicPageEnabled['contact'] ?? true)<a href="/contact" class="ref-plate-button">{{ $chrome('faq_still_need_help') }}</a>@endif
+        @if($publicPageEnabled['partnership'] ?? true)<a href="/partnership" class="ref-faq-help-link">{{ __('site.partnership_enquiries') }}</a>@endif
+    </aside>
 </div>
 @endif
 
 @if(in_array($page, ['privacy', 'terms', 'notice', 'circular-training', 'circular-price', 'circular-meeting'], true))
-<article class="ref-content-card ref-about-hero ref-legal-hero">
-    <div class="ref-legal-hero-badge">
-        <i class="fa-solid {{ $page === 'privacy' ? 'fa-shield-halved' : ($page === 'terms' ? 'fa-scale-balanced' : 'fa-bullhorn') }}" aria-hidden="true"></i>
-        <span>{{ in_array($page, ['privacy', 'terms'], true) ? __('site.legal_nav') : __('site.company_notice') }}</span>
-    </div>
-    <h1>{{ in_array($page, ['privacy', 'terms'], true)
+@php
+    $isLegalPage = in_array($page, ['privacy', 'terms'], true);
+    $hasNoticeText = filled($content->body ?? null);
+@endphp
+@component('reference.partials.page-plate', [
+    'title' => $isLegalPage
         ? $chrome($page.'_hero_title', $siteCustomization[$page.'_hero_title'] ?? null)
-        : ($content->title ?? ($siteCustomization[$page.'_hero_title'] ?? ($pageTitles[$page] ?? ucfirst($page)))) }}</h1>
-    @unless(in_array($page, ['privacy', 'terms'], true) ? false : filled($content->body ?? null))
-        <div class="ref-content-prose ref-legal-lead">
-            @if(in_array($page, ['notice', 'circular-training', 'circular-price', 'circular-meeting'], true))
-                {{ \App\Support\SiteChrome::ownerText('notice_empty', $siteCustomization['notice_empty'] ?? null, $siteCustomization['notice_empty_bn'] ?? null) }}
-            @elseif(in_array($page, ['privacy', 'terms'], true))
-                {{ $chrome($page.'_hero_lead', $siteCustomization[$page.'_hero_lead'] ?? null) }}
-            @else
-                {{ $siteCustomization[$page.'_hero_lead'] ?? '' }}
-            @endif
-        </div>
-    @endunless
-    @if(in_array($page, ['privacy', 'terms'], true))
-    <div class="ref-legal-meta-bar">
-        <span class="ref-legal-meta-item"><i class="fa-regular fa-calendar-check" aria-hidden="true"></i> {{ $chrome('legal_meta_effective', $siteCustomization['legal_meta_effective'] ?? null) }}</span>
-        <span class="ref-legal-meta-item"><i class="fa-solid fa-building-shield" aria-hidden="true"></i> {{ $chrome('legal_meta_governance', $siteCustomization['legal_meta_governance'] ?? null) }}</span>
-        <span class="ref-legal-meta-item"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ $chrome('legal_meta_location', $siteCustomization['legal_meta_location'] ?? null) }}</span>
+        : ($content->title ?? ($siteCustomization[$page.'_hero_title'] ?? ($pageTitles[$page] ?? ucfirst($page)))),
+    'lead' => $isLegalPage ? $chrome($page.'_hero_lead', $siteCustomization[$page.'_hero_lead'] ?? null) : null,
+    'icon' => ['privacy' => 'fa-shield-halved', 'terms' => 'fa-scale-balanced'][$page] ?? 'fa-bullhorn',
+])
+    @if($isLegalPage)
+    <span class="ref-legal-meta-item"><i class="fa-regular fa-calendar-check" aria-hidden="true"></i> {{ $chrome('legal_meta_effective', $siteCustomization['legal_meta_effective'] ?? null) }}</span>
+    <span class="ref-legal-meta-item"><i class="fa-solid fa-building-shield" aria-hidden="true"></i> {{ $chrome('legal_meta_governance', $siteCustomization['legal_meta_governance'] ?? null) }}</span>
+    <span class="ref-legal-meta-item"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ $chrome('legal_meta_location', $siteCustomization['legal_meta_location'] ?? null) }}</span>
+    @endif
+@endcomponent
+@if($isLegalPage)
+    @include('reference.partials.trust-prose', ['text' => $chrome($page.'_body', $siteCustomization[$page.'_body'] ?? null), 'asPage' => true])
+@elseif($hasNoticeText)
+    @include('reference.partials.trust-prose', ['text' => $content->body, 'asPage' => true])
+@else
+    <div class="ref-empty ref-notice-empty">
+        <i class="fa-solid fa-bullhorn" aria-hidden="true"></i>
+        <p>{{ \App\Support\SiteChrome::ownerText('notice_empty', $siteCustomization['notice_empty'] ?? null, $siteCustomization['notice_empty_bn'] ?? null) }}</p>
     </div>
-    @endif
-</article>
-@if(in_array($page, ['privacy', 'terms'], true) || filled($content->body ?? null))
-<section class="ref-content-card ref-legal-body-card" style="margin-top:22px;">
-    @php
-        $rawBodyText = in_array($page, ['privacy', 'terms'], true)
-            ? $chrome($page.'_body', $siteCustomization[$page.'_body'] ?? null)
-            : ($content->body ?? ($siteCustomization[$page.'_body'] ?? ''));
-    @endphp
-    @if(in_array($page, ['privacy', 'terms'], true))
-        <div class="ref-legal-document">
-            @php
-                $paragraphs = preg_split('/\n{2,}/', trim($rawBodyText));
-            @endphp
-            @foreach($paragraphs as $paragraph)
-                @php
-                    $trimmed = trim($paragraph);
-                    $firstLine = strtok($trimmed, "\n");
-                    $isSectionHeader = preg_match('/^[0-9১-৯]+\.\s+/', $firstLine);
-                @endphp
-                @if($isSectionHeader)
-                    @php
-                        $lines = explode("\n", $trimmed);
-                        $header = array_shift($lines);
-                        $bodyRest = implode("\n", $lines);
-                    @endphp
-                    <div class="ref-legal-section">
-                        <h2 class="ref-legal-heading">{{ $header }}</h2>
-                        @if(filled(trim($bodyRest)))
-                            <div class="ref-content-prose ref-legal-prose" style="white-space:pre-line;">{{ $bodyRest }}</div>
-                        @endif
-                    </div>
-                @else
-                    <div class="ref-content-prose ref-legal-prose" style="white-space:pre-line;">{{ $trimmed }}</div>
-                @endif
-            @endforeach
-        </div>
-    @else
-        <div class="ref-content-prose" style="white-space:pre-line;">{{ $rawBodyText }}</div>
-    @endif
-</section>
 @endif
 <div class="ref-information-links ref-legal-links">
     @if($publicPageEnabled['contact'] ?? true)<a href="/contact" class="ref-primary-button">{{ $chrome('contact_head_office', $siteCustomization['about_btn_contact'] ?? null) }}</a>@endif
-    @if(in_array($page, ['privacy', 'terms'], true))
+    @if($isLegalPage)
         @php $altLegal = $page === 'privacy' ? 'terms' : 'privacy'; @endphp
         @if($publicPageEnabled[$altLegal] ?? true)
-        <a href="/{{ $altLegal }}" class="ref-secondary-button">{{ $page === 'privacy' ? __('site.terms_of_use') : __('site.privacy_policy') }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+        <a href="/{{ $altLegal }}" class="ref-secondary-button">{{ $page === 'privacy' ? __('site.terms_of_use') : __('site.privacy_policy') }}</a>
         @endif
         @if($publicPageEnabled['faq'] ?? true)
         <a href="/faq">{{ __('site.faq') }}</a>
         @endif
     @elseif($publicPageEnabled['partnership'] ?? true)
-        <a href="/partnership">{{ __('site.become_a_partner') }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+        <a href="/partnership">{{ __('site.become_a_partner') }}</a>
     @endif
 </div>
 @endif

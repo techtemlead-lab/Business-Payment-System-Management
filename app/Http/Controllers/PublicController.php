@@ -18,6 +18,7 @@ use App\Models\User;
 use App\Support\Audit;
 use App\Support\PortalHost;
 use App\Support\ProductVideo;
+use App\Support\SiteChrome;
 use App\Support\SiteCustomization;
 use App\Support\SocialShareMeta;
 use Illuminate\Contracts\View\View;
@@ -77,7 +78,7 @@ class PublicController extends Controller
             }
             $latitude = $this->nullableMapCoordinate($siteCustomization['map_latitude'] ?? null);
             $longitude = $this->nullableMapCoordinate($siteCustomization['map_longitude'] ?? null);
-            $mapLabel = trim((string) ($siteCustomization['map_facility'] ?? ''));
+            $mapLabel = trim(SiteChrome::text('map_facility', $siteCustomization['map_facility'] ?? null));
             $maps = app(MapsPresentation::class)->forAddress(
                 $officeAddress,
                 $latitude,

@@ -8,6 +8,8 @@
         <div class="ref-alert ref-notice" role="status"><b>{{ __('product_facts.review_received') }}</b></div>
     @endif
 
+    <div class="ref-reviews-layout">
+    <div class="ref-reviews-list">
     @forelse($reviews as $review)
         <article class="ref-product-review">
             <div class="ref-testimonial-stars" role="img" aria-label="{{ __('site.testimonial_stars_label', ['count' => \App\Support\LocalDigits::text($review['rating'])]) }}">
@@ -21,7 +23,9 @@
     @empty
         <p>{{ __('product_facts.reviews_empty') }}</p>
     @endforelse
+    </div>
 
+    <div>
     <h3 class="ref-product-review-form-title">{{ __('product_facts.review_form_title') }}</h3>
     <p>{{ __('product_facts.review_form_hint') }}</p>
     <form method="post" action="{{ route('products.reviews.store', $item['id'], false) }}" class="ref-feedback-form">
@@ -63,4 +67,6 @@
 
         <button type="submit" class="ref-primary-button">{{ __('product_facts.review_submit') }}</button>
     </form>
+    </div>
+    </div>
 </section>
