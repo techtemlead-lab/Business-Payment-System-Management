@@ -2,6 +2,7 @@
 
 namespace App\Domain\Inventory;
 
+use App\Models\PurchaseOrder;
 use App\Models\StockLot;
 use App\Models\StockTransfer;
 use App\Models\User;
@@ -160,6 +161,13 @@ final class StockLotReports
             ->selectRaw('destination_branch_id, product_id, SUM(quantity) AS units')
             ->get()
             ->keyBy(fn (object $row): string => $row->destination_branch_id.'-'.$row->product_id);
+        $ordered = DB::table('purchase_order_lines as l')
+            ->join('purchase_orders as o', 'o.id', '=', 'l.purchase_order_id')
+            ->whereIn('o.status', [PurchaseOrder::StatusSent, PurchaseOrder::StatusPartlyReceived])
+            ->groupBy('o.branch_id', 'l.product_id')
+            ->selectRaw('o.branch_id, l.product_id, SUM(GREATEST(l.quantity_ordered - l.quantity_received, 0)) AS units')
+            ->get()
+            ->keyBy(fn (object $row): string => $row->branch_id.'-'.$row->product_id);
         $query = DB::table('branch_product_stocks as s')
             ->join('products as p', 'p.id', '=', 's.product_id')
             ->join('company_branches as b', 'b.id', '=', 's.branch_id')
@@ -171,10 +179,10 @@ final class StockLotReports
             ->select('s.branch_id', 's.product_id', 's.quantity', 's.low_stock_at', 'p.name as product', 'p.sku', 'b.code as branch_code', 'b.name as branch_name');
         $scope->restrict($query, 's.branch_id');
 
-        return $query->get()->map(function (object $row) use ($sold, $incoming): array {
+        return $query->get()->map(function (object $row) use ($sold, $incoming, $ordered): array {
             $key = $row->branch_id.'-'.$row->product_id;
             $average = max(0, (int) ($sold[$key]->units ?? 0)) / self::ReorderAverageDays;
-            $onTheWay = (int) ($incoming[$key]->units ?? 0);
+            $onTheWay = (int) ($incoming[$key]->units ?? 0) + (int) ($ordered[$key]->units ?? 0);
             $target = ($average * self::ReorderCoverDays) + (int) $row->low_stock_at;
 
             return [
