@@ -17,6 +17,7 @@ use App\Models\PlaceCode;
 use App\Models\ReferralTreePath;
 use App\Models\User;
 use App\Support\Audit;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -185,52 +186,56 @@ final class PartnerAccountProvisioning
             }
         }
 
-        $user = DB::transaction(function () use ($actor, $input, $role, $phone, $email, $referCode, $sponsor, $place, $path, $dealerCode, $profile, $plainPassword, $managementReferral, $managementSettings, $phoneCheck): User {
-            CommissionWallet::lock();
-            $user = (new User)->forceFill([
-                'role' => $role,
-                'dealer_code' => $dealerCode,
-                'refer_code' => $referCode,
-                'name' => trim((string) $input['name']),
-                'email' => $email,
-                'phone' => $phone,
-                'phone_share_approved_by' => $phoneCheck['phone_share_approved_by'],
-                'phone_share_reason' => $phoneCheck['phone_share_reason'],
-                'division' => $path['division'] ?? ($input['division'] ?? null),
-                'district' => $path['district'] ?? ($input['district'] ?? null),
-                'sponsor_id' => $sponsor?->id,
-                'nid' => trim((string) ($input['nid'] ?? '')) ?: null,
-                'latitude' => isset($input['latitude']) && $input['latitude'] !== '' ? (float) $input['latitude'] : null,
-                'longitude' => isset($input['longitude']) && $input['longitude'] !== '' ? (float) $input['longitude'] : null,
-                'directory_visible' => $role === 'dealer' && ! empty($input['directory_visible']),
-                'status' => in_array(($status = (string) ($input['status'] ?? 'active')), ['active', 'suspended'], true) ? $status : 'active',
-                'password' => $plainPassword,
-                'password_managed_by' => User::PasswordManagedByAdmin,
-                'admin_password_cipher' => $plainPassword,
-                'profile' => $profile,
-            ]);
-            $user->save();
-            DB::table('wallets')->insert(['user_id' => $user->id, 'created_at' => now(), 'updated_at' => now()]);
-            ReferralTreePath::attachUser($user->id, $user->sponsor_id);
-            DealerRank::firstOrCreate(['user_id' => $user->id], ['current_rank' => 'dealer']);
+        try {
+            $user = DB::transaction(function () use ($actor, $input, $role, $phone, $email, $referCode, $sponsor, $place, $path, $dealerCode, $profile, $plainPassword, $managementReferral, $managementSettings, $phoneCheck): User {
+                CommissionWallet::lock();
+                $user = (new User)->forceFill([
+                    'role' => $role,
+                    'dealer_code' => $dealerCode,
+                    'refer_code' => $referCode,
+                    'name' => trim((string) $input['name']),
+                    'email' => $email,
+                    'phone' => $phone,
+                    'phone_share_approved_by' => $phoneCheck['phone_share_approved_by'],
+                    'phone_share_reason' => $phoneCheck['phone_share_reason'],
+                    'division' => $path['division'] ?? ($input['division'] ?? null),
+                    'district' => $path['district'] ?? ($input['district'] ?? null),
+                    'sponsor_id' => $sponsor?->id,
+                    'nid' => trim((string) ($input['nid'] ?? '')) ?: null,
+                    'latitude' => isset($input['latitude']) && $input['latitude'] !== '' ? (float) $input['latitude'] : null,
+                    'longitude' => isset($input['longitude']) && $input['longitude'] !== '' ? (float) $input['longitude'] : null,
+                    'directory_visible' => $role === 'dealer' && ! empty($input['directory_visible']),
+                    'status' => in_array(($status = (string) ($input['status'] ?? 'active')), ['active', 'suspended'], true) ? $status : 'active',
+                    'password' => $plainPassword,
+                    'password_managed_by' => User::PasswordManagedByAdmin,
+                    'admin_password_cipher' => $plainPassword,
+                    'profile' => $profile,
+                ]);
+                $user->save();
+                DB::table('wallets')->insert(['user_id' => $user->id, 'created_at' => now(), 'updated_at' => now()]);
+                ReferralTreePath::attachUser($user->id, $user->sponsor_id);
+                DealerRank::firstOrCreate(['user_id' => $user->id], ['current_rank' => 'dealer']);
 
-            if ($role === 'dealer') {
-                $this->seatDealer($user, $place, $path);
-            }
+                if ($role === 'dealer') {
+                    $this->seatDealer($user, $place, $path);
+                }
 
-            Audit::record($actor->id, 'account.created', (string) $user->id, [
-                'role' => $role,
-                'dealer_code' => $dealerCode,
-                'place_code' => $place->code,
-                'refer_code' => $referCode,
-                'reference_code' => $managementReferral ? $managementSettings['place_code'] : $sponsor?->refer_code,
-                'referred_by_management' => $managementReferral,
-                'reason' => $input['reason'] ?? __('portal.acct_default_onboarding_reason'),
-            ]);
-            $this->phones->recordShare($actor, $user, $phoneCheck);
+                Audit::record($actor->id, 'account.created', (string) $user->id, [
+                    'role' => $role,
+                    'dealer_code' => $dealerCode,
+                    'place_code' => $place->code,
+                    'refer_code' => $referCode,
+                    'reference_code' => $managementReferral ? $managementSettings['place_code'] : $sponsor?->refer_code,
+                    'referred_by_management' => $managementReferral,
+                    'reason' => $input['reason'] ?? __('portal.acct_default_onboarding_reason'),
+                ]);
+                $this->phones->recordShare($actor, $user, $phoneCheck);
 
-            return $user;
-        }, 3);
+                return $user;
+            }, 3);
+        } catch (UniqueConstraintViolationException $clash) {
+            throw $this->sameMomentRefusal($clash, $role);
+        }
 
         // One-time credentials travel only through the SMS channel — never JSON/Inertia props.
         $credentialsSent = $this->sms->send($user, $plainPassword);
@@ -242,6 +247,24 @@ final class PartnerAccountProvisioning
             'commission_consumers' => $this->commissionConsumers($sponsor, $managementReferral),
             'credentials_sent' => $credentialsSent,
         ];
+    }
+
+    /**
+     * Two people saved at the same moment and the database kept the first. The second
+     * gets the reason in plain words instead of a server error.
+     */
+    private function sameMomentRefusal(UniqueConstraintViolationException $clash, string $role): ValidationException
+    {
+        preg_match('/unique constraint "([^"]+)"/', $clash->getMessage(), $match);
+        $constraint = $match[1] ?? '';
+
+        return ValidationException::withMessages(match (true) {
+            str_contains($constraint, 'email') => ['email' => __('portal.acct_val_email_taken')],
+            str_contains($constraint, 'phone') => ['phone' => __('portal.acct_val_phone_taken')],
+            str_contains($constraint, 'refer_code') => ['refer_code' => __('portal.acct_val_refer_taken')],
+            $role === 'sub_dealer' => ['place_code' => __('portal.acct_val_sub_dealer_code_just_used')],
+            default => ['place_code' => __('portal.acct_val_place_taken')],
+        });
     }
 
     /**
