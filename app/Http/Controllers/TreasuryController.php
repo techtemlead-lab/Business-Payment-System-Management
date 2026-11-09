@@ -59,7 +59,7 @@ class TreasuryController extends Controller
         abort_unless(TreasuryAccess::mayOpenOrders($viewer), 403);
         $scope = $branches->canViewAllBranches($viewer) ? null : $branches->scopeFor($viewer, $request);
 
-        return Inertia::render('TreasuryOrders', [...$this->shared($request), 'table' => $report->table($request, $scope)]);
+        return Inertia::render('TreasuryOrders', [...$this->shared($request), 'table' => $report->table($request, $scope), 'downloads' => ['groups' => OfficeHubs::reportGroups($viewer, app(ReportData::class)->availableTo($viewer)), 'statements' => $viewer->staff() && $viewer->allows('finance')]]);
     }
 
     public function order(Request $request, Order $order, OrderMoneyReport $report, BranchOperations $branches): Response

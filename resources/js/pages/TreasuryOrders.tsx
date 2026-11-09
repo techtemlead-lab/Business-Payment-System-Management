@@ -1,7 +1,7 @@
 import { date, label, money } from '../components/UI';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from '../components/MoneyTable';
 import TreasuryPage from '../components/treasury/TreasuryPage';
-import DownloadsMenu from '../components/treasury/DownloadsMenu';
+import DownloadsMenu, { type DownloadChoices } from '../components/treasury/DownloadsMenu';
 import { joined } from '../components/treasury/format';
 import { useT } from '../shared/i18n/t';
 
@@ -17,7 +17,7 @@ type OrderRow = {
 };
 
 /** The accountant's report: one row per order, click a row to see where its money went. */
-export default function TreasuryOrders({ table }: { table: MoneyTableData<OrderRow> }) {
+export default function TreasuryOrders({ table, downloads }: { table: MoneyTableData<OrderRow>; downloads: DownloadChoices }) {
     const translate = useT();
     const columns: MoneyColumn<OrderRow>[] = [
         { key: 'created_at', title: translate('treasury', 'col_date'), sortKey: 'created_at', phone: 'sub', render: (row) => <>{date(row.created_at)}<small className="cell-sub">{row.number}</small></> },
@@ -34,7 +34,7 @@ export default function TreasuryOrders({ table }: { table: MoneyTableData<OrderR
                 columns={columns}
                 searchPlaceholder={translate('treasury', 'search_orders')}
                 rowHref={(row) => `/treasury/orders/${row.id}`}
-                actions={<DownloadsMenu state={table.state} />}
+                actions={<DownloadsMenu state={table.state} choices={downloads} />}
                 empty={translate('treasury', 'empty_orders')}
             />
         </TreasuryPage>

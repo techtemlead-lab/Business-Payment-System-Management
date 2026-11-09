@@ -104,9 +104,13 @@
 
 /* Downloads menu. */
 .app-shell .tsy-menu{position:relative;display:inline-flex}
-.app-shell .tsy-menu-list{position:absolute;right:0;top:calc(100% + 4px);z-index:30;display:flex;flex-direction:column;min-width:240px;padding:var(--ds-s-1);background:var(--ds-surface);border:1px solid var(--ds-line);border-radius:var(--ds-r-md);box-shadow:var(--ds-shadow-md)}
-.app-shell .tsy-menu-list a{padding:9px var(--ds-s-3);border-radius:var(--ds-r-sm);font-size:var(--ds-fs-sm);color:var(--ds-text);white-space:nowrap}
+.app-shell .tsy-menu-list{position:absolute;right:0;top:calc(100% + 4px);z-index:30;display:flex;flex-direction:column;min-width:260px;max-height:min(60vh,520px);overflow-y:auto;padding:var(--ds-s-1);background:var(--ds-surface);border:1px solid var(--ds-line);border-radius:var(--ds-r-md);box-shadow:var(--ds-shadow-md)}
+.app-shell .tsy-menu-group{display:flex;flex-direction:column}
+.app-shell .tsy-menu-group+.tsy-menu-group{margin-top:var(--ds-s-1);padding-top:var(--ds-s-1);border-top:1px solid var(--ds-line-soft)}
+.app-shell .tsy-menu-group h3{margin:0;padding:7px var(--ds-s-3) 3px;font-size:var(--ds-fs-xs);font-weight:600;letter-spacing:0;color:var(--ds-text-muted)}
+.app-shell .tsy-menu-list a{padding:8px var(--ds-s-3);border-radius:var(--ds-r-sm);font-size:var(--ds-fs-sm);color:var(--ds-text);white-space:nowrap}
 .app-shell .tsy-menu-list a:hover,.app-shell .tsy-menu-list a:focus-visible{background:var(--ds-surface-2)}
+.app-shell .tsy-menu-note{margin:0;padding:8px var(--ds-s-3);font-size:var(--ds-fs-sm);color:var(--ds-danger-fg);white-space:normal}
 
 @media (max-width:1024px){
   .app-shell .tsy-funds{grid-template-columns:repeat(2,minmax(0,1fr))}

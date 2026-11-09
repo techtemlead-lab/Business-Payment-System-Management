@@ -2,26 +2,35 @@ import { useEffect, useRef, useState } from 'react';
 import { ChevronDown, Download } from 'lucide-react';
 import { businessTodayIso } from '../../business-date';
 import { useT } from '../../shared/i18n/t';
-import { useTreasuryViewer } from './TreasuryTabs';
 
 type TableDates = { period: string; from: string | null; to: string | null };
 type DateRange = { from: string; to: string };
-type FileChoice = { key: string; label: string; href: string };
+type Limited = 'reports' | 'statements';
+type FileChoice = { key: string; label: string; href: string; limited: Limited };
+type FileGroup = { key: string; label: string; files: FileChoice[] };
 
-const REPORT_FILES: Array<{ type: string; label: string; financeOnly: boolean }> = [
-    { type: 'orders', label: 'dl_orders', financeOnly: false },
-    { type: 'collections', label: 'dl_money_received', financeOnly: true },
-    { type: 'commissions', label: 'dl_commissions', financeOnly: true },
-    { type: 'withdrawals', label: 'dl_withdrawals', financeOnly: true },
-    { type: 'fund-spending', label: 'dl_fund_spending', financeOnly: true },
-    { type: 'ledger', label: 'dl_all_movements', financeOnly: true },
-];
+/** The files this person may take, as the server allows them. */
+export type DownloadChoices = { groups: { key: string; label: string; reports: string[] }[]; statements: boolean };
 
-const ACCOUNT_FILES = [
-    { type: 'profit-loss', label: 'dl_profit_loss' },
-    { type: 'balance-sheet', label: 'dl_balance_sheet' },
-    { type: 'trial-balance', label: 'dl_trial_balance' },
-];
+const REPORT_ROOT = '/commands/operations/reports';
+const STATEMENT_ROOT = '/commands/operations/accounting/export';
+const STATEMENT_TYPES = ['profit-loss', 'balance-sheet', 'trial-balance'];
+
+const ALLOWED_PER_MINUTE = 15;
+const MINUTE_MS = 60_000;
+
+/** The server allows 15 files a minute for each kind. Stay under it here so a person never lands on an error page. */
+const recentFiles: Record<Limited, number[]> = { reports: [], statements: [] };
+
+function mayTakeFile(limited: Limited, now: number): boolean {
+    recentFiles[limited] = recentFiles[limited].filter((taken) => now - taken < MINUTE_MS);
+    if (recentFiles[limited].length >= ALLOWED_PER_MINUTE) {
+        return false;
+    }
+    recentFiles[limited].push(now);
+
+    return true;
+}
 
 function shiftedDays(iso: string, days: number): string {
     const moved = new Date(`${iso}T00:00:00Z`);
@@ -56,15 +65,17 @@ function fileHref(root: string, type: string, range: DateRange): string {
     return `${root}?${new URLSearchParams({ type, format: 'xlsx', ...range }).toString()}`;
 }
 
-/** One menu for every file the accountant takes away. Each file covers the dates the table is showing. */
-export default function DownloadsMenu({ state }: { state: TableDates }) {
+/** One menu for every file a person may take, in groups. Each file covers the dates the table is showing. */
+export default function DownloadsMenu({ state, choices }: { state: TableDates; choices: DownloadChoices }) {
     const translate = useT();
-    const viewer = useTreasuryViewer();
     const [open, setOpen] = useState(false);
+    const [tooMany, setTooMany] = useState(false);
     const holder = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (!open) {
+            setTooMany(false);
+
             return undefined;
         }
         const closeOutside = (event: MouseEvent) => {
@@ -87,18 +98,31 @@ export default function DownloadsMenu({ state }: { state: TableDates }) {
     }, [open]);
 
     const range = fileRange(state);
-    const choices: FileChoice[] = [
-        ...REPORT_FILES.filter((file) => viewer.finance || !file.financeOnly).map((file) => ({
-            key: file.type,
-            label: translate('treasury', file.label),
-            href: fileHref('/commands/operations/reports', file.type, range),
-        })),
-        ...(viewer.finance ? ACCOUNT_FILES.map((file) => ({
-            key: file.type,
-            label: translate('treasury', file.label),
-            href: fileHref('/commands/operations/accounting/export', file.type, range),
-        })) : []),
-    ];
+    const fileName = (type: string) => translate('treasury', `dl_${type.replaceAll('-', '_')}`);
+    const groups: FileGroup[] = choices.groups.map((group) => ({
+        key: group.key,
+        label: group.label,
+        files: group.reports.map((type) => ({ key: type, label: fileName(type), href: fileHref(REPORT_ROOT, type, range), limited: 'reports' })),
+    }));
+    if (choices.statements) {
+        groups.push({
+            key: 'statements',
+            label: translate('treasury', 'dl_group_statements'),
+            files: STATEMENT_TYPES.map((type) => ({ key: type, label: fileName(type), href: fileHref(STATEMENT_ROOT, type, range), limited: 'statements' })),
+        });
+    }
+    if (groups.length === 0) {
+        return null;
+    }
+    const takeFile = (event: React.MouseEvent, file: FileChoice) => {
+        if (!mayTakeFile(file.limited, Date.now())) {
+            event.preventDefault();
+            setTooMany(true);
+
+            return;
+        }
+        setOpen(false);
+    };
 
     return (
         <div className="tsy-menu" ref={holder}>
@@ -107,8 +131,12 @@ export default function DownloadsMenu({ state }: { state: TableDates }) {
             </button>
             {open && (
                 <div className="tsy-menu-list" role="menu">
-                    {choices.map((choice) => (
-                        <a key={choice.key} role="menuitem" href={choice.href} onClick={() => setOpen(false)}>{choice.label}</a>
+                    {tooMany && <p className="tsy-menu-note" role="alert">{translate('treasury', 'dl_too_many')}</p>}
+                    {groups.map((group) => (
+                        <div key={group.key} className="tsy-menu-group" role="group" aria-label={group.label}>
+                            <h3>{group.label}</h3>
+                            {group.files.map((file) => <a key={file.key} role="menuitem" href={file.href} onClick={(event) => takeFile(event, file)}>{file.label}</a>)}
+                        </div>
                     ))}
                 </div>
             )}
