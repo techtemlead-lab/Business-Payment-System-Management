@@ -13,6 +13,7 @@ use App\Domain\Finance\FundCatalog;
 use App\Domain\Finance\OrderMoneyReport;
 use App\Domain\Finance\ReserveService;
 use App\Domain\Finance\TreasuryFunds;
+use App\Domain\Orders\OrderListFilter;
 use App\Domain\Orders\OrderService;
 use App\Models\AreaDealerAssignment;
 use App\Models\CommissionAllocation;
@@ -21,6 +22,7 @@ use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\Money;
+use Carbon\CarbonImmutable;
 use Database\Seeders\CommissionRuleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
@@ -558,6 +560,18 @@ class TreasuryFoundationTest extends TestCase
         $this->actingAs($earner)->onPortal('dealer')->get('/')->assertOk()
             ->assertInertia(fn (Assert $page) => $page->missing('data.money_cards')
                 ->loadDeferredProps(fn (Assert $reload) => $reload->where('data.money_cards.0.key', 'referral')->where('data.money_cards.0.amount', '10.00')));
+    }
+
+    public function test_this_week_starts_on_sunday_in_every_language(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-11-11 12:00:00', 'Asia/Dhaka'));
+
+        foreach (['bn', 'en'] as $locale) {
+            app()->setLocale($locale);
+            $range = OrderListFilter::createdRange('week', null, null);
+            $this->assertSame('2026-11-07 18:00:00', $range['from']->format('Y-m-d H:i:s'), $locale.' week starts on Sunday in Dhaka');
+            $this->assertSame('2026-11-14 17:59:59', $range['until']->format('Y-m-d H:i:s'), $locale.' week ends on Saturday in Dhaka');
+        }
     }
 
     public function test_the_partner_list_shows_wallet_and_lifetime_figures(): void

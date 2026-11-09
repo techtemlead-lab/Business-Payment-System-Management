@@ -6,6 +6,7 @@ use App\Models\CommissionAllocation;
 use App\Models\User;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -129,7 +130,7 @@ final class PartnerEarningsPresenter
 
         return match ($preset) {
             'today' => ['from' => $now->toDateString(), 'to' => $now->toDateString()],
-            'week' => ['from' => $now->startOfWeek()->toDateString(), 'to' => $now->toDateString()],
+            'week' => ['from' => $now->startOfWeek(CarbonInterface::SUNDAY)->toDateString(), 'to' => $now->toDateString()],
             'month' => ['from' => $now->startOfMonth()->toDateString(), 'to' => $now->toDateString()],
             'year' => ['from' => $now->startOfYear()->toDateString(), 'to' => $now->toDateString()],
             default => ['from' => $from, 'to' => $to],

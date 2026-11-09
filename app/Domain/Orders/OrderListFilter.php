@@ -3,6 +3,7 @@
 namespace App\Domain\Orders;
 
 use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
@@ -83,7 +84,7 @@ final class OrderListFilter
 
         [$start, $end] = match (true) {
             $period === 'today' => [$now->startOfDay(), $now->endOfDay()],
-            $period === 'week' => [$now->startOfWeek(), $now->endOfWeek()],
+            $period === 'week' => [$now->startOfWeek(CarbonInterface::SUNDAY), $now->endOfWeek(CarbonInterface::SATURDAY)],
             $period === 'month' => [$now->startOfMonth(), $now->endOfMonth()],
             $period === 'last_month' => [$now->subMonthNoOverflow()->startOfMonth(), $now->subMonthNoOverflow()->endOfMonth()],
             $period === 'year' => [$now->startOfYear(), $now->endOfYear()],
