@@ -3,6 +3,7 @@
 namespace App\Domain\Inventory;
 
 use App\Domain\Orders\DeliveredMoney;
+use App\Domain\Orders\OrderListFilter;
 use App\Models\CompanyBranch;
 use App\Models\User;
 use App\Support\Money;
@@ -56,9 +57,9 @@ final class BranchPerformance
     /**
      * Owner/staff financial snapshot per company branch for a period.
      *
-     * Branch figures and the grand totals come from SQL sums over delivered goods in the
-     * period (the same {@see DeliveredMoney} rule the staff dashboard and sales reports
-     * use), so they stay right however many orders there are. The order
+     * The report covers every confirmed order in the period ({@see OrderListFilter::Confirmed}).
+     * Order value, income, cost and profit count delivered goods only ({@see DeliveredMoney}),
+     * and the sums are done in SQL, so they stay right however many orders there are. The order
      * list below them is paged on the server, 25 orders at a time.
      *
      * Staff who may not view every branch see only the branches they are assigned to
@@ -97,7 +98,7 @@ final class BranchPerformance
                 'o.fulfillment_branch_id, COUNT(*) AS order_count, '
                 .'COALESCE(SUM('.DeliveredMoney::valueSql('o').'), 0) AS order_value, '
                 .'COALESCE(SUM('.DeliveredMoney::paidSql('o').'), 0) AS income, '
-                .'COALESCE(SUM(GREATEST('.DeliveredMoney::valueSql('o').' - '.DeliveredMoney::paidSql('o').' - COALESCE(o.due_credit, 0), 0)), 0) AS outstanding, '
+                .'COALESCE(SUM(GREATEST(o.total - o.paid - COALESCE(o.due_credit, 0), 0)), 0) AS outstanding, '
                 .'COALESCE(SUM(lc.estimated_profit), 0) AS estimated_profit, '
                 .'COALESCE(SUM(lc.estimated_cost), 0) AS estimated_cost'
             )
@@ -217,7 +218,7 @@ final class BranchPerformance
     private function confirmedOrders(array $period, ?int $branchFilter, Collection $branches, bool $canViewAllBranches): Builder
     {
         return DB::table('orders as o')
-            ->whereIn('o.status', DeliveredMoney::Statuses)
+            ->whereIn('o.status', OrderListFilter::Confirmed)
             ->where('o.created_at', '>=', $period['from_utc'])
             ->where('o.created_at', '<', $period['to_utc_exclusive'])
             ->when(
@@ -242,8 +243,8 @@ final class BranchPerformance
                 'o.id',
                 'o.number',
                 'o.status',
-                DB::raw(DeliveredMoney::valueSql('o').' AS total'),
-                DB::raw(DeliveredMoney::paidSql('o').' AS paid'),
+                'o.total',
+                'o.paid',
                 'o.due_credit',
                 'o.fulfillment_branch_id',
                 'o.created_at',

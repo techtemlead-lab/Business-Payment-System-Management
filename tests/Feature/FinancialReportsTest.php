@@ -122,9 +122,10 @@ class FinancialReportsTest extends TestCase
         $this->assertSame('Rangpur', $rows[0]->district);
         $this->assertSame(2, (int) $rows[0]->order_count);
         $this->assertSame(1, (int) $rows[0]->partner_count);
-        $this->assertSame('2501.00', number_format((float) $rows[0]->gross_sales, 2, '.', ''));
+        $this->assertSame('1250.50', number_format((float) $rows[0]->gross_sales, 2, '.', ''), 'Only the delivered order counts in money.');
         $this->assertSame('Gazipur', $rows[1]->district);
         $this->assertSame(1, (int) $rows[1]->order_count);
+        $this->assertSame('0.00', number_format((float) $rows[1]->gross_sales, 2, '.', ''));
     }
 
     public function test_dues_reports_are_retired_now_that_goods_are_never_given_on_credit(): void

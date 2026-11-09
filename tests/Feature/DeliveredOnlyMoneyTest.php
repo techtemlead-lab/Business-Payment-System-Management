@@ -129,7 +129,7 @@ class DeliveredOnlyMoneyTest extends TestCase
     {
         $row = $this->report('district-summary')['query']->first();
 
-        $this->assertSame('2', (string) $row->order_count);
+        $this->assertSame('3', (string) $row->order_count, 'Approved orders stay in the count; only money waits for delivery.');
         $this->assertEqualsWithDelta(12000.0, (float) $row->gross_sales, 0.001);
         $this->assertEqualsWithDelta(12000.0, (float) $row->paid, 0.001);
     }
@@ -148,7 +148,7 @@ class DeliveredOnlyMoneyTest extends TestCase
 
         $totals = app(BranchPerformance::class)->summary($this->owner, ['period' => 'month'])['totals'];
 
-        $this->assertSame(2, $totals['order_count']);
+        $this->assertSame(3, $totals['order_count'], 'Approved orders stay in the count; only money waits for delivery.');
         $this->assertSame('12000.00', $totals['order_value']);
         $this->assertSame('12000.00', $totals['income']);
     }

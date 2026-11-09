@@ -169,7 +169,7 @@ class NetworkAndFinancePageScalingTest extends TestCase
         $member = $this->partner($dealer);
         $outsider = $this->partner(null);
         foreach ([[$dealer, '300.00'], [$member, '450.00'], [$outsider, '999.00']] as [$buyer, $total]) {
-            Order::create(['number' => 'ORD-HOME-'.Str::random(6), 'user_id' => $buyer->id, 'status' => 'approved', 'channel' => 'dealer', 'currency' => 'BDT',
+            Order::create(['number' => 'ORD-HOME-'.Str::random(6), 'user_id' => $buyer->id, 'status' => 'delivered', 'channel' => 'dealer', 'currency' => 'BDT',
                 'subtotal' => $total, 'discount_amount' => '0.00', 'tax_amount' => '0.00', 'total' => $total, 'paid' => $total,
                 'idempotency_key' => (string) Str::uuid(), 'payload_hash' => hash('sha256', Str::random())]);
         }

@@ -79,11 +79,12 @@ class TableTotalsAndExportsTest extends TestCase
         $dealer = $this->dealer();
         $this->order($dealer, '1000.00');
         $this->order($dealer, '700.00')->update(['status' => 'rejected']);
+        $this->order($dealer, '400.00')->update(['status' => 'delivered', 'paid' => '400.00']);
 
         $totals = $this->sectionData($owner, '/orders')['order_totals'];
 
-        $this->assertSame(2, $totals['orders']);
-        $this->assertSame('1000.00', $totals['value']);
+        $this->assertSame(3, $totals['orders']);
+        $this->assertSame('400.00', $totals['value']);
         $this->assertSame('1000.00', $totals['to_pay']);
     }
 

@@ -5,6 +5,7 @@ namespace App\Domain\Finance;
 use App\Domain\Commissions\RetainedFundLedger;
 use App\Domain\Inventory\BranchOperations;
 use App\Domain\Orders\DeliveredMoney;
+use App\Domain\Orders\OrderListFilter;
 use App\Domain\Staff\TerritoryAccess;
 use App\Models\User;
 use App\Support\PortalHost;
@@ -211,9 +212,9 @@ final class ReportData
     }
 
     /**
-     * Delivered sales by division and district, like the location-wise sales
-     * view Bangladeshi distribution software gives area managers. A partly
-     * delivered order counts for the goods that arrived.
+     * Confirmed orders by division and district, like the location-wise sales
+     * view Bangladeshi distribution software gives area managers. Sales and paid
+     * count delivered goods only; a partly delivered order counts what arrived.
      *
      * @return array{Builder, array<mixed>, list<string>, string, string}
      */
@@ -221,7 +222,7 @@ final class ReportData
     {
         $unknown = DB::getPdo()->quote(__('portal.report_area_unknown'));
         $query = DB::table('orders as o')->join('users as u', 'u.id', '=', 'o.user_id')
-            ->whereIn('o.status', DeliveredMoney::Statuses)
+            ->whereIn('o.status', OrderListFilter::Confirmed)
             ->groupByRaw("COALESCE(u.division, {$unknown}), COALESCE(u.district, {$unknown})");
         $columns = [
             DB::raw("COALESCE(u.division, {$unknown}) AS division"),
@@ -230,7 +231,7 @@ final class ReportData
             DB::raw('COUNT(o.id) AS order_count'),
             DB::raw('SUM('.DeliveredMoney::valueSql('o').') AS gross_sales'),
             DB::raw('SUM('.DeliveredMoney::paidSql('o').') AS paid'),
-            DB::raw('SUM(GREATEST('.DeliveredMoney::valueSql('o').'-o.due_credit-'.DeliveredMoney::paidSql('o').', 0)) AS outstanding'),
+            DB::raw('SUM(GREATEST(o.total-o.due_credit-o.paid, 0)) AS outstanding'),
         ];
 
         return [$query, $columns, ['gross_sales', 'paid', 'outstanding'], 'o.created_at', 'o.user_id'];

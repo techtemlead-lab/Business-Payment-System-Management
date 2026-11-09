@@ -130,9 +130,9 @@ class BranchPerformanceReportTest extends TestCase
         $summary = app(BranchPerformance::class)->summary($owner, ['period' => 'month']);
 
         $this->assertSame(4, $summary['totals']['order_count']);
-        $this->assertSame('400.00', $summary['totals']['order_value']);
+        $this->assertSame('100.00', $summary['totals']['order_value'], 'Only the delivered order counts in money.');
         $this->assertSame('0.00', $summary['totals']['outstanding']);
-        $this->assertSame('200.00', $summary['totals']['estimated_profit']);
+        $this->assertSame('50.00', $summary['totals']['estimated_profit']);
         $this->assertSame(
             ['approved', 'delivered', 'dispatched', 'partially_dispatched'],
             collect($summary['orders']->items())->pluck('status')->sort()->values()->all(),
@@ -345,7 +345,7 @@ class BranchPerformanceReportTest extends TestCase
         $this->get($publicBase.'/products/'.$product->id)->assertOk();
     }
 
-    private function createFulfilledOrder(User $partner, Product $product, ?int $branchId, string $total, string $paid, string $status = 'dispatched'): void
+    private function createFulfilledOrder(User $partner, Product $product, ?int $branchId, string $total, string $paid, string $status = 'delivered'): void
     {
         $orderId = (string) Str::uuid();
         DB::table('orders')->insert([

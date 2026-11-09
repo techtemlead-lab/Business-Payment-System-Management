@@ -53,14 +53,14 @@ class PortalQueryBudgetTest extends TestCase
         $response->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('data.stats.order_count', 4)
             ->where('data.stats.pending', 2)
-            ->where('data.stats.purchases', '500.00')
+            ->where('data.stats.purchases', '200.00')
             ->where('data.stats.dues', '150.00')
             ->where('data.stats.supply', 3)
             ->where('data.stats.accounts', 2)
             ->where('data.admin_home.snapshot.orders_today', 3)
             ->where('data.admin_home.snapshot.pending_review', 2)
             ->where('data.admin_home.snapshot.partner_accounts', 2)
-            ->where('data.admin_home.snapshot.purchases', '500.00')
+            ->where('data.admin_home.snapshot.purchases', '200.00')
             ->where('data.admin_home.snapshot.dues', '150.00'));
         $this->assertQueriesAtMost(33, $queries, 'owner dashboard');
         $this->assertSame(1, $this->matching($queries, 'filter (where status in'), 'Order count, pending, today and money totals should come from one aggregate query.');
@@ -82,7 +82,7 @@ class PortalQueryBudgetTest extends TestCase
         [$response, $queries] = $this->measure(fn () => $this->actingAs($dealer)->onPortal('dealer')->get('/'));
         $response->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('data.stats.order_count', 1)
-            ->where('data.stats.purchases', '100.00')
+            ->where('data.stats.purchases', '0.00')
             ->where('data.stats.supply', 1)
             ->has('data.partner_home')
             ->has('data.guide_prerequisites.checklist'));

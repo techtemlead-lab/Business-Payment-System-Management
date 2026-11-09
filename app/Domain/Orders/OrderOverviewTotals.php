@@ -26,15 +26,15 @@ final class OrderOverviewTotals
      */
     public function for(Builder $orders, CarbonInterface $placedSince): array
     {
+        $confirmed = $this->placeholders(OrderListFilter::Confirmed);
         $awaitingReview = $this->placeholders(self::AwaitingReview);
         $row = (clone $orders)->toBase()->reorder()->selectRaw(
             'COUNT(*) AS order_count, '
             ."COUNT(*) FILTER (WHERE status IN ({$awaitingReview})) AS pending, "
             .'COUNT(*) FILTER (WHERE created_at >= ?) AS orders_placed_since, '
             .'COALESCE(SUM('.DeliveredMoney::valueSql().'), 0) AS purchases, '
-            .'COALESCE(SUM('.DeliveredMoney::paidSql().'), 0) AS paid, '
-            .'COALESCE(SUM(due_credit) FILTER (WHERE status IN (\'delivered\')), 0) AS credits',
-            [...self::AwaitingReview, $placedSince],
+            ."COALESCE(SUM(total - paid - due_credit) FILTER (WHERE status IN ({$confirmed})), 0) AS dues",
+            [...self::AwaitingReview, $placedSince, ...OrderListFilter::Confirmed],
         )->first();
 
         $purchases = Money::cents((string) $row->purchases);
@@ -44,12 +44,18 @@ final class OrderOverviewTotals
             'pending' => (int) $row->pending,
             'orders_placed_since' => (int) $row->orders_placed_since,
             'purchases' => Money::decimal($purchases),
-            'dues' => Money::decimal($purchases - Money::cents((string) $row->paid) - Money::cents((string) $row->credits)),
+            'dues' => Money::decimal(self::cents((string) $row->dues)),
             // Units ordered on confirmed orders and not sent yet.
             'supply' => DB::table('order_lines')
                 ->whereIn('order_id', (clone $orders)->whereIn('status', OrderListFilter::Confirmed)->select('id'))
                 ->sum(DB::raw('quantity-dispatched')),
         ];
+    }
+
+    /** Dues can be below zero on overpaid orders, which Money::cents does not accept. */
+    private static function cents(string $value): int
+    {
+        return str_starts_with($value, '-') ? -Money::cents(substr($value, 1)) : Money::cents($value);
     }
 
     /**
