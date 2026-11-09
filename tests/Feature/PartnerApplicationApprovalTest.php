@@ -132,6 +132,76 @@ class PartnerApplicationApprovalTest extends TestCase
         $this->assertDatabaseHas('dealer_applications', ['id' => $id, 'status' => 'rejected']);
     }
 
+    public function test_the_owner_must_give_a_reason_to_approve_a_number_already_in_use(): void
+    {
+        User::factory()->dealer()->create(['phone' => '01712220099']);
+        $id = $this->apply('dealer', ['phone' => '01712220099']);
+
+        $this->decide($id, [])->assertSessionHasErrors(['phone' => __('portal.acct_val_phone_taken_owner')]);
+
+        $this->assertDatabaseHas('dealer_applications', ['id' => $id, 'status' => 'pending']);
+    }
+
+    public function test_the_owner_can_approve_a_number_already_in_use_with_a_written_reason(): void
+    {
+        User::factory()->dealer()->create(['phone' => '01712220099']);
+        $id = $this->apply('dealer', ['phone' => '01712220099']);
+
+        $this->decide($id, ['phone_share_reason' => 'Two shops of the same family.'])->assertSessionHasNoErrors();
+
+        $dealer = User::query()->where('dealer_code', 'MNHC-100111')->sole();
+        $this->assertSame('01712220099', $dealer->phone);
+        $this->assertSame($this->reviewer->id, (int) $dealer->phone_share_approved_by);
+        $this->assertSame('Two shops of the same family.', $dealer->phone_share_reason);
+        $this->assertDatabaseHas('dealer_applications', ['id' => $id, 'status' => 'approved']);
+        $this->assertDatabaseHas('audit_events', ['action' => 'account.phone_share_approved', 'subject' => (string) $dealer->id]);
+    }
+
+    public function test_only_the_owner_can_override_a_number_already_in_use(): void
+    {
+        User::factory()->dealer()->create(['phone' => '01712220099']);
+        $id = $this->apply('dealer', ['phone' => '01712220099']);
+
+        $this->actingAs(User::factory()->staff('account_manager')->create())->onPortal('manage')->from('/partnerships')
+            ->post('/commands/operations/staff/applications/'.$id.'/review', ['decision' => 'approved', 'reason' => 'Papers checked by the office.', 'place_code' => $this->union->code, 'phone_share_reason' => 'Trying to share it.'])
+            ->assertSessionHasErrors(['phone' => __('portal.acct_val_phone_taken')]);
+
+        $this->assertDatabaseHas('dealer_applications', ['id' => $id, 'status' => 'pending']);
+        $this->assertSame(1, User::query()->where('phone', '01712220099')->count());
+    }
+
+    public function test_a_number_nobody_uses_needs_no_reason(): void
+    {
+        $this->decide($this->apply('dealer'), [])->assertSessionHasNoErrors();
+
+        $dealer = User::query()->where('dealer_code', 'MNHC-100111')->sole();
+        $this->assertNull($dealer->phone_share_approved_by);
+        $this->assertNull($dealer->phone_share_reason);
+    }
+
+    public function test_the_reviewer_can_put_an_approved_dealer_on_the_website_list(): void
+    {
+        $this->decide($this->apply('dealer', ['name' => 'Listed Dealer']), ['directory_visible' => '1'])->assertSessionHasNoErrors();
+
+        $this->assertTrue(User::query()->where('dealer_code', 'MNHC-100111')->sole()->directory_visible);
+        $this->onPortal('public')->get('/dealers')->assertOk()->assertSee('Listed Dealer');
+    }
+
+    public function test_the_reviewer_can_keep_an_approved_dealer_off_the_website_list(): void
+    {
+        $this->decide($this->apply('dealer', ['name' => 'Private Dealer']), ['directory_visible' => '0'])->assertSessionHasNoErrors();
+
+        $this->assertFalse(User::query()->where('dealer_code', 'MNHC-100111')->sole()->directory_visible);
+        $this->onPortal('public')->get('/dealers')->assertOk()->assertDontSee('Private Dealer');
+    }
+
+    public function test_a_sub_dealer_never_goes_on_the_dealer_list(): void
+    {
+        $this->decide($this->apply('sub_dealer'), ['directory_visible' => '1'])->assertSessionHasNoErrors();
+
+        $this->assertFalse(User::query()->where('role', 'sub_dealer')->sole()->directory_visible);
+    }
+
     public function test_the_review_list_shows_the_reference_code_the_applicant_typed(): void
     {
         $this->apply('dealer', ['sponsor_code' => 'MNHC-555']);

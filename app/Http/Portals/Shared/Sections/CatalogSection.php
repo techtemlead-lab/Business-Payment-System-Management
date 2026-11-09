@@ -3,6 +3,7 @@
 namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Catalog\CatalogTaxonomy;
+use App\Domain\Catalog\ProductPageAccess;
 use App\Domain\Catalog\ProductRemoval;
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Inventory\StockRegister;
@@ -58,6 +59,8 @@ final class CatalogSection implements WorkspaceSection
         $removalByProduct = [];
         if ($context->isStaff && $context->section === 'catalog') {
             $register = app(StockRegister::class);
+            $props['can_open_product'] = ProductPageAccess::mayOpen($user);
+            $props['can_create_product'] = ProductPageAccess::mayCreate($user);
             $props['catalog_filters'] = $register->catalogFilters($request, $revealStock);
             $productQuery->whereIn('products.id', $register->matchingProductIds($props['catalog_filters']['active']));
             $addedBetween = MoneyTable::range($request, null);

@@ -5,7 +5,7 @@ import { useT } from '../../shared/i18n/t';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from '../MoneyTable';
 import { FUNDS_COMMAND_ROOT, useHeadName } from './FundSpendForm';
 
-export type SpendApproval = Row & { id: number; fund_key: string; amount: string; can_review: boolean; can_cancel?: boolean; can_self_approve?: boolean; over_budget?: boolean };
+export type SpendApproval = Row & { id: number; fund_key: string; amount: string; can_review: boolean; can_cancel?: boolean; can_self_approve?: boolean; waits_for_owner?: boolean; over_budget?: boolean };
 
 /** Spends waiting for a second person, on the shared table. Everything else opens in a box. */
 export default function SpendApprovals({ table }: { table: MoneyTableData<SpendApproval> }) {
@@ -90,7 +90,7 @@ function ApprovalBox({ row, onClose }: { row: SpendApproval; onClose: () => void
                     {(row.can_review || row.can_self_approve) && <button type="button" className="button dark" onClick={() => setDecision('approved')}>{translate(approveAlone ? 'self_approval' : 'funds', approveAlone ? 'approve_alone' : 'approve')}</button>}
                     {(row.can_review || row.can_self_approve) && <button type="button" className="button small" onClick={() => setDecision('rejected')}>{translate(approveAlone ? 'self_approval' : 'funds', approveAlone ? 'reject_alone' : 'reject')}</button>}
                     {row.can_cancel && <button type="button" className="button small" onClick={() => setDecision('cancel')}>{translate('self_approval', 'cancel_spend')}</button>}
-                    {!row.can_review && !row.can_self_approve && !row.can_cancel && <span className="muted">{translate('funds', 'own_spend_hint')}</span>}
+                    {row.waits_for_owner && <span className="muted">{translate('funds', 'owner_approves_hint')}</span>}
                 </div>
             )}
         </Modal>

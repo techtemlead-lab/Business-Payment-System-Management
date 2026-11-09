@@ -200,6 +200,7 @@ class WorkspaceController extends Controller
         }
         if ($branchScope !== null) {
             $data['branch_scope'] = $branchScope->chip();
+            $data['no_branch_assigned'] = ! $branchScope->allBranches && $branchScope->branchIds === [];
         }
         $partnerHub = PartnerHubTabs::forSection($section, $staff);
         if ($partnerHub !== null) {

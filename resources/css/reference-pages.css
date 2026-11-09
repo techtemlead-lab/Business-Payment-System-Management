@@ -140,6 +140,8 @@ html[data-theme="dark"] .ref-md-message .ref-md-text>p:first-child{color:var(--d
 /* ==========================================================================
    Partnership Application Form Redesign
    ========================================================================== */
+.ref-form-status { scroll-margin-top: 96px; }
+
 .ref-partner-apply-card {
     margin-top: 32px;
     background: #ffffff;

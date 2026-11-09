@@ -25,6 +25,7 @@ return [
     'source_public' => 'Website',
     'source_staff' => 'Through staff',
     'review_note' => 'Approval note',
+    'directory_visible_hint' => 'The dealer\'s name, phone number and district will show on the public website. Untick to keep them off the list.',
     'approve' => 'Approve',
     'reject' => 'Reject',
     'reject_title' => 'Reject this application',

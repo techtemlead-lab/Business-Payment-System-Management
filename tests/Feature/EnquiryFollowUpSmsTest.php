@@ -31,7 +31,7 @@ class EnquiryFollowUpSmsTest extends TestCase
                 'topic' => 'product_enquiry',
                 'message' => 'Need product availability details for Rangpur stockists.',
             ])
-            ->assertRedirect('/contact');
+            ->assertRedirect('/contact#enquiry-status');
 
         $this->assertDatabaseHas('enquiries', [
             'phone' => '01720000097',

@@ -108,7 +108,7 @@ class RemainingHardeningTest extends TestCase
             'division' => 'Rangpur',
             'district' => 'Dinajpur',
             'website' => '',
-        ])->assertRedirect('/partnership');
+        ])->assertRedirect('/partnership#partner-apply-status');
 
         $reviewer = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
         $this->actingAs($reviewer)->postJson('/api/v1/operations/staff/applications/'.$id.'/review', [

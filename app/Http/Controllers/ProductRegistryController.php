@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Catalog\ProductFacts;
+use App\Domain\Catalog\ProductPageAccess;
 use App\Domain\Catalog\ProductRemoval;
 use App\Domain\Finance\Percentage;
 use App\Domain\Inventory\BranchOperations;
@@ -41,8 +42,7 @@ class ProductRegistryController extends Controller
 
     public function edit(Request $r, ?Product $product = null): Response
     {
-        abort_unless($r->user()->staff(), 403);
-        abort_unless($r->user()->allows('catalog') || $r->user()->allows('inventory') || $r->user()->allows('pricing') || $r->user()->allows('cost_read'), 403);
+        abort_unless(ProductPageAccess::mayOpen($r->user()), 403);
         if (! $product) {
             abort_unless($r->user()->allows('catalog') && $r->user()->allows('pricing'), 403);
         }
