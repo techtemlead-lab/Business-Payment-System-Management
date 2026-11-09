@@ -149,7 +149,9 @@ final class PartnerAccountDeletion
         if ($newlySuspended) {
             $this->tellPartnerAccountWasClosed($partner, $reason);
         }
-        app(EventLogProjector::class)->rebuild();
+        if ($result['outcome'] === self::OutcomeDeleted) {
+            app(EventLogProjector::class)->rebuild();
+        }
 
         return $result;
     }

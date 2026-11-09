@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Finance\EventLogProjector;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -8,7 +9,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * The Treasury event log: one read-only row for every order, payment, commission, fund movement,
  * withdrawal and stock movement. It is filled from the existing records by
- * {@see App\Domain\Finance\EventLogProjector}, can be emptied and rebuilt at any time and is never
+ * {@see EventLogProjector}, can be emptied and rebuilt at any time and is never
  * used to decide anything.
  */
 return new class extends Migration
@@ -43,6 +44,11 @@ return new class extends Migration
             $table->unique(['source', 'source_id', 'part']);
             $table->index('order_number');
         });
+        Schema::create('money_event_watermarks', function (Blueprint $table): void {
+            $table->string('feed', 40)->primary();
+            $table->timestampTz('seen_until');
+            $table->timestampTz('updated_at')->useCurrent();
+        });
         DB::statement('CREATE INDEX money_events_time_index ON money_events (occurred_at DESC, id DESC)');
         DB::statement('CREATE INDEX money_events_kind_time_index ON money_events (kind, occurred_at DESC, id DESC)');
         DB::statement('CREATE INDEX money_events_action_time_index ON money_events (action, occurred_at DESC, id DESC)');
@@ -52,6 +58,7 @@ return new class extends Migration
 
     public function down(): void
     {
+        Schema::dropIfExists('money_event_watermarks');
         Schema::dropIfExists('money_events');
     }
 };

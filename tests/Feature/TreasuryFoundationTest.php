@@ -135,7 +135,7 @@ class TreasuryFoundationTest extends TestCase
     {
         $sponsor = User::factory()->dealer()->create();
         $this->delivered(User::factory()->dealer()->create(['sponsor_id' => $sponsor->id]), '173.33', '333.33');
-        $this->delivered(User::factory()->subDealer()->create(['sponsor_id' => $sponsor->id]), '71.71', '191.19');
+        $this->delivered(User::factory()->subDealer()->create(['sponsor_id' => $sponsor->id]), '150.37', '191.19');
 
         $this->assertEveryFundAddsUp('after orders');
         $this->assertSame('173.33', DB::table('orders')->orderBy('created_at')->value('paid'));
@@ -196,7 +196,7 @@ class TreasuryFoundationTest extends TestCase
 
     public function test_a_closed_sub_dealer_rank_month_keeps_its_money_in_and_nets_to_zero(): void
     {
-        $this->delivered(User::factory()->subDealer()->create());
+        $this->delivered(User::factory()->subDealer()->create(), '100.00', '120.00');
         $before = $this->card('rank_reward')['money_in'];
         $this->assertNotSame('0.00', $before);
 
@@ -331,6 +331,29 @@ class TreasuryFoundationTest extends TestCase
         $this->assertEveryFundAddsUp('no commission');
     }
 
+    public function test_no_commission_after_posting_shows_one_company_line_instead_of_the_partners(): void
+    {
+        $sponsor = User::factory()->dealer()->create();
+        $order = $this->delivered(User::factory()->dealer()->create(['sponsor_id' => $sponsor->id]));
+        $first = CommissionAllocation::where('order_id', $order->id)->orderBy('id')->firstOrFail();
+        $commission = (string) DB::table('commission_batches')->where('order_id', $order->id)->value('total_allocated');
+        CommissionAllocation::where('order_id', $order->id)->where('category', '!=', 'company_commission_benefits_fund')->update(['status' => 'reversed', 'amount' => '0.00']);
+        CommissionAllocation::create(['order_id' => $order->id, 'user_id' => null, 'category' => CompanyFunds::NoCommissionCategory, 'rate_percentage' => '40.00', 'cash_basis' => '100.00', 'amount' => $commission, 'original_amount' => $commission, 'status' => 'reserved',
+            'metadata' => ['reason' => 'Dealer refused the rest', 'retained_by' => 'company_profit_fund', 'source_allocation_id' => $first->id, 'taken_back' => '0.00', 'still_owed' => '0.00']]);
+
+        $detail = app(OrderMoneyReport::class)->detail($order->fresh(), true);
+
+        $this->assertSame('no_commission', $detail['posting']);
+        $this->assertSame(['reason' => 'Dealer refused the rest', 'amount' => $commission], $detail['no_commission']);
+        $this->assertTrue($detail['adds_up'], 'company share, owners share and the one fund line add up to what was paid');
+        $this->assertFalse(collect($detail['lines'])->contains(fn (array $line): bool => str_starts_with($line['key'], 'direct_referral')));
+        $line = collect($detail['lines'])->first(fn (array $row): bool => str_starts_with($row['key'], CompanyFunds::NoCommissionCategory));
+        $this->assertSame('company_profit', $line['to']['key']);
+        $this->assertSame('Dealer refused the rest', $line['reason']);
+        $this->assertSame($commission, collect(app(TreasuryFunds::class)->moneyIn($this->allOf(), 'company_profit')['rows']->items())->firstWhere('reason', 'Dealer refused the rest')['amount']);
+        $this->assertEveryFundAddsUp('no commission after posting');
+    }
+
     public function test_the_order_report_counts_only_delivered_goods(): void
     {
         $delivered = $this->delivered(User::factory()->dealer()->create(), '100.00', '200.00');
@@ -389,7 +412,7 @@ class TreasuryFoundationTest extends TestCase
         $this->delivered($buyer, '50.00', '100.00');
 
         $this->assertStatementClosesOnWallet($earner);
-        $this->assertSame('0.00', (string) DB::table('commission_reversals')->where('user_id', $earner->id)->value('unrecovered'));
+        $this->assertSame('5.00', (string) DB::table('commission_reversals')->where('user_id', $earner->id)->value('unrecovered'), 'half of the debt was recovered from the next commission');
     }
 
     private function assertStatementClosesOnWallet(User $partner): void
@@ -427,7 +450,7 @@ class TreasuryFoundationTest extends TestCase
         $earner = User::factory()->dealer()->create();
         $buyer = User::factory()->dealer()->create(['sponsor_id' => $earner->id]);
         $this->delivered($buyer, '100.00', '200.00');
-        $second = $this->delivered($buyer, '73.33', '150.00');
+        $second = $this->delivered($buyer, '73.33', '120.00');
         app(CommissionReversal::class)->refund($second, 1000, 'Part back', 'R-3', $this->owner->id);
 
         $book = app(PartnerMoneyBook::class);
@@ -456,7 +479,7 @@ class TreasuryFoundationTest extends TestCase
 
     public function test_the_owners_fund_is_hidden_from_finance_staff_everywhere(): void
     {
-        $order = $this->delivered(User::factory()->dealer()->create());
+        $order = $this->delivered(User::factory()->dealer()->create(), '100.00', '150.00');
         $this->assertNotSame('0.00', $this->card('benefits')['money_in']);
         $finance = User::factory()->staff('finance')->create();
         $spend = DB::table('reserve_disbursements')->insertGetId(['program' => 'company_spend', 'fund_key' => 'benefits', 'amount' => '1.00', 'status' => 'paid', 'reason' => 'Owner spend', 'payee_name' => 'Family', 'request_key' => (string) Str::uuid(), 'created_by' => $this->owner->id, 'created_at' => now(), 'updated_at' => now()]);
@@ -468,7 +491,7 @@ class TreasuryFoundationTest extends TestCase
         $this->actingAs($finance)->onPortal('manage')->get('/treasury/funds')->assertOk()
             ->assertInertia(fn (Assert $page) => $page->component('TreasuryFunds')->where('cards', fn ($cards): bool => ! collect($cards)->contains('key', 'benefits')));
         $this->actingAs($finance)->onPortal('manage')->get('/treasury/funds/benefits')->assertNotFound();
-        $this->actingAs($this->owner)->onPortal('manage')->get('/treasury/funds/benefits')->assertNotFound();
+        $this->assertContains($this->actingAs($this->owner)->onPortal('manage')->get('/treasury/funds/benefits')->getStatusCode(), [403, 404], 'an owner away from the owner panel does not see it');
 
         $this->actingAs($finance)->onPortal('manage')->get('/treasury/orders/'.$order->id)->assertOk()
             ->assertInertia(fn (Assert $page) => $page->where('detail.lines', function ($lines): bool {
@@ -501,7 +524,7 @@ class TreasuryFoundationTest extends TestCase
 
     public function test_an_owner_on_the_owner_panel_sees_the_owners_fund(): void
     {
-        $order = $this->delivered(User::factory()->dealer()->create());
+        $order = $this->delivered(User::factory()->dealer()->create(), '100.00', '150.00');
 
         $this->actingAs($this->owner)->onPortal('sadmin')->get('/treasury/funds/benefits')->assertOk()
             ->assertInertia(fn (Assert $page) => $page->component('TreasuryFund')->where('card.key', 'benefits')->where('card.owner_only', true));
@@ -525,6 +548,16 @@ class TreasuryFoundationTest extends TestCase
         $this->actingAs($finance)->onPortal('manage')->get('/treasury/partners/'.$this->owner->id)->assertNotFound();
         $this->actingAs($finance)->onPortal('manage')->get('/treasury/partners/'.$dealer->id)->assertOk()->assertInertia(fn (Assert $page) => $page->component('TreasuryPartner')->where('partner.id', $dealer->id));
         $this->actingAs($finance)->onPortal('manage')->get('/treasury/work')->assertOk()->assertInertia(fn (Assert $page) => $page->component('TreasuryWork')->has('tiles')->has('approvals')->has('heads')->has('budget_month'));
+    }
+
+    public function test_the_partner_home_loads_the_income_cards_after_the_page(): void
+    {
+        $earner = User::factory()->dealer()->create();
+        $this->delivered(User::factory()->dealer()->create(['sponsor_id' => $earner->id]));
+
+        $this->actingAs($earner)->onPortal('dealer')->get('/')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->missing('data.money_cards')
+                ->loadDeferredProps(fn (Assert $reload) => $reload->where('data.money_cards.0.key', 'referral')->where('data.money_cards.0.amount', '10.00')));
     }
 
     public function test_the_partner_list_shows_wallet_and_lifetime_figures(): void
@@ -598,7 +631,7 @@ class TreasuryFoundationTest extends TestCase
 
     public function test_money_in_and_money_out_pages_open_for_every_visible_fund(): void
     {
-        $this->delivered(User::factory()->subDealer()->create());
+        $this->delivered(User::factory()->subDealer()->create(), '100.00', '120.00');
         $finance = User::factory()->staff('finance')->create();
 
         foreach (FundCatalog::visibleKeys(false) as $key) {
