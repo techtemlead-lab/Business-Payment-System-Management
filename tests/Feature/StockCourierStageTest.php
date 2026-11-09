@@ -15,6 +15,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 /**
@@ -35,6 +36,7 @@ class StockCourierStageTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->withoutVite();
         $this->hub = CompanyBranch::query()->where('code', 'HO-PIRGANJ')->firstOrFail();
         $this->otherBranch = CompanyBranch::query()->create(['code' => 'BR-TWO', 'name' => 'Branch Two', 'is_active' => true, 'is_stock_hub' => true, 'is_delivery_point' => true]);
         $this->owner = User::factory()->staff('super_admin')->create(['active_branch_id' => $this->hub->id]);
@@ -136,6 +138,37 @@ class StockCourierStageTest extends TestCase
 
         $this->assertSame(0, $this->branchRow($product, $this->hub)['with_courier']);
         $this->assertSame(2, $this->branchRow($product, $this->otherBranch)['with_courier']);
+    }
+
+    public function test_the_stock_page_and_product_page_show_the_stage(): void
+    {
+        $product = $this->product();
+        $this->stockIn($product, 10, $this->hub);
+        $this->dispatch($this->approvedOrder($product, 4), 4);
+
+        $this->actingAs($this->owner)->onPortal('sadmin')->get('/inventory')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('data.stock_table.rows.data.0.with_courier', 4)
+                ->where('data.stock_table.rows.data.0.in_stock', 6)
+                ->where('data.stock_table.totals.sums.with_courier', '4.00'));
+
+        $this->actingAs($this->owner)->onPortal('sadmin')->get('/products/'.$product->id)->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('stock_stages.total.with_courier', 4)
+                ->where('stock_stages.total.total', 10)
+                ->where('stock_stages.branches.0.branch_name', $this->hub->name));
+
+        $this->actingAs($this->owner)->onPortal('sadmin')->get('/catalog')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('data.products.0.with_courier', 4));
+    }
+
+    public function test_a_person_without_stock_rights_does_not_get_the_stages_on_the_product_page(): void
+    {
+        $product = $this->product();
+        $editor = User::factory()->staff('editor')->create();
+
+        $this->actingAs($editor)->onPortal('manage')->get('/products/'.$product->id)->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('stock_stages', null));
     }
 
     /**

@@ -63,6 +63,7 @@ final class CatalogSection implements WorkspaceSection
                 fn ($q) => $q->orderBy('name'),
             );
         $revealStock = ! $context->isStaff || $user->allows('inventory');
+        $stagesByProduct = [];
         if ($context->isStaff && $context->section === 'catalog') {
             $register = app(StockRegister::class);
             $props['catalog_filters'] = $register->catalogFilters($request, $revealStock);
@@ -73,6 +74,7 @@ final class CatalogSection implements WorkspaceSection
             $props['products_truncated'] = false;
             $props['products_page'] = Arr::except($page->toArray(), ['data']);
             $products = $page->getCollection();
+            $stagesByProduct = $revealStock ? $register->stagesByProduct($products->pluck('id')->map(fn (mixed $id): int => (int) $id)->all()) : [];
         } else {
             $productLimit = $context->isStaff ? 250 : 200;
             $props['products_truncated'] = (clone $productQuery)->count() > $productLimit;
@@ -81,7 +83,7 @@ final class CatalogSection implements WorkspaceSection
         $revealDealerPrice = ! $context->isStaff || $user->allows('pricing') || $user->allows('orders') || $user->allows('finance');
         // Each Schema::hasColumn() call reads the database catalogue, so ask once per request, not once per product.
         $supportsProductExpiry = $context->section === 'inventory' && Schema::hasColumn('products', 'expires_on');
-        $props['products'] = $products->map(function ($p) use ($user, $context, $revealStock, $revealDealerPrice, $supportsProductExpiry) {
+        $props['products'] = $products->map(function ($p) use ($user, $context, $revealStock, $revealDealerPrice, $supportsProductExpiry, $stagesByProduct) {
             $base = [...$p->only(['id', 'sku', 'name', 'category', 'sub_category', 'strength', 'description', 'unit', 'mrp', 'active', 'featured', 'tone', 'is_stock_paused']), 'stock_status' => $p->stockStatus(), ...$p->media(), 'image_fallback' => $p->image_path ? null : StockImage::forCategory($p->category, $p->name), ...($user->allows('cost_read') ? ['cost_price' => $p->cost_price] : [])];
             if (! $context->isStaff) {
                 try {
@@ -96,6 +98,9 @@ final class CatalogSection implements WorkspaceSection
                 // The stock screen counts what is on the shelf; everywhere else counts what can be sold.
                 $base['stock'] = $context->section === 'inventory' ? $p->stock : $p->sellableStock();
                 $base['low_stock_at'] = $p->low_stock_at;
+                if (isset($stagesByProduct[$p->id])) {
+                    $base += $stagesByProduct[$p->id];
+                }
             }
             if ($context->section === 'inventory') {
                 $base['register_name'] = $p->registerName();

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from '@inertiajs/react';
-import { money, type Row } from './UI';
+import { money, number, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
 import { ShoppingBag } from 'lucide-react';
 
@@ -212,6 +212,12 @@ export default function LuxuryProductCard({
                                     {translate('portal', 'archive_btn') || 'Archive'}
                                 </button>
                                 <span className="luxury-status-caption">{stockCaption}</span>
+                                {(Number(product.on_hold ?? 0) > 0 || Number(product.with_courier ?? 0) > 0) && (
+                                    <span className="luxury-status-caption sf-product-stages">
+                                        {Number(product.with_courier ?? 0) > 0 && <span>{translate('stock_lots', 'stage_with_courier')} <b>{number(product.with_courier)}</b></span>}
+                                        {Number(product.on_hold ?? 0) > 0 && <span>{translate('stock_lots', 'stage_on_hold')} <b>{number(product.on_hold)}</b></span>}
+                                    </span>
+                                )}
                             </div>
                         </>
                     ) : role === 'dealer' || role === 'subdealer' ? (

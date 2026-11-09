@@ -76,6 +76,7 @@ class ProductRegistryController extends Controller
 
         return Inertia::render('ProductEditor', [
             'product' => $data,
+            'stock_stages' => $product && $r->user()->allows('inventory') ? app(StockStages::class)->forProduct($product) : null,
             'catalog_categories' => CatalogCms::categoryOptions($product),
             'catalog_units' => CatalogCms::unitOptions($product),
             'categories' => SiteCustomization::getConfiguredCategoryNames(),

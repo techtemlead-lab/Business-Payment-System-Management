@@ -1,7 +1,7 @@
 import {useState, useEffect, useMemo} from 'react';
 import {Head,Link,router,useForm,usePage} from '@inertiajs/react';
 import Shell from '../components/Shell';
-import {money, FormErrors, type Row} from '../components/UI';
+import {money, number, FormErrors, type Row} from '../components/UI';
 import {useT} from '../shared/i18n/t';
 import {isPastBusinessDate} from '../business-date';
 import {skuPrefix, suggestSku} from '../shared/sku';
@@ -19,8 +19,10 @@ export default function ProductEditor({
  supports_product_expiry=true,
  product_fact_fields=[],
  product_concerns=[],
+ stock_stages=null,
 }:{
  product:Row|null;
+ stock_stages?:{branches:Row[];total:Row}|null;
  catalog_categories?:CatalogCategory[];
  catalog_units?:CatalogUnit[];
  categories?:string[];
@@ -205,7 +207,7 @@ export default function ProductEditor({
  {form.data.video_source==='url'&&<label>{translate('portal','pe_direct_url')}<input type="url" disabled={!catalog} required value={form.data.external_video_url} placeholder="https://media.example.com/product.mp4" onChange={e=>form.setData('external_video_url',e.target.value)}/><small>{translate('portal','pe_direct_hint')}</small></label>}
  {form.data.video_source==='upload'&&<><label>{translate('portal','pe_upload_video')}<input type="file" disabled={!catalog} required={!p?.video_url} accept="video/mp4,video/webm" onChange={e=>form.setData('video',e.target.files?.[0]??null)}/></label><p className="muted">{translate('portal','pe_upload_video_hint')}</p></>}
  {p?.video_url&&<video className="registry-video" controls preload="metadata" src={p.video_url} aria-label={translate('portal','pe_current_video')}/>}{p?.video_embed_url&&<a className="text-link" href={p.video_embed_url} target="_blank" rel="noreferrer">{translate('portal','pe_view_youtube')}</a>}</section></div>
- <div><section className="panel"><h2>{translate('portal','pe_prices_title')}</h2>
+ <div>{stock_stages&&<section className="panel"><h2>{translate('stock_lots','stages_title')}</h2><div className="pe-stages-wrap"><table className="pe-stages"><thead><tr><th>{translate('portal','col_branch')}</th><th>{translate('stock_lots','stage_in_stock')}</th><th>{translate('stock_lots','stage_on_hold')}</th><th>{translate('stock_lots','stage_with_courier')}</th><th>{translate('stock_lots','stage_expired')}</th><th>{translate('stock_lots','stages_total_row')}</th></tr></thead><tbody>{stock_stages.branches.map((row:any)=><tr key={row.branch_id}><td>{row.branch_name}</td><td>{number(row.in_stock)}</td><td>{number(row.on_hold)}</td><td>{number(row.with_courier)}</td><td>{number(row.expired)}</td><td>{number(row.total)}</td></tr>)}</tbody><tfoot><tr><td>{translate('stock_lots','stages_total_row')}</td><td>{number(stock_stages.total.in_stock)}</td><td>{number(stock_stages.total.on_hold)}</td><td>{number(stock_stages.total.with_courier)}</td><td>{number(stock_stages.total.expired)}</td><td>{number(stock_stages.total.total)}</td></tr></tfoot></table></div></section>}<section className="panel"><h2>{translate('portal','pe_prices_title')}</h2>
   <label>{translate('portal','pe_mrp')}<input required type="number" min="0.01" step="0.01" disabled={!pricing} value={form.data.mrp} onChange={e=>handleMrpChange(e.target.value)}/></label>
   <div className="pe-discount">
    <div className="ed-head is-flush pe-label-row">

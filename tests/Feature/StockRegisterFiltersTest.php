@@ -184,7 +184,9 @@ class StockRegisterFiltersTest extends TestCase
             $this->assertContains($key, $keys);
         }
         $this->assertSame(['level' => 'low', 'category' => 'Oil', 'qty_min' => '3'], $table['filter_bar']['active']);
-        $this->assertSame($table['filter_bar']['active'], $table['state']['filters'], 'The table keeps these filters when the search or sort changes.');
+        $this->assertSame(['level' => 'low', 'category' => 'Oil'], $table['state']['filters'], 'The shared table shows the main filters as chosen.');
+        $this->assertContains('level', array_column($table['filters'], 'key'));
+        $this->assertNotContains('sub_category', array_column($table['filters'], 'key'), 'The rest stay in the More filters sheet.');
     }
 
     public function test_all_branches_view_lists_each_branch_and_can_narrow_to_one(): void

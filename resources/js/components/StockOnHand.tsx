@@ -1,6 +1,6 @@
 import { router } from '@inertiajs/react';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from './MoneyTable';
-import { Badge, date, money, number } from './UI';
+import { date, money, number } from './UI';
 import { StockFilterControls, useAddressVisit, type StockFilterBarData } from './StockFilterBar';
 import { useT } from '../shared/i18n/t';
 import { localizeDigits } from '../business-date';
@@ -66,7 +66,7 @@ function LevelBadge({ level }: { level: StockRow['level'] }) {
         return null;
     }
 
-    return <Badge tone={level === 'out_of_stock' ? 'danger' : 'warning'}>{translate('stock_lots', level === 'out_of_stock' ? 'level_out_of_stock' : 'level_low')}</Badge>;
+    return <span className={`badge ${level === 'out_of_stock' ? 'rejected' : 'held'}`}>{translate('stock_lots', level === 'out_of_stock' ? 'level_out_of_stock' : 'level_low')}</span>;
 }
 
 export default function StockOnHand({ table, branchName, branchCount, canToggle, showBranch }: {

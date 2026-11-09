@@ -73,6 +73,7 @@ final class StockRegister
                 'in_stock' => 'stock_row.in_stock',
                 'on_hold' => 'stock_row.on_hold',
                 'with_courier' => 'stock_row.with_courier',
+                'expired' => 'stock_row.expired',
                 'stock_value' => 'stock_row.stock_value',
             ],
             defaultPeriod: null,
@@ -81,7 +82,10 @@ final class StockRegister
         /** @var LengthAwarePaginator<int, object> $page */
         $page = $table['rows'];
         $page->through(fn (object $row): array => $this->rowForScreen($row, $matchedExpiry, $showsCost, $showsDealerPrice));
-        $table['state']['filters'] = $active;
+        // The shared table draws the main filters itself; the rest live in the "More filters" sheet.
+        $main = array_values(array_filter($fields, fn (array $field): bool => $field['group'] === 'main'));
+        $table['filters'] = array_map(fn (array $field): array => ['key' => $field['key'], 'label' => $field['label'], 'options' => $field['options']], $main);
+        $table['state']['filters'] = array_intersect_key($active, array_flip(array_column($main, 'key')));
         $table['filter_bar'] = ['fields' => $fields, 'active' => $active];
 
         return $table;
@@ -111,6 +115,25 @@ final class StockRegister
         $this->applyFilters($rows, $active);
 
         return $rows->select('stock_row.id');
+    }
+
+    /**
+     * Units on hold and with a courier for each listed product, for the product cards.
+     *
+     * @param  list<int>  $productIds
+     * @return array<int, array{on_hold: int, with_courier: int}>
+     */
+    public function stagesByProduct(array $productIds): array
+    {
+        if ($productIds === []) {
+            return [];
+        }
+
+        return DB::query()->fromSub(StockStages::rows(), 'branch_stage')->whereIn('product_id', $productIds)->groupBy('product_id')
+            ->selectRaw('product_id, CAST(SUM(on_hold) AS integer) AS on_hold, CAST(SUM(with_courier) AS integer) AS with_courier')
+            ->get()
+            ->mapWithKeys(fn (object $row): array => [(int) $row->product_id => ['on_hold' => (int) $row->on_hold, 'with_courier' => (int) $row->with_courier]])
+            ->all();
     }
 
     /**
