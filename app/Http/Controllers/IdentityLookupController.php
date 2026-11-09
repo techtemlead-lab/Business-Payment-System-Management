@@ -47,7 +47,7 @@ class IdentityLookupController extends Controller
         if ($reference !== '' && $own !== '' && $provisioning->isSameCode($reference, $own)) {
             $warnings[] = __('portal.acct_val_reference_same_as_refer');
         }
-        if ($own !== '' && $provisioning->referCodeInUse($own)) {
+        if ($own !== '' && $provisioning->referCodeInUse($own, openAccountsOnly: true)) {
             $warnings[] = __('portal.acct_val_refer_taken');
         }
         $management = ($reference !== '' && $provisioning->referenceIsManagement($reference))

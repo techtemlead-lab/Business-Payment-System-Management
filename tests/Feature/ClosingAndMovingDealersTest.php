@@ -65,6 +65,16 @@ class ClosingAndMovingDealersTest extends TestCase
         $this->assertSame(1, User::query()->where('sponsor_id', $closed->id)->count(), 'The team stays with the closed account.');
     }
 
+    public function test_the_add_form_does_not_call_a_freed_place_code_already_used(): void
+    {
+        $closed = $this->seatedDealerWithHistory('MNHC-102');
+        $this->assertSame([__('portal.acct_val_refer_taken')], $this->referCodeWarnings('MNHC-102'), 'While the dealer is open the code is taken.');
+
+        $this->close($closed);
+
+        $this->assertSame([], $this->referCodeWarnings('MNHC-102'));
+    }
+
     public function test_an_application_can_also_take_a_freed_place(): void
     {
         $closed = $this->seatedDealerWithHistory('MNHC-102');
@@ -215,6 +225,15 @@ class ClosingAndMovingDealersTest extends TestCase
 
         $this->assertDatabaseMissing('users', ['id' => $dealer->id]);
         $this->assertDatabaseMissing('partner_former_codes', ['user_id' => $dealer->id]);
+    }
+
+    /** @return list<string> What the add-partner form warns about this code as the person types it. */
+    private function referCodeWarnings(string $code): array
+    {
+        return $this->actingAs($this->owner)->onPortal('sadmin')
+            ->getJson('/commands/identity/refer-preview?refer_code='.$code)
+            ->assertOk()
+            ->json('data.warnings');
     }
 
     private function close(User $dealer): TestResponse
