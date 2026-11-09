@@ -32,13 +32,18 @@ export default function MoreMenu({ label, icon, groups = [], note, onClosed, chi
     const holder = useRef<HTMLDivElement>(null);
     const notifyClosed = useRef(onClosed);
     notifyClosed.current = onClosed;
+    const wasOpen = useRef(false);
 
     useEffect(() => {
         if (!open) {
-            notifyClosed.current?.();
+            if (wasOpen.current) {
+                notifyClosed.current?.();
+            }
+            wasOpen.current = false;
 
             return undefined;
         }
+        wasOpen.current = true;
         const closeOutside = (event: globalThis.MouseEvent) => {
             if (!holder.current?.contains(event.target as Node)) {
                 setOpen(false);

@@ -74,7 +74,7 @@
 
 /* Modal variants: a drawer from the right for one row, and a wide dialog for permissions. */
 dialog.portal-modal.portal-modal-wide{max-width:960px}
-dialog.portal-modal.portal-modal-drawer{top:0!important;right:0!important;bottom:0!important;left:auto!important;transform:none!important;width:460px;max-width:100%;height:100dvh;max-height:100dvh;border-width:0 0 0 1px;border-radius:0;animation:officeDrawerIn .22s ease both}
+:root dialog.portal-modal.portal-modal-drawer{top:0!important;right:0!important;bottom:0!important;left:auto!important;transform:none!important;width:460px;max-width:100%;height:100dvh;max-height:100dvh;border-width:0 0 0 1px;border-radius:0;animation:officeDrawerIn .22s ease both}
 .portal-modal .modal-badge{margin-inline-end:auto}
 .portal-modal .modal-footer{display:flex;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;gap:var(--ds-s-2);padding:var(--ds-s-3) 20px;border-top:1px solid var(--ds-line);background:var(--ds-surface)}
 @keyframes officeDrawerIn{from{translate:100% 0}to{translate:0 0}}
@@ -98,5 +98,5 @@ dialog.portal-modal.portal-modal-drawer{top:0!important;right:0!important;bottom
 
   .app-shell .office-menu-list{right:auto;left:0;max-width:calc(100vw - 32px)}
 
-  dialog.portal-modal.portal-modal-drawer{width:100%;border-width:0}
+  :root dialog.portal-modal.portal-modal-drawer{width:100%;border-width:0}
 }

@@ -19,6 +19,8 @@
 .app-shell .mt-clear{padding:0;border:0;background:none;box-shadow:none;font-size:var(--ds-fs-sm);cursor:pointer}
 .mt-actions{display:flex;align-items:center;gap:8px;margin-inline-start:auto}
 .app-shell .money-table .mt-sheet-button{display:none}
+.mt-segments{display:flex}
+.app-shell .money-table>.bulk-bar{justify-self:start}
 
 .mt-dates{display:flex;flex-wrap:wrap;gap:8px 12px}
 .app-shell .mt-dates label{display:grid;gap:3px;margin:0;color:var(--ds-text-muted);font-size:var(--ds-fs-xs)}
@@ -38,6 +40,8 @@
 .app-shell .mt-table tbody tr.is-link:hover td{background:var(--ds-surface-2)}
 .app-shell .mt-table tfoot td{border-top:1px solid var(--ds-line);border-bottom:0;background:var(--ds-surface-2);font-weight:650;white-space:nowrap}
 .app-shell .mt-table .mt-open-cell{width:30px;padding-inline:0 10px;vertical-align:middle}
+.app-shell .mt-table .mt-check-cell{width:36px;padding-inline:14px 0}
+.app-shell .mt-table tbody tr:has(.mt-row-open:focus-visible){outline:2px solid var(--ds-brand);outline-offset:-2px}
 
 .app-shell .mt-sort{display:inline-flex;align-items:center;gap:4px;min-height:0;padding:0;border:0;background:none;box-shadow:none;color:inherit;font:inherit;white-space:nowrap;cursor:pointer}
 .app-shell .mt-sort svg{flex:none;opacity:.4}
@@ -71,6 +75,7 @@
   .mt-card{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border-bottom:1px solid var(--ds-line-soft)}
   .mt-card:last-child{border-bottom:0}
   .mt-card.is-link{cursor:pointer}
+  .mt-card:has(.mt-row-open:focus-visible){outline:2px solid var(--ds-brand);outline-offset:-2px}
   .mt-card:focus-within{background:var(--ds-surface-2)}
   .mt-card-main{flex:1;min-width:0}
   .mt-card-title{color:var(--ds-text);font-size:var(--ds-fs-base);font-weight:600;overflow-wrap:anywhere}
