@@ -57,6 +57,17 @@ class ProductRegistryTest extends TestCase
         $this->actingAs(User::factory()->create(['role' => 'dealer']))->get('/workspace/catalog')->assertInertia(fn (Assert $page) => $page->missing('data.products.0.cost_price'));
     }
 
+    public function test_changing_the_warning_level_reaches_the_branch_stock_rows(): void
+    {
+        $p = $this->product();
+        $branchId = DB::table('company_branches')->where('code', 'HO-PIRGANJ')->value('id');
+        DB::table('branch_product_stocks')->insert(['branch_id' => $branchId, 'product_id' => $p->id, 'quantity' => 0, 'low_stock_at' => 12, 'created_at' => now(), 'updated_at' => now()]);
+
+        $this->actingAs(User::factory()->create(['role' => 'inventory']))->patch('/commands/products/'.$p->id, ['version' => '0', 'low_stock_at' => 25, 'reason' => 'Revised stock threshold'])->assertRedirect();
+
+        $this->assertSame(25, (int) DB::table('branch_product_stocks')->where('product_id', $p->id)->value('low_stock_at'));
+    }
+
     public function test_media_permissions_and_direct_stock_changes_are_enforced(): void
     {
         $p = $this->product();

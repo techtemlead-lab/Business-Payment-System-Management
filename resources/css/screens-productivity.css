@@ -23,6 +23,7 @@
 .list-tool-save{display:flex;gap:6px;margin-top:8px}
 .list-tool-save input{min-height:36px;padding:6px 8px}
 .list-tool-empty{font-size:12px;color:var(--muted,#64748b);padding:4px 0}
+@media(min-width:641px){.list-tool-panel.opens-right{right:auto;left:0}}
 @media(max-width:640px){.list-tool-panel{position:fixed;left:16px;right:16px;top:auto;width:auto}}
 .bulk-check{width:16px;height:16px;min-height:16px;padding:0}
 .bulk-bar{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12px}
