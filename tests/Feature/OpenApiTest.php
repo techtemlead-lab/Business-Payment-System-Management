@@ -9,12 +9,15 @@ use App\Models\Shipment;
 use App\Support\SiteCustomization;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Route as RegisteredRoute;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class OpenApiTest extends TestCase
 {
+    use RefreshDatabase;
+
     /**
      * Test GET /api/v1/openapi.json returns 200 OK and valid OpenAPI 3.0.3 specification.
      */
