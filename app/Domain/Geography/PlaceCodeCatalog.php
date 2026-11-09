@@ -8,6 +8,7 @@ use App\Models\PlaceCode;
 use App\Models\User;
 use App\Support\Audit;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -117,6 +118,9 @@ final class PlaceCodeCatalog
             'sort_order' => $input['sort_order'] ?? $place->sort_order,
             'is_active' => $input['is_active'] ?? $place->is_active,
         ], $place);
+        if ($place->is_active && ! $payload['is_active'] && $this->hasActivePartners($place)) {
+            throw ValidationException::withMessages(['is_active' => __('portal.err_pc_deactivate_has_partners')]);
+        }
 
         return DB::transaction(function () use ($place, $payload, $actorId): PlaceCode {
             $place->update($payload);
@@ -154,18 +158,8 @@ final class PlaceCodeCatalog
             throw ValidationException::withMessages(['place' => __('portal.err_pc_delete_has_children')]);
         }
 
-        if ($place->code !== null) {
-            $normalized = PlaceCode::normalizeCode($place->code) ?? $place->code;
-            $legacy = substr((string) $normalized, strlen(PlaceCode::BrandPrefix) + 1);
-            $dealerLinked = User::query()
-                ->where(function ($query) use ($place, $normalized, $legacy): void {
-                    $query->whereRaw("COALESCE(profile->>'place_code_id', '') = ?", [(string) $place->id])
-                        ->orWhereRaw("COALESCE(profile->>'place_code', '') IN (?, ?)", [$normalized, $legacy]);
-                })
-                ->exists();
-            if ($dealerLinked) {
-                throw ValidationException::withMessages(['place' => __('portal.err_pc_delete_has_assignments')]);
-            }
+        if ($place->code !== null && $this->usersOn($place)->exists()) {
+            throw ValidationException::withMessages(['place' => __('portal.err_pc_delete_has_assignments')]);
         }
 
         DB::transaction(function () use ($place, $reason, $actorId): void {
@@ -178,6 +172,28 @@ final class PlaceCodeCatalog
             $place->delete();
             Audit::record($actorId, 'place_code.deleted', (string) $place->id, $snapshot);
         }, 3);
+    }
+
+    /**
+     * Commission follows a partner's place code, so switching off a place that active partners
+     * sit on would quietly send their area shares and salary to the company.
+     */
+    private function hasActivePartners(PlaceCode $place): bool
+    {
+        return AreaDealerAssignment::query()->where('place_code_id', $place->id)->where('is_active', true)->exists()
+            || ($place->code !== null && $this->usersOn($place)->whereIn('role', ['dealer', 'sub_dealer'])->where('status', 'active')->exists());
+    }
+
+    /** @return Builder<User> Accounts whose saved place is this place. */
+    private function usersOn(PlaceCode $place): Builder
+    {
+        $normalized = PlaceCode::normalizeCode($place->code) ?? $place->code;
+        $legacy = substr((string) $normalized, strlen(PlaceCode::BrandPrefix) + 1);
+
+        return User::query()->where(function ($query) use ($place, $normalized, $legacy): void {
+            $query->whereRaw("COALESCE(profile->>'place_code_id', '') = ?", [(string) $place->id])
+                ->orWhereRaw("COALESCE(profile->>'place_code', '') IN (?, ?)", [$normalized, $legacy]);
+        });
     }
 
     /**

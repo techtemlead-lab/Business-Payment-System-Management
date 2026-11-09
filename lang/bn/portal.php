@@ -6572,4 +6572,5 @@ return [
     'file_size_mb' => ':size এমবি',
     'file_size_kb' => ':size কেবি',
     'err_file_too_large' => ':field :sizeর বেশি হতে পারবে না।',
+    'err_pc_deactivate_has_partners' => 'এই জায়গায় পার্টনার আছেন। বন্ধ করার আগে তাঁদের অন্য জায়গায় সরিয়ে নিন।',
 ];
