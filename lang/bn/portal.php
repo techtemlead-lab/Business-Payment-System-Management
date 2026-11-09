@@ -6564,6 +6564,7 @@ return [
     'content_page_faq' => 'প্রশ্নোত্তর',
     'content_page_privacy' => 'গোপনীয়তা',
     'content_page_terms' => 'শর্তাবলি',
+    'pay_view_only_notice' => 'আপনি এই অনুরোধগুলো দেখতে পারবেন। অনুমোদন ও পেমেন্ট করতে পারবেন শুধু মালিক, অথবা মালিক যাঁকে অনুমতি দিয়েছেন।',
     'content_page_products' => 'পণ্য',
     'content_page_dealers' => 'ডিলার',
     'date_format_day_month_year' => 'দিন/মাস/বছর',

@@ -4,16 +4,7 @@ import { Download, Upload, ShieldCheck, Check, Clock, Radio, XCircle, Banknote, 
 import Shell from '../components/Shell';
 import { Row, Badge, ActionForm, money, date, FormErrors, label } from '../components/UI';
 import { useT } from '../shared/i18n/t';
-import { methodForChannel, payoutMethods, type PayoutMethod } from '../shared/payoutMethods';
-
-/** A payment method in the reader's language ("bKash" shows as "বিকাশ" on Bangla pages); unknown methods show as stored. */
-const channelName = (channel: unknown, translate: ReturnType<typeof useT>): string => {
-    const raw = String(channel ?? '');
-    const key = `pay_channel_${raw.toLowerCase()}`;
-    const text = translate('portal', key);
-
-    return text !== key ? text : raw;
-};
+import { channelName, methodForChannel, payoutMethods, type PayoutMethod } from '../shared/payoutMethods';
 
 function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row; events: Row[] }) {
     const translate = useT();
