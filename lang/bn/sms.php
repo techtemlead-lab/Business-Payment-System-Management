@@ -15,7 +15,7 @@ return [
     'order_submitted' => 'মদিনা: অর্ডার :number জমা হয়েছে, অনুমোদনের অপেক্ষায় আছে।',
     'order_decision' => 'মদিনা: অর্ডার :number এখন :status। :reason',
     'payment_claimed' => 'মদিনা: অর্ডার :number-এর পেমেন্ট (:channel-এ :amount) পেয়েছি। যাচাই করে জানাব।',
-    'payment_reviewed' => 'মদিনা: অর্ডার :number-এর পেমেন্ট :outcome হয়েছে।',
+    'payment_reviewed' => 'মদিনা: অর্ডার :number-এর পেমেন্ট :outcome।',
     'shipment_dispatched' => 'মদিনা: অর্ডার :number :courier দিয়ে পাঠানো হয়েছে। ট্র্যাকিং: :tracking।',
     'delivery_confirmed' => 'মদিনা: অর্ডার :number-এর ডেলিভারি নিশ্চিত হয়েছে।',
     'commission_matured' => 'মদিনা: অপেক্ষার সময় শেষ। ৳:amount কমিশন এখন ওয়ালেট থেকে তুলতে পারবেন।',

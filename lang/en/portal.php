@@ -6522,4 +6522,8 @@ return [
     'acct_password_copy_failed' => 'Could not copy. Select the password and copy it by hand.',
     'payment_view_only_note' => 'You can see this payment but cannot confirm or reject it. Someone with the approve right will check it.',
     'acct_created_flash_no_code' => ':type account created. An email to set the password has been sent.',
+    'courier_skip_reason_manual_courier' => 'This courier has no automatic booking. Staff send the parcel by hand.',
+    'courier_skip_reason_courier_off' => 'This courier is switched off.',
+    'courier_skip_reason_no_branch' => 'No branch is set up to send parcels.',
+    'courier_skip_reason_stock' => 'There was not enough stock to send everything.',
 ];
