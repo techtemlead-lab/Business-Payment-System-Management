@@ -1,4 +1,5 @@
 import { router } from '@inertiajs/react';
+import { Pause, Play } from 'lucide-react';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from './MoneyTable';
 import { date, money, number } from './UI';
 import { StockFilterControls, useAddressVisit, type StockFilterBarData } from './StockFilterBar';
@@ -168,11 +169,13 @@ export default function StockOnHand({ table, canToggle, showBranch }: {
             render: (row) => (
                 <button
                     type="button"
-                    className={`button small ${row.is_stock_paused ? 'stock-resume' : 'stock-pause'}`}
+                    className={`button small sf-pause ${row.is_stock_paused ? 'stock-resume' : 'stock-pause'}`}
                     disabled={!canToggle}
+                    title={row.is_stock_paused ? translate('portal', 'resume_ordering') : translate('portal', 'pause_ordering')}
+                    aria-label={row.is_stock_paused ? translate('portal', 'resume_ordering') : translate('portal', 'pause_ordering')}
                     onClick={() => router.post(`/commands/products/${row.id}/toggle-stock`, {}, { preserveScroll: true })}
                 >
-                    {row.is_stock_paused ? translate('portal', 'resume_ordering') : translate('portal', 'pause_ordering')}
+                    {row.is_stock_paused ? <Play size={14} aria-hidden="true" /> : <Pause size={14} aria-hidden="true" />}
                 </button>
             ),
         },

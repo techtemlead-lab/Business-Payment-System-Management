@@ -13,12 +13,14 @@
 
 /* The shared table's own Clear and phone button give way to this bar, which covers every filter. */
 .app-shell .sf-table .mt-clear,.app-shell .sf-table .money-table .mt-sheet-button{display:none}
-.app-shell .sf-table .mt-table :is(th,td){padding-inline:10px}
+.app-shell .sf-table .mt-table :is(th,td){padding-inline:8px}
 .app-shell .sf-catalog .mt-search .search-input{flex-direction:row}
 .sf-table .mt-actions{display:contents}
 .sf-none{color:var(--ds-text-faint)}
+.app-shell .sf-table .sf-pause{width:28px;height:28px;min-height:0;padding:0}
+.app-shell .sf-table .mt-table :is(th,td):last-child{padding-inline:2px 6px}
 
-.app-shell .sf-table .sf-phone-stages{display:none}
+.app-shell .sf-table .mt-table td .sf-phone-stages{display:none}
 .sf-price{display:inline-block;white-space:nowrap}
 
 .app-shell .sf-more{display:inline-flex;align-items:center;gap:5px;flex:none;height:34px;min-height:0;font-size:var(--ds-fs-sm);white-space:nowrap}
