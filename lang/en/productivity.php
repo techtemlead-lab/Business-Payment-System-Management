@@ -77,4 +77,8 @@ return [
     'device_failed' => 'That did not work. Please try again.',
     'device_unknown' => 'Unknown device',
     'device_label' => ':browser on :system',
+    'views_rename' => 'Rename saved filter :name',
+    'views_rename_field' => 'New name for :name',
+    'views_rename_cancel' => 'Cancel',
+    'views_name_taken' => 'You already have a saved filter with this name. Choose another name.',
 ];
