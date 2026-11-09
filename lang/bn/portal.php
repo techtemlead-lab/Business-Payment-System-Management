@@ -6568,4 +6568,5 @@ return [
     'content_page_dealers' => 'ডিলার',
     'date_format_day_month_year' => 'দিন/মাস/বছর',
     'date_format_hour_minute' => 'ঘণ্টা:মিনিট',
+    'err_pc_deactivate_has_partners' => 'এই জায়গায় পার্টনার আছেন। বন্ধ করার আগে তাঁদের অন্য জায়গায় সরিয়ে নিন।',
 ];

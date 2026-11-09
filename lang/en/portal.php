@@ -6568,4 +6568,5 @@ return [
     'content_page_dealers' => 'Dealers',
     'date_format_day_month_year' => 'DD/MM/YYYY',
     'date_format_hour_minute' => 'HH:MM',
+    'err_pc_deactivate_has_partners' => 'Partners are on this place. Move them to another place before you switch it off.',
 ];
