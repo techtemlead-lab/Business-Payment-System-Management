@@ -35,9 +35,9 @@ class PayoutReceiptsTest extends TestCase
         $base = ['paid_at' => now()->subHour()->format('Y-m-d H:i:s'), 'note' => 'Paid by hand'];
 
         $this->actingAs($payer)->post('/commands/withdrawals/'.$id.'/record-payment', $base)->assertSessionHasErrors('method');
-        $this->actingAs($payer)->post('/commands/withdrawals/'.$id.'/record-payment', [...$base, 'method' => 'bank', 'payment_reference' => 'EFT-1',
+        $this->actingAs($payer)->post('/commands/withdrawals/'.$id.'/record-payment', [...$base, 'method' => 'bank', 'payment_reference' => 'EFT-0001',
             'receipt' => UploadedFile::fake()->create('proof.pdf', 20, 'application/pdf')])->assertSessionHasErrors(['bank_name', 'account_number']);
-        $this->actingAs($payer)->post('/commands/withdrawals/'.$id.'/record-payment', [...$base, 'method' => 'bkash', 'payment_reference' => 'BK-1',
+        $this->actingAs($payer)->post('/commands/withdrawals/'.$id.'/record-payment', [...$base, 'method' => 'bkash', 'payment_reference' => 'BK-0001',
             'receipt' => UploadedFile::fake()->image('bkash.png')])->assertSessionHasErrors('wallet_number');
         $this->actingAs($payer)->post('/commands/withdrawals/'.$id.'/record-payment', [...$base, 'method' => 'nagad', 'wallet_number' => '01711000000'])
             ->assertSessionHasErrors(['payment_reference', 'receipt']);

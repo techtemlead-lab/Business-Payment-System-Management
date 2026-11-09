@@ -38,7 +38,7 @@ class ManualReceiptTest extends TestCase
         $payer = User::factory()->create(['role' => 'finance']);
         $id = $this->withdrawal($owner, $reviewer);
         $this->actingAs($owner)->post('/commands/withdrawals/'.$id.'/record-payment', [])->assertForbidden();
-        $this->actingAs($payer)->post('/commands/withdrawals/'.$id.'/record-payment', ['method' => 'other', 'payment_reference' => 'PAY-1', 'paid_at' => now()->subHour()->format('Y-m-d H:i:s'), 'note' => 'Sent manually'])->assertSessionHasErrors('receipt');
+        $this->actingAs($payer)->post('/commands/withdrawals/'.$id.'/record-payment', ['method' => 'other', 'payment_reference' => 'PAY-001', 'paid_at' => now()->subHour()->format('Y-m-d H:i:s'), 'note' => 'Sent manually'])->assertSessionHasErrors('receipt');
         $this->assertDatabaseHas('withdrawals', ['id' => $id, 'status' => 'approved']);
     }
 
@@ -49,7 +49,7 @@ class ManualReceiptTest extends TestCase
         $reviewer = User::factory()->create(['role' => 'finance']);
         $payer = User::factory()->create(['role' => 'finance']);
         $id = $this->withdrawal($owner, $reviewer);
-        $data = ['method' => 'other', 'payment_reference' => 'PAY-1', 'paid_at' => now()->subHour()->format('Y-m-d H:i:s'), 'note' => 'Manually sent and checked', 'receipt' => UploadedFile::fake()->create('proof.pdf', 20, 'application/pdf')];
+        $data = ['method' => 'other', 'payment_reference' => 'PAY-001', 'paid_at' => now()->subHour()->format('Y-m-d H:i:s'), 'note' => 'Manually sent and checked', 'receipt' => UploadedFile::fake()->create('proof.pdf', 20, 'application/pdf')];
         $this->actingAs($reviewer)->post('/commands/withdrawals/'.$id.'/record-payment', $data)->assertSessionHasErrors('withdrawal');
         $data['receipt'] = UploadedFile::fake()->create('proof.pdf', 20, 'application/pdf');
         $this->actingAs($payer)->post('/commands/withdrawals/'.$id.'/record-payment', $data)->assertRedirect();

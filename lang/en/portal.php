@@ -6587,4 +6587,5 @@ return [
     'label_upazila' => 'Upazila',
     'label_union' => 'Union / Pourashava',
     'acct_val_sub_dealer_code_just_used' => 'Someone just added a sub-dealer with this code. Press save again and the next code will be used.',
+    'err_reference_min' => 'The transaction reference must be at least :min characters.',
 ];

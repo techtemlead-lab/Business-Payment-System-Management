@@ -73,7 +73,7 @@ class BackendApiTest extends TestCase
 
         $this->actingAs($owner)->getJson('/api/v1/orders')->assertOk()->assertJsonCount(0, 'data');
         $this->getJson('/api/v1/orders/'.$order->id)->assertNotFound();
-        $this->postJson('/api/v1/orders/'.$order->id.'/payments', ['channel' => 'Bank', 'reference' => 'OTHER', 'amount' => '10.00'])->assertNotFound();
+        $this->postJson('/api/v1/orders/'.$order->id.'/payments', ['channel' => 'Bank', 'reference' => 'OTHER-1', 'amount' => '10.00'])->assertNotFound();
         $this->actingAs(User::factory()->create(['role' => 'editor']))->getJson('/api/v1/orders')->assertForbidden();
     }
 

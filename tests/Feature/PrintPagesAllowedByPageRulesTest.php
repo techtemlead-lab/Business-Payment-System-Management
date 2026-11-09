@@ -140,7 +140,7 @@ class PrintPagesAllowedByPageRulesTest extends TestCase
             'status' => 'approved', 'channel' => 'Bank', 'destination' => encrypt('0123456789012'), 'idempotency_key' => (string) Str::uuid(),
             'reviewed_by' => User::factory()->staff('finance')->create()->id, 'created_at' => now()->subDay(), 'updated_at' => now()]);
         $this->actingAs($payer)->post('/commands/withdrawals/'.$id.'/record-payment', [
-            'method' => 'nagad', 'wallet_number' => '01811000000', 'payment_reference' => 'NG-1',
+            'method' => 'nagad', 'wallet_number' => '01811000000', 'payment_reference' => 'NG-0001',
             'paid_at' => now()->subHour()->format('Y-m-d H:i:s'), 'note' => 'Sent by Nagad', 'receipt' => UploadedFile::fake()->image('nagad.png'),
         ])->assertSessionHasNoErrors();
 

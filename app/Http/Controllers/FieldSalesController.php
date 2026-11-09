@@ -10,6 +10,7 @@ use App\Domain\Staff\TerritoryAccess;
 use App\Http\Requests\Backend\StoreOrderRequest;
 use App\Http\Resources\Api\V1\OrderResource;
 use App\Models\Order;
+use App\Support\TransactionReference;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -68,6 +69,7 @@ class FieldSalesController extends Controller
     {
         // Staff orders follow the partner rules, including "Full payment required when ordering".
         $orderRules = new StoreOrderRequest;
+        TransactionReference::tidy($request, 'reference');
         $data = $request->validate([...$orderRules->rules(), 'user_id' => 'required|integer|exists:users,id'], $orderRules->messages());
         $user = $territories->assertPartner($request->user(), (int) $data['user_id'], 'sr_orders');
         unset($data['user_id']);

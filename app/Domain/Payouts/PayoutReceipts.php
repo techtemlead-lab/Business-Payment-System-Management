@@ -7,6 +7,7 @@ use App\Support\AmountInWords;
 use App\Support\Audit;
 use App\Support\Money;
 use App\Support\SiteCustomization;
+use App\Support\TransactionReference;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Response;
@@ -33,7 +34,7 @@ final class PayoutReceipts
     {
         return [
             'method' => 'required|in:'.implode(',', self::Methods),
-            'payment_reference' => 'nullable|required_unless:method,cash|string|max:100',
+            'payment_reference' => 'nullable|required_unless:method,cash|string|'.TransactionReference::MinRule.'|max:100',
             'bank_name' => 'nullable|required_if:method,bank|string|max:100',
             'account_number' => 'nullable|required_if:method,bank|string|max:60',
             'wallet_number' => ['nullable', 'required_if:method,bkash,nagad', 'regex:/^\+?[0-9][0-9 \-]{5,19}$/D'],

@@ -173,7 +173,7 @@ class PlatformTest extends TestCase
     public function test_customer_supplied_payment_amount_cannot_overpay_order(): void
     {
         $p = $this->product();
-        $this->actingAs($this->user())->post('/commands/orders', ['items' => [['product_id' => $p->id, 'quantity' => 1]], 'idempotency_key' => (string) Str::uuid(), 'reference' => 'TEST', 'channel' => 'Bank', 'amount' => '900.00', 'proof' => UploadedFile::fake()->image('payment-proof.jpg')])->assertSessionHasErrors('amount');
+        $this->actingAs($this->user())->post('/commands/orders', ['items' => [['product_id' => $p->id, 'quantity' => 1]], 'idempotency_key' => (string) Str::uuid(), 'reference' => 'TEST-1', 'channel' => 'Bank', 'amount' => '900.00', 'proof' => UploadedFile::fake()->image('payment-proof.jpg')])->assertSessionHasErrors('amount');
         $this->assertDatabaseCount('orders', 0);
     }
 }
