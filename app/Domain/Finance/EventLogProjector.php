@@ -15,8 +15,6 @@ use Illuminate\Support\Facades\DB;
  */
 final class EventLogProjector
 {
-    public const WatermarkKey = 'money_events_watermarks';
-
     private const OverlapMinutes = 15;
 
     private const Columns = ['occurred_at', 'kind', 'action', 'source', 'source_id', 'part', 'order_id', 'order_number', 'partner_id', 'partner_name', 'partner_code', 'recipient_id', 'recipient_name', 'fund_key', 'label', 'percent', 'product_id', 'product_name', 'branch_id', 'quantity', 'amount', 'audience'];
@@ -58,7 +56,7 @@ final class EventLogProjector
     {
         return DB::transaction(function (): int {
             DB::table('money_events')->delete();
-            DB::table('business_settings')->where('key', self::WatermarkKey)->delete();
+            DB::table('money_event_watermarks')->delete();
             $inserted = 0;
             $watermarks = [];
             foreach ($this->feeds() as $feed) {
@@ -119,18 +117,19 @@ final class EventLogProjector
         return [$inserted, $read?->newest === null ? null : CarbonImmutable::parse((string) $read->newest)->utc(), (int) ($read->seen ?? 0)];
     }
 
-    /** @return array<string, string> */
+    /** @return array<string, string> feed name => the newest time already read */
     private function watermarks(): array
     {
-        $stored = DB::table('business_settings')->where('key', self::WatermarkKey)->value('value');
-
-        return is_string($stored) ? (array) json_decode($stored, true) : [];
+        return DB::table('money_event_watermarks')->pluck('seen_until', 'feed')->map(fn (mixed $time): string => (string) $time)->all();
     }
 
     /** @param array<string, string> $watermarks */
     private function saveWatermarks(array $watermarks): void
     {
-        DB::table('business_settings')->updateOrInsert(['key' => self::WatermarkKey], ['value' => json_encode($watermarks, JSON_THROW_ON_ERROR), 'updated_at' => now(), 'created_at' => now()]);
+        $rows = array_map(fn (string $feed, string $time): array => ['feed' => $feed, 'seen_until' => $time, 'updated_at' => now()], array_keys($watermarks), $watermarks);
+        if ($rows !== []) {
+            DB::table('money_event_watermarks')->upsert($rows, ['feed'], ['seen_until', 'updated_at']);
+        }
     }
 
     /** @return list<Feed> */
@@ -182,7 +181,7 @@ final class EventLogProjector
     /** @return Feed */
     private function orderEvents(): array
     {
-        $actions = implode(', ', array_map(fn (string $from, string $to): string => "WHEN '{$from}' THEN '{$to}'", array_keys(self::OrderActions), self::OrderActions));
+        $actions = implode(' ', array_map(fn (string $from, string $to): string => "WHEN '{$from}' THEN '{$to}'", array_keys(self::OrderActions), self::OrderActions));
 
         return $this->feed('order_events', 'order_events', DB::table('order_events as e')->join('orders as o', 'o.id', '=', 'e.order_id')->join('users as u', 'u.id', '=', 'o.user_id')
             ->leftJoin('payment_claims as c', 'c.id', '=', DB::raw("(CASE WHEN e.action = 'payment.claimed' THEN (e.metadata->>'claim_id')::bigint END)"))

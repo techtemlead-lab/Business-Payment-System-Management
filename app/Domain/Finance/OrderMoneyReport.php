@@ -14,6 +14,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -111,12 +112,16 @@ final class OrderMoneyReport
         $figures = DB::table('orders as o')->leftJoin('order_refunds as f', 'f.order_id', '=', 'o.id')->where('o.id', $order->id)
             ->selectRaw(self::mrpSql().' AS mrp_total, '.self::paidSql().' AS paid, '.self::deliveredPartSql('l.unit_price').' AS delivered_cash')->first();
         $rows = DB::table('commission_allocations as funds')->where('funds.order_id', $order->id)
-            ->where('funds.category', '!=', 'company_commission_benefits_fund')->whereRaw("funds.metadata->>'source_allocation_id' IS NULL")
-            ->orderBy('funds.id')->selectRaw('funds.*, '.FundCatalog::rowFundSql().' AS fund_key')->get();
+            ->where('funds.category', '!=', 'company_commission_benefits_fund')
+            ->orderBy('funds.id')->selectRaw("funds.*, funds.metadata->>'source_allocation_id' AS source_allocation_id, ".FundCatalog::rowFundSql().' AS fund_key')->get();
+        $noCommissionRows = $rows->where('category', CompanyFunds::NoCommissionCategory)->values();
+        // When staff chose no commission the commission lines went to the company fund, so that one
+        // line stands for them. Any other moved row is a later move, not part of the split.
+        $splitRows = $noCommissionRows->isNotEmpty() ? $noCommissionRows : $rows->whereNull('source_allocation_id')->values();
         $decision = DB::table('order_events')->where('order_id', $order->id)->where('action', MixedOutcomeDecisions::Action)->value('metadata');
         $decision = is_string($decision) ? json_decode($decision, true) : null;
 
-        $lines = $batch === null ? [] : [...$this->companyLines($batch, $showOwnerFunds), ...$this->allocationLines($rows)];
+        $lines = $batch === null ? [] : [...$this->companyLines($batch, $showOwnerFunds), ...$this->allocationLines($splitRows)];
         $linesTotal = array_sum(array_map(fn (array $line): int => FundCatalog::centsOf($line['amount']), $lines));
         $sold = $batch !== null ? (string) $batch->cash_basis : ($order->status === self::PartlyDelivered ? (string) $figures->delivered_cash : (string) $order->total);
         $mrp = $batch !== null ? (string) $batch->mrp_basis : (string) $figures->mrp_total;
@@ -134,8 +139,8 @@ final class OrderMoneyReport
                 'percent_off' => $this->percentOff($mrp, $sold),
                 'payments' => $this->payments($order->id),
             ],
-            'posting' => $this->posting($order, $batch, $rows, $decision),
-            'no_commission' => $this->noCommission($order, $rows, $decision),
+            'posting' => $this->posting($order, $batch, $noCommissionRows, $decision),
+            'no_commission' => $this->noCommission($batch, $noCommissionRows, $decision),
             'basis' => $batch === null ? null : ['cash' => (string) $batch->cash_basis, 'mrp' => (string) $batch->mrp_basis, 'refunded' => (string) $batch->refunded_amount],
             'lines' => $lines,
             'lines_total' => FundCatalog::decimalOf($linesTotal),
@@ -209,12 +214,11 @@ final class OrderMoneyReport
     }
 
     /**
-     * @param  iterable<object>  $rows
+     * @param  Collection<int, object>  $rows
      * @return list<array<string, mixed>>
      */
-    private function allocationLines(iterable $rows): array
+    private function allocationLines(Collection $rows): array
     {
-        $rows = collect($rows);
         $partners = DB::table('users')->whereIn('id', $rows->pluck('user_id')->filter()->unique()->values())->get(['id', 'name', 'dealer_code', 'district', 'division', 'profile'])->keyBy('id');
         $metadata = $rows->mapWithKeys(fn (object $row): array => [$row->id => is_string($row->metadata) ? (array) json_decode($row->metadata, true) : []]);
         $places = DB::table('place_codes')->whereIn('id', $metadata->pluck('place_code_id')->filter()->unique()->values())->get(['id', 'name', 'code'])->keyBy('id');
@@ -254,12 +258,12 @@ final class OrderMoneyReport
     /**
      * Where one commission line went: a partner with their name and area, or just the fund.
      *
-     * @param  \Illuminate\Support\Collection<int|string, object>  $partners
-     * @param  \Illuminate\Support\Collection<int|string, object>  $places
+     * @param  Collection<int|string, object>  $partners
+     * @param  Collection<int|string, object>  $places
      * @param  array<string, mixed>  $meta
      * @return array<string, mixed>
      */
-    private function wentTo(object $row, $partners, $places, array $meta): array
+    private function wentTo(object $row, Collection $partners, Collection $places, array $meta): array
     {
         if ($row->fund_key !== null) {
             return ['kind' => 'fund', 'key' => $row->fund_key, 'name' => FundCatalog::name((string) $row->fund_key)];
@@ -312,17 +316,16 @@ final class OrderMoneyReport
     }
 
     /**
-     * @param  iterable<object>  $rows
+     * @param  Collection<int, object>  $noCommissionRows
      * @param  array<string, mixed>|null  $decision
      */
-    private function posting(Order $order, ?object $batch, iterable $rows, ?array $decision): string
+    private function posting(Order $order, ?object $batch, Collection $noCommissionRows, ?array $decision): string
     {
-        if ($this->noCommissionRows($rows)->isNotEmpty() || ($decision['decision'] ?? null) === MixedOutcomeDecisions::NoCommission) {
+        $policy = $batch !== null && is_string($batch->policy) ? (array) json_decode($batch->policy, true) : [];
+        if ($noCommissionRows->isNotEmpty() || ($decision['decision'] ?? null) === MixedOutcomeDecisions::NoCommission || isset($policy['no_commission'])) {
             return 'no_commission';
         }
         if ($batch !== null) {
-            $policy = is_string($batch->policy) ? json_decode($batch->policy, true) : [];
-
             return isset($policy['delivered_part']) ? 'part_delivered' : 'posted';
         }
 
@@ -330,30 +333,24 @@ final class OrderMoneyReport
     }
 
     /**
-     * @param  iterable<object>  $rows
+     * The commission that went to the company fund and the reason staff gave.
+     *
+     * @param  Collection<int, object>  $noCommissionRows
      * @param  array<string, mixed>|null  $decision
      * @return array{reason: ?string, amount: string}|null
      */
-    private function noCommission(Order $order, iterable $rows, ?array $decision): ?array
+    private function noCommission(?object $batch, Collection $noCommissionRows, ?array $decision): ?array
     {
-        $noCommissionRows = $this->noCommissionRows($rows);
-        if ($noCommissionRows->isEmpty() && ($decision['decision'] ?? null) !== MixedOutcomeDecisions::NoCommission) {
+        $policy = $batch !== null && is_string($batch->policy) ? (array) json_decode($batch->policy, true) : [];
+        if ($noCommissionRows->isEmpty() && ($decision['decision'] ?? null) !== MixedOutcomeDecisions::NoCommission && ! isset($policy['no_commission'])) {
             return null;
         }
-        $reason = $noCommissionRows->map(fn (object $row): mixed => is_string($row->metadata) ? (json_decode($row->metadata, true)['reason'] ?? null) : null)->filter()->first();
+        $rowReason = $noCommissionRows->map(fn (object $row): mixed => is_string($row->metadata) ? (json_decode($row->metadata, true)['reason'] ?? null) : null)->filter()->first();
+        $reason = $rowReason ?? ($decision['reason'] ?? null) ?? ($policy['no_commission']['reason'] ?? null);
 
         return [
-            'reason' => is_string($reason) ? $reason : (is_string($decision['reason'] ?? null) ? $decision['reason'] : null),
-            'amount' => Money::decimal($noCommissionRows->sum(fn (object $row): int => FundCatalog::centsOf($row->original_amount ?? $row->amount))),
+            'reason' => is_string($reason) ? $reason : null,
+            'amount' => Money::decimal($noCommissionRows->sum(fn (object $row): int => FundCatalog::centsOf($row->amount))),
         ];
-    }
-
-    /**
-     * @param  iterable<object>  $rows
-     * @return \Illuminate\Support\Collection<int, object>
-     */
-    private function noCommissionRows(iterable $rows)
-    {
-        return collect($rows)->where('category', CompanyFunds::NoCommissionCategory)->values();
     }
 }

@@ -17,7 +17,7 @@ final class TreasuryWork
     public function __construct(private FundBudgets $budgets) {}
 
     /**
-     * @return array{tiles: list<array{key: string, label: string, href: string, count: int}>, approvals: list<array<string, mixed>>, heads: mixed, budgets: mixed, budget_month: string}
+     * @return array{tiles: list<array{key: string, label: string, href: string, count: int}>, approvals: list<array<string, mixed>>, heads: mixed, budgets: mixed, budget_month: string, methods: mixed}
      */
     public function for(User $viewer, string $portal, Request $request): array
     {
