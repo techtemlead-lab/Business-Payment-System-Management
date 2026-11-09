@@ -1,0 +1,90 @@
+/* The shared money table: search, date views, filters, column sort, totals, and row cards on a phone. */
+.money-table{display:grid;gap:12px;min-width:0}
+.money-table.is-busy :is(.mt-table-wrap,.mt-cards){opacity:.55;transition:opacity .15s}
+.mt-loading-line{height:44px}
+
+.mt-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;min-width:0}
+.mt-search{flex:0 1 240px;min-width:170px;margin:0}
+.app-shell .mt-search .search-input{display:flex;align-items:center;gap:8px;width:100%;min-height:34px;margin:0;padding:0 10px}
+.app-shell .mt-search .search-input input{flex:1;width:100%;min-width:0;height:32px;font-size:var(--ds-fs-sm)}
+.app-shell .mt-search .search-input input::-webkit-search-cancel-button{cursor:pointer}
+
+.mt-views{position:relative;display:flex;align-items:center;gap:2px;min-width:0}
+.app-shell .mt-view{flex:none;min-height:0;height:32px;padding:0 11px;border:0;border-radius:var(--ds-r-pill);background:transparent;box-shadow:none;color:var(--ds-text-2);font-size:var(--ds-fs-sm);font-weight:500;white-space:nowrap;cursor:pointer}
+.app-shell .mt-view:hover{background:var(--ds-surface-3);color:var(--ds-text)}
+.app-shell .mt-view[aria-pressed="true"]{background:var(--ds-brand-soft);color:var(--ds-brand-text);font-weight:600}
+
+.mt-filters{display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+.app-shell .mt-filters select{width:auto;max-width:190px;min-height:0;height:34px;margin:0;padding-block:0;font-size:var(--ds-fs-sm)}
+.app-shell .mt-clear{padding:0;border:0;background:none;box-shadow:none;font-size:var(--ds-fs-sm);cursor:pointer}
+.mt-actions{display:flex;align-items:center;gap:8px;margin-inline-start:auto}
+.app-shell .money-table .mt-sheet-button{display:none}
+
+.mt-dates{display:flex;flex-wrap:wrap;gap:8px 12px}
+.app-shell .mt-dates label{display:grid;gap:3px;margin:0;color:var(--ds-text-muted);font-size:var(--ds-fs-xs)}
+.app-shell .mt-dates .date-input-wrapper{width:160px;margin:0}
+.app-shell .mt-error{margin:0}
+.mt-empty{margin:0;padding:28px 16px;border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);background:var(--ds-surface);color:var(--ds-text-muted);text-align:center}
+
+.mt-table-wrap{overflow-x:auto;border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);background:var(--ds-surface)}
+.app-shell .mt-table{width:100%;margin:0;border-collapse:collapse}
+.app-shell .mt-table th{padding:10px 14px;border-bottom:1px solid var(--ds-line);background:var(--ds-surface);color:var(--ds-text-muted);font-size:var(--ds-fs-xs);font-weight:600;text-align:left;white-space:nowrap}
+.app-shell .mt-table td{padding:11px 14px;border-bottom:1px solid var(--ds-line-soft);background:transparent;color:var(--ds-text);font-size:var(--ds-fs-base);text-align:left;vertical-align:top}
+.app-shell .mt-table td :is(.cell-sub,small){display:block;margin-top:1px;color:var(--ds-text-muted);font-size:var(--ds-fs-xs)}
+.app-shell .mt-table :is(th,td).is-right{text-align:right}
+.app-shell .mt-table td.is-money{font-variant-numeric:tabular-nums;white-space:nowrap}
+.app-shell .mt-table tbody tr:last-child td{border-bottom:0}
+.app-shell .mt-table tbody tr.is-link{cursor:pointer}
+.app-shell .mt-table tbody tr.is-link:hover td{background:var(--ds-surface-2)}
+.app-shell .mt-table tfoot td{border-top:1px solid var(--ds-line);border-bottom:0;background:var(--ds-surface-2);font-weight:650;white-space:nowrap}
+.app-shell .mt-table .mt-open-cell{width:30px;padding-inline:0 10px;vertical-align:middle}
+
+.app-shell .mt-sort{display:inline-flex;align-items:center;gap:4px;min-height:0;padding:0;border:0;background:none;box-shadow:none;color:inherit;font:inherit;white-space:nowrap;cursor:pointer}
+.app-shell .mt-sort svg{flex:none;opacity:.4}
+.app-shell .mt-sort:hover{color:var(--ds-text)}
+.app-shell .mt-sort.is-active{color:var(--ds-text)}
+.app-shell .mt-sort.is-active svg{opacity:1;color:var(--ds-brand)}
+.mt-open{display:inline-flex;color:var(--ds-text-faint);border-radius:var(--ds-r-xs)}
+.mt-open:hover{color:var(--ds-brand-text)}
+
+.mt-cards{display:none;margin:0;padding:0;list-style:none}
+.mt-sheet{display:grid;gap:14px}
+.app-shell .mt-sheet label{display:grid;gap:4px;margin:0;font-size:var(--ds-fs-sm)}
+.mt-sheet-sort{display:grid;gap:6px;font-size:var(--ds-fs-sm)}
+.mt-sheet-sort>div{display:flex;flex-wrap:wrap;gap:8px}
+.app-shell .mt-sheet-sort .mt-sort{height:36px;padding:0 12px;border:1px solid var(--ds-line);border-radius:var(--ds-r-pill);font-size:var(--ds-fs-sm)}
+.app-shell .mt-sheet-sort .mt-sort.is-active{border-color:var(--ds-brand);color:var(--ds-brand-text)}
+
+@media (max-width:767px){
+  .mt-toolbar{gap:8px}
+  .mt-search{flex:1 1 150px;min-width:0}
+  .app-shell .money-table .mt-sheet-button{display:inline-flex;align-items:center;gap:5px;flex:none}
+  .mt-filters{display:none}
+  .mt-views{order:5;flex:0 0 100%;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+  .mt-views::-webkit-scrollbar{display:none}
+  .mt-actions{margin-inline-start:0}
+  .mt-dates label{flex:1 1 130px;min-width:0}
+  .app-shell .mt-dates .date-input-wrapper{width:100%}
+
+  .mt-table-wrap{display:none}
+  .mt-cards{display:block;overflow:hidden;border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);background:var(--ds-surface)}
+  .mt-card{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border-bottom:1px solid var(--ds-line-soft)}
+  .mt-card:last-child{border-bottom:0}
+  .mt-card.is-link{cursor:pointer}
+  .mt-card:focus-within{background:var(--ds-surface-2)}
+  .mt-card-main{flex:1;min-width:0}
+  .mt-card-title{color:var(--ds-text);font-size:var(--ds-fs-base);font-weight:600;overflow-wrap:anywhere}
+  .mt-card-title :is(.cell-sub,small){display:inline;margin:0;color:var(--ds-text-muted);font-size:var(--ds-fs-xs);font-weight:400}
+  .mt-card-title :is(.cell-sub,small)::before{content:" · "}
+  .mt-card-lines{color:var(--ds-text-muted);font-size:var(--ds-fs-xs);overflow-wrap:anywhere}
+  .mt-card-lines>span+span::before{content:" · "}
+  .mt-card-lines :is(.cell-sub,small){display:inline;font-size:inherit}
+  .mt-card-lines :is(.cell-sub,small)::before{content:" · "}
+  .mt-card-amount{flex:none;max-width:48%;color:var(--ds-text);font-size:var(--ds-fs-base);font-weight:650;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+  .mt-card .mt-open{align-self:center}
+  .mt-card-total{display:grid;gap:4px;background:var(--ds-surface-2)}
+  .mt-card-total-line{display:flex;justify-content:space-between;gap:12px;color:var(--ds-text-2);font-size:var(--ds-fs-sm)}
+  .mt-card-total-line b{color:var(--ds-text);font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+  dialog.portal-modal:has(.mt-sheet){top:auto!important;bottom:0!important;left:0!important;transform:none!important;width:100%;max-width:100%;border-width:1px 0 0;border-radius:var(--ds-r-xl) var(--ds-r-xl) 0 0}
+}
