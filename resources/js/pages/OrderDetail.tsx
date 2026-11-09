@@ -237,7 +237,9 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                 const title = courierLabel !== eventKey ? courierLabel : portalLabel !== eventKey ? portalLabel : label(event.action.replaceAll('.', ' '));
                 const detail = event.action === 'order.courier_changed'
                     ? translate('courier', 'changed_from_to', { from: String(metadata?.from_label ?? ''), to: String(metadata?.to_label ?? '') }) + (metadata?.note ? ` · ${metadata.note}` : '')
-                    : event.action === 'shipment.courier_status' && metadata?.to ? translate('courier', `status_${metadata.to}`) : metadata?.reason;
+                    : event.action === 'shipment.courier_status' && metadata?.to ? translate('courier', `status_${metadata.to}`)
+                    : event.action === 'order.courier_auto_skipped' ? (metadata?.reason ? translate('portal', `courier_skip_reason_${metadata.reason}`) : null)
+                    : metadata?.reason;
                 return <div className="timeline-item" key={event.id}><i /><div><b>{title}</b><p>{date(event.created_at)}{detail ? ` · ${detail}` : ''}</p></div></div>;
             }) : <p className="muted">{translate('portal', 'order_activity_empty')}</p>}
         </section>

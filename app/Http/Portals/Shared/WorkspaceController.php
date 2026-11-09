@@ -367,7 +367,7 @@ class WorkspaceController extends Controller
         }
 
         return $events->each(function (\stdClass $event): void {
-            if (in_array($event->action, ['order.courier_booking_failed', 'order.courier_booked', 'shipment.received_back'], true)) {
+            if (in_array($event->action, ['order.courier_booking_failed', 'order.courier_booked', 'order.courier_auto_skipped', 'shipment.received_back'], true)) {
                 $metadata = json_decode((string) $event->metadata, true) ?: [];
                 unset($metadata['message'], $metadata['consignment_id'], $metadata['reason']);
                 $event->metadata = json_encode($metadata, JSON_THROW_ON_ERROR);

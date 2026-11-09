@@ -310,6 +310,11 @@
   .app-shell .table-phone-detail dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;margin:0}
   .app-shell .table-phone-detail dt{color:var(--ds-text-muted);font-size:var(--ds-fs-2xs,12px)}
   .app-shell .table-phone-detail dd{margin:0}
+  /* Key columns fit a phone without sideways scrolling: tighter cells, and long order numbers and statuses wrap. */
+  .app-shell .table-wrap table:has(th.table-phone-toggle) :is(th,td){padding-left:4px;padding-right:4px}
+  .app-shell .table-wrap table:has(th.table-phone-toggle) .table-sort-icon{display:none}
+  .app-shell .table-wrap table:has(th.table-phone-toggle) th{white-space:normal}
+  .app-shell .table-wrap table:has(th.table-phone-toggle) td :is(.record-link,.badge){white-space:normal;overflow-wrap:anywhere}
 }
 /* Product facts panel in the product editor */
 .pe-fact-field{border:0;padding:0;margin:12px 0 0;min-width:0}
