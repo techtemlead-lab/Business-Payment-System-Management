@@ -6520,5 +6520,6 @@ return [
     'acct_nid_needs_permission' => 'NID numbers can be entered only by staff with the NID papers permission. Use the birth certificate here.',
     'kyc_note_added_with_account' => 'Added with the new account',
     'acct_password_copy_failed' => 'Could not copy. Select the password and copy it by hand.',
+    'payment_view_only_note' => 'You can see this payment but cannot confirm or reject it. Someone with the approve right will check it.',
     'acct_created_flash_no_code' => ':type account created. An email to set the password has been sent.',
 ];
