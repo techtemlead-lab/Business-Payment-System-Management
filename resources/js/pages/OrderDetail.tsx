@@ -7,6 +7,7 @@ import { useT } from '../shared/i18n/t';
 import { randomUuid } from '../shared/randomUuid';
 import TransactionProgressStepper from '../components/TransactionProgressStepper';
 import CourierTrackingPanel from '../components/CourierTrackingPanel';
+import PartlyDeliveredCommission from '../components/PartlyDeliveredCommission';
 import { shipmentArrivalText } from '../components/orderShipmentArrival';
 
 function DispatchForm({ order, courierChoices }: { order: Row; courierChoices: { key: string; label: string; manual?: boolean }[] }) {
@@ -198,6 +199,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
         </div>
         {order.note && <div className="notice"><b>{translate('portal', 'order_note')}</b><p>{order.note}</p></div>}
         {order.decision_reason && <div className="notice"><b>{translate('portal', 'staff_decision')}</b><p>{order.decision_reason}</p></div>}
+        <PartlyDeliveredCommission />
         {refund && <section className="panel" data-testid="order-refund"><h2>{translate('portal', 'order_refund_recorded')}</h2><p>{translate('portal', 'order_refund_recorded_body', { amount: money(refund.amount), name: String(refund.refunded_by), date: date(refund.created_at) })}</p><p className="muted">{refund.reason}</p></section>}
         {canRefund && !refund && <section className="panel narrow-panel"><h2>{translate('portal', 'order_refund_title')}</h2><p className="muted">{translate('portal', 'order_refund_hint')}</p><p className="notice" data-testid="order-refund-part-warning">{translate('portal', 'order_refund_part_warning')}</p>
             <ActionForm action={`/commands/orders/${order.id}/refund`} fields={[

@@ -97,6 +97,7 @@ export default function TeamOrders({ partner, filters, statuses, orders, totals,
                 {tile('report_col_paid', money(totals.paid))}
                 {tile('report_col_due', money(totals.due))}
             </div>
+            <p className="muted">{translate('portal', 'team_orders_counted_note')}</p>
             <Table
                 searchable={false}
                 tools={false}

@@ -35,11 +35,12 @@ final class OrdersSection implements WorkspaceSection
         if ($context->section === 'deliveries' && OrderListFilter::wantsOverdueDeliveries($request)) {
             // Overdue rows also show the latest courier, tracking number and days since sending.
             app(OverdueDeliveries::class)->withShipmentDetails($listQuery);
+        } else {
+            $listQuery->select('orders.*');
         }
 
         $props = [
             'orders' => $listQuery->with($orderWith)
-                ->select('orders.*')
                 ->selectRaw(DeliveredMoney::valueSql().' AS delivered_value, '.DeliveredMoney::paidSql().' AS delivered_paid')
                 ->latest()
                 ->paginate(12)

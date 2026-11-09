@@ -1298,7 +1298,7 @@ return [
     'admin_stat_orders_today' => 'আজকের অর্ডার',
     'admin_stat_awaiting_review' => 'যাচাইয়ের অপেক্ষায়',
     'admin_stat_partner_accounts' => 'পার্টনার অ্যাকাউন্ট',
-    'admin_stat_approved_purchases' => 'অনুমোদিত অর্ডার',
+    'admin_stat_approved_purchases' => 'ডেলিভারি হওয়া অর্ডার',
     'admin_modules' => 'কোম্পানির বিভাগ',
     'status_submitted' => 'জমা হয়েছে',
     'status_held' => 'আটকে আছে',
@@ -6657,4 +6657,6 @@ return [
     'event_order_delivered_part_commission_posted' => 'ডেলিভারি হওয়া পণ্যের উপর কমিশন যোগ হয়েছে',
     'order_totals_note' => 'অর্ডারের দাম ও দেওয়া টাকা শুধু ডেলিভারি হওয়া পণ্যের হিসাব; আংশিক ডেলিভারিতে শুধু ডেলিভারি হওয়া অংশ। পরিশোধ বাকি মানে চলমান অর্ডারে যে টাকা এখনো দেওয়া হয়নি।',
     'rpt_col_delivered_value' => 'ডেলিভারি হওয়া পণ্যের দাম (৳)',
+    'order_footer_counted' => 'শুধু ডেলিভারি হওয়া পণ্য',
+    'team_orders_counted_note' => 'অর্ডার ও দেওয়া টাকায় শুধু ডেলিভারি হওয়া পণ্য ধরা হয়েছে; আংশিক ডেলিভারিতে শুধু ডেলিভারি হওয়া অংশ।',
 ];

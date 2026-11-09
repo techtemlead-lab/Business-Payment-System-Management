@@ -6,6 +6,7 @@ use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Commissions\RetainedFundLedger;
 use App\Domain\Finance\CompanyFunds;
 use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Inventory\StockService;
@@ -25,6 +26,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 /**
@@ -298,6 +300,49 @@ class PartlyDeliveredCommissionDefaultTest extends TestCase
         $this->assertSame('reversed', $row->fresh()->status);
         $this->assertSame('5000.00', (string) DealerRank::query()->where('user_id', $this->dealer->id)->value('lifetime_purchase_total'));
         $this->assertTrue(app(FinancialReadiness::class)->booksMatch(), json_encode(app(FinancialReadiness::class)->checks()));
+    }
+
+    public function test_the_order_page_shows_plainly_what_happened(): void
+    {
+        $order = $this->partlyDelivered();
+
+        $this->actingAs($this->owner)->onPortal('sadmin')->get('/orders/'.$order->id)->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('commissionOutcome.state', 'posted')
+                ->where('commissionOutcome.delivered_value', '6000.00')
+                ->where('commissionOutcome.order_total', '10000.00')
+                ->where('commissionOutcome.can_choose_no_commission', true));
+
+        $this->decide($order, MixedOutcomeDecisions::NoCommission, 'Dealer complained about the parcel');
+
+        $this->actingAs($this->owner)->onPortal('sadmin')->get('/orders/'.$order->id)->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('commissionOutcome.state', 'no_commission')
+                ->where('commissionOutcome.reason', 'Dealer complained about the parcel')
+                ->where('commissionOutcome.fund_amount', '2400.00')
+                ->where('commissionOutcome.taken_back', '900.00')
+                ->where('commissionOutcome.can_choose_no_commission', false));
+        $this->actingAs($this->dealer)->onPortal('dealer')->get('/orders/'.$order->id)->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('commissionOutcome.state', 'no_commission')
+                ->where('commissionOutcome.reason', 'Dealer complained about the parcel')
+                ->missing('commissionOutcome.fund_amount'));
+    }
+
+    public function test_the_money_shows_on_the_company_profit_fund_with_its_reason(): void
+    {
+        $order = $this->partlyDelivered();
+
+        $this->decide($order, MixedOutcomeDecisions::NoCommission, 'Dealer complained about the parcel');
+
+        $row = collect(app(CompanyFunds::class)->moneyIn('company_profit', 50)->items())->firstWhere('category', CommissionPosting::NoCommissionCategory);
+        $this->assertNotNull($row);
+        $this->assertSame('2400.00', (string) $row->amount);
+        $this->assertSame($order->number, $row->reference);
+        $this->assertSame(__('portal.report_cat_no_commission_to_company'), CompanyFunds::sourceLabel('company_profit', $row->category, $row->status));
+        $retained = collect(app(RetainedFundLedger::class)->detail()['company_profit'])->firstWhere('category', CommissionPosting::NoCommissionCategory);
+        $this->assertNotNull($retained);
+        $this->assertStringContainsString('Dealer complained about the parcel', $retained['reason']);
     }
 
     /** @param array<string, string> $posted */

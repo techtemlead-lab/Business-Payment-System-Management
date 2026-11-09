@@ -345,6 +345,7 @@ class WorkspaceController extends Controller
         $claims = DB::table('payment_claims')->where('order_id', $order->id)->get(['id', 'channel', 'reference', 'amount', 'status', 'reason', 'created_at']);
 
         return Inertia::render('OrderDetail', ['replacementSlots' => $replacementSlots, 'replacementCandidates' => $replacementCandidates, 'order' => $order->load(['lines', 'user:id,name,dealer_code']),
+            'commissionOutcome' => app(MixedOutcomeDecisions::class)->outcomeFor($order, $u),
             'outstanding' => $order->outstanding(),
             'paymentPrompt' => app(OrderPaymentPrompt::class)->for($order, $claims),
             'fullPaymentRequired' => app(FinanceSettings::class)->fullPaymentWhenOrdering()['enabled'],

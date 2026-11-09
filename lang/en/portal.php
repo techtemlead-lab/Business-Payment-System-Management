@@ -1298,7 +1298,7 @@ return [
     'admin_stat_orders_today' => 'Orders today',
     'admin_stat_awaiting_review' => 'Waiting for review',
     'admin_stat_partner_accounts' => 'Partner accounts',
-    'admin_stat_approved_purchases' => 'Approved orders',
+    'admin_stat_approved_purchases' => 'Delivered orders',
     'admin_modules' => 'Company sections',
     'status_submitted' => 'Submitted',
     'status_held' => 'On hold',
@@ -6657,4 +6657,6 @@ return [
     'event_order_delivered_part_commission_posted' => 'Commission added on the delivered goods',
     'order_totals_note' => 'Order value and Paid count delivered goods only, and only the delivered part of a partly delivered order. Still to pay is what is unpaid on orders still open.',
     'rpt_col_delivered_value' => 'Value of delivered goods (৳)',
+    'order_footer_counted' => 'Delivered goods only',
+    'team_orders_counted_note' => 'Ordered and Paid count delivered goods only, and only the delivered part of a partly delivered order.',
 ];
