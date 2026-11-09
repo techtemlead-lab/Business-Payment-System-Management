@@ -10,8 +10,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * A dealer's home place is one seat. Other area seats the office gave the dealer on the
- * Area dealers page stay with the dealer when the home place changes.
+ * A dealer's home place is one seat. Any other active seat on the account, from older data or
+ * the area-dealers command, stays with the dealer when the home place changes.
  */
 class MovingDealerKeepsOtherSeatsTest extends TestCase
 {
@@ -43,7 +43,7 @@ class MovingDealerKeepsOtherSeatsTest extends TestCase
         $this->assertSame(
             ['MNHC-102', 'MNHC-103'],
             $this->activeSeatCodes(),
-            'Only the home seat should move; the Rangpur seat was given separately.'
+            'Only the home seat should move; the Rangpur seat is a separate one.'
         );
     }
 
