@@ -83,6 +83,7 @@ final class FinanceSection implements WorkspaceSection
             sums: ['amount' => 'payment_claims.amount'],
             defaultPeriod: null,
             sumsWhen: fn (): bool => $oneStatus,
+            perPage: 20,
         );
         // Counts for the status tabs and money totals for the whole filtered list: every filter except status itself.
         $groups = MoneyTable::filtered($request, $claims, $spec)

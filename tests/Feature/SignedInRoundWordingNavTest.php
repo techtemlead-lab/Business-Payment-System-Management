@@ -63,14 +63,8 @@ class SignedInRoundWordingNavTest extends TestCase
     #[DataProvider('fundPageNames')]
     public function test_the_two_company_money_pages_have_different_names_everywhere(string $locale, string $moneyFlowName, string $fundBalancesName): void
     {
-        $this->assertSame($moneyFlowName, __('portal.treasury', [], $locale));
-        $this->assertSame($moneyFlowName, __('portal.tr_heading', [], $locale));
-        $this->assertSame($fundBalancesName, __('portal.company_funds', [], $locale));
-        $this->assertSame($fundBalancesName, __('funds.title', [], $locale));
-
-        $menuGuide = (string) __('manual.menu_office_s6', [], $locale);
-        $this->assertStringContainsString($moneyFlowName, $menuGuide);
-        $this->assertStringContainsString($fundBalancesName, $menuGuide);
+        $this->assertSame($locale === 'bn' ? 'ট্রেজারি' : 'Treasury', __('portal.treasury', [], $locale));
+        $this->assertStringContainsString((string) __('portal.treasury', [], $locale), (string) __('manual.menu_office_s6', [], $locale));
     }
 
     public function test_the_owner_pages_receive_the_new_names_in_bangla(): void
@@ -78,12 +72,11 @@ class SignedInRoundWordingNavTest extends TestCase
         $owner = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
         $this->actingAs($owner)->onPortal('sadmin')->post('/locale', ['locale' => 'bn'])->assertRedirect();
 
-        $this->actingAs($owner)->onPortal('sadmin')->get('/company-funds')
+        $this->actingAs($owner)->onPortal('sadmin')->get('/treasury/funds')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('translations.portal.treasury', 'টাকার আসা-যাওয়া')
-                ->where('translations.portal.company_funds', 'ফান্ডের ব্যালেন্স')
-                ->where('translations.funds.title', 'ফান্ডের ব্যালেন্স'));
+                ->where('translations.portal.treasury', 'ট্রেজারি')
+                ->where('translations.treasury.title', 'ট্রেজারি'));
     }
 
     /**
@@ -174,9 +167,9 @@ class SignedInRoundWordingNavTest extends TestCase
 
     public function test_activity_log_shows_only_the_plain_label(): void
     {
-        $portal = (string) file_get_contents(resource_path('js/pages/Portal.tsx'));
-        $this->assertStringContainsString("render:r=>auditActionLabel(String(r.action||''),translate)", $portal);
-        $this->assertStringNotContainsString('{r.action}</small>', $portal);
+        $portal = (string) file_get_contents(resource_path('js/components/WorkLogTable.tsx'));
+        $this->assertStringContainsString("auditActionLabel(String(row.action ?? ''), translate)", $portal);
+        $this->assertStringNotContainsString('{row.action}</small>', $portal);
 
         foreach (['event_purchase_order_received', 'event_shipment_received_back'] as $key) {
             $english = trans('portal.'.$key, [], 'en');

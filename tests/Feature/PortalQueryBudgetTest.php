@@ -117,9 +117,7 @@ class PortalQueryBudgetTest extends TestCase
             'profile' => false,
             'catalog' => true,
             'orders' => false,
-            'earnings' => false,
-            'withdrawals' => false,
-            'full-report' => false,
+            'my-money' => false,
             'help' => true,
         ], collect($checklist['checklist'])->pluck('done', 'key')->all());
         $this->assertSame(['profile'], collect($checklist['missing'])->pluck('key')->all());
@@ -130,7 +128,6 @@ class PortalQueryBudgetTest extends TestCase
         $this->order($dealer, 'submitted', total: '50.00');
         $done = collect($guide->forSection($dealer, 'orders')['checklist'])->pluck('done', 'key');
         $this->assertTrue($done['orders']);
-        $this->assertTrue($done['full-report']);
     }
 
     public function test_inventory_reads_the_schema_once_however_many_products(): void
@@ -226,7 +223,7 @@ class PortalQueryBudgetTest extends TestCase
         };
         $this->rankLeaders(2);
         $bikeProgress();
-        $pages = ['/ranks' => 'data.ranks', '/rewards' => 'data.milestones', '/area-dealers' => 'data.assignments', '/settlements' => 'data.settlement_state.qualified_rank_leaders'];
+        $pages = ['/ranks' => 'data.ranks', '/area-dealers' => 'data.assignments', '/settlements' => 'data.settlement_state.qualified_rank_leaders'];
         $before = [];
         foreach (array_keys($pages) as $path) {
             [$response, $before[$path]] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get($path));

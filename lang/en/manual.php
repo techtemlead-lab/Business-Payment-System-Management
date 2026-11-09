@@ -291,7 +291,7 @@ return [
     'owner_benefits_fund_badge' => 'Owners\' fund',
     'owner_benefits_fund_title' => 'The owners\' fund',
     'owner_benefits_fund_summary' => 'What is left of each order after the company share and all commissions. Only the owners see it.',
-    'owner_benefits_fund_purpose' => 'The owners\' fund is a card on Treasury → Funds, on the owner panel only.',
+    'owner_benefits_fund_purpose' => 'Owner accounts need this money kept apart. It is a card on Treasury → Funds, on the owner panel only.',
     'owner_benefits_fund_why' => 'Keeping this money apart stops it being mixed with money owed to partners.',
     'owner_benefits_fund_s1' => 'Sign in on the owner panel and open Treasury → Funds.',
     'owner_benefits_fund_s2' => 'Press the Owners\' fund card to see every amount that came in and went out.',

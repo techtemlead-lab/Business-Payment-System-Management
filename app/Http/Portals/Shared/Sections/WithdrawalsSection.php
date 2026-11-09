@@ -58,6 +58,7 @@ final class WithdrawalsSection implements WorkspaceSection
             sums: ['amount' => 'withdrawals.amount'],
             defaultPeriod: null,
             sumsWhen: fn (array $applied): bool => isset($applied['status']),
+            perPage: 20,
         );
 
         $summary = MoneyTable::filtered($request, $matching, $spec($otherFilters))

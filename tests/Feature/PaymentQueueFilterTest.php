@@ -65,18 +65,18 @@ class PaymentQueueFilterTest extends TestCase
 
         $this->actingAs($owner)->onPortal('sadmin')->get('/payments?q=BK-QUEUE-1')->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->has('data.claims.data', 1)
-                ->where('data.claims.data.0.number', 'PAY-DEALER-1')
-                ->where('data.claims.data.0.name', 'Queue Dealer')
-                ->where('data.claims.data.0.district', 'Rangpur')
-                ->where('data.claims.data.0.total', '500.00')
-                ->where('data.claims.data.0.paid', '100.00')
+                ->has('data.payments_table.rows.data', 1)
+                ->where('data.payments_table.rows.data.0.number', 'PAY-DEALER-1')
+                ->where('data.payments_table.rows.data.0.name', 'Queue Dealer')
+                ->where('data.payments_table.rows.data.0.district', 'Rangpur')
+                ->where('data.payments_table.rows.data.0.total', '500.00')
+                ->where('data.payments_table.rows.data.0.paid', '100.00')
                 ->where('filters.q', 'BK-QUEUE-1'));
 
         $this->actingAs($owner)->onPortal('sadmin')->get('/payments?buyer_role=sub_dealer&status=verified&channel=Bank')->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->has('data.claims.data', 1)
-                ->where('data.claims.data.0.number', 'PAY-SUB-1')
-                ->where('data.claims.data.0.role', 'sub_dealer'));
+                ->has('data.payments_table.rows.data', 1)
+                ->where('data.payments_table.rows.data.0.number', 'PAY-SUB-1')
+                ->where('data.payments_table.rows.data.0.role', 'sub_dealer'));
     }
 }

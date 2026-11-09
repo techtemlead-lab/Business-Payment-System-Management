@@ -75,29 +75,23 @@ class CompanyCommissionBenefitsFundTest extends TestCase
         app(CommissionPosting::class)->process($order->fresh());
 
         $owner = User::factory()->create(['role' => 'super_admin']);
-        $this->actingAs($owner)->onPortal('sadmin')->get('/benefits-fund')
+        $this->actingAs($owner)->onPortal('sadmin')->get('/treasury/funds/benefits?period=')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->component('portals/sadmin/Dashboard')
-                ->where('section', 'benefits-fund')
-                ->where('data.benefits_fund.balance', 12)
-                ->has('data.benefits_entries.data', 1));
+                ->component('TreasuryFund')
+                ->where('card.money_in', '12.00')
+                ->has('table.rows.data', 1));
 
-        $this->actingAs($finance)->onPortal('manage')->get('/benefits-fund')->assertNotFound();
-        $this->actingAs($finance)->onPortal('manage')->get('/treasury')
+        $this->actingAs($finance)->onPortal('manage')->get('/treasury/funds/benefits')->assertNotFound();
+        $this->actingAs($finance)->onPortal('manage')->get('/treasury/funds')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->missing('data.flow.unallocated_pool_buffer')
-                ->missing('data.flow.commission_benefits_fund')
-                ->missing('data.flow.owner_benefits_fund_visible')
-                ->has('data.payment_accounts'));
+                ->where('cards', fn ($cards): bool => ! collect($cards)->pluck('key')->contains('benefits')));
 
-        $this->actingAs($owner)->onPortal('sadmin')->get('/treasury')
+        $this->actingAs($owner)->onPortal('sadmin')->get('/treasury/funds')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('data.flow.owner_benefits_fund_visible', true)
-                ->where('data.flow.commission_benefits_fund', 12)
-                ->has('data.payment_accounts'));
+                ->where('cards', fn ($cards): bool => collect($cards)->firstWhere('key', 'benefits')['money_in'] === '12.00'));
     }
 
     public function test_sub_dealer_purchase_surplus_funds_the_owner_benefits_fund(): void

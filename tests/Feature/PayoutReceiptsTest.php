@@ -9,7 +9,6 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 /**
@@ -146,19 +145,10 @@ class PayoutReceiptsTest extends TestCase
         $mine = $this->paidReceipt($partner, $reviewer, $payer, 'MINE-1');
         $theirs = $this->paidReceipt($other, $reviewer, $payer, 'THEIRS-1');
 
-        $this->actingAs($partner)->onPortal('dealer')->get('/payment-receipts')
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->where('section', 'payment-receipts')
-                ->has('data.payment_receipts.data', 1)
-                ->where('data.payment_receipts.data.0.id', $mine)
-                ->where('data.payment_receipts.data.0.reference', 'MINE-1')
-                ->where('translations.portal.payment_receipts', 'Payment receipts'));
+        $this->actingAs($partner)->onPortal('dealer')->get('/payment-receipts')->assertRedirect('/my-money');
+        $this->actingAs($partner)->onPortal('dealer')->get('/payment-receipts/'.$mine.'/print')->assertOk();
         $this->actingAs($partner)->onPortal('dealer')->get('/payment-receipts/'.$theirs.'/print')->assertNotFound();
 
-        $this->actingAs($other)->onPortal('subdealer')->get('/payment-receipts')
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->has('data.payment_receipts.data', 1)->where('data.payment_receipts.data.0.id', $theirs));
         $this->actingAs($other)->onPortal('subdealer')->get('/payment-receipts/'.$theirs.'/print')->assertOk();
         $this->actingAs($other)->onPortal('subdealer')->get('/payment-receipts/'.$mine.'/print')->assertNotFound();
 

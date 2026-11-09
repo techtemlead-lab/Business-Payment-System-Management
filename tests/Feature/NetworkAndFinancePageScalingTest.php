@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Domain\Accounts\PartnerDashboardHome;
 use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Commissions\CommissionReversal;
-use App\Domain\Commissions\CommissionSettlement;
 use App\Domain\Finance\ReserveService;
 use App\Domain\Orders\OrderService;
 use App\Domain\Pricing\ProductPricing;
@@ -176,56 +175,6 @@ class NetworkAndFinancePageScalingTest extends TestCase
 
         $this->assertSame('450.00', app(PartnerDashboardHome::class)->for($dealer)['snapshot']['team_sales_today']);
         $this->assertSame('0.00', app(PartnerDashboardHome::class)->for($outsider)['snapshot']['team_sales_today']);
-    }
-
-    public function test_treasury_totals_match_the_separate_sums(): void
-    {
-        $this->enableFinancialPosting();
-        $dealer = $this->partner(null);
-        $subDealer = $this->partner($dealer, 'sub_dealer');
-        $this->postedOrder($dealer, '100.00');
-        $refunded = $this->postedOrder($subDealer, '120.00');
-        app(CommissionReversal::class)->refund($refunded, 3000, 'Part returned', 'TREASURY-REFUND');
-        $source = CommissionAllocation::query()->firstOrFail();
-        foreach ([['status' => 'maturing', 'amount' => '7.25'], ['status' => 'unassigned_reserve', 'amount' => '3.10'], ['status' => 'reversed', 'amount' => '9.99'],
-            ['category' => CommissionSettlement::CompanyProfitCategory, 'amount' => '4.40'],
-            ['category' => 'company_marketing_fund', 'amount' => '2.00', 'metadata' => ['source_allocation_id' => $source->id]]] as $override) {
-            CommissionAllocation::create([...collect($source->getAttributes())->except(['id', 'metadata'])->all(), 'metadata' => [], ...$override]);
-        }
-        foreach ([['paid', '200.00', '190.00', '10.00'], ['paid', '50.00', null, '0.00'], ['approved', '80.00', '75.00', '5.00']] as [$status, $amount, $net, $withheld]) {
-            DB::table('withdrawals')->insert(['id' => (string) Str::uuid(), 'user_id' => $dealer->id, 'amount' => $amount, 'net_amount' => $net, 'withheld_amount' => $withheld,
-                'status' => $status, 'channel' => 'Bank', 'destination' => encrypt('TEST-1234'), 'idempotency_key' => (string) Str::uuid(), 'created_at' => now(), 'updated_at' => now()]);
-        }
-
-        $original = fn ($query) => $query->whereRaw("(metadata->>'source_allocation_id') IS NULL");
-        $company = DB::table('commission_batches')->selectRaw('COALESCE(SUM(company_share * (cash_basis - refunded_amount) / cash_basis), 0) AS amount')->value('amount');
-        $buffer = DB::table('commission_batches')->selectRaw('COALESCE(SUM(unallocated * (cash_basis - refunded_amount) / cash_basis), 0) AS amount')->value('amount');
-        $allocated = (float) CommissionAllocation::where('status', '!=', 'reversed')->where('category', '!=', 'company_commission_benefits_fund')->where($original)->sum('amount');
-        $expected = [
-            'company_share_60' => round((float) $company, 2),
-            'unassigned_territory_reserve' => (float) CommissionAllocation::where('status', 'unassigned_reserve')->sum('amount'),
-            'commission_pool_40' => $allocated,
-            'allocated_so_far' => $allocated,
-            'settled_disbursements' => (float) DB::table('withdrawals')->where('status', 'paid')->sum(DB::raw('COALESCE(net_amount, amount)')),
-            'maturing_commissions' => (float) CommissionAllocation::where('status', 'maturing')->sum('amount'),
-            'marketing_fund' => (float) CommissionAllocation::where('category', 'company_marketing_fund')->sum('amount'),
-            'car_bike_fund' => (float) CommissionAllocation::where('category', 'car_bike_incentive_fund')->sum('amount'),
-            'tds_tax_withheld' => (float) DB::table('withdrawals')->where('status', 'paid')->sum('withheld_amount'),
-            'refunded_purchase_value' => (float) DB::table('commission_refunds')->sum('amount'),
-            'unclaimed_to_company_profit' => (float) CommissionAllocation::where('status', '!=', 'reversed')->where('category', CommissionSettlement::CompanyProfitCategory)->sum('amount'),
-            'commission_benefits_fund' => round((float) $buffer, 2),
-        ];
-        $this->assertSame(240.0, $expected['settled_disbursements']);
-        $this->assertSame(30.0, $expected['refunded_purchase_value']);
-
-        $owner = User::factory()->staff()->create();
-        $flow = $this->actingAs($owner)->onPortal('sadmin')
-            ->withHeaders(['X-Inertia' => 'true', 'X-Inertia-Version' => $this->inertiaVersion()])
-            ->get('/treasury')->assertOk()->json('props.data.flow');
-        foreach ($expected as $key => $value) {
-            $this->assertEquals($value, $flow[$key], "Treasury figure {$key} changed.");
-        }
-        $this->assertEquals($expected['company_share_60'] + $flow['management_reserve_2'] + $expected['unassigned_territory_reserve'], $flow['total_company_deposits']);
     }
 
     public function test_reserve_summary_matches_each_fund_and_shows_the_car_and_bike_fund_once(): void

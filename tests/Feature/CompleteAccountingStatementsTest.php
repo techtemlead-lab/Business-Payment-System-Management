@@ -16,7 +16,6 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 /**
@@ -267,18 +266,15 @@ class CompleteAccountingStatementsTest extends TestCase
         $this->assertSame($before, [DB::table('journal_entries')->count(), DB::table('journal_lines')->count(), DB::table('stock_lots')->sum('quantity')]);
     }
 
-    public function test_the_page_shows_the_new_lines_and_what_an_accountant_must_check(): void
+    public function test_the_statements_have_the_new_lines_and_what_an_accountant_must_check(): void
     {
         $this->seedStory();
 
-        $this->actingAs($this->staff)->onPortal('manage')->get('/operations/accounting?from=2026-10-01&to=2026-10-31')
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->component('Accounting')
-                ->where('statements.profit_loss.result', '680.00')
-                ->where('statements.balance_sheet.difference', '0.00')
-                ->where('statements.accountant_checks', AccountingStatements::accountantChecks())
-                ->where('translations.accounting.management_notice', __('accounting.management_notice')));
+        $statements = app(AccountingStatements::class)->build('2026-10-01', '2026-10-31', true);
+
+        $this->assertSame('680.00', $statements['profit_loss']['result']);
+        $this->assertSame('0.00', $statements['balance_sheet']['difference']);
+        $this->assertSame(AccountingStatements::accountantChecks(), $statements['accountant_checks']);
     }
 
     public function test_the_notice_and_every_accountant_check_exist_in_both_languages(): void

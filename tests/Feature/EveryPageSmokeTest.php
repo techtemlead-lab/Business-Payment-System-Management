@@ -72,12 +72,7 @@ class EveryPageSmokeTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        $failures = array_filter(
-            $this->visit($staff, 'manage', $locale),
-            // The owners' special fund is shown only to owners, on the owner panel.
-            fn (string $failure): bool => ! str_starts_with($failure, 'manage/benefits-fund'),
-        );
-        $this->assertSame([], array_values($failures));
+        $this->assertSame([], array_values($this->visit($staff, 'manage', $locale)));
     }
 
     #[DataProvider('locales')]

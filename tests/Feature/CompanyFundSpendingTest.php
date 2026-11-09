@@ -114,7 +114,7 @@ class CompanyFundSpendingTest extends TestCase
             $this->actingAs($user)->postJson('/api/v1/operations/company-funds/heads', ['name_en' => 'Not allowed', 'name_bn' => 'অনুমতি নেই'])->assertForbidden();
         }
         $this->assertDatabaseMissing('reserve_disbursements', ['program' => 'company_spend']);
-        $this->actingAs(User::factory()->staff('sr')->create())->onPortal('manage')->get('/company-funds')->assertForbidden();
+        $this->actingAs(User::factory()->staff('sr')->create())->onPortal('manage')->get('/treasury/funds')->assertForbidden();
     }
 
     public function test_an_owner_without_finance_edit_rights_can_record_and_approve(): void
@@ -254,11 +254,9 @@ class CompanyFundSpendingTest extends TestCase
         $owner = User::factory()->staff('super_admin')->create();
         $this->fundRow('company_profit_fund', '500.00');
 
-        foreach (['funds', 'approvals', 'heads', 'report'] as $tab) {
-            $this->actingAs($owner)->onPortal('sadmin')->get('/company-funds?tab='.$tab)->assertOk();
+        foreach (['/treasury/funds', '/treasury/work', '/treasury/work?tab=heads', '/treasury/work?tab=budgets', '/treasury/funds/company_profit', '/treasury/funds/company_share'] as $page) {
+            $this->actingAs($owner)->onPortal('sadmin')->get($page)->assertOk();
         }
-        $this->actingAs($owner)->onPortal('sadmin')->get('/company-funds?tab=funds&fund=company_profit')->assertOk();
-        $this->actingAs($owner)->onPortal('sadmin')->get('/company-funds?tab=funds&fund=company_share')->assertOk();
     }
 
     /** @return array{0: User, 1: User} */

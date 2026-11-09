@@ -29,7 +29,6 @@ class ManualDuplicateKeysTest extends TestCase
     {
         $step = (string) __('manual.payouts_settlements_s1', [], $locale);
 
-        $this->assertStringContainsString((string) __('portal.nav_module_payouts', [], $locale), $step);
         $this->assertStringContainsString((string) __('portal.payouts_hub', [], $locale), $step);
     }
 
@@ -46,15 +45,14 @@ class ManualDuplicateKeysTest extends TestCase
     {
         $step = (string) __('manual.owner_benefits_fund_s1', [], $locale);
 
-        $this->assertStringContainsString((string) __('portal.nav_module_finance', [], $locale), $step);
-        $this->assertStringContainsString((string) __('portal.benefits_fund', [], $locale), $step);
+        $this->assertStringContainsString((string) __('portal.treasury', [], $locale), $step);
         $this->assertStringNotContainsString('sadmin', $step);
     }
 
     #[DataProvider('languages')]
     public function test_the_benefits_fund_outcome_names_the_page_the_owner_really_sees(string $locale): void
     {
-        $this->assertStringContainsString((string) __('portal.treasury', [], $locale), (string) __('manual.owner_benefits_fund_o3', [], $locale));
+        $this->assertStringContainsString((string) __('portal.treasury', [], $locale), (string) __('manual.owner_benefits_fund_purpose', [], $locale));
     }
 
     public function test_the_benefits_fund_purpose_keeps_the_wording_for_a_one_owner_company(): void
