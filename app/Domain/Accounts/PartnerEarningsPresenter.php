@@ -54,22 +54,24 @@ final class PartnerEarningsPresenter
         $timezone = (string) config('madina.business_timezone', config('app.timezone'));
         $amounts = [];
         $total = 0;
-        $rows = DB::table('commission_allocations')
-            ->where('user_id', $user->id)
-            ->where('status', 'maturing')
-            ->groupByRaw('1')
-            ->orderByRaw('1 NULLS LAST')
-            ->selectRaw("((metadata->>'maturation_due_at')::timestamptz AT TIME ZONE ?)::date AS ready_on, SUM(amount) AS amount", [$timezone])
-            ->get();
+        $rows = DB::select(<<<'SQL'
+            SELECT ready_on, SUM(amount) AS amount
+            FROM (
+                SELECT ((metadata->>'maturation_due_at')::timestamptz AT TIME ZONE ?)::date AS ready_on, amount
+                FROM commission_allocations
+                WHERE user_id = ? AND status = 'maturing'
+                UNION ALL
+                SELECT NULL::date, held - held_released
+                FROM opening_balance_entries
+                WHERE user_id = ? AND held > held_released
+            ) AS waiting
+            GROUP BY ready_on
+            ORDER BY ready_on NULLS LAST
+        SQL, [$timezone, $user->id, $user->id]);
         foreach ($rows as $row) {
             $cents = Money::cents((string) $row->amount);
             $total += $cents;
             $amounts[] = ['ready_on' => $row->ready_on !== null ? (string) $row->ready_on : null, 'amount' => Money::decimal($cents)];
-        }
-        $broughtOver = Money::cents((string) DB::table('opening_balance_entries')->where('user_id', $user->id)->sum(DB::raw('held - held_released')));
-        if ($broughtOver > 0) {
-            $total += $broughtOver;
-            $amounts[] = ['ready_on' => null, 'amount' => Money::decimal($broughtOver)];
         }
 
         return ['total' => Money::decimal($total), 'amounts' => $amounts];
