@@ -4131,6 +4131,8 @@ return [
     'archive_btn' => 'Archive',
     'retail_mrp' => 'Retail price (MRP)',
     'status_in_progress' => 'In progress',
+    'status_reached' => 'Target reached',
+    'status_given' => 'Award given',
     'status_processing' => 'Being checked',
     'cart_remove_item' => 'Remove',
     'status_resolved' => 'Solved',

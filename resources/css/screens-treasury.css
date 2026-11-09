@@ -54,8 +54,9 @@
 .app-shell .tsy-fund dt{font-size:var(--ds-fs-sm);color:var(--ds-text-muted)}
 .app-shell .tsy-fund dd{margin:0;font-size:var(--ds-fs-sm);font-weight:600;color:var(--ds-text);font-variant-numeric:tabular-nums lining-nums;white-space:nowrap}
 
-/* Choice between two views of one page. */
-.app-shell .tsy-switch{display:inline-flex;align-self:flex-start;padding:3px;background:var(--ds-surface-3);border-radius:var(--ds-r-md)}
+/* Choice between the views of one page. */
+.app-shell .tsy-switch{position:relative;display:inline-flex;align-self:flex-start;max-width:100%;overflow-x:auto;scrollbar-width:none;padding:3px;background:var(--ds-surface-3);border-radius:var(--ds-r-md)}
+.app-shell .tsy-switch::-webkit-scrollbar{display:none}
 .app-shell .tsy-switch a{display:inline-flex;align-items:center;min-height:36px;padding:0 var(--ds-s-4);border-radius:var(--ds-r-sm);font-size:var(--ds-fs-sm);font-weight:600;color:var(--ds-text-muted);white-space:nowrap}
 .app-shell .tsy-switch a.is-active{background:var(--ds-surface);color:var(--ds-text);box-shadow:var(--ds-shadow-xs)}
 .app-shell .tsy-switch a:focus-visible{outline:2px solid var(--ds-brand);outline-offset:1px}
