@@ -543,3 +543,91 @@
 /* Stock movement log: units in and out. */
 .qty-in{color:var(--ds-ok-fg,#166534);font-variant-numeric:tabular-nums}
 .qty-out{color:var(--ds-danger-fg,#b91c1c);font-variant-numeric:tabular-nums}
+/* Account opening: sections in the order of the paper form, with a progress rail beside them. */
+.app-shell .acf-layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:var(--ds-s-5);align-items:start;margin-top:var(--ds-s-4)}
+.app-shell .acf-main{display:flex;flex-direction:column;gap:var(--ds-s-4);min-width:0}
+.app-shell .acf-page{--acf-sticky-top:68px}
+.app-shell .acf-section{margin:0;scroll-margin-top:calc(var(--acf-sticky-top) + 8px)}
+.app-shell .acf-section-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:var(--ds-s-4)}
+.app-shell .acf-section-head h3{margin:1px 0 0;font-size:var(--ds-fs-md);font-weight:650;color:var(--ds-text)}
+.app-shell .acf-section-head p{margin:2px 0 0;font-size:var(--ds-fs-xs);line-height:1.5;color:var(--ds-text-muted)}
+.app-shell .acf-number{flex:none;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--ds-surface-3);color:var(--ds-text-2);font-size:var(--ds-fs-xs);font-weight:700}
+.app-shell .acf-number.is-done{background:var(--ds-ok-bg);color:var(--ds-ok-fg)}
+.app-shell .acf-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px}
+.app-shell .acf-box{display:flex;flex-direction:column;gap:4px;min-width:0;margin:0}
+.app-shell .acf-box.is-wide{grid-column:1/-1}
+.app-shell .acf-label{font-size:var(--ds-fs-sm);font-weight:600;line-height:1.4;color:var(--ds-text-2)}
+.app-shell .acf-layout :is(input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea){width:100%;min-height:42px;padding:8px 11px;border:1px solid var(--ds-line-strong);border-radius:var(--ds-r-md);background:var(--ds-surface);color:var(--ds-text);font:inherit;font-size:15px}
+.app-shell .acf-layout :is(input,select,textarea):focus-visible{outline:2px solid var(--ds-brand);outline-offset:1px;border-color:var(--ds-brand)}
+.app-shell .acf-layout input[readonly]{background:var(--ds-surface-2);color:var(--ds-text-2)}
+.app-shell .acf-layout select:disabled{background:var(--ds-surface-2);color:var(--ds-text-faint)}
+.app-shell .acf-layout input[type=file]{width:100%;max-width:100%;font-size:var(--ds-fs-xs);color:var(--ds-text-2)}
+.app-shell .acf-box.has-error :is(input:not([type=file]),select,textarea){border-color:var(--ds-danger-fg)}
+.app-shell .acf-box .field-error{font-size:var(--ds-fs-xs);font-weight:500;line-height:1.45;color:var(--ds-danger-fg)}
+.app-shell .acf-box .field-hint{margin:0;line-height:1.45}
+.app-shell .acf-box .date-input-wrapper{width:100%}
+.app-shell .acf-inline{flex-direction:row;flex-wrap:wrap;align-items:center;gap:10px}
+.app-shell .acf-check{flex-direction:row;align-items:flex-start;gap:10px;font-size:var(--ds-fs-sm);color:var(--ds-text-2)}
+.app-shell .acf-check input{width:18px;height:18px;margin-top:2px;flex:none;accent-color:var(--ds-brand)}
+.app-shell .acf-with-button{display:flex;gap:8px}
+.app-shell .acf-with-button input{flex:1;min-width:0}
+.app-shell .acf-with-button .button{flex:none;min-height:42px}
+.app-shell .acf-note{margin:6px 0 0;font-size:var(--ds-fs-xs);line-height:1.5;color:var(--ds-text-muted)}
+.app-shell .acf-ok{display:inline-flex;align-items:center;gap:5px;color:var(--ds-ok-fg);font-weight:500}
+.app-shell .acf-segment{display:inline-flex;gap:0;margin-bottom:var(--ds-s-4);border:1px solid var(--ds-line-strong);border-radius:var(--ds-r-md);overflow:hidden}
+.app-shell .acf-segment label{position:relative;margin:0;cursor:pointer}
+.app-shell .acf-segment input{position:absolute;inset:0;margin:0;opacity:0;cursor:pointer}
+.app-shell .acf-segment span{display:block;padding:8px 18px;font-size:var(--ds-fs-sm);font-weight:600;color:var(--ds-text-2)}
+.app-shell .acf-segment label.is-on span{background:var(--ds-brand);color:#fff}
+.app-shell .acf-segment input:focus-visible+span{outline:2px solid var(--ds-brand);outline-offset:-3px}
+.app-shell .acf-more{margin-top:var(--ds-s-4);border-top:1px solid var(--ds-line);padding-top:var(--ds-s-3)}
+.app-shell .acf-more>summary{cursor:pointer;font-size:var(--ds-fs-sm);font-weight:600;color:var(--ds-brand-text)}
+.app-shell .acf-more>.acf-grid{margin-top:var(--ds-s-3)}
+.app-shell .acf-more.is-quiet{margin-top:6px;border-top:0;padding-top:0}
+.app-shell .acf-more.is-quiet>summary{font-size:var(--ds-fs-xs);font-weight:500}
+.app-shell .acf-place{margin-top:var(--ds-s-3);padding:10px 12px;border-radius:var(--ds-r-md);background:var(--ds-ok-bg);color:var(--ds-text)}
+.app-shell .acf-place.is-taken{background:var(--ds-surface-2);border:1px solid var(--ds-warn-fg)}
+.app-shell .acf-place-head{display:flex;align-items:flex-start;gap:6px;font-size:var(--ds-fs-sm)}
+.app-shell .acf-place-head svg{flex:none;margin-top:3px}
+.app-shell .acf-shares{margin:6px 0 0;padding:0;list-style:none;font-size:var(--ds-fs-xs);line-height:1.6;color:var(--ds-text-2)}
+.app-shell .acf-rail{position:sticky;top:var(--acf-sticky-top);max-height:calc(100vh - var(--acf-sticky-top) - 8px);overflow-y:auto;display:flex;flex-direction:column;gap:var(--ds-s-3);min-width:0}
+.app-shell .acf-rail h3{margin:0;font-size:var(--ds-fs-base);font-weight:650;color:var(--ds-text)}
+.app-shell .acf-progress-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.app-shell .acf-progress-head b{font-size:var(--ds-fs-sm);font-variant-numeric:tabular-nums;color:var(--ds-text-2)}
+.app-shell .acf-bar{height:6px;border-radius:var(--ds-r-pill);background:var(--ds-surface-3);overflow:hidden}
+.app-shell .acf-bar span{display:block;height:100%;border-radius:inherit;background:var(--ds-ok-fg);transition:width .2s ease}
+.app-shell .acf-progress ol{margin:10px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:1px}
+.app-shell .acf-progress a{display:flex;align-items:center;gap:8px;padding:4px 6px;margin:0 -6px;border-radius:var(--ds-r-sm);font-size:var(--ds-fs-sm);color:var(--ds-text-2)}
+.app-shell .acf-progress a:hover{background:var(--ds-surface-2)}
+.app-shell .acf-progress .acf-number{width:20px;height:20px;font-size:var(--ds-fs-2xs)}
+.app-shell .acf-progress li.is-done .acf-number{background:var(--ds-ok-bg);color:var(--ds-ok-fg)}
+.app-shell .acf-progress li.is-wrong .acf-number{background:var(--ds-danger-fg);color:#fff}
+.app-shell .acf-progress li.is-wrong small{color:var(--ds-danger-fg);font-weight:700}
+.app-shell .acf-rail-title{flex:1;min-width:0}
+.app-shell .acf-progress small{flex:none;font-size:var(--ds-fs-xs);color:var(--ds-text-faint);font-variant-numeric:tabular-nums}
+.app-shell .acf-summary dl{margin:8px 0 0;display:flex;flex-direction:column;gap:6px}
+.app-shell .acf-summary dl>div{display:flex;justify-content:space-between;gap:10px;font-size:var(--ds-fs-sm)}
+.app-shell .acf-summary dt{flex:none;color:var(--ds-text-muted)}
+.app-shell .acf-summary dd{margin:0;min-width:0;text-align:right;font-weight:600;color:var(--ds-text);overflow-wrap:anywhere}
+.app-shell .acf-summary dd.is-empty{font-weight:400;color:var(--ds-text-faint)}
+.app-shell .acf-submit{display:flex;flex-direction:column;gap:6px}
+.app-shell .acf-submit .full-width{width:100%;min-height:46px}
+.app-shell .acf-submit .acf-note{margin:0;text-align:center}
+.app-shell .acf-issues{margin:0;font-size:var(--ds-fs-sm);font-weight:600;color:var(--ds-danger-fg);text-align:center}
+.app-shell .acf-phone-progress{display:none}
+@media (max-width:980px){
+  .app-shell .acf-layout{grid-template-columns:minmax(0,1fr)}
+  .app-shell .acf-rail{position:static;max-height:none;overflow:visible}
+  .app-shell .acf-progress{display:none}
+  .app-shell .acf-section{scroll-margin-top:calc(var(--acf-sticky-top) + 56px)}
+  .app-shell .acf-phone-progress{display:block;position:sticky;top:var(--acf-sticky-top);z-index:5;margin:var(--ds-s-2) 0 0;padding:8px 12px;border:1px solid var(--ds-line);border-radius:var(--ds-r-md);background:var(--ds-surface)}
+  .app-shell .acf-phone-progress small{display:block;margin-top:4px;font-size:var(--ds-fs-xs);color:var(--ds-text-muted)}
+}
+@media (max-width:560px){
+  .app-shell .acf-grid{grid-template-columns:minmax(0,1fr)}
+  .app-shell .acf-segment{display:flex}
+  .app-shell .acf-segment label{flex:1;text-align:center}
+}
+@media (prefers-reduced-motion:reduce){
+  .app-shell .acf-bar span{transition:none}
+}

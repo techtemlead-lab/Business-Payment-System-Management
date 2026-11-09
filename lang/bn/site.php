@@ -467,7 +467,7 @@ return [
     'share_refer_title' => ':name আপনাকে :company-এ আমন্ত্রণ জানিয়েছেন',
     'share_refer_description' => ':name (:code) আপনাকে :company পার্টনার নেটওয়ার্কে যোগ দিতে আমন্ত্রণ জানিয়েছেন। যোগাযোগ ফর্ম খুললে রেফারার কোডটি আগে থেকে ভরা থাকবে।',
     'share_refer_eyebrow' => 'পার্টনার আমন্ত্রণ',
-    'share_refer_code_label' => 'রেফার কোড',
+    'share_refer_code_label' => 'কোড',
     'share_refer_phone_label' => 'যোগাযোগ নম্বর',
     'share_refer_contact_cta' => 'যোগাযোগ ফর্মে যান',
     'share_refer_apply_cta' => 'পার্টনারশিপ আবেদন করুন',
