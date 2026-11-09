@@ -1,4 +1,27 @@
 <?php
 
 return [
+    'orders_title' => 'Orders',
+    'deliveries_title' => 'Deliveries',
+    'search_orders' => 'Search by order number, partner, code or phone',
+    'search_parcels' => 'Search by order number, partner, code or tracking',
+    'col_order' => 'Order',
+    'col_items' => 'Items',
+    'col_price' => 'Price',
+    'col_given' => 'Paid',
+    'col_to_pay' => 'Left to pay',
+    'items_sent' => ':sent / :total',
+    'delivered_part' => 'Delivered :amount',
+    'filter_buyer' => 'Partner type',
+    'filter_branch' => 'Branch',
+    'open_order' => 'Open order',
+    'detail_reason' => 'Reason',
+    'line_sent' => ':sent of :total sent',
+    'section_payment' => 'Payments',
+    'section_history' => 'Parcel steps',
+    'view_send' => 'To send',
+    'view_parcels' => 'With courier',
+    'view_failed' => 'Not booked',
+    'view_decisions' => 'Decision needed',
+    'stage_with_courier' => 'With courier',
 ];

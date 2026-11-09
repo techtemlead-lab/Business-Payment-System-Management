@@ -361,6 +361,52 @@ class PortalQueryBudgetTest extends TestCase
         $this->assertCount(count($enquiryQueries), $moreEnquiryQueries, 'Enquiry list queries must not grow with the number of rows.');
     }
 
+    public function test_office_order_list_reads_its_totals_in_one_pass_and_does_not_grow_with_rows(): void
+    {
+        $owner = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $dealer = User::factory()->dealer()->create();
+        $product = Product::factory()->create();
+        foreach (range(1, 3) as $index) {
+            $this->line($this->order($dealer, 'delivered', total: '50.00', paid: '50.00'), $product, quantity: 1, dispatched: 1);
+        }
+        $this->actingAs($owner)->onPortal('sadmin')->get('/orders')->assertOk();
+
+        [$response, $queries] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/orders'));
+        $response->assertOk()->assertInertia(fn (Assert $page) => $page->where('data.orders_table.totals.count', 3)->where('data.orders_table.totals.sums.value', '150.00'));
+        $this->assertSame(1, $this->matching($queries, 'as to_pay'), 'The totals row should come from one pass over the filtered orders.');
+
+        foreach (range(1, 20) as $index) {
+            $this->line($this->order($dealer, 'delivered', total: '20.00'), $product, quantity: 1, dispatched: 1);
+        }
+        [, $moreQueries] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/orders'));
+        $this->assertCount(count($queries), $moreQueries, 'Office order list queries must not grow with the number of orders.');
+    }
+
+    public function test_office_deliveries_parcel_view_reads_stages_once_and_does_not_grow_with_parcels(): void
+    {
+        $owner = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $dealer = User::factory()->dealer()->create();
+        $this->actingAs($owner)->onPortal('sadmin')->get('/deliveries?view=parcels')->assertOk();
+        $addParcels = function (int $count) use ($dealer, $owner): void {
+            foreach (range(1, $count) as $index) {
+                DB::table('shipments')->insert([
+                    'order_id' => $this->order($dealer, 'dispatched', total: '20.00')->id, 'courier' => 'Steadfast', 'courier_provider' => 'steadfast', 'tracking' => 'ST-'.Str::random(6), 'lines' => '[]',
+                    'actor_id' => $owner->id, 'status' => 'dispatched', 'idempotency_key' => (string) Str::uuid(), 'payload_hash' => str_repeat('a', 64), 'created_at' => now(), 'updated_at' => now(),
+                ]);
+            }
+        };
+        $addParcels(2);
+
+        [$response, $queries] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/deliveries?view=parcels'));
+        $response->assertOk()->assertInertia(fn (Assert $page) => $page->where('data.parcel_stages.with_courier', 2)->where('data.parcels_table.totals.count', 2));
+        $this->assertSame(1, $this->matching($queries, 'as with_courier'), 'Parcel stages should come from one query.');
+        $this->assertSame(1, $this->matching($queries, 'money_table_count'), 'The parcel table should count its rows in one query.');
+
+        $addParcels(12);
+        [, $moreQueries] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/deliveries?view=parcels'));
+        $this->assertCount(count($queries), $moreQueries, 'Parcel view queries must not grow with the number of parcels.');
+    }
+
     public function test_dashboard_filter_columns_are_indexed(): void
     {
         $indexes = collect(DB::select("select indexname from pg_indexes where schemaname = 'public'"))->pluck('indexname');
