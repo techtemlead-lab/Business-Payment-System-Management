@@ -87,6 +87,26 @@ class WebsiteToolsListsTest extends TestCase
                 ->where('data.feedback_table.rows.data.0.name', 'Karim Mia'));
     }
 
+    public function test_the_lists_can_be_sorted_from_the_address(): void
+    {
+        $this->feedback('approved', 'Zahid Last');
+        $this->feedback('approved', 'Abdul First');
+
+        $this->actingAs($this->owner())->onPortal('sadmin')->get('/feedback?sort=name&dir=asc')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('data.feedback_table.rows.data.0.name', 'Abdul First')
+                ->where('data.feedback_table.state.sort', 'name')
+                ->where('data.feedback_table.state.dir', 'asc'));
+
+        $this->enquiry('Zara', 'new');
+        $this->enquiry('Amin', 'new');
+
+        $this->actingAs($this->owner())->onPortal('sadmin')->get('/enquiries?sort=name&dir=asc')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('data.enquiries_table.rows.data.0.name', 'Amin'));
+
+        $this->actingAs($this->owner())->onPortal('sadmin')->get('/content?sort=title&dir=desc')->assertOk();
+    }
+
     public function test_enquiry_filter_addresses_keep_working_on_the_new_list(): void
     {
         $this->enquiry('New Asker', 'new');
