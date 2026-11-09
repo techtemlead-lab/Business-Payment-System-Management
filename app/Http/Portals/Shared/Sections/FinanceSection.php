@@ -26,7 +26,7 @@ final class FinanceSection implements WorkspaceSection
     {
         return match ($context->section) {
             'payments' => $this->paymentClaims($context->request, $context->branchScope),
-            'ledger' => $this->ledger($context->request),
+            'ledger' => $this->ledger($context->request, $context->user->owner() && $context->portal === 'sadmin'),
             'audit' => $this->auditLog($context->request),
             'capital-flow', 'treasury' => $this->treasury($context),
             'benefits-fund' => $this->benefitsFund($context->request),
@@ -133,9 +133,10 @@ final class FinanceSection implements WorkspaceSection
      *
      * @return array<string, mixed>
      */
-    private function ledger(Request $request): array
+    private function ledger(Request $request, bool $showOwnerFunds): array
     {
-        $entries = DB::table('journal_entries')->leftJoin('users', 'users.id', '=', 'journal_entries.actor_id');
+        $entries = DB::table('journal_entries')->leftJoin('users', 'users.id', '=', 'journal_entries.actor_id')
+            ->when(! $showOwnerFunds, fn ($query) => CompanyFunds::withoutOwnerOnlySpends($query, 'journal_entries.event_key'));
         if ($request->filled('q')) {
             $term = '%'.addcslashes($request->string('q')->toString(), '%_\\').'%';
             $entries->where(fn ($query) => $query->where('journal_entries.event_key', 'ilike', $term)

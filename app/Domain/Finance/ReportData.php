@@ -94,7 +94,8 @@ final class ReportData
                 ['p.id', 'u.name', 'p.period_month', 'p.gross', 'p.deduction', 'p.net', 'p.status', 'p.payment_reference', 'p.paid_at'], ['gross', 'deduction', 'net'], 'p.created_at', 'p.staff_id'],
             'withdrawals' => [DB::table('withdrawals as w')->join('users as u', 'u.id', '=', 'w.user_id'),
                 ['w.id', 'w.created_at as requested_at', 'u.dealer_code', 'u.name', 'u.phone', 'w.amount', 'w.withheld_amount', 'w.net_amount', 'w.channel', 'w.status', 'w.payment_reference', 'w.paid_at'], ['amount', 'withheld_amount', 'net_amount'], 'w.created_at', 'w.user_id'],
-            'ledger' => [DB::table('journal_lines as l')->join('journal_entries as j', 'j.id', '=', 'l.entry_id')->leftJoin('users as u', 'u.id', '=', 'l.user_id'),
+            'ledger' => [DB::table('journal_lines as l')->join('journal_entries as j', 'j.id', '=', 'l.entry_id')->leftJoin('users as u', 'u.id', '=', 'l.user_id')
+                ->when(! ($actor->owner() && PortalHost::current() === 'sadmin'), fn ($q) => CompanyFunds::withoutOwnerOnlySpends($q, 'j.event_key')),
                 ['j.event_key', 'j.description', 'u.name', 'l.account', 'l.debit', 'l.credit', 'j.created_at'], ['debit', 'credit'], 'j.created_at', 'l.user_id'],
             'rewards' => [DB::table('reserve_disbursements as r')->where('r.program', '!=', FundSpending::Program)->leftJoin('users as u', 'u.id', '=', 'r.user_id'),
                 ['r.id', 'u.dealer_code', 'u.name', 'r.payee_name', 'r.program', 'r.amount', 'r.status', 'r.payment_reference', 'r.created_at'], ['amount'], 'r.created_at', 'r.user_id'],
