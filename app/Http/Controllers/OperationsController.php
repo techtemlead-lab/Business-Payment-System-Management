@@ -85,7 +85,7 @@ class OperationsController extends Controller
         }
         $staff = User::staffAccounts()->orderBy('name')->get(['id', 'name', 'role', 'status', 'profile']);
         if ($actor->allows('staff_admin') || $actor->allows('finance')) {
-            $data['staff'] = $staff->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'role' => $u->role, 'field_sales' => $u->allows('field_sales')])->all();
+            $data['staff'] = $staff->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'role' => $u->role, 'field_sales' => $u->allows('field_sales') && $u->id !== $actor->id])->all();
         }
         if (in_array($section, ['policy-schedules', 'reserve-payouts', 'field-sales', 'commission-holds'], true)) {
             $partners = $section === 'field-sales' ? app(TerritoryAccess::class)->partners($actor) : User::whereIn('role', ['dealer', 'sub_dealer']);

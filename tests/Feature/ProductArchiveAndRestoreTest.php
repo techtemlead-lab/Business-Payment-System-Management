@@ -79,7 +79,7 @@ class ProductArchiveAndRestoreTest extends TestCase
     {
         $owner = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
         Product::factory()->create(['name' => 'On Sale', 'stock' => 3]);
-        Product::factory()->create(['name' => 'Put Away', 'active' => false, 'stock' => 7]);
+        Product::factory()->create(['name' => 'Put Away', 'active' => false, 'archived_at' => now(), 'stock' => 7]);
 
         $main = $this->catalog($owner, '/catalog');
         $this->assertSame(['On Sale'], array_column($main['products'], 'name'));
@@ -94,8 +94,8 @@ class ProductArchiveAndRestoreTest extends TestCase
     public function test_search_counts_the_archived_products_it_would_find(): void
     {
         $owner = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
-        Product::factory()->create(['name' => 'Honey Tonic', 'active' => false]);
-        Product::factory()->create(['name' => 'Other Hidden', 'active' => false]);
+        Product::factory()->create(['name' => 'Honey Tonic', 'active' => false, 'archived_at' => now()]);
+        Product::factory()->create(['name' => 'Other Hidden', 'active' => false, 'archived_at' => now()]);
 
         $main = $this->catalog($owner, '/catalog?q=Honey');
 

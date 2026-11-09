@@ -94,7 +94,7 @@ class PartnerScorecardTest extends TestCase
         $lastByName = User::factory()->dealer()->create(['name' => 'Zakir']);
         $this->order($lastByName, 'cancelled');
         $this->order($lastByName, 'cancelled');
-        $this->claim($this->order($lastByName, 'delivered'), 'verified', '500.00', 'Z');
+        $this->claim($this->order($lastByName, 'delivered'), 'verified', '100.00', 'Z');
 
         $this->assertNotContains('Zakir', array_column($this->listed(), 'name'), 'By name this partner sits past the first page.');
 
@@ -103,7 +103,7 @@ class PartnerScorecardTest extends TestCase
             $this->assertSame('Zakir', $first['name'], "Sorting by {$sort} must search every page.");
             $this->assertSame($figure, $first[$sort]);
         }
-        $this->assertSame('500.00', $this->listed(['sort' => 'payments_verified_amount', 'dir' => 'desc'])[0]['payments_verified_amount']);
+        $this->assertSame('100.00', $this->listed(['sort' => 'payments_verified_amount', 'dir' => 'desc'])[0]['payments_verified_amount']);
 
         $lastPage = $this->listed(['sort' => 'cancelled', 'dir' => 'asc', 'page' => 2]);
         $this->assertSame('Zakir', $lastPage[array_key_last($lastPage)]['name']);

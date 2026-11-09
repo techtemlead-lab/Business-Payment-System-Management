@@ -19,6 +19,7 @@ use App\Domain\Content\TestimonialLabels;
 use App\Domain\Finance\PolicyDraftService;
 use App\Domain\Geography\ManagementReferral;
 use App\Domain\Geography\PlaceTree;
+use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\StockService;
 use App\Domain\Notifications\AccountCreatedSms;
 use App\Domain\Notifications\PartnerEventEmail;
@@ -183,12 +184,14 @@ class CommandController extends Controller
                 default => 'portal.acct_partner_created_nothing_sent',
             };
 
-            return redirect($redirect)->with('success', __($deliveryMessage, [
+            $otherBranch = app(BranchOperations::class)->otherBranchOfNewPartner($r->user(), $r, $created['user']);
+
+            return redirect($redirect)->with('success', trim(__($deliveryMessage, [
                 'role' => __($created['user']->role === 'sub_dealer' ? 'portal.acct_role_sub_dealer' : 'portal.acct_role_dealer'),
                 'code' => $created['user']->dealer_code,
                 'phone' => $created['user']->phone,
                 'email' => $created['user']->email,
-            ]));
+            ]).($otherBranch === null ? '' : ' '.__('portal.acct_partner_went_to_branch', ['branch' => $otherBranch->name]))));
         }
 
         $d = $r->validate([

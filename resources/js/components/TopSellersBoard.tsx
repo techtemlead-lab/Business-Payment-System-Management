@@ -69,10 +69,21 @@ function OfficeTopSellers({ board }: { board: TopSellersPayload }) {
     const entries = showsDivision ? board.divisional : board.national;
     const chosenDivision = board.division_id != null ? String(board.division_id) : '';
 
-    const visit = (next: { month?: string; division?: string }) => {
+    const period = address.searchParams.get('period') ?? '';
+    const pickedFrom = address.searchParams.get('from') ?? '';
+    const pickedTo = address.searchParams.get('to') ?? '';
+
+    const visit = (next: { month?: string; division?: string; period?: string; from?: string; to?: string }) => {
         const division = next.division ?? chosenDivision;
+        const nextPeriod = next.month !== undefined ? '' : (next.period ?? period);
+        const keepsDates = next.month === undefined && next.period === undefined;
+        const from = nextPeriod ? (next.from ?? (keepsDates ? pickedFrom : '')) : '';
+        const to = nextPeriod ? (next.to ?? (keepsDates ? pickedTo : '')) : '';
         router.get('/top-sellers', {
-            month: next.month ?? board.month,
+            month: nextPeriod ? undefined : (next.month ?? board.month),
+            period: nextPeriod || undefined,
+            from: from || undefined,
+            to: to || undefined,
             division: division || undefined,
             board: showsDivision && division ? 'division' : undefined,
         }, { preserveState: true, preserveScroll: true, replace: true });
@@ -88,6 +99,22 @@ function OfficeTopSellers({ board }: { board: TopSellersPayload }) {
 
         return query ? `${address.pathname}?${query}` : address.pathname;
     };
+    /** One date shows that day; a second date makes it a range. */
+    const chooseDates = (from: string, to: string) => {
+        if (from && to) {
+            visit({ period: 'custom', from, to });
+        } else if (from) {
+            visit({ period: 'day', from, to: '' });
+        } else {
+            visit({ month: board.month });
+        }
+    };
+    const datePickers = (
+        <>
+            <label>{translate('office_reports', 'top_sellers_from')}<input type="date" value={pickedFrom} onChange={(event) => chooseDates(event.target.value, pickedTo)} /></label>
+            <label>{translate('office_reports', 'top_sellers_to')}<input type="date" value={pickedTo} disabled={!pickedFrom} onChange={(event) => chooseDates(pickedFrom, event.target.value)} /></label>
+        </>
+    );
     const topTenTotal = entries.reduce((sum, entry) => sum + Math.round(Number(entry.amount ?? 0) * 100), 0) / 100;
     const divisionPicker = (
         <select aria-label={translate('portal', 'top_sellers_division_pick')} value={chosenDivision} onChange={(event) => visit({ division: event.target.value })}>
@@ -117,15 +144,20 @@ function OfficeTopSellers({ board }: { board: TopSellersPayload }) {
                         </div>
                     )}
                     <div className="mt-toolbar">
-                        <ReportFilterSheet><label>{translate('portal', 'top_sellers_division_pick')}{divisionPicker}</label></ReportFilterSheet>
+                        <ReportFilterSheet><label>{translate('portal', 'top_sellers_division_pick')}{divisionPicker}</label>{datePickers}</ReportFilterSheet>
                         <div className="mt-views" role="group" aria-label={translate('portal', 'top_sellers_pick_month')}>
                             {board.months.map((month, index) => (
-                                <button key={month} type="button" className="mt-view" aria-pressed={month === board.month} onClick={() => visit({ month })}>
+                                <button key={month} type="button" className="mt-view" aria-pressed={!period && month === board.month} onClick={() => visit({ month })}>
                                     {index === 0 ? translate('portal', 'top_sellers_this_month') : businessMonth(month)}
                                 </button>
                             ))}
+                            {(['today', 'week', 'year'] as const).map((choice) => (
+                                <button key={choice} type="button" className="mt-view" aria-pressed={period === choice} onClick={() => visit({ period: choice })}>
+                                    {translate('portal', `orders_period_${choice}`)}
+                                </button>
+                            ))}
                         </div>
-                        <div className="mt-filters">{divisionPicker}</div>
+                        <div className="mt-filters">{divisionPicker}{datePickers}</div>
                     </div>
                     <Table<Row>
                         rows={entries as unknown as Row[]}

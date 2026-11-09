@@ -200,39 +200,53 @@ export default function CatalogTaxonomyHub({
         });
     };
 
+    /** The reason typed into the browser box. A reason that is too short is refused out loud, never silently. */
+    const askRemovalReason = (question: string): string | null => {
+        const reason = window.prompt(question);
+        if (reason === null) {
+            return null;
+        }
+        if (reason.trim().length < 5) {
+            window.alert(translate('portal', 'cms_remove_reason_too_short'));
+            return null;
+        }
+
+        return reason.trim();
+    };
+
     const removeCategory = (row: CategoryRow) => {
         const childCount = row.subcategories?.length || 0;
         const promptLabel = childCount > 0
             ? translate('portal', 'cms_remove_category_force_prompt', { name: row.name, count: String(childCount) })
             : translate('portal', 'cms_remove_category_prompt', { name: row.name });
-        const reason = window.prompt(promptLabel);
-        if (reason === null || reason.trim().length < 5) {
+        const reason = askRemovalReason(promptLabel);
+        if (reason === null) {
             return;
         }
         router.delete(`/commands/product-categories/${row.id}`, {
-            data: { reason: reason.trim(), force: childCount > 0 },
+            data: { reason, force: childCount > 0 },
             preserveScroll: true,
         });
     };
 
     const removeSubcategory = (row: SubcategoryRow) => {
-        const reason = window.prompt(translate('portal', 'cms_remove_subcategory_prompt', { name: row.name }));
-        if (reason === null || reason.trim().length < 5) {
+        const reason = askRemovalReason(translate('portal', 'cms_remove_subcategory_prompt', { name: row.name }));
+        if (reason === null) {
             return;
         }
         router.delete(`/commands/product-subcategories/${row.id}`, {
-            data: { reason: reason.trim() },
+            data: { reason },
             preserveScroll: true,
         });
     };
 
     const removeUnit = (row: UnitRow) => {
-        const reason = window.prompt(translate('portal', 'cms_remove_unit_prompt', { name: row.name }));
-        if (reason === null || reason.trim().length < 5) {
+        const reason = askRemovalReason(translate('portal', 'cms_remove_unit_prompt', { name: row.name }));
+        if (reason === null) {
             return;
         }
         router.delete(`/commands/product-units/${row.id}`, {
-            data: { reason: reason.trim() },
+            data: { reason },
             preserveScroll: true,
         });
     };
@@ -246,9 +260,6 @@ export default function CatalogTaxonomyHub({
                             <FolderTree size={15} /> {translate('portal', 'cms_taxonomy_badge')}
                         </div>
                         <h2 className="ctx-title">{translate('portal', 'cms_taxonomy_heading')}</h2>
-                        <p className="muted ctx-lead">
-                            {translate('portal', 'cms_taxonomy_hint')}
-                        </p>
                     </div>
                     {canManage && (
                         <div className="ops-row is-wrap">
@@ -270,7 +281,6 @@ export default function CatalogTaxonomyHub({
                 <div className="panel-heading">
                     <div>
                         <h2><Layers size={16} className="ctx-h-icon" />{translate('portal', 'cms_categories_title')}</h2>
-                        <p className="muted">{translate('portal', 'cms_categories_hint')}</p>
                     </div>
                     <span className="badge">{number(categories.length)}</span>
                 </div>
@@ -321,7 +331,6 @@ export default function CatalogTaxonomyHub({
                 <div className="panel-heading">
                     <div>
                         <h2>{translate('portal', 'cms_subcategories_title')}</h2>
-                        <p className="muted">{translate('portal', 'cms_subcategories_hint')}</p>
                     </div>
                     <span className="badge">{number(subcategoryRows.length)}</span>
                 </div>
@@ -370,7 +379,6 @@ export default function CatalogTaxonomyHub({
                 <div className="panel-heading">
                     <div>
                         <h2><Ruler size={16} className="ctx-h-icon" />{translate('portal', 'cms_units_title')}</h2>
-                        <p className="muted">{translate('portal', 'cms_units_hint')}</p>
                     </div>
                     <span className="badge">{number(units.length)}</span>
                 </div>

@@ -308,7 +308,7 @@ return [
         'product_names' => 'পণ্যের নাম',
         'product_category_id' => 'ক্যাটাগরি',
         'category' => 'ক্যাটাগরি',
-        'sub_category' => 'সাব-ক্যাটাগরি',
+        'sub_category' => 'সাবক্যাটাগরি',
         'sku' => 'পণ্যের কোড',
         'unit' => 'একক',
         'mrp' => 'এমআরপি',

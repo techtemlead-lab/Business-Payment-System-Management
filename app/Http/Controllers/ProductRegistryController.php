@@ -49,7 +49,7 @@ class ProductRegistryController extends Controller
         if ($product) {
             $product->loadMissing(['subcategory.category', 'productUnit']);
         }
-        $data = $product ? [...$product->only(['id', 'name', 'sku', 'category', 'sub_category', 'strength', 'description', 'unit', 'mrp', 'active', 'featured', 'video_source', 'product_subcategory_id', 'product_unit_id']), ...$product->media(), 'youtube_url' => $product->video_youtube_id ? 'https://www.youtube.com/watch?v='.$product->video_youtube_id : '', 'version' => (string) $product->registry_version, 'stock_status' => $product->stockStatus()] : null;
+        $data = $product ? [...$product->only(['id', 'name', 'sku', 'category', 'sub_category', 'strength', 'description', 'unit', 'mrp', 'active', 'featured', 'video_source', 'product_subcategory_id', 'product_unit_id']), ...$product->media(), 'archived' => $product->isArchived(), 'youtube_url' => $product->video_youtube_id ? 'https://www.youtube.com/watch?v='.$product->video_youtube_id : '', 'version' => (string) $product->registry_version, 'stock_status' => $product->stockStatus()] : null;
         if ($data) {
             $data['has_original_image'] = (bool) $product->image_original_path;
         }
@@ -112,7 +112,7 @@ class ProductRegistryController extends Controller
             $locked = Product::whereKey($product->id)->lockForUpdate()->firstOrFail();
             $hasHistory = $locked->stock > 0 || $locked->isReferenced();
             if ($hasHistory) {
-                $locked->update(['active' => false, 'featured' => false, 'featured_position' => null, 'registry_version' => $locked->registry_version + 1]);
+                $locked->update(['active' => false, 'archived_at' => now(), 'featured' => false, 'featured_position' => null, 'registry_version' => $locked->registry_version + 1]);
                 Audit::record($r->user()->id, 'product.archived', (string) $locked->id, ['reason' => $data['reason']]);
 
                 return app(ProductRemoval::class)->forProduct($locked, $r->user()->allows('inventory'))['reasons'];

@@ -7,6 +7,8 @@ return [
     'chat_who_answers' => 'Who answers',
     'top_sellers_highest' => 'Highest purchases',
     'top_sellers_ten_total' => 'Top 10 together',
+    'top_sellers_from' => 'From date',
+    'top_sellers_to' => 'To date',
     'top_sellers_search' => 'Search name, code or place',
     'top_sellers_col_rank' => 'Place',
     'top_sellers_col_dealer' => 'Dealer',
