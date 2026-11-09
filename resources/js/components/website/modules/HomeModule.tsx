@@ -1,6 +1,7 @@
 import React from 'react';
 import { FeaturedProductsManager } from '../FeaturedProductsManager';
 import { Field, ImageUploadButton } from '../formFields';
+import { VideoGalleryRows } from '../VideoGalleryRows';
 import { WebsiteGroup, WebsiteToolLink, type WebsiteSectionProps } from '../WebsiteLayout';
 import { ActionForm, type Field as ActionField, type Row } from '../../UI';
 import { useT } from '../../../shared/i18n/t';
@@ -250,6 +251,7 @@ export default function HomeModule({ form, defaults, products, updateField, upda
                     <Field label={translate('portal', 'sce_f_video_title')} fieldKey="video_gallery_title" value={form.data.customization.video_gallery_title} placeholder={defaults.video_gallery_title} onChange={updateField} />
                     <Field label={translate('portal', 'sce_f_video_subtitle')} fieldKey="video_gallery_subtitle" value={form.data.customization.video_gallery_subtitle} placeholder={defaults.video_gallery_subtitle} onChange={updateField} />
                 </div>
+                <VideoGalleryRows form={form} />
             </WebsiteGroup>
 
             <WebsiteToolLink href="/catalog?tab=offers" title={translate('portal', 'cms_product_mgmt')} body={translate('portal', 'cms_product_banner')} />

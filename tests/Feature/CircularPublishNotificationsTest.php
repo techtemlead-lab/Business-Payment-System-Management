@@ -78,9 +78,9 @@ class CircularPublishNotificationsTest extends TestCase
         $this->assertSame(0, DB::table('account_notices')->count());
 
         $this->actingAs($admin)->onPortal('sadmin')->post('/commands/content', [
-            'slug' => 'about',
-            'title' => 'About Madina',
-            'body' => 'Public about page body.',
+            'slug' => 'contact',
+            'title' => 'Contact Madina',
+            'body' => 'Public contact page body.',
             'published' => true,
         ])->assertRedirect();
 

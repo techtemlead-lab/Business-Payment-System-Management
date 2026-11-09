@@ -616,7 +616,7 @@ class CommandController extends Controller
     {
         $this->permit($r, 'content');
         $d = $r->validate([
-            'slug' => 'required|in:home,about,contact,notice,circular-training,circular-price,circular-meeting,partnership,services,quality,faq,privacy,terms,products,dealers',
+            'slug' => ['required', Rule::in(SiteCustomization::PageTextSlugs)],
             'title' => 'required|string|max:150',
             'body' => 'required|string|max:10000',
             'published' => 'required|boolean',

@@ -4,7 +4,7 @@ import { Trash2 } from 'lucide-react';
 import { Empty } from './UI';
 
 type DocumentRow = { id: number; title: string; original_name: string; is_published: boolean };
-type ArticleRow = { id: number; title: string; body: string; image_url: string | null; published: boolean };
+type ArticleRow = { id: number; title: string | null; body: string | null; title_bn: string | null; body_bn: string | null; image_url: string | null; published: boolean };
 
 type TrustData = {
     values: Record<string, string>;
@@ -224,11 +224,11 @@ function DocumentsTab({ data, label }: TabProps) {
 
 function ArticlesTab({ data, label }: TabProps) {
     const [editing, setEditing] = useState<ArticleRow | null>(null);
-    const form = useForm<{ title: string; body: string; published: boolean; image: File | null }>({ title: '', body: '', published: false, image: null });
+    const form = useForm<{ title: string; body: string; title_bn: string; body_bn: string; published: boolean; image: File | null }>({ title: '', body: '', title_bn: '', body_bn: '', published: false, image: null });
     const errors = form.errors as Record<string, string>;
     const startEditing = (article: ArticleRow) => {
         setEditing(article);
-        form.setData({ title: article.title, body: article.body, published: article.published, image: null });
+        form.setData({ title: article.title ?? '', body: article.body ?? '', title_bn: article.title_bn ?? '', body_bn: article.body_bn ?? '', published: article.published, image: null });
     };
     const finish = () => {
         setEditing(null);
@@ -244,16 +244,26 @@ function ArticlesTab({ data, label }: TabProps) {
             <p className="muted">{label('admin_articles_hint')}</p>
             <form className="action-form ops-mb-4" onSubmit={save}>
                 <h3>{label(editing ? 'admin_article_edit' : 'admin_article_new')}</h3>
-                <label>
-                    {label('admin_article_title')}
-                    <input required maxLength={200} value={form.data.title} onChange={(event) => form.setData('title', event.target.value)} />
-                    {errors.title && <small className="field-error">{errors.title}</small>}
-                </label>
-                <label>
-                    {label('admin_article_body')}
-                    <textarea required rows={12} maxLength={20000} value={form.data.body} onChange={(event) => form.setData('body', event.target.value)} />
-                    {errors.body && <small className="field-error">{errors.body}</small>}
-                </label>
+                <p className="muted">{label('admin_article_languages_hint')}</p>
+                {(['_bn', ''] as const).map((suffix) => {
+                    const titleKey = `title${suffix}` as const;
+                    const bodyKey = `body${suffix}` as const;
+                    const language = label(suffix === '' ? 'admin_english' : 'admin_bangla');
+                    return (
+                        <React.Fragment key={suffix}>
+                            <label>
+                                {`${label('admin_article_title')} (${language})`}
+                                <input maxLength={200} value={form.data[titleKey]} onChange={(event) => form.setData(titleKey, event.target.value)} />
+                                {errors[titleKey] && <small className="field-error">{errors[titleKey]}</small>}
+                            </label>
+                            <label>
+                                {`${label('admin_article_body')} (${language})`}
+                                <textarea rows={12} maxLength={20000} value={form.data[bodyKey]} onChange={(event) => form.setData(bodyKey, event.target.value)} />
+                                {errors[bodyKey] && <small className="field-error">{errors[bodyKey]}</small>}
+                            </label>
+                        </React.Fragment>
+                    );
+                })}
                 <label>
                     {label('admin_article_image')}
                     <input type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" onChange={(event) => form.setData('image', event.target.files?.[0] ?? null)} />
@@ -271,7 +281,7 @@ function ArticlesTab({ data, label }: TabProps) {
             {data.articles.length === 0 && <Empty title={label('admin_article_empty')} />}
             {data.articles.map((article) => (
                 <div key={article.id} className="toolbar ops-mb-4">
-                    <span><b>{article.title}</b><small className="cell-sub">{label(article.published ? 'admin_status_published' : 'admin_status_draft')}</small></span>
+                    <span><b>{article.title_bn || article.title}</b><small className="cell-sub">{label(article.published ? 'admin_status_published' : 'admin_status_draft')}</small></span>
                     <button type="button" className="button small" onClick={() => startEditing(article)}>{label('admin_edit')}</button>
                     <button type="button" className="button small" aria-label={label('admin_delete')} onClick={() => confirmThenDelete(`/commands/public-trust/articles/${article.id}/delete`, label('admin_delete_confirm'))}><Trash2 size={15} /> {label('admin_delete')}</button>
                 </div>

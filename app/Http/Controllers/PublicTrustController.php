@@ -129,7 +129,7 @@ class PublicTrustController extends Controller
 
         return view('reference.trust.article', [
             'article' => $article,
-            'social' => SocialShareMeta::page('articles/'.$article->id, $article->title.' · '.SiteCustomization::brandName(), $article->excerpt()),
+            'social' => SocialShareMeta::page('articles/'.$article->id, $article->displayTitle().' · '.SiteCustomization::brandName(), $article->excerpt()),
         ]);
     }
 
