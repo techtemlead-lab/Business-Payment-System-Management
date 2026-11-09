@@ -1459,37 +1459,6 @@ html[data-theme="dark"] .ref-contact-topic:hover {
 }
 
 /* Legal Documents Dark Mode */
-html[data-theme="dark"] .ref-legal-hero {
-    background: linear-gradient(180deg, #131d2e 0%, #0d1522 100%) !important;
-    border-top-color: #10b981 !important;
-    border-color: #1e3528 !important;
-}
-
-html[data-theme="dark"] .ref-legal-hero-badge {
-    background: rgba(16, 185, 129, 0.15) !important;
-    color: #4ade80 !important;
-}
-
-html[data-theme="dark"] .ref-legal-hero h1 {
-    color: #f7f9f3 !important;
-}
-
-html[data-theme="dark"] .ref-legal-lead {
-    color: #a8b5aa !important;
-}
-
-html[data-theme="dark"] .ref-legal-meta-bar {
-    border-top-color: #1e3528 !important;
-}
-
-html[data-theme="dark"] .ref-legal-meta-item {
-    color: #a8b5aa !important;
-}
-
-html[data-theme="dark"] .ref-legal-meta-item i {
-    color: #34d399 !important;
-}
-
 html[data-theme="dark"] .ref-legal-body-card {
     background: var(--ds-surface, #10201a) !important;
     border-color: #1e3528 !important;

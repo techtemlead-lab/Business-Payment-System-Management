@@ -16,10 +16,13 @@
         <div class="ref-alert ref-notice" role="status"><b>{{ session('success') }}</b></div>
     @endif
 
-    <article class="ref-content-card">
-        <h1>{{ $chrome('feedback_page_title', $siteCustomization['feedback_page_title'] ?? null) }}</h1>
-        <p class="ref-content-prose">{{ $chrome('feedback_page_lead', $siteCustomization['feedback_page_lead'] ?? null) }}</p>
+    @include('reference.partials.page-plate', [
+        'title' => $chrome('feedback_page_title', $siteCustomization['feedback_page_title'] ?? null),
+        'lead' => $chrome('feedback_page_lead', $siteCustomization['feedback_page_lead'] ?? null),
+        'icon' => 'fa-comment-dots',
+    ])
 
+    <article class="ref-content-card ref-form-page">
         <form method="post" action="/feedback" class="ref-feedback-form">
             @csrf
             <input type="text" name="website" value="" tabindex="-1" autocomplete="off" class="ref-honeypot" aria-hidden="true">

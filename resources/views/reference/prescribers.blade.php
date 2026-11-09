@@ -18,12 +18,16 @@
     @if(session('success'))
         <div class="ref-alert ref-success" role="status"><b>{{ session('success') }}</b></div>
     @endif
+    @include('reference.partials.page-plate', [
+        'title' => $pageTitle,
+        'lead' => $chrome('prescribers_lead', $siteCustomization['prescribers_lead'] ?? null),
+        'icon' => 'fa-user-doctor',
+    ])
+
     <div class="ref-alert ref-error" role="note"><i class="fa-solid fa-truck-medical" aria-hidden="true"></i> <b>{{ $emergencyNote }}</b></div>
 
-    <section class="ref-directory-heading">
-        <h1>{{ $pageTitle }}</h1>
-        <p>{{ $chrome('prescribers_lead', $siteCustomization['prescribers_lead'] ?? null) }}</p>
-        @if($levels !== [])
+    @if($levels !== [])
+    <section class="ref-directory-heading ref-directory-tools">
         <form method="get" class="ref-directory-filter">
             @foreach($levels as $level)
             <label>{{ __('prescriber_public.place_'.$level['level']) }}
@@ -38,8 +42,8 @@
             <button class="ref-primary-button">{{ __('prescriber_public.filter') }}</button>
             <a href="/prescribers">{{ __('prescriber_public.clear') }}</a>
         </form>
-        @endif
     </section>
+    @endif
 
     <div class="ref-directory-grid">
         @forelse($rows as $row)

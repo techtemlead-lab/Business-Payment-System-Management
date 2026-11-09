@@ -510,6 +510,7 @@ Questions about these terms, partnership rules or the website:
     'close_menu' => 'Close menu',
     'mobile_nav_drawer' => 'Mobile menu',
     'legal_nav' => 'Legal',
+    'on_this_page' => 'On this page',
     'featured' => 'Featured',
     'brand_tagline' => 'PRODUCT',
     'pd_strength' => 'Strength',

@@ -28,25 +28,10 @@
     </div>
     @endif
 
-    <article class="ref-content-card ref-about-hero">
-        <h1>{{ $pageTitle }}</h1>
-        <div class="ref-content-prose">{{ $trust('grievance_lead') }}</div>
-    </article>
+    @include('reference.partials.page-plate', ['title' => $pageTitle, 'lead' => $trust('grievance_lead'), 'icon' => 'fa-clipboard-question'])
 
-    @if($contactName !== '')
-    <section class="ref-content-card" style="margin-top:22px;">
-        <h2>{{ __('public_trust.grievance_contact_heading') }}</h2>
-        <p>{{ $trust('grievance_contact_note') }}</p>
-        <dl style="display:grid;grid-template-columns:max-content 1fr;gap:8px 20px;margin:0;">
-            <dt>{{ __('public_trust.grievance_contact_name') }}</dt><dd style="margin:0;font-weight:600;">{{ $contactName }}</dd>
-            @foreach($contactRows as $contactKey => $contactValue)
-                <dt>{{ __('public_trust.'.$contactKey) }}</dt><dd style="margin:0;">{{ $contactValue }}</dd>
-            @endforeach
-        </dl>
-    </section>
-    @endif
-
-    <section class="ref-content-card" style="margin-top:22px;">
+    <div class="ref-grievance-layout">
+    <section class="ref-content-card">
         <h2>{{ __('public_trust.grievance_form_heading') }}</h2>
         @if($errors->any())<div class="ref-alert ref-error" role="alert">{{ $errors->first() }}</div>@endif
         <form class="ref-form" action="/grievance" method="post">
@@ -73,7 +58,21 @@
         </form>
     </section>
 
-    <section class="ref-content-card" style="margin-top:22px;" id="track">
+    <div class="ref-grievance-side">
+    @if($contactName !== '')
+    <section class="ref-content-card">
+        <h2>{{ __('public_trust.grievance_contact_heading') }}</h2>
+        <p>{{ $trust('grievance_contact_note') }}</p>
+        <dl class="ref-facts">
+            <dt>{{ __('public_trust.grievance_contact_name') }}</dt><dd>{{ $contactName }}</dd>
+            @foreach($contactRows as $contactKey => $contactValue)
+                <dt>{{ __('public_trust.'.$contactKey) }}</dt><dd>{{ $contactValue }}</dd>
+            @endforeach
+        </dl>
+    </section>
+    @endif
+
+    <section class="ref-content-card" id="track">
         <h2>{{ __('public_trust.grievance_track_heading') }}</h2>
         @if($trackingNumber !== '')
             @if($trackedStatus !== null)
@@ -88,5 +87,7 @@
             <button class="ref-primary-button" type="submit">{{ __('public_trust.grievance_track_submit') }}</button>
         </form>
     </section>
+    </div>
+    </div>
 </main>
 @endsection

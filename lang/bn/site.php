@@ -510,6 +510,7 @@ return [
     'close_menu' => 'মেনু বন্ধ করুন',
     'mobile_nav_drawer' => 'মোবাইল মেনু',
     'legal_nav' => 'আইনি তথ্য',
+    'on_this_page' => 'এই পাতায় যা আছে',
     'featured' => 'বাছাই করা পণ্য',
     'brand_tagline' => 'পণ্য',
     'pd_strength' => 'মাত্রা',
