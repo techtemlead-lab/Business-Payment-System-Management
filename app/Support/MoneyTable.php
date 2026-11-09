@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use stdClass;
 
 /**
  * Search, filters, date view, column sort and totals for one money table, all done by the
@@ -21,7 +22,7 @@ final class MoneyTable
     private const LongestRangeInDays = 366;
 
     /**
-     * @return array{rows: LengthAwarePaginator<int, object>, totals: array{count: int, capped: bool, sums: array<string, string>|null}, state: array{q: string, period: string, from: ?string, to: ?string, sort: string, dir: string, filters: array<string, string>}, filters: list<array{key: string, label: string, options: list<array{value: string, label: string}>}>, sortable: list<string>}
+     * @return array{rows: LengthAwarePaginator<int, stdClass>, totals: array{count: int, capped: bool, sums: array<string, string>|null}, state: array{q: string, period: string, from: ?string, to: ?string, sort: string, dir: string, filters: array<string, string>}, filters: list<array{key: string, label: string, options: list<array{value: string, label: string}>}>, sortable: list<string>}
      */
     public static function make(Request $request, Builder $query, MoneyTableSpec $spec): array
     {
