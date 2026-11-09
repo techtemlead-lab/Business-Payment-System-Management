@@ -17,6 +17,8 @@ export type MoneyColumn<T> = {
     total?: string;
     /** Where the column goes when a row becomes a card on a phone. */
     phone?: 'title' | 'sub' | 'amount' | 'hide';
+    /** Name the value on a phone card, for a bare number that would mean nothing alone. */
+    phoneLabel?: boolean;
     render?: (row: T) => React.ReactNode;
 };
 
@@ -48,6 +50,7 @@ type MoneyTableProps<T> = {
     /** The "( A | B )" switch above the toolbar: an .office-switch. */
     segments?: React.ReactNode;
     actions?: React.ReactNode;
+    /** The page has its own date view: no chips here, and clearing the table leaves that view alone. */
     hideViewChips?: boolean;
     empty: string;
 };
@@ -247,9 +250,7 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
         lastSearched.current = '';
         visit({
             q: null,
-            period: null,
-            from: null,
-            to: null,
+            ...(hideViewChips ? {} : { period: null, from: null, to: null }),
             sort: null,
             dir: null,
             ...Object.fromEntries(filters.flatMap(filterKeys).map((key) => [key, null])),
@@ -456,7 +457,7 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
                                     {selecting && pickBox(row)}
                                     <div className="mt-card-main">
                                         <div className="mt-card-title">{cellContent(phoneTitle, row)}{openRowControl(row, href)}</div>
-                                        {phoneLines.length > 0 && <div className="mt-card-lines">{phoneLines.map((column) => <span key={column.key}>{cellContent(column, row)}</span>)}</div>}
+                                        {phoneLines.length > 0 && <div className="mt-card-lines">{phoneLines.map((column) => <span key={column.key}>{column.phoneLabel && `${column.title}: `}{cellContent(column, row)}</span>)}</div>}
                                     </div>
                                     {phoneAmount && <div className="mt-card-amount">{cellContent(phoneAmount, row)}</div>}
                                     {href && rowArrow && <Link href={href} className="mt-open" aria-label={translate('portal', 'mt_open_row')}><ChevronRight size={16} aria-hidden="true" /></Link>}

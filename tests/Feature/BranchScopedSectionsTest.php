@@ -208,7 +208,7 @@ class BranchScopedSectionsTest extends TestCase
         ];
         foreach (array_values($sellers) as $index => $seller) {
             $this->partner = $seller;
-            $this->order(null, 'dispatched')->forceFill(['total' => (string) (1000 - $index * 100).'.00'])->save();
+            $this->order(null, 'delivered')->forceFill(['total' => (string) (1000 - $index * 100).'.00'])->save();
         }
         $names = fn ($rows): array => collect($rows)->pluck('name')->all();
 
@@ -540,7 +540,7 @@ class BranchScopedSectionsTest extends TestCase
         ];
         foreach ($sellers as $seller) {
             $this->partner = $seller;
-            $this->order(null, 'dispatched');
+            $this->order(null, 'delivered');
         }
         $owner = User::factory()->staff()->create(['active_branch_id' => $this->headOffice()->id]);
 
