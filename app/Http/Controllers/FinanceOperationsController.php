@@ -296,8 +296,8 @@ class FinanceOperationsController extends Controller
                         $cells = [];
                         foreach ($report['columns'] as $column) {
                             $value = $item->{$column} ?? '';
-                            if (in_array($column, ['status', 'program', 'kind', 'account'], true) || $column === 'category' && $data['type'] === 'commissions') {
-                                $value = $this->reportValueLabel((string) $value);
+                            if ($this->isCodedReportColumn($data['type'], $column)) {
+                                $value = $this->reportCodeLabel($data['type'], $column, (string) $value);
                             }
                             if ($value !== '' && str_ends_with($column, '_at')) {
                                 $value = CarbonImmutable::parse($value, 'UTC')->timezone('Asia/Dhaka')->format('d M Y H:i');
@@ -349,8 +349,8 @@ class FinanceOperationsController extends Controller
                     $html .= '<tr>';
                     foreach ($report['columns'] as $column) {
                         $value = (string) ($item->{$column} ?? '');
-                        if (in_array($column, ['status', 'program', 'kind', 'account'], true) || $column === 'category' && $data['type'] === 'commissions') {
-                            $value = $this->reportValueLabel($value);
+                        if ($this->isCodedReportColumn($data['type'], $column)) {
+                            $value = $this->reportCodeLabel($data['type'], $column, $value);
                         }
                         if ($value !== '' && str_ends_with($column, '_at')) {
                             $value = CarbonImmutable::parse($value, 'UTC')->timezone('Asia/Dhaka')->format('d M Y H:i');
@@ -438,6 +438,27 @@ class FinanceOperationsController extends Controller
         }
 
         return Str::headline($column);
+    }
+
+    /** Report columns that hold a stored code, which the reader should see as a plain word. */
+    private function isCodedReportColumn(string $reportType, string $column): bool
+    {
+        return in_array($column, ['status', 'program', 'kind', 'account'], true)
+            || ($column === 'category' && $reportType === 'commissions')
+            || ($reportType === 'fund-spending' && in_array($column, ['fund', 'payment_method'], true));
+    }
+
+    /** A stored code in the reader's language. Fund and payment-way names live in the funds language file. */
+    private function reportCodeLabel(string $reportType, string $column, string $value): string
+    {
+        if ($value !== '' && $reportType === 'fund-spending' && in_array($column, ['fund', 'payment_method'], true)) {
+            $key = 'funds.'.($column === 'fund' ? 'fund_' : 'method_').$value;
+            $label = __($key);
+
+            return $label !== $key ? $label : Str::headline($value);
+        }
+
+        return $this->reportValueLabel($value);
     }
 
     /** Status / kind values in the viewer's language, falling back to a readable label. */

@@ -98,6 +98,40 @@ class FundSpendingReportExportTest extends TestCase
         $this->assertStringNotContainsString('Award 4', $strings);
     }
 
+    public function test_a_bangla_fund_report_names_the_fund_head_and_payment_way_in_bangla(): void
+    {
+        $finance = User::factory()->staff('finance')->create(['locale' => 'bn']);
+        $this->paidSpendWithHead($finance);
+
+        $strings = $this->sheetXml($this->actingAs($finance)->get('/api/v1/operations/reports?type=fund-spending&format=xlsx&from=2026-11-01&to=2026-11-09')->assertOk());
+
+        $this->assertStringContainsString(__('funds.fund_company_share', [], 'bn'), $strings);
+        $this->assertStringContainsString(__('funds.method_bank', [], 'bn'), $strings);
+        $this->assertStringContainsString('গুদাম ভাড়া', $strings);
+        $this->assertStringNotContainsString('company_share', $strings);
+        $this->assertStringNotContainsString('Warehouse hire', $strings);
+        $this->assertStringNotContainsString('>bank<', $strings);
+    }
+
+    public function test_an_english_fund_report_keeps_the_english_names(): void
+    {
+        $finance = User::factory()->staff('finance')->create(['locale' => 'en']);
+        $this->paidSpendWithHead($finance);
+
+        $strings = $this->sheetXml($this->actingAs($finance)->get('/api/v1/operations/reports?type=fund-spending&format=xlsx&from=2026-11-01&to=2026-11-09')->assertOk());
+
+        $this->assertStringContainsString(__('funds.fund_company_share', [], 'en'), $strings);
+        $this->assertStringContainsString('Warehouse hire', $strings);
+        $this->assertStringNotContainsString('গুদাম ভাড়া', $strings);
+    }
+
+    private function paidSpendWithHead(User $maker): void
+    {
+        $head = DB::table('fund_expense_heads')->insertGetId(['name_en' => 'Warehouse hire', 'name_bn' => 'গুদাম ভাড়া', 'created_at' => now(), 'updated_at' => now()]);
+        $this->paidSpend('Landlord', '2026-11-05', $maker);
+        DB::table('reserve_disbursements')->where('payee_name', 'Landlord')->update(['expense_head_id' => $head]);
+    }
+
     private function paidSpend(string $payee, string $date, User $maker): void
     {
         DB::table('reserve_disbursements')->insert([
