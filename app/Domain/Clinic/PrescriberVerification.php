@@ -11,8 +11,8 @@ use Illuminate\Support\Facades\DB;
 /**
  * Turns prescribing on and off for one account after the owner checked their registration
  * papers offline: a dealer or sub-dealer (typed medicines), or an office account (MD, Chairman
- * or any staff), who then prescribes and dispenses from company stock. Every change is
- * written to the audit log.
+ * or any staff), who then prescribes and dispenses from company stock. Only the owners switch
+ * company stock on or off for an office account. Every change is written to the audit log.
  */
 final class PrescriberVerification
 {
@@ -127,5 +127,7 @@ final class PrescriberVerification
         abort_unless(PrescriptionAccess::canVerify($actor), 403);
         abort_if($partner->role === 'super_admin', 422, __('prescription.err_owner_always_on'));
         abort_unless(PrescriptionAccess::isPartner($partner) || PrescriptionAccess::isOfficeAccount($partner), 422, __('prescription.err_partner_only'));
+        // Staff with the verify permission handle partners; only the owners touch company stock.
+        abort_if(PrescriptionAccess::isOfficeAccount($partner) && ! PrescriptionAccess::canManageCompanyStock($actor), 403, __('prescription.err_company_stock_owner_only'));
     }
 }

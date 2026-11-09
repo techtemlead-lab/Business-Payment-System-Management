@@ -6587,4 +6587,13 @@ return [
     'label_upazila' => 'Upazila',
     'label_union' => 'Union / Pourashava',
     'acct_val_sub_dealer_code_just_used' => 'Someone just added a sub-dealer with this code. Press save again and the next code will be used.',
+    'owner_status_title' => 'MD and Chairman',
+    'owner_status_hint' => 'Only the Super Admin can turn these accounts off and on. When an account is off, that person is signed out at once and cannot sign in.',
+    'owner_status_turn_off' => 'Turn off',
+    'owner_status_turn_on' => 'Turn on',
+    'owner_status_off_note' => 'Turning off this account signs this person out at once.',
+    'owner_status_on_note' => 'Turning on this account lets this person sign in again.',
+    'owner_status_reason' => 'Reason',
+    'owner_status_cancel' => 'Cancel',
+    'owner_status_empty' => 'No MD or Chairman account has been added yet.',
 ];

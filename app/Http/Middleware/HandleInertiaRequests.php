@@ -81,6 +81,8 @@ class HandleInertiaRequests extends Middleware
             // Same rule as PrescriptionAccess::canVerify, reusing the capabilities read above.
             'prescriberVerifier' => $u !== null && PrescriptionAccess::enabled() && $u->status === 'active'
                 && ($u->owner() || ($u->staff() && in_array(PrescriptionAccess::VerifyPermission, $capabilities, true))),
+            // May switch company-stock dispensing on or off on the employees page.
+            'companyStockManager' => $u !== null && PrescriptionAccess::canManageCompanyStock($u),
         ],
             'collectionAccounts' => fn () => ($u && $payments->mayReceiveCollectionAccounts($u))
                 ? $payments->listing($u, true, true)
