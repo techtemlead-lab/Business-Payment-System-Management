@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 /** The staff payroll download needs the Payroll permission, not only Reports. */
@@ -43,13 +44,13 @@ class PayrollReportAccessTest extends TestCase
         return app(ReportData::class)->query($viewer, 'payroll', now()->subDay()->toDateString(), now()->addDay()->toDateString())['query']->pluck('name')->all();
     }
 
-    public function test_reports_and_finance_without_payroll_do_not_open_the_staff_payroll(): void
+    public function test_reports_and_finance_without_payroll_are_refused_the_staff_payroll(): void
     {
         $noPayroll = User::factory()->staff('employee')->create(['status' => 'active', 'profile' => ['permissions' => ['reports', 'finance']]]);
-        $this->payrollRow($noPayroll);
 
         $this->assertNotContains('payroll', app(ReportData::class)->availableTo($noPayroll));
-        $this->assertSame([$noPayroll->name], $this->namesFor($noPayroll));
+        $this->expectException(HttpException::class);
+        $this->namesFor($noPayroll);
     }
 
     public function test_the_payroll_permission_opens_the_whole_file(): void
@@ -65,7 +66,8 @@ class PayrollReportAccessTest extends TestCase
         $md = User::factory()->staff('md')->create(['status' => 'active']);
 
         $this->assertNotContains('payroll', app(ReportData::class)->availableTo($md));
-        $this->assertSame([], $this->namesFor($md));
+        $this->expectException(HttpException::class);
+        $this->namesFor($md);
     }
 
     public function test_an_ordinary_staff_member_still_gets_only_their_own_slips(): void

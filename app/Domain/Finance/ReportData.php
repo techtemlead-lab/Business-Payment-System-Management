@@ -66,7 +66,7 @@ final class ReportData
      */
     public function query(User $actor, string $type, string $from, string $to, ?string $accountType = null, array $filters = []): array
     {
-        $company = ($actor->allows('finance') || $actor->allows('reports')) && ($type !== 'payroll' || $actor->allows('payroll'));
+        $company = $actor->allows('finance') || $actor->allows('reports');
         $sales = $actor->allows('field_sales');
         if (! $company && $sales && $type === 'orders') {
             abort_unless($actor->allows('sr_orders'), 403);
