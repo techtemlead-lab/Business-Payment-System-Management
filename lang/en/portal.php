@@ -6568,4 +6568,6 @@ return [
     'content_page_dealers' => 'Dealers',
     'date_format_day_month_year' => 'DD/MM/YYYY',
     'date_format_hour_minute' => 'HH:MM',
+    'event_support_attachment_opened' => 'Support request file opened',
+    'support_open_attachment' => 'Open file: :name',
 ];

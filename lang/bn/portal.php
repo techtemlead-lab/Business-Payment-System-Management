@@ -6568,4 +6568,6 @@ return [
     'content_page_dealers' => 'ডিলার',
     'date_format_day_month_year' => 'দিন/মাস/বছর',
     'date_format_hour_minute' => 'ঘণ্টা:মিনিট',
+    'event_support_attachment_opened' => 'সাপোর্ট অনুরোধের ফাইল খোলা হয়েছে',
+    'support_open_attachment' => 'ফাইল খুলুন: :name',
 ];

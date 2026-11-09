@@ -1411,6 +1411,11 @@ class CommandController extends Controller
         return back()->with('success', __('portal.flash_support_reply_saved'));
     }
 
+    public function supportTicketAttachment(Request $r, string $id, SupportTickets $tickets): StreamedResponse
+    {
+        return $tickets->openAttachment($r->user(), $id);
+    }
+
     public function completeTour(Request $r, string $page, TourGuide $tours): RedirectResponse|JsonResponse
     {
         $tours->complete($r->user(), $page);
