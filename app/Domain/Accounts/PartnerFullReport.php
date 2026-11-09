@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\ReferralTreePath;
 use App\Models\User;
 use App\Support\Money;
+use App\Support\PdfFonts;
 use App\Support\PhoneIdentity;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -275,9 +276,7 @@ final class PartnerFullReport
             $pdf = new Mpdf([
                 'tempDir' => $dir,
                 'format' => 'A4',
-                'default_font' => 'freeserif',
-                'autoScriptToLang' => true,
-                'autoLangToFont' => true,
+                ...PdfFonts::options(),
             ]);
             $pdf->SetTitle($t('pdf_partner_full_report_doc_title'));
             $pdf->SetHTMLFooter('<div style="text-align:right;font-size:8pt">'.e($t('pdf_partner_full_report_footer')).'</div>');

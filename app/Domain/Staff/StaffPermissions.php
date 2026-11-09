@@ -152,7 +152,7 @@ final class StaffPermissions
                 throw ValidationException::withMessages(['role' => __('portal.err_perm_staff_role')]);
             }
             $before = ['role' => $user->role, 'permissions' => $this->matrix($user)];
-            $user->update(['role' => $role ?? $user->role, 'profile' => [...($user->profile ?? []), 'action_permissions' => $matrix, 'access_revision' => Str::uuid()->toString()]]);
+            $user->forceFill(['role' => $role ?? $user->role, 'profile' => [...($user->profile ?? []), 'action_permissions' => $matrix, 'access_revision' => Str::uuid()->toString()]])->save();
             Audit::record($actor->id, 'staff.actions_assigned', (string) $userId, ['before' => $before, 'after' => ['role' => $user->role, 'permissions' => $matrix], 'reason' => $reason]);
         }, 3);
     }
