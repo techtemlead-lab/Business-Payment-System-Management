@@ -171,6 +171,7 @@ return [
     'chip_to' => ':value পর্যন্ত',
     'tab_stock_on_hand' => 'স্টক',
     'price_dealer_short' => 'ডিলার',
+    'free_to_sell_short' => 'খালি :count',
     'price_subdealer_short' => 'সাব-ডিলার',
     'tab_stock_movements' => 'স্টক আসা-যাওয়া',
 ];

@@ -60,6 +60,7 @@ class StockCourierStageTest extends TestCase
 
     public function test_delivered_goods_leave_the_courier_stage_for_good(): void
     {
+        $this->enableFinancialPosting();
         $product = $this->product();
         $this->stockIn($product, 10, $this->hub);
         $order = $this->approvedOrder($product, 4);

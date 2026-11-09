@@ -174,8 +174,9 @@ final class StockRegister
                 .' products.active, products.featured, COALESCE(products.is_stock_paused, false) AS is_stock_paused, products.low_stock_at, products.expires_on AS product_expires_on, products.batch_number AS product_batch, products.created_at,'
                 ." {$branchColumn} AS branch_id, branch.name AS branch_name, branch.code AS branch_code,"
                 .' stage.physical, stage.in_stock, stage.on_hold, stage.expired, stage.with_courier, stage.unlotted, stage.next_expiry, stage.next_batch,'
-                ." {$rowExpiry} AS row_expiry, {$rowBatch} AS row_batch, CAST(COALESCE(booked.units, 0) AS integer) AS booked, stage.physical * products.mrp AS stock_value, {$level} AS level",
-                [...($branchId !== null ? [$branchId] : []), ...$levelBindings],
+                ." {$rowExpiry} AS row_expiry, {$rowBatch} AS row_batch, CAST(COALESCE(booked.units, 0) AS integer) AS booked, stage.physical * products.mrp AS stock_value, {$level} AS level,"
+                .' CAST('.SellableStock::sql().' AS integer) AS company_sellable',
+                [...($branchId !== null ? [$branchId] : []), ...$levelBindings, ...SellableStock::bindings()],
             );
 
         return DB::query()->fromSub($inner, 'stock_row');
@@ -193,7 +194,7 @@ final class StockRegister
                     ? $rows->where('stock_row.level', '<>', 'out_of_stock')
                     : $rows->where('stock_row.level', $value),
                 'stage' => $value === 'short'
-                    ? $rows->whereColumn('stock_row.booked', '>', 'stock_row.in_stock')
+                    ? $rows->whereColumn('stock_row.booked', '>', 'stock_row.company_sellable')
                     : $rows->where('stock_row.'.$value, '>', 0),
                 'branch_id' => $rows->where('stock_row.branch_id', (int) $value),
                 'category', 'sub_category', 'unit' => $rows->where('stock_row.'.$key, $value),
@@ -351,7 +352,7 @@ final class StockRegister
             'expired' => (int) $row->expired,
             'with_courier' => (int) $row->with_courier,
             'booked' => (int) $row->booked,
-            'free_to_sell' => (int) $row->in_stock - (int) $row->booked,
+            'free_to_sell' => (int) $row->company_sellable - (int) $row->booked,
             'level' => $row->level,
             'low_stock_at' => (int) $row->low_stock_at,
             'stock_value' => (string) $row->stock_value,
@@ -379,9 +380,10 @@ final class StockRegister
     private function fields(bool $branchChoice, bool $showsStock, array $branchChoices): array
     {
         $levels = $showsStock ? self::Levels : ['in_stock', 'out_of_stock'];
+        $choices = $this->productChoices();
         $fields = [
             $this->select('level', __('stock_lots.filter_level'), $this->labelled($levels, 'stock_lots.level_'), 'main'),
-            $this->select('category', __('portal.col_category'), $this->distinct('category'), 'main'),
+            $this->select('category', __('portal.col_category'), $choices['category'], 'main'),
         ];
         if ($showsStock) {
             $fields[] = $this->select('stage', __('stock_lots.filter_stage'), $this->labelled(self::Stages, 'stock_lots.stage_filter_'), 'main');
@@ -389,8 +391,8 @@ final class StockRegister
                 $fields[] = $this->select('branch_id', __('portal.col_branch'), $branchChoices, 'main');
             }
         }
-        $fields[] = $this->select('sub_category', __('portal.col_subcategory'), $this->distinct('sub_category'), 'more');
-        $fields[] = $this->select('unit', __('portal.col_unit'), $this->distinct('unit'), 'more');
+        $fields[] = $this->select('sub_category', __('portal.col_subcategory'), $choices['sub_category'], 'more');
+        $fields[] = $this->select('unit', __('portal.col_unit'), $choices['unit'], 'more');
         if ($showsStock) {
             $fields[] = ['key' => 'qty', 'type' => 'range', 'label' => __('stock_lots.filter_qty'), 'from' => 'qty_min', 'to' => 'qty_max', 'group' => 'more'];
         }
@@ -428,12 +430,20 @@ final class StockRegister
     }
 
     /**
-     * @return list<array{value: string, label: string}>
+     * The categories, sub-categories and units in use, read in one query.
+     *
+     * @return array{category: list<array{value: string, label: string}>, sub_category: list<array{value: string, label: string}>, unit: list<array{value: string, label: string}>}
      */
-    private function distinct(string $column): array
+    private function productChoices(): array
     {
-        return DB::table('products')->whereNotNull($column)->where($column, '<>', '')->distinct()->orderBy($column)->pluck($column)
-            ->map(fn (mixed $value): array => ['value' => (string) $value, 'label' => (string) $value])->values()->all();
+        $rows = DB::table('products')->distinct()->get(['category', 'sub_category', 'unit']);
+        $choices = [];
+        foreach (['category', 'sub_category', 'unit'] as $column) {
+            $values = $rows->pluck($column)->filter(fn (mixed $value): bool => $value !== null && $value !== '')->unique()->sort()->values();
+            $choices[$column] = $values->map(fn (mixed $value): array => ['value' => (string) $value, 'label' => (string) $value])->all();
+        }
+
+        return $choices;
     }
 
     /**

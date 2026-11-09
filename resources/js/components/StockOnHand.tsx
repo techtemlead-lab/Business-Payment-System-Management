@@ -134,7 +134,7 @@ export default function StockOnHand({ table, canToggle, showBranch }: {
             render: (row) => (row.booked > 0 ? (
                 <span title={translate('portal', 'col_booked_units_hint')}>
                     {number(row.booked)}
-                    <small className={`cell-sub${row.free_to_sell < 0 ? ' text-danger' : ''}`}>{translate('portal', 'stock_free_to_sell', { count: number(row.free_to_sell) })}</small>
+                    <small className={`cell-sub${row.free_to_sell < 0 ? ' text-danger' : ''}`}>{translate('stock_lots', 'free_to_sell_short', { count: number(row.free_to_sell) })}</small>
                 </span>
             ) : <span className="sf-none">—</span>),
         },

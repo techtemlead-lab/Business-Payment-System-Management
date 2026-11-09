@@ -17,12 +17,12 @@
 .app-shell .sf-catalog .mt-search .search-input{flex-direction:row}
 .sf-table .mt-actions{display:contents}
 .sf-none{color:var(--ds-text-faint)}
-.sf-phone-stages:empty{display:none}
-.sf-phone-stages{display:none}
+
+.app-shell .sf-table .sf-phone-stages{display:none}
 .sf-price{display:inline-block;white-space:nowrap}
 
 .app-shell .sf-more{display:inline-flex;align-items:center;gap:5px;flex:none;height:34px;min-height:0;font-size:var(--ds-fs-sm);white-space:nowrap}
-.sf-all-word{display:none}
+.sf-all-word,.sf-count.sf-all-word{display:none}
 .sf-count{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:var(--ds-r-pill);background:var(--ds-brand-soft);color:var(--ds-brand-text);font-size:var(--ds-fs-2xs);font-weight:700}
 
 .sf-chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px;flex:0 0 100%;min-width:0}
@@ -65,13 +65,14 @@
   .sf-stage-card:first-child{grid-column:1/-1}
   .sf-stage-card{padding:10px 12px}
   .sf-stage-card b{font-size:var(--ds-fs-xl)}
-  .sf-more-word{display:none}
-  .sf-all-word{display:inline-flex}
+  .sf-more-word,.sf-count.sf-more-word{display:none}
+  .sf-all-word,.sf-count.sf-all-word{display:inline-flex}
   .sf-chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;overscroll-behavior-x:contain}
   .sf-chips::-webkit-scrollbar{display:none}
   .sf-chip{flex:none;max-width:78vw}
   .app-shell .sf-clear-all{flex:none;white-space:nowrap}
-  .sf-phone-stages{display:block}
+  .app-shell .sf-table .sf-phone-stages{display:block}
+  .app-shell .sf-table .sf-phone-stages:empty{display:none}
   .sf-sheet-grid{grid-template-columns:minmax(0,1fr)}
   .sf-main-field{display:block}
   .sf-sort{display:grid}

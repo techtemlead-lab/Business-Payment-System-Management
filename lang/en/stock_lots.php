@@ -171,6 +171,7 @@ return [
     'chip_to' => 'up to :value',
     'tab_stock_on_hand' => 'Stock',
     'price_dealer_short' => 'Dealer',
+    'free_to_sell_short' => 'Free: :count',
     'price_subdealer_short' => 'Sub-dealer',
     'tab_stock_movements' => 'Stock in and out',
 ];

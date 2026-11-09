@@ -125,6 +125,20 @@ class StockRegisterFiltersTest extends TestCase
         $this->assertSame(['Booked Product'], $this->names('stage=short'));
     }
 
+    public function test_free_to_sell_and_short_compare_bookings_with_the_whole_company(): void
+    {
+        $product = $this->product('Spread Out');
+        $this->stockIn($product, 5, branch: $this->hub);
+        $this->stockIn($product, 100, branch: $this->otherBranch);
+        $this->approvedOrder($product, 8);
+
+        $row = $this->table('')['rows']['data'][0];
+
+        $this->assertSame(5, $row['in_stock']);
+        $this->assertSame(97, $row['free_to_sell'], 'An order can be sent from any branch, so bookings are measured against all of them.');
+        $this->assertSame([], $this->names('stage=short'));
+    }
+
     public function test_product_details_filters(): void
     {
         $old = $this->product('Hidden Oil', ['active' => false, 'category' => 'Oil', 'sub_category' => 'Hair', 'unit' => 'Bottle']);
