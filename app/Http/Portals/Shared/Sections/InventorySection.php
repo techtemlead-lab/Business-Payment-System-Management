@@ -115,16 +115,18 @@ final class InventorySection implements WorkspaceSection
     private function withAvailableUnits(array $products, int $activeBranchId): array
     {
         $productIds = array_map(intval(...), array_column($products, 'id'));
-        $usableByBranch = BranchProductStock::query()
-            ->join('products', 'products.id', '=', 'branch_product_stocks.product_id')
-            ->whereIn('branch_product_stocks.product_id', $productIds)
-            ->selectRaw('branch_product_stocks.branch_id, branch_product_stocks.product_id, CAST('.SellableStock::branchSql().' AS integer) AS usable', SellableStock::branchBindings())
-            ->get()
-            ->mapWithKeys(fn (BranchProductStock $line): array => [$line->branch_id.'-'.$line->product_id => (int) $line->getAttribute('usable')]);
-        $usableInCompany = Product::query()
+        $usableRows = Product::query()
+            ->leftJoin('branch_product_stocks', 'branch_product_stocks.product_id', '=', 'products.id')
             ->whereKey($productIds)
-            ->selectRaw('products.id, CAST('.SellableStock::sql().' AS integer) AS usable', SellableStock::bindings())
-            ->pluck('usable', 'id');
+            ->selectRaw(
+                'products.id AS product_id, branch_product_stocks.branch_id, CAST('.SellableStock::sql().' AS integer) AS company_usable, CAST('.SellableStock::branchSql().' AS integer) AS branch_usable',
+                [...SellableStock::bindings(), ...SellableStock::branchBindings()],
+            )
+            ->get();
+        $usableInCompany = $usableRows->pluck('company_usable', 'product_id');
+        $usableByBranch = $usableRows
+            ->whereNotNull('branch_id')
+            ->mapWithKeys(fn (Product $row): array => [$row->getAttribute('branch_id').'-'.$row->getAttribute('product_id') => (int) $row->getAttribute('branch_usable')]);
 
         return array_map(function (array $product) use ($usableByBranch, $usableInCompany, $activeBranchId): array {
             $companyAvailable = (int) ($usableInCompany[$product['id']] ?? 0);
