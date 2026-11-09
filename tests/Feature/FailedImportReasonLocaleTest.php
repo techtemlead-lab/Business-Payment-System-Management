@@ -28,7 +28,8 @@ class FailedImportReasonLocaleTest extends TestCase
         (new ApplyDataImport($id, $admin->id, 'Background import review'))->failed(null);
 
         foreach (['bn', 'en'] as $locale) {
-            $this->actingAs($admin)->withSession(['locale' => $locale])
+            $admin->forceFill(['locale' => $locale])->save();
+            $this->actingAs($admin)
                 ->getJson('/api/v1/operations/imports?batch='.$id)
                 ->assertOk()
                 ->assertJsonPath('data.preview.review_reason', __('portal.import_failed_reason', [], $locale));
