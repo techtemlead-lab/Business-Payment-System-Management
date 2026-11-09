@@ -6631,4 +6631,5 @@ return [
     'commission_waiting_until' => 'অপেক্ষার সময় শেষ: :date',
     'commission_waiting_no_date' => 'তারিখ ঠিক করা নেই',
     'commission_waiting_more' => 'আরও :countটি তারিখ “আমার আয়” পাতায়',
+    'order_refund_part_warning' => 'পুরো টাকা ফেরত না দিলেও পুরো অর্ডার বাতিল হবে, আর বাকি টাকা পেমেন্ট হিসেবে লেখা থাকবে।',
 ];

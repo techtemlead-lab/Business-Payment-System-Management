@@ -206,4 +206,11 @@ class OrderRefundTest extends TestCase
     {
         return ['amount' => $amount, 'reason' => $reason];
     }
+
+    public function test_the_refund_form_warns_about_a_part_refund_in_both_languages(): void
+    {
+        foreach (['en', 'bn'] as $locale) {
+            $this->assertNotSame('portal.order_refund_part_warning', __('portal.order_refund_part_warning', [], $locale));
+        }
+    }
 }

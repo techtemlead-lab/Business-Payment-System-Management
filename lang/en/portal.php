@@ -6631,4 +6631,5 @@ return [
     'commission_waiting_until' => 'Waiting period ends: :date',
     'commission_waiting_no_date' => 'No date set',
     'commission_waiting_more' => ':count more dates under My income',
+    'order_refund_part_warning' => 'If you give back less than the full amount, the whole order is still cancelled and the rest stays recorded as paid.',
 ];
