@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { usePage } from '@inertiajs/react';
 import { actionAllowed } from '../../action-permissions';
-import { Badge, Modal, Pagination, Table, date, label, type Row } from '../../UI';
+import { Badge, Modal, Pagination, date, label, type Row } from '../../UI';
 import { useT } from '../../../shared/i18n/t';
-import { commandRoot, DrawerLines, readStored, SectionTableSearch, StaffActionDialog, StoredDetails, textField, type StaffAction, type StaffField, type StaffSectionTable } from './staffSectionParts';
+import { commandRoot, DrawerLines, readStored, SectionTableSearch, StaffActionDialog, StaffTable, StoredDetails, textField, type StaffAction, type StaffField, type StaffSectionTable } from './staffSectionParts';
 
 /** Dealer applications on the SR tabs: one table, and a row's details and review are in its drawer. */
 export default function DealerApplicationsView({ table }: { table: StaffSectionTable }) {
@@ -42,7 +42,7 @@ export default function DealerApplicationsView({ table }: { table: StaffSectionT
     return (
         <>
             <SectionTableSearch table={table} />
-            <Table
+            <StaffTable
                 searchable={false}
                 printable
                 totalCount={table.page.total}

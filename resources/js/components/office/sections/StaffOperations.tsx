@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { usePage } from '@inertiajs/react';
 import { actionAllowed } from '../../action-permissions';
-import { Modal, Pagination, Table, date, label, money, type Row } from '../../UI';
+import { Modal, Pagination, date, label, money, type Row } from '../../UI';
 import type { OfficeHub } from '../../OfficeHubTabs';
 import OfficePage from '../OfficePage';
 import { businessMonth } from '../../../business-date';
 import { useT } from '../../../shared/i18n/t';
 import DealerApplicationsView from './DealerApplicationsView';
-import { commandRoot, currentView, DrawerLines, findTable, pickField, SectionTableSearch, StaffActionDialog, textField, ViewSwitch, type StaffAction, type StaffSectionTable } from './staffSectionParts';
+import { commandRoot, currentView, DrawerLines, findTable, pickField, SectionTableSearch, StaffActionDialog, StaffTable, textField, ViewSwitch, type StaffAction, type StaffSectionTable } from './staffSectionParts';
 
 type SrView = 'areas' | 'targets' | 'applications';
 
@@ -72,7 +72,7 @@ export default function StaffOperations({ tables, staff, hub }: StaffOperationsP
             {view === 'areas' && areas && (
                 <>
                     <SectionTableSearch table={areas} />
-                    <Table
+                    <StaffTable
                         searchable={false}
                         printable
                         totalCount={areas.page.total}
@@ -95,7 +95,7 @@ export default function StaffOperations({ tables, staff, hub }: StaffOperationsP
             {view === 'targets' && targets && (
                 <>
                     <SectionTableSearch table={targets} />
-                    <Table
+                    <StaffTable
                         searchable={false}
                         printable
                         totalCount={targets.page.total}

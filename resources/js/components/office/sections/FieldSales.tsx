@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { actionAllowed } from '../../action-permissions';
-import { Badge, Empty, Pagination, Table, label, money, type Row } from '../../UI';
+import { Badge, Empty, Pagination, label, money, type Row } from '../../UI';
 import type { OfficeHub } from '../../OfficeHubTabs';
 import Figures from '../Figures';
 import OfficePage from '../OfficePage';
@@ -9,7 +9,7 @@ import { businessMonth } from '../../../business-date';
 import { randomUuid } from '../../../shared/randomUuid';
 import { useT } from '../../../shared/i18n/t';
 import DealerApplicationsView from './DealerApplicationsView';
-import { commandRoot, currentView, findTable, pickField, SectionTableSearch, StaffActionDialog, textField, ViewSwitch, type StaffAction, type StaffField, type StaffSectionTable } from './staffSectionParts';
+import { commandRoot, currentView, findTable, pickField, SectionTableSearch, StaffActionDialog, StaffTable, textField, ViewSwitch, type StaffAction, type StaffField, type StaffSectionTable } from './staffSectionParts';
 
 type FieldView = 'orders' | 'targets' | 'applications' | 'areas';
 type DialogKey = 'order' | 'application';
@@ -108,7 +108,7 @@ export default function FieldSales({ tables, partners, partnerSearch = '', produ
             {view === 'orders' && orders && (
                 <>
                     <SectionTableSearch table={orders} />
-                    <Table
+                    <StaffTable
                         searchable={false}
                         printable
                         totalCount={orders.page.total}
@@ -130,7 +130,7 @@ export default function FieldSales({ tables, partners, partnerSearch = '', produ
             {view === 'targets' && targets && (
                 <>
                     <SectionTableSearch table={targets} />
-                    <Table
+                    <StaffTable
                         searchable={false}
                         printable
                         totalCount={targets.page.total}

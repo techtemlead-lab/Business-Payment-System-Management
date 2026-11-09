@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
-import { FormErrors, Modal, label, type Row } from '../../UI';
+import { Empty, FormErrors, Modal, Table, label, type Row, type TableProps } from '../../UI';
 import { randomUuid } from '../../../shared/randomUuid';
 import { useT } from '../../../shared/i18n/t';
 
@@ -53,7 +53,7 @@ export function ViewSwitch<T extends string>({ views, active, fallback, label: g
     };
 
     return (
-        <div className="office-switch" role="group" aria-label={groupLabel}>
+        <div className="office-switch" role="group" aria-label={groupLabel} style={{ maxWidth: "100%", overflowX: "auto" }}>
             {views.map((view) => (
                 <Link key={view.key} href={hrefFor(view.key)} className={view.key === active ? 'is-active' : undefined} aria-current={view.key === active ? 'true' : undefined} preserveState preserveScroll replace only={['view']}>
                     {view.label}
@@ -270,4 +270,13 @@ export function DrawerLines({ lines }: { lines: { label: string; value: React.Re
             {shown.map((line) => <div key={line.label}><dt>{line.label}</dt><dd>{line.value}</dd></div>)}
         </dl>
     );
+}
+
+/** A server-paged table with no search of its own; with no rows it is one quiet line. */
+export function StaffTable({ empty, rows, ...rest }: TableProps<Row> & { empty: string }) {
+    if (!rows || rows.length === 0) {
+        return <Empty line title={empty} />;
+    }
+
+    return <Table rows={rows} {...rest} />;
 }

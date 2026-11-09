@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { usePage } from '@inertiajs/react';
 import { actionAllowed } from '../../action-permissions';
-import { Badge, Modal, Pagination, Table, dateTime, label, money, type Row } from '../../UI';
+import { Badge, Modal, Pagination, dateTime, label, money, type Row } from '../../UI';
 import type { OfficeHub } from '../../OfficeHubTabs';
 import OfficePage from '../OfficePage';
 import { businessMonth } from '../../../business-date';
 import { useT } from '../../../shared/i18n/t';
-import { commandRoot, currentView, DrawerLines, findTable, pickField, readStored, SectionTableSearch, StaffActionDialog, StoredDetails, textField, ViewSwitch, type StaffAction, type StaffField, type StaffSectionTable } from './staffSectionParts';
+import { commandRoot, currentView, DrawerLines, findTable, pickField, readStored, SectionTableSearch, StaffActionDialog, StaffTable, StoredDetails, textField, ViewSwitch, type StaffAction, type StaffField, type StaffSectionTable } from './staffSectionParts';
 
 type PayrollView = 'register' | 'agreements';
 
@@ -117,7 +117,7 @@ export default function Payroll({ tables, staff, paymentAccounts, secondApprover
             {view === 'register' && register && (
                 <>
                     <SectionTableSearch table={register} />
-                    <Table
+                    <StaffTable
                         searchable={false}
                         printable
                         totalCount={register.page.total}
@@ -142,7 +142,7 @@ export default function Payroll({ tables, staff, paymentAccounts, secondApprover
             {view === 'agreements' && agreements && (
                 <>
                     <SectionTableSearch table={agreements} />
-                    <Table
+                    <StaffTable
                         searchable={false}
                         printable
                         totalCount={agreements.page.total}
