@@ -1,0 +1,75 @@
+/* =========================================================================
+   My Money for partners, the income cards on the partner home, and the
+   office's read-only copy of the same page. One big number, quiet cards,
+   one table. Built for older readers, so nothing here is smaller than 13px.
+   ========================================================================= */
+.mm-page{display:flex;flex-direction:column;gap:var(--ds-s-6);max-width:1120px;min-width:0}
+.mm-page h2,.ph .mm-income h2{margin:0 0 var(--ds-s-3);font-size:var(--ds-fs-md);font-weight:600;letter-spacing:0;line-height:var(--ds-lh-tight);color:var(--ds-text)}
+
+/* The one big number */
+.mm-hero{display:flex;flex-direction:column;gap:var(--ds-s-2);padding:var(--ds-s-6);background:var(--ds-surface);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg)}
+.mm-hero-label{font-size:var(--ds-fs-md);font-weight:500;color:var(--ds-text-2)}
+.mm-hero-number{font-size:var(--ds-fs-3xl);font-weight:700;line-height:var(--ds-lh-tight);color:var(--ds-text);font-variant-numeric:tabular-nums}
+.mm-hero-small{display:flex;flex-wrap:wrap;gap:var(--ds-s-1) var(--ds-s-5);margin:0;padding:0;list-style:none;font-size:var(--ds-fs-base);color:var(--ds-text-2)}
+.mm-hero-small b{font-weight:600;color:var(--ds-text);white-space:nowrap}
+.mm-hero-actions{display:flex;flex-wrap:wrap;gap:var(--ds-s-3);margin-top:var(--ds-s-3)}
+.mm-hero-actions .button{min-height:46px;padding-inline:var(--ds-s-6);font-size:var(--ds-fs-md)}
+
+/* Income cards: one label, one number */
+.mm-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--ds-s-3)}
+.mm-card{display:flex;flex-direction:column;align-items:flex-start;gap:var(--ds-s-1);min-width:0;padding:var(--ds-s-4);background:var(--ds-surface);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);color:var(--ds-text);text-align:left;cursor:pointer;transition:border-color .15s}
+.mm-card:hover{border-color:var(--ds-brand)}
+.mm-card.is-selected{border-color:var(--ds-brand);box-shadow:inset 0 0 0 1px var(--ds-brand)}
+.mm-card span{font-size:var(--ds-fs-base);line-height:1.35;color:var(--ds-text-2)}
+.mm-card strong{font-size:var(--ds-fs-2xl);font-weight:700;line-height:var(--ds-lh-tight);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+
+/* The quiet "so far" line */
+.mm-lifetime dl{display:flex;flex-wrap:wrap;gap:var(--ds-s-2) var(--ds-s-6);margin:0}
+.mm-lifetime dl>div{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--ds-s-2)}
+.mm-lifetime dt{font-size:var(--ds-fs-base);color:var(--ds-text-2)}
+.mm-lifetime dd{margin:0;font-size:var(--ds-fs-base);font-weight:600;color:var(--ds-text);white-space:nowrap;font-variant-numeric:tabular-nums}
+
+/* Statement */
+.mm-book{min-width:0;scroll-margin-top:84px}
+.mm-book .cell-sub{font-size:var(--ds-fs-sm)}
+:is(.mm-hero-number,.mm-card strong,.mm-book span).is-negative{color:var(--ds-danger-fg)}
+
+/* Files menu */
+.mm-downloads{position:relative}
+.mm-downloads summary{list-style:none;cursor:pointer}
+.mm-downloads summary::-webkit-details-marker{display:none}
+.mm-downloads-menu{position:absolute;right:0;top:calc(100% + var(--ds-s-1));z-index:20;display:flex;flex-direction:column;gap:var(--ds-s-1);width:min(290px,calc(100vw - 32px));padding:var(--ds-s-2);background:var(--ds-surface);border:1px solid var(--ds-line);border-radius:var(--ds-r-md);box-shadow:var(--ds-shadow-md)}
+.mm-downloads-menu a{display:flex;align-items:center;gap:var(--ds-s-2);min-height:40px;padding:var(--ds-s-1) var(--ds-s-2);border-radius:var(--ds-r-sm);font-size:var(--ds-fs-base);color:var(--ds-text)}
+.mm-downloads-menu a:hover{background:var(--ds-surface-2)}
+.mm-downloads-year{display:flex;flex-direction:column;gap:var(--ds-s-1)}
+
+/* Withdraw sheet */
+.mm-sheet-balance{margin:0 0 var(--ds-s-4);font-size:var(--ds-fs-base);color:var(--ds-text-2)}
+.mm-sheet-balance b{font-size:var(--ds-fs-lg);font-weight:700;color:var(--ds-text);white-space:nowrap}
+.mm-choices{display:flex;flex-direction:column;gap:var(--ds-s-3)}
+.mm-choice{display:flex;align-items:center;gap:var(--ds-s-3);width:100%;min-height:68px;padding:var(--ds-s-4);background:var(--ds-surface);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);color:var(--ds-text);text-align:left}
+.mm-choice:hover:not(:disabled){border-color:var(--ds-brand)}
+.mm-choice svg{flex:none;color:var(--ds-brand)}
+.mm-choice b{display:block;font-size:var(--ds-fs-md);font-weight:600}
+.mm-choice small{display:block;margin-top:2px;font-size:var(--ds-fs-sm);color:var(--ds-text-2);white-space:normal}
+.mm-choice:disabled{opacity:1;background:var(--ds-surface-2);cursor:not-allowed}
+.mm-choice:disabled svg{color:var(--ds-text-muted)}
+.mm-sheet-back{margin-top:var(--ds-s-4)}
+
+/* Office view header */
+.mm-partner-head{display:flex;flex-direction:column;align-items:flex-start;gap:var(--ds-s-1)}
+.mm-partner-head h1{margin:var(--ds-s-2) 0 0;font-size:var(--ds-fs-xl);font-weight:600;letter-spacing:0}
+.mm-partner-head p{font-size:var(--ds-fs-base);color:var(--ds-text-2)}
+
+@media(max-width:900px){
+  .mm-cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:480px){
+  .mm-page{gap:var(--ds-s-5)}
+  .mm-hero{padding:var(--ds-s-5)}
+  .mm-hero-actions .button{flex:1 1 0;padding-inline:var(--ds-s-3)}
+  .mm-card{padding:var(--ds-s-3)}
+  .mm-card strong{font-size:var(--ds-fs-lg)}
+  .mm-lifetime dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ds-s-3)}
+  .mm-lifetime dl>div{flex-direction:column;gap:0}
+}

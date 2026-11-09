@@ -5,6 +5,8 @@ import {
     GitBranch, Coins, BadgeCheck, Target, Bike, TrendingUp, Share2, Copy, Check, FileBarChart2, Plane,
     Phone, MessageCircle, ListChecks, BarChart3, Banknote, Boxes, UserPlus, History,
 } from 'lucide-react';
+import IncomeCards from './mymoney/IncomeCards';
+import type { IncomeCard } from './mymoney/types';
 import { PartnerProgressButton } from './PartnerProgress';
 import PartnerAlertsCard from './dealertools/PartnerAlertsCard';
 import NextStepsCard from './dealertools/NextStepsCard';
@@ -182,7 +184,7 @@ function QuickActions({ base }: { base: string }) {
     );
 }
 
-function PartnerHome({ home, orders, tools }: { home: Row; orders: React.ReactNode; tools?: Row }) {
+function PartnerHome({ home, orders, tools, moneyCards = [] }: { home: Row; orders: React.ReactNode; tools?: Row; moneyCards?: IncomeCard[] }) {
     const { portalBase: base } = usePage<any>().props;
     const translate = useT();
     const profile = home.profile ?? {};
@@ -244,6 +246,8 @@ function PartnerHome({ home, orders, tools }: { home: Row; orders: React.ReactNo
             )}
 
             <QuickActions base={base} />
+
+            <IncomeCards cards={moneyCards} hrefFor={(type) => `${base}/my-money?type=${encodeURIComponent(type)}`} />
 
             <section className="ph-today" data-tour="home-metrics" aria-labelledby="ph-today-title">
                 <h3 id="ph-today-title">{translate('portal', 'today_activity')}</h3>
@@ -654,7 +658,7 @@ export default function DashboardOverview({ data, orders }: { data: Row; orders:
     const staff = caps.length > 0;
 
     if (data.partner_home && (u.role === 'dealer' || u.role === 'sub_dealer')) {
-        return <PartnerHome home={data.partner_home} orders={orders} tools={data.partner_tools} />;
+        return <PartnerHome home={data.partner_home} orders={orders} tools={data.partner_tools} moneyCards={data.money_cards ?? []} />;
     }
     if (data.admin_home && staff) {
         return <AdminHome home={data.admin_home} data={data} orders={orders} />;
