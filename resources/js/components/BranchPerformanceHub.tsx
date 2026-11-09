@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import { Download, SlidersHorizontal } from 'lucide-react';
-import { Table, Pagination, money, date, Badge, type Row, DateInput, number, Modal } from './UI';
+import { Table, money, date, Badge, type Row, DateInput, number, Modal } from './UI';
+import MoneyTable, { type MoneyColumn, type MoneyTableData } from './MoneyTable';
 import OfficePage from './office/OfficePage';
 import Figures from './office/Figures';
 import type { OfficeHub } from './OfficeHubTabs';
@@ -50,6 +51,8 @@ interface PerformancePayload {
     unassigned: BranchMetric;
     /** One server page of orders; the totals above cover every order in the period. */
     orders: Row & { data: PerformanceOrder[]; total: number };
+    /** The list's search, column sort and its own totals, from the server. */
+    orders_table?: Omit<MoneyTableData<PerformanceOrder>, 'rows'>;
     selected_branch_id?: number | null;
     can_view_all_branches?: boolean;
 }
@@ -234,6 +237,9 @@ export default function BranchPerformanceHub({ performance, branch_options = [] 
             to: nextPeriod === 'custom' ? (next.to ?? period.to) : undefined,
             view: nextPeriod === 'custom' ? (next.view ?? (namedView || undefined)) : undefined,
             tab: showsOrders ? 'orders' : undefined,
+            q: address.searchParams.get('q') || undefined,
+            sort: address.searchParams.get('sort') || undefined,
+            dir: address.searchParams.get('dir') || undefined,
             branch_id: nextBranch || undefined,
             // No branch chosen means every branch the reader may see, even when the top bar is on one branch.
             all_branches: nextBranch ? undefined : 1,
@@ -297,6 +303,15 @@ export default function BranchPerformanceHub({ performance, branch_options = [] 
     const branchName = (row: BranchMetric) => (row.id
         ? <button type="button" className="text-link" onClick={() => visit({ branch_id: String(row.id) })}><b>{row.name}</b></button>
         : <b>{row.name}</b>);
+    const orderTable: MoneyTableData<PerformanceOrder> | undefined = performance.orders_table && { ...performance.orders_table, rows: performance.orders };
+    const orderColumns: MoneyColumn<PerformanceOrder>[] = [
+        { key: 'number', title: translate('portal', 'col_order'), sortKey: 'number', phone: 'title', render: (row) => <><b>{row.number}</b><small className="cell-sub">{row.partner_name}{row.dealer_code ? ` · ${row.dealer_code}` : ''}</small></> },
+        { key: 'created_at', title: translate('portal', 'col_date'), sortKey: 'date', phone: 'sub', render: (row) => <>{date(row.created_at)}<small className="cell-sub">{row.branch_code ? `${row.branch_name} · ${row.branch_code}` : (row.branch_name || '—')}</small></> },
+        { key: 'status', title: translate('portal', 'col_status'), sortKey: 'status', phone: 'sub', render: (row) => <Badge status={row.status} /> },
+        { key: 'delivered_value', title: translate('portal', 'branch_perf_order_value'), sortKey: 'delivered_value', money: true, total: 'delivered_value', phone: 'amount', render: (row) => money(row.delivered_value) },
+        { key: 'delivered_paid', title: translate('portal', 'branch_perf_income'), sortKey: 'delivered_paid', money: true, total: 'delivered_paid', phone: 'hide', render: (row) => <>{money(row.delivered_paid)}<small className="cell-sub">{translate('portal', 'branch_perf_outstanding')}: {money(row.outstanding)}</small></> },
+        { key: 'estimated_profit', title: translate('portal', 'branch_perf_profit'), sortKey: 'estimated_profit', money: true, total: 'estimated_profit', phone: 'hide', render: (row) => money(row.estimated_profit) },
+    ];
 
     return (
         <div data-tour="branch-performance-hub">
@@ -326,36 +341,7 @@ export default function BranchPerformanceHub({ performance, branch_options = [] 
                         <ReportViewChips active={activeView} from={period.from} to={period.to} onChoose={chooseView} />
                         <div className="mt-filters">{branchPicker}</div>
                     </div>
-                    {showsOrders ? (
-                        <>
-                            <div className="mt-table-wrap table-panel">
-                                <Table
-                                    rows={performance.orders.data ?? []}
-                                    tools={false}
-                                    searchable={false}
-                                    totalCount={performance.orders.total}
-                                    totalLabel={rangeTotalLabel}
-                                    empty={translate('portal', 'branch_perf_no_orders')}
-                                    columns={[
-                                        { key: 'number', title: translate('portal', 'col_order'), render: (row: PerformanceOrder) => <><b>{row.number}</b><small className="cell-sub">{row.partner_name}{row.dealer_code ? ` · ${row.dealer_code}` : ''}</small></> },
-                                        { key: 'created_at', title: translate('portal', 'col_date'), render: (row: PerformanceOrder) => <>{date(row.created_at)}<small className="cell-sub">{row.branch_code ? `${row.branch_name} · ${row.branch_code}` : (row.branch_name || '—')}</small></> },
-                                        { key: 'status', title: translate('portal', 'col_status'), render: (row: PerformanceOrder) => <Badge status={row.status} /> },
-                                        { key: 'delivered_value', title: translate('portal', 'branch_perf_order_value'), money: true, render: (row: PerformanceOrder) => money(row.delivered_value), footer: () => money(totals.order_value) },
-                                        { key: 'delivered_paid', title: translate('portal', 'branch_perf_income'), money: true, render: (row: PerformanceOrder) => <>{money(row.delivered_paid)}<small className="cell-sub">{translate('portal', 'branch_perf_outstanding')}: {money(row.outstanding)}</small></>, footer: () => money(totals.income) },
-                                        { key: 'estimated_profit', title: translate('portal', 'branch_perf_profit'), money: true, render: (row: PerformanceOrder) => money(row.estimated_profit), footer: () => money(totals.estimated_profit) },
-                                    ]}
-                                />
-                            </div>
-                            <ReportCards<PerformanceOrder>
-                                rows={performance.orders.data ?? []}
-                                empty={translate('portal', 'branch_perf_no_orders')}
-                                title={(row) => <>{row.number}<small className="cell-sub">{row.partner_name}{row.dealer_code ? ` · ${row.dealer_code}` : ''}</small></>}
-                                lines={(row) => [date(row.created_at), row.branch_name || '—', <Badge key="status" status={row.status} />]}
-                                amount={(row) => money(row.delivered_value)}
-                            />
-                            <Pagination page={performance.orders} />
-                        </>
-                    ) : (
+                    {!showsOrders && (
                         <>
                             <div className="mt-table-wrap table-panel">
                                 <Table
@@ -386,6 +372,16 @@ export default function BranchPerformanceHub({ performance, branch_options = [] 
                         </>
                     )}
                 </div>
+                {showsOrders && (
+                    <MoneyTable<PerformanceOrder>
+                        data={orderTable}
+                        prop="data"
+                        columns={orderColumns}
+                        searchPlaceholder={translate('office_reports', 'branch_perf_search')}
+                        hideViewChips
+                        empty={translate('portal', 'branch_perf_no_orders')}
+                    />
+                )}
             </OfficePage>
         </div>
     );

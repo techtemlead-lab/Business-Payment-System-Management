@@ -12,4 +12,6 @@ return [
     'top_sellers_col_dealer' => 'ডিলার',
     'top_sellers_col_amount' => 'কেনা',
     'scorecard_search' => 'নাম বা কোড দিয়ে খুঁজুন',
+    'scorecard_col_verified_amount' => 'নিশ্চিত টাকা',
+    'branch_perf_search' => 'অর্ডার নম্বর, নাম বা কোড দিয়ে খুঁজুন',
 ];

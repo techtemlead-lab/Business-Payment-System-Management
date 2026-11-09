@@ -14,8 +14,9 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
 /**
- * The monthly top-sellers board: dealers ranked by their own confirmed purchases
- * (real taka order value) in a Dhaka calendar month.
+ * The monthly top-sellers board: dealers ranked by their own purchases (real taka
+ * order value) in a Dhaka calendar month. Only delivered goods count, and a partly
+ * delivered order counts its delivered part ({@see DeliveredMoney}).
  *
  * Only purchases are ranked and shown. Earnings and commission never appear here,
  * because Bangladesh's MLM Act 2013 (s.23) forbids income claims.
@@ -190,7 +191,7 @@ final class TopSellersBoard
     }
 
     /**
-     * One grouped query: each active dealer's confirmed purchases in the month,
+     * One grouped query: what was delivered of each active dealer's purchases in the month,
      * ranked nationally and inside their division. A dealer's division is the division
      * place their place code lies in (walked up the place tree by id); dealers without a
      * place code rank nationally only. Only the rows a board can show come back: the
@@ -202,13 +203,14 @@ final class TopSellersBoard
     {
         [$branchCondition, $branchBindings] = $this->branchCondition($branchScope);
         [$start, $end] = CommissionQualification::period($month);
-        $statuses = OrderListFilter::Confirmed;
+        $statuses = DeliveredMoney::Statuses;
         $statusPlaceholders = implode(', ', array_fill(0, count($statuses), '?'));
+        $deliveredValue = DeliveredMoney::valueSql();
         $userPlace = PlaceTree::partnerPlaceIdSql('users');
 
         $sql = <<<SQL
             WITH RECURSIVE totals AS (
-                SELECT orders.user_id, SUM(orders.total) AS amount
+                SELECT orders.user_id, SUM({$deliveredValue}) AS amount
                 FROM orders
                 WHERE orders.status IN ({$statusPlaceholders})
                   AND orders.created_at >= ?

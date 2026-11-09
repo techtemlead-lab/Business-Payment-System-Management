@@ -324,6 +324,69 @@ class PortalQueryBudgetTest extends TestCase
         $this->assertCount(count($queries), $moreQueries, 'Branch performance queries must not grow with the number of orders.');
     }
 
+    public function test_branch_order_list_counts_and_sums_its_orders_in_one_query(): void
+    {
+        $owner = User::factory()->staff()->create();
+        $dealer = User::factory()->dealer()->create(['name' => 'Rahim Uddin']);
+        $product = Product::factory()->create(['active' => true, 'cost_price' => '30.00']);
+        foreach (range(1, 3) as $index) {
+            $this->line($this->order($dealer, 'delivered', total: '50.00'), $product, quantity: 1, dispatched: 1);
+        }
+        $visit = fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/branch-performance?period=month&all_branches=1&tab=orders&q=rahim');
+        $visit()->assertOk();
+
+        [$response, $queries] = $this->measure($visit);
+        $response->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.performance.orders_table.totals.count', 3)
+            ->where('data.performance.orders_table.totals.sums.delivered_value', '150.00'));
+        $this->assertSame(1, $this->matching($queries, 'money_table_count'), 'The count and the money totals come from one query.');
+        $this->assertSame(0, $this->matching($queries, 'select count(*) as "aggregate" from "orders"'), 'The order list must not count its orders a second time.');
+
+        foreach (range(1, 30) as $index) {
+            $this->line($this->order($dealer, 'delivered', total: '20.00'), $product, quantity: 1, dispatched: 1);
+        }
+        [, $moreQueries] = $this->measure($visit);
+        $this->assertCount(count($queries), $moreQueries, 'The order list queries must not grow with the number of orders.');
+    }
+
+    public function test_partner_scorecard_counts_once_and_does_not_grow_with_partners(): void
+    {
+        $owner = User::factory()->staff()->create();
+        $this->order(User::factory()->dealer()->create(), 'cancelled', total: '10.00');
+        $visit = fn () => $this->actingAs($owner)->onPortal('sadmin')->withSession([BranchOperations::SessionView => 'all'])->get('/partner-scorecard');
+        $visit()->assertOk();
+
+        [$response, $queries] = $this->measure($visit);
+        $response->assertOk()->assertInertia(fn (Assert $page) => $page->where('data.partner_scorecard.partners.totals.count', 1));
+        $this->assertSame(1, $this->matching($queries, 'money_table_count'), 'The partner count comes from one query.');
+        $this->assertSame(0, $this->matching($queries, 'as "aggregate" from "users"'), 'The list must not count the partners a second time.');
+
+        foreach (User::factory()->dealer()->count(30)->create() as $partner) {
+            $this->order($partner, 'cancelled', total: '10.00');
+        }
+        [, $moreQueries] = $this->measure($visit);
+        $this->assertCount(count($queries), $moreQueries, 'Scorecard queries must not grow with the number of partners.');
+    }
+
+    public function test_top_sellers_reads_delivered_totals_in_one_query(): void
+    {
+        $owner = User::factory()->staff()->create();
+        $this->order(User::factory()->dealer()->create(['status' => 'active']), 'delivered', total: '100.00');
+        $visit = fn () => $this->actingAs($owner)->onPortal('sadmin')->withSession([BranchOperations::SessionView => 'all'])->get('/top-sellers');
+        $visit()->assertOk();
+
+        [$response, $queries] = $this->measure($visit);
+        $response->assertOk()->assertInertia(fn (Assert $page) => $page->where('data.top_sellers.national.0.amount', '100.00'));
+        $this->assertSame(1, $this->matching($queries, 'rank() over'), 'The whole board comes from one grouped query.');
+
+        foreach (User::factory()->dealer()->count(15)->create(['status' => 'active']) as $partner) {
+            $this->order($partner, 'delivered', total: '50.00');
+            $this->order($partner, 'approved', total: '500.00');
+        }
+        [, $moreQueries] = $this->measure($visit);
+        $this->assertCount(count($queries), $moreQueries, 'Top sellers queries must not grow with dealers or orders.');
+    }
+
     public function test_dashboard_filter_columns_are_indexed(): void
     {
         $indexes = collect(DB::select("select indexname from pg_indexes where schemaname = 'public'"))->pluck('indexname');

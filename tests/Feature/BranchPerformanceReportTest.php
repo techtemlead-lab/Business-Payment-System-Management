@@ -9,6 +9,7 @@ use App\Models\CompanyBranch;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -84,6 +85,84 @@ class BranchPerformanceReportTest extends TestCase
         $this->assertSame(80, $byCode['DHK-02']['order_count']);
         $this->assertSame('4000.00', $byCode['DHK-02']['order_value']);
         $this->assertSame('4000.00', $byCode['DHK-02']['outstanding']);
+    }
+
+    public function test_sorting_the_order_list_reaches_orders_beyond_the_first_page(): void
+    {
+        $this->travelTo('2026-11-15 06:00:00');
+        $owner = User::factory()->staff('super_admin')->create();
+        $partner = User::factory()->dealer()->create();
+        $hub = CompanyBranch::query()->where('code', 'HO-PIRGANJ')->firstOrFail();
+        $product = Product::factory()->create(['cost_price' => '30.00']);
+        $this->bulkOrders($partner, $product, $hub->id, 30, '100.00', '100.00');
+        $this->createFulfilledOrder($partner, $product, $hub->id, '9000.00', '500.00');
+        DB::table('orders')->where('total', '9000.00')->update(['created_at' => now()->subHour()]);
+        $service = app(BranchPerformance::class);
+
+        $newestFirst = collect($service->summary($owner, ['period' => 'month'])['orders']->items())->pluck('delivered_value');
+        $this->assertNotContains('9000.00', $newestFirst, 'Newest first, this older order sits past the first page.');
+
+        $summary = $service->summary($owner, ['period' => 'month'], request: Request::create('/branch-performance', 'GET', ['sort' => 'delivered_value', 'dir' => 'desc']));
+        $this->assertSame('9000.00', $summary['orders']->items()[0]['delivered_value']);
+        $this->assertSame(31, $summary['orders']->total());
+        $this->assertSame('delivered_value', $summary['orders_table']['state']['sort']);
+
+        $paidLeastLast = $service->summary($owner, ['period' => 'month'], request: Request::create('/branch-performance', 'GET', ['sort' => 'delivered_paid', 'dir' => 'desc', 'page' => 2]));
+        $this->assertSame('100.00', collect($paidLeastLast['orders']->items())->last()['delivered_paid']);
+    }
+
+    public function test_the_order_list_keeps_the_report_period_in_its_page_links(): void
+    {
+        $this->travelTo('2026-11-15 06:00:00');
+        $owner = User::factory()->staff('super_admin')->create();
+        $partner = User::factory()->dealer()->create();
+        $hub = CompanyBranch::query()->where('code', 'HO-PIRGANJ')->firstOrFail();
+        $this->bulkOrders($partner, Product::factory()->create(), $hub->id, 30, '100.00', '100.00');
+        $period = ['period' => 'custom', 'from' => '2025-01-01', 'to' => '2026-11-15'];
+
+        $summary = app(BranchPerformance::class)->summary($owner, $period, request: Request::create('/branch-performance', 'GET', [...$period, 'sort' => 'status', 'dir' => 'asc']));
+
+        $this->assertSame(30, $summary['orders']->total(), 'A range longer than a year must still work.');
+        $nextPage = (string) $summary['orders']->url(2);
+        foreach (['period=custom', 'from=2025-01-01', 'to=2026-11-15', 'sort=status', 'dir=asc'] as $part) {
+            $this->assertStringContainsString($part, $nextPage);
+        }
+    }
+
+    public function test_search_narrows_the_order_list_and_its_totals_but_not_the_branch_figures(): void
+    {
+        $owner = User::factory()->staff('super_admin')->create();
+        $hub = CompanyBranch::query()->where('code', 'HO-PIRGANJ')->firstOrFail();
+        $product = Product::factory()->create(['cost_price' => '50.00']);
+        $rahim = User::factory()->dealer()->create(['name' => 'Rahim Uddin', 'dealer_code' => 'MNHC-1001']);
+        $karim = User::factory()->dealer()->create(['name' => 'Karim Ali', 'dealer_code' => 'MNHC-2002']);
+        $this->createFulfilledOrder($rahim, $product, $hub->id, '400.00', '300.00');
+        $this->createFulfilledOrder($karim, $product, $hub->id, '700.00', '700.00');
+        // Approved but not delivered: found by the search, worth nothing in the money columns.
+        $this->createFulfilledOrder($rahim, $product, $hub->id, '999.00', '0.00', 'approved');
+        $karimNumber = DB::table('orders')->where('user_id', $karim->id)->value('number');
+
+        $this->actingAs($owner)->onPortal('sadmin')
+            ->get('/branch-performance?period=month&all_branches=1&tab=orders&q=rahim')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('data.performance.orders.data', 2)
+                ->where('data.performance.orders.total', 2)
+                ->where('data.performance.orders_table.state.q', 'rahim')
+                ->where('data.performance.orders_table.totals.count', 2)
+                ->where('data.performance.orders_table.totals.sums.delivered_value', '400.00')
+                ->where('data.performance.orders_table.totals.sums.delivered_paid', '300.00')
+                ->where('data.performance.totals.order_count', 3)
+                ->where('data.performance.totals.order_value', '1100.00'));
+
+        foreach (['MNHC-2002', $karimNumber] as $words) {
+            $this->actingAs($owner)->onPortal('sadmin')
+                ->get('/branch-performance?period=month&all_branches=1&tab=orders&q='.$words)
+                ->assertOk()
+                ->assertInertia(fn (Assert $page) => $page
+                    ->has('data.performance.orders.data', 1)
+                    ->where('data.performance.orders.data.0.number', $karimNumber));
+        }
     }
 
     public function test_branch_totals_add_up_to_the_all_branches_total(): void

@@ -39,7 +39,7 @@ final class DealerToolsSection implements WorkspaceSection
             $props['schemes_admin'] = app(DatedSchemes::class)->forOwner($context->user);
         }
         if ($context->isStaff && $context->section === 'partner-scorecard') {
-            $props['partner_scorecard'] = app(PartnerScorecard::class)->page($context->request->only(['q', 'buyer_role', 'period', 'from', 'to']), $context->branchScope);
+            $props['partner_scorecard'] = app(PartnerScorecard::class)->page($context->request, $context->branchScope);
         }
         if ($context->section === 'contests') {
             $props['contests'] = app(PartnerContests::class)->forViewer($context->user);

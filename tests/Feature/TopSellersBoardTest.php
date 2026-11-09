@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Orders\MixedOutcomeDecisions;
 use App\Domain\Orders\TopSellersBoard;
 use App\Models\PlaceCode;
+use App\Models\Product;
 use App\Models\User;
 use App\Support\DashboardManagement;
 use Carbon\CarbonImmutable;
@@ -25,7 +27,43 @@ class TopSellersBoardTest extends TestCase
         $this->travelTo(CarbonImmutable::parse('2026-11-15 12:00:00', 'Asia/Dhaka'));
     }
 
-    public function test_dealers_are_ranked_by_their_own_confirmed_purchases_in_the_dhaka_month(): void
+    public function test_a_confirmed_order_counts_for_nothing_until_it_is_delivered(): void
+    {
+        $rahim = $this->dealer('Rahim', 'MNHC-101', 'Dhaka', 'Gazipur');
+        foreach (['approved', 'partially_dispatched', 'dispatched'] as $status) {
+            $this->order($rahim, $status, '5000.00');
+        }
+
+        $waiting = app(TopSellersBoard::class)->forPartner($rahim, null);
+
+        $this->assertSame([], $waiting['national']);
+        $this->assertSame([], $waiting['divisional']);
+        $this->assertNull($waiting['me']);
+
+        $this->order($rahim, 'delivered', '300.00');
+        $delivered = app(TopSellersBoard::class)->forPartner($rahim, null);
+
+        $this->assertSame('300.00', $delivered['national'][0]['amount']);
+        $this->assertSame('300.00', $delivered['me']['amount']);
+        $this->assertSame([], array_column(app(TopSellersBoard::class)->forStaff('2026-10', null)['national'], 'name'));
+    }
+
+    public function test_a_partly_delivered_order_counts_only_its_delivered_part(): void
+    {
+        $rahim = $this->dealer('Rahim', 'MNHC-101', 'Dhaka', 'Gazipur');
+        $karim = $this->dealer('Karim', 'MNHC-102', 'Dhaka', 'Gazipur');
+        $this->partlyDeliveredOrder($rahim, deliveredUnits: 3, returnedUnits: 7, unitPrice: '100.00');
+        $this->order($karim, 'delivered', '200.00');
+
+        $board = app(TopSellersBoard::class)->forPartner($rahim, null);
+
+        $this->assertSame(
+            [['Rahim', 1, '300.00'], ['Karim', 2, '200.00']],
+            array_map(fn (array $row): array => [$row['name'], $row['rank'], $row['amount']], $board['national']),
+        );
+    }
+
+    public function test_dealers_are_ranked_by_their_own_delivered_purchases_in_the_dhaka_month(): void
     {
         $rahim = $this->dealer('Rahim', 'MNHC-101', 'Dhaka', 'Gazipur');
         $karim = $this->dealer('Karim', 'MNHC-102', 'Dhaka', null);
@@ -33,17 +71,17 @@ class TopSellersBoardTest extends TestCase
         $suspended->forceFill(['status' => 'suspended'])->save();
         $subDealer = User::factory()->subDealer()->inPlace($this->place('Dhaka', null))->create(['sponsor_id' => $rahim->id, 'directory_visible' => true]);
 
-        foreach (['approved' => '500.00', 'delivered' => '300.00', 'submitted' => '1000.00', 'rejected' => '900.00', 'cancelled' => '700.00'] as $status => $total) {
+        foreach (['delivered' => '800.00', 'approved' => '2000.00', 'submitted' => '1000.00', 'rejected' => '900.00', 'cancelled' => '700.00'] as $status => $total) {
             $this->order($rahim, $status, $total, '2026-11-10 10:00:00');
         }
-        $this->order($karim, 'dispatched', '600.00', '2026-11-03 10:00:00');
-        $this->order($karim, 'partially_dispatched', '50.00', '2026-11-04 10:00:00');
+        $this->order($karim, 'delivered', '600.00', '2026-11-03 10:00:00');
+        $this->order($karim, 'delivered', '50.00', '2026-11-04 10:00:00');
         // 11:59 pm on 31 October in Dhaka belongs to October; 12:30 am on 1 November to November.
-        $this->order($karim, 'approved', '1000.00', '2026-10-31 23:59:00');
-        $this->order($karim, 'approved', '50.00', '2026-11-01 00:30:00');
-        $this->order($suspended, 'approved', '5000.00', '2026-11-05 10:00:00');
+        $this->order($karim, 'delivered', '1000.00', '2026-10-31 23:59:00');
+        $this->order($karim, 'delivered', '50.00', '2026-11-01 00:30:00');
+        $this->order($suspended, 'delivered', '5000.00', '2026-11-05 10:00:00');
         // A sub-dealer's purchases count for nobody: not for the sponsor, and sub-dealers are not ranked.
-        $this->order($subDealer, 'approved', '9000.00', '2026-11-05 10:00:00');
+        $this->order($subDealer, 'delivered', '9000.00', '2026-11-05 10:00:00');
 
         $board = app(TopSellersBoard::class)->forPartner($rahim, null);
 
@@ -64,7 +102,7 @@ class TopSellersBoardTest extends TestCase
     public function test_only_this_month_and_the_last_two_closed_months_can_be_picked(): void
     {
         $rahim = $this->dealer('Rahim', 'MNHC-101', 'Dhaka', null);
-        $this->order($rahim, 'approved', '100.00', '2026-08-10 10:00:00');
+        $this->order($rahim, 'delivered', '100.00', '2026-08-10 10:00:00');
 
         $board = app(TopSellersBoard::class)->forPartner($rahim, '2026-08');
 
@@ -78,10 +116,10 @@ class TopSellersBoardTest extends TestCase
         $dhakaTwo = $this->dealer('Babul', 'MNHC-202', 'Dhaka', 'Tangail');
         $dhakaThree = $this->dealer('Chandan', 'MNHC-203', 'Dhaka', 'Faridpur');
         $rajshahi = $this->dealer('Dipu', 'MNHC-301', 'Rajshahi', 'Bogura');
-        $this->order($dhakaOne, 'approved', '400.00');
-        $this->order($dhakaTwo, 'approved', '400.00');
-        $this->order($dhakaThree, 'approved', '100.00');
-        $this->order($rajshahi, 'approved', '900.00');
+        $this->order($dhakaOne, 'delivered', '400.00');
+        $this->order($dhakaTwo, 'delivered', '400.00');
+        $this->order($dhakaThree, 'delivered', '100.00');
+        $this->order($rajshahi, 'delivered', '900.00');
 
         $board = app(TopSellersBoard::class)->forPartner($dhakaThree, null);
 
@@ -106,7 +144,7 @@ class TopSellersBoardTest extends TestCase
             ->create(['name' => 'Other Dhaka', 'dealer_code' => 'MNHC-803']);
         $namesOnly = User::factory()->dealer()->create(['name' => 'Names Only', 'dealer_code' => 'MNHC-804', 'division' => 'Dhaka', 'district' => 'Gazipur']);
         foreach ([$viewer, $sameDivision, $otherDhaka, $namesOnly] as $dealer) {
-            $this->order($dealer, 'approved', '100.00');
+            $this->order($dealer, 'delivered', '100.00');
         }
 
         $board = app(TopSellersBoard::class)->forPartner($viewer, null);
@@ -124,10 +162,10 @@ class TopSellersBoardTest extends TestCase
     {
         foreach (range(1, 22) as $index) {
             $dealer = $this->dealer('Dealer '.str_pad((string) $index, 2, '0', STR_PAD_LEFT), 'MNHC-4'.str_pad((string) $index, 2, '0', STR_PAD_LEFT), 'Khulna', 'Jashore');
-            $this->order($dealer, 'approved', (string) (5000 - $index * 10).'.00');
+            $this->order($dealer, 'delivered', (string) (5000 - $index * 10).'.00');
         }
         $viewer = $this->dealer('Rahim', 'MNHC-500', 'Khulna', 'Jashore');
-        $this->order($viewer, 'approved', '100.00');
+        $this->order($viewer, 'delivered', '100.00');
 
         DB::flushQueryLog();
         DB::enableQueryLog();
@@ -149,8 +187,8 @@ class TopSellersBoardTest extends TestCase
     {
         $unlisted = $this->dealer('Unlisted Leader', 'MNHC-601', 'Sylhet', 'Sylhet', visible: false);
         $listed = $this->dealer('Listed Second', 'MNHC-602', 'Sylhet', 'Moulvibazar');
-        $this->order($unlisted, 'approved', '1000.00');
-        $this->order($listed, 'approved', '500.00');
+        $this->order($unlisted, 'delivered', '1000.00');
+        $this->order($listed, 'delivered', '500.00');
 
         $board = app(TopSellersBoard::class)->forPartner($listed, null);
         $this->assertSame([['Unlisted Leader', 1, 100.0], ['Listed Second', 2, 50.0]], array_map(fn (array $row) => [$row['name'], $row['rank'], $row['percent']], $board['national']));
@@ -170,8 +208,8 @@ class TopSellersBoardTest extends TestCase
     {
         $dhaka = $this->dealer('Rahim', 'MNHC-101', 'Dhaka', 'Gazipur');
         $rangpur = $this->dealer('Selim', 'MNHC-701', 'Rangpur', 'Dinajpur');
-        $this->order($dhaka, 'approved', '300.00');
-        $this->order($rangpur, 'approved', '800.00');
+        $this->order($dhaka, 'delivered', '300.00');
+        $this->order($rangpur, 'delivered', '800.00');
         $subDealer = User::factory()->subDealer()->inPlace($this->place('Dhaka', null))->create(['sponsor_id' => $dhaka->id]);
 
         $this->actingAs($subDealer)->onPortal('subdealer')->get('/top-sellers')
@@ -190,7 +228,7 @@ class TopSellersBoardTest extends TestCase
     public function test_owner_switches_hide_the_amounts_or_the_whole_board(): void
     {
         $rahim = $this->dealer('Rahim', 'MNHC-101', 'Dhaka', 'Gazipur');
-        $this->order($rahim, 'approved', '800.00');
+        $this->order($rahim, 'delivered', '800.00');
         $owner = User::factory()->staff()->create();
 
         $this->actingAs($rahim)->onPortal('dealer')->get('/top-sellers')
@@ -233,7 +271,7 @@ class TopSellersBoardTest extends TestCase
     public function test_the_board_never_carries_earnings_or_commission(): void
     {
         $rahim = $this->dealer('Rahim', 'MNHC-101', 'Dhaka', 'Gazipur');
-        $this->order($rahim, 'approved', '800.00');
+        $this->order($rahim, 'delivered', '800.00');
 
         $response = $this->actingAs($rahim)->onPortal('dealer')->get('/top-sellers')->assertOk();
         $board = $response->original->getData()['page']['props']['data']['top_sellers'];
@@ -250,7 +288,7 @@ class TopSellersBoardTest extends TestCase
     public function test_office_staff_see_the_board_under_reports(): void
     {
         $rahim = $this->dealer('Rahim', 'MNHC-101', 'Dhaka', 'Gazipur');
-        $this->order($rahim, 'approved', '800.00');
+        $this->order($rahim, 'delivered', '800.00');
         $reports = User::factory()->staff('employee')->create(['profile' => ['permissions' => ['reports']]]);
         $inventory = User::factory()->staff('employee')->create(['profile' => ['permissions' => ['inventory']]]);
 
@@ -296,12 +334,34 @@ class TopSellersBoardTest extends TestCase
         return $this->places['district:'.$division.'|'.$district] ??= PlaceCode::factory()->district($divisionPlace)->create(['name' => $district]);
     }
 
-    /** One order placed at a Dhaka wall-clock time (stored in UTC like the app does). */
-    private function order(User $buyer, string $status, string $total, string $dhakaTime = '2026-11-10 10:00:00'): void
+    /** A partly delivered order of one line: some parcels arrived, the others came back. */
+    private function partlyDeliveredOrder(User $buyer, int $deliveredUnits, int $returnedUnits, string $unitPrice): void
+    {
+        $units = $deliveredUnits + $returnedUnits;
+        $total = number_format($units * (float) $unitPrice, 2, '.', '');
+        $orderId = $this->order($buyer, MixedOutcomeDecisions::PartlyDelivered, $total);
+        $product = Product::factory()->create();
+        $lineId = DB::table('order_lines')->insertGetId([
+            'order_id' => $orderId, 'product_id' => $product->id, 'name' => $product->name, 'sku' => $product->sku,
+            'quantity' => $units, 'dispatched' => $units, 'mrp' => $unitPrice, 'unit_price' => $unitPrice, 'total' => $total,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        foreach (['delivered' => $deliveredUnits, 'returned' => $returnedUnits] as $status => $quantity) {
+            DB::table('shipments')->insert([
+                'order_id' => $orderId, 'courier' => 'Test courier', 'tracking' => Str::random(10), 'status' => $status,
+                'lines' => json_encode([['line_id' => $lineId, 'name' => 'Item', 'quantity' => $quantity, 'lots' => []]], JSON_THROW_ON_ERROR),
+                'actor_id' => $buyer->id, 'created_at' => now(), 'updated_at' => now(),
+            ]);
+        }
+    }
+
+    /** One order placed at a Dhaka wall-clock time (stored in UTC like the app does). Returns its id. */
+    private function order(User $buyer, string $status, string $total, string $dhakaTime = '2026-11-10 10:00:00'): string
     {
         $createdAt = CarbonImmutable::parse($dhakaTime, 'Asia/Dhaka')->utc();
+        $orderId = (string) Str::uuid();
         DB::table('orders')->insert([
-            'id' => (string) Str::uuid(),
+            'id' => $orderId,
             'number' => 'MN-TS-'.Str::upper(Str::random(8)),
             'user_id' => $buyer->id,
             'status' => $status,
@@ -313,5 +373,7 @@ class TopSellersBoardTest extends TestCase
             'created_at' => $createdAt,
             'updated_at' => $createdAt,
         ]);
+
+        return $orderId;
     }
 }

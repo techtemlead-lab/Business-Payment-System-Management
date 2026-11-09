@@ -12,4 +12,6 @@ return [
     'top_sellers_col_dealer' => 'Dealer',
     'top_sellers_col_amount' => 'Purchases',
     'scorecard_search' => 'Search name or code',
+    'scorecard_col_verified_amount' => 'Money confirmed',
+    'branch_perf_search' => 'Search order number, name or code',
 ];
