@@ -80,13 +80,14 @@ final class BranchesSection implements WorkspaceSection
         $props['can_edit_branches'] = $user->owner() || $user->canAct('inventory', 'edit') || $user->canAct('accounts', 'edit');
         $props['active_branch_id'] = $user->active_branch_id;
         $props['delivery_points'] = $branchOps->deliveryPoints();
+        $customRoleNames = DB::table('staff_roles')->pluck('name', 'key');
         $props['assignable_staff'] = User::query()
             ->staffAccounts()
             ->where('status', 'active')
             ->orderBy('name')
             ->limit(200)
             ->get(['id', 'name', 'email', 'phone', 'role'])
-            ->map(fn (User $staffMember) => $staffMember->only(['id', 'name', 'email', 'phone', 'role']))
+            ->map(fn (User $staffMember) => [...$staffMember->only(['id', 'name', 'email', 'phone', 'role']), 'role_name' => $customRoleNames[$staffMember->role] ?? null])
             ->all();
 
         return $props;
