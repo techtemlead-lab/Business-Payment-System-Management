@@ -167,7 +167,7 @@ final class StockRegister
             ->leftJoinSub($booked, 'booked', 'booked.product_id', '=', 'stage.product_id')
             ->selectRaw(
                 "products.id, products.id || '-' || COALESCE(CAST(stage.branch_id AS text), '') AS row_key, products.name, products.sku, products.strength, products.category, products.sub_category, products.unit, products.mrp, products.cost_price, products.dealer_price, products.sub_dealer_price,"
-                .' products.active, products.featured, COALESCE(products.is_stock_paused, false) AS is_stock_paused, products.low_stock_at, products.expires_on AS product_expires_on, products.batch_number AS product_batch, products.created_at,'
+                .' products.active, products.archived_at, products.featured, COALESCE(products.is_stock_paused, false) AS is_stock_paused, products.low_stock_at, products.expires_on AS product_expires_on, products.batch_number AS product_batch, products.created_at,'
                 ." {$branchColumn} AS branch_id, branch.name AS branch_name, branch.code AS branch_code,"
                 .' stage.physical, stage.in_stock, stage.on_hold, stage.expired, stage.with_courier, stage.unlotted, stage.next_expiry, stage.next_batch,'
                 ." {$rowExpiry} AS row_expiry, {$rowBatch} AS row_batch, CAST(COALESCE(booked.units, 0) AS integer) AS booked, stage.physical * products.mrp AS stock_value, {$level} AS level,"
@@ -198,7 +198,11 @@ final class StockRegister
                 'qty_max' => $rows->where('stock_row.in_stock', '<=', (int) $value),
                 'min_mrp' => $rows->where('stock_row.mrp', '>=', $value),
                 'max_mrp' => $rows->where('stock_row.mrp', '<=', $value),
-                'product_state' => $rows->where('stock_row.active', $value === 'active'),
+                'product_state' => match ($value) {
+                    'active' => $rows->where('stock_row.active', true),
+                    'draft' => $rows->where('stock_row.active', false)->whereNull('stock_row.archived_at'),
+                    default => $rows->where('stock_row.active', false)->whereNotNull('stock_row.archived_at'),
+                },
                 'featured' => $rows->where('stock_row.featured', $value === 'yes'),
                 'paused' => $rows->where('stock_row.is_stock_paused', $value === 'yes'),
                 'batch' => $this->onHandMatches($rows, 'filter_lot.batch_number ILIKE ?', ['%'.OrderListFilter::escapeLike($value).'%'], 'stock_row.product_batch ILIKE ?', ['%'.OrderListFilter::escapeLike($value).'%']),
@@ -400,7 +404,7 @@ final class StockRegister
             $fields[] = $this->select('missing', __('stock_lots.filter_missing'), $this->labelled(self::MissingDetails, 'stock_lots.missing_filter_'), 'more');
             $fields[] = $this->select('idle', __('stock_lots.filter_idle'), array_map(fn (int $days): array => ['value' => (string) $days, 'label' => __('stock_lots.days_option', ['days' => $days])], self::IdleDays), 'more');
         }
-        $fields[] = $this->select('product_state', __('stock_lots.filter_product_state'), $this->labelled(['active', 'archived'], 'stock_lots.product_state_'), 'more');
+        $fields[] = $this->select('product_state', __('stock_lots.filter_product_state'), $this->labelled(['active', 'draft', 'archived'], 'stock_lots.product_state_'), 'more');
         $fields[] = $this->select('featured', __('stock_lots.filter_featured'), $this->labelled(['yes', 'no'], 'stock_lots.answer_'), 'more');
         $fields[] = $this->select('paused', __('stock_lots.filter_paused'), $this->labelled(['yes', 'no'], 'stock_lots.answer_'), 'more');
 

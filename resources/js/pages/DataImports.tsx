@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { businessDateTime } from '../business-date';
 import { Head, Link, useForm, usePage, usePoll } from '@inertiajs/react';
 import { Download } from 'lucide-react';
 import Shell from '../components/Shell';
@@ -66,7 +67,7 @@ export default function DataImports({ types, batches, preview, openingLocked, ca
                         { key: 'type', title: translate('portal','imp_col_type'), render: (row: Row) => typeTitle(row.type) },
                         { key: 'status', title: translate('portal','enquiry_status_label'), render: (row: Row) => <Badge status={row.status} /> },
                         { key: 'source_reference', title: translate('portal','imp_col_source') },
-                        { key: 'created_at', title: translate('portal','imp_col_uploaded') },
+                        { key: 'created_at', title: translate('portal','imp_col_uploaded'), render: (row: Row) => businessDateTime(row.created_at) },
                     ]} />
                     <Pagination page={batches} />
                 </section>

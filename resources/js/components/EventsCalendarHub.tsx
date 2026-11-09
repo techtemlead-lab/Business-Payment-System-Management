@@ -4,7 +4,7 @@ import { CalendarDays, Clock, MapPin, MessageSquareText, Pencil, Plus, Send, Tra
 import { Badge, DateInput, Empty, FormErrors, Modal, Table } from './UI';
 import OfficePage from './office/OfficePage';
 import { useT } from '../shared/i18n/t';
-import { isBanglaDocument } from '../business-date';
+import { isBanglaDocument, localizeDigits } from '../business-date';
 import { banglaSmsSegments, hasBanglaLetters } from '../shared/smsRules';
 
 export type PartnerEventRow = {
@@ -87,6 +87,12 @@ function shortDate(iso: string): string {
 /** "14:30" → "2:30 pm" (Dhaka wall-clock time from the server). */
 function clock(time: string): string {
     const [h, m] = time.split(':').map(Number);
+    if (isBanglaDocument()) {
+        const dayPart = h < 4 ? 'রাত' : h < 12 ? 'সকাল' : h < 15 ? 'দুপুর' : h < 18 ? 'বিকাল' : h < 20 ? 'সন্ধ্যা' : 'রাত';
+
+        return localizeDigits(`${dayPart} ${h % 12 || 12}:${String(m).padStart(2, '0')}`);
+    }
+
     return new Intl.DateTimeFormat(intlLocale(), { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'UTC' })
         .format(new Date(Date.UTC(2000, 0, 1, h, m)));
 }

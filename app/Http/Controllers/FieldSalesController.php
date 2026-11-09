@@ -24,7 +24,7 @@ class FieldSalesController extends Controller
         $data = $request->validate(['staff_id' => 'required|integer|exists:users,id', 'level' => 'nullable|in:division,district,upazila,union',
             'place_code' => 'required|string|max:32'], ['place_code.required' => __('portal.place_code_required')]);
 
-        return $this->done($request, ['id' => $territories->assign($request->user(), $data)]);
+        return $this->done($request, ['id' => $territories->assign($request->user(), $data)], 'portal.flash_sr_area_saved');
     }
 
     public function removeTerritory(Request $request, int $id, TerritoryAccess $territories): Response
@@ -40,7 +40,7 @@ class FieldSalesController extends Controller
         $data = $request->validate(['staff_id' => 'required|integer|exists:users,id', 'period_month' => 'required|date_format:Y-m',
             'target' => [...FinanceOperationsController::Amount, 'gt:0'], 'bonus' => FinanceOperationsController::Amount, 'version' => 'nullable|integer|min:1']);
 
-        return $this->done($request, ['id' => $operations->target($request->user(), $data)]);
+        return $this->done($request, ['id' => $operations->target($request->user(), $data)], 'portal.flash_sr_target_saved');
     }
 
     public function application(Request $request, StaffOperations $operations): Response
@@ -97,10 +97,10 @@ class FieldSalesController extends Controller
     }
 
     /** @param array<string, mixed> $data */
-    private function done(Request $request, array $data = []): Response
+    private function done(Request $request, array $data = [], string $message = 'portal.flash_sales_operation'): Response
     {
         return $request->expectsJson()
             ? response()->json(['data' => $data])
-            : back()->with('success', __('portal.flash_sales_operation'));
+            : back()->with('success', __($message));
     }
 }

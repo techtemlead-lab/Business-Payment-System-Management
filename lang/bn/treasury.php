@@ -233,7 +233,7 @@ return [
     'dl_products' => 'ডেলিভারি হওয়া পণ্যের বিক্রি',
     'dl_product_summary' => 'পণ্যভিত্তিক হিসাব',
     'dl_category_summary' => 'ক্যাটাগরিভিত্তিক হিসাব',
-    'dl_payroll' => 'কর্মচারীদের বেতন',
+    'dl_payroll' => 'স্টাফের বেতন',
     'dl_profit_loss' => 'লাভ-ক্ষতির হিসাব',
     'dl_balance_sheet' => 'ব্যালেন্স শিট',
     'dl_trial_balance' => 'ট্রায়াল ব্যালেন্স',

@@ -154,6 +154,7 @@ return [
     'filter_idle' => 'Not sold for',
     'filter_product_state' => 'Product status',
     'product_state_active' => 'Active',
+    'product_state_draft' => 'Draft',
     'product_state_archived' => 'Archived',
     'filter_featured' => 'Featured',
     'filter_paused' => 'Ordering paused',

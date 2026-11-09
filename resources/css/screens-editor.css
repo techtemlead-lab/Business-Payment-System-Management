@@ -386,3 +386,7 @@
 .app-shell .ws-save-bar.is-end{justify-content:flex-end}
 .app-shell .ow-move{display:inline-flex;gap:2px}
 .ow-drawer-image{display:block;width:100%;border-radius:var(--ds-r-md);margin-bottom:var(--ds-s-4)}
+
+/* The remove block sits under the side column, outside the save form. */
+.app-shell .pe-remove-row>div{grid-column:2}
+@media(max-width:900px){.app-shell .pe-remove-row>div{grid-column:1}}

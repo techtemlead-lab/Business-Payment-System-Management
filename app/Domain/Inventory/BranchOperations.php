@@ -579,6 +579,25 @@ final class BranchOperations
     }
 
     /**
+     * The branch a newly added partner landed on, when that is not the branch on the person's
+     * screen. A saved partner who is missing from the list needs saying where they went.
+     */
+    public function otherBranchOfNewPartner(User $actor, Request $request, User $partner): ?CompanyBranch
+    {
+        $scope = $this->scopeFor($actor, $request);
+        if ($scope->allBranches) {
+            return null;
+        }
+        $branchId = DB::table('users')->where('users.id', $partner->id)
+            ->selectRaw(app(ChatRouting::class)->partnerBranchSql('users').' AS branch_id')->value('branch_id');
+        if ($branchId === null || in_array((int) $branchId, $scope->branchIds, true)) {
+            return null;
+        }
+
+        return CompanyBranch::query()->find($branchId);
+    }
+
+    /**
      * The branches a staff page shows, following the top-bar switcher the same way
      * Branch performance does: the owner and staff who may view every branch see all
      * branches until they pick one (or when they pick "All branches"); a picked branch

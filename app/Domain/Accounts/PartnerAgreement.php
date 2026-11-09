@@ -151,6 +151,9 @@ final class PartnerAgreement
             // Two owners publishing at once must not get the same version number.
             DB::statement('LOCK TABLE partner_agreement_versions IN SHARE ROW EXCLUSIVE MODE');
             $previous = $this->latest();
+            if ($previous !== null && trim($previous->body_bn) === trim($bodyBn) && trim($previous->body_en) === trim($bodyEn)) {
+                throw ValidationException::withMessages(['body_bn' => __('portal.err_agr_unchanged')]);
+            }
             $version = PartnerAgreementVersion::query()->create([
                 'version' => ($previous?->version ?? 0) + 1,
                 'body_bn' => trim($bodyBn),

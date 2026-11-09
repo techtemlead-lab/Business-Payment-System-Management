@@ -6,7 +6,7 @@ import { localizeDigits } from '../business-date';
 
 export type ProductRemoval = { can_delete: boolean; reasons: string[] };
 
-export type RemovableProduct = { id: number | string; name: string; active?: boolean };
+export type RemovableProduct = { id: number | string; name: string; archived?: boolean };
 
 /** The server's reasons as one sentence, with digits in the reader's language. */
 export function removalReasons(removal: ProductRemoval | null | undefined): string {
@@ -81,7 +81,7 @@ export function ProductRemovePanel({ product, removal }: { product: RemovablePro
     const translate = useT();
     const t = (key: string, replace?: Record<string, string>) => translate('office_stock', key, replace);
     const [asking, setAsking] = useState(false);
-    const isArchived = product.active === false;
+    const isArchived = product.archived === true;
 
     return (
         <section className="panel pe-danger-zone tone-danger">

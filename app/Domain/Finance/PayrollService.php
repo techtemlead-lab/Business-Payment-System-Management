@@ -58,7 +58,7 @@ final class PayrollService
             throw ValidationException::withMessages(['period_month' => __('portal.err_payroll_month_open')]);
         }
 
-        return DB::transaction(function () use ($actor, $month): array {
+        $prepared = DB::transaction(function () use ($actor, $month): array {
             CommissionWallet::lock();
             abort_unless($actor->fresh()->allows('payroll'), 403);
             $contracts = DB::table('staff_contracts')->where('effective_month', '<=', $month)->orderByDesc('effective_month')->orderByDesc('id')->get()->unique('staff_id');
@@ -94,6 +94,12 @@ final class PayrollService
 
             return $ids;
         }, 3);
+
+        if ($prepared === []) {
+            throw ValidationException::withMessages(['period_month' => __('portal.err_payroll_nothing_to_prepare')]);
+        }
+
+        return $prepared;
     }
 
     public function review(User $actor, string $id, string $decision, string $reason, bool $confirmedAlone = false): void

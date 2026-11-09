@@ -7,8 +7,11 @@ import ProductRemoveDialog, { removalLine, restoreProduct } from './ProductRemov
 export function ProductStatusBadge({ product }: { product: Row }) {
     const translate = useT();
     const t = (key: string) => translate('office_stock', key);
-    if (product.active === false) {
+    if (product.archived === true) {
         return <span className="badge archived">{t('status_archived')}</span>;
+    }
+    if (product.active === false) {
+        return <span className="badge draft">{t('status_draft')}</span>;
     }
     if (product.is_stock_paused) {
         return <span className="badge held">{t('status_orders_stopped')}</span>;
@@ -38,7 +41,7 @@ export default function ProductDrawer({ product, canStock, canEditCatalog, canOp
     const t = (key: string) => translate('office_stock', key);
     const [asking, setAsking] = useState(false);
     const removal = product.removal;
-    const isArchived = product.active === false;
+    const isArchived = product.archived === true;
     const canRemove = canEditCatalog && Boolean(removal);
     const photo = product.image_url || product.image_fallback?.url;
     const line = removalLine(removal, isArchived, translate);
@@ -81,7 +84,7 @@ export default function ProductDrawer({ product, canStock, canEditCatalog, canOp
             </Modal>
             {asking && removal && (
                 <ProductRemoveDialog
-                    product={{ id: product.id, name: String(product.name), active: !isArchived }}
+                    product={{ id: product.id, name: String(product.name), archived: isArchived }}
                     removal={removal}
                     onClose={() => setAsking(false)}
                     onDone={onClose}
