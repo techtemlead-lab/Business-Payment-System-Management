@@ -94,7 +94,7 @@ class TableTotalsAndExportsTest extends TestCase
         Audit::record($owner->id, 'order.approved', 'ORD-1');
         Audit::record($owner->id, 'account.updated', 'USER-2');
 
-        $events = $this->sectionData($owner, '/audit?q=Order%20approved')['events'];
+        $events = $this->sectionData($owner, '/audit?q=Order%20approved')['work_log_table']['rows'];
 
         $this->assertSame(1, $events['total']);
         $this->assertSame('order.approved', $events['data'][0]['action']);

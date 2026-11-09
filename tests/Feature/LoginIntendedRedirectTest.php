@@ -26,6 +26,8 @@ class LoginIntendedRedirectTest extends TestCase
     {
         $owner = User::factory()->staff()->create();
 
-        $this->actingAs($owner)->onPortal('sadmin')->get('/capital-flow')->assertOk();
+        $this->actingAs($owner)->onPortal('sadmin')->get('/customization')->assertOk();
+        $this->actingAs($owner)->onPortal('sadmin')->get('/capital-flow')->assertRedirect('/treasury/funds');
+        $this->actingAs($owner)->onPortal('sadmin')->get('/treasury/funds')->assertOk();
     }
 }

@@ -241,10 +241,10 @@ class ManagementReferralTest extends TestCase
         $this->assertNotContains('direct_referral', array_column($detail['unassigned_geographic'], 'category'));
 
         $expectedFund = (float) app(ManagementReferral::class)->fundAmount();
-        $this->actingAs($admin)->onPortal('sadmin')->get('/treasury')
+        $this->actingAs($admin)->onPortal('sadmin')->get('/treasury/funds')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('data.flow.management_reserve_2', fn (mixed $value): bool => (float) $value === $expectedFund));
+                ->where('cards', fn ($cards): bool => (float) collect($cards)->firstWhere('key', 'management')['money_in'] === $expectedFund));
     }
 
     public function test_personal_sponsor_keeps_ten_percent_and_sends_d2d_to_management_fund(): void

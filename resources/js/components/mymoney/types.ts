@@ -36,6 +36,14 @@ export type StatementRow = {
 
 export type StatementTable = MoneyTableData<StatementRow>;
 
+export type WithdrawalRequest = {
+    id: string;
+    created_at: string;
+    amount: string;
+    status: 'requested' | 'approved' | 'rejected';
+    reason: string | null;
+};
+
 export type WithdrawInfo = { can: boolean; kyc_block: boolean; minimum: string };
 
 export type Certificates = { years: number[]; rank: boolean };

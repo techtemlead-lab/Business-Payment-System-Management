@@ -130,7 +130,7 @@ class CarBikeAwardAmountsTest extends TestCase
         $this->assertDatabaseMissing('audit_events', ['action' => 'commissions.rules_change_proposed']);
     }
 
-    public function test_settings_and_rewards_pages_receive_the_amounts_with_the_car_award_blank(): void
+    public function test_settings_page_receives_the_amounts_with_the_car_award_blank(): void
     {
         $this->actingAs($this->owner)->onPortal('sadmin')->get('/commissions')->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page->where('data.rules', function ($rules): bool {
@@ -140,11 +140,6 @@ class CarBikeAwardAmountsTest extends TestCase
                     && array_key_exists('car_award_amount', $parameters)
                     && $parameters['car_award_amount'] === null;
             }));
-
-        $this->actingAs($this->owner)->onPortal('sadmin')->get('/rewards')->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->where('data.rule_params.bike_award_amount', '300000.00')
-                ->where('data.rule_params.car_award_amount', null));
     }
 
     public function test_reaching_a_reward_target_pays_nothing_by_itself(): void

@@ -61,20 +61,20 @@ class PartnerWalletStatementTest extends TestCase
         $this->assertSame('100.00', $statement['lines'][0]['balance']);
     }
 
-    public function test_earnings_page_exposes_wallet_statement_only_for_partner(): void
+    public function test_my_money_shows_only_this_partners_money_lines(): void
     {
         $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
         $other = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
         $this->postWalletLine($dealer->id, '25.00', '0.00', 'Partner credit', now());
         $this->postWalletLine($other->id, '999.00', '0.00', 'Other credit', now());
 
-        $this->actingAs($dealer)->onPortal('dealer')->get('/earnings')
+        $this->actingAs($dealer)->onPortal('dealer')->get('/my-money')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('portals/dealer/Dashboard')
-                ->where('data.wallet_statement.closing_balance', '25.00')
-                ->where('data.wallet_statement.lines.0.description', 'Partner credit')
-                ->has('data.wallet_statement.lines', 1));
+                ->component('MyMoney')
+                ->has('table.rows.data', 1)
+                ->where('table.rows.data.0.amount', '25.00')
+                ->where('table.rows.data.0.running', '25.00'));
     }
 
     public function test_statement_ignores_non_wallet_liability_accounts(): void
