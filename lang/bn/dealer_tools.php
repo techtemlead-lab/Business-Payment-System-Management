@@ -172,4 +172,5 @@ return [
     'scorecard_col_returned' => 'ফেরত আসা পার্সেল',
     'scorecard_empty_title' => 'কোনো পার্টনার পাওয়া যায়নি',
     'scorecard_empty_body' => 'অন্য নাম বা সময় দিয়ে খুঁজুন।',
+    'events_val_divisions_required' => 'অন্তত একটি বিভাগ বেছে নিন।',
 ];

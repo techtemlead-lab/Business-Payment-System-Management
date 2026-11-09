@@ -24,7 +24,7 @@ class PartnerEventController extends Controller
             ...$this->rules($request),
             'date' => ['required', 'date_format:Y-m-d', 'after_or_equal:'.PartnerEventCalendar::todayInDhaka()],
             'publish' => 'sometimes|boolean',
-        ]);
+        ], $this->messages());
         $event = $this->calendar->save($request->user(), null, $data);
 
         return back()->with('success', __($event->status === 'published' ? 'portal.events_flash_published' : 'portal.events_flash_saved'));
@@ -33,7 +33,7 @@ class PartnerEventController extends Controller
     public function update(Request $request, PartnerEvent $partnerEvent): RedirectResponse
     {
         $this->authorizeManager($request);
-        $data = $request->validate($this->rules($request));
+        $data = $request->validate($this->rules($request), $this->messages());
         $this->calendar->save($request->user(), $partnerEvent, $data);
 
         return back()->with('success', __('portal.events_flash_saved'));
@@ -67,6 +67,14 @@ class PartnerEventController extends Controller
     private function authorizeManager(Request $request): void
     {
         abort_unless($this->calendar->canManage($request->user()), 403);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function messages(): array
+    {
+        return ['divisions.required_if' => __('dealer_tools.events_val_divisions_required')];
     }
 
     /**

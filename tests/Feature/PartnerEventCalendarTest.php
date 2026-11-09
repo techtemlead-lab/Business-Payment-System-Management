@@ -46,6 +46,17 @@ class PartnerEventCalendarTest extends TestCase
         ];
     }
 
+    public function test_choosing_divisions_without_ticking_one_is_explained_in_plain_words(): void
+    {
+        foreach (['bn' => 'অন্তত একটি বিভাগ বেছে নিন।', 'en' => 'Choose at least one division.'] as $locale => $message) {
+            $editor = User::factory()->staff('editor')->create(['locale' => $locale]);
+
+            $this->actingAs($editor)->onPortal('manage')->post('/commands/events', $this->eventForm([
+                'audience' => 'divisions',
+            ]))->assertSessionHasErrors(['divisions' => $message]);
+        }
+    }
+
     public function test_publishing_notifies_only_active_partners_in_the_chosen_divisions(): void
     {
         $this->seedClassicPlaceCodes();
