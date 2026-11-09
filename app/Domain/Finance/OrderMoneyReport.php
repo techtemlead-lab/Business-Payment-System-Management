@@ -23,7 +23,7 @@ use stdClass;
  * taka of that order went. Money counts only after delivery, so a partly delivered order counts
  * only what was delivered.
  *
- * @phpstan-type OrderMoney array{order: array<string, mixed>, posting: string, no_commission: array{reason: ?string, amount: string, taken_back: ?string, still_owed: ?string}|null, basis: array{cash: string, mrp: string, refunded: string}|null, lines: list<array<string, mixed>>, lines_total: string, adds_up: bool}
+ * @phpstan-type OrderMoney array{order: array<string, mixed>, posting: string, no_commission: array{reason: ?string, amount: string, taken_back?: string, still_owed?: string}|null, basis: array{cash: string, mrp: string, refunded: string}|null, lines: list<array<string, mixed>>, lines_total: string, adds_up: bool}
  */
 final class OrderMoneyReport
 {
@@ -338,7 +338,7 @@ final class OrderMoneyReport
      *
      * @param  Collection<int, stdClass>  $noCommissionRows
      * @param  array<string, mixed>|null  $decision
-     * @return array{reason: ?string, amount: string, taken_back: ?string, still_owed: ?string}|null
+     * @return array{reason: ?string, amount: string, taken_back?: string, still_owed?: string}|null
      */
     private function noCommission(?object $batch, Collection $noCommissionRows, ?array $decision): ?array
     {
@@ -355,8 +355,7 @@ final class OrderMoneyReport
         return [
             'reason' => is_string($reason) ? $reason : null,
             'amount' => Money::decimal($noCommissionRows->sum(fn (object $row): int => FundCatalog::centsOf($row->amount))),
-            'taken_back' => isset($moved['taken_back']) && is_string($moved['taken_back']) ? $moved['taken_back'] : null,
-            'still_owed' => isset($moved['still_owed']) && is_string($moved['still_owed']) ? $moved['still_owed'] : null,
+            ...array_filter(['taken_back' => $moved['taken_back'] ?? null, 'still_owed' => $moved['still_owed'] ?? null], fn (mixed $value): bool => is_string($value) && Money::cents($value) > 0),
         ];
     }
 }

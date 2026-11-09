@@ -42,7 +42,7 @@ type OrderMoney = {
     lines: MoneyLine[];
     lines_total: string;
     adds_up: boolean;
-    no_commission: { reason: string | null; amount: string; taken_back: string | null; still_owed: string | null } | null;
+    no_commission: { reason: string | null; amount: string; taken_back?: string; still_owed?: string } | null;
 };
 
 const STATUS_BADGE: Record<LineStatus, string> = { done: 'active', waiting: 'pending', held: 'held', moved: 'closed', returned: 'reversed' };

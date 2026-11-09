@@ -90,7 +90,7 @@ final class TreasuryWork
      * Spends waiting for approval, in the same row shape as the old approvals list.
      *
      * @param  list<string>  $visible
-     * @param  Collection<int, stdClass>  $heads
+     * @param  Collection<int, \stdClass>  $heads
      * @return array<string, mixed>
      */
     private function approvalsTable(Request $request, array $visible, User $actor, Collection $heads): array
@@ -147,7 +147,7 @@ final class TreasuryWork
      * Budgets with what has been used, one row per head and month. Waiting and paid spends count,
      * and the owners' own fund is left out, as in {@see FundBudgets::forMonth}.
      *
-     * @param  Collection<int, stdClass>  $heads
+     * @param  Collection<int, \stdClass>  $heads
      * @return array<string, mixed>
      */
     private function budgetsTable(Request $request, Collection $heads): array
@@ -183,7 +183,7 @@ final class TreasuryWork
         ));
     }
 
-    /** @param Collection<int, stdClass> $heads */
+    /** @param Collection<int, \stdClass> $heads */
     private function headFilter(string $column, Collection $heads): MoneyTableFilter
     {
         $bangla = app()->getLocale() === 'bn';
