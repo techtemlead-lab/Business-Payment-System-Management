@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { router, useForm, usePage, Link } from '@inertiajs/react';
-import {
-    Users, ShieldCheck, UserPlus, CheckSquare, Square, Search,
-    Lock, Mail, Phone, Key, AlertCircle, Sparkles, Filter, CheckCircle2,
-    XCircle, Clock, ArrowRight, ShieldAlert, Award
-} from 'lucide-react';
-import { Table, Pagination, Badge, Empty, date, label, type Row, number } from './UI';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
+import { UserPlus } from 'lucide-react';
+import { Badge, FormErrors, Modal, date, label, number, type Row } from './UI';
 import AccountPasswordManager from './AccountPasswordManager';
+import MoneyTable, { type MoneyColumn, type MoneyTableData } from './MoneyTable';
+import type { OfficeHub } from './OfficeHubTabs';
 import OfficePrescriberGrants from './OfficePrescriberGrants';
-import OwnerAccountsPanel, { OwnerAccount } from './OwnerAccountsPanel';
+import OwnerAccountsPanel, { type OwnerAccount } from './OwnerAccountsPanel';
+import Figures from './office/Figures';
+import OfficePage from './office/OfficePage';
+import { DrawerLines, ViewSwitch, currentView } from './office/sections/staffSectionParts';
 import { useT } from '../shared/i18n/t';
 
 export interface PermissionDefinition {
@@ -19,715 +20,344 @@ export interface PermissionDefinition {
 }
 
 export interface EmployeeHubProps {
-    employees: {
-        data: Row[];
-        current_page: number;
-        last_page: number;
-        total: number;
-        links: any[];
-    };
+    employees: { data: Row[]; table: Omit<MoneyTableData<Row>, 'rows'> } & Record<string, unknown>;
     availablePermissions: PermissionDefinition[];
     stats: {
         total: number;
         active: number;
         suspended: number;
     };
-    filters: Row;
+    filters?: Row;
     ownerAccounts?: OwnerAccount[];
+    hub?: OfficeHub | null;
 }
 
-export default function EmployeesHub({ employees, availablePermissions, stats, filters, ownerAccounts }: EmployeeHubProps) {
-    const translate = useT();
-    const {auth} = usePage<any>().props;
-    const canManageStaff = auth.user.role === 'super_admin';
-    const isOwner = ['super_admin', 'md', 'chairman'].includes(auth.user.role);
-    const caps: string[] = auth.capabilities ?? [];
-    // Mirrors PasswordAccess on the server.
-    const canResetPasswordOf = (employee: Row): boolean => employee.role !== 'super_admin' && employee.id !== auth.user.id && (canManageStaff || (!['md', 'chairman'].includes(String(employee.role)) && (isOwner || caps.includes('staff_admin'))));
-    const [search, setSearch] = useState(filters.q || '');
-    const [createModalOpen, setCreateModalOpen] = useState(false);
-    const [editModalEmployee, setEditModalEmployee] = useState<Row | null>(null);
+type StaffView = 'staff' | 'prescribers' | 'owners';
+type Translate = ReturnType<typeof useT>;
 
-    // Create Employee Form
-    const createForm = useForm({
+/** Permissions an SR can hold. Mirrors the server. */
+const SR_PERMISSIONS = ['field_sales', 'sr_orders', 'sr_onboarding'];
+
+const PRESETS: { word: string; keys: string[]; onlyWhenAdding?: boolean }[] = [
+    { word: 'emp_preset_orders', keys: ['orders', 'order_review', 'reports'] },
+    { word: 'emp_preset_warehouse', keys: ['inventory', 'catalog'] },
+    { word: 'emp_preset_dealer', keys: ['accounts'], onlyWhenAdding: true },
+    { word: 'emp_preset_finance', keys: ['finance', 'cost_read', 'reports'] },
+];
+
+const roleName = (employee: Row, translate: Translate): string => {
+    if (!employee.role) {
+        return '—';
+    }
+
+    return employee.role === 'employee' ? translate('office_staff', 'role_employee') : (employee.role_name || label(String(employee.role), translate));
+};
+
+const permissionName = (key: string, available: PermissionDefinition[], translate: Translate): string => {
+    const known = available.find((item) => item.key === key);
+    const word = `perm_${key}`;
+    const name = translate('portal', word);
+
+    return known?.label || (name !== word ? name : label(key, translate));
+};
+
+function PermissionPicker({ available, selected, onChange, adding, onlyKeys }: {
+    available: PermissionDefinition[];
+    selected: string[];
+    onChange: (keys: string[]) => void;
+    adding: boolean;
+    onlyKeys?: string[];
+}) {
+    const translate = useT();
+    const shown = onlyKeys ? available.filter((item) => onlyKeys.includes(item.key)) : available;
+    const categories = Array.from(new Set(shown.map((item) => item.category)));
+    const applyPreset = (keys: string[]) => onChange(onlyKeys ? keys.filter((key) => onlyKeys.includes(key)) : [...keys]);
+    const toggle = (key: string) => onChange(selected.includes(key) ? selected.filter((item) => item !== key) : [...selected, key]);
+
+    return (
+        <div className="ops-stack">
+            <div className="ops-row is-between"><b className="ops-fs-sm ops-text">{translate('portal', 'emp_perms_select')}</b><span className="ops-fs-2xs ops-semibold tone-ok">{translate('portal', 'emp_caps_selected', { count: number(selected.length) })}</span></div>
+            <div className="ops-row is-wrap is-snug">
+                <button type="button" className="button small" onClick={() => applyPreset(available.map((item) => item.key))}>{translate('portal', 'emp_preset_all')}</button>
+                {PRESETS.filter((preset) => adding || !preset.onlyWhenAdding).map((preset) => (
+                    <button key={preset.word} type="button" className="button small" onClick={() => applyPreset(preset.keys)}>{translate('portal', preset.word)}</button>
+                ))}
+                <button type="button" className="button small" onClick={() => applyPreset([])}>{translate('portal', 'emp_preset_clear')}</button>
+            </div>
+            {categories.map((category) => (
+                <div key={category}>
+                    <div className="emp-cat-title">{translate('portal', 'emp_cat_modules', { cat: String(category) })}</div>
+                    <div className="hub-grid is-wide emp-option-grid">
+                        {shown.filter((item) => item.category === category).map((item) => {
+                            const checked = selected.includes(item.key);
+
+                            return (
+                                <label key={item.key} className={`emp-option${checked ? ' is-checked' : ''}`}>
+                                    <input type="checkbox" checked={checked} onChange={() => toggle(item.key)} className="ops-mt-1" />
+                                    <div>
+                                        <b className="emp-option-title">{item.label}</b>
+                                        <small className="ops-block ops-meta emp-option-hint">{item.description}</small>
+                                    </div>
+                                </label>
+                            );
+                        })}
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+function AddStaffDialog({ available, onClose }: { available: PermissionDefinition[]; onClose: () => void }) {
+    const translate = useT();
+    const form = useForm({
         role: 'employee',
         name: '',
         email: '',
         phone: '',
         status: 'active',
-        reason: translate('portal', 'emp_reason_onboard'),
+        reason: translate('office_staff', 'reason_add'),
         permissions: ['orders', 'inventory'] as string[],
     });
 
-    // Edit Employee Form
-    const editForm = useForm<{
-        name: string;
-        phone: string;
-        status: string;
-        reason: string;
-        permissions: string[];
-    }>({
-        name: '',
-        phone: '',
-        status: 'active',
-        reason: '',
-        permissions: [],
-    });
-
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-        router.get('/employees', { q: search }, { preserveState: true });
+    const submit = (event: React.FormEvent) => {
+        event.preventDefault();
+        form.post('/commands/accounts', { onSuccess: onClose });
     };
-
-    // Mirrors the server: only an Employee or SR without their own access settings is edited with these boxes.
-    const usesPermissionBoxes = (employee: Row): boolean => ['employee', 'sr'].includes(String(employee.role)) && !employee.profile?.action_permissions;
-
-    const handleOpenEdit = (employee: Row) => {
-        setEditModalEmployee(employee);
-        const currentPermissions: string[] = Array.isArray(employee.profile?.permissions)
-            ? employee.profile.permissions
-            : employee.role === 'sr' ? ['field_sales','sr_orders','sr_onboarding'] : [];
-        editForm.setData({
-            name: employee.name || '',
-            phone: employee.phone || '',
-            status: employee.status || 'active',
-            reason: translate('portal', 'emp_reason_update'),
-            permissions: [...currentPermissions],
-        });
-    };
-
-    const toggleCreatePermission = (key: string) => {
-        const current = createForm.data.permissions;
-        if (current.includes(key)) {
-            createForm.setData('permissions', current.filter(k => k !== key));
-        } else {
-            createForm.setData('permissions', [...current, key]);
-        }
-    };
-
-    const toggleEditPermission = (key: string) => {
-        const current = editForm.data.permissions;
-        if (current.includes(key)) {
-            editForm.setData('permissions', current.filter(k => k !== key));
-        } else {
-            editForm.setData('permissions', [...current, key]);
-        }
-    };
-
-    const applyCreatePreset = (keys: string[]) => {
-        createForm.setData('permissions', [...keys]);
-    };
-
-    const applyEditPreset = (keys: string[]) => {
-        editForm.setData('permissions', editModalEmployee?.role === 'sr' ? keys.filter(key=>['field_sales','sr_orders','sr_onboarding'].includes(key)) : [...keys]);
-    };
-
-    const submitCreate = (e: React.FormEvent) => {
-        e.preventDefault();
-        createForm.post('/commands/accounts', {
-            onSuccess: () => {
-                setCreateModalOpen(false);
-                createForm.reset();
-            },
-        });
-    };
-
-    const submitEdit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!editModalEmployee) return;
-        const sendsPermissions = usesPermissionBoxes(editModalEmployee);
-        // Someone added before phone numbers were needed can still be renamed or disabled.
-        const keepsNoPhone = !editModalEmployee.phone;
-        editForm.transform(data => {
-            const {permissions, phone, ...details} = data;
-            return {...details, ...(keepsNoPhone && phone.trim() === '' ? {} : {phone}), ...(sendsPermissions ? {permissions} : {})} as typeof data;
-        });
-        editForm.patch(`/commands/accounts/${editModalEmployee.id}`, {
-            onSuccess: () => {
-                setEditModalEmployee(null);
-            },
-        });
-    };
-
-    // Group available permissions by category
-    const categories = Array.from(new Set(availablePermissions.map(p => p.category)));
 
     return (
-        <div className="employees-hub">
-            {/* Header info */}
-            <div className="panel emp-intro">
-                <div className="hub-row is-between is-top">
-                    <div>
-                        <div className="emp-kicker">
-                            <ShieldCheck size={16} className="icon-ok" />
-                            {translate('portal', 'emp_badge')}
-                        </div>
-                        <h2 className="emp-heading">
-                            {translate('portal', 'emp_heading')}
-                        </h2>
-                        <p className="emp-lede">
-                            {translate('portal', 'emp_heading_hint')}
-                        </p>
-                    </div>
-
-                    <button
-                        type="button"
-                        className="button dark"
-                        disabled={!canManageStaff}
-                        onClick={() => setCreateModalOpen(true)}
-                    >
-                        <UserPlus size={18} />
-                        {translate('portal', 'emp_add')}
+        <Modal title={translate('office_staff', 'add_staff')} onClose={onClose} variant="wide">
+            <form onSubmit={submit} className="action-form">
+                <label>
+                    {translate('office_staff', 'field_full_name')}
+                    <input required placeholder={translate('portal', 'emp_ph_full_name')} value={form.data.name} onChange={(event) => form.setData('name', event.target.value)} />
+                    {form.errors.name && <span className="field-error">{form.errors.name}</span>}
+                </label>
+                <label>
+                    {translate('portal', 'emp_fld_email')}
+                    <input required type="email" placeholder={translate('portal', 'emp_ph_email')} value={form.data.email} onChange={(event) => form.setData('email', event.target.value)} />
+                    {form.errors.email && <span className="field-error">{form.errors.email}</span>}
+                </label>
+                <label>
+                    {translate('portal', 'emp_fld_phone_login')}
+                    <input required placeholder={translate('portal', 'emp_ph_phone')} value={form.data.phone} onChange={(event) => form.setData('phone', event.target.value)} />
+                    {form.errors.phone && <span className="field-error">{form.errors.phone}</span>}
+                </label>
+                <label>
+                    {translate('portal', 'emp_fld_initial_status')}
+                    <select value={form.data.status} onChange={(event) => form.setData('status', event.target.value)}>
+                        <option value="active">{translate('portal', 'emp_opt_active_login')}</option>
+                        <option value="suspended">{translate('portal', 'emp_opt_suspended_draft')}</option>
+                    </select>
+                </label>
+                <PermissionPicker available={available} selected={form.data.permissions} onChange={(keys) => form.setData('permissions', keys)} adding />
+                <label>
+                    {translate('office_staff', 'field_reason_add')}
+                    <textarea required rows={2} value={form.data.reason} onChange={(event) => form.setData('reason', event.target.value)} />
+                    {form.errors.reason && <span className="field-error">{form.errors.reason}</span>}
+                </label>
+                <FormErrors errors={form.errors} besideFields={['name', 'email', 'phone', 'reason']} />
+                <div className="ops-row is-end is-loose">
+                    <button type="button" className="button" onClick={onClose}>{translate('portal', 'emp_cancel')}</button>
+                    <button type="submit" className="button dark" disabled={form.processing}>
+                        {form.processing ? translate('portal', 'emp_create_submitting') : translate('portal', 'emp_create_submit')}
                     </button>
                 </div>
-            </div>
+            </form>
+        </Modal>
+    );
+}
 
-            {/* Metrics cards */}
-            <div className="metric-grid hub-grid ops-mb-6">
-                <div className="metric emp-kpi">
-                    <span>{translate('portal', 'emp_kpi_total')}</span>
-                    <strong>
-                        {number(stats.total)}
-                    </strong>
-                    <small className="ops-faint">{translate('portal', 'emp_kpi_total_hint')}</small>
-                </div>
+function EditStaffDialog({ employee, available, canResetPassword, onClose }: { employee: Row; available: PermissionDefinition[]; canResetPassword: boolean; onClose: () => void }) {
+    const translate = useT();
+    // Mirrors the server: only an Employee or SR without their own access settings is edited with these boxes.
+    const usesPermissionBoxes = ['employee', 'sr'].includes(String(employee.role)) && !employee.profile?.action_permissions;
+    const startingPermissions: string[] = Array.isArray(employee.profile?.permissions)
+        ? employee.profile.permissions
+        : employee.role === 'sr' ? SR_PERMISSIONS : [];
+    const form = useForm<{ name: string; phone: string; status: string; reason: string; permissions: string[] }>({
+        name: employee.name || '',
+        phone: employee.phone || '',
+        status: employee.status || 'active',
+        reason: translate('office_staff', 'reason_update'),
+        permissions: [...startingPermissions],
+    });
 
-                <div className="metric emp-kpi tone-ok">
-                    <span>{translate('portal', 'emp_kpi_active')}</span>
-                    <strong>
-                        {stats.active}
-                    </strong>
-                    <small className="ops-faint">{translate('portal', 'emp_kpi_active_hint')}</small>
-                </div>
+    const submit = (event: React.FormEvent) => {
+        event.preventDefault();
+        // Someone added before phone numbers were needed can still be renamed or disabled.
+        const keepsNoPhone = !employee.phone;
+        form.transform((data) => {
+            const { permissions, phone, ...details } = data;
 
-                <div className="metric emp-kpi tone-danger">
-                    <span>{translate('portal', 'emp_kpi_suspended')}</span>
-                    <strong>
-                        {stats.suspended}
-                    </strong>
-                    <small className="ops-faint">{translate('portal', 'emp_kpi_suspended_hint')}</small>
-                </div>
+            return { ...details, ...(keepsNoPhone && phone.trim() === '' ? {} : { phone }), ...(usesPermissionBoxes ? { permissions } : {}) } as typeof data;
+        });
+        form.patch(`/commands/accounts/${employee.id}`, { onSuccess: onClose });
+    };
 
-                <div className="metric emp-kpi tone-info">
-                    <span>{translate('portal', 'emp_kpi_perms')}</span>
-                    <strong>
-                        {number(availablePermissions.length)}
-                    </strong>
-                    <small className="ops-faint">{translate('portal', 'emp_kpi_perms_hint')}</small>
-                </div>
-            </div>
-
-            {/* Employee Directory Panel */}
-            <section className="panel table-panel">
-                <div className="hub-row is-between ops-mb-4">
-                    <div>
-                        <h3 className="hub-title">{translate('portal', 'emp_directory_title')}</h3>
-                        <p className="hub-sub">
-                            {translate('portal', 'emp_directory_hint')}
-                        </p>
-                    </div>
-
-                    <form className="filter-bar ops-m-0" onSubmit={handleSearch}>
-                        <div className="search-input">
-                            <Search size={16} />
-                            <input
-                                placeholder={translate('portal', 'emp_search_ph')}
-                                value={search}
-                                onChange={e => setSearch(e.target.value)}
-                            />
-                        </div>
-                        <button className="button small">{translate('portal', 'emp_search')}</button>
-                        {filters.q && (
-                            <Link href="/employees" className="text-link">{translate('portal', 'clear')}</Link>
-                        )}
-                    </form>
-                </div>
-
-                <Table
-                    rows={employees.data}
-                    columns={[
-                        {
-                            key: 'name',
-                            title: translate('portal', 'emp_col_employee'),
-                            render: r => (
-                                <div>
-                                    <b className="ops-block">{r.name}</b>
-                                    <div className="ops-row cell-sub">
-                                        <span>{r.email}</span>
-                                        {r.phone && <span>· {r.phone}</span>}
-                                    </div>
-                                </div>
-                            )
-                        },
-                        {
-                            key: 'status',
-                            title: translate('portal', 'col_status'),
-                            render: r => <Badge status={r.status} />
-                        },
-                        {
-                            key: 'role',
-                            title: translate('portal', 'col_role'),
-                            render: (r: Row) => r.role ? (r.role_name || label(String(r.role), translate)) : '—',
-                        },
-                        {
-                            key: 'branch',
-                            title: translate('portal', 'col_branch'),
-                            render: (r: Row) => r.branch_name || '—',
-                        },
-                        {
-                            key: 'permissions',
-                            title: translate('portal', 'emp_col_capabilities'),
-                            render: r => {
-                                const perms: string[] = r.effective_permissions ?? [];
-                                if (!perms.length) {
-                                    return <span className="emp-none">{translate('portal', 'emp_no_perms')}</span>;
-                                }
-                                return (
-                                    <div className="ops-row is-wrap is-tight emp-perms">
-                                        {perms.map(p => {
-                                            const info = availablePermissions.find(ap => ap.key === p);
-                                            const permKey = `perm_${p}`;
-                                            const permName = translate('portal', permKey);
-                                            const name = info?.label || (permName !== permKey ? permName : label(p, translate));
-                                            return (
-                                                <span
-                                                    key={p}
-                                                    title={info?.description || name}
-                                                    className="emp-perm"
-                                                >
-                                                    {name}
-                                                </span>
-                                            );
-                                        })}
-                                    </div>
-                                );
-                            }
-                        },
-                        {
-                            key: 'created_at',
-                            title: translate('portal', 'emp_col_onboarded'),
-                            render: r => <small className="ops-muted">{date(r.created_at)}</small>
-                        },
-                        {
-                            key: 'actions',
-                            title: translate('portal', 'emp_col_actions'),
-                            render: r => (
-                                <div className="inline-actions ops-row is-loose">
-                                    <button
-                                        type="button"
-                                        className="button small dark"
-                                        disabled={!canManageStaff}
-                                        onClick={() => handleOpenEdit(r)}
-                                    >
-                                        {translate('portal', 'emp_edit_details')}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="text-link ops-fs-2xs"
-                                        disabled={!canManageStaff || r.status !== 'active'}
-                                        onClick={() => router.post(`/commands/accounts/${r.id}/invite`)}
-                                    >
-                                        {translate('portal', 'emp_send_invite')}
-                                    </button>
-                                </div>
-                            )
-                        }
-                    ]}
-                />
-
-                {!employees.data.length && (
-                    <Empty
-                        title={translate('portal', 'emp_empty_title')}
-                        body={translate('portal', 'emp_empty_body')}
-                    />
+    return (
+        <Modal title={translate('office_staff', 'edit_staff')} onClose={onClose} variant="wide">
+            <form onSubmit={submit} className="action-form">
+                <label>
+                    {translate('office_staff', 'field_name')}
+                    <input required value={form.data.name} onChange={(event) => form.setData('name', event.target.value)} />
+                    {form.errors.name && <span className="field-error">{form.errors.name}</span>}
+                </label>
+                <label>
+                    {translate('portal', 'emp_fld_phone')}
+                    <input value={form.data.phone} onChange={(event) => form.setData('phone', event.target.value)} />
+                    {form.errors.phone && <span className="field-error">{form.errors.phone}</span>}
+                </label>
+                <label>
+                    {translate('portal', 'emp_fld_status')}
+                    <select value={form.data.status} onChange={(event) => form.setData('status', event.target.value)}>
+                        <option value="active">{translate('portal', 'emp_opt_active_access')}</option>
+                        <option value="suspended">{translate('portal', 'emp_opt_suspended_lock')}</option>
+                    </select>
+                </label>
+                {usesPermissionBoxes ? (
+                    <PermissionPicker available={available} selected={form.data.permissions} onChange={(keys) => form.setData('permissions', keys)} adding={false} onlyKeys={employee.role === 'sr' ? SR_PERMISSIONS : undefined} />
+                ) : (
+                    <p className="muted">{translate('portal', 'emp_action_perms_notice')} <Link href="/operations/access-management" className="text-link">{translate('portal', 'emp_manage_roles')}</Link></p>
                 )}
+                <label>
+                    {translate('office_staff', 'field_reason_edit')}
+                    <textarea required rows={2} placeholder={translate('portal', 'emp_ph_correction_reason')} value={form.data.reason} onChange={(event) => form.setData('reason', event.target.value)} />
+                    {form.errors.reason && <span className="field-error">{form.errors.reason}</span>}
+                </label>
+                <FormErrors errors={form.errors} besideFields={['name', 'phone', 'reason']} />
+                <div className="ops-row is-end is-loose">
+                    <button type="button" className="button" onClick={onClose}>{translate('portal', 'emp_cancel')}</button>
+                    <button type="submit" className="button dark" disabled={form.processing}>
+                        {form.processing ? translate('portal', 'emp_saving') : translate('office_staff', 'save_staff')}
+                    </button>
+                </div>
+            </form>
+            {canResetPassword && <AccountPasswordManager account={employee} canManage />}
+        </Modal>
+    );
+}
 
-                <Pagination page={employees} />
-            </section>
+function StaffDrawer({ employee, available, canManageStaff, onEdit, onClose }: { employee: Row; available: PermissionDefinition[]; canManageStaff: boolean; onEdit: () => void; onClose: () => void }) {
+    const translate = useT();
+    const permissions: string[] = employee.effective_permissions ?? [];
 
-            {Boolean(auth?.companyStockManager) && <OfficePrescriberGrants />}
-
-            {auth.user.role === 'super_admin' && <OwnerAccountsPanel accounts={ownerAccounts} />}
-
-            {/* CREATE EMPLOYEE MODAL */}
-            {createModalOpen && (
-                <div className="modal-overlay hub-overlay emp-overlay">
-                    <div className="hub-dialog emp-dialog">
-                        <div className="ops-row is-between emp-dialog-head">
-                            <div>
-                                <h3 className="hub-title is-lg">
-                                    {translate('portal', 'emp_create_title')}
-                                </h3>
-                                <p className="hub-sub">
-                                    {translate('portal', 'emp_create_hint')}
-                                </p>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setCreateModalOpen(false)}
-                                className="ops-plain-button ops-faint emp-close"
-                            >
-                                ✕
-                            </button>
-                        </div>
-
-                        <form onSubmit={submitCreate} className="action-form">
-                            {/* Employee basic info */}
-                            <div className="form-grid hub-grid">
-                                <label>
-                                    {translate('portal', 'emp_fld_full_name')}
-                                    <input
-                                        required
-                                        placeholder={translate('portal', 'emp_ph_full_name')}
-                                        value={createForm.data.name}
-                                        onChange={e => createForm.setData('name', e.target.value)}
-                                    />
-                                    {createForm.errors.name && <span className="field-error">{createForm.errors.name}</span>}
-                                </label>
-
-                                <label>
-                                    {translate('portal', 'emp_fld_email')}
-                                    <input
-                                        required
-                                        type="email"
-                                        placeholder={translate('portal', 'emp_ph_email')}
-                                        value={createForm.data.email}
-                                        onChange={e => createForm.setData('email', e.target.value)}
-                                    />
-                                    {createForm.errors.email && <span className="field-error">{createForm.errors.email}</span>}
-                                </label>
-
-                                <label>
-                                    {translate('portal', 'emp_fld_phone_login')}
-                                    <input
-                                        required
-                                        placeholder={translate('portal', 'emp_ph_phone')}
-                                        value={createForm.data.phone}
-                                        onChange={e => createForm.setData('phone', e.target.value)}
-                                    />
-                                    {createForm.errors.phone && <span className="field-error">{createForm.errors.phone}</span>}
-                                </label>
-
-                                <label>
-                                    {translate('portal', 'emp_fld_initial_status')}
-                                    <select
-                                        value={createForm.data.status}
-                                        onChange={e => createForm.setData('status', e.target.value)}
-                                    >
-                                        <option value="active">{translate('portal', 'emp_opt_active_login')}</option>
-                                        <option value="suspended">{translate('portal', 'emp_opt_suspended_draft')}</option>
-                                    </select>
-                                </label>
-                            </div>
-
-                            {/* Preset Buttons */}
-                            <div className="ops-mt-5 ops-mb-3">
-                                <div className="ops-row is-between ops-mb-2">
-                                    <b className="ops-fs-sm ops-text">
-                                        {translate('portal', 'emp_perms_manual')}
-                                    </b>
-                                    <span className="ops-fs-2xs ops-semibold tone-ok">
-                                        {translate('portal', 'emp_caps_selected', { count: String(createForm.data.permissions.length) })}
-                                    </span>
-                                </div>
-
-                                <div className="ops-row is-wrap is-snug ops-mb-4">
-                                    <button
-                                        type="button"
-                                        className="button small"
-                                        onClick={() => applyCreatePreset(availablePermissions.map(p => p.key))}
-                                    >
-                                        {translate('portal', 'emp_preset_all')}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="button small"
-                                        onClick={() => applyCreatePreset(['orders', 'order_review', 'reports'])}
-                                    >
-                                        {translate('portal', 'emp_preset_orders')}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="button small"
-                                        onClick={() => applyCreatePreset(['inventory', 'catalog'])}
-                                    >
-                                        {translate('portal', 'emp_preset_warehouse')}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="button small"
-                                        onClick={() => applyCreatePreset(['accounts'])}
-                                    >
-                                        {translate('portal', 'emp_preset_dealer')}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="button small"
-                                        onClick={() => applyCreatePreset(['finance', 'cost_read', 'reports'])}
-                                    >
-                                        {translate('portal', 'emp_preset_finance')}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="button small"
-                                        onClick={() => applyCreatePreset([])}
-                                    >
-                                        {translate('portal', 'emp_preset_clear')}
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Checkbox Groups by Category */}
-                            <div className="ops-stack">
-                                {categories.map(cat => (
-                                    <div key={cat} className="ops-card is-soft is-tight">
-                                        <div className="emp-cat-title">
-                                            {translate('portal', 'emp_cat_modules', { cat: String(cat) })}
-                                        </div>
-                                        <div className="hub-grid is-wide emp-option-grid">
-                                            {availablePermissions.filter(p => p.category === cat).map(p => {
-                                                const checked = createForm.data.permissions.includes(p.key);
-                                                return (
-                                                    <label
-                                                        key={p.key}
-                                                        onClick={() => toggleCreatePermission(p.key)}
-                                                        className={`emp-option${checked ? ' is-checked' : ''}`}
-                                                    >
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={checked}
-                                                            onChange={() => {}}
-                                                            className="ops-mt-1"
-                                                        />
-                                                        <div>
-                                                            <div className="ops-row is-snug">
-                                                                <b className="emp-option-title">{p.label}</b>
-                                                            </div>
-                                                            <small className="ops-block ops-meta emp-option-hint">
-                                                                {p.description}
-                                                            </small>
-                                                        </div>
-                                                    </label>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <label className="ops-mt-3">
-                                {translate('portal', 'emp_fld_onboard_reason')}
-                                <textarea
-                                    required
-                                    rows={2}
-                                    value={createForm.data.reason}
-                                    onChange={e => createForm.setData('reason', e.target.value)}
-                                />
-                            </label>
-
-                            <div className="ops-row is-end is-loose emp-dialog-foot">
-                                <button
-                                    type="button"
-                                    className="button"
-                                    onClick={() => setCreateModalOpen(false)}
-                                >
-                                    {translate('portal', 'emp_cancel')}
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="button dark"
-                                    disabled={createForm.processing}
-                                >
-                                    {createForm.processing ? translate('portal', 'emp_create_submitting') : translate('portal', 'emp_create_submit')}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+    return (
+        <Modal
+            title={String(employee.name)}
+            variant="drawer"
+            badge={<Badge status={String(employee.status)} />}
+            onClose={onClose}
+            footer={canManageStaff ? (
+                <>
+                    <button type="button" className="button" disabled={employee.status !== 'active'} onClick={() => router.post(`/commands/accounts/${employee.id}/invite`, {}, { preserveScroll: true })}>
+                        {translate('office_staff', 'send_invite')}
+                    </button>
+                    <button type="button" className="button dark" onClick={onEdit}>{translate('office_staff', 'edit_staff')}</button>
+                </>
+            ) : undefined}
+        >
+            <DrawerLines
+                lines={[
+                    { label: translate('office_staff', 'detail_email'), value: employee.email },
+                    { label: translate('office_staff', 'detail_phone'), value: employee.phone },
+                    { label: translate('office_staff', 'detail_role'), value: roleName(employee, translate) },
+                    { label: translate('office_staff', 'detail_branch'), value: employee.branch_name || '—' },
+                    { label: translate('office_staff', 'detail_joined'), value: date(employee.created_at) },
+                ]}
+            />
+            <div className="emp-cat-title">{translate('office_staff', 'detail_permissions')}</div>
+            {permissions.length === 0 ? (
+                <p className="muted">{translate('office_staff', 'no_permissions')}</p>
+            ) : (
+                <div className="ops-row is-wrap is-tight">
+                    {permissions.map((key) => <span key={key} className="emp-perm" title={available.find((item) => item.key === key)?.description}>{permissionName(key, available, translate)}</span>)}
                 </div>
             )}
+        </Modal>
+    );
+}
 
-            {/* EDIT EMPLOYEE PERMISSIONS MODAL */}
-            {editModalEmployee && (
-                <div className="modal-overlay hub-overlay emp-overlay">
-                    <div className="hub-dialog emp-dialog">
-                        <div className="ops-row is-between emp-dialog-head">
-                            <div>
-                                <h3 className="hub-title is-lg">
-                                    {translate('portal', 'emp_edit_title', { name: editModalEmployee.name })}
-                                </h3>
-                                <p className="hub-sub">
-                                    {translate('portal', 'emp_edit_hint', { email: editModalEmployee.email })}
-                                </p>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setEditModalEmployee(null)}
-                                className="ops-plain-button ops-faint emp-close"
-                            >
-                                ✕
-                            </button>
-                        </div>
+export default function EmployeesHub({ employees, availablePermissions, stats, ownerAccounts, hub }: EmployeeHubProps) {
+    const translate = useT();
+    const { auth } = usePage<any>().props;
+    const { url } = usePage();
+    const canManageStaff = auth.user.role === 'super_admin';
+    const isOwner = ['super_admin', 'md', 'chairman'].includes(auth.user.role);
+    const caps: string[] = auth.capabilities ?? [];
+    // Mirrors PasswordAccess on the server.
+    const canResetPasswordOf = (employee: Row): boolean => employee.role !== 'super_admin' && employee.id !== auth.user.id && (canManageStaff || (!['md', 'chairman'].includes(String(employee.role)) && (isOwner || caps.includes('staff_admin'))));
 
-                        <form onSubmit={submitEdit} className="action-form">
-                            <div className="form-grid hub-grid">
-                                <label>
-                                    {translate('portal', 'emp_fld_name')}
-                                    <input
-                                        required
-                                        value={editForm.data.name}
-                                        onChange={e => editForm.setData('name', e.target.value)}
-                                    />
-                                </label>
+    const [adding, setAdding] = useState(false);
+    const [openedId, setOpenedId] = useState<number | null>(null);
+    const [editing, setEditing] = useState<Row | null>(null);
+    // A row from the latest answer, so the drawer shows what was just saved.
+    const opened = employees.data.find((row) => row.id === openedId) ?? null;
 
-                                <label>
-                                    {translate('portal', 'emp_fld_phone')}
-                                    <input
-                                        value={editForm.data.phone}
-                                        onChange={e => editForm.setData('phone', e.target.value)}
-                                    />
-                                </label>
+    const views: { key: StaffView; label: string }[] = [
+        { key: 'staff', label: translate('office_staff', 'view_staff') },
+        ...(auth?.companyStockManager ? [{ key: 'prescribers' as const, label: translate('office_staff', 'view_prescribers') }] : []),
+        ...(canManageStaff ? [{ key: 'owners' as const, label: translate('office_staff', 'view_owners') }] : []),
+    ];
+    const view = currentView(url, views.map((item) => item.key), 'staff');
 
-                                <label>
-                                    {translate('portal', 'emp_fld_status')}
-                                    <select
-                                        value={editForm.data.status}
-                                        onChange={e => editForm.setData('status', e.target.value)}
-                                    >
-                                        <option value="active">{translate('portal', 'emp_opt_active_access')}</option>
-                                        <option value="suspended">{translate('portal', 'emp_opt_suspended_lock')}</option>
-                                    </select>
-                                </label>
-                            </div>
+    const columns: MoneyColumn<Row>[] = [
+        { key: 'name', title: translate('office_staff', 'col_staff'), sortKey: 'name', phone: 'title', render: (row) => <b>{row.name}</b> },
+        { key: 'role', title: translate('office_staff', 'col_role'), sortKey: 'role', phone: 'sub', render: (row) => roleName(row, translate) },
+        { key: 'branch', title: translate('office_staff', 'col_branch'), phone: 'sub', render: (row) => row.branch_name || '—' },
+        { key: 'permissions', title: translate('office_staff', 'col_permissions'), phone: 'hide', render: (row) => translate('office_staff', 'permission_count', { count: number((row.effective_permissions ?? []).length) }) },
+        { key: 'joined', title: translate('office_staff', 'col_joined'), sortKey: 'joined', phone: 'hide', render: (row) => date(row.created_at) },
+        { key: 'status', title: translate('office_staff', 'col_status'), sortKey: 'status', phone: 'amount', render: (row) => <Badge status={String(row.status)} /> },
+    ];
 
-                            {!usesPermissionBoxes(editModalEmployee) ? <p className="notice">{translate('portal', 'emp_action_perms_notice')} <Link href="/operations/access-management" className="text-link">{translate('portal', 'emp_manage_roles')}</Link></p> : <>
-                            {/* Preset Buttons */}
-                            <div className="ops-mt-5 ops-mb-3">
-                                <div className="ops-row is-between ops-mb-2">
-                                    <b className="ops-fs-sm ops-text">
-                                        {translate('portal', 'emp_perms_select')}
-                                    </b>
-                                    <span className="ops-fs-2xs ops-semibold tone-ok">
-                                        {translate('portal', 'emp_caps_selected', { count: String(editForm.data.permissions.length) })}
-                                    </span>
-                                </div>
+    const tableData: MoneyTableData<Row> = { rows: employees as MoneyTableData<Row>['rows'], ...employees.table };
 
-                                <div className="ops-row is-wrap is-snug ops-mb-4">
-                                    <button
-                                        type="button"
-                                        className="button small"
-                                        onClick={() => applyEditPreset(availablePermissions.map(p => p.key))}
-                                    >
-                                        {translate('portal', 'emp_preset_all')}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="button small"
-                                        onClick={() => applyEditPreset(['orders', 'order_review', 'reports'])}
-                                    >
-                                        {translate('portal', 'emp_preset_orders')}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="button small"
-                                        onClick={() => applyEditPreset(['inventory', 'catalog'])}
-                                    >
-                                        {translate('portal', 'emp_preset_warehouse')}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="button small"
-                                        onClick={() => applyEditPreset(['finance', 'cost_read', 'reports'])}
-                                    >
-                                        {translate('portal', 'emp_preset_finance')}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="button small"
-                                        onClick={() => applyEditPreset([])}
-                                    >
-                                        {translate('portal', 'emp_preset_clear')}
-                                    </button>
-                                </div>
-                            </div>
+    return (
+        <OfficePage
+            title={translate('office_staff', 'page_title')}
+            hub={hub}
+            action={canManageStaff ? (
+                <button type="button" className="button dark" onClick={() => setAdding(true)}>
+                    <UserPlus size={18} aria-hidden="true" />
+                    {translate('office_staff', 'add_staff')}
+                </button>
+            ) : undefined}
+        >
+            <Figures
+                items={[
+                    { key: 'total', label: translate('office_staff', 'card_total'), value: number(stats.total), text: true },
+                    { key: 'active', label: translate('office_staff', 'card_active'), value: number(stats.active), text: true },
+                    { key: 'off', label: translate('office_staff', 'card_off'), value: number(stats.suspended), text: true },
+                ]}
+            />
 
-                            {/* Checkbox Groups by Category */}
-                            <div className="ops-stack">
-                                {categories.map(cat => (
-                                    <div key={cat} className="ops-card is-soft is-tight">
-                                        <div className="emp-cat-title">
-                                            {translate('portal', 'emp_cat_modules', { cat: String(cat) })}
-                                        </div>
-                                        <div className="hub-grid is-wide emp-option-grid">
-                                            {availablePermissions.filter(p => p.category === cat && (editModalEmployee?.role !== 'sr' || ['field_sales','sr_orders','sr_onboarding'].includes(p.key))).map(p => {
-                                                const checked = editForm.data.permissions.includes(p.key);
-                                                return (
-                                                    <label
-                                                        key={p.key}
-                                                        onClick={() => toggleEditPermission(p.key)}
-                                                        className={`emp-option${checked ? ' is-checked' : ''}`}
-                                                    >
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={checked}
-                                                            onChange={() => {}}
-                                                            className="ops-mt-1"
-                                                        />
-                                                        <div>
-                                                            <div className="ops-row is-snug">
-                                                                <b className="emp-option-title">{p.label}</b>
-                                                            </div>
-                                                            <small className="ops-block ops-meta emp-option-hint">
-                                                                {p.description}
-                                                            </small>
-                                                        </div>
-                                                    </label>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
+            <ViewSwitch views={views} active={view} fallback="staff" label={translate('office_staff', 'views_label')} />
 
-                            </>}
-
-                            <label className="ops-mt-3">
-                                {translate('portal', 'emp_fld_correction_reason')}
-                                <textarea
-                                    required
-                                    rows={2}
-                                    placeholder={translate('portal', 'emp_ph_correction_reason')}
-                                    value={editForm.data.reason}
-                                    onChange={e => editForm.setData('reason', e.target.value)}
-                                />
-                            </label>
-
-                            <div className="ops-row is-end is-loose emp-dialog-foot">
-                                <button
-                                    type="button"
-                                    className="button"
-                                    onClick={() => setEditModalEmployee(null)}
-                                >
-                                    {translate('portal', 'emp_cancel')}
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="button dark"
-                                    disabled={editForm.processing}
-                                >
-                                    {editForm.processing ? translate('portal', 'emp_saving') : translate('portal', 'emp_save')}
-                                </button>
-                            </div>
-                        </form>
-
-                        {canResetPasswordOf(editModalEmployee) && (
-                            <AccountPasswordManager
-                                account={editModalEmployee}
-                                canManage
-                            />
-                        )}
-                    </div>
-                </div>
+            {view === 'staff' && (
+                <MoneyTable<Row>
+                    data={tableData}
+                    prop="data"
+                    columns={columns}
+                    searchPlaceholder={translate('office_staff', 'search_staff')}
+                    hideViewChips
+                    empty={translate('office_staff', 'empty_staff')}
+                    onRowOpen={(row) => setOpenedId(Number(row.id))}
+                />
             )}
-        </div>
+            {view === 'prescribers' && <OfficePrescriberGrants />}
+            {view === 'owners' && <OwnerAccountsPanel accounts={ownerAccounts} />}
+
+            {opened && (
+                <StaffDrawer
+                    employee={opened}
+                    available={availablePermissions}
+                    canManageStaff={canManageStaff}
+                    onClose={() => setOpenedId(null)}
+                    onEdit={() => { setOpenedId(null); setEditing(opened); }}
+                />
+            )}
+            {adding && <AddStaffDialog available={availablePermissions} onClose={() => setAdding(false)} />}
+            {editing && <EditStaffDialog employee={editing} available={availablePermissions} canResetPassword={canResetPasswordOf(editing)} onClose={() => setEditing(null)} />}
+        </OfficePage>
     );
 }
