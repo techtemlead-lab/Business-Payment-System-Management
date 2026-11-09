@@ -29,8 +29,11 @@
 .mt-empty{margin:0;padding:28px 16px;border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);background:var(--ds-surface);color:var(--ds-text-muted);text-align:center}
 
 .mt-table-wrap{overflow-x:auto;border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);background:var(--ds-surface)}
-.app-shell .mt-table{width:100%;margin:0;border-collapse:collapse}
-.app-shell .mt-table th{padding:10px 14px;border-bottom:1px solid var(--ds-line);background:var(--ds-surface);color:var(--ds-text-muted);font-size:var(--ds-fs-xs);font-weight:600;text-align:left;white-space:nowrap}
+/* Words wrap so a table fits its box before anything has to scroll or be pinned over a figure. */
+.app-shell .mt-table{width:100%;margin:0;border-collapse:collapse;white-space:normal}
+.app-shell .mt-table td :is(.badge,.record-link,.button,.icon-button){white-space:nowrap}
+.app-shell .mt-table th{padding:10px 14px;border-bottom:1px solid var(--ds-line);background:var(--ds-surface);color:var(--ds-text-muted);font-size:var(--ds-fs-xs);font-weight:600;text-align:left;white-space:normal}
+.app-shell .mt-table .mt-sort{white-space:normal;text-align:inherit}
 .app-shell .mt-table td{padding:11px 14px;border-bottom:1px solid var(--ds-line-soft);background:transparent;color:var(--ds-text);font-size:var(--ds-fs-base);text-align:left;vertical-align:top}
 .app-shell .mt-table td :is(.cell-sub,small){display:block;margin-top:1px;color:var(--ds-text-muted);font-size:var(--ds-fs-xs)}
 .app-shell .mt-table :is(th,td).is-right{text-align:right}
@@ -93,6 +96,11 @@
   .mt-card-title :is(.cell-sub,small)::before{content:" · "}
   .mt-card-lines{color:var(--ds-text-muted);font-size:var(--ds-fs-xs);overflow-wrap:anywhere}
   .mt-card-lines>span+span::before{content:" · "}
+  .mt-card-lines>span:empty{display:none}
+  .mt-card-lines>span:has(>.button){display:block;margin-top:8px}
+  .mt-card-lines>span:has(>.button)::before{content:none}
+  .app-shell .mt-card-lines>span>.button{min-height:44px}
+  .mt-card-lines .hub-row .text-link{display:inline-flex;align-items:center;min-height:44px}
   .mt-card-lines :is(.cell-sub,small){display:inline;font-size:inherit}
   .mt-card-lines :is(.cell-sub,small)::before{content:" · "}
   .mt-card-amount{flex:none;max-width:48%;color:var(--ds-text);font-size:var(--ds-fs-base);font-weight:650;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}

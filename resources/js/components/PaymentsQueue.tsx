@@ -45,8 +45,8 @@ export default function PaymentsQueue({ data, onReview, actions }: { data: Money
         {
             key: 'action',
             title: translate('portal', 'col_review'),
-            phone: 'hide',
-            render: (row) => (row.status === 'pending' ? <button type="button" className="button small" onClick={(event) => { event.stopPropagation(); onReview(row); }}>{translate('portal', 'review')} <ArrowUpRight size={14} aria-hidden="true" /></button> : '—'),
+            phone: 'sub',
+            render: (row) => (row.status === 'pending' ? <button type="button" className="button small" onClick={(event) => { event.stopPropagation(); onReview(row); }}>{translate('portal', 'review')} <ArrowUpRight size={14} aria-hidden="true" /></button> : null),
         },
     ];
 

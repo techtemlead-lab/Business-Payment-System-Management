@@ -127,6 +127,7 @@ export default function Payroll({ tables, staff, paymentAccounts, secondApprover
                         totalCount={register.page.total}
                         totalLabel={multiPage(register) ? translate('portal', 'table_page_total') : undefined}
                         rows={register.page.data}
+                        phoneColumns={['name', 'net', 'status']}
                         empty={translate('office_staff', 'salary_empty')}
                         onRowClick={(row: Row) => setOpenedId(String(row.id))}
                         rowClassName={() => 'is-link'}
