@@ -231,7 +231,7 @@ export default function HomeModule({ form, defaults, products, updateField, upda
                 <p className="ed-desc is-sm">{translate('website_admin', 'home_video_own_save')}</p>
                 <p className="ed-desc is-sm">{translate('portal', 'ops_promote_video_hide')}</p>
                 {videoProducts.length === 0 && <p className="ed-desc is-sm">{translate('portal', 'ops_no_product_videos')}</p>}
-                <ActionForm action="/commands/operations/marketing/homepage-video" fields={homepageFields} defaults={homepageDefaults} submit={translate('portal', 'ops_save_homepage_video')} />
+                <ActionForm key={videoSetting.version} action="/commands/operations/marketing/homepage-video" fields={homepageFields} defaults={homepageDefaults} submit={translate('portal', 'ops_save_homepage_video')} />
             </WebsiteGroup>
 
             <WebsiteGroup title={translate('website_admin', 'group_video_gallery')}>
