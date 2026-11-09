@@ -32,7 +32,7 @@ class PartnerIdCardTest extends TestCase
     public function test_bangla_dealer_id_card_and_join_poster_pdf_use_partner_locale_strings(): void
     {
         $this->assertSame('ডিলার কোড', __('portal.pdf_id_card_dealer_code', [], 'bn'));
-        $this->assertSame('QR কোড স্ক্যান করুন অথবা জয়েন লিংক খুলে এই রেফার কোড দিয়ে আবেদন করুন।', __('portal.pdf_join_poster_lead', [], 'bn'));
+        $this->assertSame('QR কোড স্ক্যান করুন অথবা জয়েন লিংক খুলে এই কোড দিয়ে আবেদন করুন।', __('portal.pdf_join_poster_lead', [], 'bn'));
 
         $dealer = User::factory()->create([
             'role' => 'dealer',
