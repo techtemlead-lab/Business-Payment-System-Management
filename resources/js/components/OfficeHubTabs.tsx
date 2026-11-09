@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Link } from '@inertiajs/react';
+import { number } from './UI';
 import { useT } from '../shared/i18n/t';
 
 export type OfficeHub = {
     home: string;
     label: string;
-    tabs: Array<{ key: string; label: string; href: string; active: boolean }>;
+    tabs: Array<{ key: string; label: string; href: string; active: boolean; count?: number }>;
 };
 
 export type ReportGroup = {
@@ -17,15 +18,24 @@ export type ReportGroup = {
 
 /** Tabs across pages the office uses as one. Each tab is the page's own address, so old links keep working. */
 export default function OfficeHubTabs({ hub }: { hub: OfficeHub }) {
+    const strip = useRef<HTMLElement>(null);
+    const activeTab = hub.tabs.find((tab) => tab.active)?.key;
+
+    // On a phone the strip scrolls sideways: keep the open tab in view.
+    useEffect(() => {
+        strip.current?.querySelector<HTMLElement>('.is-active')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }, [activeTab]);
+
     if (hub.tabs.length < 2) {
         return null;
     }
 
     return (
-        <nav className="order-status-tabs" aria-label={hub.label}>
+        <nav ref={strip} className="office-tabs" aria-label={hub.label}>
             {hub.tabs.map((tab) => (
-                <Link key={tab.key} href={tab.href} className={`order-status-tab${tab.active ? ' is-active' : ''}`} aria-current={tab.active ? 'page' : undefined}>
+                <Link key={tab.key} href={tab.href} className={`office-tab${tab.active ? ' is-active' : ''}`} aria-current={tab.active ? 'page' : undefined}>
                     {tab.label}
+                    {(tab.count ?? 0) > 0 && <b className="office-tab-count">{number(tab.count)}</b>}
                 </Link>
             ))}
         </nav>
