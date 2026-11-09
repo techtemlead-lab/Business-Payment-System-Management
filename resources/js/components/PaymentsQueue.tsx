@@ -33,7 +33,7 @@ export default function PaymentsQueue({ data, onReview, actions }: { data: Money
             render: (row) => (
                 <>
                     {channelLabel(row.channel, translate) || '—'}
-                    {row.reference && <small className="cell-sub">{row.reference}</small>}
+                    {row.reference && <small className="cell-sub cell-nowrap" title={row.reference}>{row.reference}</small>}
                     {row.has_proof && <small className="cell-sub"><a className="text-link" href={`/commands/operations/receipts/payment/${row.id}`} target="_blank" rel="noopener">{translate('portal', 'payment_proof_view')}</a></small>}
                 </>
             ),

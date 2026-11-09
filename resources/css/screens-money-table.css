@@ -32,6 +32,7 @@
 /* Words wrap so a table fits its box before anything has to scroll or be pinned over a figure. */
 .app-shell .mt-table{width:100%;margin:0;border-collapse:collapse;white-space:normal}
 .app-shell .mt-table td :is(.badge,.record-link,.button,.icon-button){white-space:nowrap}
+.app-shell .mt-table td .cell-nowrap{max-width:16em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .app-shell .mt-table th{padding:10px 14px;border-bottom:1px solid var(--ds-line);background:var(--ds-surface);color:var(--ds-text-muted);font-size:var(--ds-fs-xs);font-weight:600;text-align:left;white-space:normal}
 .app-shell .mt-table .mt-sort{white-space:normal;text-align:inherit}
 .app-shell .mt-table td{padding:11px 14px;border-bottom:1px solid var(--ds-line-soft);background:transparent;color:var(--ds-text);font-size:var(--ds-fs-base);text-align:left;vertical-align:top}
