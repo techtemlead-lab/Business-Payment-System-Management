@@ -13,7 +13,7 @@ export default function MoneyHero({ summary, actions }: { summary: MoneySummary;
 
     return (
         <section className="mm-hero" aria-labelledby="mm-hero-label">
-            <span id="mm-hero-label" className="mm-hero-label">{translate('my_money', 'can_use')}</span>
+            <span id="mm-hero-label" className="mm-hero-label">{translate('my_money', 'usable')}</span>
             <strong className={`mm-hero-number${isBelowZero(summary.available) ? ' is-negative' : ''}`}>{money(summary.available)}</strong>
             {smallFigures.length > 0 && (
                 <ul className="mm-hero-small">

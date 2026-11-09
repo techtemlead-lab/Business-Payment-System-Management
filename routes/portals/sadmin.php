@@ -62,5 +62,7 @@ Route::middleware(['auth', 'active', 'portal:sadmin', 'authenticator'])->group(f
     Route::get('/payment-receipts/{receipt}/print', [PayoutReceiptController::class, 'print'])->whereNumber('receipt')->middleware('throttle:30,1');
     Route::get('/withdrawals/{id}', [WithdrawalController::class, 'show'])->whereUuid('id');
     Route::redirect('/places', '/place-codes', 301);
+    require __DIR__.'/treasury.php';
+    require __DIR__.'/treasury_redirects.php';
     Route::get('/{section?}', [DashboardController::class, 'index'])->whereIn('section', PortalCatalog::routeSections('sadmin'));
 });

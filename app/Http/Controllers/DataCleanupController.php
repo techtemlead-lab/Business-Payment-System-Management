@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Finance\EventLogProjector;
 use App\Domain\Security\DataCleanup;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -22,6 +23,7 @@ class DataCleanupController extends Controller
         ])['refs'];
         $deleted = $cleanup->delete($request->user(), array_values(array_map('strval', $refs)));
         $total = array_sum($deleted);
+        app(EventLogProjector::class)->rebuild();
 
         return $request->expectsJson()
             ? response()->json(['data' => ['deleted' => $deleted, 'total' => $total]])

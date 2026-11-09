@@ -55,7 +55,7 @@ export default function MoneyBook({ table, actions, orderHref }: {
         },
         ...(oneType ? [] : [{
             key: 'running',
-            title: translate('my_money', 'col_total'),
+            title: translate('my_money', 'running_total'),
             money: true,
             phone: 'hide' as const,
             render: (row: StatementRow) => money(row.running),

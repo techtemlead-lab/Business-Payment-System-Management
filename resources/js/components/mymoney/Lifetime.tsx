@@ -5,8 +5,8 @@ import type { MoneyLifetime } from './types';
 const FIGURES: { label: string; value: keyof MoneyLifetime }[] = [
     { label: 'lifetime_ordered', value: 'ordered_mrp' },
     { label: 'lifetime_cash', value: 'cash_given' },
-    { label: 'lifetime_withdrawn', value: 'withdrawn' },
-    { label: 'lifetime_spent', value: 'spent' },
+    { label: 'withdrawn', value: 'withdrawn' },
+    { label: 'spent', value: 'spent' },
 ];
 
 /** The quiet "so far" line under the income cards. */

@@ -2,8 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Domain\Finance\EventLogProjector;
 use App\Domain\Finance\FinancialReadiness;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
@@ -14,7 +16,16 @@ class FinanceReadiness extends Command
 
     protected $description = 'Inspect financial reconciliation without posting or approving balances';
 
-    public function handle(FinancialReadiness $readiness): int
+    /** The event log is only a view of the records, so a gap is a warning and never fails the money check. */
+    private function warnIfEventLogIsMissingRows(EventLogProjector $projector): void
+    {
+        $missing = array_filter($projector->verify(), fn (array $counts): bool => $counts['source'] !== $counts['log']);
+        if ($missing !== []) {
+            Log::warning('Treasury event log does not match the records.', $missing);
+        }
+    }
+
+    public function handle(FinancialReadiness $readiness, EventLogProjector $projector): int
     {
         if ($this->option('backup') || $this->option('backup-only')) {
             $connection = config('database.connections.'.config('database.default'));
@@ -36,6 +47,7 @@ class FinanceReadiness extends Command
         }
         $snapshot = $readiness->inspect();
         $this->line(json_encode($snapshot, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+        $this->warnIfEventLogIsMissingRows($projector);
 
         return $snapshot['internally_reconciled'] ? self::SUCCESS : self::FAILURE;
     }

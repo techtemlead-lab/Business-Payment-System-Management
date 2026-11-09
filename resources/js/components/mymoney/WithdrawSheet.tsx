@@ -52,7 +52,7 @@ export default function WithdrawSheet({ available, withdraw, onClose }: { availa
 
     return (
         <Modal title={titles[step]} onClose={onClose}>
-            <p className="mm-sheet-balance">{translate('my_money', 'can_use')} <b>{money(available)}</b></p>
+            <p className="mm-sheet-balance">{translate('my_money', 'usable')} <b>{money(available)}</b></p>
 
             {step === 'choose' && (
                 <div className="mm-choices">

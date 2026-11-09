@@ -58,7 +58,7 @@ export default function IncomeCards({ cards, selected = '', onChoose, hrefFor }:
 
     return (
         <section className="mm-income" aria-labelledby="mm-income-title">
-            <h2 id="mm-income-title">{translate('my_money', 'income_heading')}</h2>
+            <h2 id="mm-income-title">{translate('my_money', 'where_from')}</h2>
             <div className="mm-cards">
                 {cards.map((card) => {
                     const body = (
