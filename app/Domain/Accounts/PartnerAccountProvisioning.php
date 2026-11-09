@@ -393,28 +393,27 @@ final class PartnerAccountProvisioning
         if ($dealer->role !== 'dealer') {
             return;
         }
-        $profile = is_array($dealer->profile) ? $dealer->profile : [];
+        $profile = $this->savedProfile($dealer);
         $homeCode = (string) ($profile['place_code'] ?? '');
         $homePlaceId = $this->recordedHomePlaceId($profile, $homeCode);
-        $freedPlaceIds = array_map(intval(...), (array) ($profile[self::FreedSeatsKey] ?? []));
         $notReturned = [];
 
-        foreach (array_unique(array_filter([$homePlaceId, ...$freedPlaceIds])) as $placeId) {
+        foreach (array_unique(array_filter([$homePlaceId, ...$this->freedPlaceIds($dealer)])) as $placeId) {
             $place = PlaceCode::query()->find($placeId);
             if (! $place instanceof PlaceCode) {
                 continue;
             }
-            $otherHolder = AreaDealerAssignment::query()->with('user:id,dealer_code')
+            $otherHolderId = AreaDealerAssignment::query()
                 ->where('place_code_id', $placeId)
                 ->where('is_active', true)
                 ->where('user_id', '!=', $dealer->id)
-                ->first();
-            if ($otherHolder === null) {
+                ->value('user_id');
+            if ($otherHolderId === null) {
                 $this->takeSeatBack($dealer, $place);
             } elseif ($placeId === $homePlaceId) {
                 throw ValidationException::withMessages(['status' => __('portal.acct_val_reopen_place_taken', [
                     'place' => $place->code,
-                    'holder' => $otherHolder->user?->dealer_code ?? $place->code,
+                    'holder' => User::query()->whereKey($otherHolderId)->value('dealer_code') ?? $place->code,
                 ])]);
             } else {
                 $notReturned[] = $place->code;
@@ -434,6 +433,24 @@ final class PartnerAccountProvisioning
         if ($notReturned !== []) {
             Audit::record($actor->id, 'account.seats_not_returned', (string) $dealer->id, ['places' => $notReturned]);
         }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function savedProfile(User $partner): array
+    {
+        $saved = $partner->getAttribute('profile');
+
+        return is_array($saved) ? $saved : [];
+    }
+
+    /**
+     * @return list<int> The places closing took from this dealer
+     */
+    private function freedPlaceIds(User $dealer): array
+    {
+        return array_values(array_map(intval(...), (array) ($this->savedProfile($dealer)[self::FreedSeatsKey] ?? [])));
     }
 
     private function takeSeatBack(User $dealer, PlaceCode $place): void
@@ -598,9 +615,6 @@ final class PartnerAccountProvisioning
             $locked = User::whereKey($partner->id)->lockForUpdate()->firstOrFail();
             $profile = is_array($locked->profile) ? $locked->profile : [];
             $homePlaceId = $this->recordedHomePlaceId($profile, $currentCode);
-            if (isset($profile[self::FreedSeatsKey])) {
-                $profile[self::FreedSeatsKey] = array_values(array_diff(array_map(intval(...), (array) $profile[self::FreedSeatsKey]), [$homePlaceId]));
-            }
             $profile['place_code'] = $place->code;
             $profile['place_code_id'] = $place->id;
             $profile['upazila'] = $path['upazila'] ?? ($profile['upazila'] ?? null);
@@ -610,6 +624,10 @@ final class PartnerAccountProvisioning
                 $profile['union_place_code'] = null;
             } else {
                 $profile['union_place_code'] = $place->code;
+            }
+            $freedPlaceIds = $this->freedPlaceIds($locked);
+            if ($freedPlaceIds !== []) {
+                $profile[self::FreedSeatsKey] = array_values(array_diff($freedPlaceIds, [$homePlaceId]));
             }
 
             $locked->forceFill([

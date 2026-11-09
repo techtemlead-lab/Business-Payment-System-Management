@@ -324,7 +324,8 @@ final class PartnerAccountDeletion
             'directory_visible' => ['before' => (bool) $partner->directory_visible, 'after' => false],
         ];
         $freedPlaceIds = $this->freeSeats($partner);
-        $profile = is_array($partner->profile) ? $partner->profile : [];
+        $savedProfile = $partner->getAttribute('profile');
+        $profile = is_array($savedProfile) ? $savedProfile : [];
         if ($freedPlaceIds !== []) {
             $profile[PartnerAccountProvisioning::FreedSeatsKey] = array_values(array_unique([...array_map(intval(...), (array) ($profile[PartnerAccountProvisioning::FreedSeatsKey] ?? [])), ...$freedPlaceIds]));
         }
