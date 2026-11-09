@@ -227,7 +227,7 @@ final class OrdersSection implements WorkspaceSection
             ->whereNotNull('courier_provider')
             ->whereIn('order_id', $orderIds)
             ->selectRaw('COUNT(*) FILTER (WHERE status = ?) AS with_courier', [$open])
-            ->selectRaw("COUNT(*) FILTER (WHERE status = ? AND COALESCE(courier_status, 'waiting_pickup') = 'waiting_pickup') AS waiting_pickup", [$open])
+            ->selectRaw('COUNT(*) FILTER (WHERE status = ? AND '.self::ParcelStepSql." = 'waiting_pickup') AS waiting_pickup", [$open])
             ->selectRaw("COUNT(*) FILTER (WHERE status = 'delivered') AS delivered")
             ->selectRaw("COUNT(*) FILTER (WHERE status = 'returned') AS returned")
             ->first();

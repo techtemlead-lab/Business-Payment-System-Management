@@ -160,7 +160,9 @@ class OrdersAndDeliveriesTableTest extends TestCase
                 ->has('data.parcels_table.rows.data', 1)
                 ->where('data.parcels_table.rows.data.0.courier_booking_error', 'Address missing')
                 ->where('data.parcels_table.rows.data.0.step', 'failed')
-                ->where('data.courier_board.counts.failed', 1));
+                ->where('data.courier_board.counts.failed', 1)
+                ->where('data.parcel_stages.with_courier', 2)
+                ->where('data.parcel_stages.waiting_pickup', 1));
     }
 
     public function test_parcels_outside_the_branch_are_not_listed(): void
