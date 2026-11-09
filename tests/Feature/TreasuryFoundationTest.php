@@ -550,6 +550,16 @@ class TreasuryFoundationTest extends TestCase
         $this->actingAs($finance)->onPortal('manage')->get('/treasury/work')->assertOk()->assertInertia(fn (Assert $page) => $page->component('TreasuryWork')->has('tiles')->has('approvals')->has('heads')->has('budget_month'));
     }
 
+    public function test_the_partner_home_loads_the_income_cards_after_the_page(): void
+    {
+        $earner = User::factory()->dealer()->create();
+        $this->delivered(User::factory()->dealer()->create(['sponsor_id' => $earner->id]));
+
+        $this->actingAs($earner)->onPortal('dealer')->get('/')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->missing('data.money_cards')
+                ->loadDeferredProps(fn (Assert $reload) => $reload->where('data.money_cards.0.key', 'referral')->where('data.money_cards.0.amount', '10.00')));
+    }
+
     public function test_the_partner_list_shows_wallet_and_lifetime_figures(): void
     {
         $partner = User::factory()->dealer()->create();

@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Finance\EventLogProjector;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -8,7 +9,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * The Treasury event log: one read-only row for every order, payment, commission, fund movement,
  * withdrawal and stock movement. It is filled from the existing records by
- * {@see App\Domain\Finance\EventLogProjector}, can be emptied and rebuilt at any time and is never
+ * {@see EventLogProjector}, can be emptied and rebuilt at any time and is never
  * used to decide anything.
  */
 return new class extends Migration

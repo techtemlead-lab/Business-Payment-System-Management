@@ -5,6 +5,7 @@ namespace App\Domain\Finance;
 use App\Support\MoneyTable;
 use App\Support\MoneyTableFilter;
 use App\Support\MoneyTableSpec;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -50,7 +51,7 @@ final class PartnerMoneyList
     }
 
     /**
-     * @param  array{from: \Carbon\CarbonImmutable, until: \Carbon\CarbonImmutable}|null  $range
+     * @param  array{from: CarbonImmutable, until: CarbonImmutable}|null  $range
      */
     private function delivered(?array $range): Builder
     {
@@ -60,7 +61,7 @@ final class PartnerMoneyList
     }
 
     /**
-     * @param  array{from: \Carbon\CarbonImmutable, until: \Carbon\CarbonImmutable}|null  $range
+     * @param  array{from: CarbonImmutable, until: CarbonImmutable}|null  $range
      */
     private function withdrawn(?array $range): Builder
     {
@@ -69,7 +70,7 @@ final class PartnerMoneyList
     }
 
     /**
-     * @param  array{from: \Carbon\CarbonImmutable, until: \Carbon\CarbonImmutable}|null  $range
+     * @param  array{from: CarbonImmutable, until: CarbonImmutable}|null  $range
      */
     private function spent(?array $range): Builder
     {
