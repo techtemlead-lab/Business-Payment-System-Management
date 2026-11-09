@@ -6,6 +6,7 @@ use App\Domain\Integrations\CourierGatewayClient;
 use App\Models\Order;
 use App\Models\User;
 use App\Support\Audit;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -25,6 +26,9 @@ final class ShipmentTracking
     public const Statuses = ['waiting_pickup', 'picked_up', 'in_transit', 'delivered', 'returned'];
 
     public const Finished = ['delivered', 'returned'];
+
+    /** A parcel the courier was asked about less than this many minutes ago is not asked again when its order is opened. */
+    public const RefreshAfterMinutes = 5;
 
     private const Order = ['waiting_pickup' => 0, 'picked_up' => 1, 'in_transit' => 2, 'delivered' => 3, 'returned' => 3];
 
@@ -86,6 +90,29 @@ final class ShipmentTracking
     }
 
     /**
+     * Whether opening the parcel's order should ask the courier for news: the parcel is still
+     * moving and the courier was last asked more than a few minutes ago.
+     */
+    public static function isDueForRefresh(?object $shipment): bool
+    {
+        if ($shipment === null || ! self::isTrackable($shipment)) {
+            return false;
+        }
+
+        return $shipment->courier_tracked_at === null
+            || Carbon::parse($shipment->courier_tracked_at)->addMinutes(self::RefreshAfterMinutes)->isPast();
+    }
+
+    /**
+     * Asks the courier about a parcel only if it is still due. A job that waited behind others
+     * in the queue may find the courier was already asked in the meantime.
+     */
+    public function refreshIfDue(int $shipmentId): ?string
+    {
+        return self::isDueForRefresh(DB::table('shipments')->where('id', $shipmentId)->first()) ? $this->refresh($shipmentId) : null;
+    }
+
+    /**
      * Asks the courier where the parcel is. Returns the new step when it moved forward.
      */
     public function refresh(int $shipmentId): ?string
@@ -103,8 +130,9 @@ final class ShipmentTracking
             $reference = Order::query()->whereKey($shipment->order_id)->value('number').'-'.$shipment->id;
         }
         $result = $this->couriers->track((string) $shipment->courier_provider, $reference);
-        DB::table('shipments')->where('id', $shipmentId)->update(['courier_tracked_at' => now()]);
-        if (! $result['success'] || blank($result['status'])) {
+        $answered = $result['success'] && filled($result['status']);
+        DB::table('shipments')->where('id', $shipmentId)->update(['courier_tracked_at' => now(), ...($answered ? ['courier_answered_at' => now()] : [])]);
+        if (! $answered) {
             return null;
         }
 
