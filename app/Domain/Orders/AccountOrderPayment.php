@@ -85,7 +85,7 @@ final class AccountOrderPayment
             ['account' => 'wallet_liability', 'user_id' => $buyer->id, 'debit' => $cents, 'credit' => 0],
             ['account' => 'wallet_order_clearing', 'user_id' => null, 'debit' => 0, 'credit' => $cents],
         ]);
-        $order->update(['paid' => Money::decimal(Money::cents($order->paid) + $cents)]);
+        $order->update(['paid' => Money::decimal(Money::cents((string) $order->paid) + $cents)]);
 
         $this->record($order, $buyer, self::PaidEvent, ['claim_id' => $claimId, 'channel' => self::Channel, 'reference' => $reference,
             'amount' => $amount, 'order_paid_after' => $order->paid, 'order_total' => $order->total]);
@@ -112,7 +112,7 @@ final class AccountOrderPayment
         $refundId = (string) Str::uuid();
         $now = now();
         DB::table('order_refunds')->insert(['id' => $refundId, 'order_id' => $order->id, 'user_id' => $order->user_id, 'amount' => Money::decimal($cents),
-            'paid_before' => Money::decimal(Money::cents($order->paid)), 'to_account' => Money::decimal($cents), 'reason' => $reason, 'refunded_by' => $actor->id,
+            'paid_before' => Money::decimal($cents), 'to_account' => Money::decimal($cents), 'reason' => $reason, 'refunded_by' => $actor->id,
             'created_at' => $now, 'updated_at' => $now]);
         $this->giveBack($order, $actor, $cents, $refundId);
     }

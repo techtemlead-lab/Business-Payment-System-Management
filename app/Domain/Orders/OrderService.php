@@ -250,8 +250,9 @@ class OrderService
             // Paid wholly from the partner's own account: that money goes back by itself below.
             // Anything paid another way still has to go through the refund steps by hand.
             $accountPayment = app(AccountOrderPayment::class);
-            $returnsToAccount = $status === 'rejected' && Money::cents($locked->paid) > 0 && $accountPayment->paidFromAccount($locked) === Money::cents($locked->paid);
-            if ($status === 'rejected' && Money::cents($locked->paid) > 0 && ! $returnsToAccount) {
+            $paidSoFar = Money::cents($locked->paid);
+            $returnsToAccount = $status === 'rejected' && $paidSoFar > 0 && $accountPayment->paidFromAccount($locked) === $paidSoFar;
+            if ($status === 'rejected' && $paidSoFar > 0 && ! $returnsToAccount) {
                 throw ValidationException::withMessages(['status' => __('portal.err_order_paid_needs_refund')]);
             }
             if ($status === 'approved') {
