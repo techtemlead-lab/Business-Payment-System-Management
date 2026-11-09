@@ -210,7 +210,7 @@ function ChatRoutingPanel({ routing }: { routing: ChatRouting }) {
 }
 
 /** Office view: every partner's chat in one inbox; open one to read and reply. */
-export default function OfficeChat({ inbox, thread, routing }: { inbox: Row; thread: Row | null; routing?: ChatRouting | null }) {
+export default function OfficeChat({ inbox, thread, routing, noBranch = false }: { inbox: Row; thread: Row | null; routing?: ChatRouting | null; noBranch?: boolean }) {
     const translate = useT();
     const { portalBase: base, filters } = usePage<any>().props;
     usePoll(10000, { only: ['data', 'navAttention'] });
@@ -230,7 +230,7 @@ export default function OfficeChat({ inbox, thread, routing }: { inbox: Row; thr
                     <button type="button" className={`button small${unreadOnly ? ' dark' : ''}`} aria-pressed={unreadOnly} onClick={() => go({ status: unreadOnly ? '' : 'unread' })}>{translate('portal', 'chat_unread_only')}</button>
                 </form>
                 {rows.length === 0 ? (
-                    <p className="chat-empty">{translate('portal', 'chat_inbox_empty')}</p>
+                    <p className="chat-empty">{translate('portal', noBranch ? 'chat_inbox_no_branch' : 'chat_inbox_empty')}</p>
                 ) : (
                     <ul className="chat-list">
                         {rows.map((row) => (

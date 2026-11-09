@@ -70,6 +70,7 @@ final class SupportSection implements WorkspaceSection
                 $request->input('status') === 'unread',
             ),
             'chat_thread' => $thread,
+            'chat_no_branch' => app(ChatRouting::class)->visibleBranchIds($context->user) === [],
             // Only owners choose who answers chat.
             'chat_routing' => $context->user->owner() ? app(ChatRouting::class)->ownerPanel() : null,
         ];
