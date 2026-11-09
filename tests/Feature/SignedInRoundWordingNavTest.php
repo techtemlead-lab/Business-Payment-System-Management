@@ -164,11 +164,11 @@ class SignedInRoundWordingNavTest extends TestCase
         $this->assertStringNotContainsString('ব্রাঞ্চ', DashboardManagement::noticeForUser($subDealer)['text']);
     }
 
-    public function test_welcome_line_shows_only_on_the_partner_dashboard(): void
+    public function test_welcome_line_shows_only_on_the_dashboard_and_an_owner_notice_on_every_page(): void
     {
         $shell = (string) file_get_contents(resource_path('js/components/Shell.tsx'));
 
-        $this->assertStringContainsString("dashboardNotice.text && (staff || section === 'overview' || section === '') && (", $shell);
+        $this->assertStringContainsString("dashboardNotice.text && (dashboardNotice.every_page || section === 'overview' || section === '') && (", $shell);
         $this->assertStringContainsString('dashboardNotice?.maintenance && !staff && (', $shell);
     }
 
