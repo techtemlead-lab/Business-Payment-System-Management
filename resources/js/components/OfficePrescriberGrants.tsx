@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Stethoscope } from 'lucide-react';
-import { Empty, label } from './UI';
+import { Empty, Modal, label } from './UI';
 import PartnerPrescriberControls from './PartnerPrescriberControls';
 import { useT } from '../shared/i18n/t';
 
@@ -15,7 +14,7 @@ export default function OfficePrescriberGrants() {
     const [query, setQuery] = useState('');
     const [accounts, setAccounts] = useState<OfficeAccount[] | null>(null);
     const [failed, setFailed] = useState(false);
-    const [openId, setOpenId] = useState<number | null>(null);
+    const [opened, setOpened] = useState<OfficeAccount | null>(null);
     const [reloads, setReloads] = useState(0);
 
     useEffect(() => {
@@ -42,29 +41,19 @@ export default function OfficePrescriberGrants() {
         };
     }, [query, reloads]);
 
-    const toggle = (id: number) => {
-        if (openId === id) {
-            setOpenId(null);
-            setReloads((count) => count + 1);
-        } else {
-            setOpenId(id);
-        }
+    const close = () => {
+        setOpened(null);
+        setReloads((count) => count + 1);
     };
 
     return (
-        <section className="panel">
-            <div className="panel-heading">
-                <div>
-                    <h2 className="ops-row is-inline"><Stethoscope size={18} /> {translate('prescription', 'office_panel_title')}</h2>
-                    <p className="muted">{translate('prescription', 'office_panel_hint')}</p>
-                </div>
-                <div className="rx-search">
-                    <input type="search" value={query} placeholder={translate('prescription', 'office_search')} aria-label={translate('prescription', 'office_search')} onChange={(e) => setQuery(e.target.value)} />
-                </div>
+        <>
+            <div className="rx-search">
+                <input type="search" value={query} placeholder={translate('office_staff', 'prescribers_search')} aria-label={translate('office_staff', 'prescribers_search')} onChange={(e) => setQuery(e.target.value)} />
             </div>
             {failed && <p className="error" role="alert">{translate('prescription', 'verify_failed')}</p>}
             {!accounts && !failed && <p className="muted">{translate('prescription', 'verify_loading')}</p>}
-            {accounts && accounts.length === 0 && <Empty title={translate('prescription', 'office_empty')} />}
+            {accounts && accounts.length === 0 && <Empty line title={translate('prescription', 'office_empty')} />}
             {accounts && accounts.length > 0 && (
                 <ul className="rx-list">
                     {accounts.map((account) => (
@@ -76,14 +65,18 @@ export default function OfficePrescriberGrants() {
                                 </div>
                                 <span className="rx-actions">
                                     <span className={`badge ${account.enabled ? 'active' : 'suspended'}`}>{translate('prescription', account.enabled ? 'verify_status_on' : 'verify_status_off')}</span>
-                                    <button type="button" className="button small" onClick={() => toggle(account.id)}>{translate('prescription', openId === account.id ? 'office_hide' : 'office_manage')}</button>
+                                    <button type="button" className="button small" onClick={() => setOpened(account)}>{translate('office_staff', 'prescriber_manage')}</button>
                                 </span>
                             </div>
-                            {openId === account.id && <PartnerPrescriberControls account={account} />}
                         </li>
                     ))}
                 </ul>
             )}
-        </section>
+            {opened && (
+                <Modal title={opened.name} variant="drawer" onClose={close}>
+                    <PartnerPrescriberControls account={opened} />
+                </Modal>
+            )}
+        </>
     );
 }

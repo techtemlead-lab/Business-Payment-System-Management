@@ -98,7 +98,7 @@ class StaffPageAndRolesTest extends TestCase
         $names = array_column($data['rolePresets'], 'name', 'key');
 
         $this->assertSame('সাপোর্ট স্টাফ', $names['support']);
-        $this->assertSame('কর্মচারী', $names['employee']);
+        $this->assertSame('স্টাফ', $names['employee']);
     }
 
     /** @return array<string, mixed> */

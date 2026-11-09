@@ -232,6 +232,16 @@ class HandleInertiaRequests extends Middleware
                 'shipping_label' => Lang::get('shipping_label'),
                 'treasury' => Lang::get('treasury'),
                 'my_money' => Lang::get('my_money'),
+                'office_shell' => Lang::get('office_shell'),
+                'office_menu' => Lang::get('office_menu'),
+                'office_orders' => Lang::get('office_orders'),
+                'office_home' => Lang::get('office_home'),
+                'office_stock' => Lang::get('office_stock'),
+                'office_partners' => Lang::get('office_partners'),
+                'office_staff' => Lang::get('office_staff'),
+                'office_website' => Lang::get('office_website'),
+                'office_settings' => Lang::get('office_settings'),
+                'office_reports' => Lang::get('office_reports'),
             ])->as('i18n:'.$locale),
             'portalCatalog' => Inertia::once(fn () => $portalShell
                 ? PortalCatalog::inertiaPayload($portal)

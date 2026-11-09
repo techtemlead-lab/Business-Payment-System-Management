@@ -1,7 +1,11 @@
 import React from 'react';
-import { router } from '@inertiajs/react';
-import { MapPin, Trophy } from 'lucide-react';
-import { money } from './UI';
+import { Link, router, usePage } from '@inertiajs/react';
+import { Trophy } from 'lucide-react';
+import { Table, money, type Row } from './UI';
+import { ReportFilterSheet } from './BranchPerformanceHub';
+import OfficePage from './office/OfficePage';
+import Figures from './office/Figures';
+import type { OfficeHub } from './OfficeHubTabs';
 import { useT } from '../shared/i18n/t';
 import { businessMonth, localizeDigits } from '../business-date';
 
@@ -52,13 +56,108 @@ const MEDALS: Record<number, string> = { 1: 'is-gold', 2: 'is-silver', 3: 'is-br
  * shows income or commission.
  */
 export default function TopSellersBoard({ board, staff = false }: TopSellersBoardProps) {
+    return staff ? <OfficeTopSellers board={board} /> : <PartnerTopSellers board={board} />;
+}
+
+/** The office page: one table of the month's top 10, for the whole country or one division. */
+function OfficeTopSellers({ board }: { board: TopSellersPayload }) {
     const translate = useT();
+    const { url, props } = usePage<any>();
+    const hub: OfficeHub | null = props.data?.hub ?? null;
+    const address = new URL(url || '/', 'http://top-sellers.local');
+    const showsDivision = address.searchParams.get('board') === 'division' && board.division !== null;
+    const entries = showsDivision ? board.divisional : board.national;
+    const chosenDivision = board.division_id != null ? String(board.division_id) : '';
 
     const visit = (next: { month?: string; division?: string }) => {
+        const division = next.division ?? chosenDivision;
         router.get('/top-sellers', {
             month: next.month ?? board.month,
-            division: staff ? ((next.division ?? (board.division_id != null ? String(board.division_id) : '')) || undefined) : undefined,
+            division: division || undefined,
+            board: showsDivision && division ? 'division' : undefined,
         }, { preserveState: true, preserveScroll: true, replace: true });
+    };
+    const boardHref = (division: boolean): string => {
+        const params = new URLSearchParams(address.search);
+        if (division) {
+            params.set('board', 'division');
+        } else {
+            params.delete('board');
+        }
+        const query = params.toString();
+
+        return query ? `${address.pathname}?${query}` : address.pathname;
+    };
+    const topTenTotal = entries.reduce((sum, entry) => sum + Math.round(Number(entry.amount ?? 0) * 100), 0) / 100;
+    const divisionPicker = (
+        <select aria-label={translate('portal', 'top_sellers_division_pick')} value={chosenDivision} onChange={(event) => visit({ division: event.target.value })}>
+            <option value="">{translate('portal', 'top_sellers_division_none')}</option>
+            {(board.divisions ?? []).map((division) => (
+                <option key={division.id} value={String(division.id)}>{division.name}</option>
+            ))}
+        </select>
+    );
+
+    return (
+        <div data-tour="top-sellers-board">
+            <OfficePage title={hub?.label ?? translate('portal', 'top_sellers_title')} hub={hub}>
+                <Figures
+                    items={[
+                        { key: 'highest', label: translate('office_reports', 'top_sellers_highest'), value: entries[0]?.amount ?? '0.00' },
+                        { key: 'ten_total', label: translate('office_reports', 'top_sellers_ten_total'), value: topTenTotal.toFixed(2) },
+                    ]}
+                />
+                <div className="money-table">
+                    {board.division && (
+                        <div className="mt-segments">
+                            <div className="office-switch" role="group" aria-label={translate('portal', 'top_sellers_title')}>
+                                <Link href={boardHref(false)} preserveState preserveScroll replace className={showsDivision ? undefined : 'is-active'} aria-current={showsDivision ? undefined : 'true'}>{translate('portal', 'top_sellers_national')}</Link>
+                                <Link href={boardHref(true)} preserveState preserveScroll replace className={showsDivision ? 'is-active' : undefined} aria-current={showsDivision ? 'true' : undefined}>{translate('portal', 'top_sellers_division', { division: board.division })}</Link>
+                            </div>
+                        </div>
+                    )}
+                    <div className="mt-toolbar">
+                        <ReportFilterSheet><label>{translate('portal', 'top_sellers_division_pick')}{divisionPicker}</label></ReportFilterSheet>
+                        <div className="mt-views" role="group" aria-label={translate('portal', 'top_sellers_pick_month')}>
+                            {board.months.map((month, index) => (
+                                <button key={month} type="button" className="mt-view" aria-pressed={month === board.month} onClick={() => visit({ month })}>
+                                    {index === 0 ? translate('portal', 'top_sellers_this_month') : businessMonth(month)}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="mt-filters">{divisionPicker}</div>
+                    </div>
+                    <Table<Row>
+                        rows={entries as unknown as Row[]}
+                        searchPlaceholder={translate('office_reports', 'top_sellers_search')}
+                        empty={translate('portal', 'top_sellers_empty')}
+                        columns={[
+                            { key: 'rank', title: translate('office_reports', 'top_sellers_col_rank'), align: 'right', width: 64, sortValue: (row) => Number(row.rank), render: (row) => localizeDigits(String(row.rank)) },
+                            {
+                                key: 'name',
+                                title: translate('office_reports', 'top_sellers_col_dealer'),
+                                render: (row) => (
+                                    <>
+                                        {row.name}
+                                        <small className="cell-sub">{[row.dealer_code, row.place, row.hidden ? translate('portal', 'top_sellers_hidden') : null].filter(Boolean).join(' · ')}</small>
+                                    </>
+                                ),
+                            },
+                            { key: 'amount', title: translate('office_reports', 'top_sellers_col_amount'), money: true, sortValue: (row) => Number(row.amount ?? 0), render: (row) => money(row.amount) },
+                        ]}
+                    />
+                </div>
+            </OfficePage>
+        </div>
+    );
+}
+
+/** The dealer and sub-dealer page. */
+function PartnerTopSellers({ board }: { board: TopSellersPayload }) {
+    const translate = useT();
+
+    const visit = (next: { month?: string }) => {
+        router.get('/top-sellers', { month: next.month ?? board.month }, { preserveState: true, preserveScroll: true, replace: true });
     };
 
     const me = board.me ?? null;
@@ -86,20 +185,9 @@ export default function TopSellersBoard({ board, staff = false }: TopSellersBoar
                         </button>
                     ))}
                 </div>
-                {staff && (
-                    <label className="tsb-division-pick">
-                        <span><MapPin size={14} /> {translate('portal', 'top_sellers_division_pick')}</span>
-                        <select value={board.division_id != null ? String(board.division_id) : ''} onChange={(event) => visit({ division: event.target.value })}>
-                            <option value="">{translate('portal', 'top_sellers_division_none')}</option>
-                            {(board.divisions ?? []).map((division) => (
-                                <option key={division.id} value={String(division.id)}>{division.name}</option>
-                            ))}
-                        </select>
-                    </label>
-                )}
             </section>
 
-            {!staff && me && (
+            {me && (
                 <div className={`tsb-me${me.in_top ? ' is-top' : ''}`} role="status">
                     <b>{me.in_top
                         ? translate('portal', 'top_sellers_you_in_top', { rank: String(me.national_rank) })
@@ -111,7 +199,7 @@ export default function TopSellersBoard({ board, staff = false }: TopSellersBoar
                     {me.amount !== null && <small>{translate('portal', 'top_sellers_your_purchases', { amount: money(me.amount) })}</small>}
                 </div>
             )}
-            {!staff && !me && board.can_rank && (
+            {!me && board.can_rank && (
                 <div className="tsb-me is-empty" role="status">
                     <small>{translate('portal', 'top_sellers_not_on_board')}</small>
                 </div>
@@ -122,16 +210,14 @@ export default function TopSellersBoard({ board, staff = false }: TopSellersBoar
                     title={translate('portal', 'top_sellers_national')}
                     entries={board.national}
                     showAmounts={board.show_amounts}
-                    staff={staff}
                 />
                 {board.division ? (
                     <BoardList
                         title={translate('portal', 'top_sellers_division', { division: board.division })}
                         entries={board.divisional}
                         showAmounts={board.show_amounts}
-                        staff={staff}
                     />
-                ) : !staff && (
+                ) : (
                     <section className="panel tsb-list">
                         <h3>{translate('portal', 'top_sellers_division_title')}</h3>
                         <p className="muted tsb-empty">{translate('portal', 'top_sellers_no_division')}</p>
@@ -144,7 +230,7 @@ export default function TopSellersBoard({ board, staff = false }: TopSellersBoar
     );
 }
 
-function BoardList({ title, entries, showAmounts, staff }: { title: string; entries: TopSellerEntry[]; showAmounts: boolean; staff: boolean }) {
+function BoardList({ title, entries, showAmounts }: { title: string; entries: TopSellerEntry[]; showAmounts: boolean }) {
     const translate = useT();
 
     return (
@@ -170,7 +256,6 @@ function BoardList({ title, entries, showAmounts, staff }: { title: string; entr
                                         <b>{entry.name}</b>
                                         {details.length > 0 && <span className="tsb-details"> · {details.join(' · ')}</span>}
                                         {entry.is_me && <span className="tsb-you">{translate('portal', 'top_sellers_you')}</span>}
-                                        {staff && entry.hidden && <span className="tsb-hidden">{translate('portal', 'top_sellers_hidden')}</span>}
                                     </div>
                                     <span className="tsb-bar" aria-hidden="true"><i style={{ width: `${entry.percent}%` }} /></span>
                                 </div>

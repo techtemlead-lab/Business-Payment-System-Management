@@ -8,6 +8,7 @@ use App\Domain\Support\GuidePrerequisites;
 use App\Models\CompanyBranch;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\SiteFeedback;
 use App\Models\User;
 use App\Support\ListPage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -147,6 +148,20 @@ class PortalQueryBudgetTest extends TestCase
         $this->assertCount(count($queries), $moreQueries, 'Inventory queries must not grow with the number of products.');
     }
 
+    public function test_the_staff_list_query_count_does_not_grow_with_staff(): void
+    {
+        $owner = User::factory()->staff()->create();
+        User::factory()->staff('finance')->create();
+        $this->actingAs($owner)->onPortal('sadmin')->get('/employees')->assertOk();
+
+        [, $few] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/employees'));
+        User::factory()->staff('support')->count(8)->create();
+        [$response, $many] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/employees'));
+
+        $response->assertInertia(fn (Assert $page) => $page->where('data.employees.table.totals.count', 9));
+        $this->assertCount(count($few), $many, 'The staff list ran a query per person.');
+    }
+
     public function test_inventory_loads_the_branch_list_once_per_reader(): void
     {
         $branch = CompanyBranch::factory()->create(['code' => 'QB-01', 'name' => 'Query Hub', 'is_active' => true]);
@@ -223,7 +238,7 @@ class PortalQueryBudgetTest extends TestCase
         };
         $this->rankLeaders(2);
         $bikeProgress();
-        $pages = ['/ranks' => 'data.ranks', '/area-dealers' => 'data.assignments', '/settlements' => 'data.settlement_state.qualified_rank_leaders'];
+        $pages = ['/ranks' => 'data.ranks', '/treasury/funds/car_bike?view=bike' => 'table.rows', '/area-dealers' => 'data.assignments', '/settlements' => 'data.settlement_state.qualified_rank_leaders'];
         $before = [];
         foreach (array_keys($pages) as $path) {
             [$response, $before[$path]] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get($path));
@@ -282,6 +297,27 @@ class PortalQueryBudgetTest extends TestCase
         $this->assertCount(count($queries), $moreQueries, 'Stock movement queries must not grow with the number of movements.');
     }
 
+    public function test_support_desk_totals_and_replies_do_not_grow_with_tickets(): void
+    {
+        $owner = User::factory()->staff()->create();
+        $dealer = User::factory()->dealer()->create(['status' => 'active']);
+        $this->supportTickets($dealer, 2);
+        $visit = fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/support-admin');
+        $visit()->assertOk();
+
+        [$response, $queries] = $this->measure($visit);
+        $response->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.support_admin.table.totals.count', 2)
+            ->where('data.support_admin.counts.pending', 2));
+        $this->assertSame(1, $this->matching($queries, 'money_table_count'), 'The row count comes from one query.');
+        $this->assertSame(1, $this->matching($queries, 'group by "status"'), 'The state cards come from one query.');
+        $this->assertSame(1, $this->matching($queries, 'from "support_ticket_replies" inner join'), 'Replies for the whole page come from one query.');
+
+        $this->supportTickets($dealer, 20);
+        [, $moreQueries] = $this->measure($visit);
+        $this->assertCount(count($queries), $moreQueries, 'Support desk queries must not grow with the number of tickets.');
+    }
+
     public function test_branch_performance_reads_every_order_without_a_query_per_order(): void
     {
         $owner = User::factory()->staff()->create();
@@ -301,6 +337,137 @@ class PortalQueryBudgetTest extends TestCase
         }
         [, $moreQueries] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/branch-performance?period=month&all_branches=1'));
         $this->assertCount(count($queries), $moreQueries, 'Branch performance queries must not grow with the number of orders.');
+    }
+
+    public function test_website_lists_do_not_read_a_query_per_row(): void
+    {
+        $owner = User::factory()->staff()->create();
+        SiteFeedback::factory()->count(2)->create(['status' => 'pending', 'source' => 'public', 'product_id' => null]);
+        DB::table('enquiries')->insert($this->enquiryRows(2));
+        $this->actingAs($owner)->onPortal('sadmin')->get('/feedback')->assertOk();
+        $this->actingAs($owner)->onPortal('sadmin')->get('/enquiries')->assertOk();
+
+        [$feedbackResponse, $feedbackQueries] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/feedback'));
+        [$enquiryResponse, $enquiryQueries] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/enquiries'));
+        $feedbackResponse->assertOk()->assertInertia(fn (Assert $page) => $page->where('data.feedback_table.totals.count', 2));
+        $enquiryResponse->assertOk()->assertInertia(fn (Assert $page) => $page->where('data.enquiries_table.totals.count', 2));
+
+        SiteFeedback::factory()->count(8)->create(['status' => 'approved', 'source' => 'public', 'product_id' => null]);
+        DB::table('enquiries')->insert($this->enquiryRows(8));
+        [, $moreFeedbackQueries] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/feedback'));
+        [, $moreEnquiryQueries] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/enquiries'));
+
+        $this->assertCount(count($feedbackQueries), $moreFeedbackQueries, 'Feedback list queries must not grow with the number of rows.');
+        $this->assertCount(count($enquiryQueries), $moreEnquiryQueries, 'Enquiry list queries must not grow with the number of rows.');
+    }
+
+    public function test_office_order_list_reads_its_totals_in_one_pass_and_does_not_grow_with_rows(): void
+    {
+        $owner = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $dealer = User::factory()->dealer()->create();
+        $product = Product::factory()->create();
+        foreach (range(1, 3) as $index) {
+            $this->line($this->order($dealer, 'delivered', total: '50.00', paid: '50.00'), $product, quantity: 1, dispatched: 1);
+        }
+        $this->actingAs($owner)->onPortal('sadmin')->get('/orders')->assertOk();
+
+        [$response, $queries] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/orders'));
+        $response->assertOk()->assertInertia(fn (Assert $page) => $page->where('data.orders_table.totals.count', 3)->where('data.orders_table.totals.sums.value', '150.00'));
+        $this->assertSame(1, $this->matching($queries, 'as to_pay'), 'The totals row should come from one pass over the filtered orders.');
+
+        foreach (range(1, 20) as $index) {
+            $this->line($this->order($dealer, 'delivered', total: '20.00'), $product, quantity: 1, dispatched: 1);
+        }
+        [, $moreQueries] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/orders'));
+        $this->assertCount(count($queries), $moreQueries, 'Office order list queries must not grow with the number of orders.');
+    }
+
+    public function test_office_deliveries_parcel_view_reads_stages_once_and_does_not_grow_with_parcels(): void
+    {
+        $owner = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $dealer = User::factory()->dealer()->create();
+        $this->actingAs($owner)->onPortal('sadmin')->get('/deliveries?view=parcels')->assertOk();
+        $addParcels = function (int $count) use ($dealer, $owner): void {
+            foreach (range(1, $count) as $index) {
+                DB::table('shipments')->insert([
+                    'order_id' => $this->order($dealer, 'dispatched', total: '20.00')->id, 'courier' => 'Steadfast', 'courier_provider' => 'steadfast', 'tracking' => 'ST-'.Str::random(6), 'lines' => '[]',
+                    'actor_id' => $owner->id, 'status' => 'dispatched', 'idempotency_key' => (string) Str::uuid(), 'payload_hash' => str_repeat('a', 64), 'created_at' => now(), 'updated_at' => now(),
+                ]);
+            }
+        };
+        $addParcels(2);
+
+        [$response, $queries] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/deliveries?view=parcels'));
+        $response->assertOk()->assertInertia(fn (Assert $page) => $page->where('data.parcel_stages.with_courier', 2)->where('data.parcels_table.totals.count', 2));
+        $this->assertSame(1, $this->matching($queries, 'as with_courier'), 'Parcel stages should come from one query.');
+        $this->assertSame(1, $this->matching($queries, 'money_table_count'), 'The parcel table should count its rows in one query.');
+
+        $addParcels(12);
+        [, $moreQueries] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/deliveries?view=parcels'));
+        $this->assertCount(count($queries), $moreQueries, 'Parcel view queries must not grow with the number of parcels.');
+    }
+
+    public function test_branch_order_list_counts_and_sums_its_orders_in_one_query(): void
+    {
+        $owner = User::factory()->staff()->create();
+        $dealer = User::factory()->dealer()->create(['name' => 'Rahim Uddin']);
+        $product = Product::factory()->create(['active' => true, 'cost_price' => '30.00']);
+        foreach (range(1, 3) as $index) {
+            $this->line($this->order($dealer, 'delivered', total: '50.00'), $product, quantity: 1, dispatched: 1);
+        }
+        $visit = fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/branch-performance?period=month&all_branches=1&tab=orders&q=rahim');
+        $visit()->assertOk();
+
+        [$response, $queries] = $this->measure($visit);
+        $response->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.performance.orders_table.totals.count', 3)
+            ->where('data.performance.orders_table.totals.sums.delivered_value', '150.00'));
+        $this->assertSame(1, $this->matching($queries, 'money_table_count'), 'The count and the money totals come from one query.');
+        $this->assertSame(0, $this->matching($queries, 'select count(*) as "aggregate" from "orders"'), 'The order list must not count its orders a second time.');
+
+        foreach (range(1, 30) as $index) {
+            $this->line($this->order($dealer, 'delivered', total: '20.00'), $product, quantity: 1, dispatched: 1);
+        }
+        [, $moreQueries] = $this->measure($visit);
+        $this->assertCount(count($queries), $moreQueries, 'The order list queries must not grow with the number of orders.');
+    }
+
+    public function test_partner_scorecard_counts_once_and_does_not_grow_with_partners(): void
+    {
+        $owner = User::factory()->staff()->create();
+        $this->order(User::factory()->dealer()->create(), 'cancelled', total: '10.00');
+        $visit = fn () => $this->actingAs($owner)->onPortal('sadmin')->withSession([BranchOperations::SessionView => 'all'])->get('/partner-scorecard');
+        $visit()->assertOk();
+
+        [$response, $queries] = $this->measure($visit);
+        $response->assertOk()->assertInertia(fn (Assert $page) => $page->where('data.partner_scorecard.partners.totals.count', 1));
+        $this->assertSame(1, $this->matching($queries, 'money_table_count'), 'The partner count comes from one query.');
+        $this->assertSame(0, $this->matching($queries, 'as "aggregate" from "users"'), 'The list must not count the partners a second time.');
+
+        foreach (User::factory()->dealer()->count(30)->create() as $partner) {
+            $this->order($partner, 'cancelled', total: '10.00');
+        }
+        [, $moreQueries] = $this->measure($visit);
+        $this->assertCount(count($queries), $moreQueries, 'Scorecard queries must not grow with the number of partners.');
+    }
+
+    public function test_top_sellers_reads_delivered_totals_in_one_query(): void
+    {
+        $owner = User::factory()->staff()->create();
+        $this->order(User::factory()->dealer()->create(['status' => 'active']), 'delivered', total: '100.00');
+        $visit = fn () => $this->actingAs($owner)->onPortal('sadmin')->withSession([BranchOperations::SessionView => 'all'])->get('/top-sellers');
+        $visit()->assertOk();
+
+        [$response, $queries] = $this->measure($visit);
+        $response->assertOk()->assertInertia(fn (Assert $page) => $page->where('data.top_sellers.national.0.amount', '100.00'));
+        $this->assertSame(1, $this->matching($queries, 'rank() over'), 'The whole board comes from one grouped query.');
+
+        foreach (User::factory()->dealer()->count(15)->create(['status' => 'active']) as $partner) {
+            $this->order($partner, 'delivered', total: '50.00');
+            $this->order($partner, 'approved', total: '500.00');
+        }
+        [, $moreQueries] = $this->measure($visit);
+        $this->assertCount(count($queries), $moreQueries, 'Top sellers queries must not grow with dealers or orders.');
     }
 
     public function test_dashboard_filter_columns_are_indexed(): void
@@ -358,6 +525,22 @@ class PortalQueryBudgetTest extends TestCase
         return collect($queries)->filter(fn (array $query): bool => str_contains(strtolower($query['query']), strtolower($needle)))->count();
     }
 
+    /**
+     * @return list<array{name: string, phone: string, topic: string, message: string, status: string, created_at: mixed, updated_at: mixed}>
+     */
+    private function enquiryRows(int $count): array
+    {
+        return array_map(fn (int $number): array => [
+            'name' => 'Visitor '.$number,
+            'phone' => '0170000'.str_pad((string) $number, 4, '0', STR_PAD_LEFT),
+            'topic' => 'general',
+            'message' => 'A question number '.$number,
+            'status' => 'new',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], range(1, $count));
+    }
+
     private function order(User $buyer, string $status, string $total, string $paid = '0.00', string $dueCredit = '0.00'): Order
     {
         return Order::create([
@@ -387,6 +570,15 @@ class PortalQueryBudgetTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+    }
+
+    private function supportTickets(User $partner, int $count): void
+    {
+        foreach (range(1, $count) as $index) {
+            $ticketId = (string) Str::uuid();
+            DB::table('support_tickets')->insert(['id' => $ticketId, 'user_id' => $partner->id, 'category' => 'technical', 'subject' => 'Ticket '.$index, 'body' => 'Body', 'status' => 'pending', 'created_at' => now(), 'updated_at' => now()]);
+            DB::table('support_ticket_replies')->insert(['support_ticket_id' => $ticketId, 'user_id' => $partner->id, 'body' => 'Reply', 'is_staff' => false, 'created_at' => now(), 'updated_at' => now()]);
+        }
     }
 
     private function stockMovements(User $actor, Product $product, int $count): void

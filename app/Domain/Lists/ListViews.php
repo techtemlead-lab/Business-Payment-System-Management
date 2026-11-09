@@ -19,9 +19,9 @@ final class ListViews
 
     public const MaxSavedPerList = 20;
 
-    private const OrderFilters = ['q', 'status', 'period', 'from', 'to', 'buyer_role'];
+    private const OrderFilters = ['q', 'status', 'period', 'from', 'to', 'buyer_role', 'sort', 'dir'];
 
-    private const PartnerFilters = ['q', 'status', 'division', 'district', 'rank', 'no_order_days'];
+    private const PartnerFilters = ['q', 'status', 'division', 'district', 'rank', 'no_order_days', 'sort', 'dir'];
 
     public static function assertMayUse(User $user, string $list): void
     {

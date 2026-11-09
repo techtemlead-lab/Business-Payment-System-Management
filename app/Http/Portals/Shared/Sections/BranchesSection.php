@@ -118,7 +118,7 @@ final class BranchesSection implements WorkspaceSection
             'to' => $request->query('to'),
             'branch_id' => $request->query('branch_id'),
             'follow_workspace_branch' => ! $opensOnAllBranches,
-        ]);
+        ], request: $request);
         $branchOptions = $performance['branch_options'];
         unset($performance['branch_options']);
 

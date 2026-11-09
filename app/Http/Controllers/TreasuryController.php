@@ -7,6 +7,7 @@ use App\Domain\Finance\EventLog;
 use App\Domain\Finance\OrderMoneyReport;
 use App\Domain\Finance\PartnerMoneyList;
 use App\Domain\Finance\ReportData;
+use App\Domain\Finance\RewardLeaderList;
 use App\Domain\Finance\TreasuryAccess;
 use App\Domain\Finance\TreasuryFunds;
 use App\Domain\Finance\TreasuryWork;
@@ -36,17 +37,23 @@ class TreasuryController extends Controller
         return Inertia::render('TreasuryFunds', [...$this->shared($request), 'cards' => $funds->cards($this->showsOwnerFunds($request)), 'partner_totals' => $funds->partnerTotals()]);
     }
 
-    public function fund(Request $request, string $fund, TreasuryFunds $funds): Response
+    public function fund(Request $request, string $fund, TreasuryFunds $funds, RewardLeaderList $leaders): Response
     {
         abort_unless(TreasuryAccess::mayOpenFunds($request->user()), 403);
         $card = $funds->card($fund, $this->showsOwnerFunds($request));
-        $view = $request->query('view') === 'out' ? 'out' : 'in';
+        $leaderFigures = $fund === RewardLeaderList::Fund ? $leaders->summary() : null;
+        $view = $this->fundView($request, $leaderFigures !== null);
 
         return Inertia::render('TreasuryFund', [
             ...$this->shared($request),
             'card' => $card,
             'view' => $view,
-            'table' => $view === 'out' ? $funds->moneyOut($request, $fund) : $funds->moneyIn($request, $fund),
+            'table' => match ($view) {
+                'in' => $funds->moneyIn($request, $fund),
+                'out' => $funds->moneyOut($request, $fund),
+                default => $leaders->table($request, $view, $leaderFigures['targets'][$view]),
+            },
+            'leaders' => $leaderFigures,
             'spend' => $card['spendable'] ? [
                 'heads' => DB::table('fund_expense_heads')->where('is_active', true)->orderBy('name_en')->get(['id', 'name_en', 'name_bn', 'for_tours']),
                 'methods' => PayoutReceipts::Methods,
@@ -105,6 +112,14 @@ class TreasuryController extends Controller
         abort_unless(TreasuryAccess::mayOpenFunds($request->user()), 403);
 
         return Inertia::render('TreasuryWork', [...$this->shared($request), ...$this->work->for($request->user(), $this->portal($request), $request)]);
+    }
+
+    /** The view asked for in the address, when this fund has it; otherwise the money that came in. */
+    private function fundView(Request $request, bool $hasLeaders): string
+    {
+        $asked = $request->query('view');
+
+        return is_string($asked) && in_array($asked, ['out', ...($hasLeaders ? RewardLeaderList::Awards : [])], true) ? $asked : 'in';
     }
 
     /** @return array{section: string, tabs: array{waiting: int}} */

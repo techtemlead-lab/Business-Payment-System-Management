@@ -42,7 +42,7 @@ class ProductDeletionTest extends TestCase
 
         $response = $this->deleteProduct($owner, $unusedProduct);
 
-        $response->assertRedirect('/catalog')->assertSessionHas('success', __('portal.flash_product_deleted'));
+        $response->assertRedirect('/catalog')->assertSessionHas('success', __('office_stock.flash_deleted', ['name' => $unusedProduct->name]));
         $this->assertModelMissing($unusedProduct);
         $this->assertModelExists($countedProduct);
         $this->assertDatabaseHas('audit_events', ['action' => 'product.deleted', 'subject' => (string) $unusedProduct->id]);
@@ -124,7 +124,7 @@ class ProductDeletionTest extends TestCase
 
     private function assertArchived(TestResponse $response, Product $product): void
     {
-        $response->assertRedirect('/catalog')->assertSessionHas('success', __('portal.flash_product_archived'));
+        $response->assertRedirect('/catalog?product_state=archived')->assertSessionHas('success', fn (string $message): bool => str_contains($message, $product->name));
         $this->assertDatabaseHas('products', ['id' => $product->id, 'active' => false, 'featured' => false, 'registry_version' => 1]);
         $this->assertDatabaseHas('audit_events', ['action' => 'product.archived', 'subject' => (string) $product->id]);
     }

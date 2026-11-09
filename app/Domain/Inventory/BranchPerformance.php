@@ -7,15 +7,22 @@ use App\Domain\Orders\OrderListFilter;
 use App\Models\CompanyBranch;
 use App\Models\User;
 use App\Support\Money;
+use App\Support\MoneyTable;
+use App\Support\MoneyTableSpec;
 use Carbon\CarbonImmutable;
 use Generator;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 final class BranchPerformance
 {
+    /** The address keys of the report's own period; the order list never reads them. */
+    private const PeriodKeys = ['period', 'from', 'to'];
+
     /**
      * @return array{period:string,from:string,to:string,label:string,timezone:string,from_utc:CarbonImmutable,to_utc_exclusive:CarbonImmutable}
      */
@@ -60,24 +67,27 @@ final class BranchPerformance
      * The report covers every confirmed order in the period ({@see OrderListFilter::Confirmed}).
      * Order value, income, cost and profit count delivered goods only ({@see DeliveredMoney}),
      * and the sums are done in SQL, so they stay right however many orders there are. The order
-     * list below them is paged on the server, 25 orders at a time.
+     * list below them goes through the shared money table, 25 orders at a time, so its search,
+     * column sort and totals cover every order in the period.
      *
      * Staff who may not view every branch see only the branches they are assigned to
      * ({@see BranchOperations::visibleBranches()}); asking for any other branch is refused.
      *
      * @param  array{period?:string|null,from?:string|null,to?:string|null,branch_id?:int|string|null,follow_workspace_branch?:bool}  $filters
+     * @param  Request|null  $request  Carries the order list's search, sort and page; the current request when left out.
      * @return array{
      *   period: array{period:string,from:string,to:string,label:string,timezone:string},
      *   totals: array<string, mixed>,
      *   branches: list<array<string, mixed>>,
      *   unassigned: array<string, mixed>,
      *   orders: LengthAwarePaginator<int, array<string, mixed>>,
+     *   orders_table: array<string, mixed>,
      *   selected_branch_id: int|null,
      *   can_view_all_branches: bool,
      *   branch_options: list<array<string, mixed>>
      * }
      */
-    public function summary(User $actor, array $filters = [], int $perPage = 25): array
+    public function summary(User $actor, array $filters = [], int $perPage = 25, ?Request $request = null): array
     {
         ['period' => $period, 'branch_id' => $branchFilter, 'branches' => $branches, 'can_view_all_branches' => $canViewAllBranches] = $this->reportScope($actor, $filters);
         $confirmedOrders = $this->confirmedOrders($period, $branchFilter, $branches, $canViewAllBranches);
@@ -134,11 +144,7 @@ final class BranchPerformance
             $totals['cost_cents'] += $row['cost_cents'];
         }
 
-        // The branch figures already counted the orders, so the page needs no count query of its own.
-        $orders = $this->listedOrders($confirmedOrders)
-            ->paginate($perPage, ['*'], 'page', null, (int) $totals['order_count'])
-            ->withQueryString();
-        $orders->setCollection($orders->getCollection()->map(fn (object $order): array => $this->orderRow($order, $branches, $period['timezone'])));
+        $orderTable = $this->orderTable($request ?? request(), $confirmedOrders, $branches, $period['timezone'], $perPage);
 
         return [
             'period' => [
@@ -151,7 +157,8 @@ final class BranchPerformance
             'totals' => $this->finalizeMetrics($totals),
             'branches' => $branchSummaries,
             'unassigned' => $this->finalizeMetrics($unassigned),
-            'orders' => $orders,
+            'orders' => $orderTable['rows'],
+            'orders_table' => Arr::except($orderTable, 'rows'),
             'selected_branch_id' => $branchFilter,
             'can_view_all_branches' => $canViewAllBranches,
             'branch_options' => $branches->values()->map(fn (CompanyBranch $branch) => $branch->summary())->all(),
@@ -230,6 +237,44 @@ final class BranchPerformance
                 ),
             )
             ->leftJoinLateral($this->orderCostQuery(), 'lc');
+    }
+
+    /**
+     * One page of the order list with its search and column sort, and the totals of every order
+     * it found. The orders are already cut to the report's period, so the table is not told the period.
+     *
+     * @param  Collection<int, CompanyBranch>  $branches
+     * @return array<string, mixed> MoneyTable payload
+     */
+    private function orderTable(Request $request, Builder $confirmedOrders, Collection $branches, string $timezone, int $perPage): array
+    {
+        $deliveredValue = DeliveredMoney::valueSql('o');
+        $deliveredPaid = DeliveredMoney::paidSql('o');
+        $estimatedProfit = 'COALESCE(lc.estimated_profit, 0)';
+
+        $table = MoneyTable::make($request->duplicate(Arr::except($request->query(), self::PeriodKeys)), $this->listedOrders($confirmedOrders), new MoneyTableSpec(
+            dateColumn: null,
+            search: ['o.number', 'u.name', 'u.dealer_code'],
+            filters: [],
+            sorts: [
+                'date' => 'o.created_at',
+                'number' => 'o.number',
+                'status' => 'o.status',
+                'delivered_value' => $deliveredValue,
+                'delivered_paid' => $deliveredPaid,
+                'estimated_profit' => $estimatedProfit,
+            ],
+            defaultSort: 'date',
+            tieBreaker: 'o.id',
+            sums: ['delivered_value' => $deliveredValue, 'delivered_paid' => $deliveredPaid, 'estimated_profit' => $estimatedProfit],
+            defaultPeriod: null,
+            perPage: $perPage,
+        ));
+        $table['rows'] = $table['rows']
+            ->appends(Arr::only($request->query(), self::PeriodKeys))
+            ->through(fn (object $order): array => $this->orderRow($order, $branches, $timezone));
+
+        return $table;
     }
 
     /**

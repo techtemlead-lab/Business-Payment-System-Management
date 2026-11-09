@@ -1,12 +1,9 @@
 import React, { useState } from 'react';
 import { router, useForm, Link } from '@inertiajs/react';
-import {
-    SlidersHorizontal, ShieldCheck, Users, Store, Building2,
-    AlertTriangle, Bell, CheckCircle2, RotateCcw, Save, Sparkles,
-    Laptop, Eye, EyeOff, Lock, Unlock, ArrowRight, UserCheck,
-    Layers, ToggleLeft, ToggleRight, Radio, ExternalLink
-} from 'lucide-react';
-import { Badge, type Row, number } from './UI';
+import { RotateCcw, UserCheck } from 'lucide-react';
+import { Badge, number, type Row } from './UI';
+import OfficePage from './office/OfficePage';
+import { settingsBack } from './office/sections/SettingsForm';
 import { useT } from '../shared/i18n/t';
 
 export interface DashboardManagementHubProps {
@@ -24,22 +21,11 @@ export interface DashboardManagementHubProps {
     recent_employees?: Row[];
 }
 
+type TabKey = 'dealers' | 'subdealers' | 'employees' | 'company';
+
 export default function DashboardManagementHub({ settings, defaults, stats, recent_employees = [] }: DashboardManagementHubProps) {
     const translate = useT();
-    const [activeTab, setActiveTab] = useState<'dealers' | 'subdealers' | 'employees' | 'company'>('dealers');
-    /** The four cards at the top are the only way to switch: they work with a tap or the keyboard. */
-    const cardControl = (tab: 'dealers' | 'subdealers' | 'employees' | 'company') => ({
-        role: 'button' as const,
-        tabIndex: 0,
-        'aria-pressed': activeTab === tab,
-        onClick: () => setActiveTab(tab),
-        onKeyDown: (event: React.KeyboardEvent) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                setActiveTab(tab);
-            }
-        },
-    });
+    const [activeTab, setActiveTab] = useState<TabKey>('dealers');
 
     const form = useForm({
         settings: {
@@ -67,580 +53,184 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
     };
 
     const handleReset = () => {
-        if (confirm(translate('portal','dash_mgmt_reset_confirm'))) {
+        if (confirm(translate('portal', 'dash_mgmt_reset_confirm'))) {
             router.post('/commands/dashboards/reset');
         }
     };
 
+    const tabs: { key: TabKey; label: string; count: string; locked: boolean }[] = [
+        { key: 'dealers', label: translate('office_settings', 'dash_tab_dealers'), count: `${stats.active_dealers}/${stats.dealers_count}`, locked: Boolean(form.data.settings.dealer_maintenance_mode) },
+        { key: 'subdealers', label: translate('office_settings', 'dash_tab_subdealers'), count: `${stats.active_sub_dealers}/${stats.sub_dealers_count}`, locked: Boolean(form.data.settings.subdealer_maintenance_mode) },
+        { key: 'employees', label: translate('office_settings', 'dash_tab_employees'), count: `${stats.active_employees}/${stats.employees_count}`, locked: false },
+        { key: 'company', label: translate('office_settings', 'dash_tab_company'), count: '', locked: false },
+    ];
+
+    const toggles = (items: { key: string; label: string; desc: string }[]) => (
+        <div className="set-toggles">
+            {items.map((toggle) => (
+                <label key={toggle.key} className="set-toggle">
+                    <input type="checkbox" role="switch" checked={Boolean(form.data.settings[toggle.key])} onChange={() => toggleBool(toggle.key)} />
+                    <span><b>{toggle.label}</b><small>{toggle.desc}</small></span>
+                </label>
+            ))}
+        </div>
+    );
+
+    const announcement = (fieldKey: string, label: string, placeholder: string, typeKey?: string) => (
+        <>
+            <label>
+                {label}
+                <textarea
+                    rows={3}
+                    value={form.data.settings[fieldKey] || ''}
+                    placeholder={placeholder}
+                    onChange={(event) => updateField(fieldKey, event.target.value)}
+                />
+            </label>
+            {typeKey && (
+                <div className="set-radios">
+                    <span>{translate('portal', 'dash_mgmt_banner_style')}</span>
+                    {['info', 'success', 'warning'].map((tone) => (
+                        <label key={tone}>
+                            <input type="radio" name={typeKey} checked={form.data.settings[typeKey] === tone} onChange={() => updateField(typeKey, tone)} />
+                            {translate('portal', `dash_mgmt_banner_style_${tone}`)}
+                        </label>
+                    ))}
+                </div>
+            )}
+        </>
+    );
+
+    const lockSwitch = (fieldKey: string, onLabel: string, offLabel: string, onHint?: string, offHint?: string) => {
+        const locked = Boolean(form.data.settings[fieldKey]);
+        return (
+            <label className="aa-switch">
+                <input type="checkbox" role="switch" checked={locked} onChange={() => toggleBool(fieldKey)} />
+                <span><b>{locked ? onLabel : offLabel}</b>{(locked ? onHint : offHint) && <small>{locked ? onHint : offHint}</small>}</span>
+            </label>
+        );
+    };
+
     return (
-        <div className="dashboard-management-hub">
-            {/* Top Heading Banner */}
-            <div className="panel dmh-banner">
-                <div className="ops-row is-between is-top is-wrap is-wide">
-                    <div>
-                        <div className="dmh-eyebrow tone-info">
-                            <SlidersHorizontal size={16} />
-                            {translate('portal','dash_mgmt_eyebrow')}
-                        </div>
-                        <h2 className="dmh-title">
-                            {translate('portal','dash_mgmt_title')}
-                        </h2>
-                        <p className="dmh-lead">
-                            {translate('portal','dash_mgmt_body')}
-                        </p>
-                    </div>
-
-                    <div className="ops-row is-wrap is-loose">
-                        <button
-                            type="button"
-                            className="button dmh-action"
-                            onClick={handleReset}
-                        >
-                            <RotateCcw size={15} />
-                            {translate('portal','dash_mgmt_restore')}
-                        </button>
-                        <button
-                            type="button"
-                            className="button dark dmh-action"
-                            onClick={submitSave}
-                            disabled={form.processing}
-                        >
-                            <Save size={15} />
-                            {form.processing ? translate('portal','dash_mgmt_saving') : translate('portal','dash_mgmt_save')}
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {/* 4 Dashboard Overview Cards */}
-            <div className="hub-grid ops-mb-6">
-                {/* 1. Dealer Dashboard */}
-                <div
-                    {...cardControl('dealers')}
-                    className={`ops-card dmh-card tone-info${activeTab === 'dealers' ? ' is-active' : ''}`}
-                >
-                    <div className="dmh-card-head">
-                        <span className="dmh-card-label">
-                            <span aria-hidden="true">🤝</span> {translate('portal','dash_mgmt_card_dealer')}
-                        </span>
-                        {form.data.settings.dealer_maintenance_mode ? (
-                            <span className="dmh-flag tone-danger">
-                                {translate('portal','dash_mgmt_badge_locked')}
-                            </span>
-                        ) : (
-                            <span className="dmh-flag tone-ok">
-                                {translate('portal','dash_mgmt_badge_active')}
-                            </span>
-                        )}
-                    </div>
-                    <div className="ops-figure">
-                        {stats.active_dealers} <small>{translate('portal','dash_mgmt_dealers_of',{total:String(stats.dealers_count)})}</small>
-                    </div>
-                    <p className="ops-meta">
-                        {translate('portal','dash_mgmt_card_dealer_hint')}
-                    </p>
-                </div>
-
-                {/* 2. Sub-Dealer Dashboard */}
-                <div
-                    {...cardControl('subdealers')}
-                    className={`ops-card dmh-card tone-ok${activeTab === 'subdealers' ? ' is-active' : ''}`}
-                >
-                    <div className="dmh-card-head">
-                        <span className="dmh-card-label">
-                            <span aria-hidden="true">🏬</span> {translate('portal','dash_mgmt_card_subdealer')}
-                        </span>
-                        {form.data.settings.subdealer_maintenance_mode ? (
-                            <span className="dmh-flag tone-danger">
-                                {translate('portal','dash_mgmt_badge_locked')}
-                            </span>
-                        ) : (
-                            <span className="dmh-flag tone-ok">
-                                {translate('portal','dash_mgmt_badge_active')}
-                            </span>
-                        )}
-                    </div>
-                    <div className="ops-figure">
-                        {stats.active_sub_dealers} <small>{translate('portal','dash_mgmt_subdealers_of',{total:String(stats.sub_dealers_count)})}</small>
-                    </div>
-                    <p className="ops-meta">
-                        {translate('portal','dash_mgmt_card_subdealer_hint')}
-                    </p>
-                </div>
-
-                {/* 3. Employee Dashboard */}
-                <div
-                    {...cardControl('employees')}
-                    className={`ops-card dmh-card tone-teal${activeTab === 'employees' ? ' is-active' : ''}`}
-                >
-                    <div className="dmh-card-head">
-                        <span className="dmh-card-label">
-                            <span aria-hidden="true">👥</span> {translate('portal','dash_mgmt_card_employee')}
-                        </span>
-                        <span className="dmh-flag tone-teal">
-                            {translate('portal','dash_mgmt_badge_permitted')}
-                        </span>
-                    </div>
-                    <div className="ops-figure">
-                        {stats.active_employees} <small>{translate('portal','dash_mgmt_employees_of',{total:String(stats.employees_count)})}</small>
-                    </div>
-                    <p className="ops-meta">
-                        {translate('portal','dash_mgmt_card_employee_hint')}
-                    </p>
-                </div>
-
-                {/* 4. Company & Super Dashboard */}
-                <div
-                    {...cardControl('company')}
-                    className={`ops-card dmh-card tone-neutral${activeTab === 'company' ? ' is-active' : ''}`}
-                >
-                    <div className="dmh-card-head">
-                        <span className="dmh-card-label">
-                            <span aria-hidden="true">🏢</span> {translate('portal','dash_mgmt_card_company')}
-                        </span>
-                        <span className="dmh-flag tone-neutral">
-                            {translate('portal','dash_mgmt_badge_root')}
-                        </span>
-                    </div>
-                    <div className="ops-figure">
-                        {number(stats.super_admins_count)} <small>{translate('portal','dash_mgmt_super_admins')}</small>
-                    </div>
-                    <p className="ops-meta">
-                        {translate('portal','dash_mgmt_card_company_hint')}
-                    </p>
-                </div>
-            </div>
-
-            {/* TAB CONTENT */}
-            <form onSubmit={submitSave} className="action-form">
-                {/* 1. DEALER DASHBOARD TAB */}
-                {activeTab === 'dealers' && (
-                    <div className="ops-stack is-loose">
-                        {/* Feature Toggles Card */}
-                        <section className="panel">
-                            <div className="panel-heading">
-                                <div>
-                                    <h3 className="hub-title">
-                                        {translate('portal','dash_mgmt_dealer_switches_title')}
-                                    </h3>
-                                    <p className="hub-sub">
-                                        {translate('portal','dash_mgmt_dealer_switches_hint')}
-                                    </p>
-                                </div>
-                                <Layers size={20} className="text-muted" />
-                            </div>
-
-                            <div className="dmh-toggles tone-info">
-                                {[
-                                    { key: 'dealer_network_tree_enabled', label: translate('portal','dash_mgmt_toggle_network'), desc: translate('portal','dash_mgmt_toggle_network_desc') },
-                                    { key: 'dealer_ranks_enabled', label: translate('portal','dash_mgmt_toggle_ranks'), desc: translate('portal','dash_mgmt_toggle_ranks_desc') },
-                                    { key: 'dealer_rewards_enabled', label: translate('portal','dash_mgmt_toggle_rewards'), desc: translate('portal','dash_mgmt_toggle_rewards_desc') },
-                                    { key: 'dealer_orders_enabled', label: translate('portal','dash_mgmt_toggle_orders'), desc: translate('portal','dash_mgmt_toggle_orders_desc') },
-                                    { key: 'dealer_claims_enabled', label: translate('portal','dash_mgmt_toggle_claims'), desc: translate('portal','dash_mgmt_toggle_claims_desc') },
-                                    { key: 'dealer_catalog_enabled', label: translate('portal','dash_mgmt_toggle_catalog'), desc: translate('portal','dash_mgmt_toggle_catalog_desc') },
-                                ].map(toggle => {
-                                    const active = Boolean(form.data.settings[toggle.key]);
-                                    return (
-                                        <div
-                                            key={toggle.key}
-                                            onClick={() => toggleBool(toggle.key)}
-                                            className={`dmh-toggle${active ? ' is-on' : ''}`}
-                                        >
-                                            <div>
-                                                <b>{toggle.label}</b>
-                                                <small>{toggle.desc}</small>
-                                            </div>
-                                            <span className="dmh-toggle-dot">
-                                                {active ? '●' : '○'}
-                                            </span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </section>
-
-                        {/* Monthly top-sellers board (dealers and sub-dealers) */}
-                        <section className="panel">
-                            <div className="panel-heading">
-                                <div>
-                                    <h3 className="hub-title">
-                                        {translate('portal','dash_mgmt_top_sellers_title')}
-                                    </h3>
-                                    <p className="hub-sub">
-                                        {translate('portal','dash_mgmt_top_sellers_hint')}
-                                    </p>
-                                </div>
-                                <Sparkles size={20} className="text-muted" />
-                            </div>
-
-                            <div className="dmh-toggles tone-info">
-                                {[
-                                    { key: 'top_sellers_enabled', label: translate('portal','dash_mgmt_toggle_top_sellers'), desc: translate('portal','dash_mgmt_toggle_top_sellers_desc') },
-                                    { key: 'top_sellers_show_amounts', label: translate('portal','dash_mgmt_toggle_top_sellers_amounts'), desc: translate('portal','dash_mgmt_toggle_top_sellers_amounts_desc') },
-                                ].map(toggle => {
-                                    const active = Boolean(form.data.settings[toggle.key]);
-                                    return (
-                                        <div
-                                            key={toggle.key}
-                                            onClick={() => toggleBool(toggle.key)}
-                                            className={`dmh-toggle${active ? ' is-on' : ''}`}
-                                        >
-                                            <div>
-                                                <b>{toggle.label}</b>
-                                                <small>{toggle.desc}</small>
-                                            </div>
-                                            <span className="dmh-toggle-dot">
-                                                {active ? '●' : '○'}
-                                            </span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </section>
-
-                        {/* Broadcast Announcement to Dealers */}
-                        <section className="panel">
-                            <div className="panel-heading">
-                                <div>
-                                    <h3 className="hub-title">
-                                        {translate('portal','dash_mgmt_dealer_announce_title')}
-                                    </h3>
-                                    <p className="hub-sub">
-                                        {translate('portal','dash_mgmt_dealer_announce_hint')}
-                                    </p>
-                                </div>
-                                <Bell size={20} className="tone-info" />
-                            </div>
-
-                            <div className="ops-mt-3">
-                                <label className="ops-block ops-mb-3">
-                                    {translate('portal','dash_mgmt_announce_label')}
-                                    <textarea
-                                        rows={3}
-                                        value={form.data.settings.dealer_announcement || ''}
-                                        placeholder={translate('portal','dash_mgmt_announce_placeholder_dealer')}
-                                        onChange={e => updateField('dealer_announcement', e.target.value)}
-                                        className="ops-full ops-mt-1"
-                                    />
-                                </label>
-
-                                <div className="ops-row is-wrap is-wide">
-                                    <span className="ops-fs-xs ops-semibold ops-text-2">{translate('portal','dash_mgmt_banner_style')}</span>
-                                    {['info', 'success', 'warning'].map(t => (
-                                        <label key={t} className="dmh-radio">
-                                            <input
-                                                type="radio"
-                                                name="dealer_announcement_type"
-                                                checked={form.data.settings.dealer_announcement_type === t}
-                                                onChange={() => updateField('dealer_announcement_type', t)}
-                                            />
-                                            <span>{translate('portal', `dash_mgmt_banner_style_${t}`)}</span>
-                                        </label>
-                                    ))}
-                                </div>
-                            </div>
-                        </section>
-
-                        {/* Dealer Maintenance Mode */}
-                        <section className="panel dmh-lock">
-                            <div className="panel-heading">
-                                <div>
-                                    <h3 className="hub-title">
-                                        {translate('portal','dash_mgmt_dealer_lock_title')}
-                                    </h3>
-                                    <p className="hub-sub">
-                                        {translate('portal','dash_mgmt_dealer_lock_hint')}
-                                    </p>
-                                </div>
-                                <AlertTriangle size={20} className="tone-danger" />
-                            </div>
-
-                            <div className="ops-row is-loose ops-mt-3">
-                                <button
-                                    type="button"
-                                    onClick={() => toggleBool('dealer_maintenance_mode')}
-                                    className={`button dmh-lock-button ${form.data.settings.dealer_maintenance_mode ? 'dark is-on' : ''}`}
-                                >
-                                    {form.data.settings.dealer_maintenance_mode ? `🚨 ${translate('portal','dash_mgmt_lockout_on')}` : `✓ ${translate('portal','dash_mgmt_lockout_off')}`}
-                                </button>
-                                <span className="ops-caption">
-                                    {form.data.settings.dealer_maintenance_mode ? translate('portal','dash_mgmt_dealer_lock_on_hint') : translate('portal','dash_mgmt_dealer_lock_off_hint')}
-                                </span>
-                            </div>
-                        </section>
-                    </div>
-                )}
-
-                {/* 2. SUB-DEALER DASHBOARD TAB */}
-                {activeTab === 'subdealers' && (
-                    <div className="ops-stack is-loose">
-                        {/* Feature Toggles */}
-                        <section className="panel">
-                            <div className="panel-heading">
-                                <div>
-                                    <h3 className="hub-title">
-                                        {translate('portal','dash_mgmt_sub_switches_title')}
-                                    </h3>
-                                    <p className="hub-sub">
-                                        {translate('portal','dash_mgmt_sub_switches_hint')}
-                                    </p>
-                                </div>
-                                <Store size={20} className="text-muted" />
-                            </div>
-
-                            <div className="dmh-toggles tone-ok">
-                                {[
-                                    { key: 'subdealer_salary_enabled', label: translate('portal','dash_mgmt_toggle_sub_salary'), desc: translate('portal','dash_mgmt_toggle_sub_salary_desc') },
-                                    { key: 'subdealer_orders_enabled', label: translate('portal','dash_mgmt_toggle_sub_orders'), desc: translate('portal','dash_mgmt_toggle_sub_orders_desc') },
-                                    { key: 'subdealer_deliveries_enabled', label: translate('portal','dash_mgmt_toggle_sub_deliveries'), desc: translate('portal','dash_mgmt_toggle_sub_deliveries_desc') },
-                                    { key: 'subdealer_catalog_enabled', label: translate('portal','dash_mgmt_toggle_sub_catalog'), desc: translate('portal','dash_mgmt_toggle_sub_catalog_desc') },
-                                ].map(toggle => {
-                                    const active = Boolean(form.data.settings[toggle.key]);
-                                    return (
-                                        <div
-                                            key={toggle.key}
-                                            onClick={() => toggleBool(toggle.key)}
-                                            className={`dmh-toggle${active ? ' is-on' : ''}`}
-                                        >
-                                            <div>
-                                                <b>{toggle.label}</b>
-                                                <small>{toggle.desc}</small>
-                                            </div>
-                                            <span className="dmh-toggle-dot">
-                                                {active ? '●' : '○'}
-                                            </span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </section>
-
-                        {/* Broadcast Announcement to Sub-Dealers */}
-                        <section className="panel">
-                            <div className="panel-heading">
-                                <div>
-                                    <h3 className="hub-title">
-                                        {translate('portal','dash_mgmt_sub_announce_title')}
-                                    </h3>
-                                    <p className="hub-sub">
-                                        {translate('portal','dash_mgmt_sub_announce_hint')}
-                                    </p>
-                                </div>
-                                <Bell size={20} className="tone-ok" />
-                            </div>
-
-                            <div className="ops-mt-3">
-                                <label className="ops-block ops-mb-3">
-                                    {translate('portal','dash_mgmt_announce_label')}
-                                    <textarea
-                                        rows={3}
-                                        value={form.data.settings.subdealer_announcement || ''}
-                                        placeholder={translate('portal','dash_mgmt_announce_placeholder_sub')}
-                                        onChange={e => updateField('subdealer_announcement', e.target.value)}
-                                        className="ops-full ops-mt-1"
-                                    />
-                                </label>
-
-                                <div className="ops-row is-wrap is-wide">
-                                    <span className="ops-fs-xs ops-semibold ops-text-2">{translate('portal','dash_mgmt_banner_style')}</span>
-                                    {['info', 'success', 'warning'].map(t => (
-                                        <label key={t} className="dmh-radio">
-                                            <input
-                                                type="radio"
-                                                name="subdealer_announcement_type"
-                                                checked={form.data.settings.subdealer_announcement_type === t}
-                                                onChange={() => updateField('subdealer_announcement_type', t)}
-                                            />
-                                            <span>{translate('portal', `dash_mgmt_banner_style_${t}`)}</span>
-                                        </label>
-                                    ))}
-                                </div>
-                            </div>
-                        </section>
-
-                        {/* Sub-Dealer Maintenance Mode */}
-                        <section className="panel dmh-lock">
-                            <div className="panel-heading">
-                                <div>
-                                    <h3 className="hub-title">
-                                        {translate('portal','dash_mgmt_sub_lock_title')}
-                                    </h3>
-                                    <p className="hub-sub">
-                                        {translate('portal','dash_mgmt_sub_lock_hint')}
-                                    </p>
-                                </div>
-                                <AlertTriangle size={20} className="tone-danger" />
-                            </div>
-
-                            <div className="ops-row is-loose ops-mt-3">
-                                <button
-                                    type="button"
-                                    onClick={() => toggleBool('subdealer_maintenance_mode')}
-                                    className={`button dmh-lock-button ${form.data.settings.subdealer_maintenance_mode ? 'dark is-on' : ''}`}
-                                >
-                                    {form.data.settings.subdealer_maintenance_mode ? `🚨 ${translate('portal','dash_mgmt_sub_lockout_on')}` : `✓ ${translate('portal','dash_mgmt_lockout_off')}`}
-                                </button>
-                            </div>
-                        </section>
-                    </div>
-                )}
-
-                {/* 3. EMPLOYEE DASHBOARD TAB */}
-                {activeTab === 'employees' && (
-                    <div className="ops-stack is-loose">
-                        <section className="panel">
-                            <div className="panel-heading">
-                                <div>
-                                    <h3 className="hub-title">
-                                        {translate('portal','dash_mgmt_employee_title')}
-                                    </h3>
-                                    <p className="hub-sub">
-                                        {translate('portal','dash_mgmt_employee_hint')}
-                                    </p>
-                                </div>
-                                <Link
-                                    href="/employees"
-                                    className="button small dark"
-                                >
-                                    <UserCheck size={16} /> {translate('portal','dash_mgmt_open_employees')}
-                                </Link>
-                            </div>
-
-                            <div className="ops-mt-3">
-                                <label className="ops-block ops-mb-3">
-                                    {translate('portal','dash_mgmt_staff_announce_label')}
-                                    <textarea
-                                        rows={3}
-                                        value={form.data.settings.employee_announcement || ''}
-                                        placeholder={translate('portal','dash_mgmt_announce_placeholder_staff')}
-                                        onChange={e => updateField('employee_announcement', e.target.value)}
-                                        className="ops-full ops-mt-1"
-                                    />
-                                </label>
-                            </div>
-
-                            {/* Recent employees list */}
-                            {recent_employees.length > 0 && (
-                                <div className="ops-mt-4">
-                                    <h4 className="dmh-subhead">
-                                        {translate('portal','dash_mgmt_recent_employees')}
-                                    </h4>
-                                    <div className="dmh-people">
-                                        {recent_employees.map(emp => {
-                                            const perms: string[] = Array.isArray(emp.profile?.permissions) ? emp.profile.permissions : [];
-                                            return (
-                                                <div key={emp.id} className="ops-card is-soft is-tight">
-                                                    <div className="ops-row is-between">
-                                                        <b className="ops-fs-xs hub-strong">{emp.name}</b>
-                                                        <Badge status={emp.status} />
-                                                    </div>
-                                                    <small className="ops-meta ops-block dmh-email">{emp.email}</small>
-                                                    <div className="ops-row is-wrap is-tight ops-mt-2">
-                                                        {perms.slice(0, 4).map(p => (
-                                                            <span key={p} className="dmh-perm">
-                                                                {p}
-                                                            </span>
-                                                        ))}
-                                                        {perms.length > 4 && (
-                                                            <span className="ops-meta ops-semibold">{translate('portal','dash_mgmt_more_perms',{count:String(perms.length - 4)})}</span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-                        </section>
-                    </div>
-                )}
-
-                {/* 4. COMPANY HUB TAB */}
-                {activeTab === 'company' && (
-                    <div className="ops-stack is-loose">
-                        <section className="panel">
-                            <div className="panel-heading">
-                                <div>
-                                    <h3 className="hub-title">
-                                        {translate('portal','dash_mgmt_company_title')}
-                                    </h3>
-                                    <p className="hub-sub">
-                                        {translate('portal','dash_mgmt_company_hint')}
-                                    </p>
-                                </div>
-                                <Building2 size={20} className="text-muted" />
-                            </div>
-
-                            <div className="dmh-toggles tone-neutral">
-                                {[
-                                    { key: 'birthday_sms_enabled', label: translate('portal','dash_mgmt_toggle_birthday_sms'), desc: translate('portal','dash_mgmt_toggle_birthday_sms_desc') },
-                                ].map(toggle => {
-                                    const active = Boolean(form.data.settings[toggle.key]);
-                                    return (
-                                        <div
-                                            key={toggle.key}
-                                            onClick={() => toggleBool(toggle.key)}
-                                            className={`dmh-toggle${active ? ' is-on' : ''}`}
-                                        >
-                                            <div>
-                                                <b>{toggle.label}</b>
-                                                <small>{toggle.desc}</small>
-                                            </div>
-                                            <span className="dmh-toggle-dot">
-                                                {active ? '●' : '○'}
-                                            </span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                            <label className="ops-block ops-mt-3">
-                                {translate('portal','dash_mgmt_support_overdue_hours')}
-                                <input
-                                    type="number"
-                                    min={1}
-                                    max={720}
-                                    step={1}
-                                    value={form.data.settings.support_overdue_hours ?? 24}
-                                    onChange={e => updateField('support_overdue_hours', e.target.value)}
-                                    className="ops-full ops-mt-1"
-                                />
-                                <small className="muted">{translate('portal','dash_mgmt_support_overdue_hours_hint')}</small>
-                            </label>
-                            <label className="ops-block ops-mt-3">
-                                {translate('dealer_tools','setting_inactive_days')}
-                                <input
-                                    type="number"
-                                    min={7}
-                                    max={365}
-                                    step={1}
-                                    value={form.data.settings.partner_inactive_days ?? 30}
-                                    onChange={e => updateField('partner_inactive_days', e.target.value)}
-                                    className="ops-full ops-mt-1"
-                                />
-                                <small className="muted">{translate('dealer_tools','setting_inactive_days_hint')}</small>
-                            </label>
-                        </section>
-                    </div>
-                )}
-
-                {/* Bottom Action Footer */}
-                <div className="ops-row is-end is-loose dmh-footer">
-                    <button
-                        type="button"
-                        className="button"
-                        onClick={handleReset}
-                    >
-                        <RotateCcw size={15} /> {translate('portal','dash_mgmt_reset_footer')}
+        <OfficePage title={translate('portal', 'dashboards')} back={settingsBack(translate)}>
+            <div className="set-segments" role="tablist" aria-label={translate('portal', 'dashboards')}>
+                {tabs.map((tab) => (
+                    <button key={tab.key} type="button" role="tab" aria-selected={activeTab === tab.key} aria-pressed={activeTab === tab.key} onClick={() => setActiveTab(tab.key)}>
+                        {tab.label} {tab.count && <span className="set-count">{tab.count}</span>}
+                        {tab.locked && <span className="badge inactive">{translate('portal', 'dash_mgmt_badge_locked')}</span>}
                     </button>
-                    <button
-                        type="submit"
-                        className="button dark dmh-submit"
-                        disabled={form.processing}
-                    >
-                        <Save size={16} /> {form.processing ? translate('portal','dash_mgmt_saving') : translate('portal','dash_mgmt_save')}
+                ))}
+            </div>
+            <form onSubmit={submitSave} className="action-form set-sheet">
+                {activeTab === 'dealers' && (
+                    <>
+                        <section className="set-block">
+                            <h2>{translate('portal', 'dash_mgmt_dealer_switches_title')}</h2>
+                            {toggles([
+                                { key: 'dealer_network_tree_enabled', label: translate('portal', 'dash_mgmt_toggle_network'), desc: translate('portal', 'dash_mgmt_toggle_network_desc') },
+                                { key: 'dealer_ranks_enabled', label: translate('portal', 'dash_mgmt_toggle_ranks'), desc: translate('portal', 'dash_mgmt_toggle_ranks_desc') },
+                                { key: 'dealer_rewards_enabled', label: translate('portal', 'dash_mgmt_toggle_rewards'), desc: translate('portal', 'dash_mgmt_toggle_rewards_desc') },
+                                { key: 'dealer_orders_enabled', label: translate('portal', 'dash_mgmt_toggle_orders'), desc: translate('portal', 'dash_mgmt_toggle_orders_desc') },
+                                { key: 'dealer_claims_enabled', label: translate('portal', 'dash_mgmt_toggle_claims'), desc: translate('portal', 'dash_mgmt_toggle_claims_desc') },
+                                { key: 'dealer_catalog_enabled', label: translate('portal', 'dash_mgmt_toggle_catalog'), desc: translate('portal', 'dash_mgmt_toggle_catalog_desc') },
+                            ])}
+                        </section>
+                        <section className="set-block">
+                            <h2>{translate('portal', 'dash_mgmt_top_sellers_title')}</h2>
+                            {toggles([
+                                { key: 'top_sellers_enabled', label: translate('portal', 'dash_mgmt_toggle_top_sellers'), desc: translate('portal', 'dash_mgmt_toggle_top_sellers_desc') },
+                                { key: 'top_sellers_show_amounts', label: translate('portal', 'dash_mgmt_toggle_top_sellers_amounts'), desc: translate('portal', 'dash_mgmt_toggle_top_sellers_amounts_desc') },
+                            ])}
+                        </section>
+                        <section className="set-block">
+                            <h2>{translate('portal', 'dash_mgmt_dealer_announce_title')}</h2>
+                            {announcement('dealer_announcement', translate('portal', 'dash_mgmt_announce_label'), translate('portal', 'dash_mgmt_announce_placeholder_dealer'), 'dealer_announcement_type')}
+                        </section>
+                        <section className="set-block">
+                            <h2>{translate('portal', 'dash_mgmt_dealer_lock_title')}</h2>
+                            {lockSwitch('dealer_maintenance_mode', translate('portal', 'dash_mgmt_lockout_on'), translate('portal', 'dash_mgmt_lockout_off'), translate('portal', 'dash_mgmt_dealer_lock_on_hint'), translate('portal', 'dash_mgmt_dealer_lock_off_hint'))}
+                        </section>
+                    </>
+                )}
+
+                {activeTab === 'subdealers' && (
+                    <>
+                        <section className="set-block">
+                            <h2>{translate('portal', 'dash_mgmt_sub_switches_title')}</h2>
+                            {toggles([
+                                { key: 'subdealer_salary_enabled', label: translate('portal', 'dash_mgmt_toggle_sub_salary'), desc: translate('portal', 'dash_mgmt_toggle_sub_salary_desc') },
+                                { key: 'subdealer_orders_enabled', label: translate('portal', 'dash_mgmt_toggle_sub_orders'), desc: translate('portal', 'dash_mgmt_toggle_sub_orders_desc') },
+                                { key: 'subdealer_deliveries_enabled', label: translate('portal', 'dash_mgmt_toggle_sub_deliveries'), desc: translate('portal', 'dash_mgmt_toggle_sub_deliveries_desc') },
+                                { key: 'subdealer_catalog_enabled', label: translate('portal', 'dash_mgmt_toggle_sub_catalog'), desc: translate('portal', 'dash_mgmt_toggle_sub_catalog_desc') },
+                            ])}
+                        </section>
+                        <section className="set-block">
+                            <h2>{translate('portal', 'dash_mgmt_sub_announce_title')}</h2>
+                            {announcement('subdealer_announcement', translate('portal', 'dash_mgmt_announce_label'), translate('portal', 'dash_mgmt_announce_placeholder_sub'), 'subdealer_announcement_type')}
+                        </section>
+                        <section className="set-block">
+                            <h2>{translate('portal', 'dash_mgmt_sub_lock_title')}</h2>
+                            {lockSwitch('subdealer_maintenance_mode', translate('portal', 'dash_mgmt_sub_lockout_on'), translate('portal', 'dash_mgmt_lockout_off'))}
+                        </section>
+                    </>
+                )}
+
+                {activeTab === 'employees' && (
+                    <section className="set-block">
+                        <div className="set-provider-head">
+                            <h2>{translate('portal', 'dash_mgmt_employee_title')}</h2>
+                            <Link href="/employees" className="button small"><UserCheck size={16} /> {translate('portal', 'dash_mgmt_open_employees')}</Link>
+                        </div>
+                        {announcement('employee_announcement', translate('portal', 'dash_mgmt_staff_announce_label'), translate('portal', 'dash_mgmt_announce_placeholder_staff'))}
+                        {recent_employees.length > 0 && (
+                            <div className="ops-mt-4">
+                                <h3>{translate('portal', 'dash_mgmt_recent_employees')}</h3>
+                                <ul className="set-people">
+                                    {recent_employees.map((emp) => {
+                                        const perms: string[] = Array.isArray(emp.profile?.permissions) ? emp.profile.permissions : [];
+                                        return (
+                                            <li key={emp.id}>
+                                                <div className="set-provider-head"><b>{emp.name}</b><Badge status={emp.status} /></div>
+                                                <small className="cell-sub">{emp.email}</small>
+                                                {perms.length > 0 && <small className="cell-sub">{perms.slice(0, 4).join(', ')}{perms.length > 4 ? ` · ${translate('portal', 'dash_mgmt_more_perms', { count: String(perms.length - 4) })}` : ''}</small>}
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </div>
+                        )}
+                    </section>
+                )}
+
+                {activeTab === 'company' && (
+                    <section className="set-block">
+                        <h2>{translate('portal', 'dash_mgmt_company_title')}</h2>
+                        <p className="set-line">{number(stats.super_admins_count)} {translate('portal', 'dash_mgmt_super_admins')}</p>
+                        {toggles([
+                            { key: 'birthday_sms_enabled', label: translate('portal', 'dash_mgmt_toggle_birthday_sms'), desc: translate('portal', 'dash_mgmt_toggle_birthday_sms_desc') },
+                        ])}
+                        <label>
+                            {translate('portal', 'dash_mgmt_support_overdue_hours')}
+                            <input type="number" min={1} max={720} step={1} value={form.data.settings.support_overdue_hours ?? 24} onChange={(event) => updateField('support_overdue_hours', event.target.value)} />
+                            <small className="muted">{translate('portal', 'dash_mgmt_support_overdue_hours_hint')}</small>
+                        </label>
+                        <label>
+                            {translate('dealer_tools', 'setting_inactive_days')}
+                            <input type="number" min={7} max={365} step={1} value={form.data.settings.partner_inactive_days ?? 30} onChange={(event) => updateField('partner_inactive_days', event.target.value)} />
+                            <small className="muted">{translate('dealer_tools', 'setting_inactive_days_hint')}</small>
+                        </label>
+                    </section>
+                )}
+
+                <div className="set-foot">
+                    <button type="submit" className="button dark" disabled={form.processing}>
+                        {form.processing ? translate('portal', 'dash_mgmt_saving') : translate('portal', 'dash_mgmt_save')}
+                    </button>
+                    <button type="button" className="button" onClick={handleReset}>
+                        <RotateCcw size={15} /> {translate('portal', 'dash_mgmt_reset_footer')}
                     </button>
                 </div>
             </form>
-        </div>
+        </OfficePage>
     );
 }

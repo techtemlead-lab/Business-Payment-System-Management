@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { usePage } from '@inertiajs/react';
 import { ChevronDown, Download } from 'lucide-react';
 import { businessTodayIso } from '../../business-date';
 import { useT } from '../../shared/i18n/t';
-import type { Certificates, StatementTable } from './types';
+import type { Certificates, ReserveReceipt, StatementTable } from './types';
 
 function mondayOf(isoDay: string): string {
     const day = new Date(`${isoDay}T00:00:00Z`);
@@ -33,8 +33,8 @@ function statementDates({ period, from, to }: StatementTable['state'], firstYear
     }
 }
 
-/** The partner's files in one menu: statement, full report and certificates. */
-export default function Downloads({ certificates, view }: { certificates: Certificates; view: StatementTable['state'] }) {
+/** The partner's files in one menu: statement, full report, certificates and printed receipts. */
+export default function Downloads({ certificates, receipts, view }: { certificates: Certificates; receipts: ReserveReceipt[]; view: StatementTable['state'] }) {
     const translate = useT();
     const { portalBase: base } = usePage<any>().props;
     const menu = useRef<HTMLDetailsElement>(null);
@@ -76,6 +76,9 @@ export default function Downloads({ certificates, view }: { certificates: Certif
                     </div>
                 )}
                 {certificates.rank && item(`${base}/rank-certificate/pdf`, translate('portal', 'download_rank_certificate'))}
+                {receipts.map((receipt) => (
+                    <Fragment key={receipt.id}>{item(`${base}/payment-receipts/${receipt.id}/print`, translate('my_money', 'receipt_number', { number: receipt.number }))}</Fragment>
+                ))}
             </div>
         </details>
     );

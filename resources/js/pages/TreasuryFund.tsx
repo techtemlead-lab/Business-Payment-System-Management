@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
-import { date, label, money } from '../components/UI';
+import { date, label, money, number } from '../components/UI';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from '../components/MoneyTable';
 import TreasuryPage from '../components/treasury/TreasuryPage';
 import { FundFigures, type FundCardData } from '../components/treasury/FundCard';
 import FundSpendForm, { type FundSpendOptions } from '../components/treasury/FundSpendForm';
+import RewardLeaders, { type RewardAward, type RewardLeaderFigures, type RewardLeaderRow } from '../components/treasury/RewardLeaders';
 import { joined, percentText } from '../components/treasury/format';
 import { useT } from '../shared/i18n/t';
 
@@ -34,13 +35,29 @@ type MoneyOutRow = {
     receipt_url: string | null;
 };
 
-type FundView = 'in' | 'out';
+type FundView = 'in' | 'out' | RewardAward;
 
-/** One fund: the same three cards as the Treasury home, then the money that came in or went out. */
-export default function TreasuryFund({ card, view, table, spend }: { card: FundCardData; view: FundView; table: MoneyTableData<MoneyInRow | MoneyOutRow>; spend: FundSpendOptions | null }) {
+/** One fund: the same three cards as the Treasury home, then the money that came in or went out. The car and bike fund can also list leaders' progress. */
+export default function TreasuryFund({ card, view, table, spend, leaders }: { card: FundCardData; view: FundView; table: MoneyTableData<MoneyInRow | MoneyOutRow | RewardLeaderRow>; spend: FundSpendOptions | null; leaders: RewardLeaderFigures | null }) {
     const translate = useT();
     const path = usePage().url.split('?')[0];
     const [spending, setSpending] = useState(false);
+    const viewSwitch = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        // On a phone the choices scroll sideways; keep the chosen one in sight.
+        const strip = viewSwitch.current;
+        const chosen = strip?.querySelector<HTMLElement>('[aria-current="true"]');
+        if (strip && chosen) {
+            strip.scrollLeft = chosen.offsetLeft - (strip.clientWidth - chosen.offsetWidth) / 2;
+        }
+    }, [view]);
+
+    const views: { key: FundView; word: string }[] = [
+        { key: 'in', word: translate('treasury', 'came_in') },
+        { key: 'out', word: translate('treasury', 'went_out') },
+        ...(leaders ? (['bike', 'car'] as RewardAward[]).map((award) => ({ key: award, word: `${translate('treasury', `leaders_${award}`)} (${number(leaders.counts[award])})` })) : []),
+    ];
 
     const columnsIn: MoneyColumn<MoneyInRow>[] = [
         { key: 'created_at', title: translate('treasury', 'col_date'), sortKey: 'date', phone: 'sub', render: (row) => date(row.created_at) },
@@ -87,14 +104,16 @@ export default function TreasuryFund({ card, view, table, spend }: { card: FundC
             action={spend && card.spendable ? <button type="button" className="button dark" onClick={() => setSpending(true)}>{translate('treasury', 'spend')}</button> : undefined}
         >
             <FundFigures card={card} />
-            <div className="tsy-switch" role="group" aria-label={card.name}>
-                {(['in', 'out'] as FundView[]).map((option) => (
-                    <Link key={option} href={option === 'in' ? path : `${path}?view=out`} preserveScroll className={option === view ? 'is-active' : undefined} aria-current={option === view ? 'true' : undefined}>
-                        {translate('treasury', option === 'in' ? 'came_in' : 'went_out')}
+            <div className="office-switch" role="group" aria-label={card.name} ref={viewSwitch}>
+                {views.map((option) => (
+                    <Link key={option.key} href={option.key === 'in' ? path : `${path}?view=${option.key}`} preserveScroll className={option.key === view ? 'is-active' : undefined} aria-current={option.key === view ? 'true' : undefined}>
+                        {option.word}
                     </Link>
                 ))}
             </div>
-            {view === 'in' ? (
+            {(view === 'bike' || view === 'car') && leaders ? (
+                <RewardLeaders key={view} award={view} table={table as MoneyTableData<RewardLeaderRow>} figures={leaders} />
+            ) : view === 'in' ? (
                 <MoneyTable<MoneyInRow>
                     key="in"
                     data={table as MoneyTableData<MoneyInRow>}

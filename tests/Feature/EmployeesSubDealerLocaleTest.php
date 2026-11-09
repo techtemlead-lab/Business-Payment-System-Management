@@ -28,7 +28,7 @@ class EmployeesSubDealerLocaleTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('portals/sadmin/Dashboard')
                 ->where('section', 'employees')
-                ->where('translations.portal.emp_create_title', 'নতুন কর্মচারীর ড্যাশবোর্ড অ্যাকাউন্ট')
+                ->where('translations.portal.emp_create_title', 'নতুন স্টাফের ড্যাশবোর্ড অ্যাকাউন্ট')
                 ->where('translations.portal.emp_save', 'অনুমতি সেভ')
                 ->where('translations.portal.emp_preset_finance', 'হিসাব ও ফান্ড')
                 ->where('data.available_permissions.0.label', 'মার্কেট সেলস ডেস্ক')

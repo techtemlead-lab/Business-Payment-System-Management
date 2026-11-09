@@ -3,6 +3,7 @@
 namespace App\Domain\Support;
 
 use App\Domain\Clinic\PrescriptionAccess;
+use App\Domain\Finance\TreasuryAccess;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -12,7 +13,11 @@ final class TourGuide
      * @return array{
      *   completed: list<string>,
      *   pending: list<array{key: string, title: string, steps: list<array{target: string, title: string, body: string, tip?: string, category?: string, location?: string, action?: string}>}>,
-     *   blocked_by: list<array{key: string, title: string, href: string}>
+     *   blocked_by: list<array{key: string, title: string, href: string}>,
+     *   is_first_login: bool,
+     *   all_tours: list<array{key: string, title: string, step_count: int, completed: bool, steps: list<array<string, string>>}>,
+     *   chapters: list<never>,
+     *   labels: array{this_page: string, show_me: string}
      * }
      */
     public function forPage(User $user, string $pageKey): array
@@ -75,6 +80,10 @@ final class TourGuide
             'is_first_login' => $isFirstLogin,
             'all_tours' => $allTours,
             'chapters' => [],
+            'labels' => [
+                'this_page' => (string) __('manual.tour_this_page'),
+                'show_me' => (string) __('manual.tour_show_me'),
+            ],
         ];
     }
 
@@ -123,7 +132,7 @@ final class TourGuide
     {
         return match ($this->audience($user)) {
             'owner' => $this->ownerDefinitions($user),
-            'staff' => $this->staffDefinitions(),
+            'staff' => $this->staffDefinitions($user),
             'sub_dealer' => $this->partnerDefinitions('sub_dealer', $user),
             default => $this->partnerDefinitions('dealer', $user),
         };
@@ -157,13 +166,17 @@ final class TourGuide
         // The cards are drawn only when there is something to say; the tour skips them otherwise.
         $alertsStep = $this->overviewStep('[data-testid="partner-alerts"], [data-testid="next-steps"]', 'tour_partner_alerts', 'tour_cat_targets', 'manual');
         $moneyStep = $this->overviewStep($sideMenu, 'tour_partner_money', 'tour_cat_nav', 'manual');
+        $buyStep = $this->overviewStep('.ph-actions', 'tour_partner_buy', 'tour_cat_buy', 'manual');
+        $incomeStep = $this->overviewStep('.mm-income', 'tour_partner_income', 'tour_cat_metrics', 'manual');
+        $sidebarStep = $this->overviewStep($sideMenu, 'tour_partner_sidebar', 'tour_cat_nav', 'manual');
         $prescriptionSteps = $user !== null && PrescriptionAccess::canPrescribe($user)
             ? [$this->overviewStep($sideMenu, 'tour_partner_rx', 'tour_cat_nav', 'manual')]
             : [];
 
         $dealerOverviewSteps = [
             $this->overviewStep('[data-tour="home-profile"]', 'tour_dealer_step_profile', 'tour_cat_profile'),
-            $this->overviewStep('.ph-actions', 'tour_dealer_step_buy', 'tour_cat_buy'),
+            $buyStep,
+            $incomeStep,
             $this->overviewStep('[data-tour="home-metrics"]', 'tour_dealer_step_metrics', 'tour_cat_metrics'),
             $alertsStep,
             $this->overviewStep('[data-tour="home-targets"]', 'tour_dealer_step_targets', 'tour_cat_targets'),
@@ -172,14 +185,15 @@ final class TourGuide
             $this->overviewStep('[data-tour="home-referral"]', 'tour_dealer_step_referral', 'tour_cat_network'),
             $this->overviewStep('[data-tour="header-actions"]', 'tour_dealer_step_header', 'tour_cat_controls'),
             ...$this->topBarSteps(),
-            $this->overviewStep($sideMenu, 'tour_dealer_step_sidebar', 'tour_cat_nav'),
+            $sidebarStep,
             $moneyStep,
             ...$prescriptionSteps,
         ];
 
         $subDealerOverviewSteps = [
             $this->overviewStep('[data-tour="home-profile"]', 'tour_subdealer_step_profile', 'tour_cat_profile'),
-            $this->overviewStep('.ph-actions', 'tour_subdealer_step_buy', 'tour_cat_buy'),
+            $buyStep,
+            $incomeStep,
             $this->overviewStep('[data-tour="sponsor-contact"]', 'tour_subdealer_step_sponsor', 'tour_cat_sponsor'),
             $this->overviewStep('[data-tour="home-metrics"]', 'tour_subdealer_step_metrics', 'tour_cat_metrics'),
             $alertsStep,
@@ -189,7 +203,7 @@ final class TourGuide
             $this->overviewStep('[data-tour="home-referral"]', 'tour_subdealer_step_referral', 'tour_cat_network'),
             $this->overviewStep('[data-tour="header-actions"]', 'tour_subdealer_step_header', 'tour_cat_controls'),
             ...$this->topBarSteps(),
-            $this->overviewStep($sideMenu, 'tour_subdealer_step_sidebar', 'tour_cat_nav'),
+            $sidebarStep,
             $moneyStep,
             ...$prescriptionSteps,
         ];
@@ -271,12 +285,12 @@ final class TourGuide
     /**
      * @return array<string, array{title: string, requires?: list<string>, steps: list<array{target: string, title: string, body: string, tip?: string, category?: string, location?: string, action?: string}>}>
      */
-    private function staffDefinitions(): array
+    private function staffDefinitions(User $user): array
     {
         return [
             'overview' => [
                 'title' => __('portal.tour_staff_overview_title'),
-                'steps' => $this->officeOverviewSteps('tour_staff_step'),
+                'steps' => $this->officeOverviewSteps('tour_staff_step', $user),
             ],
             'profile' => [
                 'title' => __('portal.tour_profile_title'),
@@ -356,10 +370,10 @@ final class TourGuide
             : [];
 
         return [
-            ...$this->staffDefinitions(),
+            ...$this->staffDefinitions($user),
             'overview' => [
                 'title' => __('portal.tour_owner_overview_title'),
-                'steps' => [...$this->officeOverviewSteps('tour_owner_step'), ...$prescriptionSteps],
+                'steps' => [...$this->officeOverviewSteps('tour_owner_step', $user), ...$prescriptionSteps],
             ],
             'treasury' => [
                 'title' => __('portal.tour_owner_treasury_title'),
@@ -385,16 +399,24 @@ final class TourGuide
      *
      * @return list<array{target: string, title: string, body: string, tip: string, category: string, location: string, action: string}>
      */
-    private function officeOverviewSteps(string $prefix): array
+    private function officeOverviewSteps(string $prefix, User $user): array
     {
+        $sideMenu = '[data-tour="sidebar-nav"], .workspace-menu-button';
+
         return [
-            $this->overviewStep('[data-tour="home-metrics"]', $prefix.'_stats', 'tour_cat_metrics'),
+            $this->overviewStep('[data-tour="home-metrics"]', $prefix.'_stats', 'tour_cat_metrics', 'manual'),
             $this->overviewStep('[data-tour="admin-work-queue"]', $prefix.'_work', 'tour_cat_work'),
-            $this->overviewStep('[data-tour="admin-modules"]', $prefix.'_modules', 'tour_cat_command'),
-            $this->overviewStep('[data-tour="recent-orders"]', $prefix.'_orders', 'tour_cat_orders'),
-            // "Recent orders" shows only for office people who can also open Deliveries.
-            $this->overviewStep('[data-tour="recent-orders"]', 'tour_office_courier', 'tour_cat_orders', 'manual'),
-            $this->overviewStep('[data-tour="sidebar-nav"], .workspace-menu-button', $prefix.'_domains', 'tour_cat_domains'),
+            $this->overviewStep('[data-tour="admin-sales-trend"]', 'tour_office_trend', 'tour_cat_chart', 'manual'),
+            $this->overviewStep($sideMenu, $prefix.'_domains', 'tour_cat_domains', 'manual'),
+            ...($user->allows('orders') || $user->allows('finance')
+                ? [$this->overviewStep($sideMenu, 'tour_office_courier', 'tour_cat_orders', 'manual')]
+                : []),
+            ...(TreasuryAccess::mayOpenFunds($user)
+                ? [$this->overviewStep($sideMenu, 'tour_office_treasury', 'tour_cat_domains', 'manual')]
+                : []),
+            ...($user->owner() || $user->allows('finance') || $user->allows('accounts') || $user->allows('audit')
+                ? [$this->overviewStep($sideMenu, 'tour_office_settings', 'tour_cat_domains', 'manual')]
+                : []),
             $this->overviewStep('[data-tour="header-actions"]', $prefix.'_header', 'tour_cat_controls'),
             $this->overviewStep('.global-search-trigger', 'tour_office_search', 'tour_cat_controls', 'manual'),
             ...$this->topBarSteps(),

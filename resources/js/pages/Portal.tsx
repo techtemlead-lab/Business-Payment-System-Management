@@ -1,6 +1,6 @@
-import React,{useEffect,useState} from 'react';
-import {Head,Link,router,useForm,usePage,usePoll} from '@inertiajs/react';
-import {ArrowUpRight,ArrowRight,Plus,Search,ShoppingBag,CheckCircle2,ShieldCheck,LockKeyhole,Download,LogOut} from 'lucide-react';
+import React,{useState} from 'react';
+import {Head,Link,usePage,usePoll} from '@inertiajs/react';
+import {ArrowUpRight,Plus} from 'lucide-react';
 import Shell from '../components/Shell';
 import DashboardOverview from '../components/DashboardOverview';
 import ProductPurchaseMatrix from '../components/ProductPurchaseMatrix';
@@ -9,20 +9,21 @@ import NetworkTreeExplorer from '../components/NetworkTreeExplorer';
 import HelpSupportHub from '../components/HelpSupportHub';
 import PrerequisiteHelper from '../components/PrerequisiteHelper';
 import PartnerHubNav from '../components/PartnerHubNav';
-import PushOptIn from '../components/PushOptIn';
 import OfficeHubTabs from '../components/OfficeHubTabs';
-import { ProfilePhoto } from '../components/ProfilePhoto';
-import { NoticeBulkPicker, OfficeListTable, SavedFilterMenu } from '../components/OfficeListTools';
-import {Row,Field,Table,Pagination,Modal,ActionForm,Badge,Empty,money,number,date,dateTime,label,channelLabel,auditActionLabel,DateInput,FormErrors} from '../components/UI';
-import {actionAllowed} from '../components/action-permissions';
+import {Row,Table,Pagination,Badge,money,dateTime,label} from '../components/UI';
 import {useT} from '../shared/i18n/t';
-import {randomUuid} from '../shared/randomUuid';
 import {SECTION_LABEL_KEYS} from '../shared/portalNav';
+import Orders,{OrderTable} from '../components/office/sections/Orders';
+import Security from '../components/office/sections/Security';
+import Profile from '../components/office/sections/Profile';
+import Network,{TreeShowMore} from '../components/office/sections/Network';
+import Notifications,{PartnerCirculars} from '../components/office/sections/Notifications';
+import ShareFeedback from '../components/office/sections/ShareFeedback';
+import {SectionLoading,options,pageTotalLabel,Filter,type FilterSelect} from '../components/office/portalShared';
 /**
  * Office-only screens load on demand, so a dealer's phone never downloads the website editor,
  * treasury or payroll code it will never open.
  */
-const AccountEditor=React.lazy(()=>import('../components/AccountEditor'));
 const SiteCustomizationEditor=React.lazy(()=>import('../components/SiteCustomizationEditor'));
 const PublicTrustHub=React.lazy(()=>import('../components/PublicTrustHub'));
 const ProductManagementHub=React.lazy(()=>import('../components/ProductManagementHub'));
@@ -31,7 +32,6 @@ const CommissionStudio=React.lazy(()=>import('../components/CommissionStudio'));
 const AreaDealersHub=React.lazy(()=>import('../components/AreaDealersHub'));
 const PlaceCodesHub=React.lazy(()=>import('../components/PlaceCodesHub'));
 const BranchesHub=React.lazy(()=>import('../components/BranchesHub'));
-const StockOnHand=React.lazy(()=>import('../components/StockOnHand'));
 const CourierBoard=React.lazy(()=>import('../components/CourierBoard'));
 const BranchPerformanceHub=React.lazy(()=>import('../components/BranchPerformanceHub'));
 const StockLotsHub=React.lazy(()=>import('../components/StockLotsHub'));
@@ -39,9 +39,7 @@ const RankRoyaltyHub=React.lazy(()=>import('../components/RankRoyaltyHub'));
 const TopSellersBoard=React.lazy(()=>import('../components/TopSellersBoard'));
 const SettlementsHub=React.lazy(()=>import('../components/SettlementsHub'));
 const CompensationSimulator=React.lazy(()=>import('../components/CompensationSimulator'));
-import SelfApprovalForm from '../components/SelfApprovalForm';
 const PayoutDisbursementHub=React.lazy(()=>import('../components/PayoutDisbursementHub'));
-const PaymentsQueue=React.lazy(()=>import('../components/PaymentsQueue'));
 const WorkLogTable=React.lazy(()=>import('../components/WorkLogTable'));
 const EmployeesHub=React.lazy(()=>import('../components/EmployeesHub'));
 const DashboardManagementHub=React.lazy(()=>import('../components/DashboardManagementHub'));
@@ -63,346 +61,60 @@ const PartnerPrivacyRequests=React.lazy(()=>import('../components/PrivacyRequest
 const PurchasingHub=React.lazy(()=>import('../components/PurchasingHub'));
 const StockCountHub=React.lazy(()=>import('../components/StockCountHub'));
 const IdentityReviewHub=React.lazy(()=>import('../components/IdentityReviewHub'));
-const DeviceList=React.lazy(()=>import('../components/DeviceList'));
-/** Placeholder shown for the moment an office screen is being fetched. */
-function SectionLoading(){const translate=useT();return <div className="section-loading" role="status" aria-live="polite"><span className="section-loading-bar"/><span className="section-loading-bar short"/><span className="section-loading-block"/><span className="sr-only">{translate('portal','loading')}</span></div>;}
-type TranslateFn=(group:string,key:string,replace?:Record<string,string>)=>string;
-const options=(items:string[],translate?:TranslateFn)=>items.map(value=>({value,label:label(value,translate)}));
-const contentPageLabel=(slug:string,translate:TranslateFn)=>translate('portal',`content_page_${slug.replace('-','_')}`);
-/** A payment method in the reader's language ("Bank" shows as "ব্যাংক" on Bangla pages); unknown methods show as stored. */
-const channelName=(channel:unknown,translate:TranslateFn):string=>{const raw=String(channel??"");const key=`pay_channel_${raw.toLowerCase()}`;const text=translate("portal",key);return text!==key?text:raw;};
-const supportTopicKey=(topic:string)=>{
- const map:Record<string,string>={
-  Support:'support_topic_support',support:'support_topic_support',
-  Complaint:'support_topic_complaint',complaint:'support_topic_complaint',
-  'Order dispute':'support_topic_order',order_dispute:'support_topic_order',
-  'KYC correction':'support_topic_kyc',kyc_correction:'support_topic_kyc',
-  'Payout question':'support_topic_payout',payout_question:'support_topic_payout',
-  'Dealer enquiry':'enquiry_topic_dealer',dealer_enquiry:'enquiry_topic_dealer',
-  'Partnership enquiry':'enquiry_topic_partnership',partnership_enquiry:'enquiry_topic_partnership',
-  'Product enquiry':'enquiry_topic_product',product_enquiry:'enquiry_topic_product',
-  product_problem:'enquiry_topic_product_problem',
- };
- return map[topic]??null;
-};
-const supportTopicLabel=(topic:string,translate:TranslateFn)=>{
- const key=supportTopicKey(topic);
- return key?translate('portal',key):topic;
-};
-function PartnerCirculars({circulars}:{circulars:Row[]}){
- const translate=useT();
- const {portalBase:base}=usePage<any>().props;
- return <><section className="panel"><div className="panel-heading"><div><h2>{translate('portal','company_notices')}</h2><p className="muted">{translate('portal','company_notices_hint')}</p></div></div>{circulars.length?circulars.map((item:Row)=><article key={item.id} className="notification ptl-notice-item"><div className="step-icon"><ShieldCheck size={20}/></div><div><b>{item.title}</b><p className="ptl-prewrap">{item.body}</p><small>{date(item.updated_at)}</small></div></article>):<Empty title={translate('portal','no_company_notices')} body={translate('portal','no_company_notices_body')}/>}</section><section className="panel narrow-panel"><h2>{translate('portal','ask_company')}</h2><p className="muted">{translate('partner_hub','ask_company_moved')}</p><Link className="button dark" href={`${base}/help#support-request`}>{translate('partner_hub','help_way_form')}</Link></section></>;
-}
-const accountFields=(translate:TranslateFn):Field[]=>[{name:'name',label:translate('portal','ops_fld_full_name'),required:true},{name:'email',label:translate('portal','ops_fld_email'),type:'email',required:true},{name:'phone',label:translate('portal','ops_fld_phone')},{name:'role',label:translate('portal','ops_fld_account_type'),options:options(['dealer','sub_dealer'],translate),required:true},{name:'division',label:translate('portal','ops_fld_division')},{name:'district',label:translate('portal','ops_fld_district')}];
-function parseJson<T>(value:unknown,fallback:T):T{if(typeof value!=='string'){return(value as T)??fallback;}try{return JSON.parse(value) as T;}catch{return fallback;}}
-function orderDue(row:Row):number{if(['rejected','cancelled'].includes(String(row.status))){return 0;}const due=Number(row.total||0)-Number(row.paid||0)-Number(row.due_credit||0);return due>0?due:0;}
-function orderItemCount(row:Row):number{return (row.lines??[]).reduce((n:number,l:Row)=>n+Number(l.quantity||0),0);}
-function orderSentCount(row:Row):number{return (row.lines??[]).reduce((n:number,l:Row)=>n+Number(l.dispatched||0),0);}
-/** Statuses where nothing can have been sent yet, so the delivered column shows a dash. */
-const notYetSendable=['submitted','held','cancelled','rejected'];
-function AgingPill({days}:{days:number}){const translate=useT();const band=days>90?'is-90':days>60?'is-60':days>30?'is-30':'';return <span className={`aging-pill ${band}`.trim()}>{translate('portal','days_count',{n:number(days)})}</span>;}
-/** "Page total" when the list has more pages than the one on screen, so the footer sum is not read as a grand total. */
-/** Stock movement types (receipt, dispatch, ...) in plain words. */
-const stockKindLabel=(kind:string,translate:TranslateFn)=>{const key=`stock_kind_${kind}`;const localized=translate('portal',key);return localized!==key?localized:label(kind,translate);};
-const pageTotalLabel=(page:Row|undefined,translate:TranslateFn)=>Number(page?.last_page??1)>1?translate('portal','table_page_total'):undefined;
-/** Totals count only money actually paid or received; the other rows stay listed and the label says so. */
-const countedTotalLabel=(page:Row|undefined,translate:TranslateFn,key:string)=>[pageTotalLabel(page,translate),translate('portal',key)].filter(Boolean).join(' · ');
-/** Footer sum of a server-worked figure, for columns where what counts is not what the row shows. */
-const deliveredFooter=(key:string)=>(rows:Row[])=>money(rows.reduce((cents,r)=>cents+Math.round(Number(r[key]||0)*100),0)/100);
-const countedTotal=(rows:Row[],key:string,status:string)=>rows.filter(r=>r.status===status).reduce((cents,r)=>cents+Math.round(Number(r[key]||0)*100),0)/100;
-/** A branch asked for in the address, so a download matches the page it was started from. */
-const branchFilterKeys=['branch_id','all_branches'];
-/** /exports/orders with the filters that are on screen, so the file matches the list. */
-function ordersExportHref(section:string,filters:Row|undefined):string{
- const params=new URLSearchParams();
- for(const key of ['q','status','period','from','to','buyer_role',...branchFilterKeys]){
-  const value=String(filters?.[key]??'').trim();
-  if(value){
-   params.set(key,value);
-  }
- }
- params.set('section',section);
- return `/exports/orders?${params.toString()}`;
-}
-function OrderTable({page,empty,emptyBody,tools=true,searchable=true,report=false,overdue=false,listKey}:{page:Row,empty?:string,emptyBody?:string,tools?:boolean,searchable?:boolean,report?:boolean,overdue?:boolean,listKey?:string}){const translate=useT();const {portalBase:base,portal,auth}=usePage<any>().props;const staff=portal==='manage'||portal==='sadmin'||auth?.user?.workspace_mode==='staff';return <><OfficeListTable listKey={listKey} bulk="orders" phoneColumns={staff?['number','user','total','status','action']:['number','total','status']} tools={tools} searchable={searchable} printable={report} totalCount={page?.total} totalLabel={report?countedTotalLabel(page,translate,'order_footer_counted'):pageTotalLabel(page,translate)} rows={page?.data??[]} columns={[{key:'number',title:translate('portal','col_order'),render:r=><Link className="record-link" href={`${base}/orders/${r.id}`}>{r.number}</Link>},{key:'created_at',title:translate('portal','col_date'),render:r=>date(r.created_at)},...(staff?[{key:'user',title:translate('portal','col_partner'),render:(r:Row)=><>{r.user?.name??'—'}<small className="cell-sub">{[r.user?.dealer_code,r.user?.role?label(r.user.role,translate):null].filter(Boolean).join(' · ')}</small></>},{key:'phone',title:translate('portal','ops_fld_phone'),render:(r:Row)=>r.user?.phone||'—'},{key:'area',title:translate('portal','col_area'),render:(r:Row)=>[r.user?.district,r.user?.division].filter(Boolean).join(', ')||'—'}]:[]),{key:'branch',title:translate('portal','col_branch'),render:r=>r.fulfillment_branch?.name||'—'},{key:'lines',title:translate('portal','col_items'),align:'right',total:report,sortValue:orderItemCount,render:r=>number(orderItemCount(r))},{key:'delivered',title:translate('portal','col_delivered'),align:'right',sortValue:(r:Row)=>orderItemCount(r)?orderSentCount(r)/orderItemCount(r):0,render:(r:Row)=>notYetSendable.includes(r.status)?'—':<span title={translate('portal','col_delivered_hint')}>{number(orderSentCount(r))} / {number(orderItemCount(r))}</span>},{key:'total',title:translate('portal','col_order_value'),money:true,footer:report?deliveredFooter('delivered_value'):undefined,render:r=><b>{money(r.total)}</b>},{key:'paid',title:translate('portal','col_paid'),money:true,footer:report?deliveredFooter('delivered_paid'):undefined,render:r=>money(r.paid)},{key:'due',title:translate('portal','col_due'),money:true,total:report,sortValue:orderDue,render:r=>money(orderDue(r))},...(overdue?[{key:'days_since_sent',title:translate('portal','col_days_since_sent'),align:'right' as const,sortValue:(r:Row)=>Number(r.days_since_sent??0),render:(r:Row)=>r.days_since_sent!=null?<AgingPill days={Number(r.days_since_sent)}/>:'—'},{key:'courier_tracking',title:translate('portal','col_courier_tracking'),render:(r:Row)=>r.last_courier||r.last_tracking?<>{r.last_courier||'—'}<small className="cell-sub">{r.last_tracking||''}</small></>:'—'}]:[]),{key:'status',title:translate('portal','col_status'),render:r=><><Badge status={r.status}/>{['rejected','cancelled'].includes(r.status)&&r.decision_reason&&<small className="cell-sub" data-testid="order-closed-reason">{r.decision_reason}</small>}</>},{key:'action',title:'',render:r=><Link aria-label={`${translate('portal','view')} ${r.number}`} href={`${base}/orders/${r.id}`} className="icon-button"><ArrowUpRight size={17}/></Link>}]} empty={empty} emptyBody={emptyBody}/><Pagination page={page}/></>}
-const orderStatuses=['submitted','held','approved','partially_dispatched','dispatched','delivered','partly_delivered','rejected','cancelled'];
-/** The Deliveries list only holds orders with goods still to send (OrderListFilter::AwaitingDispatch), plus the overdue view. */
-const deliveryStatuses=['overdue_delivery','approved','partially_dispatched','dispatched'];
-const claimStatuses=['pending','verified','rejected'];
-const accountStatuses=['active','pending','suspended','closed'];
-/**
- * Status tabs with counts above a list (orders, payments, withdrawals — as in Shopify
- * or Daraz Seller Center): one click switches status and keeps the other filters.
- */
-function StatusTabs({counts,filters,section,statuses}:{counts:Record<string,number>,filters:Row,section:string,statuses:string[]}){
- const translate=useT();
- const {portalBase:base}=usePage<any>().props;
- const active=String(filters.status||'');
- // Closed partners have their own tab and are left out of "All".
- const total=Object.entries(counts).reduce((sum,[status,count])=>status==='closed'&&['accounts','sub-dealers'].includes(section)?sum:sum+Number(count||0),0);
- const tabs=[{value:'',label:translate('portal','orders_tab_all'),count:total},...[...statuses,...Object.keys(counts).filter(status=>!statuses.includes(status))].map(status=>({value:status,label:label(status,translate),count:Number(counts[status]||0)}))];
- const go=(status:string)=>{
-  const query=Object.fromEntries(Object.entries({...filters,status}).filter(([key,value])=>value!==''&&value!=null&&key!=='page'));
-  router.get(`${base}/${section}`,query,{preserveState:true,preserveScroll:true});
- };
- const listRef=React.useRef<HTMLDivElement>(null);
- // Phones scroll the tabs sideways: keep the selected one in view after a reload.
- useEffect(()=>{listRef.current?.querySelector<HTMLElement>('.is-active')?.scrollIntoView({block:'nearest',inline:'nearest'});},[active]);
- return <div ref={listRef} className="order-status-tabs" role="tablist" aria-label={translate('portal','orders_filter_status')}>
-  {tabs.map(tab=><button key={tab.value||'all'} type="button" role="tab" aria-selected={active===tab.value} className={`order-status-tab${active===tab.value?' is-active':''}${tab.count===0&&tab.value!==''?' is-empty':''}`} onClick={()=>go(tab.value)}>
-   <span>{tab.label}</span><b>{number(tab.count)}</b>
-  </button>)}
- </div>;
-}
-/** Totals above a list (orders, deliveries): read-only figures in the dashboard's figure style. */
-function SummaryFigures({items}:{items:{key:string,label:string,value:string,tone?:string}[]}){
- return <div className="admin-kpis list-summary">{items.map(item=><div key={item.key} className={`admin-kpi is-static${item.tone?` tone-${item.tone}`:''}`}>
-  <span className="admin-kpi-label">{item.label}</span>
-  <strong className="admin-kpi-value">{item.value}</strong>
- </div>)}</div>;
-}
-function DeliverySummary({summary}:{summary:Row}){
- const translate=useT();
- return <SummaryFigures items={[
-  {key:'orders',label:translate('portal','deliv_sum_orders'),value:number(summary.orders),tone:Number(summary.orders||0)>0?'warn':''},
-  {key:'units',label:translate('portal','deliv_sum_units'),value:number(summary.units)},
-  {key:'oldest',label:translate('portal','deliv_sum_oldest'),value:translate('portal','days_count',{n:number(summary.oldest_days)})},
- ]}/>;
-}
-/** Dates for "Download all": the dates on screen, or the last 12 months when no dates are chosen. */
-function collectionsExportHref(filters:Row|undefined):string{
- const dhaka=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Dhaka',year:'numeric',month:'2-digit',day:'2-digit'});
- const today=new Date();
- const iso=(value:Date)=>dhaka.format(value);
- const back=(days:number)=>{const value=new Date(today);value.setDate(value.getDate()-days);return iso(value);};
- const period=String(filters?.period||'');
- let from=back(365);let to=iso(today);
- if(period==='today'){from=to;}
- else if(period==='week'){from=back((today.getDay()+6)%7);}
- else if(period==='month'){from=to.slice(0,8)+'01';}
- else if(period==='year'){from=to.slice(0,5)+'01-01';}
- else if(period==='day'&&filters?.from){from=String(filters.from);to=String(filters.from);}
- else if(period==='custom'&&filters?.from&&filters?.to){from=String(filters.from);to=String(filters.to);}
- const query:Record<string,string>={type:'collections',format:'xlsx',from,to};
- branchFilterKeys.forEach(key=>{const value=filters?.[key];if(value!=null&&value!=='')query[key]=String(value);});
- return `/commands/operations/reports?${new URLSearchParams(query).toString()}`;
-}
-const accountFilterKeys=['q','status','division','district','rank','no_order_days',...branchFilterKeys];
-/** Excel download of the dealer or sub-dealer list with exactly the filters on screen. */
-function accountsExportHref(section:string,filters:Row|undefined):string{
- const query:Record<string,string>={section};
- accountFilterKeys.forEach(key=>{const value=filters?.[key];if(value!=null&&value!=='')query[key]=String(value);});
- return `/exports/accounts?${new URLSearchParams(query).toString()}`;
-}
-/** Division, district, rank and "no order lately" drop-downs for the accounts list. */
-/** Values are place code ids (never names); labels are the names of those place codes. */
-function accountFilterSelects(section:string,filters:Row,areas:{division_id:number,division:string,districts:{id:number,name:string}[]}[],translate:(group:string,key:string,replace?:Record<string,string>)=>string):FilterSelect[]{
- const division=String(filters.division||'');
- const chosen=areas.find(area=>String(area.division_id)===division);
- const districts=chosen?chosen.districts.map(district=>({value:String(district.id),label:district.name})):areas.flatMap(area=>area.districts.map(district=>({value:String(district.id),label:`${district.name} (${area.division})`})));
- return [
-  {name:'division',label:translate('portal','acct_filter_division'),options:areas.map(area=>({value:String(area.division_id),label:area.division})),resets:['district']},
-  {name:'district',label:translate('portal','acct_filter_district'),options:districts},
-  ...(section==='accounts'?[{name:'rank',label:translate('portal','acct_filter_rank'),options:['dealer','mo','am','sm','me'].map(rank=>({value:rank,label:translate('portal',`net_rank_${rank}`)}))}]:[]),
-  {name:'no_order_days',label:translate('portal','acct_filter_any_order'),options:['30','60','90'].map(days=>({value:days,label:translate('portal','acct_filter_no_order_days',{days})}))},
- ];
-}
-const stockMovementFilterKeys=['q','period','from','to','branch_id','product_id','movement'];
-/** Excel download of the stock movement log with exactly the filters on screen. */
-function stockMovementsExportHref(filters:Row|undefined):string{
- const params=new URLSearchParams();
- stockMovementFilterKeys.forEach(key=>{const value=String(filters?.[key]??'').trim();if(value){params.set(key,value);}});
- return `/exports/stock-movements?${params.toString()}`;
-}
-/** Product and movement type drop-downs for the stock movement log, plus branch on "All branches" (otherwise the top-bar branch decides). */
-function stockMovementSelects(d:Row,translate:TranslateFn):FilterSelect[]{
- const products=[...new Map((d.products??[]).map((product:Row)=>[String(product.id),product.sku?`${product.name} (${product.sku})`:String(product.name)])).entries()];
- return [
-  ...(d.branch_scope?.view==='all'&&(d.branches??[]).length>1?[{name:'branch_id',label:translate('portal','inv_filter_branch'),options:(d.branches??[]).map((branch:Row)=>({value:String(branch.id),label:branch.name||branch.code}))}]:[]),
-  {name:'product_id',label:translate('portal','inv_filter_product'),options:products.map(([value,text])=>({value,label:String(text)}))},
-  {name:'movement',label:translate('portal','inv_filter_movement'),options:(d.movement_kinds??[]).map((kind:string)=>({value:kind,label:stockKindLabel(kind,translate)}))},
- ];
-}
-/** Units in, units out and the number of movements for the whole filtered log. */
-function MovementTotals({totals}:{totals:Row}){
- const translate=useT();
- return <div className="pay-totals" aria-label={translate('portal','inv_totals_title')}><div className="metric-grid four">
-  <div className="metric pay-total is-ok"><span>{translate('portal','inv_col_units_in')}</span><strong>{number(totals.units_in??0)}</strong></div>
-  <div className="metric pay-total is-bad"><span>{translate('portal','inv_col_units_out')}</span><strong>{number(totals.units_out??0)}</strong></div>
-  <div className="metric pay-total"><span>{translate('portal','inv_totals_net')}</span><strong>{number(totals.net??0)}</strong></div>
-  <div className="metric pay-total"><span>{translate('portal','inv_totals_count')}</span><strong>{number(totals.count??0)}</strong></div>
- </div></div>;
-}
-/** Money received, waiting and rejected for every payment in the filtered list, and received money by method. */
-function ClaimTotals({totals}:{totals:Row}){
- const translate=useT();
- const by=totals.by_status??{};
- const channels=Object.entries(totals.verified_by_channel??{}) as [string,string][];
- const tile=(key:string,title:string,tone:string)=><div className={`metric pay-total ${tone}`}><span>{translate('portal',title)}</span><strong>{money(by[key]?.amount??0)}</strong><small>{translate('portal','pay_totals_count',{count:number(by[key]?.count??0)})}</small></div>;
- return <div className="pay-totals" aria-label={translate('portal','pay_totals_title')}>
-  <div className="metric-grid three">{tile('verified','pay_totals_verified','is-ok')}{tile('pending','pay_totals_pending','is-wait')}{tile('rejected','pay_totals_rejected','is-bad')}</div>
-  {channels.length>0&&<p className="pay-total-channels">{channels.map(([channel,amount])=><span key={channel}>{translate('portal',channel==='Bank'?'pay_channel_bank':channel==='bKash'?'pay_channel_bkash':channel==='Nagad'?'pay_channel_nagad':channel==='Rocket'?'pay_channel_rocket':'pay_filter_channel')}: <b>{money(amount)}</b></span>)}</p>}
- </div>;
-}
-/** Grand totals for every order the filters match, shown above the list (the footer only adds up one page). */
-function OrderTotals({totals}:{totals:Row}){
- const translate=useT();
- return <><div className="metric-grid four order-totals" aria-label={translate('portal','order_totals_title')}>
-  <div className="metric"><span>{translate('portal','order_totals_orders')}</span><strong>{number(totals.orders)}</strong></div>
-  <div className="metric"><span>{translate('portal','order_totals_value')}</span><strong>{money(totals.value)}</strong></div>
-  <div className="metric"><span>{translate('portal','order_totals_paid')}</span><strong>{money(totals.paid)}</strong></div>
-  <div className="metric"><span>{translate('portal','order_totals_to_pay')}</span><strong>{money(totals.to_pay)}</strong></div>
- </div><p className="muted" data-testid="order-totals-note">{translate('portal','order_totals_note')}</p></>;
-}
-/** A dealer's team at a glance: size, direct members, new joiners, who bought this month and who has gone quiet. */
-function TeamSummary({summary}:{summary:Row}){
- const translate=useT();
- const tile=(key:string,value:React.ReactNode,hint?:string)=><div className="metric"><span>{translate('portal',key)}</span><strong>{value}</strong>{hint&&<small>{hint}</small>}</div>;
- return <section className="panel team-summary" aria-labelledby="team-summary-title">
-  <div className="panel-heading"><div><h2 id="team-summary-title">{translate('portal','team_summary_title')}</h2><p>{translate('portal','team_summary_hint')}</p></div></div>
-  <div className="metric-grid three">
-   {tile('team_summary_members',number(summary.members),translate('portal','team_summary_direct',{count:number(summary.direct)}))}
-   {tile('team_summary_joined',number(summary.joined_this_month))}
-   {tile('team_summary_sales',money(summary.team_sales_month))}
-   {tile('team_summary_bought',number(summary.bought_this_month))}
-   {tile('team_summary_quiet',number(summary.quiet_60_days),translate('portal','team_summary_quiet_hint'))}
-  </div>
- </section>;
-}
-/** An extra server filter drop-down in the filter bar; its value lives in the URL like the search. */
-type FilterSelect={name:string,label:string,options:{value:string,label:string}[],resets?:string[]};
-function Filter({section,filters,actions,selects=[]}:{section:string,filters:Row,actions?:React.ReactNode,selects?:FilterSelect[]}){
- const translate=useT();
- const {portalBase:base,portal}=usePage<any>().props;
- const staff=portal==='manage'||portal==='sadmin';
- const listsOrders=['orders','deliveries','reports'].includes(section);
- const isAccountSection=['accounts','sub-dealers'].includes(section);
- const showListFilters=listsOrders||section==='inventory'||isAccountSection;
- const [q,setQ]=useState(filters.q??'');
- const [from,setFrom]=useState(String(filters.from||''));
- const [to,setTo]=useState(String(filters.to||''));
- const buyerRole=String(filters.buyer_role||'');
- const period=String(filters.period||'');
- const status=String(filters.status||'');
- const channel=String(filters.channel||'');
- const [periodChoice,setPeriodChoice]=useState(period);
- useEffect(()=>{setQ(filters.q??'');setFrom(String(filters.from||''));setTo(String(filters.to||''));setPeriodChoice(period);},[filters.q,filters.from,filters.to,period]);
- const apply=(next:Row)=>{
-  const selectedPeriod=String(next.period??period);
-  const selectedFrom=String(next.from??from);
-  const selectedTo=selectedPeriod==='day'?selectedFrom:String(next.to??to);
-  const query={
-   q:next.q??q,
-   buyer_role:next.buyer_role??buyerRole,
-   status:next.status??status,
-   channel:next.channel??channel,
-   period:selectedPeriod,
-   from:selectedPeriod==='day'||selectedPeriod==='custom'?selectedFrom:'',
-   to:selectedPeriod==='custom'?selectedTo:'',
-   ...Object.fromEntries(selects.map(select=>[select.name,String(next[select.name]??filters[select.name]??'')])),
-   ...(section==='inventory'?{tab:'movements'}:{}),
-  };
-  router.get(`${base}/${section}`,Object.fromEntries(Object.entries(query).filter(([,value])=>value)),{preserveState:true,preserveScroll:true});
- };
- const periods=[
-  {value:'',label:translate('portal','orders_period_all')},
-  {value:'today',label:translate('portal','orders_period_today')},
-  {value:'week',label:translate('portal','orders_period_week')},
-  {value:'month',label:translate('portal','orders_period_month')},
-  ...(listsOrders?[{value:'last_month',label:translate('portal','orders_period_last_month')}]:[]),
-  {value:'year',label:translate('portal','orders_period_year')},
-  {value:'day',label:translate('portal','orders_period_day')},
-  {value:'custom',label:translate('portal','orders_period_custom')},
- ];
- const filtered=Boolean(filters.q||filters.buyer_role||filters.status||filters.channel||filters.period||filters.from||filters.to||selects.some(select=>filters[select.name]));
- const statusChoices=isAccountSection?accountStatuses:section==='deliveries'?deliveryStatuses:orderStatuses;
- return <form className="filter-bar order-filters" onSubmit={e=>{e.preventDefault();apply({q,buyer_role:buyerRole})}}>
-  <div className="order-search">
-   <div className="search-input"><Search size={16}/><input aria-label={translate('portal','search_records')} placeholder={translate('portal',section==='inventory'?'inv_search_hint':'search_by_name_or_reference')} value={q} onChange={e=>setQ(e.target.value)}/></div>
-   <button className="button small dark" type="submit">{translate('portal','search')}</button>
-  </div>
-  {staff&&['orders','payments','withdrawals'].includes(section)&&<select className="order-partner-select" data-tour="orders-buyer-role" aria-label={translate('portal','orders_filter_all')} value={buyerRole} onChange={e=>apply({buyer_role:e.target.value})}><option value="">{translate('portal','orders_filter_all')}</option><option value="dealer">{section==='withdrawals'?translate('portal','wd_filter_dealers'):translate('portal','orders_filter_dealers')}</option><option value="sub_dealer">{section==='withdrawals'?translate('portal','wd_filter_sub_dealers'):translate('portal','orders_filter_sub_dealers')}</option></select>}
-  {showListFilters&&!isAccountSection&&<select className="order-period-select" data-tour="orders-period" aria-label={translate('portal','orders_period_all')} value={periodChoice} onChange={e=>{const next=e.target.value;setPeriodChoice(next);apply({period:next});}}>{periods.map(option=><option key={option.value||'all-dates'} value={option.value}>{option.label}</option>)}</select>}
-  {showListFilters&&!['orders','payments','withdrawals','accounts','sub-dealers','ledger','audit','inventory'].includes(section)&&<select className="order-status-select" aria-label={translate('portal','orders_filter_status')} value={status} onChange={e=>apply({status:e.target.value})}><option value="">{translate('portal','orders_filter_status')}</option>{statusChoices.map(item=><option key={item} value={item}>{label(item,translate)}</option>)}</select>}
-  {selects.map(select=><select key={select.name} className="order-extra-select" aria-label={select.label} value={String(filters[select.name]??'')} onChange={e=>apply({[select.name]:e.target.value,...Object.fromEntries((select.resets??[]).map(name=>[name,'']))})}><option value="">{select.label}</option>{select.options.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select>)}
-  {showListFilters&&periodChoice==='day'&&<div className="order-dates"><DateInput aria-label={translate('portal','orders_period_day')} value={from} onChange={e=>{setFrom(e.target.value);if(/^\d{4}-\d{2}-\d{2}$/.test(e.target.value))apply({period:'day',from:e.target.value});}}/></div>}
-  {showListFilters&&periodChoice==='custom'&&<div className="order-dates"><DateInput aria-label={translate('portal','orders_period_custom')} value={from} onChange={e=>{setFrom(e.target.value);if(/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)&&/^\d{4}-\d{2}-\d{2}$/.test(to))apply({period:'custom',from:e.target.value,to});}}/><DateInput aria-label={translate('portal','orders_period_custom')} value={to} onChange={e=>{setTo(e.target.value);if(/^\d{4}-\d{2}-\d{2}$/.test(from)&&/^\d{4}-\d{2}-\d{2}$/.test(e.target.value))apply({period:'custom',from,to:e.target.value});}}/></div>}
-  {(filtered||actions)&&<div className="order-filter-actions">{filtered&&<Link href={`${base}/${section}`} className="text-link" preserveState={false}>{translate('portal','clear')}</Link>}{actions}</div>}
- </form>;
-}
-function PartnerNetwork({members,total,truncated=false}:{members:Row[];total?:number;truncated?:boolean}) {
- const translate=useT();
- const [view,setView]=useState<'tree'|'direct'|'all'>('tree');
- const renderBranch=(member:Row,ancestors:number[]=[]):React.ReactNode=>{
-  if(ancestors.includes(member.id))return null;
-  const children=members.filter(child=>child.sponsor_id===member.id);
-  return <li key={member.id} className="ptl-branch"><details open={member.depth<2}><summary><b>{member.name}</b> · {member.dealer_code} · {translate('portal','depth_label',{depth:String(member.depth)})}</summary><Link className="text-link" href={'/network?member_id='+member.id}>{translate('portal','view_purchase_timeline')}</Link>{children.length>0&&<ul>{children.map(child=>renderBranch(child,[...ancestors,member.id]))}</ul>}</details></li>;
- };
- return <section className="panel"><h2>{translate('portal','referral_network')}</h2><p className="muted">{translate('portal','referral_network_hint')}</p><div className="filter-bar">{(['tree','direct','all'] as const).map(mode=><button type="button" className="button small" aria-pressed={view===mode} key={mode} onClick={()=>setView(mode)}>{mode==='tree'?translate('portal','network_tree'):mode==='direct'?translate('portal','direct_referrals'):translate('portal','all_referrals')}</button>)}<a className="button small" href="/exports/genealogy" title={translate('portal','net_export_hint')}><Download size={15}/>{translate('portal','net_export_csv')}</a></div>{view==='tree'?(members.length?<ul className="ptl-tree">{members.filter(member=>member.depth===1).map(member=>renderBranch(member))}</ul>:<Empty title={translate('portal','no_referrals_yet')}/>):<Table rows={view==='direct'?members.filter(member=>member.depth===1):members} columns={[{key:'name',title:translate('portal','col_name')},{key:'dealer_code',title:translate('portal','col_dealer_code')},{key:'depth',title:translate('portal','col_referral_depth')},{key:'timeline',title:translate('portal','col_purchases'),render:r=><Link className="text-link" href={'/network?member_id='+r.id}>{translate('portal','view_timeline')}</Link>},{key:'created_at',title:translate('portal','col_joined'),render:r=>date(r.created_at)}]}/>}{truncated&&<div className="notice ops-mt-3"><p>{translate('portal','net_truncated_notice',{shown:String(members.length),total:String(total??members.length)})}</p></div>}</section>;
-}
-function FinanceGate({title,children}:{title?:string,children?:React.ReactNode}){const translate=useT();const {financeActive}=usePage<any>().props;if(financeActive)return null;return <div className="policy-gate"><div className="gate-icon"><ShieldCheck size={25}/></div><div><span className="eyebrow">{translate('portal','finance_status')}</span><h2>{title??translate('portal','finance_posting_disabled')}</h2><p>{translate('portal','finance_posting_body')}</p>{children}</div><Badge status="draft"/></div>}
-function PolicyEditor({onDone}:{onDone:()=>void}){const translate=useT();const f=useForm({name:'',account_type:'dealer',notes:'',components:[{name:'',rate:''}]});return <form className="action-form" onSubmit={e=>{e.preventDefault();f.post('/commands/policies',{onSuccess:onDone})}}><label>{translate('portal','policy_field_name')}<input required value={f.data.name} onChange={e=>f.setData('name',e.target.value)}/></label><label>{translate('portal','ops_fld_account_type')}<select value={f.data.account_type} onChange={e=>f.setData('account_type',e.target.value)}><option value="dealer">{label('dealer',translate)}</option><option value="sub_dealer">{label('sub_dealer',translate)}</option></select></label><p className="muted">{translate('portal','policy_draft_hint')}</p>{f.data.components.map((c,i)=><div className="form-grid" key={i}><label>{translate('portal','policy_field_category')}<input required value={c.name} onChange={e=>f.setData('components',f.data.components.map((x,j)=>i===j?{...x,name:e.target.value}:x))}/></label><label>{translate('portal','ops_fld_rate_pct')}<input required type="number" min="0" max="100" step="0.01" value={c.rate} onChange={e=>f.setData('components',f.data.components.map((x,j)=>i===j?{...x,rate:e.target.value}:x))}/></label></div>)}<button type="button" className="button" onClick={()=>f.setData('components',[...f.data.components,{name:'',rate:''}])}>{translate('portal','policy_add_component')}</button><label>{translate('portal','policy_funding_questions')}<textarea required value={f.data.notes} onChange={e=>f.setData('notes',e.target.value)}/></label><FormErrors errors={f.errors}/><button className="button dark" disabled={f.processing}>{translate('portal','policy_save_inactive_draft')}</button></form>}
+const Policies=React.lazy(()=>import('../components/office/sections/Policies'));
+const Content=React.lazy(()=>import('../components/office/sections/Content'));
+const Enquiries=React.lazy(()=>import('../components/office/sections/Enquiries'));
+const Feedback=React.lazy(()=>import('../components/office/sections/Feedback'));
+const Applications=React.lazy(()=>import('../components/office/sections/Applications'));
+const LoginRules=React.lazy(()=>import('../components/office/sections/LoginRules'));
+const Payments=React.lazy(()=>import('../components/office/sections/Payments'));
+const Inventory=React.lazy(()=>import('../components/office/sections/Inventory'));
+const Accounts=React.lazy(()=>import('../components/office/sections/Accounts'));
+const PartnerFrame=React.lazy(()=>import('../components/office/sections/PartnerFrame'));
+const SettingsHome=React.lazy(()=>import('../components/office/SettingsHome'));
+/** These pages draw their own tab strip through OfficePage, so the page must not print a second one. */
+const DRAWS_OWN_TABS=['accounts','sub-dealers','partnerships','sub-dealer-applications','network-tree','area-dealers','ranks','employees','content','website','customization','public-trust','enquiries','feedback','agreement','training','events','sales-kit','schemes','contests','dashboards','data-cleanup','identity-review','privacy-requests','login-rules','overview','support-admin','partner-messages','top-sellers','branch-performance','partner-scorecard'];
 /**
  * Every 30 seconds work queues refresh their list, so new orders and payments show up
  * without a reload. Every other page only refreshes the menu badges: re-sending a whole
  * report or the network tree every few seconds wastes the user's mobile data.
  */
-/** The "Showing: <branch> / All branches" chip on staff pages that follow the top-bar branch switcher. */
-function BranchScopeChip({scope}:{scope:{view:string,name?:string|null}}){const translate=useT();const name=scope.view==='all'?translate('portal','branch_view_all'):(scope.name||translate('portal','branch_scope_none'));return <p className="branch-scope-chip" title={translate('portal','branch_scope_hint')}><span>{translate('portal','branch_scope_showing',{name})}</span></p>}
 const LIVE_SECTIONS=['overview','orders','payments','deliveries','notifications','sub-dealer-orders','payouts-hub'];
-/** Staff partner tree: it opens with the top levels; this loads the next 300 partners. */
-function TreeShowMore({data,base}:{data:Row,base:string}){
- const translate=useT();
- const [loading,setLoading]=useState(false);
- if(!data.dealers_truncated)return null;
- const shown=(data.dealers||[]).length;
- return <div className="notice ops-mt-3 ops-row is-between is-wrap"><p>{translate('portal','net_truncated_notice',{shown:String(shown),total:String(data.dealers_total||shown)})}</p>{data.dealers_next_limit&&<button type="button" className="button small" disabled={loading} onClick={()=>{setLoading(true);router.get(base+'/network-tree',{tree_limit:String(data.dealers_next_limit)},{preserveState:true,preserveScroll:true,replace:true,only:['data'],onFinish:()=>setLoading(false)});}}>{translate('portal','net_show_more',{count:String(Math.min(300,Number(data.dealers_total||0)-shown))})}</button>}</div>;
-}
 
-/** Stock reasons are saved as a code and a note ("write_off: carton damaged"). Show the code as words. */
-function stockReasonText(reason:string,translate:(group:string,key:string)=>string){const colon=reason.indexOf(':');const code=(colon===-1?reason:reason.slice(0,colon)).trim();const key=`stock_reason_code_${code}`;const words=translate('portal',key);if(words===key){return reason;}return colon===-1?words:`${words}:${reason.slice(colon+1)}`;}
 
 export default function Portal({section,data:d,filters}:{section:string,data:Row,filters:Row}){
- const translate=useT();const {auth,financeActive,staffActions,withdrawalMinimum,staffRoles,portalBase:base,portal,securityControls,flash,collectionAccounts:sharedCollectionAccounts=[]}=usePage<any>().props;const u=auth.user;const caps:string[]=auth.capabilities;const staff=portal==='manage'||portal==='sadmin';const[modal,setModal]=useState<string|null>(null);const[selected,setSelected]=useState<Row>({});const security=securityControls||{};const otp=security.partner_login_otp||{};const totp=security.totp||{};
+ const translate=useT();const {auth,staffActions,portalBase:base,portal,securityControls,collectionAccounts:sharedCollectionAccounts=[]}=usePage<any>().props;const u=auth.user;const caps:string[]=auth.capabilities;const staff=portal==='manage'||portal==='sadmin';const[modal,setModal]=useState<string|null>(null);
  /** A status drop-down for the server filter bar; it filters every page, not just the rows on screen. */
  const statusSelect=(statuses:string[]):FilterSelect=>({name:'status',label:translate('portal','orders_filter_status'),options:statuses.map(item=>({value:item,label:label(item,translate)}))});
  usePoll(30000,()=>({only:LIVE_SECTIONS.includes(section)?['data','navAttention','unreadNotices']:['navAttention','unreadNotices']}));
- const open=(name:string,row:Row={})=>{setSelected(row);setModal(name)}; const close=()=>{setModal(null);if(section==='inventory'&&typeof window!=='undefined'){const params=new URLSearchParams(window.location.search);if(params.has('action')){params.delete('action');const query=params.toString();window.history.replaceState(window.history.state,'',`${window.location.pathname}${query?`?${query}`:''}${window.location.hash}`);}}};
- useEffect(()=>{
-  if(section!=='inventory'||typeof window==='undefined')return;
-  const actionParam=new URLSearchParams(window.location.search).get('action');
-  if(actionParam==='stock_in'||actionParam==='stock_out'){
-   open(actionParam);
-  }
- },[section]);
+ const open=(name:string)=>{setModal(name)};const close=()=>{setModal(null)};
+ const sectionProps={section,data:d,filters};
  const stats=d.stats??{}; const action=section==='overview'?<Link className="button dark" href={staff?(base+(caps.includes('orders')||caps.includes('finance')?'/orders':caps.includes('content')?'/content':'/profile')):(base+'/purchase')}>{staff?(caps.includes('orders')||caps.includes('finance')?translate('portal','manage_orders'):caps.includes('content')?translate('portal','manage_website'):translate('portal','view_profile')):translate('portal','new_purchase_request')}<ArrowUpRight size={17}/></Link>:(!staff&&(section==='orders'||section==='deliveries'||section==='catalog'))?<Link className="button dark" href={`${base}/purchase`}><Plus size={17}/>{translate('portal','new_purchase_request')}</Link>:section==='accounts'&&(staffActions?.accounts?.create??true)?<Link className="button dark" href="/accounts/create?intent=dealer"><Plus size={17}/>{translate('portal','acct_heading')}</Link>:section==='sub-dealers'&&(staffActions?.accounts?.create??true)?<Link className="button dark" href="/accounts/create?intent=sub_dealer"><Plus size={17}/>{translate('portal','sd_add')}</Link>:undefined;
- const ordersEmpty=section==='deliveries'?{title:translate('portal','empty_deliveries_title'),body:translate('portal','empty_deliveries_body')}:{title:translate('portal','empty_orders_title'),body:translate('portal','empty_orders_body')};
  return <Shell section={d.hub?.home??section} action={action}><Head title={SECTION_LABEL_KEYS[section]?translate('portal',SECTION_LABEL_KEYS[section]):label(section,translate)}/><React.Suspense fallback={<SectionLoading/>}>
- {d.hub&&<OfficeHubTabs hub={d.hub}/>}
- {staff&&d.branch_scope&&<BranchScopeChip scope={d.branch_scope}/>}
+ {d.hub&&!DRAWS_OWN_TABS.includes(section)&&<OfficeHubTabs hub={d.hub}/>}
  {d.partner_hub&&<PartnerHubNav hub={d.partner_hub}/>}
+ {section==='settings'&&<SettingsHome groups={d.settings_groups??[]}/>}
  {section==='overview'&&<DashboardOverview data={d} orders={<OrderTable page={d.orders}/>}/>}
- {['orders','deliveries','reports'].includes(section)&&<section className="panel table-panel" data-tour="orders-table">{section==='orders'&&d.order_status_counts&&<StatusTabs counts={d.order_status_counts} filters={filters} section="orders" statuses={orderStatuses}/>}{section==='deliveries'&&d.delivery_summary&&<DeliverySummary summary={d.delivery_summary}/>}{section==='orders'&&d.order_totals&&<OrderTotals totals={d.order_totals}/>}<Filter section={section} filters={filters} actions={<>{staff&&section!=='reports'&&<SavedFilterMenu listKey={section} section={section} filters={filters}/>}{staff&&(caps.includes('reports')||caps.includes('finance'))&&<Link className="button small" href="/operations/financial-reports">{translate('portal','excel_pdf_reports')}</Link>}{(!staff||caps.includes('reports')||caps.includes('orders')||caps.includes('finance'))&&<a className="button small" data-tour="invoice-actions" href={ordersExportHref(section,filters)}><Download size={15}/>{staff?translate('portal','export_csv'):translate('partner_hub','export_excel')}</a>}</>}/><OrderTable page={d.orders} empty={ordersEmpty.title} emptyBody={ordersEmpty.body} searchable={false} report overdue={section==='deliveries'&&filters.status==='overdue_delivery'} listKey={staff&&section!=='reports'?section:undefined}/></section>}
+ {['orders','deliveries','reports'].includes(section)&&<Orders {...sectionProps}/>}
  {section==='deliveries'&&staff&&d.courier_board&&<CourierBoard board={d.courier_board}/>}
  {section==='catalog'&&(staff?<div data-tour="catalog-grid"><ProductManagementHub products={d.products} allProducts={d.all_catalog_products||d.products} featuredOrderProducts={d.featured_order_products||[]} categories={d.categories||[]} catalogCategories={d.catalog_categories||[]} usedCategories={d.used_categories||[]} catalogUnits={d.catalog_units||[]} customization={d.customization||{}} defaults={d.defaults||{}} filters={filters} catalogFilters={d.catalog_filters} productsPage={d.products_page} canCreate={u.role==='super_admin'||caps.includes('catalog')&&(staffActions?.catalog?.create??true)} onCreateProduct={()=>open('product')}/></div>:<div data-tour="catalog-grid"><PartnerCatalogDirectory products={d.products} categories={d.categories} filters={filters}/></div>)}
  {section==='purchase'&&!staff&&<div data-tour="purchase-matrix"><ProductPurchaseMatrix repeatOrders={d.repeat_orders||[]} runningSchemes={d.running_schemes||[]} products={d.products} categories={d.categories||[]} subCategories={d.sub_categories||[]} collectionAccounts={sharedCollectionAccounts || []} fullPaymentRequired={Boolean(d.full_payment_required)} courierChoices={d.courier_choices||[]} initialProductId={typeof window!=='undefined'?new URLSearchParams(window.location.search).get('product_id'):null}/></div>}
- {['accounts','sub-dealers'].includes(section)&&<section className="panel table-panel" data-tour="accounts-table">{d.account_status_counts&&<StatusTabs counts={d.account_status_counts} filters={filters} section={section} statuses={accountStatuses}/>}<Filter section={section} filters={filters} selects={accountFilterSelects(section,filters,d.account_areas??[],translate)} actions={<><SavedFilterMenu listKey={section} section={section} filters={filters}/><a className="button small" href={accountsExportHref(section,filters)} title={translate('portal','acct_export_hint')}><Download size={14}/> {translate('portal','acct_export_excel')}</a></>}/><OfficeListTable listKey={section} bulk="partners" searchable={false} totalCount={d.accounts.total} rows={d.accounts.data} columns={[{key:'name',title:translate('portal','col_partner'),render:r=><><b>{r.name}</b>{r.profile?.shop_name&&<span className="cell-sub ptl-shop">🏪 {r.profile.shop_name}</span>}{r.profile?.name_bn&&<span className="cell-sub ptl-name-bn">{r.profile.name_bn}</span>}<small className="cell-sub">{r.phone?`${r.phone} · `:''}{r.email}</small></>},{key:'dealer_code',title:translate('portal','col_dealer_code'),render:r=><b>{r.dealer_code??'—'}</b>},{key:'sponsor',title:translate('portal','net_sponsor'),render:r=>r.sponsor?.name?<>{r.sponsor.name}<small className="cell-sub">{r.sponsor.dealer_code}</small></>:r.profile?.refer_code?<small className="cell-sub">{r.profile.refer_code}</small>:'—'},{key:'place',title:translate('portal','col_place'),render:r=>r.profile?.place_code||r.profile?.area_code||'—'},{key:'role',title:translate('portal','col_type'),render:r=><span className={`badge ${r.role}`}>{label(r.role,translate)}</span>},{key:'district',title:translate('portal','label_location'),render:r=><>{r.district??'—'}{r.division?`, ${r.division}`:''}{(r.profile?.union||r.profile?.upazila)&&<small className="cell-sub">{[r.profile?.union,r.profile?.upazila].filter(Boolean).join(', ')}</small>}</>},{key:'joined',title:translate('portal','col_joined'),render:r=>date(r.created_at)},...(section==='accounts'?[{key:'current_rank',title:translate('portal','acct_col_rank'),render:(r:Row)=>translate('portal',`net_rank_${r.current_rank||'dealer'}`)}]:[]),{key:'last_order_at',title:translate('portal','acct_col_last_order'),render:r=>r.last_order_at?date(r.last_order_at):<small className="cell-sub">{translate('portal','acct_never_ordered')}</small>},{key:'month_purchase',title:translate('portal','acct_col_month_purchase'),align:'right',render:r=>money(r.month_purchase??0)},{key:'status',title:translate('portal','col_status'),render:r=><Badge status={r.status}/>},{key:'action',title:translate('portal','col_manage'),render:r=><div className="inline-actions"><button className="text-link" disabled={r.id===u.id||(!(staffActions?.accounts?.edit??true)&&!['super_admin','md','chairman'].includes(u.role))} onClick={()=>open('editAccount',r)}>{translate('portal','edit_status')}</button><button className="text-link" disabled={r.status!=='active'||!(staffActions?.accounts?.edit??true)} onClick={()=>router.post(`/commands/accounts/${r.id}/invite`)}>{translate('portal','send_invitation')}</button><Link className="text-link" href={`${base}/accounts/${r.id}/statement`}>{translate('portal','stmt_open')}</Link><Link className="text-link" href={`${base}/accounts/${r.id}/team-orders`}>{translate('portal','team_orders_short')}</Link></div>}]}/><Pagination page={d.accounts}/></section>}
- {section==='inventory'&&<><div className="sf-page-bar"><div className="preset-chips" role="tablist"><Link role="tab" aria-selected={d.stock_view!=='movements'} className={`button small ${d.stock_view!=='movements'?'dark':''}`} href={`${base}/inventory`}>{translate('stock_lots','tab_stock_on_hand')}</Link><Link role="tab" aria-selected={d.stock_view==='movements'} className={`button small ${d.stock_view==='movements'?'dark':''}`} href={`${base}/inventory?tab=movements`}>{translate('stock_lots','tab_stock_movements')}</Link></div><div className="ops-row is-wrap"><button type="button" className="button dark" disabled={!(staffActions?.inventory?.create??true)} onClick={()=>open('stock_in')}><Plus size={17}/>{translate('portal','stock_action_product_in')}</button><button type="button" className="button" disabled={!(staffActions?.inventory?.create??true)} onClick={()=>open('stock_out')}>{translate('portal','stock_action_product_out')}</button></div></div>{d.stock_view!=='movements'&&<StockOnHand table={d.stock_table} canToggle={staffActions?.inventory?.edit??true} showBranch={d.branch_view==='all'}/>}{d.stock_view==='movements'&&<section className="panel table-panel"><div className="panel-heading"><h2>{translate('portal','movement_history')}</h2><span>{translate('portal','inv_movements_hint')}</span></div><Filter section={section} filters={filters} selects={stockMovementSelects(d,translate)} actions={caps.includes('inventory')?<a className="button small" href={stockMovementsExportHref(filters)} title={translate('portal','inv_export_hint')}><Download size={14}/> {translate('portal','acct_export_excel')}</a>:undefined}/>{d.movement_totals&&<MovementTotals totals={d.movement_totals}/>}<Table searchable={false} printable totalCount={d.movements.total} rows={d.movements.data} empty={translate('portal','inv_movements_empty')} columns={[{key:'created_at',title:translate('portal','col_date'),render:r=>dateTime(r.created_at)},{key:'name',title:translate('portal','col_product')},{key:'sku',title:translate('portal','col_sku')},{key:'branch_code',title:translate('portal','col_branch'),render:r=>r.branch_name||r.branch_code||'—'},{key:'kind',title:translate('portal','col_type'),render:r=>stockKindLabel(String(r.kind||''),translate)},{key:'units_in',title:translate('portal','inv_col_units_in'),align:'right',render:r=>Number(r.units_in)>0?<span className="qty-in">+{number(r.units_in)}</span>:''},{key:'units_out',title:translate('portal','inv_col_units_out'),align:'right',render:r=>Number(r.units_out)>0?<span className="qty-out">−{number(r.units_out)}</span>:''},{key:'reason',title:translate('portal','inv_col_reason_order'),render:(r:Row)=>stockReasonText(String(r.reason??''),translate)},{key:'actor_name',title:translate('portal','audit_actor'),render:r=>r.actor_name||'—'}]}/><Pagination page={d.movements}/></section>}</>}
- {section==='payments'&&<section className="panel table-panel"><div className="panel-heading"><h2>{translate('portal','payment_verification_queue')}</h2><span>{translate('portal','payment_verification_queue_hint')}</span></div>{d.claim_status_counts&&<StatusTabs counts={d.claim_status_counts} filters={filters} section="payments" statuses={claimStatuses}/>}{d.claim_totals&&<ClaimTotals totals={d.claim_totals}/>}<PaymentsQueue data={d.payments_table} onReview={r=>open('payment',r)} actions={<a className="button small" href={collectionsExportHref(filters)} title={translate('portal','pay_export_all_hint')}><Download size={14}/> {translate('portal','pay_export_all')}</a>}/></section>}
- {section==='policies'&&<><FinanceGate/><div className="toolbar-end"><button className="button dark" onClick={()=>open('policy')}><Plus size={17}/>{translate('portal','policy_new_draft')}</button></div>{d.policies.length?d.policies.map((p:Row)=><section className="panel" key={p.id}><div className="panel-heading"><div><h2>{p.name}</h2><p>{label(p.account_type,translate)} · {translate('portal','policy_purchase_value_basis')}</p></div><Badge status={p.status||'draft'}/></div><Table rows={parseJson(p.components, [])} columns={[{key:'name',title:translate('portal','policy_component')},{key:'rate',title:translate('portal','policy_purchase_rate')}]}/><p className="prose muted">{p.notes}</p>{p.status!=='published'&&(p.can_publish_alone?<SelfApprovalForm action={`/commands/policies/${p.id}/publish`} submit={translate('self_approval','publish_alone')}/>:<button className="button small" onClick={()=>router.post(`/commands/policies/${p.id}/publish`)}>{translate('portal','policy_mark_published')}</button>)}<p className="muted ops-mt-2">{translate('portal','policy_publish_hint')}</p></section>):<Empty title={translate('portal','policy_empty_title')} body={translate('portal','policy_empty_body')}/>}</>}
+ {['accounts','sub-dealers'].includes(section)&&<Accounts {...sectionProps}/>}
+ {section==='inventory'&&<Inventory {...sectionProps}/>}
+ {section==='payments'&&<Payments {...sectionProps}/>}
+ {section==='policies'&&<Policies {...sectionProps}/>}
  {section==='commissions'&&<CommissionStudio rules={d.rules||[]}/>}
  {section==='settlements'&&<SettlementsHub state={d.settlement_state}/>}
  {section==='simulator'&&<CompensationSimulator initialSimulation={d.simulation} activeRules={d.active_rules||[]}/>}
  {section==='payouts-hub'&&<div data-tour="payouts-hub"><PayoutDisbursementHub data={d.payouts_table} tdsRate={d.tds_rate??0.00}/></div>}
- {section==='network-tree'&&staff&&<><NetworkTreeExplorer dealers={d.dealers||[]} treeStats={d.tree_stats??null}/><TreeShowMore data={d} base={base}/></>}
- {section==='area-dealers'&&<AreaDealersHub assignments={d.assignments} summary={d.area_summary} areaFilters={d.area_filters||{}} areaPoolRate={d.area_pool_rate} divisions={d.divisions||[]} dealers_list={d.dealers_list||[]} place_codes={d.place_codes||[]}/>}
+ {section==='network-tree'&&staff&&<PartnerFrame data={d}><NetworkTreeExplorer dealers={d.dealers||[]} treeStats={d.tree_stats??null}/><TreeShowMore data={d} base={base}/></PartnerFrame>}
+ {section==='area-dealers'&&<PartnerFrame data={d}><AreaDealersHub assignments={d.assignments} summary={d.area_summary} areaFilters={d.area_filters||{}} areaPoolRate={d.area_pool_rate} divisions={d.divisions||[]} dealers_list={d.dealers_list||[]} place_codes={d.place_codes||[]}/></PartnerFrame>}
  {section==='stock-lots'&&<StockLotsHub data={d.stock_lots||{}}/>}
  {section==='branch-performance'&&<BranchPerformanceHub performance={d.performance||{period:{period:'month',from:'',to:'',label:'month',timezone:''},totals:{order_count:0,order_value:'0.00',income:'0.00',outstanding:'0.00',estimated_profit:'0.00'},branches:[],unassigned:{order_count:0,order_value:'0.00',income:'0.00',outstanding:'0.00',estimated_profit:'0.00'},orders:{data:[],current_page:1,last_page:1,total:0,links:[]}}} branch_options={d.branch_options||[]}/>}
  {section==='branches'&&<BranchesHub branches={d.branches||{data:[],current_page:1,last_page:1,total:0,links:[]}} active_branch_id={d.active_branch_id} head_office_without_place_code={d.head_office_without_place_code} can_edit_branches={!!d.can_edit_branches} assignable_staff={d.assignable_staff||[]} canManage={caps.includes('inventory')||caps.includes('accounts')||['super_admin','md','chairman'].includes(u.role)}/>}
  {section==='place-codes'&&<PlaceCodesHub level={d.level||'division'} level_label={d.level_label||'Division'} searchable={!!d.searchable} filters={d.filters||filters} submodules={d.submodules||[]} parent_options={d.parent_options||[]} management_referral={d.management_referral||null} places={d.places||{data:[],current_page:1,last_page:1,total:0,links:[]}}/>}
- {section==='ranks'&&<RankRoyaltyHub policy={d.rank_policy} filters={filters} ranks={d.ranks||[]} stats={d.stats||{mo_count:0,am_count:0,sm_count:0,me_count:0,dealer_count:0}}/>}
- {section==='employees'&&<div data-tour="employees-hub"><EmployeesHub employees={d.employees} availablePermissions={d.available_permissions} stats={d.employee_stats} filters={filters} ownerAccounts={d.owner_accounts}/></div>}
+ {section==='ranks'&&<PartnerFrame data={d}><RankRoyaltyHub policy={d.rank_policy} filters={filters} ranks={d.ranks||[]} stats={d.stats||{mo_count:0,am_count:0,sm_count:0,me_count:0,dealer_count:0}}/></PartnerFrame>}
+ {section==='employees'&&<div data-tour="employees-hub"><EmployeesHub employees={d.employees} availablePermissions={d.available_permissions} stats={d.employee_stats} filters={filters} ownerAccounts={d.owner_accounts} hub={d.hub}/></div>}
  {section==='dashboards'&&<DashboardManagementHub settings={d.dashboard_settings||{}} defaults={d.dashboard_defaults||{}} stats={d.stats||{dealers_count:0,active_dealers:0,sub_dealers_count:0,active_sub_dealers:0,employees_count:0,active_employees:0,super_admins_count:0}} recent_employees={d.recent_employees||[]}/>}
  {section==='identity-review'&&<IdentityReviewHub/>}{section==='messages'&&<PartnerMessages chat={d.chat}/>}{section==='partner-messages'&&<OfficeChat inbox={d.chat_inbox} thread={d.chat_thread} routing={d.chat_routing} noBranch={Boolean(d.chat_no_branch)}/>}{section==='help'&&<HelpSupportHub data={d}/>}{section==='support-admin'&&<div data-tour="support-admin"><SupportAdminHub data={d}/></div>}{!staff&&<PrerequisiteHelper guide={d.guide_prerequisites} tourBlocked={[]} />}{section==='benefits-fund'&&<section className="panel" data-tour="benefits-fund"><div className="panel-heading"><div><h2>{translate('portal','benefits_fund_title')}</h2><p className="muted">{d.benefits_fund?.description||translate('portal','benefits_fund_desc_full')}</p><p className="muted"><Link className="record-link" href={`${base}/company-funds?fund=benefits`}>{translate('funds','link_manage')}</Link></p></div><span className="badge">{d.benefits_fund?.entry_count?translate('portal','benefits_fund_entries',{count:String(d.benefits_fund.entry_count)}):translate('portal','benefits_fund_empty')}</span></div><div className="metric-grid three"><div className="metric"><span>{translate('portal','benefits_fund_balance')}</span><strong>{money(d.benefits_fund?.balance)}</strong></div><div className="metric"><span>{translate('portal','benefits_fund_funded_entries')}</span><strong>{d.benefits_fund?.entry_count??0}</strong></div><div className="metric"><span>{translate('portal','benefits_fund_visibility')}</span><strong>{translate('portal','benefits_fund_owner_only')}</strong><small>{translate('portal','benefits_fund_hidden_staff')}</small></div></div><Filter section={section} filters={filters} selects={[statusSelect(['reserved','reversed'])]}/><Table searchable={false} printable totalCount={d.benefits_entries?.total} totalLabel={pageTotalLabel(d.benefits_entries,translate)} rows={d.benefits_entries?.data??[]} columns={[{key:'created_at',title:translate('portal','benefits_col_posted'),render:r=>dateTime(r.created_at)},{key:'order_number',title:translate('portal','benefits_col_source_order'),render:r=>r.order_number??'—'},{key:'buyer_name',title:translate('portal','benefits_col_buyer'),render:r=><>{r.buyer_name??'—'}<small className="cell-sub">{[r.buyer_code,r.buyer_role?label(r.buyer_role,translate):null,r.division,r.district].filter(Boolean).join(' · ')}</small></>},{key:'purchase_value',title:translate('portal','benefits_col_purchase_value'),money:true,total:true,render:r=>money(r.purchase_value)},{key:'company_share',title:translate('portal','benefits_col_company_share'),money:true,total:true,render:r=>money(r.company_share)},{key:'total_allocated',title:translate('portal','benefits_col_commissions'),money:true,total:true,render:r=>money(r.total_allocated)},{key:'amount',title:translate('portal','benefits_col_amount'),money:true,total:true,render:r=><b>{money(r.amount)}</b>},{key:'reason',title:translate('portal','benefits_col_detail'),render:r=><span className="muted ops-fs-xs">{r.reason||'—'}</span>},{key:'status',title:translate('portal','enquiry_status_label'),render:r=><Badge status={r.status}/>}]} empty={translate('portal','benefits_fund_empty')} emptyBody={translate('portal','benefits_empty_body')}/><Pagination page={d.benefits_entries}/></section>}
  {section==='circulars'&&<PartnerCirculars circulars={d.circulars??[]}/>}
@@ -420,36 +132,19 @@ export default function Portal({section,data:d,filters}:{section:string,data:Row
  {section==='schemes'&&d.schemes_admin&&<SchemesHub data={d.schemes_admin}/>}
  {section==='contests'&&d.contests&&<ContestsHub data={d.contests}/>}
  {section==='partner-scorecard'&&d.partner_scorecard&&<PartnerScorecardHub data={d.partner_scorecard} filters={filters}/>}
- {section==='network'&&!staff&&d.team_summary&&<TeamSummary summary={d.team_summary}/>}{section==='network'&&(staff||Array.isArray(d.dealers)?<div data-tour="network-panel"><NetworkTreeExplorer dealers={d.dealers||[]}/>{d.dealers_truncated&&<div className="notice ops-mt-3"><p>{translate('portal','net_truncated_notice',{shown:String((d.dealers||[]).length),total:String(d.dealers_total||(d.dealers||[]).length)})}</p></div>}</div>:<div data-tour="network-panel"><PartnerNetwork members={d.members||[]} total={d.members_total} truncated={!!d.members_truncated}/></div>)}
- {section==='network'&&d.member_orders&&<section className="panel table-panel"><h2>{d.selected_member?.name} · {translate('portal','sal_purchase_timeline')}</h2><Table printable totalCount={d.member_orders.total} totalLabel={pageTotalLabel(d.member_orders,translate)} rows={d.member_orders.data} columns={[{key:'created_at',title:translate('portal','col_date'),render:r=>date(r.created_at)},{key:'number',title:translate('portal','sal_col_order')},{key:'status',title:translate('portal','col_status'),render:r=><Badge status={r.status}/>},{key:'total',title:translate('portal','sal_col_purchase_value'),money:true,total:true,render:r=>money(r.total)},{key:'paid',title:translate('portal','sal_col_verified_payment'),money:true,total:true,render:r=>money(r.paid)}]}/><Pagination page={d.member_orders}/></section>}
- {section==='profile'&&<section className="panel profile-panel" data-tour="profile-panel"><div className="profile-cover"><ProfilePhoto src={u.photo_url} initial={u.name?.[0] || ''} variant="cover" upload={staff} /><div><h2>{u.name}{d.profile?.name_bn?` · ${d.profile.name_bn}`:''}</h2><p>{u.dealer_code??translate('portal','company_staff')} · {label(u.role,translate)}</p></div><Badge status={u.status}/></div>{['super_admin','md','chairman'].includes(u.role)?<><div className="notice"><LockKeyhole size={19}/><div><p>{translate('portal','profile_owner_edit_notice')}</p></div></div><section className="panel narrow-panel ptl-flat-panel" data-tour="owner-profile-edit"><h2>{translate('portal','owner_profile_edit_title')}</h2><p className="muted">{translate('portal','owner_contact_body')}</p><ActionForm action="/commands/owner/contact" fields={[{name:'name',label:translate('portal','profile_name'),required:true,value:u.name},{name:'email',label:translate('portal','profile_email'),type:'email',required:true,value:u.email},{name:'phone',label:translate('portal','profile_phone'),value:d.profile?.phone||''},{name:'current_password',label:translate('portal','owner_contact_password'),type:'password',required:true}]} submit={translate('portal','owner_profile_edit_submit')}/></section></>:<div className="notice"><LockKeyhole size={19}/><div><p>{translate('portal','profile_locked_notice')}</p><Link className="text-link ops-row is-inline is-snug ops-mt-2" href={`${base}/help`}>{translate('portal','profile_locked_support_cta')} <ArrowUpRight size={14}/></Link></div></div>}<dl className="profile-grid">{[[translate('portal','profile_name'),u.name],[translate('portal','profile_email'),u.email],[translate('portal','profile_phone'),d.profile?.phone],[translate('portal','profile_shop'),d.profile?.shop_name],[translate('portal','profile_area_code'),d.profile?.place_code],[translate('portal','profile_division'),u.division],[translate('portal','profile_district'),u.district],[translate('portal','profile_upazila'),d.profile?.upazila],[translate('portal','profile_union'),d.profile?.union],[translate('portal','profile_village'),d.profile?.village],[translate('portal','profile_identity_type'),d.profile?.kyc?.identity_label],[translate('portal','profile_identity_status'),d.profile?.kyc?.identity_status_label],[translate('portal','profile_dob'),d.profile?.kyc?.date_of_birth_on_file?translate('portal','profile_dob_on_file'):translate('portal','profile_dob_missing')]].filter(([,value])=>value!=null&&value!=='').map(([key,value])=><div key={String(key)}><dt>{String(key)}</dt><dd>{String(value)}</dd></div>)}</dl><div className="ptl-foot ops-row is-end is-wrap is-loose">{!staff&&['dealer','sub_dealer'].includes(u.role)&&<a className="button small dark" href={`${base}/id-card/pdf`}>{translate('portal','download_id_card')}</a>}{!staff&&['dealer','sub_dealer'].includes(u.role)&&d.profile?.refer_code&&<a className="button small" href={`${base}/join-poster/pdf`}>{translate('portal','download_join_poster')}</a>}<button type="button" className="button ptl-logout" onClick={()=>router.post('/logout')}><LogOut size={16}/>{translate('portal','log_out_session')}</button></div></section>}
- {section==='security'&&['super_admin','md','chairman'].includes(u.role)&&<section className="panel narrow-panel"><h2>{translate('portal','owner_contact_title')}</h2><p className="muted">{translate('portal','owner_contact_body')}</p><ActionForm action="/commands/owner/contact" fields={[{name:'name',label:translate('portal','profile_name'),required:true,value:u.name},{name:'email',label:translate('portal','owner_contact_email'),type:'email',required:true,value:u.email},{name:'phone',label:translate('portal','profile_phone'),value:u.phone||''},{name:'current_password',label:translate('portal','owner_contact_password'),type:'password',required:true}]} submit={translate('portal','owner_profile_edit_submit')}/></section>}
- {section==='login-rules'&&['super_admin','md','chairman'].includes(u.role)&&<section className="panel narrow-panel" data-tour="partner-login-otp"><h2>{translate('portal','partner_login_otp_title')}</h2><p className="muted">{otp.preview_forced_off?translate('portal','partner_login_otp_preview_off'):translate('portal','partner_login_otp_body')}</p><ActionForm action="/commands/owner/partner-login-otp" defaults={{enabled:otp.stored_enabled?'1':'0',version:String(otp.version??0)}} fields={[{name:'enabled',label:translate('portal','partner_login_otp_enabled'),options:[{value:'1',label:translate('portal','partner_login_otp_on')},{value:'0',label:translate('portal','partner_login_otp_off')}],required:true,value:otp.stored_enabled?'1':'0'},{name:'current_password',label:translate('portal','owner_contact_password'),type:'password',required:true}]} submit={translate('portal','partner_login_otp_save')}/></section>}
- {section==='login-rules'&&['super_admin','md','chairman'].includes(u.role)&&<section className="panel narrow-panel" data-tour="password-reset-notice"><h2>{translate('portal','password_reset_notice_title')}</h2><p className="muted">{translate('portal','password_reset_notice_body')}</p><ActionForm action="/commands/owner/password-reset-notice" defaults={{enabled:(security.password_reset_notice?.enabled??true)?'1':'0',version:String(security.password_reset_notice?.version??0)}} fields={[{name:'enabled',label:translate('portal','password_reset_notice_enabled'),options:[{value:'1',label:translate('portal','password_reset_notice_on')},{value:'0',label:translate('portal','password_reset_notice_off')}],required:true,value:(security.password_reset_notice?.enabled??true)?'1':'0'},{name:'current_password',label:translate('portal','owner_contact_password'),type:'password',required:true}]} submit={translate('portal','password_reset_notice_save')}/></section>}
- {section==='security'&&staff&&<section className="panel narrow-panel" data-tour="staff-totp"><h2>{translate('portal','totp_title')}</h2><p className="muted">{totp.preview_forced_off?translate('portal','totp_preview_off'):(totp.confirmed?translate('portal','totp_enabled_body'):translate('portal',totp.required?'totp_required_body':'totp_optional_body'))}</p>{flash?.totp_setup&&<div className="notice ptl-notice-tight"><p><b>{translate('portal','totp_secret_label')}</b> <code>{String(flash.totp_setup.secret||'')}</code></p><p className="muted ops-break">{String(flash.totp_setup.uri||'')}</p></div>}{Array.isArray(flash?.totp_recovery_codes)&&flash.totp_recovery_codes.length>0&&<div className="notice ptl-notice-tight"><p><b>{translate('portal','totp_recovery_label')}</b></p><ul>{flash.totp_recovery_codes.map((code:string)=><li key={code}><code>{code}</code></li>)}</ul></div>}{!totp.confirmed&&totp.challenges_enabled&&<><ActionForm action="/security/totp/begin" fields={[{name:'current_password',label:translate('portal','current_password'),type:'password',required:true}]} submit={translate('portal','totp_begin')}/><ActionForm action="/security/totp/confirm" fields={[{name:'current_password',label:translate('portal','current_password'),type:'password',required:true},{name:'code',label:translate('portal','totp_confirm_code'),required:true}]} submit={translate('portal','totp_confirm')}/></>}{totp.confirmed&&<ActionForm action="/security/totp/disable" fields={[{name:'current_password',label:translate('portal','current_password'),type:'password',required:true},{name:'code',label:translate('portal','totp_confirm_code'),required:!!totp.challenges_enabled}]} submit={translate('portal','totp_disable')}/>}</section>}
- {section==='security'&&<section className="panel narrow-panel" data-tour="security-link"><h2>{translate('portal','change_password')}</h2><p className="muted">{translate('portal','password_rules_hint')}</p><ActionForm action="/security/password" fields={[{name:'current_password',label:translate('portal','current_password'),type:'password',required:true},{name:'password',label:translate('portal','new_password'),type:'password',required:true},{name:'password_confirmation',label:translate('portal','confirm_new_password'),type:'password',required:true}]} submit={translate('portal','update_password')}/><div className="ptl-foot"><b>{translate('portal','session_management')}</b><p className="muted">{translate('portal','session_devices_hint',{count:String(security.session_count??1)})}</p><ActionForm action="/security/sessions/revoke-others" fields={[{name:'current_password',label:translate('portal','current_password'),type:'password',required:true}]} submit={translate('portal','revoke_other_sessions')}/><div className="ops-row is-between is-wrap is-loose ops-mt-4"><p className="muted ops-m-0">{translate('portal','session_exit_hint')}</p><button type="button" className="button ptl-logout" onClick={()=>router.post('/logout')}><LogOut size={16}/>{translate('portal','log_out')}</button></div></div></section>}
- {section==='security'&&<DeviceList/>}
- {section==='security'&&<section className="panel narrow-panel" data-tour="privacy-export"><h2>{translate('portal','privacy_export_title')}</h2><p className="muted">{translate('portal','privacy_export_body')}</p><form className="action-form" onSubmit={async e=>{e.preventDefault();const form=e.currentTarget;const password=(form.elements.namedItem('current_password') as HTMLInputElement).value;const xsrf=decodeURIComponent(document.cookie.split('; ').find(row=>row.startsWith('XSRF-TOKEN='))?.split('=').slice(1).join('=')||'');const res=await fetch('/security/privacy-export',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json','X-XSRF-TOKEN':xsrf,'X-Requested-With':'XMLHttpRequest'},credentials:'same-origin',body:JSON.stringify({current_password:password})});if(!res.ok){window.alert(translate('portal','privacy_export_failed'));return;}const blob=await res.blob();const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`madina-privacy-export-${u.id}.json`;a.click();URL.revokeObjectURL(url);form.reset();}}><label>{translate('portal','current_password')}<input type="password" name="current_password" required autoComplete="current-password"/></label><button className="button dark" type="submit">{translate('portal','privacy_export_submit')}</button></form></section>}
- {section==='content'&&<><div className="toolbar-end"><button className="button dark" onClick={()=>open('content')}><Plus size={17}/>{translate('portal','content_edit')}</button></div><section className="panel table-panel"><div className="panel-heading"><div><h2>{translate('portal','content_pages_title')}</h2><p className="muted">{translate('portal','content_pages_hint')}</p></div><Link className="text-link" href={`${base}/website`}>{translate('portal','content_open_website')}</Link></div><Table rows={d.pages??[]} columns={[{key:'slug',title:translate('portal','content_col_page'),render:r=>contentPageLabel(String(r.slug),translate)},{key:'title',title:translate('portal','content_col_title')},{key:'published',title:translate('portal','enquiry_status_label'),render:r=><Badge status={r.published?'published':'draft'}/>},{key:'action',title:'',render:r=><button className="text-link" onClick={()=>open('content',r)}>{translate('portal','content_edit_row')}</button>}]} empty={translate('portal','content_empty_title')} emptyBody={translate('portal','content_empty_body')}/></section></>}
+ {section==='network'&&<Network {...sectionProps}/>}
+ {section==='profile'&&<Profile {...sectionProps}/>}
+ {section==='security'&&<Security {...sectionProps}/>}
+ {section==='login-rules'&&['super_admin','md','chairman'].includes(u.role)&&<LoginRules otp={securityControls?.partner_login_otp||{}} passwordResetNotice={securityControls?.password_reset_notice}/>}
+ {section==='content'&&<Content {...sectionProps}/>}
  {(section==='website'||section==='customization')&&<SiteCustomizationEditor trustEditor={d.trust_editor} customization={d.customization} defaults={d.defaults} products={d.products} websitePages={d.websitePages} bnCopy={d.bangla_defaults} videoSetting={d.videoSetting} videoProducts={d.videoProducts}/>}
  {section==='public-trust'&&<PublicTrustHub data={d.public_trust}/>}
- {section==='enquiries'&&<section className="panel table-panel"><div className="panel-heading"><div><h2>{translate('portal','contact_enquiries')}</h2><p className="muted">{translate('portal','contact_enquiries_hint')}</p></div><span className="badge">{translate('portal','enquiry_count_badge',{new:String(d.enquiry_counts?.new??0),total:String(d.enquiry_counts?.total??d.enquiries?.total??0)})}</span></div><div className="metric-grid three ops-mb-4"><div className="metric"><span>{translate('portal','enquiry_new')}</span><strong>{d.enquiry_counts?.new??0}</strong></div><div className="metric"><span>{translate('portal','enquiry_contacted')}</span><strong>{d.enquiry_counts?.contacted??0}</strong></div><div className="metric"><span>{translate('portal','enquiry_closed')}</span><strong>{d.enquiry_counts?.closed??0}</strong></div></div><Filter section={section} filters={filters} selects={[statusSelect(['new','contacted','closed'])]}/><Table searchable={false} totalCount={d.enquiries?.total} rows={d.enquiries?.data??[]} columns={[{key:'created_at',title:translate('portal','enquiry_received'),render:r=>date(r.created_at)},{key:'name',title:translate('portal','enquiry_contact'),render:r=><>{r.name}<small className="cell-sub">{r.phone}</small></>},{key:'topic',title:translate('portal','enquiry_topic'),render:r=><>{supportTopicLabel(String(r.topic??''),translate)}{r.tracking_number?<small className="cell-sub">{r.tracking_number}</small>:null}</>},{key:'message',title:translate('portal','enquiry_message'),render:r=><>{r.message}{(r.product_name||r.batch_number)?<small className="cell-sub">{[r.product_name,r.batch_number?`${translate('portal','enquiry_batch_number')}: ${r.batch_number}`:''].filter(Boolean).join(' · ')}</small>:null}</>},{key:'status',title:translate('portal','enquiry_status'),render:r=><Badge status={r.status||'new'}/>},{key:'action',title:'',render:r=><button className="text-link" onClick={()=>open('enquiry',r)}>{translate('portal','enquiry_update_status')}</button>}]} empty={translate('portal','enquiry_empty')} emptyBody={translate('portal','enquiry_empty_body')}/><Pagination page={d.enquiries}/></section>}
- {section==='feedback'&&<><section className="panel table-panel"><div className="panel-heading"><div><h2>{translate('portal','feedback_moderation_title')}</h2><p className="muted">{translate('portal','feedback_moderation_hint')}</p><p className="muted">{translate('product_facts','moderation_cure_hint')}</p></div><span className="badge">{translate('portal','feedback_count_badge',{pending:String(d.feedback_counts?.pending??0),total:String(d.feedback_counts?.total??0)})}</span></div><div className="metric-grid three ops-mb-4"><div className="metric"><span>{translate('portal','feedback_pending')}</span><strong>{d.feedback_counts?.pending??0}</strong></div><div className="metric"><span>{translate('portal','feedback_approved')}</span><strong>{d.feedback_counts?.approved??0}</strong></div><div className="metric"><span>{translate('portal','feedback_rejected')}</span><strong>{d.feedback_counts?.rejected??0}</strong></div></div><Table rows={d.feedback_items??[]} columns={[{key:'created_at',title:translate('portal','enquiry_received'),render:r=>date(r.created_at)},{key:'name',title:translate('portal','enquiry_contact'),render:r=><><b>{r.name}</b><small className="cell-sub">{r.role} · {r.location} · {translate('portal',`feedback_source_${r.source}`)}</small>{r.product_name&&<small className="cell-sub">{translate('product_facts','review_of',{name:r.product_name})}</small>}</>},{key:'rating',title:translate('portal','feedback_form_rating'),render:r=>`${r.rating}★`},{key:'message',title:translate('portal','enquiry_message')},{key:'status',title:translate('portal','enquiry_status'),render:r=><Badge status={r.status||'pending'}/>},{key:'action',title:'',render:r=><button className="text-link" onClick={()=>open('feedback',r)}>{translate('portal','feedback_moderate')}</button>}]} empty={translate('portal','feedback_empty')} emptyBody={translate('portal','feedback_empty_body')}/></section><section className="panel narrow-panel"><h2>{translate('portal','feedback_add_title')}</h2><p className="muted">{translate('portal','feedback_add_hint')}</p><ActionForm action="/commands/testimonials" fields={[{name:'name',label:translate('portal','feedback_add_name'),required:true},{name:'role',label:translate('portal','feedback_add_role')},{name:'location',label:translate('portal','feedback_add_location')},{name:'rating',label:translate('portal','feedback_add_rating'),options:[5,4,3,2,1].map(n=>({value:String(n),label:`${n} ★`})),required:true,value:'5'},{name:'message',label:translate('portal','feedback_add_message'),type:'textarea',required:true}]} submit={translate('portal','feedback_add_submit')}/></section></>}
- {section==='share-feedback'&&<><section className="panel narrow-panel"><h2>{translate('portal','feedback_share_title')}</h2><p className="muted">{translate('portal','feedback_share_hint')}</p><ActionForm action="/commands/feedback" fields={[{name:'location',label:translate('portal','label_location')},{name:'rating',label:translate('portal','feedback_form_rating'),options:[{value:'5',label:'5 ★'},{value:'4',label:'4 ★'},{value:'3',label:'3 ★'},{value:'2',label:'2 ★'},{value:'1',label:'1 ★'}],required:true,value:'5'},{name:'message',label:translate('portal','feedback_form_message'),type:'textarea',required:true}]} submit={translate('portal','feedback_form_submit')}/></section><section className="panel table-panel"><div className="panel-heading"><h2>{translate('portal','feedback_my_submissions')}</h2></div><Table rows={d.my_feedback??[]} columns={[{key:'created_at',title:translate('portal','enquiry_received'),render:r=>date(r.created_at)},{key:'rating',title:'★',render:r=>String(r.rating)},{key:'message',title:translate('portal','enquiry_message')},{key:'status',title:translate('portal','enquiry_status'),render:r=><Badge status={r.status||'pending'}/>}]} empty={translate('portal','feedback_empty')} emptyBody={translate('portal','feedback_empty_body')}/></section></>}
- {['partnerships','sub-dealer-applications'].includes(section)&&<section className="panel table-panel"><div className="panel-heading"><div><h2>{translate('portal','partnership_applications')}</h2><p className="muted">{translate('portal','partnership_applications_hint')}</p></div><span className="badge">{translate('portal','partnership_count_badge',{pending:String(d.application_counts?.pending??0),total:String(d.application_counts?.total??d.applications?.total??0)})}</span></div><div className="metric-grid three ops-mb-4"><div className="metric"><span>{translate('portal','partnership_pending')}</span><strong>{d.application_counts?.pending??0}</strong></div><div className="metric"><span>{translate('portal','partnership_approved')}</span><strong>{d.application_counts?.approved??0}</strong></div><div className="metric"><span>{translate('portal','partnership_rejected')}</span><strong>{d.application_counts?.rejected??0}</strong></div></div><Filter section={section} filters={filters} selects={[statusSelect(['pending','approved','rejected'])]}/><Table searchable={false} totalCount={d.applications?.total} rows={d.applications?.data??[]} columns={[{key:'created_at',title:translate('portal','enquiry_received'),render:r=>date(r.created_at)},{key:'name',title:translate('portal','partnership_applicant'),render:r=><><b>{r.name}</b><small className="cell-sub">{r.email}{r.phone?` · ${r.phone}`:''}</small></>},{key:'role',title:translate('portal','partnership_type'),render:r=>label(r.role||'—',translate)},{key:'location',title:translate('portal','label_location'),render:r=>[r.division,r.district,r.upazila].filter(Boolean).join(', ')||'—'},{key:'source',title:translate('portal','partnership_source'),render:r=><span className="badge">{label(r.source||'staff',translate)}</span>},{key:'status',title:translate('portal','enquiry_status'),render:r=><Badge status={r.status||'pending'}/>},{key:'action',title:'',render:r=>r.status==='pending'&&r.submitted_by!==u.id?<button className="text-link" onClick={()=>open('partnership',r)}>{translate('portal','partnership_review')}</button>:r.reason?<small className="muted">{r.reason}</small>:'—'}]} empty={translate('portal','partnership_empty')} emptyBody={translate('portal','partnership_empty_body')}/><Pagination page={d.applications}/></section>}
+ {section==='enquiries'&&<Enquiries {...sectionProps}/>}
+ {section==='feedback'&&<Feedback {...sectionProps}/>}
+ {section==='share-feedback'&&<ShareFeedback {...sectionProps}/>}
+ {['partnerships','sub-dealer-applications'].includes(section)&&<Applications {...sectionProps}/>}
  {section==='audit'&&<section className="panel table-panel"><div className="panel-heading"><h2>{translate('portal','audit_recorded_activity')}</h2><span>{translate('portal','audit_recorded_activity_hint')}</span></div><WorkLogTable data={d.work_log_table}/></section>}
- {section==='notifications'&&<section className="panel"><div className="panel-heading"><div><h2>{translate('portal','your_updates')}</h2><p className="muted">{translate('portal','your_updates_hint')}</p></div>{d.notices.data.some((n:Row)=>!n.read_at)&&<button type="button" className="button small" onClick={()=>router.post('/commands/notices/read-all')}>{translate('portal','mark_all_read')}</button>}</div><NoticeBulkPicker notices={d.notices.data}/><PushOptIn/>{d.notices.data.length?d.notices.data.map((n:Row)=><div className={`notification ${n.read_at?'':'is-unread'}`} key={n.id}><div className="step-icon"><CheckCircle2 size={20}/></div><div><b>{n.title}</b><p>{n.body}</p><small>{date(n.created_at)}</small></div>{!n.read_at&&<button className="text-link" onClick={()=>router.post(`/commands/notices/${n.id}/read`)}>{translate('portal','mark_read')}</button>}</div>):<Empty title={translate('portal','all_caught_up')}/>}<Pagination page={d.notices}/></section>}
- {modal&&modal!=='product'&&<Modal title={{account:translate('portal','modal_create_account'),editAccount:translate('portal','modal_edit_account'),stock:translate('portal','modal_stock'),stock_in:translate('portal','modal_stock_in'),stock_out:translate('portal','modal_stock_out'),payment:translate('portal','modal_payment'),policy:translate('portal','policy_modal_title'),content:translate('portal','content_modal_title'),enquiry:translate('portal','enquiry_update_title'),feedback:translate('portal','feedback_moderate'),partnership:translate('portal','partnership_review_title')}[modal]??translate('portal','modal_update')} onClose={close}>
- {modal==='account'&&<ActionForm action="/commands/accounts" fields={accountFields(translate).map(field=>field.name==='role'&&u.role==='super_admin'?{...field,options:options(['dealer','sub_dealer',...staffRoles],translate)}:field)} onDone={close} submit={translate('portal','sal_create_account_submit')}/>}
- {modal==='editAccount'&&<AccountEditor account={selected} onDone={close}/>}
- {(modal==='stock_in'||modal==='stock_out')&&(()=>{const kind=modal==='stock_in'?'product_in':'product_out';const stockReasons=d.stock_reason_codes||{};const reasonCodes=stockReasons[kind]||(kind==='product_in'?['supplier_receipt','return','opening','transfer_in','correction','other']:['damage','write_off','unofficial_out','expired','transfer_out','correction','other']);const fields:Field[]=[{name:'branch_id',label:translate('portal','branch_fulfill_from'),required:false,options:(d.branches||[]).filter((b:Row)=>b.is_stock_hub&&b.is_active).map((b:Row)=>({value:String(b.id),label:`${b.name} · ${b.code}`}))},{name:'product_id',label:translate('portal','stock_field_product'),required:true,options:d.products.map((p:Row)=>({value:String(p.id),label:`${p.name} · ${translate('portal','stock_available',{count:String(p.available_units??p.branch_stock??p.stock)})}`}))},{name:'quantity',label:translate('portal',kind==='product_in'?'stock_quantity_in':'stock_quantity_out'),type:'number',required:true},{name:'reason',label:translate('portal','stock_reason_code'),required:true,options:reasonCodes.map((code:string)=>({value:code,label:translate('portal',`stock_reason_code_${code}`)}))}];if(kind==='product_in'&&d.supports_product_expiry){fields.push({name:'expires_on',label:translate('portal','stock_expires_on'),type:'date',required:false,warnPast:true});}if(kind==='product_in'){fields.push({name:'batch_number',label:translate('portal','stock_batch_number'),required:false,hint:translate('portal','stock_batch_number_hint')});fields.push({name:'received_on',label:translate('portal','stock_received_on'),type:'date',required:false});fields.push({name:'unit_cost',label:translate('portal','stock_unit_cost'),type:'number',required:false});}return <ActionForm action="/commands/stock" defaults={{kind,reference:randomUuid(),branch_id:d.active_branch_id?String(d.active_branch_id):'',reason:kind==='product_in'?'supplier_receipt':'damage'}} fields={fields} submit={translate('portal',kind==='product_in'?'stock_action_product_in':'stock_action_product_out')} onDone={close}/>;})()}
- {modal==='payment'&&<><p>{translate('portal','payment_verify_intro',{amount:money(selected.amount),channel:channelName(selected.channel,translate)})} <b>{selected.reference}</b>.</p>{selected.has_proof?<p><a className="text-link" href={`/commands/operations/receipts/payment/${selected.id}`} target="_blank" rel="noopener">{translate('portal','payment_proof_view')}</a></p>:selected.channel==='Office'?null:<p className="notice">{translate('portal','payment_proof_missing')}</p>}<ActionForm action={`/commands/claims/${selected.id}/verify`} fields={[{name:'approve',label:translate('portal','payment_decision'),options:[{value:'1',label:translate('portal','payment_verify_received')},{value:'0',label:translate('portal','payment_reject')}],required:true},{name:'reason',label:translate('portal','payment_evidence'),type:'textarea',required:true}]} onDone={close}/>{!actionAllowed(`/commands/claims/${selected.id}/verify`,staffActions)&&<p className="notice">{translate('portal','payment_view_only_note')}</p>}</>}
- {modal==='policy'&&<PolicyEditor onDone={close}/>}
- {modal==='content'&&<ActionForm action="/commands/content" defaults={{...selected,published:selected.published?'1':'0'}} fields={[{name:'slug',label:translate('portal','content_field_page'),options:(d.page_slugs??[]).map((slug:string)=>({value:slug,label:contentPageLabel(slug,translate)})),required:true},{name:'title',label:translate('portal','content_field_title'),required:true},{name:'body',label:translate('portal','content_field_body'),type:'textarea',required:true},{name:'published',label:translate('portal','content_field_publication'),options:[{value:'1',label:translate('portal','content_published')},{value:'0',label:translate('portal','content_draft')}],required:true}]} onDone={close}/>}
- {modal==='enquiry'&&<ActionForm action={`/commands/enquiries/${selected.id}`} fields={[{name:'status',label:translate('portal','enquiry_status_label'),options:options(['new','contacted','closed'],translate),required:true,value:selected.status}]} onDone={close}/>}
- {modal==='feedback'&&<ActionForm action={`/commands/feedback/${selected.id}`} fields={[{name:'status',label:translate('portal','enquiry_status_label'),options:[{value:'pending',label:translate('portal','feedback_pending')},{value:'approved',label:translate('portal','feedback_approved')},{value:'rejected',label:translate('portal','feedback_rejected')}],required:true,value:selected.status}]} onDone={close}/>}
- {modal==='partnership'&&<><p className="muted ops-mb-3">{selected.name} · {selected.email} · {label(selected.role||'',translate)} · {[selected.division,selected.district].filter(Boolean).join(', ')}</p>{selected.message&&<p className="prose ops-mb-3">{selected.message}</p>}<ActionForm action={`/commands/operations/staff/applications/${selected.id}/review`} fields={[{name:'decision',label:translate('portal','partnership_decision'),options:[{value:'approved',label:translate('portal','partnership_approve')},{value:'rejected',label:translate('portal','partnership_reject')}],required:true},{name:'place_code',label:translate('portal','partnership_place_code'),value:selected.place_code||'',hint:translate('portal','partnership_place_code_hint')},{name:'sponsor_code',label:translate('portal','partnership_sponsor_code'),value:selected.sponsor_code||'',hint:translate('portal','partnership_sponsor_code_hint')},{name:'reason',label:translate('portal','partnership_notes'),type:'textarea',required:true}]} onDone={close} submit={translate('portal','partnership_record_decision')}/></>}
- </Modal>}
+ {section==='notifications'&&<Notifications {...sectionProps}/>}
  {modal==='product'&&<ProductCreateModal isOpen onClose={close} categories={d.catalog_categories||[]} units={d.catalog_units||[]} maxDealerPct={['super_admin','md','chairman'].includes(u.role)?70:50} maxSubDealerPct={['super_admin','md','chairman'].includes(u.role)?70:40}/>}
  </React.Suspense></Shell>
 }

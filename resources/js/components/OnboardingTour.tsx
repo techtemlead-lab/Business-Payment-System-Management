@@ -41,6 +41,8 @@ export type ManualChapter = {
     warnings?: string[];
     faqs?: Array<{ q: string; a: string }>;
     keywords?: string[];
+    /** The portal pages this chapter explains; the compass opens the guide at it from those pages. */
+    pages?: string[];
 };
 
 export type TourPayload = {
@@ -50,6 +52,7 @@ export type TourPayload = {
     is_first_login?: boolean;
     all_tours?: TourDefinition[];
     chapters?: ManualChapter[];
+    labels?: { this_page?: string; show_me?: string };
 };
 
 /**
@@ -233,6 +236,8 @@ export default function OnboardingTour({
     const { auth, manualRuleValues, portalBase } = page.props;
     const user = auth?.user;
     const capabilities: string[] = auth?.capabilities ?? [];
+    const section = String(page.props.section ?? '');
+    const onInnerPage = section !== '' && section !== 'overview';
 
     const chapters = useMemo<ManualChapter[]>(() => {
         const source = manualChaptersProp && manualChaptersProp.length > 0
@@ -256,16 +261,52 @@ export default function OnboardingTour({
     const [elementMissing, setElementMissing] = useState(false);
     /** The steps whose target is on this screen, fixed when the tour starts. */
     const [liveSteps, setLiveSteps] = useState<TourStep[] | null>(null);
+    /** A tour of the page on screen, started from the guide; the dashboard tour is not affected. */
+    const [pageTour, setPageTour] = useState<TourDefinition | null>(null);
     const [cardHeight, setCardHeight] = useState(0);
     const [beaconWidth, setBeaconWidth] = useState(0);
     const cardRef = useRef<HTMLDivElement | null>(null);
     const beaconRef = useRef<HTMLDivElement | null>(null);
 
-    // Sync external forceOpenManual
+    const pageChapter = useMemo(
+        () => (onInnerPage ? chapters.find((chapter) => chapter.pages?.includes(section)) : undefined),
+        [chapters, onInnerPage, section],
+    );
+
+    /** The page's own explanation: the pages no longer print it, so the guide says it instead. */
+    const pageExplanation = useMemo(() => {
+        if (!onInnerPage) {
+            return '';
+        }
+        if (section === 'catalog' && capabilities.length > 0) {
+            return translate('portal', 'catalog_staff_hint');
+        }
+        const pageKey = (section === 'inventory' ? 'stock' : section).replaceAll('-', '_');
+        const key = `${capabilities.length > 0 ? 'section_hint_' : 'section_hint_partner_'}${pageKey}`;
+        const text = translate('portal', key);
+
+        return text === key ? '' : text;
+    }, [onInnerPage, section, capabilities.length, translate]);
+
+    /** Steps of this page's own tour that really are on the screen right now. */
+    const pageTourSteps = useMemo<TourStep[]>(() => {
+        if (!manualOpen || !onInnerPage) {
+            return [];
+        }
+        const definition = tour?.all_tours?.find((candidate) => candidate.key === section);
+
+        return definition ? definition.steps.filter((step) => findVisibleTarget(step.target) !== null) : [];
+    }, [manualOpen, onInnerPage, section, tour?.all_tours]);
+
+    // Sync external forceOpenManual: the guide opens at the chapter for the page on screen.
     useEffect(() => {
         if (forceOpenManual) {
+            if (pageChapter) {
+                setSelectedChapterKey(pageChapter.key);
+            }
             setManualOpen(true);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [forceOpenManual]);
 
     // Handle first-time login trigger; a restart from Help starts the tour straight away instead.
@@ -388,9 +429,14 @@ export default function OnboardingTour({
 
     const completeTour = () => {
         setTourActive(false);
-        if (tourKey) {
+        const finishedKey = pageTour?.key ?? tourKey;
+        if (pageTour) {
+            setPageTour(null);
+            setLiveSteps(null);
+        }
+        if (finishedKey) {
             // async: a click on a link right after "Done" must not cancel saving it.
-            router.post(`/commands/tours/${tourKey}/complete`, {}, {
+            router.post(`/commands/tours/${finishedKey}/complete`, {}, {
                 preserveScroll: true,
                 preserveState: true,
                 async: true,
@@ -427,6 +473,18 @@ export default function OnboardingTour({
         setTourActive(true);
     };
 
+    const startPageTour = () => {
+        const definition = tour?.all_tours?.find((candidate) => candidate.key === section);
+        if (!definition || pageTourSteps.length === 0) {
+            return;
+        }
+        closeManual();
+        setPageTour(definition);
+        setLiveSteps(pageTourSteps);
+        setStepIndex(0);
+        setTourActive(true);
+    };
+
     const dismissWelcome = () => {
         setWelcomeOpen(false);
         writeSession(dismissedKey(user?.id), 'true');
@@ -446,6 +504,10 @@ export default function OnboardingTour({
         }
         setWelcomeOpen(false);
         setTourActive(false);
+        if (pageTour) {
+            setPageTour(null);
+            setLiveSteps(null);
+        }
         setManualOpen(true);
     };
 
@@ -686,7 +748,7 @@ export default function OnboardingTour({
                     className="onboarding-spotlight-layer"
                     role="dialog"
                     aria-modal="true"
-                    aria-label={activeTour?.title || translate('portal', 'tour_live_guide')}
+                    aria-label={pageTour?.title || activeTour?.title || translate('portal', 'tour_live_guide')}
                 >
                     {/* Dark spotlight mask */}
                     <div className="onboarding-spotlight-backdrop" onClick={completeTour} />
@@ -828,7 +890,7 @@ export default function OnboardingTour({
                                 <button
                                     type="button"
                                     className="text-link small tour-manual-link"
-                                    onClick={() => openManualToChapter(tourKey)}
+                                    onClick={() => openManualToChapter(pageTour ? pageChapter?.key : tourKey)}
                                 >
                                     <BookOpen size={14} />
                                     {translate('portal', 'tour_read_in_manual')}
@@ -982,6 +1044,22 @@ export default function OnboardingTour({
 
                             {/* Chapter Detailed Reader View */}
                             <article className="onboarding-manual-reader">
+                                {(pageExplanation || pageTourSteps.length > 0) && (
+                                    <div className="help-manual-callout help-manual-purpose otr-callout" data-testid="guide-this-page">
+                                        <MapPin size={18} className="callout-icon-col" />
+                                        <div>
+                                            <strong className="ops-block ops-mb-1">{tour?.labels?.this_page}</strong>
+                                            {pageExplanation && <p className="ops-m-0 ops-fs-sm">{pageExplanation}</p>}
+                                            {pageTourSteps.length > 0 && (
+                                                <button type="button" className="button small dark ops-mt-2" onClick={startPageTour}>
+                                                    <Sparkles size={15} />
+                                                    {tour?.labels?.show_me}
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {activeChapter ? (
                                     <>
                                         <div className="reader-header">

@@ -149,7 +149,7 @@ class BranchScopedSectionsTest extends TestCase
 
     public function test_overview_cards_and_work_queue_follow_the_picked_branch(): void
     {
-        $orders = $this->ordersPerBranch('dispatched', 'submitted');
+        $orders = $this->ordersPerBranch('delivered', 'submitted');
         foreach ($orders as $number) {
             $this->claimFor($number);
         }
@@ -161,6 +161,8 @@ class BranchScopedSectionsTest extends TestCase
             ->where('data.branch_scope.code', 'DHK-01')
             ->where('data.stats.order_count', 1)
             ->where('data.admin_home.month.orders', 1)
+            ->where('data.admin_home.month.sales', '500.00')
+            ->where('data.admin_home.month.delivered_today', '500.00')
             ->where('data.admin_home.work_queue', fn ($queue) => $queueCount($queue->all(), 'orders_to_review') === 0
                 && $queueCount($queue->all(), 'payments_to_check') === 1
                 && $queueCount($queue->all(), 'withdrawals_to_review') === 1)
@@ -206,7 +208,7 @@ class BranchScopedSectionsTest extends TestCase
         ];
         foreach (array_values($sellers) as $index => $seller) {
             $this->partner = $seller;
-            $this->order(null, 'dispatched')->forceFill(['total' => (string) (1000 - $index * 100).'.00'])->save();
+            $this->order(null, 'delivered')->forceFill(['total' => (string) (1000 - $index * 100).'.00'])->save();
         }
         $names = fn ($rows): array => collect($rows)->pluck('name')->all();
 
@@ -538,7 +540,7 @@ class BranchScopedSectionsTest extends TestCase
         ];
         foreach ($sellers as $seller) {
             $this->partner = $seller;
-            $this->order(null, 'dispatched');
+            $this->order(null, 'delivered');
         }
         $owner = User::factory()->staff()->create(['active_branch_id' => $this->headOffice()->id]);
 

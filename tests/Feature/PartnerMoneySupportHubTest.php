@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\PortalSource;
 use Tests\TestCase;
 
 class PartnerMoneySupportHubTest extends TestCase
@@ -112,7 +113,7 @@ class PartnerMoneySupportHubTest extends TestCase
         $this->actingAs($owner)->onPortal('sadmin')
             ->get('/support-admin')
             ->assertOk()
-            ->assertInertia(fn ($page) => $page->where('data.support_admin.tickets.0.subject', 'Cannot print'));
+            ->assertInertia(fn ($page) => $page->where('data.support_admin.table.rows.data.0.subject', 'Cannot print'));
     }
 
     public function test_office_replies_reach_the_partner_without_staff_names(): void
@@ -202,7 +203,7 @@ class PartnerMoneySupportHubTest extends TestCase
 
     public function test_only_one_support_form_is_left_on_partner_pages(): void
     {
-        $this->assertStringNotContainsString('/commands/partner-support', file_get_contents(resource_path('js/pages/Portal.tsx')));
+        $this->assertStringNotContainsString('/commands/partner-support', PortalSource::text());
         $this->assertStringContainsString('/commands/support-tickets', file_get_contents(resource_path('js/components/HelpSupportHub.tsx')));
     }
 

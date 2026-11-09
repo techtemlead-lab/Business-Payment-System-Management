@@ -25,6 +25,7 @@ import {
     compactMothers,
     isNavItemActive,
     labelKeyForNavItem,
+    menuRowTabs,
     mother,
     resolveNavLink,
     sectionHref,
@@ -269,7 +270,7 @@ export default function Shell({ section, children, action }: { section: string; 
         [staff, user.role, partnerAvailable, staffAvailable],
     );
 
-    const itemBadge = (item: string): number => {
+    const tabBadge = (item: string): number => {
         const sectionKey = resolveNavLink(item).section;
         if (sectionKey === 'notifications' || item === 'notifications') {
             return attention.notifications;
@@ -285,6 +286,9 @@ export default function Shell({ section, children, action }: { section: string; 
         }
         return 0;
     };
+
+    /** A menu row's badge is the sum of its tabs. */
+    const itemBadge = (item: string): number => menuRowTabs(item).reduce((sum, tab) => sum + tabBadge(tab), 0);
 
     const motherBadge = (items: string[]): number => items.reduce((sum, item) => sum + itemBadge(item), 0);
 
@@ -308,7 +312,7 @@ export default function Shell({ section, children, action }: { section: string; 
             if (motherLabel.includes(query)) {
                 return entry;
             }
-            const items = entry.items.filter((item) => {
+            const items = entry.items.flatMap((item) => menuRowTabs(item)).filter((item) => {
                 const label = t(translations, 'portal', labelKeyForNavItem(item, staff)).toLowerCase();
                 return label.includes(query) || item.toLowerCase().includes(query);
             });
@@ -361,7 +365,7 @@ export default function Shell({ section, children, action }: { section: string; 
 
         if (entry.items.length === 1 && !searchingMenu) {
             return (
-                <div key={entry.id} className={`nav-section nav-section-single ${hasActive ? 'has-active' : ''}`} data-nav-section={entry.id}>
+                <div key={entry.id} className={`nav-section nav-section-single ${hasActive ? 'has-active' : ''} ${entry.startsBlock ? 'nav-section-block-start' : ''}`} data-nav-section={entry.id}>
                     <div className="nav-section-body">
                         {renderLink(entry.items[0])}
                     </div>
