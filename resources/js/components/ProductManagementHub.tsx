@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
 import {
     Package,
@@ -13,6 +13,7 @@ import {
     Eye
 } from 'lucide-react';
 import { FeaturedProductsManager } from './website/FeaturedProductsManager';
+import { FeaturedOrderList, type FeaturedOrderProduct } from './website/FeaturedOrderList';
 import type { CustomizationData } from './website/types';
 import { Row, money } from './UI';
 import { useT } from '../shared/i18n/t';
@@ -22,6 +23,7 @@ import CatalogTaxonomyHub from './CatalogTaxonomyHub';
 export default function ProductManagementHub({
     products,
     allProducts = [],
+    featuredOrderProducts = [],
     categories = [],
     catalogCategories = [],
     catalogUnits = [],
@@ -34,6 +36,7 @@ export default function ProductManagementHub({
 }: {
     products: Row[];
     allProducts: { id: number; name: string; sku?: string; mrp: string; dealer_price?: string; category: string; featured?: boolean; stock?: number; image?: string }[];
+    featuredOrderProducts?: FeaturedOrderProduct[];
     categories?: string[];
     catalogCategories?: any[];
     catalogUnits?: any[];
@@ -45,7 +48,7 @@ export default function ProductManagementHub({
     initialTab?: string;
 }) {
     const translate = useT();
-    const {auth,staffActions}=usePage<any>().props;
+    const {auth,staffActions,errors}=usePage<any>().props;
     const canStock=auth.capabilities.includes('inventory')&&(staffActions?.inventory?.edit??true);
     const canEditCatalog=auth.capabilities.includes('catalog')&&(staffActions?.catalog?.edit??true);
     const canEditMarketing=canEditCatalog||(auth.capabilities.includes('content')&&(staffActions?.content?.edit??true));
@@ -86,12 +89,41 @@ export default function ProductManagementHub({
         }
     });
 
-    const handleSaveFeatured = (e: React.FormEvent) => {
-        e.preventDefault();
-        featuredForm.post('/commands/customization', {
+    // The owner's list for the home page. It follows the server only when the saved list itself changes,
+    // so a search or an unrelated save never wipes changes that are not saved yet.
+    const [featuredOrder, setFeaturedOrder] = useState<FeaturedOrderProduct[]>(featuredOrderProducts);
+    const [savingFeaturedOrder, setSavingFeaturedOrder] = useState(false);
+    const savedFeaturedIds = featuredOrderProducts.map(product => product.id).join(',');
+    const featuredOrderChanged = featuredOrder.map(product => product.id).join(',') !== savedFeaturedIds;
+    useEffect(() => setFeaturedOrder(featuredOrderProducts), [savedFeaturedIds]);
+
+    const saveFeaturedOrder = () => {
+        router.post('/commands/products/featured-order', { product_ids: featuredOrder.map(product => product.id) }, {
             preserveScroll: true,
+            onStart: () => setSavingFeaturedOrder(true),
+            onFinish: () => setSavingFeaturedOrder(false),
         });
     };
+
+    const handleSaveFeatured = (e: React.FormEvent) => {
+        e.preventDefault();
+        const orderNeedsSaving = canEditCatalog && featuredForm.data.customization.featured_products_mode === 'auto' && featuredOrderChanged;
+        if (orderNeedsSaving && !featuredForm.isDirty) {
+            saveFeaturedOrder();
+
+            return;
+        }
+        featuredForm.post('/commands/customization', {
+            preserveScroll: true,
+            onSuccess: () => {
+                if (orderNeedsSaving) {
+                    saveFeaturedOrder();
+                }
+            },
+        });
+    };
+    const savingFeatured = featuredForm.processing || savingFeaturedOrder;
+    const showcaseProducts = allProducts.length > 0 ? allProducts : products as any;
 
     const handleTabChange = (t: 'products' | 'featured' | 'taxonomy') => {
         setActiveTab(t);
@@ -299,10 +331,10 @@ export default function ProductManagementHub({
                             <button
                                 type="submit"
                                 className="button dark"
-                                disabled={!canEditMarketing || featuredForm.processing}
+                                disabled={!canEditMarketing || savingFeatured}
                             >
                                 <Save size={16} />
-                                {featuredForm.processing ? translate('portal', 'cms_saving') : translate('portal', 'pm_save_featured')}
+                                {savingFeatured ? translate('portal', 'cms_saving') : translate('portal', 'pm_save_featured')}
                             </button>
                         </div>
                     </div>
@@ -310,11 +342,21 @@ export default function ProductManagementHub({
                     <FeaturedProductsManager
                         customization={featuredForm.data.customization as any}
                         defaults={defaults}
-                        products={allProducts.length > 0 ? allProducts : products as any}
+                        products={showcaseProducts}
                         updateField={(key, val) => featuredForm.setData('customization', {
                             ...featuredForm.data.customization,
                             [key]: val
                         })}
+                        autoModeList={
+                            <FeaturedOrderList
+                                items={featuredOrder}
+                                candidates={showcaseProducts}
+                                canEdit={canEditCatalog}
+                                changed={featuredOrderChanged}
+                                error={errors?.product_ids}
+                                onChange={setFeaturedOrder}
+                            />
+                        }
                     />
 
                     {/* Bottom Save Bar */}
@@ -325,10 +367,10 @@ export default function ProductManagementHub({
                         <button
                             type="submit"
                             className="button dark"
-                            disabled={!canEditMarketing || featuredForm.processing}
+                            disabled={!canEditMarketing || savingFeatured}
                         >
                             <Save size={16} />
-                            {featuredForm.processing ? translate('portal', 'cms_saving') : translate('portal', 'pm_save_featured')}
+                            {savingFeatured ? translate('portal', 'cms_saving') : translate('portal', 'pm_save_featured')}
                         </button>
                     </div>
                 </form>

@@ -104,6 +104,7 @@ return function (string $portal): void {
     Route::get('/commands/place-codes/children', [PlaceCodeController::class, 'children'])->middleware('throttle:60,1');
     Route::get('/commands/product-photo-model/cutout/{file}', ProductPhotoModelController::class)->where('file', '.*')->middleware('throttle:60,1');
     Route::post('/commands/products', [ProductRegistryController::class, 'store']);
+    Route::post('/commands/products/featured-order', [ProductRegistryController::class, 'featuredOrder']);
     Route::patch('/commands/products/{product}', [ProductRegistryController::class, 'update']);
     Route::delete('/commands/products/{product}', [ProductRegistryController::class, 'destroy']);
     Route::post('/commands/products/{product}/toggle-stock', [ProductRegistryController::class, 'toggleStock']);

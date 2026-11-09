@@ -9,11 +9,14 @@ export function FeaturedProductsManager({
     defaults,
     products,
     updateField,
+    autoModeList,
 }: {
     customization: CustomizationData;
     defaults: CustomizationData;
     products: { id: number; name: string; mrp: string; category: string; featured?: boolean; stock?: number; image?: string }[];
     updateField: (key: keyof CustomizationData, val: any) => void;
+    /** Shown in automatic mode in place of the read-only summary of featured products. */
+    autoModeList?: React.ReactNode;
 }) {
     const translate = useT();
     const isEnabled = customization.featured_products_enabled !== '0';
@@ -133,13 +136,6 @@ export function FeaturedProductsManager({
                     placeholder={defaults.featured_products_view_all_link || '/products'}
                     onChange={updateField}
                 />
-                <Field
-                    label={translate('portal', 'sce_f_products_empty')}
-                    fieldKey="products_empty_title"
-                    value={customization.products_empty_title}
-                    placeholder={defaults.products_empty_title || 'Our collection is being prepared.'}
-                    onChange={updateField}
-                />
             </div>
 
             {/* Showcase Selection Mode */}
@@ -171,7 +167,9 @@ export function FeaturedProductsManager({
                     </button>
                 </div>
 
-                {mode === 'auto' && (
+                {mode === 'auto' && autoModeList}
+
+                {mode === 'auto' && !autoModeList && (
                     <div className="ed-well ed-mt">
                         <div className="ed-strong ed-mb-xs">
                             ℹ️ {translate('portal', 'sce_catalog_featured_heading', { count: String(catalogFeatured.length) })}

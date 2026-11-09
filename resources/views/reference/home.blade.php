@@ -100,7 +100,7 @@
         $tabsEnabled = filter_var($siteCustomization['featured_products_tabs_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN);
         $viewAllLink = \App\Support\SiteCustomization::publicHref(!empty($siteCustomization['featured_products_view_all_link']) ? $siteCustomization['featured_products_view_all_link'] : '/products') ?? '/';
     @endphp
-    @if($featuredSectionEnabled)
+    @if($featuredSectionEnabled && !empty($featuredProducts))
     <section id="featured-products" class="ref-featured-products" aria-label="{{ $chrome('featured_products_title') }}">
         <div class="ref-section-title ref-section-title-flex">
             <div>
@@ -125,14 +125,9 @@
         @endif
 
         <div class="ref-product-grid" id="refProductGrid">
-            @forelse($featuredProducts as $item)
+            @foreach($featuredProducts as $item)
                 @include('reference.product-card', compact('item'))
-            @empty
-                <div class="ref-empty" style="grid-column: 1 / -1;">
-                    <h2>{{ $chrome('products_empty_title', $siteCustomization['products_empty_title'] ?? null) }}</h2>
-                    @if($publicPageEnabled['contact'] ?? true)<a href="/contact" class="ref-primary-button">{{ $chrome('contact_us') }}</a>@endif
-                </div>
-            @endforelse
+            @endforeach
         </div>
 
         <div class="ref-tab-empty" id="refTabEmpty" style="display: none;">

@@ -71,6 +71,8 @@ class WebsiteSectionsCmsTest extends TestCase
 
     public function test_managing_director_message_comes_before_the_products_on_the_home_page(): void
     {
+        Product::factory()->create(['featured' => true]);
+
         $this->get('/')->assertOk()->assertSeeInOrder(['ref-md-message--home', 'ref-promotions', 'id="featured-products"'], false);
     }
 

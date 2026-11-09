@@ -108,7 +108,7 @@ class ProductRegistryController extends Controller
             $locked = Product::whereKey($product->id)->lockForUpdate()->firstOrFail();
             $hasHistory = $locked->stock > 0 || $locked->isReferenced();
             if ($hasHistory) {
-                $locked->update(['active' => false, 'featured' => false, 'registry_version' => $locked->registry_version + 1]);
+                $locked->update(['active' => false, 'featured' => false, 'featured_position' => null, 'registry_version' => $locked->registry_version + 1]);
                 Audit::record($r->user()->id, 'product.archived', (string) $locked->id, ['reason' => $data['reason']]);
 
                 return true;
@@ -124,10 +124,51 @@ class ProductRegistryController extends Controller
 
             return false;
         }, 3);
+        SiteCustomization::forgetCache();
 
         return redirect('/catalog')->with('success', $archived
             ? __('portal.flash_product_archived')
             : __('portal.flash_product_deleted'));
+    }
+
+    /**
+     * Saves the home page list: the products named here, in this order, and no others.
+     */
+    public function featuredOrder(Request $r): RedirectResponse
+    {
+        abort_unless($r->user()->allows('catalog'), 403);
+        $data = $r->validate([
+            'product_ids' => 'present|array|max:2000',
+            'product_ids.*' => 'integer|distinct',
+        ]);
+        /** @var list<int> $orderedIds */
+        $orderedIds = array_values(array_map(intval(...), $data['product_ids']));
+        $indexById = array_flip($orderedIds);
+        DB::transaction(function () use ($r, $orderedIds, $indexById): void {
+            $products = Product::query()
+                ->where('featured', true)
+                ->orWhereNotNull('featured_position')
+                ->orWhereIn('id', $orderedIds)
+                ->lockForUpdate()
+                ->get();
+            if ($products->whereIn('id', $orderedIds)->where('active', true)->count() !== count($orderedIds)) {
+                throw ValidationException::withMessages(['product_ids' => __('portal.err_featured_order_unavailable')]);
+            }
+            foreach ($products as $product) {
+                $position = isset($indexById[$product->id]) ? $indexById[$product->id] + 1 : null;
+                $product->featured = $position !== null;
+                $product->featured_position = $position;
+                if ($product->isDirty('featured')) {
+                    // An editor left open must not put back the old tick.
+                    $product->registry_version++;
+                }
+                $product->saveQuietly();
+            }
+            Audit::record($r->user()->id, 'product.featured_order_saved', 'home_page', ['product_ids' => $orderedIds]);
+        }, 3);
+        SiteCustomization::forgetCache();
+
+        return back()->with('success', __('portal.flash_featured_order_saved'));
     }
 
     public function toggleStock(Request $r, Product $product): RedirectResponse
@@ -288,6 +329,9 @@ class ProductRegistryController extends Controller
                 }
                 $attributeKeys = [...$attributeKeys, ...ProductFacts::columns()];
                 $attributes = collect($d)->only($attributeKeys)->all();
+                if (array_key_exists('featured', $attributes)) {
+                    $attributes['featured_position'] = $this->featuredPositionAfterSave($p, (bool) $attributes['featured']);
+                }
                 if (! $product && $initialStock > 0) {
                     $attributes['stock'] = $initialStock;
                 }
@@ -355,7 +399,7 @@ class ProductRegistryController extends Controller
         foreach (array_filter($old) as $path) {
             Storage::disk('local')->delete($path);
         }
-        if ($r->boolean('sync_concerns')) {
+        if ($r->boolean('sync_concerns') || array_key_exists('featured', $d)) {
             SiteCustomization::forgetCache();
         }
         if ($r->input('redirect_to') === 'catalog') {
@@ -395,6 +439,19 @@ class ProductRegistryController extends Controller
         $canReadArchived = $user?->staff() && collect(['catalog', 'inventory', 'pricing', 'cost_read', 'orders', 'finance'])
             ->contains(fn (string $capability): bool => $user->allows($capability));
         abort_unless($p->active || $canReadArchived, 404);
+    }
+
+    /** A newly ticked product goes last; one already in the list keeps its place; unticking clears it. */
+    private function featuredPositionAfterSave(Product $product, bool $featured): ?int
+    {
+        if (! $featured) {
+            return null;
+        }
+        if ($product->featured && $product->featured_position !== null) {
+            return $product->featured_position;
+        }
+
+        return (int) Product::query()->max('featured_position') + 1;
     }
 
     /**

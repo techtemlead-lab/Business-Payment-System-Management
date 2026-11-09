@@ -2043,12 +2043,7 @@ class SiteCustomization
         }
 
         if (empty($items)) {
-            $products = Product::where('active', true)
-                ->withSellableStock()
-                ->orderByDesc('featured')
-                ->orderBy('name')
-                ->limit(20)
-                ->get();
+            $products = Product::query()->featuredInOrder()->withSellableStock()->get();
             foreach ($products as $product) {
                 $items[] = self::formatPublicProductCard($product);
             }

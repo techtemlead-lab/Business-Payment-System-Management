@@ -172,7 +172,7 @@ class EnforceStaffActions
             $required = [];
             if ($method === 'toggleStock') {
                 $this->authorize($actor, ['inventory', 'catalog'], 'edit');
-            } elseif ($method === 'destroy') {
+            } elseif (in_array($method, ['destroy', 'featuredOrder'], true)) {
                 $this->authorize($actor, ['catalog'], 'edit');
             } else {
                 foreach (['catalog' => ['name', 'sku', 'category', 'description', 'unit', 'active', 'featured', 'image', 'remove_image', 'video_source', 'youtube_url', 'vimeo_url', 'external_video_url', 'video', ...ProductFacts::requestFields()],
