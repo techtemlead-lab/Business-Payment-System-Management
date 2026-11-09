@@ -6522,5 +6522,6 @@ return [
     'acct_password_copy_failed' => 'Could not copy. Select the password and copy it by hand.',
     'tr_flow_not_balanced' => 'The money records do not match. Open the check page to see which part.',
     'tr_flow_check_link' => 'Open the check',
+    'payment_view_only_note' => 'You can see this payment but cannot confirm or reject it. Someone with the approve right will check it.',
     'acct_created_flash_no_code' => ':type account created. An email to set the password has been sent.',
 ];

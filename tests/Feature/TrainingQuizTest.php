@@ -68,7 +68,7 @@ class TrainingQuizTest extends TestCase
 
         $this->actingAs($dealer)->onPortal('dealer')->post('/commands/training/'.$item->id.'/quiz-attempt', [
             'answers' => [$questions[0] => 0, $questions[1] => 0],
-        ])->assertRedirect()->assertSessionHas('error');
+        ])->assertRedirect()->assertSessionHas('warning');
         $completion = TrainingCompletion::query()->sole();
         $this->assertNull($completion->passed_at);
         $this->assertSame(0, $completion->last_score);
@@ -93,6 +93,20 @@ class TrainingQuizTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('data.training.groups.0.items.0.progress.completed', true)
                 ->where('data.training.groups.0.items.0.progress.certificate_url', '/training/'.$item->id.'/certificate'));
+    }
+
+    public function test_a_partner_who_fails_is_told_the_score_on_the_page(): void
+    {
+        [$item, $questions] = $this->quizItem(60);
+        $dealer = User::factory()->dealer()->create(['status' => 'active']);
+        $this->withoutVite();
+
+        $this->actingAs($dealer)->onPortal('dealer')->post('/commands/training/'.$item->id.'/quiz-attempt', [
+            'answers' => [$questions[0] => 0, $questions[1] => 0],
+        ])->assertRedirect();
+
+        $this->onPortal('dealer')->get('/training')->assertOk()->assertInertia(fn ($page) => $page
+            ->where('flash.warning', fn ($message): bool => is_string($message) && str_contains($message, '60%')));
     }
 
     public function test_every_question_must_be_answered_and_hidden_items_cannot_be_attempted(): void
@@ -148,7 +162,7 @@ class TrainingQuizTest extends TestCase
 
         for ($try = 1; $try <= TrainingQuiz::DefaultAttemptsPerHour; $try++) {
             $this->actingAs($dealer)->onPortal('dealer')->post('/commands/training/'.$item->id.'/quiz-attempt', ['answers' => $wrong])
-                ->assertSessionHasNoErrors()->assertSessionHas('error');
+                ->assertSessionHasNoErrors()->assertSessionHas('warning');
         }
         $this->actingAs($dealer)->onPortal('dealer')->post('/commands/training/'.$item->id.'/quiz-attempt', ['answers' => [$questions[0] => 1, $questions[1] => 2]])
             ->assertSessionHasErrors('answers');
