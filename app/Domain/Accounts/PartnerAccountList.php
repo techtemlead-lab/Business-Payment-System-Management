@@ -31,6 +31,12 @@ final class PartnerAccountList
     /** "No confirmed order in the last N days" choices. */
     public const QuietDays = [30, 60, 90];
 
+    /**
+     * Identity details on a partner's profile. No account screen shows them, so they stay out of the page
+     * data; ID papers are opened through the identity permission (PartnerKycDocuments) instead.
+     */
+    private const PrivateProfileKeys = ['birth_certificate_number', 'date_of_birth'];
+
     /** The status tab for accounts the owner closed; they are left out of every other tab. */
     public const ClosedStatus = 'closed';
 
@@ -150,6 +156,7 @@ final class PartnerAccountList
             $user->setAttribute('current_rank', $role === 'dealer' ? ($user->getAttribute('current_rank') ?? 'dealer') : null);
             $user->setAttribute('last_order_at', $row?->last_order_at ? CarbonImmutable::parse($row->last_order_at, 'UTC')->toIso8601String() : null);
             $user->setAttribute('month_purchase', $this->decimal($row?->month_purchase));
+            $user->setAttribute('profile', array_diff_key((array) $user->profile, array_flip(self::PrivateProfileKeys)));
         });
 
         return $page;
