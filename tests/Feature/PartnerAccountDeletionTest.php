@@ -3,13 +3,16 @@
 namespace Tests\Feature;
 
 use App\Domain\Accounts\AccountPhoneRules;
+use App\Domain\Accounts\DealerVerification;
 use App\Domain\Accounts\PartnerAccountDeletion;
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\DealerRank;
 use App\Models\Order;
 use App\Models\ReferralTreePath;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -160,22 +163,108 @@ class PartnerAccountDeletionTest extends TestCase
         $this->assertDatabaseHas('users', ['id' => $child->id, 'sponsor_id' => $partner->id, 'status' => 'active']);
     }
 
-    public function test_a_partner_with_an_area_dealer_seat_is_closed(): void
+    public function test_a_brand_new_dealer_with_an_area_seat_is_deleted_and_the_seat_goes_with_the_account(): void
     {
         $this->seedClassicPlaceCodes();
-        $this->actingAs($this->owner)->onPortal('sadmin')->post('/commands/accounts', $this->dealerForm(['phone' => '01711114444', 'email' => 'seated@example.com']))
-            ->assertRedirect('/accounts');
-        $dealer = User::query()->where('email', 'seated@example.com')->firstOrFail();
+        $dealer = $this->newDealerThroughTheForm();
+        $this->assertDatabaseHas('area_dealer_assignments', ['user_id' => $dealer->id, 'is_active' => true]);
 
         $this->actingAs($this->owner)->onPortal('sadmin')->getJson('/commands/accounts/'.$dealer->id.'/deletion-check')
-            ->assertJsonPath('outcome', PartnerAccountDeletion::OutcomeClosed)
-            ->assertJsonCount(1, 'records')
-            ->assertJsonPath('records.0.key', 'area_seat');
+            ->assertJsonPath('outcome', PartnerAccountDeletion::OutcomeDeleted)
+            ->assertJsonPath('records', []);
+
+        $this->removePartner($dealer)->assertSessionHas('success', __('portal.flash_partner_deleted', ['code' => $dealer->dealer_code]));
+
+        $this->assertDatabaseMissing('users', ['id' => $dealer->id]);
+        $this->assertDatabaseMissing('area_dealer_assignments', ['user_id' => $dealer->id]);
+
+        $this->actingAs($this->owner)->onPortal('sadmin')->post('/commands/accounts', $this->dealerForm(['phone' => '01711115555', 'email' => 'same-seat@example.com']))
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/accounts');
+    }
+
+    public function test_a_dealer_with_an_area_seat_and_an_order_is_still_closed(): void
+    {
+        $this->seedClassicPlaceCodes();
+        $dealer = $this->newDealerThroughTheForm();
+        $order = $this->orderFor($dealer);
 
         $this->removePartner($dealer)->assertSessionHas('success');
 
         $this->assertDatabaseHas('users', ['id' => $dealer->id, 'status' => 'suspended']);
-        $this->assertDatabaseHas('area_dealer_assignments', ['user_id' => $dealer->id]);
+        $this->assertDatabaseHas('orders', ['id' => $order->id]);
+    }
+
+    public function test_a_closed_account_leaves_the_normal_lists_and_shows_under_the_closed_tab(): void
+    {
+        $open = $this->cleanPartner();
+        $suspended = $this->cleanPartner(['status' => 'suspended']);
+        $closed = $this->cleanPartner();
+        $this->orderFor($closed);
+
+        $this->removePartner($closed)->assertSessionHas('success');
+
+        $this->assertNotNull($closed->fresh()->closed_at);
+        $this->assertSame([$open->id], $this->listedIds('/sub-dealers?status=active'));
+        $this->assertSame([$suspended->id], $this->listedIds('/sub-dealers?status=suspended'));
+        $this->assertEqualsCanonicalizing([$open->id, $suspended->id], $this->listedIds('/sub-dealers'));
+        $this->assertSame([$closed->id], $this->listedIds('/sub-dealers?status=closed'));
+        $this->assertSame([], $this->listedIds('/accounts?status=closed'));
+
+        $counts = $this->listPage('/sub-dealers')['props']['data']['account_status_counts'];
+        $this->assertEqualsCanonicalizing(['active' => 1, 'suspended' => 1, 'closed' => 1], $counts);
+    }
+
+    public function test_a_closed_account_stays_private_and_cannot_be_used(): void
+    {
+        $dealer = User::factory()->dealer()->create(['name' => 'Closed Directory Dealer', 'directory_visible' => true, 'phone' => '01711116666', 'password' => 'SyntheticPassword123']);
+        DB::table('wallets')->insert(['user_id' => $dealer->id, 'created_at' => now(), 'updated_at' => now()]);
+        $this->orderFor($dealer);
+
+        $this->onPortal('public')->get('/dealers')->assertOk()->assertSee('Closed Directory Dealer');
+        $this->assertTrue(app(DealerVerification::class)->lookup($dealer->dealer_code)['valid']);
+
+        $this->removePartner($dealer)->assertSessionHas('success');
+
+        $this->onPortal('public')->get('/dealers')->assertOk()->assertDontSee('Closed Directory Dealer');
+        $this->assertFalse(app(DealerVerification::class)->lookup($dealer->dealer_code)['valid']);
+
+        auth()->forgetGuards();
+        $this->onPortal('dealer')->post('/login', ['email' => '01711116666', 'password' => 'SyntheticPassword123'])->assertSessionHasErrors('email');
+        $this->assertGuest();
+    }
+
+    public function test_setting_a_closed_account_back_to_active_reopens_it(): void
+    {
+        $partner = $this->cleanPartner(['locale' => 'en', 'phone' => '01711117777']);
+        $this->orderFor($partner);
+        $this->removePartner($partner)->assertSessionHas('success');
+        $this->assertNotNull($partner->fresh()->closed_at);
+
+        $this->actingAs($this->owner)->onPortal('sadmin')
+            ->patch('/commands/accounts/'.$partner->id, ['status' => 'active', 'reason' => 'Closed by mistake, opening again'])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('users', ['id' => $partner->id, 'status' => 'active', 'closed_at' => null]);
+        $this->assertSame([$partner->id], $this->listedIds('/sub-dealers'));
+        $this->assertSame([], $this->listedIds('/sub-dealers?status=closed'));
+    }
+
+    public function test_changing_other_details_of_a_closed_account_keeps_it_closed(): void
+    {
+        $partner = $this->cleanPartner();
+        $this->orderFor($partner);
+        $this->removePartner($partner)->assertSessionHas('success');
+
+        $this->actingAs($this->owner)->onPortal('sadmin')
+            ->patch('/commands/accounts/'.$partner->id, ['name' => 'Corrected Name', 'reason' => 'Fixing a spelling mistake'])
+            ->assertSessionHasNoErrors();
+
+        $fresh = $partner->fresh();
+        $this->assertSame('suspended', $fresh->status);
+        $this->assertNotNull($fresh->closed_at);
+        $this->assertSame([$partner->id], $this->listedIds('/sub-dealers?status=closed'));
     }
 
     public function test_a_wallet_with_a_balance_keeps_the_account(): void
@@ -311,6 +400,30 @@ class PartnerAccountDeletionTest extends TestCase
         DealerRank::firstOrCreate(['user_id' => $partner->id], ['current_rank' => 'dealer']);
 
         return $partner;
+    }
+
+    private function newDealerThroughTheForm(): User
+    {
+        $this->actingAs($this->owner)->onPortal('sadmin')->post('/commands/accounts', $this->dealerForm(['phone' => '01711114444', 'email' => 'seated@example.com']))
+            ->assertRedirect('/accounts');
+
+        return User::query()->where('email', 'seated@example.com')->firstOrFail();
+    }
+
+    /** @return array<string, mixed> */
+    private function listPage(string $path): array
+    {
+        $version = (string) (new HandleInertiaRequests)->version(Request::create('/'));
+
+        return $this->actingAs($this->owner)->onPortal('sadmin')
+            ->withHeaders(['X-Inertia' => 'true', 'X-Inertia-Version' => $version])
+            ->get($path)->assertOk()->json();
+    }
+
+    /** @return list<int> */
+    private function listedIds(string $path): array
+    {
+        return collect($this->listPage($path)['props']['data']['accounts']['data'])->pluck('id')->all();
     }
 
     private function orderFor(User $partner): Order

@@ -36,6 +36,7 @@ final class PartnerAccountDeletion
      */
     public const DisposableColumns = [
         'account_notices.user_id',
+        'area_dealer_assignments.user_id',
         'known_sign_in_devices.user_id',
         'kyc_documents.user_id',
         'list_column_choices.user_id',
@@ -78,7 +79,6 @@ final class PartnerAccountDeletion
         'commission_allocations.user_id' => 'commissions',
         'users.sponsor_id' => 'people_under',
         'referral_tree_paths.ancestor_id' => 'people_under',
-        'area_dealer_assignments.user_id' => 'area_seat',
         'partner_customers.partner_id' => 'customers',
         'partner_conversations.partner_id' => 'messages',
         'support_tickets.user_id' => 'support',
@@ -320,7 +320,12 @@ final class PartnerAccountDeletion
             'status' => ['before' => $partner->status, 'after' => 'suspended'],
             'directory_visible' => ['before' => (bool) $partner->directory_visible, 'after' => false],
         ];
-        $partner->forceFill(['status' => 'suspended', 'directory_visible' => false, 'remember_token' => Str::random(60)])->save();
+        $partner->forceFill([
+            'status' => 'suspended',
+            'directory_visible' => false,
+            'closed_at' => $partner->closed_at ?? now(),
+            'remember_token' => Str::random(60),
+        ])->save();
         DB::table('sessions')->where('user_id', $partner->id)->delete();
 
         Audit::record($actor->id, 'account.closed', (string) $partner->id, [

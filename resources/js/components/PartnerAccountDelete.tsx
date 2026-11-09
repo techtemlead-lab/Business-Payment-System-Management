@@ -44,13 +44,14 @@ export default function PartnerAccountDelete({ account, onDone }: { account: Row
     }
 
     const willDelete = check?.outcome === 'deleted';
+    const alreadyClosed = Boolean(account.closed_at);
 
     return (
         <section className="panel">
             <div className="panel-heading">
                 <div>
                     <h3 className="ops-row is-inline"><Trash2 size={18} aria-hidden="true" /> {translate('portal', 'partner_delete_title')}</h3>
-                    <p className="muted">{translate('portal', 'partner_delete_intro')}</p>
+                    <p className="muted">{translate('portal', alreadyClosed ? 'partner_delete_already_closed' : 'partner_delete_intro')}</p>
                 </div>
             </div>
             {!open && <button type="button" className="button danger" onClick={() => setOpen(true)}>{translate('portal', 'partner_delete_open')}</button>}
@@ -63,7 +64,7 @@ export default function PartnerAccountDelete({ account, onDone }: { account: Row
             )}
             {open && check && (
                 <>
-                    <p className="error" role="alert">{translate('portal', willDelete ? 'partner_delete_will_delete' : 'partner_delete_will_close')}</p>
+                    {(willDelete || !alreadyClosed) && <p className="error" role="alert">{translate('portal', willDelete ? 'partner_delete_will_delete' : 'partner_delete_will_close')}</p>}
                     {check.records.length > 0 && (
                         <>
                             <p className="muted">{translate('portal', 'partner_delete_records_heading')}</p>
@@ -72,7 +73,7 @@ export default function PartnerAccountDelete({ account, onDone }: { account: Row
                             </ul>
                         </>
                     )}
-                    {check.dealer_code ? (
+                    {!willDelete && alreadyClosed ? null : check.dealer_code ? (
                         <form
                             className="action-form"
                             onSubmit={(event) => {
