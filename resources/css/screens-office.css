@@ -15,7 +15,6 @@
 .app-shell .office-home{display:flex;flex-direction:column;gap:var(--ds-s-4);min-width:0}
 .app-shell .office-home-date{font-size:var(--ds-fs-sm);font-weight:500;color:var(--ds-text-muted);white-space:nowrap}
 .app-shell .office-home-month{margin:0 0 var(--ds-s-3);font-size:var(--ds-fs-sm);font-weight:500;color:var(--ds-text-2);overflow-wrap:anywhere}
-.app-shell .office-home-empty{margin:0;font-size:var(--ds-fs-base);color:var(--ds-text-muted)}
 .app-shell .office-home>.admin-home-insights{margin-top:0}
 @media (min-width:961px){
   .app-shell .office-home>.admin-home-insights{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -32,6 +31,9 @@
   .app-shell .office-home .office-figures,.app-shell .office-home .office-figures[data-cards="4"]{grid-template-columns:repeat(2,minmax(0,1fr))}
   .app-shell .office-home .office-figure{flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:4px}
   .app-shell .office-home .office-figure strong{text-align:left}
+  /* Fewer, larger day names under the chart, always ending on today. */
+  .app-shell .office-home .admin-trend-chart text{font-size:19px}
+  .app-shell .office-home .admin-trend-chart g:not(:nth-last-child(4n+1)) text{display:none}
 }
 
 /* ---- Sidebar ---------------------------------------------------------- */

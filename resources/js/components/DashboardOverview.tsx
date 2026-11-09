@@ -13,7 +13,7 @@ import NextStepsCard from './dealertools/NextStepsCard';
 import { ProfilePhoto } from './ProfilePhoto';
 import Figures, { type FigureItem } from './office/Figures';
 import OfficePage from './office/OfficePage';
-import { Badge, date, humanize, money, type Row, number } from './UI';
+import { Badge, Empty, date, humanize, money, type Row, number } from './UI';
 import { businessTodayIso, localizeDigits } from '../business-date';
 import { useT } from '../shared/i18n/t';
 
@@ -444,7 +444,7 @@ function SalesTrend({ points, month }: { points: TrendPoint[]; month: Row | null
                             <rect x={x} y={height - barHeight} width={barWidth} height={barHeight} rx={4} className={value > 0 ? 'bar' : 'bar empty'}>
                                 <title>{`${dayLabel(point.date)}: ${money(point.value)} · ${translate('portal', 'dash_trend_orders', { count: String(point.orders) })}`}</title>
                             </rect>
-                            {(index % 2 === 0 || index === points.length - 1) && (
+                            {(points.length - 1 - index) % 2 === 0 && (
                                 <text x={x + barWidth / 2} y={height + 16} textAnchor="middle">{dayLabel(point.date)}</text>
                             )}
                         </g>
@@ -506,7 +506,7 @@ function AdminHome({ home }: { home: Row }) {
                         {trend.length > 0 && <SalesTrend points={trend} month={home.month ?? null} />}
                     </section>
                 )}
-                {figures.length === 0 && work.length === 0 && trend.length === 0 && <p className="office-home-empty">{translate('office_home', 'nothing_waiting')}</p>}
+                {figures.length === 0 && work.length === 0 && trend.length === 0 && <Empty line={translate('office_home', 'nothing_waiting')} />}
             </div>
         </OfficePage>
     );

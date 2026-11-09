@@ -65,7 +65,7 @@ class StaffDashboardSummaryTest extends TestCase
         $dealer = User::factory()->dealer()->create();
         $order = $this->order($dealer, 'partly_delivered', '1000.00');
         $line = $order->lines()->create(['product_id' => Product::factory()->create()->id, 'sku' => 'SKU-1', 'name' => 'Item', 'quantity' => 10, 'dispatched' => 10, 'unit_price' => '100.00', 'mrp' => '150.00', 'total' => '1000.00']);
-        $this->parcelArrived($order, now(), [['line_id' => $line->id, 'name' => 'Item', 'quantity' => 4, 'lots' => []]]);
+        $this->parcelArrived($order, now(), [['line_id' => (int) $line->getKey(), 'name' => 'Item', 'quantity' => 4, 'lots' => []]]);
 
         $summary = app(StaffDashboardSummary::class)->for($owner);
 
