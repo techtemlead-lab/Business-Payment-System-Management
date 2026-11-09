@@ -93,10 +93,12 @@ final class OrdersSection implements WorkspaceSection
 
         $props = [];
         if ($deliveryView === 'send') {
-            $props['orders'] = $listQuery->paginate($usesSharedTable ? self::StaffOrderRows : self::PartnerOrderRows)->withQueryString();
+            /** @var LengthAwarePaginator<int, Order> $orderPage */
+            $orderPage = $listQuery->paginate($usesSharedTable ? self::StaffOrderRows : self::PartnerOrderRows)->withQueryString();
             if ($usesSharedTable) {
-                $this->addParcelLinks($props['orders']);
+                $this->addParcelLinks($orderPage);
             }
+            $props['orders'] = $orderPage;
         }
         if ($context->section === 'orders') {
             $props['order_status_counts'] = $this->statusCounts($context);
