@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { usePage } from '@inertiajs/react';
 import { actionAllowed } from '../../action-permissions';
 import { Badge, Modal, Pagination, Table, dateTime, label, money, type Row } from '../../UI';
