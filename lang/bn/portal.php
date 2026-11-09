@@ -3819,7 +3819,7 @@ return [
     // Chapter 18: inventory_branches
     // Chapter 19: payment_claims_gateways
     // Chapter 20: commission_simulator
-    'tour_welcome_badge' => 'মদিনা ন্যাচারাল কেয়ারে স্বাগতম',
+    'tour_welcome_badge' => 'মদিনা ন্যাচারাল হেলথ কেয়ারে স্বাগতম',
     'tour_welcome_title' => 'আপনার ধাপে ধাপে গাইড ও ব্যবহারের নির্দেশিকা',
     'tour_welcome_subtitle' => 'স্ক্রিনের প্রতিটি অংশ দেখিয়ে ধাপে ধাপে গাইডের মাধ্যমে বড়-ছোট সব সুবিধা জেনে নিন।',
     'tour_welcome_pillar_ops' => 'অর্ডার ও ডেলিভারি',
