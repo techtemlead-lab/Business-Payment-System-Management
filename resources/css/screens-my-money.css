@@ -59,7 +59,7 @@
 
 /* Office view header */
 .mm-partner-head{display:flex;flex-direction:column;align-items:flex-start;gap:var(--ds-s-1)}
-.mm-partner-head h1{margin:var(--ds-s-2) 0 0;font-size:var(--ds-fs-xl);font-weight:600;letter-spacing:0}
+.mm-page .mm-partner-head h2{margin:var(--ds-s-2) 0 0;font-size:var(--ds-fs-xl)}
 .mm-partner-head p{font-size:var(--ds-fs-base);color:var(--ds-text-2)}
 
 @media(min-width:721px){

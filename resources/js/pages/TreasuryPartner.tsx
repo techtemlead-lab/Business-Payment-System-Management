@@ -30,7 +30,7 @@ export default function TreasuryPartner({ partner, summary, cards, table }: {
             <div className="mm-page">
                 <header className="mm-partner-head">
                     <Link className="text-link" href={`${base}/treasury/partners`}><ArrowLeft size={16} aria-hidden="true" /> {translate('my_money', 'back_to_partners')}</Link>
-                    <h1>{partner.name}</h1>
+                    <h2>{partner.name}</h2>
                     {who && <p>{who}</p>}
                 </header>
                 <MoneyHero summary={summary} />
