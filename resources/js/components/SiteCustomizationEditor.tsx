@@ -132,7 +132,7 @@ export default function SiteCustomizationEditor({
 
     return (
         <OfficePage
-            title={translate('website_admin', 'heading')}
+            title={hub?.label ?? translate('website_admin', 'heading')}
             hub={hub}
             action={<a href={liveSiteHref} target="_blank" rel="noopener noreferrer" className="button"><ExternalLink size={15} aria-hidden="true" /> {translate('portal', 'cms_preview_live')}</a>}
         >

@@ -28,7 +28,7 @@ export default function Content({ data }: PortalSectionProps) {
 
     return (
         <OfficePage
-            title={translate('website_admin', 'heading')}
+            title={data.hub?.label ?? translate('website_admin', 'heading')}
             hub={data.hub}
             action={<button type="button" className="button dark" onClick={() => setEditing('new')}><Plus size={17} aria-hidden="true" />{translate('office_website', 'page_text_write')}</button>}
         >

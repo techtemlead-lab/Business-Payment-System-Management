@@ -53,7 +53,7 @@ export default function PublicTrustHub({ data }: { data?: TrustData | null }) {
     const label = (key: string): string => data.labels[key] ?? key;
 
     return (
-        <OfficePage title={translate('website_admin', 'heading')} hub={hub}>
+        <OfficePage title={hub?.label ?? translate('website_admin', 'heading')} hub={hub}>
             <div className="ow-list" data-tour="public-trust">
                 <TextSections data={data} label={label} />
                 <DocumentsSection data={data} label={label} />

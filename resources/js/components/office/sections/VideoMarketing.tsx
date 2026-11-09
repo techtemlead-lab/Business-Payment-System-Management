@@ -33,7 +33,7 @@ export default function VideoMarketing({ hub, managedOnWebsite, videoSetting, vi
 
     return (
         <OfficePage
-            title={translate('website_admin', 'heading')}
+            title={hub?.label ?? translate('website_admin', 'heading')}
             hub={hub}
             action={managedOnWebsite ? <Link className="button" href="/website#website-video">{translate('office_website', 'video_gallery_link')}</Link> : undefined}
         >

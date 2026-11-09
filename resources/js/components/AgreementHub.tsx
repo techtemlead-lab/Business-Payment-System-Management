@@ -141,7 +141,7 @@ function OfficeAgreementView({ agreement }: { agreement: OfficeAgreement }) {
 
     return (
         <OfficePage
-            title={translate('office_website', 'partners_title')}
+            title={hub?.label ?? translate('office_website', 'partners_title')}
             hub={hub}
             action={agreement.can_edit ? <button type="button" className="button dark" onClick={() => setPublishing(true)}>{translate('portal', 'agr_edit_title')}</button> : undefined}
         >

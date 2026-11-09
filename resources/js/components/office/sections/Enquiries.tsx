@@ -36,7 +36,7 @@ export default function Enquiries({ data }: PortalSectionProps) {
     ];
 
     return (
-        <OfficePage title={translate('office_website', 'messages_title')} hub={data.hub}>
+        <OfficePage title={data.hub?.label ?? translate('office_website', 'messages_title')} hub={data.hub}>
             <MoneyTable<EnquiryRow>
                 data={data.enquiries_table as MoneyTableData<EnquiryRow> | undefined}
                 prop="data"

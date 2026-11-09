@@ -143,7 +143,7 @@ function OfficeContests({ data }: { data: ContestsData }) {
 
     return (
         <OfficePage
-            title={translate('office_website', 'partners_title')}
+            title={hub?.label ?? translate('office_website', 'partners_title')}
             hub={hub}
             action={<button type="button" className="button dark" onClick={() => setAdding(true)}><Plus size={17} aria-hidden="true" />{translate('dealer_tools', 'contest_add_title')}</button>}
         >
@@ -151,6 +151,8 @@ function OfficeContests({ data }: { data: ContestsData }) {
                 rows={data.contests}
                 onRowClick={(row: Contest) => setOpenedId(row.id)}
                 empty={translate('dealer_tools', 'contest_empty_title')}
+                emptyBody=""
+                searchable={false}
                 columns={[
                     { key: 'title', title: translate('dealer_tools', 'contest_title_field'), sortable: true, render: (contest: Contest) => <button type="button" className="text-link" onClick={() => setOpenedId(contest.id)}>{contest.title}</button> },
                     { key: 'starts_on', title: translate('office_website', 'col_period'), sortable: true, render: (contest: Contest) => period(contest) },

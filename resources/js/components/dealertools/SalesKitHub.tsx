@@ -93,7 +93,7 @@ function OfficeKit({ data }: { data: SalesKitData }) {
 
     return (
         <OfficePage
-            title={translate('office_website', 'partners_title')}
+            title={hub?.label ?? translate('office_website', 'partners_title')}
             hub={hub}
             action={<button type="button" className="button dark" onClick={() => setAdding(true)}><Plus size={17} aria-hidden="true" />{translate('dealer_tools', 'kit_add_title')}</button>}
         >
@@ -101,6 +101,7 @@ function OfficeKit({ data }: { data: SalesKitData }) {
                 rows={items}
                 onRowClick={(row: SalesKitItem) => setOpenedId(row.id)}
                 empty={translate('dealer_tools', 'kit_empty_title')}
+                emptyBody=""
                 filters={[
                     { key: 'language', label: translate('dealer_tools', 'kit_any_language'), options: (data?.languages ?? []).map((value) => ({ value, label: languageLabel(value) })) },
                     { key: 'kind', label: translate('dealer_tools', 'kit_any_kind'), options: (data?.kinds ?? []).map((value) => ({ value, label: kindLabel(value) })) },

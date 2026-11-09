@@ -376,7 +376,7 @@ function StaffCalendar({ data }: { data: StaffData }) {
 
     return (
         <OfficePage
-            title={translate('office_website', 'partners_title')}
+            title={hub?.label ?? translate('office_website', 'partners_title')}
             hub={hub}
             action={data.can_create ? <button type="button" className="button dark" onClick={() => setEditing('new')}><Plus size={17} aria-hidden="true" />{translate('portal', 'events_add')}</button> : undefined}
         >
@@ -386,8 +386,6 @@ function StaffCalendar({ data }: { data: StaffData }) {
                     onRowClick={(row: PartnerEventRow) => setOpenedId(row.id)}
                     empty={translate('portal', 'events_empty_title')}
                     emptyBody=""
-                    defaultSortKey="date"
-                    defaultSortDir="desc"
                     columns={[
                         { key: 'date', title: translate('portal', 'events_field_date'), sortable: true, render: (row: PartnerEventRow) => <>{shortDate(row.date)}<small className="cell-sub">{clock(row.start_time)} – {clock(row.end_time)}</small></> },
                         { key: 'title', title: translate('office_website', 'col_event'), render: (row: PartnerEventRow) => <><button type="button" className="text-link" onClick={() => setOpenedId(row.id)}>{titleOf(row)}</button>{row.place && <small className="cell-sub">{row.place}</small>}</> },

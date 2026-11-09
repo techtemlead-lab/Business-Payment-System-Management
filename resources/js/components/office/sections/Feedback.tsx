@@ -50,7 +50,7 @@ export default function Feedback({ data }: PortalSectionProps) {
 
     return (
         <OfficePage
-            title={translate('website_admin', 'heading')}
+            title={data.hub?.label ?? translate('website_admin', 'heading')}
             hub={data.hub}
             action={<button type="button" className="button dark" onClick={() => setAdding(true)}><Plus size={17} aria-hidden="true" />{translate('portal', 'feedback_add_title')}</button>}
         >

@@ -141,7 +141,7 @@ export default function SchemesHub({ data }: { data: SchemesData }) {
 
     return (
         <OfficePage
-            title={translate('office_website', 'partners_title')}
+            title={hub?.label ?? translate('office_website', 'partners_title')}
             hub={hub}
             action={<button type="button" className="button dark" onClick={() => setAdding(true)}><Plus size={17} aria-hidden="true" />{translate('dealer_tools', 'scheme_add_title')}</button>}
         >
@@ -149,6 +149,7 @@ export default function SchemesHub({ data }: { data: SchemesData }) {
                 rows={data.schemes}
                 onRowClick={(row: Scheme) => setOpenedId(row.id)}
                 empty={translate('dealer_tools', 'scheme_empty_title')}
+                emptyBody=""
                 columns={[
                     { key: 'title', title: translate('dealer_tools', 'scheme_title_field'), sortable: true, render: (scheme: Scheme) => <><button type="button" className="text-link" onClick={() => setOpenedId(scheme.id)}>{scheme.title}</button><small className="cell-sub">{scheme.benefit_text}</small></> },
                     { key: 'starts_on', title: translate('office_website', 'col_period'), sortable: true, render: (scheme: Scheme) => period(scheme) },

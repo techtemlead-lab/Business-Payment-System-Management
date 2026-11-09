@@ -8,6 +8,7 @@ use App\Domain\Support\GuidePrerequisites;
 use App\Models\CompanyBranch;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\SiteFeedback;
 use App\Models\User;
 use App\Support\ListPage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -306,6 +307,28 @@ class PortalQueryBudgetTest extends TestCase
         $this->assertCount(count($queries), $moreQueries, 'Branch performance queries must not grow with the number of orders.');
     }
 
+    public function test_website_lists_do_not_read_a_query_per_row(): void
+    {
+        $owner = User::factory()->staff()->create();
+        SiteFeedback::factory()->count(2)->create(['status' => 'pending', 'source' => 'public', 'product_id' => null]);
+        DB::table('enquiries')->insert($this->enquiryRows(2));
+        $this->actingAs($owner)->onPortal('sadmin')->get('/feedback')->assertOk();
+        $this->actingAs($owner)->onPortal('sadmin')->get('/enquiries')->assertOk();
+
+        [$feedbackResponse, $feedbackQueries] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/feedback'));
+        [$enquiryResponse, $enquiryQueries] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/enquiries'));
+        $feedbackResponse->assertOk()->assertInertia(fn (Assert $page) => $page->where('data.feedback_table.totals.count', 2));
+        $enquiryResponse->assertOk()->assertInertia(fn (Assert $page) => $page->where('data.enquiries_table.totals.count', 2));
+
+        SiteFeedback::factory()->count(8)->create(['status' => 'approved', 'source' => 'public', 'product_id' => null]);
+        DB::table('enquiries')->insert($this->enquiryRows(8));
+        [, $moreFeedbackQueries] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/feedback'));
+        [, $moreEnquiryQueries] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/enquiries'));
+
+        $this->assertCount(count($feedbackQueries), $moreFeedbackQueries, 'Feedback list queries must not grow with the number of rows.');
+        $this->assertCount(count($enquiryQueries), $moreEnquiryQueries, 'Enquiry list queries must not grow with the number of rows.');
+    }
+
     public function test_dashboard_filter_columns_are_indexed(): void
     {
         $indexes = collect(DB::select("select indexname from pg_indexes where schemaname = 'public'"))->pluck('indexname');
@@ -359,6 +382,22 @@ class PortalQueryBudgetTest extends TestCase
     private function matching(array $queries, string $needle): int
     {
         return collect($queries)->filter(fn (array $query): bool => str_contains(strtolower($query['query']), strtolower($needle)))->count();
+    }
+
+    /**
+     * @return list<array{name: string, phone: string, topic: string, message: string, status: string, created_at: mixed, updated_at: mixed}>
+     */
+    private function enquiryRows(int $count): array
+    {
+        return array_map(fn (int $number): array => [
+            'name' => 'Visitor '.$number,
+            'phone' => '0170000'.str_pad((string) $number, 4, '0', STR_PAD_LEFT),
+            'topic' => 'general',
+            'message' => 'A question number '.$number,
+            'status' => 'new',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], range(1, $count));
     }
 
     private function order(User $buyer, string $status, string $total, string $paid = '0.00', string $dueCredit = '0.00'): Order

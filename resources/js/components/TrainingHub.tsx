@@ -522,7 +522,7 @@ function StaffEditor({ data }: { data: StaffData }) {
 
     return (
         <OfficePage
-            title={translate('office_website', 'partners_title')}
+            title={hub?.label ?? translate('office_website', 'partners_title')}
             hub={hub}
             action={(
                 <>
