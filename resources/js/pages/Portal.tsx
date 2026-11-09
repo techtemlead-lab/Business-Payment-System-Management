@@ -72,7 +72,7 @@ const Inventory=React.lazy(()=>import('../components/office/sections/Inventory')
 const Accounts=React.lazy(()=>import('../components/office/sections/Accounts'));
 const PartnerFrame=React.lazy(()=>import('../components/office/sections/PartnerFrame'));
 /** These pages draw their own tab strip through OfficePage, so the page must not print a second one. */
-const DRAWS_OWN_TABS=['accounts','sub-dealers','partnerships','sub-dealer-applications','network-tree','area-dealers','ranks','employees','content','website','customization','public-trust','enquiries','feedback','agreement','training','events','sales-kit','schemes','contests','dashboards','data-cleanup','identity-review','privacy-requests','login-rules','overview'];
+const DRAWS_OWN_TABS=['accounts','sub-dealers','partnerships','sub-dealer-applications','network-tree','area-dealers','ranks','employees','content','website','customization','public-trust','enquiries','feedback','agreement','training','events','sales-kit','schemes','contests','dashboards','data-cleanup','identity-review','privacy-requests','login-rules','overview','support-admin','partner-messages','top-sellers','branch-performance','partner-scorecard'];
 /**
  * Every 30 seconds work queues refresh their list, so new orders and payments show up
  * without a reload. Every other page only refreshes the menu badges: re-sending a whole

@@ -81,8 +81,8 @@ class SupportTicketTimersTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('data.support_admin.overdue_count', 1)
-                ->where('data.support_admin.tickets.0.overdue', true)
-                ->where('data.support_admin.tickets.0.waiting_hours', 30));
+                ->where('data.support_admin.table.rows.data.0.overdue', true)
+                ->where('data.support_admin.table.rows.data.0.waiting_hours', 30));
     }
 
     public function test_daily_reminder_reaches_staff_who_answer_tickets_in_their_language(): void

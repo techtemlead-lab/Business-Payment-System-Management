@@ -19,7 +19,10 @@ import {
     RotateCcw,
     X,
 } from 'lucide-react';
-import { Badge, date, Empty, Table, type Row, number } from './UI';
+import { Badge, date, Empty, Modal, Table, type Row, number } from './UI';
+import MoneyTable, { type MoneyColumn, type MoneyTableData } from './MoneyTable';
+import OfficePage from './office/OfficePage';
+import Figures, { type FigureItem } from './office/Figures';
 import PrerequisiteHelper from './PrerequisiteHelper';
 import { restartOnboardingTour } from './OnboardingTour';
 import { useT } from '../shared/i18n/t';
@@ -566,89 +569,139 @@ function waitingTime(hours: number, translate: ReturnType<typeof useT>): string 
     return translate('portal', 'support_wait_days', { count: String(Math.floor(hours / 24)) });
 }
 
-export function SupportAdminHub({ data }: { data: Row }) {
+type SupportDeskRow = Row & {
+    id: string;
+    subject: string;
+    body: string;
+    category: string;
+    status: string;
+    user_name: string;
+    dealer_code: string | null;
+    created_at: string;
+    waiting_hours: number | null;
+    overdue: boolean;
+    replies: Row[];
+};
+
+type SupportDesk = {
+    table?: MoneyTableData<SupportDeskRow>;
+    counts?: Record<string, number>;
+    overdue_count?: number;
+};
+
+/** One ticket: what the partner wrote, the replies so far, and the reply box. */
+function SupportTicketDrawer({ ticket, onClose }: { ticket: SupportDeskRow; onClose: () => void }) {
     const translate = useT();
-    const admin = data.support_admin || { tickets: [], filters: {} };
-    const tickets: Row[] = admin.tickets || [];
 
     return (
-        <section className="panel">
-            <div className="panel-heading">
-                <div>
-                    <h2>{translate('portal', 'support_admin_title')}</h2>
-                    <p className="muted">{translate('portal', 'support_admin_hint')}</p>
-                </div>
-            </div>
-            <form
-                className="filter-bar"
-                onSubmit={(event) => {
-                    event.preventDefault();
-                    const fd = new FormData(event.currentTarget);
-                    router.get('/support-admin', { status: String(fd.get('status') || '') || undefined }, { preserveState: true });
-                }}
-            >
-                <label className="muted ops-stack is-tight ops-fs-2xs">
-                    {translate('portal', 'col_status')}
-                    <select name="status" defaultValue={admin.filters?.status || ''}>
-                        <option value="">{translate('portal', 'all')}</option>
-                        <option value="pending">{translate('portal', 'status_pending')}</option>
-                        <option value="in_progress">{translate('portal', 'status_in_progress')}</option>
-                        <option value="resolved">{translate('portal', 'status_resolved')}</option>
-                        <option value="overdue">{translate('portal', 'support_filter_overdue')}</option>
-                    </select>
-                </label>
-                <button className="button small" type="submit">{translate('portal', 'apply_dates')}</button>
-            </form>
-            {Number(admin.overdue_count || 0) > 0 && (
-                <div className="notice warning ops-mt-3" role="status">
-                    <p>{translate('portal', 'support_overdue_notice', { count: String(admin.overdue_count), hours: String(admin.overdue_hours ?? 24) })}</p>
-                    <button type="button" className="text-link" onClick={() => router.get('/support-admin', { status: 'overdue' }, { preserveState: true })}>{translate('portal', 'support_show_overdue')}</button>
-                </div>
-            )}
-            {tickets.map((ticket) => (
-                <article key={ticket.id} className="panel ops-mt-3">
-                    <div className="panel-heading">
-                        <div>
-                            <h3>{ticket.subject}</h3>
-                            <p className="muted">{ticket.user_name} · {ticket.dealer_code} · {translate('portal', `support_cat_${ticket.category}`)}</p>
-                            {ticket.waiting_hours !== null && ticket.waiting_hours !== undefined && (
-                                <p className={ticket.overdue ? 'field-error' : 'muted'}>
-                                    {translate('portal', ticket.overdue ? 'support_waiting_overdue' : 'support_waiting', { time: waitingTime(Number(ticket.waiting_hours), translate) })}
-                                </p>
-                            )}
-                        </div>
-                        <Badge status={ticket.status} />
+        <Modal variant="drawer" title={ticket.subject} badge={<Badge status={ticket.status} />} onClose={onClose}>
+            <dl className="office-facts">
+                <div><dt>{translate('portal', 'col_partner')}</dt><dd>{[ticket.user_name, ticket.dealer_code].filter(Boolean).join(' · ')}</dd></div>
+                <div><dt>{translate('portal', 'support_category')}</dt><dd>{translate('portal', `support_cat_${ticket.category}`)}</dd></div>
+                <div><dt>{translate('portal', 'col_date')}</dt><dd>{date(ticket.created_at)}</dd></div>
+                {ticket.waiting_hours !== null && (
+                    <div>
+                        <dt>{translate('office_reports', 'support_col_waiting')}</dt>
+                        <dd className={ticket.overdue ? 'field-error' : undefined}>{waitingTime(ticket.waiting_hours, translate)}</dd>
                     </div>
-                    <p className="ptl-prewrap">{ticket.body}</p>
-                    <AttachmentLink ticket={ticket} />
-                    {(ticket.replies || []).map((reply: Row) => (
-                        <div className="support-request-reply" key={reply.id}>
-                            <b>{reply.author_name}</b> <small className="muted">{date(reply.created_at)}</small>
-                            <p className="ptl-prewrap">{reply.body}</p>
-                        </div>
-                    ))}
-                    <Form action={`/commands/support-tickets/${ticket.id}/reply`} method="post" className="action-form ops-mt-3" resetOnSuccess options={{ preserveScroll: true }}>
-                        {({ processing }) => (
-                            <>
-                                <label>
-                                    {translate('portal', 'support_reply')}
-                                    <textarea name="body" rows={3} required />
-                                </label>
-                                <label>
-                                    {translate('portal', 'col_status')}
-                                    <select name="status" defaultValue={ticket.status}>
-                                        <option value="pending">{translate('portal', 'status_pending')}</option>
-                                        <option value="in_progress">{translate('portal', 'status_in_progress')}</option>
-                                        <option value="resolved">{translate('portal', 'status_resolved')}</option>
-                                    </select>
-                                </label>
-                                <button className="button dark" disabled={processing}>{translate('portal', 'support_send_reply')}</button>
-                            </>
-                        )}
-                    </Form>
-                </article>
+                )}
+            </dl>
+            <p className="ptl-prewrap">{ticket.body}</p>
+            <AttachmentLink ticket={ticket} />
+            {ticket.replies.map((reply) => (
+                <div className="support-request-reply" key={reply.id}>
+                    <b>{reply.author_name}</b> <small className="muted">{date(reply.created_at)}</small>
+                    <p className="ptl-prewrap">{reply.body}</p>
+                </div>
             ))}
-            {!tickets.length && <Empty title={translate('portal', 'support_admin_empty')} />}
-        </section>
+            <Form action={`/commands/support-tickets/${ticket.id}/reply`} method="post" className="action-form ops-mt-3" onSuccess={onClose} options={{ preserveScroll: true }}>
+                {({ errors, processing }) => (
+                    <>
+                        <label>
+                            {translate('portal', 'support_reply')}
+                            <textarea name="body" rows={3} required maxLength={5000} />
+                            {errors.body && <span className="field-error">{errors.body}</span>}
+                        </label>
+                        <label>
+                            {translate('portal', 'col_status')}
+                            <select name="status" defaultValue={ticket.status}>
+                                <option value="pending">{translate('portal', 'status_pending')}</option>
+                                <option value="in_progress">{translate('portal', 'status_in_progress')}</option>
+                                <option value="resolved">{translate('portal', 'status_resolved')}</option>
+                            </select>
+                            {errors.status && <span className="field-error">{errors.status}</span>}
+                        </label>
+                        <button className="button dark" disabled={processing}>{translate('portal', 'support_send_reply')}</button>
+                    </>
+                )}
+            </Form>
+        </Modal>
+    );
+}
+
+/** The support desk: one row per ticket. A row opens its drawer with the reply box. */
+export function SupportAdminHub({ data }: { data: Row }) {
+    const translate = useT();
+    const { url } = usePage();
+    const desk: SupportDesk = data.support_admin ?? {};
+    const [openTicket, setOpenTicket] = useState<SupportDeskRow | null>(null);
+    const chosenStatus = desk.table?.state.filters.status ?? '';
+
+    /** A card turns its status filter on, and off again when it is already on. */
+    const showStatus = (status: string) => {
+        const current = new URL(url || '/', 'http://support-desk.local');
+        const params = Object.fromEntries(current.searchParams.entries());
+        delete params.page;
+        if (chosenStatus === status) {
+            delete params.status;
+        } else {
+            params.status = status;
+        }
+        router.get(current.pathname, params, { preserveState: true, preserveScroll: true, replace: true, only: ['data'] });
+    };
+    const card = (status: string, cardLabel: string, count: number): FigureItem => ({
+        key: status,
+        label: cardLabel,
+        value: number(count),
+        text: true,
+        active: chosenStatus === status,
+        onClick: () => showStatus(status),
+    });
+    const columns: MoneyColumn<SupportDeskRow>[] = [
+        { key: 'subject', title: translate('portal', 'support_subject'), sortKey: 'subject', phone: 'title', render: (row) => <>{row.subject}<small className="cell-sub">{translate('portal', `support_cat_${row.category}`)}</small></> },
+        { key: 'user_name', title: translate('portal', 'col_partner'), sortKey: 'name', phone: 'sub', render: (row) => <>{row.user_name}<small className="cell-sub">{row.dealer_code}</small></> },
+        { key: 'created_at', title: translate('portal', 'col_date'), sortKey: 'created_at', phone: 'sub', render: (row) => date(row.created_at) },
+        {
+            key: 'waiting_hours',
+            title: translate('office_reports', 'support_col_waiting'),
+            sortKey: 'waiting',
+            phone: 'hide',
+            render: (row) => (row.waiting_hours === null
+                ? translate('office_reports', 'support_wait_none')
+                : <span className={row.overdue ? 'field-error' : undefined}>{waitingTime(row.waiting_hours, translate)}</span>),
+        },
+        { key: 'status', title: translate('portal', 'col_status'), sortKey: 'status', phone: 'amount', render: (row) => <Badge status={row.status} /> },
+    ];
+
+    return (
+        <OfficePage title={data.hub?.label ?? translate('portal', 'support_admin_title')} hub={data.hub}>
+            <Figures
+                items={[
+                    card('pending', translate('portal', 'status_pending'), Number(desk.counts?.pending ?? 0)),
+                    card('in_progress', translate('portal', 'status_in_progress'), Number(desk.counts?.in_progress ?? 0)),
+                    card('overdue', translate('portal', 'support_filter_overdue'), Number(desk.overdue_count ?? 0)),
+                    card('resolved', translate('portal', 'status_resolved'), Number(desk.counts?.resolved ?? 0)),
+                ]}
+            />
+            <MoneyTable<SupportDeskRow>
+                data={desk.table}
+                prop="data"
+                columns={columns}
+                searchPlaceholder={translate('office_reports', 'support_search')}
+                onRowOpen={setOpenTicket}
+                empty={translate('portal', 'support_admin_empty')}
+            />
+            {openTicket && <SupportTicketDrawer key={openTicket.id} ticket={openTicket} onClose={() => setOpenTicket(null)} />}
+        </OfficePage>
     );
 }

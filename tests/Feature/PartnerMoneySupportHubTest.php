@@ -113,7 +113,7 @@ class PartnerMoneySupportHubTest extends TestCase
         $this->actingAs($owner)->onPortal('sadmin')
             ->get('/support-admin')
             ->assertOk()
-            ->assertInertia(fn ($page) => $page->where('data.support_admin.tickets.0.subject', 'Cannot print'));
+            ->assertInertia(fn ($page) => $page->where('data.support_admin.table.rows.data.0.subject', 'Cannot print'));
     }
 
     public function test_office_replies_reach_the_partner_without_staff_names(): void
