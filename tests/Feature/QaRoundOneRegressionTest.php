@@ -39,6 +39,26 @@ class QaRoundOneRegressionTest extends TestCase
         $this->assertMatchesRegularExpression('/\.order-filters \.order-filter-actions\{[^}]*flex-wrap:wrap/', $css);
     }
 
+    public function test_office_tables_wrap_to_fit_a_laptop_and_keep_status_and_actions_on_screen(): void
+    {
+        $css = (string) file_get_contents(resource_path('css/screens-office.css'));
+
+        // Headings that stayed on one line pushed Status and Manage off the right edge at 1366px.
+        $this->assertMatchesRegularExpression('/\.table-block :is\(th,th\.is-num\)\{white-space:normal\}/', $css);
+        $this->assertMatchesRegularExpression('/\.inline-actions\{flex-wrap:wrap/', $css);
+
+        // A table that still cannot fit pins Status and the buttons, and says it scrolls.
+        $this->assertMatchesRegularExpression('/\.is-overflowing :is\(th,td\):is\(\.table-pin-status,\.table-pin-action\)\{position:sticky/', $css);
+
+        $table = (string) file_get_contents(resource_path('js/components/UI.tsx'));
+        $this->assertStringContainsString('table-pin-action', $table);
+        $this->assertStringContainsString("translate('portal', 'table_scroll_hint')", $table);
+
+        foreach (['en', 'bn'] as $locale) {
+            $this->assertArrayHasKey('table_scroll_hint', require lang_path($locale.'/portal.php'));
+        }
+    }
+
     public function test_the_phone_top_bar_keeps_room_for_a_readable_page_title(): void
     {
         $css = (string) file_get_contents(resource_path('css/screens-phone-topbar.css'));

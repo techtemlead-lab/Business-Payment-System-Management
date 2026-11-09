@@ -2719,9 +2719,9 @@ html[data-theme="dark"] .app-shell select:not([multiple]):not([style*="backgroun
 .app-shell .aging-pill.is-90{font-weight:700}
 .app-shell .cell-sub.text-danger,.app-shell .text-danger{color:var(--ds-danger-fg)}
 /* Very wide tables (13+ columns) drop to a denser size before scrolling */
-.app-shell .table-wrap table:has(thead th:nth-child(13)) :is(th,td){padding-left:6px;padding-right:6px}
-.app-shell .table-wrap table:has(thead th:nth-child(13)) td{font-size:var(--ds-fs-xs)}
-.app-shell .table-wrap table:has(thead th:nth-child(13)) th:not([data-col=action]):not([data-col=actions]){white-space:normal;min-width:56px}
+.app-shell .table-wrap table:has(thead th:nth-child(13)) :is(th,td){padding-left:var(--table-dense-pad,6px);padding-right:var(--table-dense-pad,6px)}
+.app-shell .table-wrap table:has(thead th:nth-child(13)) td{font-size:var(--table-dense-font,var(--ds-fs-xs))}
+.app-shell .table-wrap table:has(thead th:nth-child(13)) th:not([data-col=action]):not([data-col=actions]){white-space:normal;min-width:var(--table-dense-heading-min,56px)}
 .app-shell .table-wrap td:is([data-col=product],[data-col=product_name],[data-col=title]){min-width:120px}
 .app-shell .stock-register .table-wrap :is(th,td){padding-top:6px;padding-bottom:6px}
 .app-shell .table-wrap table:has(thead th:nth-child(13)) :is(th,td):first-child{padding-left:12px}

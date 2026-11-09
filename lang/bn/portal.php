@@ -398,6 +398,7 @@ return [
     'table_clear_filters' => 'টেবিল ফিল্টার মুছুন',
     'table_rows_per_page' => 'প্রতি পাতায় লাইন',
     'table_all_rows' => 'সব',
+    'table_scroll_hint' => 'এই টেবিলটি আপনার স্ক্রিনের চেয়ে চওড়া। সব কলাম দেখতে পাশে স্ক্রল করুন।',
     'col_category' => 'ক্যাটাগরি',
     'col_description' => 'বিবরণ',
     'col_debit' => 'টাকা বের',

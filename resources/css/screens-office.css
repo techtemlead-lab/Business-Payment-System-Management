@@ -119,6 +119,51 @@ html .app-shell:is(.owner-shell,.company-shell) .table-block :is(th,td):last-chi
 /* The sticky header stays opaque so rows do not show through it */
 .app-shell:is(.owner-shell,.company-shell) .table-wrap.is-sticky thead th{position:sticky;top:0;z-index:2;background:var(--ds-surface-2)}
 
+/* Laptops with the sidebar open: every column stays on screen. Headings, codes and names wrap;
+   amounts, badges and buttons stay whole; nothing in a table goes under 13px. The columns only
+   wrap when the screen is short of room, so wide screens keep one-line rows. */
+.table-scroll-hint{display:none}
+@media (min-width:1024px){
+  .app-shell:is(.owner-shell,.company-shell){--table-dense-font:var(--ds-fs-sm);--table-dense-heading-min:0px}
+  html .app-shell:is(.owner-shell,.company-shell) .workspace-main table th{font-size:var(--ds-fs-sm);line-height:1.25}
+  html .app-shell:is(.owner-shell,.company-shell) .table-block :is(th,th.is-num){white-space:normal}
+  .app-shell:is(.owner-shell,.company-shell) .table-block .table-sort-trigger{flex-wrap:wrap;gap:0 4px}
+  html .app-shell:is(.owner-shell,.company-shell) .table-block td:is([data-col=number],[data-col=order_number],[data-col=dealer_code]),
+  html .app-shell:is(.owner-shell,.company-shell) .table-block td .record-link{white-space:normal}
+  html .app-shell:is(.owner-shell,.company-shell) .table-block td[data-col=dealer_code]{overflow-wrap:anywhere;min-width:92px}
+  html .app-shell:is(.owner-shell,.company-shell) .workspace-main table td :is(.cell-sub,small){font-size:var(--ds-fs-sm);line-height:1.3;overflow-wrap:anywhere}
+  html .app-shell:is(.owner-shell,.company-shell) .table-block td:is([data-col=date],[data-col=created_at],[data-col=updated_at],[data-col=paid_at],[data-col=due_date]){min-width:0}
+  html .app-shell:is(.owner-shell,.company-shell) .table-block td:is([data-col=area],[data-col=branch],[data-col=location]){min-width:72px}
+  html .app-shell:is(.owner-shell,.company-shell) .table-block td:is([data-col=name],[data-col=partner],[data-col=user],[data-col=dealer],[data-col=description],[data-col=reason],[data-col=message]){min-width:96px}
+  html .app-shell:is(.owner-shell,.company-shell) .table-block td:is([data-col=product],[data-col=product_name],[data-col=title]){min-width:112px}
+  html .app-shell:is(.owner-shell,.company-shell) .table-block td:is([data-col=action],[data-col=actions]) .inline-actions{flex-wrap:wrap;gap:2px 10px}
+  html .app-shell:is(.owner-shell,.company-shell) .branches-register .table-block :is(th,td){min-width:0}
+  html .app-shell:is(.owner-shell,.company-shell) .workspace-main table td :is(.badge,.button.small,.text-link,.emp-perm,.adh-chip,.adh-code,.ops-meta,.hub-pill){font-size:var(--ds-fs-sm)}
+  html .app-shell:is(.owner-shell,.company-shell) .table-block :is(th,td)[data-col=bulk_select]{width:1px}
+
+  /* A table that still cannot fit keeps Status and the buttons on screen and says it scrolls */
+  html .app-shell:is(.owner-shell,.company-shell) .table-wrap.is-overflowing :is(th,td):is(.table-pin-status,.table-pin-action){position:sticky;z-index:1;background:var(--ds-surface)}
+  html .app-shell:is(.owner-shell,.company-shell) .table-wrap.is-overflowing :is(th,td).table-pin-action{right:0}
+  html .app-shell:is(.owner-shell,.company-shell) .table-wrap.is-overflowing :is(th,td).table-pin-status{right:var(--table-pin-action-width,0px)}
+  html .app-shell:is(.owner-shell,.company-shell) .table-wrap.is-overflowing :is(th,td):is(.table-pin-status,.table-pin-action:not(.table-pin-status + .table-pin-action)){box-shadow:-8px 0 8px -8px rgba(15,23,42,.35)}
+  html .app-shell:is(.owner-shell,.company-shell) .table-wrap.is-overflowing tbody tr:nth-child(even) td:is(.table-pin-status,.table-pin-action){background:var(--ds-zebra)}
+  html .app-shell:is(.owner-shell,.company-shell) .table-wrap.is-overflowing tbody tr:hover td:is(.table-pin-status,.table-pin-action){background:var(--ds-surface-3)}
+  html .app-shell:is(.owner-shell,.company-shell) .table-wrap.is-overflowing :is(thead th,tfoot td):is(.table-pin-status,.table-pin-action){z-index:3;background:var(--ds-surface-2)}
+  .app-shell:is(.owner-shell,.company-shell) .table-block .table-wrap.is-overflowing{scrollbar-width:auto;scrollbar-color:var(--ds-text-muted) var(--ds-surface-3)}
+  .app-shell:is(.owner-shell,.company-shell) .table-scroll-hint{display:flex;align-items:center;gap:6px;margin:0 0 8px;padding:6px 12px;border-radius:var(--ds-r-sm);background:var(--ds-warn-bg);color:var(--ds-warn-fg);font-size:var(--ds-fs-sm);font-weight:600}
+  .app-shell:is(.owner-shell,.company-shell) .table-panel>.table-block>.table-scroll-hint{margin:0 16px 8px}
+}
+@media (min-width:1024px) and (max-width:1365px){
+  .app-shell:is(.owner-shell,.company-shell){--table-dense-pad:4px}
+}
+@media (min-width:1024px) and (max-width:1599px){
+  html .app-shell:is(.owner-shell,.company-shell) .table-block th{padding:8px 6px}
+  html .app-shell:is(.owner-shell,.company-shell) .table-block td{padding:8px 6px;font-size:var(--ds-fs-sm);line-height:1.35}
+  html .app-shell:is(.owner-shell,.company-shell) .table-block :is(th,td):first-child{padding-left:12px}
+  html .app-shell:is(.owner-shell,.company-shell) .table-block :is(th,td):last-child{padding-right:12px}
+  html .app-shell:is(.owner-shell,.company-shell) .table-block :is(th,td)[data-col=bulk_select]{padding-right:0}
+}
+
 /* Empty list: a clear, calm message instead of a blank striped row */
 .app-shell:is(.owner-shell,.company-shell) .table-block tr.table-empty-row,
 .app-shell:is(.owner-shell,.company-shell) .table-block tr.table-empty-row:hover{background:var(--ds-surface)}

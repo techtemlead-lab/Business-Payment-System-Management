@@ -398,6 +398,7 @@ return [
     'table_clear_filters' => 'Clear table filters',
     'table_rows_per_page' => 'Rows per page',
     'table_all_rows' => 'All',
+    'table_scroll_hint' => 'This table is wider than your screen. Scroll sideways to see every column.',
     'col_category' => 'Category',
     'col_description' => 'Description',
     'col_debit' => 'Money out',

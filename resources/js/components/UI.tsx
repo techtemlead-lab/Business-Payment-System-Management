@@ -1,6 +1,6 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {Link,useForm,usePage} from '@inertiajs/react';
-import {ArrowUpRight, X, Inbox, ArrowUpDown, ArrowUp, ArrowDown, RotateCcw, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Download, Printer} from 'lucide-react';
+import {ArrowUpRight, X, Inbox, ArrowUpDown, ArrowUp, ArrowDown, ArrowLeftRight, RotateCcw, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Download, Printer} from 'lucide-react';
 import {actionAllowed} from './action-permissions';
 import {businessDate, businessDateTime, businessTodayIso, isPastBusinessDate, localizeDigits} from '../business-date';
 import {useT} from '../shared/i18n/t';
@@ -209,6 +209,37 @@ export interface TableProps<T extends Row = any> {
 }
 
 const STICKY_HEADER_MIN_ROWS = 12;
+const STATUS_COLUMN_KEYS = new Set(['status', 'order_status']);
+
+/**
+ * Watches a table's scrolling box. When the table is wider than its panel, the Status and
+ * action columns stay pinned on the right and a hint says the table scrolls sideways.
+ */
+function useTableOverflow() {
+ const scrollBox = useRef<HTMLDivElement>(null);
+ const [isOverflowing, setIsOverflowing] = useState(false);
+
+ useEffect(() => {
+  const box = scrollBox.current;
+  if (!box || typeof ResizeObserver === 'undefined') {
+   return;
+  }
+  const measure = () => {
+   setIsOverflowing(box.scrollWidth - box.clientWidth > 1);
+   box.style.setProperty('--table-pin-action-width', `${box.querySelector<HTMLElement>('th.table-pin-action')?.offsetWidth ?? 0}px`);
+  };
+  measure();
+  const observer = new ResizeObserver(measure);
+  observer.observe(box);
+  const table = box.querySelector('table');
+  if (table) {
+   observer.observe(table);
+  }
+  return () => observer.disconnect();
+ }, []);
+
+ return { scrollBox, isOverflowing };
+}
 
 function columnHeading(col: TableColumn<any>): string {
  return col.title ?? col.header ?? '';
@@ -432,6 +463,7 @@ export function Table<T extends Row = any>({
  const [currentPage, setCurrentPage] = useState(1);
  const [clientPageSize, setClientPageSize] = useState<number | null>(pageSize ?? null);
  const [expandedRows, setExpandedRows] = useState<Set<string>>(() => new Set());
+ const { scrollBox, isOverflowing } = useTableOverflow();
  const hasPhoneColumns = Boolean(phoneColumns?.length);
  const isPhoneExtra = (c: TableColumn<T>) => hasPhoneColumns && !phoneColumns!.includes(c.key);
  const extraPhoneColumns = columns.filter(isPhoneExtra);
@@ -559,7 +591,12 @@ export function Table<T extends Row = any>({
   });
  };
 
- const cellClass = (c: TableColumn<T>) => [c.className, c.money || c.total || columnAlign(c) === 'right' ? 'is-num' : '', isPhoneExtra(c) ? 'is-phone-extra' : ''].filter(Boolean).join(' ') || undefined;
+ const lastColumn = columns[columns.length - 1];
+ const pinnedActionKey = lastColumn && isActionColumn(lastColumn) ? lastColumn.key : null;
+ const statusCandidate = columns[columns.length - (pinnedActionKey ? 2 : 1)];
+ const pinnedStatusKey = statusCandidate && STATUS_COLUMN_KEYS.has(statusCandidate.key) ? statusCandidate.key : null;
+ const pinClass = (c: TableColumn<T>) => (c.key === pinnedActionKey ? 'table-pin-action' : c.key === pinnedStatusKey ? 'table-pin-status' : '');
+ const cellClass = (c: TableColumn<T>) => [c.className, c.money || c.total || columnAlign(c) === 'right' ? 'is-num' : '', isPhoneExtra(c) ? 'is-phone-extra' : '', pinClass(c)].filter(Boolean).join(' ') || undefined;
 
  const body = pagedRows.length ? pagedRows.map((r, i) => {
   const rowKey = String((r as any).id ?? (r as any).row_key ?? i);
@@ -697,7 +734,13 @@ export function Table<T extends Row = any>({
      )}
     </div>
    )}
-   <div className={`table-wrap${sticky ? ' is-sticky' : ''}`}>
+   {isOverflowing && (
+    <p className="table-scroll-hint">
+     <ArrowLeftRight size={14} aria-hidden="true" />
+     <span>{translate('portal', 'table_scroll_hint')}</span>
+    </p>
+   )}
+   <div ref={scrollBox} className={`table-wrap${sticky ? ' is-sticky' : ''}${isOverflowing ? ' is-overflowing' : ''}`}>
     <table>
      <thead>
       <tr>
@@ -718,7 +761,7 @@ export function Table<T extends Row = any>({
            cursor: isSortable ? 'pointer' : 'default',
            userSelect: isSortable ? 'none' : 'auto',
           }}
-          className={`${isSortable ? 'table-th-sortable' : ''} ${isSorted ? 'is-sorted' : ''} ${c.money || align === 'right' ? 'is-num' : ''} ${c.className ?? ''} ${isPhoneExtra(c) ? 'is-phone-extra' : ''}`}
+          className={`${isSortable ? 'table-th-sortable' : ''} ${isSorted ? 'is-sorted' : ''} ${c.money || align === 'right' ? 'is-num' : ''} ${c.className ?? ''} ${isPhoneExtra(c) ? 'is-phone-extra' : ''} ${pinClass(c)}`}
           onClick={() => handleHeaderClick(c.key, isSortable)}
           aria-sort={isSorted ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
          >
