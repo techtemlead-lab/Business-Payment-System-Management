@@ -610,7 +610,7 @@ export default function Shell({ section, children, action }: { section: string; 
                                 </div>
                                 <div className="user-caption">
                                     <b>{user.name}</b>
-                                    <span>{label(user.role, translate)}</span>
+                                    <span>{auth.customRoleName || label(user.role, translate)}</span>
                                 </div>
                                 <ChevronDown size={14} className={`profile-chevron ${profileOpen ? 'open' : ''}`} aria-hidden="true" />
                             </button>

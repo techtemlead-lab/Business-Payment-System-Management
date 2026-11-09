@@ -3,6 +3,7 @@
 namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Inventory\BranchScope;
+use App\Domain\Staff\StaffPermissions;
 use App\Models\BranchStaffAssignment;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -32,9 +33,11 @@ final class EmployeesSection implements WorkspaceSection
         if ($request->filled('status')) {
             $query->where('status', $request->string('status'));
         }
+        $customRoleNames = app(StaffPermissions::class)->customRoleNames();
         $props['employees'] = $query->with('activeBranch:id,name,code')->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'status', 'profile', 'created_at', 'active_branch_id'])
             ->through(fn (User $employee) => [
                 ...$employee->toArray(),
+                'role_name' => $customRoleNames[$employee->role] ?? null,
                 'effective_permissions' => $employee->capabilities(),
                 'branch_name' => $employee->activeBranch?->name,
             ]);

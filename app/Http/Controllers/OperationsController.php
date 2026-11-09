@@ -167,7 +167,7 @@ class OperationsController extends Controller
             $permissions = app(StaffPermissions::class);
             $data['permissionModules'] = $permissions->modules();
             $data['rolePresets'] = collect(['employee' => [], ...config('madina.roles')])->map(fn ($capabilities, $key) => ['key' => $key, 'name' => __('portal.staff_role_'.$key),
-                'permissions' => $permissions->matrix(new User(['role' => $key]))])->values()->all();
+                'permissions' => $permissions->presetMatrix($key)])->values()->all();
             $data['staffAccess'] = $staff->where('role', '!=', 'super_admin')->map(fn ($user) => ['id' => $user->id, 'name' => $user->name, 'role' => $user->role,
                 'version' => $permissions->version($user), 'permissions' => $permissions->matrix($user)])->values()->all();
             $data['customRoles'] = DB::table('staff_roles')->orderBy('name')->get()->map(fn ($role) => ['key' => $role->key, 'name' => $role->name,
