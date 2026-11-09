@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
+use Tests\Support\PortalSource;
 use Tests\TestCase;
 
 class PartlyDeliveredOrderTest extends TestCase
@@ -133,7 +134,7 @@ class PartlyDeliveredOrderTest extends TestCase
 
     public function test_the_deliveries_filter_offers_only_the_statuses_that_list_can_show(): void
     {
-        $portal = (string) file_get_contents(resource_path('js/pages/Portal.tsx'));
+        $portal = PortalSource::text();
         $this->assertSame(1, preg_match("/const deliveryStatuses=\[([^\]]+)\];/", $portal, $match), 'The Deliveries list needs its own status choices.');
         $offered = array_map(fn (string $status): string => trim($status, " '"), explode(',', $match[1]));
 

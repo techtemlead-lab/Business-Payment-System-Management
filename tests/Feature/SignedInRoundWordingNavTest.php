@@ -8,6 +8,7 @@ use App\Support\DashboardManagement;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\PortalSource;
 use Tests\TestCase;
 
 /**
@@ -174,7 +175,7 @@ class SignedInRoundWordingNavTest extends TestCase
 
     public function test_activity_log_shows_only_the_plain_label(): void
     {
-        $portal = (string) file_get_contents(resource_path('js/pages/Portal.tsx'));
+        $portal = PortalSource::text();
         $this->assertStringContainsString("render:r=>auditActionLabel(String(r.action||''),translate)", $portal);
         $this->assertStringNotContainsString('{r.action}</small>', $portal);
 
