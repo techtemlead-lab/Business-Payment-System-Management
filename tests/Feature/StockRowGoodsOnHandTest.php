@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\StockLotHolds;
 use App\Domain\Inventory\StockService;
 use App\Models\BranchProductStock;
@@ -90,6 +91,52 @@ class StockRowGoodsOnHandTest extends TestCase
         $this->assertSame('GOOD', $this->row($product)['batch_number']);
     }
 
+    public function test_available_units_leave_out_goods_on_hold_and_match_what_partners_see(): void
+    {
+        $product = $this->product();
+        $this->stockIn($product, 200, 'GOOD', 200);
+        $held = $this->stockIn($product, 10, 'HELD', 200);
+        app(StockLotHolds::class)->hold($this->owner, $held, 'Checking this batch');
+
+        $row = $this->row($product);
+
+        $this->assertSame(210, $row['branch_stock'], 'The plain count of goods in the store stays 210.');
+        $this->assertSame(200, $row['available_units']);
+        $this->assertSame(200, $row['company_available']);
+        $this->assertSame(10, $row['held_units']);
+        $this->assertSame(200, (int) Product::query()->whereKey($product->id)->withSellableStock()->value('sellable_stock'));
+    }
+
+    public function test_every_branch_row_counts_only_its_own_goods_on_hold(): void
+    {
+        $product = $this->product();
+        $this->stockIn($product, 200, 'GOOD', 200);
+        $held = $this->stockIn($product, 10, 'HELD', 200);
+        app(StockLotHolds::class)->hold($this->owner, $held, 'Checking this batch');
+        $this->stockIn($product, 7, 'OTHER', 200, $this->otherBranch);
+
+        $rows = collect($this->rowsForAllBranches())->where('id', $product->id)->keyBy('branch_id');
+
+        $this->assertSame(200, $rows[$this->hub->id]['available_units']);
+        $this->assertSame(10, $rows[$this->hub->id]['held_units']);
+        $this->assertSame(7, $rows[$this->otherBranch->id]['available_units']);
+        $this->assertSame(0, $rows[$this->otherBranch->id]['held_units']);
+        $this->assertSame(207, $rows[$this->otherBranch->id]['company_available']);
+    }
+
+    public function test_expired_goods_are_not_available_either(): void
+    {
+        $product = $this->product();
+        $this->stockIn($product, 5, 'GOOD', 200);
+        $this->stockIn($product, 3, 'OLD', 200)->forceFill(['expires_on' => now()->subDay()->toDateString()])->save();
+
+        $row = $this->row($product);
+
+        $this->assertSame(8, $row['branch_stock']);
+        $this->assertSame(5, $row['available_units']);
+        $this->assertSame(0, $row['held_units']);
+    }
+
     public function test_stock_from_before_lots_were_recorded_keeps_the_details_on_the_product(): void
     {
         $product = Product::factory()->create(['stock' => 4, 'low_stock_at' => 1, 'batch_number' => 'OLD-1', 'expires_on' => '2028-03-31']);
@@ -111,6 +158,21 @@ class StockRowGoodsOnHandTest extends TestCase
             'product_id' => $product->id, 'quantity' => $quantity, 'reference' => (string) Str::uuid(),
             'branch_id' => ($branch ?? $this->hub)->id, 'batch_number' => $batch, 'expires_on' => now()->addDays($days)->toDateString(),
         ]);
+    }
+
+    /**
+     * @return list<array<string, mixed>> The Stock page rows with every branch shown.
+     */
+    private function rowsForAllBranches(): array
+    {
+        $rows = [];
+        $this->actingAs($this->owner->refresh())->onPortal('sadmin')->withSession([BranchOperations::SessionView => 'all'])->get('/inventory')
+            ->assertOk()
+            ->assertInertia(function (Assert $page) use (&$rows): void {
+                $rows = $page->toArray()['props']['data']['products'];
+            });
+
+        return $rows;
     }
 
     /**
