@@ -3655,7 +3655,7 @@ return [
     'cms_edit' => 'Edit',
     'cms_remove' => 'Remove',
     'cms_remove_category_prompt' => 'Remove category ":name"? Write a reason (at least 5 characters):',
-    'cms_remove_category_force_prompt' => 'Remove category ":name" and its :count empty subcategories? Write a reason (at least 5 characters):',
+    'cms_remove_category_force_prompt' => 'Remove category ":name" and its :count subcategories? This only works if no product uses them. Write a reason (at least 5 characters):',
     'cms_remove_subcategory_prompt' => 'Remove subcategory ":name"? Write a reason (at least 5 characters):',
     'cms_remove_unit_prompt' => 'Remove unit ":name"? Write a reason (at least 5 characters):',
     'cms_create_category' => 'Create category',
