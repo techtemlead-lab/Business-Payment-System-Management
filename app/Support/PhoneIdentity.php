@@ -9,7 +9,7 @@ final class PhoneIdentity
 
     public static function normalize(string $input): ?string
     {
-        $digits = preg_replace('/[\s()+.\-]/u', '', trim($input));
+        $digits = preg_replace('/[\s()+.\-]/u', '', trim(LocalDigits::latin($input)));
         if (! is_string($digits) || ! preg_match('/^[0-9]{10,17}$/D', $digits)) {
             return null;
         }

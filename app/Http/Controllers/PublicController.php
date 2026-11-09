@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Accounts\AccountPhoneRules;
 use App\Domain\Accounts\PartnerAge;
 use App\Domain\Audience\PartnerProductEnquiries;
 use App\Domain\Audience\PublicPartnerApplication;
@@ -392,7 +393,7 @@ class PublicController extends Controller
         return $fresh;
     }
 
-    public function enquiry(Request $request): RedirectResponse
+    public function enquiry(Request $request, AccountPhoneRules $phones): RedirectResponse
     {
         $data = $request->validate([
             'name' => 'required|string|max:150',
@@ -403,6 +404,7 @@ class PublicController extends Controller
             'website' => 'nullable|max:0',
         ]);
         unset($data['website']);
+        $data['phone'] = $phones->normalize($data['phone']);
         $data['topic'] = match ($data['topic']) {
             'Dealer enquiry', 'dealer_enquiry' => 'dealer_enquiry',
             'Partnership enquiry', 'partnership_enquiry' => 'partnership_enquiry',
@@ -552,7 +554,7 @@ class PublicController extends Controller
         return null;
     }
 
-    public function apply(Request $request, PublicPartnerApplication $applications): RedirectResponse
+    public function apply(Request $request, PublicPartnerApplication $applications, AccountPhoneRules $phones): RedirectResponse
     {
         abort_unless(SiteCustomization::isPageEnabled('partnership'), 404);
         $data = $request->validate([
@@ -569,6 +571,7 @@ class PublicController extends Controller
             'website' => 'nullable|max:0',
         ]);
         unset($data['website']);
+        $data['phone'] = $phones->normalize($data['phone']);
         if (! empty($data['sponsor_code'])) {
             $data['sponsor_code'] = strtoupper(trim((string) $data['sponsor_code']));
         }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Accounts\AccountPhoneRules;
 use App\Domain\Accounts\DealerVerification;
 use App\Domain\Content\GrievanceInbox;
 use App\Domain\Content\PublicTrustContent;
@@ -67,7 +68,7 @@ class PublicTrustController extends Controller
         ])->header('Cache-Control', 'private, no-store');
     }
 
-    public function storeGrievance(Request $request, GrievanceInbox $inbox): RedirectResponse
+    public function storeGrievance(Request $request, GrievanceInbox $inbox, AccountPhoneRules $phones): RedirectResponse
     {
         abort_unless(PublicTrustContent::isVisible('grievance'), 404);
 
@@ -81,6 +82,7 @@ class PublicTrustController extends Controller
             'website' => 'nullable|max:0',
         ]);
         unset($data['website']);
+        $data['phone'] = $phones->normalize($data['phone']);
 
         $trackingNumber = $inbox->submit($data);
 

@@ -4,6 +4,7 @@ namespace App\Domain\Accounts;
 
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\LocalDigits;
 use App\Support\PhoneIdentity;
 use Illuminate\Validation\ValidationException;
 
@@ -25,7 +26,7 @@ final class AccountPhoneRules
      */
     public function normalize(mixed $phone, string $field = 'phone'): string
     {
-        $digits = preg_replace('/\D+/', '', is_scalar($phone) ? (string) $phone : '') ?: '';
+        $digits = preg_replace('/\D+/', '', is_scalar($phone) ? LocalDigits::latin((string) $phone) : '') ?: '';
         if (str_starts_with($digits, '880') && strlen($digits) === 13) {
             $digits = substr($digits, 2);
         }
