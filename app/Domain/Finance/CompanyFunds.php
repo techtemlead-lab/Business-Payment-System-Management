@@ -34,6 +34,9 @@ final class CompanyFunds
     /** Seen and spent by the owners only, on the owner panel. */
     public const OwnerOnly = ['benefits'];
 
+    /** Commission nobody received because staff chose no commission on a partly delivered order. */
+    public const NoCommissionCategory = 'no_commission_to_company';
+
     /** Older payout programs that drew on a fund before the generic spend flow. */
     public const LegacyPrograms = ['marketing' => ['marketing'], 'car_bike' => ['bike', 'car'], 'tour' => ['tour'], 'rank_reward' => ['additional_rank']];
 
@@ -64,7 +67,9 @@ final class CompanyFunds
         $dealerSalary = CommissionSettlement::DealerSalaryReserve;
         $subDealerSalary = CommissionSettlement::SubDealerSalaryReserve;
 
-        return "CASE WHEN funds.category = '{$companyProfit}' OR funds.metadata->>'retained_by' = '{$retainedProfit}' THEN 'company_profit' "
+        $noCommission = self::NoCommissionCategory;
+
+        return "CASE WHEN funds.category IN ('{$companyProfit}', '{$noCommission}') OR funds.metadata->>'retained_by' = '{$retainedProfit}' THEN 'company_profit' "
             ."WHEN funds.category = 'area_management' OR funds.metadata->>'retained_by' = '{$retainedManagement}' THEN 'management' "
             ."WHEN funds.category LIKE '%\\_override\\_reserve' OR funds.category LIKE '%\\_breakage' THEN 'referral_reserve' "
             ."WHEN funds.status = 'unassigned_reserve' THEN 'geographic_reserve' "

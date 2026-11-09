@@ -6652,4 +6652,7 @@ return [
     'sce_video_link_refused' => 'This link cannot be played on the website. Paste a YouTube or Facebook video link.',
     'sce_language_bangla' => 'Bangla',
     'sce_language_english' => 'English',
+    "pay_channel_office" => "By Office (cash at office)",
+    "pay_channel_account" => "From My Account",
+    "section_hint_partner_my_money" => "All your money in one place: what you have, where it came from, every movement.",
 ];

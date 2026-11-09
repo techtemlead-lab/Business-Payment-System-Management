@@ -1,0 +1,31 @@
+<?php
+
+return [
+    'title' => 'আমার টাকা',
+    'usable' => 'ব্যবহার করতে পারবেন',
+    'waiting' => 'অপেক্ষায়',
+    'asked' => 'তোলার আবেদনে',
+    'withdraw' => 'টাকা তুলুন',
+    'order' => 'অর্ডার করুন',
+    'where_from' => 'যেখান থেকে এসেছে',
+    'running_total' => 'মোট জমা',
+    'ordered_mrp' => 'এমআরপিতে মোট অর্ডার',
+    'cash_given' => 'ক্যাশ দিয়েছেন',
+    'withdrawn' => 'তুলেছেন',
+    'spent' => 'অর্ডারে খরচ',
+    'earned' => 'মোট আয়',
+
+    'type_own' => 'নিজের কেনার ক্যাশব্যাক',
+    'type_referral' => 'সরাসরি রেফার',
+    'type_team' => 'দলের রেফার',
+    'type_area' => 'এরিয়া কমিশন',
+    'type_salary' => 'মাসিক বেতন',
+    'type_royalty' => 'র‍্যাঙ্ক রয়্যালটি',
+    'type_rank_bonus' => 'র‍্যাঙ্ক বোনাস',
+    'type_reward' => 'পুরস্কার',
+    'type_opening' => 'আগের ব্যালেন্স',
+    'type_returned' => 'অর্ডারের টাকা ফেরত',
+    'type_withdrawn' => 'টাকা তোলা',
+    'type_spent' => 'অর্ডারে খরচ',
+    'type_taken_back' => 'ফেরত নেওয়া',
+];
