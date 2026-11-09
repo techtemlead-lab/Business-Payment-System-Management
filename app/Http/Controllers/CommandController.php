@@ -144,7 +144,6 @@ class CommandController extends Controller
                 'place_code' => 'required|string|max:32',
                 'dealer_code' => 'nullable|string|max:40',
                 'reference_code' => 'nullable|string|max:40',
-                'refer_code' => 'nullable|string|max:40',
                 'phone' => 'required|string|max:30',
                 'email' => 'required|email|max:254',
                 'phone_share_reason' => 'nullable|string|max:500',
@@ -389,6 +388,9 @@ class CommandController extends Controller
             // from this account, so the audit keeps their old and new values.
             $traceable = ['name', 'phone', 'email', 'status', 'sponsor_id', 'dealer_code', 'refer_code', 'division', 'district', 'directory_visible'];
             $tracedBefore = $locked->only($traceable);
+            if ($isPartner && array_key_exists('dealer_code', $d)) {
+                $d = [...$d, ...$partners->correctCode($r->user(), $locked, (string) $d['dealer_code'])];
+            }
 
             // Privilege fields are guarded on User; forceFill only after accounts authorization above.
             $locked->forceFill($d)->save();
