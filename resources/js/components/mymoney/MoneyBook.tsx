@@ -15,7 +15,8 @@ function signedMoney(amount: unknown): string {
 function WhatHappened({ row }: { row: StatementRow }) {
     const translate = useT();
     const percent = Number(row.percent) > 0 ? ` ${number(row.percent)}%` : '';
-    const details = [row.order_number, row.from_name].filter(Boolean).join(' · ');
+    // On a partner's own purchase the name is always their own, so it says nothing.
+    const details = [row.order_number, row.type === 'own' ? null : row.from_name].filter(Boolean).join(' · ');
 
     return (
         <>
