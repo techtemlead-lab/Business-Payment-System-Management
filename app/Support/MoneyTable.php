@@ -21,17 +21,20 @@ final class MoneyTable
 
     private const LongestRangeInDays = 366;
 
+    private const LongestFilterText = 60;
+
     /**
-     * @return array{rows: LengthAwarePaginator<int, stdClass>, totals: array{count: int, capped: bool, sums: array<string, string>|null}, state: array{q: string, period: string, from: ?string, to: ?string, sort: string, dir: string, filters: array<string, string>}, filters: list<array{key: string, label: string, options: list<array{value: string, label: string}>}>, sortable: list<string>}
+     * @return array{rows: LengthAwarePaginator<int, stdClass>, totals: array{count: int, capped: bool, sums: array<string, string>|null}, state: array{q: string, period: string, from: ?string, to: ?string, sort: string, dir: string, filters: array<string, string>}, filters: list<array{key: string, label: string, options: list<array{value: string, label: string, count?: int}>, type?: string, group?: string, from?: string, to?: string, decimal?: bool}>, sortable: list<string>, extra_periods: list<string>}
      */
     public static function make(Request $request, Builder $query, MoneyTableSpec $spec): array
     {
-        $view = self::view($request, $spec->defaultPeriod);
+        $view = self::view($request, $spec->defaultPeriod, $spec->extraPeriods);
         $words = self::searchText($request);
         $filtered = (clone $query)->reorder();
 
         self::applySearch($filtered, $words, $spec->search);
-        $appliedFilters = self::applyFilters($filtered, $request, $spec->filters);
+        $appliedFilters = self::chosenFilters($request, $spec->filters);
+        self::applyFilters($filtered, $spec->filters, $appliedFilters);
         self::applyView($filtered, $view, $spec->dateColumn);
 
         [$sort, $direction] = self::sort($request, $spec);
@@ -48,8 +51,9 @@ final class MoneyTable
             'rows' => new LengthAwarePaginator($rows, $totals['count'], $spec->perPage, $page, ['path' => $request->url(), 'query' => $request->query()]),
             'totals' => $totals,
             'state' => ['q' => $words, ...$view, 'sort' => $sort, 'dir' => $direction, 'filters' => $appliedFilters],
-            'filters' => array_map(fn (MoneyTableFilter $filter): array => ['key' => $filter->key, 'label' => $filter->label, 'options' => $filter->options], $spec->filters),
+            'filters' => array_map(fn (MoneyTableFilter $filter): array => $filter->forScreen(), $spec->filters),
             'sortable' => array_keys($spec->sorts),
+            'extra_periods' => $spec->extraPeriods,
         ];
     }
 
@@ -69,22 +73,47 @@ final class MoneyTable
     /**
      * The chosen date view as a UTC window in Dhaka days, for read models that apply it themselves.
      *
+     * @param  list<string>  $extraPeriods  the table's MoneyTableSpec::$extraPeriods
      * @return array{from: CarbonImmutable, until: CarbonImmutable}|null
      */
-    public static function range(Request $request, ?string $defaultPeriod): ?array
+    public static function range(Request $request, ?string $defaultPeriod, array $extraPeriods = []): ?array
     {
-        $view = self::view($request, $defaultPeriod);
+        $view = self::view($request, $defaultPeriod, $extraPeriods);
 
         return OrderListFilter::createdRange($view['period'], $view['from'], $view['to']);
+    }
+
+    /**
+     * What the address really asks for, kept to the choices offered and to values of the right shape.
+     * Anything else is ignored. Read models that apply their own filters start from this too.
+     *
+     * @param  list<MoneyTableFilter>  $filters
+     * @return array<string, string> query string name => value
+     */
+    public static function chosenFilters(Request $request, array $filters): array
+    {
+        $chosen = [];
+
+        foreach ($filters as $filter) {
+            $chosen += match ($filter->type) {
+                MoneyTableFilter::NumberRange => self::chosenNumbers($request, $filter),
+                MoneyTableFilter::DateRange => self::chosenDates($request, $filter),
+                MoneyTableFilter::Text => self::chosenText($request, $filter),
+                default => self::chosenOption($request, $filter),
+            };
+        }
+
+        return $chosen;
     }
 
     /**
      * The view that will really be used. A missing period means the table's default, an empty one
      * means all time, and anything unknown or unfinished means the default again.
      *
+     * @param  list<string>  $extraPeriods
      * @return array{period: string, from: ?string, to: ?string}
      */
-    private static function view(Request $request, ?string $defaultPeriod): array
+    private static function view(Request $request, ?string $defaultPeriod, array $extraPeriods = []): array
     {
         $default = ['period' => $defaultPeriod ?? '', 'from' => null, 'to' => null];
         $period = $request->query('period');
@@ -96,7 +125,7 @@ final class MoneyTable
             return ['period' => '', 'from' => null, 'to' => null];
         }
 
-        if (! in_array($period, self::Periods, true)) {
+        if (! in_array($period, [...self::Periods, ...$extraPeriods], true)) {
             return $default;
         }
 
@@ -148,22 +177,93 @@ final class MoneyTable
     }
 
     /**
-     * @param  list<MoneyTableFilter>  $filters
      * @return array<string, string>
      */
-    private static function applyFilters(Builder $query, Request $request, array $filters): array
+    private static function chosenOption(Request $request, MoneyTableFilter $filter): array
     {
-        $applied = [];
+        $value = self::text($request, $filter->key);
 
-        foreach ($filters as $filter) {
-            $value = self::text($request, $filter->key);
-            if (in_array($value, array_map(strval(...), array_column($filter->options, 'value')), true)) {
-                $query->whereRaw($filter->column.' = ?', [$value]);
-                $applied[$filter->key] = $value;
+        return in_array($value, array_map(strval(...), array_column($filter->options, 'value')), true) ? [$filter->key => $value] : [];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function chosenNumbers(Request $request, MoneyTableFilter $filter): array
+    {
+        $shape = $filter->decimal ? '/^\d{1,10}(\.\d{1,2})?$/D' : '/^\d{1,9}$/D';
+        $chosen = [];
+
+        foreach ([(string) $filter->from, (string) $filter->to] as $name) {
+            $value = LocalDigits::latin(trim(self::text($request, $name)));
+            if (preg_match($shape, $value) === 1) {
+                $chosen[$name] = $value;
             }
         }
 
-        return $applied;
+        return $chosen;
+    }
+
+    /**
+     * Dates picked the wrong way round still mean the same period.
+     *
+     * @return array<string, string>
+     */
+    private static function chosenDates(Request $request, MoneyTableFilter $filter): array
+    {
+        $from = self::dateText($request, (string) $filter->from);
+        $to = self::dateText($request, (string) $filter->to);
+
+        if ($from !== null && $to !== null && $from > $to) {
+            [$from, $to] = [$to, $from];
+        }
+
+        return array_filter([(string) $filter->from => $from, (string) $filter->to => $to], fn (?string $date): bool => $date !== null);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function chosenText(Request $request, MoneyTableFilter $filter): array
+    {
+        $value = mb_substr(trim((string) preg_replace('/\p{Cc}+/u', ' ', mb_scrub(self::text($request, $filter->key), 'UTF-8'))), 0, self::LongestFilterText);
+
+        return $value === '' ? [] : [$filter->key => $value];
+    }
+
+    /**
+     * @param  list<MoneyTableFilter>  $filters
+     * @param  array<string, string>  $chosen
+     */
+    private static function applyFilters(Builder $query, array $filters, array $chosen): void
+    {
+        foreach ($filters as $filter) {
+            if ($filter->column === null) {
+                continue;
+            }
+
+            if ($filter->type === MoneyTableFilter::NumberRange || $filter->type === MoneyTableFilter::DateRange) {
+                foreach ([[(string) $filter->from, '>='], [(string) $filter->to, '<=']] as [$name, $comparison]) {
+                    if (isset($chosen[$name])) {
+                        $query->whereRaw($filter->column.' '.$comparison.' ?', [$chosen[$name]]);
+                    }
+                }
+
+                continue;
+            }
+
+            if (! isset($chosen[$filter->key])) {
+                continue;
+            }
+
+            if ($filter->type === MoneyTableFilter::Text) {
+                $query->whereRaw('CAST('.$filter->column.' AS text) ILIKE ?', ['%'.OrderListFilter::escapeLike($chosen[$filter->key]).'%']);
+
+                continue;
+            }
+
+            $query->whereRaw($filter->column.' = ?', [$chosen[$filter->key]]);
+        }
     }
 
     /**

@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Download } from 'lucide-react';
+import { useState, type MouseEvent } from 'react';
+import { Download } from 'lucide-react';
 import { businessTodayIso } from '../../business-date';
 import { useT } from '../../shared/i18n/t';
+import MoreMenu from '../office/MoreMenu';
 
 type TableDates = { period: string; from: string | null; to: string | null };
 type DateRange = { from: string; to: string };
@@ -68,34 +69,7 @@ function fileHref(root: string, type: string, range: DateRange): string {
 /** One menu for every file a person may take, in groups. Each file covers the dates the table is showing. */
 export default function DownloadsMenu({ state, choices }: { state: TableDates; choices: DownloadChoices }) {
     const translate = useT();
-    const [open, setOpen] = useState(false);
     const [tooMany, setTooMany] = useState(false);
-    const holder = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        if (!open) {
-            setTooMany(false);
-
-            return undefined;
-        }
-        const closeOutside = (event: MouseEvent) => {
-            if (!holder.current?.contains(event.target as Node)) {
-                setOpen(false);
-            }
-        };
-        const closeOnEscape = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
-                setOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', closeOutside);
-        document.addEventListener('keydown', closeOnEscape);
-
-        return () => {
-            document.removeEventListener('mousedown', closeOutside);
-            document.removeEventListener('keydown', closeOnEscape);
-        };
-    }, [open]);
 
     const range = fileRange(state);
     const fileName = (type: string) => translate('treasury', `dl_${type.replaceAll('-', '_')}`);
@@ -114,32 +88,28 @@ export default function DownloadsMenu({ state, choices }: { state: TableDates; c
     if (groups.length === 0) {
         return null;
     }
-    const takeFile = (event: React.MouseEvent, file: FileChoice) => {
+    const takeFile = (event: MouseEvent, file: FileChoice): boolean => {
         if (!mayTakeFile(file.limited, Date.now())) {
             event.preventDefault();
             setTooMany(true);
 
-            return;
+            return false;
         }
-        setOpen(false);
+
+        return true;
     };
 
     return (
-        <div className="tsy-menu" ref={holder}>
-            <button type="button" className="button small" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((current) => !current)}>
-                <Download size={14} aria-hidden="true" /> {translate('treasury', 'downloads')} <ChevronDown size={14} aria-hidden="true" />
-            </button>
-            {open && (
-                <div className="tsy-menu-list" role="menu">
-                    {tooMany && <p className="tsy-menu-note" role="alert">{translate('treasury', 'dl_too_many')}</p>}
-                    {groups.map((group) => (
-                        <div key={group.key} className="tsy-menu-group" role="group" aria-label={group.label}>
-                            <h3>{group.label}</h3>
-                            {group.files.map((file) => <a key={file.key} role="menuitem" href={file.href} onClick={(event) => takeFile(event, file)}>{file.label}</a>)}
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
+        <MoreMenu
+            label={translate('treasury', 'downloads')}
+            icon={<Download size={14} aria-hidden="true" />}
+            note={tooMany ? translate('treasury', 'dl_too_many') : undefined}
+            onClosed={() => setTooMany(false)}
+            groups={groups.map((group) => ({
+                key: group.key,
+                label: group.label,
+                items: group.files.map((file) => ({ key: file.key, label: file.label, href: file.href, onSelect: (event: MouseEvent) => takeFile(event, file) })),
+            }))}
+        />
     );
 }

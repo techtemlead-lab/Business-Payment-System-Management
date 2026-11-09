@@ -7,7 +7,7 @@ import { jsonRequest, submitFormPost } from '../shared/jsonRequest';
 
 type SavedView = { id: number; name: string; filters: Record<string, string> };
 type ListView = { views: SavedView[]; hidden: string[] };
-type BulkKind = 'orders' | 'partners';
+export type BulkKind = 'orders' | 'partners';
 
 /** Columns that identify a row or hold its buttons stay on, so a list can always be used. */
 const ALWAYS_SHOWN = new Set(['number', 'name', 'action']);
@@ -89,6 +89,17 @@ function ToolMenu({ icon, title, children, opensRight = false }: { icon: ReactNo
 /** Save the filters now on screen under a name, and go back to them with one click. */
 export function SavedFilterMenu({ listKey, section, filters }: { listKey: string; section: string; filters: Row }) {
     const translate = useT();
+
+    return (
+        <ToolMenu icon={<Bookmark size={14} aria-hidden="true" />} title={translate('productivity', 'views_saved_filters')}>
+            <SavedFilterPanel listKey={listKey} section={section} filters={filters} />
+        </ToolMenu>
+    );
+}
+
+/** The saved filters themselves, for placing inside a MoreMenu. */
+export function SavedFilterPanel({ listKey, section, filters }: { listKey: string; section: string; filters: Row }) {
+    const translate = useT();
     const { portalBase } = usePage<any>().props;
     const { view, remember } = useListView(listKey);
     const [name, setName] = useState('');
@@ -139,7 +150,7 @@ export function SavedFilterMenu({ listKey, section, filters }: { listKey: string
     };
 
     return (
-        <ToolMenu icon={<Bookmark size={14} aria-hidden="true" />} title={translate('productivity', 'views_saved_filters')}>
+        <>
             {view.views.length === 0 && <p className="list-tool-empty">{translate('productivity', 'views_none_yet')}</p>}
             <ul className="list-tool-list">
                 {view.views.map((saved) => (
@@ -198,7 +209,7 @@ export function SavedFilterMenu({ listKey, section, filters }: { listKey: string
             </div>
             {!hasFilters && <p className="list-tool-empty">{translate('productivity', 'views_choose_filters_first')}</p>}
             {error && <p className="field-error" role="alert">{error}</p>}
-        </ToolMenu>
+        </>
     );
 }
 
@@ -248,6 +259,27 @@ function columnTitle<T extends Row>(column: TableColumn<T>): string {
     return column.title ?? column.header ?? '';
 }
 
+/** "Select this page", how many are chosen, and what can be done with them. */
+export function BulkBar({ kind, pageIds, picked, onPick }: { kind: BulkKind; pageIds: string[]; picked: Set<string>; onPick: (next: Set<string>) => void }) {
+    const translate = useT();
+    const chosen = pageIds.filter((id) => picked.has(id));
+
+    return (
+        <span className="bulk-bar">
+            <button type="button" className="button small" onClick={() => onPick(chosen.length === pageIds.length ? new Set() : new Set(pageIds))}>
+                {translate('productivity', chosen.length === pageIds.length ? 'bulk_clear' : 'bulk_select_page')}
+            </button>
+            {chosen.length > 0 && (
+                <>
+                    <b>{translate('productivity', 'bulk_selected', { count: chosen.length })}</b>
+                    {kind === 'orders' && <button type="button" className="button small" onClick={() => submitFormPost('/commands/bulk/order-slips', { ids: chosen }, '_blank')}>{translate('productivity', 'bulk_print_slips')}</button>}
+                    <button type="button" className="button small" onClick={() => submitFormPost(`/commands/bulk/${kind}-export`, { ids: chosen })}>{translate('productivity', 'bulk_export')}</button>
+                </>
+            )}
+        </span>
+    );
+}
+
 /** A plain table unless a list key is given, so partners' order lists load nothing extra. */
 export function OfficeListTable<T extends Row = any>({ listKey, bulk, ...table }: TableProps<T> & { listKey?: string; bulk?: BulkKind }) {
     return listKey ? <ChoosableTable listKey={listKey} bulk={bulk} {...table} /> : <Table {...table} />;
@@ -262,7 +294,6 @@ function ChoosableTable<T extends Row = any>({ listKey, bulk, columns, extraTool
     const choosable = columns.filter((column) => !ALWAYS_SHOWN.has(column.key) && columnTitle(column) !== '');
     const visible = columns.filter((column) => ALWAYS_SHOWN.has(column.key) || columnTitle(column) === '' || !hidden.has(column.key));
     const pageIds = ((table.rows ?? table.data ?? []) as Row[]).map((row) => String(row.id));
-    const chosen = pageIds.filter((id) => picked.has(id));
 
     const togglePick = (id: string) => setPicked((current) => {
         const next = new Set(current);
@@ -337,20 +368,7 @@ function ChoosableTable<T extends Row = any>({ listKey, bulk, columns, extraTool
             extraTools={(
                 <>
                     {extraTools}
-                    {bulk && pageIds.length > 0 && (
-                        <span className="bulk-bar">
-                            <button type="button" className="button small" onClick={() => setPicked(chosen.length === pageIds.length ? new Set() : new Set(pageIds))}>
-                                {translate('productivity', chosen.length === pageIds.length ? 'bulk_clear' : 'bulk_select_page')}
-                            </button>
-                            {chosen.length > 0 && (
-                                <>
-                                    <b>{translate('productivity', 'bulk_selected', { count: chosen.length })}</b>
-                                    {bulk === 'orders' && <button type="button" className="button small" onClick={() => submitFormPost('/commands/bulk/order-slips', { ids: chosen }, '_blank')}>{translate('productivity', 'bulk_print_slips')}</button>}
-                                    <button type="button" className="button small" onClick={() => submitFormPost(`/commands/bulk/${bulk}-export`, { ids: chosen })}>{translate('productivity', 'bulk_export')}</button>
-                                </>
-                            )}
-                        </span>
-                    )}
+                    {bulk && pageIds.length > 0 && <BulkBar kind={bulk} pageIds={pageIds} picked={picked} onPick={setPicked} />}
                     <ToolMenu opensRight icon={<Columns3 size={14} aria-hidden="true" />} title={translate('productivity', 'views_columns')}>
                         <ul className="list-tool-list">
                             {choosable.map((column) => (

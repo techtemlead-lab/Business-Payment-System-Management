@@ -3,6 +3,8 @@ import { Link, router, usePage } from '@inertiajs/react';
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronRight, Search, SlidersHorizontal } from 'lucide-react';
 import { useT } from '../shared/i18n/t';
 import { DateInput, FormErrors, Modal, Pagination, money, number } from './UI';
+import { MoreFilterControls, filterKeys, isToolbarFilter, optionText, type MoneyFilter } from './MoneyTableFilters';
+import { BulkBar, type BulkKind } from './OfficeListTools';
 
 export type MoneyColumn<T> = {
     key: string;
@@ -22,8 +24,9 @@ export type MoneyTableData<T> = {
     rows: { data: T[] } & Record<string, unknown>;
     totals: { count: number; capped: boolean; sums: Record<string, string> | null };
     state: { q: string; period: string; from: string | null; to: string | null; sort: string; dir: 'asc' | 'desc'; filters: Record<string, string> };
-    filters: { key: string; label: string; options: { value: string; label: string }[] }[];
+    filters: MoneyFilter[];
     sortable: string[];
+    extra_periods?: string[];
 };
 
 type MoneyTableProps<T> = {
@@ -34,6 +37,14 @@ type MoneyTableProps<T> = {
     columns: MoneyColumn<T>[];
     searchPlaceholder: string;
     rowHref?: (row: T) => string | null;
+    /** False on new pages: the row itself is the link, with no arrow at its end. */
+    rowArrow?: boolean;
+    /** Opens the row in a drawer instead of following a link. Wins over rowHref. */
+    onRowOpen?: (row: T) => void;
+    /** Tick boxes and the bulk bar, shown while the page's own "Select" toggle is on. */
+    bulk?: { kind: BulkKind; selecting: boolean };
+    /** The "( A | B )" switch above the toolbar: an .office-switch. */
+    segments?: React.ReactNode;
     actions?: React.ReactNode;
     hideViewChips?: boolean;
     empty: string;
@@ -84,7 +95,7 @@ export default function MoneyTable<T>(props: MoneyTableProps<T>) {
     return <LoadedMoneyTable {...props} data={props.data} />;
 }
 
-function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, actions, hideViewChips = false, empty }: MoneyTableProps<T> & { data: MoneyTableData<T> }) {
+function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, rowArrow = true, onRowOpen, bulk, segments, actions, hideViewChips = false, empty }: MoneyTableProps<T> & { data: MoneyTableData<T> }) {
     const translate = useT();
     const { url, props: pageProps } = usePage<{ errors?: Record<string, string> }>();
     const { state, totals, filters, sortable } = data;
@@ -96,6 +107,8 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
     const [to, setTo] = useState(state.to ?? '');
     const [sheetOpen, setSheetOpen] = useState(false);
     const [busy, setBusy] = useState(false);
+    const [picked, setPicked] = useState<Set<string>>(() => new Set());
+    const selecting = bulk?.selecting === true;
 
     const latestUrl = useRef(url);
     latestUrl.current = url;
@@ -118,6 +131,12 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
     }, [state.period, state.from, state.to]);
 
     useEffect(() => () => window.clearTimeout(searchTimer.current), []);
+
+    useEffect(() => {
+        if (!selecting) {
+            setPicked(new Set());
+        }
+    }, [selecting]);
 
     /** Change part of the view and go back to page 1. Everything lives in the address, so a refresh keeps it. */
     const visit = (changes: Record<string, string | null>) => {
@@ -161,6 +180,7 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
     };
 
     const activeView = choosingView ?? state.period;
+    const viewChoices = [...VIEW_CHOICES.slice(0, 3), ...(data.extra_periods ?? []).map((value) => ({ value, word: `orders_period_${value}` })), ...VIEW_CHOICES.slice(3)];
 
     useEffect(() => {
         // On a phone the chips scroll sideways; keep the chosen one in sight.
@@ -214,6 +234,8 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
         visit({ sort: key, dir: direction });
     };
 
+    const toolbarFilters = filters.filter(isToolbarFilter);
+    const usesFilterSheet = toolbarFilters.length < filters.length;
     const chosenFilterCount = Object.keys(state.filters).length;
     const hasNarrowedView = state.q !== '' || chosenFilterCount > 0 || state.period === 'day' || state.period === 'custom';
 
@@ -228,23 +250,60 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
             to: null,
             sort: null,
             dir: null,
-            ...Object.fromEntries(filters.map((filter) => [filter.key, null])),
+            ...Object.fromEntries(filters.flatMap(filterKeys).map((key) => [key, null])),
         });
     };
 
-    const openRow = (event: React.MouseEvent, href: string | null) => {
+    const openRow = (event: React.MouseEvent, open: (() => void) | null) => {
         const clickedControl = (event.target as HTMLElement).closest('a,button,input,select,textarea,label');
-        if (href && !clickedControl && !window.getSelection()?.toString()) {
-            router.visit(href);
+        if (open && !clickedControl && !window.getSelection()?.toString()) {
+            open();
         }
     };
 
-    const filterSelect = (filter: MoneyTableData<T>['filters'][number]) => (
+    /** What opening this row does: its drawer, its address, or nothing. */
+    const rowOpener = (row: T, href: string | null): (() => void) | null => {
+        if (onRowOpen) {
+            return () => onRowOpen(row);
+        }
+
+        return href ? () => router.visit(href) : null;
+    };
+
+    const filterSelect = (filter: MoneyFilter) => (
         <select aria-label={filter.label} value={state.filters[filter.key] ?? ''} onChange={(event) => visit({ [filter.key]: event.target.value || null })}>
             <option value="">{filter.label}</option>
-            {filter.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            {filter.options?.map((option) => <option key={option.value} value={option.value}>{optionText(option)}</option>)}
         </select>
     );
+
+    const rowId = (row: T): string => String((row as Record<string, unknown>).id);
+
+    const pickBox = (row: T) => (
+        <input
+            type="checkbox"
+            className="bulk-check"
+            aria-label={translate('productivity', 'bulk_select_row')}
+            checked={picked.has(rowId(row))}
+            onChange={() => setPicked((current) => {
+                const next = new Set(current);
+                if (!next.delete(rowId(row))) {
+                    next.add(rowId(row));
+                }
+
+                return next;
+            })}
+        />
+    );
+
+    /** A keyboard way to open a row with no visible link: unseen until it has focus, when the whole row shows it. */
+    const openRowControl = (row: T, href: string | null) => {
+        if (onRowOpen) {
+            return <button type="button" className="sr-only mt-row-open" aria-haspopup="dialog" aria-label={translate('portal', 'mt_open_row')} onClick={() => onRowOpen(row)} />;
+        }
+
+        return href && !rowArrow ? <Link href={href} className="sr-only mt-row-open" aria-label={translate('portal', 'mt_open_row')} /> : null;
+    };
 
     const sortArrow = (column: MoneyColumn<T>) => {
         if (state.sort !== column.sortKey) {
@@ -259,6 +318,7 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
     const countText = `${number(totals.count)}${totals.capped ? '+' : ''}`;
     const totalLabel = translate('portal', 'mt_total_count', { count: countText });
 
+    const hasOpenColumn = rowHref !== undefined && onRowOpen === undefined && rowArrow;
     const phoneTitle = columns.find((column) => column.phone === 'title') ?? columns.find((column) => !column.money && column.phone !== 'hide') ?? columns[0];
     const phoneAmount = columns.find((column) => column.phone === 'amount') ?? columns.find((column) => column.money && column.phone === undefined);
     const phoneLines = columns.filter((column) => column !== phoneTitle && column !== phoneAmount && column.phone !== 'hide' && column.phone !== 'title' && column.phone !== 'amount');
@@ -267,6 +327,7 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
 
     return (
         <div className={`money-table${busy ? ' is-busy' : ''}`} aria-busy={busy}>
+            {segments && <div className="mt-segments">{segments}</div>}
             <div className="mt-toolbar">
                 <form className="mt-search" role="search" onSubmit={(event) => { event.preventDefault(); search(text); }}>
                     <div className="search-input">
@@ -274,7 +335,7 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
                         <input type="search" aria-label={searchPlaceholder} value={text} placeholder={searchPlaceholder} maxLength={100} onChange={(event) => typeSearch(event.target.value)} />
                     </div>
                 </form>
-                {(filters.length > 0 || sortableColumns.length > 0) && (
+                {!usesFilterSheet && (filters.length > 0 || sortableColumns.length > 0) && (
                     <button type="button" className="button small mt-sheet-button" onClick={() => setSheetOpen(true)}>
                         <SlidersHorizontal size={15} aria-hidden="true" />
                         {translate('portal', 'mt_filters')}
@@ -283,15 +344,29 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
                 )}
                 {!hideViewChips && (
                     <div className="mt-views" ref={viewChips} role="group" aria-label={translate('portal', 'mt_view_label')}>
-                        {VIEW_CHOICES.map((choice) => (
+                        {viewChoices.map((choice) => (
                             <button key={choice.value || 'all'} type="button" className="mt-view" aria-pressed={activeView === choice.value} onClick={() => chooseView(choice.value)}>
                                 {translate('portal', choice.word)}
                             </button>
                         ))}
                     </div>
                 )}
-                {filters.length > 0 && <div className="mt-filters">{filters.map((filter) => <React.Fragment key={filter.key}>{filterSelect(filter)}</React.Fragment>)}</div>}
-                {hasNarrowedView && <button type="button" className="text-link mt-clear" onClick={clearView}>{translate('portal', 'clear')}</button>}
+                {toolbarFilters.length > 0 && <div className="mt-filters">{toolbarFilters.map((filter) => <React.Fragment key={filter.key}>{filterSelect(filter)}</React.Fragment>)}</div>}
+                {!usesFilterSheet && hasNarrowedView && <button type="button" className="text-link mt-clear" onClick={clearView}>{translate('portal', 'clear')}</button>}
+                {usesFilterSheet && (
+                    <MoreFilterControls
+                        bar={{ fields: filters, active: state.filters }}
+                        visit={visit}
+                        sortOptions={sortableColumns.map((column) => ({ key: column.sortKey as string, title: column.title }))}
+                        sortState={{ sort: state.sort, dir: state.dir }}
+                        onSort={(key) => {
+                            const column = sortableColumns.find((candidate) => candidate.sortKey === key);
+                            if (column) {
+                                sortBy(column);
+                            }
+                        }}
+                    />
+                )}
                 {actions && <div className="mt-actions">{actions}</div>}
             </div>
 
@@ -307,6 +382,7 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
                 </div>
             )}
             {dateRefusal && <FormErrors errors={{ money_table_range: dateRefusal }} className="error mt-error" />}
+            {selecting && bulk && rows.length > 0 && <BulkBar kind={bulk.kind} pageIds={rows.map(rowId)} picked={picked} onPick={setPicked} />}
 
             {rows.length === 0 ? (
                 <p className="mt-empty">{empty}</p>
@@ -316,6 +392,7 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
                         <table className="mt-table">
                             <thead>
                                 <tr>
+                                    {selecting && <th className="mt-check-cell" aria-hidden="true" />}
                                     {columns.map((column) => {
                                         const canSort = sortableColumns.includes(column);
                                         const sorted = canSort && state.sort === column.sortKey;
@@ -331,31 +408,34 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
                                             </th>
                                         );
                                     })}
-                                    {rowHref && <th aria-hidden="true" />}
+                                    {hasOpenColumn && <th aria-hidden="true" />}
                                 </tr>
                             </thead>
                             <tbody>
                                 {rows.map((row, index) => {
-                                    const href = rowHref?.(row) ?? null;
+                                    const href = onRowOpen ? null : rowHref?.(row) ?? null;
+                                    const open = rowOpener(row, href);
 
                                     return (
-                                        <tr key={index} className={href ? 'is-link' : undefined} onClick={(event) => openRow(event, href)}>
-                                            {columns.map((column) => (
-                                                <td key={column.key} className={`${isRightAligned(column) ? 'is-right' : ''}${column.money ? ' is-money' : ''}`.trim() || undefined}>{cellContent(column, row)}</td>
+                                        <tr key={index} className={open ? 'is-link' : undefined} onClick={(event) => openRow(event, open)}>
+                                            {selecting && <td className="mt-check-cell">{pickBox(row)}</td>}
+                                            {columns.map((column, columnIndex) => (
+                                                <td key={column.key} className={`${isRightAligned(column) ? 'is-right' : ''}${column.money ? ' is-money' : ''}`.trim() || undefined}>{cellContent(column, row)}{columnIndex === 0 && openRowControl(row, href)}</td>
                                             ))}
-                                            {rowHref && <td className="mt-open-cell">{href && <Link href={href} className="mt-open" aria-label={translate('portal', 'mt_open_row')}><ChevronRight size={16} aria-hidden="true" /></Link>}</td>}
+                                            {hasOpenColumn && <td className="mt-open-cell">{href && <Link href={href} className="mt-open" aria-label={translate('portal', 'mt_open_row')}><ChevronRight size={16} aria-hidden="true" /></Link>}</td>}
                                         </tr>
                                     );
                                 })}
                             </tbody>
                             <tfoot>
                                 <tr>
+                                    {selecting && <td />}
                                     {columns.map((column, index) => (
                                         <td key={column.key} className={`${isRightAligned(column) ? 'is-right' : ''}${column.money ? ' is-money' : ''}`.trim() || undefined}>
                                             {index === 0 ? totalLabel : (column.total !== undefined && sums?.[column.total] !== undefined ? money(sums[column.total]) : null)}
                                         </td>
                                     ))}
-                                    {rowHref && <td />}
+                                    {hasOpenColumn && <td />}
                                 </tr>
                             </tfoot>
                         </table>
@@ -363,16 +443,18 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
 
                     <ul className="mt-cards">
                         {rows.map((row, index) => {
-                            const href = rowHref?.(row) ?? null;
+                            const href = onRowOpen ? null : rowHref?.(row) ?? null;
+                            const open = rowOpener(row, href);
 
                             return (
-                                <li key={index} className={`mt-card${href ? ' is-link' : ''}`} onClick={(event) => openRow(event, href)}>
+                                <li key={index} className={`mt-card${open ? ' is-link' : ''}`} onClick={(event) => openRow(event, open)}>
+                                    {selecting && pickBox(row)}
                                     <div className="mt-card-main">
-                                        <div className="mt-card-title">{cellContent(phoneTitle, row)}</div>
+                                        <div className="mt-card-title">{cellContent(phoneTitle, row)}{openRowControl(row, href)}</div>
                                         {phoneLines.length > 0 && <div className="mt-card-lines">{phoneLines.map((column) => <span key={column.key}>{cellContent(column, row)}</span>)}</div>}
                                     </div>
                                     {phoneAmount && <div className="mt-card-amount">{cellContent(phoneAmount, row)}</div>}
-                                    {href && <Link href={href} className="mt-open" aria-label={translate('portal', 'mt_open_row')}><ChevronRight size={16} aria-hidden="true" /></Link>}
+                                    {href && rowArrow && <Link href={href} className="mt-open" aria-label={translate('portal', 'mt_open_row')}><ChevronRight size={16} aria-hidden="true" /></Link>}
                                 </li>
                             );
                         })}
