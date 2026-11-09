@@ -68,7 +68,7 @@ class PublicWebsiteTest extends TestCase
 
     public function test_enquiry_is_saved_without_creating_an_account_and_rejects_honeypot(): void
     {
-        $data = ['name' => 'Synthetic Visitor', 'phone' => 'TEST-PHONE', 'topic' => 'Dealer enquiry', 'message' => 'Please share dealer information.'];
+        $data = ['name' => 'Synthetic Visitor', 'phone' => '01711112222', 'topic' => 'Dealer enquiry', 'message' => 'Please share dealer information.'];
         $this->from('/contact')->post('/enquiries', $data)->assertRedirect('/contact')->assertSessionHas('success');
         $this->assertDatabaseCount('users', 0);
         $this->assertDatabaseCount('enquiries', 1);
