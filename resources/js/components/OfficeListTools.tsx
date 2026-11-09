@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { router, usePage } from '@inertiajs/react';
-import { Bookmark, Columns3, ListChecks, Trash2 } from 'lucide-react';
+import { Bookmark, Columns3, ListChecks, Pencil, Trash2 } from 'lucide-react';
 import { Table, type Row, type TableColumn, type TableProps } from './UI';
 import { useT } from '../shared/i18n/t';
 import { jsonRequest, submitFormPost } from '../shared/jsonRequest';
@@ -93,6 +93,8 @@ export function SavedFilterMenu({ listKey, section, filters }: { listKey: string
     const { view, remember } = useListView(listKey);
     const [name, setName] = useState('');
     const [error, setError] = useState<string | null>(null);
+    const [renamingId, setRenamingId] = useState<number | null>(null);
+    const [newName, setNewName] = useState('');
     const hasFilters = useMemo(() => Object.entries(filters ?? {}).some(([key, value]) => !['branch_id', 'all_branches', 'page'].includes(key) && value !== '' && value != null), [filters]);
 
     const save = () => {
@@ -115,14 +117,65 @@ export function SavedFilterMenu({ listKey, section, filters }: { listKey: string
             .catch((failure: Error) => setError(failure.message));
     };
 
+    const startRename = (saved: SavedView) => {
+        setError(null);
+        setNewName(saved.name);
+        setRenamingId(saved.id);
+    };
+
+    const rename = (id: number) => {
+        setError(null);
+        jsonRequest<{ data: ListView }>(`/commands/list-views/${listKey}/${id}`, { method: 'PATCH', body: { name: newName } })
+            .then(({ data }) => {
+                remember(data);
+                setRenamingId(null);
+            })
+            .catch((failure: Error) => setError(failure.message));
+    };
+
+    const cancelRename = () => {
+        setError(null);
+        setRenamingId(null);
+    };
+
     return (
         <ToolMenu icon={<Bookmark size={14} aria-hidden="true" />} title={translate('productivity', 'views_saved_filters')}>
             {view.views.length === 0 && <p className="list-tool-empty">{translate('productivity', 'views_none_yet')}</p>}
             <ul className="list-tool-list">
                 {view.views.map((saved) => (
                     <li key={saved.id}>
-                        <button type="button" className="text-link" onClick={() => router.get(`${portalBase ?? ''}/${section}`, saved.filters)}>{saved.name}</button>
-                        <button type="button" className="icon-button" aria-label={translate('productivity', 'views_delete', { name: saved.name })} onClick={() => remove(saved.id)}><Trash2 size={14} /></button>
+                        {renamingId === saved.id ? (
+                            <div className="list-tool-rename">
+                                <input
+                                    autoFocus
+                                    value={newName}
+                                    maxLength={60}
+                                    aria-label={translate('productivity', 'views_rename_field', { name: saved.name })}
+                                    onFocus={(event) => event.target.select()}
+                                    onChange={(event) => setNewName(event.target.value)}
+                                    onKeyDown={(event) => {
+                                        if (event.key === 'Enter') {
+                                            event.preventDefault();
+                                            rename(saved.id);
+                                        }
+                                        if (event.key === 'Escape') {
+                                            event.stopPropagation();
+                                            cancelRename();
+                                        }
+                                    }}
+                                />
+                                <button type="button" className="button small dark" onClick={() => rename(saved.id)}>{translate('productivity', 'views_save')}</button>
+                                <button type="button" className="button small" onClick={cancelRename}>{translate('productivity', 'views_rename_cancel')}</button>
+                            </div>
+                        ) : (
+                            <>
+                                <button type="button" className="text-link" onClick={() => router.get(`${portalBase ?? ''}/${section}`, saved.filters)}>{saved.name}</button>
+                                <span className="list-tool-actions">
+                                    <button type="button" className="icon-button" aria-label={translate('productivity', 'views_rename', { name: saved.name })} onClick={() => startRename(saved)}><Pencil size={14} /></button>
+                                    <button type="button" className="icon-button" aria-label={translate('productivity', 'views_delete', { name: saved.name })} onClick={() => remove(saved.id)}><Trash2 size={14} /></button>
+                                </span>
+                            </>
+                        )}
                     </li>
                 ))}
             </ul>

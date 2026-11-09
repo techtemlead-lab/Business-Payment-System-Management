@@ -45,6 +45,6 @@ export function actionAllowed(url:string,matrix:Matrix|undefined,method='post'):
     if(path.startsWith('/commands/purchasing/'))return any(['inventory'],method==='patch'||/\/(send|cancel)$/.test(path)?'edit':'create');
     if(path.startsWith('/commands/stock-counts'))return any(['inventory'],/\/(approve|reject)$/.test(path)?'approve':/\/cancel$/.test(path)?'edit':'create');
     // Partner tools on the owner panel: only owners reach these pages and the server checks again.
-    if(path==='/commands/sales-kit'||path==='/commands/contests')return true;
+    if(/^\/commands\/sales-kit(\/\d+)?$/.test(path)||path==='/commands/contests')return true;
     return false;
 }

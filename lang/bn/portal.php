@@ -6624,4 +6624,7 @@ return [
     'err_reserve_rule_amount' => ':program ঠিক ৳:amount হতে হবে, যা পুরস্কারের নিয়মে দেওয়া আছে। এই পরিমাণই লিখুন।',
     'err_reserve_rule_amount_blank' => 'পুরস্কারের নিয়মে :program-এর জন্য এখনো টাকার পরিমাণ দেওয়া নেই। আগে কমিশন নিয়মে পরিমাণ দিন।',
     'pbc_owner_required' => 'শর্ত ছাড়া সুবিধা শুধু মালিক, এমডি বা চেয়ারম্যান দিতে পারবেন।',
+    'event_dated_scheme_updated' => 'স্কিম বদলানো হয়েছে',
+    'event_contest_updated' => 'প্রতিযোগিতা বদলানো হয়েছে',
+    'event_sales_kit_updated' => 'সেলস কিটের ফাইল বদলানো হয়েছে',
 ];

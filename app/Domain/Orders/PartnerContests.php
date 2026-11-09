@@ -9,6 +9,7 @@ use App\Support\DashboardManagement;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Contests and their live standings. Standings only read orders and accounts: a contest never
@@ -51,7 +52,7 @@ final class PartnerContests
         return [
             'can_manage' => $canManage,
             'metrics' => PartnerContest::Metrics,
-            'contests' => $contests->map(fn (PartnerContest $contest): array => $this->present($contest, $today, $viewerId, $showAmounts))->all(),
+            'contests' => $contests->map(fn (PartnerContest $contest): array => $this->present($contest, $today, $viewerId, $showAmounts, $canManage))->all(),
         ];
     }
 
@@ -67,6 +68,45 @@ final class PartnerContests
         return $contest;
     }
 
+    /**
+     * Saves an edit. Standings are worked out from orders each time, so a contest's results live
+     * in what it counts and its dates: once it has results those stay put, or the results would change.
+     *
+     * @param  array{title: string, starts_on: string, ends_on: string, metric: string, prize_text?: string|null, reason: string}  $data
+     */
+    public function update(User $owner, PartnerContest $contest, array $data): PartnerContest
+    {
+        abort_unless(self::canManage($owner), 403);
+
+        return DB::transaction(function () use ($owner, $contest, $data): PartnerContest {
+            $locked = PartnerContest::query()->whereKey($contest->id)->lockForUpdate()->firstOrFail();
+            $today = CarbonImmutable::now((string) config('madina.business_timezone'))->startOfDay();
+            $status = $this->status($locked, $today);
+            $before = [
+                'title' => (string) $locked->title,
+                'starts_on' => $locked->starts_on->toDateString(),
+                'ends_on' => $locked->ends_on->toDateString(),
+                'metric' => (string) $locked->metric,
+                'prize_text' => $locked->prize_text,
+            ];
+            $after = [...array_intersect_key($data, $before), 'prize_text' => $data['prize_text'] ?? null];
+            if ($status !== 'upcoming' && $this->rankedRows($locked, null) !== []) {
+                $this->refuseChangesToResults($before, $after, $status, $today);
+            }
+            $locked->update($after);
+            $changed = array_keys(array_filter($after, fn (mixed $value, string $field): bool => $value !== $before[$field], ARRAY_FILTER_USE_BOTH));
+            Audit::record($owner->id, 'contest.updated', (string) $locked->id, [
+                'title' => $locked->title,
+                'fields' => $changed,
+                'before' => array_intersect_key($before, array_flip($changed)),
+                'after' => array_intersect_key($after, array_flip($changed)),
+                'reason' => $data['reason'],
+            ]);
+
+            return $locked;
+        });
+    }
+
     public function remove(User $owner, PartnerContest $contest): void
     {
         abort_unless(self::canManage($owner), 403);
@@ -74,16 +114,52 @@ final class PartnerContests
         $contest->delete();
     }
 
+    /**
+     * @param  array<string, mixed>  $before
+     * @param  array<string, mixed>  $after
+     */
+    private function refuseChangesToResults(array $before, array $after, string $status, CarbonImmutable $today): void
+    {
+        $locks = $this->locks($status, true);
+        $refusals = [];
+        foreach (array_keys(array_filter($locks)) as $field) {
+            if ($after[$field] !== $before[$field]) {
+                $refusals[$field] = __('dealer_tools.contest_term_locked');
+            }
+        }
+        if ($status === 'running' && $after['ends_on'] < $today->toDateString()) {
+            $refusals['ends_on'] = __('dealer_tools.contest_end_before_today');
+        }
+        if ($refusals !== []) {
+            throw ValidationException::withMessages($refusals);
+        }
+    }
+
+    /**
+     * A running contest's end date stays open, because moving it to today or later loses nothing.
+     *
+     * @return array{metric: bool, starts_on: bool, ends_on: bool}
+     */
+    private function locks(string $status, bool $hasResults): array
+    {
+        return ['metric' => $hasResults, 'starts_on' => $hasResults, 'ends_on' => $hasResults && $status === 'ended'];
+    }
+
+    private function status(PartnerContest $contest, CarbonImmutable $today): string
+    {
+        return match (true) {
+            $contest->starts_on->toDateString() > $today->toDateString() => 'upcoming',
+            $contest->ends_on->toDateString() < $today->toDateString() => 'ended',
+            default => 'running',
+        };
+    }
+
     /** @return array<string, mixed> */
-    private function present(PartnerContest $contest, CarbonImmutable $today, ?int $viewerId, bool $showAmounts): array
+    private function present(PartnerContest $contest, CarbonImmutable $today, ?int $viewerId, bool $showAmounts, bool $canManage): array
     {
         $startsOn = $contest->starts_on->toDateString();
         $endsOn = $contest->ends_on->toDateString();
-        $status = match (true) {
-            $startsOn > $today->toDateString() => 'upcoming',
-            $endsOn < $today->toDateString() => 'ended',
-            default => 'running',
-        };
+        $status = $this->status($contest, $today);
         $showValues = $contest->metric !== 'purchases' || $showAmounts;
         $rows = $status === 'upcoming' ? [] : $this->rankedRows($contest, $viewerId);
         $standings = [];
@@ -116,6 +192,10 @@ final class PartnerContests
             'status' => $status,
             'standings' => $standings,
             'me' => $me,
+            ...($canManage ? [
+                'locked' => $this->locks($status, $rows !== []),
+                'earliest_end' => $rows !== [] && $status === 'running' ? $today->toDateString() : null,
+            ] : []),
         ];
     }
 

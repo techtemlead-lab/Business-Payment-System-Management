@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { router } from '@inertiajs/react';
-import { Download, Eye, Trash2 } from 'lucide-react';
-import { ActionForm, Empty, type Field, type Row } from '../UI';
+import { Download, Eye, Pencil, Trash2 } from 'lucide-react';
+import { ActionForm, Empty, Modal, type Field, type Row } from '../UI';
 import { useT } from '../../shared/i18n/t';
 
 type SalesKitItem = {
@@ -11,12 +11,13 @@ type SalesKitItem = {
 
 type SalesKitData = { can_manage: boolean; kinds: string[]; languages: string[]; items: SalesKitItem[] };
 
-/** Approved sales materials. The owner adds and removes them; partners view and download. */
+/** Approved sales materials. The owner adds, edits and removes them; partners view and download. */
 export default function SalesKitHub({ data }: { data: SalesKitData }) {
     const translate = useT();
     const [language, setLanguage] = useState('');
     const [kind, setKind] = useState('');
-    const items = (data?.items ?? []).filter((item) => (!language || item.language === language) && (!kind || item.kind === kind));
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const items =(data?.items ?? []).filter((item) => (!language || item.language === language) && (!kind || item.kind === kind));
     const kindLabel = (value: string) => translate('dealer_tools', `kit_kind_${value}`);
     const languageLabel = (value: string) => translate('dealer_tools', `kit_lang_${value}`);
     const fields: Field[] = [
@@ -26,6 +27,12 @@ export default function SalesKitHub({ data }: { data: SalesKitData }) {
         { name: 'caption', label: translate('dealer_tools', 'kit_caption_field'), type: 'textarea' },
         { name: 'file', label: translate('dealer_tools', 'kit_file_field'), type: 'file', required: true, accept: '.pdf,.png,.jpg,.jpeg,.webp' } as Field,
     ];
+    const editing = (data?.items ?? []).find((item) => item.id === editingId);
+    const editFields: Field[] = editing ? [
+        ...fields.filter((field) => field.name !== 'file'),
+        { name: 'file', label: translate('dealer_tools', 'kit_replace_file_field'), type: 'file', accept: '.pdf,.png,.jpg,.jpeg,.webp', hint: translate('dealer_tools', 'kit_replace_file_hint', { name: editing.file_name }) },
+        { name: 'reason', label: translate('dealer_tools', 'edit_reason_field'), type: 'textarea', required: true, hint: translate('dealer_tools', 'edit_reason_hint') },
+    ] : [];
     const remove = (item: SalesKitItem) => {
         if (window.confirm(translate('dealer_tools', 'kit_remove_confirm', { title: item.title }))) {
             router.delete(`/commands/sales-kit/${item.id}`, { preserveScroll: true });
@@ -71,6 +78,7 @@ export default function SalesKitHub({ data }: { data: SalesKitData }) {
                                     <div className="ops-row is-wrap">
                                         <a className="button small" href={item.view_url} target="_blank" rel="noreferrer"><Eye size={14} /> {translate('dealer_tools', 'kit_view')}</a>
                                         <a className="button small dark" href={item.download_url}><Download size={14} /> {translate('dealer_tools', 'kit_download')}</a>
+                                        {data.can_manage && <button type="button" className="button small" onClick={() => setEditingId(item.id)}><Pencil size={14} aria-hidden="true" /> {translate('dealer_tools', 'kit_edit')}</button>}
                                         {data.can_manage && <button type="button" className="button small" onClick={() => remove(item)}><Trash2 size={14} /> {translate('dealer_tools', 'kit_remove')}</button>}
                                     </div>
                                 </article>
@@ -78,6 +86,16 @@ export default function SalesKitHub({ data }: { data: SalesKitData }) {
                         </div>
                     )}
             </section>
+            {editing && (
+                <Modal title={translate('dealer_tools', 'kit_edit_title')} onClose={() => setEditingId(null)}>
+                    <ActionForm
+                        action={`/commands/sales-kit/${editing.id}`}
+                        fields={editFields}
+                        defaults={{ title: editing.title, kind: editing.kind, language: editing.language, caption: editing.caption ?? '' } as Row}
+                        onDone={() => setEditingId(null)}
+                    />
+                </Modal>
+            )}
         </>
     );
 }

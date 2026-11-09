@@ -241,14 +241,17 @@ return function (string $portal): void {
 
     // Partner tools.
     Route::post('/commands/contests', [PartnerContestController::class, 'store'])->middleware('throttle:30,1');
+    Route::patch('/commands/contests/{partnerContest}', [PartnerContestController::class, 'update'])->whereNumber('partnerContest')->middleware('throttle:30,1');
     Route::delete('/commands/contests/{partnerContest}', [PartnerContestController::class, 'destroy'])->whereNumber('partnerContest')->middleware('throttle:30,1');
     Route::post('/commands/schemes', [DatedSchemeController::class, 'store'])->middleware('throttle:30,1');
+    Route::patch('/commands/schemes/{datedScheme}', [DatedSchemeController::class, 'update'])->whereNumber('datedScheme')->middleware('throttle:30,1');
     Route::delete('/commands/schemes/{datedScheme}', [DatedSchemeController::class, 'destroy'])->whereNumber('datedScheme')->middleware('throttle:30,1');
     Route::post('/commands/customers', [CustomerBookController::class, 'store'])->middleware('throttle:60,1');
     Route::patch('/commands/customers/{customer}', [CustomerBookController::class, 'update'])->whereNumber('customer')->middleware('throttle:60,1');
     Route::post('/commands/customers/{customer}/follow-up-done', [CustomerBookController::class, 'followUpDone'])->whereNumber('customer')->middleware('throttle:60,1');
     Route::delete('/commands/customers/{customer}', [CustomerBookController::class, 'destroy'])->whereNumber('customer')->middleware('throttle:60,1');
     Route::post('/commands/sales-kit', [SalesKitController::class, 'store'])->middleware('throttle:30,1');
+    Route::post('/commands/sales-kit/{salesKitItem}', [SalesKitController::class, 'update'])->whereNumber('salesKitItem')->middleware('throttle:30,1');
     Route::delete('/commands/sales-kit/{salesKitItem}', [SalesKitController::class, 'destroy'])->whereNumber('salesKitItem')->middleware('throttle:30,1');
     Route::get('/sales-kit/{salesKitItem}/file', [SalesKitController::class, 'file'])->whereNumber('salesKitItem')->middleware('throttle:120,1');
     require __DIR__.'/productivity.php';
