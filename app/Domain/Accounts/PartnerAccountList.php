@@ -9,13 +9,16 @@ use App\Domain\Orders\OrderListFilter;
 use App\Models\PlaceCode;
 use App\Models\User;
 use App\Support\Money;
+use App\Support\MoneyTable;
+use App\Support\MoneyTableSpec;
 use App\Support\TableWorkbook;
 use Carbon\CarbonImmutable;
 use Generator;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -134,25 +137,64 @@ final class PartnerAccountList
     }
 
     /**
-     * One page of partners, each with rank, last confirmed order and this month's purchases.
+     * One page of partners, each with rank, last confirmed order and this month's purchases, sorted
+     * by the database so the order is right across every page. The search stays the one the
+     * Excel download uses, so the file always matches the list.
      *
      * @param  array{q: string, status: string, division: string, district: string, rank: string, no_order_days: int}  $filters
-     * @return LengthAwarePaginator<int, User>
+     * @param  BranchScope|null  $branchScope  On a branch picked in the top bar, only that branch's partners.
+     * @return array{rows: LengthAwarePaginator<int, User>, totals: array{count: int, capped: bool, sums: array<string, string>|null}, state: array{q: string, period: string, from: ?string, to: ?string, sort: string, dir: string, filters: array<string, string>}, sortable: list<string>}
      */
-    public function page(string $role, array $filters, int $perPage = 20, ?BranchScope $branchScope = null): LengthAwarePaginator
+    public function table(Request $request, string $role, array $filters, ?BranchScope $branchScope = null): array
     {
-        $page = $this->withStatus($this->matching($role, $filters, $branchScope), $filters)
+        $sort = $request->query('sort');
+        $query = $this->withStatus($this->matching($role, $filters, $branchScope), $filters)->toBase()
+            ->select('users.id')
+            ->when(in_array($sort, ['last_order_at', 'month_purchase'], true), fn (Builder $rows) => $rows->leftJoinSub($this->activity(), 'activity', 'activity.user_id', '=', 'users.id'))
+            ->when($sort === 'rank', fn (Builder $rows) => $rows->leftJoin('dealer_ranks', 'dealer_ranks.user_id', '=', 'users.id'));
+
+        $table = MoneyTable::make($request, $query, new MoneyTableSpec(
+            dateColumn: null,
+            search: [],
+            filters: [],
+            sorts: [
+                'name' => 'users.name',
+                'place' => "COALESCE(users.profile->>'place_code', users.profile->>'area_code')",
+                'rank' => "CASE COALESCE(dealer_ranks.current_rank, 'dealer') WHEN 'dealer' THEN 0 WHEN 'mo' THEN 1 WHEN 'am' THEN 2 WHEN 'sm' THEN 3 WHEN 'me' THEN 4 ELSE 0 END",
+                'last_order_at' => 'activity.last_order_at',
+                'month_purchase' => 'activity.month_purchase',
+                'status' => 'users.status',
+                'newest' => 'users.id',
+            ],
+            defaultSort: 'newest',
+            tieBreaker: 'users.id',
+            defaultPeriod: null,
+            perPage: 20,
+        ));
+
+        $partners = $this->withListFacts($table['rows']->getCollection()->pluck('id')->all(), $role);
+        /** @var LengthAwarePaginator<int, User> $rows */
+        $rows = $table['rows']->through(fn (object $row): User => $partners[$row->id]);
+
+        return ['rows' => $rows, 'totals' => $table['totals'], 'state' => $table['state'], 'sortable' => $table['sortable']];
+    }
+
+    /**
+     * The partners of one page with what the list shows about each: rank, last confirmed order and this month's purchases.
+     *
+     * @param  list<int>  $ids
+     * @return Collection<int, User>
+     */
+    private function withListFacts(array $ids, string $role): Collection
+    {
+        $partners = User::query()->whereIn('users.id', $ids)
             ->select(self::Columns)
             ->addSelect(['current_rank' => DB::table('dealer_ranks')->select('current_rank')->whereColumn('dealer_ranks.user_id', 'users.id')->limit(1)])
             ->with('sponsor:id,name,dealer_code')
-            ->orderByDesc('users.id')
-            ->paginate($perPage)
-            ->withQueryString();
-        $activity = $this->activity()
-            ->whereIn('orders.user_id', $page->getCollection()->pluck('id')->all())
             ->get()
-            ->keyBy('user_id');
-        $page->getCollection()->each(function (User $user) use ($activity, $role): void {
+            ->keyBy('id');
+        $activity = $this->activity()->whereIn('orders.user_id', $ids)->get()->keyBy('user_id');
+        $partners->each(function (User $user) use ($activity, $role): void {
             $row = $activity->get($user->id);
             $user->setAttribute('current_rank', $role === 'dealer' ? ($user->getAttribute('current_rank') ?? 'dealer') : null);
             $user->setAttribute('last_order_at', $row?->last_order_at ? CarbonImmutable::parse($row->last_order_at, 'UTC')->toIso8601String() : null);
@@ -160,7 +202,7 @@ final class PartnerAccountList
             $user->setAttribute('profile', array_diff_key((array) $user->profile, array_flip(self::PrivateProfileKeys)));
         });
 
-        return $page;
+        return $partners;
     }
 
     /**
