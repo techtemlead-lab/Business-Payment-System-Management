@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\CompanyBranch;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -127,7 +128,7 @@ class StaffListTableTest extends TestCase
             ->where('data.employee_stats.suspended', 1));
     }
 
-    private function visit(string $address): \Illuminate\Testing\TestResponse
+    private function visit(string $address): TestResponse
     {
         return $this->actingAs($this->owner)->onPortal('sadmin')->get($address)->assertOk();
     }
