@@ -1,20 +1,30 @@
-Draft — have a lawyer check this
-
 Madina Natural Health Care
 Dealer and Sub-dealer Agreement
 
-1. What this agreement is
-• This is an agreement between Madina Natural Health Care (here "the company") and you (a dealer or sub-dealer).
+Company details
+• Registered legal name: [Company to complete: registered legal name of the company]
+• Legal form of the business: [Company to complete: legal form of the business]
+• Trade licence number: [Company to complete: trade licence number]
+• Registered address: [Company to complete: registered address]
+• Authorised signatory: [Company to complete: name and title of the authorised signatory]
+
+1. The parties and your agreement
+• This agreement is between Madina Natural Health Care (here "the company") and the dealer or sub-dealer who accepts it in the portal (here "you").
 • When you press "I have read and agree" in the portal, you accept this agreement.
-• When the company publishes a new version, you need to read it and agree again.
+• When the company publishes a new version, you may be asked to read it and agree again.
 
-2. Joining
-• Becoming a dealer or sub-dealer is free. There is no joining fee.
-• When you join, you give your national ID (NID) and a photo.
-• All the details you give must be true.
-• Always carry the company photo ID card while you work.
+2. Joining and your account
+• You must be at least 18 years old to become a dealer or sub-dealer.
+• There is no joining fee to become a dealer or sub-dealer.
+• When you join, you give your identity document (national ID or birth certificate) and a photo. All the details you give must be true.
+• One mobile number can hold only one account. Only the company's owner can allow an exception, with a written reason.
+• Your login, your code and your company photo ID card are for you alone. Do not let anyone else use them.
 
-3. How you earn
+3. Your code is your refer code
+• Your dealer code or sub-dealer code given by the company is your refer code. There is no separate refer code.
+• When someone joins through you, this code is entered when their account is opened.
+
+4. How you earn
 • You earn only from real product purchases. Bringing someone in does not earn money by itself.
 • The company's rules include these earnings:
   - cashback on your own purchases
@@ -24,33 +34,63 @@ Dealer and Sub-dealer Agreement
   - a monthly salary pool for each division (when the monthly purchase target is met)
   - rank royalty and rank reward
   - car and bike rewards (the company checks and decides these by hand)
-• The company sets all rates and targets. They are shown in the portal. What the portal shows is what applies.
+• The company sets all rates, targets and limits and shows them in the portal. No rate is written in this agreement; what the portal shows is what applies.
 • Income is not guaranteed. It depends on real sales and purchases.
-• If an order is refunded, the company can take back the commission earned from that order.
 
-4. Orders and payment
-• Every order must be paid in full first. Goods are not sent until the full amount is paid.
-• Every payment needs a transaction ID (TrxID) and a screenshot of the payment.
-• Send money only to the company accounts shown in the portal.
-• There is no way to send money from one member to another. The company does not handle such transfers.
+5. Money is counted after delivery only
+• Every money figure is worked out after goods are delivered, never before. The portal's lists and reports all follow this rule.
+• Until goods are delivered, you earn nothing from that order and it is not counted.
+• Goods with the courier are neither in stock nor delivered. If they come back, they are added to stock again.
 
-5. Selling rules
+6. Partly delivered, cancelled and returned orders
+• If only part of an order is delivered, you earn only on the value of the goods delivered. Goods not delivered go back to stock.
+• A cancelled or returned order earns nothing. Such orders and the reason stay visible on your order page.
+
+7. Earnings held, withheld or taken back
+• An earning may be held until the company's check is finished. Held money cannot be withdrawn or spent.
+• The company may decide, with a written reason, that an order earns no commission. That money goes to the company fund and the order's details stay in the portal.
+• If an order is refunded, the company can take back the commission earned from that order. If it cannot be adjusted at once, it is recovered from your later earnings.
+
+8. Orders and payment
+• The ways to pay are those shown on the portal's order page: bank, bKash, Nagad, Rocket, cash at the office ("By Office") and your own account's money ("From My Account").
+• To use "From My Account", your account balance must be equal to or more than the order's price.
+• When you send money by bank or mobile banking, give the transaction ID (TrxID) and a screenshot of the payment.
+• Send money only to the company accounts shown in the portal. There is no way to send money from one member to another.
+• Goods are not sent until the full amount has been received and checked.
+
+9. Withdrawing money
+• You can withdraw only from the money available in your account. A withdrawal cannot be below the minimum shown on the portal's withdrawal page.
+• The company checks every request. If a request is refused, the money returns to your account and the reason is shown in the portal.
+• When the company has this switched on, you must finish an identity check before your first withdrawal.
+• Any tax the law requires is deducted, and the amount deducted is shown in your records.
+• Instead of withdrawing, you can place an order for the same amount.
+
+10. Selling and conduct rules
 • Never sell a product above the price printed on it (MRP).
-• When you bring in someone new, do not make false income promises. Do not say things like "you will surely earn this much each month".
+• Say only what is printed on the pack or in the company's own papers. Do not say that a product cures a disease.
+• When you bring in someone new, do not promise income. Do not say things like "you will surely earn this much each month", and do not take money by promising a job.
+• Keep customers' names, phone numbers and health details private.
 
-6. Changes to rates and rules
-• The company can change rates and rules.
-• Before a change, the company will post a notice in the portal.
+11. Changes to rates and rules
+• The company can change rates and rules. Before a change, the company will post a notice in the portal.
 
-7. Complaints and help
-• If you have a problem or a complaint, tell us in the portal's "Help" or chat section.
-• The company will look at the complaint and resolve it.
+12. Complaints and help
+• If you have a problem or a complaint, tell us in the portal's "Help" or chat section. The company will look at it and resolve it.
 
-8. Your personal data
-• Your name, phone, NID, photo and order details are used only for this business.
+13. Your personal data
+• Your name, phone, identity document, photo and order details are used only for this business.
 
-9. If the rules are broken
-• If these rules are broken, the company can close your account for a time or for good.
+14. If the rules are broken
+• If this agreement or the portal's rules are broken, the company can close your account for a time or for good.
 
-10. Proof that you agreed
+15. Ending this agreement and closing your account
+• Either you or the company can end this agreement. Notice period: [Company to complete: notice period for ending this agreement].
+• When an account is closed you can no longer sign in. The company keeps the records of orders, payments, commissions and withdrawals.
+• What happens to any remaining money and unopened goods when an account closes: [Company to complete: rules for remaining money and return of unopened goods].
+
+16. Law and disputes
+• Law that applies to this agreement: [Company to complete: governing law].
+• Court or forum for disputes: [Company to complete: name and district of the court or forum].
+
+17. Proof that you agreed
 • When you press "I have read and agree", the portal saves the time, your account, your IP address and your device details. This is the proof that you agreed.

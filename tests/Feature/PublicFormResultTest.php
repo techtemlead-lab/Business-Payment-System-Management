@@ -2,7 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -43,6 +46,49 @@ class PublicFormResultTest extends TestCase
 
         $this->onPortal('public')->from('/partnership')->post('/partnership/apply', $this->application())
             ->assertRedirect('/partnership#partner-apply-status')->assertSessionHasErrors('email');
+    }
+
+    public function test_a_mobile_number_that_already_has_an_account_is_warned_about_without_saying_whose(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+        User::factory()->dealer()->create(['name' => 'Existing Holder', 'phone' => '01811112223']);
+
+        foreach (['dealer', 'sub_dealer'] as $role) {
+            $this->onPortal('public')->from('/partnership')->post('/partnership/apply', ['role' => $role] + $this->application())
+                ->assertRedirect('/partnership#partner-apply-status')
+                ->assertSessionHasErrors(['phone' => __('portal.err_public_app_phone_taken')]);
+        }
+
+        $this->onPortal('public')->from('/partnership')->followingRedirects()->post('/partnership/apply', $this->application())
+            ->assertOk()->assertSee(__('portal.err_public_app_phone_taken'))->assertDontSee('Existing Holder');
+
+        $this->assertSame(0, DB::table('dealer_applications')->count());
+        $this->assertDatabaseMissing('audit_events', ['action' => 'dealer_application.public_submitted']);
+        $this->assertSame([], config('madina.sms.sent'));
+    }
+
+    public function test_the_taken_number_warning_reads_in_each_language_and_ignores_number_formats(): void
+    {
+        User::factory()->dealer()->create(['phone' => '01811112223']);
+        $this->assertNotSame(__('portal.err_public_app_phone_taken', [], 'en'), __('portal.err_public_app_phone_taken', [], 'bn'));
+
+        foreach (['en', 'bn'] as $locale) {
+            $this->onPortal('public')->from('/partnership')->withSession(['locale' => $locale])
+                ->post('/partnership/apply', ['phone' => '+880 1811-112223'] + $this->application())
+                ->assertSessionHasErrors(['phone' => __('portal.err_public_app_phone_taken', [], $locale)]);
+        }
+    }
+
+    public function test_the_taken_number_warning_stays_under_the_form_rate_limit(): void
+    {
+        User::factory()->dealer()->create(['phone' => '01811112223']);
+
+        foreach (range(1, 5) as $attempt) {
+            $this->onPortal('public')->from('/partnership')->post('/partnership/apply', $this->application())->assertRedirect();
+        }
+
+        $this->onPortal('public')->from('/partnership')->post('/partnership/apply', $this->application())->assertTooManyRequests();
     }
 
     public function test_the_partnership_page_has_the_place_the_address_points_to(): void

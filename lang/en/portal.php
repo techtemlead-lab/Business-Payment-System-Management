@@ -3119,6 +3119,7 @@ return [
     'err_post_replacement_dup' => 'One person cannot hold two referral positions on the same order.',
     'err_stock_ref_dup' => 'This stock entry is already recorded.',
     'err_stock_nonnegative' => 'After the correction, stock cannot go below zero.',
+    'err_public_app_phone_taken' => 'This mobile number already has an account. One number can hold only one account. Please use another number, or contact the company for help.',
     'err_public_app_reject' => 'We could not accept this application with these details. If you already applied, contact the company.',
     'err_wallet_posting_disabled' => 'Live money records are off. Check the approved rules and starting balances before turning them on.',
     'err_wallet_posting_unverified' => 'Before any earnings start, confirm the starting balances, or choose a fresh start if there are none.',

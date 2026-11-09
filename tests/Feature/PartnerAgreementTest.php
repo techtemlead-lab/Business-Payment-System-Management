@@ -26,13 +26,17 @@ class PartnerAgreementTest extends TestCase
         $this->withoutVite();
     }
 
-    public function test_version_one_is_the_seeded_bilingual_draft(): void
+    public function test_version_one_is_the_seeded_bilingual_agreement_without_a_draft_note(): void
     {
         $first = PartnerAgreementVersion::query()->sole();
 
         $this->assertSame(1, $first->version);
-        $this->assertStringStartsWith('খসড়া — আইনজীবী দিয়ে যাচাই করুন', $first->body_bn);
-        $this->assertStringStartsWith('Draft — have a lawyer check this', $first->body_en);
+        $this->assertStringNotContainsString('খসড়া', $first->body_bn);
+        $this->assertStringNotContainsString('আইনজীবী', $first->body_bn);
+        $this->assertStringNotContainsStringIgnoringCase('draft', $first->body_en);
+        $this->assertStringNotContainsStringIgnoringCase('lawyer', $first->body_en);
+        $this->assertStringContainsString('[Company to complete: registered legal name of the company]', $first->body_en);
+        $this->assertStringContainsString('[কোম্পানি পূরণ করবে: কোম্পানির নিবন্ধিত আইনি নাম]', $first->body_bn);
         $this->assertStringContainsString('মদিনা ন্যাচারাল হেলথ কেয়ার', $first->body_bn);
         $this->assertStringContainsString('Madina Natural Health Care', $first->body_en);
         $this->assertFalse(app(PartnerAgreement::class)->setting()['required'], 'The switch starts off.');
@@ -310,6 +314,71 @@ class PartnerAgreementTest extends TestCase
         $this->assertSame(['required' => true, 'version_id' => PartnerAgreementVersion::query()->sole()->id, 'version' => 1, 'accepted' => false], $status);
         $this->assertTrue($agreement->blocks($dealer, $status));
         $this->assertFalse($agreement->blocks(User::factory()->staff()->create(), $status), 'Owners are never blocked.');
+    }
+
+    public function test_the_update_replaces_the_seeded_draft_with_the_final_text_as_a_new_version(): void
+    {
+        $this->storeSeededDraftAsLatest();
+
+        $this->runFinalTextMigration();
+
+        $versions = PartnerAgreementVersion::query()->orderBy('version')->get();
+        $this->assertSame([1, 2, 3], $versions->pluck('version')->all());
+        $this->assertStringStartsWith('খসড়া', $versions[1]->body_bn, 'The draft version is kept unchanged.');
+        $this->assertStringStartsWith('Madina Natural Health Care', $versions[2]->body_en);
+        $this->assertStringContainsString('Your dealer code or sub-dealer code given by the company is your refer code.', $versions[2]->body_en);
+        $this->assertNull($versions[2]->published_by);
+
+        $this->runFinalTextMigration();
+        $this->assertSame(3, PartnerAgreementVersion::query()->count(), 'Running it again adds nothing.');
+    }
+
+    public function test_the_update_never_replaces_text_an_owner_saved(): void
+    {
+        $owner = User::factory()->staff('md')->create();
+        app(PartnerAgreement::class)->publish($owner, 'মালিকের নিজের চুক্তি।', 'The owner\'s own agreement.');
+
+        $this->runFinalTextMigration();
+
+        $latest = PartnerAgreementVersion::query()->orderByDesc('version')->first();
+        $this->assertSame(2, $latest->version);
+        $this->assertSame('মালিকের নিজের চুক্তি।', $latest->body_bn);
+        $this->assertSame($owner->id, $latest->published_by);
+    }
+
+    public function test_the_update_leaves_a_draft_an_owner_republished_alone(): void
+    {
+        $owner = User::factory()->staff('md')->create();
+        app(PartnerAgreement::class)->publish($owner, "খসড়া — আইনজীবী দিয়ে যাচাই করুন\nমালিকের লেখা।", "Draft — have a lawyer check this\nThe owner's words.");
+
+        $this->runFinalTextMigration();
+
+        $this->assertSame(2, PartnerAgreementVersion::query()->count());
+    }
+
+    public function test_the_update_does_nothing_on_a_new_install(): void
+    {
+        $this->runFinalTextMigration();
+
+        $this->assertSame(1, PartnerAgreementVersion::query()->count());
+    }
+
+    private function storeSeededDraftAsLatest(): void
+    {
+        DB::table('partner_agreement_versions')->insert([
+            'version' => 2,
+            'body_bn' => "খসড়া — আইনজীবী দিয়ে যাচাই করুন\n\nমদিনা ন্যাচারাল হেলথ কেয়ার",
+            'body_en' => "Draft — have a lawyer check this\n\nMadina Natural Health Care",
+            'published_by' => null,
+            'published_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    private function runFinalTextMigration(): void
+    {
+        (require database_path('migrations/2026_11_09_214358_publish_final_partner_agreement_text.php'))->up();
     }
 
     private function turnSwitchOn(): void

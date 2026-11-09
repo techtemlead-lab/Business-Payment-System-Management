@@ -24,7 +24,7 @@ class OpenApiController extends Controller
                 'contact' => array_filter([
                     'name' => 'Madina Natural Health Care',
                     'url' => 'https://'.$domain.'/contact',
-                    'email' => trim((string) (SiteCustomization::all()['contact_email'] ?? '')),
+                    'email' => trim((string) (SiteCustomization::forPublicPages()['contact_email'] ?? '')),
                 ]),
             ],
             'servers' => [

@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use App\Support\SiteCustomization;
+use App\Support\SiteFacts;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\TestResponse;
@@ -114,5 +116,48 @@ class ContactHoursAndEmailTest extends TestCase
             ->assertSee('office@example.test')
             ->assertDontSee(self::DefaultEmail);
         $this->assertSame('office@example.test', SiteCustomization::raw()['contact_email']);
+    }
+
+    public function test_the_email_switch_starts_on(): void
+    {
+        $this->assertSame('1', SiteCustomization::defaults()['contact_email_enabled']);
+        $this->inLanguage('en', '/contact')->assertOk()->assertSee(self::DefaultEmail);
+        $this->inLanguage('bn', '/')->assertOk()->assertSee(self::DefaultEmail);
+    }
+
+    public function test_switching_the_email_off_hides_it_on_every_public_page_and_keeps_it_saved(): void
+    {
+        $editor = User::factory()->create(['role' => 'editor']);
+        $this->actingAs($editor)->post('/commands/customization', ['customization' => [
+            'contact_email' => 'office@example.test',
+            'contact_email_enabled' => '0',
+        ]])->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('audit_events', ['actor_id' => $editor->id, 'action' => 'customization.updated', 'subject' => 'frontend']);
+        auth()->logout();
+
+        foreach (['en', 'bn'] as $locale) {
+            foreach (['/', '/contact', '/about', '/partnership'] as $path) {
+                $this->inLanguage($locale, $path)->assertOk()
+                    ->assertDontSee('office@example.test')
+                    ->assertDontSee(self::DefaultEmail);
+            }
+        }
+        $this->inLanguage('en', '/contact')->assertDontSee('ref-footer-contact-link is-email', false)->assertDontSee(__('site.contact_email_title', [], 'en'));
+        $this->get('/api/v1/openapi.json')->assertJsonMissingPath('info.contact.email');
+        $this->assertSame('Write to ', SiteFacts::fill('Write to {email}'));
+
+        $this->assertSame('office@example.test', SiteCustomization::raw()['contact_email'], 'Off only hides it.');
+        SiteCustomization::save(['contact_title' => 'Owner heading']);
+        $this->assertSame('office@example.test', SiteCustomization::raw()['contact_email'], 'A later save keeps the address.');
+
+        SiteCustomization::save(['contact_email_enabled' => '1']);
+        $this->inLanguage('en', '/contact')->assertOk()->assertSee('office@example.test');
+    }
+
+    public function test_a_blank_email_box_still_brings_the_default_back_while_the_switch_is_on(): void
+    {
+        SiteCustomization::save(['contact_email' => '', 'contact_email_enabled' => '1']);
+
+        $this->inLanguage('en', '/contact')->assertOk()->assertSee(self::DefaultEmail);
     }
 }

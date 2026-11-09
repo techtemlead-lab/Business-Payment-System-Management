@@ -71,7 +71,7 @@ class PublicController extends Controller
         $homepageVideo = $needsCatalog ? ProductVideo::homepage() : null;
         $testimonials = $needsCatalog ? SiteCustomization::getTestimonials() : [];
 
-        $siteCustomization = SiteCustomization::all();
+        $siteCustomization = SiteCustomization::forPublicPages();
         $maps = null;
         if ($needsMaps) {
             $defaults = SiteCustomization::defaults();
