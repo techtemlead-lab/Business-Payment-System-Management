@@ -187,7 +187,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                     { key: 'reference', title: translate('portal', 'col_reference') }, { key: 'channel', title: translate('portal', 'payment_method'), render: (r: Row) => { const raw = String(r.channel ?? ''); const key = `pay_channel_${raw.toLowerCase()}`; const text = translate('portal', key); return raw === '' ? '—' : (text !== key ? text : raw); } }, { key: 'amount', title: translate('portal', 'col_amount'), render: claim => money(claim.amount) },
                     { key: 'status', title: translate('portal', 'col_status'), render: claim => <Badge status={claim.status} /> }, { key: 'reason', title: translate('portal', 'review_note') },
                 ]} />
-                <p className="muted">{translate('portal', 'claim_not_verified_hint')}</p>
+                {claims.every(claim => !['Office', 'Account'].includes(String(claim.channel))) && <p className="muted">{translate('portal', 'claim_not_verified_hint')}</p>}
                 {capabilities.includes('finance') && !canVerify && claims.some(claim => claim.status === 'pending') && <p className="notice">{translate('portal', 'payment_view_only_note')}</p>}
                 {capabilities.includes('finance') && canVerify && claims.filter(claim => claim.status === 'pending').map(claim => <div className="panel" key={claim.id}>
                     <h3>{translate('portal', 'review_claim', { reference: claim.reference })}</h3>
