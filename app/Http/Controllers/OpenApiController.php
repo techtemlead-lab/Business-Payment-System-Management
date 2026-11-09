@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Support\PortalHost;
+use App\Support\SiteCustomization;
 use Illuminate\Http\JsonResponse;
 
 class OpenApiController extends Controller
@@ -20,10 +21,11 @@ class OpenApiController extends Controller
                 'title' => 'Madina Platform Core API',
                 'description' => 'Enterprise payment, commission calculation, and territorial dealer distribution management API for Madina Natural Health Care.',
                 'version' => '1.0.0',
-                'contact' => [
-                    'name' => 'Madina Enterprise Engineering',
-                    'email' => 'tech@madinanhac.com',
-                ],
+                'contact' => array_filter([
+                    'name' => 'Madina Natural Health Care',
+                    'url' => 'https://'.$domain.'/contact',
+                    'email' => trim((string) (SiteCustomization::all()['contact_email'] ?? '')),
+                ]),
             ],
             'servers' => [
                 ['url' => 'https://'.$domain, 'description' => 'Current Environment Server'],

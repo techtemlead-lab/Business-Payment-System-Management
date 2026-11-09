@@ -6,8 +6,11 @@ use App\Models\Order;
 use App\Models\PaymentClaim;
 use App\Models\Receipt;
 use App\Models\Shipment;
+use App\Support\SiteCustomization;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Routing\Route as RegisteredRoute;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class OpenApiTest extends TestCase
@@ -83,6 +86,39 @@ class OpenApiTest extends TestCase
         $this->assertArrayHasKey('201', $withdrawalResponses);
         $this->assertArrayNotHasKey('200', $withdrawalResponses);
         $this->assertStringContainsString('Withdrawal requested', $withdrawalResponses['201']['description']);
+    }
+
+    /**
+     * The contact is the company's own website, plus the email the owner saved, never an invented mailbox.
+     */
+    public function test_openapi_contact_only_shows_the_email_the_owner_saved(): void
+    {
+        SiteCustomization::forgetCache();
+
+        $withoutEmail = $this->get('/api/v1/openapi.json');
+        $this->assertStringNotContainsString('madinanhac', (string) $withoutEmail->getContent());
+        $this->assertArrayNotHasKey('email', $withoutEmail->json('info.contact'));
+        $this->assertStringEndsWith('/contact', (string) $withoutEmail->json('info.contact.url'));
+
+        SiteCustomization::save(['contact_email' => 'office@example.test']);
+
+        $this->get('/api/v1/openapi.json')->assertJsonPath('info.contact.email', 'office@example.test');
+    }
+
+    /**
+     * Every address the document lists must really exist, with the same request method.
+     */
+    public function test_every_address_in_the_openapi_document_is_a_real_route(): void
+    {
+        $known = collect(Route::getRoutes()->getRoutes())
+            ->flatMap(fn (RegisteredRoute $route) => collect($route->methods())->map(fn (string $method): string => $method.' /'.$route->uri()))
+            ->flip();
+
+        foreach ($this->get('/api/v1/openapi.json')->json('paths') as $path => $operations) {
+            foreach (array_keys($operations) as $method) {
+                $this->assertTrue($known->has(strtoupper($method).' '.$path), strtoupper($method).' '.$path.' is listed but has no route.');
+            }
+        }
     }
 
     /**
