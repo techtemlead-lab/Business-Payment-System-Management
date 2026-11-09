@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
-import { Search } from 'lucide-react';
+import { Download, Search } from 'lucide-react';
 import { FormErrors, money, date, Table, Pagination, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
 import { useEscape } from '../shared/useEscape';
@@ -265,6 +265,14 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
             </div>
 
             {!canProcess && <div className="notice" role="status"><p>{translate('portal', 'pay_view_only_notice')}</p></div>}
+
+            {canProcess && (
+                <div className="toolbar-end">
+                    <a className="button small" href="/commands/operations/accounting/payout-batch/export">
+                        <Download size={14} aria-hidden="true" /> {translate('treasury', 'payout_file')}
+                    </a>
+                </div>
+            )}
 
             {/* Filter & Search Bar */}
             <div className="panel hub-row is-between">

@@ -37,7 +37,7 @@
 
 /* Funds on the Treasury home page. */
 .app-shell .tsy-funds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--ds-s-3)}
-.app-shell .tsy-fund{display:flex;flex-direction:column;min-width:0;padding:var(--ds-s-4) var(--ds-s-5);background:var(--ds-surface);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);color:var(--ds-text);transition:border-color .15s ease}
+.app-shell .tsy-fund{display:flex;flex-direction:column;min-width:0;padding:var(--ds-s-4) var(--ds-s-5);background:var(--ds-surface);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);color:var(--ds-text)}
 .app-shell .tsy-fund:hover{border-color:var(--ds-brand)}
 .app-shell .tsy-fund:focus-visible{outline:2px solid var(--ds-brand);outline-offset:2px}
 .app-shell .tsy-fund h2{margin:0 0 var(--ds-s-3);font-size:var(--ds-fs-md);font-weight:700;letter-spacing:0;line-height:1.3;color:var(--ds-text)}

@@ -24,7 +24,7 @@ export default function TreasuryPartners({ table }: { table: MoneyTableData<Part
     const columns: MoneyColumn<PartnerRow>[] = [
         { key: 'name', title: translate('treasury', 'col_partner'), sortKey: 'name', phone: 'title', render: (row) => <><b>{row.name}</b><small className="cell-sub">{joined([row.code, label(row.role, translate), row.area])}</small></> },
         { key: 'available', title: translate('treasury', 'card_now'), sortKey: 'available', money: true, total: 'available', phone: 'amount', render: (row) => <b>{money(row.available)}</b> },
-        { key: 'waiting', title: translate('treasury', 'col_waiting'), sortKey: 'waiting', money: true, total: 'waiting', phone: 'sub', render: (row) => money(row.waiting) },
+        { key: 'waiting', title: translate('treasury', 'col_waiting'), sortKey: 'waiting', money: true, total: 'waiting', phone: 'hide', render: (row) => money(row.waiting) },
         { key: 'ordered_mrp', title: translate('treasury', 'col_ordered'), sortKey: 'ordered_mrp', money: true, total: 'ordered_mrp', phone: 'hide', render: (row) => money(row.ordered_mrp) },
         { key: 'cash_given', title: translate('treasury', 'col_cash'), sortKey: 'cash_given', money: true, total: 'cash_given', phone: 'hide', render: (row) => money(row.cash_given) },
         { key: 'withdrawn', title: translate('treasury', 'col_out'), sortKey: 'withdrawn', money: true, total: 'withdrawn', phone: 'hide', render: (row) => <>{money(row.withdrawn)}<small className="cell-sub">{translate('treasury', 'spent_line', { amount: money(row.spent) })}</small></> },
