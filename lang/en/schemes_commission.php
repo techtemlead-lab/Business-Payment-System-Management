@@ -13,8 +13,8 @@ return [
 
     // Staff decision on an order with one parcel delivered and another returned.
     'decision_delivered_part' => 'Commission on the delivered part only',
-    'decision_no_commission' => 'No commission on this order',
-    'decision_rule_note' => 'If you choose the delivered part, commission is worked out on the delivered goods only and posted once, right away. Free items never earn commission. This cannot be changed afterwards.',
+    'decision_no_commission' => 'No commission, money goes to the company profit fund',
+    'decision_rule_note' => 'If you choose the delivered part, commission is worked out on the delivered goods only. If you choose no commission, the money goes to the company profit fund with your reason. Free items never earn commission. This cannot be changed afterwards.',
     'err_nothing_paid_delivered' => 'Only free items were delivered on this order, so there is no commission to post. Choose no commission.',
     'err_not_paid_in_full' => 'This order is not fully paid, so commission cannot be posted yet.',
 ];

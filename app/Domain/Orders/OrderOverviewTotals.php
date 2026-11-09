@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Order figures for the home screen of any portal: how many orders, how many
- * wait for review, what confirmed orders are worth and what is still owed.
+ * wait for review, what delivered goods are worth and what is still owed.
  * The order figures come from one pass over the orders table instead of a
  * separate count or sum for each number.
  */
@@ -26,16 +26,15 @@ final class OrderOverviewTotals
      */
     public function for(Builder $orders, CarbonInterface $placedSince): array
     {
-        $confirmed = $this->placeholders(OrderListFilter::Confirmed);
         $awaitingReview = $this->placeholders(self::AwaitingReview);
         $row = (clone $orders)->toBase()->reorder()->selectRaw(
             'COUNT(*) AS order_count, '
             ."COUNT(*) FILTER (WHERE status IN ({$awaitingReview})) AS pending, "
             .'COUNT(*) FILTER (WHERE created_at >= ?) AS orders_placed_since, '
-            ."COALESCE(SUM(total) FILTER (WHERE status IN ({$confirmed})), 0) AS purchases, "
-            ."COALESCE(SUM(paid) FILTER (WHERE status IN ({$confirmed})), 0) AS paid, "
-            ."COALESCE(SUM(due_credit) FILTER (WHERE status IN ({$confirmed})), 0) AS credits",
-            [...self::AwaitingReview, $placedSince, ...OrderListFilter::Confirmed, ...OrderListFilter::Confirmed, ...OrderListFilter::Confirmed],
+            .'COALESCE(SUM('.DeliveredMoney::valueSql().'), 0) AS purchases, '
+            .'COALESCE(SUM('.DeliveredMoney::paidSql().'), 0) AS paid, '
+            .'COALESCE(SUM(due_credit) FILTER (WHERE status IN (\'delivered\')), 0) AS credits',
+            [...self::AwaitingReview, $placedSince],
         )->first();
 
         $purchases = Money::cents((string) $row->purchases);

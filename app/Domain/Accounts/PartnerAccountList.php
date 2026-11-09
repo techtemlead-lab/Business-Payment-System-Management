@@ -233,7 +233,7 @@ final class PartnerAccountList
             ->groupBy('orders.user_id')
             ->select('orders.user_id')
             ->selectRaw('MAX(orders.created_at) AS last_order_at')
-            ->selectRaw('COALESCE(SUM(orders.total) FILTER (WHERE orders.created_at >= ?), 0) AS month_purchase', [$monthStart]);
+            ->selectRaw('COALESCE(SUM('.DeliveredMoney::valueSql().') FILTER (WHERE orders.created_at >= ?), 0) AS month_purchase', [$monthStart]);
     }
 
     /**

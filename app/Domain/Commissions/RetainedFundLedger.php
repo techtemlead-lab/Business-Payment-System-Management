@@ -61,6 +61,7 @@ final class RetainedFundLedger
                     ->orWhere('category', CommissionSettlement::CompanyProfitCategory)
                     ->orWhere('category', 'like', '%_override_reserve')
                     ->orWhere('category', 'like', '%_breakage')
+                    ->orWhere('category', CommissionPosting::NoCommissionCategory)
                     ->orWhere('metadata->retained_by', ManagementReferral::FundRetainedBy);
             })
             ->latest('id')
@@ -262,6 +263,9 @@ final class RetainedFundLedger
         };
         if ($allocation->category === self::BenefitsCategory) {
             return __('portal.retained_reason_benefits_surplus', ['account' => $accountLabel]);
+        }
+        if ($allocation->category === CommissionPosting::NoCommissionCategory) {
+            return __('portal.retained_reason_no_commission', ['reason' => (string) ($metadata['reason'] ?? '')]);
         }
         if (($metadata['retained_by'] ?? null) === CommissionPosting::CompanyProfit && isset($metadata['reason_key'])) {
             $localized = __('portal.'.$metadata['reason_key'], ['place' => (string) ($metadata['place_code'] ?? '')]);

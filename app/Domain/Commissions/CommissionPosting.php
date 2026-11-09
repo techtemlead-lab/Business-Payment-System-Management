@@ -19,6 +19,9 @@ final class CommissionPosting
     /** Marks a share that belongs to the company profit fund from the moment the order posts. */
     public const CompanyProfit = 'company_profit_fund';
 
+    /** One row holding the commission nobody received because staff chose no commission. */
+    public const NoCommissionCategory = 'no_commission_to_company';
+
     public function __construct(
         private CommissionPolicy $policies,
         private CommissionWallet $wallets,
@@ -120,6 +123,103 @@ final class CommissionPosting
         return $this->post($order, $actorId, true);
     }
 
+    /**
+     * Staff chose no commission on a partly delivered order that never posted. The delivered money
+     * is split exactly as a posting would split it, so the company share and the owners' share stay
+     * the same, and the whole commission goes to the company profit fund as one row carrying the
+     * staff member's reason. No wallet moves, and nothing counts toward volume or rank.
+     *
+     * @return int|null cents that went to the fund; null when no paid goods arrived to record
+     */
+    public function retainDeliveredPartForCompany(Order $order, ?int $actorId, string $reason): ?int
+    {
+        if (
+            $order->is_opening_balance
+            || config('madina.preview_mode')
+            || ! config('madina.financial_activation')
+            || Money::cents($order->total) === 0
+        ) {
+            return null;
+        }
+        CommissionWallet::requireActive();
+
+        return DB::transaction(function () use ($order, $actorId, $reason): ?int {
+            CommissionWallet::lock();
+            $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            $deliveredPart = $this->deliveredPart($order, false);
+            if ($deliveredPart === null) {
+                return null;
+            }
+            $buyer = User::whereKey($order->user_id)->lockForUpdate()->firstOrFail();
+            if (! in_array($buyer->role, ['dealer', 'sub_dealer'], true)) {
+                return null;
+            }
+            $snapshot = $order->commission_policy_snapshot ?? $this->capture($order, $buyer);
+            ['mrp' => $mrp, 'company' => $company, 'allocated' => $allocated, 'funding_decisions' => $decisions] = $this->calculate($order, $buyer, $snapshot, $deliveredPart);
+            $cash = $deliveredPart['cash'];
+            $type = $snapshot['account_type'];
+            $month = CommissionQualification::currentMonth();
+            $unallocated = $cash - $company - $allocated;
+            DB::table('commission_batches')->insert(['order_id' => $order->id, 'account_type' => $type, 'period_month' => $month,
+                'cash_basis' => Money::decimal($cash), 'mrp_basis' => Money::decimal($mrp), 'company_share' => Money::decimal($company),
+                'total_allocated' => Money::decimal($allocated), 'unallocated' => Money::decimal($unallocated), 'no_commission' => true,
+                'policy' => json_encode([...$snapshot, 'funding_decisions' => $decisions,
+                    'delivered_part' => ['order_total' => $order->total, 'line_quantities' => $deliveredPart['quantities']],
+                    'no_commission' => ['reason' => $reason, 'decided_by' => $actorId]], JSON_THROW_ON_ERROR),
+                'created_at' => now(), 'updated_at' => now()]);
+            if ($allocated > 0) {
+                self::addNoCommissionRow($order, $cash, $allocated, $allocated, $type, $reason, $actorId);
+            }
+            $this->recordOwnersShare($order, $cash, $unallocated, $type, true);
+            Audit::record($actorId, 'commissions.calculated', $order->id, [
+                'buyer_id' => $buyer->id,
+                'account_type' => $type,
+                'cash_basis' => Money::decimal($cash),
+                'allocated' => Money::decimal($allocated),
+                'benefits_fund' => Money::decimal($unallocated),
+                'posting_scope' => 'delivered_part',
+                'order_total' => $order->total,
+                'no_commission' => true,
+                'reason' => $reason,
+            ]);
+
+            return $allocated;
+        }, 3);
+    }
+
+    /**
+     * Writes the one row that puts the commission of a no-commission order in the company profit
+     * fund. The fund reads it through metadata.retained_by; the reason is what staff wrote.
+     *
+     * @param  array<string, mixed>  $extra  more metadata, such as what was taken back from partners
+     */
+    public static function addNoCommissionRow(Order $order, int $cash, int $original, int $amount, string $accountType, string $reason, ?int $actorId, array $extra = []): CommissionAllocation
+    {
+        $rateBps = intdiv(($original * 10000) + intdiv($cash, 2), max(1, $cash));
+
+        return CommissionAllocation::create([
+            'order_id' => $order->id,
+            'user_id' => null,
+            'category' => self::NoCommissionCategory,
+            'rate_percentage' => number_format($rateBps / 100, 2, '.', ''),
+            'cash_basis' => Money::decimal($cash),
+            'amount' => Money::decimal($amount),
+            'original_amount' => Money::decimal($original),
+            'status' => 'reserved',
+            'metadata' => [
+                'basis' => 'purchase_value',
+                'period_month' => CommissionQualification::currentMonth(),
+                'retained_by' => self::CompanyProfit,
+                'account_type' => $accountType,
+                'posting_scope' => 'delivered_part',
+                'decision' => 'no_commission',
+                'reason' => $reason,
+                'decided_by' => $actorId,
+                ...$extra,
+            ],
+        ]);
+    }
+
     /** @return list<array<string, mixed>> */
     private function post(Order $order, ?int $actorId, bool $deliveredPartOnly): array
     {
@@ -179,28 +279,7 @@ final class CommissionPosting
                     $this->wallets->credit($row['user_id'], $row['cents'], $held);
                 }
             }
-            if ($unallocated > 0) {
-                $rateBps = intdiv(($unallocated * 10000) + intdiv($cash, 2), max(1, $cash));
-                CommissionAllocation::create([
-                    'order_id' => $order->id,
-                    'user_id' => null,
-                    'category' => 'company_commission_benefits_fund',
-                    'rate_percentage' => number_format($rateBps / 100, 2, '.', ''),
-                    'cash_basis' => Money::decimal($cash),
-                    'amount' => Money::decimal($unallocated),
-                    'original_amount' => Money::decimal($unallocated),
-                    'status' => 'reserved',
-                    'metadata' => [
-                        'basis' => 'purchase_value',
-                        'period_month' => CommissionQualification::currentMonth(),
-                        'retained_by' => 'owner_commission_benefits_fund',
-                        'owner_only' => true,
-                        'account_type' => $type,
-                        'source' => 'purchase_surplus_after_company_share_and_commissions',
-                        ...($deliveredPart !== null ? ['posting_scope' => 'delivered_part'] : []),
-                    ],
-                ]);
-            }
+            $this->recordOwnersShare($order, $cash, $unallocated, $type, $deliveredPart !== null);
             $credited = array_sum(array_column($journal, 'credit'));
             if ($credited > 0) {
                 $journal[] = ['user_id' => null, 'account' => 'commission_expense', 'debit' => $credited, 'credit' => 0];
@@ -225,12 +304,42 @@ final class CommissionPosting
         }, 3);
     }
 
+    /** The surplus after the company share and commissions, shown to the owners as its own row. */
+    private function recordOwnersShare(Order $order, int $cash, int $unallocated, string $accountType, bool $deliveredPart): void
+    {
+        if ($unallocated <= 0) {
+            return;
+        }
+        $rateBps = intdiv(($unallocated * 10000) + intdiv($cash, 2), max(1, $cash));
+        CommissionAllocation::create([
+            'order_id' => $order->id,
+            'user_id' => null,
+            'category' => 'company_commission_benefits_fund',
+            'rate_percentage' => number_format($rateBps / 100, 2, '.', ''),
+            'cash_basis' => Money::decimal($cash),
+            'amount' => Money::decimal($unallocated),
+            'original_amount' => Money::decimal($unallocated),
+            'status' => 'reserved',
+            'metadata' => [
+                'basis' => 'purchase_value',
+                'period_month' => CommissionQualification::currentMonth(),
+                'retained_by' => 'owner_commission_benefits_fund',
+                'owner_only' => true,
+                'account_type' => $accountType,
+                'source' => 'purchase_surplus_after_company_share_and_commissions',
+                ...($deliveredPart ? ['posting_scope' => 'delivered_part'] : []),
+            ],
+        ]);
+    }
+
     /**
-     * The delivered parcels of a mixed-outcome order, in money. Free lines are left out.
+     * The delivered parcels of a mixed-outcome order, in money. Free lines are left out. With
+     * $required false an order with no paid goods delivered, or not paid in full, gives null
+     * instead of a refusal.
      *
-     * @return array{cash: int, mrp: int, quantities: array<int, int>}
+     * @return array{cash: int, mrp: int, quantities: array<int, int>}|null
      */
-    private function deliveredPart(Order $order): array
+    private function deliveredPart(Order $order, bool $required = true): ?array
     {
         $delivered = [];
         foreach (DB::table('shipments')->where('order_id', $order->id)->where('status', 'delivered')->orderBy('id')->lockForUpdate()->pluck('lines') as $parcel) {
@@ -257,9 +366,15 @@ final class CommissionPosting
             $quantities[$lineId] = $quantity;
         }
         if ($cash <= 0 || $mrp <= 0) {
+            if (! $required) {
+                return null;
+            }
             throw ValidationException::withMessages(['decision' => __('schemes_commission.err_nothing_paid_delivered')]);
         }
         if (Money::cents((string) $order->paid) !== Money::cents((string) $order->total)) {
+            if (! $required) {
+                return null;
+            }
             throw ValidationException::withMessages(['decision' => __('schemes_commission.err_not_paid_in_full')]);
         }
 

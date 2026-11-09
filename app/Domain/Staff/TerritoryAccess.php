@@ -211,7 +211,7 @@ final class TerritoryAccess
         if ($byLevel === []) {
             return 0;
         }
-        $query = DB::table('commission_batches')->where('period_month', $month);
+        $query = DB::table('commission_batches')->where('period_month', $month)->where('no_commission', false);
         $query->where(function ($outer) use ($byLevel): void {
             foreach ($byLevel as $level => $ids) {
                 $placeholders = implode(', ', array_fill(0, count($ids), '?'));

@@ -3,6 +3,7 @@
 namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Orders\CourierBoard;
+use App\Domain\Orders\DeliveredMoney;
 use App\Domain\Orders\OrderListFilter;
 use App\Domain\Orders\OverdueDeliveries;
 use App\Support\Money;
@@ -38,6 +39,8 @@ final class OrdersSection implements WorkspaceSection
 
         $props = [
             'orders' => $listQuery->with($orderWith)
+                ->select('orders.*')
+                ->selectRaw(DeliveredMoney::valueSql().' AS delivered_value, '.DeliveredMoney::paidSql().' AS delivered_paid')
                 ->latest()
                 ->paginate(12)
                 ->withQueryString(),
@@ -58,8 +61,9 @@ final class OrdersSection implements WorkspaceSection
     }
 
     /**
-     * Grand totals for every order in the filtered list, not only the 12 on screen. Rejected and
-     * cancelled orders count as orders but add nothing to value or to pay.
+     * Grand totals for every order in the filtered list, not only the 12 on screen. Value and paid
+     * count delivered goods only; a partly delivered order counts its delivered part. Rejected and
+     * cancelled orders count as orders but add nothing to any money figure.
      *
      * @return array{orders: int, value: string, paid: string, to_pay: string}
      */
@@ -67,8 +71,8 @@ final class OrdersSection implements WorkspaceSection
     {
         $open = "orders.status NOT IN ('rejected', 'cancelled')";
         $row = (clone $filteredOrders)->toBase()->reorder()
-            ->selectRaw("COUNT(*) AS orders, COALESCE(SUM(CASE WHEN {$open} THEN orders.total ELSE 0 END), 0) AS value, "
-                .'COALESCE(SUM(orders.paid), 0) AS paid, '
+            ->selectRaw('COUNT(*) AS orders, COALESCE(SUM('.DeliveredMoney::valueSql().'), 0) AS value, '
+                .'COALESCE(SUM('.DeliveredMoney::paidSql().'), 0) AS paid, '
                 ."COALESCE(SUM(CASE WHEN {$open} THEN GREATEST(orders.total - orders.due_credit - orders.paid, 0) ELSE 0 END), 0) AS to_pay")
             ->first();
 

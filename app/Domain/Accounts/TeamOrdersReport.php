@@ -67,7 +67,7 @@ final class TeamOrdersReport
     public function totals(User $leader, array $filters): array
     {
         $sums = $this->filtered($leader, $filters)
-            ->selectRaw('COUNT(*) AS orders_count, COUNT(DISTINCT orders.user_id) AS buyers, COALESCE(SUM(orders.total), 0) AS ordered, COALESCE(SUM(orders.paid), 0) AS paid, COALESCE(SUM(GREATEST(orders.total - orders.paid - COALESCE(orders.due_credit, 0), 0)), 0) AS due')
+            ->selectRaw('COUNT(*) AS orders_count, COUNT(DISTINCT orders.user_id) AS buyers, COALESCE(SUM('.DeliveredMoney::valueSql().'), 0) AS ordered, COALESCE(SUM('.DeliveredMoney::paidSql().'), 0) AS paid, COALESCE(SUM(GREATEST(orders.total - orders.paid - COALESCE(orders.due_credit, 0), 0)), 0) AS due')
             ->first();
 
         return [
