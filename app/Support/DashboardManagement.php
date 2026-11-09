@@ -247,34 +247,49 @@ class DashboardManagement
         DB::table('content_pages')->where('slug', self::SLUG)->delete();
     }
 
+    /**
+     * The banner this person sees. The starting welcome line stays on the dashboard, while a
+     * notice the owner wrote is news everyone must see, so it shows on every page.
+     *
+     * @return array{text: string, type: string, maintenance: bool, every_page: bool}|null
+     */
     public static function noticeForUser(?User $user): ?array
     {
         if (! $user) {
             return null;
         }
+        $audience = self::noticeAudience($user);
+        if ($audience === null) {
+            return null;
+        }
         $settings = self::get();
+        $key = $audience.'_announcement';
+        $text = (string) ($settings[$key] ?? '');
 
-        if ($user->role === 'dealer') {
-            return [
-                'text' => self::localizedDefaultAnnouncement('dealer_announcement', $settings['dealer_announcement'] ?? ''),
-                'type' => $settings['dealer_announcement_type'] ?? 'info',
-                'maintenance' => (bool) ($settings['dealer_maintenance_mode'] ?? false),
-            ];
-        } elseif ($user->role === 'sub_dealer') {
-            return [
-                'text' => self::localizedDefaultAnnouncement('subdealer_announcement', $settings['subdealer_announcement'] ?? ''),
-                'type' => $settings['subdealer_announcement_type'] ?? 'info',
-                'maintenance' => (bool) ($settings['subdealer_maintenance_mode'] ?? false),
-            ];
-        } elseif ($user->role === 'employee') {
-            return [
-                'text' => self::localizedDefaultAnnouncement('employee_announcement', $settings['employee_announcement'] ?? ''),
-                'type' => $settings['employee_announcement_type'] ?? 'info',
-                'maintenance' => false,
-            ];
+        return [
+            'text' => self::localizedDefaultAnnouncement($key, $text),
+            'type' => $settings[$key.'_type'] ?? 'info',
+            'maintenance' => (bool) ($settings[$audience.'_maintenance_mode'] ?? false),
+            'every_page' => ! self::isStartingAnnouncement($key, $text),
+        ];
+    }
+
+    /**
+     * Which panel's notice applies. Office staff share one notice whatever their role, and
+     * a partner working in a linked staff workspace reads the staff notice while there.
+     */
+    private static function noticeAudience(User $user): ?string
+    {
+        if ($user->usingStaffWorkspace()) {
+            return 'employee';
         }
 
-        return null;
+        return match (true) {
+            $user->role === 'dealer' => 'dealer',
+            $user->role === 'sub_dealer' => 'subdealer',
+            $user->staff() && ! $user->owner() => 'employee',
+            default => null,
+        };
     }
 
     /**
@@ -282,11 +297,11 @@ class DashboardManagement
      */
     private static function localizedDefaultAnnouncement(string $key, string $text): string
     {
-        $default = (string) (self::defaults()[$key] ?? '');
-        if ($text === '' || $text === $default) {
-            return (string) __('portal.'.$key.'_default');
-        }
+        return self::isStartingAnnouncement($key, $text) ? (string) __('portal.'.$key.'_default') : $text;
+    }
 
-        return $text;
+    private static function isStartingAnnouncement(string $key, string $text): bool
+    {
+        return $text === '' || $text === (string) (self::defaults()[$key] ?? '');
     }
 }
