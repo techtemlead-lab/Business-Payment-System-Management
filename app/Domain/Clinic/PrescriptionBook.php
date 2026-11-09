@@ -240,7 +240,7 @@ final class PrescriptionBook
             throw ValidationException::withMessages(['lines' => __('prescription.err_lines_count', ['max' => self::MaxLines])]);
         }
         $products = $clinic
-            ? Product::query()->whereIn('id', array_filter(array_map(fn (array $line): int => (int) ($line['product_id'] ?? 0), $rawLines)))->get(['id', 'name', 'mrp'])->keyBy('id')
+            ? Product::query()->where('active', true)->whereIn('id', array_filter(array_map(fn (array $line): int => (int) ($line['product_id'] ?? 0), $rawLines)))->get(['id', 'name', 'mrp'])->keyBy('id')
             : collect();
         $lines = [];
         foreach ($rawLines as $index => $line) {
