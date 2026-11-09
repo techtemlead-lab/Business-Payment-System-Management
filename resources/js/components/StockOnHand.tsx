@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from './MoneyTable';
+import Figures from './office/Figures';
 import { Modal, date, money, number, type Row } from './UI';
 import { StockFilterControls, useAddressVisit, type StockFilterBarData } from './StockFilterBar';
 import { useT } from '../shared/i18n/t';
 import { localizeDigits } from '../business-date';
 
-/** The shared drawer look and row click arrive with the shared parts; these spreads turn them on. */
-const asDrawer = { variant: 'drawer' } as object;
+/** Row click arrives with the shared table's onRowOpen; until then the product name opens the drawer. */
+const opensRowWhenSupported = (open: (row: StockRow) => void) => ({ onRowOpen: open }) as object;
 
 type StockRow = {
     id: number;
@@ -106,10 +107,23 @@ function StockDrawer({ row, lots, companyStock, canToggle, onClose }: {
     const translate = useT();
     const t = (key: string, replace?: Record<string, string | number>) => translate('office_stock', key, replace);
 
+    const commands = (
+        <div className="os-drawer-actions">
+            <button
+                type="button"
+                className="button"
+                disabled={!canToggle}
+                onClick={() => router.post(`/commands/products/${row.id}/toggle-stock`, {}, { preserveScroll: true })}
+            >
+                {translate('portal', row.is_stock_paused ? 'resume_ordering' : 'pause_ordering')}
+            </button>
+            <Link className="button" href={`/products/${row.id}`}>{t('edit')}</Link>
+        </div>
+    );
+
     return (
-        <Modal title={row.register_name || row.name} onClose={onClose} {...asDrawer}>
+        <Modal title={row.register_name || row.name} onClose={onClose} variant="drawer" badge={<StatusBadge row={row} />} footer={commands}>
             <div className="os-drawer">
-                <div className="os-drawer-status"><StatusBadge row={row} /></div>
                 <dl className="os-facts">
                     {row.branch_name && <Fact label={translate('portal', 'col_branch')}>{row.branch_name}</Fact>}
                     <Fact label={t('card_in_stock')}><b>{number(row.in_stock)}</b></Fact>
@@ -146,17 +160,6 @@ function StockDrawer({ row, lots, companyStock, canToggle, onClose }: {
                         </ul>
                     )}
                 </section>
-                <div className="os-drawer-actions">
-                    <button
-                        type="button"
-                        className="button"
-                        disabled={!canToggle}
-                        onClick={() => router.post(`/commands/products/${row.id}/toggle-stock`, {}, { preserveScroll: true })}
-                    >
-                        {translate('portal', row.is_stock_paused ? 'resume_ordering' : 'pause_ordering')}
-                    </button>
-                    <Link className="button" href={`/products/${row.id}`}>{t('edit')}</Link>
-                </div>
             </div>
         </Modal>
     );
@@ -177,12 +180,10 @@ export default function StockOnHand({ table, canToggle, showBranch }: {
     const active = table.filter_bar.active;
     const openRow = (row: StockRow) => setOpenRowKey(row.row_key);
 
-    const cards: { key: string; label: string; value: string; filterKey?: string; filterValue?: string }[] = [
-        { key: 'in_stock', label: t('card_in_stock'), value: units('in_stock') },
-        { key: 'value', label: t('card_value'), value: money(sums.stock_value ?? 0) },
-        { key: 'low', label: t('card_low'), value: units('low_count'), filterKey: 'level', filterValue: 'low' },
-        { key: 'courier', label: t('card_courier'), value: units('with_courier'), filterKey: 'stage', filterValue: 'with_courier' },
-    ];
+    const filterCard = (key: string, value: string) => ({
+        active: active[key] === value,
+        onClick: () => visit({ [key]: active[key] === value ? null : value }),
+    });
 
     const columns: MoneyColumn<StockRow>[] = [
         {
@@ -256,21 +257,14 @@ export default function StockOnHand({ table, canToggle, showBranch }: {
 
     return (
         <section className="stock-register-page">
-            <div className="sf-stage-cards is-four">
-                {cards.map((card) => {
-                    const content = (<><span>{card.label}</span><b>{card.value}</b></>);
-                    if (!card.filterKey) {
-                        return <div key={card.key} className="sf-stage-card">{content}</div>;
-                    }
-                    const isOn = active[card.filterKey] === card.filterValue;
-
-                    return (
-                        <button key={card.key} type="button" className={`sf-stage-card is-button${isOn ? ' is-on' : ''}`} aria-pressed={isOn} onClick={() => visit({ [card.filterKey as string]: isOn ? null : card.filterValue ?? null })}>
-                            {content}
-                        </button>
-                    );
-                })}
-            </div>
+            <Figures
+                items={[
+                    { key: 'in_stock', label: t('card_in_stock'), value: units('in_stock'), text: true },
+                    { key: 'value', label: t('card_value'), value: String(sums.stock_value ?? '0') },
+                    { key: 'low', label: t('card_low'), value: units('low_count'), text: true, ...filterCard('level', 'low') },
+                    { key: 'courier', label: t('card_courier'), value: units('with_courier'), text: true, ...filterCard('stage', 'with_courier') },
+                ]}
+            />
             <div className="sf-table">
                 <MoneyTable
                     data={table}
@@ -279,7 +273,7 @@ export default function StockOnHand({ table, canToggle, showBranch }: {
                     searchPlaceholder={translate('portal', 'search_products')}
                     empty={translate('portal', 'stock_no_matches')}
                     actions={<StockFilterControls bar={table.filter_bar} prop="data" sortOptions={sortOptions} sortState={{ sort: table.state.sort, dir: table.state.dir }} />}
-                    {...({ onRowOpen: openRow } as object)}
+                    {...opensRowWhenSupported(openRow)}
                 />
             </div>
             {openedRow && (

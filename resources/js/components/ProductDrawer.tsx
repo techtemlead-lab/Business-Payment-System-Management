@@ -4,9 +4,6 @@ import { Modal, Row, money, number } from './UI';
 import { useT } from '../shared/i18n/t';
 import ProductRemoveDialog, { removalLine, restoreProduct } from './ProductRemoveDialog';
 
-/** The shared drawer look arrives with Modal's variant prop; until then this is a plain dialog. */
-const asDrawer = { variant: 'drawer' } as object;
-
 export function ProductStatusBadge({ product }: { product: Row }) {
     const translate = useT();
     const t = (key: string) => translate('office_stock', key);
@@ -44,12 +41,25 @@ export default function ProductDrawer({ product, canStock, canEditCatalog, onClo
     const canRemove = canEditCatalog && Boolean(removal);
     const photo = product.image_url || product.image_fallback?.url;
     const line = removalLine(removal, isArchived, translate);
+    const commands = (
+        <div className="os-drawer-actions">
+            <Link className="button dark" href={`/products/${product.id}`}>{t('edit')}</Link>
+            {!isArchived && (
+                <button type="button" className="button" disabled={!canStock} onClick={() => router.post(`/commands/products/${product.id}/toggle-stock`, {}, { preserveScroll: true })}>
+                    {translate('portal', product.is_stock_paused ? 'resume_ordering' : 'pause_ordering')}
+                </button>
+            )}
+            {isArchived && canEditCatalog && <button type="button" className="button dark" onClick={() => restoreProduct({ id: product.id, name: String(product.name) })}>{t('button_restore')}</button>}
+            {canRemove && (!isArchived || removal.can_delete) && (
+                <button type="button" className="button" onClick={() => setAsking(true)}>{t(removal.can_delete ? 'button_delete' : 'button_archive')}</button>
+            )}
+        </div>
+    );
 
     return (
         <>
-            <Modal title={String(product.name)} onClose={onClose} {...asDrawer}>
+            <Modal title={String(product.name)} onClose={onClose} variant="drawer" badge={<ProductStatusBadge product={product} />} footer={commands}>
                 <div className="os-drawer">
-                    <div className="os-drawer-status"><ProductStatusBadge product={product} /></div>
                     {photo && <img className="os-drawer-photo" src={photo} alt={translate('office_stock', 'photo_alt', { name: String(product.name) })} loading="lazy" />}
                     <dl className="os-facts">
                         <Fact label={t('sku')}>{product.sku || '—'}</Fact>
@@ -65,18 +75,6 @@ export default function ProductDrawer({ product, canStock, canEditCatalog, onClo
                     </dl>
                     {isArchived && <p className="os-remove-line is-strong">{t('archived_line')}</p>}
                     {line && canRemove && <p className="os-remove-line">{line}</p>}
-                    <div className="os-drawer-actions">
-                        <Link className="button dark" href={`/products/${product.id}`}>{t('edit')}</Link>
-                        {!isArchived && (
-                            <button type="button" className="button" disabled={!canStock} onClick={() => router.post(`/commands/products/${product.id}/toggle-stock`, {}, { preserveScroll: true })}>
-                                {translate('portal', product.is_stock_paused ? 'resume_ordering' : 'pause_ordering')}
-                            </button>
-                        )}
-                        {isArchived && canEditCatalog && <button type="button" className="button dark" onClick={() => restoreProduct({ id: product.id, name: String(product.name) })}>{t('button_restore')}</button>}
-                        {canRemove && (!isArchived || removal.can_delete) && (
-                            <button type="button" className="button" onClick={() => setAsking(true)}>{t(removal.can_delete ? 'button_delete' : 'button_archive')}</button>
-                        )}
-                    </div>
                 </div>
             </Modal>
             {asking && removal && (

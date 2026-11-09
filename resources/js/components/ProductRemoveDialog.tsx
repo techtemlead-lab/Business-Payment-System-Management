@@ -77,14 +77,14 @@ export default function ProductRemoveDialog({ product, removal, onClose }: {
 /** The remove or restore block of the product editor. */
 export function ProductRemovePanel({ product, removal }: { product: RemovableProduct; removal: ProductRemoval }) {
     const translate = useT();
-    const t = (key: string) => translate('office_stock', key);
+    const t = (key: string, replace?: Record<string, string>) => translate('office_stock', key, replace);
     const [asking, setAsking] = useState(false);
     const isArchived = product.active === false;
 
     return (
         <section className="panel pe-danger-zone tone-danger">
             <h2 className="pe-danger-title">{t(isArchived ? 'status_archived' : (removal.can_delete ? 'delete_title' : 'archive_title'))}</h2>
-            <p className="pe-danger-body">{isArchived ? t('archived_line') : t(removal.can_delete ? 'delete_what_happens' : 'archive_what_happens').replace(':name', product.name)}</p>
+            <p className="pe-danger-body">{isArchived ? t('archived_line') : t(removal.can_delete ? 'delete_what_happens' : 'archive_what_happens', { name: product.name })}</p>
             {!isArchived && !removal.can_delete && <p className="pe-danger-body"><b>{removalLine(removal, false, translate)}</b></p>}
             {isArchived && !removal.can_delete && <p className="pe-danger-body">{removalLine(removal, true, translate)}</p>}
             <div className="ops-row is-wrap">

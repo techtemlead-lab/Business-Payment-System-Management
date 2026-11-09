@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { router } from '@inertiajs/react';
-import { X, Upload, AlertCircle } from 'lucide-react';
+import { Upload, AlertCircle } from 'lucide-react';
+import { Modal } from './UI';
 import { useT } from '../shared/i18n/t';
 import { suggestSku } from '../shared/sku';
 import ProductPhotoCutout from './ProductPhotoCutout';
@@ -142,24 +142,6 @@ export default function ProductCreateModal({
             formRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
         }
     }, [errorMsg]);
-
-    useEffect(() => {
-        if (!isOpen || typeof document === 'undefined') {
-            return;
-        }
-        const previousOverflow = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
-                onClose();
-            }
-        };
-        document.addEventListener('keydown', onKeyDown);
-        return () => {
-            document.body.style.overflow = previousOverflow;
-            document.removeEventListener('keydown', onKeyDown);
-        };
-    }, [isOpen, onClose]);
 
     const activeCategories = useMemo(
         () => catalog.filter((category) => category.is_active !== false),
@@ -338,18 +320,8 @@ export default function ProductCreateModal({
         </label>
     );
 
-    return createPortal(
-        <div className="pcm-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-            <div className="pcm-dialog" role="dialog" aria-modal="true" aria-labelledby="pcm-modal-title">
-                <header className="pcm-header">
-                    <div>
-                        <h2 id="pcm-modal-title">{translate('portal', 'pcm_title')}</h2>
-                        <p>{translate('portal', 'pcm_subtitle')}</p>
-                    </div>
-                    <button type="button" className="pcm-close" onClick={onClose} aria-label={translate('portal', 'close_dialog')}>
-                        <X size={18} />
-                    </button>
-                </header>
+    return (
+        <Modal title={translate('portal', 'pcm_title')} onClose={onClose} variant="wide">
                 <form className="pcm-form" ref={formRef} onSubmit={handleSubmit}>
                     {errorMsg && (
                         <div className="pcm-error" role="alert">
@@ -500,8 +472,6 @@ export default function ProductCreateModal({
                         </button>
                     </footer>
                 </form>
-            </div>
-        </div>,
-        document.body,
+        </Modal>
     );
 }
