@@ -21,7 +21,7 @@ class WebsiteAdminSimplifyTest extends TestCase
 
     /** Every box the old 5,143-line editor showed, by its stored setting name. */
     private const OldEditorBoxes = [
-        'featured_products_badge', 'featured_products_title', 'public_products_subtitle', 'featured_products_view_all', 'featured_products_view_all_link', 'products_empty_title',
+        'featured_products_badge', 'featured_products_title', 'public_products_subtitle', 'featured_products_view_all', 'featured_products_view_all_link',
         'search_placeholder', 'header_catalog_title', 'header_about_title', 'header_contact_title', 'header_network_title', 'header_account_title', 'header_account_subtitle',
         'announcement_text', 'dealer_banner_title', 'dealer_banner_subtitle', 'dealer_banner_btn_text',
         'catalog_categories_title', 'catalog_all_products_label', 'catalog_price_title', 'catalog_instock_label', 'catalog_apply_filters_btn', 'catalog_clear_filters_btn', 'catalog_sort_by_label', 'catalog_empty_title', 'catalog_empty_desc', 'catalog_empty_btn',
@@ -48,6 +48,7 @@ class WebsiteAdminSimplifyTest extends TestCase
         'header_about_subtitle', 'header_contact_subtitle', 'featured_categories_title', 'featured_categories_subtitle',
         'company_intro_title', 'company_intro_body', 'company_intro_eyebrow', 'product_range_title', 'product_range_sub',
         'partner_with_us_title', 'partner_with_us_sub', 'our_services_title', 'our_services_sub', 'trust_pillars_title',
+        'products_empty_title',
     ];
 
     /** A fact shown in several places has one box. These names only repeat a fact and are never stored. */

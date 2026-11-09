@@ -86,7 +86,7 @@ class PublicRenderPerformanceTest extends TestCase
 
     public function test_home_and_products_recover_from_poisoned_category_cache(): void
     {
-        Product::factory()->create(['active' => true, 'category' => 'Herbal Oils', 'name' => 'Neem Oil']);
+        Product::factory()->create(['active' => true, 'category' => 'Herbal Oils', 'name' => 'Neem Oil', 'featured' => true]);
 
         // Simulate the production failure: a Support Collection was written to the
         // database cache and later unserialized into an unusable value.

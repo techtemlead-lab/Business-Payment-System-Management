@@ -22,7 +22,7 @@ class LiveCatalogTest extends TestCase
         config(['madina.preview_mode' => false]);
 
         $this->assertSame([], SiteCustomization::getFeaturedProducts());
-        $this->get('/')->assertOk()->assertSee('Our collection is being prepared.')
+        $this->get('/')->assertOk()->assertDontSee('id="featured-products"', false)
             ->assertDontSee('/products/preview/', false)->assertDontSee('Client preview');
         $this->get('/products')->assertOk()->assertSee('0 Products Found');
         $this->get('/products/preview/reference-product-01')->assertNotFound();
@@ -32,7 +32,7 @@ class LiveCatalogTest extends TestCase
     public function test_company_published_products_replace_the_empty_state_while_drafts_remain_private(): void
     {
         $this->withoutVite();
-        $published = Product::factory()->create(['name' => 'Published company product', 'active' => true]);
+        $published = Product::factory()->create(['name' => 'Published company product', 'active' => true, 'featured' => true]);
         Product::factory()->create(['name' => 'Unpublished company product', 'active' => false]);
 
         foreach (['/', '/products'] as $path) {

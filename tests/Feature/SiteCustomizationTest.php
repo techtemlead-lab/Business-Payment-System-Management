@@ -60,6 +60,7 @@ class SiteCustomizationTest extends TestCase
     public function test_customization_can_be_saved_and_reflected_on_public_home_page(): void
     {
         $editor = User::factory()->create(['role' => 'editor']);
+        Product::factory()->create(['featured' => true]);
         $payload = [
             'customization' => [
                 'top_bar_text' => 'OFFICIAL MADINA HEALTH STORE',

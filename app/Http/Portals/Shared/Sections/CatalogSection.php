@@ -134,6 +134,17 @@ final class CatalogSection implements WorkspaceSection
                         ...($revealStock ? ['stock' => $p->sellableStock()] : []),
                         'image' => $p->media()['image_url'] ?? '',
                     ]);
+                if ($context->section === 'catalog') {
+                    $props['featured_order_products'] = Product::query()
+                        ->featuredInOrder()
+                        ->get()
+                        ->map(fn ($p) => [
+                            'id' => $p->id,
+                            'name' => $p->name,
+                            'mrp' => $p->mrp,
+                            'image' => $p->media()['image_url'] ?? '',
+                        ]);
+                }
             }
         }
         if ($context->section === 'purchase' && ! $context->isStaff) {

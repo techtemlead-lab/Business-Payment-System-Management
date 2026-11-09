@@ -258,6 +258,8 @@ class PublicWebsiteTest extends TestCase
 
     public function test_home_page_renders_dealer_network_banner_and_view_all_link(): void
     {
+        Product::factory()->create(['featured' => true]);
+
         $res = $this->get('/');
         $res->assertOk();
         $res->assertSee('Authorized Dealer Network');

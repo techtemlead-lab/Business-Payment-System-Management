@@ -63,6 +63,7 @@ class Product extends Model
             'is_stock_paused' => 'boolean',
             'registry_version' => 'integer',
             'featured' => 'boolean',
+            'featured_position' => 'integer',
             'mrp' => 'decimal:2',
             'dealer_price' => 'decimal:2',
             'sub_dealer_price' => 'decimal:2',
@@ -106,6 +107,20 @@ class Product extends Model
             $query->select('products.*');
         }
         $query->selectRaw(SellableStock::sql().' AS sellable_stock', SellableStock::bindings());
+    }
+
+    /**
+     * The products on the home page, in the order the owner set.
+     *
+     * @param  Builder<Product>  $query
+     */
+    #[Scope]
+    protected function featuredInOrder(Builder $query): void
+    {
+        $query->where('active', true)
+            ->where('featured', true)
+            ->orderByRaw('featured_position ASC NULLS LAST')
+            ->orderBy('name');
     }
 
     /** @param  Builder<Product>  $query */

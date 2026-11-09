@@ -29,7 +29,7 @@ const MAX_PER_PASS = 40;
 
 const started = new WeakSet<Text>();
 
-function toLatin(text: string): string {
+export function toLatin(text: string): string {
     return text.replace(/[০-৯]/g, (digit) => String(digit.charCodeAt(0) - BANGLA_ZERO));
 }
 
