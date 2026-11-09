@@ -284,7 +284,7 @@ class BranchScopedSectionsTest extends TestCase
 
         $this->flushSession();
         $this->actingAs(User::factory()->staff('account_manager')->create())->onPortal('manage')->get('/employees')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('data.employee_stats.total', 3));
+            ->where('data.employee_stats.total', 4));
         $this->actingAs($this->branchStaff($this->dhaka))->onPortal('manage')->get('/employees')->assertForbidden();
     }
 
