@@ -6621,4 +6621,7 @@ return [
     'err_reference_min' => 'The transaction reference must be at least :min characters.',
     'status_partly_delivered' => 'Partly delivered',
     'stage_desc_partly_delivered' => 'Some parcels were delivered and some came back',
+    'err_reserve_rule_amount' => 'The :program must be exactly ৳:amount, the amount set in the reward rule. Enter that amount.',
+    'err_reserve_rule_amount_blank' => 'No amount is set for the :program in the reward rule yet. Set it in the commission rules first.',
+    'pbc_owner_required' => 'Only the owner, MD or chairman can grant no-condition benefits.',
 ];

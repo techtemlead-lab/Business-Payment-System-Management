@@ -124,6 +124,10 @@ class EnforceStaffActions
         if ($controller === 'PushSubscriptionController') {
             return $next($request);
         }
+        if ($controller === 'CommandController' && $method === 'benefitControls' && $actor->owner()) {
+            // Only owners may grant no-condition benefits; the controller refuses everyone else.
+            return $next($request);
+        }
         if ($controller === 'CommandController' && $method === 'refund' && $actor->owner()) {
             // The owners decided they may refund a paid order themselves; OrderRefund checks again.
             return $next($request);
