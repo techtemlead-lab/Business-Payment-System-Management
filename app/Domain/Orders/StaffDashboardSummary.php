@@ -27,17 +27,23 @@ final class StaffDashboardSummary
      * @return array{
      *     work_queue: list<array{key: string, count: int, section: string, query?: array<string, string>}>,
      *     trend: list<array{date: string, orders: int, value: string}>,
-     *     month: array{sales: string, collected: string, collected_today: string, orders: int}|null
+     *     month: array{sales: string, delivered_today: string, orders: int}|null
      * }
      */
     public function for(User $viewer, ?BranchScope $branchScope = null): array
     {
-        $commerce = $viewer->allows('orders') || $viewer->allows('finance');
+        $workQueue = $this->workQueue($viewer, $branchScope);
+        if (! $viewer->allows('orders') && ! $viewer->allows('finance')) {
+            return ['work_queue' => $workQueue, 'trend' => [], 'month' => null];
+        }
+        $timezone = (string) config('madina.business_timezone', config('app.timezone', 'Asia/Dhaka'));
+        $today = CarbonImmutable::now($timezone)->startOfDay();
+        $delivered = $this->deliveredByDay($today, $timezone, $branchScope);
 
         return [
-            'work_queue' => $this->workQueue($viewer, $branchScope),
-            'trend' => $commerce ? $this->trend($branchScope) : [],
-            'month' => $commerce ? $this->month($branchScope) : null,
+            'work_queue' => $workQueue,
+            'trend' => $this->trend($delivered, $today),
+            'month' => $this->month($delivered, $today),
         ];
     }
 
@@ -152,32 +158,50 @@ final class StaffDashboardSummary
     }
 
     /**
-     * Daily confirmed sales for the last {@see TrendDays} days in business time.
+     * What was delivered on each business day, from the earlier of the trend window and the
+     * start of this month, so the chart, the month and today cost one query and cannot disagree.
+     * The owner's rule: goods count once they arrive, on the day the last parcel arrived, the
+     * same day the management figures use. Imported opening-balance orders are left out, since
+     * nothing was delivered on the day they were imported.
      *
+     * @return array<string, array{orders: int, cents: int}>
+     */
+    private function deliveredByDay(CarbonImmutable $today, string $timezone, ?BranchScope $branchScope): array
+    {
+        $from = $today->subDays(self::TrendDays - 1)->min($today->startOfMonth())->utc();
+        $deliveredAt = "COALESCE((SELECT MAX(parcel.delivered_at) FROM shipments AS parcel WHERE parcel.order_id = orders.id AND parcel.status = 'delivered'), orders.updated_at)";
+
+        $days = [];
+        $rows = $this->orders($branchScope)->toBase()
+            ->whereIn('orders.status', DeliveredMoney::Statuses)
+            ->whereRaw('orders.is_opening_balance IS NOT TRUE')
+            ->where('orders.updated_at', '>=', $from)
+            ->whereRaw("{$deliveredAt} >= ?", [$from])
+            ->selectRaw("({$deliveredAt} at time zone 'UTC' at time zone ?)::date AS day, COUNT(*) AS orders, COALESCE(SUM(".DeliveredMoney::valueSql().'), 0) AS value', [$timezone])
+            ->groupBy('day')
+            ->get();
+        foreach ($rows as $row) {
+            $days[(string) $row->day] = ['orders' => (int) $row->orders, 'cents' => Money::cents((string) $row->value)];
+        }
+
+        return $days;
+    }
+
+    /**
+     * Goods delivered on each of the last {@see TrendDays} days in business time.
+     *
+     * @param  array<string, array{orders: int, cents: int}>  $delivered
      * @return list<array{date: string, orders: int, value: string}>
      */
-    private function trend(?BranchScope $branchScope): array
+    private function trend(array $delivered, CarbonImmutable $today): array
     {
-        $timezone = (string) config('madina.business_timezone', config('app.timezone', 'Asia/Dhaka'));
-        $today = CarbonImmutable::now($timezone)->startOfDay();
-        $start = $today->subDays(self::TrendDays - 1);
-
-        $rows = $this->orders($branchScope)
-            ->whereIn('status', OrderListFilter::Confirmed)
-            ->where('created_at', '>=', $start->utc())
-            ->selectRaw('(created_at at time zone \'UTC\' at time zone ?)::date as day, count(*) as orders, coalesce(sum(total), 0) as value', [$timezone])
-            ->groupBy('day')
-            ->get()
-            ->keyBy(fn ($row) => (string) $row->day);
-
         $trend = [];
-        for ($offset = 0; $offset < self::TrendDays; $offset++) {
-            $day = $start->addDays($offset)->toDateString();
-            $row = $rows->get($day);
+        for ($daysAgo = self::TrendDays - 1; $daysAgo >= 0; $daysAgo--) {
+            $day = $today->subDays($daysAgo)->toDateString();
             $trend[] = [
                 'date' => $day,
-                'orders' => (int) ($row->orders ?? 0),
-                'value' => Money::decimal(Money::cents(number_format((float) ($row->value ?? 0), 2, '.', ''))),
+                'orders' => $delivered[$day]['orders'] ?? 0,
+                'value' => Money::decimal($delivered[$day]['cents'] ?? 0),
             ];
         }
 
@@ -185,30 +209,21 @@ final class StaffDashboardSummary
     }
 
     /**
-     * Sales and money received this month. Money received today comes from the same
-     * receipts query, so the home screen's "today" card costs no extra query.
+     * Goods delivered this month and today. Money paid in advance counts for nothing here until
+     * the goods arrive.
      *
-     * @return array{sales: string, collected: string, collected_today: string, orders: int}
+     * @param  array<string, array{orders: int, cents: int}>  $delivered
+     * @return array{sales: string, delivered_today: string, orders: int}
      */
-    private function month(?BranchScope $branchScope): array
+    private function month(array $delivered, CarbonImmutable $today): array
     {
-        $timezone = (string) config('madina.business_timezone', config('app.timezone', 'Asia/Dhaka'));
-        $now = CarbonImmutable::now($timezone);
-        $from = $now->startOfMonth()->utc();
-        $confirmed = $this->orders($branchScope)->whereIn('status', OrderListFilter::Confirmed)->where('created_at', '>=', $from);
-        $collected = $this->onScopedOrders(DB::table('receipts'), $branchScope)
-            ->where('created_at', '>=', $from)
-            ->selectRaw(
-                'COALESCE(SUM(amount), 0) AS month_total, COALESCE(SUM(amount) FILTER (WHERE created_at >= ?), 0) AS today_total',
-                [$now->startOfDay()->utc()],
-            )
-            ->first();
+        $firstOfMonth = $today->startOfMonth()->toDateString();
+        $thisMonth = array_filter($delivered, fn (string $day): bool => $day >= $firstOfMonth, ARRAY_FILTER_USE_KEY);
 
         return [
-            'sales' => Money::decimal(Money::cents((string) ((clone $confirmed)->sum(DB::raw(DeliveredMoney::valueSql())) ?: '0.00'))),
-            'collected' => Money::decimal(Money::cents((string) $collected->month_total)),
-            'collected_today' => Money::decimal(Money::cents((string) $collected->today_total)),
-            'orders' => (clone $confirmed)->count(),
+            'sales' => Money::decimal(array_sum(array_column($thisMonth, 'cents'))),
+            'delivered_today' => Money::decimal($delivered[$today->toDateString()]['cents'] ?? 0),
+            'orders' => array_sum(array_column($thisMonth, 'orders')),
         ];
     }
 

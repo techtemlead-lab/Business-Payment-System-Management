@@ -1,9 +1,9 @@
 import { Link, usePage } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
 import {
-    ArrowUpRight, ShoppingBag, Package, Truck, Wallet, Users, ShieldCheck, FileText, Bell, Settings,
-    GitBranch, Coins, BadgeCheck, Target, Bike, TrendingUp, Share2, Copy, Check, FileBarChart2, Plane,
-    Phone, MessageCircle, ListChecks, BarChart3, Banknote, Boxes, UserPlus, History,
+    ArrowUpRight, ChevronRight, ShoppingBag, Package, Truck, Wallet, Users, Settings,
+    GitBranch, Coins, BadgeCheck, Target, Bike, Share2, Copy, Check, FileBarChart2, Plane,
+    Phone, MessageCircle, ListChecks,
 } from 'lucide-react';
 import IncomeCards from './mymoney/IncomeCards';
 import type { IncomeCard } from './mymoney/types';
@@ -11,10 +11,11 @@ import { PartnerProgressButton } from './PartnerProgress';
 import PartnerAlertsCard from './dealertools/PartnerAlertsCard';
 import NextStepsCard from './dealertools/NextStepsCard';
 import { ProfilePhoto } from './ProfilePhoto';
+import Figures, { type FigureItem } from './office/Figures';
+import OfficePage from './office/OfficePage';
 import { Badge, date, humanize, money, type Row, number } from './UI';
-import { localizeDigits } from '../business-date';
+import { businessTodayIso, localizeDigits } from '../business-date';
 import { useT } from '../shared/i18n/t';
-import { OPERATIONS_SECTIONS, buildStaffAvailable, pick, sectionHref } from '../shared/portalNav';
 
 /** A progress bar row, or (kind "amount") a plain amount with no target, such as a sub-dealer's salary or tour fund. */
 type TargetRow = {
@@ -383,21 +384,20 @@ function PartnerHome({ home, orders, tools, moneyCards = [] }: { home: Row; orde
 type WorkItem = { key: string; count: number; section: string; query?: Record<string, string> };
 type TrendPoint = { date: string; orders: number; value: string };
 
+/** A business day (YYYY-MM-DD) in the page's language, whatever clock the browser is on. */
+function dayInWords(iso: string, format: Intl.DateTimeFormatOptions): string {
+    const [year, month, day] = iso.split('-').map(Number);
+
+    return new Date(year, month - 1, day).toLocaleDateString(document.documentElement.lang === 'bn' ? 'bn-BD' : 'en-GB', format);
+}
+
 function WorkQueue({ items, base }: { items: WorkItem[]; base: string }) {
     const translate = useT();
-    if (items.length === 0) {
-        return null;
-    }
-    const open = items.filter((item) => item.count > 0);
 
     return (
         <section className="panel admin-work-queue" data-tour="admin-work-queue" aria-label={translate('portal', 'dash_work_title')}>
             <div className="panel-heading">
-                <div>
-                    <h2>{translate('portal', 'dash_work_title')}</h2>
-                    <p>{open.length === 0 ? translate('portal', 'dash_work_all_clear') : translate('portal', 'dash_work_hint')}</p>
-                </div>
-                <ListChecks size={18} />
+                <h2>{translate('portal', 'dash_work_title')}</h2>
             </div>
             <ul>
                 {items.map((item) => {
@@ -407,7 +407,7 @@ function WorkQueue({ items, base }: { items: WorkItem[]; base: string }) {
                             <Link href={`${base}/${item.section}${query}`}>
                                 <strong>{number(item.count)}</strong>
                                 <span>{translate('portal', `dash_work_${item.key}`)}</span>
-                                <ArrowUpRight size={14} aria-hidden="true" />
+                                <ChevronRight size={16} aria-hidden="true" />
                             </Link>
                         </li>
                     );
@@ -417,41 +417,24 @@ function WorkQueue({ items, base }: { items: WorkItem[]; base: string }) {
     );
 }
 
+/** Goods delivered over the last two weeks, with this month's delivered value and orders in one line above the bars. */
 function SalesTrend({ points, month }: { points: TrendPoint[]; month: Row | null }) {
     const translate = useT();
-    if (points.length === 0) {
-        return null;
-    }
     const values = points.map((point) => Number(point.value) || 0);
     const peak = Math.max(...values, 1);
-    const totalOrders = points.reduce((sum, point) => sum + point.orders, 0);
-    const totalValue = values.reduce((sum, value) => sum + value, 0);
     const width = 560;
     const height = 140;
     const gap = 6;
     const barWidth = (width - gap * (points.length - 1)) / points.length;
-    const dayLabel = (iso: string) => {
-        const [year, monthPart, day] = iso.split('-').map(Number);
-        return new Date(year, monthPart - 1, day).toLocaleDateString(document.documentElement.lang === 'bn' ? 'bn-BD' : 'en-GB', { day: 'numeric', month: 'short' });
-    };
+    const dayLabel = (iso: string) => dayInWords(iso, { day: 'numeric', month: 'short' });
 
     return (
         <section className="panel admin-sales-trend" data-tour="admin-sales-trend">
             <div className="panel-heading">
-                <div>
-                    <h2>{translate('portal', 'dash_trend_title')}</h2>
-                    <p>{translate('portal', 'dash_trend_hint', { orders: String(totalOrders), value: money(totalValue.toFixed(2)) })}</p>
-                </div>
-                <BarChart3 size={18} />
+                <h2>{translate('office_home', 'trend_title')}</h2>
             </div>
-            {month && (
-                <div className="admin-month-strip">
-                    <div><span>{translate('portal', 'dash_month_sales')}</span><strong>{money(month.sales)}</strong></div>
-                    <div><span>{translate('portal', 'dash_month_collected')}</span><strong>{money(month.collected)}</strong></div>
-                    <div><span>{translate('portal', 'dash_month_orders')}</span><strong>{number(month.orders)}</strong></div>
-                </div>
-            )}
-            <svg className="admin-trend-chart" viewBox={`0 0 ${width} ${height + 22}`} role="img" aria-label={translate('portal', 'dash_trend_title')}>
+            {month && <p className="office-home-month">{translate('office_home', 'month_line', { value: money(month.sales), orders: number(month.orders) })}</p>}
+            <svg className="admin-trend-chart" viewBox={`0 0 ${width} ${height + 22}`} role="img" aria-label={translate('office_home', 'trend_title')}>
                 {points.map((point, index) => {
                     const value = values[index];
                     const barHeight = value > 0 ? Math.max(3, (value / peak) * height) : 2;
@@ -472,170 +455,60 @@ function SalesTrend({ points, month }: { points: TrendPoint[]; month: Row | null
     );
 }
 
-type OfficeTile = { section: string; label: string; hint?: string; icon: React.ComponentType<{ size?: number }>; tone: string };
-
-/** Shortcut tiles on the owner / staff home, busiest work first. Each shows only when the menu already offers that section. */
-const OFFICE_TILES: OfficeTile[] = [
-    { section: 'orders', label: 'admin_tile_orders', hint: 'admin_tile_orders_hint', icon: ShoppingBag, tone: 'green' },
-    { section: 'payments', label: 'admin_tile_payments', hint: 'admin_tile_payments_hint', icon: Wallet, tone: 'blue' },
-    { section: 'payouts-hub', label: 'payouts_hub', icon: Banknote, tone: 'rose' },
-    { section: 'deliveries', label: 'admin_tile_deliveries', hint: 'admin_tile_deliveries_hint', icon: Truck, tone: 'amber' },
-    { section: 'inventory', label: 'admin_tile_inventory', hint: 'admin_tile_inventory_hint', icon: Boxes, tone: 'green' },
-    { section: 'catalog', label: 'admin_tile_catalog', hint: 'admin_tile_catalog_hint', icon: Package, tone: 'blue' },
-    { section: 'accounts', label: 'admin_tile_accounts', hint: 'admin_tile_accounts_hint', icon: Users, tone: 'amber' },
-    { section: 'partnerships', label: 'admin_tile_partnerships', hint: 'admin_tile_partnerships_hint', icon: UserPlus, tone: 'rose' },
-    { section: 'financial-reports', label: 'admin_tile_reports', hint: 'admin_tile_reports_hint', icon: FileBarChart2, tone: 'green' },
-    { section: 'top-sellers', label: 'top_sellers', icon: TrendingUp, tone: 'blue' },
-    { section: 'ledger', label: 'admin_tile_ledger', hint: 'admin_tile_ledger_hint', icon: FileText, tone: 'amber' },
-    { section: 'policies', label: 'admin_tile_policies', hint: 'admin_tile_policies_hint', icon: ShieldCheck, tone: 'rose' },
-    { section: 'enquiries', label: 'admin_tile_enquiries', hint: 'admin_tile_enquiries_hint', icon: MessageCircle, tone: 'green' },
-    { section: 'content', label: 'admin_tile_content', hint: 'admin_tile_content_hint', icon: FileText, tone: 'blue' },
-    { section: 'audit', label: 'admin_tile_audit', hint: 'admin_tile_audit_hint', icon: History, tone: 'amber' },
-    { section: 'notifications', label: 'admin_tile_notifications', hint: 'admin_tile_notifications_hint', icon: Bell, tone: 'rose' },
-];
-
-function OfficeTiles({ base }: { base: string }) {
-    const { auth, portal, portalCatalog } = usePage<any>().props;
-    const translate = useT();
-    const catalogSections: string[] = portalCatalog?.sections ?? [];
-    const available = buildStaffAvailable({ capabilities: auth.capabilities ?? [], role: auth.user?.role ?? '', ownerPortal: portal === 'sadmin', chatAnswerer: Boolean(auth.chatAnswerer) });
-    const offered = new Set(pick(available, OFFICE_TILES.map((tile) => tile.section)));
-    const tiles = OFFICE_TILES.filter((tile) => offered.has(tile.section) && (catalogSections.length === 0 || catalogSections.includes(tile.section) || OPERATIONS_SECTIONS.has(tile.section)));
-    if (tiles.length === 0) {
-        return null;
-    }
-
-    return (
-        <nav className="office-tiles" data-tour="admin-modules" aria-label={translate('portal', 'admin_modules')}>
-            {tiles.map(({ section, label, hint, icon: Icon, tone }) => (
-                <Link key={section} href={sectionHref(base, section)} className="office-tile" title={hint ? translate('portal', hint) : undefined}>
-                    <span className={`ph-action-icon tone-${tone}`} aria-hidden="true"><Icon size={22} /></span>
-                    <span className="office-tile-label">{translate('portal', label)}</span>
-                </Link>
-            ))}
-        </nav>
-    );
-}
-
-type TodayFigure = { key: string; label: string; value: string; href: string | null; waiting?: boolean };
-
-/** The green "today" card: the day's main number large, the rest as shortcuts to their lists. */
-function OfficeToday({ home, base }: { home: Row; base: string }) {
-    const { auth } = usePage<any>().props;
-    const translate = useT();
-    const caps: string[] = auth.capabilities ?? [];
+/** The day's figures, each opening the list behind it. Staff get only the ones their work allows; finance staff's four fill the row. */
+function officeFigures(home: Row, base: string, caps: string[], translate: ReturnType<typeof useT>): FigureItem[] {
     const commerce = caps.includes('orders') || caps.includes('finance');
-    const finance = caps.includes('finance');
     const snapshot = home.snapshot ?? {};
     const month: Row | null = home.month ?? null;
     const queue: WorkItem[] = home.work_queue ?? [];
-    const queued = (key: string) => queue.find((item) => item.key === key);
-    const paymentsWaiting = queued('payments_to_check');
-    const withdrawalsWaiting = queued('withdrawals_to_review');
-    const name = String(home.profile?.name ?? auth.user?.name ?? '').split(' ')[0];
-    const today = new Date().toLocaleDateString(document.documentElement.lang === 'bn' ? 'bn-BD' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+    const paymentsWaiting = queue.find((item) => item.key === 'payments_to_check');
+    const withdrawalsWaiting = queue.find((item) => item.key === 'withdrawals_to_review');
 
-    const figures: TodayFigure[] = [];
-    if (finance && month) {
-        figures.push({ key: 'received', label: translate('portal', 'office_today_received'), value: money(month.collected_today ?? 0), href: `${base}/payments?status=verified&period=today` });
+    const figures: FigureItem[] = [];
+    if (caps.includes('finance') && month) {
+        figures.push({ key: 'delivered_today', label: translate('office_home', 'delivered_today'), value: String(month.delivered_today ?? '0.00'), href: `${base}/treasury/orders` });
     }
     if (commerce) {
-        figures.push({ key: 'orders', label: translate('portal', 'admin_stat_orders_today'), value: number(snapshot.orders_today ?? 0), href: `${base}/orders?period=today` });
+        figures.push({ key: 'orders', label: translate('portal', 'admin_stat_orders_today'), value: number(snapshot.orders_today ?? 0), text: true, href: `${base}/orders?period=today` });
     }
     if (paymentsWaiting) {
-        figures.push({ key: 'payments', label: translate('portal', 'office_today_payments'), value: number(paymentsWaiting.count), href: `${base}/payments?status=pending`, waiting: paymentsWaiting.count > 0 });
+        figures.push({ key: 'payments', label: translate('office_home', 'payments_waiting'), value: number(paymentsWaiting.count), text: true, href: `${base}/payments?status=pending` });
     }
     if (withdrawalsWaiting) {
-        figures.push({ key: 'withdrawals', label: translate('portal', 'office_today_withdrawals'), value: number(withdrawalsWaiting.count), href: `${base}/payouts-hub?status=requested`, waiting: withdrawalsWaiting.count > 0 });
+        figures.push({ key: 'withdrawals', label: translate('office_home', 'withdrawals_waiting'), value: number(withdrawalsWaiting.count), text: true, href: `${base}/payouts-hub?status=requested` });
     }
-    const [lead, ...rest] = figures;
-    const totals = [
-        { key: 'purchases', label: translate('portal', 'admin_stat_approved_purchases'), value: money(snapshot.purchases), show: commerce },
-        { key: 'partners', label: translate('portal', 'admin_stat_partner_accounts'), value: number(snapshot.partner_accounts ?? 0), show: caps.includes('accounts') },
-    ].filter((total) => total.show);
+    if (commerce) {
+        figures.push({ key: 'purchases', label: translate('portal', 'admin_stat_approved_purchases'), value: String(snapshot.purchases ?? '0.00'), href: `${base}/orders?status=delivered` });
+    }
+    if (caps.includes('accounts')) {
+        figures.push({ key: 'partners', label: translate('portal', 'admin_stat_partner_accounts'), value: number(snapshot.partner_accounts ?? 0), text: true, href: `${base}/accounts` });
+    }
 
-    // The tour step talks about the numbers, so it is skipped for staff who get none here.
-    const hasFigures = figures.length > 0 || totals.length > 0;
-
-    return (
-        <section className="office-today" data-tour={hasFigures ? 'home-metrics' : undefined} aria-labelledby="office-today-title">
-            <div className="office-today-head">
-                <div>
-                    <p>{translate('portal', 'ph_greeting')} {name}</p>
-                    <h2 id="office-today-title">{translate('portal', 'office_today_title')}</h2>
-                </div>
-                <span className="office-today-date">{today}</span>
-            </div>
-            {lead && (
-                <Link href={lead.href ?? base} className="office-today-lead">
-                    <span>{lead.label}</span>
-                    <strong>{lead.value}</strong>
-                </Link>
-            )}
-            {rest.length > 0 && (
-                <ul className="office-today-figures">
-                    {rest.map((figure) => (
-                        <li key={figure.key} className={figure.waiting ? 'is-waiting' : undefined}>
-                            <Link href={figure.href ?? base}>
-                                <span>{figure.label}</span>
-                                <strong>{figure.value}</strong>
-                                <ArrowUpRight size={14} aria-hidden="true" />
-                            </Link>
-                        </li>
-                    ))}
-                </ul>
-            )}
-            {totals.length > 0 && (
-                <dl className="office-today-totals">
-                    {totals.map((total) => (
-                        <div key={total.key}>
-                            <dt>{total.label}</dt>
-                            <dd>{total.value}</dd>
-                        </div>
-                    ))}
-                </dl>
-            )}
-        </section>
-    );
+    return figures;
 }
 
-function AdminHome({ home, data, orders }: { home: Row; data: Row; orders: React.ReactNode }) {
+function AdminHome({ home }: { home: Row }) {
     const { auth, portalBase: base } = usePage<any>().props;
     const translate = useT();
-    const caps: string[] = auth.capabilities;
-    const commerce = caps.includes('orders') || caps.includes('finance');
+    const figures = officeFigures(home, base, auth.capabilities ?? [], translate);
+    const work: WorkItem[] = home.work_queue ?? [];
+    const trend: TrendPoint[] = home.trend ?? [];
+    const today = dayInWords(businessTodayIso(), { weekday: 'long', day: 'numeric', month: 'long' });
 
     return (
-        <div className="admin-home office-home">
-            {/* The day's figures first, each a shortcut to the list behind it; the signed-in user's own details live in the account menu. */}
-            <OfficeToday home={home} base={base} />
-            <OfficeTiles base={base} />
-
-            <section className="admin-home-insights">
-                <WorkQueue items={home.work_queue ?? []} base={base} />
-                <SalesTrend points={home.trend ?? []} month={home.month ?? null} />
-            </section>
-
-            {commerce && (
-                <section className="panel table-panel dense-panel" data-tour="recent-orders">
-                    <div className="panel-heading">
-                        <div>
-                            <h2>{translate('portal', 'recent_orders')}</h2>
-                            <p>{translate('portal', 'recent_orders_hint')}</p>
-                        </div>
-                        <Link href={`${base}/orders`} className="text-link">{translate('portal', 'view_all')} <ArrowUpRight size={15} /></Link>
-                    </div>
-                    {orders}
-                </section>
-            )}
-            {data.lowStock?.length > 0 && (
-                <section className="notice">
-                    <h2>{translate('portal', 'low_stock_alerts')}</h2>
-                    <p>{data.lowStock.map((p: Row) => translate('portal', 'low_stock_left', { name: String(p.name), count: String(p.stock) })).join(' · ')}</p>
-                    <Link href={`${base}/inventory`} className="text-link">{translate('portal', 'review_inventory')}</Link>
-                </section>
-            )}
-        </div>
+        <OfficePage title={translate('portal', 'overview')} action={<span className="office-home-date">{today}</span>}>
+            <div className="office-home">
+                {/* The tour step talks about the numbers, so it is skipped for staff who get none here. */}
+                {figures.length > 0 && <div data-tour="home-metrics"><Figures items={figures} /></div>}
+                {(work.length > 0 || trend.length > 0) && (
+                    <section className="admin-home-insights">
+                        {work.length > 0 && <WorkQueue items={work} base={base} />}
+                        {trend.length > 0 && <SalesTrend points={trend} month={home.month ?? null} />}
+                    </section>
+                )}
+                {figures.length === 0 && work.length === 0 && trend.length === 0 && <p className="office-home-empty">{translate('office_home', 'nothing_waiting')}</p>}
+            </div>
+        </OfficePage>
     );
 }
 
@@ -661,7 +534,7 @@ export default function DashboardOverview({ data, orders }: { data: Row; orders:
         return <PartnerHome home={data.partner_home} orders={orders} tools={data.partner_tools} moneyCards={data.money_cards ?? []} />;
     }
     if (data.admin_home && staff) {
-        return <AdminHome home={data.admin_home} data={data} orders={orders} />;
+        return <AdminHome home={data.admin_home} />;
     }
 
     // Fallback for edge roles

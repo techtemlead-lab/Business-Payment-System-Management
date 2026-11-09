@@ -1,7 +1,5 @@
 /* =========================================================================
-   Office panels (owner = sadmin, staff = manage), in the same family as the
-   partner home: one solid Madina-green "today" card with the day's main
-   number large, a grid of round shortcut tiles, quiet white sections, and
+   Office panels (owner = sadmin, staff = manage): the home page, and a
    tidier sidebar, top bar and tables. Colours come from the --ds tokens so
    dark mode follows on its own; the few fixed colours have dark versions
    at the end of each block.
@@ -12,84 +10,28 @@
    than the general rules they refine.
    ========================================================================= */
 
-/* ---- Home: today card ------------------------------------------------- */
-.office-home{--of-green:#006a4e;--of-green-deep:#004a36;--of-coin:#f2a516;gap:16px}
-html[data-theme="dark"] .office-home{--of-green:#0d4a38;--of-green-deep:#04241a}
-
-.office-today{position:relative;overflow:hidden;display:flex;flex-direction:column;gap:14px;padding:20px;border-radius:20px;background:var(--of-green);color:#fff;box-shadow:0 14px 30px -18px var(--of-green-deep)}
-.office-today::after{content:"";position:absolute;right:-60px;top:-70px;width:220px;height:220px;border-radius:50%;border:28px solid rgba(255,255,255,.07);pointer-events:none}
-.office-today>*{position:relative;z-index:1}
-.office-today-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-.office-today-head p{margin:0;font-size:13px;line-height:1.35;opacity:.86;overflow-wrap:anywhere}
-.office-today-head h2{margin:2px 0 0;font-size:20px;font-weight:700;line-height:1.25;letter-spacing:0;color:#fff}
-.office-today-date{flex-shrink:0;padding:4px 12px;border-radius:999px;background:rgba(255,255,255,.16);font-size:12.5px;font-weight:600;line-height:1.4;white-space:nowrap}
-
-/* The day's main number: a white slip on the green card, like a wallet balance */
-.office-today-lead{display:flex;flex-direction:column;gap:2px;padding:14px 16px;border-radius:16px;background:#fff;color:var(--of-green-deep);text-decoration:none;box-shadow:0 6px 16px -8px rgba(0,0,0,.45)}
-.office-today-lead span{font-size:13px;font-weight:600;color:#3d5a50}
-.office-today-lead strong{font-size:30px;font-weight:700;line-height:1.15;letter-spacing:-.01em;font-variant-numeric:tabular-nums lining-nums;overflow-wrap:anywhere}
-.office-today-lead:hover{box-shadow:0 10px 22px -10px rgba(0,0,0,.5)}
-html[data-theme="dark"] .office-today-lead{background:#0f2b22;color:#e8f5ee}
-html[data-theme="dark"] .office-today-lead span{color:#a9cfc0}
-
-/* The other figures: translucent chips, each a link to its list */
-.office-today-figures{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:8px}
-/* Exactly three small figures: one row of three instead of two plus a lonely third (phones keep 2 + full-width) */
-@media(min-width:768px){.office-today-figures:has(>li:nth-child(3):last-child){grid-template-columns:repeat(3,minmax(0,1fr))}}
-.office-today-figures a{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:6px;row-gap:2px;align-items:center;min-height:44px;height:100%;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.12);color:#fff;text-decoration:none}
-.office-today-figures a:hover{background:rgba(255,255,255,.2)}
-.office-today-figures span{grid-column:1;font-size:12.5px;line-height:1.3;opacity:.9}
-.office-today-figures strong{grid-column:1;font-size:20px;font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums lining-nums}
-.office-today-figures svg{grid-column:2;grid-row:1/3;opacity:.7}
-.office-today-figures li.is-waiting a{background:rgba(255,255,255,.18);box-shadow:inset 3px 0 0 var(--of-coin)}
-.office-today-figures li.is-waiting strong{color:#ffe08a}
-
-.office-today-totals{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:0;padding-top:12px;border-top:1px solid rgba(255,255,255,.18)}
-.office-today-totals dt{margin:0;font-size:12px;opacity:.82}
-.office-today-totals dd{margin:2px 0 0;font-size:16px;font-weight:700;font-variant-numeric:tabular-nums lining-nums;overflow-wrap:anywhere}
-
-.office-today :is(a):focus-visible{outline:3px solid var(--of-coin);outline-offset:2px}
-
-/* ---- Home: shortcut tiles --------------------------------------------- */
-.office-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 4px;align-content:start;padding:14px 8px;border:1px solid var(--ds-line);border-radius:18px;background:var(--ds-surface)}
-.office-tile{display:flex;flex-direction:column;align-items:center;gap:7px;min-height:44px;padding:8px 2px;border-radius:12px;color:var(--ds-text);text-align:center;text-decoration:none}
-.office-tile:hover{background:var(--ds-surface-2)}
-.office-tile:hover .ph-action-icon{filter:brightness(.96)}
-.office-tile:focus-visible{outline:3px solid var(--ds-focus);outline-offset:2px}
-.office-tile-label{font-size:12.5px;font-weight:600;line-height:1.3;overflow-wrap:anywhere}
-@media (min-width:600px){
-  .office-tiles{grid-template-columns:repeat(auto-fill,minmax(104px,1fr));padding:16px 10px}
-  /* Six shortcuts (support staff): two even rows of three, not five plus one */
-  .office-tiles:has(>:nth-child(6):last-child){grid-template-columns:repeat(3,minmax(0,1fr))}
-}
-
-/* ---- Home: layout ----------------------------------------------------- */
+/* ---- Home ------------------------------------------------------------- */
+/* Title and date, up to four cards, then the work list beside the sales chart. */
+.app-shell .office-home{display:flex;flex-direction:column;gap:var(--ds-s-4);min-width:0}
+.app-shell .office-home-date{font-size:var(--ds-fs-sm);font-weight:500;color:var(--ds-text-muted);white-space:nowrap}
+.app-shell .office-home-month{margin:0 0 var(--ds-s-3);font-size:var(--ds-fs-sm);font-weight:500;color:var(--ds-text-2);overflow-wrap:anywhere}
+.app-shell .office-home-empty{margin:0;font-size:var(--ds-fs-base);color:var(--ds-text-muted)}
 .app-shell .office-home>.admin-home-insights{margin-top:0}
-@media (min-width:1100px){
-  .app-shell .admin-home.office-home{display:grid;grid-template-columns:minmax(340px,440px) minmax(0,1fr);align-items:start}
-  .app-shell .admin-home.office-home>*{grid-column:1/-1}
-  .app-shell .admin-home.office-home>.office-today{grid-column:1}
-  .app-shell .admin-home.office-home>.office-tiles{grid-column:2;align-self:stretch;align-content:center}
+@media (min-width:961px){
+  .app-shell .office-home>.admin-home-insights{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .app-shell .office-home>.admin-home-insights:has(>:only-child){grid-template-columns:minmax(0,1fr)}
 }
 
-/* Quiet white sections under the card: rounder corners, plain headings */
-.app-shell:is(.owner-shell,.company-shell) .office-home .panel{border-radius:18px;margin-bottom:0}
-.app-shell:is(.owner-shell,.company-shell) .office-home .panel-heading h2{font-size:16px;font-weight:700;letter-spacing:0;text-transform:none}
-.app-shell:is(.owner-shell,.company-shell) .office-home .panel-heading p{font-size:13px;color:var(--ds-text-muted)}
-.app-shell:is(.owner-shell,.company-shell) .office-home .admin-work-queue li a{min-height:44px;border-radius:12px}
-.app-shell:is(.owner-shell,.company-shell) .office-home .admin-month-strip{border-radius:12px}
-.app-shell:is(.owner-shell,.company-shell) .office-home .notice{border-radius:18px}
+/* White sections with plain headings */
+.app-shell:is(.owner-shell,.company-shell) .office-home .panel{border-radius:var(--ds-r-lg);margin-bottom:0}
+.app-shell:is(.owner-shell,.company-shell) .office-home .panel-heading h2{font-size:var(--ds-fs-lg);font-weight:700;letter-spacing:0;text-transform:none}
+.app-shell:is(.owner-shell,.company-shell) .office-home .admin-work-queue li a{min-height:44px;border-radius:var(--ds-r-md)}
 
-/* The card already greets the user and names the day, so the page title above it is for screen readers only */
-.app-shell .workspace-main:has(.office-home)>.page-heading{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-
-@media (max-width:767px){
-  .office-today{padding:18px 16px 16px;border-radius:18px}
-  .office-today-head{flex-direction:column;gap:8px}
-  .office-today-lead strong{font-size:26px}
-  .office-today-figures{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .office-today-figures li:last-child:nth-child(odd){grid-column:1/-1}
-  .office-today-figures strong{font-size:18px}
+/* Phone: the cards stay two across, then the work list, then the chart. */
+@media (max-width:640px){
+  .app-shell .office-home .office-figures,.app-shell .office-home .office-figures[data-cards="4"]{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .app-shell .office-home .office-figure{flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:4px}
+  .app-shell .office-home .office-figure strong{text-align:left}
 }
 
 /* ---- Sidebar ---------------------------------------------------------- */
