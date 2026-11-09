@@ -35,6 +35,7 @@
 .app-shell .mt-table td :is(.cell-sub,small){display:block;margin-top:1px;color:var(--ds-text-muted);font-size:var(--ds-fs-xs)}
 .app-shell .mt-table :is(th,td).is-right{text-align:right}
 .app-shell .mt-table td.is-money{font-variant-numeric:tabular-nums;white-space:nowrap}
+.app-shell .mt-table:has(th:nth-child(9)) :is(th,td){padding-inline:8px}
 .app-shell .mt-table tbody tr:last-child td{border-bottom:0}
 .app-shell .mt-table tbody tr.is-link{cursor:pointer}
 .app-shell .mt-table tbody tr.is-link:hover td{background:var(--ds-surface-2)}

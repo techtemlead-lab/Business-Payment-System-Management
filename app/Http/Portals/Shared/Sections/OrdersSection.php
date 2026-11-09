@@ -32,17 +32,22 @@ final class OrdersSection implements WorkspaceSection
     private const ToPaySql = "CASE WHEN orders.status NOT IN ('rejected', 'cancelled') THEN GREATEST(orders.total - orders.due_credit - orders.paid, 0) ELSE 0 END";
 
     /** The step a parcel is on, the same way the courier board counts it. */
-    private const ParcelStepSql = "CASE WHEN shipments.courier_booking_status IN ('pending', 'booking') THEN 'booking' WHEN shipments.courier_booking_status = 'failed' THEN 'failed' ELSE COALESCE(shipments.courier_status, 'waiting_pickup') END";
+    private const ParcelStepSql = CourierBoard::StepSql;
 
     /** @var array<string, string> screen key => fixed SQL */
     private const OrderSorts = [
         'number' => 'orders.number',
         'created_at' => 'orders.created_at',
         'partner' => '(SELECT users.name FROM users WHERE users.id = orders.user_id)',
+        'area' => '(SELECT users.district FROM users WHERE users.id = orders.user_id)',
+        'branch' => '(SELECT company_branches.name FROM company_branches WHERE company_branches.id = orders.fulfillment_branch_id)',
+        'items' => '(SELECT COALESCE(SUM(order_lines.quantity), 0) FROM order_lines WHERE order_lines.order_id = orders.id)',
+        'delivered' => '(SELECT COALESCE(SUM(order_lines.dispatched), 0) FROM order_lines WHERE order_lines.order_id = orders.id)',
         'total' => 'orders.total',
         'paid' => 'orders.paid',
         'to_pay' => self::ToPaySql,
-        'branch' => '(SELECT company_branches.name FROM company_branches WHERE company_branches.id = orders.fulfillment_branch_id)',
+        'status' => 'orders.status',
+        'days_since_sent' => '(SELECT CURRENT_TIMESTAMP - MAX(shipments.created_at) FROM shipments WHERE shipments.order_id = orders.id)',
     ];
 
     private const StaffOrderRows = 25;
@@ -62,14 +67,14 @@ final class OrdersSection implements WorkspaceSection
         $deliveryView = $this->deliveryView($context);
         $filteredOrders = app(OrderListFilter::class)->apply(clone $context->orders, $request, $context->section, $context->isStaff);
         // Overview only needs ordered and sent quantities for the items and delivered columns — keep the payload slim.
-        $lineRelation = $context->section === 'overview' ? 'lines:id,order_id,quantity,dispatched' : 'lines';
+        $lineRelation = $context->section === 'overview' && $context->isStaff ? 'lines:id,order_id,quantity,dispatched' : 'lines';
         $orderWith = ['user:id,name,dealer_code,role,phone,division,district', $lineRelation];
         // Partners see which branch is sending their order; only the name and code are loaded.
         if (Schema::hasColumn('orders', 'fulfillment_branch_id')) {
             $orderWith[] = 'fulfillmentBranch:id,name,code';
         }
         // The side panel opened from a row shows these without asking the server again.
-        if ($usesSharedTable) {
+        if ($usesSharedTable || ! $context->isStaff) {
             $orderWith[] = 'paymentClaims:id,order_id,channel,reference,amount,status';
             $orderWith[] = 'shipments:id,order_id,courier,courier_provider,tracking,status,courier_status,courier_booking_status';
         }
@@ -83,8 +88,11 @@ final class OrdersSection implements WorkspaceSection
         }
 
         $listQuery->with($orderWith)
-            ->selectRaw(DeliveredMoney::valueSql().' AS delivered_value, '.DeliveredMoney::paidSql().' AS delivered_paid');
-        [$sort, $direction, $sorts] = $this->chosenSort($request, $context->section);
+            ->selectRaw(DeliveredMoney::valueSql().' AS delivered_value, '.DeliveredMoney::paidSql().' AS delivered_paid, '.OrderListFilter::cameBackSql().' AS came_back');
+        if ($usesSharedTable) {
+            $listQuery->selectRaw('(SELECT order_refunds.amount FROM order_refunds WHERE order_refunds.order_id = orders.id LIMIT 1) AS refunded_amount');
+        }
+        [$sort, $direction, $sorts] = $this->chosenSort($request);
         if ($usesSharedTable) {
             $listQuery->reorder()->orderByRaw(self::OrderSorts[$sort].' '.$direction.' NULLS LAST')->orderBy('orders.id', $direction);
         } else {
@@ -152,11 +160,9 @@ final class OrdersSection implements WorkspaceSection
      *
      * @return array{0: string, 1: 'asc'|'desc', 2: list<string>}
      */
-    private function chosenSort(Request $request, string $section): array
+    private function chosenSort(Request $request): array
     {
-        $sorts = $section === 'deliveries'
-            ? ['number', 'created_at', 'partner', 'branch', 'total']
-            : ['number', 'created_at', 'partner', 'total', 'paid', 'to_pay'];
+        $sorts = array_keys(self::OrderSorts);
         $sort = $request->string('sort')->toString();
         if (! in_array($sort, $sorts, true)) {
             return ['created_at', 'desc', $sorts];
@@ -224,12 +230,11 @@ final class OrdersSection implements WorkspaceSection
     {
         $open = StockStages::OpenParcel;
         $row = DB::table('shipments')
-            ->whereNotNull('courier_provider')
             ->whereIn('order_id', $orderIds)
             ->selectRaw('COUNT(*) FILTER (WHERE status = ?) AS with_courier', [$open])
             ->selectRaw('COUNT(*) FILTER (WHERE status = ? AND '.self::ParcelStepSql." = 'waiting_pickup') AS waiting_pickup", [$open])
-            ->selectRaw("COUNT(*) FILTER (WHERE status = 'delivered') AS delivered")
-            ->selectRaw("COUNT(*) FILTER (WHERE status = 'returned') AS returned")
+            ->selectRaw('COUNT(*) FILTER (WHERE '.self::ParcelStepSql." = 'delivered') AS delivered")
+            ->selectRaw('COUNT(*) FILTER (WHERE '.self::ParcelStepSql." = 'returned') AS returned")
             ->first();
 
         return [
@@ -241,7 +246,8 @@ final class OrdersSection implements WorkspaceSection
     }
 
     /**
-     * Every parcel booked with a courier, or only the refused bookings, as one shared table.
+     * Parcels still out, or only the refused bookings, as one shared table. Finished parcels are
+     * listed when their step is picked or a search looks for one, so the view matches its name.
      *
      * @param  array{counts: array<string, int>, couriers: list<array{key: string, label: string}>}  $board
      * @return array<string, mixed>
@@ -251,12 +257,12 @@ final class OrdersSection implements WorkspaceSection
         $parcels = DB::table('shipments')
             ->join('orders', 'orders.id', '=', 'shipments.order_id')
             ->join('users', 'users.id', '=', 'orders.user_id')
-            ->whereNotNull('shipments.courier_provider')
             ->whereIn('shipments.order_id', $orderIds)
             ->when($failedOnly, fn ($query) => $query->where('shipments.courier_booking_status', 'failed'))
+            ->when(! $failedOnly && ! $request->filled('ship_status') && ! $request->filled('q'), fn ($query) => $query->where('shipments.status', StockStages::OpenParcel))
             ->select([
                 'shipments.id', 'shipments.order_id', 'orders.number', 'users.name as partner', 'users.dealer_code', 'users.phone',
-                'shipments.courier', 'shipments.courier_provider', 'shipments.tracking', 'shipments.courier_status', 'shipments.courier_booking_status',
+                'shipments.status', 'shipments.courier', 'shipments.courier_provider', 'shipments.tracking', 'shipments.courier_status', 'shipments.courier_booking_status',
                 'shipments.courier_booking_error', 'shipments.courier_status_at', 'shipments.courier_timeline', 'shipments.updated_at',
             ])
             ->selectRaw(self::ParcelStepSql.' AS step');
@@ -353,9 +359,9 @@ final class OrdersSection implements WorkspaceSection
             ->apply(clone $context->orders, $withoutStatus, $context->section, $context->isStaff)
             ->toBase()
             ->reorder()
-            ->selectRaw('status, COUNT(*) AS aggregate')
-            ->groupBy('status')
-            ->pluck('aggregate', 'status')
+            ->selectRaw('CASE WHEN '.OrderListFilter::cameBackSql()." THEN '".OrderListFilter::CameBack."' ELSE status END AS tab, COUNT(*) AS aggregate")
+            ->groupBy('tab')
+            ->pluck('aggregate', 'tab')
             ->map(fn ($count): int => (int) $count)
             ->all();
     }

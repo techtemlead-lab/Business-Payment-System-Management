@@ -136,6 +136,7 @@ final class TopSellersBoard
      *
      *
      * @param  BranchScope|null  $branchScope  On a branch picked in the top bar, only that branch's partners are ranked.
+     * @param  array{from: CarbonImmutable, until: CarbonImmutable}|null  $range  A view chosen on the table, used instead of the month.
      * @return array{
      *   month: string,
      *   months: list<string>,
@@ -147,7 +148,7 @@ final class TopSellersBoard
      *   divisional: list<BoardEntry>
      * }
      */
-    public function forStaff(?string $month, ?string $divisionId, ?BranchScope $branchScope = null): array
+    public function forStaff(?string $month, ?string $divisionId, ?BranchScope $branchScope = null, ?array $range = null): array
     {
         $month = self::resolveMonth($month);
         $divisions = PlaceCode::query()
@@ -159,7 +160,7 @@ final class TopSellersBoard
         $chosen = filter_var($divisionId, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
         $divisionPlace = $chosen === false ? null : $divisions->firstWhere('id', $chosen);
         $division = $divisionPlace !== null ? (int) $divisionPlace->id : null;
-        $rows = $this->rankedRows($month, $division, null, $branchScope);
+        $rows = $this->rankedRows($month, $division, null, $branchScope, $range);
 
         $national = [];
         $divisional = [];
@@ -197,14 +198,14 @@ final class TopSellersBoard
      * place code rank nationally only. Only the rows a board can show come back: the
      * national top, the asked division's top and the viewer.
      *
+     * @param  array{from: CarbonImmutable, until: CarbonImmutable}|null  $range
      * @return list<object>
      */
-    private function rankedRows(string $month, ?int $division, ?int $viewerId, ?BranchScope $branchScope = null): array
+    private function rankedRows(string $month, ?int $division, ?int $viewerId, ?BranchScope $branchScope = null, ?array $range = null): array
     {
         [$branchCondition, $branchBindings] = $this->branchCondition($branchScope);
-        [$start, $end] = CommissionQualification::period($month);
-        $statuses = DeliveredMoney::Statuses;
-        $statusPlaceholders = implode(', ', array_fill(0, count($statuses), '?'));
+        [$start, $end] = $range !== null ? [$range['from'], $range['until']] : CommissionQualification::period($month);
+        $counted = DeliveredMoney::countedSql();
         $deliveredValue = DeliveredMoney::valueSql();
         $userPlace = PlaceTree::partnerPlaceIdSql('users');
 
@@ -212,7 +213,7 @@ final class TopSellersBoard
             WITH RECURSIVE totals AS (
                 SELECT orders.user_id, SUM({$deliveredValue}) AS amount
                 FROM orders
-                WHERE orders.status IN ({$statusPlaceholders})
+                WHERE {$counted}
                   AND orders.created_at >= ?
                   AND orders.created_at < ?
                 GROUP BY orders.user_id
@@ -253,7 +254,6 @@ final class TopSellersBoard
             SQL;
 
         return DB::select($sql, [
-            ...$statuses,
             $start->utc(),
             $end->utc(),
             ...$branchBindings,

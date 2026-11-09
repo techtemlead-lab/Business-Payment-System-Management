@@ -22,6 +22,18 @@ final class OrderListFilter
     /** Order states that count as a confirmed sale. */
     public const Confirmed = ['approved', 'partially_dispatched', 'dispatched', 'delivered', MixedOutcomeDecisions::PartlyDelivered];
 
+    /** The list filter and label for an order whose goods all came back from the courier. */
+    public const CameBack = 'returned';
+
+    /**
+     * SQL for a cancelled order with a parcel received back. Its status stays "cancelled", so every
+     * money rule is unchanged; this only tells it apart from an order cancelled for another reason.
+     */
+    public static function cameBackSql(string $orders = 'orders'): string
+    {
+        return "({$orders}.status = 'cancelled' AND EXISTS (SELECT 1 FROM shipments WHERE shipments.order_id = {$orders}.id AND shipments.status = 'returned'))";
+    }
+
     public function apply(Builder $query, Request $request, string $section, bool $staff): Builder
     {
         if ($request->filled('q')) {
@@ -35,8 +47,14 @@ final class OrderListFilter
         }
 
         $overdueDeliveries = $section === 'deliveries' && self::wantsOverdueDeliveries($request);
-        if ($request->filled('status') && ! $overdueDeliveries) {
-            $query->where('status', $request->string('status')->toString());
+        $chosenStatus = $request->string('status')->toString();
+        if ($chosenStatus !== '' && ! $overdueDeliveries) {
+            if ($chosenStatus === self::CameBack) {
+                $query->whereRaw(self::cameBackSql());
+            } else {
+                $query->where('status', $chosenStatus)
+                    ->when($chosenStatus === 'cancelled', fn (Builder $orders) => $orders->whereRaw('NOT '.self::cameBackSql()));
+            }
         }
 
         if (in_array($section, self::DatedSections, true)) {
@@ -60,8 +78,9 @@ final class OrderListFilter
             // Sent but not marked delivered: every unit may already be on the road.
             app(OverdueDeliveries::class)->apply($query);
         } elseif ($section === 'deliveries') {
+            // "Sent" is every order with all its goods out, so asking for it must not need goods left to send.
             $query->whereIn('status', self::AwaitingDispatch)
-                ->whereHas('lines', fn (Builder $lines) => $lines->whereColumn('dispatched', '<', 'quantity'));
+                ->when($chosenStatus !== 'dispatched', fn (Builder $orders) => $orders->whereHas('lines', fn (Builder $lines) => $lines->whereColumn('dispatched', '<', 'quantity')));
         }
 
         return $query;

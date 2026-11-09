@@ -61,7 +61,7 @@ class SimpleSidebarTest extends TestCase
     public function test_staff_without_finance_cannot_reach_the_payout_desk_through_the_old_address(): void
     {
         $inventory = User::factory()->staff('inventory')->create();
-        $this->actingAs($inventory)->onPortal('manage')->get('/withdrawals')->assertRedirect('/payouts-hub');
+        $this->actingAs($inventory)->onPortal('manage')->get('/withdrawals')->assertRedirect('/');
         $this->actingAs($inventory)->onPortal('manage')->get('/payouts-hub')->assertForbidden();
     }
 
@@ -243,8 +243,6 @@ class SimpleSidebarTest extends TestCase
             ['super_admin', 'sadmin', ['finance-settings', 'payment-accounts', 'financial-readiness', 'place-codes', 'dashboards', 'identity-review', 'login-rules', 'service-integrations', 'courier-areas', 'data-imports', 'audit', 'privacy-requests', 'data-cleanup']],
             ['finance', 'manage', ['finance-settings', 'payment-accounts', 'financial-readiness', 'identity-review', 'service-integrations', 'data-imports']],
             ['account_manager', 'manage', ['place-codes', 'dashboards', 'data-imports']],
-            ['inventory', 'manage', []],
-            ['sr', 'manage', []],
         ];
 
         foreach ($expected as [$role, $portal, $links]) {
@@ -265,7 +263,30 @@ class SimpleSidebarTest extends TestCase
     {
         $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
 
-        $this->actingAs($dealer)->onPortal('dealer')->get('/settings')->assertNotFound();
+        $this->actingAs($dealer)->onPortal('dealer')->get('/settings')->assertRedirect('/');
+    }
+
+    public function test_people_with_nothing_in_settings_go_to_their_home_and_keep_their_own_pages(): void
+    {
+        foreach (['inventory', 'support', 'sr'] as $role) {
+            $person = User::factory()->staff($role)->create();
+            $this->assertFalse(OfficeHubs::hasSettingsToOpen($person, 'manage', true), $role);
+            $this->actingAs($person)->onPortal('manage')->get('/settings')->assertRedirect('/');
+            $this->actingAs($person)->onPortal('manage')->get('/')->assertOk();
+            foreach (['/profile', '/security'] as $ownPage) {
+                $this->actingAs($person)->onPortal('manage')->get($ownPage)->assertOk();
+            }
+            $this->actingAs($person)->onPortal('manage')->get('/audit')->assertForbidden();
+        }
+    }
+
+    public function test_people_with_something_in_settings_keep_the_page(): void
+    {
+        foreach ([['account_manager', 'manage'], ['finance', 'manage'], ['super_admin', 'sadmin']] as [$role, $portal]) {
+            $person = User::factory()->staff($role)->create();
+            $this->actingAs($person)->onPortal($portal)->get('/settings')->assertOk()
+                ->assertInertia(fn (Assert $page) => $page->where('section', 'settings'));
+        }
     }
 
     public function test_a_page_in_a_row_gets_the_rows_tabs_in_order_with_its_own_tab_marked(): void

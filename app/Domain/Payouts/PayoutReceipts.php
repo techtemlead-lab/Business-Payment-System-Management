@@ -189,6 +189,16 @@ final class PayoutReceipts
         return response()->view('receipts.payout-receipt', $this->payload($actor, $receipt));
     }
 
+    /** The receipt's heading: a withdrawal of commission, a reward, or other money paid from a reserve. */
+    public static function heading(?string $program): string
+    {
+        if ($program === null) {
+            return (string) __('portal.prc_heading');
+        }
+
+        return (string) __($program === 'marketing' ? 'portal.prc_heading_reserve' : 'portal.prc_heading_reward');
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -200,6 +210,7 @@ final class PayoutReceipts
         $paidAt = CarbonImmutable::parse((string) $receipt->paid_at, 'UTC')->timezone((string) config('madina.business_timezone', 'Asia/Dhaka'));
         $account = $receipt->account_number ? (string) decrypt($receipt->account_number) : null;
         $isPartnerCopy = $receipt->user_id !== null && (int) $actor->id === (int) $receipt->user_id;
+        $program = $receipt->reserve_disbursement_id ? (string) DB::table('reserve_disbursements')->where('id', $receipt->reserve_disbursement_id)->value('program') : null;
 
         return [
             'company' => [
@@ -211,6 +222,7 @@ final class PayoutReceipts
             'receipt' => [
                 'id' => (int) $receipt->id,
                 'number' => (string) $receipt->number,
+                'heading' => self::heading($program),
                 'paid_on' => $paidAt->format('d/m/Y'),
                 'paid_time' => $paidAt->format('h:i A'),
                 'amount' => Money::grouped((string) $receipt->amount),
@@ -228,7 +240,7 @@ final class PayoutReceipts
                 'amount_label' => $receipt->reserve_disbursement_id ? __('portal.prc_reserve_amount') : __('portal.prc_commission_amount'),
                 'source_label' => $receipt->reserve_disbursement_id ? __('portal.prc_reserve_ref') : __('portal.prc_withdrawal_ref'),
                 'source_ref' => $receipt->reserve_disbursement_id
-                    ? '#'.$receipt->reserve_disbursement_id.' · '.__('portal.prc_reserve_program_'.DB::table('reserve_disbursements')->where('id', $receipt->reserve_disbursement_id)->value('program'))
+                    ? '#'.$receipt->reserve_disbursement_id.' · '.__('portal.prc_reserve_program_'.$program)
                     : strtoupper(substr((string) $receipt->withdrawal_id, 0, 8)),
             ],
             'partner' => [

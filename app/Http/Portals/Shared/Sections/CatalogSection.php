@@ -3,6 +3,7 @@
 namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Catalog\CatalogTaxonomy;
+use App\Domain\Catalog\ProductPageAccess;
 use App\Domain\Catalog\ProductRemoval;
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Inventory\StockRegister;
@@ -49,7 +50,7 @@ final class CatalogSection implements WorkspaceSection
             ->when($context->section === 'catalog' && $request->filled('min_mrp'), fn ($q) => $q->where('mrp', '>=', $request->input('min_mrp')))
             ->when($context->section === 'catalog' && $request->filled('max_mrp'), fn ($q) => $q->where('mrp', '<=', $request->input('max_mrp')))
             ->when($context->section === 'catalog' && $request->string('availability')->toString() === 'published', fn ($q) => $q->where('active', true))
-            ->when($context->section === 'catalog' && $request->string('availability')->toString() === 'draft', fn ($q) => $q->where('active', false))
+            ->when($context->section === 'catalog' && $request->string('availability')->toString() === 'draft', fn ($q) => $q->where('active', false)->whereNull('archived_at'))
             ->when($context->section === 'catalog' && $request->string('availability')->toString() === 'in_stock', fn ($q) => $q->whereSellable()->where(fn ($stock) => $stock->where('is_stock_paused', false)->orWhereNull('is_stock_paused')))
             ->when($context->section === 'catalog' && $request->string('availability')->toString() === 'out_of_stock', fn ($q) => $q->where(fn ($stock) => $stock->whereNotSellable()->orWhere('is_stock_paused', true)))
             ->when($context->section === 'catalog', fn ($q) => $this->sortCatalog($q, $request), fn ($q) => $q->orderBy('name'));
@@ -58,6 +59,8 @@ final class CatalogSection implements WorkspaceSection
         $removalByProduct = [];
         if ($context->isStaff && $context->section === 'catalog') {
             $register = app(StockRegister::class);
+            $props['can_open_product'] = ProductPageAccess::mayOpen($user);
+            $props['can_create_product'] = ProductPageAccess::mayCreate($user);
             $props['catalog_filters'] = $register->catalogFilters($request, $revealStock);
             $productQuery->whereIn('products.id', $register->matchingProductIds($props['catalog_filters']['active']));
             $addedBetween = MoneyTable::range($request, null);
@@ -68,9 +71,10 @@ final class CatalogSection implements WorkspaceSection
             if (! $searchesArchived) {
                 $productQuery->where('products.active', true);
             }
-            $props['archived_count'] = Product::query()->where('active', false)
-                ->when($request->filled('q'), fn ($q) => $q->where(fn ($match) => $match->where('name', 'ilike', '%'.$request->string('q').'%')->orWhere('sku', 'ilike', '%'.$request->string('q').'%')->orWhere('category', 'ilike', '%'.$request->string('q').'%')))
-                ->count();
+            $offSale = Product::query()->where('active', false)
+                ->when($request->filled('q'), fn ($q) => $q->where(fn ($match) => $match->where('name', 'ilike', '%'.$request->string('q').'%')->orWhere('sku', 'ilike', '%'.$request->string('q').'%')->orWhere('category', 'ilike', '%'.$request->string('q').'%')));
+            $props['archived_count'] = (clone $offSale)->whereNotNull('archived_at')->count();
+            $props['draft_count'] = (clone $offSale)->whereNull('archived_at')->count();
             $page = $productQuery->paginate(self::StaffProductsPerPage)->withQueryString();
             $props['products_truncated'] = false;
             $props['products_page'] = Arr::except($page->toArray(), ['data']);
@@ -86,7 +90,7 @@ final class CatalogSection implements WorkspaceSection
         // Each Schema::hasColumn() call reads the database catalogue, so ask once per request, not once per product.
         $supportsProductExpiry = $context->section === 'inventory' && Schema::hasColumn('products', 'expires_on');
         $props['products'] = $products->map(function ($p) use ($user, $context, $revealStock, $revealDealerPrice, $supportsProductExpiry, $stagesByProduct, $removalByProduct) {
-            $base = [...$p->only(['id', 'sku', 'name', 'category', 'sub_category', 'strength', 'description', 'unit', 'mrp', 'active', 'featured', 'tone', 'is_stock_paused']), 'stock_status' => $p->stockStatus(), ...$p->media(), 'image_fallback' => $p->image_path ? null : StockImage::forCategory($p->category, $p->name), ...($user->allows('cost_read') ? ['cost_price' => $p->cost_price] : [])];
+            $base = [...$p->only(['id', 'sku', 'name', 'category', 'sub_category', 'strength', 'description', 'unit', 'mrp', 'active', 'featured', 'tone', 'is_stock_paused']), 'archived' => $p->isArchived(), 'stock_status' => $p->stockStatus(), ...$p->media(), 'image_fallback' => $p->image_path ? null : StockImage::forCategory($p->category, $p->name), ...($user->allows('cost_read') ? ['cost_price' => $p->cost_price] : [])];
             if (! $context->isStaff) {
                 try {
                     $base['price'] = Money::decimal($context->pricing->unitPrice($p, $user));

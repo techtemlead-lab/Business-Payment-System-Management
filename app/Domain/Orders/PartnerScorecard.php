@@ -16,7 +16,8 @@ use Illuminate\Support\Facades\DB;
  * For office staff: how each partner's orders went. Every figure covers orders placed in the
  * chosen period and leaves out opening balances. The figures are joined to every partner, so
  * search and column sort cover all partners and not only the page on screen. An order that came
- * back counts as a return, not also as a cancellation.
+ * back counts as a return, not also as a cancellation. Checked payments are counted as they
+ * happened, but their taka figure follows the owner's rule: only money for delivered goods.
  */
 final class PartnerScorecard
 {
@@ -33,11 +34,12 @@ final class PartnerScorecard
         $partners = DB::table('users')
             ->leftJoinSub($this->orderFigures($range), 'order_figures', 'order_figures.user_id', '=', 'users.id')
             ->leftJoinSub($this->paymentFigures($range), 'payment_figures', 'payment_figures.user_id', '=', 'users.id')
+            ->leftJoinSub($this->deliveredVerifiedMoney($range), 'delivered_money', 'delivered_money.user_id', '=', 'users.id')
             ->leftJoinSub($this->returnedParcels($range), 'returned_parcels', 'returned_parcels.user_id', '=', 'users.id')
             ->whereIn('users.role', ['dealer', 'sub_dealer'])
             ->selectRaw('users.id, users.name, users.dealer_code, users.role, users.status, '
                 .'COALESCE(order_figures.placed, 0) AS placed, COALESCE(order_figures.cancelled, 0) AS cancelled, '
-                .'COALESCE(payment_figures.verified, 0) AS payments_verified, COALESCE(payment_figures.verified_amount, 0) AS payments_verified_amount, '
+                .'COALESCE(payment_figures.verified, 0) AS payments_verified, COALESCE(delivered_money.amount, 0) AS payments_verified_amount, '
                 .'COALESCE(payment_figures.rejected, 0) AS payments_rejected, COALESCE(payment_figures.pending, 0) AS payments_pending, '
                 .'COALESCE(returned_parcels.returned, 0) AS returned');
         $branchScope?->restrictPartners($partners);
@@ -55,6 +57,7 @@ final class PartnerScorecard
                 'payments_verified' => 'x.payments_verified',
                 'payments_verified_amount' => 'x.payments_verified_amount',
                 'payments_rejected' => 'x.payments_rejected',
+                'payments_pending' => 'x.payments_pending',
                 'cancelled' => 'x.cancelled',
                 'returned' => 'x.returned',
             ],
@@ -100,7 +103,22 @@ final class PartnerScorecard
     {
         return $this->partnerOrders(DB::table('payment_claims')->join('orders', 'orders.id', '=', 'payment_claims.order_id'), $range)
             ->groupBy('orders.user_id')
-            ->selectRaw("orders.user_id, COUNT(*) FILTER (WHERE payment_claims.status = 'verified') AS verified, COALESCE(SUM(payment_claims.amount) FILTER (WHERE payment_claims.status = 'verified'), 0) AS verified_amount, COUNT(*) FILTER (WHERE payment_claims.status = 'rejected') AS rejected, COUNT(*) FILTER (WHERE payment_claims.status = 'pending') AS pending");
+            ->selectRaw("orders.user_id, COUNT(*) FILTER (WHERE payment_claims.status = 'verified') AS verified, COUNT(*) FILTER (WHERE payment_claims.status = 'rejected') AS rejected, COUNT(*) FILTER (WHERE payment_claims.status = 'pending') AS pending");
+    }
+
+    /**
+     * Each order's checked payments, up to the value of the goods that reached the partner.
+     *
+     * @param  array{from: CarbonImmutable, until: CarbonImmutable}|null  $range
+     */
+    private function deliveredVerifiedMoney(?array $range): Builder
+    {
+        $verifiedOnOrder = "(SELECT COALESCE(SUM(claim.amount), 0) FROM payment_claims AS claim WHERE claim.order_id = orders.id AND claim.status = 'verified')";
+
+        return $this->partnerOrders(DB::table('orders'), $range)
+            ->whereRaw(DeliveredMoney::countedSql())
+            ->groupBy('orders.user_id')
+            ->selectRaw("orders.user_id, SUM(LEAST({$verifiedOnOrder}, ".DeliveredMoney::valueSql().')) AS amount');
     }
 
     /**

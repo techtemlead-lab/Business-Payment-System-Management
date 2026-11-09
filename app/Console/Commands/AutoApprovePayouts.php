@@ -60,13 +60,18 @@ class AutoApprovePayouts extends Command
             }
         }
 
-        // Month close for area commission: shares still held because the quota was missed go to
-        // company profit once their month has ended (last month, plus one for a missed run).
+        // Owner rule: a share still held because its target was missed goes to company profit once
+        // its month has ended. Every ended month is checked, so a late run cannot leave it held.
+        $reserves = app(ReserveService::class);
+        foreach ($reserves->closedMonthsWithHeldAreaShares() as $month) {
+            $summary['area_quota_close:'.$month] = $this->attempt(fn () => $reserves->forfeitUnmetQuotaHolds($month)['status']);
+        }
+
+        // Month close for the sub-dealer additional-rank fund (last month, plus one for a missed run).
         $current = CarbonImmutable::createFromFormat('!Y-m', CommissionQualification::currentMonth());
         foreach ([2, 1] as $back) {
             $month = $current->subMonthsNoOverflow($back)->format('Y-m');
-            $summary['area_quota_close:'.$month] = $this->attempt(fn () => app(ReserveService::class)->forfeitUnmetQuotaHolds($month)['status']);
-            $summary['additional_rank_close:'.$month] = $this->attempt(fn () => app(ReserveService::class)->closeAdditionalRankFund($month)['status']);
+            $summary['additional_rank_close:'.$month] = $this->attempt(fn () => $reserves->closeAdditionalRankFund($month)['status']);
         }
 
         if ($settings->isAutoApproved('rank_incentive')) {

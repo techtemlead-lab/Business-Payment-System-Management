@@ -23,6 +23,7 @@ class PartnerCertificatesTest extends TestCase
             'subtotal' => '1000.00', 'discount_amount' => '0.00', 'tax_amount' => '0.00', 'total' => '1000.00', 'paid' => '1000.00',
             'idempotency_key' => (string) Str::uuid(), 'payload_hash' => hash('sha256', Str::random()),
         ]);
+        DB::table('journal_entries')->insert(['id' => (string) Str::uuid(), 'event_key' => 'commissions.order.'.$order->id, 'description' => 'Commission', 'created_at' => $createdAt]);
         CommissionAllocation::query()->create([
             'order_id' => $order->id,
             'user_id' => $user->id,
@@ -41,8 +42,8 @@ class PartnerCertificatesTest extends TestCase
         $this->travelTo(now()->setDate(2026, 11, 5)->setTime(12, 0));
         $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
         $this->allocation($dealer, 'direct_referral', '300.00', 'available', now()->setDate(2026, 3, 10));
-        $this->allocation($dealer, 'direct_referral', '200.00', 'settled', now()->setDate(2026, 6, 1));
-        $this->allocation($dealer, 'own_dealer_cashback', '50.00', 'reversed', now()->setDate(2026, 7, 1));
+        $this->allocation($dealer, 'direct_referral', '200.00', 'maturing', now()->setDate(2026, 6, 1));
+        $this->allocation($dealer, 'own_dealer_cashback', '50.00', 'held', now()->setDate(2026, 7, 1));
         $this->allocation($dealer, 'direct_referral', '999.00', 'available', now()->setDate(2025, 12, 31));
         DB::table('withdrawals')->insert([
             'id' => (string) Str::uuid(), 'user_id' => $dealer->id, 'amount' => '400.00', 'withheld_amount' => '20.00', 'net_amount' => '380.00',

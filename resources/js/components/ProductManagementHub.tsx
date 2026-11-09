@@ -48,6 +48,7 @@ export default function ProductManagementHub({
     catalogFilters,
     productsPage,
     canCreate = false,
+    canOpenProduct = false,
     onCreateProduct,
     initialTab = 'products',
 }: {
@@ -64,6 +65,7 @@ export default function ProductManagementHub({
     catalogFilters?: FilterBarData;
     productsPage?: Row;
     canCreate?: boolean;
+    canOpenProduct?: boolean;
     onCreateProduct: () => void;
     initialTab?: string;
 }) {
@@ -72,6 +74,7 @@ export default function ProductManagementHub({
     const { url, props: pageProps } = usePage<any>();
     const { auth, staffActions, errors } = pageProps;
     const archivedCount = Number(pageProps.data?.archived_count ?? 0);
+    const draftCount = Number(pageProps.data?.draft_count ?? 0);
     const visit = useAddressVisit(null);
     const [drawerProductId, setDrawerProductId] = useState<number | string | null>(null);
     const canStock=auth.capabilities.includes('inventory')&&(staffActions?.inventory?.edit??true);
@@ -93,6 +96,7 @@ export default function ProductManagementHub({
     const [sortKey, sortDirection] = OLD_SORT_LINKS[sortInAddress]
         ?? (SORT_KEYS.includes(sortInAddress) ? [sortInAddress, addressQuery.get('dir') === 'desc' ? 'desc' as const : 'asc' as const] : ['name', 'asc' as const]);
     const showsArchived = catalogFilters?.active?.product_state === 'archived';
+    const showsDrafts = catalogFilters?.active?.product_state === 'draft';
 
     // Form for Featured Products Showcase
     const featuredForm = useForm({
@@ -164,9 +168,16 @@ export default function ProductManagementHub({
         }
     };
 
+    const openDrafts = () => {
+        handleTabChange('products');
+        if (!showsDrafts) {
+            visit({ product_state: 'draft' });
+        }
+    };
+
     const openAllProducts = () => {
         handleTabChange('products');
-        if (showsArchived) {
+        if (showsArchived || showsDrafts) {
             visit({ product_state: null });
         }
     };
@@ -251,10 +262,11 @@ export default function ProductManagementHub({
     };
     const emptyLine = showsArchived
         ? t('empty_archived')
-        : archivedCount > 0 && filters?.q ? t('empty_search_but_archived', { count: archivedCount }) : translate('portal', 'no_matching_products');
+        : showsDrafts ? t('empty_drafts') : archivedCount > 0 && filters?.q ? t('empty_search_but_archived', { count: archivedCount }) : translate('portal', 'no_matching_products');
     const drawerProduct = products.find(product => product.id === drawerProductId);
     const switchChoices: { key: string; label: string; active: boolean; choose: () => void }[] = [
-        { key: 'products', label: t('all_products'), active: activeTab === 'products' && !showsArchived, choose: openAllProducts },
+        { key: 'products', label: t('all_products'), active: activeTab === 'products' && !showsArchived && !showsDrafts, choose: openAllProducts },
+        { key: 'drafts', label: draftCount > 0 ? `${t('draft_products')} (${number(draftCount)})` : t('draft_products'), active: activeTab === 'products' && showsDrafts, choose: openDrafts },
         { key: 'archived', label: archivedCount > 0 ? `${t('archived_products')} (${number(archivedCount)})` : t('archived_products'), active: activeTab === 'products' && showsArchived, choose: openArchived },
         { key: 'featured', label: t('home_page_list'), active: activeTab === 'featured', choose: () => handleTabChange('featured') },
         { key: 'taxonomy', label: t('categories_units'), active: activeTab === 'taxonomy', choose: () => handleTabChange('taxonomy') },
@@ -287,7 +299,7 @@ export default function ProductManagementHub({
                         prop="data"
                         columns={columns}
                         searchPlaceholder={translate('portal', 'search_products_catalog')}
-                        rowHref={(product) => `/products/${product.id}`}
+                        rowHref={canOpenProduct ? (product) => `/products/${product.id}` : undefined}
                         empty={emptyLine}
                     />
                 </div>
@@ -298,6 +310,7 @@ export default function ProductManagementHub({
                     product={drawerProduct}
                     canStock={canStock}
                     canEditCatalog={canEditCatalog}
+                    canOpenProduct={canOpenProduct}
                     onClose={() => setDrawerProductId(null)}
                 />
             )}

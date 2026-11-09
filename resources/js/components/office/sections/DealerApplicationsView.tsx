@@ -10,9 +10,9 @@ export default function DealerApplicationsView({ table }: { table: StaffSectionT
     const translate = useT();
     const { auth, staffActions } = usePage<any>().props;
     const capabilities: string[] = auth.capabilities;
-    const [openedId, setOpenedId] = useState<number | null>(null);
+    const [openedId, setOpenedId] = useState<string | null>(null);
     const [dialog, setDialog] = useState<StaffAction | null>(null);
-    const opened = table.page.data.find((row) => row.id === openedId) ?? null;
+    const opened = table.page.data.find((row) => String(row.id) === openedId) ?? null;
     const applicant = (row: Row): Row => {
         const stored = readStored(row.data);
 
@@ -48,12 +48,16 @@ export default function DealerApplicationsView({ table }: { table: StaffSectionT
                 totalCount={table.page.total}
                 rows={table.page.data}
                 empty={translate('office_staff', 'applications_empty')}
-                onRowClick={(row: Row) => setOpenedId(Number(row.id))}
+                onRowClick={(row: Row) => setOpenedId(String(row.id))}
                 rowClassName={() => 'is-link'}
                 columns={[
                     { key: 'created_at', title: translate('office_staff', 'col_date'), render: (row: Row) => date(String(row.created_at)) },
                     { key: 'name', title: translate('office_staff', 'col_applicant'), render: (row: Row) => <><b>{applicant(row).name ?? '—'}</b><small className="cell-sub">{row.email}</small></> },
+                    { key: 'phone', title: translate('office_staff', 'detail_phone'), render: (row: Row) => applicant(row).phone ?? '—' },
+                    { key: 'account_type', title: translate('portal', 'ops_fld_account_type'), render: (row: Row) => (applicant(row).role ? label(String(applicant(row).role), translate) : '—') },
+                    { key: 'area', title: translate('office_staff', 'col_area'), render: (row: Row) => applicant(row).place_code || [applicant(row).upazila, applicant(row).district, applicant(row).division].filter(Boolean).join(', ') || '—' },
                     { key: 'status', title: translate('office_staff', 'col_status'), render: (row: Row) => <Badge status={String(row.status)} /> },
+                    { key: 'reason', title: translate('office_staff', 'detail_reason'), render: (row: Row) => row.reason || '—' },
                 ]}
             />
             <Pagination page={table.page} />

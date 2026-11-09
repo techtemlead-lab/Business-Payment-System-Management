@@ -208,6 +208,10 @@ final class PlaceCodeCatalog
         $rawCode = trim((string) ($input['code'] ?? ''));
         $rawName = trim((string) ($input['name'] ?? ''));
 
+        if ($existing === null && $rawCode === '' && $rawName === '') {
+            throw ValidationException::withMessages(['code' => __('portal.err_pc_code_or_name_required')]);
+        }
+
         if (PlaceCode::isPlaceholderLabel($rawCode)) {
             $code = null;
         } else {

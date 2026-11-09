@@ -94,6 +94,23 @@ class OrdersAndDeliveriesTableTest extends TestCase
         $this->assertSame($other->id, $byPartner['orders']->first()->user_id);
     }
 
+    public function test_orders_can_be_sorted_by_area_items_and_delivered(): void
+    {
+        $other = User::factory()->dealer()->create(['district' => 'Bogura']);
+        $this->dealer->forceFill(['district' => 'Rangpur'])->save();
+        $near = $this->order('approved', '10.00', user: $other);
+        $near->lines()->create($this->lineFields(9, 2));
+        $this->order('approved', '20.00')->lines()->create($this->lineFields(4, 4));
+
+        $this->assertSame($other->id, $this->sectionData('orders', ['sort' => 'area', 'dir' => 'asc'])['orders']->first()->user_id);
+        $this->assertSame($near->id, $this->sectionData('orders', ['sort' => 'items', 'dir' => 'desc'])['orders']->first()->id);
+        $this->assertSame($near->id, $this->sectionData('orders', ['sort' => 'delivered', 'dir' => 'asc'])['orders']->first()->id);
+
+        $deliveries = $this->sectionData('deliveries', ['sort' => 'paid', 'dir' => 'asc']);
+        $this->assertSame('paid', $deliveries['orders_table']['state']['sort']);
+        $this->assertContains('to_pay', $deliveries['orders_table']['sortable']);
+    }
+
     public function test_the_deliveries_send_view_lists_orders_to_send_with_no_money_sums(): void
     {
         $order = $this->order('approved', '900.00');
@@ -121,7 +138,8 @@ class OrdersAndDeliveriesTableTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('data.delivery_view', 'parcels')
                 ->missing('data.orders')
-                ->has('data.parcels_table.rows.data', 3)
+                ->has('data.parcels_table.rows.data', 1)
+                ->where('data.parcels_table.rows.data.0.tracking', 'ST-1')
                 ->where('data.parcel_stages.with_courier', 1)
                 ->where('data.parcel_stages.delivered', 1)
                 ->where('data.parcel_stages.returned', 1));
@@ -187,7 +205,7 @@ class OrdersAndDeliveriesTableTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->has('data.orders.data', 12)
                 ->missing('data.orders_table')
-                ->missing('data.orders.data.0.payment_claims'));
+                ->has('data.orders.data.0.payment_claims'));
 
         $this->actingAs($this->dealer)->onPortal('dealer')->get('/deliveries?view=parcels')->assertOk()
             ->assertInertia(fn (Assert $page) => $page

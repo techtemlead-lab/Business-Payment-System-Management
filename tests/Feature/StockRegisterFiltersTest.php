@@ -141,7 +141,7 @@ class StockRegisterFiltersTest extends TestCase
 
     public function test_product_details_filters(): void
     {
-        $old = $this->product('Hidden Oil', ['active' => false, 'category' => 'Oil', 'sub_category' => 'Hair', 'unit' => 'Bottle']);
+        $old = $this->product('Hidden Oil', ['active' => false, 'archived_at' => now(), 'category' => 'Oil', 'sub_category' => 'Hair', 'unit' => 'Bottle']);
         $this->product('Shown Balm', ['featured' => true, 'category' => 'Balm', 'sub_category' => 'Skin', 'unit' => 'Jar']);
         $this->product('Paused Tea', ['is_stock_paused' => true, 'category' => 'Tea']);
 

@@ -192,6 +192,10 @@ class HandleInertiaRequests extends Middleware
     public function handle(Request $request, Closure $next)
     {
         $response = parent::handle($request, $next);
+        // A timed refresh or a prefetch can land just before the page a form returned to, and must not use up its error.
+        if ($request->isMethod('GET') && $request->hasSession() && ($request->hasHeader('X-Background-Refresh') || $request->header('Purpose') === 'prefetch')) {
+            $request->session()->reflash();
+        }
         if ($response instanceof JsonResponse && $request->header('X-Inertia')) {
             $response->setEncodingOptions($response->getEncodingOptions() | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         }

@@ -61,11 +61,23 @@ export function CompanyNameField(props: BoxProps) {
 export function PhoneAndEmailFields(props: BoxProps) {
     const translate = useT();
     const box = boxOf(props);
+    const emailShown = props.form.data.customization.contact_email_enabled !== '0';
     return (
         <>
             <Field label={translate('portal', 'sce_f_hotline_phone')} fieldKey="contact_phone" {...box('contact_phone')} />
             <Field label={translate('portal', 'sce_f_footer_phone')} fieldKey="footer_phone" {...box('footer_phone')} />
             <Field label={translate('portal', 'sce_f_email_address')} fieldKey="contact_email" {...box('contact_email')} />
+            <div>
+                <p className="ed-desc is-sm">{translate('website_admin', 'show_email_hint')}</p>
+                <button
+                    type="button"
+                    className={`button small ${emailShown ? 'dark' : ''}`}
+                    aria-pressed={emailShown}
+                    onClick={() => props.updateField('contact_email_enabled', emailShown ? '0' : '1')}
+                >
+                    {emailShown ? `✓ ${translate('portal', 'sce_status_on')}` : `✕ ${translate('portal', 'sce_status_off')}`}
+                </button>
+            </div>
         </>
     );
 }

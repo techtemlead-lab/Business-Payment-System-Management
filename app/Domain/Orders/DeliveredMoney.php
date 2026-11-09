@@ -2,27 +2,43 @@
 
 namespace App\Domain\Orders;
 
-use App\Domain\Commissions\CommissionQualification;
 use App\Models\Order;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;
 
 /**
  * The owner's rule for money figures: an order counts only after its goods arrive. A delivered
- * order counts whole, a partly delivered order counts the delivered parcels at the price charged
- * (free goods add nothing), and every other order counts nothing. All sums read these same
- * expressions, so lists, footers and reports cannot disagree.
+ * order counts whole. A partly delivered order, and an order whose other goods are still on the
+ * way or waiting for stock, counts its delivered parcels at the price charged (free goods add
+ * nothing). Every other order counts nothing. All sums read these same expressions, so lists,
+ * footers and reports cannot disagree.
+ *
+ * Commission is separate: it posts once per order, when the order finishes.
  */
 final class DeliveredMoney
 {
-    /** Order statuses with goods that reached the partner, whole or in part. */
-    public const Statuses = CommissionQualification::DeliveredStatuses;
+    /** Order statuses where some goods may have arrived while others are still to come. */
+    public const StillGoingOut = ['partially_dispatched', 'dispatched'];
+
+    /** SQL condition: the order has goods that reached the partner, whole or in part. */
+    public static function countedSql(string $orders = 'orders'): string
+    {
+        return "({$orders}.status IN ('delivered', '".MixedOutcomeDecisions::PartlyDelivered."')"
+            .' OR ('.self::stillGoingOutSql($orders)
+            ." AND EXISTS (SELECT 1 FROM shipments AS parcel WHERE parcel.order_id = {$orders}.id AND parcel.status = 'delivered')))";
+    }
+
+    /** SQL condition: the order is still going out, so only its delivered parcels count. */
+    public static function stillGoingOutSql(string $orders = 'orders'): string
+    {
+        return "{$orders}.status IN ('".implode("', '", self::StillGoingOut)."')";
+    }
 
     /** SQL for the money value of the goods delivered on one order. */
     public static function valueSql(string $orders = 'orders'): string
     {
         return "CASE WHEN {$orders}.status = 'delivered' THEN {$orders}.total"
-            ." WHEN {$orders}.status = '".MixedOutcomeDecisions::PartlyDelivered."' THEN ".self::partlyDeliveredSql($orders)
+            ." WHEN {$orders}.status = '".MixedOutcomeDecisions::PartlyDelivered."' OR ".self::stillGoingOutSql($orders).' THEN '.self::partlyDeliveredSql($orders)
             .' ELSE 0 END';
     }
 

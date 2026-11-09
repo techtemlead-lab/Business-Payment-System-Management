@@ -78,5 +78,13 @@ class PaymentQueueFilterTest extends TestCase
                 ->has('data.payments_table.rows.data', 1)
                 ->where('data.payments_table.rows.data.0.number', 'PAY-SUB-1')
                 ->where('data.payments_table.rows.data.0.role', 'sub_dealer'));
+
+        $this->actingAs($owner)->onPortal('sadmin')->get('/payments?sort=due&dir=desc')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('data.payments_table.rows.data.0.number', 'PAY-SUB-1')
+                ->where('data.payments_table.state.sort', 'due'));
+
+        $this->actingAs($owner)->onPortal('sadmin')->get('/payments?sort=partner&dir=asc')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('data.payments_table.rows.data.0.number', 'PAY-DEALER-1'));
     }
 }

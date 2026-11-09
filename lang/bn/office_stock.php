@@ -3,6 +3,7 @@
 return [
     'all_products' => 'সব পণ্য',
     'archived_products' => 'আর্কাইভ করা',
+    'draft_products' => 'খসড়া',
     'home_page_list' => 'হোম পেজের তালিকা',
     'categories_units' => 'ক্যাটাগরি ও ইউনিট',
     'view_homepage' => 'ওয়েবসাইট দেখুন',
@@ -16,8 +17,10 @@ return [
 
     'status_published' => 'প্রকাশিত',
     'status_archived' => 'আর্কাইভ করা',
+    'status_draft' => 'খসড়া',
     'status_orders_stopped' => 'অর্ডার বন্ধ',
     'empty_archived' => 'কোনো আর্কাইভ করা পণ্য নেই।',
+    'empty_drafts' => 'কোনো খসড়া পণ্য নেই।',
     'empty_search_but_archived' => 'এখানে কিছু পাওয়া যায়নি। আর্কাইভ করা তালিকায় :count টি মিলেছে, সেখানে দেখুন।',
 
     'edit' => 'এডিট',

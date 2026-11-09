@@ -119,6 +119,23 @@ class OldMoneyAddressesTest extends TestCase
         $this->actingAs($this->staffWith(['accounts']))->onPortal('manage')->get("/treasury/partners/{$partner->id}")->assertOk();
     }
 
+    public function test_an_old_withdrawals_link_never_ends_in_a_refusal(): void
+    {
+        foreach (['inventory', 'account_manager'] as $role) {
+            $this->actingAs(User::factory()->staff($role)->create())->onPortal('manage')->get('/withdrawals')->assertStatus(301)->assertRedirect('/');
+        }
+        $this->actingAs($this->staffWith(['reports']))->onPortal('manage')->get('/withdrawals')->assertRedirect('/treasury/orders');
+        $this->actingAs(User::factory()->staff('md')->create())->onPortal('sadmin')->get('/withdrawals')->assertRedirect('/payouts-hub');
+    }
+
+    public function test_an_old_statement_link_never_ends_in_a_refusal(): void
+    {
+        $partner = User::factory()->dealer()->create();
+
+        $this->actingAs(User::factory()->staff('inventory')->create())->onPortal('manage')->get("/accounts/{$partner->id}/statement")->assertStatus(301)->assertRedirect('/');
+        $this->actingAs(User::factory()->staff('account_manager')->create())->onPortal('manage')->get("/accounts/{$partner->id}/statement")->assertRedirect("/treasury/partners/{$partner->id}");
+    }
+
     public function test_the_statement_files_are_still_there(): void
     {
         $dealer = User::factory()->dealer()->create();

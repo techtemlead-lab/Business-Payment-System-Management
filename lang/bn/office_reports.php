@@ -7,6 +7,8 @@ return [
     'chat_who_answers' => 'কে উত্তর দেবেন',
     'top_sellers_highest' => 'সবচেয়ে বেশি কেনা',
     'top_sellers_ten_total' => 'সেরা ১০ জনের মোট',
+    'top_sellers_from' => 'এই তারিখ থেকে',
+    'top_sellers_to' => 'এই তারিখ পর্যন্ত',
     'top_sellers_search' => 'নাম, কোড বা এলাকা দিয়ে খুঁজুন',
     'top_sellers_col_rank' => 'স্থান',
     'top_sellers_col_dealer' => 'ডিলার',

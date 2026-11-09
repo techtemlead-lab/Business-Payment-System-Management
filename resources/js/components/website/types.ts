@@ -339,6 +339,7 @@ export interface CustomizationData {
     contact_phone_hours?: string;
     contact_email_title?: string;
     contact_email?: string;
+    contact_email_enabled?: string;
     contact_social_title?: string;
     contact_topic1_title?: string;
     contact_topic1_desc?: string;

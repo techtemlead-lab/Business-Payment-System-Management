@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
+import { businessDateTime } from '../business-date';
 import { Head, Link, useForm, usePage, usePoll } from '@inertiajs/react';
+import { backgroundRefreshHeaders } from '../shared/backgroundRefresh';
 import { Download } from 'lucide-react';
 import Shell from '../components/Shell';
 import OfficePage from '../components/office/OfficePage';
@@ -17,7 +19,7 @@ export default function DataImports({ types, batches, preview, openingLocked, ca
     const typeTitle = (value: string) => translated(`imp_type_opt_${value}`, value);
     const title = (value: string) => translated(`imp_field_${value}`, value);
     const { auth, staffActions } = usePage<any>().props;
-    usePoll(10000, { only: ['batches', 'preview'] });
+    usePoll(10000, { only: ['batches', 'preview'], headers: backgroundRefreshHeaders });
     const [mode, setMode] = useState(startup?.mode === 'fresh' ? 'zero' : 'import');
     const [uploadOpen, setUploadOpen] = useState(false);
     const startupForm = useForm({ mode: startup?.mode ?? (mode === 'zero' ? 'fresh' : 'import'), version: startup?.version ?? 0, reason: translate('portal', 'imp_reason_selected') });
@@ -66,7 +68,7 @@ export default function DataImports({ types, batches, preview, openingLocked, ca
                         { key: 'type', title: translate('portal','imp_col_type'), render: (row: Row) => typeTitle(row.type) },
                         { key: 'status', title: translate('portal','enquiry_status_label'), render: (row: Row) => <Badge status={row.status} /> },
                         { key: 'source_reference', title: translate('portal','imp_col_source') },
-                        { key: 'created_at', title: translate('portal','imp_col_uploaded') },
+                        { key: 'created_at', title: translate('portal','imp_col_uploaded'), render: (row: Row) => businessDateTime(row.created_at) },
                     ]} />
                     <Pagination page={batches} />
                 </section>
@@ -121,6 +123,7 @@ export default function DataImports({ types, batches, preview, openingLocked, ca
                     <label>{translate('portal','imp_source_ref')}<input required minLength={5} maxLength={150} value={upload.data.source_reference} onChange={event => upload.setData('source_reference', event.target.value)} placeholder={translate('portal','imp_source_ph')} /></label>
                     <label>{translate('portal','imp_workbook')}<input key={upload.data.type} required type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={event => upload.setData('file', event.target.files?.[0] ?? null)} /></label>
                     <p className="set-line">{translate('office_settings','import_prepare_rules')}</p>
+                    {upload.data.type === 'opening_balances' && openingLocked && <p className="set-line">{translate('portal','imp_opening_locked')}</p>}
                     {upload.progress && <progress max={100} value={upload.progress.percentage} aria-label={translate('portal','imp_upload_progress')} />}
                     {Object.keys(upload.errors).length > 0 && <div role="alert" className="error">{Object.values(upload.errors).join(' ')}</div>}
                     <button className="button dark set-save" disabled={upload.processing || !selectedType?.can_create || (upload.data.type === 'opening_balances' && openingLocked)}>{upload.processing ? translate('portal','imp_validating') : translate('portal','imp_validate')}</button>

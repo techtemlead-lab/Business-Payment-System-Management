@@ -147,9 +147,11 @@ class CommerceWorkflowTest extends TestCase
         $this->actingAs($finance)->onPortal('dealer')
             ->postJson('/api/v1/operations/payroll/prepare', ['period_month' => '2026-09'])
             ->assertNotFound();
+        // On the office host the request reaches the salary work, which refuses a month with no staff to pay.
         $this->actingAs($finance)->onPortal('manage')
             ->postJson('/api/v1/operations/payroll/prepare', ['period_month' => '2026-09'])
-            ->assertOk();
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['period_month']);
     }
 
     public function test_portal_hosts_carry_withdrawal_request_through_staff_review(): void

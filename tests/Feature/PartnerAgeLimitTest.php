@@ -44,14 +44,14 @@ class PartnerAgeLimitTest extends TestCase
     public function test_public_application_refuses_an_applicant_under_eighteen(): void
     {
         $this->onPortal('public')->from('/partnership')->post('/partnership/apply', $this->application(['date_of_birth' => '2008-11-08']))
-            ->assertRedirect('/partnership')
+            ->assertRedirect('/partnership#partner-apply-status')
             ->assertSessionHasErrors(['date_of_birth' => __('portal.acct_val_dob_under_age', ['years' => 18])]);
         $this->onPortal('public')->from('/partnership')->post('/partnership/apply', $this->application(['date_of_birth' => null]))
             ->assertSessionHasErrors('date_of_birth');
         $this->assertSame(0, DB::table('dealer_applications')->count());
 
         $this->onPortal('public')->post('/partnership/apply', $this->application(['date_of_birth' => '2008-11-07']))
-            ->assertRedirect('/partnership')
+            ->assertRedirect('/partnership#partner-apply-status')
             ->assertSessionHasNoErrors();
         $data = json_decode((string) DB::table('dealer_applications')->value('data'), true);
         $this->assertSame('2008-11-07', $data['date_of_birth']);

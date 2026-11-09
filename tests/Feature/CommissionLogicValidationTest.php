@@ -284,7 +284,7 @@ class CommissionLogicValidationTest extends TestCase
         // But qualifying volume is strictly capped at ৳8 Lakh!
         $this->assertEquals(800000.00, $eval['qualifying_volume']);
 
-        // Bike milestone target is ৳60 Lakh, so achieved MUST BE FALSE!
+        // Bike milestone target is ৳50 Lakh, so achieved MUST BE FALSE!
         $this->assertFalse($eval['achieved']);
         $this->assertEquals(16.00, $eval['percentage']); // 8L / 50L = 16%
     }

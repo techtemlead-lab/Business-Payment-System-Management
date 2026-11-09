@@ -61,13 +61,14 @@ class PayrollReportAccessTest extends TestCase
         $this->assertSame([$this->employee->name], $this->namesFor($allowed));
     }
 
-    public function test_the_md_needs_the_payroll_permission_too(): void
+    public function test_the_md_and_chairman_may_download_the_whole_file(): void
     {
-        $md = User::factory()->staff('md')->create(['status' => 'active']);
+        foreach (['md', 'chairman'] as $role) {
+            $viewer = User::factory()->staff($role)->create(['status' => 'active']);
 
-        $this->assertNotContains('payroll', app(ReportData::class)->availableTo($md));
-        $this->expectException(HttpException::class);
-        $this->namesFor($md);
+            $this->assertContains('payroll', app(ReportData::class)->availableTo($viewer), $role);
+            $this->assertSame([$this->employee->name], $this->namesFor($viewer), $role);
+        }
     }
 
     public function test_an_ordinary_staff_member_still_gets_only_their_own_slips(): void

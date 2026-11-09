@@ -135,6 +135,9 @@ class WorkspaceController extends Controller
         if ($staff && $section === 'customization') {
             $section = 'website';
         }
+        if ($section === OfficeHubs::SettingsSection && ! OfficeHubs::hasSettingsToOpen($u, $catalogPortal, in_array($portal, ['manage', 'sadmin'], true))) {
+            return redirect('/');
+        }
         PortalCatalog::assertSection($u, $catalogPortal, $section);
         $periodRule = $section === 'branch-performance'
             ? 'nullable|in:today,month,custom'
@@ -200,6 +203,7 @@ class WorkspaceController extends Controller
         }
         if ($branchScope !== null) {
             $data['branch_scope'] = $branchScope->chip();
+            $data['no_branch_assigned'] = ! $branchScope->allBranches && $branchScope->branchIds === [];
         }
         $partnerHub = PartnerHubTabs::forSection($section, $staff);
         if ($partnerHub !== null) {

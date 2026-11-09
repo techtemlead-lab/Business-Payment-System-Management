@@ -10,9 +10,11 @@ use App\Support\MoneyTable;
 use App\Support\MoneyTableFilter;
 use App\Support\MoneyTableSpec;
 use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * One partner's money: what they have now, where every taka came from and went, and their
@@ -76,6 +78,53 @@ final class PartnerMoneyBook
     }
 
     /**
+     * What people earned between two moments, head by head. Read from the statement rows, so every
+     * other page that shows earnings adds up to the same figure as My Money: money held back counts
+     * only once it is released, and money taken back after a refund is taken off.
+     *
+     * @param  int|Builder  $people  One partner's id, or a sub-query of partner ids.
+     * @return list<array{head: string, amount: int, entries: int}> Amounts are in cents.
+     */
+    public function earnedByHead(int|Builder $people, ?CarbonInterface $from = null, ?CarbonInterface $until = null): array
+    {
+        return DB::query()->fromSub($this->statementRows($people), 'u')
+            ->whereIn('u.type', self::IncomeTypes)
+            ->when($from !== null, fn (Builder $query) => $query->where('u.occurred_at', '>=', $from))
+            ->when($until !== null, fn (Builder $query) => $query->where('u.occurred_at', '<', $until))
+            ->groupByRaw('COALESCE(u.category, u.type)')
+            ->orderByRaw('COALESCE(u.category, u.type)')
+            ->selectRaw('COALESCE(u.category, u.type) AS head, SUM(u.amount) AS total, COUNT(*) FILTER (WHERE u.amount > 0) AS entries')
+            ->get()
+            ->map(fn (object $row): array => ['head' => (string) $row->head, 'amount' => FundCatalog::centsOf($row->total), 'entries' => (int) $row->entries])
+            ->reject(fn (array $row): bool => $row['amount'] === 0)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * The whole of earnedByHead() as one figure, in cents.
+     *
+     * @param  int|Builder  $people  One partner's id, or a sub-query of partner ids.
+     */
+    public function earnedTotal(int|Builder $people, ?CarbonInterface $from = null, ?CarbonInterface $until = null): int
+    {
+        return array_sum(array_column($this->earnedByHead($people, $from, $until), 'amount'));
+    }
+
+    /** A commission head or kind of income as people read it. */
+    public static function headWord(string $head, ?string $locale = null): string
+    {
+        foreach (['portal.report_cat_'.$head, 'my_money.type_'.$head] as $key) {
+            $word = (string) __($key, [], $locale);
+            if ($word !== $key) {
+                return $word;
+            }
+        }
+
+        return Str::headline($head);
+    }
+
+    /**
      * Every movement of this partner's money. The running total is worked out on all rows before
      * any filter; once a type is chosen it means nothing and is sent as null.
      *
@@ -83,7 +132,7 @@ final class PartnerMoneyBook
      */
     public function table(Request $request, User $partner): array
     {
-        $rows = DB::query()->fromSub($this->statementRows($partner), 'u')
+        $rows = DB::query()->fromSub($this->statementRows((int) $partner->id), 'u')
             ->selectRaw('u.*, SUM(u.amount) OVER (ORDER BY u.occurred_at, u.id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running');
         $table = MoneyTable::make($request, DB::query()->fromSub($rows, 'x'), new MoneyTableSpec(
             dateColumn: 'x.occurred_at',
@@ -144,10 +193,31 @@ final class PartnerMoneyBook
             ->all();
     }
 
+    /**
+     * Area commission the partner did not earn because they missed that month's target, newest
+     * month first. None of it was ever in their wallet.
+     *
+     * @return list<array{month: string, amount: string}>
+     */
+    public function notEarnedAreaCommission(User $partner): array
+    {
+        return DB::table('commission_allocations')
+            ->where('user_id', $partner->id)
+            ->where('status', 'forfeited')
+            ->where('category', 'like', 'area_%')
+            ->groupByRaw("metadata->>'period_month'")
+            ->orderByRaw("metadata->>'period_month' DESC")
+            ->limit(12)
+            ->selectRaw("metadata->>'period_month' AS month, SUM(amount) AS amount")
+            ->get()
+            ->map(fn (object $row): array => ['month' => (string) $row->month, 'amount' => FundCatalog::decimalOf(FundCatalog::centsOf($row->amount))])
+            ->all();
+    }
+
     /** @return list<object> */
     private function totalsByType(User $partner): array
     {
-        return DB::query()->fromSub($this->statementRows($partner), 'u')->groupBy('u.type')->selectRaw('u.type, SUM(u.amount) AS total')->get()->all();
+        return DB::query()->fromSub($this->statementRows((int) $partner->id), 'u')->groupBy('u.type')->selectRaw('u.type, SUM(u.amount) AS total')->get()->all();
     }
 
     private function spentOnOrders(User $partner): string
@@ -160,18 +230,23 @@ final class PartnerMoneyBook
     }
 
     /** The three kinds of movement, as one list of rows. */
-    private function statementRows(User $partner): Builder
+    private function statementRows(int|Builder $people): Builder
     {
-        return $this->commissionRows($partner->id)->unionAll($this->entryRows($partner->id))->unionAll($this->takenBackRows($partner->id));
+        return $this->commissionRows($people)->unionAll($this->entryRows($people))->unionAll($this->takenBackRows($people));
+    }
+
+    /** Limits a query to one partner, or to a sub-query of partners. */
+    private function forPeople(Builder $query, string $column, int|Builder $people): Builder
+    {
+        return is_int($people) ? $query->where($column, $people) : $query->whereIn($column, $people);
     }
 
     /** Commission credited when an order posted, one row per commission line. */
-    private function commissionRows(int $userId): Builder
+    private function commissionRows(int|Builder $people): Builder
     {
-        return DB::table('commission_allocations as a')
+        return $this->forPeople(DB::table('commission_allocations as a'), 'a.user_id', $people)
             ->join('journal_entries as j', 'j.event_key', '=', DB::raw("'commissions.order.' || a.order_id::text"))
             ->join('orders as o', 'o.id', '=', 'a.order_id')->leftJoin('users as buyer', 'buyer.id', '=', 'o.user_id')
-            ->where('a.user_id', $userId)
             ->whereRaw("a.metadata->>'released_at' IS NULL")
             ->whereRaw("(a.status IN ('available', 'maturing') OR (a.status = 'reversed' AND NOT EXISTS (SELECT 1 FROM commission_reversals cr WHERE cr.allocation_id = a.id AND cr.source_status = 'held')))")
             ->whereRaw('COALESCE(a.original_amount, a.amount) > 0')
@@ -179,13 +254,13 @@ final class PartnerMoneyBook
     }
 
     /** Every other money movement, one row per record, typed by what caused it. */
-    private function entryRows(int $userId): Builder
+    private function entryRows(int|Builder $people): Builder
     {
         $accounts = self::Accounts;
-        $entries = DB::table('journal_lines as l')->join('journal_entries as j', 'j.id', '=', 'l.entry_id')
-            ->where('l.user_id', $userId)->whereRaw("l.account IN {$accounts}")
+        $entries = $this->forPeople(DB::table('journal_lines as l'), 'l.user_id', $people)->join('journal_entries as j', 'j.id', '=', 'l.entry_id')
+            ->whereRaw("l.account IN {$accounts}")
             ->whereRaw("NOT starts_with(j.event_key, 'commissions.order.') AND NOT starts_with(j.event_key, 'commissions.reversal.')")
-            ->groupBy('j.id', 'j.event_key', 'j.created_at')->havingRaw('SUM(l.credit) <> SUM(l.debit)')
+            ->groupBy('j.id', 'j.event_key', 'j.created_at', 'l.user_id')->havingRaw('SUM(l.credit) <> SUM(l.debit)')
             ->selectRaw('j.id, j.event_key, j.created_at, SUM(l.credit) - SUM(l.debit) AS net');
         $holdRelease = "starts_with(e.event_key, 'commission.hold_release.')";
         $accountPay = "starts_with(e.event_key, 'order.account_pay.')";
@@ -216,18 +291,18 @@ final class PartnerMoneyBook
      * adding money recovered later, but that later money is its own record, so each row counts only
      * what this refund itself took, up to the total the refund took from this partner.
      */
-    private function takenBackRows(int $userId): Builder
+    private function takenBackRows(int|Builder $people): Builder
     {
         $accounts = self::Accounts;
-        $reversals = DB::table('commission_reversals as cr')->where('cr.user_id', $userId)
-            ->selectRaw('cr.id, cr.refund_id, cr.allocation_id, cr.amount, COALESCE(SUM(cr.amount) OVER (PARTITION BY cr.refund_id ORDER BY cr.id ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), 0) AS earlier');
-        $taken = DB::table('journal_lines as l')->where('l.user_id', $userId)->whereRaw("l.account IN {$accounts}")->groupBy('l.entry_id')->selectRaw('l.entry_id, SUM(l.debit - l.credit) AS total');
+        $reversals = $this->forPeople(DB::table('commission_reversals as cr'), 'cr.user_id', $people)
+            ->selectRaw('cr.id, cr.user_id, cr.refund_id, cr.allocation_id, cr.amount, COALESCE(SUM(cr.amount) OVER (PARTITION BY cr.refund_id, cr.user_id ORDER BY cr.id ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), 0) AS earlier');
+        $taken = $this->forPeople(DB::table('journal_lines as l'), 'l.user_id', $people)->whereRaw("l.account IN {$accounts}")->groupBy('l.entry_id', 'l.user_id')->selectRaw('l.entry_id, l.user_id, SUM(l.debit - l.credit) AS total');
         $amount = 'LEAST(r.amount, GREATEST(t.total - r.earlier, 0))';
 
         return DB::query()->fromSub($reversals, 'r')
             ->join('commission_allocations as a', 'a.id', '=', 'r.allocation_id')
             ->join('journal_entries as j', 'j.event_key', '=', DB::raw("'commissions.reversal.' || r.refund_id::text"))
-            ->joinSub($taken, 't', 't.entry_id', '=', 'j.id')
+            ->joinSub($taken, 't', fn ($join) => $join->on('t.entry_id', '=', 'j.id')->on('t.user_id', '=', 'r.user_id'))
             ->leftJoin('orders as o', 'o.id', '=', 'a.order_id')->leftJoin('users as buyer', 'buyer.id', '=', 'o.user_id')
             ->whereRaw("{$amount} > 0")
             ->selectRaw("('r-' || r.id::text) AS id, j.created_at AS occurred_at, ".self::typeOfCategory('a.category')." AS type, a.category, a.rate_percentage AS percent, o.id::text AS order_id, o.number AS order_number, buyer.name AS from_name, NULL AS withdrawal_id, NULL AS waiting_until, -{$amount} AS amount");

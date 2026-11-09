@@ -347,6 +347,8 @@ class SiteCustomization
             'contact_phone_hours' => $copy('contact_phone_hours'),
             'contact_email_title' => 'Official Email',
             'contact_email' => 'madinanaturalhealthcare@gmail.com',
+            // The owner's switch: '0' hides the company email on every public page.
+            'contact_email_enabled' => '1',
             'contact_topic1_title' => 'Dealer Enquiries',
             'contact_topic1_desc' => $copy('contact_topic1_desc'),
             'contact_topic2_title' => 'Products & Support',
@@ -658,6 +660,25 @@ class SiteCustomization
         }
 
         return $custom;
+    }
+
+    /**
+     * Settings for what visitors see. When the owner has switched the company email off,
+     * it is blank here, so every public page and every fact in long text hides it.
+     * Saving and the website editor keep using all() and raw(), so the typed email stays.
+     *
+     * @param  array<string, mixed>|null  $customization
+     * @return array<string, mixed>
+     */
+    public static function forPublicPages(?array $customization = null): array
+    {
+        $all = $customization ?? self::all();
+        if (! filter_var($all['contact_email_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN)) {
+            $all['contact_email'] = '';
+            $all['footer_email'] = '';
+        }
+
+        return $all;
     }
 
     /** @return list<string> */

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Head, Link, useForm, usePage, usePoll } from '@inertiajs/react';
+import { backgroundRefreshHeaders } from '../shared/backgroundRefresh';
 import { Download, Upload, ShieldCheck, Check, Clock, Radio, XCircle, Banknote, Printer } from 'lucide-react';
 import Shell from '../components/Shell';
 import { Row, Badge, ActionForm, money, date, FormErrors, label } from '../components/UI';
@@ -361,7 +362,7 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
     const paysAlone = w.payer_state === 'alone';
 
     const inFlight = ['requested', 'processing', 'approved'].includes(w.status);
-    const { stop } = usePoll(5000, { only: ['withdrawal', 'payoutReceipt'] }, { autoStart: inFlight });
+    const { stop } = usePoll(5000, { only: ['withdrawal', 'payoutReceipt'], headers: backgroundRefreshHeaders }, { autoStart: inFlight });
     React.useEffect(() => {
         if (!inFlight) {
             stop();

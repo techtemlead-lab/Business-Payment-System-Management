@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Link, router, usePage } from '@inertiajs/react';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { MapPin, Search, Filter, Building2, Compass } from 'lucide-react';
-import { money, number, Table, Pagination, type Row } from './UI';
+import { FormErrors, Modal, money, number, Table, Pagination, type Row } from './UI';
+import { actionAllowed } from './action-permissions';
 import { useT } from '../shared/i18n/t';
 
 interface AreaAssignment {
-    id: number;
+    id: number | string;
     user_id: number;
     level: 'division' | 'district' | 'upazila' | 'union';
     zone_name: string;
@@ -69,9 +70,103 @@ const levelMeta: Record<string, { labelKey: string; tone: string; defaultQuota: 
     union: { labelKey: 'area_lvl_union', tone: 'tone-warn', defaultQuota: 10000 },
 };
 
-export default function AreaDealersHub({ assignments: page, summary, areaFilters = {}, areaPoolRate, divisions }: AreaDealersHubProps) {
+const PickLimit = 200;
+
+/** A find box above a short list: there can be thousands of dealers or places. */
+function FindAndPick({ title, findLabel, options, value, onChange, disabled, error }: {
+    title: string;
+    findLabel: string;
+    options: { value: string; label: string }[];
+    value: string;
+    onChange: (value: string) => void;
+    disabled?: boolean;
+    error?: string;
+}) {
+    const translate = useT();
+    const [words, setWords] = useState('');
+    const needle = words.trim().toLowerCase();
+    const matches = useMemo(() => (needle === '' ? options : options.filter((option) => option.label.toLowerCase().includes(needle))), [options, needle]);
+    const shown = matches.slice(0, PickLimit);
+    const chosen = options.find((option) => option.value === value);
+    const list = chosen && !shown.includes(chosen) ? [chosen, ...shown] : shown;
+
+    return (
+        <>
+            <label>
+                {title}
+                <input type="search" placeholder={findLabel} value={words} disabled={disabled} onChange={(event) => setWords(event.target.value)} />
+            </label>
+            <label>
+                <select aria-label={title} required disabled={disabled} value={value} onChange={(event) => onChange(event.target.value)}>
+                    <option value="">{translate('portal', 'select_placeholder')}</option>
+                    {list.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                </select>
+                {matches.length > PickLimit && <small className="field-hint">{translate('office_partners', 'area_assign_too_many', { count: number(PickLimit) })}</small>}
+                {error && <span className="field-error" role="alert">{error}</span>}
+            </label>
+        </>
+    );
+}
+
+/** Gives an active dealer one free place. The server repeats every check, including one dealer per place. */
+function AddAreaDealerDialog({ dealers, places, onClose }: { dealers: DealerOption[]; places: PlaceCodeOption[]; onClose: () => void }) {
+    const translate = useT();
+    const title = translate('office_partners', 'area_assign');
+    const form = useForm({ user_id: '', level: '', place_code_id: '', monthly_quota: '' });
+    const dealerOptions = useMemo(() => dealers.map((dealer) => ({ value: String(dealer.id), label: [dealer.name, dealer.dealer_code, dealer.district].filter(Boolean).join(' · ') })), [dealers]);
+    const placeOptions = useMemo(() => places.filter((place) => place.level === form.data.level).map((place) => ({ value: String(place.id), label: `${place.code} · ${place.name}` })), [places, form.data.level]);
+    const changeLevel = (level: string) => form.setData((current) => ({ ...current, level, place_code_id: '', monthly_quota: level ? String(levelMeta[level].defaultQuota) : '' }));
+
+    return (
+        <Modal title={title} onClose={onClose}>
+            <form className="action-form" aria-label={title} onSubmit={(event) => { event.preventDefault(); form.post('/commands/area-dealers', { preserveScroll: true, onSuccess: onClose }); }}>
+                <FindAndPick
+                    title={translate('office_partners', 'area_assign_dealer')}
+                    findLabel={translate('office_partners', 'area_assign_find_dealer')}
+                    options={dealerOptions}
+                    value={form.data.user_id}
+                    onChange={(value) => form.setData('user_id', value)}
+                    error={form.errors.user_id}
+                />
+                <label>
+                    {translate('office_partners', 'area_assign_level')}
+                    <select required value={form.data.level} onChange={(event) => changeLevel(event.target.value)}>
+                        <option value="">{translate('portal', 'select_placeholder')}</option>
+                        {Object.entries(levelMeta).map(([level, meta]) => <option key={level} value={level}>{translate('portal', meta.labelKey)}</option>)}
+                    </select>
+                    {form.errors.level && <span className="field-error" role="alert">{form.errors.level}</span>}
+                </label>
+                <FindAndPick
+                    key={form.data.level}
+                    title={translate('office_partners', 'area_assign_place')}
+                    findLabel={translate('office_partners', 'area_assign_find_place')}
+                    options={placeOptions}
+                    value={form.data.place_code_id}
+                    onChange={(value) => form.setData('place_code_id', value)}
+                    disabled={form.data.level === ''}
+                    error={form.errors.place_code_id}
+                />
+                <label>
+                    {translate('office_partners', 'area_assign_quota')}
+                    <input type="number" min={0} step="0.01" required value={form.data.monthly_quota} onChange={(event) => form.setData('monthly_quota', event.target.value)} />
+                    {form.errors.monthly_quota && <span className="field-error" role="alert">{form.errors.monthly_quota}</span>}
+                </label>
+                <FormErrors errors={form.errors} besideFields={['user_id', 'level', 'place_code_id', 'monthly_quota']} />
+                <div className="ops-row is-end is-loose">
+                    <button type="button" className="button" disabled={form.processing} onClick={onClose}>{translate('portal', 'emp_cancel')}</button>
+                    <button className="button dark" disabled={form.processing}>{form.processing ? translate('portal', 'saving') : title}</button>
+                </div>
+            </form>
+        </Modal>
+    );
+}
+
+export default function AreaDealersHub({ assignments: page, summary, areaFilters = {}, areaPoolRate, divisions, dealers_list, place_codes = [] }: AreaDealersHubProps) {
     const translate = useT();
     const { url } = usePage();
+    const { staffActions } = usePage<any>().props;
+    const [assigning, setAssigning] = useState(false);
+    const canAssign = actionAllowed('/commands/area-dealers', staffActions);
     // The table is one server page (25 rows); the division cards and totals come from the server over every dealer.
     const assignments: AreaAssignment[] = page?.data ?? [];
     const selectedDivision = areaFilters.division || 'all';
@@ -193,12 +288,19 @@ export default function AreaDealersHub({ assignments: page, summary, areaFilters
                     </div>
                 </div>
 
-                <Link
-                    href="/accounts/create?intent=dealer"
-                    className="button dark"
-                >
-                    {translate('portal', 'area_add_dealer')}
-                </Link>
+                <div className="ops-row is-wrap">
+                    <Link
+                        href="/accounts/create?intent=dealer"
+                        className="button"
+                    >
+                        {translate('portal', 'area_add_dealer')}
+                    </Link>
+                    {canAssign && (
+                        <button type="button" className="button dark" onClick={() => setAssigning(true)}>
+                            {translate('office_partners', 'area_assign')}
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div className="ops-card adh-table">
@@ -292,6 +394,8 @@ export default function AreaDealersHub({ assignments: page, summary, areaFilters
                 />
                 <Pagination page={page ?? undefined} />
             </div>
+
+            {assigning && <AddAreaDealerDialog dealers={dealers_list} places={place_codes} onClose={() => setAssigning(false)} />}
         </div>
     );
 }

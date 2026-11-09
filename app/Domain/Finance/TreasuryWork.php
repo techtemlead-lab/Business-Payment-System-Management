@@ -73,7 +73,7 @@ final class TreasuryWork
             $tiles[] = $this->tile('bank', '/operations/accounting', 0);
             $tiles[] = $this->tile('opening', '/operations/financial-readiness', 0);
         }
-        if ($viewer->owner() || $viewer->allows('payroll')) {
+        if ($viewer->allows('payroll')) {
             $tiles[] = $this->tile('payroll', '/operations/payroll', 0);
         }
 
@@ -116,7 +116,8 @@ final class TreasuryWork
             sums: ['amount' => 'r.amount'],
             defaultPeriod: null,
         ));
-        $table['rows']->through(fn (object $row): array => [...(array) $row, 'can_review' => $row->created_by !== $actor->id, 'can_cancel' => $row->created_by === $actor->id,
+        $table['rows']->through(fn (object $row): array => [...(array) $row, 'can_review' => $row->created_by !== $actor->id && FundSpending::approverOf((string) $row->fund_key)($actor), 'can_cancel' => $row->created_by === $actor->id,
+            'waits_for_owner' => $row->created_by !== $actor->id && ! FundSpending::approverOf((string) $row->fund_key)($actor),
             'over_budget' => ! in_array($row->fund_key, CompanyFunds::OwnerOnly, true) && in_array($row->expense_head_id.'|'.substr((string) $row->spent_on, 0, 7), $overBudget, true),
             'can_self_approve' => $row->created_by === $actor->id && app(SelfApproval::class)->isAvailable($actor, [$row->created_by], canDoStep: FundSpending::approverOf((string) $row->fund_key))]);
 

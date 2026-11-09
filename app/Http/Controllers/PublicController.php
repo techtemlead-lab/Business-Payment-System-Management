@@ -34,6 +34,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class PublicController extends Controller
 {
@@ -70,7 +71,7 @@ class PublicController extends Controller
         $homepageVideo = $needsCatalog ? ProductVideo::homepage() : null;
         $testimonials = $needsCatalog ? SiteCustomization::getTestimonials() : [];
 
-        $siteCustomization = SiteCustomization::all();
+        $siteCustomization = SiteCustomization::forPublicPages();
         $maps = null;
         if ($needsMaps) {
             $defaults = SiteCustomization::defaults();
@@ -397,16 +398,21 @@ class PublicController extends Controller
 
     public function enquiry(Request $request, AccountPhoneRules $phones): RedirectResponse
     {
-        $data = $request->validate([
-            'name' => 'required|string|max:150',
-            'phone' => 'required|string|max:30',
-            'topic' => 'required|in:dealer_enquiry,partnership_enquiry,product_enquiry,support,complaint,Dealer enquiry,Partnership enquiry,Product enquiry,Support,Complaint',
-            'referred_by' => 'nullable|string|max:40',
-            'message' => 'required|string|min:10|max:2000',
-            'website' => 'nullable|max:0',
-        ]);
+        $result = url()->previous().'#enquiry-status';
+        try {
+            $data = $request->validate([
+                'name' => 'required|string|max:150',
+                'phone' => 'required|string|max:30',
+                'topic' => 'required|in:dealer_enquiry,partnership_enquiry,product_enquiry,support,complaint,Dealer enquiry,Partnership enquiry,Product enquiry,Support,Complaint',
+                'referred_by' => 'nullable|string|max:40',
+                'message' => 'required|string|min:10|max:2000',
+                'website' => 'nullable|max:0',
+            ]);
+            $data['phone'] = $phones->normalize($data['phone']);
+        } catch (ValidationException $exception) {
+            throw $exception->redirectTo($result);
+        }
         unset($data['website']);
-        $data['phone'] = $phones->normalize($data['phone']);
         $data['topic'] = match ($data['topic']) {
             'Dealer enquiry', 'dealer_enquiry' => 'dealer_enquiry',
             'Partnership enquiry', 'partnership_enquiry' => 'partnership_enquiry',
@@ -452,7 +458,7 @@ class PublicController extends Controller
             SmsText::make('sms.public_enquiry_received', ['topic' => $topicLabel]),
         );
 
-        return back()->with('success', __('portal.flash_enquiry_received'));
+        return redirect($result)->with('success', __('portal.flash_enquiry_received'));
     }
 
     public function partnerLogin(): View
@@ -559,27 +565,38 @@ class PublicController extends Controller
     public function apply(Request $request, PublicPartnerApplication $applications, AccountPhoneRules $phones): RedirectResponse
     {
         abort_unless(SiteCustomization::isPageEnabled('partnership'), 404);
-        $data = $request->validate([
-            'name' => 'required|string|max:150',
-            'email' => 'required|email|max:254',
-            'phone' => 'required|string|max:30',
-            'date_of_birth' => ['required', 'date_format:Y-m-d', PartnerAge::rule()],
-            'role' => ['required', Rule::in(['dealer', 'sub_dealer'])],
-            'division' => 'required|string|max:80',
-            'district' => 'required|string|max:80',
-            'upazila' => 'nullable|string|max:150',
-            'sponsor_code' => 'nullable|string|max:40',
-            'message' => 'nullable|string|max:2000',
-            'website' => 'nullable|max:0',
-        ]);
-        unset($data['website']);
-        $data['phone'] = $phones->normalize($data['phone']);
-        if (! empty($data['sponsor_code'])) {
-            $data['sponsor_code'] = strtoupper(trim((string) $data['sponsor_code']));
+        $result = '/partnership#partner-apply-status';
+        try {
+            $data = $request->validate([
+                'name' => 'required|string|max:150',
+                'email' => 'required|email|max:254',
+                'phone' => 'required|string|max:30',
+                'date_of_birth' => ['required', 'date_format:Y-m-d', PartnerAge::rule()],
+                'role' => ['required', Rule::in(['dealer', 'sub_dealer'])],
+                'division' => 'required|string|max:80',
+                'district' => 'required|string|max:80',
+                'upazila' => 'nullable|string|max:150',
+                'sponsor_code' => 'nullable|string|max:40',
+                'message' => 'nullable|string|max:2000',
+                'website' => 'nullable|max:0',
+                'phone_taken_confirmed' => 'nullable|string|max:30',
+            ]);
+            unset($data['website']);
+            $data['phone'] = $phones->normalize($data['phone']);
+            $confirmedNumber = $data['phone_taken_confirmed'] ?? null;
+            unset($data['phone_taken_confirmed']);
+            if ($phones->holders($data['phone']) !== [] && ! ($phones->isValid($confirmedNumber) && $phones->normalize($confirmedNumber) === $data['phone'])) {
+                throw ValidationException::withMessages(['phone_taken' => __('portal.err_public_app_phone_taken')]);
+            }
+            if (! empty($data['sponsor_code'])) {
+                $data['sponsor_code'] = strtoupper(trim((string) $data['sponsor_code']));
+            }
+            $applications->submit($data);
+        } catch (ValidationException $exception) {
+            throw $exception->redirectTo($result);
         }
-        $applications->submit($data);
 
-        return redirect('/partnership')->with('success', __('portal.flash_partnership_received'));
+        return redirect($result)->with('success', __('portal.flash_partnership_received'));
     }
 
     private function nullableMapCoordinate(mixed $value): ?float

@@ -25,7 +25,7 @@ export default function Payroll({ tables, staff, paymentAccounts, secondApprover
     const { url } = usePage();
     const capabilities: string[] = auth.capabilities;
     const [dialog, setDialog] = useState<StaffAction | null>(null);
-    const [openedId, setOpenedId] = useState<number | null>(null);
+    const [openedId, setOpenedId] = useState<string | null>(null);
 
     const register = findTable(tables, 'salary_register');
     const agreements = findTable(tables, 'salary_contracts');
@@ -34,7 +34,7 @@ export default function Payroll({ tables, staff, paymentAccounts, secondApprover
         ...(agreements ? [{ key: 'agreements' as const, label: translate('office_staff', 'salary_view_agreements') }] : []),
     ];
     const view = currentView(url, views.map((item) => item.key), 'register');
-    const opened = register?.page.data.find((row) => row.id === openedId) ?? null;
+    const opened = register?.page.data.find((row) => String(row.id) === openedId) ?? null;
 
     const reason: StaffField = { name: 'reason', label: translate('portal', 'ops_fld_reason'), type: 'textarea', required: true };
     const staffField = pickField(staff.filter((person) => person.role !== 'super_admin'), 'staff_id', translate('portal', 'ops_fld_staff'));
@@ -124,7 +124,7 @@ export default function Payroll({ tables, staff, paymentAccounts, secondApprover
                         totalLabel={multiPage(register) ? translate('portal', 'table_page_total') : undefined}
                         rows={register.page.data}
                         empty={translate('office_staff', 'salary_empty')}
-                        onRowClick={(row: Row) => setOpenedId(Number(row.id))}
+                        onRowClick={(row: Row) => setOpenedId(String(row.id))}
                         rowClassName={() => 'is-link'}
                         columns={[
                             { key: 'name', title: translate('office_staff', 'col_staff'), render: (row: Row) => <b>{row.name}</b> },

@@ -80,7 +80,7 @@ return [
     'approve_title' => 'Approve this spend',
     'reject_title' => 'Reject this spend',
     'fld_reason' => 'Why (at least 5 letters)',
-    'own_spend_hint' => 'You recorded this one. Someone else must check it.',
+    'owner_approves_hint' => 'You can see this spend. The owner approves it.',
     'heads_add' => 'Add a head',
     'heads_edit' => 'Change head',
     'heads_hint' => 'Spends must use one of these heads. Rename or switch a head off here.',

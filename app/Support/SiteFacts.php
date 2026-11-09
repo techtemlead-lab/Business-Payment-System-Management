@@ -21,7 +21,7 @@ final class SiteFacts
     /** @return array<string, string> */
     private static function values(): array
     {
-        $all = SiteCustomization::all();
+        $all = SiteCustomization::forPublicPages();
         $phone = trim((string) ($all['contact_phone'] ?? ''));
         $second = SiteCustomization::secondPhone();
         $licence = trim((string) ($all['trust_trade_licence'] ?? ''));

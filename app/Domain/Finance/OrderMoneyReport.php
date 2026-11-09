@@ -3,6 +3,7 @@
 namespace App\Domain\Finance;
 
 use App\Domain\Inventory\BranchScope;
+use App\Domain\Orders\DeliveredMoney;
 use App\Domain\Orders\MixedOutcomeDecisions;
 use App\Models\Order;
 use App\Support\Money;
@@ -20,8 +21,8 @@ use stdClass;
 
 /**
  * The accountant's report: one row per delivered order, and a detail page showing where every
- * taka of that order went. Money counts only after delivery, so a partly delivered order counts
- * only what was delivered.
+ * taka of that order went. Money counts only after delivery, so a partly delivered order, or one
+ * with goods still to come, counts only what was delivered.
  *
  * @phpstan-type OrderMoney array{order: array<string, mixed>, posting: string, no_commission: array{reason: ?string, amount: string, taken_back?: string, still_owed?: string}|null, basis: array{cash: string, mrp: string, refunded: string}|null, lines: list<array<string, mixed>>, lines_total: string, adds_up: bool}
  */
@@ -36,8 +37,8 @@ final class OrderMoneyReport
     {
         $paid = self::paidSql();
         $orders = DB::table('orders as o')->join('users as u', 'u.id', '=', 'o.user_id')->leftJoin('order_refunds as f', 'f.order_id', '=', 'o.id')
-            ->whereIn('o.status', self::Counted)->where('o.is_opening_balance', false)->where('o.paid', '>', 0)
-            ->selectRaw('o.id::text AS id, o.number, o.created_at, o.status, u.name AS partner_name, u.dealer_code AS partner_code, u.role AS partner_role, '.self::mrpSql()." AS mrp_total, {$paid} AS paid, (SELECT r.channel FROM receipts r WHERE r.order_id = o.id ORDER BY r.amount DESC, r.id LIMIT 1) AS method");
+            ->whereRaw(DeliveredMoney::countedSql('o'))->where('o.is_opening_balance', false)->where('o.paid', '>', 0)
+            ->selectRaw('o.id::text AS id, o.number, o.created_at, '.self::listStatusSql().' AS status, u.name AS partner_name, u.dealer_code AS partner_code, u.role AS partner_role, '.self::mrpSql()." AS mrp_total, {$paid} AS paid, (SELECT r.channel FROM receipts r WHERE r.order_id = o.id ORDER BY r.amount DESC, r.id LIMIT 1) AS method");
         $scope?->restrictOrders($orders, 'o.fulfillment_branch_id');
 
         $table = MoneyTable::make($request, DB::query()->fromSub($orders, 'x'), new MoneyTableSpec(
@@ -68,7 +69,7 @@ final class OrderMoneyReport
      */
     public static function mrpSql(): string
     {
-        return "CASE WHEN o.status = '".self::PartlyDelivered."' THEN ".self::deliveredPartSql('l.mrp')
+        return 'CASE WHEN '.self::partOnlySql().' THEN '.self::deliveredPartSql('l.mrp')
             .' ELSE (SELECT COALESCE(SUM(l.mrp * l.quantity), 0) FROM order_lines l WHERE l.order_id = o.id AND NOT l.is_free) END';
     }
 
@@ -78,7 +79,7 @@ final class OrderMoneyReport
      */
     public static function paidSql(): string
     {
-        return "CASE WHEN o.status = '".self::PartlyDelivered."' THEN LEAST(".self::deliveredPartSql('l.unit_price').', o.paid - COALESCE(f.amount, 0)) ELSE o.paid - COALESCE(f.amount, 0) END';
+        return 'CASE WHEN '.self::partOnlySql().' THEN LEAST('.self::deliveredPartSql('l.unit_price').', o.paid - COALESCE(f.amount, 0)) ELSE o.paid - COALESCE(f.amount, 0) END';
     }
 
     /**
@@ -90,7 +91,7 @@ final class OrderMoneyReport
         $toAccount = self::refundToAccountSql();
         $cash = "GREATEST((SELECT COALESCE(SUM(r.amount), 0) FROM receipts r WHERE r.order_id = o.id AND r.channel <> 'Account') - COALESCE(f.amount - {$toAccount}, 0), 0)";
 
-        return "CASE WHEN o.status = '".self::PartlyDelivered."' THEN LEAST(".self::deliveredPartSql('l.unit_price').", {$cash}) ELSE {$cash} END";
+        return 'CASE WHEN '.self::partOnlySql().' THEN LEAST('.self::deliveredPartSql('l.unit_price').", {$cash}) ELSE {$cash} END";
     }
 
     /** How much of a refund went back to the partner's own account, on alias `f`. */
@@ -103,7 +104,7 @@ final class OrderMoneyReport
     public static function deliveredOrders(): Builder
     {
         return DB::table('orders as o')->leftJoin('order_refunds as f', 'f.order_id', '=', 'o.id')
-            ->whereIn('o.status', self::Counted)->where('o.is_opening_balance', false);
+            ->whereRaw(DeliveredMoney::countedSql('o'))->where('o.is_opening_balance', false);
     }
 
     /** @return OrderMoney */
@@ -124,7 +125,7 @@ final class OrderMoneyReport
 
         $lines = $batch === null ? [] : [...$this->companyLines($batch, $showOwnerFunds), ...$this->allocationLines($splitRows)];
         $linesTotal = array_sum(array_map(fn (array $line): int => FundCatalog::centsOf($line['amount']), $lines));
-        $sold = $batch !== null ? (string) $batch->cash_basis : ($order->status === self::PartlyDelivered ? (string) $figures->delivered_cash : (string) $order->total);
+        $sold = $batch !== null ? (string) $batch->cash_basis : ($this->countsPartOnly($order) ? (string) $figures->delivered_cash : (string) $order->total);
         $mrp = $batch !== null ? (string) $batch->mrp_basis : (string) $figures->mrp_total;
 
         return [
@@ -147,6 +148,23 @@ final class OrderMoneyReport
             'lines_total' => FundCatalog::decimalOf($linesTotal),
             'adds_up' => $batch === null || $linesTotal === Money::cents((string) $batch->cash_basis),
         ];
+    }
+
+    /** Orders counted by delivered parcels only, on alias o. */
+    private static function partOnlySql(): string
+    {
+        return "(o.status = '".self::PartlyDelivered."' OR ".DeliveredMoney::stillGoingOutSql('o').')';
+    }
+
+    /** A back-order with delivered goods is listed and filtered as partly delivered. */
+    private static function listStatusSql(): string
+    {
+        return 'CASE WHEN '.DeliveredMoney::stillGoingOutSql('o')." THEN '".self::PartlyDelivered."' ELSE o.status END";
+    }
+
+    private function countsPartOnly(Order $order): bool
+    {
+        return $order->status === self::PartlyDelivered || in_array($order->status, DeliveredMoney::StillGoingOut, true);
     }
 
     /**
@@ -228,6 +246,9 @@ final class OrderMoneyReport
             $amount = FundCatalog::centsOf($row->original_amount ?? $row->amount);
             $meta = $metadata[$row->id];
             $reason = $row->category === CompanyFunds::NoCommissionCategory && is_string($meta['reason'] ?? null) ? $meta['reason'] : null;
+            if ($row->status === 'forfeited') {
+                $reason = (string) __('portal.'.ReserveService::AreaTargetMissedReason);
+            }
             $status = $this->lineStatus((string) $row->status);
 
             return [
@@ -330,7 +351,11 @@ final class OrderMoneyReport
             return isset($policy['delivered_part']) ? 'part_delivered' : 'posted';
         }
 
-        return $order->status === 'delivered' ? 'no_commission' : 'waiting_delivery';
+        if ($order->status === 'delivered') {
+            return 'no_commission';
+        }
+
+        return in_array($order->status, DeliveredMoney::StillGoingOut, true) && Money::cents(DeliveredMoney::valueOf($order)) > 0 ? 'waiting_rest' : 'waiting_delivery';
     }
 
     /**

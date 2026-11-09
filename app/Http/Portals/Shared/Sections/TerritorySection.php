@@ -10,7 +10,7 @@ use App\Models\PlaceCode;
 use App\Models\User;
 use App\Support\ListPage;
 use App\Support\Money;
-use Illuminate\Http\Request;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Territories: area dealer seats and the place-code catalog.
@@ -20,19 +20,22 @@ final class TerritorySection implements WorkspaceSection
     public function data(SectionContext $context, array $data): array
     {
         return match ($context->section) {
-            'area-dealers' => $this->areaDealers($context->request),
+            'area-dealers' => $this->areaDealers($context),
             'place-codes' => $this->placeCodes($context),
             default => [],
         };
     }
 
     /**
-     * Each dealer's place seat, with the divisions and place codes ready for assignment.
+     * Each dealer's place seats. Those who may give a seat also get the active dealers and the
+     * places still free to give.
      *
      * @return array<string, mixed>
      */
-    private function areaDealers(Request $request): array
+    private function areaDealers(SectionContext $context): array
     {
+        $request = $context->request;
+        $canAssignSeats = $context->user->canAct('accounts', 'edit');
         $props = [];
         $seats = collect($this->dealerPlaceSeats());
         $catalogDivisions = PlaceCode::query()
@@ -89,16 +92,21 @@ final class TerritorySection implements WorkspaceSection
             $request,
         );
         $props['area_filters'] = ['division' => $divisionFilter, 'level' => $levelFilter, 'q' => ListPage::query($request)];
-        $props['place_codes'] = PlaceCode::query()
+        $props['place_codes'] = ! $canAssignSeats ? [] : PlaceCode::query()
             ->whereIn('level', PlaceCode::AssignmentLevels)
             ->where('is_active', true)
             ->whereNotNull('code')
+            ->whereNotIn('id', AreaDealerAssignment::query()->where('is_active', true)->whereNotNull('place_code_id')->select('place_code_id'))
             ->orderBy('sort_order')
             ->orderBy('code')
             ->get(['id', 'code', 'name', 'level', 'parent_id', 'is_active'])
             ->filter(fn (PlaceCode $place): bool => $place->isReadyForAssignment())
             ->values();
-        $props['dealers_list'] = [];
+        $props['dealers_list'] = ! $canAssignSeats ? [] : User::query()
+            ->where('role', 'dealer')
+            ->where('status', 'active')
+            ->orderBy('name')
+            ->get(['id', 'name', 'dealer_code', 'district', 'division']);
 
         return $props;
     }
@@ -132,8 +140,9 @@ final class TerritorySection implements WorkspaceSection
     }
 
     /**
-     * Each dealer is the area dealer of the place code on their account.
-     * One place code has one dealer. Staff and branch managers are not seats.
+     * Each dealer is the area dealer of the place code on their account, and of any further
+     * place given to them on this page. One place code has one dealer. Staff and branch
+     * managers are not seats.
      *
      * @return list<array<string, mixed>>
      */
@@ -153,20 +162,23 @@ final class TerritorySection implements WorkspaceSection
             ->whereIn('code', $codes)
             ->get()
             ->keyBy(fn (PlaceCode $place): string => strtoupper($place->code));
-        $quotas = AreaDealerAssignment::query()
+        $seatsByDealer = AreaDealerAssignment::query()
+            ->with('placeCode')
             ->where('is_active', true)
             ->whereIn('user_id', $dealers->pluck('id'))
+            ->orderBy('id')
             ->get()
-            ->keyBy('user_id');
+            ->groupBy('user_id');
 
-        return $dealers->map(function (User $dealer) use ($places, $quotas): array {
+        return $dealers->flatMap(function (User $dealer) use ($places, $seatsByDealer): array {
             $profile = is_array($dealer->profile) ? $dealer->profile : [];
             $code = trim((string) ($profile['place_code'] ?? ''));
             $place = $code !== '' ? $places->get(strtoupper($code)) : null;
             $level = $place?->level && in_array($place->level, PlaceCode::AssignmentLevels, true)
                 ? $place->level
                 : null;
-            $assignment = $quotas->get($dealer->id);
+            $dealerSeats = $seatsByDealer->get($dealer->id, new Collection);
+            $assignment = ($place ? $dealerSeats->firstWhere('place_code_id', $place->id) : null) ?? $dealerSeats->first();
             if ($level === null && $assignment && in_array((string) $assignment->level, PlaceCode::AssignmentLevels, true)) {
                 $level = (string) $assignment->level;
             }
@@ -180,7 +192,7 @@ final class TerritorySection implements WorkspaceSection
                 ? $storedQuota
                 : $this->standardAreaQuota($level);
 
-            return [
+            $homeSeat = [
                 'id' => $dealer->id,
                 'user_id' => $dealer->id,
                 'level' => $level ?? '',
@@ -198,16 +210,57 @@ final class TerritorySection implements WorkspaceSection
                     'name' => $place?->name ?? $code,
                     'level' => $place?->level ?? 'district',
                 ] : null,
-                'user' => [
-                    'id' => $dealer->id,
-                    'name' => $dealer->name,
-                    'dealer_code' => $dealer->dealer_code,
-                    'phone' => $dealer->phone,
-                    'district' => $dealer->district,
-                    'division' => $dealer->division,
-                ],
+                'user' => $this->seatHolder($dealer),
             ];
+            $furtherSeats = $dealerSeats
+                ->filter(fn (AreaDealerAssignment $seat): bool => $seat->placeCode !== null && (int) $seat->place_code_id !== (int) $place?->id)
+                ->map(fn (AreaDealerAssignment $seat): array => $this->furtherSeat($dealer, $seat));
+
+            return [$homeSeat, ...$furtherSeats->values()->all()];
         })->values()->all();
+    }
+
+    /**
+     * A place given to a dealer on top of the one on their account.
+     *
+     * @return array<string, mixed>
+     */
+    private function furtherSeat(User $dealer, AreaDealerAssignment $seat): array
+    {
+        /** @var PlaceCode $place */
+        $place = $seat->placeCode;
+        $quota = Money::cents((string) $seat->monthly_quota) > 0 ? (string) $seat->monthly_quota : $this->standardAreaQuota($seat->level);
+
+        return [
+            'id' => 'seat-'.$seat->id,
+            'user_id' => $dealer->id,
+            'level' => $seat->level,
+            'zone_name' => $place->name,
+            'division' => $seat->division,
+            'district' => $seat->district,
+            'upazila' => $seat->upazila,
+            'union' => $seat->union,
+            'monthly_quota' => $quota,
+            'is_active' => true,
+            'created_at' => $seat->created_at,
+            'place_code' => ['id' => $place->id, 'code' => $place->code, 'name' => $place->name, 'level' => $place->level],
+            'user' => $this->seatHolder($dealer),
+        ];
+    }
+
+    /**
+     * @return array{id:int,name:string,dealer_code:?string,phone:?string,district:?string,division:?string}
+     */
+    private function seatHolder(User $dealer): array
+    {
+        return [
+            'id' => $dealer->id,
+            'name' => $dealer->name,
+            'dealer_code' => $dealer->dealer_code,
+            'phone' => $dealer->phone,
+            'district' => $dealer->district,
+            'division' => $dealer->division,
+        ];
     }
 
     private function standardAreaQuota(?string $level): string

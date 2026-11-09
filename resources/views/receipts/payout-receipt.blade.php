@@ -72,7 +72,7 @@
         </div>
     </div>
 
-    <h1>{{ __('portal.prc_heading') }}</h1>
+    <h1>{{ $receipt['heading'] }}</h1>
 
     <div class="meta">
         <span>{{ __('portal.prc_number') }}: {{ $receipt['number'] }}</span>

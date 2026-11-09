@@ -25,4 +25,9 @@ class SupplierFactory extends Factory
             'created_by' => User::factory()->staff('inventory'),
         ];
     }
+
+    public function archived(): static
+    {
+        return $this->state(fn (): array => ['archived_at' => now()]);
+    }
 }

@@ -253,7 +253,7 @@ final class NetworkSection implements WorkspaceSection
                     'sponsor_name' => $dealer->sponsor?->name,
                     'role' => $dealer->role,
                     'status' => $dealer->status,
-                    'rank' => $dealer->rank?->current_rank ?? 'dealer',
+                    'rank' => $dealer->rank?->current_rank ?? ($dealer->role === 'sub_dealer' ? 'sub_dealer' : 'dealer'),
                     'lifetime_purchases' => (float) ($dealer->rank?->lifetime_purchase_total ?? 0),
                     'created_at' => $dealer->created_at?->toIso8601String(),
                     'sales_total' => Money::decimal($sales[$dealer->id]['total'] ?? 0),

@@ -151,8 +151,10 @@
     </section>
     <section class="ref-content-card">
         <h2>{{ $chrome('contact_form_title', $siteCustomization['contact_form_title'] ?? null) }}</h2>
-        @if(session('success'))<div class="ref-alert ref-success" role="status">{{ session('success') }}</div>@endif
-        @if($errors->any())<div class="ref-alert ref-error" role="alert">{{ $errors->first() }}</div>@endif
+        <div id="enquiry-status" class="ref-form-status">
+            @if(session('success'))<div class="ref-alert ref-success" role="status">{{ session('success') }}</div>@endif
+            @if($errors->any())<div class="ref-alert ref-error" role="alert">{{ $errors->first() }}</div>@endif
+        </div>
         <form class="ref-form" action="/enquiries" method="post">
             @csrf
             <label for="enquiry-name">{{ $chrome('contact_form_name') }}</label>
@@ -365,6 +367,7 @@
         </div>
     </div>
 
+    <div id="partner-apply-status" class="ref-form-status">
     @if(session('success'))
         <div class="ref-alert ref-success ref-flash-success" role="status">
             <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
@@ -384,6 +387,7 @@
             </ul>
         </div>
     @endif
+    </div>
 
     <form method="post" action="/partnership/apply" class="ref-partner-apply-form">
         @csrf
@@ -463,6 +467,9 @@
                         <i class="fa-solid fa-phone ref-input-icon" aria-hidden="true"></i>
                         <input id="partner-phone" type="tel" name="phone" value="{{ old('phone') }}" required maxlength="30" autocomplete="tel" placeholder="01XXXXXXXXX" class="ref-input-control">
                     </div>
+                    @error('phone_taken')
+                    <label class="ref-field-hint"><input type="checkbox" name="phone_taken_confirmed" value="{{ old('phone') }}"> {{ __('site.partner_phone_taken_confirm') }}</label>
+                    @enderror
                 </div>
 
                 <div class="ref-field-group">
@@ -583,6 +590,7 @@
 
         {{-- Submit Button & Trust Guarantee Note --}}
         <div class="ref-partner-submit-area">
+            <p class="ref-field-hint">{{ __('site.partner_directory_notice') }}</p>
             <button type="submit" class="ref-partner-submit-btn">
                 <span>{{ __('site.submit_application') }}</span>
                 <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>

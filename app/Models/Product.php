@@ -54,12 +54,25 @@ class Product extends Model
         $bust = static fn () => SiteCustomization::forgetCache();
         static::saved($bust);
         static::deleted($bust);
+        // A product on sale is never archived, however it got back on sale.
+        static::saving(function (Product $product): void {
+            if ($product->active && $product->archived_at !== null) {
+                $product->archived_at = null;
+            }
+        });
+    }
+
+    /** Taken off sale by Remove. A product that was never published is a draft, not archived. */
+    public function isArchived(): bool
+    {
+        return ! $this->active && $this->archived_at !== null;
     }
 
     protected function casts(): array
     {
         return [
             'active' => 'boolean',
+            'archived_at' => 'datetime',
             'is_stock_paused' => 'boolean',
             'registry_version' => 'integer',
             'featured' => 'boolean',

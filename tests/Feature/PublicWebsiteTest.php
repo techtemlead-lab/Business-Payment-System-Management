@@ -69,7 +69,7 @@ class PublicWebsiteTest extends TestCase
     public function test_enquiry_is_saved_without_creating_an_account_and_rejects_honeypot(): void
     {
         $data = ['name' => 'Synthetic Visitor', 'phone' => '01711112222', 'topic' => 'Dealer enquiry', 'message' => 'Please share dealer information.'];
-        $this->from('/contact')->post('/enquiries', $data)->assertRedirect('/contact')->assertSessionHas('success');
+        $this->from('/contact')->post('/enquiries', $data)->assertRedirect('/contact#enquiry-status')->assertSessionHas('success');
         $this->assertDatabaseCount('users', 0);
         $this->assertDatabaseCount('enquiries', 1);
         $this->assertDatabaseHas('enquiries', ['name' => 'Synthetic Visitor', 'status' => 'new']);
@@ -77,7 +77,7 @@ class PublicWebsiteTest extends TestCase
         $this->assertDatabaseCount('enquiries', 1);
 
         $partnership = [...$data, 'name' => 'Partner Applicant', 'topic' => 'Partnership enquiry', 'message' => 'Interested in a dealership partnership in Chittagong.'];
-        $this->from('/contact')->post('/enquiries', $partnership)->assertRedirect('/contact')->assertSessionHas('success');
+        $this->from('/contact')->post('/enquiries', $partnership)->assertRedirect('/contact#enquiry-status')->assertSessionHas('success');
         $this->assertDatabaseHas('enquiries', ['name' => 'Partner Applicant', 'topic' => 'partnership_enquiry', 'status' => 'new']);
     }
 

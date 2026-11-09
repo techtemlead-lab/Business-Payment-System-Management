@@ -43,6 +43,7 @@ return [
     'settlement_details_journal' => 'Past settlement records',
     'settlement_row_count' => ':count rows',
     'home_video_own_save' => 'This video has its own Save button; the big Save below does not save it. If you changed any text above, save that first.',
+    'show_email_hint' => 'Show the company email on the website. Off hides it on every public page; the address stays saved here.',
     'field_footer_location' => 'Last line of the page: location',
     'group_bismillah' => 'Bismillah line at the very top',
     'group_category_list' => 'Category list',

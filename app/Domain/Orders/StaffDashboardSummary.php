@@ -173,7 +173,7 @@ final class StaffDashboardSummary
 
         $days = [];
         $rows = $this->orders($branchScope)->toBase()
-            ->whereIn('orders.status', DeliveredMoney::Statuses)
+            ->whereRaw(DeliveredMoney::countedSql())
             ->whereRaw('orders.is_opening_balance IS NOT TRUE')
             ->where('orders.updated_at', '>=', $from)
             ->whereRaw("{$deliveredAt} >= ?", [$from])

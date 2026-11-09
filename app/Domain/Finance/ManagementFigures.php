@@ -95,10 +95,10 @@ final class ManagementFigures
             ->leftJoin('shipments as s', function ($join): void {
                 $join->on('s.order_id', '=', 'o.id')->where('s.status', 'delivered');
             })
-            ->whereIn('o.status', DeliveredMoney::Statuses)
+            ->whereRaw(DeliveredMoney::countedSql('o'))
             ->whereRaw('o.is_opening_balance IS NOT TRUE')
             ->groupBy('o.id', 'o.total', 'o.status', 'o.updated_at')
-            ->selectRaw('o.id, '.DeliveredMoney::valueSql('o').' AS total, COALESCE(MAX(s.delivered_at), o.updated_at) AS delivered_at, MAX(s.delivered_at) IS NULL AS date_missing');
+            ->selectRaw('o.id, o.status, '.DeliveredMoney::valueSql('o').' AS total, COALESCE(MAX(s.delivered_at), o.updated_at) AS delivered_at, MAX(s.delivered_at) IS NULL AS date_missing');
     }
 
     /** @return array{earlier: int, in_period: int, count: int, dates_missing: int} */
@@ -133,7 +133,7 @@ final class ManagementFigures
             ->leftJoin('goods_receipt_lines as parent_receipt', 'parent_receipt.stock_reference', '=', 'parent.reference')
             ->where('m.created_at', '<', $this->end)
             ->selectRaw(
-                'm.created_at AS moved_at, m.order_id, m.quantity, '
+                'm.created_at AS moved_at, m.order_id, m.shipment_id, m.quantity, '
                 .'m.quantity * COALESCE(NULLIF(l.unit_cost, 0), NULLIF(p.cost_price, 0), 0) AS value, '
                 ."CASE WHEN COALESCE(NULLIF(l.unit_cost, 0), NULLIF(p.cost_price, 0)) IS NULL THEN 'missing' "
                 ."WHEN NULLIF(l.unit_cost, 0) IS NOT NULL AND (lot_receipt.id IS NOT NULL OR parent_receipt.id IS NOT NULL) THEN 'actual' ELSE 'estimate' END AS basis, "
@@ -212,16 +212,19 @@ final class ManagementFigures
      */
     private function costOfGoods(): array
     {
+        // While an order's other goods are still to come, only parcels already delivered are sold goods.
+        $soldAt = 'CASE WHEN '.DeliveredMoney::stillGoingOutSql('d')." AND parcel.status IS DISTINCT FROM 'delivered' THEN NULL ELSE d.delivered_at END";
         $rows = DB::query()->fromSub($this->valuedMovements(), 'x')
             ->leftJoinSub($this->delivered(), 'd', 'd.id', '=', 'x.order_id')
+            ->leftJoin('shipments as parcel', 'parcel.id', '=', 'x.shipment_id')
             ->where('x.bucket', 'customer')
             ->groupBy('x.basis')
             ->selectRaw(
                 'x.basis, '
-                .'COALESCE(SUM(-x.value) FILTER (WHERE d.delivered_at < ?), 0) AS earlier, '
-                .'COALESCE(SUM(-x.value) FILTER (WHERE d.delivered_at >= ? AND d.delivered_at < ?), 0) AS in_period, '
-                .'COALESCE(SUM(-x.value) FILTER (WHERE d.delivered_at IS NULL OR d.delivered_at >= ?), 0) AS in_transit, '
-                .'COALESCE(SUM(-x.quantity) FILTER (WHERE d.delivered_at >= ? AND d.delivered_at < ?), 0) AS units_sold',
+                ."COALESCE(SUM(-x.value) FILTER (WHERE {$soldAt} < ?), 0) AS earlier, "
+                ."COALESCE(SUM(-x.value) FILTER (WHERE {$soldAt} >= ? AND {$soldAt} < ?), 0) AS in_period, "
+                ."COALESCE(SUM(-x.value) FILTER (WHERE {$soldAt} IS NULL OR {$soldAt} >= ?), 0) AS in_transit, "
+                ."COALESCE(SUM(-x.quantity) FILTER (WHERE {$soldAt} >= ? AND {$soldAt} < ?), 0) AS units_sold",
                 [$this->start, $this->start, $this->end, $this->end, $this->start, $this->end],
             )->get();
 
@@ -251,6 +254,7 @@ final class ManagementFigures
                 'lotted', 'lotted.order_line_id', '=', 'ol.id',
             )
             ->whereRaw('ol.dispatched > COALESCE(lotted.quantity, 0)')
+            ->whereRaw('NOT '.DeliveredMoney::stillGoingOutSql('d'))
             ->selectRaw(
                 'COALESCE(SUM((ol.dispatched - COALESCE(lotted.quantity, 0)) * COALESCE(p.cost_price, 0)) FILTER (WHERE d.delivered_at < ?), 0) AS earlier, '
                 .'COALESCE(SUM((ol.dispatched - COALESCE(lotted.quantity, 0)) * COALESCE(p.cost_price, 0)) FILTER (WHERE d.delivered_at >= ? AND d.delivered_at < ?), 0) AS in_period, '

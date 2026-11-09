@@ -148,6 +148,9 @@ final class ImportWorkbook
                     'available_commission' => $money, 'held_commission' => $money, 'historical_order_total' => $money, 'historical_order_paid' => [...$money, 'lte:historical_order_total']],
             };
             $errors = Validator::make($data, $rules)->errors()->all();
+            if ($type === 'products' && $errors === []) {
+                $errors = $this->priceLimitErrors($data);
+            }
             foreach (match ($type) {
                 'partners' => ['dealer_code', 'email', 'phone'], 'products' => ['sku'], default => ['dealer_code', 'reference']
             } as $key) {
@@ -219,5 +222,28 @@ final class ImportWorkbook
         }
 
         return [$result, $summary];
+    }
+
+    /**
+     * The limits the product form applies: partners always get at least 20% off the MRP, and no
+     * more than the owner's limit of 70% off.
+     *
+     * @param  array<string, mixed>  $data
+     * @return list<string>
+     */
+    private function priceLimitErrors(array $data): array
+    {
+        $errors = [];
+        $retail = Money::cents((string) $data['mrp']);
+        foreach (['dealer_price' => 'dealer', 'sub_dealer_price' => 'sub_dealer'] as $column => $partner) {
+            $price = Money::cents((string) $data[$column]);
+            if ($price > intdiv($retail * 80 + 50, 100)) {
+                $errors[] = (string) __("portal.err_{$partner}_discount_too_small");
+            } elseif ($price < intdiv($retail * 30 + 50, 100)) {
+                $errors[] = (string) __("portal.err_{$partner}_discount_limit_owner");
+            }
+        }
+
+        return $errors;
     }
 }

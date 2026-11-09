@@ -24,7 +24,7 @@ class FieldSalesController extends Controller
         $data = $request->validate(['staff_id' => 'required|integer|exists:users,id', 'level' => 'nullable|in:division,district,upazila,union',
             'place_code' => 'required|string|max:32'], ['place_code.required' => __('portal.place_code_required')]);
 
-        return $this->done($request, ['id' => $territories->assign($request->user(), $data)]);
+        return $this->done($request, ['id' => $territories->assign($request->user(), $data)], 'portal.flash_sr_area_saved');
     }
 
     public function removeTerritory(Request $request, int $id, TerritoryAccess $territories): Response
@@ -32,7 +32,7 @@ class FieldSalesController extends Controller
         $data = $request->validate(['reason' => FinanceOperationsController::Reason]);
         $territories->remove($request->user(), $id, $data['reason']);
 
-        return $this->done($request);
+        return $this->done($request, [], 'portal.flash_sr_area_removed');
     }
 
     public function target(Request $request, StaffOperations $operations): Response
@@ -40,7 +40,7 @@ class FieldSalesController extends Controller
         $data = $request->validate(['staff_id' => 'required|integer|exists:users,id', 'period_month' => 'required|date_format:Y-m',
             'target' => [...FinanceOperationsController::Amount, 'gt:0'], 'bonus' => FinanceOperationsController::Amount, 'version' => 'nullable|integer|min:1']);
 
-        return $this->done($request, ['id' => $operations->target($request->user(), $data)]);
+        return $this->done($request, ['id' => $operations->target($request->user(), $data)], 'portal.flash_sr_target_saved');
     }
 
     public function application(Request $request, StaffOperations $operations): Response
@@ -55,9 +55,11 @@ class FieldSalesController extends Controller
     public function reviewApplication(Request $request, string $id, StaffOperations $operations): Response
     {
         $data = $request->validate(['decision' => 'required|in:approved,rejected', 'reason' => FinanceOperationsController::Reason,
-            'place_code' => 'nullable|string|max:32', 'sponsor_code' => 'nullable|string|max:40']);
+            'place_code' => 'nullable|string|max:32', 'sponsor_code' => 'nullable|string|max:40',
+            'directory_visible' => 'sometimes|boolean', 'phone_share_reason' => 'nullable|string|max:500']);
         $corrections = $request->has('sponsor_code') ? ['sponsor_code' => $data['sponsor_code'] ?? null] : [];
-        $operations->review($request->user(), $id, $data['decision'], $data['reason'], $data['place_code'] ?? null, $corrections);
+        $choices = ['directory_visible' => $request->boolean('directory_visible'), 'phone_share_reason' => $data['phone_share_reason'] ?? null];
+        $operations->review($request->user(), $id, $data['decision'], $data['reason'], $data['place_code'] ?? null, $corrections, $choices);
         if ($request->expectsJson()) {
             return response()->json(['data' => []]);
         }
@@ -95,10 +97,10 @@ class FieldSalesController extends Controller
     }
 
     /** @param array<string, mixed> $data */
-    private function done(Request $request, array $data = []): Response
+    private function done(Request $request, array $data = [], string $message = 'portal.flash_sales_operation'): Response
     {
         return $request->expectsJson()
             ? response()->json(['data' => $data])
-            : back()->with('success', __('portal.flash_sales_operation'));
+            : back()->with('success', __($message));
     }
 }

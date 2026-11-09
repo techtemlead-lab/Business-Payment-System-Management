@@ -303,6 +303,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, o
 
     const columns: MoneyColumn<Row>[] = [
         { key: 'name', title: translate('office_staff', 'col_staff'), sortKey: 'name', phone: 'title', render: (row) => <b>{row.name}</b> },
+        { key: 'phone', title: translate('office_staff', 'detail_phone'), phone: 'hide', render: (row) => <>{row.phone || '—'}{row.email && <small className="cell-sub">{row.email}</small>}</> },
         { key: 'role', title: translate('office_staff', 'col_role'), sortKey: 'role', phone: 'sub', render: (row) => roleName(row, translate) },
         { key: 'branch', title: translate('office_staff', 'col_branch'), phone: 'sub', render: (row) => row.branch_name || '—' },
         { key: 'permissions', title: translate('office_staff', 'col_permissions'), phone: 'hide', render: (row) => translate('office_staff', 'permission_count', { count: number((row.effective_permissions ?? []).length) }) },

@@ -19,6 +19,7 @@ use App\Domain\Content\TestimonialLabels;
 use App\Domain\Finance\PolicyDraftService;
 use App\Domain\Geography\ManagementReferral;
 use App\Domain\Geography\PlaceTree;
+use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\StockService;
 use App\Domain\Notifications\AccountCreatedSms;
 use App\Domain\Notifications\PartnerEventEmail;
@@ -183,12 +184,14 @@ class CommandController extends Controller
                 default => 'portal.acct_partner_created_nothing_sent',
             };
 
-            return redirect($redirect)->with('success', __($deliveryMessage, [
+            $otherBranch = app(BranchOperations::class)->otherBranchOfNewPartner($r->user(), $r, $created['user']);
+
+            return redirect($redirect)->with('success', trim(__($deliveryMessage, [
                 'role' => __($created['user']->role === 'sub_dealer' ? 'portal.acct_role_sub_dealer' : 'portal.acct_role_dealer'),
                 'code' => $created['user']->dealer_code,
                 'phone' => $created['user']->phone,
                 'email' => $created['user']->email,
-            ]));
+            ]).($otherBranch === null ? '' : ' '.__('portal.acct_partner_went_to_branch', ['branch' => $otherBranch->name]))));
         }
 
         $d = $r->validate([
@@ -886,6 +889,7 @@ class CommandController extends Controller
      */
     public function latestNotices(Request $r): JsonResponse
     {
+        $r->session()->reflash();
         $userId = $r->user()->id;
         $notices = DB::table('account_notices')
             ->where('user_id', $userId)
@@ -1290,10 +1294,10 @@ class CommandController extends Controller
     {
         $this->permit($r, 'accounts');
         $d = $r->validate([
-            'user_id' => 'required|exists:users,id',
+            'user_id' => 'bail|required|integer|exists:users,id',
             'level' => 'required|in:division,district,upazila,union',
             // An area seat is always a place code; names are filled in from it, never typed.
-            'place_code_id' => 'required|integer|exists:place_codes,id',
+            'place_code_id' => 'bail|required|integer|exists:place_codes,id',
             'zone_name' => 'nullable|string|max:128',
             'monthly_quota' => 'required|numeric|min:0|max:99999999999|decimal:0,2',
         ], [

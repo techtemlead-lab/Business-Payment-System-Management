@@ -8,7 +8,7 @@ import { SavedFilterPanel } from '../../OfficeListTools';
 import { Badge, Modal, date, label, money, number, type Row } from '../../UI';
 import MoreMenu from '../MoreMenu';
 import OfficePage from '../OfficePage';
-import { channelName, notYetSendable, orderDue, orderItemCount, orderSentCount, orderStatuses, ordersExportHref, type TranslateFn } from '../portalShared';
+import { AgingPill, channelName, notYetSendable, orderDue, orderItemCount, orderSentCount, orderStatuses, ordersExportHref, type TranslateFn } from '../portalShared';
 
 const CLOSED_STATUSES = ['rejected', 'cancelled'];
 
@@ -56,6 +56,9 @@ export function parcelStepLabel(parcel: Row, translate: TranslateFn): string {
     if (['pending', 'booking'].includes(parcel.courier_booking_status)) {
         return translate('courier', 'filter_booking');
     }
+    if (['delivered', 'returned'].includes(parcel.status)) {
+        return translate('courier', `status_${parcel.status}`);
+    }
     if (parcel.courier_booking_status === 'failed') {
         return translate('courier', 'step_booking_failed');
     }
@@ -64,7 +67,7 @@ export function parcelStepLabel(parcel: Row, translate: TranslateFn): string {
 }
 
 export function OrderNumberCell({ row }: { row: Row }) {
-    return <><b>{row.number}</b><small className="cell-sub">{date(row.created_at)}</small></>;
+    return <b>{row.number}</b>;
 }
 
 export function OrderPartnerCell({ row }: { row: Row }) {
@@ -76,10 +79,49 @@ export function OrderPartnerCell({ row }: { row: Row }) {
 export function OrderStatusCell({ row }: { row: Row }) {
     return (
         <>
-            <Badge status={row.status} />
+            <Badge status={row.came_back ? 'returned' : row.status} />
             {CLOSED_STATUSES.includes(row.status) && row.decision_reason && <small className="cell-sub" data-testid="order-closed-reason">{row.decision_reason}</small>}
         </>
     );
+}
+
+/** The columns of the office's Orders and Deliveries lists. Overdue parcels also show their age and courier. */
+export function orderListColumns(translate: TranslateFn, { overdue = false }: { overdue?: boolean } = {}): MoneyColumn<Row>[] {
+    return [
+        { key: 'number', title: translate('office_orders', 'col_order'), sortKey: 'number', phone: 'title', render: (row) => <OrderNumberCell row={row} /> },
+        { key: 'created_at', title: translate('portal', 'col_date'), sortKey: 'created_at', phone: 'sub', render: (row) => date(row.created_at) },
+        { key: 'partner', title: translate('portal', 'col_partner'), sortKey: 'partner', phone: 'sub', render: (row) => <OrderPartnerCell row={row} /> },
+        { key: 'phone', title: translate('portal', 'ops_fld_phone'), phone: 'hide', render: (row) => row.user?.phone || '—' },
+        { key: 'area', title: translate('portal', 'col_area'), sortKey: 'area', phone: 'hide', render: (row) => [row.user?.district, row.user?.division].filter(Boolean).join(', ') || '—' },
+        { key: 'branch', title: translate('portal', 'col_branch'), sortKey: 'branch', phone: 'hide', render: (row) => row.fulfillment_branch?.name || '—' },
+        { key: 'items', title: translate('office_orders', 'col_items'), sortKey: 'items', align: 'right', phone: 'hide', render: (row) => number(orderItemCount(row)) },
+        { key: 'delivered', title: translate('portal', 'col_delivered'), sortKey: 'delivered', align: 'right', phone: 'hide', render: (row) => (notYetSendable.includes(row.status) ? '—' : <span title={translate('portal', 'col_delivered_hint')}>{number(orderSentCount(row))} / {number(orderItemCount(row))}</span>) },
+        {
+            key: 'total',
+            title: translate('office_orders', 'col_price'),
+            sortKey: 'total',
+            money: true,
+            total: 'value',
+            phone: 'amount',
+            render: (row) => (
+                <>
+                    {money(row.total)}
+                    {(row.status === 'partly_delivered' || (Number(row.delivered_value) > 0 && ['partially_dispatched', 'dispatched'].includes(String(row.status)))) && <small className="cell-sub">{translate('office_orders', 'delivered_part', { amount: money(row.delivered_value) })}</small>}
+                    <span className="orders-status-on-phone">
+                        <small className="cell-sub">{translate('office_orders', 'col_items')} {orderItemsText(row, translate)}</small>
+                        <OrderStatusCell row={row} />
+                    </span>
+                </>
+            ),
+        },
+        { key: 'paid', title: translate('office_orders', 'col_given'), sortKey: 'paid', money: true, total: 'paid', phone: 'hide', render: (row) => <>{money(row.paid)}{row.refunded_amount != null && <small className="cell-sub" data-testid="order-refunded">{translate('office_orders', 'refunded_part', { amount: money(row.refunded_amount) })}</small>}</> },
+        { key: 'to_pay', title: translate('office_orders', 'col_to_pay'), sortKey: 'to_pay', money: true, total: 'to_pay', phone: 'hide', render: (row) => money(orderDue(row)) },
+        ...(overdue ? [
+            { key: 'days_since_sent', title: translate('portal', 'col_days_since_sent'), sortKey: 'days_since_sent', align: 'right' as const, phone: 'hide' as const, render: (row: Row) => (row.days_since_sent != null ? <AgingPill days={Number(row.days_since_sent)} /> : '—') },
+            { key: 'courier_tracking', title: translate('portal', 'col_courier_tracking'), phone: 'hide' as const, render: (row: Row) => (row.last_courier || row.last_tracking ? <>{row.last_courier || '—'}<small className="cell-sub">{row.last_tracking}</small></> : '—') },
+        ] : []),
+        { key: 'status', title: translate('portal', 'col_status'), sortKey: 'status', phone: 'hide', render: (row) => <OrderStatusCell row={row} /> },
+    ];
 }
 
 /** "3 / 10" sent, or nothing yet for an order that cannot be sent. */
@@ -123,10 +165,14 @@ export function OrderDrawer({ order, onClose }: { order: Row; onClose: () => voi
     const { portalBase: base, auth, staffActions } = usePage<any>().props;
     const caps: string[] = auth.capabilities;
     const mayPrintLabel = caps.includes('inventory') && (staffActions?.inventory?.edit ?? true) && auth.user.id !== order.user_id && ['approved', 'partially_dispatched', 'dispatched'].includes(order.status);
+    const isOwnOrder = auth.user.id === order.user_id;
     const facts: [string, React.ReactNode][] = [
-        [translate('portal', 'col_partner'), [order.user?.name, order.user?.dealer_code].filter(Boolean).join(' · ')],
-        [translate('portal', 'ops_fld_phone'), order.user?.phone],
-        [translate('portal', 'col_area'), [order.user?.district, order.user?.division].filter(Boolean).join(', ')],
+        ...(isOwnOrder ? [] : [
+            [translate('portal', 'col_partner'), [order.user?.name, order.user?.dealer_code].filter(Boolean).join(' · ')],
+            [translate('portal', 'ops_fld_phone'), order.user?.phone],
+            [translate('portal', 'col_area'), [order.user?.district, order.user?.division].filter(Boolean).join(', ')],
+        ] as [string, React.ReactNode][]),
+        [translate('portal', 'col_date'), order.created_at ? date(order.created_at) : null],
         [translate('portal', 'col_branch'), order.fulfillment_branch?.name],
         [translate('office_orders', 'detail_reason'), CLOSED_STATUSES.includes(order.status) ? order.decision_reason : null],
     ];
@@ -138,7 +184,7 @@ export function OrderDrawer({ order, onClose }: { order: Row; onClose: () => voi
         <Modal
             variant="drawer"
             title={String(order.number)}
-            badge={<Badge status={order.status} />}
+            badge={<Badge status={order.came_back ? 'returned' : order.status} />}
             onClose={onClose}
             footer={<Link className="button dark" href={`${base}/orders/${order.id}`}>{translate('office_orders', 'open_order')}</Link>}
         >
@@ -169,7 +215,7 @@ export function OrderDrawer({ order, onClose }: { order: Row; onClose: () => voi
                                 <div>{parcel.courier}<small className="cell-sub">{parcel.tracking_url
                                     ? <a className="text-link" href={parcel.tracking_url} target="_blank" rel="noopener noreferrer">{parcel.tracking}</a>
                                     : (parcel.tracking || '—')}</small></div>
-                                <div>{parcel.courier_provider ? parcelStepLabel(parcel, translate) : label(parcel.status, translate)}</div>
+                                <div>{parcel.courier_provider || parcel.courier_status ? parcelStepLabel(parcel, translate) : label(parcel.status, translate)}</div>
                             </div>
                         ))}
                     </section>
@@ -233,39 +279,13 @@ export default function OfficeOrders({ data }: { data: Row }) {
         ],
     };
 
-    const columns: MoneyColumn<Row>[] = [
-        { key: 'number', title: translate('office_orders', 'col_order'), sortKey: 'created_at', phone: 'title', render: (row) => <OrderNumberCell row={row} /> },
-        { key: 'partner', title: translate('portal', 'col_partner'), sortKey: 'partner', phone: 'sub', render: (row) => <OrderPartnerCell row={row} /> },
-        {
-            key: 'total',
-            title: translate('office_orders', 'col_price'),
-            sortKey: 'total',
-            money: true,
-            total: 'value',
-            phone: 'amount',
-            render: (row) => (
-                <>
-                    {money(row.total)}
-                    <small className="cell-sub">
-                        {translate('office_orders', 'col_items')} {orderItemsText(row, translate)}
-                        {row.status === 'partly_delivered' && ` · ${translate('office_orders', 'delivered_part', { amount: money(row.delivered_value) })}`}
-                    </small>
-                    <span className="orders-status-on-phone"><OrderStatusCell row={row} /></span>
-                </>
-            ),
-        },
-        { key: 'paid', title: translate('office_orders', 'col_given'), sortKey: 'paid', money: true, total: 'paid', phone: 'hide' },
-        { key: 'to_pay', title: translate('office_orders', 'col_to_pay'), sortKey: 'to_pay', money: true, total: 'to_pay', phone: 'hide', render: (row) => money(orderDue(row)) },
-        { key: 'status', title: translate('portal', 'col_status'), phone: 'hide', render: (row) => <OrderStatusCell row={row} /> },
-    ];
-
     return (
         <OfficePage title={translate('office_orders', 'orders_title')} hub={statusTabs}>
             <div className="orders-table" data-tour="orders-table">
                 <MoneyTable
                     data={tableData}
                     prop="data"
-                    columns={columns}
+                    columns={orderListColumns(translate)}
                     searchPlaceholder={translate('office_orders', 'search_orders')}
                     bulk={{ kind: 'orders', selecting }}
                     onRowOpen={(row) => setOpened(row)}
@@ -273,6 +293,7 @@ export default function OfficeOrders({ data }: { data: Row }) {
                     empty={translate('portal', 'empty_orders_title')}
                 />
             </div>
+            <p className="muted" data-testid="order-totals-note">{translate('portal', 'order_totals_note')}</p>
             {opened && <OrderDrawer order={opened} onClose={() => setOpened(null)} />}
         </OfficePage>
     );

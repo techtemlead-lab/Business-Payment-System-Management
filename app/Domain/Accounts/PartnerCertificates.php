@@ -23,11 +23,10 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
  */
 final class PartnerCertificates
 {
-    /** Commission rows that were taken back, or moved to company profit at month close, do not count as income. */
-    private const NotIncome = ['reversed', 'forfeited'];
+    public function __construct(private PartnerMoneyBook $moneyBook) {}
 
     /**
-     * Commission earned in one Dhaka calendar year by category, and money actually sent out.
+     * Money earned in one Dhaka calendar year by head, the same figure My Money shows, and money actually sent out.
      *
      * @return array{year: int, lines: list<array{category: string, label: string, amount: string}>, total: string, withdrawn_net: string, tax_cut: string}
      */
@@ -35,15 +34,7 @@ final class PartnerCertificates
     {
         $from = CarbonImmutable::create($year, 1, 1, 0, 0, 0, 'Asia/Dhaka')->utc();
         $until = $from->addYear();
-        $rows = DB::table('commission_allocations')
-            ->where('user_id', $user->id)
-            ->whereNotIn('status', self::NotIncome)
-            ->where('created_at', '>=', $from)
-            ->where('created_at', '<', $until)
-            ->groupBy('category')
-            ->selectRaw('category, COALESCE(SUM(amount), 0) AS amount')
-            ->orderBy('category')
-            ->get();
+        $earned = $this->moneyBook->earnedByHead((int) $user->id, $from, $until);
         $paid = DB::table('withdrawals')
             ->where('user_id', $user->id)
             ->where('status', 'paid')
@@ -51,24 +42,16 @@ final class PartnerCertificates
             ->where('paid_at', '<', $until)
             ->selectRaw('COALESCE(SUM(COALESCE(net_amount, amount)), 0) AS net, COALESCE(SUM(withheld_amount), 0) AS tax')
             ->first();
-        $lines = [];
-        $total = 0;
-        foreach ($rows as $row) {
-            $cents = Money::cents((string) $row->amount);
-            $total += $cents;
-            $key = 'portal.report_cat_'.$row->category;
-            $label = __($key);
-            $lines[] = [
-                'category' => (string) $row->category,
-                'label' => $label === $key ? Str::headline((string) $row->category) : $label,
-                'amount' => Money::decimal($cents),
-            ];
-        }
+        $lines = array_map(fn (array $row): array => [
+            'category' => $row['head'],
+            'label' => PartnerMoneyBook::headWord($row['head']),
+            'amount' => Money::decimal($row['amount']),
+        ], $earned);
 
         return [
             'year' => $year,
             'lines' => $lines,
-            'total' => Money::decimal($total),
+            'total' => Money::decimal(array_sum(array_column($earned, 'amount'))),
             'withdrawn_net' => Money::decimal(Money::cents((string) ($paid->net ?? '0'))),
             'tax_cut' => Money::decimal(Money::cents((string) ($paid->tax ?? '0'))),
         ];
@@ -85,9 +68,7 @@ final class PartnerCertificates
 
         $rows = '';
         foreach ($income['lines'] as $line) {
-            $key = 'portal.report_cat_'.$line['category'];
-            $label = __($key, [], $locale);
-            $rows .= '<tr><td>'.e($label === $key ? $line['label'] : $label).'</td><td class="num">৳ '.e(Money::grouped($line['amount'])).'</td></tr>';
+            $rows .= '<tr><td>'.e(PartnerMoneyBook::headWord($line['category'], $locale)).'</td><td class="num">৳ '.e(Money::grouped($line['amount'])).'</td></tr>';
         }
         if ($rows === '') {
             $rows = '<tr><td colspan="2" class="muted">'.e($t('cert_income_none')).'</td></tr>';

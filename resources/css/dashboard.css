@@ -904,6 +904,8 @@ dialog.portal-modal::backdrop{
   .app-shell .order-filters select.order-status-select{width:100%;min-width:0;padding:0 18px 0 8px;font-size:12px}
   .app-shell .order-filters .order-dates{grid-column:1 / -1;width:100%;justify-content:center}
   .app-shell .order-filters .order-filter-actions{grid-column:1 / -1;width:100%;margin-left:0;justify-content:center}
+  /* Any other parent (the staff salary and field sales tables): the filter drops to its own line */
+  .app-shell form.filter-bar.order-filters{flex-wrap:wrap}
   /* Same filter bar inside a plain panel (ledger, benefits fund): wrap instead of running off the screen */
   .app-shell .panel>form.filter-bar.order-filters{flex-wrap:wrap;gap:8px}
   .app-shell .panel>form.filter-bar.order-filters>.order-search{flex:1 1 100%;width:100%}

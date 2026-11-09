@@ -1,5 +1,6 @@
 import React,{useState} from 'react';
 import {Head,Link,usePage,usePoll} from '@inertiajs/react';
+import { backgroundRefreshHeaders } from '../shared/backgroundRefresh';
 import {ArrowUpRight,Plus} from 'lucide-react';
 import Shell from '../components/Shell';
 import DashboardOverview from '../components/DashboardOverview';
@@ -12,6 +13,7 @@ import PartnerHubNav from '../components/PartnerHubNav';
 import OfficeHubTabs from '../components/OfficeHubTabs';
 import {Row,Table,Pagination,Badge,money,dateTime,label} from '../components/UI';
 import {useT} from '../shared/i18n/t';
+import {actionAllowed} from '../components/action-permissions';
 import {SECTION_LABEL_KEYS} from '../shared/portalNav';
 import Orders,{OrderTable} from '../components/office/sections/Orders';
 import Security from '../components/office/sections/Security';
@@ -73,7 +75,7 @@ const Accounts=React.lazy(()=>import('../components/office/sections/Accounts'));
 const PartnerFrame=React.lazy(()=>import('../components/office/sections/PartnerFrame'));
 const SettingsHome=React.lazy(()=>import('../components/office/SettingsHome'));
 /** These pages draw their own tab strip through OfficePage, so the page must not print a second one. */
-const DRAWS_OWN_TABS=['accounts','sub-dealers','partnerships','sub-dealer-applications','network-tree','area-dealers','ranks','employees','content','website','customization','public-trust','enquiries','feedback','agreement','training','events','sales-kit','schemes','contests','dashboards','data-cleanup','identity-review','privacy-requests','login-rules','overview','support-admin','partner-messages','top-sellers','branch-performance','partner-scorecard'];
+const DRAWS_OWN_TABS=['accounts','sub-dealers','partnerships','sub-dealer-applications','network-tree','area-dealers','ranks','employees','content','website','customization','public-trust','enquiries','feedback','agreement','training','events','sales-kit','schemes','contests','dashboards','data-cleanup','identity-review','privacy-requests','login-rules','overview','support-admin','partner-messages','top-sellers','branch-performance','partner-scorecard','purchasing'];
 /**
  * Every 30 seconds work queues refresh their list, so new orders and payments show up
  * without a reload. Every other page only refreshes the menu badges: re-sending a whole
@@ -86,7 +88,7 @@ export default function Portal({section,data:d,filters}:{section:string,data:Row
  const translate=useT();const {auth,staffActions,portalBase:base,portal,securityControls,collectionAccounts:sharedCollectionAccounts=[]}=usePage<any>().props;const u=auth.user;const caps:string[]=auth.capabilities;const staff=portal==='manage'||portal==='sadmin';const[modal,setModal]=useState<string|null>(null);
  /** A status drop-down for the server filter bar; it filters every page, not just the rows on screen. */
  const statusSelect=(statuses:string[]):FilterSelect=>({name:'status',label:translate('portal','orders_filter_status'),options:statuses.map(item=>({value:item,label:label(item,translate)}))});
- usePoll(30000,()=>({only:LIVE_SECTIONS.includes(section)?['data','navAttention','unreadNotices']:['navAttention','unreadNotices']}));
+ usePoll(30000,()=>({only:LIVE_SECTIONS.includes(section)?['data','navAttention','unreadNotices']:['navAttention','unreadNotices'],headers:backgroundRefreshHeaders}));
  const open=(name:string)=>{setModal(name)};const close=()=>{setModal(null)};
  const sectionProps={section,data:d,filters};
  const stats=d.stats??{}; const action=section==='overview'?<Link className="button dark" href={staff?(base+(caps.includes('orders')||caps.includes('finance')?'/orders':caps.includes('content')?'/content':'/profile')):(base+'/purchase')}>{staff?(caps.includes('orders')||caps.includes('finance')?translate('portal','manage_orders'):caps.includes('content')?translate('portal','manage_website'):translate('portal','view_profile')):translate('portal','new_purchase_request')}<ArrowUpRight size={17}/></Link>:(!staff&&(section==='orders'||section==='deliveries'||section==='catalog'))?<Link className="button dark" href={`${base}/purchase`}><Plus size={17}/>{translate('portal','new_purchase_request')}</Link>:section==='accounts'&&(staffActions?.accounts?.create??true)?<Link className="button dark" href="/accounts/create?intent=dealer"><Plus size={17}/>{translate('portal','acct_heading')}</Link>:section==='sub-dealers'&&(staffActions?.accounts?.create??true)?<Link className="button dark" href="/accounts/create?intent=sub_dealer"><Plus size={17}/>{translate('portal','sd_add')}</Link>:undefined;
@@ -95,9 +97,10 @@ export default function Portal({section,data:d,filters}:{section:string,data:Row
  {d.partner_hub&&<PartnerHubNav hub={d.partner_hub}/>}
  {section==='settings'&&<SettingsHome groups={d.settings_groups??[]}/>}
  {section==='overview'&&<DashboardOverview data={d} orders={<OrderTable page={d.orders}/>}/>}
+ {staff&&['orders','deliveries'].includes(section)&&d.no_branch_assigned&&<p className="notice" role="status">{translate('portal','orders_no_branch')}</p>}
  {['orders','deliveries','reports'].includes(section)&&<Orders {...sectionProps}/>}
  {section==='deliveries'&&staff&&d.courier_board&&<CourierBoard board={d.courier_board}/>}
- {section==='catalog'&&(staff?<div data-tour="catalog-grid"><ProductManagementHub products={d.products} allProducts={d.all_catalog_products||d.products} featuredOrderProducts={d.featured_order_products||[]} categories={d.categories||[]} catalogCategories={d.catalog_categories||[]} usedCategories={d.used_categories||[]} catalogUnits={d.catalog_units||[]} customization={d.customization||{}} defaults={d.defaults||{}} filters={filters} catalogFilters={d.catalog_filters} productsPage={d.products_page} canCreate={u.role==='super_admin'||caps.includes('catalog')&&(staffActions?.catalog?.create??true)} onCreateProduct={()=>open('product')}/></div>:<div data-tour="catalog-grid"><PartnerCatalogDirectory products={d.products} categories={d.categories} filters={filters}/></div>)}
+ {section==='catalog'&&(staff?<div data-tour="catalog-grid"><ProductManagementHub products={d.products} allProducts={d.all_catalog_products||d.products} featuredOrderProducts={d.featured_order_products||[]} categories={d.categories||[]} catalogCategories={d.catalog_categories||[]} usedCategories={d.used_categories||[]} catalogUnits={d.catalog_units||[]} customization={d.customization||{}} defaults={d.defaults||{}} filters={filters} catalogFilters={d.catalog_filters} productsPage={d.products_page} canCreate={Boolean(d.can_create_product)} canOpenProduct={Boolean(d.can_open_product)} onCreateProduct={()=>open('product')}/></div>:<div data-tour="catalog-grid"><PartnerCatalogDirectory products={d.products} categories={d.categories} filters={filters}/></div>)}
  {section==='purchase'&&!staff&&<div data-tour="purchase-matrix"><ProductPurchaseMatrix repeatOrders={d.repeat_orders||[]} runningSchemes={d.running_schemes||[]} products={d.products} categories={d.categories||[]} subCategories={d.sub_categories||[]} collectionAccounts={sharedCollectionAccounts || []} fullPaymentRequired={Boolean(d.full_payment_required)} courierChoices={d.courier_choices||[]} initialProductId={typeof window!=='undefined'?new URLSearchParams(window.location.search).get('product_id'):null}/></div>}
  {['accounts','sub-dealers'].includes(section)&&<Accounts {...sectionProps}/>}
  {section==='inventory'&&<Inventory {...sectionProps}/>}
@@ -111,7 +114,7 @@ export default function Portal({section,data:d,filters}:{section:string,data:Row
  {section==='area-dealers'&&<PartnerFrame data={d}><AreaDealersHub assignments={d.assignments} summary={d.area_summary} areaFilters={d.area_filters||{}} areaPoolRate={d.area_pool_rate} divisions={d.divisions||[]} dealers_list={d.dealers_list||[]} place_codes={d.place_codes||[]}/></PartnerFrame>}
  {section==='stock-lots'&&<StockLotsHub data={d.stock_lots||{}}/>}
  {section==='branch-performance'&&<BranchPerformanceHub performance={d.performance||{period:{period:'month',from:'',to:'',label:'month',timezone:''},totals:{order_count:0,order_value:'0.00',income:'0.00',outstanding:'0.00',estimated_profit:'0.00'},branches:[],unassigned:{order_count:0,order_value:'0.00',income:'0.00',outstanding:'0.00',estimated_profit:'0.00'},orders:{data:[],current_page:1,last_page:1,total:0,links:[]}}} branch_options={d.branch_options||[]}/>}
- {section==='branches'&&<BranchesHub branches={d.branches||{data:[],current_page:1,last_page:1,total:0,links:[]}} active_branch_id={d.active_branch_id} head_office_without_place_code={d.head_office_without_place_code} can_edit_branches={!!d.can_edit_branches} assignable_staff={d.assignable_staff||[]} canManage={caps.includes('inventory')||caps.includes('accounts')||['super_admin','md','chairman'].includes(u.role)}/>}
+ {section==='branches'&&<BranchesHub branches={d.branches||{data:[],current_page:1,last_page:1,total:0,links:[]}} active_branch_id={d.active_branch_id} head_office_without_place_code={d.head_office_without_place_code} can_edit_branches={!!d.can_edit_branches} assignable_staff={d.assignable_staff||[]} canManage={actionAllowed('/commands/branches',staffActions,'post')}/>}
  {section==='place-codes'&&<PlaceCodesHub level={d.level||'division'} level_label={d.level_label||'Division'} searchable={!!d.searchable} filters={d.filters||filters} submodules={d.submodules||[]} parent_options={d.parent_options||[]} management_referral={d.management_referral||null} places={d.places||{data:[],current_page:1,last_page:1,total:0,links:[]}}/>}
  {section==='ranks'&&<PartnerFrame data={d}><RankRoyaltyHub policy={d.rank_policy} filters={filters} ranks={d.ranks||[]} stats={d.stats||{mo_count:0,am_count:0,sm_count:0,me_count:0,dealer_count:0}}/></PartnerFrame>}
  {section==='employees'&&<div data-tour="employees-hub"><EmployeesHub employees={d.employees} availablePermissions={d.available_permissions} stats={d.employee_stats} filters={filters} ownerAccounts={d.owner_accounts} hub={d.hub}/></div>}
@@ -125,7 +128,7 @@ export default function Portal({section,data:d,filters}:{section:string,data:Row
  {section==='prescriptions'&&d.prescriptions&&<PrescriptionsHub data={d.prescriptions} tools={d.prescription_tools} publicTools={d.prescriber_public}/>}
  {section==='privacy-requests'&&<PrivacyRequestsHub data={d.privacy_queue}/>}
  {section==='security'&&d.privacy_requests&&<PartnerPrivacyRequests data={d.privacy_requests}/>}
- {section==='purchasing'&&d.purchasing&&<PurchasingHub data={d.purchasing}/>}
+ {section==='purchasing'&&d.purchasing&&<PurchasingHub data={d.purchasing} hub={d.hub}/>}
  {section==='stock-counts'&&d.stock_counts&&<StockCountHub data={d.stock_counts}/>}
  {section==='sales-kit'&&d.sales_kit&&<SalesKitHub data={d.sales_kit}/>}
  {section==='customers'&&d.customer_book&&<CustomerBookHub data={d.customer_book} filters={filters}/>}

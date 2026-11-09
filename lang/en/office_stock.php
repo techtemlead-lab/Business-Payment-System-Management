@@ -3,6 +3,7 @@
 return [
     'all_products' => 'All products',
     'archived_products' => 'Archived',
+    'draft_products' => 'Drafts',
     'home_page_list' => 'Home page list',
     'categories_units' => 'Categories and units',
     'view_homepage' => 'See the website',
@@ -16,8 +17,10 @@ return [
 
     'status_published' => 'Published',
     'status_archived' => 'Archived',
+    'status_draft' => 'Draft',
     'status_orders_stopped' => 'Orders stopped',
     'empty_archived' => 'No archived products.',
+    'empty_drafts' => 'No draft products.',
     'empty_search_but_archived' => 'Nothing found here. :count archived product(s) match, open the Archived list.',
 
     'edit' => 'Edit',

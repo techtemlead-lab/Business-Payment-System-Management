@@ -32,10 +32,12 @@ export default function Applications({ section, data }: { section: string; data:
 
     const columns: MoneyColumn<Row>[] = [
         { key: 'created_at', title: translate('office_partners', 'col_date'), sortKey: 'created_at', phone: 'sub', render: (row) => date(row.created_at) },
-        { key: 'name', title: translate('portal', 'partnership_applicant'), sortKey: 'name', phone: 'title', render: (row) => <><b>{row.name}</b><small className="cell-sub">{[row.email, row.phone].filter(Boolean).join(' · ')}</small></> },
-        { key: 'place', title: translate('office_partners', 'col_area'), phone: 'sub', render: (row) => <>{row.place_code || placeLine(row) || '—'}{row.place_code && placeLine(row) && <small className="cell-sub">{placeLine(row)}</small>}</> },
+        { key: 'name', title: translate('portal', 'partnership_applicant'), sortKey: 'name', phone: 'title', render: (row) => <><b>{row.name}</b><small className="cell-sub">{row.email}</small></> },
+        { key: 'phone', title: translate('office_partners', 'detail_phone'), phone: 'hide', render: (row) => row.phone || '—' },
+        { key: 'place', title: translate('office_partners', 'col_area'), sortKey: 'place', phone: 'sub', render: (row) => <>{row.place_code || placeLine(row) || '—'}{row.place_code && placeLine(row) && <small className="cell-sub">{placeLine(row)}</small>}</> },
         { key: 'source', title: translate('portal', 'partnership_source'), sortKey: 'source', phone: 'hide', render: (row) => sourceName(row.source || 'staff', translate) },
         { key: 'status', title: translate('portal', 'col_status'), sortKey: 'status', phone: 'sub', render: (row) => <Badge status={row.status || 'pending'} /> },
+        { key: 'reason', title: translate('office_partners', 'detail_reason'), sortKey: 'reason', phone: 'hide', render: (row) => row.reason || '—' },
     ];
 
     return (
@@ -71,7 +73,10 @@ function ReviewPanel({ application, onClose, onReject }: { application: Row; onC
     const reviewable = application.status === 'pending' && application.submitted_by !== auth?.user?.id;
     const isOwnApplication = application.status === 'pending' && application.submitted_by === auth?.user?.id;
     const canDecide = reviewable && mayDecide;
-    const form = useForm({ decision: 'approved', place_code: application.place_code || '', sponsor_code: application.sponsor_code || '', reason: '' });
+    const isOwner = ['super_admin', 'md', 'chairman'].includes(String(auth?.user?.role ?? ''));
+    const isDealerApplication = application.role === 'dealer';
+    const [phoneWasRefused, setPhoneWasRefused] = useState(false);
+    const form = useForm({ decision: 'approved', place_code: application.place_code || '', sponsor_code: application.sponsor_code || '', reason: '', directory_visible: isDealerApplication, phone_share_reason: '' });
 
     const lines: [string, React.ReactNode][] = [
         [translate('office_partners', 'detail_email'), application.email],
@@ -107,7 +112,7 @@ function ReviewPanel({ application, onClose, onReject }: { application: Row; onC
                     onSubmit={(event) => {
                         event.preventDefault();
                         form.clearErrors();
-                        form.post(reviewAddress, { preserveScroll: true, onSuccess: onClose });
+                        form.post(reviewAddress, { preserveScroll: true, onSuccess: onClose, onError: (errors) => { if (errors.phone) { setPhoneWasRefused(true); } } });
                     }}
                 >
                     <label>
@@ -122,12 +127,26 @@ function ReviewPanel({ application, onClose, onReject }: { application: Row; onC
                         <small className="field-hint">{translate('portal', 'partnership_sponsor_code_hint')}</small>
                         {form.errors.sponsor_code && <span className="field-error" role="alert">{form.errors.sponsor_code}</span>}
                     </label>
+                    {isOwner && phoneWasRefused && (
+                        <label>
+                            {translate('portal', 'acct_phone_share_reason')}
+                            <input maxLength={500} autoComplete="off" value={form.data.phone_share_reason} onChange={(event) => form.setData('phone_share_reason', event.target.value)} />
+                            <small className="field-hint">{translate('portal', 'acct_phone_share_reason_hint')}</small>
+                            {form.errors.phone_share_reason && <span className="field-error" role="alert">{form.errors.phone_share_reason}</span>}
+                        </label>
+                    )}
+                    {isDealerApplication && (
+                        <label className="import-confirmation">
+                            <input type="checkbox" checked={form.data.directory_visible} onChange={(event) => form.setData('directory_visible', event.target.checked)} /> {translate('portal', 'acct_directory_visible')}
+                            <small className="field-hint">{translate('office_partners', 'directory_visible_hint')}</small>
+                        </label>
+                    )}
                     <label>
                         {translate('office_partners', 'review_note')}
                         <textarea rows={3} required maxLength={1000} value={form.data.reason} onChange={(event) => form.setData('reason', event.target.value)} />
                         {form.errors.reason && <span className="field-error" role="alert">{form.errors.reason}</span>}
                     </label>
-                    <FormErrors errors={form.errors} besideFields={['place_code', 'sponsor_code', 'reason']} />
+                    <FormErrors errors={form.errors} besideFields={['place_code', 'sponsor_code', 'reason', 'phone_share_reason']} />
                 </form>
             )}
         </Modal>

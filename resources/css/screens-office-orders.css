@@ -2,6 +2,9 @@
 
 /* A phone shows the status under the amount; the wide table has its own column for it. */
 .app-shell .orders-status-on-phone{display:none}
+@media (max-width:640px){
+  .app-shell .orders-status-on-phone.is-in-list{display:block;margin-top:4px;font-weight:400}
+}
 
 @media (max-width:767px){
   .app-shell .orders-table .mt-card-amount{max-width:56%;white-space:normal}

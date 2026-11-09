@@ -92,7 +92,7 @@ function PlaceCodeInput({ value, onChange, placeholder }: { value: string; onCha
                 value={suffix}
                 inputMode="numeric"
                 placeholder={placeholder}
-                onChange={(event) => onChange(toLatin(event.target.value).replace(/\D/g, '').slice(0, 8))}
+                onChange={(event) => onChange(toLatin(event.target.value).trim().slice(0, 8))}
             />
         </span>
     );
@@ -324,9 +324,6 @@ export default function PlaceCodesHub({
                             <Hash size={15} /> {translate('portal', 'pc_badge')}
                         </div>
                         <h2 className="pch-title">{translate('portal', 'pc_heading', { level: level_label })}</h2>
-                        <p className="muted pch-lead is-flush">
-                            {translate('portal', 'pc_hint')}
-                        </p>
                     </div>
                     <button type="button" className="button dark" onClick={() => setCreateOpen(true)}>
                         <Plus size={16} /> {translate('portal', 'pc_add', { level: levelName })}

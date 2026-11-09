@@ -24,7 +24,7 @@ class AdminEnquiriesTest extends TestCase
         $this->onPortal('public')
             ->from('/contact')
             ->post('/enquiries', $payload)
-            ->assertRedirect('/contact')
+            ->assertRedirect('/contact#enquiry-status')
             ->assertSessionHas('success');
 
         $this->assertDatabaseHas('enquiries', [
@@ -79,7 +79,7 @@ class AdminEnquiriesTest extends TestCase
                 'topic' => 'Dealer enquiry',
                 'message' => 'Please help me find an authorized dealer near Rangpur.',
             ])
-            ->assertRedirect('/contact');
+            ->assertRedirect('/contact#enquiry-status');
 
         $this->assertDatabaseHas('enquiries', [
             'phone' => '01733334444',

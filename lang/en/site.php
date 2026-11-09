@@ -438,6 +438,7 @@ Questions about these terms, partnership rules or the website:
     'partner_trust_badge_support' => 'Company Support',
     'partner_security_note' => 'Your application is kept private and is checked directly by Madina Natural Health Care management.',
     'partner_sponsor_hint' => 'If an authorized dealer or sub-dealer introduced you, provide their code.',
+    'partner_directory_notice' => 'Once approved as a dealer, your name and phone number will show on the public dealer list.',
     'optional' => 'Optional',
 
     'offers' => 'Offers',
@@ -521,6 +522,7 @@ Questions about these terms, partnership rules or the website:
     'form_fix_errors' => 'Please fix these:',
     'partner_message_placeholder' => 'Tell us briefly about your business, your shop or pharmacy, and your plans...',
     'partner_date_of_birth' => 'Date of birth',
+    'partner_phone_taken_confirm' => 'I know this number already has an account and I still want to send my application. The company will check it and decide.',
     'partner_date_of_birth_hint' => 'You must be at least 18 years old to become a partner.',
     'error_419_title' => 'Page expired',
     'error_419_heading' => 'This page was open too long',

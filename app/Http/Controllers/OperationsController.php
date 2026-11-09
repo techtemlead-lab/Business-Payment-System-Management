@@ -85,7 +85,7 @@ class OperationsController extends Controller
         }
         $staff = User::staffAccounts()->orderBy('name')->get(['id', 'name', 'role', 'status', 'profile']);
         if ($actor->allows('staff_admin') || $actor->allows('finance')) {
-            $data['staff'] = $staff->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'role' => $u->role, 'field_sales' => $u->allows('field_sales')])->all();
+            $data['staff'] = $staff->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'role' => $u->role, 'field_sales' => $u->allows('field_sales') && $u->id !== $actor->id])->all();
         }
         if (in_array($section, ['policy-schedules', 'reserve-payouts', 'field-sales', 'commission-holds'], true)) {
             $partners = $section === 'field-sales' ? app(TerritoryAccess::class)->partners($actor) : User::whereIn('role', ['dealer', 'sub_dealer']);
@@ -110,7 +110,7 @@ class OperationsController extends Controller
             $data['fullPaymentWhenOrdering'] = app(FinanceSettings::class)->fullPaymentWhenOrdering();
             $scope = $territories->partners($actor)->select('users.id');
             if ($actor->allows('sr_orders')) {
-                $columns = ['o.id', 'o.number', 'u.name', 'o.status', 'o.total', 'o.submitted_by'];
+                $columns = ['o.id', 'o.number', 'u.name', 'o.status', 'o.total', 'o.submitted_by', 'o.created_at'];
                 $tables['territory_orders'] = DB::table('orders as o')->join('users as u', 'u.id', '=', 'o.user_id')->whereIn('o.user_id', $scope)->select($columns)->orderByDesc('o.created_at');
             }
             $tables['my_targets'] = DB::table('staff_targets')->where('staff_id', $actor->id)->orderByDesc('period_month');
@@ -173,7 +173,7 @@ class OperationsController extends Controller
             $data['autoApproval'] = app(FinanceSettings::class)->autoApproval();
             $data['kycBeforeFirstWithdrawal'] = [...app(FinanceSettings::class)->kycBeforeFirstWithdrawal(), 'can_edit' => $actor->owner()];
             $data['fullPaymentWhenOrdering'] = [...app(FinanceSettings::class)->fullPaymentWhenOrdering(), 'can_edit' => $actor->owner()];
-            $data['approvalLimit'] = [...app(WithdrawalApprovalLimit::class)->current(), 'default' => WithdrawalApprovalLimit::DefaultAmount, 'can_edit' => $actor->owner()];
+            $data['approvalLimit'] = [...app(WithdrawalApprovalLimit::class)->current(), 'default' => WithdrawalApprovalLimit::DefaultAmount, 'can_edit' => $actor->owner() && $actor->canAct('finance', 'edit')];
         }
         if ($section === 'access-management') {
             abort_unless($actor->role === 'super_admin', 403);
