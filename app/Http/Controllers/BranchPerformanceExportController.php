@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Inventory\BranchPerformance;
+use App\Models\User;
 use App\Support\Audit;
 use App\Support\TableWorkbook;
 use Generator;
@@ -66,7 +67,7 @@ class BranchPerformanceExportController extends Controller
      * @param  array<string, mixed>  $filters
      * @return Generator<int, array<string, mixed>>
      */
-    private function exportRows(BranchPerformance $performance, mixed $user, array $filters): Generator
+    private function exportRows(BranchPerformance $performance, User $user, array $filters): Generator
     {
         foreach ($performance->orderRows($user, $filters) as $order) {
             $statusKey = 'portal.status_'.$order['status'];
