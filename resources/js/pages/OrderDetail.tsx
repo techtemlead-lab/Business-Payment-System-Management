@@ -156,7 +156,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                     <p className="muted odt-share-hint">{translate('portal','share_invoice_login_hint')}</p>
                 </div>
             )}
-            <Badge status={order.status} />
+            <Badge status={order.status === 'cancelled' && shipments.some(shipment => shipment.status === 'returned') ? 'returned' : order.status} />
         </div></div>
         <TransactionProgressStepper order={order} currentStatus={order.status} claims={claims} shipments={shipments} events={events} />
         <CourierTrackingPanel order={order} shipments={shipments} events={events} courierChoices={courierChoices}

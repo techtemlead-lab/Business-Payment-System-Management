@@ -12,6 +12,7 @@ return [
     'col_to_pay' => 'Left to pay',
     'items_sent' => ':sent / :total',
     'delivered_part' => 'Delivered :amount',
+    'refunded_part' => 'Refunded :amount',
     'filter_buyer' => 'Partner type',
     'filter_branch' => 'Branch',
     'open_order' => 'Open order',

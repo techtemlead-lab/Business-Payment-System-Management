@@ -16,6 +16,14 @@ type Props = {
     canManage: boolean;
 };
 
+/** No courier system reports on this parcel, so staff move it by hand: a manual courier or a typed tracking number. */
+const updatedByHand = (shipment: Row): boolean => shipment.courier_booking_status === 'manual' || !shipment.courier_booking_status;
+
+/** Staff confirming or receiving a parcel outranks the courier's last word, which older parcels may still hold. */
+const parcelStep = (shipment: Row): string | null => ['delivered', 'returned'].includes(shipment.status)
+    ? String(shipment.status)
+    : shipment.courier_status ?? (updatedByHand(shipment) ? 'waiting_pickup' : null);
+
 function parse(value: unknown): Row {
     if (typeof value === 'string') {
         try {
@@ -46,10 +54,11 @@ function ParcelTracking({ order, shipment, canManage }: { order: Row; shipment: 
     const translate = useT();
     const timeline: Row[] = Array.isArray(shipment.courier_timeline) ? shipment.courier_timeline : [];
     const reached = new Map<string, string>(timeline.map((entry: Row) => [String(entry.status), String(entry.at)]));
-    const returned = shipment.courier_status === 'returned';
-    const steps = returned ? [...STEPS.slice(0, 3), 'returned'] : STEPS;
-    const current = shipment.courier_status ? steps.indexOf(shipment.courier_status) : -1;
+    const step = parcelStep(shipment);
+    const steps = step === 'returned' ? [...STEPS.slice(0, 3), 'returned'] : STEPS;
+    const current = step ? steps.indexOf(step) : -1;
     const booking = shipment.courier_booking_status;
+    const byHand = updatedByHand(shipment);
     const lastUpdate = shipment.courier_status_at ?? (timeline.length ? timeline[timeline.length - 1].at : null);
 
     return <div className="timeline-item" data-testid="courier-parcel"><i /><div>
@@ -58,7 +67,7 @@ function ParcelTracking({ order, shipment, canManage }: { order: Row; shipment: 
         {booking === 'failed' && <p className="muted" role="status">{canManage && shipment.courier_booking_error
             ? translate('courier', 'booking_failed_staff', { message: String(shipment.courier_booking_error) })
             : translate('courier', 'booking_failed')}</p>}
-        {['booked', 'manual'].includes(booking) && <>
+        {(booking === 'booked' || byHand) && <>
             <ol className="ops-row is-wrap" aria-label={translate('courier', 'tracking_title')}>
                 {steps.map((step, index) => <li key={step} className={`hub-pill ${index <= current ? 'tone-ok' : ''}`} aria-current={index === current ? 'step' : undefined}>
                     {translate('courier', `status_${step}`)}{reached.get(step) ? ` · ${dateTime(reached.get(step))}` : ''}
@@ -78,7 +87,7 @@ function ParcelTracking({ order, shipment, canManage }: { order: Row; shipment: 
         {canManage && booking === 'failed' && shipment.status === 'dispatched' && <ActionForm action={`/commands/orders/${order.id}/shipments/${shipment.id}/courier-retry`} fields={[]} submit={translate('courier', 'retry')} />}
         {canManage && booking === 'booked' && shipment.status === 'dispatched' && (!shipment.courier_status || shipment.courier_status === 'waiting_pickup')
             && <ActionForm action={`/commands/orders/${order.id}/shipments/${shipment.id}/picked-up`} fields={[]} submit={translate('courier', 'mark_picked_up')} />}
-        {canManage && booking === 'manual' && shipment.status === 'dispatched' && !['delivered', 'returned'].includes(shipment.courier_status) && <>
+        {canManage && byHand && shipment.status === 'dispatched' && !['delivered', 'returned'].includes(shipment.courier_status) && <>
             <p className="muted">{translate('courier_more', 'manual_hint')}</p>
             <ActionForm action={`/commands/orders/${order.id}/shipments/${shipment.id}/manual-update`} fields={[
                 { name: 'status', label: translate('courier_more', 'manual_status_label'), options: ALL_STEPS.slice(ALL_STEPS.indexOf(shipment.courier_status ?? 'waiting_pickup') + 1).map(step => ({ value: step, label: translate('courier', `status_${step}`) })) },
@@ -95,7 +104,7 @@ function ParcelTracking({ order, shipment, canManage }: { order: Row; shipment: 
  */
 export default function CourierTrackingPanel({ order, shipments, events, courierChoices, canManage }: Props) {
     const translate = useT();
-    const courierShipments = shipments.filter(shipment => shipment.courier_provider);
+    const courierShipments = shipments.filter(shipment => shipment.courier_provider || updatedByHand(shipment));
     const changes: Row[] = events.filter(event => event.action === 'order.courier_changed').map(event => ({ id: event.id, at: event.created_at, ...parse(event.metadata) }));
     const latestCourierShipment = courierShipments[courierShipments.length - 1];
     const canChange = canManage && (latestCourierShipment

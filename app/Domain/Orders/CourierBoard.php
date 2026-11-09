@@ -7,12 +7,16 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 /**
- * The staff deliveries board: every parcel booked with a courier, filtered by step and
- * courier, with the bookings the courier refused listed on their own.
+ * The staff deliveries board: every parcel sent out, booked with a courier or sent with a typed
+ * tracking number, filtered by step and courier, with the bookings the courier refused listed
+ * on their own.
  */
 final class CourierBoard
 {
     public const Filters = [...ShipmentTracking::Statuses, 'booking'];
+
+    /** The step a parcel is on. Once staff confirm or receive it, that outcome wins over the courier's last word. */
+    public const StepSql = "CASE WHEN shipments.status IN ('delivered', 'returned') THEN shipments.status WHEN shipments.courier_booking_status IN ('pending', 'booking') THEN 'booking' WHEN shipments.courier_booking_status = 'failed' THEN 'failed' ELSE COALESCE(shipments.courier_status, 'waiting_pickup') END";
 
     public function __construct(private readonly CourierOptions $couriers) {}
 
@@ -25,7 +29,6 @@ final class CourierBoard
         $status = in_array($request->query('ship_status'), self::Filters, true) ? (string) $request->query('ship_status') : null;
         $courier = in_array($request->query('ship_courier'), CourierOptions::knownProviders(), true) ? (string) $request->query('ship_courier') : null;
         $base = fn () => DB::table('shipments')
-            ->whereNotNull('shipments.courier_provider')
             ->whereIn('shipments.order_id', clone $orderIds);
         $manualPages = $this->couriers->manualTrackingPages();
 
@@ -34,7 +37,7 @@ final class CourierBoard
             ->join('users', 'users.id', '=', 'orders.user_id')
             ->when($courier, fn ($query) => $query->where('shipments.courier_provider', $courier))
             ->when($status === 'booking', fn ($query) => $query->whereIn('shipments.courier_booking_status', ['pending', 'booking']))
-            ->when($status !== null && $status !== 'booking', fn ($query) => $query->where('shipments.courier_status', $status))
+            ->when($status !== null && $status !== 'booking', fn ($query) => $query->whereRaw(self::StepSql.' = ?', [$status]))
             ->orderByDesc('shipments.updated_at')
             ->select([
                 'shipments.id', 'shipments.order_id', 'orders.number', 'users.name as partner', 'users.dealer_code', 'shipments.courier',
@@ -59,7 +62,7 @@ final class CourierBoard
             ->all();
 
         $counts = $base()
-            ->selectRaw("CASE WHEN courier_booking_status IN ('pending', 'booking') THEN 'booking' WHEN courier_booking_status = 'failed' THEN 'failed' ELSE COALESCE(courier_status, 'waiting_pickup') END AS step, COUNT(*) AS aggregate")
+            ->selectRaw(self::StepSql.' AS step, COUNT(*) AS aggregate')
             ->groupBy('step')
             ->pluck('aggregate', 'step')
             ->map(fn ($count): int => (int) $count)

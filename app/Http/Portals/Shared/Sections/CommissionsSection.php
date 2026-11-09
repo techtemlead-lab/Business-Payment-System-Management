@@ -14,7 +14,9 @@ use App\Support\ListPage;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use stdClass;
 
 /**
  * Commission policy and payouts: rules and pools, ranks, monthly settlements and the simulator.
@@ -172,11 +174,11 @@ final class CommissionsSection implements WorkspaceSection
             ];
         });
 
-        $settledHistory = DB::table('journal_entries')
+        $settledHistory = $this->plainJournalRows(DB::table('journal_entries')
             ->where('event_key', 'like', 'commissions.%')
             ->latest()
             ->limit(20)
-            ->get();
+            ->get());
 
         $incentiveParameters = app(CommissionPolicy::class)->snapshot()['rules']['rank_incentive']['parameters'] ?? [];
         $rankIncentives = [];
@@ -216,6 +218,36 @@ final class CommissionsSection implements WorkspaceSection
         ];
 
         return $props;
+    }
+
+    /**
+     * The month-end journal rows as people read them: what happened and which order, never the
+     * system's own event code.
+     *
+     * @param  Collection<int, stdClass>  $entries
+     * @return list<array{id: mixed, created_at: mixed, description: mixed, event_word: string, order_number: ?string}>
+     */
+    private function plainJournalRows(Collection $entries): array
+    {
+        $idAfter = fn (stdClass $entry, string $prefix): ?string => str_starts_with((string) $entry->event_key, $prefix) ? substr((string) $entry->event_key, strlen($prefix)) : null;
+        $refundOrders = DB::table('commission_refunds')->whereIn('id', $entries->map(fn (stdClass $entry): ?string => $idAfter($entry, 'commissions.reversal.'))->filter()->values())->pluck('order_id', 'id');
+        $orderIds = $entries->map(fn (stdClass $entry): ?string => $idAfter($entry, 'commissions.order.'))->filter()->merge($refundOrders->values())->unique()->values();
+        $numbers = DB::table('orders')->whereIn('id', $orderIds)->pluck('number', 'id');
+
+        return $entries->map(function (stdClass $entry) use ($idAfter, $refundOrders, $numbers): array {
+            $reversal = $idAfter($entry, 'commissions.reversal.');
+            $orderId = $idAfter($entry, 'commissions.order.') ?? ($reversal !== null ? ($refundOrders[$reversal] ?? null) : null);
+            $kind = explode('.', (string) $entry->event_key)[1] ?? '';
+            $word = in_array($kind, ['order', 'reversal', 'settlement', 'matured', 'debt_recovery'], true) ? $kind : 'other';
+
+            return [
+                'id' => $entry->id,
+                'created_at' => $entry->created_at,
+                'description' => $entry->description,
+                'event_word' => (string) __('portal.st_event_'.$word),
+                'order_number' => $orderId !== null ? ($numbers[$orderId] ?? null) : null,
+            ];
+        })->values()->all();
     }
 
     /**

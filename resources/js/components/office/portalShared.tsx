@@ -59,7 +59,7 @@ export function ordersExportHref(section:string,filters:Row|undefined):string{
  params.set('section',section);
  return `/exports/orders?${params.toString()}`;
 }
-export const orderStatuses=['submitted','held','approved','partially_dispatched','dispatched','delivered','partly_delivered','rejected','cancelled'];
+export const orderStatuses=['submitted','held','approved','partially_dispatched','dispatched','delivered','partly_delivered','returned','rejected','cancelled'];
 /** The Deliveries list only holds orders with goods still to send (OrderListFilter::AwaitingDispatch), plus the overdue view. */
 export const deliveryStatuses=['overdue_delivery','approved','partially_dispatched','dispatched'];
 export const claimStatuses=['pending','verified','rejected'];

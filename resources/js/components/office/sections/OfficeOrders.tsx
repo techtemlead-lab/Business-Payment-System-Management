@@ -56,6 +56,9 @@ export function parcelStepLabel(parcel: Row, translate: TranslateFn): string {
     if (['pending', 'booking'].includes(parcel.courier_booking_status)) {
         return translate('courier', 'filter_booking');
     }
+    if (['delivered', 'returned'].includes(parcel.status)) {
+        return translate('courier', `status_${parcel.status}`);
+    }
     if (parcel.courier_booking_status === 'failed') {
         return translate('courier', 'step_booking_failed');
     }
@@ -76,7 +79,7 @@ export function OrderPartnerCell({ row }: { row: Row }) {
 export function OrderStatusCell({ row }: { row: Row }) {
     return (
         <>
-            <Badge status={row.status} />
+            <Badge status={row.came_back ? 'returned' : row.status} />
             {CLOSED_STATUSES.includes(row.status) && row.decision_reason && <small className="cell-sub" data-testid="order-closed-reason">{row.decision_reason}</small>}
         </>
     );
@@ -138,7 +141,7 @@ export function OrderDrawer({ order, onClose }: { order: Row; onClose: () => voi
         <Modal
             variant="drawer"
             title={String(order.number)}
-            badge={<Badge status={order.status} />}
+            badge={<Badge status={order.came_back ? 'returned' : order.status} />}
             onClose={onClose}
             footer={<Link className="button dark" href={`${base}/orders/${order.id}`}>{translate('office_orders', 'open_order')}</Link>}
         >
@@ -169,7 +172,7 @@ export function OrderDrawer({ order, onClose }: { order: Row; onClose: () => voi
                                 <div>{parcel.courier}<small className="cell-sub">{parcel.tracking_url
                                     ? <a className="text-link" href={parcel.tracking_url} target="_blank" rel="noopener noreferrer">{parcel.tracking}</a>
                                     : (parcel.tracking || '—')}</small></div>
-                                <div>{parcel.courier_provider ? parcelStepLabel(parcel, translate) : label(parcel.status, translate)}</div>
+                                <div>{parcel.courier_provider || parcel.courier_status ? parcelStepLabel(parcel, translate) : label(parcel.status, translate)}</div>
                             </div>
                         ))}
                     </section>
@@ -254,7 +257,7 @@ export default function OfficeOrders({ data }: { data: Row }) {
                 </>
             ),
         },
-        { key: 'paid', title: translate('office_orders', 'col_given'), sortKey: 'paid', money: true, total: 'paid', phone: 'hide' },
+        { key: 'paid', title: translate('office_orders', 'col_given'), sortKey: 'paid', money: true, total: 'paid', phone: 'hide', render: (row) => <>{money(row.paid)}{row.refunded_amount != null && <small className="cell-sub" data-testid="order-refunded">{translate('office_orders', 'refunded_part', { amount: money(row.refunded_amount) })}</small>}</> },
         { key: 'to_pay', title: translate('office_orders', 'col_to_pay'), sortKey: 'to_pay', money: true, total: 'to_pay', phone: 'hide', render: (row) => money(orderDue(row)) },
         { key: 'status', title: translate('portal', 'col_status'), phone: 'hide', render: (row) => <OrderStatusCell row={row} /> },
     ];
@@ -273,6 +276,7 @@ export default function OfficeOrders({ data }: { data: Row }) {
                     empty={translate('portal', 'empty_orders_title')}
                 />
             </div>
+            <p className="muted" data-testid="order-totals-note">{translate('portal', 'order_totals_note')}</p>
             {opened && <OrderDrawer order={opened} onClose={() => setOpened(null)} />}
         </OfficePage>
     );

@@ -89,7 +89,7 @@ class OrderService
             if (! in_array($channel, [self::OfficeChannel, AccountOrderPayment::Channel], true)) {
                 $this->assertPaidInFullWithOrder($data, $total);
             }
-            $order = Order::create(['number' => 'MN-'.now()->format('ymd').'-'.Str::upper(Str::random(8)),
+            $order = Order::create(['number' => 'MN-'.now((string) config('madina.business_timezone'))->format('ymd').'-'.Str::upper(Str::random(8)),
                 'user_id' => $user->id, 'submitted_by' => $submittedBy?->id, 'total' => Money::decimal($total), 'idempotency_key' => $data['idempotency_key'],
                 'payload_hash' => $hash, 'note' => $data['note'] ?? null, 'courier_choice' => CourierOptions::stored($data['courier_choice'] ?? null)]);
             $order->lines()->createMany($lines);
@@ -476,7 +476,7 @@ class OrderService
             if ($shipment->courier_status === 'returned') {
                 throw ValidationException::withMessages(['shipment' => __('courier.returned_cannot_confirm')]);
             }
-            DB::table('shipments')->where('id', $shipmentId)->update(['status' => 'delivered', 'delivered_at' => now(), 'delivered_by' => $actor->id, 'updated_at' => now()]);
+            DB::table('shipments')->where('id', $shipmentId)->update(['status' => 'delivered', 'delivered_at' => now(), 'delivered_by' => $actor->id, 'updated_at' => now(), ...ShipmentTracking::confirmedDelivered($shipment)]);
             $remaining = $locked->lines()->whereColumn('dispatched', '<', 'quantity')->exists();
             $openShipment = DB::table('shipments')->where('order_id', $locked->id)->where('status', '!=', 'delivered')->exists();
             if (! $remaining && ! $openShipment) {
