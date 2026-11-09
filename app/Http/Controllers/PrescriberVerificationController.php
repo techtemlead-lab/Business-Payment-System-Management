@@ -14,7 +14,7 @@ use Illuminate\Validation\Rule;
 /**
  * The per-account prescribing switch: for partners on the accounts page, for office accounts
  * on the employees page. Owners and staff with the "prescriber_verify" permission turn it on
- * after checking the registration offline.
+ * for partners after checking the registration offline; only owners do it for office accounts.
  */
 class PrescriberVerificationController extends Controller
 {
@@ -27,6 +27,7 @@ class PrescriberVerificationController extends Controller
     {
         abort_unless(PrescriptionAccess::canVerify($request->user()), 403);
         abort_unless(PrescriptionAccess::isPartner($user) || PrescriptionAccess::isOfficeAccount($user), 404);
+        abort_if(PrescriptionAccess::isOfficeAccount($user) && ! PrescriptionAccess::canManageCompanyStock($request->user()), 403, __('prescription.err_company_stock_owner_only'));
 
         return response()->json([
             'can_edit' => true,
@@ -38,7 +39,7 @@ class PrescriberVerificationController extends Controller
     /** Office accounts (MD, Chairman, staff) for the company-stock switch; those switched on come first. */
     public function officeAccounts(Request $request): JsonResponse
     {
-        abort_unless(PrescriptionAccess::canVerify($request->user()), 403);
+        abort_unless(PrescriptionAccess::canManageCompanyStock($request->user()), 403, __('prescription.err_company_stock_owner_only'));
         $data = $request->validate(['q' => 'nullable|string|max:80']);
         $term = trim((string) ($data['q'] ?? ''));
         $accounts = User::query()

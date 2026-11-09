@@ -6609,4 +6609,13 @@ return [
     'table_total_verified_only' => 'Total received (checked payments only)',
     'table_total_paid_only' => 'Total paid (paid rows only)',
     'acct_partner_created_nothing_sent' => ':role account added. Code: :code. Neither the SMS nor the password link could be sent. Check the SMS and email settings, then open this account and use Login password to send a new one. The username is the mobile number.',
+    'owner_status_title' => 'MD and Chairman',
+    'owner_status_hint' => 'Only the Super Admin can turn these accounts off and on. When an account is off, that person is signed out at once and cannot sign in.',
+    'owner_status_turn_off' => 'Turn off',
+    'owner_status_turn_on' => 'Turn on',
+    'owner_status_off_note' => 'Turning off this account signs this person out at once.',
+    'owner_status_on_note' => 'Turning on this account lets this person sign in again.',
+    'owner_status_reason' => 'Reason',
+    'owner_status_cancel' => 'Cancel',
+    'owner_status_empty' => 'No MD or Chairman account has been added yet.',
 ];

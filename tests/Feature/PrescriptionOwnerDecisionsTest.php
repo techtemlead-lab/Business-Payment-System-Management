@@ -197,11 +197,13 @@ class PrescriptionOwnerDecisionsTest extends TestCase
         $this->assertFalse($account->fresh()->can_prescribe);
 
         $verifier = User::factory()->staff('employee')->create(['profile' => ['permissions' => ['accounts', 'prescriber_verify']]]);
+        $this->grant($verifier, $account, 'manage')->assertForbidden();
+        $this->assertFalse($account->fresh()->can_prescribe);
+
         $authorised = [
             [$this->owner, 'sadmin'],
             [User::factory()->staff('md')->create(), 'sadmin'],
             [User::factory()->staff('chairman')->create(), 'sadmin'],
-            [$verifier, 'manage'],
         ];
         foreach ($authorised as [$actor, $portal]) {
             $this->grant($actor, $account, $portal)->assertRedirect()->assertSessionHasNoErrors();
