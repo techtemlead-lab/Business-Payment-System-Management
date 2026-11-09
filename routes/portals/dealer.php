@@ -47,5 +47,8 @@ Route::middleware(['auth', 'active', 'portal:dealer', 'agreement'])->group(funct
     Route::get('/withdrawals/{id}/receipt', [WithdrawalController::class, 'receipt'])->whereUuid('id');
     Route::get('/payment-receipts/{receipt}/print', [PayoutReceiptController::class, 'print'])->whereNumber('receipt')->middleware('throttle:30,1');
     Route::get('/withdrawals/{id}', [WithdrawalController::class, 'show'])->whereUuid('id');
+    require __DIR__.'/treasury.php';
+    require __DIR__.'/treasury_redirects.php';
+    require __DIR__.'/treasury_partner.php';
     Route::get('/{section?}', [DashboardController::class, 'index'])->whereIn('section', PortalCatalog::routeSections('dealer'));
 });

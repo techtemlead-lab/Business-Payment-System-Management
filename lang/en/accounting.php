@@ -73,6 +73,7 @@ return [
     'account_manual_collection_clearing' => 'Money collected by hand (being cleared)',
     'account_opening_collection_clearing' => 'Opening collections (being cleared)',
     'account_manual_payout_clearing' => 'Money paid out by hand (being cleared)',
+    'account_wallet_order_clearing' => 'Orders paid from partner accounts',
     'account_opening_receivables' => 'Opening money to collect from partners',
     'account_commission_clawback_receivable' => 'Commission to get back from partners',
     'account_company_reserve_clawback_receivable' => 'Reserve money to get back',

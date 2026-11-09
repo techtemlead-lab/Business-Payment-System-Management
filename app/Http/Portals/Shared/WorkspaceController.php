@@ -15,7 +15,9 @@ use App\Domain\Identity\BdrisLookup;
 use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\BranchScope;
 use App\Domain\Inventory\StockMovementList;
+use App\Domain\Orders\AccountOrderPayment;
 use App\Domain\Orders\CourierOptions;
+use App\Domain\Orders\MixedOutcomeDecisions;
 use App\Domain\Orders\OrderInvoice;
 use App\Domain\Orders\OrderPaymentPrompt;
 use App\Domain\Orders\OrderRefund;
@@ -161,7 +163,7 @@ class WorkspaceController extends Controller
             'min_mrp' => 'nullable|numeric|min:0',
             'max_mrp' => 'nullable|numeric|min:0',
             'availability' => 'nullable|in:published,draft,in_stock,out_of_stock',
-            'sort' => 'nullable|in:name_asc,name_desc,price_asc,price_desc,newest,stock_asc,stock_desc',
+            'sort' => $section === 'inventory' ? 'nullable|string|max:40' : 'nullable|in:name_asc,name_desc,price_asc,price_desc,newest,stock_asc,stock_desc',
             ...Arr::only(PartnerAccountList::rules(), ['division', 'district', 'rank', 'no_order_days']),
             ...Arr::only(StockMovementList::rules(), ['product_id', 'movement']),
         ]);
@@ -345,6 +347,7 @@ class WorkspaceController extends Controller
         $claims = DB::table('payment_claims')->where('order_id', $order->id)->get(['id', 'channel', 'reference', 'amount', 'status', 'reason', 'created_at']);
 
         return Inertia::render('OrderDetail', ['replacementSlots' => $replacementSlots, 'replacementCandidates' => $replacementCandidates, 'order' => $order->load(['lines', 'user:id,name,dealer_code']),
+            'commissionOutcome' => app(MixedOutcomeDecisions::class)->outcomeFor($order, $u),
             'outstanding' => $order->outstanding(),
             'paymentPrompt' => app(OrderPaymentPrompt::class)->for($order, $claims),
             'fullPaymentRequired' => app(FinanceSettings::class)->fullPaymentWhenOrdering()['enabled'],
@@ -353,7 +356,8 @@ class WorkspaceController extends Controller
             'shipments' => $this->shipmentsWithTracking($order, showBookingErrors: (int) $order->user_id !== (int) $u->id),
             'courierChoices' => $u->allows('inventory') || $u->allows('order_review') ? app(CourierOptions::class)->enabled() : [],
             'refund' => DB::table('order_refunds as f')->join('users as staff', 'staff.id', '=', 'f.refunded_by')->where('f.order_id', $order->id)
-                ->first(['f.amount', 'f.reason', 'f.created_at', 'staff.name as refunded_by']),
+                ->first(['f.amount', 'f.to_account', 'f.reason', 'f.created_at', 'staff.name as refunded_by']),
+            'payOptions' => (int) $u->id === (int) $order->user_id && ! $u->staff() && ! $order->is_opening_balance ? app(AccountOrderPayment::class)->options($u) : null,
             'canRefund' => OrderRefund::canRefund($u) && (int) $u->id !== (int) $order->user_id
                 && in_array($order->status, OrderRefund::RefundableStatuses, true) && Money::cents($order->paid) > 0]);
     }

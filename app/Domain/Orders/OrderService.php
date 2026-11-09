@@ -37,6 +37,9 @@ class OrderService
     /** Order states in which items can still be waiting for stock. */
     public const SupplyDateStatuses = ['submitted', 'held', 'approved', 'partially_dispatched'];
 
+    /** Cash paid at the office: the partner enters nothing and staff confirm it. */
+    public const OfficeChannel = 'Office';
+
     public function __construct(
         private readonly ProductPricing $pricing,
         private readonly CommissionPosting $commissions,
@@ -82,17 +85,26 @@ class OrderService
             }
             $lines = [...$lines, ...app(SchemeFreeLines::class)->for($lines)];
             DashboardManagement::assertPartnerCanOrder($user, $total);
-            $this->assertPaidInFullWithOrder($data, $total);
+            $channel = (string) ($data['channel'] ?? '');
+            if (! in_array($channel, [self::OfficeChannel, AccountOrderPayment::Channel], true)) {
+                $this->assertPaidInFullWithOrder($data, $total);
+            }
             $order = Order::create(['number' => 'MN-'.now()->format('ymd').'-'.Str::upper(Str::random(8)),
                 'user_id' => $user->id, 'submitted_by' => $submittedBy?->id, 'total' => Money::decimal($total), 'idempotency_key' => $data['idempotency_key'],
                 'payload_hash' => $hash, 'note' => $data['note'] ?? null, 'courier_choice' => CourierOptions::stored($data['courier_choice'] ?? null)]);
             $order->lines()->createMany($lines);
             $this->commissions->capture($order, $user);
+            if ($channel === self::OfficeChannel) {
+                $data = [...$data, 'reference' => $this->officeReference($order), 'amount' => Money::decimal($total)];
+            }
             $claimedWithOrder = ! empty($data['reference']);
             if ($claimedWithOrder) {
                 $this->insertClaim($order, $data);
             }
             $this->event($order, $submittedBy ?? $user, 'order.submitted');
+            if ($channel === AccountOrderPayment::Channel) {
+                app(AccountOrderPayment::class)->pay($order, $user, $submittedBy);
+            }
             $this->partnerNotice($user->id, 'portal.notice_order_submitted_title', 'portal.notice_order_submitted_body', [
                 'number' => $order->number,
             ], 'order.submitted');
@@ -110,7 +122,9 @@ class OrderService
                 ]),
                 $submittedBy?->id
             );
-            if ($claimedWithOrder) {
+            if ($claimedWithOrder && $channel === self::OfficeChannel) {
+                $this->officeCashNotices($user, $order, (string) $data['amount']);
+            } elseif ($claimedWithOrder) {
                 $this->paymentClaimedNotice($user->id, $order->number, (string) $data['amount'], (string) $data['channel']);
                 $this->partnerSms($user->id, 'payment.claimed', 'sms.payment_claimed', [
                     'number' => $order->number,
@@ -143,6 +157,14 @@ class OrderService
             if (in_array($locked->status, ['rejected', 'cancelled'], true)) {
                 throw ValidationException::withMessages(['reference' => __('portal.err_order_closed')]);
             }
+            if (($data['channel'] ?? null) === self::OfficeChannel) {
+                $data = [...$data, 'reference' => $this->officeReference($locked), 'amount' => $locked->outstanding()];
+                $id = $this->insertClaim($locked, $data);
+                $this->event($locked, $actor, 'payment.claimed', ['claim_id' => $id]);
+                $this->officeCashNotices($actor, $locked, (string) $data['amount']);
+
+                return;
+            }
             if (app(FinanceSettings::class)->fullPaymentWhenOrdering()['enabled'] && Money::cents((string) $data['amount']) !== Money::cents($locked->outstanding())) {
                 throw ValidationException::withMessages(['amount' => __('portal.err_claim_full_amount', ['amount' => LocalDigits::text(Money::grouped($locked->outstanding()))])]);
             }
@@ -174,6 +196,37 @@ class OrderService
         }, 3);
     }
 
+    /**
+     * The partner pays everything still due on their own order from their usable balance.
+     * A repeat after it went through changes nothing, so a double click charges once.
+     */
+    public function payFromAccount(User $actor, Order $order): void
+    {
+        abort_unless($order->user_id === $actor->id && in_array($actor->role, ['dealer', 'sub_dealer'], true), 404);
+        DashboardManagement::assertPartnerFeature($actor, 'claims');
+        DB::transaction(function () use ($actor, $order): void {
+            CommissionWallet::lock();
+            $buyer = User::whereKey($actor->id)->lockForUpdate()->firstOrFail();
+            abort_unless($buyer->status === 'active', 403);
+            $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            if ($locked->is_opening_balance) {
+                throw ValidationException::withMessages(['channel' => __('order_payment.err_account_old_due')]);
+            }
+            $claims = DB::table('payment_claims')->where('order_id', $locked->id)->get(['amount', 'status', 'channel', 'reference']);
+            if (Money::cents($locked->outstanding()) === 0 && $claims->contains(fn (object $claim): bool => $claim->reference === AccountOrderPayment::reference($locked))) {
+                return;
+            }
+            $prompt = app(OrderPaymentPrompt::class)->for($locked, $claims);
+            if (! $prompt['ask_for_payment'] && ! $prompt['waiting_for_check']) {
+                throw ValidationException::withMessages(['channel' => __('portal.err_order_closed')]);
+            }
+            if ($claims->contains('status', 'pending')) {
+                throw ValidationException::withMessages(['channel' => __('order_payment.err_account_waiting')]);
+            }
+            app(AccountOrderPayment::class)->pay($locked, $buyer);
+        }, 3);
+    }
+
     public function decision(User $actor, Order $order, string $status, string $reason, array $replacements = []): void
     {
         abort_unless($actor->allows('order_review'), 403);
@@ -194,7 +247,12 @@ class OrderService
             if ($status === 'approved' && Money::cents($locked->outstanding()) > 0) {
                 throw ValidationException::withMessages(['status' => __('portal.err_order_needs_full_payment', ['amount' => Money::grouped($locked->outstanding())])]);
             }
-            if ($status === 'rejected' && Money::cents($locked->paid) > 0) {
+            // Paid wholly from the partner's own account: that money goes back by itself below.
+            // Anything paid another way still has to go through the refund steps by hand.
+            $accountPayment = app(AccountOrderPayment::class);
+            $paidSoFar = Money::cents($locked->paid);
+            $returnsToAccount = $status === 'rejected' && $paidSoFar > 0 && $accountPayment->paidFromAccount($locked) === $paidSoFar;
+            if ($status === 'rejected' && $paidSoFar > 0 && ! $returnsToAccount) {
                 throw ValidationException::withMessages(['status' => __('portal.err_order_paid_needs_refund')]);
             }
             if ($status === 'approved') {
@@ -203,6 +261,13 @@ class OrderService
                 throw ValidationException::withMessages(['replacement' => __('portal.err_order_replacement_on_approve')]);
             }
             $locked->update($changes);
+            if ($status === 'rejected') {
+                DB::table('payment_claims')->where('order_id', $locked->id)->where('channel', self::OfficeChannel)->where('status', 'pending')
+                    ->update(['status' => 'rejected', 'verified_by' => $actor->id, 'reason' => $reason, 'updated_at' => now()]);
+            }
+            if ($returnsToAccount) {
+                $accountPayment->returnForRejectedOrder($locked, $actor, $reason);
+            }
             $this->event($locked, $actor, 'order.'.$status, ['reason' => $reason,
                 'referral_replacements' => $status === 'approved' ? $locked->commission_policy_snapshot['referral_replacements'] ?? [] : []]);
             if ($status === 'approved') {
@@ -418,7 +483,7 @@ class OrderService
                 $locked->update(['status' => 'delivered']);
                 $this->commissions->process($locked, $actor->id);
             }
-            MixedOutcomeDecisions::closeIfFinished($locked);
+            MixedOutcomeDecisions::closeIfFinished($locked, $actor->id);
             $this->event($locked, $actor, 'shipment.delivered', ['shipment_id' => $shipmentId, 'reason' => $reason]);
             $this->partnerNotice($locked->user_id, 'portal.notice_delivery_confirmed_title', 'portal.notice_delivery_confirmed_body', [
                 'number' => $locked->number,
@@ -441,6 +506,7 @@ class OrderService
         $this->assertNotOwnOrder($actor, $order);
         $note = $note !== null && trim($note) !== '' ? Str::limit(trim($note), 500, '') : null;
         DB::transaction(function () use ($actor, $order, $shipmentId, $note): void {
+            CommissionWallet::lock();
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             $shipment = DB::table('shipments')->where('id', $shipmentId)->where('order_id', $locked->id)->lockForUpdate()->first();
             abort_unless($shipment !== null, 404);
@@ -477,7 +543,7 @@ class OrderService
             if ($orderClosed) {
                 $locked->update(['status' => 'cancelled', 'decision_reason' => __('courier.received_back_reason')]);
             }
-            MixedOutcomeDecisions::closeIfFinished($locked);
+            MixedOutcomeDecisions::closeIfFinished($locked, $actor->id);
             $this->event($locked, $actor, 'shipment.received_back', [
                 'shipment_id' => $shipment->id,
                 'reason' => $note,
@@ -768,6 +834,31 @@ class OrderService
         }, 3);
     }
 
+    /** The reference the server gives a By Office payment; the partner types nothing. */
+    private function officeReference(Order $order): string
+    {
+        return 'OFC-'.$order->number;
+    }
+
+    /** By Office: tell the partner to bring the cash, and tell the office to expect it. */
+    private function officeCashNotices(User $partner, Order $order, string $amount): void
+    {
+        $locale = $partner->preferredLocale();
+        $this->partnerNotice($partner->id, 'order_payment.notice_office_title', 'order_payment.notice_office_body', [
+            'number' => $order->number,
+            'amount' => LocalDigits::text(Money::grouped($amount), $locale),
+        ]);
+        Audit::notifyAdminsAndStaff(
+            ['finance', 'orders'],
+            __('order_payment.notice_admin_office_title', ['number' => $order->number]),
+            __('order_payment.notice_admin_office_body', [
+                'name' => $partner->name,
+                'amount' => LocalDigits::text(Money::grouped($amount)),
+                'number' => $order->number,
+            ]),
+        );
+    }
+
     /** The "payment sent for checking" notice, with the money and the payment method written for the partner's language. */
     private function paymentClaimedNotice(int $userId, string $number, string $amount, string $channel): void
     {
@@ -849,7 +940,8 @@ class OrderService
             ])]);
         }
 
-        $account = app(PaymentAccounts::class)->collection(isset($data['payment_account_id']) ? (int) $data['payment_account_id'] : null, $data['channel']);
+        // Cash handed over at the office goes through no company account.
+        $account = $data['channel'] === self::OfficeChannel ? null : app(PaymentAccounts::class)->collection(isset($data['payment_account_id']) ? (int) $data['payment_account_id'] : null, $data['channel']);
         $reference = Str::upper(trim($data['reference']));
         if (DB::table('payment_claims')->where('channel', $data['channel'])->where('reference', $reference)->where('status', '<>', 'rejected')->exists()
             || DB::table('receipts')->where('channel', $data['channel'])->where('reference', $reference)->exists()) {

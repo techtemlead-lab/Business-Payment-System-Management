@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
-import { Search } from 'lucide-react';
+import { Download, Search } from 'lucide-react';
 import { FormErrors, money, date, Table, Pagination, type Row } from './UI';
+import MoneyTable, { type MoneyColumn, type MoneyTableData } from './MoneyTable';
 import { useT } from '../shared/i18n/t';
 import { useEscape } from '../shared/useEscape';
 import { channelName, methodForChannel, payoutMethods, type PayoutMethod } from '../shared/payoutMethods';
@@ -71,12 +72,28 @@ const emptyTotals: PayoutTotals = {
     paid_withheld_amount: 0,
 };
 
+/** Withdrawal requests on the shared table: search, filters, date view and sorting cover every page. */
+function PayoutsTable({ data, rowActions }: { data: MoneyTableData<WithdrawalRecord>; rowActions: (w: WithdrawalRecord) => React.ReactNode }) {
+    const translate = useT();
+    const columns: MoneyColumn<WithdrawalRecord>[] = [
+        { key: 'created_at', title: translate('portal', 'pay_col_date'), sortKey: 'date', phone: 'sub', render: (w) => date(w.created_at) },
+        { key: 'user_name', title: translate('portal', 'pay_col_partner'), sortKey: 'partner', phone: 'title', render: (w) => <><b>{w.user_name}</b><small className="cell-sub">{[w.dealer_code, w.district, w.division].filter(Boolean).join(' · ')}</small></> },
+        { key: 'channel', title: translate('portal', 'pay_col_method'), phone: 'sub', render: (w) => <>{channelName(w.channel, translate)}<small className="cell-sub">{w.destination_masked || '—'}</small></> },
+        { key: 'amount', title: translate('portal', 'pay_col_gross'), sortKey: 'amount', money: true, total: 'amount', phone: 'amount', render: (w) => <b>{money(w.amount)}</b> },
+        { key: 'status', title: translate('portal', 'pay_col_status'), sortKey: 'status', phone: 'sub', render: (w) => <span className={`badge hub-capital ${w.status}`}>{translate('portal', `pay_status_${w.status}`)}</span> },
+        { key: 'actions', title: translate('portal', 'pay_col_actions'), phone: 'sub', render: rowActions },
+    ];
+
+    return <MoneyTable<WithdrawalRecord> data={data} prop="data" columns={columns} searchPlaceholder={translate('portal', 'pay_search_ph')} empty={translate('portal', 'pay_empty')} />;
+}
+
 export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals }: PayoutsHubProps) {
     const translate = useT();
     const { portalBase, filters, data: pageData, staffActions } = usePage<any>().props;
     // Checking and paying a withdrawal needs finance approval on the server; everyone else just reads the list.
     const canProcess = staffActions?.finance?.approve ?? true;
     const summary: PayoutTotals = totals ?? pageData?.payout_totals ?? emptyTotals;
+    const payoutsTable: MoneyTableData<WithdrawalRecord> | undefined = pageData?.payouts_table;
     const activeSearch = String(filters?.q ?? '');
     const activeStatus = statusTabs.includes(filters?.status) ? String(filters.status) : 'all';
     const activeChannel = String(filters?.channel ?? '');
@@ -199,6 +216,59 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
         });
     };
 
+    const rowActions = (w: WithdrawalRecord) => (
+        <div className="hub-row is-end">
+            {w.status === 'requested' && canProcess && (
+                <button
+                    type="button"
+                    onClick={() => handleOpenReview(w)}
+                    className="button small dark"
+                >
+                    {translate('portal', 'pay_review')}
+                </button>
+            )}
+
+            {w.status === 'approved' && w.payer_state === 'second_person' && (
+                <small className="muted">{translate('self_approval', 'wait_second_person')}</small>
+            )}
+
+            {w.status === 'approved' && w.payer_state !== 'second_person' && canProcess && (
+                <button
+                    type="button"
+                    onClick={() => handleOpenSettle(w)}
+                    className="button small dark"
+                >
+                    {translate('portal', 'pay_record_payout')}
+                </button>
+            )}
+
+            {/* The full number to send the money to is only on this page, where opening it is logged. */}
+            <a
+                href={`/withdrawals/${w.id}`}
+                className="text-link"
+            >
+                {translate('portal', 'pay_details')}
+            </a>
+
+            {w.status === 'paid' && w.payout_receipt_id && (
+                <a
+                    href={`${portalBase ?? ''}/payment-receipts/${w.payout_receipt_id}/print`}
+                    target="_blank"
+                    rel="noopener"
+                    className="button small"
+                >
+                    {translate('portal', 'prc_view_print')}
+                </a>
+            )}
+
+            {w.status === 'rejected' && w.reason && (
+                <span className="pay-reason" title={w.reason}>
+                    {w.reason}
+                </span>
+            )}
+        </div>
+    );
+
     return (
         <div className="hub">
             {/* Top Operational Notice */}
@@ -266,6 +336,15 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
 
             {!canProcess && <div className="notice" role="status"><p>{translate('portal', 'pay_view_only_notice')}</p></div>}
 
+            {canProcess && (
+                <div className="toolbar-end">
+                    <a className="button small" href="/commands/operations/accounting/payout-batch/export">
+                        <Download size={14} aria-hidden="true" /> {translate('treasury', 'payout_file')}
+                    </a>
+                </div>
+            )}
+
+            {payoutsTable ? <PayoutsTable data={payoutsTable} rowActions={rowActions} /> : <>
             {/* Filter & Search Bar */}
             <div className="panel hub-row is-between">
                 <div className="hub-seg">
@@ -431,63 +510,13 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
                             title: translate('portal', 'pay_col_actions'),
                             align: 'right',
                             sortable: false,
-                            render: (w: WithdrawalRecord) => (
-                                <div className="hub-row is-end">
-                                    {w.status === 'requested' && canProcess && (
-                                        <button
-                                            type="button"
-                                            onClick={() => handleOpenReview(w)}
-                                            className="button small dark"
-                                        >
-                                            {translate('portal', 'pay_review')}
-                                        </button>
-                                    )}
-
-                                    {w.status === 'approved' && w.payer_state === 'second_person' && (
-                                        <small className="muted">{translate('self_approval', 'wait_second_person')}</small>
-                                    )}
-
-                                    {w.status === 'approved' && w.payer_state !== 'second_person' && canProcess && (
-                                        <button
-                                            type="button"
-                                            onClick={() => handleOpenSettle(w)}
-                                            className="button small dark"
-                                        >
-                                            {translate('portal', 'pay_record_payout')}
-                                        </button>
-                                    )}
-
-                                    {/* The full number to send the money to is only on this page, where opening it is logged. */}
-                                    <a
-                                        href={`/withdrawals/${w.id}`}
-                                        className="text-link"
-                                    >
-                                        {translate('portal', 'pay_details')}
-                                    </a>
-
-                                    {w.status === 'paid' && w.payout_receipt_id && (
-                                        <a
-                                            href={`${portalBase ?? ''}/payment-receipts/${w.payout_receipt_id}/print`}
-                                            target="_blank"
-                                            rel="noopener"
-                                            className="button small"
-                                        >
-                                            {translate('portal', 'prc_view_print')}
-                                        </a>
-                                    )}
-
-                                    {w.status === 'rejected' && w.reason && (
-                                        <span className="pay-reason" title={w.reason}>
-                                            {w.reason}
-                                        </span>
-                                    )}
-                                </div>
-                            ),
+                            render: rowActions,
                         },
                     ]}
                 />
                 <Pagination page={withdrawals} />
             </div>
+            </>}
 
             {/* Review Modal */}
             {reviewModalRecord && (

@@ -136,7 +136,7 @@ class ReportTotalsCountPaidMoneyTest extends TestCase
         $this->assertStringNotContainsString('<v>60000</v>', $sheet, 'The order value behind each share is not money paid.');
     }
 
-    public function test_orders_total_is_money_received_less_money_given_back(): void
+    public function test_orders_total_counts_delivered_goods_only(): void
     {
         $this->order('KEPT', '1000.00', '1000.00', 'delivered');
         $this->order('UNPAID', '5000.00', '0.00', 'submitted');
@@ -146,8 +146,9 @@ class ReportTotalsCountPaidMoneyTest extends TestCase
 
         [$rows, $summary] = $this->workbook('orders');
 
-        $this->assertStringContainsString('<v>1200</v>', $rows, 'Total is 1000 + (700 - 500).');
-        $this->assertStringNotContainsString('<v>6700</v>', $rows, 'Order value is not money received.');
+        $this->assertStringContainsString('<v>1000</v>', $rows, 'Only the delivered order counts.');
+        $this->assertStringNotContainsString('<v>1200</v>', $rows, 'Money on a cancelled order is never counted.');
+        $this->assertStringNotContainsString('<v>6700</v>', $rows, 'Order value of undelivered orders is not counted.');
         $this->assertStringContainsString(e(__('portal.ops_total_note_orders')), $summary);
     }
 

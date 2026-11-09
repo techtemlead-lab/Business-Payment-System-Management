@@ -4,6 +4,7 @@ namespace App\Domain\Accounts;
 
 use App\Domain\Geography\PlaceTree;
 use App\Domain\Inventory\BranchScope;
+use App\Domain\Orders\DeliveredMoney;
 use App\Domain\Orders\OrderListFilter;
 use App\Models\PlaceCode;
 use App\Models\User;
@@ -233,7 +234,7 @@ final class PartnerAccountList
             ->groupBy('orders.user_id')
             ->select('orders.user_id')
             ->selectRaw('MAX(orders.created_at) AS last_order_at')
-            ->selectRaw('COALESCE(SUM(orders.total) FILTER (WHERE orders.created_at >= ?), 0) AS month_purchase', [$monthStart]);
+            ->selectRaw('COALESCE(SUM('.DeliveredMoney::valueSql().') FILTER (WHERE orders.created_at >= ?), 0) AS month_purchase', [$monthStart]);
     }
 
     /**

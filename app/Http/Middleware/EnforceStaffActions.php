@@ -36,7 +36,7 @@ class EnforceStaffActions
             $partnerAllowed = match ($controller) {
                 '' => true,
                 'CommandController' => in_array($method, [
-                    'order', 'claim', 'readNotice', 'readAllNotices', 'partnerSupport',
+                    'order', 'claim', 'payFromAccount', 'readNotice', 'readAllNotices', 'partnerSupport',
                     'supportTicket', 'supportTicketReply', 'completeTour', 'restartTour', 'switchWorkspaceMode',
                     'storeSiteFeedback',
                 ], true),

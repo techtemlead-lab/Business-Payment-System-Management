@@ -4,6 +4,7 @@ namespace App\Domain\Finance;
 
 use App\Domain\Commissions\RetainedFundLedger;
 use App\Domain\Inventory\BranchOperations;
+use App\Domain\Orders\DeliveredMoney;
 use App\Domain\Orders\OrderListFilter;
 use App\Domain\Staff\TerritoryAccess;
 use App\Models\User;
@@ -39,7 +40,7 @@ final class ReportData
      * @var array<string, array{columns: list<string>, statuses?: list<string>}>
      */
     private const PaidTotals = [
-        'orders' => ['columns' => ['net_received']],
+        'orders' => ['columns' => ['delivered_value']],
         'products' => ['columns' => ['total']],
         'product-summary' => ['columns' => ['gross_sales']],
         'category-summary' => ['columns' => ['gross_sales']],
@@ -116,10 +117,10 @@ final class ReportData
             // No goods on credit any more: the orders export shows what was paid and what is still to pay before approval.
             'orders' => [DB::table('orders as o')->join('users as u', 'u.id', '=', 'o.user_id')
                 ->leftJoinSub(DB::table('order_refunds')->selectRaw('order_id, SUM(amount) AS given_back')->groupBy('order_id'), 'refund', 'refund.order_id', '=', 'o.id'),
-                ['o.number', 'u.dealer_code', 'u.name', 'u.phone', 'u.district', 'u.division', 'o.status', 'o.total', 'o.paid', DB::raw(self::OutstandingSql.' AS outstanding'), DB::raw('(o.paid-COALESCE(refund.given_back,0)) AS net_received'), 'o.created_at'],
-                ['total', 'paid', 'outstanding', 'net_received'], 'o.created_at', 'o.user_id'],
-            'products' => [DB::table('order_lines as l')->join('orders as o', 'o.id', '=', 'l.order_id')->join('products as p', 'p.id', '=', 'l.product_id')->where('o.status', 'delivered'),
-                ['o.number', DB::raw('COALESCE(l.category_snapshot,p.category,'.$this->uncategorisedSql().') AS category'), 'l.sku', 'l.name', 'l.quantity', 'l.dispatched', 'l.unit_price', 'l.total', 'o.status'], ['unit_price', 'total'], 'o.created_at', 'o.user_id'],
+                ['o.number', 'u.dealer_code', 'u.name', 'u.phone', 'u.district', 'u.division', 'o.status', 'o.total', 'o.paid', DB::raw(self::OutstandingSql.' AS outstanding'), DB::raw('(o.paid-COALESCE(refund.given_back,0)) AS net_received'), DB::raw(DeliveredMoney::valueSql('o').' AS delivered_value'), 'o.created_at'],
+                ['total', 'paid', 'outstanding', 'net_received', 'delivered_value'], 'o.created_at', 'o.user_id'],
+            'products' => [$this->deliveredLines(),
+                ['o.number', DB::raw('COALESCE(l.category_snapshot,p.category,'.$this->uncategorisedSql().') AS category'), 'l.sku', 'l.name', DB::raw(DeliveredMoney::lineQuantitySql().' AS quantity'), 'l.dispatched', 'l.unit_price', DB::raw(DeliveredMoney::lineValueSql().' AS total'), 'o.status'], ['unit_price', 'total'], 'o.created_at', 'o.user_id'],
             'product-summary', 'category-summary' => $this->salesSummary($type),
             'district-summary' => $this->districtSummary(),
             'rank-achievements' => [DB::table('dealer_ranks as r')->join('users as u', 'u.id', '=', 'r.user_id')
@@ -143,8 +144,9 @@ final class ReportData
             'rewards' => [DB::table('reserve_disbursements as r')->where('r.program', '!=', FundSpending::Program)->leftJoin('users as u', 'u.id', '=', 'r.user_id'),
                 ['r.id', 'u.dealer_code', 'u.name', 'r.payee_name', 'r.program', 'r.amount', 'r.status', 'r.payment_reference', 'r.created_at'], ['amount'], 'r.created_at', 'r.user_id'],
             // Every payment a partner sent with its TrxID, who checked it and when: the daily collection sheet.
+            // A partner's own account paying for an order is not money coming in, so it stays off this sheet.
             'collections' => [DB::table('payment_claims as c')->join('orders as o', 'o.id', '=', 'c.order_id')->join('users as u', 'u.id', '=', 'o.user_id')
-                ->leftJoin('users as checker', 'checker.id', '=', 'c.verified_by'),
+                ->leftJoin('users as checker', 'checker.id', '=', 'c.verified_by')->where('c.channel', '<>', 'Account'),
                 ['c.created_at', 'o.number', 'u.dealer_code', 'u.name', 'u.phone', 'u.district', 'u.division', 'c.channel', 'c.reference', 'c.amount', 'c.status',
                     DB::raw('checker.name AS checked_by'), DB::raw("CASE WHEN c.status <> 'pending' THEN c.updated_at END AS checked_at")],
                 ['amount'], 'c.created_at', 'o.user_id'],
@@ -198,21 +200,22 @@ final class ReportData
     private function salesSummary(string $type): array
     {
         $category = 'COALESCE(l.category_snapshot,p.category,'.$this->uncategorisedSql().')';
-        $query = DB::table('order_lines as l')->join('orders as o', 'o.id', '=', 'l.order_id')->join('products as p', 'p.id', '=', 'l.product_id')->where('o.status', 'delivered');
+        $query = $this->deliveredLines();
         $query->groupByRaw($category);
         $columns = [DB::raw($category.' AS category')];
         if ($type === 'product-summary') {
             $query->groupBy('l.sku', 'l.name');
             $columns = [...$columns, 'l.sku', 'l.name'];
         }
-        $columns = [...$columns, DB::raw('COUNT(DISTINCT o.id) AS order_count'), DB::raw('SUM(l.quantity) AS quantity'), DB::raw('SUM(l.total) AS gross_sales')];
+        $columns = [...$columns, DB::raw('COUNT(DISTINCT o.id) AS order_count'), DB::raw('SUM('.DeliveredMoney::lineQuantitySql().') AS quantity'), DB::raw('SUM('.DeliveredMoney::lineValueSql().') AS gross_sales')];
 
         return [$query, $columns, ['gross_sales'], 'o.created_at', 'o.user_id'];
     }
 
     /**
-     * Confirmed sales by division and district, like the location-wise sales
-     * view Bangladeshi distribution software gives area managers.
+     * Confirmed orders by division and district, like the location-wise sales
+     * view Bangladeshi distribution software gives area managers. Sales and paid
+     * count delivered goods only; a partly delivered order counts what arrived.
      *
      * @return array{Builder, array<mixed>, list<string>, string, string}
      */
@@ -227,12 +230,20 @@ final class ReportData
             DB::raw("COALESCE(u.district, {$unknown}) AS district"),
             DB::raw('COUNT(DISTINCT o.user_id) AS partner_count'),
             DB::raw('COUNT(o.id) AS order_count'),
-            DB::raw('SUM(o.total) AS gross_sales'),
-            DB::raw('SUM(o.paid) AS paid'),
+            DB::raw('SUM('.DeliveredMoney::valueSql('o').') AS gross_sales'),
+            DB::raw('SUM('.DeliveredMoney::paidSql('o').') AS paid'),
             DB::raw('SUM(GREATEST(o.total-o.due_credit-o.paid, 0)) AS outstanding'),
         ];
 
         return [$query, $columns, ['gross_sales', 'paid', 'outstanding'], 'o.created_at', 'o.user_id'];
+    }
+
+    /** Order lines with goods that reached the partner. A line that was not delivered is left out. */
+    private function deliveredLines(): Builder
+    {
+        return DB::table('order_lines as l')->join('orders as o', 'o.id', '=', 'l.order_id')->join('products as p', 'p.id', '=', 'l.product_id')
+            ->whereIn('o.status', DeliveredMoney::Statuses)
+            ->whereRaw(DeliveredMoney::lineQuantitySql().' > 0');
     }
 
     private function uncategorisedSql(): string

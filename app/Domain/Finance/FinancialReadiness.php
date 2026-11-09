@@ -40,6 +40,8 @@ final class FinancialReadiness
             'opening_receivables' => ! DB::table('orders as o')->where('o.is_opening_balance', true)
                 ->whereRaw("o.total-o.paid-o.due_credit <> COALESCE((SELECT SUM(j.debit-j.credit) FROM journal_lines j WHERE j.user_id=o.user_id AND j.account='opening_receivables'),0)")->exists(),
             'due_adjustments' => ! DB::table('orders as o')->whereRaw("o.due_credit <> COALESCE((SELECT SUM(CASE WHEN a.kind='credit' THEN a.amount ELSE -a.amount END) FROM due_adjustments a WHERE a.order_id=o.id AND a.status='approved'),0) OR o.due_credit < 0 OR o.paid+o.due_credit > o.total")->exists(),
+            // Orders paid from a partner's account, less what went back there, must equal what is still set aside for them.
+            'account_order_money' => (bool) DB::selectOne("SELECT COALESCE((SELECT SUM(amount) FROM receipts WHERE channel='Account'),0) - COALESCE((SELECT SUM(to_account) FROM order_refunds),0) = COALESCE((SELECT SUM(credit-debit) FROM journal_lines WHERE account='wallet_order_clearing'),0) AS agrees")->agrees,
         ];
     }
 

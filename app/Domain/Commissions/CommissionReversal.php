@@ -17,6 +17,9 @@ use Illuminate\Validation\ValidationException;
 
 final class CommissionReversal
 {
+    /** Marks the commission_refunds row written when staff choose no commission. */
+    public const NoCommissionReference = 'no-commission:';
+
     public function __construct(private CommissionWallet $wallets, private CommissionQualification $qualification) {}
 
     /** @return list<array<string, mixed>> */
@@ -24,7 +27,33 @@ final class CommissionReversal
     {
         CommissionWallet::requireActive();
 
-        return DB::transaction(function () use ($order, $requested, $reason, $reference, $actorId, $requestKey): array {
+        return DB::transaction(fn (): array => $this->takeBack($order, $requested, $reason, $reference, $actorId, $requestKey, false), 3);
+    }
+
+    /**
+     * Staff chose no commission on an order that already posted. Every commission line is taken
+     * back the same way a refund takes it back, including from partners who already withdrew it,
+     * who then owe it from their later income. The goods were kept and paid for, so the company
+     * share and the owners' share stay, and the commission goes to the company profit fund.
+     *
+     * @return array{fund_amount: int, recovered: int, still_owed: int}
+     */
+    public function takeBackForNoCommission(Order $order, string $reason, ?int $actorId = null): array
+    {
+        CommissionWallet::requireActive();
+
+        return DB::transaction(function () use ($order, $reason, $actorId): array {
+            $this->takeBack($order, null, $reason, self::NoCommissionReference.$order->id, $actorId, null, true);
+            $row = CommissionAllocation::where('order_id', $order->id)->where('category', CommissionPosting::NoCommissionCategory)->firstOrFail();
+
+            return ['fund_amount' => Money::cents((string) $row->amount), 'recovered' => Money::cents((string) $row->metadata['taken_back']), 'still_owed' => Money::cents((string) $row->metadata['still_owed'])];
+        }, 3);
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function takeBack(Order $order, ?int $requested, string $reason, string $reference, ?int $actorId, ?string $requestKey, bool $noCommission): array
+    {
+        return DB::transaction(function () use ($order, $requested, $reason, $reference, $actorId, $requestKey, $noCommission): array {
             CommissionWallet::lock();
             $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             $batch = DB::table('commission_batches')->where('order_id', $order->id)->lockForUpdate()->first();
@@ -61,13 +90,24 @@ final class CommissionReversal
             $id = (string) Str::uuid();
             DB::table('commission_refunds')->insert(['id' => $id, 'order_id' => $order->id, 'reference' => $reference,
                 'request_key' => $requestKey, 'amount' => Money::decimal($amount), 'reason' => $reason, 'created_at' => now(), 'updated_at' => now()]);
-            $allocations = CommissionAllocation::where('order_id', $order->id)->orderBy('id')->lockForUpdate()->get();
+            // The owners' share of a no-commission order stays; only commission goes to the company fund.
+            $allocations = CommissionAllocation::where('order_id', $order->id)
+                ->when($noCommission, fn ($query) => $query->where('category', '!=', RetainedFundLedger::BenefitsCategory))
+                ->orderBy('id')->lockForUpdate()->get();
             $journal = [];
             $recoveredTotal = 0;
             $unrecoveredTotal = 0;
+            $commissionOriginal = 0;
+            $commissionCurrent = 0;
+            $firstCommissionRow = null;
             foreach ($allocations as $allocation) {
                 $original = Money::cents($allocation->original_amount ?? $allocation->amount);
                 $current = Money::cents($allocation->amount);
+                if (! isset($allocation->metadata['source_allocation_id'])) {
+                    $commissionOriginal += $original;
+                    $commissionCurrent += $current;
+                    $firstCommissionRow ??= $allocation->id;
+                }
                 $targetReversed = $this->proportion($original, $after, $cash);
                 $reverse = $targetReversed - ($original - $current);
                 if ($reverse <= 0) {
@@ -141,8 +181,9 @@ final class CommissionReversal
                     $journal,
                 );
             }
-            DB::table('commission_batches')->where('id', $batch->id)->update(['refunded_amount' => Money::decimal($after), 'updated_at' => now()]);
-            $rank = DealerRank::where('user_id', $order->user_id)->lockForUpdate()->first();
+            DB::table('commission_batches')->where('id', $batch->id)->update([...($noCommission ? ['no_commission' => true] : ['refunded_amount' => Money::decimal($after)]), 'updated_at' => now()]);
+            // A no-commission order already stopped counting, so a later refund has nothing to remove.
+            $rank = $batch->no_commission ? null : DealerRank::where('user_id', $order->user_id)->lockForUpdate()->first();
             if ($rank) {
                 $rank->update(['lifetime_purchase_total' => Money::decimal(max(0, Money::cents($rank->lifetime_purchase_total) - $amount)),
                     'monthly_purchase_total' => Money::decimal($this->qualification->monthlyVolume($order->user_id, CommissionQualification::currentMonth())), 'purchase_period' => CommissionQualification::currentMonth()]);
@@ -153,6 +194,11 @@ final class CommissionReversal
                 'buyer_id' => $order->user_id, 'reference' => $reference, 'request_key' => $requestKey,
                 'refund_amount' => Money::decimal($amount), 'reason' => $reason,
             ]);
+            if ($noCommission) {
+                $this->sendCommissionToCompanyFund($order, $id, (int) $firstCommissionRow, $cash, $commissionOriginal, $commissionCurrent, $batch->account_type, $reason, $actorId);
+
+                return DB::table('commission_reversals')->where('refund_id', $id)->get()->map(fn ($row): array => (array) $row)->all();
+            }
             $buyer = User::find($order->user_id);
             $locale = $buyer?->preferredLocale() ?? app()->getLocale();
             $amountDecimal = Money::decimal($amount);
@@ -185,6 +231,35 @@ final class CommissionReversal
 
             return DB::table('commission_reversals')->where('refund_id', $id)->get()->map(fn ($row): array => (array) $row)->all();
         }, 3);
+    }
+
+    /**
+     * Writes the fund row for a no-commission order and tells each partner what left their wallet.
+     * The row names its first source so the books check does not count it a second time: the
+     * original rows keep their original amounts for the record.
+     */
+    private function sendCommissionToCompanyFund(Order $order, string $refundId, int $sourceRowId, int $cash, int $original, int $amount, string $accountType, string $reason, ?int $actorId): void
+    {
+        $taken = DB::table('commission_reversals')->where('refund_id', $refundId)->whereNotNull('user_id')->groupBy('user_id')
+            ->selectRaw('user_id, SUM(recovered) AS recovered, SUM(unrecovered) AS unrecovered')->get();
+        $recovered = $taken->sum(fn (object $row): int => Money::cents((string) $row->recovered));
+        $stillOwed = $taken->sum(fn (object $row): int => Money::cents((string) $row->unrecovered));
+        CommissionPosting::addNoCommissionRow($order, $cash, $original, $amount, $accountType, $reason, $actorId, [
+            'source_allocation_id' => $sourceRowId,
+            'taken_back' => Money::decimal($recovered),
+            'still_owed' => Money::decimal($stillOwed),
+        ]);
+        foreach ($taken as $row) {
+            $partner = User::find($row->user_id);
+            if (! $partner) {
+                continue;
+            }
+            $locale = $partner->preferredLocale();
+            $owed = Money::cents((string) $row->unrecovered);
+            $replace = ['number' => $order->number, 'reason' => $reason, 'amount' => Money::grouped(Money::decimal(Money::cents((string) $row->recovered) + $owed)), 'owed' => Money::grouped(Money::decimal($owed))];
+            Audit::notice($partner->id, __('courier_more.notice_commission_taken_back_title', $replace, $locale),
+                __($owed > 0 ? 'courier_more.notice_commission_taken_back_owed_body' : 'courier_more.notice_commission_taken_back_body', $replace, $locale));
+        }
     }
 
     /**

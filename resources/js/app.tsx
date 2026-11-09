@@ -31,6 +31,15 @@ const pages: Record<string, () => Promise<{default: React.ComponentType<any>}>> 
     PartnerStatement: () => import('./pages/PartnerStatement'),
     TeamOrders: () => import('./pages/TeamOrders'),
     CourierAreas: () => import('./pages/CourierAreas'),
+    TreasuryFunds: () => import('./pages/TreasuryFunds'),
+    TreasuryFund: () => import('./pages/TreasuryFund'),
+    TreasuryOrders: () => import('./pages/TreasuryOrders'),
+    TreasuryOrder: () => import('./pages/TreasuryOrder'),
+    TreasuryEvents: () => import('./pages/TreasuryEvents'),
+    TreasuryPartners: () => import('./pages/TreasuryPartners'),
+    TreasuryPartner: () => import('./pages/TreasuryPartner'),
+    TreasuryWork: () => import('./pages/TreasuryWork'),
+    MyMoney: () => import('./pages/MyMoney'),
 };
 
 // Company name for tab titles; the server sets it from the website editor (default "Madina").

@@ -34,6 +34,9 @@ final class CompanyFunds
     /** Seen and spent by the owners only, on the owner panel. */
     public const OwnerOnly = ['benefits'];
 
+    /** Commission nobody received because staff chose no commission on a partly delivered order. */
+    public const NoCommissionCategory = 'no_commission_to_company';
+
     /** Older payout programs that drew on a fund before the generic spend flow. */
     public const LegacyPrograms = ['marketing' => ['marketing'], 'car_bike' => ['bike', 'car'], 'tour' => ['tour'], 'rank_reward' => ['additional_rank']];
 
@@ -64,7 +67,9 @@ final class CompanyFunds
         $dealerSalary = CommissionSettlement::DealerSalaryReserve;
         $subDealerSalary = CommissionSettlement::SubDealerSalaryReserve;
 
-        return "CASE WHEN funds.category = '{$companyProfit}' OR funds.metadata->>'retained_by' = '{$retainedProfit}' THEN 'company_profit' "
+        $noCommission = self::NoCommissionCategory;
+
+        return "CASE WHEN funds.category IN ('{$companyProfit}', '{$noCommission}') OR funds.metadata->>'retained_by' = '{$retainedProfit}' THEN 'company_profit' "
             ."WHEN funds.category = 'area_management' OR funds.metadata->>'retained_by' = '{$retainedManagement}' THEN 'management' "
             ."WHEN funds.category LIKE '%\\_override\\_reserve' OR funds.category LIKE '%\\_breakage' THEN 'referral_reserve' "
             ."WHEN funds.status = 'unassigned_reserve' THEN 'geographic_reserve' "
@@ -97,8 +102,8 @@ final class CompanyFunds
         }
 
         $batches = DB::table('commission_batches')->selectRaw(
-            'COALESCE(ROUND(SUM(company_share * (cash_basis - refunded_amount) / NULLIF(cash_basis, 0)), 2), 0) AS company_share, '
-            .'COALESCE(ROUND(SUM(unallocated * (cash_basis - refunded_amount) / NULLIF(cash_basis, 0)), 2), 0) AS benefits',
+            'COALESCE(SUM(ROUND(company_share * (cash_basis - refunded_amount) / NULLIF(cash_basis, 0), 2)), 0) AS company_share, '
+            .'COALESCE(SUM(ROUND(unallocated * (cash_basis - refunded_amount) / NULLIF(cash_basis, 0), 2)), 0) AS benefits',
         )->first();
         $clinic = DB::table('prescriptions')->where('kind', Prescription::KindClinic)->where('status', Prescription::StatusDispensed)->selectRaw(
             'COALESCE(SUM(manufacturer_share), 0) AS manufacturer, COALESCE(SUM(GREATEST(clinic_fund, 0)), 0) AS clinic_in, COALESCE(SUM(GREATEST(-clinic_fund, 0)), 0) AS clinic_below_cost',
@@ -260,13 +265,15 @@ final class CompanyFunds
             ->selectRaw("'clinic' AS kind, p.number AS reference, NULL AS from_name, NULL AS category, NULL AS status, p.dispensed_at AS created_at, p.{$column} AS amount");
     }
 
-    private function settlementPayouts(): Builder
+    /** Partner payouts of each commission row, net of what was taken back. */
+    public function settlementPayouts(): Builder
     {
         return DB::table('commission_settlement_payouts')->groupBy('allocation_id')
             ->selectRaw('allocation_id, SUM(amount - reversed_amount) AS total');
     }
 
-    private function expenseSources(): Builder
+    /** Approved and paid spends drawn on each commission row, net of what was taken back. */
+    public function expenseSources(): Builder
     {
         return DB::table('reserve_expense_sources')->join('reserve_disbursements', 'disbursement_id', '=', 'reserve_disbursements.id')
             ->whereIn('reserve_disbursements.status', ['approved', 'paid'])->groupBy('reserve_expense_sources.allocation_id')

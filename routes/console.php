@@ -19,6 +19,10 @@ Schedule::command('finance:release-matured')->everyFifteenMinutes()->withoutOver
 Schedule::command('finance:release-quota-holds')->everyFifteenMinutes()->withoutOverlapping(60)->onOneServer()
     ->onFailure(fn () => Log::critical('Scheduled area-quota hold release failed.'));
 
+// Treasury event log: picks up new orders, payments and fund movements from the records. Writes nothing back.
+Schedule::command('treasury:project-events')->everyMinute()->withoutOverlapping(10)->onOneServer()
+    ->onFailure(fn () => Log::warning('Scheduled event log update failed.'));
+
 // Auto-approval (on by default): settles closed months and pays earned rank rewards
 // for every item the owner left automatic. Car and bike rewards are never automatic.
 Schedule::command('finance:auto-approve')->hourly()->withoutOverlapping(120)->onOneServer()

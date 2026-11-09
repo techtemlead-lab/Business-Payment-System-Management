@@ -96,7 +96,7 @@ class AccountListFiltersTest extends TestCase
         $rows = collect($this->page($owner, '/accounts')['props']['data']['accounts']['data'])->keyBy('id');
 
         $this->assertSame('am', $rows[$dealer->id]['current_rank']);
-        $this->assertSame('150.25', $rows[$dealer->id]['month_purchase']);
+        $this->assertSame('50.25', $rows[$dealer->id]['month_purchase'], 'Delivered goods only, the same basis as monthly volume for ranks.');
         $this->assertTrue(CarbonImmutable::parse($rows[$dealer->id]['last_order_at'])->equalTo($last->fresh()->created_at));
         $this->assertSame('dealer', $rows[$quiet->id]['current_rank']);
         $this->assertNull($rows[$quiet->id]['last_order_at']);

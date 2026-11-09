@@ -7,6 +7,7 @@ use App\Domain\Orders\OrderService;
 use App\Domain\Orders\ShipmentTracking;
 use App\Http\Requests\Backend\ChangeCourierRequest;
 use App\Models\Order;
+use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -64,8 +65,17 @@ class CourierShipmentController extends Controller
             'decision' => ['required', 'string', Rule::in(MixedOutcomeDecisions::Choices)],
             'reason' => ['required', 'string', 'min:5', 'max:1000'],
         ]);
-        $decisions->decide($request->user(), $order, $data['decision'], trim($data['reason']));
+        $money = $decisions->decide($request->user(), $order, $data['decision'], trim($data['reason']));
+        $message = match (true) {
+            $money['fund_amount'] === null => __('courier_more.flash_decision_saved'),
+            $money['recovered'] + $money['still_owed'] > 0 => __('courier_more.flash_no_commission_taken_back', [
+                'fund' => Money::grouped(Money::decimal($money['fund_amount'])),
+                'taken' => Money::grouped(Money::decimal($money['recovered'])),
+                'owed' => Money::grouped(Money::decimal($money['still_owed'])),
+            ]),
+            default => __('courier_more.flash_no_commission_saved', ['fund' => Money::grouped(Money::decimal($money['fund_amount']))]),
+        };
 
-        return back(fallback: '/orders/'.$order->id)->with('success', __('courier_more.flash_decision_saved'));
+        return back(fallback: '/orders/'.$order->id)->with('success', $message);
     }
 }

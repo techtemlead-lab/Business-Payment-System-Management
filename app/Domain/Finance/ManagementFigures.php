@@ -3,6 +3,7 @@
 namespace App\Domain\Finance;
 
 use App\Domain\Inventory\StockLots;
+use App\Domain\Orders\DeliveredMoney;
 use App\Models\Prescription;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
@@ -84,8 +85,9 @@ final class ManagementFigures
     }
 
     /**
-     * Orders that reached "delivered", with the moment the last parcel arrived. Opening-balance
-     * orders are left out: they came in through the journal when balances were imported.
+     * Orders with goods delivered, with the moment the last parcel arrived. A partly delivered
+     * order counts its delivered part. Opening-balance orders are left out: they came in through
+     * the journal when balances were imported.
      */
     private function delivered(): Builder
     {
@@ -93,10 +95,10 @@ final class ManagementFigures
             ->leftJoin('shipments as s', function ($join): void {
                 $join->on('s.order_id', '=', 'o.id')->where('s.status', 'delivered');
             })
-            ->where('o.status', 'delivered')
+            ->whereIn('o.status', DeliveredMoney::Statuses)
             ->whereRaw('o.is_opening_balance IS NOT TRUE')
-            ->groupBy('o.id', 'o.total', 'o.updated_at')
-            ->selectRaw('o.id, o.total, COALESCE(MAX(s.delivered_at), o.updated_at) AS delivered_at, MAX(s.delivered_at) IS NULL AS date_missing');
+            ->groupBy('o.id', 'o.total', 'o.status', 'o.updated_at')
+            ->selectRaw('o.id, '.DeliveredMoney::valueSql('o').' AS total, COALESCE(MAX(s.delivered_at), o.updated_at) AS delivered_at, MAX(s.delivered_at) IS NULL AS date_missing');
     }
 
     /** @return array{earlier: int, in_period: int, count: int, dates_missing: int} */
@@ -306,7 +308,7 @@ final class ManagementFigures
             ->whereRaw('o.is_opening_balance IS NOT TRUE')
             ->selectRaw(
                 'COALESCE(received.total, 0) - COALESCE(refunded.total, 0) AS cash, '
-                .'CASE WHEN d.delivered_at < ? THEN o.total ELSE 0 END AS sold, '
+                .'CASE WHEN d.delivered_at < ? THEN d.total ELSE 0 END AS sold, '
                 ."o.status IN ('cancelled', 'rejected') AS closed, "
                 ."o.status <> 'delivered' AND parcels.total IS NOT NULL AS part_delivered, o.total",
                 [$this->end],

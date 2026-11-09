@@ -21,6 +21,7 @@ class StaffDashboardSummaryTest extends TestCase
         $dealer = User::factory()->dealer()->create();
         $this->order($dealer, 'submitted', '500.00');
         $this->order($dealer, 'approved', '1200.00');
+        $this->order($dealer, 'delivered', '300.00');
 
         $this->actingAs($owner)->onPortal('sadmin')
             ->get('/')
@@ -28,8 +29,8 @@ class StaffDashboardSummaryTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->has('data.admin_home.work_queue')
                 ->has('data.admin_home.trend', StaffDashboardSummary::TrendDays)
-                ->where('data.admin_home.month.sales', '1200.00')
-                ->where('data.admin_home.month.orders', 1));
+                ->where('data.admin_home.month.sales', '300.00')
+                ->where('data.admin_home.month.orders', 2));
     }
 
     public function test_trend_puts_confirmed_sales_on_todays_bar_only(): void

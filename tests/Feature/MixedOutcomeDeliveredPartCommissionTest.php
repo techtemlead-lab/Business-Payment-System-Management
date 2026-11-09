@@ -134,17 +134,25 @@ class MixedOutcomeDeliveredPartCommissionTest extends TestCase
         $this->assertSame(1, DB::table('order_events')->where('order_id', $mixed->id)->where('action', MixedOutcomeDecisions::Action)->count());
     }
 
-    public function test_choosing_no_commission_posts_nothing_at_all(): void
+    public function test_choosing_no_commission_pays_nobody_and_keeps_the_money_in_the_company_profit_fund(): void
     {
+        $sameSized = $this->money($this->fullyDelivered(3));
         $mixed = $this->mixedOrder(3, 4);
+        $walletsBefore = DB::table('wallets')->orderBy('user_id')->get(['user_id', 'available', 'held'])->toArray();
 
         $this->decide($mixed, MixedOutcomeDecisions::NoCommission);
 
-        $this->assertSame(0, DB::table('commission_batches')->where('order_id', $mixed->id)->count());
-        $this->assertSame(0, CommissionAllocation::query()->where('order_id', $mixed->id)->count());
+        $batch = DB::table('commission_batches')->where('order_id', $mixed->id)->first();
+        $this->assertTrue((bool) $batch->no_commission);
+        $this->assertSame($sameSized['cash_basis'], (string) $batch->cash_basis);
+        $this->assertSame($sameSized['company_share'], (string) $batch->company_share);
+        $this->assertSame($sameSized['total_allocated'], (string) CommissionAllocation::query()->where('order_id', $mixed->id)->where('category', CommissionPosting::NoCommissionCategory)->value('amount'));
         $this->assertSame(0, DB::table('journal_entries')->where('event_key', 'commissions.order.'.$mixed->id)->count());
+        $this->assertEquals($walletsBefore, DB::table('wallets')->orderBy('user_id')->get(['user_id', 'available', 'held'])->toArray());
+        $rows = $this->rows($mixed);
         app(CommissionPosting::class)->process($mixed->fresh(), $this->owner->id);
-        $this->assertSame(0, CommissionAllocation::query()->where('order_id', $mixed->id)->count());
+        app(CommissionPosting::class)->processDeliveredPart($mixed->fresh(), $this->owner->id);
+        $this->assertSame($rows, $this->rows($mixed));
     }
 
     public function test_the_reason_is_required_and_the_decision_is_audited_and_the_dealer_told(): void

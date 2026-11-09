@@ -43,7 +43,7 @@ class TeamOrdersReportTest extends TestCase
         $this->assertSame(31, $first['orders']['total']);
         $this->assertCount(25, $first['orders']['data']);
         $this->assertCount(6, $second['orders']['data']);
-        $this->assertSame(['orders' => 31, 'buyers' => 2, 'ordered' => '3250.00', 'paid' => '2050.00', 'due' => '1200.00'], $first['totals']);
+        $this->assertSame(['orders' => 31, 'buyers' => 2, 'ordered' => '3000.00', 'paid' => '1800.00', 'due' => '1200.00'], $first['totals']);
         $this->assertSame('ORD-DEEP', $first['orders']['data'][0]['number'], 'Newest first.');
         $this->assertEqualsCanonicalizing([$direct->id, $deep->id], array_column($first['members'], 'id'));
         $this->assertFalse($first['staffView']);
@@ -58,7 +58,7 @@ class TeamOrdersReportTest extends TestCase
 
         $byMember = $this->page($leader, '/team-orders?'.self::Range.'&member='.$deep->id);
         $this->assertSame(['ORD-C', 'ORD-B'], array_column($byMember['orders']['data'], 'number'));
-        $this->assertSame('500.00', $byMember['totals']['ordered']);
+        $this->assertSame('300.00', $byMember['totals']['ordered'], 'Only the delivered order counts in money.');
 
         $byStatus = $this->page($leader, '/team-orders?'.self::Range.'&member='.$deep->id.'&status=approved');
         $this->assertSame(['ORD-B'], array_column($byStatus['orders']['data'], 'number'));

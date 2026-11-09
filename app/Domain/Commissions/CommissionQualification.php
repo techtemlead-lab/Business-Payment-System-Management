@@ -35,12 +35,12 @@ final class CommissionQualification
     /**
      * SQL for what an order in DeliveredStatuses counts for: the whole order when delivered, and
      * only the part commission was posted on when partly delivered. Monthly volume reads the same
-     * figure from the commission batch.
+     * figure from the commission batch. A no-commission order counts for nothing.
      */
     public static function deliveredValueSql(string $orders = 'orders'): string
     {
         return "CASE WHEN {$orders}.status = 'delivered' THEN {$orders}.total"
-            ." ELSE COALESCE((SELECT commission_batches.cash_basis FROM commission_batches WHERE commission_batches.order_id = {$orders}.id), 0) END";
+            ." ELSE COALESCE((SELECT commission_batches.cash_basis FROM commission_batches WHERE commission_batches.order_id = {$orders}.id AND commission_batches.no_commission = false), 0) END";
     }
 
     public static function currentMonth(): string
@@ -81,6 +81,7 @@ final class CommissionQualification
             ->join('orders', 'orders.id', '=', 'commission_batches.order_id')
             ->whereIn('orders.user_id', $userIds)
             ->where('period_month', $month)
+            ->where('no_commission', false)
             ->groupBy('orders.user_id')
             ->selectRaw('orders.user_id, COALESCE(SUM(cash_basis - refunded_amount), 0) AS volume')
             ->pluck('volume', 'user_id');
@@ -431,6 +432,7 @@ final class CommissionQualification
                 INNER JOIN orders ON orders.id = commission_batches.order_id
                 WHERE orders.is_opening_balance = false
                   AND orders.status = 'partly_delivered'
+                  AND commission_batches.no_commission = false
                   AND orders.paid = orders.total
                   AND orders.user_id IN (SELECT user_id FROM members)
                 GROUP BY orders.user_id
@@ -439,6 +441,7 @@ final class CommissionQualification
                 FROM commission_batches
                 INNER JOIN orders ON orders.id = commission_batches.order_id
                 WHERE commission_batches.refunded_amount > 0
+                  AND commission_batches.no_commission = false
                   AND orders.is_opening_balance = false
                   AND orders.status IN ('delivered', 'partly_delivered')
                   AND orders.paid = orders.total

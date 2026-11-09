@@ -52,6 +52,7 @@ final class AccountingStatements
         'manual_collection_clearing' => self::Asset,
         'opening_collection_clearing' => self::Asset,
         'manual_payout_clearing' => self::Asset,
+        'wallet_order_clearing' => self::Asset,
         'opening_receivables' => self::Asset,
         'commission_clawback_receivable' => self::Asset,
         'company_reserve_clawback_receivable' => self::Asset,

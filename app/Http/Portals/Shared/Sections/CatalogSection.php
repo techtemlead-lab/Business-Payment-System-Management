@@ -4,12 +4,16 @@ namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Catalog\CatalogTaxonomy;
 use App\Domain\Finance\FinanceSettings;
+use App\Domain\Inventory\StockRegister;
+use App\Domain\Orders\AccountOrderPayment;
 use App\Domain\Orders\CourierOptions;
 use App\Models\Product;
 use App\Support\CatalogCms;
 use App\Support\Money;
+use App\Support\MoneyTable;
 use App\Support\SiteCustomization;
 use App\Support\StockImage;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
@@ -20,6 +24,8 @@ use Illuminate\Validation\ValidationException;
  */
 final class CatalogSection implements WorkspaceSection
 {
+    private const StaffProductsPerPage = 24;
+
     public function data(SectionContext $context, array $data): array
     {
         $user = $context->user;
@@ -57,14 +63,30 @@ final class CatalogSection implements WorkspaceSection
                 },
                 fn ($q) => $q->orderBy('name'),
             );
-        $productLimit = $context->isStaff ? 250 : 200;
-        $props['products_truncated'] = (clone $productQuery)->count() > $productLimit;
-        $products = (clone $productQuery)->limit($productLimit)->get();
         $revealStock = ! $context->isStaff || $user->allows('inventory');
+        $stagesByProduct = [];
+        if ($context->isStaff && $context->section === 'catalog') {
+            $register = app(StockRegister::class);
+            $props['catalog_filters'] = $register->catalogFilters($request, $revealStock);
+            $productQuery->whereIn('products.id', $register->matchingProductIds($props['catalog_filters']['active']));
+            $addedBetween = MoneyTable::range($request, null);
+            if ($addedBetween !== null) {
+                $productQuery->where('products.created_at', '>=', $addedBetween['from'])->where('products.created_at', '<=', $addedBetween['until']);
+            }
+            $page = $productQuery->paginate(self::StaffProductsPerPage)->withQueryString();
+            $props['products_truncated'] = false;
+            $props['products_page'] = Arr::except($page->toArray(), ['data']);
+            $products = $page->getCollection();
+            $stagesByProduct = $revealStock ? $register->stagesByProduct($products->pluck('id')->map(fn (mixed $id): int => (int) $id)->all()) : [];
+        } else {
+            $productLimit = $context->isStaff ? 250 : 200;
+            $props['products_truncated'] = (clone $productQuery)->count() > $productLimit;
+            $products = (clone $productQuery)->limit($productLimit)->get();
+        }
         $revealDealerPrice = ! $context->isStaff || $user->allows('pricing') || $user->allows('orders') || $user->allows('finance');
         // Each Schema::hasColumn() call reads the database catalogue, so ask once per request, not once per product.
         $supportsProductExpiry = $context->section === 'inventory' && Schema::hasColumn('products', 'expires_on');
-        $props['products'] = $products->map(function ($p) use ($user, $context, $revealStock, $revealDealerPrice, $supportsProductExpiry) {
+        $props['products'] = $products->map(function ($p) use ($user, $context, $revealStock, $revealDealerPrice, $supportsProductExpiry, $stagesByProduct) {
             $base = [...$p->only(['id', 'sku', 'name', 'category', 'sub_category', 'strength', 'description', 'unit', 'mrp', 'active', 'featured', 'tone', 'is_stock_paused']), 'stock_status' => $p->stockStatus(), ...$p->media(), 'image_fallback' => $p->image_path ? null : StockImage::forCategory($p->category, $p->name), ...($user->allows('cost_read') ? ['cost_price' => $p->cost_price] : [])];
             if (! $context->isStaff) {
                 try {
@@ -79,6 +101,9 @@ final class CatalogSection implements WorkspaceSection
                 // The stock screen counts what is on the shelf; everywhere else counts what can be sold.
                 $base['stock'] = $context->section === 'inventory' ? $p->stock : $p->sellableStock();
                 $base['low_stock_at'] = $p->low_stock_at;
+                if (isset($stagesByProduct[$p->id])) {
+                    $base += $stagesByProduct[$p->id];
+                }
             }
             if ($context->section === 'inventory') {
                 $base['register_name'] = $p->registerName();
@@ -151,6 +176,8 @@ final class CatalogSection implements WorkspaceSection
         if ($context->section === 'purchase' && ! $context->isStaff) {
             // The order form asks for the whole payment and its screenshot while this is on.
             $props['full_payment_required'] = app(FinanceSettings::class)->fullPaymentWhenOrdering()['enabled'];
+            // The usable balance, and whether From My Account can be offered at all.
+            $props['pay_options'] = app(AccountOrderPayment::class)->options($user);
             // The dealer picks one of the couriers the owner switched on, or lets the company decide.
             $props['courier_choices'] = app(CourierOptions::class)->choices();
         }

@@ -568,7 +568,7 @@ class CourierAutoBookingTest extends TestCase
         $this->assertSame(0, $overdue->count());
     }
 
-    public function test_a_part_delivered_order_restocks_the_returned_parcel_but_stays_open_without_commission(): void
+    public function test_a_part_delivered_order_restocks_the_returned_parcel_and_earns_commission_on_the_delivered_goods(): void
     {
         $this->enableFinancialPosting();
         [$order, $shipmentId] = $this->returnedOrder();
@@ -584,7 +584,7 @@ class CourierAutoBookingTest extends TestCase
         $this->assertSame(20, (int) $product->fresh()->stock);
         $this->assertSame('partly_delivered', $order->fresh()->status);
         $this->assertSame(0, app(OverdueDeliveries::class)->count());
-        $this->assertDatabaseCount('commission_batches', 0);
+        $this->assertDatabaseHas('commission_batches', ['order_id' => $order->id]);
     }
 
     public function test_only_store_staff_can_receive_a_returned_parcel_back(): void
