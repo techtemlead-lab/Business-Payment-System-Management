@@ -6627,4 +6627,8 @@ return [
     'event_dated_scheme_updated' => 'স্কিম বদলানো হয়েছে',
     'event_contest_updated' => 'প্রতিযোগিতা বদলানো হয়েছে',
     'event_sales_kit_updated' => 'সেলস কিটের ফাইল বদলানো হয়েছে',
+    'ph_commission_waiting' => 'অপেক্ষার সময়ে থাকা কমিশন',
+    'commission_waiting_until' => 'অপেক্ষার সময় শেষ: :date',
+    'commission_waiting_no_date' => 'তারিখ ঠিক করা নেই',
+    'commission_waiting_more' => 'আরও :countটি তারিখ “আমার আয়” পাতায়',
 ];

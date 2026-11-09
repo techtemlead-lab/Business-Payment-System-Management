@@ -22,6 +22,7 @@ function EarningsTab({ data: d, canWithdraw }: { data: Row; canWithdraw: boolean
             <div className="metric-grid partner-money-two" data-tour="wallet-balances">
                 <div className="metric"><span>{translate('portal', 'available_earnings')}</span><strong>{money(d.withdrawal_balances?.available ?? d.wallet?.available)}</strong></div>
                 <div className="metric"><span>{translate('partner_hub', 'earned_in_period')}</span><strong>{money(d.period_totals?.commission)}</strong><small>{translate('partner_hub', hasDates ? 'earned_in_period_hint' : 'earned_all_time_hint')}</small></div>
+                <div className="metric" data-testid="earnings-commission-waiting"><span>{translate('portal', 'ph_commission_waiting')}</span><strong>{money(d.commission_waiting?.total)}</strong></div>
             </div>
             {canWithdraw && (
                 <div className="toolbar-end ops-mb-4">
@@ -53,7 +54,7 @@ function EarningsTab({ data: d, canWithdraw }: { data: Row; canWithdraw: boolean
                     { key: 'source_name', title: translate('portal', 'col_source_account'), render: (r: Row) => r.source_name ? <>{r.source_name}<small className="cell-sub">{r.source_code || ''}</small></> : '—' },
                     { key: 'order_number', title: translate('portal', 'col_order'), render: (r: Row) => r.order_number || '—' },
                     { key: 'amount', title: translate('portal', 'col_amount'), money: true, footer: (rows: Row[]) => money(rows.filter((r) => r.status !== 'reversed').reduce((sum, r) => sum + Number(r.amount || 0), 0)), render: (r: Row) => r.status === 'reversed' ? <s className="muted">{money(r.amount)}</s> : money(r.amount) },
-                    { key: 'status', title: translate('portal', 'col_status'), render: (r: Row) => <Badge status={r.status} /> },
+                    { key: 'status', title: translate('portal', 'col_status'), render: (r: Row) => <><Badge status={r.status} />{r.waiting_until && <small className="cell-sub">{translate('portal', 'commission_waiting_until', { date: date(r.waiting_until) })}</small>}</> },
                 ]} empty={translate('portal', 'no_posted_earnings')} />}
                 {view === 'ledger' && <>
                     <div className="panel-heading">

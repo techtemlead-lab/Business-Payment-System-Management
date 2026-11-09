@@ -6627,4 +6627,8 @@ return [
     'event_dated_scheme_updated' => 'Scheme changed',
     'event_contest_updated' => 'Contest changed',
     'event_sales_kit_updated' => 'Sales kit file changed',
+    'ph_commission_waiting' => 'Commission in waiting period',
+    'commission_waiting_until' => 'Waiting period ends: :date',
+    'commission_waiting_no_date' => 'No date set',
+    'commission_waiting_more' => ':count more dates under My income',
 ];
