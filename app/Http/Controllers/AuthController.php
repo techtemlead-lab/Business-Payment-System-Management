@@ -456,7 +456,7 @@ class AuthController extends Controller
 
     public function reset(Request $r): Response
     {
-        $data = $r->validate(['token' => 'required|string', 'email' => 'required|email', 'password' => ['required', 'confirmed', PasswordRule::min(12)->mixedCase()->numbers()]]);
+        $data = $r->validate(['token' => 'required|string', 'email' => 'required|email', 'password' => ['required', 'confirmed', PasswordRule::min(8)]]);
         $status = Password::reset($data, function (User $u, string $password) {
             $u->forceFill([
                 'password' => Hash::make($password),
@@ -616,7 +616,7 @@ class AuthController extends Controller
 
     public function password(Request $r): Response
     {
-        $data = $r->validate(['current_password' => 'required|current_password', 'password' => ['required', 'confirmed', PasswordRule::min(12)->mixedCase()->numbers()]]);
+        $data = $r->validate(['current_password' => 'required|current_password', 'password' => ['required', 'confirmed', PasswordRule::min(8)]]);
         $r->user()->forceFill([
             'password' => $data['password'],
             'remember_token' => Str::random(60),
@@ -624,7 +624,7 @@ class AuthController extends Controller
             'admin_password_cipher' => $r->user()->recoverablePasswordCopy($data['password']),
         ])->save();
         DB::table('sessions')->where('user_id', $r->user()->id)->where('id', '!=', $r->session()->getId())->delete();
-        $r->session()->regenerate();
+        $r->session()->regenerate(true);
         $r->session()->put('session_fingerprint', hash('sha256', (string) $r->userAgent()));
         Audit::record($r->user()->id, 'password.change', 'account');
 

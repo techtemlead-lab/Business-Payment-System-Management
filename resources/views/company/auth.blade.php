@@ -75,8 +75,8 @@
         <form class="action-form" method="post" action="{{ $mode==='login'?'/login':($mode==='forgot'?'/forgot-password':'/reset-password') }}">@csrf
             @if($mode==='reset')<input type="hidden" name="token" value="{{ $token }}">@endif
             <label>{{ $mode==='login'?__('auth_ui.email_or_phone'):__('auth_ui.email') }}<input type="{{ $mode==='login'?'text':'email' }}" name="email" required maxlength="254" autocomplete="username" value="{{ old('email',$email??'') }}" placeholder="{{ $mode==='login'?__('auth_ui.email_or_phone_placeholder'):__('auth_ui.email_placeholder') }}"></label>
-            @if($mode!=='forgot')<label>{{ __('auth_ui.password') }}<input type="password" name="password" required maxlength="200" autocomplete="{{ $mode==='reset'?'new-password':'current-password' }}" @if($mode==='reset') minlength="12" @endif></label>@endif
-            @if($mode==='reset')<label>{{ __('auth_ui.confirm_password') }}<input type="password" name="password_confirmation" required minlength="12" maxlength="200" autocomplete="new-password"></label><p class="muted">{{ __('auth_ui.password_rules') }}</p>@endif
+            @if($mode!=='forgot')<label>{{ __('auth_ui.password') }}<input type="password" name="password" required maxlength="200" autocomplete="{{ $mode==='reset'?'new-password':'current-password' }}" @if($mode==='reset') minlength="8" @endif></label>@endif
+            @if($mode==='reset')<label>{{ __('auth_ui.confirm_password') }}<input type="password" name="password_confirmation" required minlength="8" maxlength="200" autocomplete="new-password"></label><p class="muted">{{ __('auth_ui.password_rules') }}</p>@endif
             @if($mode === 'login')
                 @include('partials.login-captcha')
             @endif
