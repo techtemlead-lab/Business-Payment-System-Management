@@ -3655,7 +3655,7 @@ return [
     'cms_edit' => 'Edit',
     'cms_remove' => 'Remove',
     'cms_remove_category_prompt' => 'Remove category ":name"? Write a reason (at least 5 characters):',
-    'cms_remove_category_force_prompt' => 'Remove category ":name" and its :count empty subcategories? Write a reason (at least 5 characters):',
+    'cms_remove_category_force_prompt' => 'Remove category ":name" and its :count subcategories? This only works if no product uses them. Write a reason (at least 5 characters):',
     'cms_remove_subcategory_prompt' => 'Remove subcategory ":name"? Write a reason (at least 5 characters):',
     'cms_remove_unit_prompt' => 'Remove unit ":name"? Write a reason (at least 5 characters):',
     'cms_create_category' => 'Create category',
@@ -6521,4 +6521,5 @@ return [
     'kyc_note_added_with_account' => 'Added with the new account',
     'acct_password_copy_failed' => 'Could not copy. Select the password and copy it by hand.',
     'payment_view_only_note' => 'You can see this payment but cannot confirm or reject it. Someone with the approve right will check it.',
+    'acct_created_flash_no_code' => ':type account created. An email to set the password has been sent.',
 ];

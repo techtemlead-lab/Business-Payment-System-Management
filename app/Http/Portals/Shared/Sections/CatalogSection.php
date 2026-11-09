@@ -106,6 +106,7 @@ final class CatalogSection implements WorkspaceSection
                 : CatalogCms::unitOptions();
             $props['supports_product_expiry'] = Schema::hasColumn('products', 'expires_on');
             if ($context->isStaff) {
+                $props['used_categories'] = Product::query()->whereNotNull('category')->where('category', '<>', '')->distinct()->orderBy('category')->pluck('category')->all();
                 $props['customization'] = SiteCustomization::raw();
                 $props['defaults'] = SiteCustomization::defaults();
                 $pickerQuery = Product::query()
