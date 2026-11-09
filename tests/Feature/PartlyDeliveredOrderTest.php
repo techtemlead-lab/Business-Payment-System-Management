@@ -98,15 +98,10 @@ class PartlyDeliveredOrderTest extends TestCase
         $this->assertSame('cancelled', $returned->fresh()->status);
     }
 
-    public function test_staff_can_still_decide_the_commission_and_the_status_stays(): void
+    public function test_commission_posts_on_the_delivered_goods_by_itself_and_the_status_stays(): void
     {
         $order = $this->partlyDelivered();
-        $reviewer = User::factory()->staff('finance')->create(['status' => 'active']);
         $orderIds = DB::table('orders')->select('id');
-
-        $this->assertSame([(int) $order->id], array_map(fn (object $row): int => (int) $row->order_id, app(MixedOutcomeDecisions::class)->pending($orderIds)));
-
-        app(MixedOutcomeDecisions::class)->decide($reviewer, $order->fresh(), MixedOutcomeDecisions::DeliveredPart, 'Dealer agreed on the phone');
 
         $this->assertSame('partly_delivered', $order->fresh()->status);
         $this->assertSame('6000.00', (string) DB::table('commission_batches')->where('order_id', $order->id)->value('cash_basis'));
@@ -154,7 +149,7 @@ class PartlyDeliveredOrderTest extends TestCase
         $this->assertSame('আংশিক ডেলিভার্ড', PartnerFullReport::statusWord('partly_delivered', 'bn'));
     }
 
-    public function test_the_partner_statement_and_home_keep_counting_it_as_before(): void
+    public function test_the_partner_statement_keeps_the_order_and_home_counts_the_delivered_part(): void
     {
         $order = $this->partlyDelivered();
 
@@ -162,14 +157,13 @@ class PartlyDeliveredOrderTest extends TestCase
         $home = app(PartnerDashboardHome::class)->for($this->dealer);
 
         $this->assertContains($order->number, collect($report['orders'])->pluck('number')->all());
-        $this->assertSame('10000.00', $home['snapshot']['own_sales_today']);
+        $this->assertSame('6000.00', $home['snapshot']['own_sales_today']);
     }
 
     public function test_orders_already_stuck_are_marked_and_their_money_is_left_alone(): void
     {
         $stuck = $this->partlyDelivered();
         DB::table('orders')->where('id', $stuck->id)->update(['status' => 'dispatched']);
-        app(MixedOutcomeDecisions::class)->decide(User::factory()->staff('finance')->create(['status' => 'active']), $stuck->fresh(), MixedOutcomeDecisions::DeliveredPart, 'Dealer agreed on the phone');
         [$stillMoving, $moving] = $this->sentOrder([3, 2]);
         $this->confirmDelivered($stillMoving, $moving[0]);
         $money = fn (): array => [

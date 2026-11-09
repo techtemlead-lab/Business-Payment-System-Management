@@ -30,7 +30,7 @@ final class SalarySection implements WorkspaceSection
                 'month' => $month,
                 'staff_view' => true,
                 'monthly_purchases' => Money::decimal(Money::cents((string) DB::table('commission_batches')
-                    ->where('account_type', 'sub_dealer')->where('period_month', $month)->sum('cash_basis'))),
+                    ->where('account_type', 'sub_dealer')->where('period_month', $month)->where('no_commission', false)->sum('cash_basis'))),
                 'salary_rate' => $rules['sub_dealer_salary']['percentage'],
                 'tour_rate' => $rules['sub_dealer_tour']['percentage'],
                 'salary_accrued' => (string) (clone $pool)->sum('amount'),

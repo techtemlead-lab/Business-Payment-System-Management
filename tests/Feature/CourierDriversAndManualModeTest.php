@@ -262,7 +262,7 @@ class CourierDriversAndManualModeTest extends TestCase
         $this->actingAs($reviewer)->onPortal('manage')->post($url, ['decision' => 'no_commission', 'reason' => 'Dealer agreed on the phone'])->assertSessionHasNoErrors();
 
         $event = DB::table('order_events')->where('order_id', $order->id)->where('action', 'order.mixed_outcome_decided')->first();
-        $this->assertSame(['decision' => 'no_commission', 'reason' => 'Dealer agreed on the phone'], json_decode($event->metadata, true));
+        $this->assertSame(['decision' => 'no_commission', 'reason' => 'Dealer agreed on the phone', 'fund_amount' => '112.00'], json_decode($event->metadata, true));
         $this->assertDatabaseHas('audit_events', ['actor_id' => $reviewer->id, 'action' => 'order.mixed_outcome_decided', 'subject' => $order->id]);
         $locale = $this->dealer->preferredLocale();
         $this->assertDatabaseHas('account_notices', ['user_id' => $this->dealer->id, 'title' => __('courier_more.notice_decision_title', ['number' => $order->number], $locale)]);
@@ -271,10 +271,11 @@ class CourierDriversAndManualModeTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page->count('data.courier_board.needs_decision', 0));
         $this->actingAs($reviewer)->onPortal('manage')->post($url, ['decision' => 'delivered_part', 'reason' => 'Changed my mind'])->assertSessionHasErrors('decision');
 
-        // Nothing moved: no commission on the order, and the order did not change state.
+        // Nobody was paid: the commission sits in the company profit fund, and the order did not change state.
         app(CommissionPosting::class)->process($order->fresh(), $this->owner->id);
-        $this->assertDatabaseCount('commission_batches', 0);
-        $this->assertSame(0, CommissionAllocation::query()->count());
+        $this->assertDatabaseCount('commission_batches', 1);
+        $this->assertSame(0, CommissionAllocation::query()->whereNotNull('user_id')->count());
+        $this->assertSame(1, CommissionAllocation::query()->where('category', CommissionPosting::NoCommissionCategory)->count());
         $this->assertSame('dispatched', $order->fresh()->status);
     }
 

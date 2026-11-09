@@ -483,7 +483,7 @@ class OrderService
                 $locked->update(['status' => 'delivered']);
                 $this->commissions->process($locked, $actor->id);
             }
-            MixedOutcomeDecisions::closeIfFinished($locked);
+            MixedOutcomeDecisions::closeIfFinished($locked, $actor->id);
             $this->event($locked, $actor, 'shipment.delivered', ['shipment_id' => $shipmentId, 'reason' => $reason]);
             $this->partnerNotice($locked->user_id, 'portal.notice_delivery_confirmed_title', 'portal.notice_delivery_confirmed_body', [
                 'number' => $locked->number,
@@ -506,6 +506,7 @@ class OrderService
         $this->assertNotOwnOrder($actor, $order);
         $note = $note !== null && trim($note) !== '' ? Str::limit(trim($note), 500, '') : null;
         DB::transaction(function () use ($actor, $order, $shipmentId, $note): void {
+            CommissionWallet::lock();
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             $shipment = DB::table('shipments')->where('id', $shipmentId)->where('order_id', $locked->id)->lockForUpdate()->first();
             abort_unless($shipment !== null, 404);
@@ -542,7 +543,7 @@ class OrderService
             if ($orderClosed) {
                 $locked->update(['status' => 'cancelled', 'decision_reason' => __('courier.received_back_reason')]);
             }
-            MixedOutcomeDecisions::closeIfFinished($locked);
+            MixedOutcomeDecisions::closeIfFinished($locked, $actor->id);
             $this->event($locked, $actor, 'shipment.received_back', [
                 'shipment_id' => $shipment->id,
                 'reason' => $note,

@@ -205,7 +205,7 @@ final class StaffDashboardSummary
             ->first();
 
         return [
-            'sales' => Money::decimal(Money::cents((string) ((clone $confirmed)->sum('total') ?: '0.00'))),
+            'sales' => Money::decimal(Money::cents((string) ((clone $confirmed)->sum(DB::raw(DeliveredMoney::valueSql())) ?: '0.00'))),
             'collected' => Money::decimal(Money::cents((string) $collected->month_total)),
             'collected_today' => Money::decimal(Money::cents((string) $collected->today_total)),
             'orders' => (clone $confirmed)->count(),
