@@ -22,6 +22,7 @@ use App\Models\User;
 use App\Support\DeploymentReadiness;
 use App\Support\Money;
 use App\Support\OfficeHubs;
+use App\Support\PortalHost;
 use App\Support\ProductVideo;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\JsonResponse;
@@ -77,6 +78,10 @@ class OperationsController extends Controller
         if ($section === 'financial-reports') {
             $data['reportTypes'] = app(ReportData::class)->availableTo($actor);
             $data['reportGroups'] = OfficeHubs::reportGroups($actor, $data['reportTypes']);
+        }
+        $hub = OfficeHubs::forSection($actor, PortalHost::current($request) ?? PortalHost::forUser($actor), true, $section);
+        if ($hub !== null) {
+            $data['hub'] = $hub;
         }
         $staff = User::staffAccounts()->orderBy('name')->get(['id', 'name', 'role', 'status', 'profile']);
         if ($actor->allows('staff_admin') || $actor->allows('finance')) {

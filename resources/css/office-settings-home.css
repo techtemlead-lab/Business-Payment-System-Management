@@ -1,0 +1,20 @@
+/* The Settings page: three lists of links, one column on a phone. */
+.app-shell .office-settings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--ds-s-6);align-items:start}
+.app-shell .office-settings-group{min-width:0}
+.app-shell .office-settings-group h2{margin:0 0 var(--ds-s-2);font-size:var(--ds-fs-sm);font-weight:600;color:var(--ds-text-muted)}
+.app-shell .office-settings-group ul{margin:0;padding:0;list-style:none;border-top:1px solid var(--ds-line)}
+.app-shell .office-settings-group li{border-bottom:1px solid var(--ds-line-soft)}
+.app-shell .office-settings-group a{display:flex;align-items:center;justify-content:space-between;gap:var(--ds-s-3);min-height:44px;padding:var(--ds-s-2) 0;font-size:var(--ds-fs-base);color:var(--ds-text)}
+.app-shell .office-settings-group a span{min-width:0;overflow-wrap:anywhere}
+.app-shell .office-settings-group a svg{flex:0 0 auto;color:var(--ds-text-faint)}
+.app-shell .office-settings-group a:hover{color:var(--ds-brand-text)}
+.app-shell .office-settings-group a:hover svg{color:var(--ds-brand-text)}
+.app-shell .office-settings-group a:focus-visible{outline:2px solid var(--ds-brand);outline-offset:2px}
+
+@media (max-width:1024px){
+  .app-shell .office-settings{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+@media (max-width:640px){
+  .app-shell .office-settings{grid-template-columns:minmax(0,1fr);gap:var(--ds-s-5)}
+}
