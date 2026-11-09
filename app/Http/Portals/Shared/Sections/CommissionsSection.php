@@ -174,6 +174,7 @@ final class CommissionsSection implements WorkspaceSection
             ->get();
         $maturing = CommissionAllocation::where('status', 'maturing')
             ->whereNotNull('user_id')
+            ->toBase()
             ->selectRaw('COUNT(*) AS total, COALESCE(SUM(amount), 0) AS amount')
             ->first();
 
@@ -244,8 +245,8 @@ final class CommissionsSection implements WorkspaceSection
             'qualified_rank_leaders_count' => $qualifiedRankLeaders->where('paid_as_rank', '!=', 'dealer')->count(),
             'qualified_rank_leaders' => ListPage::of(ListPage::search($qualifiedRankLeaders, $search, ['name', 'dealer_code', 'rank']), $request, 'leaders_page'),
             'search' => $search,
-            'maturing_count' => (int) $maturing->total,
-            'maturing_amount' => (float) $maturing->amount,
+            'maturing_count' => (int) ($maturing->total ?? 0),
+            'maturing_amount' => (float) ($maturing->amount ?? 0),
             'settled_history' => $settledHistory,
         ];
 
