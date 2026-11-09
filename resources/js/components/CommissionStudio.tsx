@@ -99,30 +99,34 @@ export default function CommissionStudio({ rules: initialRules, limits }: { rule
                         <div className="cs-guard-value">
                             {totalPercentage.toFixed(2)}% <span>/ {capLabel(dealerCap)} {translate('portal','cs_dealer_pool')} · {translate('portal','cs_sub_dealer')} {subDealerPercentage.toFixed(2)}% / {capLabel(subDealerCap)}</span>
                         </div>
+                        {canEdit && (
+                            <div className="hub-sub">
+                                {isOverAllocated
+                                    ? translate('portal','cs_review_limits')
+                                    : translate('portal','cs_editable_hint')}
+                            </div>
+                        )}
                         <div className="hub-sub">
-                            {isOverAllocated
-                                ? translate('portal','cs_review_limits')
-                                : translate('portal','cs_editable_hint')}
-                        </div>
-                        <div className="hub-sub">
-                            {needsOwnerApproval
+                            {canEdit && (needsOwnerApproval
                                 ? translate('portal','cs_owner_approval_needed')
-                                : translate('portal','cs_owner_applies_now')}{' '}
+                                : translate('portal','cs_owner_applies_now'))}{' '}
                             <a className="text-link" href="/operations/policy-schedules">{translate('portal','cs_pending_changes_link')}</a>
                         </div>
                     </div>
 
-                    <div className="hub-row">
-                        <button
-                            type="button"
-                            disabled={!canEdit || isOverAllocated || saving}
-                            onClick={handleSave}
-                            className="button dark"
-                        >
-                            {saving ? <RefreshCw size={15} className="spin" /> : <Check size={16} />}
-                            {saving ? translate('portal','cs_saving') : translate('portal','cs_save')}
-                        </button>
-                    </div>
+                    {canEdit && (
+                        <div className="hub-row">
+                            <button
+                                type="button"
+                                disabled={isOverAllocated || saving}
+                                onClick={handleSave}
+                                className="button dark"
+                            >
+                                {saving ? <RefreshCw size={15} className="spin" /> : <Check size={16} />}
+                                {saving ? translate('portal','cs_saving') : translate('portal','cs_save')}
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 {/* Progress bar */}
@@ -167,6 +171,7 @@ export default function CommissionStudio({ rules: initialRules, limits }: { rule
                                             max={dealerCap ?? 100}
                                             step="0.5"
                                             value={r.percentage}
+                                            disabled={!canEdit}
                                             onChange={e => handlePercentageChange(r.rule_key, e.target.value)}
                                             className="cs-pct-input"
                                         />
@@ -181,12 +186,13 @@ export default function CommissionStudio({ rules: initialRules, limits }: { rule
                                     max={dealerCap ?? 100}
                                     step="0.25"
                                     value={pct}
+                                    disabled={!canEdit}
                                     onChange={e => handlePercentageChange(r.rule_key, e.target.value)}
                                     className="cs-range"
                                 />
                                 {Object.entries(r.parameters??{}).filter(([key,value])=>key!=='dynamic_compression'&&(value===null||typeof value!=='object')).map(([key,value])=>{
                                     const isAwardAmount = key.endsWith('_award_amount');
-                                    return <label key={key} className="cs-param">{paramLabel(key)}<input type={typeof value==='boolean'?'checkbox':'number'} step="0.01" min={isAwardAmount?'0':undefined} placeholder={isAwardAmount?translate('portal','cs_award_amount_not_set'):undefined} checked={typeof value==='boolean'?value:undefined} value={typeof value==='boolean'?undefined:String(value??'')} onChange={e=>setRules(prev=>({...prev,[r.rule_key]:{...prev[r.rule_key],parameters:{...prev[r.rule_key].parameters,[key]:typeof value==='boolean'?e.target.checked:e.target.value}}}))}/></label>;
+                                    return <label key={key} className="cs-param">{paramLabel(key)}<input type={typeof value==='boolean'?'checkbox':'number'} step="0.01" disabled={!canEdit} min={isAwardAmount?'0':undefined} placeholder={isAwardAmount?translate('portal','cs_award_amount_not_set'):undefined} checked={typeof value==='boolean'?value:undefined} value={typeof value==='boolean'?undefined:String(value??'')} onChange={e=>setRules(prev=>({...prev,[r.rule_key]:{...prev[r.rule_key],parameters:{...prev[r.rule_key].parameters,[key]:typeof value==='boolean'?e.target.checked:e.target.value}}}))}/></label>;
                                 })}
                                 {r.rule_key==='car_bike_incentive'&&<p className="hub-hint">{translate('portal','cs_award_amount_hint')}</p>}
                             </div>

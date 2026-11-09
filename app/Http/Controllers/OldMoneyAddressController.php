@@ -83,12 +83,16 @@ class OldMoneyAddressController extends Controller
     /** One address, two desks: a partner's own withdrawals, or the office's withdrawal requests. */
     public function withdrawals(Request $request): RedirectResponse
     {
-        return $this->moveTo($request, $this->isPartnerDesk($request->user()) ? '/my-money' : '/payouts-hub');
+        $user = $request->user();
+
+        return $this->moveTo($request, $this->officeOrMyMoney($request, $user->allows('finance') ? '/payouts-hub' : $this->treasuryHome($user)));
     }
 
     public function partnerStatement(Request $request, User $partner): RedirectResponse
     {
-        return $this->moveTo($request, $this->officeOrMyMoney($request, '/treasury/partners/'.$partner->id));
+        $user = $request->user();
+
+        return $this->moveTo($request, $this->officeOrMyMoney($request, TreasuryAccess::mayOpenPartner($user) ? '/treasury/partners/'.$partner->id : $this->treasuryHome($user)));
     }
 
     /** The first Treasury place this person may open, or their home page when there is none. */

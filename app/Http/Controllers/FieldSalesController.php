@@ -55,9 +55,11 @@ class FieldSalesController extends Controller
     public function reviewApplication(Request $request, string $id, StaffOperations $operations): Response
     {
         $data = $request->validate(['decision' => 'required|in:approved,rejected', 'reason' => FinanceOperationsController::Reason,
-            'place_code' => 'nullable|string|max:32', 'sponsor_code' => 'nullable|string|max:40']);
+            'place_code' => 'nullable|string|max:32', 'sponsor_code' => 'nullable|string|max:40',
+            'directory_visible' => 'sometimes|boolean', 'phone_share_reason' => 'nullable|string|max:500']);
         $corrections = $request->has('sponsor_code') ? ['sponsor_code' => $data['sponsor_code'] ?? null] : [];
-        $operations->review($request->user(), $id, $data['decision'], $data['reason'], $data['place_code'] ?? null, $corrections);
+        $choices = ['directory_visible' => $request->boolean('directory_visible'), 'phone_share_reason' => $data['phone_share_reason'] ?? null];
+        $operations->review($request->user(), $id, $data['decision'], $data['reason'], $data['place_code'] ?? null, $corrections, $choices);
         if ($request->expectsJson()) {
             return response()->json(['data' => []]);
         }

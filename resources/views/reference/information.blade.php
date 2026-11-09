@@ -151,8 +151,10 @@
     </section>
     <section class="ref-content-card">
         <h2>{{ $chrome('contact_form_title', $siteCustomization['contact_form_title'] ?? null) }}</h2>
-        @if(session('success'))<div class="ref-alert ref-success" role="status">{{ session('success') }}</div>@endif
-        @if($errors->any())<div class="ref-alert ref-error" role="alert">{{ $errors->first() }}</div>@endif
+        <div id="enquiry-status" class="ref-form-status">
+            @if(session('success'))<div class="ref-alert ref-success" role="status">{{ session('success') }}</div>@endif
+            @if($errors->any())<div class="ref-alert ref-error" role="alert">{{ $errors->first() }}</div>@endif
+        </div>
         <form class="ref-form" action="/enquiries" method="post">
             @csrf
             <label for="enquiry-name">{{ $chrome('contact_form_name') }}</label>
@@ -365,6 +367,7 @@
         </div>
     </div>
 
+    <div id="partner-apply-status" class="ref-form-status">
     @if(session('success'))
         <div class="ref-alert ref-success ref-flash-success" role="status">
             <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
@@ -384,6 +387,7 @@
             </ul>
         </div>
     @endif
+    </div>
 
     <form method="post" action="/partnership/apply" class="ref-partner-apply-form">
         @csrf

@@ -27,10 +27,11 @@ function Fact({ label, children }: { label: string; children: React.ReactNode })
 }
 
 /** One product's facts and its commands: stop orders, archive, delete or restore. */
-export default function ProductDrawer({ product, canStock, canEditCatalog, onClose }: {
+export default function ProductDrawer({ product, canStock, canEditCatalog, canOpenProduct, onClose }: {
     product: Row;
     canStock: boolean;
     canEditCatalog: boolean;
+    canOpenProduct: boolean;
     onClose: () => void;
 }) {
     const translate = useT();
@@ -41,11 +42,12 @@ export default function ProductDrawer({ product, canStock, canEditCatalog, onClo
     const canRemove = canEditCatalog && Boolean(removal);
     const photo = product.image_url || product.image_fallback?.url;
     const line = removalLine(removal, isArchived, translate);
+    const hasCommands = canOpenProduct || canEditCatalog || (canStock && !isArchived);
     const commands = (
         <div className="os-drawer-actions">
-            <Link className="button dark" href={`/products/${product.id}`}>{t('edit')}</Link>
-            {!isArchived && (
-                <button type="button" className="button" disabled={!canStock} onClick={() => router.post(`/commands/products/${product.id}/toggle-stock`, {}, { preserveScroll: true })}>
+            {canOpenProduct && <Link className="button dark" href={`/products/${product.id}`}>{t('edit')}</Link>}
+            {!isArchived && canStock && (
+                <button type="button" className="button" onClick={() => router.post(`/commands/products/${product.id}/toggle-stock`, {}, { preserveScroll: true })}>
                     {translate('portal', product.is_stock_paused ? 'resume_ordering' : 'pause_ordering')}
                 </button>
             )}
@@ -58,7 +60,7 @@ export default function ProductDrawer({ product, canStock, canEditCatalog, onClo
 
     return (
         <>
-            <Modal title={String(product.name)} onClose={onClose} variant="drawer" badge={<ProductStatusBadge product={product} />} footer={commands}>
+            <Modal title={String(product.name)} onClose={onClose} variant="drawer" badge={<ProductStatusBadge product={product} />} footer={hasCommands ? commands : undefined}>
                 <div className="os-drawer">
                     {photo && <img className="os-drawer-photo" src={photo} alt={translate('office_stock', 'photo_alt', { name: String(product.name) })} loading="lazy" />}
                     <dl className="os-facts">

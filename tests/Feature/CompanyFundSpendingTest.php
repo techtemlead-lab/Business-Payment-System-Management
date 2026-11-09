@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 /**
@@ -36,6 +37,26 @@ class CompanyFundSpendingTest extends TestCase
         $this->seed(CommissionRuleSeeder::class);
         $this->enableFinancialPosting();
         $this->order = $this->postedOrder();
+    }
+
+    public function test_only_someone_who_may_approve_is_offered_the_decision(): void
+    {
+        [$maker, $checker] = $this->financeStaff();
+        $enterOnly = User::factory()->enterOnly()->create();
+        $this->fundRow('company_profit_fund', '1000.00');
+        $id = $this->spend($maker)->assertOk()->json('data.id');
+        $firstRow = 'approvals_table.rows.data.0.';
+
+        $this->actingAs($enterOnly)->onPortal('manage')->get('/treasury/work')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where($firstRow.'can_review', false)->where($firstRow.'can_cancel', false)->where($firstRow.'waits_for_owner', true));
+        $this->review($enterOnly, $id, 'approved')->assertForbidden();
+
+        $this->actingAs($checker)->onPortal('manage')->get('/treasury/work')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where($firstRow.'can_review', true)->where($firstRow.'waits_for_owner', false));
+        $this->actingAs($maker)->onPortal('manage')->get('/treasury/work')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where($firstRow.'can_review', false)->where($firstRow.'can_cancel', true)->where($firstRow.'waits_for_owner', false));
+        $this->actingAs(User::factory()->staff('md')->create())->onPortal('sadmin')->get('/treasury/work')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where($firstRow.'can_review', true));
     }
 
     public function test_a_spend_reduces_the_balance_and_posts_balanced_journals(): void

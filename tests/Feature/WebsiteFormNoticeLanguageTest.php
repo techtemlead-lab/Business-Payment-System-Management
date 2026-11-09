@@ -46,7 +46,7 @@ class WebsiteFormNoticeLanguageTest extends TestCase
                 'division' => 'Rangpur',
                 'district' => 'Rangpur',
             ])
-            ->assertRedirect('/partnership');
+            ->assertRedirect('/partnership#partner-apply-status');
 
         $bangla = $this->noticeFor($this->banglaOwner);
         $english = $this->noticeFor($this->englishOwner);
@@ -68,7 +68,7 @@ class WebsiteFormNoticeLanguageTest extends TestCase
                 'topic' => 'dealer_enquiry',
                 'message' => 'Please call me about becoming a dealer.',
             ])
-            ->assertRedirect('/contact');
+            ->assertRedirect('/contact#enquiry-status');
 
         $bangla = $this->noticeFor($this->banglaOwner);
         $english = $this->noticeFor($this->englishOwner);

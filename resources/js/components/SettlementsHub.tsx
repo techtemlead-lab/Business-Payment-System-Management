@@ -82,6 +82,7 @@ function DetailRow({ title, count, open, children }: { title: string; count?: nu
 export default function SettlementsHub({ state }: { state: SettlementState }) {
     const translate = useT();
     const { financeActive, staffActions } = usePage<any>().props;
+    const canApprove = Boolean(staffActions?.finance?.approve ?? true);
     const [selectedMonth, setSelectedMonth] = useState(state.current_month || new Date().toISOString().slice(0, 7));
     const [processingSalary, setProcessingSalary] = useState(false);
     const [processingRank, setProcessingRank] = useState(false);
@@ -212,15 +213,17 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                     </div>
                 </div>
 
-                <button
-                    type="button"
-                    className="button small dark"
-                    disabled={!(staffActions?.finance?.approve ?? true) || !financeActive || processingMatured || state.maturing_count === 0}
-                    onClick={handleReleaseMatured}
-                >
-                    <RefreshCw size={15} className={processingMatured ? 'spin' : ''} />
-                    {processingMatured ? translate('portal', 'st_releasing') : translate('portal', 'st_release')}
-                </button>
+                {canApprove && (
+                    <button
+                        type="button"
+                        className="button small dark"
+                        disabled={!financeActive || processingMatured || state.maturing_count === 0}
+                        onClick={handleReleaseMatured}
+                    >
+                        <RefreshCw size={15} className={processingMatured ? 'spin' : ''} />
+                        {processingMatured ? translate('portal', 'st_releasing') : translate('portal', 'st_release')}
+                    </button>
+                )}
             </div>
 
             {/* Two Main Settlement Cards: Salary Pool & Rank Royalty Pool */}
@@ -322,15 +325,17 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                         )}
                     </div>
 
-                    <button
-                        type="button"
-                        className="button dark hub-block"
-                        disabled={!(staffActions?.finance?.approve ?? true) || !financeActive || processingSalary}
-                        onClick={handleSettleSalary}
-                    >
-                        <Play size={16} fill="currentColor" />
-                        {processingSalary ? translate('portal', 'st_executing') : translate('portal', 'st_settle_salary', { month: selectedMonth })}
-                    </button>
+                    {canApprove && (
+                        <button
+                            type="button"
+                            className="button dark hub-block"
+                            disabled={!financeActive || processingSalary}
+                            onClick={handleSettleSalary}
+                        >
+                            <Play size={16} fill="currentColor" />
+                            {processingSalary ? translate('portal', 'st_executing') : translate('portal', 'st_settle_salary', { month: selectedMonth })}
+                        </button>
+                    )}
                 </div>
 
                 {/* 2. Leadership Rank Royalty Pool (4%) */}
@@ -407,15 +412,17 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                         )}
                     </div>
 
-                    <button
-                        type="button"
-                        className="button dark hub-block"
-                        disabled={!(staffActions?.finance?.approve ?? true) || !financeActive || processingRank}
-                        onClick={handleSettleRank}
-                    >
-                        <Play size={16} fill="currentColor" />
-                        {processingRank ? translate('portal', 'st_executing') : translate('portal', 'st_settle_rank', { month: selectedMonth })}
-                    </button>
+                    {canApprove && (
+                        <button
+                            type="button"
+                            className="button dark hub-block"
+                            disabled={!financeActive || processingRank}
+                            onClick={handleSettleRank}
+                        >
+                            <Play size={16} fill="currentColor" />
+                            {processingRank ? translate('portal', 'st_executing') : translate('portal', 'st_settle_rank', { month: selectedMonth })}
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -487,11 +494,11 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                             sortable: false,
                             render: l => l.one_time_incentive_paid ? (
                                 <span className="muted">{translate('portal', 'st_settled')}</span>
-                            ) : (
+                            ) : !canApprove ? '—' : (
                                 <button
                                     type="button"
                                     className="button small dark"
-                                    disabled={!(staffActions?.finance?.approve ?? true) || !financeActive || claimingIncentive === l.user_id || incentiveFor(l.rank) === null}
+                                    disabled={!financeActive || claimingIncentive === l.user_id || incentiveFor(l.rank) === null}
                                     onClick={() => handleClaimIncentive(l.user_id, l.name, l.rank)}
                                 >
                                     {claimingIncentive === l.user_id ? translate('portal', 'st_claiming') : translate('portal', 'st_approve_pay')}

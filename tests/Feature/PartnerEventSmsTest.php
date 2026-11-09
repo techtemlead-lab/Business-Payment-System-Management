@@ -81,7 +81,7 @@ class PartnerEventSmsTest extends TestCase
                 'topic' => 'partnership_enquiry',
                 'message' => 'I want to join as an authorized dealer in Sylhet.',
             ])
-            ->assertRedirect('/contact');
+            ->assertRedirect('/contact#enquiry-status');
 
         $sent = config('madina.sms.sent');
         $this->assertSame('enquiry.public_received', $sent[0]['event'] ?? null);
@@ -114,7 +114,7 @@ class PartnerEventSmsTest extends TestCase
                 'district' => 'Sylhet',
                 'sponsor_code' => 'REF-SMOKE-01',
             ])
-            ->assertRedirect('/partnership');
+            ->assertRedirect('/partnership#partner-apply-status');
 
         $sent = config('madina.sms.sent');
         $this->assertSame('partnership.application_received', $sent[0]['event'] ?? null);
@@ -506,7 +506,7 @@ class PartnerEventSmsTest extends TestCase
                 'division' => 'Khulna',
                 'district' => 'Khulna',
             ])
-            ->assertRedirect('/partnership');
+            ->assertRedirect('/partnership#partner-apply-status');
         $id = DB::table('dealer_applications')->where('email', 'approve.sms@example.test')->value('id');
         Config::set('madina.sms.sent', []);
 
@@ -1002,7 +1002,7 @@ class PartnerEventSmsTest extends TestCase
                 'division' => 'Barisal',
                 'district' => 'Barisal',
             ])
-            ->assertRedirect('/partnership');
+            ->assertRedirect('/partnership#partner-apply-status');
         $id = DB::table('dealer_applications')->where('email', 'reject.sms@example.test')->value('id');
         Config::set('madina.sms.sent', []);
 

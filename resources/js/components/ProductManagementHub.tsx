@@ -48,6 +48,7 @@ export default function ProductManagementHub({
     catalogFilters,
     productsPage,
     canCreate = false,
+    canOpenProduct = false,
     onCreateProduct,
     initialTab = 'products',
 }: {
@@ -64,6 +65,7 @@ export default function ProductManagementHub({
     catalogFilters?: FilterBarData;
     productsPage?: Row;
     canCreate?: boolean;
+    canOpenProduct?: boolean;
     onCreateProduct: () => void;
     initialTab?: string;
 }) {
@@ -287,7 +289,7 @@ export default function ProductManagementHub({
                         prop="data"
                         columns={columns}
                         searchPlaceholder={translate('portal', 'search_products_catalog')}
-                        rowHref={(product) => `/products/${product.id}`}
+                        rowHref={canOpenProduct ? (product) => `/products/${product.id}` : undefined}
                         empty={emptyLine}
                     />
                 </div>
@@ -298,6 +300,7 @@ export default function ProductManagementHub({
                     product={drawerProduct}
                     canStock={canStock}
                     canEditCatalog={canEditCatalog}
+                    canOpenProduct={canOpenProduct}
                     onClose={() => setDrawerProductId(null)}
                 />
             )}

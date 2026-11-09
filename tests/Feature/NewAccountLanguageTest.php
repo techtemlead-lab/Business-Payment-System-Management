@@ -79,7 +79,7 @@ class NewAccountLanguageTest extends TestCase
                 'division' => 'Khulna',
                 'district' => 'Khulna',
             ])
-            ->assertRedirect('/partnership');
+            ->assertRedirect('/partnership#partner-apply-status');
         $id = DB::table('dealer_applications')->where('email', 'english.browser@example.test')->value('id');
 
         $reviewer = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);

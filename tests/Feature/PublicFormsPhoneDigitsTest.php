@@ -27,7 +27,7 @@ class PublicFormsPhoneDigitsTest extends TestCase
             'phone' => '০১৮১১১১২২২২',
             'topic' => 'support',
             'message' => 'A long enough test message.',
-        ])->assertRedirect('/contact')->assertSessionHasNoErrors();
+        ])->assertRedirect('/contact#enquiry-status')->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('enquiries', ['phone' => '01811112222']);
     }
@@ -42,17 +42,17 @@ class PublicFormsPhoneDigitsTest extends TestCase
             'role' => 'dealer',
             'division' => 'Rangpur',
             'district' => 'Rangpur',
-        ])->assertRedirect('/partnership')->assertSessionHasNoErrors();
+        ])->assertRedirect('/partnership#partner-apply-status')->assertSessionHasNoErrors();
     }
 
     public function test_a_number_nobody_could_call_back_is_refused_on_every_public_form(): void
     {
         $this->onPortal('public')->from('/contact')->post('/enquiries', ['name' => 'Test', 'phone' => 'abc', 'topic' => 'support', 'message' => 'A long enough test message.'])
-            ->assertRedirect('/contact')->assertSessionHasErrors('phone');
+            ->assertRedirect('/contact#enquiry-status')->assertSessionHasErrors('phone');
         $this->onPortal('public')->from('/grievance')->post('/grievance', ['name' => 'Test', 'phone' => '12345', 'topic' => 'complaint', 'message' => 'A long enough test message.'])
             ->assertRedirect('/grievance')->assertSessionHasErrors('phone');
         $this->onPortal('public')->from('/partnership')->post('/partnership/apply', ['name' => 'Test', 'email' => 'a@example.test', 'phone' => '12345', 'date_of_birth' => '1990-01-15', 'role' => 'dealer', 'division' => 'Rangpur', 'district' => 'Rangpur'])
-            ->assertRedirect('/partnership')->assertSessionHasErrors('phone');
+            ->assertRedirect('/partnership#partner-apply-status')->assertSessionHasErrors('phone');
 
         $this->assertDatabaseCount('enquiries', 0);
     }
