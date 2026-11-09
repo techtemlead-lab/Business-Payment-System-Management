@@ -41,7 +41,16 @@ final class StockStages
      * branch has never held still get a row of zeros. Without one, a product that only has the
      * old company-wide figure gets one row with no branch.
      */
-    public static function rows(?int $branchId = null): Builder
+    public static function rows(?int $branchId = null, ?int $productId = null): Builder
+    {
+        $split = 'LEAST(lot_held, GREATEST(physical - in_stock, 0))';
+
+        return DB::query()->fromSub(self::rawRows($branchId, $productId), 'stage_row')->selectRaw(
+            "product_id, branch_id, physical, in_stock, with_courier, next_expiry, next_batch, {$split} AS on_hold, GREATEST(physical - in_stock - {$split}, 0) AS expired, GREATEST(physical - lot_units, 0) AS unlotted",
+        );
+    }
+
+    private static function rawRows(?int $branchId, ?int $productId): Builder
     {
         $today = StockLot::today();
         $physical = $branchId === null
@@ -74,7 +83,8 @@ final class StockStages
             ->selectRaw("CAST({$inStock} AS integer) AS in_stock", $inStockBindings)
             ->selectRaw('CAST(COALESCE(on_hand.total, 0) AS integer) AS lot_units, CAST(COALESCE(on_hand.held, 0) AS integer) AS lot_held')
             ->selectRaw('CAST(COALESCE(with_courier.units, 0) AS integer) AS with_courier')
-            ->selectRaw('next_lot.expires_on AS next_expiry, next_lot.batch_number AS next_batch');
+            ->selectRaw('next_lot.expires_on AS next_expiry, next_lot.batch_number AS next_batch')
+            ->when($productId !== null, fn (Builder $query) => $query->where('products.id', $productId));
     }
 
     /**
@@ -87,22 +97,26 @@ final class StockStages
      */
     public function forProduct(Product $product): array
     {
-        $branches = CompanyBranch::query()->pluck('code', 'id')->all();
-        $branchNames = CompanyBranch::query()->pluck('name', 'id')->all();
-        $rows = self::rows()->where('products.id', $product->id)->get();
-        $seen = [];
+        $branches = CompanyBranch::query()->get(['id', 'code', 'name'])->keyBy('id');
         $lines = [];
-        foreach ($rows as $row) {
+        foreach (self::rows(productId: (int) $product->id)->get() as $row) {
             $branchId = $row->branch_id !== null ? (int) $row->branch_id : null;
-            if ($branchId !== null) {
-                $seen[$branchId] = true;
-            }
-            $lines[] = self::stagesOf($branchId, (string) ($branches[$branchId] ?? ''), (string) ($branchNames[$branchId] ?? ''), (int) $row->physical, (int) $row->in_stock, (int) $row->lot_held, (int) $row->with_courier);
+            $branch = $branchId !== null ? $branches->get($branchId) : null;
+            $lines[] = [
+                'branch_id' => $branchId,
+                'branch_code' => $branch?->code,
+                'branch_name' => $branch?->name,
+                'in_stock' => (int) $row->in_stock,
+                'on_hold' => (int) $row->on_hold,
+                'expired' => (int) $row->expired,
+                'with_courier' => (int) $row->with_courier,
+                'total' => (int) $row->physical + (int) $row->with_courier,
+            ];
         }
         // A parcel from a branch since removed is still out with the courier.
         $orphans = (int) DB::query()->fromSub(self::courierUnits(), 'parcel')->where('product_id', $product->id)->whereNull('branch_id')->value('units');
         if ($orphans > 0) {
-            $lines[] = self::stagesOf(null, null, null, 0, 0, 0, $orphans);
+            $lines[] = ['branch_id' => null, 'branch_code' => null, 'branch_name' => null, 'in_stock' => 0, 'on_hold' => 0, 'expired' => 0, 'with_courier' => $orphans, 'total' => $orphans];
         }
         $total = ['in_stock' => 0, 'on_hold' => 0, 'expired' => 0, 'with_courier' => 0, 'total' => 0];
         foreach ($lines as $line) {
@@ -114,29 +128,6 @@ final class StockStages
         return [
             'branches' => array_values(array_filter($lines, fn (array $line): bool => $line['branch_id'] !== null)),
             'total' => $total,
-        ];
-    }
-
-    /**
-     * Splits a row's units between its stages. Lots can briefly hold more than the branch count,
-     * so "on hold" never takes more than what is left after the usable units.
-     *
-     * @return array{branch_id: int|null, branch_code: string|null, branch_name: string|null, in_stock: int, on_hold: int, expired: int, with_courier: int, total: int}
-     */
-    public static function stagesOf(?int $branchId, ?string $code, ?string $name, int $physical, int $inStock, int $lotHeld, int $withCourier): array
-    {
-        $onHold = min($lotHeld, max(0, $physical - $inStock));
-        $expired = max(0, $physical - $inStock - $onHold);
-
-        return [
-            'branch_id' => $branchId,
-            'branch_code' => $code,
-            'branch_name' => $name,
-            'in_stock' => $inStock,
-            'on_hold' => $onHold,
-            'expired' => $expired,
-            'with_courier' => $withCourier,
-            'total' => $inStock + $onHold + $expired + $withCourier,
         ];
     }
 }

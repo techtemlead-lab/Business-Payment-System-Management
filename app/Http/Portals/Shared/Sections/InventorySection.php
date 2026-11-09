@@ -5,6 +5,7 @@ namespace App\Http\Portals\Shared\Sections;
 use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\SellableStock;
 use App\Domain\Inventory\StockLotReports;
+use App\Domain\Inventory\StockRegister;
 use App\Domain\Inventory\StockMovementList;
 use App\Models\BranchProductStock;
 use App\Models\Product;
@@ -63,6 +64,7 @@ final class InventorySection implements WorkspaceSection
         // The movement log follows the same branch as the stock on hand above it.
         $branchScope = StockMovementList::scope($user, $request, $preferredBranch);
         $props['branch_scope'] = $branchScope->chip();
+        $props['stock_table'] = app(StockRegister::class)->stockTable($request, $branchScope, $user);
         $movements = app(StockMovementList::class);
         $movementFilters = StockMovementList::filters($request);
         // The totals query also gives the row count, so the page skips its own count query.

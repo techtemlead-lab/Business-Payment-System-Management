@@ -4,12 +4,15 @@ namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Catalog\CatalogTaxonomy;
 use App\Domain\Finance\FinanceSettings;
+use App\Domain\Inventory\StockRegister;
 use App\Domain\Orders\CourierOptions;
 use App\Models\Product;
 use App\Support\CatalogCms;
 use App\Support\Money;
+use App\Support\MoneyTable;
 use App\Support\SiteCustomization;
 use App\Support\StockImage;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
@@ -20,6 +23,8 @@ use Illuminate\Validation\ValidationException;
  */
 final class CatalogSection implements WorkspaceSection
 {
+    private const StaffProductsPerPage = 24;
+
     public function data(SectionContext $context, array $data): array
     {
         $user = $context->user;
@@ -57,10 +62,22 @@ final class CatalogSection implements WorkspaceSection
                 },
                 fn ($q) => $q->orderBy('name'),
             );
-        $productLimit = $context->isStaff ? 250 : 200;
-        $props['products_truncated'] = (clone $productQuery)->count() > $productLimit;
-        $products = (clone $productQuery)->limit($productLimit)->get();
         $revealStock = ! $context->isStaff || $user->allows('inventory');
+        if ($context->isStaff && $context->section === 'catalog') {
+            $register = app(StockRegister::class);
+            $props['catalog_filters'] = $register->catalogFilters($request, $revealStock);
+            $productQuery->whereIn('products.id', $register->matchingProductIds($props['catalog_filters']['active']));
+            $period = MoneyTable::range($request, null);
+            $productQuery->when($period !== null, fn ($q) => $q->where('products.created_at', '>=', $period['from'])->where('products.created_at', '<=', $period['until']));
+            $page = $productQuery->paginate(self::StaffProductsPerPage)->withQueryString();
+            $props['products_truncated'] = false;
+            $props['products_page'] = Arr::except($page->toArray(), ['data']);
+            $products = $page->getCollection();
+        } else {
+            $productLimit = $context->isStaff ? 250 : 200;
+            $props['products_truncated'] = (clone $productQuery)->count() > $productLimit;
+            $products = (clone $productQuery)->limit($productLimit)->get();
+        }
         $revealDealerPrice = ! $context->isStaff || $user->allows('pricing') || $user->allows('orders') || $user->allows('finance');
         // Each Schema::hasColumn() call reads the database catalogue, so ask once per request, not once per product.
         $supportsProductExpiry = $context->section === 'inventory' && Schema::hasColumn('products', 'expires_on');
