@@ -205,7 +205,7 @@ class OrdersAndDeliveriesTableTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->has('data.orders.data', 12)
                 ->missing('data.orders_table')
-                ->missing('data.orders.data.0.payment_claims'));
+                ->has('data.orders.data.0.payment_claims'));
 
         $this->actingAs($this->dealer)->onPortal('dealer')->get('/deliveries?view=parcels')->assertOk()
             ->assertInertia(fn (Assert $page) => $page
