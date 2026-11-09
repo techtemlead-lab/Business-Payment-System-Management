@@ -16,23 +16,6 @@ final class ProductRemoval
     /** Reasons in the order they are read out. Stock comes first because it is the one a person can change. */
     private const ReasonOrder = ['stock', 'orders', 'stock_history', 'purchases', 'prescriptions', 'schemes', 'reviews', 'health_tags', 'other'];
 
-    /** @var array<string, string> A table not named here reads as "other records". */
-    private const ReasonByTable = [
-        'branch_product_stocks' => 'stock_history',
-        'dated_schemes' => 'schemes',
-        'goods_receipt_lines' => 'purchases',
-        'order_lines' => 'orders',
-        'prescription_lines' => 'prescriptions',
-        'product_concern_product' => 'health_tags',
-        'purchase_order_lines' => 'purchases',
-        'site_feedback' => 'reviews',
-        'stock_count_lines' => 'stock_history',
-        'stock_lot_movements' => 'stock_history',
-        'stock_lots' => 'stock_history',
-        'stock_movements' => 'stock_history',
-        'stock_transfers' => 'stock_history',
-    ];
-
     /**
      * @return array{can_delete: bool, reasons: list<string>}
      */
@@ -89,7 +72,7 @@ final class ProductRemoval
                 ->selectRaw("'prescriptions' AS reason, products.id AS product_id, 1 AS uses"),
         );
         foreach (Product::ReferencingColumns as $table => $column) {
-            $reason = self::ReasonByTable[$table] ?? 'other';
+            $reason = $this->reasonFor($table);
             $uses->unionAll(
                 DB::table($table)->whereIn($column, $productIds)->groupBy($column)
                     ->selectRaw("'{$reason}' AS reason, {$column} AS product_id, COUNT(*) AS uses"),
@@ -101,6 +84,20 @@ final class ProductRemoval
         }
 
         return $byProduct;
+    }
+
+    private function reasonFor(string $table): string
+    {
+        return match ($table) {
+            'order_lines' => 'orders',
+            'branch_product_stocks', 'stock_count_lines', 'stock_lot_movements', 'stock_lots', 'stock_movements', 'stock_transfers' => 'stock_history',
+            'goods_receipt_lines', 'purchase_order_lines' => 'purchases',
+            'prescription_lines' => 'prescriptions',
+            'dated_schemes' => 'schemes',
+            'site_feedback' => 'reviews',
+            'product_concern_product' => 'health_tags',
+            default => 'other',
+        };
     }
 
     private function inWords(string $reason, int $uses, bool $showUnits): string
