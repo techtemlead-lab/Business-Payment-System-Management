@@ -31,7 +31,7 @@ class OfficePlainLabelsLocaleTest extends TestCase
             'stock movement types' => ['/inventory', ['stock_kind_receipt' => 'স্টক এসেছে', 'stock_kind_dispatch' => 'অর্ডারে পাঠানো']],
             'dashboard banner styles' => ['/dashboards', ['dash_mgmt_banner_style_info' => 'সাধারণ তথ্য', 'dash_mgmt_banner_style_warning' => 'সতর্কতা']],
             'account editor fields' => ['/accounts', ['acct_edit_father_name' => 'পিতার নাম', 'acct_village' => 'গ্রাম / রাস্তা', 'staff_role_sr' => 'সেলস রিপ্রেজেন্টেটিভ (SR)']],
-            'employee roles' => ['/employees', ['staff_role_employee' => 'কর্মচারী']],
+            'employee roles' => ['/employees', ['staff_role_employee' => 'স্টাফ']],
         ];
     }
 
@@ -150,6 +150,16 @@ class OfficePlainLabelsLocaleTest extends TestCase
             $this->assertArrayHasKey($key, $bangla, $key);
             $this->assertNotSame($english['section_hint'], $english[$key], $key);
             $this->assertNotSame($english[$key], $bangla[$key], $key);
+        }
+    }
+
+    public function test_the_agreed_bangla_words_replace_the_old_ones(): void
+    {
+        foreach (['portal', 'manual'] as $group) {
+            $text = json_encode(require lang_path("bn/{$group}.php"), JSON_UNESCAPED_UNICODE);
+            foreach (['কর্মচারী', 'প্রোডাক্ট', 'সম্পাদনা', 'আংশিক ডেলিভার্ড', 'শেষ হয়েছে'] as $oldWord) {
+                $this->assertStringNotContainsString($oldWord, $text, "$group still says $oldWord");
+            }
         }
     }
 }

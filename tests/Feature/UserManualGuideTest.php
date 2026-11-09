@@ -166,7 +166,7 @@ class UserManualGuideTest extends TestCase
             'sub_dealer' => User::factory()->create(['role' => 'sub_dealer', 'status' => 'active']),
         ];
         // These were removed from the dashboards; a step pointing at them shows an empty card.
-        $goneTargets = ['home-chart', 'sidebar-help', 'catalog-cart'];
+        $goneTargets = ['home-chart', 'sidebar-help', 'catalog-cart', 'admin-modules'];
 
         foreach (['en', 'bn'] as $locale) {
             app()->setLocale($locale);
@@ -190,5 +190,47 @@ class UserManualGuideTest extends TestCase
         app()->setLocale('en');
         $partnerText = collect($tours->definitionsFor($people['dealer'])['overview']['steps'])->pluck('action')->implode(' ');
         $this->assertStringContainsString('full amount', $partnerText, 'The dealer tour must say orders are paid in full first.');
+    }
+
+    public function test_office_tour_shows_treasury_and_settings_only_to_people_who_can_open_them(): void
+    {
+        app()->setLocale('en');
+        $tours = app(TourGuide::class);
+        $titlesFor = fn (User $user): array => array_column($tours->definitionsFor($user)['overview']['steps'], 'title');
+        $treasury = __('manual.tour_office_treasury_title');
+        $settings = __('manual.tour_office_settings_title');
+        $courier = __('manual.tour_office_courier_title');
+
+        $owner = $titlesFor(User::factory()->create(['role' => 'super_admin', 'status' => 'active']));
+        $finance = $titlesFor(User::factory()->create(['role' => 'employee', 'status' => 'active', 'profile' => ['permissions' => ['finance']]]));
+        $orders = $titlesFor(User::factory()->create(['role' => 'employee', 'status' => 'active', 'profile' => ['permissions' => ['orders']]]));
+
+        $this->assertContains($treasury, $owner);
+        $this->assertContains($settings, $owner);
+        $this->assertContains($treasury, $finance);
+        $this->assertContains($settings, $finance);
+        $this->assertNotContains($treasury, $orders);
+        $this->assertNotContains($settings, $orders);
+        $this->assertContains($courier, $orders);
+    }
+
+    public function test_partner_tour_points_at_the_income_cards(): void
+    {
+        foreach (['dealer', 'sub_dealer'] as $role) {
+            $user = User::factory()->create(['role' => $role, 'status' => 'active']);
+            $targets = array_column(app(TourGuide::class)->definitionsFor($user)['overview']['steps'], 'target');
+
+            $this->assertContains('.mm-income', $targets, $role);
+        }
+    }
+
+    public function test_the_tour_sends_the_guide_its_page_labels_in_both_languages(): void
+    {
+        $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
+
+        foreach (['en' => 'On this page', 'bn' => 'এই পাতা'] as $locale => $expected) {
+            app()->setLocale($locale);
+            $this->assertSame($expected, app(TourGuide::class)->forPage($dealer, 'overview')['labels']['this_page']);
+        }
     }
 }

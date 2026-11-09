@@ -133,6 +133,81 @@ class UserManualRoundTwoTest extends TestCase
         $this->assertSame(['[data-tour="purchase-matrix"]'], array_column($dealer['purchase']['steps'], 'target'));
     }
 
+    public function test_the_menu_chapters_name_every_row_and_tab_in_both_languages(): void
+    {
+        $owner = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
+        $officeRows = ['orders', 'payments', 'deliveries', 'nav_module_messages', 'treasury', 'payouts_hub', 'nav_commission_hub', 'nav_module_stock',
+            'nav_module_partners', 'nav_module_applications', 'nav_module_for_partners', 'nav_module_people', 'nav_module_reports', 'label_web'];
+        $partnerRows = ['nav_module_home', 'purchase', 'nav_module_commerce', 'nav_products', 'nav_module_earnings', 'nav_module_network',
+            'nav_module_learning', 'nav_module_office', 'nav_module_account'];
+
+        foreach (['en', 'bn'] as $locale) {
+            app()->setLocale($locale);
+            $manual = app(UserManual::class);
+            $chapterText = fn (string $key, User $user): string => implode(' ', $manual->chapter($key, $user)['steps']);
+            $menu = trans('office_menu');
+            $officeText = $chapterText('menu_office', $owner);
+            $partnerText = $chapterText('menu_partner', $dealer);
+            $settingsText = $chapterText('settings_home', $owner);
+
+            foreach ($officeRows as $key) {
+                $this->assertStringContainsString(__('portal.'.$key), $officeText, "$locale office row $key");
+            }
+            foreach ($partnerRows as $key) {
+                $this->assertStringContainsString(__('portal.'.$key), $partnerText, "$locale partner row $key");
+            }
+            foreach (['tab_funds', 'tab_orders', 'tab_events', 'tab_partners', 'tab_work'] as $key) {
+                $this->assertStringContainsString(__('treasury.'.$key), $officeText, "$locale treasury $key");
+            }
+            foreach ($menu as $key => $label) {
+                $text = match (true) {
+                    str_starts_with($key, 'partner_tab_') => $partnerText,
+                    str_starts_with($key, 'tab_') => $officeText,
+                    str_starts_with($key, 'settings_link_') => $settingsText,
+                    default => null,
+                };
+                if ($text !== null) {
+                    $this->assertStringContainsString($label, $text, "$locale $key");
+                }
+            }
+        }
+    }
+
+    public function test_each_page_opens_one_chapter_the_reader_can_see(): void
+    {
+        $sections = array_merge(...array_column(config('portals'), 'sections'));
+        $otherPages = ['order', 'treasury', 'benefits-fund', 'policy-schedules', 'payroll', 'access-management', 'finance-settings',
+            'payment-accounts', 'financial-readiness', 'financial-reports', 'data-imports', 'service-integrations', 'courier-areas'];
+        $people = [
+            User::factory()->create(['role' => 'super_admin', 'status' => 'active']),
+            User::factory()->create(['role' => 'account_manager', 'status' => 'active']),
+            User::factory()->create(['role' => 'dealer', 'status' => 'active']),
+            User::factory()->create(['role' => 'sub_dealer', 'status' => 'active']),
+        ];
+
+        foreach ($people as $person) {
+            $pages = array_merge(...array_column(app(UserManual::class)->chaptersFor($person), 'pages'));
+
+            $this->assertNotEmpty($pages, $person->role);
+            $this->assertSame(array_values(array_unique($pages)), $pages, "$person->role has a page that opens two chapters");
+            foreach ($pages as $page) {
+                $this->assertContains($page, [...$sections, ...$otherPages], "$page is not a page");
+            }
+        }
+    }
+
+    public function test_the_manual_keeps_the_owners_money_rules(): void
+    {
+        $owner = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        app()->setLocale('en');
+        $chapters = collect(app(UserManual::class)->chaptersFor($owner))->keyBy('key');
+
+        $this->assertStringContainsString('the owner can finish it alone', implode(' ', $chapters['payouts_settlements']['tips']));
+        $this->assertStringContainsString('the owner can finish it alone', implode(' ', $chapters['withdrawals']['steps']));
+        $this->assertMatchesRegularExpression('/ \d+(\.\d+)?% of each dealer purchase/', $chapters['commissions_pool']['purpose']);
+    }
+
     private function drawn(string $selector, string $screens): bool
     {
         if (preg_match('/^\[data-(tour|testid)="([^"]+)"\]$/', $selector, $match) === 1) {

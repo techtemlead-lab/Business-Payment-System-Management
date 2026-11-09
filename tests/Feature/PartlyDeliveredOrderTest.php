@@ -145,9 +145,9 @@ class PartlyDeliveredOrderTest extends TestCase
 
     public function test_the_status_reads_plainly_in_both_languages(): void
     {
-        $this->assertSame('আংশিক ডেলিভার্ড', __('portal.status_partly_delivered', [], 'bn'));
+        $this->assertSame('আংশিক ডেলিভারি', __('portal.status_partly_delivered', [], 'bn'));
         $this->assertSame('Partly delivered', __('portal.status_partly_delivered', [], 'en'));
-        $this->assertSame('আংশিক ডেলিভার্ড', PartnerFullReport::statusWord('partly_delivered', 'bn'));
+        $this->assertSame('আংশিক ডেলিভারি', PartnerFullReport::statusWord('partly_delivered', 'bn'));
     }
 
     public function test_the_partner_statement_keeps_the_order_and_home_counts_the_delivered_part(): void
