@@ -11,6 +11,8 @@ final class LocalDigits
 {
     private const Bangla = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
 
+    private const Latin = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+
     public static function text(string|int|float|null $value, ?string $locale = null): string
     {
         $text = (string) ($value ?? '');
@@ -23,6 +25,6 @@ final class LocalDigits
     /** The same text with Bangla digits turned into 0–9, for numbers typed on a Bangla keyboard. */
     public static function latin(string $value): string
     {
-        return str_replace(self::Bangla, range(0, 9), $value);
+        return str_replace(self::Bangla, self::Latin, $value);
     }
 }
