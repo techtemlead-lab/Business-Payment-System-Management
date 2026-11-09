@@ -214,7 +214,7 @@ final class OrderMoneyReport
     }
 
     /**
-     * @param  Collection<int, object>  $rows
+     * @param  Collection<int, stdClass>  $rows
      * @return list<array<string, mixed>>
      */
     private function allocationLines(Collection $rows): array
@@ -258,8 +258,8 @@ final class OrderMoneyReport
     /**
      * Where one commission line went: a partner with their name and area, or just the fund.
      *
-     * @param  Collection<int|string, object>  $partners
-     * @param  Collection<int|string, object>  $places
+     * @param  Collection<int|string, stdClass>  $partners
+     * @param  Collection<int|string, stdClass>  $places
      * @param  array<string, mixed>  $meta
      * @return array<string, mixed>
      */
@@ -316,7 +316,7 @@ final class OrderMoneyReport
     }
 
     /**
-     * @param  Collection<int, object>  $noCommissionRows
+     * @param  Collection<int, stdClass>  $noCommissionRows
      * @param  array<string, mixed>|null  $decision
      */
     private function posting(Order $order, ?object $batch, Collection $noCommissionRows, ?array $decision): string
@@ -335,7 +335,7 @@ final class OrderMoneyReport
     /**
      * The commission that went to the company fund and the reason staff gave.
      *
-     * @param  Collection<int, object>  $noCommissionRows
+     * @param  Collection<int, stdClass>  $noCommissionRows
      * @param  array<string, mixed>|null  $decision
      * @return array{reason: ?string, amount: string}|null
      */
