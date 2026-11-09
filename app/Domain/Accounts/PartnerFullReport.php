@@ -226,27 +226,23 @@ final class PartnerFullReport
             return $html;
         };
 
-        $roleKey = 'acct_role_'.$user->role;
-        $roleLabel = __('portal.'.$roleKey, [], $locale);
-        if ($roleLabel === 'portal.'.$roleKey) {
-            $roleLabel = ucfirst(str_replace('_', ' ', (string) $user->role));
-        }
+        $roleLabel = self::roleWord((string) $user->role, $locale);
 
         $commissionRows = $rows($report['commissions'], fn (array $row) => [$row['label'], $row['entries'], $row['amount']]);
         $orderRows = $rows($report['orders'], fn (array $row) => [
             $row['number'],
-            $row['status'],
+            self::statusWord((string) $row['status'], $locale),
             $row['total'],
             $row['paid'],
             $row['due'],
-            collect($row['payments'] ?? [])->map(fn ($p) => ($p['channel'] ?? '').' '.$p['amount'].' ('.$p['status'].')')->implode('; ') ?: '—',
+            collect($row['payments'] ?? [])->map(fn ($p) => ($p['channel'] ?? '').' '.$p['amount'].' ('.self::statusWord((string) $p['status'], $locale).')')->implode('; ') ?: '—',
         ]);
         $teamRows = $rows($report['team_members'], fn (array $row) => [
             $row['name'],
             $row['dealer_code'] ?? '—',
-            $row['role'],
+            self::roleWord((string) $row['role'], $locale),
             $row['phone'] ?? '—',
-            $row['status'],
+            self::statusWord((string) $row['status'], $locale),
             '',
         ]);
 
@@ -292,6 +288,24 @@ final class PartnerFullReport
             'Madina-partner-report-'.$safeCode.'.pdf',
             ['Cache-Control' => 'private, no-store'],
         )->deleteFileAfterSend();
+    }
+
+    /** An order, payment or account status as people read it. */
+    public static function statusWord(string $status, string $locale): string
+    {
+        $key = 'portal.status_'.$status;
+        $word = __($key, [], $locale);
+
+        return $word === $key ? Str::headline($status) : $word;
+    }
+
+    /** A partner type as people read it. */
+    public static function roleWord(string $role, string $locale): string
+    {
+        $key = 'portal.acct_role_'.$role;
+        $word = __($key, [], $locale);
+
+        return $word === $key ? Str::headline($role) : $word;
     }
 
     /**
