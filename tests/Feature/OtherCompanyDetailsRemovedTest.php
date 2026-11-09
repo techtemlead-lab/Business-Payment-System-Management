@@ -41,7 +41,7 @@ class OtherCompanyDetailsRemovedTest extends TestCase
         $this->assertStringContainsString('2026-00563', SiteChrome::text('footer_about_desc', $defaults['footer_about_desc']));
         $this->assertStringContainsString('Thana Road, Pirganj', $defaults['office_address']);
         $this->assertSame('+8801730532966', $defaults['contact_phone']);
-        $this->assertSame('01723731877', $defaults['footer_phone']);
+        $this->assertSame('01730532967', $defaults['footer_phone']);
     }
 
     public function test_the_footer_has_no_email_until_the_owner_adds_one(): void

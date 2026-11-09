@@ -396,7 +396,7 @@ class SiteCustomization
             'footer_directory_link' => '/dealers',
             'footer_directory_icon' => 'fa-solid fa-location-dot',
             // The second number. The first is contact_phone.
-            'footer_phone' => '01723731877',
+            'footer_phone' => '01730532967',
             'footer_email' => '',
             'footer_address' => $copy('footer_address'),
             'footer_location' => $copy('footer_location'),

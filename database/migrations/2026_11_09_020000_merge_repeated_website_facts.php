@@ -33,7 +33,7 @@ return new class extends Migration
         'social_whatsapp' => ['https://wa.me/8801730532966'],
     ];
 
-    private const SecondPhone = '01723731877';
+    private const SecondPhone = '01730532967';
 
     public function up(): void
     {

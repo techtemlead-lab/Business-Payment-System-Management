@@ -79,7 +79,7 @@ class SiteSharedFactsTest extends TestCase
             $this->get($path)->assertOk()->assertDontSee('{company}', false)->assertDontSee('{address}', false)->assertDontSee('{phones}', false)->assertDontSee('{licence}', false);
         }
         $this->get('/about')->assertSee('2026-00563')->assertSee('Thana Road, Pirganj 5470, Rangpur');
-        $this->get('/privacy')->assertSee('+8801730532966 / 01723731877');
+        $this->get('/privacy')->assertSee('+8801730532966 / 01730532967');
     }
 
     public function test_bangla_visitors_get_bangla_digits_inside_sentences(): void
@@ -109,13 +109,22 @@ class SiteSharedFactsTest extends TestCase
 
     public function test_the_second_phone_shows_in_both_places_and_can_be_removed(): void
     {
-        $this->get('/')->assertSee('ref-footer-contact-link is-hotline', false)->assertSee('01723731877');
-        $this->get('/contact')->assertSee('01723731877');
+        $this->get('/')->assertSee('ref-footer-contact-link is-hotline', false)->assertSee('01730532967');
+        $this->get('/contact')->assertSee('01730532967');
 
         $this->saveAsEditor(['footer_phone' => '']);
 
-        $this->get('/')->assertOk()->assertDontSee('01723731877');
-        $this->get('/contact')->assertOk()->assertDontSee('01723731877');
+        $this->get('/')->assertOk()->assertDontSee('01730532967');
+        $this->get('/contact')->assertOk()->assertDontSee('01730532967');
+    }
+
+    public function test_the_number_that_was_never_the_companys_gives_way_when_it_was_saved_earlier(): void
+    {
+        $this->storeOldStyleRow(['footer_phone' => '01723731877']);
+
+        foreach (['/', '/contact', '/privacy'] as $path) {
+            $this->get($path)->assertOk()->assertSee('01730532967')->assertDontSee('01723731877');
+        }
     }
 
     public function test_every_social_network_appears_side_by_side_in_the_footer_and_on_the_contact_page(): void
@@ -190,7 +199,7 @@ class SiteSharedFactsTest extends TestCase
     {
         $this->storeOldStyleRow(['contact_phone' => '+8801730532966', 'footer_phone' => '01730-532966']);
         $this->runMergeMigration();
-        $this->assertSame('01723731877', SiteCustomization::raw()['footer_phone']);
+        $this->assertSame('01730532967', SiteCustomization::raw()['footer_phone']);
 
         $this->storeOldStyleRow(['contact_phone' => '+8801730532966', 'footer_phone' => '01812345678']);
         $this->runMergeMigration();
