@@ -540,3 +540,6 @@
 @media (max-width:767px){
   .app-shell .courier-board-filters{padding:0 14px 12px}
 }
+/* Stock movement log: units in and out. */
+.qty-in{color:var(--ds-ok-fg,#166534);font-variant-numeric:tabular-nums}
+.qty-out{color:var(--ds-danger-fg,#b91c1c);font-variant-numeric:tabular-nums}
