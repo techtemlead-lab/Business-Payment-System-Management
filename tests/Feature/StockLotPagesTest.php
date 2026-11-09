@@ -9,8 +9,10 @@ use App\Domain\Orders\OrderService;
 use App\Models\CompanyBranch;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\PurchaseOrder;
 use App\Models\StockLot;
 use App\Models\StockTransfer;
+use App\Models\Supplier;
 use App\Models\User;
 use App\Support\SiteCustomization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -180,6 +182,27 @@ class StockLotPagesTest extends TestCase
         $this->assertSame(2, $rows[0]['incoming']);
         // One a day for 30 days, plus the minimum of 10, less 8 in stock and 2 on the way.
         $this->assertSame(30, $rows[0]['suggested']);
+    }
+
+    public function test_reorder_list_counts_goods_still_due_on_purchase_orders(): void
+    {
+        $product = Product::factory()->create(['stock' => 0, 'low_stock_at' => 10]);
+        $this->stockIn($product, 2, 'R1', 200);
+        DB::table('branch_product_stocks')->where('product_id', $product->id)->update(['low_stock_at' => 10]);
+        $supplier = Supplier::factory()->create();
+        $addOrder = function (string $status, int $ordered, int $received) use ($product, $supplier): void {
+            $order = PurchaseOrder::query()->create(['supplier_id' => $supplier->id, 'branch_id' => $this->hub->id, 'status' => $status, 'created_by' => $this->owner->id]);
+            $order->lines()->create(['product_id' => $product->id, 'quantity_ordered' => $ordered, 'quantity_received' => $received]);
+        };
+        $addOrder(PurchaseOrder::StatusSent, 40, 0);
+        $addOrder(PurchaseOrder::StatusPartlyReceived, 20, 15);
+        $addOrder(PurchaseOrder::StatusDraft, 100, 0);
+        $addOrder(PurchaseOrder::StatusCancelled, 100, 0);
+
+        $rows = app(StockLotReports::class)->reorderSuggestions(new BranchScope(true, []));
+
+        $this->assertSame(45, $rows[0]['incoming']);
+        $this->assertSame(0, $rows[0]['suggested']);
     }
 
     public function test_public_batch_check_leaves_out_the_maker_until_one_is_set(): void
