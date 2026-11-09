@@ -132,6 +132,7 @@ class NetworkAndFinancePageScalingTest extends TestCase
 
     public function test_staff_partner_tree_opens_with_the_top_levels_and_grows_with_show_more(): void
     {
+        $this->enableFinancialPosting();
         $owner = User::factory()->staff()->create();
         $top = $this->partner(null);
         $middle = $this->partner($top);
