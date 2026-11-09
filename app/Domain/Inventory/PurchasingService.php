@@ -50,6 +50,41 @@ final class PurchasingService
     }
 
     /**
+     * Takes a supplier off the pick lists. Their orders, open or old, stay exactly as they are.
+     */
+    public function archiveSupplier(User $actor, Supplier $supplier): Supplier
+    {
+        $this->assertMay($actor, 'edit');
+
+        return DB::transaction(function () use ($actor, $supplier): Supplier {
+            $locked = $this->lockSupplier($supplier);
+            if ($locked->isArchived()) {
+                throw ValidationException::withMessages(['supplier' => __('purchasing.err_supplier_already_archived')]);
+            }
+            $locked->forceFill(['archived_at' => now()])->save();
+            Audit::record($actor->id, 'supplier.archived', (string) $locked->id, ['name' => $locked->name]);
+
+            return $locked;
+        });
+    }
+
+    public function restoreSupplier(User $actor, Supplier $supplier): Supplier
+    {
+        $this->assertMay($actor, 'edit');
+
+        return DB::transaction(function () use ($actor, $supplier): Supplier {
+            $locked = $this->lockSupplier($supplier);
+            if (! $locked->isArchived()) {
+                throw ValidationException::withMessages(['supplier' => __('purchasing.err_supplier_not_archived')]);
+            }
+            $locked->forceFill(['archived_at' => null])->save();
+            Audit::record($actor->id, 'supplier.restored', (string) $locked->id, ['name' => $locked->name]);
+
+            return $locked;
+        });
+    }
+
+    /**
      * @param  array{supplier_id:int,branch_id:int,notes?:?string,lines:list<array{product_id:int,quantity:int}>}  $data
      */
     public function createOrder(User $actor, array $data): PurchaseOrder
@@ -58,6 +93,10 @@ final class PurchasingService
         $branch = $this->branches->resolveWritableBranch($actor, (int) $data['branch_id']);
 
         return DB::transaction(function () use ($actor, $data, $branch): PurchaseOrder {
+            $supplier = Supplier::query()->whereKey($data['supplier_id'])->lockForUpdate()->firstOrFail();
+            if ($supplier->isArchived()) {
+                throw ValidationException::withMessages(['supplier_id' => __('purchasing.err_supplier_archived')]);
+            }
             $order = PurchaseOrder::query()->create([
                 'supplier_id' => $data['supplier_id'],
                 'branch_id' => $branch->id,
@@ -254,6 +293,11 @@ final class PurchasingService
                 ])]);
             }
         }
+    }
+
+    private function lockSupplier(Supplier $supplier): Supplier
+    {
+        return Supplier::query()->whereKey($supplier->id)->lockForUpdate()->firstOrFail();
     }
 
     private function lockOrder(PurchaseOrder $order): PurchaseOrder

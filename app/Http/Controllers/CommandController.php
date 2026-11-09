@@ -1294,10 +1294,10 @@ class CommandController extends Controller
     {
         $this->permit($r, 'accounts');
         $d = $r->validate([
-            'user_id' => 'required|exists:users,id',
+            'user_id' => 'bail|required|integer|exists:users,id',
             'level' => 'required|in:division,district,upazila,union',
             // An area seat is always a place code; names are filled in from it, never typed.
-            'place_code_id' => 'required|integer|exists:place_codes,id',
+            'place_code_id' => 'bail|required|integer|exists:place_codes,id',
             'zone_name' => 'nullable|string|max:128',
             'monthly_quota' => 'required|numeric|min:0|max:99999999999|decimal:0,2',
         ], [
