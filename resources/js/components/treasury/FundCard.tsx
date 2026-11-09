@@ -2,6 +2,7 @@ import { Link } from '@inertiajs/react';
 import { money } from '../UI';
 import { useT } from '../../shared/i18n/t';
 import { isNegative } from './format';
+import Figures from '../office/Figures';
 
 export type FundCardData = {
     key: string;
@@ -13,24 +14,6 @@ export type FundCardData = {
     owner_only: boolean;
     href: string;
 };
-
-export type FigureItem = { key: string; label: string; value: string; headline?: boolean; text?: boolean };
-
-/** One row of cards: one label and one big number each. Only a figure below zero gets a colour. */
-export function Figures({ items }: { items: FigureItem[] }) {
-    return (
-        <div className="tsy-figures">
-            {items.map((item) => (
-                <div key={item.key} className="tsy-figure">
-                    <span>{item.label}</span>
-                    <strong className={`${item.headline ? 'is-headline' : ''}${!item.text && isNegative(item.value) ? ' is-negative' : ''}`.trim() || undefined}>
-                        {item.text ? item.value : money(item.value)}
-                    </strong>
-                </div>
-            ))}
-        </div>
-    );
-}
 
 /** The same three cards for every fund: came in, went out, in it now. */
 export function FundFigures({ card }: { card: FundCardData }) {
