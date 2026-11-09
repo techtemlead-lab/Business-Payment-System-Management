@@ -42,7 +42,7 @@ type OrderMoney = {
     lines: MoneyLine[];
     lines_total: string;
     adds_up: boolean;
-    no_commission: { reason: string | null; amount: string } | null;
+    no_commission: { reason: string | null; amount: string; taken_back?: string; still_owed?: string } | null;
 };
 
 const STATUS_BADGE: Record<LineStatus, string> = { done: 'active', waiting: 'pending', held: 'held', moved: 'closed', returned: 'reversed' };
@@ -74,6 +74,13 @@ function usePostingLine({ posting, basis, lines, no_commission: noCommission }: 
     }
     if (posting === 'part_delivered') {
         return joined([translate('treasury', 'posting_part_delivered'), basis ? money(basis.cash) : null]);
+    }
+    if (posting === 'no_commission' && noCommission && (noCommission.taken_back || noCommission.still_owed)) {
+        return joined([
+            translate('treasury', 'posting_no_commission'),
+            noCommission.taken_back ? translate('treasury', 'posting_taken_back', { amount: money(noCommission.taken_back) }) : null,
+            noCommission.still_owed ? translate('treasury', 'posting_still_owed', { amount: money(noCommission.still_owed) }) : null,
+        ]);
     }
     if (posting === 'no_commission' && lines.length === 0) {
         return joined([translate('treasury', 'posting_no_commission'), noCommission ? money(noCommission.amount) : null, noCommission?.reason ? translate('treasury', 'reason_line', { reason: noCommission.reason }) : null]);

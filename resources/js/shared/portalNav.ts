@@ -54,19 +54,19 @@ export const SECTION_LABEL_KEYS: Record<string, string> = {
     'access-management': 'access_management', 'video-marketing': 'video_marketing',
     overview: 'overview', orders: 'orders', order: 'order_details', purchase: 'purchase', catalog: 'catalog', accounts: 'accounts',
     inventory: 'inventory', deliveries: 'deliveries', payments: 'payments', network: 'network',
-    policies: 'policies', salary: 'salary', withdrawals: 'withdrawals', ledger: 'ledger', reports: 'reports',
+    policies: 'policies', reports: 'reports',
     customization: 'website', website: 'website', content: 'content', 'public-trust': 'public_trust', enquiries: 'enquiries', feedback: 'feedback',
     'share-feedback': 'share_feedback', partnerships: 'partnerships', audit: 'audit', profile: 'profile',
-    security: 'security', notifications: 'notifications', circulars: 'circulars', earnings: 'earnings',
-    'full-report': 'full_report', ranks: 'ranks', commissions: 'commissions', 'network-tree': 'network_tree',
+    security: 'security', notifications: 'notifications', circulars: 'circulars', 'my-money': 'nav_module_earnings',
+    ranks: 'ranks', commissions: 'commissions', 'network-tree': 'network_tree',
     'area-dealers': 'area_dealers', 'place-codes': 'place_codes', branches: 'branches',
-    'branch-performance': 'branch_performance', rewards: 'rewards', 'capital-flow': 'capital_flow',
-    settlements: 'settlements', simulator: 'simulator', 'payouts-hub': 'payouts_hub', treasury: 'treasury', 'company-funds': 'company_funds', 'identity-review': 'identity_review',
-    'benefits-fund': 'benefits_fund', 'sub-dealers': 'sub_dealers', 'sub-dealer-orders': 'sub_dealer_orders',
+    'branch-performance': 'branch_performance',
+    settlements: 'settlements', simulator: 'simulator', 'payouts-hub': 'payouts_hub', treasury: 'treasury', 'identity-review': 'identity_review',
+    'sub-dealers': 'sub_dealers', 'sub-dealer-orders': 'sub_dealer_orders',
     'sub-dealer-applications': 'sub_dealer_applications', 'login-rules': 'login_rules',
     employees: 'employees', dashboards: 'dashboards', help: 'help', 'support-admin': 'support_admin', agreement: 'agreement',
     messages: 'chat_nav_partner', 'partner-messages': 'chat_nav_office', 'top-sellers': 'top_sellers',
-    training: 'training', events: 'events', 'payment-receipts': 'payment_receipts', 'data-cleanup': 'cleanup_nav', prescriptions: 'prescriptions', 'sales-kit': 'sales_kit', customers: 'customer_book', schemes: 'dated_schemes', 'privacy-requests': 'privacy_requests_nav',
+    training: 'training', events: 'events', 'data-cleanup': 'cleanup_nav', prescriptions: 'prescriptions', 'sales-kit': 'sales_kit', customers: 'customer_book', schemes: 'dated_schemes', 'privacy-requests': 'privacy_requests_nav',
     purchasing: 'purchasing_nav',
     'stock-counts': 'stock_counts_nav',
 };
@@ -107,14 +107,32 @@ export const NAV_LINK_SPECS: Record<string, NavLinkSpec> = {
         iconKey: 'commissions',
         match: ({ section }) => ['commissions', 'policies', 'simulator', 'policy-schedules'].includes(section),
     },
-    /** One partner row for the money pages; the page's tabs open the others. */
+    /** One partner row for all their money. */
     'partner-money': {
         id: 'partner-money',
-        section: 'earnings',
+        section: 'my-money',
         labelKey: 'nav_module_earnings',
-        hrefPath: 'earnings',
-        iconKey: 'earnings',
-        match: ({ section }) => ['earnings', 'withdrawals', 'payment-receipts', 'full-report'].includes(section),
+        hrefPath: 'my-money',
+        iconKey: 'my-money',
+        match: ({ section }) => section === 'my-money',
+    },
+    /** One office row for everything in Treasury; its tab strip opens the rest. */
+    treasury: {
+        id: 'treasury',
+        section: 'treasury',
+        labelKey: 'treasury',
+        hrefPath: 'treasury/funds',
+        iconKey: 'treasury',
+        match: ({ section }) => section === 'treasury',
+    },
+    /** The same row for someone who may open only the order report. */
+    'treasury-orders': {
+        id: 'treasury-orders',
+        section: 'treasury-orders',
+        labelKey: 'treasury',
+        hrefPath: 'treasury/orders',
+        iconKey: 'treasury',
+        match: ({ section }) => section === 'treasury',
     },
     /** One partner row for notices; its tabs open office notices and the partner's own updates. */
     'partner-notices': {
@@ -223,10 +241,13 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     if (capabilities.some((cap) => ['finance', 'accounts'].includes(cap))) items.add('data-imports');
     if (capabilities.includes('finance') || role === 'super_admin') items.add('service-integrations');
     if (capabilities.includes('finance')) {
-        ['payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'finance-settings', 'treasury', 'company-funds', 'identity-review',
-            'commissions', 'policies', 'ledger', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'salary', 'accounting'].forEach((item) => items.add(item));
+        ['payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'finance-settings', 'identity-review',
+            'commissions', 'policies', 'settlements', 'simulator', 'payouts-hub', 'payments'].forEach((item) => items.add(item));
     }
-    if (capabilities.some((cap) => ['finance', 'reports', 'field_sales'].includes(cap))) items.add('financial-reports');
+    const opensTreasury = capabilities.includes('finance') || OWNER_ROLES.includes(role);
+    if (opensTreasury) items.add('treasury');
+    if (opensTreasury || capabilities.includes('reports')) items.add('treasury-orders');
+    else if (capabilities.includes('field_sales')) items.add('financial-reports');
     if (capabilities.some((cap) => ['reports', 'orders', 'finance'].includes(cap))) {
         items.add('top-sellers');
         items.add('partner-scorecard');
@@ -238,7 +259,6 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     }
     // Owners open the account lists to reset or see passwords (PortalCatalog::assertSection).
     if (['super_admin', 'md', 'chairman'].includes(role)) ['accounts', 'sub-dealers', 'employees'].forEach((item) => items.add(item));
-    if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('benefits-fund');
     if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('data-cleanup');
     if (ownerPortal && OWNER_ROLES.includes(role)) items.add('login-rules');
     if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('sales-kit');
@@ -275,7 +295,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
 export function buildPartnerAvailable(role: string, dashboardControls?: Record<string, unknown> | null, prescriber = false): Set<string> {
     const controls = dashboardControls || {};
     if (role === 'dealer') {
-        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'catalog', 'network', 'ranks', 'top-sellers', 'earnings', 'full-report', 'withdrawals', 'payment-receipts', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help', 'messages', 'training', 'events']);
+        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'catalog', 'network', 'ranks', 'top-sellers', 'my-money', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help', 'messages', 'training', 'events']);
         if (controls.dealer_catalog_enabled === false) {
             items.delete('catalog');
             items.delete('purchase');
@@ -303,13 +323,10 @@ export function buildPartnerAvailable(role: string, dashboardControls?: Record<s
         return items;
     }
     if (role === 'sub_dealer') {
-        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'catalog', 'network', 'salary', 'top-sellers', 'earnings', 'full-report', 'withdrawals', 'payment-receipts', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help', 'messages', 'training', 'events']);
+        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'catalog', 'network', 'top-sellers', 'my-money', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help', 'messages', 'training', 'events']);
         if (controls.subdealer_catalog_enabled === false) {
             items.delete('catalog');
             items.delete('purchase');
-        }
-        if (controls.subdealer_salary_enabled === false) {
-            items.delete('salary');
         }
         if (controls.top_sellers_enabled === false) {
             items.delete('top-sellers');
@@ -339,20 +356,18 @@ function staffMothers(available: Set<string>): NavMother[] {
         mother('orders', 'nav_module_orders', pick(available, ['orders', 'payments', 'deliveries'])),
         mother('messages', 'nav_module_messages', pick(available, ['partner-messages', 'support-admin', 'enquiries', 'feedback'])),
         mother('clinic', 'nav_module_clinic', pick(available, ['prescriptions'])),
-        mother('payouts', 'nav_module_payouts', pick(available, ['payouts-hub', 'settlements', 'salary'])),
+        mother('payouts', 'nav_module_payouts', pick(available, ['payouts-hub'])),
         mother('partners', 'nav_module_partners', pick(available, [
             'accounts', 'sub-dealers', 'partnerships', 'sub-dealer-applications', 'network-tree', 'area-dealers', 'ranks', 'agreement', 'schemes', 'sales-kit', 'contests',
         ])),
         mother('stock', 'nav_module_stock', pick(available, ['catalog-products', 'stock', 'stock-lots', 'purchasing', 'stock-counts', 'branches'])),
-        mother('finance', 'nav_module_finance', pick(available, ['treasury', 'company-funds', 'reserve-payouts', 'benefits-fund', 'ledger', 'accounting', 'payment-accounts', 'identity-review'])),
-        mother('commissions', 'nav_module_commissions', pick(available, [
-            'commissions', 'commission-holds', 'rewards',
-        ])),
+        mother('finance', 'nav_module_finance', pick(available, available.has('treasury') ? ['treasury'] : ['treasury-orders'])),
+        mother('commissions', 'nav_module_commissions', pick(available, ['commissions'])),
         mother('people', 'nav_module_people', pick(available, ['employees', 'payroll', 'staff-operations', 'field-sales', 'access-management'])),
         mother('reports', 'nav_module_reports', pick(available, ['financial-reports', 'top-sellers', 'partner-scorecard', 'branch-performance'])),
         mother('website', 'nav_module_website', pick(available, ['website', 'content', 'public-trust', 'video-marketing', 'training', 'events'])),
         mother('settings', 'nav_module_settings', pick(available, [
-            'finance-settings', 'place-codes', 'dashboards', 'login-rules', 'audit', 'service-integrations', 'data-imports', 'financial-readiness', 'data-cleanup', 'privacy-requests',
+            'finance-settings', 'payment-accounts', 'identity-review', 'place-codes', 'dashboards', 'login-rules', 'audit', 'service-integrations', 'data-imports', 'financial-readiness', 'data-cleanup', 'privacy-requests',
         ])),
     ]);
 }
@@ -385,7 +400,6 @@ function partnerMothers(role: string, available: Set<string>): NavMother[] {
         shared.home,
         shared.newOrder,
         shared.orders,
-        mother('compensation', 'nav_module_compensation', pick(available, ['salary'])),
         shared.money,
         mother('learning', 'nav_module_learning', pick(available, ['training', 'events', 'top-sellers', 'contests'])),
         shared.clinic,
@@ -424,11 +438,9 @@ export function staffBottomLinks(available: Set<string>): string[] {
 const PARTNER_LABEL_KEYS: Record<string, string> = {
     orders: 'nav_partner_orders',
     catalog: 'nav_partner_catalog',
-    earnings: 'nav_partner_earnings',
     network: 'nav_partner_network',
     profile: 'nav_partner_profile',
     security: 'nav_partner_security',
-    salary: 'nav_partner_salary',
 };
 
 export function labelKeyForNavItem(item: string, staff: boolean): string {

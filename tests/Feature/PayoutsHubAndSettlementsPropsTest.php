@@ -45,15 +45,15 @@ class PayoutsHubAndSettlementsPropsTest extends TestCase
         $this->actingAs($owner)->onPortal('sadmin')->get('/payouts-hub')->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('section', 'payouts-hub')
-                ->has('data.withdrawals.data', 20)
-                ->where('data.withdrawals.current_page', 1)
-                ->where('data.withdrawals.last_page', 2)
-                ->where('data.withdrawals.per_page', 20)
-                ->where('data.withdrawals.total', 28)
-                ->where('data.withdrawals.next_page_url', fn ($url) => is_string($url) && str_contains($url, 'page=2'))
-                ->where('data.withdrawals.data.0.user_name', 'Payout Dealer')
-                ->where('data.withdrawals.data.0.destination_masked', '•••••••5678')
-                ->missing('data.withdrawals.data.0.destination')
+                ->has('data.payouts_table.rows.data', 20)
+                ->where('data.payouts_table.rows.current_page', 1)
+                ->where('data.payouts_table.rows.last_page', 2)
+                ->where('data.payouts_table.rows.per_page', 20)
+                ->where('data.payouts_table.rows.total', 28)
+                ->where('data.payouts_table.rows.next_page_url', fn ($url) => is_string($url) && str_contains($url, 'page=2'))
+                ->where('data.payouts_table.rows.data.0.user_name', 'Payout Dealer')
+                ->where('data.payouts_table.rows.data.0.destination_masked', '•••••••5678')
+                ->missing('data.payouts_table.rows.data.0.destination')
                 ->where('data.payout_totals', [
                     'requested_count' => 22,
                     'requested_amount' => '2200.00',
@@ -66,15 +66,15 @@ class PayoutsHubAndSettlementsPropsTest extends TestCase
 
         $this->actingAs($owner)->onPortal('sadmin')->get('/payouts-hub?page=2')->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->has('data.withdrawals.data', 8)
-                ->where('data.withdrawals.current_page', 2)
+                ->has('data.payouts_table.rows.data', 8)
+                ->where('data.payouts_table.rows.current_page', 2)
                 ->where('data.payout_totals.requested_count', 22));
 
         $this->actingAs($owner)->onPortal('sadmin')->get('/payouts-hub?status=paid')->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->has('data.withdrawals.data', 2)
-                ->where('data.withdrawals.total', 2)
-                ->where('data.withdrawals.data.0.status', 'paid')
+                ->has('data.payouts_table.rows.data', 2)
+                ->where('data.payouts_table.rows.total', 2)
+                ->where('data.payouts_table.rows.data.0.status', 'paid')
                 ->where('data.payout_totals.requested_count', 22)
                 ->where('data.payout_totals.paid_amount', '400.00')
                 ->where('filters.status', 'paid'));
@@ -93,23 +93,23 @@ class PayoutsHubAndSettlementsPropsTest extends TestCase
 
         $this->actingAs($owner)->onPortal('sadmin')->get('/payouts-hub?q='.urlencode('%'))->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->has('data.withdrawals.data', 1)
-                ->where('data.withdrawals.total', 1)
-                ->where('data.withdrawals.data.0.user_name', 'Karim 100% Pharmacy')
+                ->has('data.payouts_table.rows.data', 1)
+                ->where('data.payouts_table.rows.total', 1)
+                ->where('data.payouts_table.rows.data.0.user_name', 'Karim 100% Pharmacy')
                 ->where('data.payout_totals.requested_count', 1)
                 ->where('data.payout_totals.requested_amount', '60.00')
                 ->where('filters.q', '%'));
 
         $this->actingAs($owner)->onPortal('sadmin')->get('/payouts-hub?q=_')->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->has('data.withdrawals.data', 1)
-                ->where('data.withdrawals.data.0.payment_reference', 'REF_60'));
+                ->has('data.payouts_table.rows.data', 1)
+                ->where('data.payouts_table.rows.data.0.payment_reference', 'REF_60'));
 
         $this->actingAs($owner)->onPortal('sadmin')->get('/payouts-hub?q=rahim')->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->has('data.withdrawals.data', 20)
-                ->where('data.withdrawals.total', 21)
-                ->where('data.withdrawals.next_page_url', fn ($url) => is_string($url) && str_contains($url, 'q=rahim'))
+                ->has('data.payouts_table.rows.data', 20)
+                ->where('data.payouts_table.rows.total', 21)
+                ->where('data.payouts_table.rows.next_page_url', fn ($url) => is_string($url) && str_contains($url, 'q=rahim'))
                 ->where('data.payout_totals.requested_count', 21)
                 ->where('data.payout_totals.requested_amount', '2100.00'));
     }
@@ -168,8 +168,8 @@ class PayoutsHubAndSettlementsPropsTest extends TestCase
 
         $this->actingAs($owner)->onPortal('sadmin')->get('/payouts-hub?channel=bKash&period=month')->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('data.withdrawals.total', 1)
-                ->where('data.withdrawals.data.0.channel', 'bKash')
+                ->where('data.payouts_table.rows.total', 1)
+                ->where('data.payouts_table.rows.data.0.channel', 'bKash')
                 ->where('data.payout_totals.requested_count', 1)
                 ->where('data.payout_totals.requested_amount', '100.00'));
     }

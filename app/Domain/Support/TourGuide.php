@@ -235,21 +235,13 @@ final class TourGuide
                     ['target' => '[data-tour="invoice-actions"]', 'title' => __('portal.tour_orders_invoice_title'), 'body' => __('portal.tour_orders_invoice_body'), 'tip' => __('portal.tour_orders_invoice_tip')],
                 ],
             ],
-            'earnings' => [
+            'my-money' => [
                 'title' => __('portal.tour_earnings_title'),
                 'requires' => ['orders'],
                 'steps' => [
                     ['target' => '[data-tour="wallet-balances"]', 'title' => __('portal.tour_earnings_balance_title'), 'body' => __('portal.tour_earnings_balance_body'), 'tip' => __('portal.tour_earnings_balance_tip')],
                     ['target' => '[data-tour="commission-ledger"]', 'title' => __('portal.tour_earnings_ledger_title'), 'body' => __('portal.tour_earnings_ledger_body'), 'tip' => __('portal.tour_earnings_ledger_tip')],
                     ['target' => '[data-tour="withdrawal-form"]', 'title' => __('portal.tour_earnings_withdraw_title'), 'body' => __('portal.tour_earnings_withdraw_body'), 'tip' => __('portal.tour_earnings_withdraw_tip')],
-                ],
-            ],
-            'withdrawals' => [
-                'title' => __('portal.tour_withdrawals_title'),
-                'requires' => ['earnings'],
-                'steps' => [
-                    ['target' => '[data-tour="wallet-balances"]', 'title' => __('portal.tour_withdrawals_balance_title'), 'body' => __('portal.tour_withdrawals_balance_body'), 'tip' => __('portal.tour_withdrawals_balance_tip')],
-                    ['target' => '[data-tour="withdrawal-form"]', 'title' => __('portal.tour_withdrawals_form_title'), 'body' => __('portal.tour_withdrawals_form_body'), 'tip' => __('portal.tour_withdrawals_form_tip')],
                 ],
             ],
             'help' => [
@@ -269,16 +261,6 @@ final class TourGuide
                 'requires' => ['orders'],
                 'steps' => [
                     ['target' => '[data-tour="network-panel"]', 'title' => __('portal.tour_network_panel_title'), 'body' => __('portal.tour_network_panel_body'), 'tip' => __('portal.tour_network_panel_tip')],
-                ],
-            ];
-        }
-
-        if ($role === 'sub_dealer') {
-            $defs['salary'] = [
-                'title' => __('portal.tour_salary_partner_title'),
-                'requires' => ['orders'],
-                'steps' => [
-                    ['target' => '[data-tour="salary-panel"]', 'title' => __('portal.tour_salary_partner_panel_title'), 'body' => __('portal.tour_salary_partner_panel_body'), 'tip' => __('portal.tour_salary_partner_panel_tip')],
                 ],
             ];
         }
@@ -339,13 +321,6 @@ final class TourGuide
                     ['target' => '[data-tour="payouts-hub"]', 'title' => __('portal.tour_staff_payouts_hub_title'), 'body' => __('portal.tour_staff_payouts_hub_body'), 'tip' => __('portal.tour_staff_payouts_hub_tip')],
                 ],
             ],
-            'salary' => [
-                'title' => __('portal.tour_staff_salary_title'),
-                'requires' => ['overview'],
-                'steps' => [
-                    ['target' => '[data-tour="salary-panel"]', 'title' => __('portal.tour_staff_salary_panel_title'), 'body' => __('portal.tour_staff_salary_panel_body'), 'tip' => __('portal.tour_staff_salary_panel_tip')],
-                ],
-            ],
             'employees' => [
                 'title' => __('portal.tour_staff_employees_title'),
                 'requires' => ['overview'],
@@ -391,13 +366,6 @@ final class TourGuide
                 'requires' => ['overview'],
                 'steps' => [
                     ['target' => '[data-tour="treasury-panel"]', 'title' => __('portal.tour_owner_treasury_panel_title'), 'body' => __('portal.tour_owner_treasury_panel_body'), 'tip' => __('portal.tour_owner_treasury_panel_tip')],
-                ],
-            ],
-            'benefits-fund' => [
-                'title' => __('portal.tour_owner_benefits_title'),
-                'requires' => ['overview'],
-                'steps' => [
-                    ['target' => '[data-tour="benefits-fund"]', 'title' => __('portal.tour_owner_benefits_panel_title'), 'body' => __('portal.tour_owner_benefits_panel_body'), 'tip' => __('portal.tour_owner_benefits_panel_tip')],
                 ],
             ],
             'employees' => [

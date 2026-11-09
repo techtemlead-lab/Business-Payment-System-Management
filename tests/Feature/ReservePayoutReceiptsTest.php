@@ -118,8 +118,9 @@ class ReservePayoutReceiptsTest extends TestCase
         $chapter = collect(app(UserManual::class)->chaptersFor($dealer, 'receipt'))->firstWhere('key', 'payment_receipts');
 
         $this->assertNotNull($chapter);
-        $this->assertSame('Payment receipts: proof of every payout', $chapter['title']);
-        $this->assertCount(6, $chapter['steps']);
+        $this->assertSame('Payment receipts', $chapter['title']);
+        $this->assertStringContainsString('My money', $chapter['purpose']);
+        $this->assertCount(3, $chapter['steps']);
     }
 
     /** @return array{0: User, 1: int} */

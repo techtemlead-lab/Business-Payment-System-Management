@@ -81,7 +81,7 @@ class AuditSearchVisibleWordsTest extends TestCase
         $this->actingAs($this->owner)->onPortal('sadmin')->get('/audit?q='.urlencode($words))
             ->assertOk()
             ->assertInertia(function (Assert $page) use (&$actions): void {
-                $actions = array_column($page->toArray()['props']['data']['events']['data'], 'action');
+                $actions = array_column($page->toArray()['props']['data']['work_log_table']['rows']['data'], 'action');
             });
 
         return $actions;

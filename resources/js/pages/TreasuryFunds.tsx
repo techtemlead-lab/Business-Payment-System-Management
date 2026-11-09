@@ -12,7 +12,7 @@ export default function TreasuryFunds({ cards, partner_totals: partnerTotals }: 
 
     return (
         <TreasuryPage title={translate('treasury', 'title')} showTabs>
-            <div className="tsy-funds">
+            <div className="tsy-funds" data-tour="treasury-panel">
                 {cards.map((card) => <FundCard key={card.key} card={card} />)}
                 {partnerTotals && viewer.finance && (
                     <Link className="tsy-fund" href="/treasury/partners">

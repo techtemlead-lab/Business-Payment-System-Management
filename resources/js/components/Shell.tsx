@@ -128,13 +128,13 @@ const icons: Record<string, LucideIcon> = {
     deliveries: Truck,
     payments: Coins, network: GitBranch, policies: SlidersHorizontal, salary: BadgeCheck, withdrawals: Wallet, ledger: BookOpen,
     reports: FileText, customization: SlidersHorizontal, website: SlidersHorizontal, content: FileText, enquiries: MessageSquare, feedback: MessageSquare, 'share-feedback': MessageSquare, partnerships: Briefcase, audit: ShieldCheck,
-    profile: Users, security: Settings, notifications: Bell, circulars: BookOpen, earnings: Coins, 'full-report': FileBarChart2, ranks: Award,
+    profile: Users, security: Settings, notifications: Bell, circulars: BookOpen, 'my-money': Coins, ranks: Award,
     commissions: Percent, 'network-tree': GitBranch, 'area-dealers': MapPin, 'place-codes': Hash, branches: Store, 'branch-performance': BarChart3, rewards: Trophy, 'capital-flow': TrendingUp,
     settlements: BadgeCheck, simulator: SlidersHorizontal, 'payouts-hub': Wallet,
-    treasury: Landmark, 'benefits-fund': ShieldCheck, 'sub-dealers': Store, 'sub-dealer-orders': ShoppingBag, 'sub-dealer-applications': Briefcase,
+    treasury: Landmark, 'sub-dealers': Store, 'sub-dealer-orders': ShoppingBag, 'sub-dealer-applications': Briefcase,
     employees: UserCheck, dashboards: SlidersHorizontal, help: LifeBuoy, 'support-admin': MessageSquare, agreement: ScrollText, 'top-sellers': Trophy,
     finance: Landmark, payouts: Wallet, accounting: BookOpen, 'partner-messages': MessageSquare, messages: MessageSquare, partners: Users, people: UserCheck, settings: Settings, 'login-rules': ShieldCheck,
-    training: GraduationCap, learning: GraduationCap, events: CalendarDays, 'payment-receipts': ReceiptText, 'data-cleanup': Settings, 'privacy-requests': ShieldCheck, prescriptions: Stethoscope, clinic: Stethoscope, purchasing: ShoppingCart, 'stock-counts': Hash,
+    training: GraduationCap, learning: GraduationCap, events: CalendarDays, 'data-cleanup': Settings, 'privacy-requests': ShieldCheck, prescriptions: Stethoscope, clinic: Stethoscope, purchasing: ShoppingCart, 'stock-counts': Hash,
 };
 
 export default function Shell({ section, children, action }: { section: string; children: ReactNode; action?: ReactNode }) {

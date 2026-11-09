@@ -119,8 +119,8 @@ class Milestone4AdversarialChallengeTest extends E2ETestCase
     }
 
     /**
-     * Test 4: Portal partial reload with { only: ['wallet', 'navAttention'] }
-     * Demonstrating failure of worker's parameter: 'wallet' is missing from reloaded props.
+     * Test 4: My Money partial reload with { only: ['wallet', 'navAttention'] }
+     * Demonstrating failure of worker's parameter: 'wallet' is not a prop of the page.
      */
     public function test_portal_partial_reload_worker_parameters_fails_to_return_wallet(): void
     {
@@ -131,7 +131,7 @@ class Milestone4AdversarialChallengeTest extends E2ETestCase
         );
 
         $this->actingAs($user)->onPortal('dealer')
-            ->get('/withdrawals')
+            ->get('/my-money')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->reload(
@@ -139,10 +139,10 @@ class Milestone4AdversarialChallengeTest extends E2ETestCase
                         $props = $reloaded->toArray()['props'];
                         // navAttention is returned because it matches shared prop
                         $this->assertArrayHasKey('navAttention', $props);
-                        // wallet is NOT returned because it is nested under data.wallet, not a top-level prop
+                        // wallet is NOT returned because the balance lives under summary
                         $this->assertArrayNotHasKey('wallet', $props, 'Worker param "wallet" is dropped by server PropsResolver');
-                        // data is NOT returned because "data" was not in only: [...]
-                        $this->assertArrayNotHasKey('data', $props, 'Worker param omitted "data", so data is dropped');
+                        // summary is NOT returned because "summary" was not in only: [...]
+                        $this->assertArrayNotHasKey('summary', $props, 'Worker param omitted "summary", so summary is dropped');
                     },
                     only: ['wallet', 'navAttention']
                 )
@@ -150,8 +150,8 @@ class Milestone4AdversarialChallengeTest extends E2ETestCase
     }
 
     /**
-     * Test 5: Portal partial reload with corrected parameters:
-     * only: ['data.wallet', 'data.withdrawal_balances', 'navAttention']
+     * Test 5: My Money partial reload with corrected parameters:
+     * only: ['summary', 'navAttention']
      */
     public function test_portal_partial_reload_with_corrected_dot_notation(): void
     {
@@ -162,20 +162,18 @@ class Milestone4AdversarialChallengeTest extends E2ETestCase
         );
 
         $this->actingAs($user)->onPortal('dealer')
-            ->get('/withdrawals')
+            ->get('/my-money')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->reload(
                     callback: function (Assert $reloaded) {
                         $props = $reloaded->toArray()['props'];
                         $this->assertArrayHasKey('navAttention', $props);
-                        $this->assertArrayHasKey('data', $props);
-                        $this->assertArrayHasKey('wallet', $props['data']);
-                        $this->assertArrayHasKey('withdrawal_balances', $props['data']);
-                        $this->assertEquals('5000.00', $props['data']['wallet']['available']);
-                        $this->assertEquals('5000.00', $props['data']['withdrawal_balances']['available']);
+                        $this->assertArrayHasKey('summary', $props);
+                        $this->assertArrayNotHasKey('table', $props);
+                        $this->assertEquals('5000.00', $props['summary']['available']);
                     },
-                    only: ['data.wallet', 'data.withdrawal_balances', 'navAttention']
+                    only: ['summary', 'navAttention']
                 )
             );
     }

@@ -6,7 +6,6 @@ use App\Domain\Accounts\PartnerWalletStatement;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
-use App\Support\PartnerHubTabs;
 use App\Support\PdfFonts;
 use App\Support\TableWorkbook;
 use Carbon\CarbonImmutable;
@@ -14,8 +13,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Inertia\Inertia;
-use Inertia\Response;
 use Mpdf\Mpdf;
 use Mpdf\Output\Destination;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -31,23 +28,6 @@ class PartnerStatementController extends Controller
     private const PdfLineLimit = 5000;
 
     public function __construct(private PartnerWalletStatement $statements) {}
-
-    public function show(Request $request, ?User $partner = null): Response
-    {
-        $partner = $this->partner($request, $partner);
-        [$from, $to] = $this->range($request);
-        $ledger = $this->statements->ledger($partner, $from, $to);
-        $staffView = $partner->id !== $request->user()->id;
-
-        return Inertia::render('PartnerStatement', [
-            'partner' => $partner->only(['id', 'name', 'dealer_code', 'role', 'phone', 'district', 'division']),
-            'range' => ['from' => $from, 'to' => $to],
-            'statement' => $ledger,
-            'staffView' => $staffView,
-            'statementBase' => $staffView ? '/accounts/'.$partner->id.'/statement' : '/statement',
-            'partner_hub' => $staffView ? null : PartnerHubTabs::money('full-report'),
-        ]);
-    }
 
     /** A partner's own ledger as Excel or PDF. */
     public function download(Request $request, string $format): BinaryFileResponse

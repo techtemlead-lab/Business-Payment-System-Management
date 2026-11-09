@@ -58,15 +58,18 @@ class SimpleSidebarTest extends TestCase
 
     public function test_staff_without_finance_cannot_reach_the_payout_desk_through_the_old_address(): void
     {
-        $this->actingAs(User::factory()->staff('inventory')->create())->onPortal('manage')->get('/withdrawals')->assertForbidden();
+        $inventory = User::factory()->staff('inventory')->create();
+        $this->actingAs($inventory)->onPortal('manage')->get('/withdrawals')->assertRedirect('/payouts-hub');
+        $this->actingAs($inventory)->onPortal('manage')->get('/payouts-hub')->assertForbidden();
     }
 
-    public function test_partners_keep_their_own_withdrawals_page(): void
+    public function test_partners_withdraw_from_my_money(): void
     {
         $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
 
-        $this->actingAs($dealer)->onPortal('dealer')->get('/withdrawals')->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('section', 'withdrawals'));
+        $this->actingAs($dealer)->onPortal('dealer')->get('/withdrawals')->assertRedirect('/my-money');
+        $this->actingAs($dealer)->onPortal('dealer')->get('/my-money')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->component('MyMoney')->where('section', 'my-money'));
     }
 
     public function test_partners_can_open_the_share_feedback_page(): void

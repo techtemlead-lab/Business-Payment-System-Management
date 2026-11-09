@@ -48,7 +48,6 @@ Route::middleware(['auth', 'active', 'portal:sadmin', 'authenticator'])->group(f
     Route::post('/commands/operations/courier-areas/mappings/remove', [CourierAreaController::class, 'remove'])->middleware('throttle:60,1');
     Route::get('/operations/{section}', [OperationsController::class, 'index'])->whereIn('section', OperationsController::Sections);
     Route::get('/accounts/create', [DashboardController::class, 'createAccount']);
-    Route::get('/accounts/{partner}/statement', [PartnerStatementController::class, 'show'])->whereNumber('partner');
     Route::get('/accounts/{partner}/statement/{format}', [PartnerStatementController::class, 'downloadFor'])->whereNumber('partner')->whereIn('format', ['xlsx', 'pdf'])->middleware('throttle:10,1');
     Route::get('/accounts/{partner}/team-orders', [TeamOrdersController::class, 'show'])->whereNumber('partner');
     Route::get('/accounts/{partner}/team-orders/xlsx', [TeamOrdersController::class, 'downloadFor'])->whereNumber('partner')->middleware('throttle:10,1');

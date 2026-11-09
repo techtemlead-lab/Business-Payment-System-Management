@@ -125,12 +125,12 @@ class FundHeadBudgetsTest extends TestCase
         $this->assertSame('0.00', $row['left']);
         $this->assertTrue($row['over']);
 
-        $this->actingAs($this->maker)->onPortal('manage')->get('/company-funds?tab=heads&budget_month=2026-11')
+        $this->actingAs($this->maker)->onPortal('manage')->get('/treasury/work?tab=budgets&period=custom&from=2026-11-01&to=2026-11-30')
             ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('data.company_funds.budgets.0.used', '175.00'));
-        $this->actingAs($this->checker)->onPortal('manage')->get('/company-funds?tab=approvals')
+            ->assertInertia(fn (Assert $page) => $page->where('budgets_table.rows.data.0.used', '175.00'));
+        $this->actingAs($this->checker)->onPortal('manage')->get('/treasury/work')
             ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('data.company_funds.approvals.0.over_budget', true));
+            ->assertInertia(fn (Assert $page) => $page->where('approvals_table.rows.data.0.over_budget', true));
     }
 
     public function test_the_owners_own_fund_is_not_counted_against_a_budget(): void

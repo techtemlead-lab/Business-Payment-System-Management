@@ -46,14 +46,22 @@ class PayoutBatchExportTest extends TestCase
         $this->withdrawal($partner, 'paid');
         $this->withdrawal($partner, 'rejected');
 
-        $this->actingAs($this->finance())->onPortal('manage')->get('/operations/accounting?tab=payouts&month=2026-10')
+        $finance = $this->finance();
+        $this->actingAs($finance)->onPortal('manage')->get('/operations/accounting?tab=payouts&month=2026-10')->assertRedirect('/payouts-hub');
+
+        $this->actingAs($finance)->onPortal('manage')->get('/payouts-hub?status=approved')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->component('Accounting')
-                ->where('payoutBatch.count', 1)
-                ->where('payoutBatch.rows.0.id', $approved)
-                ->where('payoutBatch.total_net', '950.00')
-                ->where('payoutBatch.rows.0.destination_masked', '•••••••0000'));
+                ->component('portals/manage/Dashboard')
+                ->has('data.payouts_table.rows.data', 1)
+                ->where('data.payouts_table.rows.data.0.id', $approved)
+                ->where('data.payouts_table.rows.data.0.net_amount', '950.00')
+                ->where('data.payouts_table.rows.data.0.destination_masked', '•••••••0000')
+                ->missing('data.payouts_table.rows.data.0.destination'));
+
+        $csv = $this->actingAs($finance)->onPortal('manage')->get(self::ExportUrl.'?month=2026-10')->streamedContent();
+        $this->assertStringContainsString($approved, $csv);
+        $this->assertSame(2, substr_count(trim($csv), "\n") + 1, 'The file holds the heading and the one approved withdrawal.');
     }
 
     public function test_the_file_has_full_account_numbers_and_net_amounts(): void

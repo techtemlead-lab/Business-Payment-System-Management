@@ -2,11 +2,12 @@
 
 namespace App\Support;
 
+use App\Domain\Finance\TreasuryAccess;
 use App\Models\User;
 use Illuminate\Support\Arr;
 
 /**
- * Office pages that work as one place: the commission tabs and the Report Centre's groups.
+ * Office pages that work as one place: the commission tabs and the report file groups.
  * Every tab keeps its own address and its own server check, so this class only decides
  * which tabs to offer. It never grants access to anything.
  */
@@ -18,8 +19,11 @@ final class OfficeHubs
     /** Commission tabs served by the portal workspace; the other tab is an operations page. */
     public const CommissionWorkspaceSections = ['commissions', 'policies', 'simulator'];
 
-    /** The Report Centre. */
-    public const ReportCentre = '/operations/financial-reports';
+    /** The one money report. */
+    public const OrderReport = '/treasury/orders';
+
+    /** The list of report files, for field staff who cannot open the money report. */
+    public const ReportFiles = '/operations/financial-reports';
 
     /**
      * Commission tabs in display order. `capability` repeats the check on the tab's own
@@ -37,7 +41,7 @@ final class OfficeHubs
     /** Filters of the old order table that the order list understands too. */
     private const OrderListFilters = ['q', 'status', 'period', 'from', 'to', 'buyer_role', 'branch_id', 'all_branches', 'page'];
 
-    /** Report Centre groups in display order. */
+    /** Report file groups in display order. */
     private const ReportGroups = ['orders', 'money', 'partners', 'stock', 'staff'];
 
     /**
@@ -90,24 +94,28 @@ final class OfficeHubs
     }
 
     /**
-     * Where the old order table (/reports) opens now: the Report Centre, or the order list for
-     * someone who cannot open the centre. An address with order filters stays on the order list.
+     * Where the old order table (/reports) opens now: the money report, the report files for
+     * field staff, or the order list. An address with order filters stays on the order list.
      *
      * @param  array<string, mixed>  $query
      */
     public static function oldReportsAddress(User $user, bool $onOfficeHost, array $query): string
     {
         $filters = array_filter(Arr::only($query, self::OrderListFilters), fn ($value): bool => $value !== null && $value !== '');
-        $mayOpenCentre = $onOfficeHost && ($user->allows('finance') || $user->allows('field_sales') || $user->allows('reports'));
-        if (self::mayOpenOrderList($user) && ($filters !== [] || ! $mayOpenCentre)) {
+        $mayOpenReport = $onOfficeHost && TreasuryAccess::mayOpenOrders($user);
+        if (self::mayOpenOrderList($user) && ($filters !== [] || ! $mayOpenReport)) {
             return '/orders'.($filters === [] ? '' : '?'.http_build_query($filters));
         }
 
-        return $mayOpenCentre ? self::ReportCentre.'?group=orders' : '/';
+        return match (true) {
+            $mayOpenReport => self::OrderReport,
+            $onOfficeHost && $user->allows('field_sales') => self::ReportFiles,
+            default => '/',
+        };
     }
 
     /**
-     * Report Centre groups for the files this person is offered (ReportData::availableTo),
+     * Report file groups for the files this person is offered (ReportData::availableTo),
      * without the groups left empty. It only sorts that list and never adds to it.
      *
      * @param  list<string>  $types

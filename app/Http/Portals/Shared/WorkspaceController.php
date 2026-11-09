@@ -32,7 +32,6 @@ use App\Http\Portals\Shared\Sections\AgreementSection;
 use App\Http\Portals\Shared\Sections\BranchesSection;
 use App\Http\Portals\Shared\Sections\CatalogSection;
 use App\Http\Portals\Shared\Sections\CommissionsSection;
-use App\Http\Portals\Shared\Sections\CompanyFundsSection;
 use App\Http\Portals\Shared\Sections\ContentSection;
 use App\Http\Portals\Shared\Sections\DataCleanupSection;
 use App\Http\Portals\Shared\Sections\DealerToolsSection;
@@ -52,7 +51,6 @@ use App\Http\Portals\Shared\Sections\PrivacyRequestsSection;
 use App\Http\Portals\Shared\Sections\ProfileSection;
 use App\Http\Portals\Shared\Sections\PublicTrustSection;
 use App\Http\Portals\Shared\Sections\PurchasingSection;
-use App\Http\Portals\Shared\Sections\SalarySection;
 use App\Http\Portals\Shared\Sections\SectionContext;
 use App\Http\Portals\Shared\Sections\SectionDates;
 use App\Http\Portals\Shared\Sections\StockCountsSection;
@@ -106,7 +104,6 @@ class WorkspaceController extends Controller
         ProfileSection::class,
         NetworkSection::class,
         OfficeHubSection::class,
-        SalarySection::class,
         WithdrawalsSection::class,
         SupportSection::class,
         FeedbackSection::class,
@@ -125,7 +122,6 @@ class WorkspaceController extends Controller
         PrivacyRequestsSection::class,
         PurchasingSection::class,
         StockCountsSection::class,
-        CompanyFundsSection::class,
         StockLotsSection::class,
     ];
 
@@ -138,9 +134,6 @@ class WorkspaceController extends Controller
         $catalogPortal = $staffWorkspace ? 'manage' : $portal;
         if ($staff && $section === 'customization') {
             $section = 'website';
-        }
-        if ($staff && $section === 'capital-flow') {
-            $section = 'treasury';
         }
         PortalCatalog::assertSection($u, $catalogPortal, $section);
         $periodRule = $section === 'branch-performance'
@@ -163,7 +156,7 @@ class WorkspaceController extends Controller
             'min_mrp' => 'nullable|numeric|min:0',
             'max_mrp' => 'nullable|numeric|min:0',
             'availability' => 'nullable|in:published,draft,in_stock,out_of_stock',
-            'sort' => $section === 'inventory' ? 'nullable|string|max:40' : 'nullable|in:name_asc,name_desc,price_asc,price_desc,newest,stock_asc,stock_desc',
+            'sort' => in_array($section, ['inventory', 'payments', 'audit', 'payouts-hub'], true) ? 'nullable|string|max:40' : 'nullable|in:name_asc,name_desc,price_asc,price_desc,newest,stock_asc,stock_desc',
             ...Arr::only(PartnerAccountList::rules(), ['division', 'district', 'rank', 'no_order_days']),
             ...Arr::only(StockMovementList::rules(), ['product_id', 'movement']),
         ]);
@@ -174,10 +167,6 @@ class WorkspaceController extends Controller
                 'status' => $r->query('status'),
                 'page' => $r->query('page'),
             ], fn ($value) => $value !== null && $value !== '')));
-        }
-        if ($staff && $section === 'withdrawals') {
-            // One desk for office withdrawal work; old links and saved filters still arrive there.
-            return redirect('/payouts-hub'.rtrim('?'.http_build_query($r->only(['q', 'status', 'channel', 'buyer_role', 'period', 'from', 'to', 'page', 'branch_id', 'all_branches'])), '?'));
         }
         if ($staff && $section === 'reports') {
             return redirect(OfficeHubs::oldReportsAddress($u, in_array($portal, ['manage', 'sadmin'], true), $r->query()));

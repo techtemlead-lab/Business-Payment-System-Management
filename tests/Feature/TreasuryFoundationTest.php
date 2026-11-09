@@ -549,7 +549,7 @@ class TreasuryFoundationTest extends TestCase
         $this->actingAs($finance)->onPortal('manage')->get('/treasury/partners')->assertOk()->assertInertia(fn (Assert $page) => $page->component('TreasuryPartners')->has('table.rows')->where('section', 'treasury')->has('tabs.waiting'));
         $this->actingAs($finance)->onPortal('manage')->get('/treasury/partners/'.$this->owner->id)->assertNotFound();
         $this->actingAs($finance)->onPortal('manage')->get('/treasury/partners/'.$dealer->id)->assertOk()->assertInertia(fn (Assert $page) => $page->component('TreasuryPartner')->where('partner.id', $dealer->id));
-        $this->actingAs($finance)->onPortal('manage')->get('/treasury/work')->assertOk()->assertInertia(fn (Assert $page) => $page->component('TreasuryWork')->has('tiles')->has('approvals')->has('heads')->has('budget_month'));
+        $this->actingAs($finance)->onPortal('manage')->get('/treasury/work')->assertOk()->assertInertia(fn (Assert $page) => $page->component('TreasuryWork')->has('tiles')->has('approvals_table')->has('heads')->has('budget_month'));
     }
 
     public function test_the_partner_home_loads_the_income_cards_after_the_page(): void

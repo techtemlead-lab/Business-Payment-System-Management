@@ -2,48 +2,29 @@ import { useState } from 'react';
 import { useForm } from '@inertiajs/react';
 import { Badge, FormErrors, Modal, date, money, type Row } from '../UI';
 import { useT } from '../../shared/i18n/t';
+import MoneyTable, { type MoneyColumn, type MoneyTableData } from '../MoneyTable';
 import { FUNDS_COMMAND_ROOT, useHeadName } from './FundSpendForm';
 
 export type SpendApproval = Row & { id: number; fund_key: string; amount: string; can_review: boolean; can_cancel?: boolean; can_self_approve?: boolean; over_budget?: boolean };
 
-/** Spends waiting for a second person. One line each; everything else opens in a box. */
-export default function SpendApprovals({ approvals }: { approvals: SpendApproval[] }) {
+/** Spends waiting for a second person, on the shared table. Everything else opens in a box. */
+export default function SpendApprovals({ table }: { table: MoneyTableData<SpendApproval> }) {
     const translate = useT();
     const headName = useHeadName();
     const [viewing, setViewing] = useState<SpendApproval | null>(null);
-    const fundName = (row: Row) => translate('treasury', `fund_${row.fund_key}`);
+    const columns: MoneyColumn<SpendApproval>[] = [
+        { key: 'spent_on', title: translate('treasury', 'col_date'), sortKey: 'date', phone: 'sub', render: (row) => date(row.spent_on) },
+        { key: 'fund', title: translate('treasury', 'col_fund_head'), sortKey: 'fund', phone: 'title', render: (row) => <><b>{translate('treasury', `fund_${row.fund_key}`)}</b><small className="cell-sub">{headName(row)}</small></> },
+        { key: 'payee_name', title: translate('treasury', 'col_to'), sortKey: 'payee', phone: 'sub', render: (row) => row.payee_name },
+        { key: 'amount', title: translate('treasury', 'col_amount'), sortKey: 'amount', money: true, total: 'amount', phone: 'amount', render: (row) => <b>{money(row.amount)}</b> },
+        { key: 'maker_name', title: translate('treasury', 'col_recorded_by'), sortKey: 'maker', phone: 'hide', render: (row) => row.maker_name },
+        { key: 'view', title: '', phone: 'sub', render: (row) => <button type="button" className="button small" onClick={(event) => { event.stopPropagation(); setViewing(row); }}>{translate('treasury', 'view')}</button> },
+    ];
 
     return (
         <section className="tsy-block">
-            <h2>{translate('treasury', 'approvals_title', { count: String(approvals.length) })}</h2>
-            {approvals.length === 0 ? <p className="mt-empty">{translate('treasury', 'approvals_empty')}</p> : (
-                <div className="panel table-panel">
-                    <table className="tsy-lines">
-                        <thead>
-                            <tr>
-                                <th>{translate('treasury', 'col_date')}</th>
-                                <th>{translate('treasury', 'col_fund_head')}</th>
-                                <th>{translate('treasury', 'col_to')}</th>
-                                <th className="is-money">{translate('treasury', 'col_amount')}</th>
-                                <th>{translate('treasury', 'col_recorded_by')}</th>
-                                <th><span className="sr-only">{translate('treasury', 'view')}</span></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {approvals.map((row) => (
-                                <tr key={row.id}>
-                                    <td data-part="rate">{date(row.spent_on)}</td>
-                                    <td data-part="type"><b>{fundName(row)}</b><small className="cell-sub">{headName(row)}</small></td>
-                                    <td data-part="to">{row.payee_name}</td>
-                                    <td data-part="amount" className="is-money">{money(row.amount)}</td>
-                                    <td data-part="extra">{row.maker_name}</td>
-                                    <td data-part="action"><button type="button" className="button small" onClick={() => setViewing(row)}>{translate('treasury', 'view')}</button></td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+            <h2>{translate('treasury', 'approvals_title', { count: String(table.totals.count) })}</h2>
+            <MoneyTable<SpendApproval> data={table} prop="approvals_table" columns={columns} searchPlaceholder={translate('treasury', 'search')} empty={translate('treasury', 'approvals_empty')} />
             {viewing && <ApprovalBox row={viewing} onClose={() => setViewing(null)} />}
         </section>
     );

@@ -123,7 +123,7 @@ class CompanyAccessTest extends TestCase
         $this->get('/company/orders')->assertOk();
         $this->get('/company/inventory')->assertOk();
 
-        $this->get('/company/treasury')->assertForbidden();
+        $this->get('/company/treasury/funds')->assertForbidden();
         $this->get('/company/commissions')->assertForbidden();
         $this->get('/company/audit')->assertForbidden();
         $this->get('/company/employees')->assertForbidden();

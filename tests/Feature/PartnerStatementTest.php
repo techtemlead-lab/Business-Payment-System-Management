@@ -2,15 +2,16 @@
 
 namespace Tests\Feature;
 
-use App\Http\Middleware\HandleInertiaRequests;
+use App\Domain\Accounts\PartnerWalletStatement;
 use App\Models\Order;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\Request;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
+use Inertia\Testing\AssertableInertia as Assert;
 use OpenSpout\Reader\XLSX\Reader;
 use Tests\TestCase;
 
@@ -38,22 +39,21 @@ class PartnerStatementTest extends TestCase
         $this->entry($dealer, ['wallet_liability' => ['0.00', '55.50']], 'Withdrawal paid', '2026-03-07 06:00:00');
         $this->entry($dealer, ['wallet_liability' => ['999.00', '0.00']], 'After the range', '2026-04-01 06:00:00');
 
-        $first = $this->statement($dealer, '/statement?'.self::Range)['props'];
-        $second = $this->statement($dealer, '/statement?'.self::Range.'&page=2')['props'];
+        $first = $this->ledger($dealer);
+        $second = $this->ledger($dealer, 2);
 
-        $this->assertSame(['from' => '2026-03-01', 'to' => '2026-03-31'], $first['range']);
-        $this->assertSame('100.00', $first['statement']['opening_balance']);
-        $this->assertSame('300.00', $first['statement']['total_in']);
-        $this->assertSame('55.50', $first['statement']['total_out']);
-        $this->assertSame('344.50', $first['statement']['closing_balance']);
-        $this->assertSame(31, $first['statement']['line_count'], 'Thirty commissions and the withdrawal; the hold release is left out.');
-        $this->assertSame(31, $first['statement']['lines']['total']);
-        $this->assertCount(25, $first['statement']['lines']['data']);
-        $this->assertSame('Commission 1', $first['statement']['lines']['data'][0]['description']);
-        $this->assertSame('110.00', $first['statement']['lines']['data'][0]['balance']);
-        $this->assertCount(6, $second['statement']['lines']['data']);
-        $this->assertSame('360.00', $second['statement']['lines']['data'][0]['balance'], 'Page two carries on from the balance at the end of page one.');
-        $last = end($second['statement']['lines']['data']);
+        $this->assertSame('100.00', $first['opening_balance']);
+        $this->assertSame('300.00', $first['total_in']);
+        $this->assertSame('55.50', $first['total_out']);
+        $this->assertSame('344.50', $first['closing_balance']);
+        $this->assertSame(31, $first['line_count'], 'Thirty commissions and the withdrawal; the hold release is left out.');
+        $this->assertSame(31, $first['lines']['total']);
+        $this->assertCount(25, $first['lines']['data']);
+        $this->assertSame('Commission 1', $first['lines']['data'][0]['description']);
+        $this->assertSame('110.00', $first['lines']['data'][0]['balance']);
+        $this->assertCount(6, $second['lines']['data']);
+        $this->assertSame('360.00', $second['lines']['data'][0]['balance'], 'Page two carries on from the balance at the end of page one.');
+        $last = end($second['lines']['data']);
         $this->assertSame('Withdrawal paid', $last['description']);
         $this->assertSame('55.50', $last['money_out']);
         $this->assertSame('0.00', $last['money_in']);
@@ -69,7 +69,7 @@ class PartnerStatementTest extends TestCase
         $this->entry($dealer, ['wallet_liability' => ['25.00', '0.00']], 'Commission earned', '2026-03-03 06:00:00', 'commissions.order.'.$order->id);
         $this->entry($dealer, ['wallet_liability' => ['0.00', '20.00']], 'Payout sent', '2026-03-04 06:00:00', 'manual-payout:'.$withdrawal);
 
-        $lines = $this->statement($dealer, '/statement?'.self::Range)['props']['statement']['lines']['data'];
+        $lines = $this->ledger($dealer)['lines']['data'];
 
         $this->assertSame('ORD-STMT0001', $lines[0]['reference']);
         $this->assertSame($order->id, $lines[0]['order_id']);
@@ -84,20 +84,19 @@ class PartnerStatementTest extends TestCase
         $this->entry($dealer, ['wallet_liability' => ['75.00', '0.00']], 'Dealer credit', '2026-03-03 06:00:00');
         $this->entry($subDealer, ['wallet_liability' => ['5.00', '0.00']], 'Sub-dealer credit', '2026-03-03 06:00:00');
 
-        $this->assertSame('5.00', $this->statement($subDealer, '/statement?'.self::Range, 'subdealer')['props']['statement']['closing_balance']);
-        $this->actingAs($dealer)->onPortal('dealer')->get('/accounts/'.$subDealer->id.'/statement')->assertNotFound();
+        $this->assertSame('5.00', $this->ledger($subDealer)['closing_balance']);
+        $this->actingAs($dealer)->onPortal('dealer')->get('/accounts/'.$subDealer->id.'/statement')->assertRedirect('/my-money');
 
         foreach (['account_manager', 'finance'] as $role) {
             $staff = User::factory()->create(['role' => $role, 'status' => 'active']);
-            $page = $this->statement($staff, '/accounts/'.$dealer->id.'/statement?'.self::Range, 'manage')['props'];
-            $this->assertSame('75.00', $page['statement']['closing_balance']);
-            $this->assertTrue($page['staffView']);
+            $this->actingAs($staff)->onPortal('manage')->get('/accounts/'.$dealer->id.'/statement')->assertRedirect('/treasury/partners/'.$dealer->id);
+            $this->actingAs($staff)->onPortal('manage')->get('/treasury/partners/'.$dealer->id)->assertOk()->assertInertia(fn (Assert $page) => $page->component('TreasuryPartner'));
         }
         $storekeeper = User::factory()->create(['role' => 'inventory', 'status' => 'active']);
-        $this->actingAs($storekeeper)->onPortal('manage')->get('/accounts/'.$dealer->id.'/statement')->assertForbidden();
+        $this->actingAs($storekeeper)->onPortal('manage')->get('/treasury/partners/'.$dealer->id)->assertForbidden();
         $this->actingAs($storekeeper)->onPortal('manage')->get('/accounts/'.$dealer->id.'/statement/xlsx')->assertForbidden();
         $owner = User::factory()->staff()->create();
-        $this->actingAs($owner)->onPortal('sadmin')->get('/accounts/'.$storekeeper->id.'/statement')->assertNotFound();
+        $this->actingAs($owner)->onPortal('sadmin')->get('/treasury/partners/'.$storekeeper->id)->assertNotFound();
     }
 
     public function test_excel_and_pdf_hold_the_whole_range_with_opening_and_closing_balances(): void
@@ -132,14 +131,14 @@ class PartnerStatementTest extends TestCase
     {
         $dealer = User::factory()->dealer()->create(['status' => 'active']);
         $this->entry($dealer, ['wallet_liability' => ['10.00', '0.00']], 'One', '2026-03-05 06:00:00', 'commissions.order.'.Str::uuid());
-        $this->statement($dealer, '/statement?'.self::Range);
-        $count = $this->countQueries(fn () => $this->statement($dealer, '/statement?'.self::Range));
+        $this->ledger($dealer);
+        $count = $this->countQueries(fn () => $this->ledger($dealer));
 
         foreach (range(1, 20) as $index) {
             $this->entry($dealer, ['wallet_liability' => ['10.00', '0.00']], 'More '.$index, CarbonImmutable::parse('2026-03-06 06:00:00')->addMinutes($index), 'commissions.order.'.Str::uuid());
         }
 
-        $this->assertSame($count, $this->countQueries(fn () => $this->statement($dealer, '/statement?'.self::Range)));
+        $this->assertSame($count, $this->countQueries(fn () => $this->ledger($dealer)));
     }
 
     /**
@@ -157,13 +156,12 @@ class PartnerStatementTest extends TestCase
     }
 
     /** @return array<string, mixed> */
-    private function statement(User $viewer, string $path, string $portal = 'dealer'): array
+    private function ledger(User $partner, int $page = 1): array
     {
-        $version = (string) (new HandleInertiaRequests)->version(Request::create('/'));
+        Paginator::currentPageResolver(fn (): int => $page);
+        $ledger = app(PartnerWalletStatement::class)->ledger($partner, '2026-03-01', '2026-03-31');
 
-        return $this->actingAs($viewer)->onPortal($portal)
-            ->withHeaders(['X-Inertia' => 'true', 'X-Inertia-Version' => $version])
-            ->get($path)->assertOk()->assertJsonPath('component', 'PartnerStatement')->json();
+        return json_decode((string) json_encode($ledger), true);
     }
 
     private function countQueries(callable $callback): int

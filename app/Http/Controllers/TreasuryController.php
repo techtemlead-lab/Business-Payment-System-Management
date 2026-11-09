@@ -88,7 +88,7 @@ class TreasuryController extends Controller
 
     public function partner(Request $request, User $partner, PartnerMoneyBook $book): Response
     {
-        abort_unless(TreasuryAccess::mayOpenPartners($request->user()), 403);
+        abort_unless(TreasuryAccess::mayOpenPartner($request->user()), 403);
         abort_unless(in_array($partner->role, ['dealer', 'sub_dealer'], true), 404);
 
         return Inertia::render('TreasuryPartner', [

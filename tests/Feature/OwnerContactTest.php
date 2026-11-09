@@ -105,10 +105,10 @@ class OwnerContactTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('section', 'orders')
                 ->where('filters.buyer_role', 'sub_dealer'));
-        $this->actingAs($owner)->get('/company/ledger')->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('section', 'ledger'));
-        $this->actingAs($owner)->get('/company/salary')->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('section', 'salary'));
+        $this->actingAs($owner)->get('/company/treasury/events')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->component('TreasuryEvents'));
+        $this->actingAs($owner)->get('/company/treasury/funds/salary_pool')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->component('TreasuryFund'));
     }
 
     public function test_owner_profile_page_exposes_self_edit_form(): void

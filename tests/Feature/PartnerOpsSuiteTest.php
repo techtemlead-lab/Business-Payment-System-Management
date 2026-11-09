@@ -79,20 +79,22 @@ class PartnerOpsSuiteTest extends TestCase
             'updated_at' => now(),
         ]);
 
+        DB::table('journal_entries')->insert(['id' => (string) Str::uuid(), 'event_key' => 'commissions.order.'.$order->id, 'description' => 'Commission posted', 'created_at' => now()]);
+
         $this->actingAs($dealer)
             ->onPortal('dealer')
-            ->get('/earnings')
+            ->get('/my-money')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->component('portals/dealer/Dashboard')
-                ->where('section', 'earnings')
-                ->has('data.earnings.0', fn ($row) => $row
-                    ->where('category', 'direct_referral')
-                    ->where('rate_percentage', '5.00')
+                ->component('MyMoney')
+                ->where('section', 'my-money')
+                ->has('table.rows.data.0', fn ($row) => $row
+                    ->where('type', 'referral')
+                    ->where('percent', '5.00')
                     ->where('order_number', 'INV-LEDGER-1')
-                    ->where('source_code', 'D-SRC')
+                    ->where('from_name', 'Source Buyer')
                     ->etc())
-                ->has('data.withdrawal_balances'));
+                ->where('summary.available', '50.00'));
     }
 
     public function test_order_invoice_watermarks_partner_copy_and_keeps_admin_clean(): void

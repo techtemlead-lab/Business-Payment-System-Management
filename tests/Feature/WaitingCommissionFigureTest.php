@@ -93,17 +93,19 @@ class WaitingCommissionFigureTest extends TestCase
         $this->assertNull($rows[$ready->id]['waiting_until']);
     }
 
-    public function test_the_home_and_earnings_pages_send_the_figures(): void
+    public function test_the_home_and_my_money_pages_send_the_figures(): void
     {
         $this->allocation('550.00', 'maturing', CarbonImmutable::now()->addDays(3)->toIso8601String());
+        DB::table('journal_entries')->insert(['id' => (string) Str::uuid(), 'event_key' => 'commissions.order.'.$this->order->id, 'description' => 'Commission posted', 'created_at' => now()]);
+        DB::table('wallets')->insert(['user_id' => $this->dealer->id, 'available' => '0.00', 'held' => '550.00', 'commission_held' => '550.00', 'created_at' => now(), 'updated_at' => now()]);
 
         $this->actingAs($this->dealer)->onPortal('dealer')->get('/')->assertOk()
             ->assertInertia(fn (Assert $page) => $page->where('data.partner_home.wallet.commission_waiting.total', '550.00')
                 ->has('data.partner_home.wallet.commission_waiting.amounts', 1));
-        $this->actingAs($this->dealer)->onPortal('dealer')->get('/earnings')->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('data.commission_waiting.total', '550.00')
-                ->where('data.earnings.0.status', 'maturing')
-                ->whereType('data.earnings.0.waiting_until', 'string'));
+        $this->actingAs($this->dealer)->onPortal('dealer')->get('/my-money')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('summary.waiting', '550.00')
+                ->where('table.rows.data.0.amount', '550.00')
+                ->whereType('table.rows.data.0.waiting_until', 'string'));
     }
 
     private function allocation(string $amount, string $status, string $dueAt, ?User $partner = null): CommissionAllocation

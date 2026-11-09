@@ -7,146 +7,7 @@ import { useT } from '../shared/i18n/t';
 
 type Translate = (key: string, replace?: Record<string, string | number>) => string;
 
-const TABS = ['statements', 'import', 'payouts', 'limit'];
-
-function Notice({ t }: { t: Translate }) {
-    return <div className="notice warning" role="note"><p><strong>{t('management_notice')}</strong></p><p>{t('journal_scope_notice')}</p></div>;
-}
-
-function Checks({ checks, sheet, result, t }: { checks: Row; sheet: Row; result: string; t: Translate }) {
-    const good = checks.ties_to_journal && checks.journal_balanced && checks.statement_balances && checks.result_reconciled;
-    const balanceMessage = !checks.journal_balanced ? t('check_not_balanced') : checks.statement_balances ? t('check_balanced') : t('check_sheet_off', { amount: money(sheet.difference) });
-    return <section className="panel">
-        <h2>{t('check_title')}</h2>
-        <div className="metric-grid two">
-            <div className="metric"><span>{t('check_journal_debit')}</span><strong>{money(checks.journal_debit)}</strong></div>
-            <div className="metric"><span>{t('check_journal_credit')}</span><strong>{money(checks.journal_credit)}</strong></div>
-        </div>
-        <p className={good ? 'notice' : 'error'} role="status">{checks.ties_to_journal ? t('check_ties') : t('check_not_ties')} {balanceMessage}</p>
-        <p className={checks.result_reconciled ? 'muted' : 'error'}>{checks.result_reconciled ? t('check_result_bridge', { journal: money(checks.journal_result), other: money(checks.other_records_result), result: money(result) }) : t('check_result_off')}</p>
-        {checks.unclassified_accounts.length > 0 && <p className="notice warning">{t('check_unclassified', { accounts: checks.unclassified_accounts.join(', ') })}</p>}
-    </section>;
-}
-
-function Guidance({ notes, checks, t }: { notes: string[]; checks: string[]; t: Translate }) {
-    return <section className="panel">
-        {notes.length > 0 && <div className="notice warning" role="alert"><p><strong>{t('notes_title')}</strong></p><ul>{notes.map(note => <li key={note}>{note}</li>)}</ul></div>}
-        <h2>{t('accountant_title')}</h2>
-        <ul>{checks.map(check => <li key={check}>{check}</li>)}</ul>
-    </section>;
-}
-
-function Downloads({ type, filters, exportBase, t }: { type: string; filters: Row; exportBase: string; t: Translate }) {
-    const href = (format: string) => `${exportBase}?${new URLSearchParams({ type, format, from: filters.from, to: filters.to })}`;
-    return <div className="button-row">
-        <a className="button small" href={href('xlsx')}><Download size={14} aria-hidden="true" /> {t('download_excel')}</a>
-        <a className="button small" href={href('pdf')}><Download size={14} aria-hidden="true" /> {t('download_pdf')}</a>
-    </div>;
-}
-
-function StatementLines({ title, lines, total, totalLabel, t }: { title: string; lines: Row[]; total?: string; totalLabel?: string; t: Translate }) {
-    return <div className="ops-mb-4">
-        <h3>{title}</h3>
-        <div className="table-wrap"><table className="data-table"><tbody>
-            {lines.length === 0 && <tr><td className="muted" colSpan={2}>{t('no_lines')}</td></tr>}
-            {lines.map(line => <tr key={line.account}><td>{line.label}{line.source_label && <small className="cell-sub">{t('source_prefix', { source: line.source_label })}{line.reliability !== 'firm' && <> · <b>{t(`reliability_${line.reliability}`)}</b></>}</small>}</td><td className="num">{money(line.amount)}</td></tr>)}
-            {totalLabel && <tr><th>{totalLabel}</th><th className="num">{money(total)}</th></tr>}
-        </tbody></table></div>
-    </div>;
-}
-
-function Statements({ statements, filters, exportBase, t }: Row & { t: Translate }) {
-    const trial = statements.trial_balance;
-    const pl = statements.profit_loss;
-    const sheet = statements.balance_sheet;
-    return <>
-        <section className="panel">
-            <form className="filter-bar" onSubmit={event => {
-                event.preventDefault();
-                const fields = new FormData(event.currentTarget);
-                router.get('/operations/accounting', { from: String(fields.get('from')), to: String(fields.get('to')) }, { preserveState: true });
-            }}>
-                <label className="muted ptl-date-field">{t('period_from')}<input type="date" name="from" defaultValue={filters.from} required /></label>
-                <label className="muted ptl-date-field">{t('period_to')}<input type="date" name="to" defaultValue={filters.to} required /></label>
-                <button className="button small" type="submit">{t('show')}</button>
-            </form>
-        </section>
-        <Notice t={t} />
-        <Guidance notes={statements.notes} checks={statements.accountant_checks} t={t} />
-        <Checks checks={statements.checks} sheet={sheet} result={pl.result} t={t} />
-        <section className="panel">
-            <div className="panel-heading"><div><h2>{t('statement_trial_balance')}</h2><p className="muted">{t('balance_sign_hint')}</p></div><Downloads type="trial-balance" filters={filters} exportBase={exportBase} t={t} /></div>
-            <Table searchable={false} rows={trial.rows} columns={[
-                { key: 'label', title: t('column_account') },
-                { key: 'opening', title: t('column_opening'), money: true, render: (row: Row) => money(row.opening) },
-                { key: 'debit', title: t('column_debit'), money: true, total: true, render: (row: Row) => money(row.debit) },
-                { key: 'credit', title: t('column_credit'), money: true, total: true, render: (row: Row) => money(row.credit) },
-                { key: 'closing', title: t('column_closing'), money: true, render: (row: Row) => money(row.closing) },
-            ]} empty={t('no_lines')} />
-        </section>
-        <section className="panel">
-            <div className="panel-heading"><h2>{t('statement_profit_loss')}</h2><Downloads type="profit-loss" filters={filters} exportBase={exportBase} t={t} /></div>
-            <StatementLines title={t('section_income')} lines={pl.income} total={pl.total_income} totalLabel={t('total_income')} t={t} />
-            <StatementLines title={t('section_cost_of_sales')} lines={pl.cost_of_sales} total={pl.total_cost_of_sales} totalLabel={t('total_cost_of_sales')} t={t} />
-            <div className="metric ops-mb-4"><span>{t('gross_profit')}</span><strong>{money(pl.gross_profit)}</strong></div>
-            <StatementLines title={t('section_expenses')} lines={pl.expenses} total={pl.total_expenses} totalLabel={t('total_expenses')} t={t} />
-            <div className="metric"><span>{t('result')}</span><strong>{money(pl.result)}</strong></div>
-        </section>
-        <section className="panel">
-            <h2>{t('purchases_title')}</h2>
-            <p className="muted">{t('purchases_hint')}</p>
-            <div className="metric-grid two">
-                <div className="metric"><span>{t('purchases_in_period')}</span><strong>{money(statements.purchases.in_period)}</strong></div>
-                <div className="metric"><span>{t('purchases_due')}</span><strong>{money(statements.purchases.supplier_due)}</strong><small>{t('reliability_needs_check')}</small></div>
-            </div>
-        </section>
-        <section className="panel">
-            <div className="panel-heading"><h2>{t('statement_balance_sheet')}</h2><Downloads type="balance-sheet" filters={filters} exportBase={exportBase} t={t} /></div>
-            <StatementLines title={t('section_assets')} lines={[...sheet.assets, ...sheet.unclassified]} total={sheet.total_assets} totalLabel={t('total_assets')} t={t} />
-            <StatementLines title={t('section_liabilities')} lines={sheet.liabilities} total={sheet.total_liabilities} totalLabel={t('total_liabilities')} t={t} />
-            <StatementLines title={t('section_equity')} lines={[...sheet.equity, { account: 'earlier', label: t('earlier_result'), amount: sheet.earlier_result }, { account: 'period', label: t('period_result'), amount: sheet.period_result }]} total={sheet.total_liabilities_and_equity} totalLabel={t('total_liabilities_and_equity')} t={t} />
-        </section>
-    </>;
-}
-
-function PayoutFile({ payoutBatch, filters, channels, t }: Row & { t: Translate }) {
-    const query = new URLSearchParams({ month: filters.month, ...(filters.channel ? { channel: filters.channel } : {}) });
-    return <section className="panel">
-        <h2>{t('batch_title')}</h2>
-        <p className="muted">{t('batch_hint')}</p>
-        <form className="filter-bar" onSubmit={event => {
-            event.preventDefault();
-            const fields = new FormData(event.currentTarget);
-            router.get('/operations/accounting', { tab: 'payouts', month: String(fields.get('month')), channel: String(fields.get('channel')) || undefined }, { preserveState: true });
-        }}>
-            <label className="muted ptl-date-field">{t('batch_month')}<input type="month" name="month" defaultValue={filters.month} required /></label>
-            <label className="muted ptl-date-field">{t('batch_channel')}<select name="channel" defaultValue={filters.channel ?? ''}>
-                <option value="">{t('batch_all_channels')}</option>
-                {channels.map((channel: string) => <option key={channel} value={channel}>{channel}</option>)}
-            </select></label>
-            <button className="button small" type="submit">{t('show')}</button>
-        </form>
-        <div className="metric-grid two ops-mb-4">
-            <div className="metric"><span>{t('batch_count')}</span><strong>{payoutBatch.count}</strong></div>
-            <div className="metric"><span>{t('batch_total_net')}</span><strong>{money(payoutBatch.total_net)}</strong></div>
-        </div>
-        <div className="notice"><p>{t('batch_manual_note')}</p><Link className="button small" href="/payouts-hub">{t('batch_open_payouts')}</Link></div>
-        {payoutBatch.count > 0 && <p><a className="button dark" href={`/commands/operations/accounting/payout-batch/export?${query}`}><Download size={16} aria-hidden="true" /> {t('batch_download')}</a></p>}
-        <Table searchable={false} rows={payoutBatch.rows} columns={[
-            { key: 'dealer_code', title: t('column_dealer_code') },
-            { key: 'name', title: t('column_name') },
-            { key: 'channel', title: t('column_channel') },
-            { key: 'destination_masked', title: t('column_destination') },
-            { key: 'amount', title: t('column_requested'), money: true, total: true, render: (row: Row) => money(row.amount) },
-            { key: 'withheld_amount', title: t('column_tax_withheld'), money: true, total: true, render: (row: Row) => money(row.withheld_amount) },
-            { key: 'net_amount', title: t('column_net_to_pay'), money: true, total: true, render: (row: Row) => <b>{money(row.net_amount)}</b> },
-            { key: 'requested_on', title: t('column_requested_on') },
-        ]} empty={t('batch_empty')} />
-    </section>;
-}
-
 const columnLetter = (index: number) => index < 26 ? String.fromCharCode(65 + index) : `A${String.fromCharCode(65 + index - 26)}`;
-
 function ColumnMapping({ statement, t }: { statement: Row; t: Translate }) {
     const guess = statement.guess;
     const form = useForm<{ first_data_row: number; reference_column: string; amount_column: string; date_column: string; description_column: string }>({
@@ -253,37 +114,12 @@ function StatementCheck({ channels, history, statement, t }: Row & { t: Translat
     </>;
 }
 
-function ApprovalLimit({ approvalLimit, t }: Row & { t: Translate }) {
-    const form = useForm({ amount: approvalLimit.amount, version: approvalLimit.version, reason: '' });
-    return <section className="panel">
-        <h2>{t('limit_title')}</h2>
-        <p className="muted">{t('limit_hint')}</p>
-        <div className="metric"><span>{t('limit_current')}</span><strong>{money(approvalLimit.amount)}</strong><small>{t('limit_default', { amount: money(approvalLimit.default) })}</small></div>
-        {approvalLimit.can_edit ? <form className="action-form" onSubmit={event => {
-            event.preventDefault();
-            form.post('/commands/operations/accounting/approval-limit', { preserveScroll: true, onSuccess: () => form.setData('reason', '') });
-        }}>
-            <label>{t('limit_new_amount')}<input required inputMode="decimal" value={form.data.amount} onChange={event => form.setData('amount', event.target.value)} /></label>
-            <label>{t('limit_reason')}<textarea required minLength={5} maxLength={1000} rows={2} value={form.data.reason} onChange={event => form.setData('reason', event.target.value)} /></label>
-            {Object.keys(form.errors).length > 0 && <p role="alert" className="error">{Object.values(form.errors).join(' ')}</p>}
-            <button className="button dark" disabled={form.processing}>{t('limit_save')}</button>
-        </form> : <p className="notice">{t('limit_owner_only')}</p>}
-    </section>;
-}
-
 export default function Accounting(props: Row) {
     const translate = useT();
     const t: Translate = (key, replace = {}) => translate('accounting', key, replace);
-    const { tab } = props;
 
-    return <Shell section="accounting"><Head title={t('title')} />
-        <div className="section-header"><div><h2>{t('title')}</h2><p className="muted">{t('intro')}</p></div></div>
-        <nav className="preset-chips" aria-label={t('title')}>
-            {TABS.map(name => <Link key={name} className={`button small ${tab === name ? 'dark' : ''}`} href={`/operations/accounting?tab=${name}`} preserveState>{t(`tab_${name}`)}</Link>)}
-        </nav>
-        {tab === 'statements' && <Statements {...props} t={t} />}
-        {tab === 'import' && <StatementCheck {...props} t={t} />}
-        {tab === 'payouts' && <PayoutFile {...props} t={t} />}
-        {tab === 'limit' && <ApprovalLimit {...props} t={t} />}
+    return <Shell section="treasury"><Head title={t('tab_import')} />
+        <div className="section-header"><div><Link className="text-link" href="/treasury/work">{translate('treasury', 'tab_work')}</Link><h2>{t('tab_import')}</h2></div></div>
+        <StatementCheck {...props} t={t} />
     </Shell>;
 }
