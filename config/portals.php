@@ -22,7 +22,7 @@ return [
     ],
     'subdealer' => [
         'page' => 'portals/subdealer/Dashboard',
-        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'earnings', 'salary', 'top-sellers', 'withdrawals', 'payment-receipts', 'full-report', 'share-feedback', 'help', 'messages', 'training', 'events', 'prescriptions', 'sales-kit', 'customers', 'contests'],
+        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'earnings', 'network', 'salary', 'top-sellers', 'withdrawals', 'payment-receipts', 'full-report', 'share-feedback', 'help', 'messages', 'training', 'events', 'prescriptions', 'sales-kit', 'customers', 'contests'],
         'partner_commands' => true,
         'staff_commands' => false,
         'owner_commands' => false,
