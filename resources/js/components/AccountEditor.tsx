@@ -125,7 +125,7 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                     <input required value={form.data.name} onChange={event => form.setData('name', event.target.value)} />
                 </label>
                 {isPartner && <label>{translate('portal', 'acct_dealer_code_unique')}
-                    <input value={form.data.dealer_code} onChange={event => form.setData('dealer_code', event.target.value.toUpperCase())} />
+                    <input required value={form.data.dealer_code} onChange={event => form.setData('dealer_code', event.target.value.toUpperCase())} />
                 </label>}
                 <label>{translate('portal', 'acct_phone_number')}
                     <input required value={form.data.phone} onChange={event => form.setData('phone', event.target.value)} />

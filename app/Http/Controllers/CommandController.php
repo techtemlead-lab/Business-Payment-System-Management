@@ -39,7 +39,6 @@ use App\Http\Requests\Backend\RefundOrderRequest;
 use App\Http\Requests\Backend\StoreOrderRequest;
 use App\Http\Requests\Backend\VerifyPaymentRequest;
 use App\Models\AreaDealerAssignment;
-use App\Models\DealerRank;
 use App\Models\Order;
 use App\Models\PlaceCode;
 use App\Models\Product;
@@ -118,10 +117,8 @@ class CommandController extends Controller
         if ($r->user()->role === 'super_admin') {
             $roles = [...$roles, 'employee', ...array_keys(config('madina.roles')), ...app(StaffPermissions::class)->roleKeys()];
         }
-        $isPartner = in_array($r->input('role'), ['dealer', 'sub_dealer'], true);
-        $usesPlaceOnboarding = $isPartner && ($r->filled('place_code') || $r->filled('identity_type') || $r->filled('refer_code'));
-
-        if ($usesPlaceOnboarding) {
+        // Every partner is added through a place; a partner with no place would earn and pay out wrongly.
+        if (in_array($r->input('role'), ['dealer', 'sub_dealer'], true)) {
             if ($r->filled('nid')) {
                 $this->permit($r, 'identity_write');
             }
@@ -191,7 +188,7 @@ class CommandController extends Controller
 
         $d = $r->validate([
             'role' => ['required', Rule::in($roles)],
-            'dealer_code' => $isPartner ? ['required', 'string', 'max:40', 'unique:users,dealer_code'] : ['nullable', 'string', 'max:40', 'unique:users,dealer_code'],
+            'dealer_code' => ['nullable', 'string', 'max:40', 'unique:users,dealer_code'],
             'name' => 'required|string|max:150',
             'email' => 'required|email|max:254|unique:users,email',
             'phone' => 'required|string|max:30',
@@ -247,10 +244,10 @@ class CommandController extends Controller
         if (($d['directory_visible'] ?? false) && $d['role'] !== 'dealer') {
             throw ValidationException::withMessages(['directory_visible' => __('portal.cmd_val_directory_dealer_only')]);
         }
-        $u = DB::transaction(function () use ($r, $d, $isPartner, $phoneCheck) {
+        $u = DB::transaction(function () use ($r, $d, $phoneCheck) {
             CommissionWallet::lock();
             $role = $d['role'];
-            $dealerCode = $isPartner ? trim((string) $d['dealer_code']) : ($d['dealer_code'] ?? null);
+            $dealerCode = $d['dealer_code'] ?? null;
             $reason = $d['reason'] ?? __('portal.audit_account_created_staff');
             unset($d['reason']);
             $plainPassword = 'Md'.Str::upper(Str::random(2)).random_int(100000, 999999).'!';
@@ -264,9 +261,6 @@ class CommandController extends Controller
             $u->save();
             DB::table('wallets')->insert(['user_id' => $u->id, 'created_at' => now(), 'updated_at' => now()]);
             ReferralTreePath::attachUser($u->id, $u->sponsor_id);
-            if ($isPartner) {
-                DealerRank::firstOrCreate(['user_id' => $u->id], ['current_rank' => 'dealer']);
-            }
             Audit::record($r->user()->id, 'account.created', (string) $u->id, [
                 'role' => $role,
                 'dealer_code' => $dealerCode,
@@ -276,9 +270,6 @@ class CommandController extends Controller
 
             return $u;
         });
-        if ($isPartner && $u->sponsor_id === null) {
-            app(ManagementReferral::class)->stamp($u);
-        }
         Password::sendResetLink(['email' => $u->email]);
         app(PartnerEventEmail::class)->sendTranslated($u, 'account.created', 'event_emails.account_created_title', 'event_emails.account_created_body');
         $redirectUrl = ($d['role'] ?? '') === 'employee' ? '/employees' : '/accounts';
@@ -300,7 +291,7 @@ class CommandController extends Controller
             $this->permit($r, 'identity_write');
         }
         $isPartner = in_array($user->role, ['dealer', 'sub_dealer'], true);
-        $d = $r->validate(['status' => 'sometimes|in:active,suspended', 'name' => 'sometimes|required|string|max:150', 'dealer_code' => 'sometimes|nullable|string|max:40|unique:users,dealer_code,'.$user->id, 'phone' => 'sometimes|required|string|max:30', 'phone_share_reason' => 'sometimes|nullable|string|max:500', 'division' => 'nullable|string|max:80', 'district' => 'nullable|string|max:80', 'place_code' => [$isPartner ? 'sometimes' : 'prohibited', 'nullable', 'string', 'max:32'], 'latitude' => 'sometimes|nullable|numeric|between:-90,90', 'longitude' => 'sometimes|nullable|numeric|between:-180,180', 'sponsor_id' => 'sometimes|nullable|integer|exists:users,id', 'directory_visible' => 'sometimes|boolean', 'reason' => 'required|string|max:1000',
+        $d = $r->validate(['status' => 'sometimes|in:active,suspended', 'name' => 'sometimes|required|string|max:150', 'dealer_code' => 'sometimes|'.($isPartner ? 'required' : 'nullable').'|string|max:40|unique:users,dealer_code,'.$user->id, 'phone' => 'sometimes|required|string|max:30', 'phone_share_reason' => 'sometimes|nullable|string|max:500', 'division' => 'nullable|string|max:80', 'district' => 'nullable|string|max:80', 'place_code' => [$isPartner ? 'sometimes' : 'prohibited', 'nullable', 'string', 'max:32'], 'latitude' => 'sometimes|nullable|numeric|between:-90,90', 'longitude' => 'sometimes|nullable|numeric|between:-180,180', 'sponsor_id' => 'sometimes|nullable|integer|exists:users,id', 'directory_visible' => 'sometimes|boolean', 'reason' => 'required|string|max:1000',
             'permissions' => [Rule::prohibitedIf($r->user()->role !== 'super_admin' || ! in_array($user->role, ['employee', 'sr'], true)), 'sometimes', 'nullable', 'array'],
             'permissions.*' => ['string', Rule::in(config($user->role === 'sr' ? 'madina.roles.sr' : 'madina.roles.super_admin'))],
             'profile' => 'sometimes|array:name_bn,father_name,mother_name,village,post_office,upazila,union,pharmacy,shop_name,area_code', 'profile.name_bn' => 'nullable|string|max:150', 'profile.father_name' => 'nullable|string|max:150', 'profile.mother_name' => 'nullable|string|max:150', 'profile.village' => 'nullable|string|max:150', 'profile.post_office' => 'nullable|string|max:150', 'profile.upazila' => 'nullable|string|max:150', 'profile.union' => 'nullable|string|max:150', 'profile.pharmacy' => 'nullable|string|max:150', 'profile.shop_name' => 'nullable|string|max:150', 'profile.area_code' => 'nullable|string|max:80', 'nid' => 'sometimes|nullable|string|max:30']);

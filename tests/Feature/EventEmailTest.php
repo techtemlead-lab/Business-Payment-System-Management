@@ -390,9 +390,10 @@ class EventEmailTest extends TestCase
         Mail::fake();
         Notification::fake();
         $admin = $this->owner();
+        $this->seedClassicPlaceCodes();
 
         $this->actingAs($admin)->post('/commands/accounts', [
-            'role' => 'dealer', 'dealer_code' => 'D-DHK-777', 'name' => 'Md. Rafiqul Islam', 'name_bn' => 'মোঃ রফিকুল ইসলাম',
+            'role' => 'dealer', 'identity_type' => 'nid', 'date_of_birth' => '1985-03-03', 'place_code' => 'MNHC-102', 'name' => 'Md. Rafiqul Islam', 'name_bn' => 'মোঃ রফিকুল ইসলাম',
             'email' => 'rafiq.dealer@gmail.com', 'phone' => '01712345678', 'father_name' => 'Late Abdur Rahman', 'mother_name' => 'Rahima Begum',
             'nid' => '19851234567890123', 'pharmacy' => 'Madina Care Point', 'division' => 'Dhaka', 'district' => 'Gazipur', 'upazila' => 'Kaliakair',
             'union' => 'Chapair', 'village' => 'Ratanpur', 'post_office' => 'Kaliakair-1750', 'latitude' => '24.0667000', 'longitude' => '90.2167000',
