@@ -47,11 +47,11 @@ function Downloads({ type, filters, exportBase, t }: { type: string; filters: Ro
 function StatementLines({ title, lines, total, totalLabel, t }: { title: string; lines: Row[]; total?: string; totalLabel?: string; t: Translate }) {
     return <div className="ops-mb-4">
         <h3>{title}</h3>
-        <table className="data-table"><tbody>
+        <div className="table-wrap"><table className="data-table"><tbody>
             {lines.length === 0 && <tr><td className="muted" colSpan={2}>{t('no_lines')}</td></tr>}
             {lines.map(line => <tr key={line.account}><td>{line.label}{line.source_label && <small className="cell-sub">{t('source_prefix', { source: line.source_label })}{line.reliability !== 'firm' && <> · <b>{t(`reliability_${line.reliability}`)}</b></>}</small>}</td><td className="num">{money(line.amount)}</td></tr>)}
             {totalLabel && <tr><th>{totalLabel}</th><th className="num">{money(total)}</th></tr>}
-        </tbody></table>
+        </tbody></table></div>
     </div>;
 }
 
