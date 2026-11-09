@@ -6542,4 +6542,13 @@ return [
     'content_page_dealers' => 'ডিলার',
     'date_format_day_month_year' => 'দিন/মাস/বছর',
     'date_format_hour_minute' => 'ঘণ্টা:মিনিট',
+    'ops_period_range' => ':from থেকে :to',
+    'status_credited' => 'আয়ে জমা হয়েছে',
+    'rpt_val_award' => 'পুরস্কার #:id',
+    'rpt_val_rank_award' => 'র‍্যাঙ্ক পুরস্কার (:rank)',
+    'rpt_val_rank_incentive' => 'র‍্যাঙ্ক পুরস্কার',
+    'label_division' => 'বিভাগ',
+    'label_district' => 'জেলা',
+    'label_upazila' => 'উপজেলা',
+    'label_union' => 'ইউনিয়ন / পৌরসভা',
 ];

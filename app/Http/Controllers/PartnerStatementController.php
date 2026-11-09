@@ -132,7 +132,7 @@ class PartnerStatementController extends Controller
             $rows,
             [
                 [$label('col_partner'), $partner->name.' ('.($partner->dealer_code ?: '—').')'],
-                [__('portal.ops_period'), $from.' '.__('portal.ops_through').' '.$to],
+                [__('portal.ops_period'), __('portal.ops_period_range', ['from' => $from, 'to' => $to])],
                 [$label('opening_balance'), $ledger['opening_balance']],
                 [$label('stmt_col_in'), $ledger['total_in']],
                 [$label('stmt_col_out'), $ledger['total_out']],

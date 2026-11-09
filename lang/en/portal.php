@@ -6542,4 +6542,13 @@ return [
     'content_page_dealers' => 'Dealers',
     'date_format_day_month_year' => 'DD/MM/YYYY',
     'date_format_hour_minute' => 'HH:MM',
+    'ops_period_range' => ':from to :to',
+    'status_credited' => 'Added to earnings',
+    'rpt_val_award' => 'Reward #:id',
+    'rpt_val_rank_award' => 'Rank reward (:rank)',
+    'rpt_val_rank_incentive' => 'Rank reward',
+    'label_division' => 'Division',
+    'label_district' => 'District',
+    'label_upazila' => 'Upazila',
+    'label_union' => 'Union / Pourashava',
 ];
