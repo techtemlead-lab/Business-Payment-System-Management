@@ -38,10 +38,10 @@ class CreateAdministrator extends Command
 
             return self::FAILURE;
         }
-        $password = $this->option('invite') ? Str::random(48) : $this->secret('Choose a strong administrator password');
+        $password = $this->option('invite') ? Str::random(48) : $this->secret('Choose an administrator password (at least 8 characters)');
         $data = ['name' => $this->option('name'), 'email' => $this->argument('email'), 'password' => $password, 'phone' => (string) $this->option('phone')];
         $validator = Validator::make($data, ['name' => 'required|string|max:150', 'email' => 'required|email|max:254|unique:users', 'phone' => ['required', 'regex:/^(?:\+?88)?01[3-9][0-9]{8}$/D'],
-            'password' => ['required', PasswordRule::min(12)->mixedCase()->numbers()]]);
+            'password' => ['required', PasswordRule::min(8)]]);
         if ($validator->fails()) {
             foreach ($validator->errors()->all() as $message) {
                 $this->error($message);

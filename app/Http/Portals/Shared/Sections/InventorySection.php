@@ -3,9 +3,11 @@
 namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Inventory\BranchOperations;
+use App\Domain\Inventory\SellableStock;
 use App\Domain\Inventory\StockLotReports;
 use App\Domain\Inventory\StockMovementList;
 use App\Models\BranchProductStock;
+use App\Models\Product;
 use App\Models\StockLot;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -57,7 +59,7 @@ final class InventorySection implements WorkspaceSection
                 return $product;
             })->all();
         }
-        $props['products'] = $this->withBatchOnHand($this->withBookedUnits($props['products'] ?? $data['products'] ?? []), $activeBranchId);
+        $props['products'] = $this->withAvailableUnits($this->withBatchOnHand($this->withBookedUnits($props['products'] ?? $data['products'] ?? []), $activeBranchId), $activeBranchId);
         // The movement log follows the same branch as the stock on hand above it.
         $branchScope = StockMovementList::scope($user, $request, $preferredBranch);
         $props['branch_scope'] = $branchScope->chip();
@@ -87,13 +89,54 @@ final class InventorySection implements WorkspaceSection
         return array_map(function (array $product) use ($lotsByProduct, $activeBranchId): array {
             $productLots = $lotsByProduct->get($product['id'], collect());
             if ($productLots->isEmpty() && (int) ($product['company_stock'] ?? $product['stock'] ?? 0) > 0) {
-                return $product;
+                return [...$product, 'held_units' => 0];
             }
             $branchId = isset($product['branch_stock']) ? (int) ($product['branch_id'] ?? $activeBranchId) : 0;
             $lots = $branchId > 0 ? $productLots->where('branch_id', $branchId) : $productLots;
             $next = $lots->first(fn (StockLot $lot): bool => ! $lot->isOnHold() && ! $lot->isExpired()) ?? $lots->first();
 
-            return [...$product, 'expires_on' => $next?->expires_on?->toDateString(), 'batch_number' => $next?->batch_number];
+            return [
+                ...$product,
+                'expires_on' => $next?->expires_on?->toDateString(),
+                'batch_number' => $next?->batch_number,
+                'held_units' => (int) $lots->filter(fn (StockLot $lot): bool => $lot->isOnHold())->sum('quantity'),
+            ];
+        }, $products);
+    }
+
+    /**
+     * What can really go out from each row, by the same rule partners see in {@see SellableStock}:
+     * goods on hold or past their date are left out. The plain count stays on the row too,
+     * because stock value is about what is physically in the store.
+     *
+     * @param  list<array<string, mixed>>  $products
+     * @return list<array<string, mixed>>
+     */
+    private function withAvailableUnits(array $products, int $activeBranchId): array
+    {
+        $productIds = array_map(intval(...), array_column($products, 'id'));
+        $usableRows = Product::query()
+            ->leftJoin('branch_product_stocks', 'branch_product_stocks.product_id', '=', 'products.id')
+            ->whereKey($productIds)
+            ->selectRaw(
+                'products.id AS product_id, branch_product_stocks.branch_id, CAST('.SellableStock::sql().' AS integer) AS company_usable, CAST('.SellableStock::branchSql().' AS integer) AS branch_usable',
+                [...SellableStock::bindings(), ...SellableStock::branchBindings()],
+            )
+            ->get();
+        $usableInCompany = $usableRows->pluck('company_usable', 'product_id');
+        $usableByBranch = $usableRows
+            ->whereNotNull('branch_id')
+            ->mapWithKeys(fn (Product $row): array => [$row->getAttribute('branch_id').'-'.$row->getAttribute('product_id') => (int) $row->getAttribute('branch_usable')]);
+
+        return array_map(function (array $product) use ($usableByBranch, $usableInCompany, $activeBranchId): array {
+            $companyAvailable = (int) ($usableInCompany[$product['id']] ?? 0);
+            $branchId = isset($product['branch_stock']) ? (int) ($product['branch_id'] ?? $activeBranchId) : 0;
+
+            return [
+                ...$product,
+                'company_available' => $companyAvailable,
+                'available_units' => $branchId > 0 ? (int) ($usableByBranch[$branchId.'-'.$product['id']] ?? 0) : $companyAvailable,
+            ];
         }, $products);
     }
 

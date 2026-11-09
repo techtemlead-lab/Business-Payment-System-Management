@@ -27,8 +27,8 @@
                 @csrf
                 <input type="hidden" name="token" value="{{ $token }}">
                 <label>{{ __('auth_ui.email') }}<input required type="email" name="email" autocomplete="username" value="{{ old('email', $email) }}"></label>
-                <label>{{ __('auth_ui.password') }}<input required type="password" name="password" minlength="12" autocomplete="new-password"></label>
-                <label>{{ __('auth_ui.confirm_password') }}<input required type="password" name="password_confirmation" minlength="12" autocomplete="new-password"></label>
+                <label>{{ __('auth_ui.password') }}<input required type="password" name="password" minlength="8" autocomplete="new-password"></label>
+                <label>{{ __('auth_ui.confirm_password') }}<input required type="password" name="password_confirmation" minlength="8" autocomplete="new-password"></label>
                 <button class="button dark">{{ __('auth_ui.set_password_submit') }}</button>
             </form>
         </div>

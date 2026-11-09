@@ -14,6 +14,7 @@ use App\Models\PrescriberRegistration;
 use App\Models\Prescription;
 use App\Models\PrescriptionPatient;
 use App\Support\PhoneIdentity;
+use App\Support\TransactionReference;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -82,12 +83,13 @@ class PrescriptionController extends Controller
 
     public function dispense(Request $request, Prescription $prescription): RedirectResponse
     {
+        TransactionReference::tidy($request, 'payment_reference');
         $data = $request->validate([
             'branch_id' => 'required|integer|exists:company_branches,id',
             'payment_method' => ['nullable', Rule::in(Prescription::PaymentMethods)],
-            'payment_reference' => 'nullable|string|max:80',
+            'payment_reference' => 'nullable|string|'.TransactionReference::MinRule.'|max:80',
             ClinicDispensing::ConfirmBelowFloorField => 'nullable|boolean',
-        ]);
+        ], TransactionReference::messages('payment_reference'));
         $this->book->assertVisible($request->user(), $prescription);
         $this->dispensing->dispense(
             $request->user(),

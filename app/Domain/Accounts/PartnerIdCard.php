@@ -18,6 +18,16 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
  */
 final class PartnerIdCard
 {
+    /** The standard bank-card size, CR80 (ISO/IEC 7810 ID-1). */
+    private const CardWidthMm = 85.6;
+
+    private const CardHeightMm = 54.0;
+
+    private const CardMarginMm = 2.5;
+
+    /** A long name or place steps the text down until the whole card fits on one page. */
+    private const TextScales = [1.0, 0.92, 0.84, 0.76, 0.68, 0.6, 0.52];
+
     public function downloadPdf(User $user): BinaryFileResponse
     {
         abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 403);
@@ -54,56 +64,42 @@ final class PartnerIdCard
         // The card's QR opens the public check page, so anyone can see the card is genuine.
         file_put_contents($qrPng, JoinQr::png(PortalHost::url('public', DealerVerification::path($user->dealer_code ?: $refer)), 140));
 
-        $html = '<html><head><style>
-            body{font-family:freeserif,sans-serif;color:#011627;margin:0;line-height:1.12}
-            .card{border:2px solid #2e3192;border-radius:10px;padding:6px 10px;width:100%}
-            .row{width:100%}
-            .brand{font-size:8pt;letter-spacing:.02em;text-transform:uppercase;color:#2e3192;font-weight:700}
-            .role{display:inline-block;margin-top:2px;padding:1px 6px;background:#eef0fb;color:#2e3192;font-size:8pt;border-radius:4px}
-            h1{font-size:12pt;margin:2px 0 0}
-            .meta{font-size:8pt;color:#475569;margin:0 0 3px}
-            table{width:100%;border-collapse:collapse;font-size:8pt}
-            td{padding:1px 0;vertical-align:top}
-            td.k{width:30%;color:#64748b}
-            td.v{font-weight:600}
-            .code{font-size:11pt;letter-spacing:.1em;color:#ef4a23}
-            .foot{margin-top:3px;padding-top:3px;border-top:1px solid #e2e8f0;font-size:6.5pt;color:#64748b}
-            .url{word-break:break-all;font-size:7pt;color:#334155}
-            .qr{width:24mm;height:24mm}
-        </style></head><body><div class="card">
-            <table class="row"><tr>
-            <td style="width:68%;padding-right:8px;vertical-align:top">
-            <div class="brand">'.e($t('brand_madina_natural_health_care')).'</div>
-            <div class="role">'.e($t('pdf_id_card_role', ['role' => $roleLabel])).'</div>
-            <h1>'.e($user->name).'</h1>
-            <p class="meta">'.e($shop !== '' ? $shop.' · ' : '').e($location !== '' ? $location : $t('pdf_location_bangladesh')).'</p>
-            <table>
-                <tr><td class="k">'.e($t('pdf_id_card_dealer_code')).'</td><td class="v">'.e($code).'</td></tr>
-                <tr><td class="k">'.e($t('pdf_id_card_refer_code')).'</td><td class="v code">'.e($refer).'</td></tr>
-                <tr><td class="k">'.e($t('pdf_id_card_mobile')).'</td><td class="v">'.e((string) ($user->phone ?: '—')).'</td></tr>
-                <tr><td class="k">'.e($t('pdf_id_card_join_link')).'</td><td class="url">'.e($joinUrl).'</td></tr>
-            </table>
-            </td>
-            <td style="width:32%;text-align:center;vertical-align:middle">
-                <img class="qr" src="'.e($qrPng).'" alt="'.e(__('public_trust.id_card_scan_to_verify', [], $locale)).'"/>
-                <div style="font-size:7pt;color:#64748b;margin-top:3px">'.e(__('public_trust.id_card_scan_to_verify', [], $locale)).'</div>
-            </td>
-            </tr></table>
-            <div class="foot">'.e($t('pdf_id_card_foot', ['when' => $issued])).'</div>
-        </div></body></html>';
+        // Pixel sizes are worked out from the text size, so a smaller step shrinks everything together.
+        $html = fn (float $scale): string => $this->cardHtml($scale, [
+            'brand' => $t('brand_madina_natural_health_care'),
+            'role' => $t('pdf_id_card_role', ['role' => $roleLabel]),
+            'name' => (string) $user->name,
+            'place' => ($shop !== '' ? $shop.' · ' : '').($location !== '' ? $location : $t('pdf_location_bangladesh')),
+            'code_label' => $t('pdf_id_card_dealer_code'),
+            'code' => $code,
+            'refer_label' => $t('pdf_id_card_refer_code'),
+            'refer' => $refer,
+            'mobile_label' => $t('pdf_id_card_mobile'),
+            'mobile' => (string) ($user->phone ?: '—'),
+            'link_label' => $t('pdf_id_card_join_link'),
+            'link' => $joinUrl,
+            'qr' => $qrPng,
+            'scan' => __('public_trust.id_card_scan_to_verify', [], $locale),
+            'foot' => $t('pdf_id_card_foot', ['when' => $issued]),
+        ]);
 
         try {
-            $pdf = new Mpdf([
-                'tempDir' => $dir,
-                'format' => [90, 62],
-                'margin_left' => 4,
-                'margin_right' => 4,
-                'margin_top' => 4,
-                'margin_bottom' => 4,
-                ...PdfFonts::options(),
-            ]);
-            $pdf->SetTitle($t('pdf_id_card_doc_title', ['code' => $code]));
-            $pdf->WriteHTML($html);
+            foreach (self::TextScales as $scale) {
+                $pdf = new Mpdf([
+                    'tempDir' => $dir,
+                    'format' => [self::CardWidthMm, self::CardHeightMm],
+                    'margin_left' => self::CardMarginMm,
+                    'margin_right' => self::CardMarginMm,
+                    'margin_top' => self::CardMarginMm,
+                    'margin_bottom' => self::CardMarginMm,
+                    ...PdfFonts::options(),
+                ]);
+                $pdf->SetTitle($t('pdf_id_card_doc_title', ['code' => $code]));
+                $pdf->WriteHTML($html($scale));
+                if ($pdf->page === 1) {
+                    break;
+                }
+            }
             $pdf->Output($path, Destination::FILE);
         } catch (\Throwable $exception) {
             @unlink($path);
@@ -117,5 +113,53 @@ final class PartnerIdCard
             'Madina-partner-id-'.$safeCode.'.pdf',
             ['Cache-Control' => 'private, no-store'],
         )->deleteFileAfterSend();
+    }
+
+    /**
+     * @param  array{brand: string, role: string, name: string, place: string, code_label: string, code: string, refer_label: string, refer: string, mobile_label: string, mobile: string, link_label: string, link: string, qr: string, scan: string, foot: string}  $card
+     */
+    private function cardHtml(float $scale, array $card): string
+    {
+        $pt = static fn (float $size): string => round($size * $scale, 2).'pt';
+        $mm = static fn (float $size): string => round($size * max($scale, 0.8), 2).'mm';
+
+        return '<html><head><style>
+            body{font-family:freeserif,sans-serif;color:#011627;margin:0;line-height:1.12}
+            .frame{position:fixed;left:0;top:0;width:'.(self::CardWidthMm - 2 * self::CardMarginMm).'mm;height:'.(self::CardHeightMm - 2 * self::CardMarginMm).'mm;border:1.5px solid #2e3192;border-radius:8px}
+            .card{padding:6px 8px;width:100%}
+            .row{width:100%}
+            .brand{font-size:'.$pt(8).';letter-spacing:.02em;text-transform:uppercase;color:#2e3192;font-weight:700}
+            .role{display:inline-block;margin-top:1px;padding:0 5px;background:#eef0fb;color:#2e3192;font-size:'.$pt(8).';border-radius:4px}
+            h1{font-size:'.$pt(12).';margin:1px 0 0}
+            .meta{font-size:'.$pt(8).';color:#475569;margin:0 0 2px}
+            table{width:100%;border-collapse:collapse;font-size:'.$pt(8).'}
+            td{padding:.5px 0;vertical-align:top}
+            td.k{width:30%;color:#64748b}
+            td.v{font-weight:600}
+            .code{font-size:'.$pt(10).';letter-spacing:.06em;color:#ef4a23}
+            .foot{margin-top:2px;padding-top:2px;border-top:1px solid #e2e8f0;font-size:'.$pt(6).';color:#64748b}
+            .url{word-break:break-all;font-size:'.$pt(6.5).';color:#334155}
+            .qr{width:'.$mm(22).';height:'.$mm(22).'}
+        </style></head><body><div class="frame"></div><div class="card">
+            <table class="row"><tr>
+            <td style="width:72%;padding-right:6px;vertical-align:top">
+            <div class="brand">'.e($card['brand']).'</div>
+            <div class="role">'.e($card['role']).'</div>
+            <h1>'.e($card['name']).'</h1>
+            <p class="meta">'.e($card['place']).'</p>
+            <table>
+                <tr><td class="k">'.e($card['code_label']).'</td><td class="v">'.e($card['code']).'</td></tr>
+                <tr><td class="k">'.e($card['refer_label']).'</td><td class="v code">'.e($card['refer']).'</td></tr>
+                <tr><td class="k">'.e($card['mobile_label']).'</td><td class="v">'.e($card['mobile']).'</td></tr>
+                <tr><td class="k">'.e($card['link_label']).'</td><td class="url">'.e($card['link']).'</td></tr>
+            </table>
+            </td>
+            <td style="width:28%;text-align:center;vertical-align:middle">
+                <img class="qr" src="'.e($card['qr']).'" alt="'.e($card['scan']).'"/>
+                <div style="font-size:'.$pt(6).';color:#64748b;margin-top:2px">'.e($card['scan']).'</div>
+            </td>
+            </tr></table>
+            <div class="foot">'.e($card['foot']).'</div>
+        </div></body></html>';
     }
 }

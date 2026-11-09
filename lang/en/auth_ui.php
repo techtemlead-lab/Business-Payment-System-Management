@@ -29,7 +29,7 @@ return [
     'email_phone_or_subdealer_code_placeholder' => 'Enter your email, phone number or sub-dealer code',
     'password' => 'Password',
     'confirm_password' => 'Confirm Password',
-    'password_rules' => 'At least 12 characters, uppercase and lowercase letters, and a number.',
+    'password_rules' => 'At least 8 characters.',
     'otp_title' => 'Verify mobile code',
     'otp_subtitle' => 'Enter the 6-digit code sent to your registered mobile number.',
     'otp_code' => 'One-time code',

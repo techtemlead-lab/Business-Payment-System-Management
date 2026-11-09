@@ -147,14 +147,14 @@ class SimpleSidebarTest extends TestCase
         $this->assertFalse(PartnerChat::canSeePartner($support, $inRajshahi));
     }
 
-    public function test_support_role_with_no_branch_sees_no_partner_chat(): void
+    public function test_support_role_with_no_branch_sees_every_partner_chat(): void
     {
         $branch = $this->branch('DHK-01');
         $support = $this->supportIn();
         $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active', 'active_branch_id' => $branch->id]);
 
         $this->assertTrue(PartnerChat::canAnswer($support));
-        $this->assertFalse(PartnerChat::canSeePartner($support, $dealer));
+        $this->assertTrue(PartnerChat::canSeePartner($support, $dealer));
     }
 
     public function test_suspended_support_staff_cannot_answer_chat(): void

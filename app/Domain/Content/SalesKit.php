@@ -7,11 +7,13 @@ use App\Models\User;
 use App\Support\Audit;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 /**
- * The approved sales kit. Only the owner adds or removes files; partners view and download them.
+ * The approved sales kit. Only the owner adds, edits or removes files; partners view and download them.
  * Files stay on the private training disk and are only streamed to signed-in partners and owners.
  */
 final class SalesKit
@@ -49,19 +51,23 @@ final class SalesKit
             'kinds' => SalesKitItem::Kinds,
             'languages' => SalesKitItem::Languages,
             'items' => SalesKitItem::query()->latest()->orderByDesc('id')->limit(500)->get()
-                ->map(fn (SalesKitItem $item): array => [
-                    'id' => (int) $item->id,
-                    'title' => (string) $item->title,
-                    'kind' => (string) $item->kind,
-                    'language' => (string) $item->language,
-                    'caption' => $item->caption,
-                    'file_name' => (string) $item->file_name,
-                    'mime' => (string) $item->mime,
-                    'size' => (int) $item->size,
-                    'is_image' => str_starts_with((string) $item->mime, 'image/'),
-                    'view_url' => '/sales-kit/'.$item->id.'/file?inline=1',
-                    'download_url' => '/sales-kit/'.$item->id.'/file',
-                ])->all(),
+                ->map(function (SalesKitItem $item): array {
+                    $version = $this->version($item);
+
+                    return [
+                        'id' => (int) $item->id,
+                        'title' => (string) $item->title,
+                        'kind' => (string) $item->kind,
+                        'language' => (string) $item->language,
+                        'caption' => $item->caption,
+                        'file_name' => (string) $item->file_name,
+                        'mime' => (string) $item->mime,
+                        'size' => (int) $item->size,
+                        'is_image' => str_starts_with((string) $item->mime, 'image/'),
+                        'view_url' => '/sales-kit/'.$item->id.'/file?inline=1'.($version === null ? '' : '&v='.$version),
+                        'download_url' => '/sales-kit/'.$item->id.'/file'.($version === null ? '' : '?v='.$version),
+                    ];
+                })->all(),
         ];
     }
 
@@ -69,8 +75,7 @@ final class SalesKit
     public function add(User $owner, array $data, UploadedFile $file): SalesKitItem
     {
         abort_unless(self::canManage($owner), 403);
-        $path = $file->store(self::Folder, TrainingLibrary::diskName());
-        abort_if($path === false, 500);
+        $path = $this->storeFile($file);
         $item = SalesKitItem::query()->create([
             'title' => $data['title'],
             'kind' => $data['kind'],
@@ -85,6 +90,57 @@ final class SalesKit
         Audit::record($owner->id, 'sales_kit.added', (string) $item->id, ['title' => $item->title, 'kind' => $item->kind]);
 
         return $item;
+    }
+
+    /**
+     * Saves an edit, and swaps the file when a new one comes with it. The old file is only
+     * deleted once the new one is saved, so a failure can never leave partners with nothing.
+     *
+     * @param  array{title: string, kind: string, language: string, caption?: string|null, reason: string}  $data
+     */
+    public function update(User $owner, SalesKitItem $item, array $data, ?UploadedFile $file): SalesKitItem
+    {
+        abort_unless(self::canManage($owner), 403);
+        $newPath = $file === null ? null : $this->storeFile($file);
+        $oldPath = null;
+        try {
+            DB::transaction(function () use ($owner, $item, $data, $file, $newPath, &$oldPath): void {
+                $locked = SalesKitItem::query()->whereKey($item->id)->lockForUpdate()->firstOrFail();
+                $oldPath = $locked->file_path;
+                $before = $locked->only(['title', 'kind', 'language', 'caption', 'file_name']);
+                $locked->update([
+                    'title' => $data['title'],
+                    'kind' => $data['kind'],
+                    'language' => $data['language'],
+                    'caption' => $data['caption'] ?? null,
+                    ...($file === null ? [] : [
+                        'file_path' => $newPath,
+                        'file_name' => mb_substr($file->getClientOriginalName(), 0, 200),
+                        'mime' => (string) $file->getMimeType(),
+                        'size' => (int) $file->getSize(),
+                    ]),
+                ]);
+                $changes = array_intersect_key($locked->getChanges(), $before);
+                Audit::record($owner->id, 'sales_kit.updated', (string) $locked->id, [
+                    'title' => $locked->title,
+                    'fields' => array_keys($changes),
+                    'before' => array_intersect_key($before, $changes),
+                    'after' => $changes,
+                    'file_replaced' => $file !== null,
+                    'reason' => $data['reason'],
+                ]);
+            });
+        } catch (Throwable $failure) {
+            if ($newPath !== null) {
+                self::disk()->delete($newPath);
+            }
+            throw $failure;
+        }
+        if ($newPath !== null) {
+            self::disk()->delete($oldPath);
+        }
+
+        return $item->refresh();
     }
 
     public function remove(User $owner, SalesKitItem $item): void
@@ -110,5 +166,24 @@ final class SalesKit
             'X-Content-Type-Options' => 'nosniff',
             'Cache-Control' => 'private, max-age=300',
         ]);
+    }
+
+    private function storeFile(UploadedFile $file): string
+    {
+        $path = $file->store(self::Folder, TrainingLibrary::diskName());
+        if ($path === false) {
+            abort(500);
+        }
+
+        return $path;
+    }
+
+    /**
+     * Browsers keep a file for five minutes (see response()), so a changed item gets a new address
+     * and a partner never sees the old file after it is replaced.
+     */
+    private function version(SalesKitItem $item): ?int
+    {
+        return $item->updated_at?->gt($item->created_at) ? $item->updated_at->getTimestamp() : null;
     }
 }

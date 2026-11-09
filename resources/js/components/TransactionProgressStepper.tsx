@@ -21,6 +21,7 @@ export type OrderStatus =
     | 'partially_dispatched'
     | 'dispatched'
     | 'delivered'
+    | 'partly_delivered'
     | 'rejected'
     | 'cancelled'
     | string;
@@ -112,7 +113,8 @@ export default function TransactionProgressStepper({
     };
 
     const status = (currentStatus || order.status || 'submitted').toLowerCase();
-    const isTerminal = ['delivered', 'rejected', 'cancelled'].includes(status);
+    const isPartlyDelivered = status === 'partly_delivered';
+    const isTerminal = ['delivered', 'partly_delivered', 'rejected', 'cancelled'].includes(status);
     const isInFlight = ['submitted', 'held', 'approved', 'partially_dispatched', 'dispatched'].includes(status);
 
     // Helpers to extract timestamps from events if present
@@ -232,7 +234,7 @@ export default function TransactionProgressStepper({
             stage3Badge = t('stage_badge_claim_rejected', 'Claim Rejected');
             stage3Desc = t('stage_desc_submit_valid_claim', 'Please submit valid payment slip');
             stage3Icon = <AlertCircle size={16} />;
-        } else if (['approved', 'partially_dispatched', 'dispatched', 'delivered'].includes(status)) {
+        } else if (['approved', 'partially_dispatched', 'dispatched', 'delivered', 'partly_delivered'].includes(status)) {
             if (orderPaid > 0) {
                 stage3State = 'active';
                 stage3Badge = t('stage_badge_partial', 'Partial');
@@ -268,7 +270,7 @@ export default function TransactionProgressStepper({
             stage4State = 'upcoming';
             stage4Badge = t('stage_badge_na', 'N/A');
             stage4Desc = t('stage_desc_not_applicable', 'Workflow halted');
-        } else if (isDelivered) {
+        } else if (isDelivered || isPartlyDelivered) {
             stage4State = 'completed';
             stage4Badge = t('stage_badge_dispatched', 'Dispatched');
             stage4Desc = activeShipment ? `${activeShipment.courier} · ${activeShipment.tracking}` : t('stage_desc_fulfilled', 'Stock fulfilled');
@@ -310,6 +312,11 @@ export default function TransactionProgressStepper({
             stage5State = 'upcoming';
             stage5Badge = t('stage_badge_na', 'N/A');
             stage5Desc = t('stage_desc_not_applicable', 'Workflow halted');
+        } else if (isPartlyDelivered) {
+            stage5State = 'completed';
+            stage5Badge = t('status_partly_delivered', 'Partly delivered');
+            stage5Desc = t('stage_desc_partly_delivered', 'Some parcels were delivered and some came back');
+            stage5Icon = <Check size={16} />;
         } else if (isDelivered) {
             stage5State = 'completed';
             stage5Badge = t('stage_badge_delivered', 'Delivered');
@@ -333,7 +340,7 @@ export default function TransactionProgressStepper({
         };
 
         return [stage1, stage2, stage3, stage4, stage5];
-    }, [status, order, claims, shipments, eventTimes, isPaymentSettled, isDelivered, isDispatched, activeShipment]);
+    }, [status, order, claims, shipments, eventTimes, isPaymentSettled, isDelivered, isPartlyDelivered, isDispatched, activeShipment]);
 
     return (
         <section
@@ -571,8 +578,8 @@ export default function TransactionProgressStepper({
                         </span>
                     )}
                     {isTerminal && (
-                        <span className={`hub-pill tps-end-pill ${status === 'delivered' ? 'tone-ok' : 'tone-danger'}`}>
-                            {status === 'delivered' ? t('stage_completed', 'Completed') : t('stage_closed', 'Closed')}
+                        <span className={`hub-pill tps-end-pill ${status === 'delivered' || isPartlyDelivered ? 'tone-ok' : 'tone-danger'}`}>
+                            {status === 'delivered' || isPartlyDelivered ? t('stage_completed', 'Completed') : t('stage_closed', 'Closed')}
                         </span>
                     )}
                 </div>

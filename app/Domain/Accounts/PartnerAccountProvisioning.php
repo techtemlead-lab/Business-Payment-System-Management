@@ -19,22 +19,35 @@ use App\Models\User;
 use App\Support\Audit;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 final class PartnerAccountProvisioning
 {
+    /** Who can refer a new partner. */
+    public const SponsorRoles = ['dealer', 'sub_dealer'];
+
+    /** Marks a closed account's code after someone else was given the real one. */
+    public const RetiredCodeMark = '-CLOSED-';
+
+    /** The places closing took from a dealer, kept on the profile for when it reopens. */
+    public const FreedSeatsKey = 'seats_freed_on_close';
+
     public function __construct(
         private PlaceGeographyResolver $geography,
         private AccountCreatedSms $sms,
         private CommissionPolicy $policies,
         private ManagementReferral $managementReferral,
         private AccountPhoneRules $phones,
+        private PartnerFormerCodes $formerCodes,
     ) {}
 
     /**
      * @param  array<string, mixed>  $input
-     * @return array{user: User, place_label: ?string, commission_consumers: array<string, mixed>, credentials_sent: bool}
+     * @return array{user: User, place_label: ?string, commission_consumers: array<string, mixed>, credentials_sent: bool, password_link_sent: bool}
      */
     public function create(User $actor, array $input): array
     {
@@ -105,7 +118,7 @@ final class PartnerAccountProvisioning
                 throw ValidationException::withMessages(['place_code' => __('portal.acct_val_place_taken')]);
             }
             $dealerCode = PlaceCode::brandSerial(trim((string) ($input['dealer_code'] ?? ''))) ?: $place->code;
-            if (User::query()->where('dealer_code', $dealerCode)->exists()) {
+            if (User::query()->where('dealer_code', $dealerCode)->whereNull('closed_at')->exists()) {
                 throw ValidationException::withMessages(['dealer_code' => __('portal.acct_val_dealer_code_taken')]);
             }
         } else {
@@ -126,10 +139,10 @@ final class PartnerAccountProvisioning
         if ($this->managementReferral->matchesReference($referCode)) {
             throw ValidationException::withMessages(['refer_code' => __('portal.acct_val_refer_is_management')]);
         }
-        if ($this->referCodeInUse($referCode)) {
+        if ($this->referCodeInUse($referCode, openAccountsOnly: true)) {
             throw ValidationException::withMessages(['refer_code' => __('portal.acct_val_refer_taken')]);
         }
-        if ($referCode !== strtoupper($dealerCode) && User::query()->whereRaw('UPPER(dealer_code) = ?', [$referCode])->exists()) {
+        if ($referCode !== strtoupper($dealerCode) && User::query()->whereNull('closed_at')->whereRaw('UPPER(dealer_code) = ?', [$referCode])->exists()) {
             throw ValidationException::withMessages(['refer_code' => __('portal.acct_val_refer_taken')]);
         }
 
@@ -189,6 +202,7 @@ final class PartnerAccountProvisioning
         try {
             $user = DB::transaction(function () use ($actor, $input, $role, $phone, $email, $referCode, $sponsor, $place, $path, $dealerCode, $profile, $plainPassword, $managementReferral, $managementSettings, $phoneCheck): User {
                 CommissionWallet::lock();
+                $this->claimCodes($actor, [$dealerCode, $referCode]);
                 $user = (new User)->forceFill([
                     'role' => $role,
                     'dealer_code' => $dealerCode,
@@ -239,6 +253,7 @@ final class PartnerAccountProvisioning
 
         // One-time credentials travel only through the SMS channel — never JSON/Inertia props.
         $credentialsSent = $this->sms->send($user, $plainPassword);
+        $passwordLinkSent = ! $credentialsSent && $this->sendPasswordLink($user);
         app(PartnerEventEmail::class)->sendTranslated($user, 'account.created', 'event_emails.account_created_title', 'event_emails.account_created_body');
 
         return [
@@ -246,7 +261,20 @@ final class PartnerAccountProvisioning
             'place_label' => $this->placeLabel($place),
             'commission_consumers' => $this->commissionConsumers($sponsor, $managementReferral),
             'credentials_sent' => $credentialsSent,
+            'password_link_sent' => $passwordLinkSent,
         ];
+    }
+
+    /** The account already exists by now, so a mail problem must not turn into an error page. */
+    private function sendPasswordLink(User $user): bool
+    {
+        try {
+            return Password::sendResetLink(['email' => $user->email]) === Password::ResetLinkSent;
+        } catch (Throwable $exception) {
+            Log::warning('account.created.password_link_failed', ['user_id' => $user->id, 'error' => $exception->getMessage()]);
+
+            return false;
+        }
     }
 
     /**
@@ -273,7 +301,7 @@ final class PartnerAccountProvisioning
      *
      * @throws ValidationException when a dealer already holds the place or the code is in use
      */
-    public function codeForPlace(PlaceCode $place, string $role): string
+    public function codeForPlace(User $actor, PlaceCode $place, string $role): string
     {
         if ($role === 'sub_dealer') {
             return $this->nextSubDealerCode($place->code);
@@ -281,11 +309,186 @@ final class PartnerAccountProvisioning
         if (AreaDealerAssignment::query()->where('place_code_id', $place->id)->where('is_active', true)->exists()) {
             throw ValidationException::withMessages(['place_code' => __('portal.acct_val_place_taken')]);
         }
-        if (User::query()->where('dealer_code', $place->code)->exists() || $this->referCodeInUse($place->code)) {
+        if (User::query()->where('dealer_code', $place->code)->whereNull('closed_at')->exists() || $this->referCodeInUse($place->code, openAccountsOnly: true)) {
             throw ValidationException::withMessages(['place_code' => __('portal.acct_val_dealer_code_taken')]);
         }
+        $this->claimCodes($actor, [$place->code]);
 
         return $place->code;
+    }
+
+    /**
+     * These codes are about to belong to someone. A closed account gives them up here and
+     * takes a retired code, so its history stays with it; a closed account keeps its code until
+     * this moment, so an account reopened before then needs no change.
+     *
+     * @param  list<string>  $codes
+     */
+    private function claimCodes(User $actor, array $codes): void
+    {
+        $wanted = array_values(array_unique(array_map(fn (string $code): string => strtoupper(trim($code)), $codes)));
+        $closedHolders = User::query()
+            ->whereNotNull('closed_at')
+            ->where(fn ($query) => $query->whereIn(DB::raw('UPPER(dealer_code)'), $wanted)->orWhereIn(DB::raw('UPPER(refer_code)'), $wanted))
+            ->lockForUpdate()
+            ->get();
+        foreach ($closedHolders as $closed) {
+            $givenUp = [];
+            foreach (['dealer_code', 'refer_code'] as $column) {
+                if (in_array(strtoupper((string) $closed->{$column}), $wanted, true)) {
+                    $givenUp[$column] = ['before' => $closed->{$column}, 'after' => $this->retiredCode((string) $closed->{$column}, (int) $closed->id)];
+                    $closed->{$column} = $givenUp[$column]['after'];
+                }
+            }
+            $closed->save();
+            Audit::record($actor->id, 'account.code_retired', (string) $closed->id, ['changes' => $givenUp]);
+        }
+        $this->formerCodes->forget($wanted);
+    }
+
+    private function retiredCode(string $code, int $userId): string
+    {
+        $suffix = self::RetiredCodeMark.$userId;
+
+        return substr($code, 0, 40 - strlen($suffix)).$suffix;
+    }
+
+    /**
+     * The dealer's code follows the place. A referral code the office chose by hand is left
+     * alone. Codes the dealer used before stay on record so old cards and links still work.
+     *
+     * @return array{from_dealer_code: ?string, to_dealer_code: string, from_refer_code: ?string, to_refer_code: ?string}|null
+     */
+    private function carryDealerCodeToPlace(User $actor, User $dealer, PlaceCode $place): ?array
+    {
+        $newCode = (string) $place->code;
+        $oldDealerCode = (string) $dealer->dealer_code;
+        if (strcasecmp($oldDealerCode, $newCode) === 0) {
+            return null;
+        }
+        $this->assertCodeIsFree($dealer, $newCode, 'place_code');
+
+        $oldReferCode = (string) $dealer->refer_code;
+        $referFollows = $oldReferCode === '' || strcasecmp($oldReferCode, $oldDealerCode) === 0 || str_contains($oldReferCode, self::RetiredCodeMark);
+        $this->claimCodes($actor, [$newCode]);
+        $dealer->forceFill(['dealer_code' => $newCode, 'refer_code' => $referFollows ? $newCode : $oldReferCode])->save();
+        foreach (array_unique($referFollows ? [$oldDealerCode, $oldReferCode] : [$oldDealerCode]) as $formerCode) {
+            if (! str_contains($formerCode, self::RetiredCodeMark)) {
+                $this->formerCodes->remember($dealer, $formerCode);
+            }
+        }
+
+        return [
+            'from_dealer_code' => $oldDealerCode !== '' ? $oldDealerCode : null,
+            'to_dealer_code' => $newCode,
+            'from_refer_code' => $oldReferCode !== '' ? $oldReferCode : null,
+            'to_refer_code' => $dealer->refer_code,
+        ];
+    }
+
+    /**
+     * @throws ValidationException when an open account other than this dealer uses the code
+     */
+    private function assertCodeIsFree(User $dealer, string $code, string $field): void
+    {
+        $inUse = User::query()
+            ->whereKeyNot($dealer->id)
+            ->whereNull('closed_at')
+            ->where(fn ($query) => $query->whereRaw('UPPER(dealer_code) = ?', [strtoupper($code)])->orWhereRaw('UPPER(refer_code) = ?', [strtoupper($code)]))
+            ->exists();
+        if ($inUse) {
+            throw ValidationException::withMessages([$field => __('portal.acct_val_dealer_code_taken')]);
+        }
+    }
+
+    /**
+     * Gives a reopened dealer back the places closing freed. Another dealer on the home place
+     * stops the reopen, because the dealer's code is that place's code; another dealer on an
+     * extra place only means that place is not given back.
+     *
+     * @throws ValidationException when someone else now holds the dealer's home place
+     */
+    public function returnSeatsOnReopen(User $actor, User $dealer): void
+    {
+        if ($dealer->role !== 'dealer') {
+            return;
+        }
+        $profile = $this->savedProfile($dealer);
+        $homeCode = (string) ($profile['place_code'] ?? '');
+        $homePlaceId = $this->recordedHomePlaceId($profile, $homeCode);
+        $notReturned = [];
+
+        foreach (array_unique(array_filter([$homePlaceId, ...$this->freedPlaceIds($dealer)])) as $placeId) {
+            $place = PlaceCode::query()->find($placeId);
+            if (! $place instanceof PlaceCode) {
+                continue;
+            }
+            $otherHolderId = AreaDealerAssignment::query()
+                ->where('place_code_id', $placeId)
+                ->where('is_active', true)
+                ->where('user_id', '!=', $dealer->id)
+                ->value('user_id');
+            if ($otherHolderId === null) {
+                $this->takeSeatBack($dealer, $place);
+            } elseif ($placeId === $homePlaceId) {
+                throw ValidationException::withMessages(['status' => __('portal.acct_val_reopen_place_taken', [
+                    'place' => $place->code,
+                    'holder' => User::query()->whereKey($otherHolderId)->value('dealer_code') ?? $place->code,
+                ])]);
+            } else {
+                $notReturned[] = $place->code;
+            }
+        }
+
+        unset($profile[self::FreedSeatsKey]);
+        $dealer->forceFill(['profile' => $profile]);
+        if ($homeCode !== '' && str_contains((string) $dealer->dealer_code, self::RetiredCodeMark)) {
+            $this->assertCodeIsFree($dealer, $homeCode, 'status');
+            $dealer->forceFill([
+                'dealer_code' => $homeCode,
+                'refer_code' => str_contains((string) $dealer->refer_code, self::RetiredCodeMark) ? $homeCode : $dealer->refer_code,
+            ]);
+        }
+        $dealer->save();
+        if ($notReturned !== []) {
+            Audit::record($actor->id, 'account.seats_not_returned', (string) $dealer->id, ['places' => $notReturned]);
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function savedProfile(User $partner): array
+    {
+        $saved = $partner->getAttribute('profile');
+
+        return is_array($saved) ? $saved : [];
+    }
+
+    /**
+     * @return list<int> The places closing took from this dealer
+     */
+    private function freedPlaceIds(User $dealer): array
+    {
+        return array_values(array_map(intval(...), (array) ($this->savedProfile($dealer)[self::FreedSeatsKey] ?? [])));
+    }
+
+    private function takeSeatBack(User $dealer, PlaceCode $place): void
+    {
+        $seats = AreaDealerAssignment::query()->where('user_id', $dealer->id)->where('place_code_id', $place->id);
+        if ((clone $seats)->where('is_active', true)->exists()) {
+            return;
+        }
+        $seat = $seats->latest('id')->first();
+        if (! $seat instanceof AreaDealerAssignment) {
+            $this->seatDealer($dealer, $place);
+
+            return;
+        }
+        $seat->territory_key = hash('sha256', $place->level.'|code:'.$place->code);
+        $seat->releaseInactiveTerritoryKey();
+        $seat->is_active = true;
+        $seat->save();
     }
 
     /**
@@ -317,8 +520,9 @@ final class PartnerAccountProvisioning
     }
 
     /**
-     * The active dealer a typed reference code belongs to. People may type the dealer's
-     * refer code or dealer code, with or without the MNHC- prefix.
+     * The active dealer or sub-dealer a typed reference code belongs to. People may type their
+     * refer code or dealer code, with or without the MNHC- prefix, or a code a dealer
+     * had before moving.
      */
     public function findSponsor(string $reference): ?User
     {
@@ -329,16 +533,22 @@ final class PartnerAccountProvisioning
                 $query->whereIn(DB::raw('UPPER(refer_code)'), $forms)
                     ->orWhereIn(DB::raw('UPPER(dealer_code)'), $forms);
             })
-            ->where('role', 'dealer')
+            ->whereIn('role', self::SponsorRoles)
             ->where('status', 'active')
             ->orderBy('id')
-            ->first();
+            ->first() ?? $this->formerCodes->activeHolder($forms);
     }
 
-    /** True when an account already uses this refer code, with or without the MNHC- prefix. */
-    public function referCodeInUse(string $code): bool
+    /**
+     * True when an account already uses this refer code, with or without the MNHC- prefix.
+     * A closed account's code can be given to someone else, so it may be left out.
+     */
+    public function referCodeInUse(string $code, bool $openAccountsOnly = false): bool
     {
-        return User::query()->whereIn(DB::raw('UPPER(refer_code)'), $this->codeForms($code))->exists();
+        return User::query()
+            ->whereIn(DB::raw('UPPER(refer_code)'), $this->codeForms($code))
+            ->when($openAccountsOnly, fn ($query) => $query->whereNull('closed_at'))
+            ->exists();
     }
 
     /** True when two typed codes are the same code, with or without the MNHC- prefix. */
@@ -405,6 +615,9 @@ final class PartnerAccountProvisioning
         }
 
         if ($partner->role === 'dealer') {
+            if ($partner->closed_at !== null) {
+                throw ValidationException::withMessages(['place_code' => __('portal.acct_val_closed_dealer_move')]);
+            }
             $taken = AreaDealerAssignment::query()
                 ->where('place_code_id', $place->id)
                 ->where('is_active', true)
@@ -432,6 +645,10 @@ final class PartnerAccountProvisioning
             } else {
                 $profile['union_place_code'] = $place->code;
             }
+            $freedPlaceIds = $this->freedPlaceIds($locked);
+            if ($freedPlaceIds !== []) {
+                $profile[self::FreedSeatsKey] = array_values(array_diff($freedPlaceIds, [$homePlaceId]));
+            }
 
             $locked->forceFill([
                 'division' => $path['division'] ?? $locked->division,
@@ -455,12 +672,14 @@ final class PartnerAccountProvisioning
                     $this->seatDealer($locked, $place, $path);
                 }
             }
+            $codeChange = $locked->role === 'dealer' ? $this->carryDealerCodeToPlace($actor, $locked, $place) : null;
 
             Audit::record($actor->id, 'account.geography_updated', (string) $locked->id, [
                 'from_place_code' => $currentCode !== '' ? $currentCode : null,
                 'to_place_code' => $place->code,
                 'role' => $locked->role,
                 'reason' => $reason,
+                ...($codeChange ?? []),
             ]);
             $locale = $locked->preferredLocale();
             $label = $place->name.' ('.$place->code.')';
@@ -472,7 +691,14 @@ final class PartnerAccountProvisioning
                     'reason' => $reason,
                 ], $locale),
             );
-            DB::afterCommit(function () use ($locked, $label, $reason): void {
+            if ($codeChange !== null) {
+                Audit::notice(
+                    $locked->id,
+                    __('portal.notice_dealer_code_changed_title', [], $locale),
+                    __('portal.notice_dealer_code_changed_body', ['new' => $codeChange['to_dealer_code'], 'old' => $codeChange['from_dealer_code'] ?? '—'], $locale),
+                );
+            }
+            DB::afterCommit(function () use ($locked, $label, $reason, $codeChange): void {
                 app(PartnerEventSms::class)->send(
                     $locked,
                     'account.geography_updated',
@@ -481,6 +707,9 @@ final class PartnerAccountProvisioning
                         'reason' => $reason,
                     ]),
                 );
+                if ($codeChange !== null) {
+                    app(PartnerEventSms::class)->send($locked, 'account.dealer_code_changed', SmsText::make('sms.dealer_code_changed', ['code' => $codeChange['to_dealer_code']]));
+                }
             });
         }, 3);
     }

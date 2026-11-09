@@ -25,7 +25,7 @@ class ThrottleCountersPerActionTest extends TestCase
     {
         $owner = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
 
-        foreach (range(1, 5) as $request) {
+        foreach (range(1, 15) as $request) {
             $this->actingAs($owner)->onPortal('sadmin')->get('/exports/accounts?section=accounts')->assertOk();
         }
 

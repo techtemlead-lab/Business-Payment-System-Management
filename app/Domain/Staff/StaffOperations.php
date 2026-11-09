@@ -104,7 +104,7 @@ final class StaffOperations
             }
             if (! empty($data['sponsor_id'])) {
                 $sponsor = $this->territories->assertPartner($actor, (int) $data['sponsor_id'], 'sr_onboarding');
-                if ($sponsor->role !== 'dealer' || $sponsor->status !== 'active') {
+                if (! in_array($sponsor->role, PartnerAccountProvisioning::SponsorRoles, true) || $sponsor->status !== 'active') {
                     throw ValidationException::withMessages(['sponsor_id' => __('portal.err_staff_sponsor_territory')]);
                 }
             }
@@ -188,7 +188,7 @@ final class StaffOperations
                 $place = $this->applicationPlace(filled($placeCode) ? $placeCode : ($payload['place_code'] ?? $payload['area_code'] ?? null), (string) $payload['role']);
                 $data = [...$data, ...$this->placeFields($place)];
                 $isSubDealer = $data['role'] === 'sub_dealer';
-                $partnerCode = $partners->codeForPlace($place, (string) $data['role']);
+                $partnerCode = $partners->codeForPlace($actor, $place, (string) $data['role']);
                 // A sponsor code the reviewer corrected wins over the sponsor picked on the application.
                 $sponsorId = filled($corrections['sponsor_code'] ?? null) ? null : ($data['sponsor_id'] ?? null);
                 if (empty($sponsorId) && ! empty($data['sponsor_code'])) {
@@ -197,7 +197,7 @@ final class StaffOperations
                         throw ValidationException::withMessages(['sponsor_code' => __('portal.err_staff_sponsor_code')]);
                     }
                 }
-                if (! empty($sponsorId) && ! User::whereKey($sponsorId)->where('status', 'active')->where('role', 'dealer')->exists()) {
+                if (! empty($sponsorId) && ! User::whereKey($sponsorId)->where('status', 'active')->whereIn('role', PartnerAccountProvisioning::SponsorRoles)->exists()) {
                     throw ValidationException::withMessages(['sponsor_id' => __('portal.err_staff_sponsor_inactive')]);
                 }
                 $user = (new User)->forceFill(['name' => $data['name'], 'email' => $application->email, 'phone' => $data['phone'],

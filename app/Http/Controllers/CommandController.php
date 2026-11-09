@@ -178,7 +178,13 @@ class CommandController extends Controller
 
             $redirect = $created['user']->role === 'sub_dealer' ? '/sub-dealers' : '/accounts';
 
-            return redirect($redirect)->with('success', __($created['credentials_sent'] ? 'portal.acct_partner_created_sent' : 'portal.acct_partner_created_not_sent', [
+            $deliveryMessage = match (true) {
+                $created['credentials_sent'] => 'portal.acct_partner_created_sent',
+                $created['password_link_sent'] => 'portal.acct_partner_created_not_sent',
+                default => 'portal.acct_partner_created_nothing_sent',
+            };
+
+            return redirect($redirect)->with('success', __($deliveryMessage, [
                 'role' => __($created['user']->role === 'sub_dealer' ? 'portal.acct_role_sub_dealer' : 'portal.acct_role_dealer'),
                 'code' => $created['user']->dealer_code,
                 'phone' => $created['user']->phone,
@@ -239,7 +245,7 @@ class CommandController extends Controller
             $this->permit($r, 'identity_write');
         }
         if (! empty($d['sponsor_id'])) {
-            abort_unless(User::whereKey($d['sponsor_id'])->where('role', 'dealer')->where('status', 'active')->exists(), 422, __('portal.cmd_val_sponsor_active_dealer'));
+            abort_unless(User::whereKey($d['sponsor_id'])->whereIn('role', PartnerAccountProvisioning::SponsorRoles)->where('status', 'active')->exists(), 422, __('portal.cmd_val_sponsor_active_dealer'));
         }
         if (($d['directory_visible'] ?? false) && $d['role'] !== 'dealer') {
             throw ValidationException::withMessages(['directory_visible' => __('portal.cmd_val_directory_dealer_only')]);
@@ -301,7 +307,7 @@ class CommandController extends Controller
                 if ($newSponsorId === $user->id) {
                     throw ValidationException::withMessages(['sponsor_id' => __('portal.cmd_val_self_sponsor')]);
                 }
-                abort_unless(User::whereKey($newSponsorId)->where('role', 'dealer')->where('status', 'active')->exists(), 422, __('portal.cmd_val_sponsor_active_dealer'));
+                abort_unless(User::whereKey($newSponsorId)->whereIn('role', PartnerAccountProvisioning::SponsorRoles)->where('status', 'active')->exists(), 422, __('portal.cmd_val_sponsor_active_dealer'));
                 if (ReferralTreePath::isDescendant($user->id, $newSponsorId)) {
                     throw ValidationException::withMessages(['sponsor_id' => __('portal.cmd_val_circular_sponsor')]);
                 }
@@ -392,8 +398,16 @@ class CommandController extends Controller
                     $tracedChanges[$field] = ['before' => $tracedBefore[$field], 'after' => $locked->{$field}];
                 }
             }
+            $reopening = ($d['status'] ?? '') === 'active' && $locked->closed_at !== null;
+            if ($reopening) {
+                $tracedChanges['closed_at'] = ['before' => Carbon::parse($locked->closed_at)->toIso8601String(), 'after' => null];
+                $locked->forceFill(['closed_at' => null])->save();
+            }
             if ($isPartner && $placeCode !== '') {
                 $partners->rebindGeography($r->user(), $locked->fresh(), $placeCode, $reason);
+            }
+            if ($reopening && $isPartner) {
+                $partners->returnSeatsOnReopen($r->user(), $locked->fresh());
             }
             if ($isPartner && array_key_exists('sponsor_id', $d)) {
                 app(ManagementReferral::class)->stamp($locked->fresh());
@@ -401,10 +415,6 @@ class CommandController extends Controller
             if (($d['status'] ?? '') === 'suspended') {
                 $locked->forceFill(['remember_token' => Str::random(60)])->save();
                 DB::table('sessions')->where('user_id', $user->id)->delete();
-            }
-            if (($d['status'] ?? '') === 'active' && $locked->closed_at !== null) {
-                $tracedChanges['closed_at'] = ['before' => Carbon::parse($locked->closed_at)->toIso8601String(), 'after' => null];
-                $locked->forceFill(['closed_at' => null])->save();
             }
             Audit::record($r->user()->id, 'account.updated', (string) $user->id, ['fields' => array_keys($d), 'changes' => $tracedChanges, 'reason' => $reason]);
             if ($phoneCheck !== null) {
@@ -540,11 +550,7 @@ class CommandController extends Controller
 
     public function benefitControls(Request $r, User $user, PartnerBenefitControls $controls): RedirectResponse
     {
-        abort_unless(
-            $r->user()->canAct('finance', 'approve') || $r->user()->role === 'super_admin',
-            403,
-            __('portal.pbc_finance_required'),
-        );
+        abort_unless($r->user()->owner(), 403, __('portal.pbc_owner_required'));
         abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 422, __('portal.pbc_partners_only'));
         $d = $r->validate([
             'unconditional_salary' => 'sometimes|boolean',
@@ -610,7 +616,7 @@ class CommandController extends Controller
     {
         $this->permit($r, 'content');
         $d = $r->validate([
-            'slug' => 'required|in:home,about,contact,notice,circular-training,circular-price,circular-meeting,partnership,services,quality,faq,privacy,terms,products,dealers',
+            'slug' => ['required', Rule::in(SiteCustomization::PageTextSlugs)],
             'title' => 'required|string|max:150',
             'body' => 'required|string|max:10000',
             'published' => 'required|boolean',

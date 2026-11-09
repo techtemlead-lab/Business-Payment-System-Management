@@ -70,6 +70,9 @@ final class EmployeesSection implements WorkspaceSection
             ['key' => 'support_desk', 'category' => 'operations'],
             ['key' => 'prescriber_verify', 'category' => 'security'],
         ];
+        $props['owner_accounts'] = $context->user->role === 'super_admin'
+            ? User::query()->whereIn('role', ['md', 'chairman'])->orderBy('role')->orderBy('name')->get(['id', 'name', 'role', 'status'])->all()
+            : [];
         $props['available_permissions'] = array_map(
             fn (array $permission): array => [
                 'key' => $permission['key'],

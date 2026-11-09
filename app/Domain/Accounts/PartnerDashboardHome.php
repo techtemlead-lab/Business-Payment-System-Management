@@ -5,6 +5,7 @@ namespace App\Domain\Accounts;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Notifications\BirthdayGreetings;
+use App\Domain\Orders\OrderListFilter;
 use App\Models\DealerRank;
 use App\Models\Order;
 use App\Models\ReferralTreePath;
@@ -18,7 +19,7 @@ use Illuminate\Support\Facades\DB;
 
 final class PartnerDashboardHome
 {
-    public function __construct(private CommissionQualification $qualification, private PartnerProgress $progress) {}
+    public function __construct(private CommissionQualification $qualification, private PartnerProgress $progress, private PartnerEarningsPresenter $earnings) {}
 
     /**
      * @return array{
@@ -27,7 +28,7 @@ final class PartnerDashboardHome
      *   targets: list<array<string, mixed>>,
      *   referral: array{code: string, url: string, qr_url: string}|null,
      *   sponsor: array{id: int, name: string, dealer_code: string|null, phone: string|null}|null,
-     *   wallet: array{available: string, pending_withdrawal: string},
+     *   wallet: array{available: string, pending_withdrawal: string, commission_waiting: array{total: string, amounts: list<array{ready_on: ?string, amount: string}>}},
      *   is_birthday: bool
      * }
      */
@@ -96,7 +97,7 @@ final class PartnerDashboardHome
             ] : null,
             'sponsor' => $this->sponsorCard($user),
             // Shown behind a "tap to see balance" button on the home screen.
-            'wallet' => $this->walletSummary($user),
+            'wallet' => [...$this->walletSummary($user), 'commission_waiting' => $this->earnings->waitingCommission($user)],
             // Shows a small "happy birthday" card; read from the profile already loaded, no query.
             'is_birthday' => BirthdayGreetings::isBirthdayToday($user),
         ];
@@ -330,7 +331,7 @@ final class PartnerDashboardHome
     private function purchaseTotal($query): int
     {
         $total = (clone $query)
-            ->whereIn('status', ['approved', 'partially_dispatched', 'dispatched', 'delivered'])
+            ->whereIn('status', OrderListFilter::Confirmed)
             ->sum('total');
 
         return Money::cents((string) $total);

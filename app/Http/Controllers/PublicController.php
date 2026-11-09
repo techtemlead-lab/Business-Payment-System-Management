@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Accounts\AccountPhoneRules;
 use App\Domain\Accounts\PartnerAge;
+use App\Domain\Accounts\PartnerFormerCodes;
 use App\Domain\Audience\PartnerProductEnquiries;
 use App\Domain\Audience\PublicPartnerApplication;
 use App\Domain\Catalog\ProductFacts;
@@ -89,7 +90,8 @@ class PublicController extends Controller
         }
 
         $contentPages = $this->cachedContentPages();
-        $pageContent = $contentPages[$page] ?? null;
+        // Words saved earlier for a page that is no longer on the Page text screen must not linger with no way to change them.
+        $pageContent = in_array($page, SiteCustomization::PageTextSlugs, true) ? ($contentPages[$page] ?? null) : null;
         $customTitle = filled($pageContent->title ?? null) ? ((string) $pageContent->title.' · '.SiteCustomization::brandName()) : null;
         $customDesc = filled($pageContent->body ?? null) ? mb_substr(trim(strip_tags((string) $pageContent->body)), 0, 280) : null;
 
@@ -521,7 +523,7 @@ class PublicController extends Controller
                 $query->whereRaw('UPPER(refer_code) = ?', [$normalized])
                     ->orWhereRaw('UPPER(dealer_code) = ?', [$normalized]);
             })
-            ->first();
+            ->first() ?? app(PartnerFormerCodes::class)->activeHolder([$normalized]);
 
         if (! $partner) {
             // Unknown code still opens the company contact form with the code prefilled.

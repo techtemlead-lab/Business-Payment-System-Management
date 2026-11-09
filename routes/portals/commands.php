@@ -74,11 +74,11 @@ return function (string $portal): void {
 
     Route::post('/commands/orders', [CommandController::class, 'order'])->middleware('throttle:10,1');
     Route::post('/commands/withdrawals', [WithdrawalController::class, 'store'])->middleware('throttle:10,1');
-    Route::get('/exports/orders', [ReportController::class, 'export'])->middleware('throttle:5,1');
-    Route::get('/exports/genealogy', [ReportController::class, 'genealogy'])->middleware('throttle:5,1');
-    Route::get('/exports/accounts', AccountListExportController::class)->middleware('throttle:5,1');
-    Route::get('/exports/stock-movements', StockMovementExportController::class)->middleware('throttle:5,1');
-    Route::get('/exports/branch-performance', BranchPerformanceExportController::class)->middleware('throttle:5,1');
+    Route::get('/exports/orders', [ReportController::class, 'export'])->middleware('throttle:15,1,data-exports');
+    Route::get('/exports/genealogy', [ReportController::class, 'genealogy'])->middleware('throttle:15,1,data-exports');
+    Route::get('/exports/accounts', AccountListExportController::class)->middleware('throttle:15,1,data-exports');
+    Route::get('/exports/stock-movements', StockMovementExportController::class)->middleware('throttle:15,1,data-exports');
+    Route::get('/exports/branch-performance', BranchPerformanceExportController::class)->middleware('throttle:15,1,data-exports');
 
     Route::post('/commands/orders/{order}/decision', [CommandController::class, 'decision']);
     Route::post('/commands/orders/{order}/dispatch', [CommandController::class, 'dispatch']);
@@ -241,14 +241,17 @@ return function (string $portal): void {
 
     // Partner tools.
     Route::post('/commands/contests', [PartnerContestController::class, 'store'])->middleware('throttle:30,1');
+    Route::patch('/commands/contests/{partnerContest}', [PartnerContestController::class, 'update'])->whereNumber('partnerContest')->middleware('throttle:30,1');
     Route::delete('/commands/contests/{partnerContest}', [PartnerContestController::class, 'destroy'])->whereNumber('partnerContest')->middleware('throttle:30,1');
     Route::post('/commands/schemes', [DatedSchemeController::class, 'store'])->middleware('throttle:30,1');
+    Route::patch('/commands/schemes/{datedScheme}', [DatedSchemeController::class, 'update'])->whereNumber('datedScheme')->middleware('throttle:30,1');
     Route::delete('/commands/schemes/{datedScheme}', [DatedSchemeController::class, 'destroy'])->whereNumber('datedScheme')->middleware('throttle:30,1');
     Route::post('/commands/customers', [CustomerBookController::class, 'store'])->middleware('throttle:60,1');
     Route::patch('/commands/customers/{customer}', [CustomerBookController::class, 'update'])->whereNumber('customer')->middleware('throttle:60,1');
     Route::post('/commands/customers/{customer}/follow-up-done', [CustomerBookController::class, 'followUpDone'])->whereNumber('customer')->middleware('throttle:60,1');
     Route::delete('/commands/customers/{customer}', [CustomerBookController::class, 'destroy'])->whereNumber('customer')->middleware('throttle:60,1');
     Route::post('/commands/sales-kit', [SalesKitController::class, 'store'])->middleware('throttle:30,1');
+    Route::post('/commands/sales-kit/{salesKitItem}', [SalesKitController::class, 'update'])->whereNumber('salesKitItem')->middleware('throttle:30,1');
     Route::delete('/commands/sales-kit/{salesKitItem}', [SalesKitController::class, 'destroy'])->whereNumber('salesKitItem')->middleware('throttle:30,1');
     Route::get('/sales-kit/{salesKitItem}/file', [SalesKitController::class, 'file'])->whereNumber('salesKitItem')->middleware('throttle:120,1');
     require __DIR__.'/productivity.php';

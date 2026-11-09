@@ -35,6 +35,8 @@ final class PublicTrustSection implements WorkspaceSection
                         'id' => $article->id,
                         'title' => $article->title,
                         'body' => $article->body,
+                        'title_bn' => $article->title_bn,
+                        'body_bn' => $article->body_bn,
                         'image_url' => $article->image_url,
                         'published' => $article->isPublished(),
                         'published_at' => $article->published_at?->toIso8601String(),

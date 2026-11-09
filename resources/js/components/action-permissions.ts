@@ -18,8 +18,8 @@ export function actionAllowed(url:string,matrix:Matrix|undefined,method='post'):
         if(/\/(review|pay|verify|release|recover|reassign)$/.test(part))return any(['finance'],'approve');
         return any(['finance'],method==='patch'?'edit':'create');
     }
-    // A partner's special salary and royalty rules need finance approval on the server, not account editing.
-    if(/^\/commands\/accounts\/[^/]+\/benefit-controls$/.test(path))return any(['finance'],'approve');
+    // A partner's no-condition benefits are owner-only; PartnerBenefitControls checks the owner role and the server checks again.
+    if(/^\/commands\/accounts\/[^/]+\/benefit-controls$/.test(path))return true;
     if(path.startsWith('/commands/accounts'))return any(['accounts'],method==='patch'||/\/invite$/.test(path)?'edit':'create');
     if(path.startsWith('/commands/products'))return any(['catalog','pricing','inventory'],method==='post'&&path==='/commands/products'?'create':'edit');
     if(path.startsWith('/commands/area-dealers')||path.startsWith('/commands/dashboards'))return any(['accounts'],'edit');
@@ -45,6 +45,6 @@ export function actionAllowed(url:string,matrix:Matrix|undefined,method='post'):
     if(path.startsWith('/commands/purchasing/'))return any(['inventory'],method==='patch'||/\/(send|cancel)$/.test(path)?'edit':'create');
     if(path.startsWith('/commands/stock-counts'))return any(['inventory'],/\/(approve|reject)$/.test(path)?'approve':/\/cancel$/.test(path)?'edit':'create');
     // Partner tools on the owner panel: only owners reach these pages and the server checks again.
-    if(path==='/commands/sales-kit'||path==='/commands/contests')return true;
+    if(/^\/commands\/sales-kit(\/\d+)?$/.test(path)||path==='/commands/contests')return true;
     return false;
 }

@@ -15,9 +15,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Orders with a mixed outcome: one parcel delivered and another received back. Such an order
- * never reaches "delivered", so nothing posts on its own. Staff talk to the dealer and decide,
- * with a required reason: commission on the delivered part only, or none at all.
+ * Orders with a mixed outcome: one parcel delivered and another received back. Once every parcel
+ * has finished, the order's final status is "partly delivered". It never reaches "delivered", so
+ * nothing posts on its own. Staff talk to the dealer and decide, with a required reason:
+ * commission on the delivered part only, or none at all.
  *
  * A decision is made once per order and cannot be changed here. The delivered-part choice posts
  * through CommissionPosting in the same transaction, so the decision and the money stand or fall
@@ -25,6 +26,9 @@ use Illuminate\Validation\ValidationException;
  */
 final class MixedOutcomeDecisions
 {
+    /** The order status for a finished mixed outcome. */
+    public const PartlyDelivered = 'partly_delivered';
+
     public const Action = 'order.mixed_outcome_decided';
 
     public const DeliveredPart = 'delivered_part';
@@ -84,8 +88,28 @@ final class MixedOutcomeDecisions
         }, 3);
     }
 
-    /** Delivered and received-back parcels, nothing on the road or left to send, and no decision yet. */
+    /**
+     * Gives a mixed order its final status once its last parcel has finished. Runs inside the
+     * transaction that records the parcel's outcome, with the order locked. Only the status
+     * changes here: the money still waits for the staff decision above.
+     */
+    public static function closeIfFinished(Order $locked): void
+    {
+        if (in_array($locked->status, ['dispatched', 'partially_dispatched'], true) && self::finished()->where('orders.id', $locked->id)->exists()) {
+            $locked->update(['status' => self::PartlyDelivered]);
+        }
+    }
+
+    /** Finished mixed orders that have no decision yet. */
     private function waiting(): QueryBuilder
+    {
+        return self::finished()
+            ->whereNotExists(fn (QueryBuilder $query) => $query->selectRaw('1')->from('order_events')
+                ->whereColumn('order_events.order_id', 'orders.id')->where('order_events.action', self::Action));
+    }
+
+    /** Delivered and received-back parcels, with nothing on the road or left to send. */
+    private static function finished(): QueryBuilder
     {
         $parcel = fn (string $status): Closure => fn (QueryBuilder $query) => $query->selectRaw('1')->from('shipments')
             ->whereColumn('shipments.order_id', 'orders.id')->where('shipments.status', $status);
@@ -96,8 +120,6 @@ final class MixedOutcomeDecisions
             ->whereExists($parcel('returned'))
             ->whereNotExists($parcel('dispatched'))
             ->whereNotExists(fn (QueryBuilder $query) => $query->selectRaw('1')->from('order_lines')
-                ->whereColumn('order_lines.order_id', 'orders.id')->whereColumn('order_lines.dispatched', '<', 'order_lines.quantity'))
-            ->whereNotExists(fn (QueryBuilder $query) => $query->selectRaw('1')->from('order_events')
-                ->whereColumn('order_events.order_id', 'orders.id')->where('order_events.action', self::Action));
+                ->whereColumn('order_lines.order_id', 'orders.id')->whereColumn('order_lines.dispatched', '<', 'order_lines.quantity'));
     }
 }

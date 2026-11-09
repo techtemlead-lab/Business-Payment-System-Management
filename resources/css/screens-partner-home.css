@@ -29,6 +29,9 @@
 .ph-hero-stats{position:relative;z-index:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0;padding-top:14px;border-top:1px solid rgba(255,255,255,.18)}
 .ph-hero-stats dt{font-size:12px;opacity:.82;margin:0}
 .ph-hero-stats dd{margin:2px 0 0;font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
+.ph-hero-stats .ph-hero-waiting{grid-column:1/-1}
+.ph-hero-stats dd.ph-hero-note{font-size:12px;font-weight:500;opacity:.9;line-height:1.5}
+.ph-hero-stats dd.ph-hero-note a{color:inherit;text-decoration:underline}
 
 /* Shortcut grid */
 .ph-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 4px;background:var(--ph-card);border:1px solid var(--ph-line);border-radius:18px;padding:14px 8px}

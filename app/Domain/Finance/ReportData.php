@@ -4,6 +4,7 @@ namespace App\Domain\Finance;
 
 use App\Domain\Commissions\RetainedFundLedger;
 use App\Domain\Inventory\BranchOperations;
+use App\Domain\Orders\OrderListFilter;
 use App\Domain\Staff\TerritoryAccess;
 use App\Models\User;
 use App\Support\PortalHost;
@@ -31,6 +32,44 @@ final class ReportData
     public const AccountTypes = ['dealer', 'sub_dealer'];
 
     /**
+     * What each report's total line adds up (owner's decision: only money actually paid or
+     * received). Only these columns, and with `statuses` only rows in those statuses; every
+     * other row stays listed. Reports without `statuses` list only money that already moved.
+     *
+     * @var array<string, array{columns: list<string>, statuses?: list<string>}>
+     */
+    private const PaidTotals = [
+        'orders' => ['columns' => ['net_received']],
+        'products' => ['columns' => ['total']],
+        'product-summary' => ['columns' => ['gross_sales']],
+        'category-summary' => ['columns' => ['gross_sales']],
+        'district-summary' => ['columns' => ['paid']],
+        'commissions' => ['columns' => ['amount'], 'statuses' => ['available']],
+        'settlements' => ['columns' => ['amount', 'reversed_amount']],
+        'payroll' => ['columns' => ['gross', 'deduction', 'net'], 'statuses' => ['paid']],
+        'withdrawals' => ['columns' => ['amount', 'withheld_amount', 'net_amount'], 'statuses' => ['paid']],
+        'ledger' => ['columns' => ['debit', 'credit']],
+        'rewards' => ['columns' => ['amount'], 'statuses' => ['credited', 'paid']],
+        'rank-achievements' => ['columns' => []],
+        'rank-incentives' => ['columns' => ['amount', 'reversed_amount', 'net_award']],
+        'collections' => ['columns' => ['amount'], 'statuses' => ['verified']],
+        'tds-register' => ['columns' => ['amount', 'withheld_amount', 'net_amount']],
+        'fund-spending' => ['columns' => ['amount']],
+        'order-refunds' => ['columns' => ['amount']],
+        'refunds' => ['columns' => ['amount']],
+    ];
+
+    /**
+     * Whether a listed row's money belongs in the report's total line.
+     *
+     * @param  array{counted_statuses: ?list<string>}  $report
+     */
+    public static function countsTowardTotal(array $report, object $row): bool
+    {
+        return $report['counted_statuses'] === null || in_array($row->status ?? null, $report['counted_statuses'], true);
+    }
+
+    /**
      * The files this person is offered in the Report Centre, in display order.
      *
      * @return list<string>
@@ -53,13 +92,16 @@ final class ReportData
         if ($type === 'fund-spending' && ! FundSpending::canManage($actor)) {
             return false;
         }
+        if ($type === 'payroll' && ! $actor->allows('payroll')) {
+            return false;
+        }
 
         return in_array($type, self::OrderBasedReports, true) || app(BranchOperations::class)->canViewAllBranches($actor);
     }
 
     /**
      * @param  array{fund?: ?string, head?: ?int}  $filters  Only the fund-spending report uses these.
-     * @return array{query: Builder, columns: list<string>, money: list<string>}
+     * @return array{query: Builder, columns: list<string>, money: list<string>, totals: list<string>, counted_statuses: ?list<string>}
      */
     public function query(User $actor, string $type, string $from, string $to, ?string $accountType = null, array $filters = []): array
     {
@@ -72,9 +114,10 @@ final class ReportData
         abort_if($company && ! $this->mayRead($actor, $type), 403);
         [$query, $columns, $money, $date, $owner] = match ($type) {
             // No goods on credit any more: the orders export shows what was paid and what is still to pay before approval.
-            'orders' => [DB::table('orders as o')->join('users as u', 'u.id', '=', 'o.user_id'),
-                ['o.number', 'u.dealer_code', 'u.name', 'u.phone', 'u.district', 'u.division', 'o.status', 'o.total', 'o.paid', DB::raw(self::OutstandingSql.' AS outstanding'), 'o.created_at'],
-                ['total', 'paid', 'outstanding'], 'o.created_at', 'o.user_id'],
+            'orders' => [DB::table('orders as o')->join('users as u', 'u.id', '=', 'o.user_id')
+                ->leftJoinSub(DB::table('order_refunds')->selectRaw('order_id, SUM(amount) AS given_back')->groupBy('order_id'), 'refund', 'refund.order_id', '=', 'o.id'),
+                ['o.number', 'u.dealer_code', 'u.name', 'u.phone', 'u.district', 'u.division', 'o.status', 'o.total', 'o.paid', DB::raw(self::OutstandingSql.' AS outstanding'), DB::raw('(o.paid-COALESCE(refund.given_back,0)) AS net_received'), 'o.created_at'],
+                ['total', 'paid', 'outstanding', 'net_received'], 'o.created_at', 'o.user_id'],
             'products' => [DB::table('order_lines as l')->join('orders as o', 'o.id', '=', 'l.order_id')->join('products as p', 'p.id', '=', 'l.product_id')->where('o.status', 'delivered'),
                 ['o.number', DB::raw('COALESCE(l.category_snapshot,p.category,'.$this->uncategorisedSql().') AS category'), 'l.sku', 'l.name', 'l.quantity', 'l.dispatched', 'l.unit_price', 'l.total', 'o.status'], ['unit_price', 'total'], 'o.created_at', 'o.user_id'],
             'product-summary', 'category-summary' => $this->salesSummary($type),
@@ -148,7 +191,7 @@ final class ReportData
             return substr($sql, strpos($sql, '.') + 1);
         }, $columns);
 
-        return ['query' => $query, 'columns' => $names, 'money' => $money];
+        return ['query' => $query, 'columns' => $names, 'money' => $money, 'totals' => self::PaidTotals[$type]['columns'], 'counted_statuses' => self::PaidTotals[$type]['statuses'] ?? null];
     }
 
     /** @return array{Builder, array<mixed>, list<string>, string, string} */
@@ -177,7 +220,7 @@ final class ReportData
     {
         $unknown = DB::getPdo()->quote(__('portal.report_area_unknown'));
         $query = DB::table('orders as o')->join('users as u', 'u.id', '=', 'o.user_id')
-            ->whereIn('o.status', ['approved', 'partially_dispatched', 'dispatched', 'delivered'])
+            ->whereIn('o.status', OrderListFilter::Confirmed)
             ->groupByRaw("COALESCE(u.division, {$unknown}), COALESCE(u.district, {$unknown})");
         $columns = [
             DB::raw("COALESCE(u.division, {$unknown}) AS division"),

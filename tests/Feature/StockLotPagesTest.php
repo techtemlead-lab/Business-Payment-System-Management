@@ -97,6 +97,25 @@ class StockLotPagesTest extends TestCase
         $this->assertDatabaseMissing('account_notices', ['user_id' => $this->dealer->id, 'title' => __('stock_lots.notice_near_expiry_title')]);
     }
 
+    public function test_an_expired_batch_alerts_staff_who_look_after_stock_and_never_partners(): void
+    {
+        $inventory = User::factory()->staff('inventory')->create();
+        $finance = User::factory()->staff('finance')->create();
+        $subDealer = User::factory()->subDealer()->create(['status' => 'active']);
+        $product = Product::factory()->create(['stock' => 0]);
+        $this->stockIn($product, 3, 'GONE-C', 10)->forceFill(['expires_on' => now()->subDay()->toDateString()])->save();
+
+        $this->assertSame(0, Artisan::call('stock:near-expiry-notices'));
+
+        $title = __('stock_lots.notice_expired_title');
+        foreach ([$this->owner, $inventory] as $staff) {
+            $this->assertStringContainsString('GONE-C', (string) DB::table('account_notices')->where(['user_id' => $staff->id, 'title' => $title])->value('body'));
+        }
+        foreach ([$finance, $this->dealer, $subDealer] as $notAlerted) {
+            $this->assertDatabaseMissing('account_notices', ['user_id' => $notAlerted->id, 'title' => $title]);
+        }
+    }
+
     public function test_recall_lists_orders_and_partners_for_a_batch_and_follows_the_branch(): void
     {
         $product = Product::factory()->create(['stock' => 0]);

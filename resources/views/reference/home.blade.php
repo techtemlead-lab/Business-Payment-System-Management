@@ -177,7 +177,7 @@
             <article class="ref-video-card">
                 <div class="ref-video-frame">
                     @if(!empty($v['video_embed_url']))
-                        <iframe src="{{ $v['video_embed_url'] }}" title="{{ $v['title'] }}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
+                        <iframe src="{{ $v['video_embed_url'] }}" title="{{ $v['title'] !== '' ? $v['title'] : $chrome('video_gallery_title', $siteCustomization['video_gallery_title'] ?? null) }}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
                     @elseif(!empty($v['video_url']))
                         <video controls playsinline preload="metadata" @if(!empty($v['thumbnail'])) poster="{{ $v['thumbnail'] }}" @endif>
                             <source src="{{ $v['video_url'] }}">
@@ -194,7 +194,9 @@
                     @endif
                 </div>
                 <div class="ref-video-card-body">
-                    <h3>{{ $v['title'] }}</h3>
+                    @if($v['title'] !== '')
+                        <h3>{{ $v['title'] }}</h3>
+                    @endif
                     @if(!empty($v['subtitle']))
                         <p>{{ $v['subtitle'] }}</p>
                     @endif

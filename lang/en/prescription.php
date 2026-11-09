@@ -212,4 +212,5 @@ return [
     'mr_sales' => 'Dispensed sales',
     'mr_month' => 'Month',
     'mr_empty' => 'No prescriptions on these dates.',
+    'err_company_stock_owner_only' => 'Only the owners can turn on company stock for an account.',
 ];

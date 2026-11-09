@@ -19,7 +19,7 @@
             @endphp
             <img class="ref-article-picture" src="{{ $stockImage['url'] }}" alt="{{ $stockImage['alt'] }}" width="{{ $stockImage['width'] }}" height="{{ $stockImage['height'] }}" loading="lazy" decoding="async">
             @endif
-            <h2>{{ $article->title }}</h2>
+            <h2>{{ $article->displayTitle() }}</h2>
             <p>{{ $article->excerpt() }}</p>
             <a class="ref-secondary-button" href="{{ route('public.articles.show', $article) }}">{{ __('public_trust.articles_read') }}</a>
         </section>

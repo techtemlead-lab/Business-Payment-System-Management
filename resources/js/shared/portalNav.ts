@@ -254,7 +254,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
         items.add('purchasing');
         items.add('stock-counts');
     }
-    if (capabilities.includes('accounts') && !items.has('branches')) items.add('branches');
+    if ((capabilities.includes('accounts') || OWNER_ROLES.includes(role)) && !items.has('branches')) items.add('branches');
     if (capabilities.some((cap) => ['reports', 'finance', 'inventory'].includes(cap)) || ['super_admin', 'md', 'chairman'].includes(role)) {
         items.add('branch-performance');
     }
@@ -303,7 +303,7 @@ export function buildPartnerAvailable(role: string, dashboardControls?: Record<s
         return items;
     }
     if (role === 'sub_dealer') {
-        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'catalog', 'salary', 'top-sellers', 'earnings', 'full-report', 'withdrawals', 'payment-receipts', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help', 'messages', 'training', 'events']);
+        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'catalog', 'network', 'salary', 'top-sellers', 'earnings', 'full-report', 'withdrawals', 'payment-receipts', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help', 'messages', 'training', 'events']);
         if (controls.subdealer_catalog_enabled === false) {
             items.delete('catalog');
             items.delete('purchase');

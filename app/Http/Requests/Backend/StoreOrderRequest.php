@@ -5,6 +5,7 @@ namespace App\Http\Requests\Backend;
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Orders\CourierOptions;
 use App\Domain\Orders\PaymentProof;
+use App\Support\TransactionReference;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -21,6 +22,11 @@ class StoreOrderRequest extends FormRequest
     public function authorize(): bool
     {
         return $this->user()?->status === 'active' && in_array($this->user()?->role, ['dealer', 'sub_dealer'], true);
+    }
+
+    protected function prepareForValidation(): void
+    {
+        TransactionReference::tidy($this, 'reference');
     }
 
     /**
@@ -42,7 +48,7 @@ class StoreOrderRequest extends FormRequest
             'note' => 'nullable|string|max:1000',
             // Only the couriers the owner switched on, or "company decides" (the default).
             'courier_choice' => ['nullable', 'string', Rule::in(app(CourierOptions::class)->choiceKeys())],
-            'reference' => ($paidWithOrder ? 'required' : 'nullable').'|string|max:100',
+            'reference' => ($paidWithOrder ? 'required' : 'nullable').'|string|'.TransactionReference::MinRule.'|max:100',
             'payment_account_id' => 'nullable|integer|exists:payment_accounts,id',
             'channel' => ($paidWithOrder ? 'required' : 'nullable|required_with:reference').'|in:bKash,Nagad,Rocket,Bank',
             'amount' => [$paidWithOrder ? 'required' : 'nullable', 'required_with:reference', 'regex:/^\d{1,9}(\.\d{1,2})?$/D'],
@@ -62,6 +68,7 @@ class StoreOrderRequest extends FormRequest
                 array_fill(0, count(self::SellerFields), __('portal.order_val_company_only_seller')),
             ),
             'reference.required' => __('portal.order_val_pay_reference_needed'),
+            ...TransactionReference::messages('reference'),
             'channel.required' => __('portal.order_val_pay_channel_needed'),
             'amount.required' => __('portal.order_val_pay_amount_needed'),
             'proof.required' => __('portal.order_val_pay_proof_needed'),

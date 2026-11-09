@@ -8,6 +8,7 @@ import {
 import { Table, Pagination, Badge, Empty, date, label, type Row, number } from './UI';
 import AccountPasswordManager from './AccountPasswordManager';
 import OfficePrescriberGrants from './OfficePrescriberGrants';
+import OwnerAccountsPanel, { OwnerAccount } from './OwnerAccountsPanel';
 import { useT } from '../shared/i18n/t';
 
 export interface PermissionDefinition {
@@ -32,9 +33,10 @@ export interface EmployeeHubProps {
         suspended: number;
     };
     filters: Row;
+    ownerAccounts?: OwnerAccount[];
 }
 
-export default function EmployeesHub({ employees, availablePermissions, stats, filters }: EmployeeHubProps) {
+export default function EmployeesHub({ employees, availablePermissions, stats, filters, ownerAccounts }: EmployeeHubProps) {
     const translate = useT();
     const {auth} = usePage<any>().props;
     const canManageStaff = auth.user.role === 'super_admin';
@@ -343,7 +345,9 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                 <Pagination page={employees} />
             </section>
 
-            {Boolean(auth?.prescriberVerifier) && <OfficePrescriberGrants />}
+            {Boolean(auth?.companyStockManager) && <OfficePrescriberGrants />}
+
+            {auth.user.role === 'super_admin' && <OwnerAccountsPanel accounts={ownerAccounts} />}
 
             {/* CREATE EMPLOYEE MODAL */}
             {createModalOpen && (

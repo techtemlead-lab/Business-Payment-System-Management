@@ -3,6 +3,7 @@
 namespace App\Domain\Lists;
 
 use App\Models\User;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -68,6 +69,26 @@ final class ListViews
             ['user_id' => $user->id, 'list_key' => $list, 'name' => $name],
             ['filters' => json_encode($clean, JSON_THROW_ON_ERROR), 'updated_at' => now(), 'created_at' => now()],
         );
+    }
+
+    /**
+     * Only the person's own filter on this list can be renamed. Unlike saving, a rename never
+     * replaces another saved filter, because nobody chose to lose that one.
+     */
+    public function rename(User $user, string $list, int $viewId, string $name): void
+    {
+        $name = trim($name);
+        $own = DB::table('saved_list_filters')->where('user_id', $user->id)->where('list_key', $list);
+        abort_unless((clone $own)->where('id', $viewId)->exists(), 404);
+        $nameTaken = ValidationException::withMessages(['name' => __('productivity.views_name_taken')]);
+        if ((clone $own)->where('name', $name)->where('id', '!=', $viewId)->exists()) {
+            throw $nameTaken;
+        }
+        try {
+            (clone $own)->where('id', $viewId)->update(['name' => $name, 'updated_at' => now()]);
+        } catch (UniqueConstraintViolationException) {
+            throw $nameTaken;
+        }
     }
 
     /** Only the owner of a saved filter can delete it; anyone else's id simply matches nothing. */

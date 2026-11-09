@@ -8,7 +8,7 @@ type OfficeAccount = { id: number; name: string; role: string; status: string; e
 
 /**
  * On the employees page: decide per office account (MD, Chairman, any staff) who may prescribe
- * and dispense from company stock. Shown to owners and staff with "Verify prescribers".
+ * and dispense from company stock. Only the owners see this and can change it.
  */
 export default function OfficePrescriberGrants() {
     const translate = useT();

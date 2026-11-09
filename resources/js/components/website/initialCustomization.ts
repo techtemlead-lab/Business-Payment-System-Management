@@ -221,9 +221,11 @@ export function buildCustomizationFormData(customization: CustomizationData, def
             // Brand Trust & Engagement Controls
             trust_pillars_enabled: customization.trust_pillars_enabled !== undefined ? customization.trust_pillars_enabled : '1',
             trust_pillars_title: customization.trust_pillars_title || '',
-            video_gallery_enabled: customization.video_gallery_enabled !== undefined ? customization.video_gallery_enabled : '1',
+            video_gallery_enabled: customization.video_gallery_enabled ?? defaults.video_gallery_enabled ?? '0',
             video_gallery_title: customization.video_gallery_title || '',
             video_gallery_subtitle: customization.video_gallery_subtitle || '',
+            // Older saves stored two sample rows with no video. Those are not real videos.
+            video_gallery_items: (customization.video_gallery_items || []).filter((row) => (row.video_url || '').trim() !== ''),
             testimonials_section_enabled: customization.testimonials_section_enabled !== undefined ? customization.testimonials_section_enabled : '1',
             testimonials_title: customization.testimonials_title || '',
             testimonials_subtitle: customization.testimonials_subtitle || '',
@@ -325,8 +327,8 @@ export function buildCustomizationFormData(customization: CustomizationData, def
             faq_hero_title: customization.faq_hero_title || '',
             faq_hero_lead: customization.faq_hero_lead || '',
             faq_items: (Array.isArray(customization.faq_items) && customization.faq_items.length > 0)
-                ? customization.faq_items.map((item) => ({ question: item.question || '', answer: item.answer || '' }))
-                : (defaults.faq_items || []).map((item) => ({ question: item.question || '', answer: item.answer || '' })),
+                ? customization.faq_items.map((item) => ({ question: item.question || '', answer: item.answer || '', question_bn: item.question_bn || '', answer_bn: item.answer_bn || '' }))
+                : (defaults.faq_items || []).map((item) => ({ question: item.question || '', answer: item.answer || '', question_bn: '', answer_bn: '' })),
 
             privacy_hero_title: customization.privacy_hero_title || '',
             privacy_hero_lead: customization.privacy_hero_lead || '',
@@ -455,7 +457,8 @@ export function buildCustomizationFormData(customization: CustomizationData, def
             // Boxes that used to start empty even when a value was saved.
             contact_phone_title: customization.contact_phone_title || '',
             contact_phone: customization.contact_phone || '',
-            contact_phone_hours: customization.contact_phone_hours || '',
+            // A saved blank box stays blank, because blank hides the hours. Only a box never saved starts from the built-in hours.
+            contact_phone_hours: customization.contact_phone_hours ?? defaults.contact_phone_hours ?? '',
             contact_email_title: customization.contact_email_title || '',
             contact_email: customization.contact_email || '',
             contact_social_title: customization.contact_social_title || '',

@@ -77,4 +77,8 @@ return [
     'device_failed' => 'কাজটি হয়নি। আবার চেষ্টা করুন।',
     'device_unknown' => 'অচেনা ডিভাইস',
     'device_label' => ':system-এ :browser',
+    'views_rename' => 'সেভ করা ফিল্টার :name-এর নাম বদলান',
+    'views_rename_field' => ':name-এর নতুন নাম',
+    'views_rename_cancel' => 'বাতিল',
+    'views_name_taken' => 'এই নামে আপনার আরেকটি সেভ করা ফিল্টার আছে। অন্য নাম দিন।',
 ];

@@ -29,6 +29,15 @@ class ListViewController extends Controller
         return $this->current($request, $list);
     }
 
+    public function rename(Request $request, string $list, int $view): JsonResponse
+    {
+        ListViews::assertMayUse($request->user(), $list);
+        $data = $request->validate(['name' => 'required|string|max:60']);
+        $this->views->rename($request->user(), $list, $view, $data['name']);
+
+        return $this->current($request, $list);
+    }
+
     public function destroy(Request $request, string $list, int $view): JsonResponse
     {
         ListViews::assertMayUse($request->user(), $list);

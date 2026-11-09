@@ -14,16 +14,19 @@ class SalesKitController extends Controller
     public function store(Request $request, SalesKit $kit): RedirectResponse
     {
         abort_unless(SalesKit::canManage($request->user()), 403);
-        $data = $request->validate([
-            'title' => 'required|string|max:150',
-            'kind' => ['required', Rule::in(SalesKitItem::Kinds)],
-            'language' => ['required', Rule::in(SalesKitItem::Languages)],
-            'caption' => 'nullable|string|max:2000',
-            'file' => ['required', 'file', 'max:'.SalesKit::MaxKilobytes, 'mimes:'.implode(',', SalesKit::Extensions), 'mimetypes:'.implode(',', SalesKit::Mimes)],
-        ]);
+        $data = $request->validate($this->rules('required'));
         $kit->add($request->user(), $data, $request->file('file'));
 
         return back()->with('success', __('dealer_tools.kit_saved'));
+    }
+
+    public function update(Request $request, SalesKitItem $salesKitItem, SalesKit $kit): RedirectResponse
+    {
+        abort_unless(SalesKit::canManage($request->user()), 403);
+        $data = $request->validate([...$this->rules('nullable'), 'reason' => FinanceOperationsController::Reason]);
+        $kit->update($request->user(), $salesKitItem, $data, $request->file('file'));
+
+        return back()->with('success', __('dealer_tools.kit_updated'));
     }
 
     public function destroy(Request $request, SalesKitItem $salesKitItem, SalesKit $kit): RedirectResponse
@@ -36,5 +39,21 @@ class SalesKitController extends Controller
     public function file(Request $request, SalesKitItem $salesKitItem, SalesKit $kit): StreamedResponse
     {
         return $kit->response($request->user(), $salesKitItem, $request->boolean('inline'));
+    }
+
+    /**
+     * The same rules for adding and editing. An edit only needs a file when it replaces the old one.
+     *
+     * @return array<string, mixed>
+     */
+    private function rules(string $fileRule): array
+    {
+        return [
+            'title' => 'required|string|max:150',
+            'kind' => ['required', Rule::in(SalesKitItem::Kinds)],
+            'language' => ['required', Rule::in(SalesKitItem::Languages)],
+            'caption' => 'nullable|string|max:2000',
+            'file' => [$fileRule, 'file', 'max:'.SalesKit::MaxKilobytes, 'mimes:'.implode(',', SalesKit::Extensions), 'mimetypes:'.implode(',', SalesKit::Mimes)],
+        ];
     }
 }

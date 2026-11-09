@@ -209,7 +209,7 @@ final class StockLotReports
             ->whereIn('product_id', $productIds)
             ->where('quantity', '>', 0)
             ->fefo()
-            ->get(['id', 'branch_id', 'product_id', 'batch_number', 'expires_on', 'held_at']);
+            ->get(['id', 'branch_id', 'product_id', 'batch_number', 'expires_on', 'held_at', 'quantity']);
     }
 
     /**

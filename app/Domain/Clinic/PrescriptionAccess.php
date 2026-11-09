@@ -65,6 +65,12 @@ final class PrescriptionAccess
         return self::isOwnerDoctor($user) || (self::isOfficeAccount($user) && (bool) $user->can_prescribe);
     }
 
+    /** May switch company-stock dispensing on or off for an office account: only the owners. */
+    public static function canManageCompanyStock(User $user): bool
+    {
+        return self::enabled() && $user->status === 'active' && $user->owner();
+    }
+
     /**
      * May turn prescribing on or off for a partner: the owners (Super Admin, MD, Chairman)
      * and staff the owner gave the "prescriber_verify" permission.

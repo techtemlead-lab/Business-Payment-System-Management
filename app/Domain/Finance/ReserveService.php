@@ -2,6 +2,7 @@
 
 namespace App\Domain\Finance;
 
+use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionSettlement;
 use App\Domain\Commissions\CommissionWallet;
@@ -61,6 +62,7 @@ final class ReserveService
                     || DB::table('reserve_disbursements')->where('award_key', $awardKey)->exists()) {
                     throw ValidationException::withMessages(['program' => __('portal.err_reserve_milestone_once')]);
                 }
+                $this->assertRuleAmount($data['program'], (string) $data['amount']);
             }
             $id = DB::table('reserve_disbursements')->insertGetId([...collect($data)->only(['program', 'user_id', 'payee_name', 'amount', 'request_key', 'reason'])->all(),
                 'award_key' => $awardKey, 'created_by' => $actor->id, 'created_at' => now(), 'updated_at' => now()]);
@@ -68,6 +70,19 @@ final class ReserveService
 
             return $id;
         }, 3);
+    }
+
+    /** A bike or car reward pays exactly the amount set in the reward rule; anything else is refused. */
+    private function assertRuleAmount(string $program, string $amount): void
+    {
+        $ruleAmount = app(CommissionPolicy::class)->snapshot()['rules']['car_bike_incentive']['parameters'][$program.'_award_amount'] ?? null;
+        $name = __('portal.prc_reserve_program_'.$program);
+        if ($ruleAmount === null || $ruleAmount === '') {
+            throw ValidationException::withMessages(['amount' => __('portal.err_reserve_rule_amount_blank', ['program' => $name])]);
+        }
+        if (Money::cents($amount) !== Money::cents((string) $ruleAmount)) {
+            throw ValidationException::withMessages(['amount' => __('portal.err_reserve_rule_amount', ['program' => $name, 'amount' => Money::grouped((string) $ruleAmount)])]);
+        }
     }
 
     public function review(User $actor, int $id, string $decision, string $reason, bool $confirmedAlone = false): void
@@ -97,6 +112,9 @@ final class ReserveService
                 }
                 if (in_array($row->program, ['bike', 'car'], true) && ! $this->qualification->milestone($row->user_id, $row->program)['achieved']) {
                     throw ValidationException::withMessages(['reserve' => __('portal.err_reserve_milestone_lost')]);
+                }
+                if (in_array($row->program, ['bike', 'car'], true)) {
+                    $this->assertRuleAmount($row->program, (string) $row->amount);
                 }
                 $remaining = Money::cents($row->amount);
                 foreach ($this->funds($row->program, $row->user_id) as $fund) {
