@@ -42,6 +42,8 @@ return [
     'field_reason_add' => 'যোগ করার কারণ',
     'field_reason_edit' => 'পরিবর্তনের কারণ',
     'reason_update' => 'স্টাফের তথ্য আপডেট করা হচ্ছে।',
+    'reason_add' => 'কোম্পানি ড্যাশবোর্ড থেকে বাছাই করা অনুমতিসহ স্টাফ যোগ করা হচ্ছে।',
+    'role_employee' => 'স্টাফ',
     'save_staff' => 'সেভ করুন',
 
     'prescribers_search' => 'নাম দিয়ে খুঁজুন',

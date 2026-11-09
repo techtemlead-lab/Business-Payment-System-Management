@@ -42,6 +42,8 @@ return [
     'field_reason_add' => 'Reason for adding',
     'field_reason_edit' => 'Reason for the change',
     'reason_update' => 'Updating staff details.',
+    'reason_add' => 'Adding staff with the permissions chosen in the company dashboard.',
+    'role_employee' => 'Staff',
     'save_staff' => 'Save',
 
     'prescribers_search' => 'Search by name',

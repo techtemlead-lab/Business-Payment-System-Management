@@ -100,7 +100,7 @@ final class EmployeesSection implements WorkspaceSection
     private function tableSpec(array $customRoleNames, ?BranchScope $branchScope): MoneyTableSpec
     {
         $builtInRoles = ['employee', ...array_diff(array_keys(config('madina.roles')), ['super_admin', 'md', 'chairman'])];
-        $roleOptions = array_map(fn (string $role): array => ['value' => $role, 'label' => (string) __('portal.staff_role_'.$role)], array_values(array_unique($builtInRoles)));
+        $roleOptions = array_map(fn (string $role): array => ['value' => $role, 'label' => $role === 'employee' ? (string) __('office_staff.role_employee') : (string) __('portal.staff_role_'.$role)], array_values(array_unique($builtInRoles)));
         foreach ($customRoleNames as $key => $name) {
             $roleOptions[] = ['value' => (string) $key, 'label' => $name];
         }

@@ -45,7 +45,13 @@ const PRESETS: { word: string; keys: string[]; onlyWhenAdding?: boolean }[] = [
     { word: 'emp_preset_finance', keys: ['finance', 'cost_read', 'reports'] },
 ];
 
-const roleName = (employee: Row, translate: Translate): string => (employee.role ? (employee.role_name || label(String(employee.role), translate)) : '—');
+const roleName = (employee: Row, translate: Translate): string => {
+    if (!employee.role) {
+        return '—';
+    }
+
+    return employee.role === 'employee' ? translate('office_staff', 'role_employee') : (employee.role_name || label(String(employee.role), translate));
+};
 
 const permissionName = (key: string, available: PermissionDefinition[], translate: Translate): string => {
     const known = available.find((item) => item.key === key);
@@ -110,7 +116,7 @@ function AddStaffDialog({ available, onClose }: { available: PermissionDefinitio
         email: '',
         phone: '',
         status: 'active',
-        reason: translate('portal', 'emp_reason_onboard'),
+        reason: translate('office_staff', 'reason_add'),
         permissions: ['orders', 'inventory'] as string[],
     });
 
