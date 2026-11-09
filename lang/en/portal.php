@@ -6524,6 +6524,7 @@ return [
     'tr_flow_check_link' => 'Open the check',
     'payment_view_only_note' => 'You can see this payment but cannot confirm or reject it. Someone with the approve right will check it.',
     'acct_created_flash_no_code' => ':type account created. An email to set the password has been sent.',
+    'err_pay_acct_number' => 'Enter the full mobile number of this account, starting with 01.',
     'reward_program_additional_rank' => 'additional rank',
     'content_page_home' => 'Home page',
     'content_page_about' => 'About us',
