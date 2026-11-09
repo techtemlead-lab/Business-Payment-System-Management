@@ -62,6 +62,7 @@ function WentTo({ to, reason }: { to: LineTarget; reason?: string | null }) {
         <>
             {viewer.finance ? <Link className="record-link" href={`/treasury/partners/${to.id}`}>{to.name}</Link> : <b>{to.name}</b>}
             <small className="cell-sub">{joined([to.code, to.area])}</small>
+            {reason && <small className="cell-sub">{translate('treasury', 'reason_line', { reason })}</small>}
         </>
     );
 }

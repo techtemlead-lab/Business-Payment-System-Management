@@ -289,6 +289,7 @@ class TreasuryFoundationTest extends TestCase
 
     public function test_held_and_forfeited_lines_still_add_up_and_the_moved_row_is_not_counted_twice(): void
     {
+        $this->travelTo(now()->setDate(2026, 11, 10)->startOfDay());
         $place = PlaceCode::factory()->division()->create(['name' => 'Sylhet']);
         $seatHolder = User::factory()->dealer()->inPlace($place)->create();
         AreaDealerAssignment::create(['user_id' => $seatHolder->id, 'level' => 'division', 'place_code_id' => $place->id, 'division' => 'Sylhet', 'zone_name' => 'Sylhet', 'monthly_quota' => '99999.00', 'is_active' => true]);
@@ -298,12 +299,13 @@ class TreasuryFoundationTest extends TestCase
         $this->assertSame('held', $held['status']);
         $this->assertTrue($detail['adds_up']);
 
-        $this->travelTo(now()->setDate(2026, 10, 1)->setTime(1, 0));
-        app(ReserveService::class)->forfeitUnmetQuotaHolds('2026-09');
+        $this->travelTo(now()->setDate(2026, 12, 1)->setTime(1, 0));
+        app(ReserveService::class)->forfeitUnmetQuotaHolds('2026-11');
 
         $detail = app(OrderMoneyReport::class)->detail($order->fresh(), true);
         $moved = collect($detail['lines'])->first(fn (array $line): bool => str_starts_with($line['key'], 'area_division'));
         $this->assertSame('moved', $moved['status']);
+        $this->assertSame(__('portal.retained_reason_profit_quota_missed'), $moved['reason']);
         $this->assertTrue($detail['adds_up']);
         $this->assertSame('100.00', $detail['lines_total']);
         $this->assertEveryFundAddsUp('after a forfeit');

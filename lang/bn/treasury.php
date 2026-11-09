@@ -48,6 +48,7 @@ return [
     'type_sub_dealer_tour' => 'সাব-ডিলারের ট্যুর',
     'type_old_referral' => 'পুরনো রেফারের টাকা',
     'type_company_profit_fund' => 'লাভে গেছে',
+    'type_area_target_missed' => 'এরিয়া ডিলার মাসের টার্গেট পূরণ করেননি',
     'type_no_commission_to_company' => 'কমিশন দেওয়া হয়নি',
     'type_dealer_salary_settlement_reserve' => 'পুরনো বেতনের টাকা',
     'type_sub_dealer_salary_settlement_reserve' => 'পুরনো বেতনের টাকা',

@@ -28,6 +28,7 @@ class MyMoneyController extends Controller
             'cards' => $book->incomeCards($partner),
             'table' => $book->table($request, $partner),
             'withdrawal_requests' => $book->withdrawalRequests($partner),
+            'not_earned_area' => $book->notEarnedAreaCommission($partner),
             'withdraw' => ['can' => ! $kycBlock, 'kyc_block' => $kycBlock, 'minimum' => (string) $settings->withdrawalMinimum()['amount']],
             'reserve_receipts' => $receipts->reservePayoutsFor($partner),
             'certificates' => [

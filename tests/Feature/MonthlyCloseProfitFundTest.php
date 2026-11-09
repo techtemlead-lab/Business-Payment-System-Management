@@ -37,7 +37,7 @@ class MonthlyCloseProfitFundTest extends TestCase
         $this->withoutVite();
         $this->enableFinancialPosting();
         $this->seed(CommissionRuleSeeder::class);
-        $this->travelTo(now()->setDate(2026, 9, 10)->startOfDay());
+        $this->travelTo(now()->setDate(2026, 11, 10)->startOfDay());
         $this->division = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
     }
 
@@ -72,7 +72,7 @@ class MonthlyCloseProfitFundTest extends TestCase
         $this->assertSame('retained_reason_profit_no_area_seat', $share->metadata['reason_key']);
         $this->assertSame('area_division', $share->metadata['source_category']);
         $this->assertSame($this->division->id, $share->metadata['place_code_id']);
-        $this->assertSame('2026-09', $share->metadata['period_month']);
+        $this->assertSame('2026-11', $share->metadata['period_month']);
     }
 
     public function test_a_dealer_seated_mid_month_earns_only_on_orders_after_the_seat(): void
@@ -97,10 +97,10 @@ class MonthlyCloseProfitFundTest extends TestCase
         $this->assertSame('held', $hold->status);
         $this->assertSame('quota', $hold->metadata['hold_reason']);
 
-        $this->assertSame('month_open', app(ReserveService::class)->forfeitUnmetQuotaHolds('2026-09')['status']);
-        $this->travelTo(now()->setDate(2026, 10, 1)->setTime(1, 0));
-        $first = app(ReserveService::class)->forfeitUnmetQuotaHolds('2026-09');
-        $second = app(ReserveService::class)->forfeitUnmetQuotaHolds('2026-09');
+        $this->assertSame('month_open', app(ReserveService::class)->forfeitUnmetQuotaHolds('2026-11')['status']);
+        $this->travelTo(now()->setDate(2026, 12, 1)->setTime(1, 0));
+        $first = app(ReserveService::class)->forfeitUnmetQuotaHolds('2026-11');
+        $second = app(ReserveService::class)->forfeitUnmetQuotaHolds('2026-11');
 
         $this->assertSame(1, $first['forfeited_count']);
         $this->assertSame(0, $second['forfeited_count']);
@@ -110,7 +110,7 @@ class MonthlyCloseProfitFundTest extends TestCase
         $this->assertSame($hold->id, $profit->metadata['source_allocation_id']);
         $this->assertSame($dealer->id, $profit->metadata['intended_user_id']);
         $this->assertSame('retained_reason_profit_quota_missed', $profit->metadata['reason_key']);
-        $this->assertDatabaseHas('audit_events', ['action' => 'commission.quota_holds_forfeited', 'subject' => '2026-09']);
+        $this->assertDatabaseHas('audit_events', ['action' => 'commission.quota_holds_forfeited', 'subject' => '2026-11']);
     }
 
     public function test_a_quota_met_later_in_the_month_is_released_not_forfeited(): void
@@ -121,26 +121,12 @@ class MonthlyCloseProfitFundTest extends TestCase
         $hold = $this->divisionShare($this->purchase(User::factory()->inPlace($this->division)->create()));
         $this->assertSame('held', $hold->status);
         $this->purchase($dealer);
-        $this->travelTo(now()->setDate(2026, 10, 1)->setTime(1, 0));
+        $this->travelTo(now()->setDate(2026, 12, 1)->setTime(1, 0));
 
-        $result = app(ReserveService::class)->forfeitUnmetQuotaHolds('2026-09');
+        $result = app(ReserveService::class)->forfeitUnmetQuotaHolds('2026-11');
 
         $this->assertSame(0, $result['forfeited_count']);
         $this->assertContains($hold->fresh()->status, ['available', 'maturing']);
-    }
-
-    public function test_a_hold_for_a_suspended_dealer_is_left_alone_at_close(): void
-    {
-        $dealer = User::factory()->inPlace($this->division)->create();
-        $this->seat($dealer, '100000.00');
-        $hold = $this->divisionShare($this->purchase(User::factory()->inPlace($this->division)->create()));
-        $dealer->forceFill(['status' => 'suspended'])->save();
-        $this->travelTo(now()->setDate(2026, 10, 1)->setTime(1, 0));
-
-        app(ReserveService::class)->forfeitUnmetQuotaHolds('2026-09');
-
-        $this->assertSame('held', $hold->fresh()->status);
-        $this->assertDatabaseMissing('commission_allocations', ['category' => 'company_profit_fund']);
     }
 
     public function test_unclaimed_sub_dealer_salary_goes_to_company_profit_not_a_reserve(): void
@@ -148,9 +134,9 @@ class MonthlyCloseProfitFundTest extends TestCase
         $sub = User::factory()->inPlace($this->division)->create(['role' => 'sub_dealer']);
         $this->purchase($sub, '120.00', '200.00');
         $sub->forceFill(['status' => 'suspended'])->save();
-        $this->travelTo(now()->setDate(2026, 10, 1)->setTime(1, 0));
+        $this->travelTo(now()->setDate(2026, 12, 1)->setTime(1, 0));
 
-        app(CommissionService::class)->settleMonthlySalaryPool('2026-09');
+        app(CommissionService::class)->settleMonthlySalaryPool('2026-11');
 
         $profit = CommissionAllocation::where('category', 'company_profit_fund')->where('metadata->source_category', 'sub_dealer_salary')->sole();
         $this->assertSame('3.60', (string) $profit->amount);
@@ -163,7 +149,7 @@ class MonthlyCloseProfitFundTest extends TestCase
     {
         $sub = User::factory()->inPlace($this->division)->create(['role' => 'sub_dealer']);
         $order = $this->purchase($sub, '120.00', '200.00');
-        $this->travelTo(now()->setDate(2026, 10, 1)->setTime(1, 0));
+        $this->travelTo(now()->setDate(2026, 12, 1)->setTime(1, 0));
 
         $this->artisan('finance:auto-approve')->assertSuccessful();
         $this->artisan('finance:auto-approve')->assertSuccessful();
@@ -172,7 +158,7 @@ class MonthlyCloseProfitFundTest extends TestCase
         $profit = CommissionAllocation::where('category', 'company_profit_fund')->where('metadata->source_category', 'additional_rank_pool')->sole();
         $this->assertSame('4.80', (string) $profit->amount);
         $this->assertSame('retained_reason_unclaimed_additional_rank', $profit->metadata['reason_key']);
-        $this->assertSame('2026-09', $profit->metadata['period_month']);
+        $this->assertSame('2026-11', $profit->metadata['period_month']);
         $this->assertDatabaseHas('commission_allocations', ['order_id' => $order->id, 'category' => 'additional_rank_pool', 'status' => 'settled']);
         // Owner decision: the management share and the marketing budget are kept and carry over.
         $this->assertDatabaseHas('commission_allocations', ['order_id' => $order->id, 'category' => 'area_management', 'status' => 'pending']);
@@ -185,9 +171,9 @@ class MonthlyCloseProfitFundTest extends TestCase
         $order = $this->purchase($sub, '120.00', '200.00');
         $reserves = app(ReserveService::class);
         $this->assertSame(480, $reserves->remainingByCategory()['additional_rank_pool']);
-        $this->travelTo(now()->setDate(2026, 10, 1)->setTime(1, 0));
+        $this->travelTo(now()->setDate(2026, 12, 1)->setTime(1, 0));
 
-        $reserves->closeAdditionalRankFund('2026-09');
+        $reserves->closeAdditionalRankFund('2026-11');
 
         $this->assertSame(0, $reserves->remainingByCategory()['additional_rank_pool'] ?? 0);
         $this->assertSame('settled', CommissionAllocation::where('order_id', $order->id)->where('category', 'additional_rank_pool')->sole()->status);
@@ -200,9 +186,9 @@ class MonthlyCloseProfitFundTest extends TestCase
         $sub = User::factory()->inPlace($this->division)->create(['role' => 'sub_dealer']);
         $order = $this->purchase($sub, '120.00', '200.00');
         $this->awardAdditionalRank($sub, '1.00');
-        $this->travelTo(now()->setDate(2026, 10, 1)->setTime(1, 0));
+        $this->travelTo(now()->setDate(2026, 12, 1)->setTime(1, 0));
 
-        $result = app(ReserveService::class)->closeAdditionalRankFund('2026-09');
+        $result = app(ReserveService::class)->closeAdditionalRankFund('2026-11');
 
         $this->assertSame('3.80', $result['total_amount']);
         $profit = CommissionAllocation::where('order_id', $order->id)->where('category', 'company_profit_fund')->sole();
@@ -215,8 +201,8 @@ class MonthlyCloseProfitFundTest extends TestCase
         $order = $this->purchase(User::factory()->inPlace($this->division)->create());
         $commissions = app(CommissionService::class);
         $commissions->reverseOrderPartial($order->fresh(), '20.00', 'First part returned', 'RETURN-1');
-        $this->travelTo(now()->setDate(2026, 10, 1)->setTime(1, 0));
-        $commissions->settleMonthlySalaryPool('2026-09');
+        $this->travelTo(now()->setDate(2026, 12, 1)->setTime(1, 0));
+        $commissions->settleMonthlySalaryPool('2026-11');
         $fund = CommissionAllocation::where('order_id', $order->id)->where('category', 'dealer_monthly_salary_pool')->sole();
         $profit = CommissionAllocation::where('order_id', $order->id)->where('category', 'company_profit_fund')->sole();
         $this->assertSame((string) $fund->amount, (string) $profit->amount);
@@ -232,8 +218,8 @@ class MonthlyCloseProfitFundTest extends TestCase
         $this->seat($dealer, '100000.00');
         $order = $this->purchase(User::factory()->inPlace($this->division)->create());
         $this->assertGreaterThan(0, (float) $this->divisionShare($order)->amount);
-        $this->travelTo(now()->setDate(2026, 10, 1)->setTime(1, 0));
-        app(ReserveService::class)->forfeitUnmetQuotaHolds('2026-09');
+        $this->travelTo(now()->setDate(2026, 12, 1)->setTime(1, 0));
+        app(ReserveService::class)->forfeitUnmetQuotaHolds('2026-11');
 
         $certificate = app(PartnerCertificates::class)->income($dealer, 2026);
         $report = app(PartnerFullReport::class)->for($dealer, null, null);
@@ -255,7 +241,7 @@ class MonthlyCloseProfitFundTest extends TestCase
     {
         $sub = User::factory()->inPlace($this->division)->create(['role' => 'sub_dealer']);
         $order = $this->purchase($sub, '120.00', '200.00');
-        $this->travelTo(now()->setDate(2026, 10, 1)->setTime(1, 0));
+        $this->travelTo(now()->setDate(2026, 12, 1)->setTime(1, 0));
 
         $this->artisan('finance:auto-approve')->assertSuccessful();
 

@@ -242,12 +242,14 @@ final class EventLogProjector
     /** @return Feed */
     private function movedToProfit(): array
     {
+        $targetMissed = "funds.metadata->>'reason_key' = '".ReserveService::AreaTargetMissedReason."'";
+
         return $this->feed('allocations', 'moved_to_profit', DB::table('commission_allocations as funds')->leftJoin('orders as o', 'o.id', '=', 'funds.order_id')->leftJoin('users as u', 'u.id', '=', 'o.user_id')
             ->whereRaw("funds.metadata->>'source_allocation_id' IS NOT NULL")
             ->selectRaw($this->row([
                 'occurred_at' => $this->utc('funds.created_at'), 'kind' => "'fund_in'", 'action' => "'moved_to_profit'", 'source' => "'allocations'", 'source_id' => 'funds.id::text', 'part' => '0::smallint',
                 'order_id' => 'o.id', 'order_number' => 'o.number', 'partner_id' => 'o.user_id', 'partner_name' => 'u.name', 'partner_code' => 'u.dealer_code', 'fund_key' => FundCatalog::rowFundSql(),
-                'label' => "LEFT(COALESCE(funds.metadata->>'source_category', funds.category), 60)", 'percent' => 'funds.rate_percentage', 'amount' => 'funds.amount', 'audience' => "'all'",
+                'label' => "LEFT(CASE WHEN {$targetMissed} THEN 'area_target_missed' ELSE COALESCE(funds.metadata->>'source_category', funds.category) END, 60)", 'percent' => 'funds.rate_percentage', 'amount' => 'funds.amount', 'audience' => "'all'",
             ])), 'funds.created_at');
     }
 
