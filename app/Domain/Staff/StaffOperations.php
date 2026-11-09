@@ -188,7 +188,7 @@ final class StaffOperations
                 $place = $this->applicationPlace(filled($placeCode) ? $placeCode : ($payload['place_code'] ?? $payload['area_code'] ?? null), (string) $payload['role']);
                 $data = [...$data, ...$this->placeFields($place)];
                 $isSubDealer = $data['role'] === 'sub_dealer';
-                $partnerCode = $partners->codeForPlace($place, (string) $data['role']);
+                $partnerCode = $partners->codeForPlace($actor, $place, (string) $data['role']);
                 // A sponsor code the reviewer corrected wins over the sponsor picked on the application.
                 $sponsorId = filled($corrections['sponsor_code'] ?? null) ? null : ($data['sponsor_id'] ?? null);
                 if (empty($sponsorId) && ! empty($data['sponsor_code'])) {

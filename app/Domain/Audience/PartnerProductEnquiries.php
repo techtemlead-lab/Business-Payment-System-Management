@@ -2,6 +2,7 @@
 
 namespace App\Domain\Audience;
 
+use App\Domain\Accounts\PartnerFormerCodes;
 use App\Domain\Notifications\WebPushNotices;
 use App\Models\Product;
 use App\Models\User;
@@ -38,7 +39,7 @@ final class PartnerProductEnquiries
                 $query->whereRaw('UPPER(refer_code) = ?', [$code])
                     ->orWhereRaw('UPPER(dealer_code) = ?', [$code]);
             })
-            ->first();
+            ->first() ?? app(PartnerFormerCodes::class)->activeHolder([$code]);
     }
 
     /**
