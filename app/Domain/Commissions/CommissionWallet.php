@@ -5,6 +5,7 @@ namespace App\Domain\Commissions;
 use App\Models\CommissionAllocation;
 use App\Models\User;
 use App\Support\Money;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -127,7 +128,7 @@ final class CommissionWallet
             throw new \LogicException('Unbalanced financial journal.');
         }
         $id = (string) Str::uuid();
-        DB::table('journal_entries')->insert(['id' => $id, 'event_key' => $eventKey, 'description' => $description, 'created_at' => now()]);
+        DB::table('journal_entries')->insert(['id' => $id, 'event_key' => $eventKey, 'description' => $description, 'actor_id' => Auth::id(), 'created_at' => now()]);
         foreach ($lines as $line) {
             if ($line['debit'] > 0 || $line['credit'] > 0) {
                 DB::table('journal_lines')->insert([...$line, 'entry_id' => $id, 'debit' => Money::decimal($line['debit']), 'credit' => Money::decimal($line['credit'])]);
