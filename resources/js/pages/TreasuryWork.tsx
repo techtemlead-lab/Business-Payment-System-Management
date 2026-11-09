@@ -31,7 +31,7 @@ export default function TreasuryWork({ tab, tiles, approvals_table: approvals, h
 
     return (
         <TreasuryPage title={translate('treasury', 'title')} showTabs>
-            <div className="tsy-switch" role="group" aria-label={translate('treasury', 'tab_work')}>
+            <div className="office-switch" role="group" aria-label={translate('treasury', 'tab_work')}>
                 {SWITCHES.map((item) => (
                     <Link key={item.key} href={item.href} preserveScroll className={tab === item.key ? 'is-active' : undefined} aria-current={tab === item.key ? 'true' : undefined}>{translate('treasury', item.word)}</Link>
                 ))}

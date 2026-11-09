@@ -1,0 +1,102 @@
+/*
+ * The office page shell, shared by every module: one title, the tab strip,
+ * up to one row of cards, one table. No notes and no panel inside a panel.
+ */
+
+/* The page draws its own title, so a fund or an order can be the title. */
+.app-shell .workspace-main:has(.office-page)>.page-heading{display:none}
+
+/* Shared table: the search icon sits beside the words, and the filter sheet is only for phones. */
+.app-shell .money-table .mt-search .search-input{flex-direction:row}
+@media (min-width:768px){
+  .app-shell .money-table .mt-sheet-button{display:none}
+}
+
+.app-shell .office-page{display:flex;flex-direction:column;gap:var(--ds-s-4);min-width:0}
+.app-shell .office-page>*{min-width:0}
+.app-shell .office-page>.table-panel{margin:0}
+.app-shell .office-page .is-negative{color:var(--ds-danger-fg)}
+
+.app-shell .office-back{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;font-size:var(--ds-fs-sm);font-weight:600;color:var(--ds-text-muted)}
+.app-shell .office-back:hover{color:var(--ds-brand-text)}
+
+.app-shell .office-head{display:flex;align-items:center;justify-content:space-between;gap:var(--ds-s-4);flex-wrap:wrap}
+.app-shell .office-head-text{min-width:0}
+.app-shell .office-head h1{margin:0;font-size:var(--ds-fs-2xl);font-weight:700;line-height:1.2;letter-spacing:0;color:var(--ds-text);overflow-wrap:anywhere}
+.app-shell .office-head p{margin:4px 0 0;font-size:var(--ds-fs-sm);line-height:1.5;color:var(--ds-text-muted);overflow-wrap:anywhere}
+.app-shell .office-head-action{flex:0 0 auto}
+
+/* Tab strip: words with one underlined, so it never looks like the view choices below it. */
+.app-shell .office-tabs{display:flex;gap:var(--ds-s-1);overflow-x:auto;border-bottom:1px solid var(--ds-line);scrollbar-width:none;margin-bottom:var(--ds-s-4)}
+.app-shell .office-page>.office-tabs{margin-top:calc(var(--ds-s-2) * -1);margin-bottom:0}
+.app-shell .office-tabs::-webkit-scrollbar{display:none}
+.app-shell .office-tab{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;min-height:44px;padding:0 var(--ds-s-3);border-bottom:2px solid transparent;margin-bottom:-1px;font-size:var(--ds-fs-base);font-weight:600;color:var(--ds-text-muted);white-space:nowrap}
+.app-shell .office-tab:hover{color:var(--ds-text)}
+.app-shell .office-tab.is-active{color:var(--ds-brand-text);border-bottom-color:var(--ds-brand)}
+.app-shell .office-tab:focus-visible{outline:2px solid var(--ds-brand);outline-offset:-2px}
+.app-shell .office-tab-count{min-width:20px;padding:0 6px;border-radius:var(--ds-r-pill);background:var(--ds-surface-3);color:var(--ds-text);font-size:var(--ds-fs-2xs);line-height:18px;text-align:center}
+
+/* A row of cards. */
+.app-shell .office-figures{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--ds-s-3)}
+.app-shell .office-figures[data-cards="4"]{grid-template-columns:repeat(4,minmax(0,1fr))}
+.app-shell .office-figure{display:flex;flex-direction:column;gap:6px;min-width:0;padding:var(--ds-s-4) var(--ds-s-5);background:var(--ds-surface);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg)}
+.app-shell .office-figure span{font-size:var(--ds-fs-sm);font-weight:500;color:var(--ds-text-muted)}
+.app-shell .office-figure strong{font-size:var(--ds-fs-2xl);font-weight:700;line-height:1.2;color:var(--ds-text);font-variant-numeric:tabular-nums lining-nums;overflow-wrap:anywhere}
+.app-shell .office-figure strong.is-headline{font-size:var(--ds-fs-3xl)}
+.app-shell .office-figure.is-link{min-height:0;box-shadow:none;text-align:left;cursor:pointer}
+.app-shell .office-figure.is-link:hover{border-color:var(--ds-brand)}
+.app-shell .office-figure.is-link:focus-visible{outline:2px solid var(--ds-brand);outline-offset:2px}
+.app-shell .office-figure.is-active{border-color:var(--ds-brand);background:var(--ds-brand-soft)}
+
+/* Choice between two views of one page. */
+.app-shell .office-switch{display:inline-flex;align-self:flex-start;padding:3px;background:var(--ds-surface-3);border-radius:var(--ds-r-md)}
+.app-shell .office-switch a{display:inline-flex;align-items:center;min-height:36px;padding:0 var(--ds-s-4);border-radius:var(--ds-r-sm);font-size:var(--ds-fs-sm);font-weight:600;color:var(--ds-text-muted);white-space:nowrap}
+.app-shell .office-switch a.is-active{background:var(--ds-surface);color:var(--ds-text);box-shadow:var(--ds-shadow-xs)}
+.app-shell .office-switch a:focus-visible{outline:2px solid var(--ds-brand);outline-offset:1px}
+
+/* Label and value lines in a box or drawer. */
+.office-facts{display:flex;flex-direction:column;gap:var(--ds-s-2);margin:0 0 var(--ds-s-5)}
+.office-facts>div{display:flex;justify-content:space-between;gap:var(--ds-s-4)}
+.office-facts dt{font-size:var(--ds-fs-sm);color:var(--ds-text-muted)}
+.office-facts dd{margin:0;font-size:var(--ds-fs-sm);font-weight:600;text-align:right;overflow-wrap:anywhere}
+
+/* The one small menu beside a table. */
+.app-shell .office-menu{position:relative;display:inline-flex}
+.app-shell .office-menu-list{position:absolute;right:0;top:calc(100% + 4px);z-index:30;display:flex;flex-direction:column;min-width:260px;max-height:min(60vh,520px);overflow-y:auto;padding:var(--ds-s-1);background:var(--ds-surface);border:1px solid var(--ds-line);border-radius:var(--ds-r-md);box-shadow:var(--ds-shadow-md)}
+.app-shell .office-menu-group{display:flex;flex-direction:column}
+.app-shell .office-menu-group+.office-menu-group,.app-shell .office-menu-group+.office-menu-panel{margin-top:var(--ds-s-1);padding-top:var(--ds-s-1);border-top:1px solid var(--ds-line-soft)}
+.app-shell .office-menu-group h3{margin:0;padding:7px var(--ds-s-3) 3px;font-size:var(--ds-fs-xs);font-weight:600;letter-spacing:0;color:var(--ds-text-muted)}
+.app-shell .office-menu-list a,.app-shell .office-menu-list button[role="menuitem"]{padding:8px var(--ds-s-3);border-radius:var(--ds-r-sm);font-size:var(--ds-fs-sm);color:var(--ds-text);white-space:nowrap}
+.app-shell .office-menu-list button[role="menuitem"]{min-height:0;border:0;background:none;box-shadow:none;font-weight:400;text-align:left;cursor:pointer}
+.app-shell .office-menu-list a:hover,.app-shell .office-menu-list a:focus-visible,.app-shell .office-menu-list button[role="menuitem"]:hover,.app-shell .office-menu-list button[role="menuitem"]:focus-visible{background:var(--ds-surface-2)}
+.app-shell .office-menu-note{margin:0;padding:8px var(--ds-s-3);font-size:var(--ds-fs-sm);color:var(--ds-danger-fg);white-space:normal}
+.app-shell .office-menu-panel{display:flex;flex-direction:column;gap:var(--ds-s-2);padding:var(--ds-s-2) var(--ds-s-3)}
+
+/* Modal variants: a drawer from the right for one row, and a wide dialog for permissions. */
+dialog.portal-modal.portal-modal-wide{max-width:960px}
+:root dialog.portal-modal.portal-modal-drawer{top:0!important;right:0!important;bottom:0!important;left:auto!important;transform:none!important;width:460px;max-width:100%;height:100dvh;max-height:100dvh;border-width:0 0 0 1px;border-radius:0;animation:officeDrawerIn .22s ease both}
+.portal-modal .modal-badge{margin-inline-end:auto}
+.portal-modal .modal-footer{display:flex;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;gap:var(--ds-s-2);padding:var(--ds-s-3) 20px;border-top:1px solid var(--ds-line);background:var(--ds-surface)}
+@keyframes officeDrawerIn{from{translate:100% 0}to{translate:0 0}}
+@keyframes officeDrawerOut{from{translate:0 0}to{translate:100% 0}}
+@media (prefers-reduced-motion:no-preference){
+  :root dialog.portal-modal.portal-modal-drawer{animation:officeDrawerIn .22s cubic-bezier(.16,1,.3,1) both}
+  :root dialog.portal-modal.portal-modal-drawer.is-closing{animation:officeDrawerOut .16s ease-in both}
+}
+
+@media (max-width:1024px){
+  .app-shell .office-figures[data-cards="4"]{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+@media (max-width:640px){
+  .app-shell .office-page{gap:var(--ds-s-3)}
+  .app-shell .office-head h1{font-size:var(--ds-fs-xl)}
+
+  .app-shell .office-figures,.app-shell .office-figures[data-cards="4"]{grid-template-columns:minmax(0,1fr);gap:var(--ds-s-2)}
+  .app-shell .office-figure{flex-direction:row;align-items:center;justify-content:space-between;gap:var(--ds-s-3);padding:var(--ds-s-3) var(--ds-s-4)}
+  .app-shell .office-figure strong,.app-shell .office-figure strong.is-headline{font-size:var(--ds-fs-xl);text-align:right}
+
+  .app-shell .office-menu-list{right:auto;left:0;max-width:calc(100vw - 32px)}
+
+  :root dialog.portal-modal.portal-modal-drawer{width:100%;border-width:0}
+}

@@ -1,7 +1,6 @@
-import { useEffect, useRef } from 'react';
-import { Link, usePage } from '@inertiajs/react';
-import { number } from '../UI';
+import { usePage } from '@inertiajs/react';
 import { useT } from '../../shared/i18n/t';
+import type { OfficeHub } from '../OfficeHubTabs';
 
 type Viewer = { finance: boolean; reports: boolean };
 type Place = { key: string; href: string; label: string; open: (viewer: Viewer) => boolean };
@@ -28,36 +27,22 @@ export function useTreasuryViewer(): Viewer {
 }
 
 /** The five places inside Treasury. A place the viewer may not open is not offered. */
-export default function TreasuryTabs() {
+export function useTreasuryHub(): OfficeHub {
     const translate = useT();
     const page = usePage<any>();
     const viewer = useTreasuryViewer();
-    const strip = useRef<HTMLElement>(null);
     const path = page.url.split('?')[0];
     const waiting = Number(page.props.tabs?.waiting ?? 0);
-    const places = PLACES.filter((place) => place.open(viewer));
 
-    // On a phone the strip scrolls sideways: keep the open place in view.
-    useEffect(() => {
-        strip.current?.querySelector<HTMLElement>('.is-active')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-    }, [path]);
-
-    if (places.length < 2) {
-        return null;
-    }
-
-    return (
-        <nav ref={strip} className="tsy-tabs" aria-label={translate('treasury', 'title')}>
-            {places.map((place) => {
-                const active = path === place.href || path.startsWith(`${place.href}/`);
-
-                return (
-                    <Link key={place.key} href={place.href} className={`tsy-tab${active ? ' is-active' : ''}`} aria-current={active ? 'page' : undefined}>
-                        {translate('treasury', place.label)}
-                        {place.key === 'work' && waiting > 0 && <b className="tsy-tab-count">{number(waiting)}</b>}
-                    </Link>
-                );
-            })}
-        </nav>
-    );
+    return {
+        home: 'treasury',
+        label: translate('treasury', 'title'),
+        tabs: PLACES.filter((place) => place.open(viewer)).map((place) => ({
+            key: place.key,
+            label: translate('treasury', place.label),
+            href: place.href,
+            active: path === place.href || path.startsWith(`${place.href}/`),
+            count: place.key === 'work' ? waiting : undefined,
+        })),
+    };
 }
