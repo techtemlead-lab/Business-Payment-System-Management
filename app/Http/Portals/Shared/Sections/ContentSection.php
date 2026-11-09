@@ -6,8 +6,12 @@ use App\Domain\Security\SelfApproval;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\LocalDigits;
+use App\Support\MoneyTable;
+use App\Support\MoneyTableFilter;
+use App\Support\MoneyTableSpec;
 use App\Support\ProductVideo;
 use App\Support\SiteCustomization;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -20,7 +24,7 @@ final class ContentSection implements WorkspaceSection
         return match ($context->section) {
             'policies' => $this->policies(),
             'circulars' => $this->circulars($context->user),
-            'content' => $this->pages(),
+            'content' => $this->pages($context->request),
             'website' => $this->website($context),
             default => [],
         };
@@ -65,13 +69,25 @@ final class ContentSection implements WorkspaceSection
      *
      * @return array<string, mixed>
      */
-    private function pages(): array
+    private function pages(Request $request): array
     {
+        $table = MoneyTable::make($request, DB::table('content_pages')->whereIn('slug', SiteCustomization::PageTextSlugs), new MoneyTableSpec(
+            dateColumn: null,
+            search: ['title', 'slug'],
+            filters: [new MoneyTableFilter('published', (string) __('portal.enquiry_status_label'), "CASE WHEN published THEN '1' ELSE '0' END", [
+                ['value' => '1', 'label' => (string) __('portal.content_published')],
+                ['value' => '0', 'label' => (string) __('portal.content_draft')],
+            ])],
+            sorts: ['slug' => 'slug', 'title' => 'title'],
+            defaultSort: 'slug',
+            tieBreaker: 'id',
+            defaultDir: 'asc',
+            defaultPeriod: null,
+        ));
+
         return [
-            'pages' => DB::table('content_pages')
-                ->whereIn('slug', SiteCustomization::PageTextSlugs)
-                ->orderBy('slug')
-                ->get(),
+            'pages_table' => $table,
+            'pages' => $table['rows']->items(),
             'page_slugs' => SiteCustomization::PageTextSlugs,
         ];
     }
