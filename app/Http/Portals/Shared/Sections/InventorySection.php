@@ -3,7 +3,7 @@
 namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Inventory\BranchOperations;
-use App\Domain\Inventory\BranchScope;
+use App\Domain\Inventory\StockMovementList;
 use App\Models\BranchProductStock;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -57,19 +57,14 @@ final class InventorySection implements WorkspaceSection
         }
         $props['products'] = $this->withBookedUnits($props['products'] ?? $data['products'] ?? []);
         // The movement log follows the same branch as the stock on hand above it.
-        $branchScope = $viewingAllBranches && $branchOps->canViewAllBranches($user)
-            ? new BranchScope(true, [])
-            : new BranchScope(false, $preferredBranch ? [$preferredBranch->id] : [], $preferredBranch);
+        $branchScope = StockMovementList::scope($user, $request, $preferredBranch);
         $props['branch_scope'] = $branchScope->chip();
-        $movements = DB::table('stock_movements');
-        $branchScope->restrict($movements, 'stock_movements.branch_id');
-        $props['movements'] = $movements
-            ->join('products', 'products.id', '=', 'product_id')
-            ->leftJoin('company_branches', 'company_branches.id', '=', 'stock_movements.branch_id')
-            ->leftJoin('users', 'users.id', '=', 'stock_movements.actor_id')
-            ->select('stock_movements.*', 'products.name', 'products.sku', 'company_branches.code as branch_code', 'company_branches.name as branch_name', 'users.name as actor_name')
-            ->orderByDesc('stock_movements.id')
-            ->paginate(20);
+        $movements = app(StockMovementList::class);
+        $movementFilters = StockMovementList::filters($request);
+        // The totals query also gives the row count, so the page skips its own count query.
+        $props['movement_totals'] = $movements->totals($movementFilters, $branchScope);
+        $props['movements'] = $movements->page($movementFilters, $branchScope, total: $props['movement_totals']['count']);
+        $props['movement_kinds'] = StockMovementList::Kinds;
 
         return $props;
     }

@@ -265,7 +265,7 @@ class NetworkAndFinancePageScalingTest extends TestCase
         $this->actingAs($owner)->onPortal('sadmin')->get('/accounts')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->has('data.accounts')
             ->missing('data.sponsors'));
-        $this->actingAs($owner)->get('/company/accounts/create')->assertOk()->assertInertia(fn (Assert $page) => $page
+        $this->actingAs($owner)->get('/company/accounts/create?intent=staff')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->has('sponsors', 1, fn (Assert $sponsor) => $sponsor->hasAll(['id', 'name', 'dealer_code'])->etc()->missing('district')->missing('refer_code')));
     }
 }

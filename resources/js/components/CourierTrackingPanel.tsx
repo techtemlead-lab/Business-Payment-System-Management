@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Row, ActionForm, dateTime } from './UI';
 import { useT } from '../shared/i18n/t';
+import { courierCheckedText } from './courierCheckedText';
 
 const STEPS = ['waiting_pickup', 'picked_up', 'in_transit', 'delivered'];
 const ALL_STEPS = [...STEPS, 'returned'];
@@ -70,7 +71,9 @@ function ParcelTracking({ order, shipment, canManage }: { order: Row; shipment: 
             </p>}
             {shipment.courier_status_raw && <p className="muted">{translate('courier', 'courier_said', { text: String(shipment.courier_status_raw) })}</p>}
             {lastUpdate && <p className="muted">{translate('courier', 'last_update')}: {dateTime(lastUpdate)}</p>}
-            {shipment.courier_tracked_at && <p className="muted">{translate('courier', 'last_checked')}: {dateTime(shipment.courier_tracked_at)}</p>}
+            {shipment.courier_answered_at
+                ? <p className="muted" data-testid="courier-last-checked">{translate('courier', 'last_checked')}: {courierCheckedText(Number(shipment.courier_answered_minutes_ago), String(shipment.courier_answered_at), translate, dateTime)}</p>
+                : booking === 'booked' && shipment.status === 'dispatched' && !['delivered', 'returned'].includes(shipment.courier_status) && <p className="muted" data-testid="courier-last-checked">{translate('courier', 'last_checked')}: {translate('courier', 'checked_no_answer_yet')}</p>}
         </>}
         {canManage && booking === 'failed' && shipment.status === 'dispatched' && <ActionForm action={`/commands/orders/${order.id}/shipments/${shipment.id}/courier-retry`} fields={[]} submit={translate('courier', 'retry')} />}
         {canManage && booking === 'booked' && shipment.status === 'dispatched' && (!shipment.courier_status || shipment.courier_status === 'waiting_pickup')

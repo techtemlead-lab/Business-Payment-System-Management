@@ -13,6 +13,7 @@ use App\Domain\Geography\ManagementReferral;
 use App\Domain\Identity\BdrisLookup;
 use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\BranchScope;
+use App\Domain\Inventory\StockMovementList;
 use App\Domain\Orders\CourierOptions;
 use App\Domain\Orders\OrderInvoice;
 use App\Domain\Orders\OrderPaymentPrompt;
@@ -72,6 +73,7 @@ use App\Support\PortalHost;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -160,6 +162,7 @@ class WorkspaceController extends Controller
             'availability' => 'nullable|in:published,draft,in_stock,out_of_stock',
             'sort' => 'nullable|in:name_asc,name_desc,price_asc,price_desc,newest,stock_asc,stock_desc',
             ...Arr::only(PartnerAccountList::rules(), ['division', 'district', 'rank', 'no_order_days']),
+            ...Arr::only(StockMovementList::rules(), ['product_id', 'movement']),
         ]);
         if ($staff && $section === 'sub-dealer-orders') {
             return redirect('/orders?'.http_build_query(array_filter([
@@ -211,7 +214,7 @@ class WorkspaceController extends Controller
             $data['partner_hub'] = $partnerHub;
         }
 
-        return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role', 'channel', 'category', 'sub_category', 'unit', 'min_mrp', 'max_mrp', 'availability', 'sort', 'period', 'from', 'to', 'division', 'district', 'rank', 'no_order_days', 'branch_id', 'all_branches'])]);
+        return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role', 'channel', 'category', 'sub_category', 'unit', 'min_mrp', 'max_mrp', 'availability', 'sort', 'period', 'from', 'to', 'division', 'district', 'rank', 'no_order_days', 'branch_id', 'all_branches', 'product_id', 'movement'])]);
     }
 
     public function createAccount(Request $r): Response
@@ -230,7 +233,10 @@ class WorkspaceController extends Controller
             default => ['dealer'],
         };
         abort_if($intent === 'staff' && $u->role !== 'super_admin', 403);
-        $sponsors = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code']);
+        // Only the staff form has the sponsor dropdown; partners get their sponsor from a typed reference code.
+        $sponsors = $intent === 'staff'
+            ? User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code'])
+            : collect();
         $divisions = PlaceCode::query()
             ->where('level', PlaceCode::LevelDivision)
             ->where('is_active', true)
@@ -365,7 +371,7 @@ class WorkspaceController extends Controller
         }
 
         return $events->each(function (\stdClass $event): void {
-            if (in_array($event->action, ['order.courier_booking_failed', 'order.courier_booked', 'shipment.received_back'], true)) {
+            if (in_array($event->action, ['order.courier_booking_failed', 'order.courier_booked', 'order.courier_auto_skipped', 'shipment.received_back'], true)) {
                 $metadata = json_decode((string) $event->metadata, true) ?: [];
                 unset($metadata['message'], $metadata['consignment_id'], $metadata['reason']);
                 $event->metadata = json_encode($metadata, JSON_THROW_ON_ERROR);
@@ -375,8 +381,8 @@ class WorkspaceController extends Controller
 
     /**
      * The order's parcels with their courier tracking. Opening the page also asks the courier
-     * for news in the background, at most once every ten minutes per parcel, so the page
-     * (which refreshes itself every few seconds) never waits for the courier.
+     * for news in the background when the last question is more than a few minutes old, per
+     * parcel, so the page (which refreshes itself every few seconds) never waits for the courier.
      *
      * @return Collection<int, \stdClass>
      */
@@ -384,7 +390,7 @@ class WorkspaceController extends Controller
     {
         $shipments = DB::table('shipments')->where('order_id', $order->id)->orderBy('id')->get([
             'id', 'courier', 'tracking', 'courier_contact', 'eta', 'status', 'courier_booking_status', 'courier_booking_error', 'courier_provider',
-            'courier_consignment_id', 'courier_status', 'courier_status_raw', 'courier_status_at', 'courier_tracked_at', 'courier_timeline',
+            'courier_consignment_id', 'courier_status', 'courier_status_raw', 'courier_status_at', 'courier_tracked_at', 'courier_answered_at', 'courier_timeline',
             'lines', 'delivered_at', 'created_at',
         ]);
         $manualPages = $shipments->contains(fn (\stdClass $shipment): bool => CourierOptions::isManual($shipment->courier_provider))
@@ -393,7 +399,8 @@ class WorkspaceController extends Controller
         foreach ($shipments as $shipment) {
             $shipment->tracking_url = CourierOptions::trackingUrl($shipment->courier_provider, $shipment->tracking, $shipment->courier_consignment_id, $manualPages);
             $shipment->courier_timeline = json_decode((string) ($shipment->courier_timeline ?? '[]'), true) ?: [];
-            if (ShipmentTracking::isTrackable($shipment) && Cache::add('courier-tracking:'.$shipment->id, true, now()->addMinutes(10))) {
+            $shipment->courier_answered_minutes_ago = $shipment->courier_answered_at !== null ? (int) Carbon::parse($shipment->courier_answered_at)->diffInMinutes(now()) : null;
+            if (ShipmentTracking::isDueForRefresh($shipment) && Cache::add('courier-tracking:'.$shipment->id, true, now()->addMinutes(ShipmentTracking::RefreshAfterMinutes))) {
                 RefreshShipmentTracking::dispatch((int) $shipment->id);
             }
             unset($shipment->courier_consignment_id);

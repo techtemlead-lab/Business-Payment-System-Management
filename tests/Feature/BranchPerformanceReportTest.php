@@ -55,7 +55,7 @@ class BranchPerformanceReportTest extends TestCase
         $this->assertSame(1, $summary['unassigned']['order_count']);
     }
 
-    public function test_totals_count_every_order_in_the_period_not_only_the_listed_two_hundred(): void
+    public function test_totals_count_every_order_in_the_period_and_the_list_is_paged(): void
     {
         $owner = User::factory()->staff('super_admin')->create();
         $partner = User::factory()->dealer()->create();
@@ -68,7 +68,8 @@ class BranchPerformanceReportTest extends TestCase
 
         $summary = app(BranchPerformance::class)->summary($owner, ['period' => 'month']);
 
-        $this->assertCount(BranchPerformance::RecentOrderLimit, $summary['orders']);
+        $this->assertCount(25, $summary['orders']->items());
+        $this->assertSame(230, $summary['orders']->total());
         $this->assertSame(230, $summary['totals']['order_count']);
         $this->assertSame('19000.00', $summary['totals']['order_value']);
         $this->assertSame('15000.00', $summary['totals']['income']);
@@ -134,7 +135,7 @@ class BranchPerformanceReportTest extends TestCase
         $this->assertSame('200.00', $summary['totals']['estimated_profit']);
         $this->assertSame(
             ['approved', 'delivered', 'dispatched', 'partially_dispatched'],
-            collect($summary['orders'])->pluck('status')->sort()->values()->all(),
+            collect($summary['orders']->items())->pluck('status')->sort()->values()->all(),
         );
     }
 
@@ -158,7 +159,7 @@ class BranchPerformanceReportTest extends TestCase
         $this->assertSame(1, $summary['totals']['order_count']);
         $this->assertSame('200.00', $summary['totals']['order_value']);
         $this->assertSame(0, $summary['unassigned']['order_count']);
-        $this->assertSame(['DHK-02'], collect($summary['orders'])->pluck('branch_code')->unique()->values()->all());
+        $this->assertSame(['DHK-02'], collect($summary['orders']->items())->pluck('branch_code')->unique()->values()->all());
 
         try {
             app(BranchPerformance::class)->summary($reportsClerk, ['period' => 'month', 'branch_id' => $hub->id]);

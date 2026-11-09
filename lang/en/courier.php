@@ -122,4 +122,11 @@ return [
     'event_shipment_received_back' => 'Parcel received back',
     // Deliveries board: the step shown for one parcel.
     'step_booking_failed' => 'Booking failed',
+    // Order page: how long ago the courier last gave an answer.
+    'checked_just_now' => 'just now',
+    'checked_one_minute_ago' => '1 minute ago',
+    'checked_minutes_ago' => ':count minutes ago',
+    'checked_one_hour_ago' => '1 hour ago',
+    'checked_hours_ago' => ':count hours ago',
+    'checked_no_answer_yet' => 'no answer yet',
 ];

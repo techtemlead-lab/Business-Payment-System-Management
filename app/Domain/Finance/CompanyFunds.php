@@ -233,6 +233,18 @@ final class CompanyFunds
             ->when(! $showOwnerFunds, fn ($query) => $query->whereRaw("COALESCE(r.fund_key, '') NOT IN ('".implode("','", self::OwnerOnly)."')"));
     }
 
+    /**
+     * Leaves out the journal entries of spends from the owners' own fund. Their description
+     * names the fund and the expense head, which only the owners may see.
+     */
+    public static function withoutOwnerOnlySpends(Builder $journal, string $eventKeyColumn): Builder
+    {
+        return $journal->whereNotExists(fn (Builder $spends) => $spends->selectRaw('1')->from('reserve_disbursements as owner_spend')
+            ->where('owner_spend.program', FundSpending::Program)
+            ->whereIn('owner_spend.fund_key', self::OwnerOnly)
+            ->whereRaw($eventKeyColumn." = 'fund.spend.' || owner_spend.id::text"));
+    }
+
     /** @return array{from: string, to: string} This calendar month in Bangladesh time. */
     public static function defaultPeriod(): array
     {

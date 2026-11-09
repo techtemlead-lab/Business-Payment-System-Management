@@ -25,6 +25,6 @@ class RefreshShipmentTracking implements ShouldQueue
      */
     public function handle(ShipmentTracking $tracking): void
     {
-        $tracking->refresh($this->shipmentId);
+        $tracking->refreshIfDue($this->shipmentId);
     }
 }

@@ -33,7 +33,7 @@ final class CatalogSection implements WorkspaceSection
         $productQuery = Product::query()
             ->withSellableStock()
             ->when(! $context->isStaff, fn ($q) => $q->where('active', true))
-            ->when($request->filled('q'), fn ($q) => $q->where(fn ($match) => $match->where('name', 'ilike', '%'.$request->string('q').'%')->orWhere('sku', 'ilike', '%'.$request->string('q').'%')->orWhere('category', 'ilike', '%'.$request->string('q').'%')))
+            ->when($context->section !== 'inventory' && $request->filled('q'), fn ($q) => $q->where(fn ($match) => $match->where('name', 'ilike', '%'.$request->string('q').'%')->orWhere('sku', 'ilike', '%'.$request->string('q').'%')->orWhere('category', 'ilike', '%'.$request->string('q').'%')))
             ->when($context->section === 'catalog' && $request->filled('category'), fn ($q) => $q->where('category', $request->string('category')))
             ->when($context->section === 'catalog' && $request->filled('sub_category'), fn ($q) => $q->where('sub_category', $request->string('sub_category')))
             ->when($context->section === 'catalog' && $request->filled('unit'), fn ($q) => $q->where('unit', $request->string('unit')))
