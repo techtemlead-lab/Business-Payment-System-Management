@@ -126,7 +126,7 @@ function OrderTable({page,empty,emptyBody,tools=true,searchable=true,report=fals
 const orderStatuses=['submitted','held','approved','partially_dispatched','dispatched','delivered','cancelled'];
 const claimStatuses=['pending','verified','rejected'];
 const withdrawalStatuses=['requested','approved','rejected','paid'];
-const accountStatuses=['active','pending','suspended'];
+const accountStatuses=['active','pending','suspended','closed'];
 const paymentChannels=['Bank','bKash','Nagad','Rocket'];
 /**
  * Status tabs with counts above a list (orders, payments, withdrawals — as in Shopify
@@ -136,7 +136,8 @@ function StatusTabs({counts,filters,section,statuses}:{counts:Record<string,numb
  const translate=useT();
  const {portalBase:base}=usePage<any>().props;
  const active=String(filters.status||'');
- const total=Object.values(counts).reduce((sum,count)=>sum+Number(count||0),0);
+ // Closed partners have their own tab and are left out of "All".
+ const total=Object.entries(counts).reduce((sum,[status,count])=>status==='closed'&&['accounts','sub-dealers'].includes(section)?sum:sum+Number(count||0),0);
  const tabs=[{value:'',label:translate('portal','orders_tab_all'),count:total},...[...statuses,...Object.keys(counts).filter(status=>!statuses.includes(status))].map(status=>({value:status,label:label(status,translate),count:Number(counts[status]||0)}))];
  const go=(status:string)=>{
   const query=Object.fromEntries(Object.entries({...filters,status}).filter(([key,value])=>value!==''&&value!=null&&key!=='page'));

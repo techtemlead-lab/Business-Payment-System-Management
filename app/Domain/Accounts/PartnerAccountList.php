@@ -31,8 +31,11 @@ final class PartnerAccountList
     /** "No confirmed order in the last N days" choices. */
     public const QuietDays = [30, 60, 90];
 
+    /** The status tab for accounts the owner closed; they are left out of every other tab. */
+    public const ClosedStatus = 'closed';
+
     /** Columns the list shows; never the NID or any secret. */
-    private const Columns = ['users.id', 'users.name', 'users.email', 'users.phone', 'users.role', 'users.linked_staff_role', 'users.status', 'users.dealer_code', 'users.division', 'users.district', 'users.latitude', 'users.longitude', 'users.directory_visible', 'users.profile', 'users.sponsor_id', 'users.created_at'];
+    private const Columns = ['users.id', 'users.name', 'users.email', 'users.phone', 'users.role', 'users.linked_staff_role', 'users.status', 'users.dealer_code', 'users.division', 'users.district', 'users.latitude', 'users.longitude', 'users.directory_visible', 'users.closed_at', 'users.profile', 'users.sponsor_id', 'users.created_at'];
 
     /**
      * Validation rules for the list filters, shared by the page and the download.
@@ -118,8 +121,9 @@ final class PartnerAccountList
     public function statusCounts(string $role, array $filters, ?BranchScope $branchScope = null): array
     {
         return $this->matching($role, $filters, $branchScope)->toBase()
-            ->select('users.status')->selectRaw('COUNT(*) AS aggregate')->groupBy('users.status')
-            ->pluck('aggregate', 'status')->map(fn ($count): int => (int) $count)->all();
+            ->selectRaw('CASE WHEN users.closed_at IS NULL THEN users.status ELSE ? END AS account_tab', [self::ClosedStatus])
+            ->selectRaw('COUNT(*) AS aggregate')->groupBy('account_tab')
+            ->pluck('aggregate', 'account_tab')->map(fn ($count): int => (int) $count)->all();
     }
 
     /**
@@ -232,7 +236,12 @@ final class PartnerAccountList
      */
     private function withStatus(EloquentBuilder $query, array $filters): EloquentBuilder
     {
-        return $query->when($filters['status'] !== '', fn (EloquentBuilder $q) => $q->where('users.status', $filters['status']));
+        if ($filters['status'] === self::ClosedStatus) {
+            return $query->whereNotNull('users.closed_at');
+        }
+
+        return $query->whereNull('users.closed_at')
+            ->when($filters['status'] !== '', fn (EloquentBuilder $q) => $q->where('users.status', $filters['status']));
     }
 
     private function decimal(mixed $value): string

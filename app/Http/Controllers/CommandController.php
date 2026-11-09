@@ -410,6 +410,10 @@ class CommandController extends Controller
                 $locked->forceFill(['remember_token' => Str::random(60)])->save();
                 DB::table('sessions')->where('user_id', $user->id)->delete();
             }
+            if (($d['status'] ?? '') === 'active' && $locked->closed_at !== null) {
+                $tracedChanges['closed_at'] = ['before' => Carbon::parse($locked->closed_at)->toIso8601String(), 'after' => null];
+                $locked->forceFill(['closed_at' => null])->save();
+            }
             Audit::record($r->user()->id, 'account.updated', (string) $user->id, ['fields' => array_keys($d), 'changes' => $tracedChanges, 'reason' => $reason]);
             if ($phoneCheck !== null) {
                 app(AccountPhoneRules::class)->recordShare($r->user(), $locked, $phoneCheck);

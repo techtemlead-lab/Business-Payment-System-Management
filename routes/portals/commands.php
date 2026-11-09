@@ -10,6 +10,7 @@ use App\Http\Controllers\CustomerBookController;
 use App\Http\Controllers\DataCleanupController;
 use App\Http\Controllers\DatedSchemeController;
 use App\Http\Controllers\IdentityLookupController;
+use App\Http\Controllers\PartnerAccountDeletionController;
 use App\Http\Controllers\PartnerAgreementController;
 use App\Http\Controllers\PartnerChatController;
 use App\Http\Controllers\PartnerContestController;
@@ -90,6 +91,8 @@ return function (string $portal): void {
     Route::post('/commands/orders/{order}/refund', [CommandController::class, 'refund'])->middleware('throttle:10,1');
     Route::post('/commands/accounts', [CommandController::class, 'account']);
     Route::patch('/commands/accounts/{user}', [CommandController::class, 'accountUpdate']);
+    Route::delete('/commands/accounts/{user}', [PartnerAccountDeletionController::class, 'destroy'])->middleware('throttle:10,1');
+    Route::get('/commands/accounts/{user}/deletion-check', [PartnerAccountDeletionController::class, 'show'])->middleware('throttle:60,1');
     Route::post('/commands/accounts/{user}/benefit-controls', [CommandController::class, 'benefitControls']);
     Route::post('/commands/accounts/{user}/invite', [CommandController::class, 'invite'])->middleware('throttle:3,1');
     Route::get('/commands/accounts/{user}/password-status', [CommandController::class, 'partnerPasswordStatus'])->middleware('throttle:60,1');
