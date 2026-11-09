@@ -1307,6 +1307,18 @@ dialog.portal-modal::backdrop{
   border-top: 9px solid #ffffff;
   filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.06));
 }
+.onboarding-card-pointer.pointer-right {
+  left: -9px; top: 32px;
+  border-top: 9px solid transparent;
+  border-bottom: 9px solid transparent;
+  border-right: 9px solid #ffffff;
+}
+.onboarding-card-pointer.pointer-left {
+  right: -9px; top: 32px;
+  border-top: 9px solid transparent;
+  border-bottom: 9px solid transparent;
+  border-left: 9px solid #ffffff;
+}
 
 /* Floating Tour Card */
 .floating-step-card {
@@ -1389,6 +1401,19 @@ dialog.portal-modal::backdrop{
   width: 20px; height: 7px; border-radius: 999px;
   background: linear-gradient(90deg, #10b981, #2563eb);
   box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
+.onboarding-card-footer {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+}
+.onboarding-footer-nav { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.onboarding-footer-nav .button { display: inline-flex; align-items: center; gap: 4px; }
+
+@media (max-width: 767px) {
+  .floating-step-card { padding: 14px 16px 12px; }
+  .onboarding-location-breadcrumb, .onboarding-step-dots { display: none; }
+  .onboarding-step-tip { margin-bottom: 8px; }
+  .onboarding-target-beacon { max-width: calc(100vw - 24px); white-space: normal; }
 }
 
 /* 3. Searchable Full User Manual Modal */

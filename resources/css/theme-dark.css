@@ -968,6 +968,14 @@ html[data-theme="dark"] .onboarding-card-pointer.pointer-top {
     border-top-color: #0f172a !important;
 }
 
+html[data-theme="dark"] .onboarding-card-pointer.pointer-right {
+    border-right-color: #0f172a !important;
+}
+
+html[data-theme="dark"] .onboarding-card-pointer.pointer-left {
+    border-left-color: #0f172a !important;
+}
+
 html[data-theme="dark"] .onboarding-card-step-badge {
     background: #1e293b !important;
     color: #94a3b8 !important;

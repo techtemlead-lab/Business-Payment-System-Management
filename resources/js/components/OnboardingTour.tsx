@@ -158,44 +158,68 @@ export function restartOnboardingTour(userId: unknown, portalBase: string | unde
     });
 }
 
-/** Keep the guide card safely inside the viewport and avoid obscuring the target */
-function calculateCardLayout(rect: DOMRect | null, measuredHeight: number): { top: number; left: number; position: 'bottom' | 'top' | 'center' } {
-    const cardWidth = Math.min(420, window.innerWidth - 32);
-    const cardHeight = Math.min(measuredHeight || 290, window.innerHeight - 32);
-    const gap = 16;
-    const margin = 16;
+type CardPosition = 'bottom' | 'top' | 'left' | 'right' | 'center';
+
+const cardGap = 16;
+const cardMargin = 16;
+
+function cardWidthFor(viewportWidth: number): number {
+    return Math.min(420, viewportWidth - cardMargin * 2);
+}
+
+/** Keep the guide card safely inside the viewport and off the thing it is talking about. */
+function calculateCardLayout(rect: DOMRect | null, measuredHeight: number): { top: number; left: number; position: CardPosition } {
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const cardWidth = cardWidthFor(viewportWidth);
+    const cardHeight = Math.min(measuredHeight || 290, viewportHeight - cardMargin * 2);
 
     if (!rect) {
         return {
-            top: Math.max(margin, Math.round((window.innerHeight - cardHeight) / 2)),
-            left: Math.max(margin, Math.round((window.innerWidth - cardWidth) / 2)),
+            top: Math.max(cardMargin, Math.round((viewportHeight - cardHeight) / 2)),
+            left: Math.max(cardMargin, Math.round((viewportWidth - cardWidth) / 2)),
             position: 'center',
         };
     }
 
-    let top = rect.bottom + gap;
-    let position: 'bottom' | 'top' = 'bottom';
+    const centredLeft = Math.max(cardMargin, Math.min(rect.left + rect.width / 2 - cardWidth / 2, viewportWidth - cardWidth - cardMargin));
+    const besideTop = Math.max(cardMargin, Math.min(rect.top, viewportHeight - cardHeight - cardMargin));
 
-    // If bottom overflows, place above the element
-    if (top + cardHeight > window.innerHeight - margin) {
-        const topCandidate = rect.top - cardHeight - gap;
-        if (topCandidate >= margin) {
-            top = topCandidate;
-            position = 'top';
-        } else {
-            // If neither fits nicely, stick to bottom margin
-            top = Math.max(margin, window.innerHeight - cardHeight - margin);
-        }
+    if (rect.bottom + cardGap + cardHeight <= viewportHeight - cardMargin) {
+        return { top: Math.round(rect.bottom + cardGap), left: Math.round(centredLeft), position: 'bottom' };
+    }
+    if (rect.top - cardGap - cardHeight >= cardMargin) {
+        return { top: Math.round(rect.top - cardGap - cardHeight), left: Math.round(centredLeft), position: 'top' };
+    }
+    if (viewportWidth - rect.right >= cardWidth + cardGap + cardMargin) {
+        return { top: Math.round(besideTop), left: Math.round(rect.right + cardGap), position: 'right' };
+    }
+    if (rect.left >= cardWidth + cardGap + cardMargin) {
+        return { top: Math.round(besideTop), left: Math.round(rect.left - cardGap - cardWidth), position: 'left' };
     }
 
-    // Horizontally center with the element when possible
-    let left = rect.left + (rect.width / 2) - (cardWidth / 2);
-    if (left + cardWidth > window.innerWidth - margin) {
-        left = window.innerWidth - cardWidth - margin;
-    }
-    left = Math.max(margin, left);
+    return { top: Math.round(Math.max(cardMargin, viewportHeight - cardHeight - cardMargin)), left: Math.round(centredLeft), position: 'bottom' };
+}
 
-    return { top: Math.round(top), left: Math.round(left), position };
+/**
+ * Brings a step's target on screen and leaves room for the card. When the card can only go
+ * under the target (a phone), the target goes to the top of the screen, just below the top bar.
+ */
+function scrollTargetIntoView(el: HTMLElement, cardHeight: number): void {
+    const box = el.getBoundingClientRect();
+    const cardWidth = cardWidthFor(window.innerWidth);
+    const fitsBeside = window.innerWidth - box.right >= cardWidth + cardGap + cardMargin || box.left >= cardWidth + cardGap + cardMargin;
+    const roomWhenCentred = (window.innerHeight - box.height) / 2;
+    const block: ScrollLogicalPosition = !fitsBeside && roomWhenCentred < cardHeight + cardGap + cardMargin ? 'start' : 'center';
+    if (block === 'start') {
+        const topBar = document.querySelector<HTMLElement>('.workspace-header');
+        el.style.scrollMarginTop = `${(topBar?.getBoundingClientRect().bottom ?? 0) + 24}px`;
+    }
+    try {
+        el.scrollIntoView({ behavior: 'smooth', block, inline: 'nearest' });
+    } catch {
+        el.scrollIntoView();
+    }
 }
 
 export default function OnboardingTour({
@@ -208,6 +232,7 @@ export default function OnboardingTour({
     const page = usePage<any>();
     const { auth, manualRuleValues, portalBase } = page.props;
     const user = auth?.user;
+    const capabilities: string[] = auth?.capabilities ?? [];
 
     const chapters = useMemo<ManualChapter[]>(() => {
         const source = manualChaptersProp && manualChaptersProp.length > 0
@@ -232,7 +257,9 @@ export default function OnboardingTour({
     /** The steps whose target is on this screen, fixed when the tour starts. */
     const [liveSteps, setLiveSteps] = useState<TourStep[] | null>(null);
     const [cardHeight, setCardHeight] = useState(0);
+    const [beaconWidth, setBeaconWidth] = useState(0);
     const cardRef = useRef<HTMLDivElement | null>(null);
+    const beaconRef = useRef<HTMLDivElement | null>(null);
 
     // Sync external forceOpenManual
     useEffect(() => {
@@ -287,6 +314,9 @@ export default function OnboardingTour({
         if (tourActive && cardRef.current) {
             setCardHeight(cardRef.current.offsetHeight);
         }
+        if (tourActive && beaconRef.current) {
+            setBeaconWidth(beaconRef.current.offsetWidth);
+        }
     }, [tourActive, stepIndex, rect]);
 
     // Locate target element and compute bounding rect with smooth scroll
@@ -308,13 +338,7 @@ export default function OnboardingTour({
 
         setElementMissing(false);
 
-        // Smooth scroll to target
-        try {
-            el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
-        } catch {
-            // Fallback for older environments
-            el.scrollIntoView();
-        }
+        scrollTargetIntoView(el, cardRef.current?.offsetHeight ?? 290);
 
         const updateRect = () => {
             if (!isMounted) return;
@@ -516,24 +540,27 @@ export default function OnboardingTour({
                     subtitle: translate('portal', 'tour_welcome_staff_sub'),
                     pillars: [
                         {
+                            needs: ['orders'],
                             icon: <ShoppingBag size={22} />,
                             iconClass: 'ops',
                             title: translate('portal', 'tour_pillar_staff_dispatch_title'),
                             desc: translate('portal', 'tour_pillar_staff_dispatch_desc'),
                         },
                         {
+                            needs: ['order_review', 'finance'],
                             icon: <CheckCircle2 size={22} />,
                             iconClass: 'fin',
                             title: translate('portal', 'tour_pillar_staff_claims_title'),
                             desc: translate('portal', 'tour_pillar_staff_claims_desc'),
                         },
                         {
+                            needs: ['inventory'],
                             icon: <Layers size={22} />,
                             iconClass: 'help',
                             title: translate('portal', 'tour_pillar_staff_inventory_title'),
                             desc: translate('portal', 'tour_pillar_staff_inventory_desc'),
                         },
-                    ],
+                    ].filter((pillar) => pillar.needs.some((capability) => capabilities.includes(capability))),
                 };
             case 'dealer':
             default:
@@ -563,7 +590,7 @@ export default function OnboardingTour({
                     ],
                 };
         }
-    }, [activeTour?.audience, tour?.pending, translate]);
+    }, [activeTour?.audience, tour?.pending, translate, capabilities]);
 
     return (
         <>
@@ -679,10 +706,11 @@ export default function OnboardingTour({
 
                             {/* Floating Target Beacon & Indicator Badge */}
                             <div
+                                ref={beaconRef}
                                 className="onboarding-target-beacon"
                                 style={{
                                     top: Math.max(10, rect.top - 18),
-                                    left: Math.max(12, rect.left + 14),
+                                    left: Math.max(12, Math.min(rect.left + 14, window.innerWidth - beaconWidth - 12)),
                                 }}
                             >
                                 <span className="beacon-ping" />

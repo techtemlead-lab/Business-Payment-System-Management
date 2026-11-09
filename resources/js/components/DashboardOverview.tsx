@@ -537,8 +537,11 @@ function OfficeToday({ home, base }: { home: Row; base: string }) {
         { key: 'partners', label: translate('portal', 'admin_stat_partner_accounts'), value: number(snapshot.partner_accounts ?? 0), show: caps.includes('accounts') },
     ].filter((total) => total.show);
 
+    // The tour step talks about the numbers, so it is skipped for staff who get none here.
+    const hasFigures = figures.length > 0 || totals.length > 0;
+
     return (
-        <section className="office-today" data-tour="home-metrics" aria-labelledby="office-today-title">
+        <section className="office-today" data-tour={hasFigures ? 'home-metrics' : undefined} aria-labelledby="office-today-title">
             <div className="office-today-head">
                 <div>
                     <p>{translate('portal', 'ph_greeting')} {name}</p>
