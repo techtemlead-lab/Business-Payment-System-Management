@@ -116,4 +116,5 @@ return [
     'fill_in_action' => 'তথ্য লিখুন',
     'err_nothing_to_fill' => 'এই ব্যাচে এই তথ্য আগে থেকেই আছে।',
     'flash_lot_details_saved' => 'ব্যাচের তথ্য সেভ হয়েছে।',
+    'units_on_hold' => ':countটি আটকে আছে',
 ];

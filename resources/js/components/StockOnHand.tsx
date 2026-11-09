@@ -31,6 +31,10 @@ type StockProduct = {
     is_stock_paused?: boolean;
     /** Units on approved orders that have not been sent yet. */
     booked_units?: number;
+    /** Units that can really go out: goods on hold or past their date are left out. */
+    available_units?: number;
+    company_available?: number;
+    held_units?: number;
 };
 
 type ProductStockRow = StockProduct;
@@ -64,8 +68,12 @@ function percentLabel(value?: string | null): string {
     return `${localizeDigits(trimmed)}%`;
 }
 
-function availableUnits(product: StockProduct): number {
+function physicalUnits(product: StockProduct): number {
     return Number(product.branch_stock ?? product.stock ?? 0);
+}
+
+function availableUnits(product: StockProduct): number {
+    return Number(product.available_units ?? physicalUnits(product));
 }
 
 function uniqueValues(products: StockProduct[], key: 'category' | 'sub_category' | 'unit'): string[] {
@@ -288,11 +296,16 @@ export default function StockOnHand({
                         render: (p: ProductStockRow) => {
                             const onHand = availableUnits(p);
                             const low = Number(p.low_stock_at ?? 0);
+                            const company = p.company_available ?? p.company_stock;
+                            const held = Number(p.held_units ?? 0);
                             return (
                                 <b className={onHand <= low ? 'text-amber' : ''}>
                                     {number(onHand)}
-                                    {p.company_stock != null && p.company_stock !== onHand ? (
-                                        <small className="cell-sub">{translate('portal', 'branch_company_total', { count: number(p.company_stock) })}</small>
+                                    {company != null && company !== onHand ? (
+                                        <small className="cell-sub">{translate('portal', 'branch_company_total', { count: number(company) })}</small>
+                                    ) : null}
+                                    {held > 0 ? (
+                                        <small className="cell-sub">{translate('stock_lots', 'units_on_hold', { count: number(held) })}</small>
                                     ) : null}
                                 </b>
                             );
@@ -309,7 +322,7 @@ export default function StockOnHand({
                             if (booked <= 0) {
                                 return '—';
                             }
-                            const free = Number(p.company_stock ?? p.stock ?? availableUnits(p)) - booked;
+                            const free = Number(p.company_available ?? p.company_stock ?? p.stock ?? availableUnits(p)) - booked;
                             return (
                                 <span title={translate('portal', 'col_booked_units_hint')}>
                                     {number(booked)}
@@ -324,8 +337,8 @@ export default function StockOnHand({
                         sortable: true,
                         money: true,
                         total: true,
-                        sortValue: (p: ProductStockRow) => availableUnits(p) * Number(p.mrp || 0),
-                        render: (p: ProductStockRow) => money(availableUnits(p) * Number(p.mrp || 0)),
+                        sortValue: (p: ProductStockRow) => physicalUnits(p) * Number(p.mrp || 0),
+                        render: (p: ProductStockRow) => money(physicalUnits(p) * Number(p.mrp || 0)),
                     },
                     {
                         key: 'reorder',

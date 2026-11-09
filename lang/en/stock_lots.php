@@ -116,4 +116,5 @@ return [
     'fill_in_action' => 'Fill in',
     'err_nothing_to_fill' => 'This batch already has these details.',
     'flash_lot_details_saved' => 'Batch details saved.',
+    'units_on_hold' => ':count on hold',
 ];
