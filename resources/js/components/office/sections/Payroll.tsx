@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { usePage } from '@inertiajs/react';
 import { actionAllowed } from '../../action-permissions';
-import { Badge, Modal, Pagination, Table, dateTime, money, type Row } from '../../UI';
+import { Badge, Modal, Pagination, Table, dateTime, label, money, type Row } from '../../UI';
 import type { OfficeHub } from '../../OfficeHubTabs';
 import OfficePage from '../OfficePage';
 import { businessMonth } from '../../../business-date';
@@ -72,7 +72,7 @@ export default function Payroll({ tables, staff, paymentAccounts, secondApprover
             const review: StaffAction = {
                 title: translate('portal', 'ops_review_payroll'),
                 action: `${commandRoot}/payroll/${row.id}/review`,
-                fields: [{ name: 'decision', label: translate('portal', 'ops_fld_decision'), required: true, options: ['approved', 'rejected'].map((value) => ({ value, label: translate('portal', `status_${value}`) })) }, reason],
+                fields: [{ name: 'decision', label: translate('portal', 'ops_fld_decision'), required: true, options: ['approved', 'rejected'].map((value) => ({ value, label: label(value, translate) })) }, reason],
             };
             if (row.prepared_by !== auth.user.id) {
                 actions.push(review);

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { usePage } from '@inertiajs/react';
 import { actionAllowed } from '../../action-permissions';
-import { Badge, Modal, Pagination, Table, date, type Row } from '../../UI';
+import { Badge, Modal, Pagination, Table, date, label, type Row } from '../../UI';
 import { useT } from '../../../shared/i18n/t';
 import { commandRoot, DrawerLines, readStored, SectionTableSearch, StaffActionDialog, StoredDetails, textField, type StaffAction, type StaffField, type StaffSectionTable } from './staffSectionParts';
 
@@ -28,7 +28,7 @@ export default function DealerApplicationsView({ table }: { table: StaffSectionT
             title: translate('portal', 'ops_review_application'),
             action: `${commandRoot}/staff/applications/${row.id}/review`,
             fields: [
-                { name: 'decision', label: translate('portal', 'ops_fld_decision'), required: true, options: ['approved', 'rejected'].map((value) => ({ value, label: translate('portal', `status_${value}`) })) },
+                { name: 'decision', label: translate('portal', 'ops_fld_decision'), required: true, options: ['approved', 'rejected'].map((value) => ({ value, label: label(value, translate) })) },
                 reason,
                 textField('place_code', translate('portal', 'ops_fld_place_code_review'), 'text', false),
             ],
