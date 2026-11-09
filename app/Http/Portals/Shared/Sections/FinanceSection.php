@@ -9,6 +9,7 @@ use App\Domain\Geography\ManagementReferral;
 use App\Domain\Inventory\BranchScope;
 use App\Domain\Orders\OrderListFilter;
 use App\Models\CommissionAllocation;
+use App\Support\LocalDigits;
 use App\Support\Money;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
@@ -177,9 +178,12 @@ final class FinanceSection implements WorkspaceSection
     {
         $events = DB::table('audit_events')->leftJoin('users', 'users.id', '=', 'actor_id');
         if ($request->filled('q')) {
-            $term = '%'.addcslashes($request->string('q')->toString(), '%_\\').'%';
-            $events->where(fn ($query) => $query->where('audit_events.action', 'ilike', $term)
-                ->orWhere('audit_events.subject', 'ilike', $term)
+            $search = trim($request->string('q')->toString());
+            $term = '%'.addcslashes($search, '%_\\').'%';
+            $subjectTerm = '%'.addcslashes(LocalDigits::latin($search), '%_\\').'%';
+            $actions = $this->auditActionsNamed($search);
+            $events->where(fn ($query) => $query->whereIn('audit_events.action', $actions)
+                ->orWhere('audit_events.subject', 'ilike', $subjectTerm)
                 ->orWhere('users.name', 'ilike', $term));
         }
         $this->whereCreatedIn($events, 'audit_events.created_at', $request);
@@ -188,6 +192,49 @@ final class FinanceSection implements WorkspaceSection
             'events' => $events->select('audit_events.id', 'action', 'subject', 'audit_events.created_at', 'users.name')
                 ->orderByDesc('audit_events.id')->paginate(25)->withQueryString(),
         ];
+    }
+
+    /**
+     * The logged actions whose name on screen contains the search, in either language. The
+     * table shows that name and never the stored code, so a search must not match the code.
+     *
+     * @return list<string>
+     */
+    private function auditActionsNamed(string $search): array
+    {
+        $words = $this->comparableText($search);
+
+        return DB::table('audit_events')->distinct()->pluck('action')
+            ->filter(fn (string $action): bool => collect(config('madina.locales'))
+                ->contains(fn (string $locale): bool => str_contains($this->comparableText($this->auditActionName($action, $locale)), $words)))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * The same name auditActionLabel() in UI.tsx puts on the row.
+     */
+    private function auditActionName(string $action, string $locale): string
+    {
+        $code = str_replace('.', '_', $action);
+        foreach (['event_', 'report_cat_', 'label_', 'acct_role_', 'staff_role_', 'settle_kind_', 'jr_account_', 'status_', ''] as $prefix) {
+            $key = 'portal.'.$prefix.$code;
+            $name = __($key, [], $locale);
+            if ($name !== $key) {
+                return (string) $name;
+            }
+        }
+
+        return str_replace('_', ' ', $code);
+    }
+
+    /**
+     * Lower case, with the Bangla letters that have two spellings in Unicode (য়, ড়, ঢ়) written
+     * one way, so words typed on any keyboard match the same words on the page.
+     */
+    private function comparableText(string $text): string
+    {
+        return mb_strtolower(strtr($text, ["\u{09DF}" => "\u{09AF}\u{09BC}", "\u{09DC}" => "\u{09A1}\u{09BC}", "\u{09DD}" => "\u{09A2}\u{09BC}"]));
     }
 
     /**
