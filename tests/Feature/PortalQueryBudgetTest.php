@@ -282,6 +282,27 @@ class PortalQueryBudgetTest extends TestCase
         $this->assertCount(count($queries), $moreQueries, 'Stock movement queries must not grow with the number of movements.');
     }
 
+    public function test_support_desk_totals_and_replies_do_not_grow_with_tickets(): void
+    {
+        $owner = User::factory()->staff()->create();
+        $dealer = User::factory()->dealer()->create(['status' => 'active']);
+        $this->supportTickets($dealer, 2);
+        $visit = fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/support-admin');
+        $visit()->assertOk();
+
+        [$response, $queries] = $this->measure($visit);
+        $response->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.support_admin.table.totals.count', 2)
+            ->where('data.support_admin.counts.pending', 2));
+        $this->assertSame(1, $this->matching($queries, 'money_table_count'), 'The row count comes from one query.');
+        $this->assertSame(1, $this->matching($queries, 'group by "status"'), 'The state cards come from one query.');
+        $this->assertSame(1, $this->matching($queries, 'from "support_ticket_replies" inner join'), 'Replies for the whole page come from one query.');
+
+        $this->supportTickets($dealer, 20);
+        [, $moreQueries] = $this->measure($visit);
+        $this->assertCount(count($queries), $moreQueries, 'Support desk queries must not grow with the number of tickets.');
+    }
+
     public function test_branch_performance_reads_every_order_without_a_query_per_order(): void
     {
         $owner = User::factory()->staff()->create();
@@ -387,6 +408,15 @@ class PortalQueryBudgetTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+    }
+
+    private function supportTickets(User $partner, int $count): void
+    {
+        foreach (range(1, $count) as $index) {
+            $ticketId = (string) Str::uuid();
+            DB::table('support_tickets')->insert(['id' => $ticketId, 'user_id' => $partner->id, 'category' => 'technical', 'subject' => 'Ticket '.$index, 'body' => 'Body', 'status' => 'pending', 'created_at' => now(), 'updated_at' => now()]);
+            DB::table('support_ticket_replies')->insert(['support_ticket_id' => $ticketId, 'user_id' => $partner->id, 'body' => 'Reply', 'is_staff' => false, 'created_at' => now(), 'updated_at' => now()]);
+        }
     }
 
     private function stockMovements(User $actor, Product $product, int $count): void
