@@ -170,5 +170,7 @@ return [
     'chip_from' => ':value থেকে',
     'chip_to' => ':value পর্যন্ত',
     'tab_stock_on_hand' => 'স্টক',
+    'price_dealer_short' => 'ডিলার',
+    'price_subdealer_short' => 'সাব-ডিলার',
     'tab_stock_movements' => 'স্টক আসা-যাওয়া',
 ];
