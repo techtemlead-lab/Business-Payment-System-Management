@@ -31,7 +31,8 @@
 
 /* Statement */
 .mm-book{min-width:0;scroll-margin-top:84px}
-.mm-book .cell-sub{font-size:var(--ds-fs-sm)}
+.mm-book .cell-sub,.mm-book .mt-card-lines{font-size:var(--ds-fs-sm)}
+.mm-book .mt-card-title .cell-sub{font-weight:400}
 :is(.mm-hero-number,.mm-card strong,.mm-book span).is-negative{color:var(--ds-danger-fg)}
 
 /* Files menu */
@@ -68,6 +69,9 @@
 }
 @media(max-width:900px){
   .mm-cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:767px){
+  .mm-downloads-menu{left:0;right:auto}
 }
 @media(max-width:640px){
   .mm-order-step>.button{width:100%;justify-content:center;min-height:46px}
