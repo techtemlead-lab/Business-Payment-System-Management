@@ -25,15 +25,31 @@ class PurchasingController extends Controller
         return back()->with('success', __('purchasing.flash_supplier_saved', ['name' => $supplier->name]));
     }
 
+    public function archiveSupplier(Request $request, Supplier $supplier, PurchasingService $purchasing): RedirectResponse
+    {
+        $purchasing->archiveSupplier($request->user(), $supplier);
+
+        return back()->with('success', __('purchasing.flash_supplier_archived', ['name' => $supplier->name]));
+    }
+
+    public function restoreSupplier(Request $request, Supplier $supplier, PurchasingService $purchasing): RedirectResponse
+    {
+        $purchasing->restoreSupplier($request->user(), $supplier);
+
+        return back()->with('success', __('purchasing.flash_supplier_restored', ['name' => $supplier->name]));
+    }
+
     public function storeOrder(Request $request, PurchasingService $purchasing): RedirectResponse
     {
         $data = $request->validate([
-            'supplier_id' => ['required', 'integer', 'exists:suppliers,id'],
+            'supplier_id' => ['bail', 'required', 'integer', Rule::exists('suppliers', 'id')->whereNull('archived_at')],
             'branch_id' => ['required', 'integer', 'exists:company_branches,id'],
             'notes' => ['nullable', 'string', 'max:2000'],
             'lines' => ['required', 'array', 'min:1', 'max:200'],
             'lines.*.product_id' => ['required', 'integer', 'distinct', Rule::exists('products', 'id')->where('active', true)],
             'lines.*.quantity' => ['required', 'integer', 'min:1', 'max:100000'],
+        ], [
+            'supplier_id.exists' => __('purchasing.err_supplier_archived'),
         ]);
         $order = $purchasing->createOrder($request->user(), $data);
 

@@ -30,5 +30,13 @@ return [
     'reject' => 'Reject',
     'reject_title' => 'Reject this application',
     'reject_reason' => 'Reason',
+    'area_assign' => 'Add area dealer',
+    'area_assign_dealer' => 'Dealer',
+    'area_assign_find_dealer' => 'Type a name or dealer code',
+    'area_assign_level' => 'Area level',
+    'area_assign_place' => 'Area',
+    'area_assign_find_place' => 'Type a place name or code',
+    'area_assign_too_many' => 'Showing the first :count. Type more to narrow the list.',
+    'area_assign_quota' => 'Monthly target (৳)',
     'cannot_review_own' => 'You sent this application, so someone else must decide it.',
 ];

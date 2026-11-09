@@ -32,7 +32,7 @@ class FieldSalesController extends Controller
         $data = $request->validate(['reason' => FinanceOperationsController::Reason]);
         $territories->remove($request->user(), $id, $data['reason']);
 
-        return $this->done($request);
+        return $this->done($request, [], 'portal.flash_sr_area_removed');
     }
 
     public function target(Request $request, StaffOperations $operations): Response

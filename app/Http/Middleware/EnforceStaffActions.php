@@ -278,7 +278,7 @@ class EnforceStaffActions
             'PrescriberVerificationController' => [['prescriber_verify'], 'edit'],
             'PublicTrustAdminController' => [['content'], 'edit'],
             'AccountingController' => [['finance'], $method === 'saveApprovalLimit' ? 'edit' : 'create'],
-            'PurchasingController' => [['inventory'], in_array($method, ['updateSupplier', 'sendOrder', 'cancelOrder'], true) ? 'edit' : 'create'],
+            'PurchasingController' => [['inventory'], in_array($method, ['updateSupplier', 'archiveSupplier', 'restoreSupplier', 'sendOrder', 'cancelOrder'], true) ? 'edit' : 'create'],
             'StockCountController' => [['inventory'], match ($method) {
                 'approve', 'reject' => 'approve',
                 'cancel' => 'edit',

@@ -14,6 +14,16 @@ class Supplier extends Model
 
     protected $guarded = ['id'];
 
+    /** @var array<string, string> */
+    protected $casts = [
+        'archived_at' => 'datetime',
+    ];
+
+    public function isArchived(): bool
+    {
+        return $this->archived_at !== null;
+    }
+
     /** @return HasMany<PurchaseOrder, $this> */
     public function purchaseOrders(): HasMany
     {

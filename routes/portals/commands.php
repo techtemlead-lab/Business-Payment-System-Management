@@ -230,6 +230,8 @@ return function (string $portal): void {
     Route::delete('/commands/accounts/{user}/prescriber', [PrescriberVerificationController::class, 'disable'])->middleware('throttle:20,1');
     Route::post('/commands/purchasing/suppliers', [PurchasingController::class, 'storeSupplier'])->middleware('throttle:30,1');
     Route::patch('/commands/purchasing/suppliers/{supplier}', [PurchasingController::class, 'updateSupplier'])->whereNumber('supplier')->middleware('throttle:30,1');
+    Route::post('/commands/purchasing/suppliers/{supplier}/archive', [PurchasingController::class, 'archiveSupplier'])->whereNumber('supplier')->middleware('throttle:30,1');
+    Route::post('/commands/purchasing/suppliers/{supplier}/restore', [PurchasingController::class, 'restoreSupplier'])->whereNumber('supplier')->middleware('throttle:30,1');
     Route::post('/commands/purchasing/orders', [PurchasingController::class, 'storeOrder'])->middleware('throttle:30,1');
     Route::post('/commands/purchasing/orders/{purchaseOrder}/send', [PurchasingController::class, 'sendOrder'])->whereNumber('purchaseOrder')->middleware('throttle:30,1');
     Route::post('/commands/purchasing/orders/{purchaseOrder}/cancel', [PurchasingController::class, 'cancelOrder'])->whereNumber('purchaseOrder')->middleware('throttle:30,1');

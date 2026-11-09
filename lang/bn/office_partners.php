@@ -30,5 +30,13 @@ return [
     'reject' => 'নামঞ্জুর',
     'reject_title' => 'আবেদনটি নামঞ্জুর করুন',
     'reject_reason' => 'কারণ',
+    'area_assign' => 'এরিয়া ডিলার যোগ করুন',
+    'area_assign_dealer' => 'ডিলার',
+    'area_assign_find_dealer' => 'নাম বা ডিলার কোড লিখুন',
+    'area_assign_level' => 'এলাকার ধরন',
+    'area_assign_place' => 'এলাকা',
+    'area_assign_find_place' => 'জায়গার নাম বা কোড লিখুন',
+    'area_assign_too_many' => 'প্রথম :countটি দেখানো হচ্ছে। তালিকা ছোট করতে আরও লিখুন।',
+    'area_assign_quota' => 'মাসের লক্ষ্য (৳)',
     'cannot_review_own' => 'এই আবেদনটি আপনি পাঠিয়েছেন, তাই অন্য কেউ সিদ্ধান্ত নেবেন।',
 ];

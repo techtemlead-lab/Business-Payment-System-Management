@@ -73,7 +73,7 @@ const Accounts=React.lazy(()=>import('../components/office/sections/Accounts'));
 const PartnerFrame=React.lazy(()=>import('../components/office/sections/PartnerFrame'));
 const SettingsHome=React.lazy(()=>import('../components/office/SettingsHome'));
 /** These pages draw their own tab strip through OfficePage, so the page must not print a second one. */
-const DRAWS_OWN_TABS=['accounts','sub-dealers','partnerships','sub-dealer-applications','network-tree','area-dealers','ranks','employees','content','website','customization','public-trust','enquiries','feedback','agreement','training','events','sales-kit','schemes','contests','dashboards','data-cleanup','identity-review','privacy-requests','login-rules','overview','support-admin','partner-messages','top-sellers','branch-performance','partner-scorecard'];
+const DRAWS_OWN_TABS=['accounts','sub-dealers','partnerships','sub-dealer-applications','network-tree','area-dealers','ranks','employees','content','website','customization','public-trust','enquiries','feedback','agreement','training','events','sales-kit','schemes','contests','dashboards','data-cleanup','identity-review','privacy-requests','login-rules','overview','support-admin','partner-messages','top-sellers','branch-performance','partner-scorecard','purchasing'];
 /**
  * Every 30 seconds work queues refresh their list, so new orders and payments show up
  * without a reload. Every other page only refreshes the menu badges: re-sending a whole
@@ -126,7 +126,7 @@ export default function Portal({section,data:d,filters}:{section:string,data:Row
  {section==='prescriptions'&&d.prescriptions&&<PrescriptionsHub data={d.prescriptions} tools={d.prescription_tools} publicTools={d.prescriber_public}/>}
  {section==='privacy-requests'&&<PrivacyRequestsHub data={d.privacy_queue}/>}
  {section==='security'&&d.privacy_requests&&<PartnerPrivacyRequests data={d.privacy_requests}/>}
- {section==='purchasing'&&d.purchasing&&<PurchasingHub data={d.purchasing}/>}
+ {section==='purchasing'&&d.purchasing&&<PurchasingHub data={d.purchasing} hub={d.hub}/>}
  {section==='stock-counts'&&d.stock_counts&&<StockCountHub data={d.stock_counts}/>}
  {section==='sales-kit'&&d.sales_kit&&<SalesKitHub data={d.sales_kit}/>}
  {section==='customers'&&d.customer_book&&<CustomerBookHub data={d.customer_book} filters={filters}/>}

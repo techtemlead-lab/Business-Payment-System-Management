@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
-import { router, useForm } from '@inertiajs/react';
+import { router, useForm, usePage } from '@inertiajs/react';
 import { PackageCheck, Plus, Trash2 } from 'lucide-react';
 import { ActionForm, Badge, DateInput, Empty, FormErrors, Modal, Pagination, Table, date, money, number, type Row } from './UI';
+import type { OfficeHub } from './OfficeHubTabs';
+import OfficePage from './office/OfficePage';
+import { currentView, DrawerLines, StaffActionDialog, ViewSwitch, type StaffAction } from './office/sections/staffSectionParts';
 import { useT } from '../shared/i18n/t';
 import { randomUuid } from '../shared/randomUuid';
+
+type PurchasingView = 'orders' | 'suppliers' | 'archived';
 
 interface PurchasingData {
     branch_scope: { view: string; code?: string | null; name?: string | null };
@@ -11,6 +16,7 @@ interface PurchasingData {
     can: { create: boolean; edit: boolean };
     orders: Row;
     suppliers: Row[];
+    archived_suppliers: Row[];
     products: Row[];
     branches: Row[];
 }
@@ -208,82 +214,113 @@ function OrderDetail({ order, data, onClose }: { order: Row; data: PurchasingDat
     );
 }
 
-export default function PurchasingHub({ data }: { data: PurchasingData }) {
+export default function PurchasingHub({ data, hub }: { data: PurchasingData; hub?: OfficeHub | null }) {
     const text = useText();
-    const [tab, setTab] = useState<'orders' | 'suppliers'>('orders');
+    const { url } = usePage();
+    const views: { key: PurchasingView; label: string }[] = [
+        { key: 'orders', label: text('tab_orders') },
+        { key: 'suppliers', label: text('tab_suppliers') },
+        { key: 'archived', label: text('tab_archived_suppliers') },
+    ];
+    const view = currentView(url, views.map((item) => item.key), 'orders');
     const [creating, setCreating] = useState(false);
     const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+    const [openedSupplier, setOpenedSupplier] = useState<Row | null>(null);
     const [editingSupplier, setEditingSupplier] = useState<Row | null>(null);
     const [addingSupplier, setAddingSupplier] = useState(false);
+    const [confirming, setConfirming] = useState<(StaffAction & { note: string }) | null>(null);
     const orders: Row[] = data.orders?.data ?? [];
     const selectedOrder = orders.find((order) => order.id === selectedOrderId) ?? null;
 
+    const openConfirm = (supplier: Row, kind: 'archive' | 'restore') => {
+        setOpenedSupplier(null);
+        setConfirming({
+            title: text(kind === 'archive' ? 'archive_supplier' : 'restore_supplier'),
+            action: `/commands/purchasing/suppliers/${supplier.id}/${kind}`,
+            fields: [],
+            note: text(kind === 'archive' ? 'archive_supplier_note' : 'restore_supplier_note', { name: String(supplier.name) }),
+        });
+    };
+
+    const action = view === 'orders' && data.can.create ? (
+        <button type="button" className="button dark" disabled={data.suppliers.length === 0} onClick={() => setCreating(true)}>
+            <Plus size={16} /> {text('new_order')}
+        </button>
+    ) : view === 'suppliers' && data.can.create ? (
+        <button type="button" className="button dark" onClick={() => setAddingSupplier(true)}><Plus size={16} /> {text('new_supplier')}</button>
+    ) : undefined;
+
+    const supplierColumns = [
+        { key: 'name', title: text('supplier_name'), render: (supplier: Row) => <button type="button" className="record-link" onClick={() => setOpenedSupplier(supplier)}>{supplier.name}</button> },
+        { key: 'contact', title: text('contact'), render: (supplier: Row) => supplier.contact || '—' },
+    ];
+
     return (
-        <section className="panel">
-            <div className="panel-heading">
-                <div>
-                    <p className="muted">{text('intro')}</p>
-                    {data.branch_scope?.name && <small>{text('showing_branch', { name: String(data.branch_scope.name) })}</small>}
-                </div>
-                <div className="ops-row is-wrap">
-                    <button type="button" className={`button${tab === 'orders' ? ' dark' : ''}`} onClick={() => setTab('orders')}>{text('tab_orders')}</button>
-                    <button type="button" className={`button${tab === 'suppliers' ? ' dark' : ''}`} onClick={() => setTab('suppliers')}>{text('tab_suppliers')}</button>
-                </div>
-            </div>
+        <OfficePage
+            title={text('page_title')}
+            subtitle={data.branch_scope?.name ? text('showing_branch', { name: String(data.branch_scope.name) }) : undefined}
+            hub={hub}
+            action={action}
+        >
+            <ViewSwitch views={views} active={view} fallback="orders" label={text('views_label')} />
 
-            {tab === 'orders' && (
+            {view === 'orders' && (orders.length === 0 ? <Empty title={text('no_orders')} body={text('no_orders_body')} /> : (
                 <>
-                    {data.can.create && (
-                        <div className="toolbar-end ops-row is-wrap">
-                            <button type="button" className="button dark" disabled={data.suppliers.length === 0} onClick={() => setCreating(true)}>
-                                <Plus size={16} /> {text('new_order')}
-                            </button>
-                        </div>
-                    )}
-                    {orders.length === 0 ? <Empty title={text('no_orders')} body={text('no_orders_body')} /> : (
-                        <>
-                            <Table
-                                rows={orders}
-                                columns={[
-                                    { key: 'number', title: text('order_number'), render: (order: Row) => <button type="button" className="record-link" onClick={() => setSelectedOrderId(order.id)}>{order.number}</button> },
-                                    { key: 'date', title: text('date'), render: (order: Row) => date(order.created_at) },
-                                    { key: 'supplier', title: text('supplier'), render: (order: Row) => order.supplier_name ?? '—' },
-                                    { key: 'branch', title: text('branch'), render: (order: Row) => order.branch_code ?? '—' },
-                                    { key: 'ordered', title: text('ordered'), align: 'right', render: (order: Row) => number(order.ordered) },
-                                    { key: 'received', title: text('received'), align: 'right', render: (order: Row) => number(order.received) },
-                                    { key: 'due', title: text('due'), align: 'right', render: (order: Row) => <b>{number(order.due)}</b> },
-                                    { key: 'status', title: text('status'), render: (order: Row) => <Badge status={order.status} /> },
-                                ]}
-                            />
-                            <Pagination page={data.orders} />
-                        </>
-                    )}
+                    <Table
+                        rows={orders}
+                        columns={[
+                            { key: 'number', title: text('order_number'), render: (order: Row) => <button type="button" className="record-link" onClick={() => setSelectedOrderId(order.id)}>{order.number}</button> },
+                            { key: 'date', title: text('date'), render: (order: Row) => date(order.created_at) },
+                            { key: 'supplier', title: text('supplier'), render: (order: Row) => order.supplier_name ?? '—' },
+                            { key: 'branch', title: text('branch'), render: (order: Row) => order.branch_code ?? '—' },
+                            { key: 'ordered', title: text('ordered'), align: 'right', render: (order: Row) => number(order.ordered) },
+                            { key: 'received', title: text('received'), align: 'right', render: (order: Row) => number(order.received) },
+                            { key: 'due', title: text('due'), align: 'right', render: (order: Row) => <b>{number(order.due)}</b> },
+                            { key: 'status', title: text('status'), render: (order: Row) => <Badge status={order.status} /> },
+                        ]}
+                    />
+                    <Pagination page={data.orders} />
                 </>
-            )}
+            ))}
 
-            {tab === 'suppliers' && (
-                <>
-                    {data.can.create && (
-                        <div className="toolbar-end ops-row is-wrap">
-                            <button type="button" className="button dark" onClick={() => setAddingSupplier(true)}><Plus size={16} /> {text('new_supplier')}</button>
-                        </div>
-                    )}
-                    {data.suppliers.length === 0 ? <Empty title={text('no_suppliers')} body={text('no_suppliers_body')} /> : (
-                        <Table
-                            rows={data.suppliers}
-                            columns={[
-                                { key: 'name', title: text('supplier_name'), render: (supplier: Row) => supplier.name },
-                                { key: 'contact', title: text('contact'), render: (supplier: Row) => supplier.contact || '—' },
-                                { key: 'notes', title: text('notes'), render: (supplier: Row) => supplier.notes || '—' },
-                                ...(data.can.edit ? [{ key: 'edit', title: '', render: (supplier: Row) => <button type="button" className="record-link" onClick={() => setEditingSupplier(supplier)}>{text('edit_supplier')}</button> }] : []),
-                            ]}
-                        />
-                    )}
-                </>
-            )}
+            {view === 'suppliers' && (data.suppliers.length === 0
+                ? <Empty title={text('no_suppliers')} body={text('no_suppliers_body')} />
+                : <Table rows={data.suppliers} columns={[...supplierColumns, { key: 'notes', title: text('notes'), render: (supplier: Row) => supplier.notes || '—' }]} />)}
+
+            {view === 'archived' && (data.archived_suppliers.length === 0
+                ? <Empty line title={text('no_archived_suppliers')} />
+                : <Table rows={data.archived_suppliers} columns={[...supplierColumns, { key: 'archived_at', title: text('archived_on'), render: (supplier: Row) => date(supplier.archived_at) }]} />)}
 
             {creating && <Modal title={text('new_order')} onClose={() => setCreating(false)}><NewOrderForm data={data} onDone={() => setCreating(false)} /></Modal>}
             {selectedOrder && <OrderDetail order={selectedOrder} data={data} onClose={() => setSelectedOrderId(null)} />}
+            {openedSupplier && (
+                <Modal
+                    title={String(openedSupplier.name)}
+                    variant="drawer"
+                    onClose={() => setOpenedSupplier(null)}
+                    footer={data.can.edit ? (
+                        <div className="ops-row is-wrap">
+                            {openedSupplier.archived_at ? (
+                                <button type="button" className="button dark" onClick={() => openConfirm(openedSupplier, 'restore')}>{text('restore_supplier')}</button>
+                            ) : (
+                                <>
+                                    <button type="button" className="button dark" onClick={() => { setEditingSupplier(openedSupplier); setOpenedSupplier(null); }}>{text('edit_supplier')}</button>
+                                    <button type="button" className="button" onClick={() => openConfirm(openedSupplier, 'archive')}>{text('archive_supplier')}</button>
+                                </>
+                            )}
+                        </div>
+                    ) : undefined}
+                >
+                    <DrawerLines
+                        lines={[
+                            { label: text('contact'), value: openedSupplier.contact },
+                            { label: text('notes'), value: openedSupplier.notes },
+                            { label: text('archived_on'), value: openedSupplier.archived_at ? date(openedSupplier.archived_at) : null },
+                        ]}
+                    />
+                </Modal>
+            )}
+            {confirming && <StaffActionDialog action={confirming} before={<p className="muted">{confirming.note}</p>} onClose={() => setConfirming(null)} />}
             {(addingSupplier || editingSupplier) && (
                 <Modal title={text(editingSupplier ? 'edit_supplier' : 'new_supplier')} onClose={() => { setAddingSupplier(false); setEditingSupplier(null); }}>
                     <ActionForm
@@ -299,6 +336,6 @@ export default function PurchasingHub({ data }: { data: PurchasingData }) {
                     />
                 </Modal>
             )}
-        </section>
+        </OfficePage>
     );
 }
