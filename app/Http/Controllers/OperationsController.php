@@ -166,7 +166,7 @@ class OperationsController extends Controller
             abort_unless($actor->role === 'super_admin', 403);
             $permissions = app(StaffPermissions::class);
             $data['permissionModules'] = $permissions->modules();
-            $data['rolePresets'] = collect(['employee' => [], ...config('madina.roles')])->map(fn ($capabilities, $key) => ['key' => $key, 'name' => Str::headline($key),
+            $data['rolePresets'] = collect(['employee' => [], ...config('madina.roles')])->map(fn ($capabilities, $key) => ['key' => $key, 'name' => __('portal.staff_role_'.$key),
                 'permissions' => $permissions->matrix(new User(['role' => $key]))])->values()->all();
             $data['staffAccess'] = $staff->where('role', '!=', 'super_admin')->map(fn ($user) => ['id' => $user->id, 'name' => $user->name, 'role' => $user->role,
                 'version' => $permissions->version($user), 'permissions' => $permissions->matrix($user)])->values()->all();

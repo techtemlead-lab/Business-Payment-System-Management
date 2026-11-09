@@ -2549,7 +2549,7 @@ return [
     'emp_ph_full_name' => 'e.g. Tariqul Islam',
     'emp_fld_email' => 'Company email *',
     'emp_ph_email' => 'e.g. tariqul@madina.com',
-    'emp_fld_phone_login' => 'Phone number (for login)',
+    'emp_fld_phone_login' => 'Phone number (for login) *',
     'emp_ph_phone' => 'e.g. 01712345678',
     'emp_fld_initial_status' => 'Status at start',
     'emp_opt_active_login' => 'Active (can log in now)',

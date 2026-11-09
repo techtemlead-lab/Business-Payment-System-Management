@@ -2549,7 +2549,7 @@ return [
     'emp_ph_full_name' => 'যেমন: তরিকুল ইসলাম',
     'emp_fld_email' => 'কোম্পানির ইমেইল *',
     'emp_ph_email' => 'যেমন: tariqul@madina.com',
-    'emp_fld_phone_login' => 'ফোন নম্বর (লগইনের জন্য)',
+    'emp_fld_phone_login' => 'ফোন নম্বর (লগইনের জন্য) *',
     'emp_ph_phone' => 'যেমন: ০১৭১২৩৪৫৬৭৮',
     'emp_fld_initial_status' => 'শুরুর অবস্থা',
     'emp_opt_active_login' => 'সক্রিয় (এখনই লগইন করতে পারবেন)',
