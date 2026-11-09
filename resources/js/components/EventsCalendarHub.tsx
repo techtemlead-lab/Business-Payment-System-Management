@@ -263,7 +263,7 @@ function EventForm({ data, event, onDone }: { data: StaffData; event: PartnerEve
     };
     return (
         <form className="action-form events-form" onSubmit={submit}>
-            <FormErrors errors={form.errors} />
+            <FormErrors errors={form.errors} besideFields={['title_bn', 'title_en', 'date', 'start_time', 'end_time', 'place', 'online_url', 'divisions', 'notes']} />
             <label>{translate('portal', 'events_field_title_bn')}
                 <input type="text" lang="bn" required maxLength={200} value={form.data.title_bn} onChange={(e) => form.setData('title_bn', e.target.value)} />{error('title_bn')}
                 {smsTitleNotBangla && !form.errors.title_bn && <span className="field-error" role="alert" lang="bn">{data.sms_compose.error}</span>}

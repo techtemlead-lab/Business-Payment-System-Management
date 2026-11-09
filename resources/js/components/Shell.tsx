@@ -681,7 +681,7 @@ export default function Shell({ section, children, action }: { section: string; 
                         {action}
                     </div>
 
-                    {dashboardNotice && dashboardNotice.text && (staff || section === 'overview' || section === '') && (
+                    {dashboardNotice && dashboardNotice.text && (dashboardNotice.every_page || section === 'overview' || section === '') && (
                         <div className={`portal-notice portal-notice-${dashboardNotice.type || 'info'}`}>
                             <Bell size={18} />
                             <div>{dashboardNotice.text}</div>

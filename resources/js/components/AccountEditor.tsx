@@ -180,7 +180,7 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                 {account.role === 'dealer' && <label>{translate('portal', 'acct_directory_visibility')}<select value={form.data.directory_visible} onChange={event => form.setData('directory_visible', event.target.value)}><option value="0">{translate('portal', 'acct_private')}</option><option value="1">{translate('portal', 'acct_publish_contact')}</option></select></label>}
             </div>
             <label>{translate('portal', 'acct_correction_reason')}<textarea required maxLength={1000} value={form.data.reason} onChange={event => form.setData('reason', event.target.value)} /></label>
-            <FormErrors errors={form.errors}/>
+            <FormErrors errors={form.errors} besideFields={['phone', 'place_code', 'latitude', 'longitude']}/>
             <button className="button dark" disabled={form.processing}>{translate('portal', 'acct_save_correction')}</button>
         </form>}
         {canKyc && isPartner && (

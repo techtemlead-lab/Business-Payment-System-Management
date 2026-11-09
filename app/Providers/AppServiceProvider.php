@@ -10,6 +10,7 @@ use App\Domain\Pricing\ProductPricing;
 use App\Http\Middleware\ThrottleEachAction;
 use App\Listeners\NoticeNewStaffDevice;
 use App\Models\User;
+use App\Support\LocalDigits;
 use App\Support\PhoneIdentity;
 use App\Support\PortalHost;
 use App\Support\SiteCustomization;
@@ -20,6 +21,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Events\DiagnosingHealth;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\Looping;
 use Illuminate\Queue\Events\QueueBusy;
@@ -35,6 +37,7 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Validator as LaravelValidator;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -61,6 +64,18 @@ class AppServiceProvider extends ServiceProvider
             'H:i' => __('portal.date_format_hour_minute'),
             default => (string) ($parameters[0] ?? ''),
         }, $message));
+        // File limits are written in kilobytes in the rules; people read them in MB.
+        Validator::replacer('max', static function (string $message, string $attribute, string $rule, array $parameters, LaravelValidator $validator): string {
+            $limit = (int) ($parameters[0] ?? 0);
+            if (! str_contains($message, ':max') || ! data_get($validator->getData(), $attribute) instanceof UploadedFile) {
+                return str_replace(':max', (string) $limit, $message);
+            }
+            $size = $limit >= 1024
+                ? __('portal.file_size_mb', ['size' => LocalDigits::text(round($limit / 1024, 1))])
+                : __('portal.file_size_kb', ['size' => LocalDigits::text($limit)]);
+
+            return __('portal.err_file_too_large', ['field' => $validator->getDisplayableAttribute($attribute), 'size' => $size]);
+        });
         $trustedProxies = trim((string) config('madina.trusted_proxies'));
         if ($trustedProxies === '*') {
             TrustProxies::at('*');

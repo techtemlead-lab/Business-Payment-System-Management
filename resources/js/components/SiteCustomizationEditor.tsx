@@ -6,7 +6,7 @@ import { notify } from '../shared/notify';
 import { buildCustomizationFormData } from './website/initialCustomization';
 import { WebsiteModule, type HomepageVideoSetting, type TrustEditorData, type WebsitePage, type WebsiteProduct, type WebsiteSectionProps } from './website/WebsiteLayout';
 import type { CustomizationData, MdMessageBanglaCopy, Slide } from './website/types';
-import WebsiteFieldSearch from './website/WebsiteFieldSearch';
+import WebsiteFieldSearch, { jumpTo } from './website/WebsiteFieldSearch';
 import { OLD_ANCHORS, RAIL_GROUPS, WEBSITE_AREAS, WEBSITE_MODULES, type AreaId, type WebsiteModuleDefinition } from './website/modules/moduleRegistry';
 
 const firstModuleOf = (area: AreaId): string => WEBSITE_MODULES.find((module) => module.area === area)?.id ?? 'company';
@@ -78,8 +78,18 @@ export default function SiteCustomizationEditor({
         form.post('/commands/customization', {
             preserveScroll: true,
             preserveState: true,
-            onError: () => notify(translate('website_admin', 'save_failed'), 'error'),
+            onError: showSaveError,
         });
+    };
+
+    /** A refused box may sit in another section or a closed row, so open it and say why. */
+    const showSaveError = (errors: Record<string, string>) => {
+        const [field, message] = Object.entries(errors)[0] ?? [];
+        const box = field ? pageRef.current?.querySelector<HTMLElement>(`[data-field="${field.replace('customization.', '')}"]`) : null;
+        if (box) {
+            jumpTo(box, revealBox);
+        }
+        notify(message ?? translate('website_admin', 'save_failed'), 'error');
     };
 
     const handleResetAll = () => {

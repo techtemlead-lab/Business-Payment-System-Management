@@ -113,9 +113,10 @@
     </nav>
 </div>
 </footer>
+@if(filled($siteCustomization['whatsapp_link'] ?? ''))
 <aside class="ref-floating-tools" aria-label="{{ $chrome('company_support_tools') }}">
     <a
-        href="{{ ($siteCustomization['whatsapp_link'] ?? '') ?: '/contact' }}"
+        href="{{ $siteCustomization['whatsapp_link'] }}"
         class="ref-chat"
         aria-label="{{ __('site.chat_with_representative') }}"
         title="{{ __('site.chat_with_representative') }}"
@@ -127,6 +128,7 @@
         <span class="ref-sr-only">{{ $chrome('floating_chat_label', $siteCustomization['floating_chat_label'] ?? null) }}</span>
     </a>
 </aside>
+@endif
 <nav class="ref-mobile-nav" aria-label="{{ __('site.mobile_navigation') }}">
     @if($publicPageEnabled['products'] ?? true)
     <a href="/products" class="ref-mobile-nav-item">

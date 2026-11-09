@@ -639,6 +639,7 @@ class CommandController extends Controller
                 $wasPublished,
             );
         });
+        SiteCustomization::forgetCache();
 
         return back()->with('success', __('portal.flash_content_saved'));
     }

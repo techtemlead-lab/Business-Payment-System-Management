@@ -50,7 +50,7 @@ function findMatches(root: HTMLElement | null, query: string): SearchResult[] {
 }
 
 /** Opens any closed rows around the box, brings it into view and puts the cursor in it. */
-function jumpTo(target: HTMLElement, onReveal?: (target: HTMLElement) => void): void {
+export function jumpTo(target: HTMLElement, onReveal?: (target: HTMLElement) => void): void {
     if (onReveal) {
         flushSync(() => onReveal(target));
     }

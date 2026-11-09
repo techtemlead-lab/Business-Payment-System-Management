@@ -3,6 +3,7 @@
 namespace App\Domain\Finance;
 
 use App\Domain\Accounts\AccountPhoneRules;
+use App\Domain\Accounts\PartnerAccountProvisioning;
 use App\Models\AreaDealerAssignment;
 use App\Models\Order;
 use App\Models\PlaceCode;
@@ -165,6 +166,9 @@ final class ImportWorkbook
                     $errors[] = __('portal.err_wb_phone_taken');
                 } else {
                     $data['phone'] = $phones->normalize($data['phone']);
+                }
+                if ($data['dealer_code'] !== '' && app(PartnerAccountProvisioning::class)->referCodeInUse($data['dealer_code'])) {
+                    $errors[] = __('portal.acct_val_refer_taken');
                 }
                 if ($data['sponsor_code'] !== '' && ! User::where('dealer_code', $data['sponsor_code'])->where('role', 'dealer')->where('status', 'active')->exists()) {
                     $errors[] = __('portal.err_wb_sponsor_missing');

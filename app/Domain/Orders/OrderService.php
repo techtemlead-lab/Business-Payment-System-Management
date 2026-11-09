@@ -178,6 +178,7 @@ class OrderService
     {
         abort_unless($actor->allows('order_review'), 403);
         $this->assertNotOwnOrder($actor, $order);
+        abort_unless($this->branches->mayOpenOrder($actor, $order), 403);
         if (! in_array($status, ['approved', 'held', 'rejected'], true)) {
             throw ValidationException::withMessages(['status' => __('portal.err_order_status_choice')]);
         }
@@ -497,6 +498,7 @@ class OrderService
     {
         abort_unless($actor->allows('inventory') || $actor->allows('order_review'), 403);
         $this->assertNotOwnOrder($actor, $order);
+        abort_unless($this->branches->mayOpenOrder($actor, $order), 403);
         $options = app(CourierOptions::class);
         if (! $options->isEnabled($provider)) {
             throw ValidationException::withMessages(['courier' => __('courier.err_courier_not_enabled')]);
@@ -564,6 +566,7 @@ class OrderService
     {
         abort_unless($actor->allows('inventory') || $actor->allows('order_review'), 403);
         $this->assertNotOwnOrder($actor, $order);
+        abort_unless($this->branches->mayOpenOrder($actor, $order), 403);
         DB::transaction(function () use ($actor, $order, $shipmentId): void {
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             $shipment = DB::table('shipments')->where('id', $shipmentId)->where('order_id', $locked->id)->lockForUpdate()->first();

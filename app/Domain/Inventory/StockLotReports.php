@@ -10,6 +10,7 @@ use App\Support\Audit;
 use App\Support\SiteCustomization;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -197,6 +198,21 @@ final class StockLotReports
     }
 
     /**
+     * Lots that still hold stock for these products, the next to go out first.
+     *
+     * @param  list<int>  $productIds
+     * @return Collection<int, StockLot>
+     */
+    public function lotsOnHand(array $productIds): Collection
+    {
+        return StockLot::query()
+            ->whereIn('product_id', $productIds)
+            ->where('quantity', '>', 0)
+            ->fefo()
+            ->get(['id', 'branch_id', 'product_id', 'batch_number', 'expires_on', 'held_at']);
+    }
+
+    /**
      * Lots on hold that still hold stock, with who held them and why.
      *
      * @return list<array<string, mixed>>
@@ -236,8 +252,9 @@ final class StockLotReports
     }
 
     /**
-     * Lots a stock count added with no batch number or expiry date. Nothing can warn about
-     * their expiry until someone fills these in.
+     * Goods that came in with no batch number or expiry date, whether by a direct stock-in, a
+     * goods receipt or a stock count. Nothing can warn about their expiry until someone fills
+     * these in. Returns and transfers carry the details of the lot they came from.
      *
      * @return list<array<string, mixed>>
      */
@@ -321,10 +338,8 @@ final class StockLotReports
     {
         $query = StockLot::query()
             ->where('quantity', '>', 0)
-            ->where(fn (Builder $lots) => $lots->whereNull('batch_number')->orWhereNull('expires_on'))
-            ->where(fn (Builder $lots) => $lots
-                ->whereIn('reference', DB::table('stock_count_lines')->whereNotNull('stock_reference')->select('stock_reference'))
-                ->orWhereIn('reference', DB::table('goods_receipt_lines')->select('stock_reference')));
+            ->where('source', StockLots::SourceStockIn)
+            ->where(fn (Builder $lots) => $lots->whereNull('batch_number')->orWhereNull('expires_on'));
         $scope->restrict($query, 'branch_id');
 
         return $query;
