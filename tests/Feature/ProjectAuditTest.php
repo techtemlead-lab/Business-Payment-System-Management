@@ -139,8 +139,8 @@ class ProjectAuditTest extends TestCase
         $this->actingAs($admin)->patchJson('/api/v1/finance/policy', ['rules' => [
             'sub_dealer_salary' => ['percentage' => '2.00'], 'sub_dealer_tour' => ['percentage' => '1.00'],
         ]])->assertOk();
-        $this->actingAs($subDealer)->get('/workspace/salary')->assertOk()->assertInertia(fn (AssertableInertia $page) => $page
-            ->where('data.salary.salary_rate', '2.00')->where('data.salary.tour_rate', '1.00'));
+        $this->actingAs($subDealer)->getJson('/workspace/my-progress')->assertOk()
+            ->assertJsonPath('data.salary.rate', '2.00')->assertJsonPath('data.tour.rate', '1.00');
     }
 
     public function test_salary_qualification_preview_shows_the_selected_month_volume_instead_of_a_stale_cached_counter(): void

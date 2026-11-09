@@ -65,10 +65,10 @@ class OrderStatusTabsTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('data.claim_status_counts', ['pending' => 2, 'verified' => 1])
-                ->has('data.claims.data', 1));
+                ->has('data.payments_table.rows.data', 1));
     }
 
-    public function test_withdrawal_tabs_only_count_the_partners_own_requests(): void
+    public function test_my_money_lists_only_the_partners_own_open_requests(): void
     {
         $dealer = User::factory()->dealer()->create();
         $other = User::factory()->dealer()->create();
@@ -78,10 +78,29 @@ class OrderStatusTabsTest extends TestCase
                 'created_at' => now(), 'updated_at' => now()]);
         }
 
-        $this->actingAs($dealer)->onPortal('dealer')->get('/withdrawals')
+        $this->actingAs($dealer)->onPortal('dealer')->get('/my-money')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('data.withdrawal_status_counts', ['requested' => 1, 'paid' => 1]));
+                ->has('withdrawal_requests', 1)
+                ->where('withdrawal_requests.0.status', 'requested')
+                ->where('withdrawal_requests.0.amount', '100.00'));
+    }
+
+    public function test_a_partner_can_see_a_refused_request_and_the_reason_on_my_money(): void
+    {
+        $dealer = User::factory()->dealer()->create();
+        $base = ['user_id' => $dealer->id, 'amount' => '100.00', 'net_amount' => '100.00', 'channel' => 'bKash', 'destination' => '01700000000'];
+        $refused = (string) Str::uuid();
+        DB::table('withdrawals')->insert([...$base, 'id' => $refused, 'status' => 'rejected', 'reason' => 'Wrong bKash number', 'idempotency_key' => (string) Str::uuid(), 'created_at' => now()->subDays(2), 'updated_at' => now()->subDay()]);
+        DB::table('withdrawals')->insert([...$base, 'id' => (string) Str::uuid(), 'status' => 'rejected', 'reason' => 'Long ago', 'idempotency_key' => (string) Str::uuid(), 'created_at' => now()->subDays(60), 'updated_at' => now()->subDays(40)]);
+
+        $this->actingAs($dealer)->onPortal('dealer')->get('/my-money')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('withdrawal_requests', 1)
+                ->where('withdrawal_requests.0.id', $refused)
+                ->where('withdrawal_requests.0.status', 'rejected')
+                ->where('withdrawal_requests.0.reason', 'Wrong bKash number'));
     }
 
     public function test_the_dues_page_is_retired_on_every_portal(): void

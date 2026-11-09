@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Accounts\PartnerFullReport;
 use App\Domain\Orders\OrderService;
 use App\Models\Product;
 use App\Models\User;
@@ -94,13 +95,11 @@ class PartnerCircularsAndSupportTest extends TestCase
             'updated_at' => '2026-01-05 08:00:00',
         ])->save();
 
-        $this->actingAs($dealer)->onPortal('dealer')
-            ->get('/full-report?from=2026-03-01&to=2026-03-31')
-            ->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->where('data.full_report.summary.orders_count', 1)
-                ->where('data.full_report.orders.0.id', $inside->id)
-                ->where('data.full_report.filters.from', '2026-03-01')
-                ->where('data.full_report.filters.to', '2026-03-31'));
+        $report = app(PartnerFullReport::class)->for($dealer, '2026-03-01', '2026-03-31');
+
+        $this->assertSame(1, $report['summary']['orders_count']);
+        $this->assertSame($inside->id, $report['orders'][0]['id']);
+        $this->assertSame('2026-03-01', $report['filters']['from']);
+        $this->assertSame('2026-03-31', $report['filters']['to']);
     }
 }

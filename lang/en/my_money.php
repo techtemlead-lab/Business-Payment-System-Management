@@ -29,6 +29,11 @@ return [
     'type_spent' => 'Spent on an order',
     'type_taken_back' => 'Taken back',
 
+    'requests_heading' => 'Your withdrawal requests',
+    'request_status_requested' => 'Waiting for the office',
+    'request_status_approved' => 'Approved, not paid yet',
+    'request_status_rejected' => 'Refused',
+
     'lifetime_heading' => 'So far',
     'lifetime_ordered' => 'Ordered at MRP (delivered)',
     'lifetime_cash' => 'Cash given (delivered goods)',

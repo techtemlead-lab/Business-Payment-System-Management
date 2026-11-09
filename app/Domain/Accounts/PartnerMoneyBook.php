@@ -118,6 +118,32 @@ final class PartnerMoneyBook
         return $table;
     }
 
+    /**
+     * The partner's own requests that are not statement rows: waiting, approved, or refused in the
+     * last 30 days. Once paid, a request is a statement row and leaves this list.
+     *
+     * @return list<array{id: string, created_at: string, amount: string, status: string, reason: ?string}>
+     */
+    public function withdrawalRequests(User $partner): array
+    {
+        return DB::table('withdrawals')
+            ->where('user_id', $partner->id)
+            ->where(fn (Builder $query) => $query->whereIn('status', ['requested', 'approved'])
+                ->orWhere(fn (Builder $refused) => $refused->where('status', 'rejected')->where('updated_at', '>=', now()->subDays(30))))
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->limit(10)
+            ->get(['id', 'created_at', 'amount', 'status', 'reason'])
+            ->map(fn (object $row): array => [
+                'id' => (string) $row->id,
+                'created_at' => CarbonImmutable::parse((string) $row->created_at, 'UTC')->toIso8601String(),
+                'amount' => FundCatalog::decimalOf(FundCatalog::centsOf($row->amount)),
+                'status' => (string) $row->status,
+                'reason' => $row->status === 'rejected' ? (string) $row->reason : null,
+            ])
+            ->all();
+    }
+
     /** @return list<object> */
     private function totalsByType(User $partner): array
     {

@@ -29,6 +29,11 @@ return [
     'type_spent' => 'অর্ডারে খরচ',
     'type_taken_back' => 'ফেরত নেওয়া',
 
+    'requests_heading' => 'আপনার টাকা তোলার আবেদন',
+    'request_status_requested' => 'অফিসের অপেক্ষায়',
+    'request_status_approved' => 'অনুমোদন হয়েছে, টাকা এখনো দেওয়া হয়নি',
+    'request_status_rejected' => 'নামঞ্জুর',
+
     'lifetime_heading' => 'এখন পর্যন্ত',
     'lifetime_ordered' => 'এমআরপিতে অর্ডার (ডেলিভারি হওয়া)',
     'lifetime_cash' => 'ক্যাশ দিয়েছেন (ডেলিভারি হওয়া মালের)',
