@@ -45,9 +45,7 @@ final class GuidePrerequisites
             ];
         }
 
-        $path = $user->role === 'sub_dealer'
-            ? array_values(array_filter(self::PartnerPath, fn (string $key): bool => $key !== 'network'))
-            : self::PartnerPath;
+        $path = self::PartnerPath;
 
         if (! in_array($section, $path, true)) {
             $section = 'overview';
