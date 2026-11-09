@@ -29,7 +29,7 @@ class SmallSignedInFixesTest extends TestCase
             $this->assertMatchesRegularExpression('/\p{Bengali}/u', __($key, [], 'bn'));
         }
 
-        $source = (string) file_get_contents(resource_path('js/pages/Operations.tsx'));
+        $source = PortalSource::operations();
         $this->assertStringNotContainsString("choice('program'", $source);
         $this->assertStringContainsString('options:[\'additional_rank\',\'bike\',\'car\'].map(value=>({value,label:reserveProgramLabel(value,translate)}))', $source);
         $this->assertStringContainsString("if (key === 'program' && typeof value === 'string')", $source);
