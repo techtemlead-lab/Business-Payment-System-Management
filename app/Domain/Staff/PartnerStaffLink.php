@@ -127,7 +127,8 @@ final class PartnerStaffLink
             $saved = DB::table('staff_roles')->where('key', $role)->value('permissions');
             $decoded = is_string($saved) ? json_decode($saved, true) : [];
 
-            return is_array($decoded) ? array_values(array_unique(array_map('strval', $decoded))) : [];
+            // A saved role is a matrix of modules and actions; a module counts when it can be viewed.
+            return is_array($decoded) ? array_keys(array_filter($decoded, fn (mixed $actions): bool => is_array($actions) && ($actions['view'] ?? false) === true)) : [];
         }
 
         return array_values(config('madina.roles.'.$role, config('madina.roles.employee', [])));

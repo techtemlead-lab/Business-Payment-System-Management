@@ -92,7 +92,7 @@ class OrderPaymentPromptTest extends TestCase
 
         $this->assertStringContainsString('{owner && paymentPrompt.ask_for_payment && <section', $source);
         $this->assertStringContainsString('{owner && paymentPrompt.waiting_for_check && <div className="notice" role="status">', $source);
-        $this->assertStringContainsString("only: ['order', 'claims', 'shipments', 'outstanding', 'paymentPrompt']", $source);
+        $this->assertStringContainsString("only: ['order', 'claims', 'shipments', 'events', 'outstanding', 'paymentPrompt']", $source);
         $this->assertStringNotContainsString("outstanding !== '0.00'", $source);
     }
 

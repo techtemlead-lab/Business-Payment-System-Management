@@ -5,6 +5,7 @@ namespace App\Domain\Finance;
 use App\Domain\Commissions\CommissionWallet;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\LocalDigits;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -44,7 +45,7 @@ final class PaymentAccounts
     {
         abort_unless($actor->allows('finance'), 403);
         $data = Validator::make($data, ['label' => 'required|string|max:120', 'channel' => 'required|in:'.implode(',', self::channels()),
-            'holder' => 'required|string|max:150', 'account_number' => ($id ? 'nullable' : 'required').'|string|max:120',
+            'holder' => 'required|string|max:150', 'account_number' => [$id ? 'nullable' : 'required', 'string', 'max:120', $this->mobileNumberRule($data['channel'] ?? null)],
             'details' => 'nullable|string|max:1500', 'collects_payments' => 'required|boolean', 'pays_out' => 'required|boolean',
             'is_active' => 'required|boolean', 'version' => $id ? 'required|integer|min:1' : 'nullable', 'reason' => 'required|string|min:5|max:1000'])->validate();
 
@@ -57,7 +58,7 @@ final class PaymentAccounts
                 throw ValidationException::withMessages(['version' => __('portal.err_pay_acct_stale')]);
             }
             $record = collect($data)->only(['label', 'channel', 'holder', 'collects_payments', 'pays_out', 'is_active'])->all();
-            $record['account_number'] = ! empty($data['account_number']) ? encrypt(trim($data['account_number'])) : $old->account_number;
+            $record['account_number'] = ! empty($data['account_number']) ? encrypt(LocalDigits::latin(trim($data['account_number']))) : $old->account_number;
             $record['details'] = encrypt($data['details'] ?? '');
             $record['updated_by'] = $actor->id;
             $record['version'] = $old ? $old->version + 1 : 1;
@@ -72,6 +73,19 @@ final class PaymentAccounts
 
             return $id;
         }, 3);
+    }
+
+    /**
+     * A mobile wallet is a Bangladeshi mobile number: 11 digits, or 12 for Rocket. Bank account
+     * numbers differ from bank to bank, so they are left alone.
+     */
+    private function mobileNumberRule(mixed $channel): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail) use ($channel): void {
+            if (in_array($channel, ['bKash', 'Nagad', 'Rocket'], true) && preg_match('/^01\d{9,10}$/D', LocalDigits::latin(trim((string) $value))) !== 1) {
+                $fail(__('portal.err_pay_acct_number'));
+            }
+        };
     }
 
     /** @return array<string, mixed> */
