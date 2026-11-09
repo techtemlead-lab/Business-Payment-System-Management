@@ -32,10 +32,12 @@ export default function Applications({ section, data }: { section: string; data:
 
     const columns: MoneyColumn<Row>[] = [
         { key: 'created_at', title: translate('office_partners', 'col_date'), sortKey: 'created_at', phone: 'sub', render: (row) => date(row.created_at) },
-        { key: 'name', title: translate('portal', 'partnership_applicant'), sortKey: 'name', phone: 'title', render: (row) => <><b>{row.name}</b><small className="cell-sub">{[row.email, row.phone].filter(Boolean).join(' · ')}</small></> },
-        { key: 'place', title: translate('office_partners', 'col_area'), phone: 'sub', render: (row) => <>{row.place_code || placeLine(row) || '—'}{row.place_code && placeLine(row) && <small className="cell-sub">{placeLine(row)}</small>}</> },
+        { key: 'name', title: translate('portal', 'partnership_applicant'), sortKey: 'name', phone: 'title', render: (row) => <><b>{row.name}</b><small className="cell-sub">{row.email}</small></> },
+        { key: 'phone', title: translate('office_partners', 'detail_phone'), phone: 'hide', render: (row) => row.phone || '—' },
+        { key: 'place', title: translate('office_partners', 'col_area'), sortKey: 'place', phone: 'sub', render: (row) => <>{row.place_code || placeLine(row) || '—'}{row.place_code && placeLine(row) && <small className="cell-sub">{placeLine(row)}</small>}</> },
         { key: 'source', title: translate('portal', 'partnership_source'), sortKey: 'source', phone: 'hide', render: (row) => sourceName(row.source || 'staff', translate) },
         { key: 'status', title: translate('portal', 'col_status'), sortKey: 'status', phone: 'sub', render: (row) => <Badge status={row.status || 'pending'} /> },
+        { key: 'reason', title: translate('office_partners', 'detail_reason'), sortKey: 'reason', phone: 'hide', render: (row) => row.reason || '—' },
     ];
 
     return (

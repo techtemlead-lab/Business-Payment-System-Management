@@ -159,6 +159,9 @@ final class PartnerAccountList
             filters: [],
             sorts: [
                 'name' => 'users.name',
+                'code' => 'users.dealer_code',
+                'sponsor' => '(SELECT sponsors.name FROM users AS sponsors WHERE sponsors.id = users.sponsor_id)',
+                'joined' => 'users.created_at',
                 'place' => "COALESCE(users.profile->>'place_code', users.profile->>'area_code')",
                 'rank' => "CASE COALESCE(dealer_ranks.current_rank, 'dealer') WHEN 'dealer' THEN 0 WHEN 'mo' THEN 1 WHEN 'am' THEN 2 WHEN 'sm' THEN 3 WHEN 'me' THEN 4 ELSE 0 END",
                 'last_order_at' => 'activity.last_order_at',

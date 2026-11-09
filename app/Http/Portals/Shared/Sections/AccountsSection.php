@@ -148,8 +148,10 @@ final class AccountsSection implements WorkspaceSection
                 sorts: [
                     'created_at' => 'created_at',
                     'name' => "data->>'name'",
+                    'place' => "COALESCE(data->>'place_code', data->>'division', data->>'district')",
                     'source' => "coalesce(source, 'staff')",
                     'status' => 'status',
+                    'reason' => 'reason',
                 ],
                 defaultSort: 'created_at',
                 tieBreaker: 'id',

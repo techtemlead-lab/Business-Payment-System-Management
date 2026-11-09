@@ -39,10 +39,15 @@ final class OrdersSection implements WorkspaceSection
         'number' => 'orders.number',
         'created_at' => 'orders.created_at',
         'partner' => '(SELECT users.name FROM users WHERE users.id = orders.user_id)',
+        'area' => '(SELECT users.district FROM users WHERE users.id = orders.user_id)',
+        'branch' => '(SELECT company_branches.name FROM company_branches WHERE company_branches.id = orders.fulfillment_branch_id)',
+        'items' => '(SELECT COALESCE(SUM(order_lines.quantity), 0) FROM order_lines WHERE order_lines.order_id = orders.id)',
+        'delivered' => '(SELECT COALESCE(SUM(order_lines.dispatched), 0) FROM order_lines WHERE order_lines.order_id = orders.id)',
         'total' => 'orders.total',
         'paid' => 'orders.paid',
         'to_pay' => self::ToPaySql,
-        'branch' => '(SELECT company_branches.name FROM company_branches WHERE company_branches.id = orders.fulfillment_branch_id)',
+        'status' => 'orders.status',
+        'days_since_sent' => '(SELECT CURRENT_TIMESTAMP - MAX(shipments.created_at) FROM shipments WHERE shipments.order_id = orders.id)',
     ];
 
     private const StaffOrderRows = 25;
@@ -84,7 +89,7 @@ final class OrdersSection implements WorkspaceSection
 
         $listQuery->with($orderWith)
             ->selectRaw(DeliveredMoney::valueSql().' AS delivered_value, '.DeliveredMoney::paidSql().' AS delivered_paid');
-        [$sort, $direction, $sorts] = $this->chosenSort($request, $context->section);
+        [$sort, $direction, $sorts] = $this->chosenSort($request);
         if ($usesSharedTable) {
             $listQuery->reorder()->orderByRaw(self::OrderSorts[$sort].' '.$direction.' NULLS LAST')->orderBy('orders.id', $direction);
         } else {
@@ -152,11 +157,9 @@ final class OrdersSection implements WorkspaceSection
      *
      * @return array{0: string, 1: 'asc'|'desc', 2: list<string>}
      */
-    private function chosenSort(Request $request, string $section): array
+    private function chosenSort(Request $request): array
     {
-        $sorts = $section === 'deliveries'
-            ? ['number', 'created_at', 'partner', 'branch', 'total']
-            : ['number', 'created_at', 'partner', 'total', 'paid', 'to_pay'];
+        $sorts = array_keys(self::OrderSorts);
         $sort = $request->string('sort')->toString();
         if (! in_array($sort, $sorts, true)) {
             return ['created_at', 'desc', $sorts];

@@ -278,8 +278,10 @@ function AcceptanceList({ partners, latestVersion }: { partners: Row; latestVers
                 phoneColumns={['name', 'accepted_version']}
                 rows={partners?.data ?? []}
                 columns={[
-                    { key: 'name', title: translate('portal', 'col_name'), render: (row: Row) => <>{row.name}<small className="cell-sub">{row.dealer_code}</small></> },
-                    { key: 'role', title: translate('portal', 'col_role'), render: (row: Row) => <>{label(String(row.role ?? ''), translate)}<small className="cell-sub"><Badge status={String(row.status ?? '')} /></small></> },
+                    { key: 'name', title: translate('portal', 'col_name') },
+                    { key: 'dealer_code', title: translate('portal', 'col_dealer_code') },
+                    { key: 'role', title: translate('portal', 'col_role'), render: (row: Row) => label(String(row.role ?? ''), translate) },
+                    { key: 'status', title: translate('portal', 'col_status'), render: (row: Row) => <Badge status={String(row.status ?? '')} /> },
                     {
                         key: 'accepted_version',
                         title: translate('portal', 'agr_col_version'),

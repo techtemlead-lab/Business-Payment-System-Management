@@ -45,6 +45,19 @@ class PartnerListsTableTest extends TestCase
         $this->assertContains('month_purchase', $data['accounts_table']['sortable']);
     }
 
+    public function test_the_list_sorts_by_code_sponsor_and_joining_date(): void
+    {
+        $owner = User::factory()->staff()->create();
+        $sponsor = User::factory()->dealer()->create(['name' => 'Aslam Upline', 'dealer_code' => 'Z-999']);
+        $sponsored = User::factory()->dealer()->create(['dealer_code' => 'B-200', 'sponsor_id' => $sponsor->id, 'created_at' => now()->subYear()]);
+        $unsponsored = User::factory()->dealer()->create(['dealer_code' => 'A-100', 'created_at' => now()->subDay()]);
+
+        $byCode = $this->data($owner, '/accounts?sort=code&dir=asc');
+        $this->assertSame($unsponsored->id, $byCode['accounts']['data'][0]['id']);
+        $this->assertSame($sponsored->id, $this->data($owner, '/accounts?sort=sponsor&dir=asc')['accounts']['data'][0]['id']);
+        $this->assertSame($sponsored->id, $this->data($owner, '/accounts?sort=joined&dir=asc')['accounts']['data'][0]['id']);
+    }
+
     public function test_the_newest_partner_comes_first_when_nothing_is_chosen(): void
     {
         $owner = User::factory()->staff()->create();

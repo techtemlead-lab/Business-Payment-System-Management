@@ -191,7 +191,7 @@ export default function StockOnHand({ table, canToggle, showBranch }: {
             render: (row) => (
                 <>
                     <button type="button" className="os-name-link" onClick={() => openRow(row)}>{row.register_name || row.name}</button>
-                    <small className="cell-sub">{[row.sku, showBranch ? row.branch_name : null, row.unit].filter(Boolean).join(' · ')}</small>
+                    <small className="cell-sub">{[row.sku, row.unit].filter(Boolean).join(' · ')}</small>
                     <small className="cell-sub sf-phone-stages">
                         {[
                             row.on_hold > 0 ? t('on_hold_short', { count: number(row.on_hold) }) : null,
@@ -202,6 +202,7 @@ export default function StockOnHand({ table, canToggle, showBranch }: {
                 </>
             ),
         },
+        ...(showBranch ? [{ key: 'branch', title: translate('portal', 'col_branch'), sortKey: 'branch', phone: 'sub' as const, render: (row: StockRow) => row.branch_name || '—' }] : []),
         {
             key: 'in_stock',
             title: t('col_in_stock'),
@@ -211,11 +212,11 @@ export default function StockOnHand({ table, canToggle, showBranch }: {
             render: (row) => (
                 <>
                     <b className={row.level === 'out_of_stock' ? 'text-danger' : row.level === 'low' ? 'text-amber' : undefined}>{number(row.in_stock)}</b>
-                    {row.on_hold > 0 ? <small className="cell-sub text-amber">{t('on_hold_short', { count: number(row.on_hold) })}</small> : null}
                     {row.expired > 0 ? <small className="cell-sub text-danger">{t('expired_short', { count: number(row.expired) })}</small> : null}
                 </>
             ),
         },
+        { key: 'on_hold', title: t('stock_on_hold'), sortKey: 'on_hold', align: 'right', phone: 'hide', render: (row) => <Units value={row.on_hold} tone="warning" /> },
         {
             key: 'booked',
             title: t('col_booked'),
@@ -237,14 +238,23 @@ export default function StockOnHand({ table, canToggle, showBranch }: {
             phone: 'sub',
             render: (row) => <>{row.expires_on ? date(row.expires_on) : '—'}{row.batch_number ? <small className="cell-sub">{translate('portal', 'col_batch_short', { batch: row.batch_number })}</small> : null}</>,
         },
+        {
+            key: 'mrp',
+            title: t('mrp'),
+            sortKey: 'mrp',
+            align: 'right',
+            phone: 'hide',
+            render: (row) => (
+                <span className="sf-price">
+                    {row.mrp != null && row.mrp !== '' ? money(row.mrp) : '—'}
+                    {row.cost_price != null && row.cost_price !== '' ? <small className="cell-sub">{translate('portal', 'col_cost')} {money(row.cost_price)}</small> : null}
+                    {row.dealer_price != null && row.dealer_price !== '' ? <small className="cell-sub">{translate('stock_lots', 'price_dealer_short')} {money(row.dealer_price)} {percentLabel(row.dealer_discount_pct)}</small> : null}
+                    {row.sub_dealer_price != null && row.sub_dealer_price !== '' ? <small className="cell-sub">{translate('stock_lots', 'price_subdealer_short')} {money(row.sub_dealer_price)} {percentLabel(row.sub_dealer_discount_pct)}</small> : null}
+                </span>
+            ),
+        },
+        { key: 'stock_value', title: t('card_value'), sortKey: 'stock_value', money: true, total: 'stock_value', phone: 'hide' },
         { key: 'status', title: translate('portal', 'col_status'), phone: 'sub', render: (row) => <StatusBadge row={row} /> },
-    ];
-
-    const extraSorts = [
-        { key: 'on_hold', title: t('stock_on_hold') },
-        ...(showBranch ? [{ key: 'branch', title: translate('portal', 'col_branch') }] : []),
-        { key: 'mrp', title: t('mrp') },
-        { key: 'stock_value', title: t('card_value') },
     ];
 
     const openedRow = table.rows.data.find((row) => row.row_key === openRowKey);
@@ -268,7 +278,6 @@ export default function StockOnHand({ table, canToggle, showBranch }: {
                     columns={columns}
                     searchPlaceholder={translate('portal', 'search_products')}
                     empty={translate('portal', 'stock_no_matches')}
-                    extraSorts={extraSorts}
                     onRowOpen={openRow}
                 />
             </div>
