@@ -61,8 +61,16 @@
 .mm-partner-head h1{margin:var(--ds-s-2) 0 0;font-size:var(--ds-fs-xl);font-weight:600;letter-spacing:0}
 .mm-partner-head p{font-size:var(--ds-fs-base);color:var(--ds-text-2)}
 
+@media(min-width:721px){
+  .mm-hero{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:var(--ds-s-6);align-items:center}
+  .mm-hero>*{grid-column:1}
+  .mm-hero-actions{grid-column:2;grid-row:1/span 3;flex-wrap:nowrap;margin-top:0}
+}
 @media(max-width:900px){
   .mm-cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:640px){
+  .mm-order-step>.button{width:100%;justify-content:center;min-height:46px}
 }
 @media(max-width:480px){
   .mm-page{gap:var(--ds-s-5)}

@@ -22,7 +22,7 @@ function plainDigits(text: string): string {
  */
 export default function WithdrawSheet({ available, withdraw, onClose }: { available: string; withdraw: WithdrawInfo; onClose: () => void }) {
     const translate = useT();
-    const { portalBase: base } = usePage<any>().props;
+    const { portalBase: base, financeActive } = usePage<any>().props;
     const [step, setStep] = useState<Step>('choose');
     const [budget, setBudget] = useState(Number(available) > 0 ? available : '');
     const requestKey = useRef(randomUuid());
@@ -38,6 +38,11 @@ export default function WithdrawSheet({ available, withdraw, onClose }: { availa
             : usable < Number(withdraw.minimum)
                 ? translate('my_money', 'below_minimum', { amount: money(withdraw.minimum) })
                 : null;
+    const orderRefusal = !financeActive
+        ? translate('portal', 'withdrawals_pending_activation_notice')
+        : usable <= 0
+            ? translate('my_money', 'nothing_to_use')
+            : null;
 
     const titles: Record<Step, string> = {
         choose: translate('my_money', 'withdraw'),
@@ -58,11 +63,11 @@ export default function WithdrawSheet({ available, withdraw, onClose }: { availa
                             {takeRefusal && <small>{takeRefusal}</small>}
                         </span>
                     </button>
-                    <button type="button" className="mm-choice" disabled={usable <= 0} onClick={() => setStep('order')}>
+                    <button type="button" className="mm-choice" disabled={orderRefusal !== null} onClick={() => setStep('order')}>
                         <ShoppingBag size={22} aria-hidden="true" />
                         <span>
                             <b>{translate('my_money', 'order_with_money')}</b>
-                            {usable <= 0 && <small>{translate('my_money', 'nothing_to_use')}</small>}
+                            {orderRefusal && <small>{orderRefusal}</small>}
                         </span>
                     </button>
                 </div>
@@ -87,7 +92,7 @@ export default function WithdrawSheet({ available, withdraw, onClose }: { availa
             )}
 
             {step === 'order' && (
-                <div className="action-form">
+                <div className="action-form mm-order-step">
                     <label>
                         {translate('my_money', 'order_amount')}
                         <input type="text" inputMode="decimal" value={budget} onChange={(event) => setBudget(event.target.value)} />

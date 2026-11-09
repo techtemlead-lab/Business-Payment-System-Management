@@ -1,11 +1,40 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePage } from '@inertiajs/react';
 import { ChevronDown, Download } from 'lucide-react';
+import { businessTodayIso } from '../../business-date';
 import { useT } from '../../shared/i18n/t';
-import type { Certificates } from './types';
+import type { Certificates, StatementTable } from './types';
+
+function mondayOf(isoDay: string): string {
+    const day = new Date(`${isoDay}T00:00:00Z`);
+    day.setUTCDate(day.getUTCDate() - ((day.getUTCDay() + 6) % 7));
+
+    return day.toISOString().slice(0, 10);
+}
+
+/** The statement file takes dates, so the view on the table is turned into the same dates. */
+function statementDates({ period, from, to }: StatementTable['state'], firstYear: number | undefined): Record<string, string> {
+    const today = businessTodayIso();
+    switch (period) {
+        case 'custom':
+            return from && to ? { from, to } : {};
+        case 'day':
+            return from ? { from, to: from } : {};
+        case 'today':
+            return { from: today, to: today };
+        case 'week':
+            return { from: mondayOf(today), to: today };
+        case 'month':
+            return { from: `${today.slice(0, 8)}01`, to: today };
+        case 'year':
+            return { from: `${today.slice(0, 4)}-01-01`, to: today };
+        default:
+            return firstYear ? { from: `${firstYear}-01-01`, to: today } : {};
+    }
+}
 
 /** The partner's files in one menu: statement, full report and certificates. */
-export default function Downloads({ certificates, statementQuery }: { certificates: Certificates; statementQuery: string }) {
+export default function Downloads({ certificates, view }: { certificates: Certificates; view: StatementTable['state'] }) {
     const translate = useT();
     const { portalBase: base } = usePage<any>().props;
     const menu = useRef<HTMLDetailsElement>(null);
@@ -22,7 +51,8 @@ export default function Downloads({ certificates, statementQuery }: { certificat
         return () => document.removeEventListener('click', closeOnOutside);
     }, []);
 
-    const statement = (format: 'xlsx' | 'pdf') => `${base}/statement/${format}${statementQuery ? `?${statementQuery}` : ''}`;
+    const dates = new URLSearchParams(statementDates(view, certificates.years[certificates.years.length - 1])).toString();
+    const statement = (format: 'xlsx' | 'pdf') => `${base}/statement/${format}${dates ? `?${dates}` : ''}`;
     const item = (href: string, text: string) => (
         <a href={href} target="_blank" rel="noopener noreferrer"><Download size={15} aria-hidden="true" /> {text}</a>
     );

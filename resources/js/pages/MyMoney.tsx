@@ -10,16 +10,6 @@ import WithdrawSheet from '../components/mymoney/WithdrawSheet';
 import type { Certificates, IncomeCard, MoneySummary, StatementTable, WithdrawInfo } from '../components/mymoney/types';
 import { useT } from '../shared/i18n/t';
 
-/** The statement files take a date range; a period chip or date choice on the table carries over. */
-function statementQuery(table: StatementTable): string {
-    const { from, to } = table.state;
-    if (!from || !to) {
-        return '';
-    }
-
-    return new URLSearchParams({ from, to }).toString();
-}
-
 /** All of a partner's money on one page: what they can use, where it came from, every movement. */
 export default function MyMoney({ summary, cards, table, withdraw, certificates }: {
     summary: MoneySummary;
@@ -29,11 +19,11 @@ export default function MyMoney({ summary, cards, table, withdraw, certificates 
     certificates: Certificates;
 }) {
     const translate = useT();
-    const { portalBase: base } = usePage<any>().props;
+    const { portalBase: base, financeActive } = usePage<any>().props;
     const [sheetOpen, setSheetOpen] = useState(false);
     const selected = table.state.filters.type ?? '';
     const chooseType = useChooseIncomeType(selected);
-    const orderHref = Number(summary.available) > 0
+    const orderHref = financeActive && Number(summary.available) > 0
         ? `${base}/purchase?pay=account&budget=${summary.available}`
         : `${base}/purchase`;
 
@@ -52,7 +42,7 @@ export default function MyMoney({ summary, cards, table, withdraw, certificates 
                 />
                 <IncomeCards cards={cards} selected={selected} onChoose={chooseType} />
                 <Lifetime lifetime={summary.lifetime} />
-                <MoneyBook table={table} actions={<Downloads certificates={certificates} statementQuery={statementQuery(table)} />} />
+                <MoneyBook table={table} actions={<Downloads certificates={certificates} view={table.state} />} />
             </div>
             {sheetOpen && <WithdrawSheet available={summary.available} withdraw={withdraw} onClose={() => setSheetOpen(false)} />}
         </Shell>

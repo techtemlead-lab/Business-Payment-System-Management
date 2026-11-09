@@ -8,7 +8,7 @@ import { isBelowZero, type StatementRow, type StatementTable } from './types';
 function signedMoney(amount: unknown): string {
     const value = Number(amount);
 
-    return `${value < 0 ? '-' : '+'} ${money(Math.abs(value))}`;
+    return `${value < 0 ? '-' : '+'} ${money(Math.abs(value))}`;
 }
 
 /** What happened on this line: the type and percent, then the order and who it came from. */
