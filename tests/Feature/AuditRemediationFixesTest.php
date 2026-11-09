@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Route;
+use Tests\Support\PortalSource;
 use Tests\TestCase;
 
 class AuditRemediationFixesTest extends TestCase
@@ -164,8 +165,7 @@ class AuditRemediationFixesTest extends TestCase
         $this->assertStringContainsString("translate('portal', 'b2b_col_total')", $checkout);
         $this->assertStringContainsString('money(lineTotal)', $checkout);
 
-        $source = file_get_contents(resource_path('js/pages/Portal.tsx'));
-        $this->assertIsString($source);
+        $source = PortalSource::text();
         $this->assertStringContainsString('href={`${base}/help`}', $source);
         $this->assertStringContainsString("translate('portal','profile_locked_support_cta')", $source);
     }
