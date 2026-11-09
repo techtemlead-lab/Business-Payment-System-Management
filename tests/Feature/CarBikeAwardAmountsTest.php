@@ -2,8 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Accounts\PartnerDashboardHome;
 use App\Domain\Commissions\CommissionPolicy;
+use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionService;
+use App\Domain\Support\UserManual;
 use App\Models\CommissionRuleParameter;
 use App\Models\Order;
 use App\Models\Product;
@@ -55,6 +58,65 @@ class CarBikeAwardAmountsTest extends TestCase
 
         $this->assertSame('300000.00', $parameters['bike_award_amount']);
         $this->assertNull($parameters['car_award_amount']);
+    }
+
+    public function test_bike_target_is_fifty_lakh_when_nothing_has_been_saved(): void
+    {
+        CommissionRuleParameter::query()->delete();
+
+        $this->assertSame('5000000.00', CommissionPolicy::defaults()['car_bike_incentive']['parameters']['bike_target']);
+        $this->assertSame('5000000.00', $this->rewardRule()['parameters']['bike_target']);
+    }
+
+    public function test_a_saved_bike_target_wins_over_the_default_and_seeding_again_leaves_it_alone(): void
+    {
+        $rule = CommissionRuleParameter::getRule('car_bike_incentive');
+        $rule?->update(['parameters' => [...($rule->parameters ?? []), 'bike_target' => '6000000.00']]);
+
+        $this->seed(CommissionRuleSeeder::class);
+
+        $this->assertSame('6000000.00', $this->rewardRule()['parameters']['bike_target']);
+    }
+
+    public function test_the_owner_changes_the_bike_target_and_every_screen_follows_it(): void
+    {
+        $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
+        ReferralTreePath::attachUser($dealer->id, null);
+        RewardMilestoneProgress::query()->forceCreate(['user_id' => $dealer->id, 'milestone_type' => 'bike', 'target_amount' => '5000000.00', 'leg_cap_amount' => '800000.00', 'qualifying_volume' => '1000000.00']);
+
+        $this->saveAwards($this->owner, 'sadmin', ['bike_target' => '4000000.00'])
+            ->assertRedirect()
+            ->assertSessionHas('success', __('portal.flash_commission_policy_updated'));
+
+        $this->assertSame('4000000.00', $this->rewardRule()['parameters']['bike_target']);
+        $this->assertSame('4000000.00', app(CommissionQualification::class)->milestone($dealer->id, 'bike')['target_amount']);
+        $bikeRow = collect(app(PartnerDashboardHome::class)->for($dealer->fresh())['targets'])->firstWhere('key', 'bike_incentive');
+        $this->assertSame('4000000.00', $bikeRow['target']);
+        $this->assertSame('1000000.00', $bikeRow['current']);
+
+        app()->setLocale('en');
+        $this->assertStringContainsString('bike ৳40,00,000', implode(' ', app(UserManual::class)->chapter('rewards_milestones', $dealer)['steps']));
+
+        $this->actingAs($this->owner)->onPortal('sadmin')->get('/treasury/funds/car_bike?view=bike')->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('leaders.targets.bike', '4000000.00'));
+
+        $changes = json_decode(DB::table('audit_events')->where('action', 'commissions.rules_updated')->first()->metadata, true)['changes']['car_bike_incentive'];
+        $this->assertSame('5000000.00', $changes['before']['parameters']['bike_target']);
+        $this->assertSame('4000000.00', $changes['after']['parameters']['bike_target']);
+    }
+
+    public function test_a_bike_target_must_be_a_real_amount(): void
+    {
+        $this->saveAwards($this->owner, 'sadmin', ['bike_target' => '-5'])->assertSessionHasErrors('rules');
+
+        $this->assertSame('5000000.00', $this->rewardRule()['parameters']['bike_target']);
+    }
+
+    public function test_no_translation_quotes_a_fixed_bike_target(): void
+    {
+        foreach (['en' => '/৳\s*60\s*lakh/iu', 'bn' => '/৳\s*৬০\s*লাখ/u'] as $locale => $fixedTarget) {
+            $this->assertDoesNotMatchRegularExpression($fixedTarget, (string) file_get_contents(lang_path($locale.'/portal.php')));
+        }
     }
 
     public function test_rules_saved_before_the_award_amounts_existed_still_have_them(): void
