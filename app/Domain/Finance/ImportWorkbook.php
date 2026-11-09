@@ -170,7 +170,7 @@ final class ImportWorkbook
                 if ($data['dealer_code'] !== '' && app(PartnerAccountProvisioning::class)->referCodeInUse($data['dealer_code'])) {
                     $errors[] = __('portal.acct_val_refer_taken');
                 }
-                if ($data['sponsor_code'] !== '' && ! User::where('dealer_code', $data['sponsor_code'])->where('role', 'dealer')->where('status', 'active')->exists()) {
+                if ($data['sponsor_code'] !== '' && ! User::where('dealer_code', $data['sponsor_code'])->whereIn('role', PartnerAccountProvisioning::SponsorRoles)->where('status', 'active')->exists()) {
                     $errors[] = __('portal.err_wb_sponsor_missing');
                 }
                 $normalizedPlace = PlaceCode::normalizeCode($data['place_code']) ?? $data['place_code'];

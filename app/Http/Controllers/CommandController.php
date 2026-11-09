@@ -245,7 +245,7 @@ class CommandController extends Controller
             $this->permit($r, 'identity_write');
         }
         if (! empty($d['sponsor_id'])) {
-            abort_unless(User::whereKey($d['sponsor_id'])->where('role', 'dealer')->where('status', 'active')->exists(), 422, __('portal.cmd_val_sponsor_active_dealer'));
+            abort_unless(User::whereKey($d['sponsor_id'])->whereIn('role', PartnerAccountProvisioning::SponsorRoles)->where('status', 'active')->exists(), 422, __('portal.cmd_val_sponsor_active_dealer'));
         }
         if (($d['directory_visible'] ?? false) && $d['role'] !== 'dealer') {
             throw ValidationException::withMessages(['directory_visible' => __('portal.cmd_val_directory_dealer_only')]);
@@ -307,7 +307,7 @@ class CommandController extends Controller
                 if ($newSponsorId === $user->id) {
                     throw ValidationException::withMessages(['sponsor_id' => __('portal.cmd_val_self_sponsor')]);
                 }
-                abort_unless(User::whereKey($newSponsorId)->where('role', 'dealer')->where('status', 'active')->exists(), 422, __('portal.cmd_val_sponsor_active_dealer'));
+                abort_unless(User::whereKey($newSponsorId)->whereIn('role', PartnerAccountProvisioning::SponsorRoles)->where('status', 'active')->exists(), 422, __('portal.cmd_val_sponsor_active_dealer'));
                 if (ReferralTreePath::isDescendant($user->id, $newSponsorId)) {
                     throw ValidationException::withMessages(['sponsor_id' => __('portal.cmd_val_circular_sponsor')]);
                 }

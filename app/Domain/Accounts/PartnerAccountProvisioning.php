@@ -27,6 +27,9 @@ use Throwable;
 
 final class PartnerAccountProvisioning
 {
+    /** Who can refer a new partner. */
+    public const SponsorRoles = ['dealer', 'sub_dealer'];
+
     public function __construct(
         private PlaceGeographyResolver $geography,
         private AccountCreatedSms $sms,
@@ -334,7 +337,7 @@ final class PartnerAccountProvisioning
     }
 
     /**
-     * The active dealer a typed reference code belongs to. People may type the dealer's
+     * The active dealer or sub-dealer a typed reference code belongs to. People may type their
      * refer code or dealer code, with or without the MNHC- prefix.
      */
     public function findSponsor(string $reference): ?User
@@ -346,7 +349,7 @@ final class PartnerAccountProvisioning
                 $query->whereIn(DB::raw('UPPER(refer_code)'), $forms)
                     ->orWhereIn(DB::raw('UPPER(dealer_code)'), $forms);
             })
-            ->where('role', 'dealer')
+            ->whereIn('role', self::SponsorRoles)
             ->where('status', 'active')
             ->orderBy('id')
             ->first();

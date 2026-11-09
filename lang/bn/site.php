@@ -422,7 +422,7 @@ return [
     'division' => 'বিভাগ',
     'district' => 'জেলা',
     'upazila_optional' => 'উপজেলা (ঐচ্ছিক)',
-    'sponsor_code_optional' => 'রেফারকারীর ডিলার কোড (ঐচ্ছিক)',
+    'sponsor_code_optional' => 'রেফারকারীর কোড (ঐচ্ছিক)',
     'message_optional' => 'বার্তা (ঐচ্ছিক)',
     'submit_application' => 'আবেদন জমা দিন',
     'partner_section_personal' => 'আবেদনকারী ও যোগাযোগের তথ্য',
@@ -437,7 +437,7 @@ return [
     'partner_trust_badge_confidential' => 'গোপন ও সরাসরি',
     'partner_trust_badge_support' => 'কোম্পানির সহায়তা',
     'partner_security_note' => 'আপনার সব তথ্য গোপন রাখা হয় এবং মদিনা ন্যাচারাল হেলথ কেয়ারের ব্যবস্থাপনা সরাসরি যাচাই করে।',
-    'partner_sponsor_hint' => 'কোনো অনুমোদিত ডিলার রেফার করে থাকলে তার ডিলার কোড লিখুন।',
+    'partner_sponsor_hint' => 'কোনো অনুমোদিত ডিলার বা সাব-ডিলার রেফার করে থাকলে তার কোড লিখুন।',
     'optional' => 'ঐচ্ছিক',
 
     'offers' => 'অফার',

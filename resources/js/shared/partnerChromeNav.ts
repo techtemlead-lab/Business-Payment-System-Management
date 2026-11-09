@@ -47,7 +47,7 @@ function matchSubDealer(controls: DashboardControls, item: PartnerChromeItem): b
         case 'orders':
             return flagEnabled(controls, 'subdealer_orders_enabled');
         case 'network':
-            return false;
+            return true;
         case 'salary':
             return flagEnabled(controls, 'subdealer_salary_enabled');
         case 'earnings':
