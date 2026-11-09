@@ -7,6 +7,7 @@ use App\Domain\Finance\Percentage;
 use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\StockLots;
 use App\Domain\Inventory\StockNotifications;
+use App\Domain\Inventory\StockStages;
 use App\Models\BranchProductStock;
 use App\Models\Product;
 use App\Models\ProductConcern;
@@ -76,6 +77,7 @@ class ProductRegistryController extends Controller
 
         return Inertia::render('ProductEditor', [
             'product' => $data,
+            'stock_stages' => $product && $r->user()->allows('inventory') ? app(StockStages::class)->forProduct($product) : null,
             'catalog_categories' => CatalogCms::categoryOptions($product),
             'catalog_units' => CatalogCms::unitOptions($product),
             'categories' => SiteCustomization::getConfiguredCategoryNames(),

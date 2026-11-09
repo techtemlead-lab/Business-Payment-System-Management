@@ -1,19 +1,20 @@
-import { useMemo, useState } from 'react';
 import { router } from '@inertiajs/react';
-import { Search } from 'lucide-react';
-import { Empty, money, number, date, Table, type TableColumn } from './UI';
+import { Pause, Play } from 'lucide-react';
+import MoneyTable, { type MoneyColumn, type MoneyTableData } from './MoneyTable';
+import { date, money, number } from './UI';
+import { StockFilterControls, useAddressVisit, type StockFilterBarData } from './StockFilterBar';
 import { useT } from '../shared/i18n/t';
 import { localizeDigits } from '../business-date';
 
-type StockProduct = {
+type StockRow = {
     id: number;
+    row_key: string;
     name: string;
     register_name?: string;
     sku: string;
     category?: string | null;
     sub_category?: string | null;
     unit?: string | null;
-    strength?: string | null;
     mrp?: string | number | null;
     cost_price?: string | number | null;
     dealer_price?: string | number | null;
@@ -22,364 +23,192 @@ type StockProduct = {
     sub_dealer_discount_pct?: string | null;
     expires_on?: string | null;
     batch_number?: string | null;
-    stock?: number;
-    branch_stock?: number;
-    company_stock?: number;
     branch_name?: string | null;
-    row_key?: string;
-    low_stock_at?: number;
+    physical: number;
+    in_stock: number;
+    on_hold: number;
+    expired: number;
+    with_courier: number;
+    booked: number;
+    free_to_sell: number;
+    level: 'out_of_stock' | 'low' | 'full';
+    low_stock_at: number;
+    stock_value: string;
     is_stock_paused?: boolean;
-    /** Units on approved orders that have not been sent yet. */
-    booked_units?: number;
-    /** Units that can really go out: goods on hold or past their date are left out. */
-    available_units?: number;
-    company_available?: number;
-    held_units?: number;
+    active?: boolean;
 };
 
-type ProductStockRow = StockProduct;
-
-type SortKey = 'name' | 'sku' | 'available' | 'expires' | 'mrp';
-
-function displayName(product: StockProduct): string {
-    if (product.register_name) {
-        return product.register_name;
-    }
-    const strength = (product.strength ?? '').trim();
-    if (strength && !product.name.toLowerCase().includes(strength.toLowerCase())) {
-        return `${product.name}-${strength}`;
-    }
-
-    return product.name;
-}
+export type StockTableData = MoneyTableData<StockRow> & { filter_bar: StockFilterBarData };
 
 function percentLabel(value?: string | null): string {
     if (value == null || value === '') {
-        return '—';
+        return '';
     }
     const amount = Number(value);
     if (!Number.isFinite(amount)) {
-        return '—';
+        return '';
     }
-    const trimmed = Number.isInteger(amount)
-        ? String(amount)
-        : amount.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+    const trimmed = Number.isInteger(amount) ? String(amount) : amount.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
 
     return `${localizeDigits(trimmed)}%`;
 }
 
-function physicalUnits(product: StockProduct): number {
-    return Number(product.branch_stock ?? product.stock ?? 0);
+function Units({ value, tone }: { value: number; tone?: 'warning' }) {
+    if (value <= 0) {
+        return <span className="sf-none">—</span>;
+    }
+
+    return <b className={tone === 'warning' ? 'text-amber' : undefined}>{number(value)}</b>;
 }
 
-function availableUnits(product: StockProduct): number {
-    return Number(product.available_units ?? physicalUnits(product));
+function LevelBadge({ level }: { level: StockRow['level'] }) {
+    const translate = useT();
+    if (level === 'full') {
+        return null;
+    }
+
+    return <span className={`badge ${level === 'out_of_stock' ? 'rejected' : 'held'}`}>{translate('stock_lots', level === 'out_of_stock' ? 'level_out_of_stock' : 'level_low')}</span>;
 }
 
-function uniqueValues(products: StockProduct[], key: 'category' | 'sub_category' | 'unit'): string[] {
-    return [...new Set(products.map((product) => (product[key] ?? '').trim()).filter(Boolean))].sort((left, right) => left.localeCompare(right));
-}
-
-function RateCell({ percent, price }: { percent?: string | null; price?: string | number | null }) {
-    return (
-        <span className="stock-rate">
-            <b>{percentLabel(percent)}</b>
-            <small>{price != null && price !== '' ? money(price) : '—'}</small>
-        </span>
-    );
-}
-
-export default function StockOnHand({
-    products,
-    branchName,
-    branchCount,
-    canToggle,
-    showBranch = false,
-}: {
-    products: StockProduct[];
-    branchName: string;
-    branchCount: number;
+export default function StockOnHand({ table, canToggle, showBranch }: {
+    table: StockTableData;
     canToggle: boolean;
-    showBranch?: boolean;
+    showBranch: boolean;
 }) {
     const translate = useT();
-    const [query, setQuery] = useState('');
-    const [category, setCategory] = useState('');
-    const [subCategory, setSubCategory] = useState('');
-    const [unit, setUnit] = useState('');
-    const [sort, setSort] = useState<SortKey>('name');
+    const visit = useAddressVisit('data');
+    const sums = table.totals.sums ?? {};
+    const units = (key: string) => number(Number(sums[key] ?? 0));
+    const totalUnits = Number(sums.in_stock ?? 0) + Number(sums.on_hold ?? 0) + Number(sums.expired ?? 0) + Number(sums.with_courier ?? 0);
+    const activeStage = table.filter_bar.active.stage;
 
-    const showCost = products.some((product) => product.cost_price != null && product.cost_price !== '');
-    const categories = useMemo(() => uniqueValues(products, 'category'), [products]);
-    const units = useMemo(() => uniqueValues(products, 'unit'), [products]);
-    const subCategories = useMemo(() => {
-        const source = category
-            ? products.filter((product) => (product.category ?? '') === category)
-            : products;
+    const stageCards: { key: string; label: string; value: string; stage?: string }[] = [
+        { key: 'total', label: translate('stock_lots', 'stage_total'), value: number(totalUnits) },
+        { key: 'in_stock', label: translate('stock_lots', 'stage_in_stock'), value: units('in_stock') },
+        { key: 'on_hold', label: translate('stock_lots', 'stage_on_hold'), value: units('on_hold'), stage: 'on_hold' },
+        { key: 'with_courier', label: translate('stock_lots', 'stage_with_courier'), value: units('with_courier'), stage: 'with_courier' },
+        { key: 'expired', label: translate('stock_lots', 'stage_expired'), value: units('expired'), stage: 'expired' },
+    ];
 
-        return uniqueValues(source, 'sub_category');
-    }, [category, products]);
+    const columns: MoneyColumn<StockRow>[] = [
+        {
+            key: 'name',
+            title: translate('portal', 'col_product'),
+            sortKey: 'name',
+            phone: 'title',
+            render: (row) => (
+                <>
+                    {row.register_name || row.name} <LevelBadge level={row.level} />
+                    <small className="cell-sub">{[row.sku, [row.category, row.sub_category].filter(Boolean).join(' › '), row.unit].filter(Boolean).join(' · ')}</small>
+                    <small className="cell-sub sf-phone-stages">
+                        {[
+                            row.on_hold > 0 ? `${translate('stock_lots', 'stage_on_hold')} ${number(row.on_hold)}` : null,
+                            row.with_courier > 0 ? `${translate('stock_lots', 'stage_with_courier')} ${number(row.with_courier)}` : null,
+                            row.expired > 0 ? `${translate('stock_lots', 'stage_expired')} ${number(row.expired)}` : null,
+                        ].filter(Boolean).join(' · ')}
+                    </small>
+                </>
+            ),
+        },
+        ...(showBranch ? [{ key: 'branch', title: translate('portal', 'col_branch'), sortKey: 'branch', phone: 'sub' as const, render: (row: StockRow) => row.branch_name || '—' }] : []),
+        {
+            key: 'in_stock',
+            title: translate('stock_lots', 'stage_in_stock'),
+            sortKey: 'in_stock',
+            align: 'right',
+            phone: 'amount',
+            render: (row) => (
+                <>
+                    <b className={row.level === 'out_of_stock' ? 'text-danger' : row.level === 'low' ? 'text-amber' : undefined}>{number(row.in_stock)}</b>
+                    {row.expired > 0 ? <small className="cell-sub text-danger">{translate('stock_lots', 'stage_expired')} {number(row.expired)}</small> : null}
+                </>
+            ),
+        },
+        { key: 'on_hold', title: translate('stock_lots', 'stage_on_hold'), sortKey: 'on_hold', align: 'right', phone: 'hide', render: (row) => <Units value={row.on_hold} tone="warning" /> },
+        { key: 'with_courier', title: translate('stock_lots', 'stage_with_courier'), sortKey: 'with_courier', align: 'right', phone: 'hide', render: (row) => <Units value={row.with_courier} /> },
+        {
+            key: 'booked',
+            title: translate('portal', 'col_booked_units'),
+            sortKey: 'booked',
+            align: 'right',
+            phone: 'hide',
+            render: (row) => (row.booked > 0 ? (
+                <span title={translate('portal', 'col_booked_units_hint')}>
+                    {number(row.booked)}
+                    <small className={`cell-sub${row.free_to_sell < 0 ? ' text-danger' : ''}`}>{translate('stock_lots', 'free_to_sell_short', { count: number(row.free_to_sell) })}</small>
+                </span>
+            ) : <span className="sf-none">—</span>),
+        },
+        {
+            key: 'expiry',
+            title: translate('portal', 'col_expiry'),
+            sortKey: 'expiry',
+            phone: 'sub',
+            render: (row) => <>{row.expires_on ? date(row.expires_on) : '—'}{row.batch_number ? <small className="cell-sub">{translate('portal', 'col_batch_short', { batch: row.batch_number })}</small> : null}</>,
+        },
+        {
+            key: 'mrp',
+            title: translate('portal', 'col_mrp'),
+            sortKey: 'mrp',
+            align: 'right',
+            phone: 'hide',
+            render: (row) => (
+                <span className="sf-price">
+                    {row.mrp != null && row.mrp !== '' ? money(row.mrp) : '—'}
+                    {row.cost_price != null && row.cost_price !== '' ? <small className="cell-sub">{translate('portal', 'col_cost')} {money(row.cost_price)}</small> : null}
+                    {row.dealer_price != null && row.dealer_price !== '' ? <small className="cell-sub">{translate('stock_lots', 'price_dealer_short')} {money(row.dealer_price)} {percentLabel(row.dealer_discount_pct)}</small> : null}
+                    {row.sub_dealer_price != null && row.sub_dealer_price !== '' ? <small className="cell-sub">{translate('stock_lots', 'price_subdealer_short')} {money(row.sub_dealer_price)} {percentLabel(row.sub_dealer_discount_pct)}</small> : null}
+                </span>
+            ),
+        },
+        { key: 'stock_value', title: translate('portal', 'branch_stock_value'), sortKey: 'stock_value', money: true, total: 'stock_value', phone: 'hide' },
+        {
+            key: 'action',
+            title: '',
+            phone: 'hide',
+            render: (row) => (
+                <button
+                    type="button"
+                    className={`button small sf-pause ${row.is_stock_paused ? 'stock-resume' : 'stock-pause'}`}
+                    disabled={!canToggle}
+                    title={row.is_stock_paused ? translate('portal', 'resume_ordering') : translate('portal', 'pause_ordering')}
+                    aria-label={row.is_stock_paused ? translate('portal', 'resume_ordering') : translate('portal', 'pause_ordering')}
+                    onClick={() => router.post(`/commands/products/${row.id}/toggle-stock`, {}, { preserveScroll: true })}
+                >
+                    {row.is_stock_paused ? <Play size={14} aria-hidden="true" /> : <Pause size={14} aria-hidden="true" />}
+                </button>
+            ),
+        },
+    ];
 
-    const rows = useMemo(() => {
-        const needle = query.trim().toLowerCase();
-        const filtered = products.filter((product) => {
-            if (category && (product.category ?? '') !== category) {
-                return false;
-            }
-            if (subCategory && (product.sub_category ?? '') !== subCategory) {
-                return false;
-            }
-            if (unit && (product.unit ?? '') !== unit) {
-                return false;
-            }
-            if (!needle) {
-                return true;
-            }
-            const haystack = [displayName(product), product.name, product.sku, product.strength, product.category, product.sub_category, product.unit]
-                .filter(Boolean)
-                .join(' ')
-                .toLowerCase();
-
-            return haystack.includes(needle);
-        });
-
-        const sorted = [...filtered];
-        sorted.sort((left, right) => {
-            if (sort === 'sku') {
-                return left.sku.localeCompare(right.sku);
-            }
-            if (sort === 'available') {
-                return availableUnits(right) - availableUnits(left);
-            }
-            if (sort === 'mrp') {
-                return Number(left.mrp ?? 0) - Number(right.mrp ?? 0);
-            }
-            if (sort === 'expires') {
-                const leftDate = left.expires_on || '';
-                const rightDate = right.expires_on || '';
-                if (!leftDate && !rightDate) {
-                    return 0;
-                }
-                if (!leftDate) {
-                    return 1;
-                }
-                if (!rightDate) {
-                    return -1;
-                }
-
-                return leftDate.localeCompare(rightDate);
-            }
-
-            return displayName(left).localeCompare(displayName(right));
-        });
-
-        return sorted;
-    }, [category, products, query, sort, subCategory, unit]);
-
-    const branchSummary = branchCount > 0
-        ? `${branchName} · ${branchCount} ${translate('portal', 'branches_short')}`
-        : branchName;
+    const sortOptions = columns.filter((column) => column.sortKey).map((column) => ({ key: column.sortKey as string, title: column.title }));
 
     return (
-        <section className="panel stock-register">
-            <div className="panel-heading">
-                <h2>{translate('portal', 'stock_on_hand')}</h2>
-                <span>{branchSummary}</span>
+        <section className="stock-register-page">
+            <div className="sf-stage-cards">
+                {stageCards.map((card) => {
+                    const content = (<><span>{card.label}</span><b>{card.value}</b></>);
+                    if (!card.stage) {
+                        return <div key={card.key} className="sf-stage-card">{content}</div>;
+                    }
+
+                    return (
+                        <button key={card.key} type="button" className={`sf-stage-card is-button${activeStage === card.stage ? ' is-on' : ''}`} aria-pressed={activeStage === card.stage} onClick={() => visit({ stage: activeStage === card.stage ? null : card.stage ?? null })}>
+                            {content}
+                        </button>
+                    );
+                })}
             </div>
-            <div className="stock-toolbar">
-                <label className="stock-search">
-                    <Search size={14} aria-hidden="true" />
-                    <input
-                        type="search"
-                        value={query}
-                        onChange={(event) => setQuery(event.target.value)}
-                        placeholder={translate('portal', 'search_products')}
-                        aria-label={translate('portal', 'search_products')}
-                    />
-                </label>
-                <select aria-label={translate('portal', 'col_category')} value={category} onChange={(event) => {
-                    setCategory(event.target.value);
-                    setSubCategory('');
-                }}>
-                    <option value="">{translate('portal', 'stock_filter_all')}</option>
-                    {categories.map((item) => <option key={item} value={item}>{item}</option>)}
-                </select>
-                <select aria-label={translate('portal', 'col_subcategory')} value={subCategory} onChange={(event) => setSubCategory(event.target.value)}>
-                    <option value="">{translate('portal', 'stock_filter_all')}</option>
-                    {subCategories.map((item) => <option key={item} value={item}>{item}</option>)}
-                </select>
-                <select aria-label={translate('portal', 'col_unit')} value={unit} onChange={(event) => setUnit(event.target.value)}>
-                    <option value="">{translate('portal', 'stock_filter_all')}</option>
-                    {units.map((item) => <option key={item} value={item}>{item}</option>)}
-                </select>
-                <select aria-label={translate('portal', 'stock_sort')} value={sort} onChange={(event) => setSort(event.target.value as SortKey)}>
-                    <option value="name">{translate('portal', 'stock_sort_name')}</option>
-                    <option value="sku">{translate('portal', 'stock_sort_sku')}</option>
-                    <option value="available">{translate('portal', 'stock_sort_available')}</option>
-                    <option value="expires">{translate('portal', 'stock_sort_expiry')}</option>
-                    <option value="mrp">{translate('portal', 'stock_sort_mrp')}</option>
-                </select>
+            <div className="sf-table">
+                <MoneyTable
+                    data={table}
+                    prop="data"
+                    columns={columns}
+                    searchPlaceholder={translate('portal', 'search_products')}
+                    empty={translate('portal', 'stock_no_matches')}
+                    actions={<StockFilterControls bar={table.filter_bar} prop="data" sortOptions={sortOptions} sortState={{ sort: table.state.sort, dir: table.state.dir }} />}
+                />
             </div>
-            <Table
-                rows={rows}
-                tools={false}
-                pageSize={25}
-                filename="stock-on-hand"
-                printable
-                columns={[
-                    {
-                        key: 'product',
-                        title: translate('portal', 'col_product'),
-                        sortable: true,
-                        sortValue: (p: ProductStockRow) => displayName(p),
-                        render: (p: ProductStockRow) => (
-                            <>
-                                {displayName(p)}
-                                <small className="cell-sub">
-                                    {[p.sku, [p.category, p.sub_category].filter(Boolean).join(' › '), p.unit].filter(Boolean).join(' · ')}
-                                </small>
-                            </>
-                        ),
-                    },
-                    ...(showBranch ? [{
-                        key: 'branch',
-                        title: translate('portal', 'col_branch'),
-                        sortable: true,
-                        sortValue: (p: ProductStockRow) => p.branch_name || '',
-                        render: (p: ProductStockRow) => p.branch_name || '—',
-                    }] : []),
-                    {
-                        key: 'mrp',
-                        title: translate('portal', 'col_mrp'),
-                        sortable: true,
-                        align: 'right',
-                        sortValue: (p: ProductStockRow) => Number(p.mrp) || 0,
-                        render: (p: ProductStockRow) => p.mrp != null && p.mrp !== '' ? money(p.mrp) : '—',
-                    },
-                    ...(showCost ? [{
-                        key: 'cost',
-                        title: translate('portal', 'col_cost'),
-                        sortable: true,
-                        align: 'right' as const,
-                        sortValue: (p: ProductStockRow) => Number(p.cost_price) || 0,
-                        render: (p: ProductStockRow) => p.cost_price != null && p.cost_price !== '' ? money(p.cost_price) : '—',
-                    }] : []),
-                    {
-                        key: 'dealer_price',
-                        title: translate('portal', 'col_dealer_commission'),
-                        sortable: true,
-                        align: 'right',
-                        sortValue: (p: ProductStockRow) => Number(p.dealer_price) || 0,
-                        render: (p: ProductStockRow) => <RateCell percent={p.dealer_discount_pct} price={p.dealer_price} />,
-                    },
-                    {
-                        key: 'subdealer_price',
-                        title: translate('portal', 'col_subdealer_commission'),
-                        sortable: true,
-                        align: 'right',
-                        sortValue: (p: ProductStockRow) => Number(p.sub_dealer_price) || 0,
-                        render: (p: ProductStockRow) => <RateCell percent={p.sub_dealer_discount_pct} price={p.sub_dealer_price} />,
-                    },
-                    {
-                        key: 'expiry',
-                        title: translate('portal', 'col_expiry'),
-                        sortable: true,
-                        sortValue: (p: ProductStockRow) => p.expires_on || '',
-                        render: (p: ProductStockRow) => <>{p.expires_on ? date(p.expires_on) : '—'}{p.batch_number ? <small className="cell-sub">{translate('portal', 'col_batch_short', { batch: p.batch_number })}</small> : null}</>,
-                    },
-                    {
-                        key: 'available_units',
-                        title: translate('portal', 'available_units'),
-                        sortable: true,
-                        align: 'right',
-                        sortValue: (p: ProductStockRow) => availableUnits(p),
-                        render: (p: ProductStockRow) => {
-                            const onHand = availableUnits(p);
-                            const low = Number(p.low_stock_at ?? 0);
-                            const company = p.company_available ?? p.company_stock;
-                            const held = Number(p.held_units ?? 0);
-                            return (
-                                <b className={onHand <= low ? 'text-amber' : ''}>
-                                    {number(onHand)}
-                                    {company != null && company !== onHand ? (
-                                        <small className="cell-sub">{translate('portal', 'branch_company_total', { count: number(company) })}</small>
-                                    ) : null}
-                                    {held > 0 ? (
-                                        <small className="cell-sub">{translate('stock_lots', 'units_on_hold', { count: number(held) })}</small>
-                                    ) : null}
-                                </b>
-                            );
-                        },
-                    },
-                    {
-                        key: 'booked_units',
-                        title: translate('portal', 'col_booked_units'),
-                        sortable: true,
-                        align: 'right',
-                        sortValue: (p: ProductStockRow) => Number(p.booked_units ?? 0),
-                        render: (p: ProductStockRow) => {
-                            const booked = Number(p.booked_units ?? 0);
-                            if (booked <= 0) {
-                                return '—';
-                            }
-                            const free = Number(p.company_available ?? p.company_stock ?? p.stock ?? availableUnits(p)) - booked;
-                            return (
-                                <span title={translate('portal', 'col_booked_units_hint')}>
-                                    {number(booked)}
-                                    <small className={`cell-sub${free < 0 ? ' text-danger' : ''}`}>{translate('portal', 'stock_free_to_sell', { count: number(free) })}</small>
-                                </span>
-                            );
-                        },
-                    },
-                    {
-                        key: 'stock_value',
-                        title: translate('portal', 'branch_stock_value'),
-                        sortable: true,
-                        money: true,
-                        total: true,
-                        sortValue: (p: ProductStockRow) => physicalUnits(p) * Number(p.mrp || 0),
-                        render: (p: ProductStockRow) => money(physicalUnits(p) * Number(p.mrp || 0)),
-                    },
-                    {
-                        key: 'reorder',
-                        title: translate('portal', 'col_reorder'),
-                        sortable: true,
-                        render: (p: ProductStockRow) => {
-                            const onHand = availableUnits(p);
-                            const low = Number(p.low_stock_at ?? 0);
-                            return onHand <= 0 ? translate('portal', 'stock_level_out') : onHand <= low ? translate('portal', 'stock_level_low') : translate('portal', 'stock_level_ok');
-                        },
-                    },
-                    {
-                        key: 'low_stock_at',
-                        title: translate('portal', 'low_stock_threshold'),
-                        sortable: true,
-                        align: 'right',
-                        sortValue: (p: ProductStockRow) => Number(p.low_stock_at) || 0,
-                        render: (p: ProductStockRow) => p.low_stock_at != null ? number(p.low_stock_at) : '—',
-                    },
-                    {
-                        key: 'action',
-                        title: translate('portal', 'one_click_stock'),
-                        align: 'center',
-                        render: (p: ProductStockRow) => {
-                            const paused = Boolean(p.is_stock_paused);
-                            return (
-                                <button
-                                    type="button"
-                                    className={`button small ${paused ? 'stock-resume' : 'stock-pause'}`}
-                                    disabled={!canToggle}
-                                    onClick={() => router.post(`/commands/products/${p.id}/toggle-stock`, {}, { preserveScroll: true })}
-                                >
-                                    {paused ? translate('portal', 'resume_ordering') : translate('portal', 'pause_ordering')}
-                                </button>
-                            );
-                        },
-                    },
-                ]}
-                empty={translate('portal', 'stock_no_matches')}
-                emptyBody={translate('portal', 'stock_filter_hint')}
-            />
         </section>
     );
 }

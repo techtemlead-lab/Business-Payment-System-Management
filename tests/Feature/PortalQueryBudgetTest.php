@@ -143,7 +143,7 @@ class PortalQueryBudgetTest extends TestCase
         $response->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('data.supports_product_expiry', true)
             ->where('data.products', fn ($products) => collect($products)->firstWhere('id', $expiring->id)['expires_on'] === '2027-03-31'));
-        $this->assertQueriesAtMost(24, $queries, 'inventory');
+        $this->assertQueriesAtMost(27, $queries, 'inventory');
 
         Product::factory()->count(12)->create(['active' => true]);
         [, $moreQueries] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/inventory'));
