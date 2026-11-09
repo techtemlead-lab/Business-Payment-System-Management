@@ -10,6 +10,7 @@ use App\Models\CommissionAllocation;
 use App\Models\Order;
 use App\Models\ReferralTreePath;
 use App\Models\User;
+use App\Support\DashboardManagement;
 use App\Support\Money;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -102,6 +103,7 @@ class CommissionController extends Controller
     public function network(Request $request): JsonResponse
     {
         abort_unless($request->user()->role === 'dealer', 403);
+        abort_unless(DashboardManagement::partnerFeatureEnabled($request->user(), 'network'), 403);
         $members = DB::table('referral_tree_paths')->join('users', 'users.id', '=', 'descendant_id')
             ->where('ancestor_id', $request->user()->id)->where('depth', '>', 0)->orderBy('depth')->orderBy('users.id')
             ->paginate(100, ['users.id', 'users.name', 'users.dealer_code', 'users.sponsor_id', 'users.role', 'users.status', 'depth', 'users.created_at']);
@@ -112,6 +114,7 @@ class CommissionController extends Controller
     public function networkOrders(Request $request, User $user): JsonResponse
     {
         abort_unless($request->user()->role === 'dealer' && ReferralTreePath::isDescendant($request->user()->id, $user->id), 404);
+        abort_unless(DashboardManagement::partnerFeatureEnabled($request->user(), 'network'), 403);
 
         return response()->json(Order::where('user_id', $user->id)->latest()->paginate(20, ['id', 'number', 'status', 'total', 'paid', 'created_at']));
     }
