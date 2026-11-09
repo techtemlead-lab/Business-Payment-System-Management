@@ -1,4 +1,33 @@
 <?php
 
 return [
+    'title' => 'Dealers & sub-dealers',
+    'search_partners' => 'Name, code, phone or email',
+    'view_open' => 'All partners',
+    'view_closed' => 'Closed',
+    'col_area' => 'Area',
+    'empty_partners' => 'No partners found',
+    'empty_closed' => 'No closed partners',
+    'detail_phone' => 'Phone',
+    'detail_email' => 'Email',
+    'detail_code' => 'Partner code',
+    'detail_shop' => 'Shop',
+    'detail_name_bn' => 'Name in Bangla',
+    'detail_area' => 'Area',
+    'detail_message' => 'Their message',
+    'detail_reason' => 'Reason',
+    'detail_sponsor_code' => 'Referral code',
+
+    'applications_title' => 'Applications',
+    'search_applications' => 'Name, email, phone or district',
+    'col_date' => 'Date',
+    'empty_applications' => 'No applications',
+    'source_public' => 'Website',
+    'source_staff' => 'Through staff',
+    'review_note' => 'Approval note',
+    'approve' => 'Approve',
+    'reject' => 'Reject',
+    'reject_title' => 'Reject this application',
+    'reject_reason' => 'Reason',
+    'cannot_review_own' => 'You sent this application, so someone else must decide it.',
 ];

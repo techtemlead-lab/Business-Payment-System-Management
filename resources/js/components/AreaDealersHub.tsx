@@ -100,9 +100,6 @@ export default function AreaDealersHub({ assignments: page, summary, areaFilters
 
     return (
         <div className="hub">
-            <p className="adh-intro">
-                {translate('portal', 'area_intro')}
-            </p>
             <div className="hub-grid">
                 <div className="hub-tile">
                     <div className="hub-label ops-row">

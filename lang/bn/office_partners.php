@@ -1,4 +1,33 @@
 <?php
 
 return [
+    'title' => 'ডিলার ও সাব-ডিলার',
+    'search_partners' => 'নাম, কোড, ফোন বা ইমেইল',
+    'view_open' => 'সব পার্টনার',
+    'view_closed' => 'বন্ধ',
+    'col_area' => 'এলাকা',
+    'empty_partners' => 'কোনো পার্টনার পাওয়া যায়নি',
+    'empty_closed' => 'কোনো বন্ধ পার্টনার নেই',
+    'detail_phone' => 'ফোন',
+    'detail_email' => 'ইমেইল',
+    'detail_code' => 'পার্টনার কোড',
+    'detail_shop' => 'দোকান',
+    'detail_name_bn' => 'বাংলায় নাম',
+    'detail_area' => 'এলাকা',
+    'detail_message' => 'আবেদনকারীর কথা',
+    'detail_reason' => 'কারণ',
+    'detail_sponsor_code' => 'রেফারেন্স কোড',
+
+    'applications_title' => 'আবেদন',
+    'search_applications' => 'নাম, ইমেইল, ফোন বা জেলা',
+    'col_date' => 'তারিখ',
+    'empty_applications' => 'কোনো আবেদন নেই',
+    'source_public' => 'ওয়েবসাইট',
+    'source_staff' => 'স্টাফের মাধ্যমে',
+    'review_note' => 'অনুমোদনের নোট',
+    'approve' => 'অনুমোদন করুন',
+    'reject' => 'নামঞ্জুর',
+    'reject_title' => 'আবেদনটি নামঞ্জুর করুন',
+    'reject_reason' => 'কারণ',
+    'cannot_review_own' => 'এই আবেদনটি আপনি পাঠিয়েছেন, তাই অন্য কেউ সিদ্ধান্ত নেবেন।',
 ];
