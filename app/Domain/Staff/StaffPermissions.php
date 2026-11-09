@@ -31,6 +31,23 @@ final class StaffPermissions
         return DB::table('staff_roles')->orderBy('name')->pluck('key')->all();
     }
 
+    /** @return array<string, string> */
+    public function customRoleNames(): array
+    {
+        return DB::table('staff_roles')->pluck('name', 'key')->all();
+    }
+
+    /**
+     * The permissions a built-in role starts with, before anyone ticks or unticks a box.
+     * Role and status are guarded columns, so new User(['role' => ...]) would leave both empty.
+     *
+     * @return array<string, array<string, bool>>
+     */
+    public function presetMatrix(string $role): array
+    {
+        return $this->matrix((new User)->forceFill(['role' => $role, 'status' => 'active']));
+    }
+
     /** @return array<string, array<string, bool>> */
     public function matrix(User $user): array
     {

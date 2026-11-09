@@ -55,7 +55,7 @@ export default function StaffAccessEditor({modules,staff,roles,presets}:{modules
     const role=roles.find(item=>item.key===roleKey)??{};
     return <>
         <section className="panel"><h2>{translate('portal', 'sa_title')}</h2><p>{translate('portal', 'sa_body')}</p>
-            <label>{translate('portal', 'sa_staff_member')}<select value={staffId} onChange={e=>setStaffId(e.target.value)}><option value="">{translate('portal', 'sa_select_staff')}</option>{staff.map(user=><option key={user.id} value={user.id}>{user.name} · {label(user.role, translate)}</option>)}</select></label>
+            <label>{translate('portal', 'sa_staff_member')}<select value={staffId} onChange={e=>setStaffId(e.target.value)}><option value="">{translate('portal', 'sa_select_staff')}</option>{staff.map(user=><option key={user.id} value={user.id}>{user.name} · {roles.find(item=>item.key===user.role)?.name??label(user.role, translate)}</option>)}</select></label>
             {selected&&<PermissionForm key={selected.id+':'+selected.version} modules={modules} entry={selected} mode="staff" roles={[...presets,...roles]}/>}
         </section>
         <section className="panel"><h2>{translate('portal', 'sa_roles_title')}</h2><p>{translate('portal', 'sa_roles_body')}</p>

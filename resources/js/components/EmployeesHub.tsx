@@ -265,7 +265,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                         {
                             key: 'role',
                             title: translate('portal', 'col_role'),
-                            render: (r: Row) => r.role ? label(String(r.role), translate) : '—',
+                            render: (r: Row) => r.role ? (r.role_name || label(String(r.role), translate)) : '—',
                         },
                         {
                             key: 'branch',

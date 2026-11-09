@@ -71,6 +71,8 @@ class HandleInertiaRequests extends Middleware
         return [...parent::share($request), 'auth' => [
             'user' => $u?->safe(),
             'capabilities' => $capabilities,
+            // The name the owner gave a custom role, shown instead of its stored key.
+            'customRoleName' => $u !== null && str_starts_with((string) $u->role, 'custom_') ? DB::table('staff_roles')->where('key', $u->role)->value('name') : null,
             // Staff the owner nominated to answer partner chat (owners always may).
             'chatAnswerer' => $u !== null && ($u->staff() || $u->usingStaffWorkspace()) && PartnerChat::canAnswer($u),
             // Prescriptions menu: verified partners and the owner-doctor (read from the user row, no query).
