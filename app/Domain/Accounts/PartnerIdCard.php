@@ -72,8 +72,6 @@ final class PartnerIdCard
             'place' => ($shop !== '' ? $shop.' · ' : '').($location !== '' ? $location : $t('pdf_location_bangladesh')),
             'code_label' => $t('pdf_id_card_dealer_code'),
             'code' => $code,
-            'refer_label' => $t('pdf_id_card_refer_code'),
-            'refer' => $refer,
             'mobile_label' => $t('pdf_id_card_mobile'),
             'mobile' => (string) ($user->phone ?: '—'),
             'link_label' => $t('pdf_id_card_join_link'),
@@ -116,7 +114,7 @@ final class PartnerIdCard
     }
 
     /**
-     * @param  array{brand: string, role: string, name: string, place: string, code_label: string, code: string, refer_label: string, refer: string, mobile_label: string, mobile: string, link_label: string, link: string, qr: string, scan: string, foot: string}  $card
+     * @param  array{brand: string, role: string, name: string, place: string, code_label: string, code: string, mobile_label: string, mobile: string, link_label: string, link: string, qr: string, scan: string, foot: string}  $card
      */
     private function cardHtml(float $scale, array $card): string
     {
@@ -149,7 +147,6 @@ final class PartnerIdCard
             <p class="meta">'.e($card['place']).'</p>
             <table>
                 <tr><td class="k">'.e($card['code_label']).'</td><td class="v">'.e($card['code']).'</td></tr>
-                <tr><td class="k">'.e($card['refer_label']).'</td><td class="v code">'.e($card['refer']).'</td></tr>
                 <tr><td class="k">'.e($card['mobile_label']).'</td><td class="v">'.e($card['mobile']).'</td></tr>
                 <tr><td class="k">'.e($card['link_label']).'</td><td class="url">'.e($card['link']).'</td></tr>
             </table>

@@ -467,7 +467,7 @@ Questions about these terms, partnership rules or the website:
     'share_refer_title' => ':name invites you to :company',
     'share_refer_description' => ':name (:code) invites you to join the :company partner network. Open the contact form to continue — the referrer code is already filled in.',
     'share_refer_eyebrow' => 'Partner invitation',
-    'share_refer_code_label' => 'Referral code',
+    'share_refer_code_label' => 'Code',
     'share_refer_phone_label' => 'Contact number',
     'share_refer_contact_cta' => 'Continue to contact form',
     'share_refer_apply_cta' => 'Apply for partnership',
