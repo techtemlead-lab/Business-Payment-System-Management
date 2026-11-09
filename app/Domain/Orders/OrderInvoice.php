@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\User;
 use App\Support\AmountInWords;
 use App\Support\Money;
+use App\Support\PaymentChannel;
 use App\Support\PdfFonts;
 use App\Support\PortalHost;
 use App\Support\SiteCustomization;
@@ -225,7 +226,7 @@ final class OrderInvoice
             ->orderBy('created_at')
             ->get(['channel', 'reference', 'amount', 'created_at'])
             ->map(fn ($receipt) => [
-                'channel' => Str::headline((string) $receipt->channel),
+                'channel' => PaymentChannel::word((string) $receipt->channel),
                 'reference' => (string) $receipt->reference,
                 'amount' => Money::grouped((string) $receipt->amount),
                 'date' => optional($receipt->created_at)?->timezone($tz)->format('d/m/Y'),

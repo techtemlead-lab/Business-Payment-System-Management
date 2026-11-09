@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\ReferralTreePath;
 use App\Models\User;
 use App\Support\Money;
+use App\Support\PaymentChannel;
 use App\Support\PdfFonts;
 use App\Support\PhoneIdentity;
 use Carbon\CarbonImmutable;
@@ -235,7 +236,7 @@ final class PartnerFullReport
             $row['total'],
             $row['paid'],
             $row['due'],
-            collect($row['payments'] ?? [])->map(fn ($p) => ($p['channel'] ?? '').' '.$p['amount'].' ('.self::statusWord((string) $p['status'], $locale).')')->implode('; ') ?: '—',
+            collect($row['payments'] ?? [])->map(fn ($p) => PaymentChannel::word((string) ($p['channel'] ?? ''), $locale).' '.$p['amount'].' ('.self::statusWord((string) $p['status'], $locale).')')->implode('; ') ?: '—',
         ]);
         $teamRows = $rows($report['team_members'], fn (array $row) => [
             $row['name'],

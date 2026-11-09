@@ -91,6 +91,13 @@ export const label=(text:string,translate?:TranslateFn):string=>{
  }
  return humanize(text);
 };
+/** A payment channel in the page's language; a channel with no translation stays as saved. */
+export const channelLabel=(channel:unknown,translate:TranslateFn):string=>{
+ const saved=String(channel??'');
+ const key=`pay_channel_${saved.toLowerCase()}`;
+ const localized=translate('portal',key);
+ return localized!==key?localized:saved;
+};
 /** A readable name for an activity-log action such as "order.submitted"; unknown actions fall back to plain words. */
 export const auditActionLabel=(action:string,translate:TranslateFn):string=>{
  const code=String(action||'').replaceAll('.','_');
