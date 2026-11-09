@@ -16,6 +16,7 @@ final class ProductRemoval
     /** Reasons in the order they are read out. Stock comes first because it is the one a person can change. */
     private const ReasonOrder = ['stock', 'orders', 'stock_history', 'purchases', 'prescriptions', 'schemes', 'reviews', 'health_tags', 'other'];
 
+    /** @var array<string, string> A table not named here reads as "other records". */
     private const ReasonByTable = [
         'branch_product_stocks' => 'stock_history',
         'dated_schemes' => 'schemes',
