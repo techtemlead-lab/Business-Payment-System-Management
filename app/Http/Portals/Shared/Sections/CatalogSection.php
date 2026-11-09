@@ -68,8 +68,10 @@ final class CatalogSection implements WorkspaceSection
             $register = app(StockRegister::class);
             $props['catalog_filters'] = $register->catalogFilters($request, $revealStock);
             $productQuery->whereIn('products.id', $register->matchingProductIds($props['catalog_filters']['active']));
-            $period = MoneyTable::range($request, null);
-            $productQuery->when($period !== null, fn ($q) => $q->where('products.created_at', '>=', $period['from'])->where('products.created_at', '<=', $period['until']));
+            $addedBetween = MoneyTable::range($request, null);
+            if ($addedBetween !== null) {
+                $productQuery->where('products.created_at', '>=', $addedBetween['from'])->where('products.created_at', '<=', $addedBetween['until']);
+            }
             $page = $productQuery->paginate(self::StaffProductsPerPage)->withQueryString();
             $props['products_truncated'] = false;
             $props['products_page'] = Arr::except($page->toArray(), ['data']);

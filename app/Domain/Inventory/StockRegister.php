@@ -120,7 +120,7 @@ final class StockRegister
     /**
      * Units on hold and with a courier for each listed product, for the product cards.
      *
-     * @param  list<int>  $productIds
+     * @param  array<int, int>  $productIds
      * @return array<int, array{on_hold: int, with_courier: int}>
      */
     public function stagesByProduct(array $productIds): array
