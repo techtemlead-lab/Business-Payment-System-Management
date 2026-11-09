@@ -7,6 +7,7 @@ import PartnerPrescriberControls from './PartnerPrescriberControls';
 import PartnerAccountDelete from './PartnerAccountDelete';
 import AccountPasswordManager from './AccountPasswordManager';
 import { useT } from '../shared/i18n/t';
+import { toLatin } from '../shared/countUp';
 
 /** Plain labels for the editable profile fields; the create form keys carry a required marker, so editing uses its own. */
 const profileFieldLabelKeys: Record<string, string> = { name_bn: 'acct_edit_name_bn', father_name: 'acct_edit_father_name', mother_name: 'acct_edit_mother_name', village: 'acct_village', post_office: 'acct_post_office', upazila: 'acct_upazila', union: 'acct_union' };
@@ -52,6 +53,8 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
     // Mirrors PasswordAccess on the server: dealers and sub-dealers by owners or Accounts staff; MD and Chairman passwords only by the Super Admin; other staff by owners or staff admins.
     const canResetStaff = isStaff && account.id !== currentUser?.id && (isSuperAdmin || (!['md', 'chairman'].includes(account.role) && (isOwner || caps.includes('staff_admin'))));
     const canManagePassword = ((canAccounts || isOwner) && isPartner && account.id !== currentUser?.id) || canResetStaff;
+    // Only a partner who already has a place must keep one. Someone with no place yet can still be edited or suspended.
+    const hadPlace = Boolean(account.profile?.place_code ?? account.profile?.area_code);
     const form = useForm({
         name: account.name,
         dealer_code: account.dealer_code ?? '',
@@ -134,7 +137,7 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                 </label>}
                 {isPartner ? <>
                     <label>{isSubDealer ? translate('portal', 'acct_union_code') : translate('portal', 'acct_place_code')}
-                        <input required value={form.data.place_code} onChange={event => form.setData('place_code', event.target.value.toUpperCase())} placeholder={isSubDealer ? translate('portal', 'acct_union_code_ph') : translate('portal', 'acct_place_code_ph')} />
+                        <input required={hadPlace} value={form.data.place_code} onChange={event => form.setData('place_code', toLatin(event.target.value).toUpperCase())} placeholder={isSubDealer ? translate('portal', 'acct_union_code_ph') : translate('portal', 'acct_place_code_ph')} />
                         {form.errors.place_code && <span className="field-error">{form.errors.place_code}</span>}
                     </label>
                     <label>{translate('portal', 'acct_division')}

@@ -3,6 +3,7 @@ import { Link, router, useForm } from '@inertiajs/react';
 import { Hash, Plus, Search, MapPinned, Building2, Landmark, Layers3, CheckCircle2 } from 'lucide-react';
 import { Table, Pagination, Badge, Modal, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
+import { toLatin } from '../shared/countUp';
 
 interface PlaceRow extends Row {
     id: number;
@@ -91,7 +92,7 @@ function PlaceCodeInput({ value, onChange, placeholder }: { value: string; onCha
                 value={suffix}
                 inputMode="numeric"
                 placeholder={placeholder}
-                onChange={(event) => onChange(event.target.value.replace(/\D/g, '').slice(0, 8))}
+                onChange={(event) => onChange(toLatin(event.target.value).replace(/\D/g, '').slice(0, 8))}
             />
         </span>
     );
