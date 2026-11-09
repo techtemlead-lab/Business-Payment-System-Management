@@ -315,9 +315,8 @@ class CommissionEngineTest extends TestCase
             'network-tree',
             'area-dealers',
             'ranks',
-            'rewards',
-            'capital-flow',
-            'treasury',
+            'treasury/funds',
+            'treasury/funds/car_bike',
             'sub-dealers',
             'orders',
         ];
@@ -325,6 +324,10 @@ class CommissionEngineTest extends TestCase
         foreach ($sections as $section) {
             $response = $this->actingAs($admin)->get("/company/{$section}");
             $response->assertOk();
+        }
+
+        foreach (['rewards' => '/treasury/funds/car_bike', 'capital-flow' => '/treasury/funds', 'treasury' => '/treasury/funds'] as $oldSection => $newAddress) {
+            $this->actingAs($admin)->get("/company/{$oldSection}")->assertRedirect($newAddress);
         }
 
         $this->actingAs($admin)->get('/company/sub-dealer-orders')

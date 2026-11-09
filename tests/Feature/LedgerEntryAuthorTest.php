@@ -6,10 +6,10 @@ use App\Domain\Commissions\CommissionWallet;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
+use ZipArchive;
 
-/** The account book's "By" column names the person who did the work. */
+/** The ledger file's "Done by" column names the person who did the work. */
 class LedgerEntryAuthorTest extends TestCase
 {
     use RefreshDatabase;
@@ -20,7 +20,7 @@ class LedgerEntryAuthorTest extends TestCase
         $this->withoutVite();
     }
 
-    public function test_a_journal_entry_records_who_made_it_and_the_ledger_shows_them(): void
+    public function test_a_journal_entry_records_who_made_it_and_the_ledger_file_shows_them(): void
     {
         $owner = User::factory()->create(['role' => 'super_admin', 'name' => 'The Owner']);
         $this->actingAs($owner);
@@ -31,9 +31,24 @@ class LedgerEntryAuthorTest extends TestCase
         ]));
 
         $this->assertDatabaseHas('journal_entries', ['event_key' => 'test.entry.1', 'actor_id' => $owner->id]);
-        $this->onPortal('sadmin')->get('/ledger')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('data.entries.data.0.actor_name', 'The Owner')
-            ->etc());
+        $sheet = $this->ledgerSheet();
+        $this->assertStringContainsString('The Owner', $sheet);
+        $this->assertStringContainsString((string) __('portal.rpt_col_done_by'), $sheet);
+    }
+
+    /** The rows sheet of the ledger file in the Downloads menu, which replaced the account book page. */
+    private function ledgerSheet(): string
+    {
+        $day = now('Asia/Dhaka')->format('Y-m-d');
+        $file = $this->onPortal('sadmin')->get('/commands/operations/reports?type=ledger&format=xlsx&from='.$day.'&to='.$day)
+            ->assertOk()->baseResponse->getFile()->getPathname();
+        $zip = new ZipArchive;
+        $this->assertTrue($zip->open($file));
+        $sheet = (string) $zip->getFromName('xl/worksheets/sheet1.xml');
+        $zip->close();
+        unlink($file);
+
+        return $sheet;
     }
 
     public function test_the_additional_rank_reward_has_a_name_in_both_languages(): void

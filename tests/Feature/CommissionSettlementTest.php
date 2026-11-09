@@ -196,9 +196,9 @@ class CommissionSettlementTest extends TestCase
         $this->purchase($dhaka, '5000.00', '10000.00');
         $this->travelTo(now()->setDate(2026, 10, 1));
         $version = (string) (new HandleInertiaRequests)->version(Request::create('/'));
-        $treasury = fn () => $this->actingAs($owner)->onPortal('sadmin')
+        $treasury = fn () => collect($this->actingAs($owner)->onPortal('sadmin')
             ->withHeaders(['X-Inertia' => 'true', 'X-Inertia-Version' => $version])
-            ->get('/treasury')->assertOk()->json('props.data.flow');
+            ->get('/treasury/funds')->assertOk()->json('props.cards'))->keyBy('key');
 
         $before = $treasury();
         $result = app(CommissionService::class)->settleMonthlySalaryPool('2026-09');
@@ -206,8 +206,13 @@ class CommissionSettlementTest extends TestCase
 
         $this->assertSame('100.00', $result['total_to_company_profit']);
         // The pool row keeps its amount after settling; its ৳100 leftover must not be added again.
-        $this->assertEquals($before['allocated_so_far'], $after['allocated_so_far']);
-        $this->assertEquals(100.0, $after['unclaimed_to_company_profit']);
+        $this->assertSame($before['salary_pool']['money_in'], $after['salary_pool']['money_in']);
+        $this->assertSame('0.00', $after['salary_pool']['balance']);
+        $this->assertSame(10000, Money::cents($after['company_profit']['money_in']) - Money::cents($before['company_profit']['money_in']));
+        // What the funds hold together falls only by what partners were paid.
+        $held = fn ($cards): int => $cards->sum(fn (array $card): int => Money::cents($card['balance']));
+        $paidToPartners = collect($result['distributed'])->sum(fn (array $share): int => Money::cents($share['amount']));
+        $this->assertSame($held($before) - $paidToPartners, $held($after));
     }
 
     public function test_closed_month_salary_uses_actual_period_volume_and_sub_dealer_receives_flat_three_percent_once(): void

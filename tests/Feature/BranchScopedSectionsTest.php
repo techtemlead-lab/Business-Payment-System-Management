@@ -340,16 +340,16 @@ class BranchScopedSectionsTest extends TestCase
 
         $this->ownerOnAll()->get('/payments')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('data.branch_scope.view', 'all')
-            ->where('data.claims.data', fn ($rows) => $this->ids($rows) === $this->sortedIds($claims->values()->all())));
+            ->where('data.payments_table.rows.data', fn ($rows) => $this->ids($rows) === $this->sortedIds($claims->values()->all())));
         $this->flushSession();
         $this->actingAs($owner)->onPortal('sadmin')->get('/payments')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('data.branch_scope.code', 'DHK-01')
-            ->where('data.claims.data', fn ($rows) => $this->ids($rows) === [$claims['dhaka']])
+            ->where('data.payments_table.rows.data', fn ($rows) => $this->ids($rows) === [$claims['dhaka']])
             ->where('data.claim_status_counts', ['pending' => 1]));
         $this->ownerOnAll()->get('/payments?branch_id='.$this->rajshahi->id)->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('data.claims.data', fn ($rows) => $this->ids($rows) === [$claims['rajshahi']]));
+            ->where('data.payments_table.rows.data', fn ($rows) => $this->ids($rows) === [$claims['rajshahi']]));
         $this->actingAs(User::factory()->staff('finance')->create())->onPortal('manage')->get('/payments')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('data.claims.data', fn ($rows) => count($rows) === 3));
+            ->where('data.payments_table.rows.data', fn ($rows) => count($rows) === 3));
         // Finance pages need the finance permission, which already covers every branch.
         $this->actingAs($this->branchStaff($this->dhaka))->onPortal('manage')->get('/payments')->assertForbidden();
     }
@@ -515,7 +515,7 @@ class BranchScopedSectionsTest extends TestCase
         $owner = User::factory()->staff()->create(['active_branch_id' => $this->headOffice()->id]);
 
         $this->actingAs($owner)->onPortal('sadmin')->get('/payments')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('data.claims.data', fn ($rows) => $this->ids($rows) === [$claims['none']]));
+            ->where('data.payments_table.rows.data', fn ($rows) => $this->ids($rows) === [$claims['none']]));
     }
 
     #[DataProvider('partnerAccountPages')]

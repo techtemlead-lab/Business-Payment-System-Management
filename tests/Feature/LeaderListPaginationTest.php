@@ -3,16 +3,18 @@
 namespace Tests\Feature;
 
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Models\Order;
 use App\Models\User;
 use App\Support\ListPage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
- * Owner pages that used to send every leader at once (ranks, bike/car rewards, month closing,
+ * Owner pages that used to send every leader at once (ranks, the car and bike fund, month closing,
  * area dealers) now send one page of 25 rows, searched on the server, while the counts and
  * totals at the top still cover everyone.
  */
@@ -48,27 +50,20 @@ class LeaderListPaginationTest extends TestCase
         $this->assertSame(15, $this->sectionData('/ranks?rank=am')['ranks']['total']);
     }
 
-    public function test_rewards_page_sends_only_the_tab_on_screen_one_page_at_a_time(): void
+    public function test_car_and_bike_fund_page_sends_one_page_with_the_total_over_every_row(): void
     {
-        $leaders = $this->leaders(self::Leaders);
-        foreach ($leaders as $index => $leader) {
-            $this->milestone($leader, 'bike', 1000 * ($index + 1));
-        }
-        foreach ($leaders->take(3) as $leader) {
-            $this->milestone($leader, 'car', 500);
+        foreach ($this->leaders(self::Leaders) as $index => $leader) {
+            $this->carBikeFundRow($leader, sprintf('RW-%03d', $index + 1));
         }
 
-        $bike = $this->sectionData('/rewards');
-        $this->assertSame('bike', $bike['milestone_type']);
-        $this->assertCount(ListPage::PerPage, $bike['milestones']['data']);
-        $this->assertSame(self::Leaders, $bike['milestones']['total']);
-        $this->assertEquals(['bike' => self::Leaders, 'car' => 3], array_intersect_key($bike['milestone_counts'], ['bike' => 0, 'car' => 0]));
-        $this->assertArrayNotHasKey('car_milestones', $bike, 'The other tab is not sent.');
-        $this->assertSame('Leader 30', $bike['milestones']['data'][0]['user']['name'], 'Highest qualifying volume first.');
+        $table = $this->pageProp('/treasury/funds/car_bike', 'table');
+        $this->assertCount(ListPage::PerPage, $table['rows']['data']);
+        $this->assertSame(self::Leaders, $table['totals']['count']);
+        $this->assertSame('300.00', $table['totals']['sums']['amount'], 'The total covers every row, not only the page on screen.');
 
-        $car = $this->sectionData('/rewards?type=car');
-        $this->assertCount(3, $car['milestones']['data']);
-        $this->assertSame(1, $this->sectionData('/rewards?q=leader+12')['milestones']['total']);
+        $this->assertCount(self::Leaders - ListPage::PerPage, $this->pageProp('/treasury/funds/car_bike?page=2', 'table')['rows']['data']);
+        $found = $this->pageProp('/treasury/funds/car_bike?q=RW-012', 'table');
+        $this->assertSame(['RW-012'], array_column($found['rows']['data'], 'order_number'));
     }
 
     public function test_month_closing_lists_are_paged_and_the_counts_cover_every_leader(): void
@@ -132,22 +127,27 @@ class LeaderListPaginationTest extends TestCase
         return $leaders;
     }
 
-    private function milestone(User $user, string $type, int $volume): void
+    private function carBikeFundRow(User $leader, string $orderNumber): void
     {
-        DB::table('reward_milestone_progress')->insert([
-            'user_id' => $user->id, 'milestone_type' => $type, 'target_amount' => '5000000.00', 'leg_cap_amount' => '800000.00',
-            'raw_team_volume' => $volume, 'qualifying_volume' => $volume, 'leg_breakdown' => json_encode([]),
-            'created_at' => now(), 'updated_at' => now(),
-        ]);
+        $order = Order::create(['user_id' => $leader->id, 'number' => $orderNumber, 'total' => '1000.00', 'paid' => '1000.00', 'status' => 'delivered',
+            'idempotency_key' => (string) Str::uuid(), 'payload_hash' => hash('sha256', $orderNumber)]);
+        DB::table('commission_allocations')->insert(['order_id' => $order->id, 'category' => 'car_bike_incentive_fund', 'rate_percentage' => '1.00',
+            'cash_basis' => '1000.00', 'amount' => '10.00', 'original_amount' => '10.00', 'status' => 'reserved', 'metadata' => '{}', 'created_at' => now(), 'updated_at' => now()]);
     }
 
     /** @return array<string, mixed> */
     private function sectionData(string $path): array
     {
+        return $this->pageProp($path, 'data');
+    }
+
+    /** @return array<string, mixed> */
+    private function pageProp(string $path, string $prop): array
+    {
         $version = (string) (new HandleInertiaRequests)->version(Request::create('/'));
 
         return $this->actingAs($this->owner)->onPortal('sadmin')
             ->withHeaders(['X-Inertia' => 'true', 'X-Inertia-Version' => $version])
-            ->get($path)->assertOk()->json('props.data');
+            ->get($path)->assertOk()->json('props.'.$prop);
     }
 }
