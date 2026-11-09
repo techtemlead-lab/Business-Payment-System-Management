@@ -6586,4 +6586,5 @@ return [
     'label_district' => 'জেলা',
     'label_upazila' => 'উপজেলা',
     'label_union' => 'ইউনিয়ন / পৌরসভা',
+    'acct_val_sub_dealer_code_just_used' => 'এইমাত্র অন্য কেউ এই কোডে সাব-ডিলার যোগ করেছেন। আবার সেভ করুন, পরের কোডটি নেওয়া হবে।',
 ];
