@@ -7,6 +7,8 @@ export type NavMother = {
     id: string;
     labelKey: string;
     items: string[];
+    /** The first row after a thin line in the office menu. */
+    startsBlock?: boolean;
 };
 
 export type NavLinkSpec = {
@@ -69,6 +71,7 @@ export const SECTION_LABEL_KEYS: Record<string, string> = {
     training: 'training', events: 'events', 'data-cleanup': 'cleanup_nav', prescriptions: 'prescriptions', 'sales-kit': 'sales_kit', customers: 'customer_book', schemes: 'dated_schemes', 'privacy-requests': 'privacy_requests_nav',
     purchasing: 'purchasing_nav',
     'stock-counts': 'stock_counts_nav',
+    settings: 'nav_module_settings',
 };
 
 function defaultHrefPath(section: string): string {
@@ -98,6 +101,19 @@ function defaultSpec(id: string): NavLinkSpec {
  */
 export const NAV_LINK_SPECS: Record<string, NavLinkSpec> = {
     overview: defaultSpec('overview'),
+    /** The order list and one order's page are the same row. */
+    orders: {
+        ...defaultSpec('orders'),
+        match: ({ section }) => ['orders', 'order'].includes(section),
+    },
+    /** A settings page with its own address, opened only from the Settings page. */
+    'courier-areas': {
+        id: 'courier-areas',
+        section: 'courier-areas',
+        labelKey: 'service_integrations',
+        hrefPath: 'operations/courier-areas',
+        iconKey: 'service-integrations',
+    },
     /** One row for the commission page; its tabs keep their own addresses. */
     commissions: {
         id: 'commissions',
@@ -185,8 +201,59 @@ export const NAV_LINK_SPECS: Record<string, NavLinkSpec> = {
     },
 };
 
+/**
+ * A sidebar row that holds several pages as tabs. `tabs` are in display order, and
+ * `home` is a page of the row's own, opened instead of the first tab.
+ * Row ids are repeated in app/Support/OfficeHubs.php and PartnerHubTabs.php.
+ */
+type MenuRow = { id: string; labelKey: string; iconKey: string; tabs: string[]; home?: string };
+
+const MENU_ROWS: Record<string, MenuRow> = Object.fromEntries(([
+    { id: 'office-messages', labelKey: 'nav_module_messages', iconKey: 'messages', tabs: ['partner-messages', 'support-admin', 'enquiries'] },
+    { id: 'office-stock', labelKey: 'nav_module_stock', iconKey: 'stock', tabs: ['catalog-products', 'stock', 'stock-lots', 'purchasing', 'stock-counts', 'branches'] },
+    { id: 'office-partners', labelKey: 'nav_module_partners', iconKey: 'partners', tabs: ['accounts', 'sub-dealers', 'network-tree', 'area-dealers', 'ranks'] },
+    { id: 'office-applications', labelKey: 'nav_module_applications', iconKey: 'partnerships', tabs: ['partnerships', 'sub-dealer-applications'] },
+    { id: 'office-for-partners', labelKey: 'nav_module_for_partners', iconKey: 'agreement', tabs: ['schemes', 'contests', 'sales-kit', 'training', 'events', 'agreement'] },
+    { id: 'office-staff', labelKey: 'nav_module_people', iconKey: 'people', tabs: ['employees', 'payroll', 'staff-operations', 'field-sales', 'access-management'] },
+    { id: 'office-reports', labelKey: 'nav_module_reports', iconKey: 'reports', tabs: ['top-sellers', 'partner-scorecard', 'branch-performance', 'financial-reports'] },
+    { id: 'office-website', labelKey: 'label_web', iconKey: 'website', tabs: ['website', 'content', 'public-trust', 'video-marketing', 'feedback'] },
+    { id: 'office-settings', labelKey: 'nav_module_settings', iconKey: 'settings', home: 'settings', tabs: [
+        'finance-settings', 'payment-accounts', 'financial-readiness', 'place-codes', 'dashboards', 'identity-review',
+        'login-rules', 'service-integrations', 'courier-areas', 'data-imports', 'audit', 'privacy-requests', 'data-cleanup',
+    ] },
+    { id: 'partner-orders', labelKey: 'nav_module_commerce', iconKey: 'orders', tabs: ['orders', 'deliveries'] },
+    { id: 'partner-team', labelKey: 'nav_module_network', iconKey: 'network', tabs: ['network', 'customers', 'ranks', 'top-sellers', 'contests'] },
+    { id: 'partner-learning', labelKey: 'nav_module_learning', iconKey: 'learning', tabs: ['training', 'events', 'sales-kit'] },
+    { id: 'partner-office', labelKey: 'nav_module_office', iconKey: 'messages', tabs: ['messages', 'partner-notices', 'share-feedback', 'help'] },
+    { id: 'partner-account', labelKey: 'nav_module_account', iconKey: 'profile', tabs: ['profile', 'security', 'agreement'] },
+] satisfies MenuRow[]).map((row) => [row.id, row]));
+
+/** A row item is "rowId@tab,tab": the row and the tabs open to this person, first one first. */
+function menuRowSpec(row: MenuRow, open: string[]): NavLinkSpec {
+    const first = resolveNavLink(open[0]);
+    return {
+        id: row.id,
+        section: row.home ?? first.section,
+        labelKey: row.labelKey,
+        hrefPath: row.home ?? first.hrefPath,
+        iconKey: row.iconKey,
+        match: ({ section, search }) => section === row.id || section === row.home || row.tabs.some((tab) => isNavItemActive(tab, section, search)),
+    };
+}
+
 export function resolveNavLink(item: string): NavLinkSpec {
+    const [rowId, open] = item.split('@');
+    const row = MENU_ROWS[rowId];
+    if (row) {
+        return menuRowSpec(row, open ? open.split(',') : row.tabs);
+    }
     return NAV_LINK_SPECS[item] ?? defaultSpec(item);
+}
+
+/** The pages a menu item covers: its open tabs for a row, otherwise just itself. A row's badge and search use these. */
+export function menuRowTabs(item: string): string[] {
+    const [rowId, open] = item.split('@');
+    return MENU_ROWS[rowId] && open ? open.split(',') : [item];
 }
 
 export function isNavItemActive(item: string, section: string, search = ''): boolean {
@@ -222,6 +289,20 @@ export function compactMothers(mothers: Array<NavMother | null>): NavMother[] {
     return mothers.filter((entry): entry is NavMother => entry !== null);
 }
 
+/** Shows only if a tab is open to this person, opens the first open one, and takes a lone tab's own name. */
+function rowItem(rowId: string, available: Set<string>): string | null {
+    const open = pick(available, MENU_ROWS[rowId].tabs);
+    if (open.length === 0) {
+        return null;
+    }
+    return open.length === 1 ? open[0] : `${rowId}@${open.join(',')}`;
+}
+
+function rowMother(rowId: string, available: Set<string>): NavMother | null {
+    const item = rowItem(rowId, available);
+    return item === null ? null : mother(rowId, MENU_ROWS[rowId].labelKey, [item]);
+}
+
 export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     const { capabilities, role, ownerPortal, chatAnswerer, prescriber } = ctx;
     const items = new Set<string>(['overview', 'profile', 'security', 'notifications', 'help']);
@@ -238,7 +319,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     if (capabilities.includes('staff_admin')) items.add('staff-operations');
     if (capabilities.includes('payroll')) items.add('payroll');
     if (!OWNER_ROLES.includes(role)) items.add('my-payroll');
-    if (capabilities.some((cap) => ['finance', 'accounts'].includes(cap))) items.add('data-imports');
+    if (capabilities.some((cap) => ['finance', 'accounts'].includes(cap)) || ['catalog', 'pricing', 'inventory'].every((cap) => capabilities.includes(cap))) items.add('data-imports');
     if (capabilities.includes('finance') || role === 'super_admin') items.add('service-integrations');
     if (capabilities.includes('finance')) {
         ['payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'finance-settings', 'identity-review',
@@ -261,6 +342,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     if (['super_admin', 'md', 'chairman'].includes(role)) ['accounts', 'sub-dealers', 'employees'].forEach((item) => items.add(item));
     if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('data-cleanup');
     if (ownerPortal && OWNER_ROLES.includes(role)) items.add('login-rules');
+    if (ownerPortal && OWNER_ROLES.includes(role)) items.add('courier-areas');
     if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('sales-kit');
     if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('schemes');
     if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('contests');
@@ -349,62 +431,54 @@ export function buildPartnerAvailable(role: string, dashboardControls?: Record<s
     return new Set(['profile', 'security', 'notifications']);
 }
 
-/** The office menu: one list of groups, daily work first and rarely used settings last. */
+/** The office menu: one list of rows in four blocks, with a thin line between blocks. */
 function staffMothers(available: Set<string>): NavMother[] {
-    return compactMothers([
-        mother('overview', 'nav_module_overview', pick(available, ['overview'])),
-        mother('orders', 'nav_module_orders', pick(available, ['orders', 'payments', 'deliveries'])),
-        mother('messages', 'nav_module_messages', pick(available, ['partner-messages', 'support-admin', 'enquiries', 'feedback'])),
-        mother('clinic', 'nav_module_clinic', pick(available, ['prescriptions'])),
-        mother('payouts', 'nav_module_payouts', pick(available, ['payouts-hub'])),
-        mother('partners', 'nav_module_partners', pick(available, [
-            'accounts', 'sub-dealers', 'partnerships', 'sub-dealer-applications', 'network-tree', 'area-dealers', 'ranks', 'agreement', 'schemes', 'sales-kit', 'contests',
-        ])),
-        mother('stock', 'nav_module_stock', pick(available, ['catalog-products', 'stock', 'stock-lots', 'purchasing', 'stock-counts', 'branches'])),
-        mother('finance', 'nav_module_finance', pick(available, available.has('treasury') ? ['treasury'] : ['treasury-orders'])),
-        mother('commissions', 'nav_module_commissions', pick(available, ['commissions'])),
-        mother('people', 'nav_module_people', pick(available, ['employees', 'payroll', 'staff-operations', 'field-sales', 'access-management'])),
-        mother('reports', 'nav_module_reports', pick(available, ['financial-reports', 'top-sellers', 'partner-scorecard', 'branch-performance'])),
-        mother('website', 'nav_module_website', pick(available, ['website', 'content', 'public-trust', 'video-marketing', 'training', 'events'])),
-        mother('settings', 'nav_module_settings', pick(available, [
-            'finance-settings', 'payment-accounts', 'identity-review', 'place-codes', 'dashboards', 'login-rules', 'audit', 'service-integrations', 'data-imports', 'financial-readiness', 'data-cleanup', 'privacy-requests',
-        ])),
-    ]);
+    const blocks: Array<Array<NavMother | null>> = [
+        [
+            mother('overview', 'nav_module_overview', pick(available, ['overview'])),
+            mother('orders', 'orders', pick(available, ['orders'])),
+            mother('payments', 'payments', pick(available, ['payments'])),
+            mother('deliveries', 'deliveries', pick(available, ['deliveries'])),
+            rowMother('office-messages', available),
+        ],
+        [
+            mother('finance', 'treasury', pick(available, available.has('treasury') ? ['treasury'] : ['treasury-orders'])),
+            mother('payouts', 'payouts_hub', pick(available, ['payouts-hub'])),
+            mother('commissions', 'nav_commission_hub', pick(available, ['commissions'])),
+        ],
+        [
+            rowMother('office-stock', available),
+            rowMother('office-partners', available),
+            rowMother('office-applications', available),
+            rowMother('office-for-partners', available),
+            mother('clinic', 'prescriptions', pick(available, ['prescriptions'])),
+        ],
+        [
+            rowMother('office-staff', available),
+            rowMother('office-reports', available),
+            rowMother('office-website', available),
+            rowMother('office-settings', available),
+        ],
+    ];
+
+    return blocks.flatMap((block, blockIndex) => compactMothers(block).map((entry, rowIndex) => (blockIndex > 0 && rowIndex === 0 ? { ...entry, startsBlock: true } : entry)));
 }
 
-/** The dealer and sub-dealer menu: the day's work first. A group with one page shows as a plain link. */
+/** The dealer and sub-dealer menu: the day's work first, one row for each kind of work. */
 function partnerMothers(role: string, available: Set<string>): NavMother[] {
-    const shared = {
-        home: mother('home', 'nav_module_home', pick(available, ['overview'])),
-        newOrder: mother('new-order', 'purchase', pick(available, ['purchase'])),
-        orders: mother('commerce', 'nav_module_commerce', pick(available, ['orders', 'deliveries', 'catalog', ...(role === 'dealer' ? [] : ['customers'])])),
-        money: mother('earnings', 'nav_module_earnings', pick(available, ['partner-money'])),
-        clinic: mother('clinic', 'nav_module_clinic', pick(available, ['prescriptions'])),
-        office: mother('office', 'nav_module_office', pick(available, ['messages', 'partner-notices', 'sales-kit', 'share-feedback', 'help'])),
-        account: mother('account', 'nav_module_account', pick(available, ['profile', 'security', 'agreement'])),
-    };
-    if (role === 'dealer') {
-        return compactMothers([
-            shared.home,
-            shared.newOrder,
-            shared.orders,
-            shared.money,
-            mother('network', 'nav_module_network', pick(available, ['network', 'customers', 'ranks', 'top-sellers', 'contests'])),
-            mother('learning', 'nav_module_learning', pick(available, ['training', 'events'])),
-            shared.clinic,
-            shared.office,
-            shared.account,
-        ]);
-    }
+    const teamAvailable = role === 'dealer' ? available : new Set([...available].filter((item) => item !== 'network'));
+
     return compactMothers([
-        shared.home,
-        shared.newOrder,
-        shared.orders,
-        shared.money,
-        mother('learning', 'nav_module_learning', pick(available, ['training', 'events', 'top-sellers', 'contests'])),
-        shared.clinic,
-        shared.office,
-        shared.account,
+        mother('home', 'nav_module_home', pick(available, ['overview'])),
+        mother('new-order', 'purchase', pick(available, ['purchase'])),
+        rowMother('partner-orders', available),
+        mother('products', 'nav_products', pick(available, ['catalog'])),
+        mother('earnings', 'nav_module_earnings', pick(available, ['partner-money'])),
+        rowMother('partner-team', teamAvailable),
+        rowMother('partner-learning', available),
+        rowMother('partner-office', available),
+        rowMother('partner-account', available),
+        mother('clinic', 'prescriptions', pick(available, ['prescriptions'])),
     ]);
 }
 
@@ -427,17 +501,24 @@ export function buildNavMothers(input: {
     ]);
 }
 
-/** Phone bottom bar for office staff: home, then up to three of the pages this person can really open. */
+/** The sidebar row a page sits in, or the page itself when it is a row of its own. */
+function rowItemOf(item: string, available: Set<string>): string {
+    const row = Object.values(MENU_ROWS).find((entry) => entry.id.startsWith('office-') && entry.tabs.includes(item));
+    return row ? (rowItem(row.id, available) ?? item) : item;
+}
+
+/** Phone bottom bar for office staff: home, then up to three of the pages this person can really open, under their row's name. */
 export function staffBottomLinks(available: Set<string>): string[] {
     const daily = pick(available, ['orders', 'stock', 'payouts-hub', 'partner-messages', 'website', 'accounts', 'field-sales']);
 
-    return [...pick(available, ['overview']), ...daily.slice(0, 3)];
+    return [...pick(available, ['overview']), ...daily.slice(0, 3).map((item) => rowItemOf(item, available))];
 }
 
 /** Partners read shorter names for the pages they share with the office. */
 const PARTNER_LABEL_KEYS: Record<string, string> = {
+    overview: 'nav_module_home',
     orders: 'nav_partner_orders',
-    catalog: 'nav_partner_catalog',
+    catalog: 'nav_products',
     network: 'nav_partner_network',
     profile: 'nav_partner_profile',
     security: 'nav_partner_security',

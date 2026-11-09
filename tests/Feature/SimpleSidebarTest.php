@@ -8,10 +8,12 @@ use App\Models\BranchStaffAssignment;
 use App\Models\CompanyBranch;
 use App\Models\User;
 use App\Support\DashboardManagement;
+use App\Support\OfficeHubs;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
+use ReflectionClassConstant;
 use Tests\TestCase;
 
 class SimpleSidebarTest extends TestCase
@@ -199,9 +201,187 @@ class SimpleSidebarTest extends TestCase
     {
         foreach (['bn', 'en'] as $locale) {
             app()->setLocale($locale);
-            foreach (['nav_module_messages', 'nav_module_partners', 'nav_module_website', 'nav_module_office', 'login_rules', 'section_hint_login_rules', 'perm_support_desk', 'perm_support_desk_hint', 'sub_dealer_applications'] as $key) {
+            foreach (['nav_module_messages', 'nav_module_partners', 'nav_module_website', 'nav_module_office', 'nav_module_applications', 'nav_module_for_partners', 'label_web', 'login_rules', 'section_hint_login_rules', 'section_hint_settings', 'perm_support_desk', 'perm_support_desk_hint', 'sub_dealer_applications'] as $key) {
                 $this->assertNotSame('portal.'.$key, __('portal.'.$key), "$locale $key");
             }
         }
+    }
+
+    public function test_every_menu_word_exists_in_both_languages_and_differs(): void
+    {
+        $english = require lang_path('en/office_menu.php');
+        $bangla = require lang_path('bn/office_menu.php');
+
+        $this->assertSame(array_keys($english), array_keys($bangla));
+        foreach ($english as $key => $word) {
+            $this->assertNotSame($word, $bangla[$key], $key);
+        }
+    }
+
+    public function test_the_menu_and_the_server_agree_on_every_rows_tabs(): void
+    {
+        preg_match_all("/\\{ id: '(office-[a-z-]+)',.*?tabs: \\[(.*?)\\]/s", (string) file_get_contents(resource_path('js/shared/portalNav.ts')), $rows, PREG_SET_ORDER);
+        $hubs = (new ReflectionClassConstant(OfficeHubs::class, 'Hubs'))->getValue();
+        $this->assertNotEmpty($rows);
+
+        foreach ($rows as [, $rowId, $tabList]) {
+            preg_match_all("/'([a-z-]+)'/", $tabList, $tabs);
+            $sections = array_map(fn (string $tab): string => ['catalog-products' => 'catalog', 'stock' => 'inventory'][$tab] ?? $tab, $tabs[1]);
+            if ($rowId === 'office-settings') {
+                $groups = (new ReflectionClassConstant(OfficeHubs::class, 'SettingsGroups'))->getValue();
+                $this->assertSame(array_keys(array_merge(...array_values($groups))), $sections);
+
+                continue;
+            }
+            $this->assertSame(array_keys($hubs[$rowId]['tabs']), $sections, $rowId);
+        }
+    }
+
+    public function test_settings_page_offers_only_what_each_person_can_open(): void
+    {
+        $expected = [
+            ['super_admin', 'sadmin', ['finance-settings', 'payment-accounts', 'financial-readiness', 'place-codes', 'dashboards', 'identity-review', 'login-rules', 'service-integrations', 'courier-areas', 'data-imports', 'audit', 'privacy-requests', 'data-cleanup']],
+            ['finance', 'manage', ['finance-settings', 'payment-accounts', 'financial-readiness', 'identity-review', 'service-integrations', 'data-imports']],
+            ['account_manager', 'manage', ['place-codes', 'dashboards', 'data-imports']],
+            ['inventory', 'manage', []],
+            ['sr', 'manage', []],
+        ];
+
+        foreach ($expected as [$role, $portal, $links]) {
+            $person = User::factory()->staff($role)->create();
+            $response = $this->actingAs($person)->onPortal($portal)->get('/settings')->assertOk()
+                ->assertInertia(fn (Assert $page) => $page->where('section', 'settings'));
+            $groups = $response->viewData('page')['props']['data']['settings_groups'];
+
+            $this->assertSame($links, collect($groups)->pluck('links')->flatten(1)->pluck('key')->all(), $role);
+            $this->assertNotContains([], collect($groups)->pluck('links')->all(), 'An empty group must not show.');
+            foreach (collect($groups)->pluck('links')->flatten(1)->pluck('href') as $href) {
+                $this->actingAs($person)->onPortal($portal)->get($href)->assertOk();
+            }
+        }
+    }
+
+    public function test_partners_have_no_settings_page(): void
+    {
+        $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
+
+        $this->actingAs($dealer)->onPortal('dealer')->get('/settings')->assertNotFound();
+    }
+
+    public function test_a_page_in_a_row_gets_the_rows_tabs_in_order_with_its_own_tab_marked(): void
+    {
+        $inventory = User::factory()->staff('inventory')->create();
+
+        $hub = $this->actingAs($inventory)->onPortal('manage')->get('/stock-lots')->assertOk()->viewData('page')['props']['data']['hub'];
+
+        $this->assertSame('office-stock', $hub['home']);
+        $this->assertSame('Products & stock', $hub['label']);
+        $this->assertSame(['/catalog', '/inventory', '/stock-lots', '/purchasing', '/stock-counts', '/branches'], array_column($hub['tabs'], 'href'));
+        $this->assertSame(['stock-lots'], array_column(array_filter($hub['tabs'], fn (array $tab): bool => $tab['active']), 'key'));
+    }
+
+    public function test_a_row_with_one_open_tab_takes_that_tabs_own_name(): void
+    {
+        $finance = User::factory()->staff('finance')->create();
+
+        $hub = $this->actingAs($finance)->onPortal('manage')->get('/catalog')->assertOk()->viewData('page')['props']['data']['hub'];
+
+        $this->assertSame('catalog', $hub['home']);
+        $this->assertSame('Products', $hub['label']);
+        $this->assertSame(['/catalog'], array_column($hub['tabs'], 'href'));
+    }
+
+    public function test_every_tab_offered_opens_for_that_person_and_no_other_tab_does(): void
+    {
+        $people = [
+            ['account_manager', 'manage', '/accounts'],
+            ['inventory', 'manage', '/inventory'],
+            ['support', 'manage', '/support-admin'],
+            ['editor', 'manage', '/website'],
+            ['finance', 'manage', '/top-sellers'],
+        ];
+
+        foreach ($people as [$role, $portal, $path]) {
+            $person = User::factory()->staff($role)->create();
+            $hub = $this->actingAs($person)->onPortal($portal)->get($path)->assertOk()->viewData('page')['props']['data']['hub'];
+            $offered = array_column($hub['tabs'], 'href');
+            foreach ($offered as $href) {
+                $this->actingAs($person)->onPortal($portal)->get($href)->assertOk();
+            }
+
+            $all = (new ReflectionClassConstant(OfficeHubs::class, 'Hubs'))->getValue()[$hub['home']]['tabs'] ?? [];
+            foreach (array_diff($all, $offered) as $href) {
+                $status = $this->actingAs($person)->onPortal($portal)->get($href)->getStatusCode();
+                $this->assertContains($status, [301, 403, 404], "$role $href");
+            }
+        }
+    }
+
+    public function test_operations_pages_get_the_rows_tabs_and_keep_their_own_check(): void
+    {
+        $owner = User::factory()->staff()->create();
+        $hub = $this->actingAs($owner)->onPortal('sadmin')->get('/operations/payroll')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->component('Operations')->where('hub.home', 'office-staff'))
+            ->viewData('page')['props']['hub'];
+
+        $this->assertSame(['/employees', '/operations/payroll', '/operations/staff-operations', '/operations/field-sales', '/operations/access-management'], array_column($hub['tabs'], 'href'));
+        $this->actingAs(User::factory()->staff('inventory')->create())->onPortal('manage')->get('/operations/payroll')->assertForbidden();
+    }
+
+    public function test_the_report_files_tab_is_only_for_those_who_cannot_open_the_money_report(): void
+    {
+        $sr = User::factory()->staff('sr')->create();
+        $this->actingAs($sr)->onPortal('manage')->get('/operations/financial-reports')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('hub.home', 'financial-reports')->where('hub.tabs.0.href', '/operations/financial-reports')->count('hub.tabs', 1));
+
+        $finance = User::factory()->staff('finance')->create();
+        $tabs = $this->actingAs($finance)->onPortal('manage')->get('/top-sellers')->assertOk()->viewData('page')['props']['data']['hub']['tabs'];
+        $this->assertNotContains('/operations/financial-reports', array_column($tabs, 'href'));
+    }
+
+    public function test_partner_rows_get_their_tabs(): void
+    {
+        $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
+        $expected = [
+            '/orders' => ['/orders', '/deliveries'],
+            '/network' => ['/network', '/customers', '/ranks', '/top-sellers', '/contests'],
+            '/training' => ['/training', '/events', '/sales-kit'],
+            '/messages' => ['/messages', '/circulars', '/share-feedback', '/help'],
+            '/profile' => ['/profile', '/security', '/agreement'],
+        ];
+
+        foreach ($expected as $path => $tabs) {
+            $this->actingAs($dealer)->onPortal('dealer')->get($path)->assertOk()
+                ->assertInertia(fn (Assert $page) => $page->where('data.partner_hub.active', ltrim($path, '/'))
+                    ->where('data.partner_hub.tabs', fn ($offered) => collect($offered)->pluck('path')->all() === $tabs));
+        }
+    }
+
+    public function test_sub_dealers_have_no_team_tab_but_keep_the_page(): void
+    {
+        $subDealer = User::factory()->create(['role' => 'sub_dealer', 'status' => 'active']);
+
+        $this->actingAs($subDealer)->onPortal('subdealer')->get('/customers')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('data.partner_hub.tabs', fn ($offered) => collect($offered)->pluck('path')->all() === ['/customers', '/top-sellers', '/contests']));
+        $this->actingAs($subDealer)->onPortal('subdealer')->get('/network')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('section', 'network')->missing('data.partner_hub'));
+    }
+
+    public function test_an_office_switch_removes_the_partners_tab(): void
+    {
+        DashboardManagement::save(['dealer_ranks_enabled' => false]);
+        $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
+
+        $this->actingAs($dealer)->onPortal('dealer')->get('/network')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('data.partner_hub.tabs', fn ($offered) => ! collect($offered)->pluck('path')->contains('/ranks')));
+    }
+
+    public function test_a_row_left_with_one_tab_shows_no_strip_to_a_partner(): void
+    {
+        DashboardManagement::save(['subdealer_deliveries_enabled' => false]);
+        $subDealer = User::factory()->create(['role' => 'sub_dealer', 'status' => 'active']);
+
+        $this->actingAs($subDealer)->onPortal('subdealer')->get('/orders')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('section', 'orders')->missing('data.partner_hub'));
     }
 }

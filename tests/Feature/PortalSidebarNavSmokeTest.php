@@ -30,6 +30,7 @@ class PortalSidebarNavSmokeTest extends TestCase
             '/inventory?action=stock_out' => 'inventory',
             '/branches' => 'branches',
             '/place-codes' => 'place-codes',
+            '/settings' => 'settings',
         ];
 
         foreach ($sections as $path => $section) {
@@ -55,6 +56,10 @@ class PortalSidebarNavSmokeTest extends TestCase
                 ->where('translations.portal.nav_module_settings', 'Settings')
                 ->where('translations.portal.nav_module_messages', 'Messages & support')
                 ->where('translations.portal.nav_module_partners', 'Dealers & sub-dealers')
+                ->where('translations.portal.nav_module_applications', 'Applications')
+                ->where('translations.portal.nav_module_for_partners', 'For partners')
+                ->where('translations.office_menu.tab_inventory', 'Stock')
+                ->where('translations.office_menu.settings_group_money', 'Money')
                 ->where('translations.portal.nav_products', 'Products')
                 ->where('translations.portal.cms_taxonomy_tab', 'Categories & units')
                 ->where('translations.portal.stock_action_product_in', 'Product in')

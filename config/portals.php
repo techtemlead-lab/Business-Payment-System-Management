@@ -30,7 +30,7 @@ return [
     'manage' => [
         'page' => 'portals/manage/Dashboard',
         'sections' => [
-            'overview', 'orders', 'catalog', 'deliveries', 'profile', 'security', 'notifications',
+            'overview', 'orders', 'catalog', 'deliveries', 'profile', 'security', 'notifications', 'settings',
             'dashboards', 'employees', 'accounts', 'sub-dealers', 'sub-dealer-applications', 'sub-dealer-orders', 'inventory', 'branches', 'branch-performance',
             'payments', 'policies', 'reports', 'top-sellers', 'partner-scorecard', 'content', 'website', 'customization', 'public-trust',
             'enquiries', 'feedback', 'partnerships', 'audit', 'commissions', 'network-tree', 'area-dealers', 'place-codes', 'ranks',
@@ -82,7 +82,7 @@ return [
     'sadmin' => [
         'page' => 'portals/sadmin/Dashboard',
         'sections' => [
-            'overview', 'orders', 'catalog', 'deliveries', 'profile', 'security', 'notifications',
+            'overview', 'orders', 'catalog', 'deliveries', 'profile', 'security', 'notifications', 'settings',
             'dashboards', 'employees', 'accounts', 'sub-dealers', 'sub-dealer-applications', 'sub-dealer-orders', 'inventory', 'branches', 'branch-performance',
             'payments', 'policies', 'reports', 'top-sellers', 'partner-scorecard', 'content', 'website', 'customization', 'public-trust',
             'enquiries', 'feedback', 'partnerships', 'audit', 'commissions', 'network-tree', 'area-dealers', 'place-codes', 'ranks',
