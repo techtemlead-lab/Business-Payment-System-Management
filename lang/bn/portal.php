@@ -6587,4 +6587,6 @@ return [
     'label_upazila' => 'উপজেলা',
     'label_union' => 'ইউনিয়ন / পৌরসভা',
     'acct_val_sub_dealer_code_just_used' => 'এইমাত্র অন্য কেউ এই কোডে সাব-ডিলার যোগ করেছেন। আবার সেভ করুন, পরের কোডটি নেওয়া হবে।',
+    'status_partly_delivered' => 'আংশিক ডেলিভার্ড',
+    'stage_desc_partly_delivered' => 'কিছু পার্সেল ডেলিভারি হয়েছে, কিছু ফেরত এসেছে',
 ];

@@ -418,6 +418,7 @@ class OrderService
                 $locked->update(['status' => 'delivered']);
                 $this->commissions->process($locked, $actor->id);
             }
+            MixedOutcomeDecisions::closeIfFinished($locked);
             $this->event($locked, $actor, 'shipment.delivered', ['shipment_id' => $shipmentId, 'reason' => $reason]);
             $this->partnerNotice($locked->user_id, 'portal.notice_delivery_confirmed_title', 'portal.notice_delivery_confirmed_body', [
                 'number' => $locked->number,
@@ -476,6 +477,7 @@ class OrderService
             if ($orderClosed) {
                 $locked->update(['status' => 'cancelled', 'decision_reason' => __('courier.received_back_reason')]);
             }
+            MixedOutcomeDecisions::closeIfFinished($locked);
             $this->event($locked, $actor, 'shipment.received_back', [
                 'shipment_id' => $shipment->id,
                 'reason' => $note,

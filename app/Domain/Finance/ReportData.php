@@ -4,6 +4,7 @@ namespace App\Domain\Finance;
 
 use App\Domain\Commissions\RetainedFundLedger;
 use App\Domain\Inventory\BranchOperations;
+use App\Domain\Orders\OrderListFilter;
 use App\Domain\Staff\TerritoryAccess;
 use App\Models\User;
 use App\Support\PortalHost;
@@ -177,7 +178,7 @@ final class ReportData
     {
         $unknown = DB::getPdo()->quote(__('portal.report_area_unknown'));
         $query = DB::table('orders as o')->join('users as u', 'u.id', '=', 'o.user_id')
-            ->whereIn('o.status', ['approved', 'partially_dispatched', 'dispatched', 'delivered'])
+            ->whereIn('o.status', OrderListFilter::Confirmed)
             ->groupByRaw("COALESCE(u.division, {$unknown}), COALESCE(u.district, {$unknown})");
         $columns = [
             DB::raw("COALESCE(u.division, {$unknown}) AS division"),

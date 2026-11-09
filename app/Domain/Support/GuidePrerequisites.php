@@ -2,6 +2,7 @@
 
 namespace App\Domain\Support;
 
+use App\Domain\Orders\OrderListFilter;
 use App\Models\Order;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -136,7 +137,7 @@ final class GuidePrerequisites
                 || $tourDone('orders'),
             'earnings' => $tourDone('earnings')
                 || DB::table('commission_allocations')->where('user_id', $user->id)->exists()
-                || Order::query()->where('user_id', $user->id)->whereIn('status', ['approved', 'partially_dispatched', 'dispatched', 'delivered'])->exists(),
+                || Order::query()->where('user_id', $user->id)->whereIn('status', OrderListFilter::Confirmed)->exists(),
             'withdrawals' => $tourDone('earnings')
                 || DB::table('withdrawals')->where('user_id', $user->id)->exists()
                 || (float) (DB::table('wallets')->where('user_id', $user->id)->value('available') ?? 0) > 0,

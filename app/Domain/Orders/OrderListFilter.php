@@ -19,7 +19,7 @@ final class OrderListFilter
     public const AwaitingDispatch = ['approved', 'partially_dispatched', 'dispatched'];
 
     /** Order states that count as a confirmed sale. */
-    public const Confirmed = ['approved', 'partially_dispatched', 'dispatched', 'delivered'];
+    public const Confirmed = ['approved', 'partially_dispatched', 'dispatched', 'delivered', MixedOutcomeDecisions::PartlyDelivered];
 
     public function apply(Builder $query, Request $request, string $section, bool $staff): Builder
     {

@@ -6,6 +6,7 @@ use App\Domain\Accounts\PartnerBenefitControls;
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
+use App\Domain\Orders\MixedOutcomeDecisions;
 use App\Models\DealerRank;
 use App\Models\ReferralTreePath;
 use App\Models\RewardMilestoneProgress;
@@ -27,6 +28,20 @@ final class CommissionQualification
      * (or beat). The "{rank}_count" rule parameter says how many such leaders are needed.
      */
     public const TeamRankRequirements = ['am' => 'mo', 'sm' => 'am', 'me' => 'sm'];
+
+    /** Order statuses whose goods reached the partner, whole or in part. */
+    public const DeliveredStatuses = ['delivered', MixedOutcomeDecisions::PartlyDelivered];
+
+    /**
+     * SQL for what an order in DeliveredStatuses counts for: the whole order when delivered, and
+     * only the part commission was posted on when partly delivered. Monthly volume reads the same
+     * figure from the commission batch.
+     */
+    public static function deliveredValueSql(string $orders = 'orders'): string
+    {
+        return "CASE WHEN {$orders}.status = 'delivered' THEN {$orders}.total"
+            ." ELSE COALESCE((SELECT commission_batches.cash_basis FROM commission_batches WHERE commission_batches.order_id = {$orders}.id), 0) END";
+    }
 
     public static function currentMonth(): string
     {
@@ -379,6 +394,7 @@ final class CommissionQualification
 
     /**
      * Paid, delivered, net-of-refund purchases of each leg's whole team (the leg and everyone under it).
+     * A partly delivered order counts for the part commission was posted on, as monthly volume does.
      *
      * @param  array<int, int|string>  $legIds
      * @return array<int, int> leg user id => cents
@@ -409,20 +425,29 @@ final class CommissionQualification
                   AND orders.paid = orders.total
                   AND orders.user_id IN (SELECT user_id FROM members)
                 GROUP BY orders.user_id
+                UNION ALL
+                SELECT orders.user_id, SUM(commission_batches.cash_basis) AS volume
+                FROM commission_batches
+                INNER JOIN orders ON orders.id = commission_batches.order_id
+                WHERE orders.is_opening_balance = false
+                  AND orders.status = 'partly_delivered'
+                  AND orders.paid = orders.total
+                  AND orders.user_id IN (SELECT user_id FROM members)
+                GROUP BY orders.user_id
             ), refunds AS (
                 SELECT orders.user_id, SUM(commission_batches.refunded_amount) AS refunded
                 FROM commission_batches
                 INNER JOIN orders ON orders.id = commission_batches.order_id
                 WHERE commission_batches.refunded_amount > 0
                   AND orders.is_opening_balance = false
-                  AND orders.status = 'delivered'
+                  AND orders.status IN ('delivered', 'partly_delivered')
                   AND orders.paid = orders.total
                   AND orders.user_id IN (SELECT user_id FROM members)
                 GROUP BY orders.user_id
             ), volumes AS (
-                SELECT sales.user_id, sales.volume - COALESCE(refunds.refunded, 0) AS volume
-                FROM sales
-                LEFT JOIN refunds ON refunds.user_id = sales.user_id
+                SELECT totals.user_id, totals.volume - COALESCE(refunds.refunded, 0) AS volume
+                FROM (SELECT user_id, SUM(volume) AS volume FROM sales GROUP BY user_id) AS totals
+                LEFT JOIN refunds ON refunds.user_id = totals.user_id
             )
             SELECT members.leg_id, COALESCE(SUM(volumes.volume), 0) AS volume
             FROM members

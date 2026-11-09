@@ -3,7 +3,6 @@
 namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Commissions\CommissionQualification;
-use App\Domain\Orders\OrderListFilter;
 use App\Models\Order;
 use App\Models\ReferralTreePath;
 use App\Models\User;
@@ -20,9 +19,6 @@ use Illuminate\Support\Facades\DB;
  */
 final class NetworkSection implements WorkspaceSection
 {
-    /** Order statuses that count as a completed purchase (the goods were approved for release). */
-    private const PurchaseStatuses = ['approved', 'partially_dispatched', 'dispatched', 'delivered'];
-
     /** Commission statuses that count as money earned, held or already paid; reversals are left out. */
     private const EarnedStatuses = ['pending', 'available', 'maturing', 'held', 'reserved', 'settled', 'partially_settled'];
 
@@ -115,7 +111,7 @@ final class NetworkSection implements WorkspaceSection
     /**
      * The team at a glance, in one query: how many members, how many the dealer brought in
      * directly, who joined this month, who bought this month, who joined over 60 days ago but has
-     * not bought in the last 60 days, and the team's confirmed purchases this month.
+     * not bought in the last 60 days, and the team's delivered purchases this month.
      *
      * @return array{members: int, direct: int, joined_this_month: int, bought_this_month: int, quiet_60_days: int, team_sales_month: string}
      */
@@ -124,8 +120,8 @@ final class NetworkSection implements WorkspaceSection
         $tz = (string) config('madina.business_timezone', 'Asia/Dhaka');
         $monthStart = CarbonImmutable::now($tz)->startOfMonth()->utc();
         $sixtyDaysAgo = CarbonImmutable::now($tz)->startOfDay()->subDays(60)->utc();
-        $confirmed = "'".implode("','", OrderListFilter::Confirmed)."'";
-        $bought = fn (string $since): string => "EXISTS (SELECT 1 FROM orders o WHERE o.user_id = u.id AND o.status IN ({$confirmed}) AND o.created_at >= {$since})";
+        $delivered = "'".implode("','", CommissionQualification::DeliveredStatuses)."'";
+        $bought = fn (string $since): string => "EXISTS (SELECT 1 FROM orders o WHERE o.user_id = u.id AND o.status IN ({$delivered}) AND o.created_at >= {$since})";
         $row = DB::table('referral_tree_paths as p')
             ->join('users as u', 'u.id', '=', 'p.descendant_id')
             ->where('p.ancestor_id', $user->id)
@@ -135,7 +131,7 @@ final class NetworkSection implements WorkspaceSection
             ->selectRaw('COUNT(*) FILTER (WHERE u.created_at >= ?) AS joined_this_month', [$monthStart])
             ->selectRaw('COUNT(*) FILTER (WHERE '.$bought('?').') AS bought_this_month', [$monthStart])
             ->selectRaw('COUNT(*) FILTER (WHERE u.created_at < ? AND NOT '.$bought('?').') AS quiet_60_days', [$sixtyDaysAgo, $sixtyDaysAgo])
-            ->selectRaw("COALESCE((SELECT SUM(o.total) FROM orders o JOIN referral_tree_paths t ON t.descendant_id = o.user_id WHERE t.ancestor_id = ? AND t.depth > 0 AND o.status IN ({$confirmed}) AND o.created_at >= ?), 0) AS team_sales_month", [$user->id, $monthStart])
+            ->selectRaw('COALESCE((SELECT SUM('.CommissionQualification::deliveredValueSql('o').") FROM orders o JOIN referral_tree_paths t ON t.descendant_id = o.user_id WHERE t.ancestor_id = ? AND t.depth > 0 AND o.status IN ({$delivered}) AND o.created_at >= ?), 0) AS team_sales_month", [$user->id, $monthStart])
             ->first();
 
         return [
@@ -193,7 +189,7 @@ final class NetworkSection implements WorkspaceSection
     }
 
     /**
-     * Partner count, partners per rank and completed purchases over the whole tree,
+     * Partner count, partners per rank and delivered purchases over the whole tree,
      * not just the part loaded on the page.
      *
      * @return array{total: int, ranks: array<string, int>, sales_total: string}
@@ -211,8 +207,8 @@ final class NetworkSection implements WorkspaceSection
         $sales = DB::table('orders')
             ->join('users', 'users.id', '=', 'orders.user_id')
             ->whereIn('users.role', ['dealer', 'sub_dealer'])
-            ->whereIn('orders.status', self::PurchaseStatuses)
-            ->sum('orders.total');
+            ->whereIn('orders.status', CommissionQualification::DeliveredStatuses)
+            ->sum(DB::raw(CommissionQualification::deliveredValueSql()));
 
         return [
             'total' => array_sum($ranks),
@@ -278,7 +274,9 @@ final class NetworkSection implements WorkspaceSection
     }
 
     /**
-     * Completed purchase value per partner, all time and in the current business month, in cents.
+     * Delivered purchase value per partner, all time and in the current business month, in cents.
+     * The same orders the rank page counts: delivered ones, and only the delivered part of a
+     * partly delivered one.
      *
      * Counted from orders so both figures always agree; the rank's lifetime total only moves
      * once payouts are live and is kept for rank progress.
@@ -293,12 +291,13 @@ final class NetworkSection implements WorkspaceSection
         }
         $timezone = (string) config('madina.business_timezone', config('app.timezone'));
         $monthStartUtc = CarbonImmutable::createFromFormat('!Y-m', CommissionQualification::currentMonth(), $timezone)->utc();
+        $value = CommissionQualification::deliveredValueSql();
 
         return DB::table('orders')
             ->whereIn('user_id', $ids)
-            ->whereIn('status', self::PurchaseStatuses)
+            ->whereIn('status', CommissionQualification::DeliveredStatuses)
             ->groupBy('user_id')
-            ->selectRaw('user_id, COALESCE(SUM(total), 0) AS total, COALESCE(SUM(CASE WHEN created_at >= ? THEN total ELSE 0 END), 0) AS month', [$monthStartUtc])
+            ->selectRaw("user_id, COALESCE(SUM({$value}), 0) AS total, COALESCE(SUM(CASE WHEN created_at >= ? THEN {$value} ELSE 0 END), 0) AS month", [$monthStartUtc])
             ->get()
             ->mapWithKeys(fn (object $row): array => [(int) $row->user_id => [
                 'total' => Money::cents((string) $row->total),

@@ -6587,4 +6587,6 @@ return [
     'label_upazila' => 'Upazila',
     'label_union' => 'Union / Pourashava',
     'acct_val_sub_dealer_code_just_used' => 'Someone just added a sub-dealer with this code. Press save again and the next code will be used.',
+    'status_partly_delivered' => 'Partly delivered',
+    'stage_desc_partly_delivered' => 'Some parcels were delivered and some came back',
 ];
