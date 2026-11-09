@@ -3,9 +3,8 @@
 namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Inventory\BranchOperations;
-use App\Domain\Inventory\StockMovementList;
-use App\Domain\Inventory\BranchScope;
 use App\Domain\Inventory\StockLotReports;
+use App\Domain\Inventory\StockMovementList;
 use App\Models\BranchProductStock;
 use App\Models\StockLot;
 use Illuminate\Support\Facades\DB;
