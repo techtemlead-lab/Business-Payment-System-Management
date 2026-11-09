@@ -346,8 +346,8 @@ final class PartnerAccountProvisioning
 
     /**
      * Re-anchor a partner's commission geography to a catalog place code.
-     * Dealers move their active AreaDealerAssignment seat; sub-dealers keep
-     * their serial dealer_code while updating union_place_code / place_code.
+     * Dealers move the seat of their home place and keep any other seat the office
+     * gave them; sub-dealers keep their serial dealer_code while updating union_place_code / place_code.
      */
     public function rebindGeography(User $actor, User $partner, string $placeCodeValue, string $reason): void
     {
@@ -398,6 +398,7 @@ final class PartnerAccountProvisioning
             CommissionWallet::lock();
             $locked = User::whereKey($partner->id)->lockForUpdate()->firstOrFail();
             $profile = is_array($locked->profile) ? $locked->profile : [];
+            $homePlaceId = $this->recordedHomePlaceId($profile, $currentCode);
             $profile['place_code'] = $place->code;
             $profile['place_code_id'] = $place->id;
             $profile['upazila'] = $path['upazila'] ?? ($profile['upazila'] ?? null);
@@ -419,25 +420,17 @@ final class PartnerAccountProvisioning
                 AreaDealerAssignment::query()
                     ->where('user_id', $locked->id)
                     ->where('is_active', true)
+                    ->whereRaw('place_code_id IS DISTINCT FROM ?', [$place->id])
+                    ->when($homePlaceId !== null, fn ($seats) => $seats->where('place_code_id', $homePlaceId))
                     ->update(['is_active' => false, 'territory_key' => null, 'updated_at' => now()]);
-                AreaDealerAssignment::create([
-                    'user_id' => $locked->id,
-                    'level' => $place->level,
-                    'place_code_id' => $place->id,
-                    'zone_name' => $place->name.' ('.$place->code.')',
-                    'division' => $path['division'],
-                    'district' => $path['district'],
-                    'upazila' => $path['upazila'],
-                    'union' => $path['union'],
-                    'monthly_quota' => match ($place->level) {
-                        'division' => '50000.00',
-                        'district' => '40000.00',
-                        'upazila' => '20000.00',
-                        default => '10000.00',
-                    },
-                    'territory_key' => hash('sha256', $place->level.'|code:'.$place->code),
-                    'is_active' => true,
-                ]);
+                $alreadySeatedThere = AreaDealerAssignment::query()
+                    ->where('user_id', $locked->id)
+                    ->where('is_active', true)
+                    ->where('place_code_id', $place->id)
+                    ->exists();
+                if (! $alreadySeatedThere) {
+                    $this->seatDealer($locked, $place, $path);
+                }
             }
 
             Audit::record($actor->id, 'account.geography_updated', (string) $locked->id, [
@@ -467,6 +460,21 @@ final class PartnerAccountProvisioning
                 );
             });
         }, 3);
+    }
+
+    /**
+     * The place of a partner's home seat, from the saved place code id or else the saved code.
+     * Null when the account has neither, as with some older accounts.
+     *
+     * @param  array<string, mixed>  $profile
+     */
+    private function recordedHomePlaceId(array $profile, string $currentCode): ?int
+    {
+        if (is_numeric($profile['place_code_id'] ?? null)) {
+            return (int) $profile['place_code_id'];
+        }
+
+        return $currentCode !== '' ? PlaceCode::findByCode($currentCode, false)?->id : null;
     }
 
     /**
