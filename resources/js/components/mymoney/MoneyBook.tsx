@@ -71,7 +71,7 @@ export default function MoneyBook({ table, actions, orderHref }: {
     };
 
     return (
-        <section id="mm-book" className="mm-book">
+        <section id="mm-book" data-tour="commission-ledger" className="mm-book">
             <MoneyTable
                 data={table}
                 prop="table"

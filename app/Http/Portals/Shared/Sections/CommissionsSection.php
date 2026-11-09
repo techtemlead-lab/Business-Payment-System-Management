@@ -10,7 +10,6 @@ use App\Domain\Orders\OrderListFilter;
 use App\Models\CommissionAllocation;
 use App\Models\CommissionRuleParameter;
 use App\Models\DealerRank;
-use App\Models\RewardMilestoneProgress;
 use App\Support\ListPage;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Builder;
@@ -18,7 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Commission policy and payouts: rules and pools, ranks, rewards, monthly settlements and the simulator.
+ * Commission policy and payouts: rules and pools, ranks, monthly settlements and the simulator.
  */
 final class CommissionsSection implements WorkspaceSection
 {
@@ -30,7 +29,6 @@ final class CommissionsSection implements WorkspaceSection
         return match ($context->section) {
             'commissions' => $this->commissions($context),
             'ranks' => $this->ranks($context),
-            'rewards' => $this->rewards($context->request),
             'settlements' => $this->settlements($context->request),
             'simulator' => $this->simulator(),
             default => [],
@@ -118,39 +116,6 @@ final class CommissionsSection implements WorkspaceSection
             'incentives' => $policy['rank_incentive']['parameters'],
             'pool_pct' => CommissionPolicy::rate($policy, 'rank_royalty')->decimal(),
         ];
-
-        return $props;
-    }
-
-    /**
-     * Bike and car reward milestones with their rule parameters.
-     *
-     * @return array<string, mixed>
-     */
-    private function rewards(Request $request): array
-    {
-        $props = [];
-        $mapMilestone = fn ($row) => [...$row->toArray(), 'target_volume' => $row->target_amount, 'is_claimed' => $row->claimed,
-            'capped_leg_breakdown' => array_map(fn ($leg) => [...$leg, 'leg_user_id' => $leg['user_id'] ?? $leg['dealer_id'],
-                'leg_user_name' => $leg['name'] ?? $leg['dealer_name'] ?? '', 'capped_volume' => $leg['qualifying_volume']], $row->leg_breakdown ?? [])];
-        // Only the tab on screen is sent, 25 leaders a page, searched on the server; each tab's count covers everyone.
-        $type = $request->query('type') === 'car' ? 'car' : 'bike';
-        $search = ListPage::query($request);
-        $props['milestone_type'] = $type;
-        $props['milestone_counts'] = RewardMilestoneProgress::query()->groupBy('milestone_type')->selectRaw('milestone_type, COUNT(*) AS total')->pluck('total', 'milestone_type')
-            ->map(fn ($total): int => (int) $total)->all() + ['bike' => 0, 'car' => 0];
-        $props['milestones'] = RewardMilestoneProgress::where('milestone_type', $type)
-            ->with('user:id,name,dealer_code,phone,district')
-            ->when($search !== '', fn ($q) => $q->whereHas('user', function ($users) use ($search): void {
-                $like = '%'.OrderListFilter::escapeLike($search).'%';
-                $users->where(fn ($match) => $match->where('name', 'ilike', $like)->orWhere('dealer_code', 'ilike', $like)->orWhere('phone', 'like', $like)->orWhere('district', 'ilike', $like));
-            }))
-            ->orderByDesc('qualifying_volume')
-            ->orderBy('id')
-            ->paginate(ListPage::PerPage)
-            ->withQueryString()
-            ->through($mapMilestone);
-        $props['rule_params'] = app(CommissionPolicy::class)->snapshot()['rules']['car_bike_incentive']['parameters'];
 
         return $props;
     }

@@ -53,7 +53,7 @@ export default function TeamOrders({ partner, filters, statuses, orders, totals,
     };
     const go = (next: Partial<{ from: string; to: string; member: string; status: string }> = {}) => router.get(`${base}${reportBase}`, params(next), { preserveScroll: true });
     const query = new URLSearchParams(params({ from: filters.from, to: filters.to, member: filters.member ? String(filters.member) : '', status: filters.status ?? '' })).toString();
-    const backHref = staffView ? `${base}/accounts/${partner.id}/statement` : `${base}/full-report`;
+    const backHref = staffView ? `${base}/${partner.role === 'sub_dealer' ? 'sub-dealers' : 'accounts'}` : `${base}/my-money`;
     const tile = (title: string, value: string, hint?: string) => <div className="metric"><span>{translate('portal', title)}</span><strong>{value}</strong>{hint && <small>{hint}</small>}</div>;
 
     return <Shell section={staffView ? (partner.role === 'sub_dealer' ? 'sub-dealers' : 'accounts') : 'full-report'}>

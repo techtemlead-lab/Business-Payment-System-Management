@@ -46,12 +46,23 @@ export function useChooseIncomeType(selected: string): (type: string) => void {
  * on the partner home the same cards are links to that filtered statement.
  */
 export default function IncomeCards({ cards, selected = '', onChoose, hrefFor }: {
-    cards: IncomeCard[];
+    /** Missing while the partner home's cards are still loading. */
+    cards: IncomeCard[] | undefined;
     selected?: string;
     onChoose?: (type: string) => void;
     hrefFor?: (type: string) => string;
 }) {
     const translate = useT();
+    if (cards === undefined) {
+        return (
+            <section className="mm-income" aria-busy="true" aria-labelledby="mm-income-title">
+                <h2 id="mm-income-title">{translate('my_money', 'where_from')}</h2>
+                <div className="mm-cards">
+                    {[0, 1, 2, 3].map((slot) => <div key={slot} className="mm-card mm-card-loading skeleton" />)}
+                </div>
+            </section>
+        );
+    }
     if (cards.length === 0) {
         return null;
     }

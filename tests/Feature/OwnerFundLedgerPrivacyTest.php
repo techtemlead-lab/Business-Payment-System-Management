@@ -36,11 +36,11 @@ class OwnerFundLedgerPrivacyTest extends TestCase
         DB::table('journal_entries')->insert(['id' => (string) Str::uuid(), 'event_key' => 'fund.spend.'.$id, 'description' => $description, 'actor_id' => $owner->id, 'created_at' => now()]);
     }
 
-    public function test_finance_staff_do_not_see_owner_fund_spends_on_the_ledger_page(): void
+    public function test_finance_staff_do_not_see_owner_fund_spends_on_the_event_log(): void
     {
-        $this->actingAs(User::factory()->staff('finance')->create())->onPortal('manage')->get('/ledger')->assertOk()
+        $this->actingAs(User::factory()->staff('finance')->create())->onPortal('manage')->get('/treasury/events?period=')->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('data.entries.data', fn ($rows): bool => collect($rows)->pluck('description')->all() === [self::OrdinarySpendText]));
+                ->where('table.rows.data', fn ($rows): bool => collect($rows)->where('action', 'fund_spent')->pluck('fund_key')->values()->all() === ['marketing']));
     }
 
     public function test_finance_staff_do_not_get_owner_fund_spends_in_the_ledger_report(): void
@@ -55,8 +55,8 @@ class OwnerFundLedgerPrivacyTest extends TestCase
 
     public function test_the_owner_still_sees_them_on_the_owner_panel(): void
     {
-        $this->actingAs(User::factory()->staff()->create())->onPortal('sadmin')->get('/ledger')->assertOk()
+        $this->actingAs(User::factory()->staff()->create())->onPortal('sadmin')->get('/treasury/events?period=')->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('data.entries.data', fn ($rows): bool => collect($rows)->pluck('description')->contains(self::OwnerSpendText)));
+                ->where('table.rows.data', fn ($rows): bool => collect($rows)->where('action', 'fund_spent')->pluck('fund_key')->contains('benefits')));
     }
 }

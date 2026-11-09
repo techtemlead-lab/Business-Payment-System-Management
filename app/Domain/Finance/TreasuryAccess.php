@@ -25,6 +25,12 @@ final class TreasuryAccess
         return $user->status === 'active' && ($user->owner() || $user->allows('finance'));
     }
 
+    /** One partner's statement: also open to account managers, as the old statement page was. */
+    public static function mayOpenPartner(User $user): bool
+    {
+        return self::mayOpenPartners($user) || ($user->status === 'active' && $user->allows('accounts'));
+    }
+
     public static function mayOpenEvents(User $user): bool
     {
         return $user->status === 'active' && ($user->owner() || $user->allows('finance'));

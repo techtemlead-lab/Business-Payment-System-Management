@@ -15,8 +15,8 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 /**
- * Treasury must show real figures: money sent back is not money kept, and "the books match"
- * may only appear when the books were really checked.
+ * The money pages must show real figures: money sent back is not money kept, and the books
+ * check must follow a real check of the saved records.
  */
 class TreasuryFiguresTest extends TestCase
 {
@@ -37,11 +37,10 @@ class TreasuryFiguresTest extends TestCase
         $refunded = $this->paidOrder('100.00', 'Bank');
 
         app(OrderRefund::class)->refund($owner, $refunded, '100.00', 'Goods are not available');
+        $this->everyOrderDelivered();
 
-        $this->treasury($owner)->assertInertia(fn (Assert $page) => $page
-            ->where('data.flow.gross_cash_inflow', 300)
-            ->where('data.flow.dealer_cash_inflow', 300)
-            ->where('data.flow.channel_breakdown', fn ($channels): bool => collect($channels)->sum(fn ($channel): float => (float) $channel['total_amount']) === 300.0)
+        $this->orderReport($owner)->assertInertia(fn (Assert $page) => $page
+            ->where('table.totals.sums.paid', '300.00')
             ->etc());
     }
 
@@ -51,11 +50,14 @@ class TreasuryFiguresTest extends TestCase
         $order = $this->paidOrder('100.00', 'bKash');
 
         app(OrderRefund::class)->refund($owner, $order, '30.00', 'Part of the order could not be sent');
+        $this->everyOrderDelivered();
 
-        $this->treasury($owner)->assertInertia(fn (Assert $page) => $page
-            ->where('data.flow.gross_cash_inflow', 70)
-            ->where('data.flow.channel_breakdown.0.channel', 'bKash')
-            ->where('data.flow.channel_breakdown.0.total_amount', '70.00')
+        $this->orderReport($owner, '?method=bKash')->assertInertia(fn (Assert $page) => $page
+            ->where('table.totals.sums.paid', '70.00')
+            ->where('table.rows.data.0.paid', '70.00')
+            ->etc());
+        $this->orderReport($owner, '?method=Bank')->assertInertia(fn (Assert $page) => $page
+            ->where('table.totals.count', 0)
             ->etc());
     }
 
@@ -64,17 +66,27 @@ class TreasuryFiguresTest extends TestCase
         $owner = User::factory()->create(['role' => 'super_admin']);
         $this->paidOrder('100.00', 'Bank');
 
-        $this->treasury($owner)->assertInertia(fn (Assert $page) => $page->where('data.flow.books_match', true)->etc());
+        $this->booksCheck($owner)->assertInertia(fn (Assert $page) => $page->where('readiness.checks.order_receipts', true)->etc());
 
         // A receipt for money the order does not show: the two records no longer agree.
         DB::table('orders')->update(['paid' => '75.00']);
 
-        $this->treasury($owner)->assertInertia(fn (Assert $page) => $page->where('data.flow.books_match', false)->etc());
+        $this->booksCheck($owner)->assertInertia(fn (Assert $page) => $page->where('readiness.checks.order_receipts', false)->etc());
     }
 
-    private function treasury(User $owner)
+    private function everyOrderDelivered(): void
     {
-        return $this->actingAs($owner)->onPortal('sadmin')->get('/treasury')->assertOk();
+        DB::table('orders')->update(['status' => 'delivered']);
+    }
+
+    private function orderReport(User $owner, string $query = '')
+    {
+        return $this->actingAs($owner)->onPortal('sadmin')->get('/treasury/orders'.$query)->assertOk();
+    }
+
+    private function booksCheck(User $owner)
+    {
+        return $this->actingAs($owner)->onPortal('sadmin')->get('/operations/financial-readiness')->assertOk();
     }
 
     private function paidOrder(string $amount, string $channel): Order

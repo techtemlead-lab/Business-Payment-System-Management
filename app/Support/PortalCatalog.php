@@ -48,7 +48,7 @@ final class PortalCatalog
             $sections = [...$sections, ...self::sections('manage')];
         }
 
-        return array_values(array_unique([...$sections, 'customization', 'capital-flow']));
+        return array_values(array_unique([...$sections, 'customization']));
     }
 
     public static function allowsSection(string $portal, string $section): bool
@@ -66,8 +66,8 @@ final class PortalCatalog
             // Off for every partner until the owner verifies their registration; the owner-doctor always has it.
             abort_unless(PrescriptionAccess::canPrescribe($user), 403, (string) __('prescription.err_not_enabled'));
         }
-        if ($section === 'benefits-fund' || $section === 'data-cleanup' || $section === 'login-rules' || $section === 'privacy-requests') {
-            // Owner-only pages on the owner panel: the owners' fund, the manual data clean-up, the login switches and data requests.
+        if ($section === 'data-cleanup' || $section === 'login-rules' || $section === 'privacy-requests') {
+            // Owner-only pages on the owner panel: the manual data clean-up, the login switches and data requests.
             abort_unless($portal === 'sadmin' && $user->owner(), 403);
         }
         if ($portal === 'sadmin' && in_array($section, ['sales-kit', 'schemes', 'contests'], true)) {
@@ -100,7 +100,10 @@ final class PortalCatalog
             abort_unless($user->owner() || $user->allows('content'), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'partner-messages') {
             abort_unless(PartnerChat::canAnswer($user), 403);
-        } elseif (in_array($portal, ['manage', 'sadmin'], true) && in_array($section, ['reports', 'top-sellers', 'partner-scorecard'], true)) {
+        } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'reports') {
+            // Only an old address now: it redirects, and field staff go to their report files.
+            abort_unless($user->allows('reports') || $user->allows('orders') || $user->allows('finance') || $user->allows('field_sales'), 403);
+        } elseif (in_array($portal, ['manage', 'sadmin'], true) && in_array($section, ['top-sellers', 'partner-scorecard'], true)) {
             abort_unless($user->allows('reports') || $user->allows('orders') || $user->allows('finance'), 403);
         } else {
             $capability = self::staffCapabilities($portal)[$section] ?? null;

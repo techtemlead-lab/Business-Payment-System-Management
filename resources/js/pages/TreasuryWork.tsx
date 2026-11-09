@@ -1,27 +1,44 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
 import { ChevronRight } from 'lucide-react';
 import { number } from '../components/UI';
+import type { MoneyTableData } from '../components/MoneyTable';
 import TreasuryPage from '../components/treasury/TreasuryPage';
 import SpendApprovals, { type SpendApproval } from '../components/treasury/SpendApprovals';
-import HeadsAndBudgets, { type HeadBudget } from '../components/treasury/HeadsAndBudgets';
+import { BudgetsTable, HeadsTable, type HeadBudget } from '../components/treasury/HeadsAndBudgets';
 import type { ExpenseHead } from '../components/treasury/FundSpendForm';
 import { useT } from '../shared/i18n/t';
 
 type WorkTile = { key: string; label: string; href: string; count: number };
+type WorkTab = 'waiting' | 'heads' | 'budgets';
+
+const SWITCHES: { key: WorkTab; href: string; word: string }[] = [
+    { key: 'waiting', href: '/treasury/work', word: 'work_waiting' },
+    { key: 'heads', href: '/treasury/work?tab=heads', word: 'work_heads' },
+    { key: 'budgets', href: '/treasury/work?tab=budgets', word: 'work_budgets' },
+];
 
 /** Everything waiting for a person, in one list; and the spending heads and budgets. */
-export default function TreasuryWork({ tiles, approvals, heads, budgets, budget_month: budgetMonth }: { tiles: WorkTile[]; approvals: SpendApproval[]; heads: ExpenseHead[]; budgets: HeadBudget[]; budget_month: string }) {
+export default function TreasuryWork({ tab, tiles, approvals_table: approvals, heads_table: headsTable, budgets_table: budgetsTable, heads, budget_month: budgetMonth }: {
+    tab: WorkTab;
+    tiles: WorkTile[];
+    approvals_table: MoneyTableData<SpendApproval> | null;
+    heads_table: MoneyTableData<ExpenseHead> | null;
+    budgets_table: MoneyTableData<HeadBudget> | null;
+    heads: ExpenseHead[];
+    budget_month: string;
+}) {
     const translate = useT();
-    const { url } = usePage();
-    const showsHeads = new URLSearchParams(url.split('?')[1] ?? '').get('tab') === 'heads';
 
     return (
         <TreasuryPage title={translate('treasury', 'title')} showTabs>
             <div className="tsy-switch" role="group" aria-label={translate('treasury', 'tab_work')}>
-                <Link href="/treasury/work" preserveState preserveScroll className={showsHeads ? undefined : 'is-active'} aria-current={showsHeads ? undefined : 'true'}>{translate('treasury', 'work_waiting')}</Link>
-                <Link href="/treasury/work?tab=heads" preserveState preserveScroll className={showsHeads ? 'is-active' : undefined} aria-current={showsHeads ? 'true' : undefined}>{translate('treasury', 'work_heads')}</Link>
+                {SWITCHES.map((item) => (
+                    <Link key={item.key} href={item.href} preserveScroll className={tab === item.key ? 'is-active' : undefined} aria-current={tab === item.key ? 'true' : undefined}>{translate('treasury', item.word)}</Link>
+                ))}
             </div>
-            {showsHeads ? <HeadsAndBudgets heads={heads} budgets={budgets} month={budgetMonth} /> : (
+            {tab === 'heads' && headsTable && <HeadsTable table={headsTable} />}
+            {tab === 'budgets' && budgetsTable && <BudgetsTable table={budgetsTable} heads={heads} month={budgetMonth} />}
+            {tab === 'waiting' && approvals && (
                 <>
                     <nav className="tsy-work" aria-label={translate('treasury', 'work_waiting')}>
                         {tiles.map((tile) => (
@@ -32,7 +49,7 @@ export default function TreasuryWork({ tiles, approvals, heads, budgets, budget_
                             </Link>
                         ))}
                     </nav>
-                    <SpendApprovals approvals={approvals} />
+                    <SpendApprovals table={approvals} />
                 </>
             )}
         </TreasuryPage>

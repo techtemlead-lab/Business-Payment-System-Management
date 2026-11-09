@@ -350,6 +350,7 @@ function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row;
 export default function WithdrawalDetail({ withdrawal: w, events = [], payoutReceipt = null }: { withdrawal: Row; events: Row[]; payoutReceipt?: Row | null }) {
     const translate = useT();
     const { auth, financeActive, staffActions, portalBase: base, paymentAccounts = [] } = usePage<any>().props;
+    const isPartnerDesk = ['dealer', 'sub_dealer'].includes(auth?.user?.role) && auth?.user?.workspace_mode !== 'staff';
     const finance = financeActive && auth.capabilities.includes('finance') && (staffActions?.finance?.approve ?? true);
     const form = useForm<{ payment_account_id: string; receipt: File | null; payment_reference: string; paid_at: string; note: string; method: PayoutMethod; bank_name: string; account_number: string; wallet_number: string; received_by: string; self_approve: boolean }>({
         payment_account_id: '', receipt: null, payment_reference: '', paid_at: '', note: '',
@@ -368,9 +369,9 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
     }, [inFlight, stop]);
 
     return (
-        <Shell section="withdrawals">
+        <Shell section={isPartnerDesk ? 'my-money' : 'payouts-hub'}>
             <Head title={translate('portal', 'wd_head_title')} />
-            <Link className="text-link" href={base + '/withdrawals'}>{translate('portal', 'wd_back')}</Link>
+            <Link className="text-link" href={base + (isPartnerDesk ? '/my-money' : '/payouts-hub')}>{translate('portal', 'wd_back')}</Link>
             <div className="order-title">
                 <div>
                     <h2>{money(w.amount)}</h2>

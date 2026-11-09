@@ -54,6 +54,19 @@ final class MoneyTable
     }
 
     /**
+     * The rows `make` would list, before sorting and paging, for figures a page shows beside the table.
+     */
+    public static function filtered(Request $request, Builder $query, MoneyTableSpec $spec): Builder
+    {
+        $filtered = (clone $query)->reorder();
+        self::applySearch($filtered, self::searchText($request), $spec->search);
+        self::applyFilters($filtered, $request, $spec->filters);
+        self::applyView($filtered, self::view($request, $spec->defaultPeriod), $spec->dateColumn);
+
+        return $filtered;
+    }
+
+    /**
      * The chosen date view as a UTC window in Dhaka days, for read models that apply it themselves.
      *
      * @return array{from: CarbonImmutable, until: CarbonImmutable}|null

@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import {Link, router, usePage} from '@inertiajs/react';
-import {Search, Store, Menu, ShoppingBag, Home, Network, Wallet, Banknote} from 'lucide-react';
+import {Search, Store, Menu, ShoppingBag, Home, Network, Wallet} from 'lucide-react';
 import {useT} from '../shared/i18n/t';
 import {partnerChromeEnabled} from '../shared/partnerChromeNav';
 
@@ -62,8 +62,8 @@ export function DealerBottomNav({onMenu}:{onMenu:()=>void}){
             {commerceHref && item(commerceHref, commerceLabel, commerceIcon)}
             {role === 'dealer'
                 ? (partnerChromeEnabled(role, controls, 'network') && item('/network', translate('portal', 'nav_module_network'), Network))
-                : (partnerChromeEnabled(role, controls, 'salary') && item('/salary', translate('portal', 'nav_module_compensation'), Banknote))}
-            {partnerChromeEnabled(role, controls, 'earnings') && item('/earnings', translate('portal', 'nav_module_earnings'), Wallet)}
+                : null}
+            {partnerChromeEnabled(role, controls, 'earnings') && item('/my-money', translate('portal', 'nav_module_earnings'), Wallet)}
         </nav>
     );
 }

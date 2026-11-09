@@ -13,7 +13,7 @@ use App\Support\PortalHost;
 use App\Support\SpreadsheetCell;
 use App\Support\TableWorkbook;
 use Carbon\CarbonImmutable;
-use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -36,39 +36,26 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class AccountingController extends Controller
 {
-    public const Tabs = ['statements', 'import', 'payouts', 'limit'];
+    /** Old tabs of this page, moved to the places that do this work now. */
+    private const MovedTabs = ['statements' => '/treasury/work', 'limit' => '/operations/finance-settings', 'payouts' => '/payouts-hub'];
 
-    public function index(Request $request, AccountingStatements $statements, WithdrawalApprovalLimit $limit, PayoutBatch $payouts, StatementImports $imports): InertiaResponse|JsonResponse
+    /** The bank statement check, the one screen left of the old accounting page. */
+    public function index(Request $request, StatementImports $imports): InertiaResponse|RedirectResponse
     {
-        $actor = $request->user();
-        $this->authorizeAccounting($actor);
-        $request->validate(['tab' => ['nullable', Rule::in(self::Tabs)]]);
-        $tab = $request->string('tab')->toString() ?: 'statements';
-        $data = ['tab' => $tab];
-        if ($tab === 'statements') {
-            [$from, $to] = $this->period($request);
-            $data['filters'] = ['from' => $from, 'to' => $to];
-            $data['statements'] = $statements->build($from, $to, $this->showOwnerHeads($actor));
-            $data['exportBase'] = '/commands/operations/accounting/export';
+        $this->authorizeAccounting($request->user());
+        $moved = self::MovedTabs[$request->query('tab')] ?? null;
+        if ($moved !== null) {
+            return redirect($moved, 301);
         }
-        if ($tab === 'import') {
-            $request->validate(['statement' => 'nullable|uuid']);
-            $data['channels'] = StatementImports::Channels;
-            $data['history'] = $imports->history();
-            $data['statement'] = $request->filled('statement') ? $imports->detail($request->string('statement')->toString()) : null;
-            abort_if($request->filled('statement') && $data['statement'] === null, 404);
-        }
-        if ($tab === 'payouts') {
-            [$month, $channel] = $this->payoutFilters($request);
-            $data['filters'] = ['month' => $month, 'channel' => $channel];
-            $data['channels'] = PayoutBatch::Channels;
-            $data['payoutBatch'] = $payouts->listing($month, $channel);
-        }
-        if ($tab === 'limit') {
-            $data['approvalLimit'] = [...$limit->current(), 'default' => WithdrawalApprovalLimit::DefaultAmount, 'can_edit' => $actor->owner()];
-        }
+        $request->validate(['statement' => 'nullable|uuid']);
+        $statement = $request->filled('statement') ? $imports->detail($request->string('statement')->toString()) : null;
+        abort_if($request->filled('statement') && $statement === null, 404);
 
-        return $request->expectsJson() ? response()->json(['data' => $data]) : Inertia::render('Accounting', $data);
+        return Inertia::render('Accounting', [
+            'channels' => StatementImports::Channels,
+            'history' => $imports->history(),
+            'statement' => $statement,
+        ]);
     }
 
     /** Owner-only: the withdrawal size flagged as a large payout. */

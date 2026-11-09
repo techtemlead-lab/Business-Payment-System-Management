@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
-import { Download, Search } from 'lucide-react';
-import { FormErrors, money, date, Table, Pagination, type Row } from './UI';
+import { Download } from 'lucide-react';
+import { FormErrors, money, date } from './UI';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from './MoneyTable';
 import { useT } from '../shared/i18n/t';
 import { useEscape } from '../shared/useEscape';
@@ -34,15 +34,6 @@ interface WithdrawalRecord {
     payout_method?: string | null;
 }
 
-interface WithdrawalPage extends Row {
-    data: WithdrawalRecord[];
-    current_page: number;
-    last_page: number;
-    total: number;
-    prev_page_url: string | null;
-    next_page_url: string | null;
-}
-
 /** Totals over every request that matches the search, not only the visible page. */
 interface PayoutTotals {
     requested_count: number;
@@ -55,12 +46,10 @@ interface PayoutTotals {
 }
 
 interface PayoutsHubProps {
-    withdrawals: WithdrawalPage;
+    data: MoneyTableData<WithdrawalRecord>;
     tdsRate: number;
     totals?: PayoutTotals;
 }
-
-const statusTabs: Array<'all' | WithdrawalStatus> = ['all', 'requested', 'approved', 'paid', 'rejected'];
 
 const emptyTotals: PayoutTotals = {
     requested_count: 0,
@@ -87,22 +76,12 @@ function PayoutsTable({ data, rowActions }: { data: MoneyTableData<WithdrawalRec
     return <MoneyTable<WithdrawalRecord> data={data} prop="data" columns={columns} searchPlaceholder={translate('portal', 'pay_search_ph')} empty={translate('portal', 'pay_empty')} />;
 }
 
-export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals }: PayoutsHubProps) {
+export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: PayoutsHubProps) {
     const translate = useT();
-    const { portalBase, filters, data: pageData, staffActions } = usePage<any>().props;
+    const { portalBase, data: pageData, staffActions } = usePage<any>().props;
     // Checking and paying a withdrawal needs finance approval on the server; everyone else just reads the list.
     const canProcess = staffActions?.finance?.approve ?? true;
     const summary: PayoutTotals = totals ?? pageData?.payout_totals ?? emptyTotals;
-    const payoutsTable: MoneyTableData<WithdrawalRecord> | undefined = pageData?.payouts_table;
-    const activeSearch = String(filters?.q ?? '');
-    const activeStatus = statusTabs.includes(filters?.status) ? String(filters.status) : 'all';
-    const activeChannel = String(filters?.channel ?? '');
-    const activePeriod = String(filters?.period ?? '');
-    const activeBuyerRole = String(filters?.buyer_role ?? '');
-
-    const [searchQuery, setSearchQuery] = useState(activeSearch);
-    useEffect(() => setSearchQuery(activeSearch), [activeSearch]);
-
     // Modal states
     const [reviewModalRecord, setReviewModalRecord] = useState<WithdrawalRecord | null>(null);
     const [reviewDecision, setReviewDecision] = useState<'approved' | 'rejected'>('approved');
@@ -129,26 +108,6 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
     const [paymentAccountId, setPaymentAccountId] = useState('');
     const isCash = payoutMethod === 'cash';
     const payoutAccounts: Array<{ id: number; label: string; channel: string; is_active: boolean; pays_out: boolean }> = (pageData?.payment_accounts ?? []).filter((account: { is_active: boolean; pays_out: boolean }) => account.is_active && account.pays_out);
-
-    const records = withdrawals?.data ?? [];
-
-    /** Search and status run on the server so every page and the totals agree. */
-    const applyFilters = (next: { q?: string; status?: string; channel?: string; period?: string; buyer_role?: string }) => {
-        const status = next.status ?? activeStatus;
-        const query = {
-            q: (next.q ?? activeSearch).trim(),
-            status: status === 'all' ? '' : status,
-            channel: next.channel ?? activeChannel,
-            period: next.period ?? activePeriod,
-            buyer_role: next.buyer_role ?? activeBuyerRole,
-        };
-        router.get(
-            `${portalBase ?? ''}/payouts-hub`,
-            Object.fromEntries(Object.entries(query).filter(([, value]) => value)),
-            { preserveState: true, preserveScroll: true },
-        );
-    };
-    const hasActiveFilters = activeSearch !== '' || activeStatus !== 'all' || activeChannel !== '' || activePeriod !== '' || activeBuyerRole !== '';
 
     const handleOpenReview = (record: WithdrawalRecord) => {
         setModalErrors({});
@@ -344,179 +303,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
                 </div>
             )}
 
-            {payoutsTable ? <PayoutsTable data={payoutsTable} rowActions={rowActions} /> : <>
-            {/* Filter & Search Bar */}
-            <div className="panel hub-row is-between">
-                <div className="hub-seg">
-                    {statusTabs.map(st => (
-                        <button
-                            key={st}
-                            type="button"
-                            aria-pressed={activeStatus === st}
-                            onClick={() => applyFilters({ status: st })}
-                            className="hub-capital"
-                        >
-                            {st === 'all' ? translate('portal', 'pay_filter_all') : translate('portal', `pay_status_${st}`)}
-                        </button>
-                    ))}
-                </div>
-
-                <form
-                    role="search"
-                    onSubmit={(e) => { e.preventDefault(); applyFilters({ q: searchQuery }); }}
-                    className="pay-search"
-                >
-                    <div className="search-input">
-                        <Search size={16} />
-                        <input
-                            type="search"
-                            aria-label={translate('portal', 'pay_search_ph')}
-                            placeholder={translate('portal', 'pay_search_ph')}
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
-                    <button type="submit" className="button small dark">{translate('portal', 'search')}</button>
-                    <select aria-label={translate('portal', 'orders_filter_all')} value={activeBuyerRole} onChange={(e) => applyFilters({ buyer_role: e.target.value })}>
-                        <option value="">{translate('portal', 'orders_filter_all')}</option>
-                        <option value="dealer">{translate('portal', 'wd_filter_dealers')}</option>
-                        <option value="sub_dealer">{translate('portal', 'wd_filter_sub_dealers')}</option>
-                    </select>
-                    <select aria-label={translate('portal', 'pay_filter_channel')} value={activeChannel} onChange={(e) => applyFilters({ channel: e.target.value })}>
-                        <option value="">{translate('portal', 'pay_filter_channel')}</option>
-                        <option value="bKash">{translate('portal', 'pay_channel_bkash')}</option>
-                        <option value="Nagad">{translate('portal', 'pay_channel_nagad')}</option>
-                        <option value="Rocket">{translate('portal', 'pay_channel_rocket')}</option>
-                        <option value="Bank">{translate('portal', 'pay_channel_bank')}</option>
-                    </select>
-                    <select aria-label={translate('portal', 'orders_period_all')} value={activePeriod} onChange={(e) => applyFilters({ period: e.target.value })}>
-                        <option value="">{translate('portal', 'orders_period_all')}</option>
-                        <option value="today">{translate('portal', 'orders_period_today')}</option>
-                        <option value="week">{translate('portal', 'orders_period_week')}</option>
-                        <option value="month">{translate('portal', 'orders_period_month')}</option>
-                        <option value="year">{translate('portal', 'orders_period_year')}</option>
-                    </select>
-                    {hasActiveFilters && (
-                        <button
-                            type="button"
-                            className="text-link"
-                            onClick={() => { setSearchQuery(''); applyFilters({ q: '', status: 'all', channel: '', period: '' }); }}
-                        >
-                            {translate('portal', 'clear')}
-                        </button>
-                    )}
-                </form>
-            </div>
-
-            {/* Withdrawals Table */}
-            <div className="panel table-panel">
-                <Table
-                    tools={false}
-                    rows={records}
-                    empty={translate('portal', 'pay_empty')}
-                    columns={[
-                        {
-                            key: 'user_name',
-                            title: translate('portal', 'pay_col_partner'),
-                            sortable: true,
-                            sortValue: (w: WithdrawalRecord) => w.user_name,
-                            render: (w: WithdrawalRecord) => (
-                                <div>
-                                    <div className="hub-strong">{w.user_name}</div>
-                                    <div className="cell-sub">
-                                        {[w.dealer_code, w.phone, w.district, w.division].filter(Boolean).join(' · ')}
-                                    </div>
-                                </div>
-                            ),
-                        },
-                        {
-                            key: 'created_at',
-                            title: translate('portal', 'pay_col_date'),
-                            sortable: true,
-                            render: (w: WithdrawalRecord) => date(w.created_at),
-                        },
-                        {
-                            key: 'channel',
-                            title: translate('portal', 'pay_col_method'),
-                            sortable: true,
-                            render: (w: WithdrawalRecord) => <span className="hub-strong">{channelName(w.channel, translate)}</span>,
-                        },
-                        {
-                            key: 'destination_masked',
-                            title: translate('portal', 'wd_destination'),
-                            sortable: true,
-                            render: (w: WithdrawalRecord) => (
-                                <span className="hub-mono">
-                                    {w.destination_masked || '—'}
-                                </span>
-                            ),
-                        },
-                        {
-                            key: 'payment_reference',
-                            title: translate('portal', 'col_reference'),
-                            sortable: true,
-                            render: (w: WithdrawalRecord) => w.payment_reference ? (
-                                <span className="hub-strong tone-teal">{w.payment_reference}</span>
-                            ) : '—',
-                        },
-                        {
-                            key: 'amount',
-                            title: translate('portal', 'pay_col_gross'),
-                            align: 'right',
-                            sortable: true,
-                            sortValue: (w: WithdrawalRecord) => Number(w.amount) || 0,
-                            render: (w: WithdrawalRecord) => (
-                                <span className="hub-strong">
-                                    {money(w.amount)}
-                                </span>
-                            ),
-                        },
-                        {
-                            key: 'withheld_amount',
-                            title: translate('portal', 'pay_col_withholding'),
-                            align: 'right',
-                            sortable: true,
-                            sortValue: (w: WithdrawalRecord) => Number(w.withheld_amount ?? 0),
-                            render: (w: WithdrawalRecord) => (
-                                <span className="tone-danger">
-                                    -{money(w.withheld_amount ?? 0)}
-                                </span>
-                            ),
-                        },
-                        {
-                            key: 'net_amount',
-                            title: translate('portal', 'pay_col_net'),
-                            align: 'right',
-                            sortable: true,
-                            sortValue: (w: WithdrawalRecord) => Number(w.net_amount ?? w.amount),
-                            render: (w: WithdrawalRecord) => (
-                                <b className="tone-ok">
-                                    {money(w.net_amount ?? w.amount)}
-                                </b>
-                            ),
-                        },
-                        {
-                            key: 'status',
-                            title: translate('portal', 'pay_col_status'),
-                            sortable: true,
-                            render: (w: WithdrawalRecord) => (
-                                <span className={`badge hub-capital ${w.status}`}>
-                                    {translate('portal', `pay_status_${w.status}`)}
-                                </span>
-                            ),
-                        },
-                        {
-                            key: 'actions',
-                            title: translate('portal', 'pay_col_actions'),
-                            align: 'right',
-                            sortable: false,
-                            render: rowActions,
-                        },
-                    ]}
-                />
-                <Pagination page={withdrawals} />
-            </div>
-            </>}
+            <PayoutsTable data={data} rowActions={rowActions} />
 
             {/* Review Modal */}
             {reviewModalRecord && (

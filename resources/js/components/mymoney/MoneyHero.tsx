@@ -12,7 +12,7 @@ export default function MoneyHero({ summary, actions }: { summary: MoneySummary;
     ].filter((figure) => Number(figure.amount) !== 0);
 
     return (
-        <section className="mm-hero" aria-labelledby="mm-hero-label">
+        <section className="mm-hero" aria-labelledby="mm-hero-label" data-tour="wallet-balances">
             <span id="mm-hero-label" className="mm-hero-label">{translate('my_money', 'usable')}</span>
             <strong className={`mm-hero-number${isBelowZero(summary.available) ? ' is-negative' : ''}`}>{money(summary.available)}</strong>
             {smallFigures.length > 0 && (
@@ -22,7 +22,7 @@ export default function MoneyHero({ summary, actions }: { summary: MoneySummary;
                     ))}
                 </ul>
             )}
-            {actions && <div className="mm-hero-actions">{actions}</div>}
+            {actions && <div className="mm-hero-actions" data-tour="withdrawal-form">{actions}</div>}
         </section>
     );
 }
