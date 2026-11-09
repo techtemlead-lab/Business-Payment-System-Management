@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, router, usePage, usePoll } from '@inertiajs/react';
+import { backgroundRefreshHeaders } from '../shared/backgroundRefresh';
 import { ImagePlus, Search, Send, X } from 'lucide-react';
 import { dateTime, label, Modal, Pagination, type Row } from './UI';
 import OfficePage from './office/OfficePage';
@@ -120,7 +121,7 @@ function Composer({ action }: { action: string }) {
 /** Dealer or sub-dealer view: one chat with the company office. */
 export function PartnerMessages({ chat }: { chat: Row }) {
     const translate = useT();
-    usePoll(10000, { only: ['data', 'navAttention'] });
+    usePoll(10000, { only: ['data', 'navAttention'], headers: backgroundRefreshHeaders });
     const officeName = translate('portal', 'chat_office_name');
 
     return (
@@ -200,7 +201,7 @@ export default function OfficeChat({ inbox, thread, routing, noBranch = false }:
     const { portalBase: base, filters, data } = usePage<any>().props;
     const [choosingAnswerers, setChoosingAnswerers] = useState(false);
     const hub: OfficeHub | null = data?.hub ?? null;
-    usePoll(10000, { only: ['data', 'navAttention'] });
+    usePoll(10000, { only: ['data', 'navAttention'], headers: backgroundRefreshHeaders });
     const [q, setQ] = useState(String(filters?.q ?? ''));
     const rows: Row[] = inbox?.data ?? [];
     const activeId = thread?.partner?.id ?? null;

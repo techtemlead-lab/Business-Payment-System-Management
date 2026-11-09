@@ -242,7 +242,7 @@ final class ReportData
     private function deliveredLines(): Builder
     {
         return DB::table('order_lines as l')->join('orders as o', 'o.id', '=', 'l.order_id')->join('products as p', 'p.id', '=', 'l.product_id')
-            ->whereIn('o.status', DeliveredMoney::Statuses)
+            ->whereRaw(DeliveredMoney::countedSql('o'))
             ->whereRaw(DeliveredMoney::lineQuantitySql().' > 0');
     }
 

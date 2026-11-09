@@ -438,6 +438,7 @@ Questions about these terms, partnership rules or the website:
     'partner_trust_badge_support' => 'Company Support',
     'partner_security_note' => 'Your application is kept private and is checked directly by Madina Natural Health Care management.',
     'partner_sponsor_hint' => 'If an authorized dealer or sub-dealer introduced you, provide their code.',
+    'partner_directory_notice' => 'Once approved as a dealer, your name and phone number will show on the public dealer list.',
     'optional' => 'Optional',
 
     'offers' => 'Offers',

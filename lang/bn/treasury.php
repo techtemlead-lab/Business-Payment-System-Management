@@ -88,6 +88,7 @@ return [
     'line_status_returned' => 'ফেরত নেওয়া',
 
     'posting_waiting' => 'ডেলিভারি হলে কমিশন ভাগ হবে',
+    'posting_waiting_rest' => 'ডেলিভারি হওয়া পণ্যের টাকা হিসাবে ধরা হয়েছে। বাকি পণ্য ডেলিভারি হলে কমিশন ভাগ হবে।',
     'posting_part_delivered' => 'ডেলিভারি হওয়া অংশের উপর ভাগ হয়েছে',
     'posting_no_commission' => 'কমিশন দেওয়া হয়নি',
     'posting_taken_back' => 'পার্টনারদের কাছ থেকে ফেরত নেওয়া: :amount',

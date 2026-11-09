@@ -1,5 +1,6 @@
 import React,{useState} from 'react';
 import {Head,Link,usePage,usePoll} from '@inertiajs/react';
+import { backgroundRefreshHeaders } from '../shared/backgroundRefresh';
 import {ArrowUpRight,Plus} from 'lucide-react';
 import Shell from '../components/Shell';
 import DashboardOverview from '../components/DashboardOverview';
@@ -12,6 +13,7 @@ import PartnerHubNav from '../components/PartnerHubNav';
 import OfficeHubTabs from '../components/OfficeHubTabs';
 import {Row,Table,Pagination,Badge,money,dateTime,label} from '../components/UI';
 import {useT} from '../shared/i18n/t';
+import {actionAllowed} from '../components/action-permissions';
 import {SECTION_LABEL_KEYS} from '../shared/portalNav';
 import Orders,{OrderTable} from '../components/office/sections/Orders';
 import Security from '../components/office/sections/Security';
@@ -86,7 +88,7 @@ export default function Portal({section,data:d,filters}:{section:string,data:Row
  const translate=useT();const {auth,staffActions,portalBase:base,portal,securityControls,collectionAccounts:sharedCollectionAccounts=[]}=usePage<any>().props;const u=auth.user;const caps:string[]=auth.capabilities;const staff=portal==='manage'||portal==='sadmin';const[modal,setModal]=useState<string|null>(null);
  /** A status drop-down for the server filter bar; it filters every page, not just the rows on screen. */
  const statusSelect=(statuses:string[]):FilterSelect=>({name:'status',label:translate('portal','orders_filter_status'),options:statuses.map(item=>({value:item,label:label(item,translate)}))});
- usePoll(30000,()=>({only:LIVE_SECTIONS.includes(section)?['data','navAttention','unreadNotices']:['navAttention','unreadNotices']}));
+ usePoll(30000,()=>({only:LIVE_SECTIONS.includes(section)?['data','navAttention','unreadNotices']:['navAttention','unreadNotices'],headers:backgroundRefreshHeaders}));
  const open=(name:string)=>{setModal(name)};const close=()=>{setModal(null)};
  const sectionProps={section,data:d,filters};
  const stats=d.stats??{}; const action=section==='overview'?<Link className="button dark" href={staff?(base+(caps.includes('orders')||caps.includes('finance')?'/orders':caps.includes('content')?'/content':'/profile')):(base+'/purchase')}>{staff?(caps.includes('orders')||caps.includes('finance')?translate('portal','manage_orders'):caps.includes('content')?translate('portal','manage_website'):translate('portal','view_profile')):translate('portal','new_purchase_request')}<ArrowUpRight size={17}/></Link>:(!staff&&(section==='orders'||section==='deliveries'||section==='catalog'))?<Link className="button dark" href={`${base}/purchase`}><Plus size={17}/>{translate('portal','new_purchase_request')}</Link>:section==='accounts'&&(staffActions?.accounts?.create??true)?<Link className="button dark" href="/accounts/create?intent=dealer"><Plus size={17}/>{translate('portal','acct_heading')}</Link>:section==='sub-dealers'&&(staffActions?.accounts?.create??true)?<Link className="button dark" href="/accounts/create?intent=sub_dealer"><Plus size={17}/>{translate('portal','sd_add')}</Link>:undefined;
@@ -112,7 +114,7 @@ export default function Portal({section,data:d,filters}:{section:string,data:Row
  {section==='area-dealers'&&<PartnerFrame data={d}><AreaDealersHub assignments={d.assignments} summary={d.area_summary} areaFilters={d.area_filters||{}} areaPoolRate={d.area_pool_rate} divisions={d.divisions||[]} dealers_list={d.dealers_list||[]} place_codes={d.place_codes||[]}/></PartnerFrame>}
  {section==='stock-lots'&&<StockLotsHub data={d.stock_lots||{}}/>}
  {section==='branch-performance'&&<BranchPerformanceHub performance={d.performance||{period:{period:'month',from:'',to:'',label:'month',timezone:''},totals:{order_count:0,order_value:'0.00',income:'0.00',outstanding:'0.00',estimated_profit:'0.00'},branches:[],unassigned:{order_count:0,order_value:'0.00',income:'0.00',outstanding:'0.00',estimated_profit:'0.00'},orders:{data:[],current_page:1,last_page:1,total:0,links:[]}}} branch_options={d.branch_options||[]}/>}
- {section==='branches'&&<BranchesHub branches={d.branches||{data:[],current_page:1,last_page:1,total:0,links:[]}} active_branch_id={d.active_branch_id} head_office_without_place_code={d.head_office_without_place_code} can_edit_branches={!!d.can_edit_branches} assignable_staff={d.assignable_staff||[]} canManage={caps.includes('inventory')||caps.includes('accounts')||['super_admin','md','chairman'].includes(u.role)}/>}
+ {section==='branches'&&<BranchesHub branches={d.branches||{data:[],current_page:1,last_page:1,total:0,links:[]}} active_branch_id={d.active_branch_id} head_office_without_place_code={d.head_office_without_place_code} can_edit_branches={!!d.can_edit_branches} assignable_staff={d.assignable_staff||[]} canManage={actionAllowed('/commands/branches',staffActions,'post')}/>}
  {section==='place-codes'&&<PlaceCodesHub level={d.level||'division'} level_label={d.level_label||'Division'} searchable={!!d.searchable} filters={d.filters||filters} submodules={d.submodules||[]} parent_options={d.parent_options||[]} management_referral={d.management_referral||null} places={d.places||{data:[],current_page:1,last_page:1,total:0,links:[]}}/>}
  {section==='ranks'&&<PartnerFrame data={d}><RankRoyaltyHub policy={d.rank_policy} filters={filters} ranks={d.ranks||[]} stats={d.stats||{mo_count:0,am_count:0,sm_count:0,me_count:0,dealer_count:0}}/></PartnerFrame>}
  {section==='employees'&&<div data-tour="employees-hub"><EmployeesHub employees={d.employees} availablePermissions={d.available_permissions} stats={d.employee_stats} filters={filters} ownerAccounts={d.owner_accounts} hub={d.hub}/></div>}

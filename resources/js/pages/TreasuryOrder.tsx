@@ -37,7 +37,7 @@ type OrderMoney = {
         percent_off: string | null;
         payments: { method: string; method_label: string; amount: string; reference: string | null; confirmed_by: string | null }[];
     };
-    posting: 'posted' | 'part_delivered' | 'waiting_delivery' | 'no_commission';
+    posting: 'posted' | 'part_delivered' | 'waiting_delivery' | 'waiting_rest' | 'no_commission';
     basis: { cash: string; mrp: string; refunded: string } | null;
     lines: MoneyLine[];
     lines_total: string;
@@ -71,6 +71,9 @@ function usePostingLine({ posting, basis, lines, no_commission: noCommission }: 
     const translate = useT();
     if (posting === 'waiting_delivery') {
         return translate('treasury', 'posting_waiting');
+    }
+    if (posting === 'waiting_rest') {
+        return translate('treasury', 'posting_waiting_rest');
     }
     if (posting === 'part_delivered') {
         return joined([translate('treasury', 'posting_part_delivered'), basis ? money(basis.cash) : null]);

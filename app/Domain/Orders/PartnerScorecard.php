@@ -116,7 +116,7 @@ final class PartnerScorecard
         $verifiedOnOrder = "(SELECT COALESCE(SUM(claim.amount), 0) FROM payment_claims AS claim WHERE claim.order_id = orders.id AND claim.status = 'verified')";
 
         return $this->partnerOrders(DB::table('orders'), $range)
-            ->whereIn('orders.status', DeliveredMoney::Statuses)
+            ->whereRaw(DeliveredMoney::countedSql())
             ->groupBy('orders.user_id')
             ->selectRaw("orders.user_id, SUM(LEAST({$verifiedOnOrder}, ".DeliveredMoney::valueSql().')) AS amount');
     }

@@ -106,7 +106,7 @@ export function orderListColumns(translate: TranslateFn, { overdue = false }: { 
             render: (row) => (
                 <>
                     {money(row.total)}
-                    {row.status === 'partly_delivered' && <small className="cell-sub">{translate('office_orders', 'delivered_part', { amount: money(row.delivered_value) })}</small>}
+                    {(row.status === 'partly_delivered' || (Number(row.delivered_value) > 0 && ['partially_dispatched', 'dispatched'].includes(String(row.status)))) && <small className="cell-sub">{translate('office_orders', 'delivered_part', { amount: money(row.delivered_value) })}</small>}
                     <span className="orders-status-on-phone">
                         <small className="cell-sub">{translate('office_orders', 'col_items')} {orderItemsText(row, translate)}</small>
                         <OrderStatusCell row={row} />

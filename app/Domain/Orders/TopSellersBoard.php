@@ -205,8 +205,7 @@ final class TopSellersBoard
     {
         [$branchCondition, $branchBindings] = $this->branchCondition($branchScope);
         [$start, $end] = $range !== null ? [$range['from'], $range['until']] : CommissionQualification::period($month);
-        $statuses = DeliveredMoney::Statuses;
-        $statusPlaceholders = implode(', ', array_fill(0, count($statuses), '?'));
+        $counted = DeliveredMoney::countedSql();
         $deliveredValue = DeliveredMoney::valueSql();
         $userPlace = PlaceTree::partnerPlaceIdSql('users');
 
@@ -214,7 +213,7 @@ final class TopSellersBoard
             WITH RECURSIVE totals AS (
                 SELECT orders.user_id, SUM({$deliveredValue}) AS amount
                 FROM orders
-                WHERE orders.status IN ({$statusPlaceholders})
+                WHERE {$counted}
                   AND orders.created_at >= ?
                   AND orders.created_at < ?
                 GROUP BY orders.user_id
@@ -255,7 +254,6 @@ final class TopSellersBoard
             SQL;
 
         return DB::select($sql, [
-            ...$statuses,
             $start->utc(),
             $end->utc(),
             ...$branchBindings,

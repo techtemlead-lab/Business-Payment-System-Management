@@ -1,11 +1,15 @@
 import React from 'react';
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { Download } from 'lucide-react';
 import Shell from '../components/Shell';
+import { actionAllowed } from '../components/action-permissions';
 import { Badge, Pagination, Row, Table, dateTime, money } from '../components/UI';
 import { useT } from '../shared/i18n/t';
 
 type Translate = (key: string, replace?: Record<string, string | number>) => string;
+
+/** Reading the bank check is open to view-only owners; working on it is not. */
+const useCanWorkOnStatements = (): boolean => actionAllowed('/commands/operations/accounting/statements', usePage<any>().props.staffActions as never, 'post');
 
 const columnLetter = (index: number) => index < 26 ? String.fromCharCode(65 + index) : `A${String.fromCharCode(65 + index - 26)}`;
 function ColumnMapping({ statement, t }: { statement: Row; t: Translate }) {
@@ -46,6 +50,9 @@ function ColumnMapping({ statement, t }: { statement: Row; t: Translate }) {
 
 function LineDecision({ line, t }: { line: Row; t: Translate }) {
     const form = useForm({ reason: '' });
+    if (!useCanWorkOnStatements()) {
+        return null;
+    }
     return <div className="action-form">
         <input aria-label={t('reason_placeholder')} placeholder={t('reason_placeholder')} maxLength={1000} required={line.flags.length > 0} value={form.data.reason} onChange={event => form.setData('reason', event.target.value)} />
         {Object.keys(form.errors).length > 0 && <p role="alert" className="error">{Object.values(form.errors).join(' ')}</p>}
@@ -80,8 +87,9 @@ function ImportLines({ statement, t }: { statement: Row; t: Translate }) {
 
 function StatementCheck({ channels, history, statement, t }: Row & { t: Translate }) {
     const upload = useForm<{ channel: string; source_reference: string; file: File | null }>({ channel: channels[0], source_reference: '', file: null });
+    const canWork = useCanWorkOnStatements();
     return <>
-        <section className="panel">
+        {canWork && <section className="panel">
             <h2>{t('import_title')}</h2>
             <p className="muted">{t('import_hint')}</p>
             <form className="action-form" onSubmit={event => {
@@ -97,8 +105,8 @@ function StatementCheck({ channels, history, statement, t }: Row & { t: Translat
                 {Object.keys(upload.errors).length > 0 && <p role="alert" className="error">{Object.values(upload.errors).join(' ')}</p>}
                 <button className="button dark" disabled={upload.processing}>{t('import_upload')}</button>
             </form>
-        </section>
-        {statement?.status === 'awaiting_mapping' && <ColumnMapping statement={statement} t={t} />}
+        </section>}
+        {canWork && statement?.status === 'awaiting_mapping' && <ColumnMapping statement={statement} t={t} />}
         {statement?.status === 'ready' && <ImportLines statement={statement} t={t} />}
         <section className="panel">
             <h2>{t('import_history')}</h2>

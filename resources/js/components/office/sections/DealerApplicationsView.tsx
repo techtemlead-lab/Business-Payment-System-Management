@@ -10,9 +10,9 @@ export default function DealerApplicationsView({ table }: { table: StaffSectionT
     const translate = useT();
     const { auth, staffActions } = usePage<any>().props;
     const capabilities: string[] = auth.capabilities;
-    const [openedId, setOpenedId] = useState<number | null>(null);
+    const [openedId, setOpenedId] = useState<string | null>(null);
     const [dialog, setDialog] = useState<StaffAction | null>(null);
-    const opened = table.page.data.find((row) => row.id === openedId) ?? null;
+    const opened = table.page.data.find((row) => String(row.id) === openedId) ?? null;
     const applicant = (row: Row): Row => {
         const stored = readStored(row.data);
 
@@ -48,7 +48,7 @@ export default function DealerApplicationsView({ table }: { table: StaffSectionT
                 totalCount={table.page.total}
                 rows={table.page.data}
                 empty={translate('office_staff', 'applications_empty')}
-                onRowClick={(row: Row) => setOpenedId(Number(row.id))}
+                onRowClick={(row: Row) => setOpenedId(String(row.id))}
                 rowClassName={() => 'is-link'}
                 columns={[
                     { key: 'created_at', title: translate('office_staff', 'col_date'), render: (row: Row) => date(String(row.created_at)) },

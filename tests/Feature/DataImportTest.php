@@ -91,6 +91,34 @@ class DataImportTest extends TestCase
         $this->assertDatabaseHas('stock_movements', ['kind' => 'opening_import', 'quantity' => 8, 'actor_id' => $admin->id]);
     }
 
+    public function test_imported_stock_is_on_a_branch_at_once(): void
+    {
+        Storage::fake('local');
+        $admin = User::factory()->staff()->create();
+        $id = app(OpeningBalanceImport::class)->preview($admin, 'products',
+            $this->workbook('products', [['OLD-201', 'Branch product', 'Wellness', 'pack', '200', '100', '120', '60', '40', '10']]), 'Approved product register');
+        app(OpeningBalanceImport::class)->apply($admin, $id, 'Checked prices and opening inventory');
+
+        $productId = (int) DB::table('products')->where('sku', 'OLD-201')->value('id');
+        $headOffice = (int) DB::table('company_branches')->where('is_head_office', true)->value('id');
+        $this->assertDatabaseHas('branch_product_stocks', ['product_id' => $productId, 'branch_id' => $headOffice, 'quantity' => 40]);
+        $this->assertDatabaseHas('stock_movements', ['product_id' => $productId, 'branch_id' => $headOffice, 'kind' => 'opening_import']);
+    }
+
+    public function test_product_import_refuses_prices_the_product_form_refuses(): void
+    {
+        Storage::fake('local');
+        $admin = User::factory()->staff()->create();
+        foreach ([
+            'sub-dealer above 80% of MRP' => ['OLD-301', 'Too dear', 'Wellness', 'pack', '200', '100', '170', '60', '1', '1'],
+            'dealer above 80% of MRP' => ['OLD-302', 'Too dear', 'Wellness', 'pack', '200', '170', '180', '60', '1', '1'],
+            'dealer below the owner limit' => ['OLD-303', 'Too cheap', 'Wellness', 'pack', '200', '50', '120', '40', '1', '1'],
+        ] as $case => $row) {
+            $id = app(OpeningBalanceImport::class)->preview($admin, 'products', $this->workbook('products', [$row]), 'Approved product register');
+            $this->assertDatabaseHas('data_import_batches', ['id' => $id, 'status' => 'invalid']);
+        }
+    }
+
     public function test_opening_entries_require_independent_approval_and_reconcile_without_new_earnings(): void
     {
         Storage::fake('local');

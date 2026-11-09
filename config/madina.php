@@ -94,8 +94,8 @@ return [
     'web_push_hosts' => ['fcm.googleapis.com', 'android.googleapis.com', 'push.services.mozilla.com', 'notify.windows.com', 'push.apple.com'],
     'roles' => [
         'super_admin' => ['pricing', 'cost_read', 'accounts', 'catalog', 'inventory', 'orders', 'order_review', 'finance', 'content', 'reports', 'audit', 'identity_write', 'staff_admin', 'field_sales', 'sr_orders', 'sr_onboarding', 'payroll', 'partner_chat', 'prescriber_verify', 'support_desk'],
-        'md' => ['orders', 'finance', 'reports', 'audit'],
-        'chairman' => ['orders', 'finance', 'reports', 'audit'],
+        'md' => ['orders', 'finance', 'reports', 'audit', 'payroll'],
+        'chairman' => ['orders', 'finance', 'reports', 'audit', 'payroll'],
         'sr' => ['field_sales', 'sr_orders', 'sr_onboarding'],
         'account_manager' => ['accounts', 'orders', 'order_review'],
         'inventory' => ['inventory', 'orders'],

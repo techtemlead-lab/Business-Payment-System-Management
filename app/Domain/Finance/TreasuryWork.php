@@ -73,7 +73,7 @@ final class TreasuryWork
             $tiles[] = $this->tile('bank', '/operations/accounting', 0);
             $tiles[] = $this->tile('opening', '/operations/financial-readiness', 0);
         }
-        if ($viewer->owner() || $viewer->allows('payroll')) {
+        if ($viewer->allows('payroll')) {
             $tiles[] = $this->tile('payroll', '/operations/payroll', 0);
         }
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Head, Link, useForm, usePage, usePoll } from '@inertiajs/react';
+import { backgroundRefreshHeaders } from '../shared/backgroundRefresh';
 import Shell from '../components/Shell';
 import { Row, Table, Badge, money, number, date, label, ActionForm, DateInput, FormErrors } from '../components/UI';
 import { actionAllowed } from '../components/action-permissions';
@@ -127,7 +128,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
         await copyLink();
     };
     const inFlight = ['submitted', 'held', 'approved', 'partially_dispatched', 'dispatched'].includes(order.status);
-    const { stop } = usePoll(5000, { only: ['order', 'claims', 'shipments', 'events', 'outstanding', 'paymentPrompt'] }, { autoStart: inFlight });
+    const { stop } = usePoll(5000, { only: ['order', 'claims', 'shipments', 'events', 'outstanding', 'paymentPrompt'], headers: backgroundRefreshHeaders }, { autoStart: inFlight });
     useEffect(() => {
         if (!inFlight) {
             stop();

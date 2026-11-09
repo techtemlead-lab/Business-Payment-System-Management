@@ -161,12 +161,15 @@ export default function FieldSales({ tables, partners, partnerSearch = '', produ
                     action={openDialog.action}
                     onClose={() => setDialog(null)}
                     before={openDialog.key === 'order' || openDialog.key === 'application' ? (
+                        <>
+                        {openDialog.key === 'application' && <p className="set-line">{translate('portal', 'ops_application_directory_notice')}</p>}
                         <form className="filter-bar" role="search" onSubmit={(event) => { event.preventDefault(); findPartners(); }}>
                             <div className="search-input">
                                 <input type="search" aria-label={translate('portal', 'ops_find_partner')} placeholder={translate('office_staff', 'find_partner')} value={partnerWords} onChange={(event) => setPartnerWords(event.target.value)} />
                             </div>
                             <button className="button small">{translate('portal', 'ops_search_partners')}</button>
                         </form>
+                        </>
                     ) : undefined}
                 />
             )}

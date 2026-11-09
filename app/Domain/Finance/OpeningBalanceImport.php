@@ -4,11 +4,13 @@ namespace App\Domain\Finance;
 
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Geography\PlaceGeographyResolver;
+use App\Domain\Inventory\BranchOperations;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
 use App\Domain\Security\SelfApproval;
 use App\Jobs\ApplyDataImport;
 use App\Models\AreaDealerAssignment;
+use App\Models\CompanyBranch;
 use App\Models\DealerRank;
 use App\Models\PlaceCode;
 use App\Models\Product;
@@ -29,6 +31,7 @@ final class OpeningBalanceImport
         private CommissionWallet $wallets,
         private ImportWorkbook $workbooks,
         private PlaceGeographyResolver $geography,
+        private BranchOperations $branches,
     ) {}
 
     public function authorize(User $actor, string $type, string $action): void
@@ -322,7 +325,11 @@ final class OpeningBalanceImport
     {
         $product = Product::create([...$data, 'active' => false]);
         if ((int) $data['stock'] > 0) {
-            DB::table('stock_movements')->insert(['product_id' => $product->id, 'quantity' => $data['stock'], 'kind' => 'opening_import',
+            $headOffice = CompanyBranch::query()->orderByRaw('COALESCE(is_head_office, false) DESC')->orderBy('id')->first();
+            if ($headOffice !== null) {
+                $this->branches->ensureBranchStock($headOffice, $product);
+            }
+            DB::table('stock_movements')->insert(['product_id' => $product->id, 'branch_id' => $headOffice?->id, 'quantity' => $data['stock'], 'kind' => 'opening_import',
                 'reference' => $batchId.'.'.$product->id, 'reason' => __('portal.stock_reason_opening_import'), 'actor_id' => $actor->id, 'created_at' => now(), 'updated_at' => now()]);
         }
     }

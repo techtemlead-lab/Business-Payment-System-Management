@@ -88,6 +88,7 @@ return [
     'line_status_returned' => 'Taken back',
 
     'posting_waiting' => 'Commission is shared out once this is delivered',
+    'posting_waiting_rest' => 'The delivered goods are counted. Commission is shared out once the rest arrives.',
     'posting_part_delivered' => 'Shared on the delivered part',
     'posting_no_commission' => 'No commission given',
     'posting_taken_back' => 'Taken back from partners: :amount',

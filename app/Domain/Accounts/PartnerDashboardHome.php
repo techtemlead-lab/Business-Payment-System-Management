@@ -318,7 +318,7 @@ final class PartnerDashboardHome
     private function purchaseTotal($query): int
     {
         $total = (clone $query)
-            ->whereIn('status', DeliveredMoney::Statuses)
+            ->whereRaw(DeliveredMoney::countedSql())
             ->sum(DB::raw(DeliveredMoney::valueSql()));
 
         return Money::cents((string) $total);

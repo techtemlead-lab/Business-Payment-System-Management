@@ -889,6 +889,7 @@ class CommandController extends Controller
      */
     public function latestNotices(Request $r): JsonResponse
     {
+        $r->session()->reflash();
         $userId = $r->user()->id;
         $notices = DB::table('account_notices')
             ->where('user_id', $userId)

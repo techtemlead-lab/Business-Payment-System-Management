@@ -61,7 +61,7 @@ class SimpleSidebarTest extends TestCase
     public function test_staff_without_finance_cannot_reach_the_payout_desk_through_the_old_address(): void
     {
         $inventory = User::factory()->staff('inventory')->create();
-        $this->actingAs($inventory)->onPortal('manage')->get('/withdrawals')->assertRedirect('/payouts-hub');
+        $this->actingAs($inventory)->onPortal('manage')->get('/withdrawals')->assertRedirect('/');
         $this->actingAs($inventory)->onPortal('manage')->get('/payouts-hub')->assertForbidden();
     }
 
