@@ -59,7 +59,7 @@ class AdversarialMilestone2OpenApiAndModelsTest extends TestCase
         $this->assertNotEmpty($info['title'] ?? null);
         $this->assertNotEmpty($info['version'] ?? null);
         $this->assertNotEmpty($info['description'] ?? null);
-        $this->assertNotEmpty($info['contact']['email'] ?? null);
+        $this->assertNotEmpty($info['contact']['url'] ?? null);
 
         // 3. Components & Schemas
         $this->assertArrayHasKey('components', $spec);
