@@ -69,9 +69,10 @@ final class ContentSection implements WorkspaceSection
     {
         return [
             'pages' => DB::table('content_pages')
-                ->whereIn('slug', ['home', 'about', 'contact', 'notice', 'circular-training', 'circular-price', 'circular-meeting', 'partnership', 'services', 'quality', 'faq', 'privacy', 'terms', 'products', 'dealers'])
+                ->whereIn('slug', SiteCustomization::PageTextSlugs)
                 ->orderBy('slug')
                 ->get(),
+            'page_slugs' => SiteCustomization::PageTextSlugs,
         ];
     }
 
@@ -96,6 +97,13 @@ final class ContentSection implements WorkspaceSection
             'md_message_title' => __('site.md_message_title', [], 'bn'),
             'md_message_company' => __('site.md_message_company', [], 'bn'),
             'md_message_body' => __('site.md_message_body', [], 'bn'),
+            'faq_items' => array_map(
+                static fn (int $rowNumber): array => [
+                    'question' => __('site.faq_item'.$rowNumber.'_question', [], 'bn'),
+                    'answer' => __('site.faq_item'.$rowNumber.'_answer', [], 'bn'),
+                ],
+                range(1, count(SiteCustomization::defaults()['faq_items'])),
+            ),
         ];
         $enabled = SiteCustomization::enabledPagesMap();
         $props = [...$props, ...ProductVideo::managementData()];

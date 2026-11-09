@@ -112,14 +112,8 @@
                     @if($secondPhone = \App\Support\SiteCustomization::secondPhone())
                     <br><a href="{{ \App\Support\SiteCustomization::phoneLink($secondPhone) }}" class="ref-contact-link is-phone">{{ $secondPhone }}</a>
                     @endif
-                    @php
-                        $phoneHoursCustom = filled($siteCustomization['contact_phone_hours'] ?? null) ? $siteCustomization['contact_phone_hours'] : null;
-                        $phoneHours = $phoneHoursCustom !== null
-                            ? $chrome('contact_phone_hours', $phoneHoursCustom)
-                            : (app()->getLocale() === 'bn' ? (string) __('site.contact_phone_hours') : null);
-                    @endphp
-                    @if(filled($phoneHours))
-                    <br><small class="ref-contact-hours">{{ $phoneHours }}</small>
+                    @if(filled($siteCustomization['contact_phone_hours'] ?? null))
+                    <br><small class="ref-contact-hours">{{ $chrome('contact_phone_hours', $siteCustomization['contact_phone_hours']) }}</small>
                     @endif
                 </p>
             </div>

@@ -173,6 +173,7 @@ export interface CustomizationData {
     video_gallery_enabled?: string;
     video_gallery_title?: string;
     video_gallery_subtitle?: string;
+    video_gallery_items?: VideoGalleryItem[];
     testimonials_section_enabled?: string;
     testimonials_title?: string;
     testimonials_subtitle?: string;
@@ -273,7 +274,7 @@ export interface CustomizationData {
 
     faq_hero_title?: string;
     faq_hero_lead?: string;
-    faq_items?: { question?: string; answer?: string }[];
+    faq_items?: { question?: string; answer?: string; question_bn?: string; answer_bn?: string }[];
 
     privacy_hero_title?: string;
     privacy_hero_lead?: string;
@@ -454,7 +455,16 @@ export interface CustomizationData {
     md_message_image?: string;
 }
 
+export type VideoGalleryItem = {
+    title?: string;
+    title_bn?: string;
+    subtitle?: string;
+    subtitle_bn?: string;
+    video_url?: string;
+};
+
 export type MdMessageBanglaCopy = {
+    faq_items?: { question?: string; answer?: string }[];
     md_message_heading?: string;
     md_message_name?: string;
     md_message_title?: string;

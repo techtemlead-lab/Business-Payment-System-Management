@@ -92,16 +92,16 @@ class OpenApiTest extends TestCase
     }
 
     /**
-     * The contact is the company's own website, plus the email the owner saved, never an invented mailbox.
+     * The contact is the company's own website and the email the website shows, never an invented mailbox.
      */
-    public function test_openapi_contact_only_shows_the_email_the_owner_saved(): void
+    public function test_openapi_contact_shows_the_same_email_as_the_website(): void
     {
         SiteCustomization::forgetCache();
 
-        $withoutEmail = $this->get('/api/v1/openapi.json');
-        $this->assertStringNotContainsString('madinanhac', (string) $withoutEmail->getContent());
-        $this->assertArrayNotHasKey('email', $withoutEmail->json('info.contact'));
-        $this->assertStringEndsWith('/contact', (string) $withoutEmail->json('info.contact.url'));
+        $withDefaultEmail = $this->get('/api/v1/openapi.json');
+        $this->assertStringNotContainsString('madinanhac', (string) $withDefaultEmail->getContent());
+        $this->assertSame('madinanaturalhealthcare@gmail.com', $withDefaultEmail->json('info.contact.email'));
+        $this->assertStringEndsWith('/contact', (string) $withDefaultEmail->json('info.contact.url'));
 
         SiteCustomization::save(['contact_email' => 'office@example.test']);
 

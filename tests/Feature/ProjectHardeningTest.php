@@ -165,7 +165,7 @@ class ProjectHardeningTest extends TestCase
         $this->get('/partnership')->assertOk()->assertSee('Become an authorized Madina partner.', false);
     }
 
-    public function test_content_workspace_hides_frontend_customization_and_publishes_legal_pages(): void
+    public function test_content_workspace_hides_frontend_customization_and_publishes_page_text(): void
     {
         $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
         DB::table('content_pages')->insert([
@@ -183,15 +183,15 @@ class ProjectHardeningTest extends TestCase
         $this->assertFalse($pageSlugs->contains('frontend_customization'));
 
         $this->actingAs($admin)->onPortal('sadmin')->post('/commands/content', [
-            'slug' => 'privacy',
-            'title' => 'Published Privacy Policy',
-            'body' => 'Staff-edited privacy body for public display.',
+            'slug' => 'contact',
+            'title' => 'Published Contact Page',
+            'body' => 'Staff-edited contact body for public display.',
             'published' => true,
         ])->assertRedirect()->assertSessionHas('success');
 
-        $this->get('/privacy')
+        $this->get('/contact')
             ->assertOk()
-            ->assertSee('Published Privacy Policy', false)
-            ->assertSee('Staff-edited privacy body for public display.', false);
+            ->assertSee('Published Contact Page', false)
+            ->assertSee('Staff-edited contact body for public display.', false);
     }
 }

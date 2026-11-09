@@ -165,4 +165,8 @@ return [
     'admin_edit' => 'ঠিক করুন',
     'admin_delete' => 'মুছুন',
     'admin_delete_confirm' => 'মুছে ফেলবেন? এটি আর ফেরত আনা যাবে না।',
+    'admin_article_languages_hint' => 'বাংলা, ইংরেজি বা দুই ভাষাতেই লিখতে পারেন। একটি ভাষা লিখলে সব পাঠক সেটিই দেখবেন।',
+    'admin_article_needs_one_language' => 'অন্তত একটি ভাষায় শিরোনাম ও লেখা দিন।',
+    'admin_article_needs_title' => 'এই ভাষায় শিরোনামও লিখুন।',
+    'admin_article_needs_body' => 'এই ভাষায় লেখাটিও লিখুন।',
 ];

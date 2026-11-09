@@ -44,13 +44,13 @@ class OtherCompanyDetailsRemovedTest extends TestCase
         $this->assertSame('01730532967', $defaults['footer_phone']);
     }
 
-    public function test_the_footer_has_no_email_until_the_owner_adds_one(): void
+    public function test_the_footer_shows_the_company_email_until_the_owner_changes_it(): void
     {
-        $this->get('/')->assertOk()->assertDontSee('ref-footer-contact-link is-email', false);
+        $this->get('/')->assertOk()->assertSee('madinanaturalhealthcare@gmail.com');
 
         SiteCustomization::save(['footer_email' => 'office@example.test']);
 
-        $this->get('/')->assertOk()->assertSee('office@example.test');
+        $this->get('/')->assertOk()->assertSee('office@example.test')->assertDontSee('madinanaturalhealthcare@gmail.com');
     }
 
     public function test_saved_copies_of_the_other_companys_details_are_cleaned(): void

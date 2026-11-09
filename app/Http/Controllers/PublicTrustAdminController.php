@@ -13,12 +13,16 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Lets website staff edit the public trust pages, upload quality documents and write health articles.
  */
 class PublicTrustAdminController extends Controller
 {
+    /** @var list<string> */
+    private const ArticleWords = ['title', 'body', 'title_bn', 'body_bn'];
+
     public function saveText(Request $request): RedirectResponse
     {
         abort_unless($request->user()->allows('content'), 403);
@@ -97,8 +101,7 @@ class PublicTrustAdminController extends Controller
 
         $data = $this->validateArticle($request);
         $article = HealthArticle::query()->create([
-            'title' => $data['title'],
-            'body' => $data['body'],
+            ...Arr::only($data, self::ArticleWords),
             'image_url' => isset($data['image']) ? $this->storeArticleImage($data['image']) : null,
             'published_at' => $data['published'] ? now() : null,
             'created_by' => $request->user()->id,
@@ -114,8 +117,7 @@ class PublicTrustAdminController extends Controller
 
         $data = $this->validateArticle($request);
         $article->update([
-            'title' => $data['title'],
-            'body' => $data['body'],
+            ...Arr::only($data, self::ArticleWords),
             'image_url' => isset($data['image']) ? $this->storeArticleImage($data['image']) : $article->image_url,
             'published_at' => $data['published'] ? ($article->published_at ?? now()) : null,
         ]);
@@ -135,15 +137,43 @@ class PublicTrustAdminController extends Controller
         return back()->with('success', __('public_trust.admin_deleted'));
     }
 
-    /** @return array{title: string, body: string, published: bool, image?: UploadedFile} */
+    /**
+     * An article is written in Bangla, in English or in both. A language that is
+     * started has to have both its title and its text.
+     *
+     * @return array{title: ?string, body: ?string, title_bn: ?string, body_bn: ?string, published: bool, image?: UploadedFile}
+     */
     private function validateArticle(Request $request): array
     {
-        return $request->validate([
-            'title' => 'required|string|max:200',
-            'body' => 'required|string|max:20000',
+        $data = $request->validate([
+            'title' => 'nullable|string|max:200',
+            'body' => 'nullable|string|max:20000',
+            'title_bn' => 'nullable|string|max:200',
+            'body_bn' => 'nullable|string|max:20000',
             'published' => 'required|boolean',
             'image' => 'nullable|file|image|mimes:jpg,jpeg,png,webp|max:2048|dimensions:max_width=4096,max_height=4096',
         ]);
+
+        foreach (self::ArticleWords as $field) {
+            $data[$field] ??= null;
+        }
+
+        $errors = [];
+        foreach (['title' => 'body', 'title_bn' => 'body_bn'] as $title => $body) {
+            if (filled($data[$title]) && blank($data[$body])) {
+                $errors[$body] = __('public_trust.admin_article_needs_body');
+            } elseif (filled($data[$body]) && blank($data[$title])) {
+                $errors[$title] = __('public_trust.admin_article_needs_title');
+            }
+        }
+        if (array_filter(Arr::only($data, self::ArticleWords), filled(...)) === []) {
+            $errors['title_bn'] = __('public_trust.admin_article_needs_one_language');
+        }
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
+
+        return $data;
     }
 
     /**

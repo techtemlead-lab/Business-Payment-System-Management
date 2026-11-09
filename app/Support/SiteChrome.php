@@ -29,6 +29,19 @@ final class SiteChrome
         return self::text($key, $custom);
     }
 
+    /** Words kept in two boxes: the visitor's own language when filled, otherwise whichever one is. */
+    public static function eitherLanguage(?string $english, ?string $bangla): string
+    {
+        $english = trim((string) $english);
+        $bangla = trim((string) $bangla);
+
+        if (app()->getLocale() === 'bn') {
+            return $bangla !== '' ? $bangla : $english;
+        }
+
+        return $english !== '' ? $english : $bangla;
+    }
+
     /** True when the text has Arabic letters, so the page can mark it right-to-left. */
     public static function isArabic(string $text): bool
     {

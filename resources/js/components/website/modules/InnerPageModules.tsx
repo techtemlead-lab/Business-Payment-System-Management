@@ -91,7 +91,7 @@ export function ContactModule(props: WebsiteSectionProps) {
                     <Field label={translate('portal', 'sce_f_contact_page_heading')} fieldKey="contact_title" value={form.data.customization.contact_title} placeholder={defaults.contact_title} onChange={updateField} />
                     <Field label={translate('portal', 'sce_f_contact_intro')} fieldKey="contact_company_desc" value={form.data.customization.contact_company_desc} placeholder={defaults.contact_company_desc} onChange={updateField} multiline rows={3} span2 />
                     <Field label={translate('portal', 'sce_f_hotline_title')} fieldKey="contact_phone_title" value={form.data.customization.contact_phone_title} placeholder={defaults.contact_phone_title} onChange={updateField} />
-                    <Field label={translate('portal', 'sce_f_hotline_hours')} fieldKey="contact_phone_hours" value={form.data.customization.contact_phone_hours} placeholder={defaults.contact_phone_hours} onChange={updateField} />
+                    <Field label={translate('portal', 'sce_f_hotline_hours')} fieldKey="contact_phone_hours" value={form.data.customization.contact_phone_hours} onChange={updateField} />
                     <Field label={translate('portal', 'sce_f_email_title')} fieldKey="contact_email_title" value={form.data.customization.contact_email_title} placeholder={defaults.contact_email_title} onChange={updateField} />
                     <Field label={translate('portal', 'sce_f_topic1_title')} fieldKey="contact_topic1_title" value={form.data.customization.contact_topic1_title} placeholder={defaults.contact_topic1_title} onChange={updateField} />
                     <Field label={translate('portal', 'sce_f_topic1_desc')} fieldKey="contact_topic1_desc" value={form.data.customization.contact_topic1_desc} placeholder={defaults.contact_topic1_desc} onChange={updateField} />
@@ -277,8 +277,29 @@ export function PrescribersModule({ form, defaults, updateField }: WebsiteSectio
     );
 }
 
-export function FaqModule({ form, defaults, updateField }: WebsiteSectionProps) {
+const FAQ_BOXES = [
+    { box: 'question_bn', english: 'question', label: 'sce_question', labelInLanguage: 'sce_question_in_language', language: 'sce_language_bangla' },
+    { box: 'question', english: 'question', label: 'sce_question', labelInLanguage: 'sce_question_in_language', language: 'sce_language_english' },
+    { box: 'answer_bn', english: 'answer', label: 'sce_answer', labelInLanguage: 'sce_answer_in_language', language: 'sce_language_bangla' },
+    { box: 'answer', english: 'answer', label: 'sce_answer', labelInLanguage: 'sce_answer_in_language', language: 'sce_language_english' },
+] as const;
+
+export function FaqModule({ form, defaults, bnCopy, updateField }: WebsiteSectionProps) {
     const translate = useT();
+    const faqRows = form.data.customization.faq_items || [];
+    const updateFaqRow = (index: number, box: (typeof FAQ_BOXES)[number]['box'], value: string) => form.setData('customization', {
+        ...form.data.customization,
+        faq_items: faqRows.map((row, at) => (at === index ? { ...row, [box]: value } : row)),
+    });
+    /** A Bangla box on a built-in row the owner has not reworded shows its built-in Bangla as the hint. */
+    const faqHint = (index: number, box: (typeof FAQ_BOXES)[number], label: string): string => {
+        const builtIn = defaults.faq_items?.[index]?.[box.english];
+        if (box.box === box.english) {
+            return builtIn || label;
+        }
+        const untouched = builtIn !== undefined && faqRows[index]?.[box.english] === builtIn;
+        return (untouched ? bnCopy.faq_items?.[index]?.[box.english] : undefined) || label;
+    };
     return (
         <>
         <WebsiteGroup title={translate('portal', 'sce_faq_page_heading')}>
@@ -287,7 +308,8 @@ export function FaqModule({ form, defaults, updateField }: WebsiteSectionProps) 
                                 <Field label={translate('portal', 'sce_f_faq_hero_lead')} fieldKey="faq_hero_lead" value={form.data.customization.faq_hero_lead} placeholder={defaults.faq_hero_lead} onChange={updateField} multiline rows={2} />
                             </div>
                             <div className="ed-stack ed-mb-lg">
-                                {(form.data.customization.faq_items || []).map((item, idx) => (
+                                <p className="ed-desc is-sm is-flush">{translate('portal', 'sce_faq_languages_hint')}</p>
+                                {faqRows.map((item, idx) => (
                                     <div key={`faq-${idx}`} className="ed-card is-soft">
                                         <div className="ed-head is-sm">
                                             <strong className="ed-strong">{translate('portal', 'sce_question_number', { number: String(idx + 1) })}</strong>
@@ -303,32 +325,22 @@ export function FaqModule({ form, defaults, updateField }: WebsiteSectionProps) 
                                                 <Trash2 size={14} /> {translate('portal', 'sce_remove')}
                                             </button>
                                         </div>
-                                        <div className="form-grid ed-grid is-single">
-                                            <label className="ed-label is-inline">
-                                                {translate('portal', 'sce_question')}
-                                                <input
-                                                    value={item.question || ''}
-                                                    placeholder={defaults.faq_items?.[idx]?.question || translate('portal', 'sce_question')}
-                                                    onChange={(e) => {
-                                                        const next = [...(form.data.customization.faq_items || [])];
-                                                        next[idx] = { ...next[idx], question: e.target.value };
-                                                        form.setData('customization', { ...form.data.customization, faq_items: next });
-                                                    }}
-                                                />
-                                            </label>
-                                            <label className="ed-label is-inline">
-                                                {translate('portal', 'sce_answer')}
-                                                <textarea
-                                                    rows={3}
-                                                    value={item.answer || ''}
-                                                    placeholder={defaults.faq_items?.[idx]?.answer || translate('portal', 'sce_answer')}
-                                                    onChange={(e) => {
-                                                        const next = [...(form.data.customization.faq_items || [])];
-                                                        next[idx] = { ...next[idx], answer: e.target.value };
-                                                        form.setData('customization', { ...form.data.customization, faq_items: next });
-                                                    }}
-                                                />
-                                            </label>
+                                        <div className="form-grid ed-grid is-md">
+                                            {FAQ_BOXES.map((box) => {
+                                                const boxLabel = translate('portal', box.labelInLanguage, { language: translate('portal', box.language) });
+                                                const Control = box.english === 'question' ? 'input' : 'textarea';
+                                                return (
+                                                    <label key={box.box} className="ed-label is-inline">
+                                                        {boxLabel}
+                                                        <Control
+                                                            {...(Control === 'textarea' ? { rows: 3 } : {})}
+                                                            value={item[box.box] || ''}
+                                                            placeholder={faqHint(idx, box, translate('portal', box.label))}
+                                                            onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => updateFaqRow(idx, box.box, e.target.value)}
+                                                        />
+                                                    </label>
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 ))}
@@ -337,7 +349,7 @@ export function FaqModule({ form, defaults, updateField }: WebsiteSectionProps) 
                                     className="button small dark"
                                     onClick={() => form.setData('customization', {
                                         ...form.data.customization,
-                                        faq_items: [...(form.data.customization.faq_items || []), { question: '', answer: '' }],
+                                        faq_items: [...faqRows, { question: '', answer: '', question_bn: '', answer_bn: '' }],
                                     })}
                                 >
                                     <Plus size={14} /> {translate('portal', 'sce_add_faq_item')}

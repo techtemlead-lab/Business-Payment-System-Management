@@ -165,4 +165,8 @@ return [
     'admin_edit' => 'Edit',
     'admin_delete' => 'Delete',
     'admin_delete_confirm' => 'Delete this? It cannot be brought back.',
+    'admin_article_languages_hint' => 'Write in Bangla, in English or in both. If you fill only one language, it shows to every visitor.',
+    'admin_article_needs_one_language' => 'Write the title and the text in at least one language.',
+    'admin_article_needs_title' => 'Write the title in this language too.',
+    'admin_article_needs_body' => 'Write the article text in this language too.',
 ];

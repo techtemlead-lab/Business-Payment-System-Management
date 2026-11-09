@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Domain\Catalog\CatalogTaxonomy;
 use App\Domain\Content\PublicTrustContent;
 use App\Domain\Content\TestimonialLabels;
+use App\Domain\Content\TrainingVideoLink;
 use App\Models\Product;
 use App\Models\ProductConcern;
 use App\Models\SiteFeedback;
@@ -27,16 +28,32 @@ class SiteCustomization
     private const RetiredDefaults = ['auth_login_title' => ['Account Login']];
 
     /**
-     * Links the owner can clear: a blank box hides the link on the website,
-     * while every other blank box goes back to its built-in value.
+     * Boxes the owner can clear: a blank box hides the link or the office hours
+     * on the website, while every other blank box goes back to its built-in value.
      *
      * @var list<string>
      */
-    private const LinksHiddenWhenBlank = [
+    private const HiddenWhenBlank = [
         'social_whatsapp', 'footer_directory_link', 'featured_products_view_all_link', 'services_cta_link', 'partnership_cta_link', 'quality_cta_link',
         'footer_link_about_url', 'footer_link_contact_url', 'footer_link_dealer_apply_url', 'footer_link_services_url', 'footer_link_quality_url',
         'footer_link_partnership_url', 'footer_link_faq_url', 'footer_link_privacy_url', 'footer_link_terms_url',
+        'contact_phone_hours',
     ];
+
+    /**
+     * Pages the "Page text" screen can edit, because the site shows their text.
+     * Every other page gets its words from the website editor.
+     *
+     * @var list<string>
+     */
+    public const PageTextSlugs = ['contact', 'notice', 'circular-training', 'circular-price', 'circular-meeting', 'partnership', 'quality'];
+
+    /**
+     * Lists the owner can add rows to and remove rows from.
+     *
+     * @var list<string>
+     */
+    private const ListsOfAnyLength = ['shortcuts', 'campaign_cards', 'featured_products_items', 'faq_items', 'video_gallery_items'];
 
     /**
      * Facts the website shows in more than one place. The key on the left has no
@@ -274,10 +291,7 @@ class SiteCustomization
             'video_gallery_enabled' => '0',
             'video_gallery_title' => $copy('video_gallery_title'),
             'video_gallery_subtitle' => $copy('video_gallery_subtitle'),
-            'video_gallery_items' => [
-                ['title' => 'Herbal Care Guidance', 'subtitle' => 'Application guidance for Madina botanical care', 'video_url' => '', 'video_embed_url' => '', 'thumbnail' => '/branding/madina-top-skincare.jpg'],
-                ['title' => 'Natural Formulation Story', 'subtitle' => 'How Madina prepares botanical formulations', 'video_url' => '', 'video_embed_url' => '', 'thumbnail' => '/branding/madina-side-banner-1.jpg'],
-            ],
+            'video_gallery_items' => [],
 
             // Homepage About
             'about_headline' => 'Natural Food, Medicine & Wellness Product Shop in Bangladesh',
@@ -330,9 +344,9 @@ class SiteCustomization
             'contact_company_desc' => '{company} (Owner: Md Anowar Hossain). Head office: {address}. Hotline: {phones}.',
             'contact_phone_title' => 'Customer Care & Hotline',
             'contact_phone' => '+8801730532966',
-            'contact_phone_hours' => '',
+            'contact_phone_hours' => $copy('contact_phone_hours'),
             'contact_email_title' => 'Official Email',
-            'contact_email' => '',
+            'contact_email' => 'madinanaturalhealthcare@gmail.com',
             'contact_topic1_title' => 'Dealer Enquiries',
             'contact_topic1_desc' => $copy('contact_topic1_desc'),
             'contact_topic2_title' => 'Products & Support',
@@ -779,7 +793,7 @@ class SiteCustomization
 
     /**
      * @param  array<mixed>  $items
-     * @return list<array{question: string, answer: string}>
+     * @return list<array<string, string>>
      */
     private static function normalizedFaqItems(array $items): array
     {
@@ -788,10 +802,17 @@ class SiteCustomization
             if (! is_array($item)) {
                 continue;
             }
-            $normalized[] = [
+            $row = [
                 'question' => trim((string) ($item['question'] ?? '')),
                 'answer' => trim((string) ($item['answer'] ?? '')),
             ];
+            // A row the owner gave Bangla words to is their own, even when its English is factory text.
+            foreach (['question_bn', 'answer_bn'] as $box) {
+                if (trim((string) ($item[$box] ?? '')) !== '') {
+                    $row[$box] = trim((string) $item[$box]);
+                }
+            }
+            $normalized[] = $row;
         }
 
         return $normalized;
@@ -814,8 +835,9 @@ class SiteCustomization
     }
 
     /**
-     * FAQ items for the public /faq page. Uses Website CMS entries when staff
-     * customized them; Bangla falls back to translated defaults until then.
+     * FAQ items for the public /faq page, each in the visitor's language. A row
+     * filled in one language only shows that language to everyone. Built-in rows
+     * the owner has not reworded keep their built-in Bangla.
      *
      * @param  array<string, mixed>|null  $customization
      * @return list<array{question: string, answer: string}>
@@ -825,50 +847,39 @@ class SiteCustomization
         $all = $customization ?? self::all();
         $defaults = self::defaults()['faq_items'];
         $items = $all['faq_items'] ?? [];
-        if (! is_array($items) || $items === []) {
-            $items = $defaults;
-        }
-
-        $normalized = [];
-        foreach ($items as $item) {
+        $rows = array_values(array_filter(is_array($items) ? $items : [], static function (mixed $item): bool {
             if (! is_array($item)) {
-                continue;
+                return false;
             }
-            $question = trim((string) ($item['question'] ?? ''));
-            $answer = trim((string) ($item['answer'] ?? ''));
-            if ($question === '' && $answer === '') {
-                continue;
+            foreach (['question', 'answer', 'question_bn', 'answer_bn'] as $box) {
+                if (trim((string) ($item[$box] ?? '')) !== '') {
+                    return true;
+                }
             }
-            $normalized[] = ['question' => $question, 'answer' => $answer];
-        }
-        if ($normalized === []) {
-            $normalized = array_map(
-                static fn (array $item): array => [
-                    'question' => trim((string) ($item['question'] ?? '')),
-                    'answer' => trim((string) ($item['answer'] ?? '')),
-                ],
-                $defaults,
-            );
+
+            return false;
+        }));
+        if ($rows === []) {
+            $rows = $defaults;
         }
 
-        if (app()->getLocale() !== 'bn') {
-            return $normalized;
-        }
-
-        // Each untouched built-in row keeps its Bangla words; rows the owner typed stay as typed.
         $builtInRows = [];
         foreach (array_values($defaults) as $index => $default) {
             $builtInRows[trim((string) ($default['question'] ?? ''))."\0".trim((string) ($default['answer'] ?? ''))] = $index + 1;
         }
 
-        return array_map(static function (array $item) use ($builtInRows): array {
-            $rowNumber = $builtInRows[$item['question']."\0".$item['answer']] ?? null;
+        return array_map(static function (array $row) use ($builtInRows): array {
+            $question = trim((string) ($row['question'] ?? ''));
+            $answer = trim((string) ($row['answer'] ?? ''));
+            $rowNumber = $builtInRows[$question."\0".$answer] ?? null;
+            $questionBn = trim((string) ($row['question_bn'] ?? ''));
+            $answerBn = trim((string) ($row['answer_bn'] ?? ''));
 
-            return $rowNumber === null ? $item : [
-                'question' => (string) __('site.faq_item'.$rowNumber.'_question'),
-                'answer' => (string) __('site.faq_item'.$rowNumber.'_answer'),
+            return [
+                'question' => SiteChrome::eitherLanguage($question, $questionBn !== '' || $rowNumber === null ? $questionBn : (string) trans('site.faq_item'.$rowNumber.'_question', [], 'bn')),
+                'answer' => SiteChrome::eitherLanguage($answer, $answerBn !== '' || $rowNumber === null ? $answerBn : (string) trans('site.faq_item'.$rowNumber.'_answer', [], 'bn')),
             ];
-        }, $normalized);
+        }, $rows);
     }
 
     /** True for a setting that only repeats another one, so it is never stored. */
@@ -1061,8 +1072,7 @@ class SiteCustomization
                 if (isset($stored[$key])) {
                     if (is_array($defaultVal)) {
                         if (is_array($stored[$key])) {
-                            // Dynamic arrays: shortcuts, campaign_cards & featured_products_items support variable length!
-                            if ($key === 'shortcuts' || $key === 'campaign_cards' || $key === 'featured_products_items' || $key === 'faq_items') {
+                            if (in_array($key, self::ListsOfAnyLength, true)) {
                                 $items = [];
                                 foreach ($stored[$key] as $subIdx => $subStored) {
                                     if (! is_array($subStored)) {
@@ -1106,7 +1116,7 @@ class SiteCustomization
                     } else {
                         // String scalar value
                         $trimmed = trim((string) $stored[$key]);
-                        if ($trimmed !== '' || $key === 'footer_phone' || in_array($key, self::LinksHiddenWhenBlank, true)) {
+                        if ($trimmed !== '' || $key === 'footer_phone' || in_array($key, self::HiddenWhenBlank, true)) {
                             $merged[$key] = $trimmed;
                         }
                     }
@@ -1164,6 +1174,7 @@ class SiteCustomization
         $payload = self::withRepeatsMovedToTheirFact($payload);
         self::validateShape(self::defaults(), $payload);
         SafeSiteUrl::clean($payload, true);
+        $payload = self::withVideoRowsChecked($payload);
         DB::transaction(function () use ($payload): void {
             DB::select('SELECT pg_advisory_xact_lock(?)', [81416002]);
             $payload = array_replace(self::all(), $payload);
@@ -1187,7 +1198,7 @@ class SiteCustomization
                     $subItems = [];
                     $inputArray = $payload[$key] ?? null;
                     if (is_array($inputArray)) {
-                        if ($key === 'shortcuts' || $key === 'campaign_cards' || $key === 'featured_products_items' || $key === 'faq_items') {
+                        if (in_array($key, self::ListsOfAnyLength, true)) {
                             // Dynamic list: preserve all items sent by client
                             $template = $defaultVal[0] ?? [];
                             foreach ($inputArray as $subInput) {
@@ -1276,6 +1287,41 @@ class SiteCustomization
             );
         }, 3);
         self::forgetCache();
+    }
+
+    /**
+     * Turns each video row's pasted link into the player the site can show, using the
+     * same check as the training videos. An empty row is dropped; a row with words and
+     * no link, or a link the site cannot play, is refused at that row's box.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private static function withVideoRowsChecked(array $payload): array
+    {
+        if (! is_array($payload['video_gallery_items'] ?? null)) {
+            return $payload;
+        }
+
+        $rows = [];
+        foreach ($payload['video_gallery_items'] as $index => $row) {
+            $row = array_map(static fn (mixed $value): string => is_scalar($value) ? trim((string) $value) : '', $row);
+            $link = $row['video_url'] ?? '';
+            $words = implode('', array_intersect_key($row, array_flip(['title', 'title_bn', 'subtitle', 'subtitle_bn'])));
+            if ($link === '' && $words === '') {
+                continue;
+            }
+
+            $embedUrl = TrainingVideoLink::embedUrl($link);
+            if ($embedUrl === null && preg_match('~^/(?!/)[^\s?#]+\.(mp4|webm)$~iD', $link) !== 1) {
+                throw ValidationException::withMessages(['customization.video_gallery_items.'.$index.'.video_url' => __($link === '' ? 'portal.sce_video_link_missing' : 'portal.sce_video_link_refused')]);
+            }
+
+            $rows[] = [...$row, 'video_url' => $link, 'video_embed_url' => $embedUrl ?? ''];
+        }
+        $payload['video_gallery_items'] = $rows;
+
+        return $payload;
     }
 
     /** @param array<string, mixed> $defaults @param array<string, mixed> $payload */
@@ -1771,17 +1817,20 @@ class SiteCustomization
             ->all();
     }
 
+    /**
+     * The videos for the home page, each in the visitor's language.
+     * Empty when the owner has switched the section off or added no video.
+     *
+     * @return list<array{title: string, subtitle: string, video_url: string, video_embed_url: string, thumbnail: string}>
+     */
     public static function getVideoGallery(): array
     {
         $all = self::all();
-        $enabled = filter_var($all['video_gallery_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN);
+        $enabled = filter_var($all['video_gallery_enabled'] ?? '0', FILTER_VALIDATE_BOOLEAN);
         if (! $enabled) {
             return [];
         }
-        $raw = $all['video_gallery_items'] ?? self::defaults()['video_gallery_items'];
-        if (! is_array($raw) || empty($raw)) {
-            $raw = self::defaults()['video_gallery_items'];
-        }
+        $raw = is_array($all['video_gallery_items'] ?? null) ? $all['video_gallery_items'] : [];
 
         $items = [];
         foreach ($raw as $v) {
@@ -1795,8 +1844,8 @@ class SiteCustomization
                 continue;
             }
             $items[] = [
-                'title' => trim((string) ($v['title'] ?? '')),
-                'subtitle' => trim((string) ($v['subtitle'] ?? '')),
+                'title' => SiteChrome::eitherLanguage((string) ($v['title'] ?? ''), (string) ($v['title_bn'] ?? '')),
+                'subtitle' => SiteChrome::eitherLanguage((string) ($v['subtitle'] ?? ''), (string) ($v['subtitle_bn'] ?? '')),
                 'video_url' => $videoUrl,
                 'video_embed_url' => $embedUrl,
                 'thumbnail' => trim((string) ($v['thumbnail'] ?? '')),
