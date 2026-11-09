@@ -48,6 +48,8 @@ export type WithdrawInfo = { can: boolean; kyc_block: boolean; minimum: string }
 
 export type Certificates = { years: number[]; rank: boolean };
 
+export type ReserveReceipt = { id: number; number: string };
+
 /** A decimal string from the server that is below zero. */
 export function isBelowZero(amount: unknown): boolean {
     return Number(amount) < 0;

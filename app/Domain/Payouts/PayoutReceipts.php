@@ -141,6 +141,25 @@ final class PayoutReceipts
             ->withQueryString();
     }
 
+    /**
+     * The partner's receipts for reserve payouts paid by hand, newest first. This money never
+     * passes through their wallet, so these receipts have no line on the statement to hang from.
+     *
+     * @return list<array{id: int, number: string}>
+     */
+    public function reservePayoutsFor(User $partner): array
+    {
+        return DB::table('payout_receipts')
+            ->where('user_id', $partner->id)
+            ->whereNotNull('reserve_disbursement_id')
+            ->orderByDesc('paid_at')
+            ->orderByDesc('id')
+            ->limit(20)
+            ->get(['id', 'number'])
+            ->map(fn (object $row): array => ['id' => (int) $row->id, 'number' => (string) $row->number])
+            ->all();
+    }
+
     /** The receipt for one withdrawal, if it has been paid. */
     public function forWithdrawal(string $withdrawalId): ?object
     {

@@ -14,6 +14,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
 /**
@@ -112,6 +113,38 @@ class ReservePayoutReceiptsTest extends TestCase
         $this->assertEquals(DB::table('journal_lines')->sum('debit'), DB::table('journal_lines')->sum('credit'));
     }
 
+    public function test_a_partner_opens_their_reserve_payout_receipt_from_my_money(): void
+    {
+        $dealer = User::factory()->dealer()->create(['status' => 'active']);
+        [$preparer, $id] = $this->approvedReservePayout($dealer->id);
+
+        $this->actingAs($preparer)->postJson('/api/v1/operations/reserves/'.$id.'/pay', [
+            'method' => 'cash', 'received_by' => 'Rahim Uddin', 'paid_at' => now()->subMinute()->toIso8601String(), 'reason' => 'Paid in cash at the office',
+        ])->assertOk();
+        $receipt = DB::table('payout_receipts')->where('reserve_disbursement_id', $id)->sole();
+
+        $this->actingAs($dealer)->onPortal('dealer')->get('/my-money')->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('reserve_receipts', [['id' => (int) $receipt->id, 'number' => (string) $receipt->number]]));
+        $this->actingAs($dealer)->onPortal('dealer')->get('/payment-receipts/'.$receipt->id.'/print')->assertOk()
+            ->assertSee($receipt->number)->assertSee(__('portal.prc_partner_copy'));
+
+        $otherDealer = User::factory()->dealer()->create(['status' => 'active']);
+        $this->actingAs($otherDealer)->onPortal('dealer')->get('/my-money')->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('reserve_receipts', []));
+    }
+
+    public function test_a_receipt_for_an_outside_payee_is_not_on_any_partners_my_money(): void
+    {
+        [$preparer, $id] = $this->approvedReservePayout();
+        $this->actingAs($preparer)->postJson('/api/v1/operations/reserves/'.$id.'/pay', [
+            'method' => 'cash', 'received_by' => 'Supplier manager Hasan', 'paid_at' => now()->subMinute()->toIso8601String(), 'reason' => 'Paid in cash at the office',
+        ])->assertOk();
+
+        $dealer = User::factory()->dealer()->create(['status' => 'active']);
+        $this->actingAs($dealer)->onPortal('dealer')->get('/my-money')->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('reserve_receipts', []));
+    }
+
     public function test_the_user_manual_explains_the_payment_receipts_page(): void
     {
         $dealer = User::factory()->dealer()->create(['status' => 'active']);
@@ -124,12 +157,12 @@ class ReservePayoutReceiptsTest extends TestCase
     }
 
     /** @return array{0: User, 1: int} */
-    private function approvedReservePayout(): array
+    private function approvedReservePayout(?int $partnerId = null): array
     {
         $preparer = User::factory()->create(['role' => 'finance']);
         $reviewer = User::factory()->create(['role' => 'finance']);
         $this->postedOrder(User::factory()->create());
-        $id = DB::table('reserve_disbursements')->insertGetId(['program' => 'marketing', 'payee_name' => 'Approved advertising supplier', 'amount' => '2.00',
+        $id = DB::table('reserve_disbursements')->insertGetId(['program' => 'marketing', 'user_id' => $partnerId, 'payee_name' => 'Approved advertising supplier', 'amount' => '2.00',
             'request_key' => (string) Str::uuid(), 'reason' => 'Approved marketing invoice', 'created_by' => $preparer->id, 'created_at' => now(), 'updated_at' => now()]);
         $this->actingAs($reviewer)->postJson('/api/v1/operations/reserves/'.$id.'/review', ['decision' => 'approved', 'reason' => 'Marketing invoice reviewed'])->assertOk();
 

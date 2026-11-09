@@ -45,6 +45,7 @@ return [
     'downloads' => 'Download',
     'full_report_pdf' => 'Full report (PDF)',
     'certificate_year' => 'Certificate year',
+    'receipt_number' => 'Receipt :number',
     'take_money' => 'Take to bank or mobile',
     'order_with_money' => 'Order with this money',
     'below_minimum' => 'You can withdraw once you have at least :amount',
