@@ -4,6 +4,7 @@ namespace App\Domain\Accounts;
 
 use App\Models\User;
 use App\Support\JoinQr;
+use App\Support\PdfFonts;
 use App\Support\PortalHost;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -83,9 +84,7 @@ final class PartnerJoinPoster
                 'margin_right' => 8,
                 'margin_top' => 8,
                 'margin_bottom' => 8,
-                'default_font' => 'freeserif',
-                'autoScriptToLang' => true,
-                'autoLangToFont' => true,
+                ...PdfFonts::options(),
             ]);
             $pdf->SetTitle($t('pdf_join_poster_doc_title', ['code' => $refer]));
             $pdf->WriteHTML($html);

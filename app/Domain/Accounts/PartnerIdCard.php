@@ -4,6 +4,7 @@ namespace App\Domain\Accounts;
 
 use App\Models\User;
 use App\Support\JoinQr;
+use App\Support\PdfFonts;
 use App\Support\PortalHost;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -99,9 +100,7 @@ final class PartnerIdCard
                 'margin_right' => 4,
                 'margin_top' => 4,
                 'margin_bottom' => 4,
-                'default_font' => 'freeserif',
-                'autoScriptToLang' => true,
-                'autoLangToFont' => true,
+                ...PdfFonts::options(),
             ]);
             $pdf->SetTitle($t('pdf_id_card_doc_title', ['code' => $code]));
             $pdf->WriteHTML($html);
