@@ -137,4 +137,29 @@ class PartnerIdCardTest extends TestCase
 
         $this->assertSame(1, preg_match_all('#/Type /Page\b(?!s)#', $pdf));
     }
+
+    #[DataProvider('cardLanguages')]
+    public function test_the_id_card_is_standard_card_size_and_a_very_long_name_stays_on_one_page(string $locale): void
+    {
+        $dealer = User::factory()->create([
+            'role' => 'sub_dealer',
+            'status' => 'active',
+            'locale' => $locale,
+            'name' => substr(str_repeat('Very Long Partner Name ', 7), 0, 150),
+            'dealer_code' => 'MNHC-100001-000123',
+            'refer_code' => 'MNHC-100001-CUSTOM-REFER-CODE-1',
+            'phone' => '01700000112',
+            'division' => 'Mymensingh',
+            'district' => 'Chapainawabganj',
+            'profile' => ['shop_name' => substr(str_repeat('Very Long Pharmacy Name ', 7), 0, 150), 'upazila' => substr(str_repeat('Upazila Name ', 12), 0, 150)],
+        ]);
+
+        $response = $this->actingAs($dealer)->onPortal('subdealer')->get('/id-card/pdf')->assertOk();
+        $pdf = (string) file_get_contents($response->baseResponse->getFile()->getPathname());
+
+        $this->assertSame(1, preg_match_all('#/Type /Page\b(?!s)#', $pdf));
+        $this->assertSame(1, preg_match('#/MediaBox \[0(?:\.000)? 0(?:\.000)? ([0-9.]+) ([0-9.]+)\]#', $pdf, $box));
+        $this->assertEqualsWithDelta(85.6, (float) $box[1] * 25.4 / 72, 0.1, 'CR80 width in millimetres.');
+        $this->assertEqualsWithDelta(54.0, (float) $box[2] * 25.4 / 72, 0.1, 'CR80 height in millimetres.');
+    }
 }
