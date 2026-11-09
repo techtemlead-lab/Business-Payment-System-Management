@@ -48,10 +48,10 @@ class BranchPerformanceTotalsTest extends TestCase
         $second = $this->performance('/branch-performance?period=month&all_branches=1&page=2');
 
         $this->assertSame(30, $first['totals']['order_count']);
-        $this->assertSame('3000.00', $first['totals']['order_value']);
-        $this->assertSame('2500.00', $first['totals']['income']);
-        $this->assertSame('500.00', $first['totals']['outstanding']);
-        $this->assertSame('1200.00', $first['totals']['estimated_profit']);
+        $this->assertSame('2000.00', $first['totals']['order_value'], 'Only the 20 delivered orders count in money.');
+        $this->assertSame('2000.00', $first['totals']['income']);
+        $this->assertSame('500.00', $first['totals']['outstanding'], 'What is still unpaid stays, delivered or not.');
+        $this->assertSame('800.00', $first['totals']['estimated_profit']);
         $byCode = collect($first['branches'])->keyBy('code');
         $this->assertSame(20, $byCode['DHK-01']['order_count']);
         $this->assertSame('0.00', $byCode['DHK-01']['outstanding']);
@@ -72,10 +72,10 @@ class BranchPerformanceTotalsTest extends TestCase
 
     public function test_more_than_two_hundred_orders_add_up_on_screen_and_in_the_excel_file(): void
     {
-        // 150 at 100.00 paid in full from Dhaka and 80 at 50.00 unpaid from Khulna, sold for 100.00 and 50.00 with a 60.00 cost.
+        // 150 delivered at 100.00 paid in full from Dhaka and 80 approved at 50.00 unpaid from Khulna, with a 60.00 cost. Only the delivered ones count in money.
         $this->orders($this->dhaka, 150, 'delivered', '100.00', '100.00');
         $this->orders($this->khulna, 80, 'approved', '50.00', '0.00');
-        $expected = ['orders' => 230, 'value' => 150 * 100 + 80 * 50, 'paid' => 150 * 100, 'awaiting' => 80 * 50, 'profit' => 150 * (100 - 60) + 80 * (50 - 60)];
+        $expected = ['orders' => 230, 'value' => 150 * 100, 'paid' => 150 * 100, 'awaiting' => 80 * 50, 'profit' => 150 * (100 - 60)];
 
         $screen = $this->performance('/branch-performance?period=month&all_branches=1');
         $this->assertSame($expected['orders'], $screen['totals']['order_count']);
@@ -105,7 +105,8 @@ class BranchPerformanceTotalsTest extends TestCase
         $rows = $this->rows($response);
         $this->assertCount(32, $rows, 'Header, 30 orders and the totals row. The rejected order is left out, as on screen.');
         $this->assertSame(__('portal.branch_perf_outstanding'), $rows[0][7]);
-        $this->assertSame([3000.0, 2500.0, 500.0, 1200.0], array_map('floatval', array_slice($rows[31], 5, 4)));
+        $this->assertSame([2000.0, 2000.0, 500.0, 800.0], array_map('floatval', array_slice($rows[31], 5, 4)), 'The file adds up to what the screen shows.');
+        $this->assertSame(__('portal.report_col_ordered'), $rows[0][9]);
 
         $branchRows = $this->rows($this->actingAs($finance)->onPortal('manage')->get('/exports/branch-performance?period=month&branch_id='.$this->dhaka->id)->assertOk());
         $this->assertCount(22, $branchRows);
