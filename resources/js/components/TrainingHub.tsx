@@ -534,6 +534,7 @@ function StaffEditor({ data }: { data: StaffData }) {
             <div className="training-hub" data-tour="training-editor">
                 <Table
                     rows={items}
+                    phoneColumns={['title', 'published']}
                     onRowClick={(row: TrainingItem) => setOpenedId(row.id)}
                     empty={translate('portal', 'training_empty_title')}
                     emptyBody=""

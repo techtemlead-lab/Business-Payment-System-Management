@@ -383,6 +383,7 @@ function StaffCalendar({ data }: { data: StaffData }) {
             <div className="events-hub" data-tour="events-editor">
                 <Table
                     rows={data.events}
+                    phoneColumns={['date', 'title']}
                     onRowClick={(row: PartnerEventRow) => setOpenedId(row.id)}
                     empty={translate('portal', 'events_empty_title')}
                     emptyBody=""

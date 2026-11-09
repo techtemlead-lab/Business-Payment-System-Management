@@ -149,6 +149,7 @@ function OfficeContests({ data }: { data: ContestsData }) {
         >
             <Table
                 rows={data.contests}
+                phoneColumns={['title', 'status']}
                 onRowClick={(row: Contest) => setOpenedId(row.id)}
                 empty={translate('dealer_tools', 'contest_empty_title')}
                 emptyBody=""

@@ -99,6 +99,7 @@ function OfficeKit({ data }: { data: SalesKitData }) {
         >
             <Table
                 rows={items}
+                phoneColumns={['title', 'kind']}
                 onRowClick={(row: SalesKitItem) => setOpenedId(row.id)}
                 empty={translate('dealer_tools', 'kit_empty_title')}
                 emptyBody=""

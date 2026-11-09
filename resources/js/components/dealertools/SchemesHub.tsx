@@ -147,6 +147,7 @@ export default function SchemesHub({ data }: { data: SchemesData }) {
         >
             <Table
                 rows={data.schemes}
+                phoneColumns={['title', 'starts_on']}
                 onRowClick={(row: Scheme) => setOpenedId(row.id)}
                 empty={translate('dealer_tools', 'scheme_empty_title')}
                 emptyBody=""

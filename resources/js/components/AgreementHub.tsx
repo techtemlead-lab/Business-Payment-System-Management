@@ -275,6 +275,7 @@ function AcceptanceList({ partners, latestVersion }: { partners: Row; latestVers
             </form>
             <Table
                 searchable={false}
+                phoneColumns={['name', 'accepted_version']}
                 rows={partners?.data ?? []}
                 columns={[
                     { key: 'name', title: translate('portal', 'col_name'), render: (row: Row) => <>{row.name}<small className="cell-sub">{row.dealer_code}</small></> },
