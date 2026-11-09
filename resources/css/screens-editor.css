@@ -371,3 +371,18 @@
   .app-shell .ws-area:first-child{grid-column:1/-1}
 }
 .app-shell .ws-dark-preview{background:#0c3b2a;border-radius:var(--ds-r-sm,6px);object-fit:contain;padding:6px}
+
+/* The trust pages: one closed row per page, opened to edit. */
+.app-shell .ow-list{display:flex;flex-direction:column;gap:var(--ds-s-2);min-width:0}
+.app-shell .ow-list-form{display:flex;flex-direction:column;gap:var(--ds-s-2)}
+.app-shell .ow-row{border:1px solid var(--ds-line);border-radius:var(--ds-r-md);background:var(--ds-surface);overflow:hidden}
+.app-shell .ow-row>summary{display:flex;align-items:center;gap:var(--ds-s-3);min-height:44px;padding:var(--ds-s-2) var(--ds-s-4);cursor:pointer;list-style:none;font-weight:600}
+.app-shell .ow-row>summary::-webkit-details-marker{display:none}
+.app-shell .ow-row>summary::before{content:"\203A";color:var(--ds-text-muted);transition:transform .15s ease}
+.app-shell .ow-row[open]>summary::before{transform:rotate(90deg)}
+.app-shell .ow-row[open]>summary{border-bottom:1px solid var(--ds-line-soft)}
+.app-shell .ow-row-title{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
+.app-shell .ow-row-body{display:flex;flex-direction:column;gap:var(--ds-s-3);padding:var(--ds-s-4)}
+.app-shell .ws-save-bar.is-end{justify-content:flex-end}
+.app-shell .ow-move{display:inline-flex;gap:2px}
+.ow-drawer-image{display:block;width:100%;border-radius:var(--ds-r-md);margin-bottom:var(--ds-s-4)}

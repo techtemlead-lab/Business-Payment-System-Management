@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
+use Tests\Support\PortalSource;
 use Tests\TestCase;
 
 /**
@@ -205,7 +206,7 @@ class DeliveredOnlyMoneyTest extends TestCase
 
     public function test_the_list_offers_a_rejected_tab_even_before_any_order_is_rejected(): void
     {
-        $portal = (string) file_get_contents(resource_path('js/pages/Portal.tsx'));
+        $portal = PortalSource::text();
 
         $this->assertMatchesRegularExpression("/const orderStatuses=\[[^\]]*'rejected'[^\]]*'cancelled'\]/", $portal);
     }

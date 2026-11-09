@@ -8,6 +8,7 @@ use App\Support\DashboardManagement;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\PortalSource;
 use Tests\TestCase;
 
 /**
@@ -170,6 +171,7 @@ class SignedInRoundWordingNavTest extends TestCase
         $portal = (string) file_get_contents(resource_path('js/components/WorkLogTable.tsx'));
         $this->assertStringContainsString("auditActionLabel(String(row.action ?? ''), translate)", $portal);
         $this->assertStringNotContainsString('{row.action}</small>', $portal);
+        $this->assertStringNotContainsString('{r.action}</small>', PortalSource::text());
 
         foreach (['event_purchase_order_received', 'event_shipment_received_back'] as $key) {
             $english = trans('portal.'.$key, [], 'en');

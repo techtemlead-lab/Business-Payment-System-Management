@@ -5,6 +5,10 @@ namespace App\Http\Portals\Shared\Sections;
 use App\Domain\Content\TestimonialLabels;
 use App\Models\SiteFeedback;
 use App\Models\User;
+use App\Support\MoneyTable;
+use App\Support\MoneyTableFilter;
+use App\Support\MoneyTableSpec;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -16,10 +20,16 @@ final class FeedbackSection implements WorkspaceSection
     /** Statuses the enquiry list can be filtered by. */
     public const EnquiryStatuses = ['new', 'contacted', 'closed'];
 
+    /** Statuses the feedback list can be filtered by. */
+    private const FeedbackStatuses = ['pending', 'approved', 'rejected'];
+
+    /** Waiting feedback first, then approved, then rejected. */
+    private const FeedbackQueueOrder = "CASE site_feedback.status WHEN 'pending' THEN 2 WHEN 'approved' THEN 1 ELSE 0 END";
+
     public function data(SectionContext $context, array $data): array
     {
         return match ($context->section) {
-            'feedback' => $this->feedback(),
+            'feedback' => $this->feedback($context->request),
             'share-feedback' => $this->ownFeedback($context->user),
             'enquiries' => $this->enquiries($context->request),
             default => [],
@@ -27,41 +37,44 @@ final class FeedbackSection implements WorkspaceSection
     }
 
     /**
-     * Public feedback for moderation, pending first, with counts by status.
+     * Public feedback for moderation: one searchable list, waiting feedback first.
      *
      * @return array<string, mixed>
      */
-    private function feedback(): array
+    private function feedback(Request $request): array
     {
-        $props = [];
-        $props['feedback_items'] = SiteFeedback::query()
-            ->with('product:id,name')
-            ->orderByRaw("CASE status WHEN 'pending' THEN 0 WHEN 'approved' THEN 1 ELSE 2 END")
-            ->orderByDesc('created_at')
-            ->limit(100)
-            ->get()
-            ->map(fn (SiteFeedback $row): array => [
-                'id' => $row->id,
-                'name' => $row->name,
-                'role' => TestimonialLabels::role($row->role, $row->source),
-                'location' => TestimonialLabels::location($row->location),
-                'rating' => $row->rating,
-                'message' => $row->message,
-                'source' => $row->source,
-                'product_name' => $row->product?->name,
-                'status' => $row->status,
-                'created_at' => optional($row->created_at)?->toIso8601String(),
-                'moderated_at' => optional($row->moderated_at)?->toIso8601String(),
-            ])
-            ->all();
-        $props['feedback_counts'] = [
-            'total' => (int) SiteFeedback::query()->count(),
-            'pending' => (int) SiteFeedback::query()->where('status', 'pending')->count(),
-            'approved' => (int) SiteFeedback::query()->where('status', 'approved')->count(),
-            'rejected' => (int) SiteFeedback::query()->where('status', 'rejected')->count(),
-        ];
+        $counts = $this->countsByStatus('site_feedback', self::FeedbackStatuses);
+        $query = DB::table('site_feedback')
+            ->leftJoin('products', 'products.id', '=', 'site_feedback.product_id')
+            ->select(['site_feedback.id', 'site_feedback.name', 'site_feedback.role', 'site_feedback.location', 'site_feedback.rating', 'site_feedback.message', 'site_feedback.source', 'site_feedback.status', 'site_feedback.created_at', 'site_feedback.moderated_at', 'products.name as product_name']);
+        $table = MoneyTable::make($request, $query, new MoneyTableSpec(
+            dateColumn: null,
+            search: ['site_feedback.name', 'site_feedback.location', 'site_feedback.message', 'products.name'],
+            filters: [new MoneyTableFilter('status', (string) __('portal.enquiry_status_label'), 'site_feedback.status', $this->statusOptions('feedback_', self::FeedbackStatuses, $counts))],
+            sorts: ['queue' => self::FeedbackQueueOrder, 'created_at' => 'site_feedback.created_at', 'name' => 'site_feedback.name', 'rating' => 'site_feedback.rating'],
+            defaultSort: 'queue',
+            tieBreaker: 'site_feedback.id',
+            defaultPeriod: null,
+        ));
+        $table['rows']->through(fn (object $row): array => [
+            'id' => (int) $row->id,
+            'name' => $row->name,
+            'role' => TestimonialLabels::role($row->role, $row->source),
+            'location' => TestimonialLabels::location($row->location),
+            'rating' => (int) $row->rating,
+            'message' => $row->message,
+            'source' => $row->source,
+            'product_name' => $row->product_name,
+            'status' => $row->status,
+            'created_at' => $this->isoDate($row->created_at),
+            'moderated_at' => $this->isoDate($row->moderated_at),
+        ]);
 
-        return $props;
+        return [
+            'feedback_table' => $table,
+            'feedback_items' => $table['rows']->items(),
+            'feedback_counts' => [...$counts, 'total' => array_sum($counts)],
+        ];
     }
 
     /**
@@ -89,37 +102,62 @@ final class FeedbackSection implements WorkspaceSection
     }
 
     /**
-     * Contact enquiries with counts by status.
+     * Contact enquiries: one searchable list, newest first.
      *
      * @return array<string, mixed>
      */
     private function enquiries(Request $request): array
     {
-        $props = [];
-        $search = trim($request->string('q')->toString());
-        $status = $request->string('status')->toString();
-        $props['enquiries'] = DB::table('enquiries')->select(['id', 'name', 'phone', 'topic', 'message', 'status', 'tracking_number', 'product_name', 'batch_number', 'created_at', 'updated_at'])
-            ->when($search !== '', function ($query) use ($search): void {
-                $term = '%'.addcslashes($search, '%_\\').'%';
-                $query->where(fn ($match) => $match->where('name', 'ilike', $term)
-                    ->orWhere('phone', 'ilike', $term)
-                    ->orWhere('topic', 'ilike', $term)
-                    ->orWhere('message', 'ilike', $term)
-                    ->orWhere('tracking_number', 'ilike', $term)
-                    ->orWhere('batch_number', 'ilike', $term));
-            })
-            ->when(in_array($status, self::EnquiryStatuses, true), fn ($query) => $query->where('status', $status))
-            ->orderByDesc('created_at')
-            ->orderByDesc('id')
-            ->paginate(20)
-            ->withQueryString();
-        $props['enquiry_counts'] = [
-            'total' => (int) DB::table('enquiries')->count(),
-            'new' => (int) DB::table('enquiries')->where('status', 'new')->count(),
-            'contacted' => (int) DB::table('enquiries')->where('status', 'contacted')->count(),
-            'closed' => (int) DB::table('enquiries')->where('status', 'closed')->count(),
-        ];
+        $counts = $this->countsByStatus('enquiries', self::EnquiryStatuses);
+        $query = DB::table('enquiries')->select(['id', 'name', 'phone', 'topic', 'message', 'status', 'tracking_number', 'product_name', 'batch_number', 'created_at', 'updated_at']);
+        $table = MoneyTable::make($request, $query, new MoneyTableSpec(
+            dateColumn: null,
+            search: ['name', 'phone', 'topic', 'message', 'tracking_number', 'batch_number'],
+            filters: [new MoneyTableFilter('status', (string) __('portal.enquiry_status_label'), 'status', $this->statusOptions('enquiry_', self::EnquiryStatuses, $counts))],
+            sorts: ['created_at' => 'created_at', 'name' => 'name', 'status' => 'status'],
+            defaultSort: 'created_at',
+            tieBreaker: 'id',
+            defaultPeriod: null,
+            perPage: 20,
+        ));
 
-        return $props;
+        return [
+            'enquiries_table' => $table,
+            'enquiries' => $table['rows'],
+            'enquiry_counts' => [...$counts, 'total' => array_sum($counts)],
+        ];
+    }
+
+    /**
+     * Filter choices for a status column, each with how many rows have it.
+     *
+     * @param  list<string>  $statuses
+     * @param  array<string, int>  $counts
+     * @return list<array{value: string, label: string, count: int}>
+     */
+    private function statusOptions(string $labelPrefix, array $statuses, array $counts): array
+    {
+        return array_map(
+            fn (string $status): array => ['value' => $status, 'label' => (string) __('portal.'.$labelPrefix.$status), 'count' => $counts[$status]],
+            $statuses,
+        );
+    }
+
+    /**
+     * How many rows have each status, in one read.
+     *
+     * @param  list<string>  $statuses
+     * @return array<string, int>
+     */
+    private function countsByStatus(string $table, array $statuses): array
+    {
+        $found = DB::table($table)->selectRaw('status, COUNT(*) AS rows_count')->groupBy('status')->pluck('rows_count', 'status');
+
+        return array_combine($statuses, array_map(fn (string $status): int => (int) ($found[$status] ?? 0), $statuses));
+    }
+
+    private function isoDate(?string $value): ?string
+    {
+        return $value === null ? null : CarbonImmutable::parse($value)->toIso8601String();
     }
 }
