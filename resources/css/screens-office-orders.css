@@ -1,1 +1,20 @@
 /* Orders and Deliveries pages (WP3). */
+
+/* A phone shows the status under the amount; the wide table has its own column for it. */
+.app-shell .orders-status-on-phone{display:none}
+
+@media (max-width:767px){
+  .app-shell .orders-table .mt-card-amount{max-width:56%;white-space:normal}
+  .app-shell .orders-table .mt-card-amount :is(.cell-sub,small){display:block;margin-top:2px;color:var(--ds-text-muted);font-size:var(--ds-fs-xs);font-weight:400}
+  .app-shell .orders-table .mt-card-amount .orders-status-on-phone{display:block;margin-top:4px;font-weight:400}
+}
+
+/* The side panel for one order or parcel. */
+.order-drawer{display:flex;flex-direction:column;gap:var(--ds-s-5)}
+.order-drawer .office-facts{margin:0}
+.order-drawer section{display:flex;flex-direction:column;gap:var(--ds-s-2)}
+.order-drawer h3{margin:0;font-size:var(--ds-fs-sm);font-weight:600;color:var(--ds-text)}
+.order-drawer-row{display:flex;justify-content:space-between;gap:var(--ds-s-4);font-size:var(--ds-fs-sm)}
+.order-drawer-row>div:last-child{flex:none;text-align:right}
+.order-drawer-row .cell-sub{display:block;margin-top:2px;color:var(--ds-text-muted);font-size:var(--ds-fs-xs);overflow-wrap:anywhere}
+.order-drawer-links{display:flex;flex-wrap:wrap;gap:var(--ds-s-2) var(--ds-s-4);font-size:var(--ds-fs-sm)}
