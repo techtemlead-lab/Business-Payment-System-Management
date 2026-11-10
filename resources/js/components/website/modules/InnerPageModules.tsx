@@ -222,6 +222,15 @@ export function PartnershipModule({ form, defaults, updateField }: WebsiteSectio
                                         <Field label={translate('portal', 'sce_benefit_description', { number: String(i) })} fieldKey={`partnership_benefit${i}_desc` as keyof CustomizationData} value={(form.data.customization as any)[`partnership_benefit${i}_desc`]} placeholder={(defaults as any)[`partnership_benefit${i}_desc`]} onChange={updateField} />
                                     </React.Fragment>
                                 ))}
+                                <Field label={translate('portal', 'sce_f_who_can_apply_heading')} fieldKey="partnership_eligible_title" value={form.data.customization.partnership_eligible_title} placeholder={defaults.partnership_eligible_title} onChange={updateField} span2 />
+                                <Field label={translate('portal', 'sce_f_who_can_apply_lead')} fieldKey="partnership_eligible_lead" value={form.data.customization.partnership_eligible_lead} placeholder={defaults.partnership_eligible_lead} onChange={updateField} multiline rows={2} span2 />
+                                {[1, 2, 3, 4].map((i) => (
+                                    <React.Fragment key={`pe-${i}`}>
+                                        <Field label={translate('portal', 'sce_eligible_title', { number: String(i) })} fieldKey={`partnership_eligible${i}_title` as keyof CustomizationData} value={(form.data.customization as any)[`partnership_eligible${i}_title`]} placeholder={(defaults as any)[`partnership_eligible${i}_title`]} onChange={updateField} />
+                                        <Field label={translate('portal', 'sce_eligible_description', { number: String(i) })} fieldKey={`partnership_eligible${i}_desc` as keyof CustomizationData} value={(form.data.customization as any)[`partnership_eligible${i}_desc`]} placeholder={(defaults as any)[`partnership_eligible${i}_desc`]} onChange={updateField} />
+                                    </React.Fragment>
+                                ))}
+                                <Field label={translate('portal', 'sce_f_who_can_apply_note')} fieldKey="partnership_eligible_note" value={form.data.customization.partnership_eligible_note} placeholder={defaults.partnership_eligible_note} onChange={updateField} multiline rows={2} span2 />
                                 <Field label={translate('portal', 'sce_f_steps_heading')} fieldKey="partnership_steps_title" value={form.data.customization.partnership_steps_title} placeholder={defaults.partnership_steps_title} onChange={updateField} span2 />
                                 {[1, 2, 3].map((i) => (
                                     <React.Fragment key={`ps-${i}`}>

@@ -229,6 +229,17 @@ export interface CustomizationData {
 
     partnership_hero_title?: string;
     partnership_hero_lead?: string;
+    partnership_eligible_title?: string;
+    partnership_eligible_lead?: string;
+    partnership_eligible1_title?: string;
+    partnership_eligible1_desc?: string;
+    partnership_eligible2_title?: string;
+    partnership_eligible2_desc?: string;
+    partnership_eligible3_title?: string;
+    partnership_eligible3_desc?: string;
+    partnership_eligible4_title?: string;
+    partnership_eligible4_desc?: string;
+    partnership_eligible_note?: string;
     partnership_why_title?: string;
     partnership_benefit1_title?: string;
     partnership_benefit1_desc?: string;

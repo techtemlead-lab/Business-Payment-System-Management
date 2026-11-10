@@ -87,7 +87,7 @@ class WebsiteAdminSimplifyTest extends TestCase
     private function numberedBoxes(): array
     {
         $boxes = [];
-        foreach ([['partnership_benefit', 4], ['partnership_step', 3], ['services_card', 3], ['quality_pillar', 3]] as [$prefix, $count]) {
+        foreach ([['partnership_benefit', 4], ['partnership_eligible', 4], ['partnership_step', 3], ['services_card', 3], ['quality_pillar', 3]] as [$prefix, $count]) {
             for ($number = 1; $number <= $count; $number++) {
                 $boxes[] = "{$prefix}{$number}_title";
                 $boxes[] = "{$prefix}{$number}_desc";

@@ -138,7 +138,12 @@ class SiteCustomizationTest extends TestCase
         foreach (['partnership', 'services', 'quality', 'faq', 'privacy', 'terms'] as $page) {
             $this->get('/'.$page)->assertOk();
         }
-        $this->get('/partnership')->assertSee('Become an Authorized Madina Partner');
+        $this->get('/partnership')->assertSee('Become an Authorized Madina Partner')
+            ->assertSee('Who can apply')
+            ->assertSee('Registered doctors')
+            ->assertSee('Pharmacy owners')
+            ->assertSee('Medical institutes')
+            ->assertSee('Related health practices');
         $this->get('/faq')->assertSee('Frequently Asked Questions');
 
         $this->actingAs($editor)->post('/commands/customization', [

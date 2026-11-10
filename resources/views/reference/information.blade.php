@@ -316,6 +316,20 @@
     </section>
     @endforeach
 </div>
+<section class="ref-eligible" aria-labelledby="who-can-apply">
+    <h2 id="who-can-apply" class="ref-section-heading">{{ $chrome('partnership_eligible_title', $siteCustomization['partnership_eligible_title'] ?? null) }}</h2>
+    <p class="ref-eligible-lead">{{ $chrome('partnership_eligible_lead', $siteCustomization['partnership_eligible_lead'] ?? null) }}</p>
+    <div class="ref-about-sections-grid is-four">
+        @foreach([1, 2, 3, 4] as $i)
+        <section class="ref-content-card">
+            <div class="ref-about-icon"><i class="fa-solid {{ ['fa-user-doctor', 'fa-prescription-bottle-medical', 'fa-hospital', 'fa-kit-medical'][$i - 1] }}" aria-hidden="true"></i></div>
+            <h2>{{ $chrome('partnership_eligible'.$i.'_title', $siteCustomization['partnership_eligible'.$i.'_title'] ?? null) }}</h2>
+            <p>{{ $chrome('partnership_eligible'.$i.'_desc', $siteCustomization['partnership_eligible'.$i.'_desc'] ?? null) }}</p>
+        </section>
+        @endforeach
+    </div>
+    <p class="ref-eligible-note">{{ $chrome('partnership_eligible_note', $siteCustomization['partnership_eligible_note'] ?? null) }}</p>
+</section>
 <section class="ref-content-card ref-steps-card">
     <h2>{{ $chrome('partnership_steps_title', $siteCustomization['partnership_steps_title'] ?? null) }}</h2>
     <ol class="ref-steps">

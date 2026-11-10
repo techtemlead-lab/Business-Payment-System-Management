@@ -3830,6 +3830,9 @@ html:not([data-theme="dark"]) .ref-inner-main :is(.ref-content-card p,.ref-page-
 .ref-about-sections-grid{gap:18px;margin-bottom:0}
 .ref-about-sections-grid.is-three{grid-template-columns:repeat(3,minmax(0,1fr))}
 .ref-about-sections-grid.is-four{grid-template-columns:repeat(4,minmax(0,1fr))}
+.ref-eligible{margin:8px 0 22px}
+.ref-eligible-lead,.ref-eligible-note{margin:0 0 16px;line-height:1.7}
+.ref-eligible-note{margin-top:14px;margin-bottom:0}
 .ref-about-story{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:18px;margin-bottom:18px}
 .ref-about-history{grid-row:span 2}
 .ref-about-goals .ref-about-objectives{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 40px}
