@@ -2,17 +2,35 @@
     $chrome = fn (string $key, ?string $custom = null): string => \App\Support\SiteChrome::text($key, $custom);
     $secondPhone = \App\Support\SiteCustomization::secondPhone();
     $companyEmail = trim((string) ($siteCustomization['contact_email'] ?? ''));
-    $mainPhone = (string) ($siteCustomization['contact_phone'] ?? '');
+    $mainPhone = \App\Support\SiteCustomization::internationalDisplay((string) ($siteCustomization['contact_phone'] ?? ''));
+    $secondPhone = $secondPhone !== null ? \App\Support\SiteCustomization::internationalDisplay($secondPhone) : null;
 @endphp
 <footer class="ref-footer"><div class="ref-container ref-footer-grid">
     <section class="ref-footer-support">
         <h2>{{ $chrome('footer_support', $siteCustomization['footer_support_heading'] ?? null) }}</h2>
         <div class="ref-footer-support-row">
             <div class="ref-footer-support-actions">
-                <a class="ref-support-box" href="{{ \App\Support\SiteCustomization::phoneLink($mainPhone) }}">
+                <div class="ref-support-box ref-support-contacts">
                     <i class="{{ $siteCustomization['footer_support_icon'] ?? 'fa-solid fa-phone' }}" aria-hidden="true"></i>
-                    <span><small>{{ $chrome('company_support', $siteCustomization['footer_support_subtitle'] ?? null) }}</small><b>{{ $mainPhone }}</b></span>
+                    <span>
+                        <small>{{ $chrome('company_support', $siteCustomization['footer_support_subtitle'] ?? null) }}</small>
+                        @if(trim($mainPhone) !== '')
+                        <a href="{{ \App\Support\SiteCustomization::phoneLink($mainPhone) }}"><b>{{ $mainPhone }}</b></a>
+                        @endif
+                        @if($secondPhone !== null)
+                        <a href="{{ \App\Support\SiteCustomization::phoneLink($secondPhone) }}"><b>{{ $secondPhone }}</b></a>
+                        @endif
+                    </span>
+                </div>
+                @if($companyEmail !== '')
+                <a class="ref-support-box ref-support-mail" href="mailto:{{ $companyEmail }}">
+                    <i class="fa-solid fa-envelope" aria-hidden="true"></i>
+                    <span>
+                        <small>{{ $chrome('contact_email_title', $siteCustomization['contact_email_title'] ?? null) }}</small>
+                        <span class="ref-support-mail-address">{!! str_replace('@', '@<wbr>', e($companyEmail)) !!}</span>
+                    </span>
                 </a>
+                @endif
                 @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_directory_link'] ?? '/dealers'))
                 <a class="ref-support-box" href="{{ $href }}">
                     <i class="{{ $siteCustomization['footer_directory_icon'] ?? 'fa-solid fa-location-dot' }}" aria-hidden="true"></i>
@@ -20,22 +38,6 @@
                 </a>
                 @endif
             </div>
-            @if($secondPhone !== null || $companyEmail !== '')
-            <div class="ref-footer-contact-info">
-                @if($secondPhone !== null)
-                <a class="ref-footer-contact-link is-hotline" href="{{ \App\Support\SiteCustomization::phoneLink($secondPhone) }}">
-                    <i class="fa-solid fa-headset" aria-hidden="true"></i>
-                    <span><b>{{ __('site.hotline') }}:</b> {{ $secondPhone }}</span>
-                </a>
-                @endif
-                @if($companyEmail !== '')
-                <a class="ref-footer-contact-link is-email" href="mailto:{{ $companyEmail }}">
-                    <i class="fa-solid fa-envelope" aria-hidden="true"></i>
-                    <span>{{ $companyEmail }}</span>
-                </a>
-                @endif
-            </div>
-            @endif
         </div>
     </section>
     <section>

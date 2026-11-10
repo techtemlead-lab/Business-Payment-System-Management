@@ -3011,6 +3011,34 @@ aside.ref-floating-tools > a.ref-chat:focus-visible::after {
     margin: 0;
 }
 
+.ref-support-contacts {
+    align-items: flex-start;
+}
+
+.ref-support-contacts > span {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 0;
+}
+
+.ref-support-contacts > span > a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.ref-support-mail {
+    align-items: flex-start;
+}
+
+.ref-support-mail-address {
+    display: block;
+    font-weight: 700;
+    line-height: 1.35;
+    font-size: var(--ref-fs-lead, 17px);
+}
+
 .ref-footer-contact-info {
     display: flex;
     flex-direction: column;
@@ -3114,6 +3142,10 @@ aside.ref-floating-tools > a.ref-chat:focus-visible::after {
 
     .ref-footer-support-actions .ref-support-box {
         max-width: 320px !important;
+    }
+
+    .ref-footer-support-actions .ref-support-mail {
+        max-width: 100% !important;
     }
 
     .ref-footer-contact-info {
@@ -3666,6 +3698,7 @@ html[data-theme="dark"] .ref-card-cta i{color:var(--sm-green-deep)}
 @media(max-width:767px){
   .ref-footer-support-row{display:block!important}
   .ref-footer-support-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px!important}
+  .ref-footer-support-actions .ref-support-mail{grid-column:1 / -1}
   .ref-support-box{padding:10px 8px!important;gap:6px!important}
   .ref-support-box>i{font-size:15px!important;padding-right:6px!important}
   .ref-support-box b{line-height:1.25}

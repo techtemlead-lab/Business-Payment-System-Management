@@ -109,7 +109,9 @@ class SiteSharedFactsTest extends TestCase
 
     public function test_the_second_phone_shows_in_both_places_and_can_be_removed(): void
     {
-        $this->get('/')->assertSee('ref-footer-contact-link is-hotline', false)->assertSee('01730532967');
+        $this->get('/')->assertOk()
+            ->assertDontSee('ref-footer-contact-link is-hotline', false)
+            ->assertSeeInOrder(['ref-support-contacts', '01730532967'], false);
         $this->get('/contact')->assertSee('01730532967');
 
         $this->saveAsEditor(['footer_phone' => '']);

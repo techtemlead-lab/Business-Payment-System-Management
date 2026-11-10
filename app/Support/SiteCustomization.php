@@ -958,6 +958,24 @@ class SiteCustomization
         return $dialable === '' ? '' : 'tel:'.$dialable;
     }
 
+    /**
+     * A Bangladeshi mobile shown with the +880 prefix.
+     * 01730532967 and +8801730532967 both display as +8801730532967.
+     */
+    public static function internationalDisplay(string $phone): string
+    {
+        $trimmed = trim($phone);
+        $digits = (string) preg_replace('/\D/', '', $trimmed);
+        if (preg_match('/^01\d{9}$/', $digits) === 1) {
+            return '+88'.$digits;
+        }
+        if (preg_match('/^8801\d{9}$/', $digits) === 1) {
+            return '+'.$digits;
+        }
+
+        return $trimmed;
+    }
+
     /** A chat link from what the owner typed: a full link, or just a phone number. */
     public static function whatsappUrl(string $value): string
     {
