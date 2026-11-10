@@ -136,6 +136,45 @@ categoryTabBtns.forEach(btn => {
 
 // Public previews provide information and dealer contact routes.
 const qvDialog = document.getElementById('refQuickViewDialog') as HTMLDialogElement | null;
+// A size button is a real link to that size's page; on a card it changes the card in place.
+document.addEventListener('click', event => {
+    const target = event.target;
+    if (!(target instanceof Element) || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const size = target.closest<HTMLAnchorElement>('.ref-product-card [data-size-button]');
+    const card = size?.closest<HTMLElement>('.ref-product-card');
+    if (!size || !card) return;
+    event.preventDefault();
+    const facts = size.dataset;
+    card.querySelectorAll<HTMLAnchorElement>('[data-size-button]').forEach(button => button.setAttribute('aria-current', button === size ? 'true' : 'false'));
+    Object.assign(card.dataset, {id: facts.id, name: facts.name, url: facts.url, image: facts.image, stockStatus: facts.stockStatus, mrp: `৳ ${facts.mrp}`});
+    const picture = card.querySelector<HTMLAnchorElement>('.ref-card-picture');
+    picture?.classList.toggle('is-stock', facts.imageIsStock === '1');
+    picture?.setAttribute('aria-label', facts.name ?? '');
+    const image = picture?.querySelector('img');
+    if (image) {
+        image.removeAttribute('width');
+        image.removeAttribute('height');
+        image.src = facts.image ?? '';
+        image.alt = facts.imageAlt ?? '';
+    }
+    const note = card.querySelector<HTMLElement>('[data-size-note]');
+    if (note) {
+        note.textContent = facts.imageNote ?? '';
+        note.hidden = facts.imageIsStock !== '1';
+    }
+    card.querySelectorAll<HTMLAnchorElement>('.ref-card-picture, .ref-card-title a, .ref-card-cta').forEach(link => { link.href = facts.url ?? link.href; });
+    const title = card.querySelector('.ref-card-title a');
+    if (title) title.textContent = facts.name ?? '';
+    const price = card.querySelector('.ref-card-price strong');
+    if (price) price.textContent = `৳ ${facts.mrp}`;
+    const stock = card.querySelector('.ref-card-stock');
+    if (stock) {
+        const inStock = facts.stockStatus !== 'out_of_stock';
+        stock.textContent = facts.stockLabel ?? '';
+        stock.classList.toggle('is-in', inStock);
+        stock.classList.toggle('is-out', !inStock);
+    }
+});
 document.querySelectorAll<HTMLButtonElement>('[data-quick-view]').forEach(button => {
     button.addEventListener('click', () => {
         const card = button.closest<HTMLElement>('.ref-product-card');

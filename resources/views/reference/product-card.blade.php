@@ -6,14 +6,20 @@
     $imageSrc = $hasCustomImage ? $item['image_path'] : $stockImage['url'];
     $stockStatus = $item['stock_status'] ?? 'out_of_stock';
     $inStock = $stockStatus !== 'out_of_stock';
-    $stockLabel = ! $inStock
+    $stockWords = fn (string $status): string => $status === 'out_of_stock'
         ? \App\Support\SiteChrome::text('out_of_stock', $siteCustomization['product_out_of_stock_label'] ?? null)
-        : ($stockStatus === 'low_stock'
+        : ($status === 'low_stock'
             ? __('site.low_stock')
             : \App\Support\SiteChrome::text('in_stock', $siteCustomization['product_in_stock_label'] ?? null));
-    $mrp = (float) str_replace(',', '', preg_replace('/[^\d.]/', '', (string) ($item['mrp'] ?? '0')));
-    $displayMrp = \App\Support\LocalDigits::text(number_format($mrp, $mrp === floor($mrp) ? 0 : 2));
+    $stockLabel = $stockWords($stockStatus);
+    $priceWords = function (mixed $amount): string {
+        $value = (float) str_replace(',', '', preg_replace('/[^\d.]/', '', (string) ($amount ?? '0')));
+
+        return \App\Support\LocalDigits::text(number_format($value, $value === floor($value) ? 0 : 2));
+    };
+    $displayMrp = $priceWords($item['mrp'] ?? '0');
     $isFeatured = !empty($item['featured']);
+    $sizes = $item['sizes'] ?? [];
 @endphp
 <article class="ref-product-card"
     data-category="{{ $catSlug }}"
@@ -34,9 +40,11 @@
             <img src="{{ $stockImage['url'] }}" alt="{{ $stockImage['alt'] }}" width="{{ $stockImage['width'] }}" height="{{ $stockImage['height'] }}" loading="lazy" decoding="async">
         @endif
     </a>
-    @unless($hasCustomImage)
+    @if($sizes !== [])
+        <p class="ref-card-note" data-size-note @if($hasCustomImage) hidden @endif>{{ $stockImage['caption'] ?? '' }}</p>
+    @elseif(! $hasCustomImage)
         <p class="ref-card-note">{{ $stockImage['caption'] }}</p>
-    @endunless
+    @endif
 
     <div class="ref-card-body">
         <div class="ref-card-meta">
@@ -47,6 +55,30 @@
         </div>
 
         <h3 class="ref-card-title"><a href="{{ $item['url'] }}">{{ $item['name'] }}</a></h3>
+
+        @if($sizes !== [])
+            <div class="ref-card-sizes" role="group" aria-label="{{ __('size_groups.choose_size') }}">
+                @foreach($sizes as $size)
+                    @php
+                        $sizeHasImage = ! empty($size['image_path']);
+                        $sizeStockImage = $sizeHasImage ? null : \App\Support\StockImage::forCategory($size['category'] ?: $catName, $size['name']);
+                        $sizeOut = $size['stock_status'] === 'out_of_stock';
+                    @endphp
+                    <a class="ref-size-button{{ $sizeOut ? ' is-out' : '' }}" href="{{ $size['url'] }}" aria-current="{{ $size['selected'] ? 'true' : 'false' }}"
+                        data-size-button
+                        data-id="{{ $size['id'] }}"
+                        data-name="{{ $size['name'] }}"
+                        data-url="{{ $size['url'] }}"
+                        data-mrp="{{ $priceWords($size['mrp']) }}"
+                        data-image="{{ $sizeHasImage ? $size['image_path'] : $sizeStockImage['url'] }}"
+                        data-image-is-stock="{{ $sizeHasImage ? '0' : '1' }}"
+                        data-image-alt="{{ $sizeHasImage ? $size['name'] : $sizeStockImage['alt'] }}"
+                        data-image-note="{{ $sizeHasImage ? '' : $sizeStockImage['caption'] }}"
+                        data-stock-status="{{ $size['stock_status'] }}"
+                        data-stock-label="{{ $stockWords($size['stock_status']) }}">{{ $size['labels'][app()->getLocale()] ?? $size['labels']['en'] }}</a>
+                @endforeach
+            </div>
+        @endif
 
         <div class="ref-card-price-row">
             <div class="ref-card-price">

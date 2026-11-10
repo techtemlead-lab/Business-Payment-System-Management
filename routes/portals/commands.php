@@ -26,6 +26,7 @@ use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductConcernController;
 use App\Http\Controllers\ProductPhotoModelController;
 use App\Http\Controllers\ProductRegistryController;
+use App\Http\Controllers\ProductSizeGroupController;
 use App\Http\Controllers\ProductSubcategoryController;
 use App\Http\Controllers\ProductUnitController;
 use App\Http\Controllers\PublicTrustAdminController;
@@ -117,6 +118,9 @@ return function (string $portal): void {
     Route::delete('/commands/products/{product}', [ProductRegistryController::class, 'destroy']);
     Route::post('/commands/products/{product}/restore', [ProductRegistryController::class, 'restore']);
     Route::post('/commands/products/{product}/toggle-stock', [ProductRegistryController::class, 'toggleStock']);
+    Route::get('/commands/products/{product}/size-group/candidates', [ProductSizeGroupController::class, 'candidates'])->middleware('throttle:60,1');
+    Route::post('/commands/products/{product}/size-group', [ProductSizeGroupController::class, 'store']);
+    Route::delete('/commands/products/{product}/size-group', [ProductSizeGroupController::class, 'destroy']);
     Route::post('/commands/product-concerns', [ProductConcernController::class, 'store']);
     Route::patch('/commands/product-concerns/{productConcern}', [ProductConcernController::class, 'update']);
     Route::delete('/commands/product-concerns/{productConcern}', [ProductConcernController::class, 'destroy']);

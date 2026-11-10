@@ -5964,6 +5964,8 @@ return [
     'event_privacy_subject_access_export' => 'ব্যক্তিগত তথ্যের কপি ডাউনলোড',
     'event_product_archived' => 'পণ্য লুকানো হয়েছে',
     'event_product_restored' => 'পণ্য ফিরিয়ে আনা হয়েছে',
+    'event_product_size_group_added' => 'পণ্য অন্য সাইজের সাথে যুক্ত হয়েছে',
+    'event_product_size_group_removed' => 'পণ্য সাইজের তালিকা থেকে সরানো হয়েছে',
     'event_product_created' => 'পণ্য যোগ হয়েছে',
     'event_product_deleted' => 'পণ্য মুছে ফেলা হয়েছে',
     'event_product_updated' => 'পণ্যের তথ্য বদলানো হয়েছে',

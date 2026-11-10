@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Domain\Catalog\CatalogTaxonomy;
+use App\Domain\Catalog\ProductSizeGroups;
 use App\Domain\Content\PublicTrustContent;
 use App\Domain\Content\TestimonialLabels;
 use App\Domain\Content\TrainingVideoLink;
@@ -2095,7 +2096,8 @@ class SiteCustomization
         }
 
         $mode = $customization['featured_products_mode'] ?? 'auto';
-        $items = [];
+        /** @var list<array{0: Product, 1: array<string, mixed>}> $chosen */
+        $chosen = [];
 
         if ($mode === 'curated' && ! empty($customization['featured_products_items'])) {
             $curatedConfigs = collect($customization['featured_products_items']);
@@ -2111,17 +2113,44 @@ class SiteCustomization
                 foreach ($curatedConfigs as $cfg) {
                     $pid = $cfg['product_id'] ?? null;
                     if ($pid && isset($products[$pid])) {
-                        $items[] = self::formatPublicProductCard($products[$pid], $cfg);
+                        $chosen[] = [$products[$pid], $cfg];
                     }
                 }
             }
         }
 
-        if (empty($items)) {
-            $products = Product::query()->featuredInOrder()->withSellableStock()->get();
-            foreach ($products as $product) {
-                $items[] = self::formatPublicProductCard($product);
+        if (empty($chosen)) {
+            foreach (Product::query()->featuredInOrder()->withSellableStock()->get() as $product) {
+                $chosen[] = [$product, []];
             }
+        }
+
+        return self::oneFeaturedCardPerSizeGroup($chosen);
+    }
+
+    /**
+     * Sizes of one product share a card, placed where the first of them was chosen and opening on it.
+     *
+     * @param  list<array{0: Product, 1: array<string, mixed>}>  $chosen
+     * @return list<array<string, mixed>>
+     */
+    private static function oneFeaturedCardPerSizeGroup(array $chosen): array
+    {
+        $groupIds = collect($chosen)->map(fn (array $pick): mixed => $pick[0]->product_group_id)->filter()->unique()->map(fn (mixed $id): int => (int) $id)->values()->all();
+        $sizesByGroup = ProductSizeGroups::onSaleByGroup($groupIds);
+        $items = [];
+        $groupsDone = [];
+        foreach ($chosen as [$product, $config]) {
+            $groupId = $product->product_group_id === null ? null : (int) $product->product_group_id;
+            if ($groupId !== null && isset($groupsDone[$groupId])) {
+                continue;
+            }
+            $card = self::formatPublicProductCard($product, $config);
+            if ($groupId !== null) {
+                $groupsDone[$groupId] = true;
+                $card['sizes'] = ProductSizeGroups::publicSizes($sizesByGroup[$groupId] ?? collect(), (int) $product->id);
+            }
+            $items[] = $card;
         }
 
         return $items;
