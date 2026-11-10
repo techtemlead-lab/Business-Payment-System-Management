@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Catalog\ProductFacts;
 use App\Domain\Catalog\ProductPageAccess;
 use App\Domain\Catalog\ProductRemoval;
+use App\Domain\Catalog\ProductSizeGroups;
 use App\Domain\Finance\Percentage;
 use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\StockLots;
@@ -78,6 +79,7 @@ class ProductRegistryController extends Controller
 
         return Inertia::render('ProductEditor', [
             'product' => $data,
+            'size_group' => $product ? ProductSizeGroups::forEditor($product) : null,
             'stock_stages' => $product && $r->user()->allows('inventory') ? app(StockStages::class)->forProduct($product) : null,
             'removal' => $product && $r->user()->allows('catalog') ? app(ProductRemoval::class)->forProduct($product, $r->user()->allows('inventory')) : null,
             'catalog_categories' => CatalogCms::categoryOptions($product),
@@ -119,6 +121,9 @@ class ProductRegistryController extends Controller
             }
             $media = array_filter([$locked->image_path, $locked->image_original_path, $locked->video_path]);
             $locked->delete();
+            if ($locked->product_group_id !== null) {
+                ProductSizeGroups::closeIfOneLeft((int) $locked->product_group_id, $r->user());
+            }
             DB::afterCommit(function () use ($media): void {
                 foreach ($media as $path) {
                     Storage::disk('local')->delete($path);
@@ -287,7 +292,9 @@ class ProductRegistryController extends Controller
                 throw ValidationException::withMessages(['sub_dealer_price' => __('portal.err_sub_dealer_discount_too_small')]);
             }
         }
-        if (Money::cents($mrp) <= 0 || ($dealer !== null && (Money::cents($dealer) <= 0 || Money::cents($dealer) > Money::cents($mrp)))) {
+        // A save that sends no price, such as changing only the photo, must not be stopped by an old price.
+        $sendsPrice = array_intersect(['mrp', 'dealer_price', 'dealer_discount_pct', 'sub_dealer_price', 'sub_dealer_discount_pct'], array_keys($d)) !== [];
+        if ($sendsPrice && (Money::cents($mrp) <= 0 || ($dealer !== null && (Money::cents($dealer) <= 0 || Money::cents($dealer) > Money::cents($mrp))))) {
             throw ValidationException::withMessages(['mrp' => __('portal.err_prod_price_positive')]);
         }
         $source = $d['video_source'] ?? $product?->video_source ?? 'none';
@@ -435,7 +442,8 @@ class ProductRegistryController extends Controller
         foreach (array_filter($old) as $path) {
             Storage::disk('local')->delete($path);
         }
-        if ($r->boolean('sync_concerns') || array_key_exists('featured', $d)) {
+        $photoChanged = isset($stored['image']) || $r->boolean('remove_image') || $r->boolean('restore_original_image');
+        if ($r->boolean('sync_concerns') || array_key_exists('featured', $d) || $photoChanged) {
             SiteCustomization::forgetCache();
         }
         if ($r->input('redirect_to') === 'catalog') {

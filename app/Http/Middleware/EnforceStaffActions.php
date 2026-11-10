@@ -268,6 +268,7 @@ class EnforceStaffActions
                 default => [['catalog'], 'edit'],
             },
             'ProductConcernController' => [['catalog'], $method === 'store' ? 'create' : 'edit'],
+            'ProductSizeGroupController' => [['catalog'], 'edit'],
             'ProductUnitController' => match ($method) {
                 'index' => [['catalog', 'pricing', 'inventory'], 'view'],
                 'store' => [['catalog'], 'create'],

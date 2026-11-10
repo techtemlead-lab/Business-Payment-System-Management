@@ -4,11 +4,42 @@ import { Package, Search, ShoppingBag, ArrowRight, CheckCircle2, AlertTriangle, 
 import { money, Table, type TableColumn, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
 import LuxuryProductCard from './LuxuryProductCard';
+import { oneCardPerGroup, sizesByGroup, type SizeCard } from '../shared/productSizes';
 
 interface Props {
     products: Row[];
     categories?: string[];
     filters?: Row;
+}
+
+/** One product card; a product sold in several sizes gets size buttons that change what the card shows. */
+function PartnerProductCard({ card, role, publicBase, base }: { card: SizeCard; role: 'dealer' | 'subdealer'; publicBase: string; base: string }) {
+    const translate = useT();
+    const [chosenId, setChosenId] = useState<number | string>(card.first.id);
+    const product = card.sizes.find(size => size.id === chosenId) ?? card.first;
+    return (
+        <LuxuryProductCard
+            product={product}
+            role={role}
+            detailsUrl={`${publicBase}/products/${product.id}`}
+            orderUrl={`${base}/purchase?product_id=${product.id}`}
+            sizeChooser={card.sizes.length > 1 ? (
+                <div className="ops-row is-wrap is-snug" role="group" aria-label={translate('size_groups', 'choose_size')}>
+                    {card.sizes.map(size => (
+                        <button
+                            key={size.id}
+                            type="button"
+                            className={`pcd-chip${size.id === product.id ? ' is-active' : ''}`}
+                            aria-pressed={size.id === product.id}
+                            onClick={() => setChosenId(size.id)}
+                        >
+                            {size.size_label}
+                        </button>
+                    ))}
+                </div>
+            ) : undefined}
+        />
+    );
 }
 
 export default function PartnerCatalogDirectory({ products = [], categories = [], filters = {} }: Props) {
@@ -50,6 +81,11 @@ export default function PartnerCatalogDirectory({ products = [], categories = []
         });
     }, [products, selectedCat, search]);
 
+    // A size group is one card, so it also counts as one on the category buttons.
+    const groups = useMemo(() => sizesByGroup(products), [products]);
+    const cards = useMemo(() => oneCardPerGroup(filteredProducts, groups), [filteredProducts, groups]);
+    const cardCount = (list: Row[]) => oneCardPerGroup(list, groups).length;
+
     return (
         <div className="ops-stack is-wide">
             {/* Header Action Banner */}
@@ -88,10 +124,10 @@ export default function PartnerCatalogDirectory({ products = [], categories = []
                         onClick={() => setSelectedCat('')}
                         className={`pcd-chip${!selectedCat ? ' is-active' : ''}`}
                     >
-                        {translate('portal', 'b2b_all_categories')} ({products.length})
+                        {translate('portal', 'b2b_all_categories')} ({cardCount(products)})
                     </button>
                     {allCategories.map(cat => {
-                        const count = products.filter(p => p.category === cat).length;
+                        const count = cardCount(products.filter(p => p.category === cat));
                         const active = selectedCat === cat;
                         return (
                             <button
@@ -129,14 +165,8 @@ export default function PartnerCatalogDirectory({ products = [], categories = []
             {viewMode === 'grid' ? (
                 filteredProducts.length > 0 ? (
                     <div className="luxury-product-grid">
-                        {filteredProducts.map(p => (
-                            <LuxuryProductCard
-                                key={p.id}
-                                product={p}
-                                role={partnerRole}
-                                detailsUrl={`${publicBase}/products/${p.id}`}
-                                orderUrl={`${base}/purchase?product_id=${p.id}`}
-                            />
+                        {cards.map(card => (
+                            <PartnerProductCard key={card.key} card={card} role={partnerRole} publicBase={publicBase} base={base} />
                         ))}
                     </div>
                 ) : (
@@ -191,6 +221,7 @@ export default function PartnerCatalogDirectory({ products = [], categories = []
                                                         {p.strength}
                                                     </span>
                                                 )}
+                                                {p.size_label && <span className="pcd-strength">{p.size_label}</span>}
                                             </div>
                                             <div className="cell-sub">
                                                 SKU: <code>{p.sku}</code>

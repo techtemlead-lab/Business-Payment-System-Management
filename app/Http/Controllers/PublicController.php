@@ -8,6 +8,7 @@ use App\Domain\Accounts\PartnerFormerCodes;
 use App\Domain\Audience\PartnerProductEnquiries;
 use App\Domain\Audience\PublicPartnerApplication;
 use App\Domain\Catalog\ProductFacts;
+use App\Domain\Catalog\ProductSizeGroups;
 use App\Domain\Content\TestimonialLabels;
 use App\Domain\Geography\PlaceTree;
 use App\Domain\Integrations\MapsPresentation;
@@ -130,13 +131,17 @@ class PublicController extends Controller
             ]);
         }
 
-        $items = Product::query()
+        $matching = Product::query()
             ->where('active', true)
             ->where(function ($query) use ($q): void {
                 $query->where('name', 'ilike', '%'.$q.'%')
                     ->orWhere('category', 'ilike', '%'.$q.'%')
                     ->orWhere('sku', 'ilike', '%'.$q.'%');
-            })
+            });
+        $oneSizePerCard = (clone $matching)->selectRaw('MIN(products.id)')->groupByRaw(ProductSizeGroups::CardKeySql);
+
+        $items = $matching
+            ->whereIn('id', $oneSizePerCard)
             ->orderBy('name')
             ->limit(8)
             ->get(['id', 'name', 'category', 'mrp', 'sku'])
@@ -171,6 +176,7 @@ class PublicController extends Controller
             'item' => $item,
             'social' => $social,
             'sharePartner' => $partner,
+            'sizes' => ProductSizeGroups::publicSizesOf($product),
             'facts' => ProductFacts::forPublic($product),
             'concernTags' => ProductFacts::concernTags($product),
             'reviews' => ProductFacts::approvedReviews($product),
@@ -194,26 +200,61 @@ class PublicController extends Controller
 
     private function catalog(Request $r): View
     {
-        $query = Product::where('active', true)
-            ->withSellableStock()
-            ->when($r->filled('q'), fn ($query) => $query->where('name', 'ilike', '%'.$r->string('q').'%'))
+        $matching = Product::where('active', true)
+            ->when($r->filled('q'), fn ($query) => $query->where(fn ($match) => $match
+                ->where('name', 'ilike', '%'.$r->string('q').'%')
+                ->orWhere(fn ($sized) => $sized->whereNotNull('product_group_id')->where('sku', 'ilike', '%'.$r->string('q').'%'))))
             ->when($r->filled('category'), fn ($query) => $query->where('category', 'ilike', trim((string) $r->string('category'))))
             ->when($r->filled('concern'), fn ($query) => $query->whereHas('concerns', fn ($tag) => $tag->whereKey($r->integer('concern'))))
             ->when($r->boolean('in_stock'), fn ($query) => $query->whereSellable()->where(fn ($open) => $open->where('is_stock_paused', false)->orWhereNull('is_stock_paused')))
             ->when($r->filled('min_price'), fn ($query) => $query->where('mrp', '>=', (string) $r->string('min_price')))
             ->when($r->filled('max_price'), fn ($query) => $query->where('mrp', '<=', (string) $r->string('max_price')));
+        $cards = (clone $matching)->selectRaw(ProductSizeGroups::CardKeySql.' AS card_key')->groupByRaw(ProductSizeGroups::CardKeySql);
+        // A group stands at its lowest price, which is the price its card opens on.
         match ($r->string('sort', 'name')->toString()) {
-            'price_desc' => $query->orderByDesc('mrp'),
-            'price_asc' => $query->orderBy('mrp'),
-            default => $query->orderBy('name'),
+            'price_desc' => $cards->orderByRaw('MIN(products.mrp) DESC'),
+            'price_asc' => $cards->orderByRaw('MIN(products.mrp) ASC'),
+            default => $cards->orderByRaw('MIN(products.name) ASC'),
         };
-        $catalog = $query->orderBy('id')->paginate(12)->withQueryString()
-            ->through(fn (Product $product) => $this->publicProduct($product));
+        $catalog = $cards->orderBy('card_key')->paginate(12)->withQueryString();
+        $catalog->setCollection($this->catalogCards($catalog->getCollection(), $matching));
         $catalogCategories = $this->cachedProductCategories();
         $catalogConcerns = $this->cachedProductConcerns();
         $social = SocialShareMeta::page('products', __('site.products').' · '.config('app.name'), __('site.meta_description'));
 
         return view('reference.catalog', compact('catalog', 'catalogCategories', 'catalogConcerns', 'social'));
+    }
+
+    /**
+     * Turns one page of card keys into cards. Reads the same few queries however many cards there are.
+     *
+     * @param  Collection<int, Product>  $page
+     * @param  Builder<Product>  $matching  the visitor's search and filters
+     * @return Collection<int, non-empty-array<mixed>>
+     */
+    private function catalogCards(Collection $page, Builder $matching): Collection
+    {
+        $keys = $page->map(fn (Product $row): int => (int) $row->getAttribute('card_key'))->values();
+        $groupIds = $keys->filter(fn (int $key): bool => $key < 0)->map(fn (int $key): int => -$key)->values()->all();
+        $singles = Product::where('active', true)->withSellableStock()->whereIn('id', $keys->filter(fn (int $key): bool => $key > 0)->values()->all())->get()->keyBy('id');
+        $sizesByGroup = ProductSizeGroups::onSaleByGroup($groupIds);
+        $matchedSizeIds = $groupIds === [] ? [] : (clone $matching)->whereIn('product_group_id', $groupIds)->pluck('id')->all();
+
+        return collect($keys->all())->map(function (int $key) use ($singles, $sizesByGroup, $matchedSizeIds): ?array {
+            if ($key > 0) {
+                $single = $singles->get($key);
+
+                return $single instanceof Product ? $this->publicProduct($single) : null;
+            }
+            $sizes = $sizesByGroup[-$key] ?? collect();
+            // The card opens on a size the visitor searched or filtered for.
+            $shown = ProductSizeGroups::sizeToShow($sizes->whereIn('id', $matchedSizeIds)->values());
+            if (! $shown instanceof Product) {
+                return null;
+            }
+
+            return [...$this->publicProduct($shown), 'sizes' => ProductSizeGroups::publicSizes($sizes, (int) $shown->id)];
+        })->filter()->values();
     }
 
     /**

@@ -391,3 +391,7 @@
 /* The remove block sits under the side column, outside the save form. */
 .app-shell .pe-remove-row>div{grid-column:2}
 @media(max-width:900px){.app-shell .pe-remove-row>div{grid-column:1}}
+.app-shell .pe-photo-panel{scroll-margin-top:96px}
+.app-shell .pe-photo-save{display:grid;gap:12px;margin-top:18px}
+.app-shell .pe-photo-save label{margin-top:0}
+.app-shell .pe-photo-save .button{justify-self:start}

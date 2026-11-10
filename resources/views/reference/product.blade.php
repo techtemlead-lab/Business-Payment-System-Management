@@ -70,6 +70,20 @@
             <span class="ref-detail-stock {{ $inStock ? 'is-in' : 'is-out' }}"><span class="ref-sr-only">{{ __('site.availability') }}:</span> {{ $stockLabel }}</span>
         </div>
 
+        @if(! empty($sizes))
+            @php
+                $keepPartnerLink = filled(request()->query('ref')) ? '?ref='.rawurlencode((string) request()->query('ref')) : '';
+            @endphp
+            <div class="ref-detail-sizes">
+                <span class="ref-detail-sizes-title">{{ __('size_groups.choose_size') }}</span>
+                <div class="ref-card-sizes">
+                    @foreach($sizes as $size)
+                        <a class="ref-size-button{{ $size['stock_status'] === 'out_of_stock' ? ' is-out' : '' }}" href="{{ $size['url'].$keepPartnerLink }}" @if($size['selected']) aria-current="page" @endif>{{ $size['labels'][app()->getLocale()] ?? $size['labels']['en'] }}</a>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         <dl class="ref-facts ref-detail-facts">
             <dt>{{ __('site.product_code') }}</dt><dd>{{ $item['sku'] }}</dd>
             <dt>{{ __('site.category') }}</dt><dd>{{ $item['category'] }}</dd>

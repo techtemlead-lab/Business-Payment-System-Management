@@ -2,6 +2,7 @@
 
 namespace App\Domain\Orders;
 
+use App\Domain\Catalog\ProductSizeGroups;
 use App\Domain\Pricing\ProductPricing;
 use App\Models\Order;
 use App\Models\OrderLine;
@@ -103,6 +104,7 @@ final class RepeatOrderOptions
                 'stock' => $sellable,
                 'price' => Money::decimal($unitPrice),
                 'stock_status' => $product->stockStatus(),
+                'size_label' => $product->product_group_id !== null ? ProductSizeGroups::buttonLabel($product) : null,
             ],
             'quantity' => $quantity,
             'last_quantity' => $lastQuantity,

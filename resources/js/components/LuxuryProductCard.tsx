@@ -13,6 +13,8 @@ export interface LuxuryProductCardProps {
     onArchive?: (id: number | string, name: string) => void;
     detailsUrl?: string;
     orderUrl?: string;
+    /** Size buttons, when this product comes in more than one size. */
+    sizeChooser?: React.ReactNode;
 }
 
 export default function LuxuryProductCard({
@@ -24,6 +26,7 @@ export default function LuxuryProductCard({
     onArchive,
     detailsUrl,
     orderUrl,
+    sizeChooser,
 }: LuxuryProductCardProps) {
     const translate = useT();
 
@@ -157,6 +160,8 @@ export default function LuxuryProductCard({
                         <a href={resolvedDetailsUrl}>{product.name}</a>
                     )}
                 </h3>
+
+                {sizeChooser}
 
                 {/* Pricing Block */}
                 <div className="luxury-price-block">
