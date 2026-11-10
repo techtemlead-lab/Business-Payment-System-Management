@@ -198,7 +198,7 @@ export default function ProductManagementHub({
                         ? <img className="os-product-photo" src={product.image_url || product.image_fallback?.url} alt="" loading="lazy" />
                         : <span className="os-product-photo" aria-hidden="true" />}
                     <div>
-                        <span className="os-product-name">{product.name}</span>
+                        <span className="os-product-name">{product.name}{product.size_label && <span className="os-size-tag">{product.size_label}</span>}</span>
                         <small className="cell-sub">{productFirstLine(product)}</small>
                     </div>
                 </div>

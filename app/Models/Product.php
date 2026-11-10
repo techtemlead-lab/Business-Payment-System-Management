@@ -90,6 +90,12 @@ class Product extends Model
         return $this->belongsTo(ProductSubcategory::class, 'product_subcategory_id');
     }
 
+    /** @return BelongsTo<ProductGroup, $this> */
+    public function productGroup(): BelongsTo
+    {
+        return $this->belongsTo(ProductGroup::class);
+    }
+
     public function productUnit(): BelongsTo
     {
         return $this->belongsTo(ProductUnit::class, 'product_unit_id');

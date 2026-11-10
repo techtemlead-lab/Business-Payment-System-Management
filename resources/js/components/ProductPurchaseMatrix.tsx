@@ -9,6 +9,7 @@ import { useT } from '../shared/i18n/t';
 import { randomUuid } from '../shared/randomUuid';
 import RepeatOrderPanel, { repeatChangeNotes, type RepeatOption } from './dealertools/RepeatOrderPanel';
 import SchemeNotices, { type RunningScheme } from './dealertools/SchemeNotices';
+import { choiceName, sizesByGroup } from '../shared/productSizes';
 
 interface Props {
     products: Row[];
@@ -77,6 +78,10 @@ export default function ProductPurchaseMatrix({
     const [addedBanner, setAddedBanner] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState<string>('');
 
+    // Sizes of one product are one choice in the product step; the next step picks the size.
+    const sizeGroups = useMemo(() => sizesByGroup(products), [products]);
+    const productChoiceName = (product: Row) => choiceName(product, sizeGroups);
+
     // Instant search suggestions across name, sku, category, strength
     const searchResults = useMemo(() => {
         const q = searchQuery.trim().toLowerCase();
@@ -94,7 +99,7 @@ export default function ProductPurchaseMatrix({
     const selectProductFromSearch = (p: Row) => {
         setSelectedCategory(p.category || '');
         setSelectedSubCategory(p.sub_category || '');
-        setSelectedProductName(p.name || '');
+        setSelectedProductName(productChoiceName(p));
         setSelectedProductId(p.id);
         setSearchQuery('');
     };
@@ -120,7 +125,7 @@ export default function ProductPurchaseMatrix({
             if (found) {
                 setSelectedCategory(found.category || '');
                 setSelectedSubCategory(found.sub_category || '');
-                setSelectedProductName(found.name || '');
+                setSelectedProductName(productChoiceName(found));
                 setSelectedProductId(found.id);
                 return;
             }
@@ -151,11 +156,11 @@ export default function ProductPurchaseMatrix({
             return true;
         });
         const set = new Set<string>();
-        filtered.forEach(p => set.add(p.name));
+        filtered.forEach(p => set.add(productChoiceName(p)));
         const arr = Array.from(set);
         arr.sort((a, b) => a.localeCompare(b));
         return arr;
-    }, [products, selectedCategory, selectedSubCategory]);
+    }, [products, selectedCategory, selectedSubCategory, sizeGroups]);
 
     // Available variants (strengths/packs) under the selected product name
     const availableVariants = useMemo(() => {
@@ -163,9 +168,9 @@ export default function ProductPurchaseMatrix({
         return products.filter(p => {
             if (p.category !== selectedCategory) return false;
             if (selectedSubCategory && p.sub_category !== selectedSubCategory) return false;
-            return p.name === selectedProductName;
-        });
-    }, [products, selectedCategory, selectedSubCategory, selectedProductName]);
+            return productChoiceName(p) === selectedProductName;
+        }).sort((first, second) => Number(first.size_position ?? 0) - Number(second.size_position ?? 0));
+    }, [products, selectedCategory, selectedSubCategory, selectedProductName, sizeGroups]);
 
     // Active selected product object
     const activeProduct = useMemo(() => {
@@ -217,7 +222,8 @@ export default function ProductPurchaseMatrix({
             return [...prev, { product: activeProduct, quantity: qty }];
         });
 
-        const strengthLabel = activeProduct.strength ? ` (${activeProduct.strength})` : '';
+        const sizeText = activeProduct.size_label || activeProduct.strength;
+        const strengthLabel = sizeText ? ` (${sizeText})` : '';
         setAddedBanner(`${activeProduct.name}${strengthLabel} — ${number(qty)} ${activeProduct.unit || translate('portal', 'ppm_box_unit')} ${translate('portal', 'b2b_added_success')}`);
         setTimeout(() => setAddedBanner(null), 4000);
 
@@ -458,7 +464,7 @@ export default function ProductPurchaseMatrix({
                                 >
                                     <div>
                                         <strong className="hub-strong ops-fs-sm">{p.name}</strong>
-                                        {p.strength && <span className="ppm-strength">({p.strength})</span>}
+                                        {(p.size_label || p.strength) && <span className="ppm-strength">({p.size_label || p.strength})</span>}
                                         <div className="ops-meta">
                                             {p.category} {p.sub_category ? `› ${p.sub_category}` : ''} · {translate('portal', 'product_code_value', { sku: String(p.sku) })}
                                         </div>
@@ -538,7 +544,7 @@ export default function ProductPurchaseMatrix({
                         {/* Step 4: Strength / Measure / Variant */}
                         <div>
                             <label className="ops-field-label">
-                                {translate('portal', 'b2b_step_strength')}
+                                {activeProduct?.size_group_id && availableVariants.length > 1 ? translate('size_groups', 'choose_size') : translate('portal', 'b2b_step_strength')}
                             </label>
                             <select
                                 value={activeProduct ? activeProduct.id : ''}
@@ -550,7 +556,7 @@ export default function ProductPurchaseMatrix({
                                     const vMrp = Number(v.mrp || 0);
                                     const vPrice = Number(v.price || v.mrp || 0);
                                     const vDisc = vMrp > vPrice ? Math.round(((vMrp - vPrice) / vMrp) * 100) : 0;
-                                    const specText = v.strength || v.unit || translate('portal', 'b2b_single_spec');
+                                    const specText = v.size_label || v.strength || v.unit || translate('portal', 'b2b_single_spec');
                                     return (
                                         <option key={v.id} value={v.id}>
                                             {specText} — {money(vPrice)} ({translate('portal', 'mrp_label', { amount: money(vMrp) })}{vDisc > 0 ? ` · ${translate('portal', 'pct_off', { pct: String(vDisc) })}` : ''})
@@ -616,7 +622,7 @@ export default function ProductPurchaseMatrix({
                         <div className="ppm-selection">
                             <div className="ops-row is-loose is-wrap">
                                 <div className="ppm-sel-name">
-                                    {activeProduct.name} {activeProduct.strength ? `(${activeProduct.strength})` : ''}
+                                    {activeProduct.name} {(activeProduct.size_label || activeProduct.strength) ? `(${activeProduct.size_label || activeProduct.strength})` : ''}
                                     <span className="ppm-sel-sku">
                                         {translate('portal', 'product_code_value', { sku: String(activeProduct.sku) })} · {activeProduct.category}{activeProduct.sub_category ? ` / ${activeProduct.sub_category}` : ''}
                                     </span>
@@ -724,7 +730,7 @@ export default function ProductPurchaseMatrix({
                                                     {p.name}
                                                 </div>
                                                 <div className="cell-sub">
-                                                    {p.strength ? <strong className="ppm-line-strength">{p.strength}</strong> : null}
+                                                    {(p.size_label || p.strength) ? <strong className="ppm-line-strength">{p.size_label || p.strength}</strong> : null}
                                                     <span>{p.category}{p.sub_category ? ` · ${p.sub_category}` : ''}</span>
                                                     <span className="ppm-line-unit">({p.unit || translate('portal', 'ppm_box_unit')})</span>
                                                 </div>

@@ -11,6 +11,11 @@
 .os-product{display:flex;align-items:center;gap:10px;min-width:0}
 .os-product-photo{flex:none;width:40px;height:40px;border-radius:var(--ds-r-md);background:var(--ds-surface-2);object-fit:contain}
 .os-product-name{display:block;font-weight:600}
+.os-size-tag{display:inline-block;margin-inline-start:6px;padding:0 6px;border:1px solid var(--ds-line-strong);border-radius:var(--ds-r-xs);color:var(--ds-text-muted);font-size:var(--ds-fs-2xs);font-weight:500;white-space:nowrap}
+.os-sizes{display:grid;gap:8px;margin:0 0 12px;padding:0;list-style:none}
+.os-sizes li{display:flex;align-items:center;gap:8px;min-width:0}
+.os-sizes .os-size-who{flex:1;min-width:0;overflow-wrap:anywhere}
+.os-sizes .os-size-who b{display:block}
 .os-row-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}
 .app-shell .os-row-actions .button{white-space:nowrap}
 .app-shell .os-name-link{display:inline;min-height:0;padding:0;border:0;background:none;box-shadow:none;color:var(--ds-text);font:inherit;font-weight:600;text-align:left;cursor:pointer}

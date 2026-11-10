@@ -517,6 +517,38 @@ html[data-theme="dark"] .ref-card-stock { color: #5fd3a8; }
 html[data-theme="dark"] .ref-card-stock.is-out { color: #fca5a5; }
 html[data-theme="dark"] .ref-card-cta { border-color: #5fd3a8; color: #5fd3a8; }
 html[data-theme="dark"] .ref-card-cta:hover { background: #5fd3a8; color: #06231a; }
+.ref-card-note[hidden] { display: none; }
+.ref-card-sizes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 2px 0 6px;
+}
+.ref-size-button {
+    display: inline-block;
+    max-width: 100%;
+    padding: 0 12px;
+    overflow: hidden;
+    border: 1px solid #c9d6ce;
+    border-radius: 999px;
+    background: #fff;
+    color: #12281e;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 34px;
+    text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ref-size-button:hover { border-color: #166534; }
+.ref-size-button.is-out { border-style: dashed; color: #5d6b63; }
+.ref-size-button[aria-current="true"],
+.ref-size-button[aria-current="page"] { border-color: #166534; background: #166534; color: #fff; }
+.ref-detail-sizes { margin: 12px 0; }
+.ref-detail-sizes-title { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; }
+html[data-theme="dark"] .ref-size-button { border-color: #3a5a4b; background: transparent; color: #e6f1ea; }
+html[data-theme="dark"] .ref-size-button[aria-current="true"],
+html[data-theme="dark"] .ref-size-button[aria-current="page"] { border-color: #5fd3a8; background: #5fd3a8; color: #06231a; }
 @media (max-width: 500px) {
     .ref-card-picture { margin: 8px 8px 0; padding: 8px; }
     .ref-card-picture.is-stock { padding: 0; }

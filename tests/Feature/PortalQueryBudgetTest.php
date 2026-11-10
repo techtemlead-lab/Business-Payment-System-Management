@@ -8,9 +8,11 @@ use App\Domain\Support\GuidePrerequisites;
 use App\Models\CompanyBranch;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ProductGroup;
 use App\Models\SiteFeedback;
 use App\Models\User;
 use App\Support\ListPage;
+use App\Support\SiteCustomization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -486,6 +488,50 @@ class PortalQueryBudgetTest extends TestCase
         }
     }
 
+    public function test_public_size_lists_do_not_ask_once_per_card(): void
+    {
+        $this->productsInSizeGroups(2);
+        foreach (['/products', '/'] as $path) {
+            SiteCustomization::forgetCache();
+            $this->get($path)->assertOk();
+            SiteCustomization::forgetCache();
+            [, $before[$path]] = $this->measure(fn () => $this->get($path));
+        }
+
+        $this->productsInSizeGroups(4);
+
+        foreach (['/products', '/'] as $path) {
+            SiteCustomization::forgetCache();
+            [, $after] = $this->measure(fn () => $this->get($path));
+            $this->assertCount(count($before[$path]), $after, $path.' queries must not grow with the number of size groups.');
+        }
+    }
+
+    public function test_partner_and_office_size_lists_do_not_ask_once_per_size(): void
+    {
+        $this->productsInSizeGroups(2);
+        $dealer = User::factory()->dealer()->create(['status' => 'active']);
+        $owner = User::factory()->staff()->create();
+        $visits = [
+            'dealer purchase' => fn () => $this->actingAs($dealer)->onPortal('dealer')->get('/purchase'),
+            'dealer catalog' => fn () => $this->actingAs($dealer)->onPortal('dealer')->get('/catalog'),
+            'office catalog' => fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/catalog'),
+        ];
+        foreach ($visits as $name => $visit) {
+            $visit()->assertOk();
+            [, $before[$name]] = $this->measure($visit);
+        }
+
+        $this->productsInSizeGroups(4);
+
+        foreach ($visits as $name => $visit) {
+            // Saving a product clears the site cache; measure a normal visit, not the refill.
+            $visit()->assertOk();
+            [, $after] = $this->measure($visit);
+            $this->assertCount(count($before[$name]), $after, $name.' queries must not grow with the number of sizes.');
+        }
+    }
+
     /**
      * Runs the callback with the query log on.
      *
@@ -600,6 +646,16 @@ class PortalQueryBudgetTest extends TestCase
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+        }
+    }
+
+    private function productsInSizeGroups(int $groups): void
+    {
+        foreach (range(1, $groups) as $index) {
+            $group = ProductGroup::factory()->create();
+            foreach (['100 ml' => '100.00', '300 ml' => '250.00'] as $label => $mrp) {
+                Product::factory()->create(['active' => true, 'name' => 'Syrup '.$group->id, 'pack_size_en' => $label, 'mrp' => $mrp, 'dealer_price' => '60.00', 'featured' => true, 'product_group_id' => $group->id]);
+            }
         }
     }
 }
