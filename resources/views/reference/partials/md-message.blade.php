@@ -18,10 +18,6 @@
         <div class="ref-md-photo-frame">
             <img src="{{ $mdMessage['image'] }}" alt="{{ $mdMessage['image_alt'] }}" width="800" height="782" loading="{{ $mdIsCompact ? 'eager' : 'lazy' }}" decoding="async">
         </div>
-        <figcaption>
-            <strong>{{ $mdMessage['name'] }}</strong>
-            <span>{{ $mdMessage['title'] }}</span>
-        </figcaption>
     </figure>
     <div class="ref-md-content">
         <span class="ref-md-quote-mark" aria-hidden="true">&ldquo;</span>

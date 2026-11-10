@@ -535,9 +535,11 @@ function initMdMessageToggles() {
         const icon = button.querySelector('i');
         if (!more) return;
 
+        const message = button.closest('.ref-md-message');
         const setOpen = (open: boolean) => {
             more.hidden = !open;
             button.setAttribute('aria-expanded', open ? 'true' : 'false');
+            message?.classList.toggle('is-open', open);
             if (label) label.textContent = (open ? button.dataset.labelLess : button.dataset.labelMore) ?? '';
             icon?.classList.toggle('fa-chevron-down', !open);
             icon?.classList.toggle('fa-chevron-up', open);
