@@ -10,6 +10,7 @@ import TransactionProgressStepper from '../components/TransactionProgressStepper
 import CourierTrackingPanel from '../components/CourierTrackingPanel';
 import PartlyDeliveredCommission from '../components/PartlyDeliveredCommission';
 import { shipmentArrivalText } from '../components/orderShipmentArrival';
+import { returnedByLine } from '../components/office/portalShared';
 
 function DispatchForm({ order, courierChoices }: { order: Row; courierChoices: { key: string; label: string; manual?: boolean }[] }) {
     const translate = useT();
@@ -98,6 +99,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
     const canVerify = actionAllowed('/commands/claims/0/verify', staffActions);
     const open = !['rejected', 'cancelled'].includes(order.status);
     const itemsLeft = (order.lines ?? []).some((line: Row) => Number(line.dispatched) < Number(line.quantity));
+    const returnedOf = returnedByLine(shipments);
     const officeCashWaiting = claims.some(claim => claim.status === 'pending' && claim.channel === 'Office');
     const [shareOpen, setShareOpen] = useState(false);
     const [copied, setCopied] = useState(false);
@@ -157,7 +159,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                     <p className="muted odt-share-hint">{translate('portal','share_invoice_login_hint')}</p>
                 </div>
             )}
-            <Badge status={order.status === 'cancelled' && shipments.some(shipment => shipment.status === 'returned') ? 'returned' : order.status} />
+            <Badge status={['cancelled', 'approved'].includes(order.status) && shipments.some(shipment => shipment.status === 'returned') ? 'returned' : order.status} />
         </div></div>
         <TransactionProgressStepper order={order} currentStatus={order.status} claims={claims} shipments={shipments} events={events} />
         <CourierTrackingPanel order={order} shipments={shipments} events={events} courierChoices={courierChoices}
@@ -173,7 +175,8 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
         {owner && paymentPrompt.waiting_for_check && <div className="notice" role="status"><b>{translate('order_payment', officeCashWaiting ? 'office_waiting_title' : 'waiting_title')}</b><p>{translate('order_payment', officeCashWaiting ? 'office_waiting_body' : 'waiting_body', { amount: money(paymentPrompt.waiting_amount) })}</p></div>}
         <section className="panel"><div className="panel-heading"><h2>{translate('portal', 'products_fulfilment')}</h2><span>{translate('portal', 'prices_saved_at_submission')}</span></div>
             <Table rows={order.lines} columns={[
-                { key: 'name', title: translate('portal', 'col_product'), render: line => line.is_free ? <>{line.name}<small className="cell-sub">{translate('schemes_commission', 'free_line_scheme', { scheme: line.scheme_title ?? translate('schemes_commission', 'free_line_label') })}</small></> : line.name }, { key: 'quantity', title: translate('portal', 'col_ordered_quantity'), align: 'right', render: line => number(line.quantity) }, { key: 'dispatched', title: translate('portal', 'col_dispatched'), align: 'right', render: line => number(line.dispatched) },
+                { key: 'name', title: translate('portal', 'col_product'), render: line => line.is_free ? <>{line.name}<small className="cell-sub">{translate('schemes_commission', 'free_line_scheme', { scheme: line.scheme_title ?? translate('schemes_commission', 'free_line_label') })}</small></> : line.name }, { key: 'quantity', title: translate('portal', 'col_ordered_quantity'), align: 'right', render: line => number(line.quantity) }, { key: 'dispatched', title: translate('portal', 'col_dispatched'), align: 'right', render: line => number(line.dispatched - (returnedOf.get(Number(line.id)) ?? 0)) },
+                ...(returnedOf.size > 0 ? [{ key: 'returned', title: translate('office_orders', 'col_returned'), align: 'right' as const, render: (line: Row) => number(returnedOf.get(Number(line.id)) ?? 0) }] : []),
                 { key: 'remaining', title: translate('portal', 'col_remaining'), align: 'right', render: line => number(line.quantity - line.dispatched) },
                 { key: 'unit_price', title: translate('portal', 'unit_price'), render: line => money(line.unit_price) }, { key: 'total', title: translate('portal', 'col_total'), render: line => money(line.total) },
             ]} />

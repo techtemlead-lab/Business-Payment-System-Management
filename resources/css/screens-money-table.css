@@ -29,12 +29,17 @@
 .mt-empty{margin:0;padding:28px 16px;border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);background:var(--ds-surface);color:var(--ds-text-muted);text-align:center}
 
 .mt-table-wrap{overflow-x:auto;border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);background:var(--ds-surface)}
-.app-shell .mt-table{width:100%;margin:0;border-collapse:collapse}
-.app-shell .mt-table th{padding:10px 14px;border-bottom:1px solid var(--ds-line);background:var(--ds-surface);color:var(--ds-text-muted);font-size:var(--ds-fs-xs);font-weight:600;text-align:left;white-space:nowrap}
+/* Words wrap so a table fits its box before anything has to scroll or be pinned over a figure. */
+.app-shell .mt-table{width:100%;margin:0;border-collapse:collapse;white-space:normal}
+.app-shell .mt-table td :is(.badge,.record-link,.button,.icon-button){white-space:nowrap}
+.app-shell .mt-table td .cell-nowrap{max-width:16em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.app-shell .mt-table th{padding:10px 14px;border-bottom:1px solid var(--ds-line);background:var(--ds-surface);color:var(--ds-text-muted);font-size:var(--ds-fs-xs);font-weight:600;text-align:left;white-space:normal}
+.app-shell .mt-table .mt-sort{white-space:normal;text-align:inherit}
 .app-shell .mt-table td{padding:11px 14px;border-bottom:1px solid var(--ds-line-soft);background:transparent;color:var(--ds-text);font-size:var(--ds-fs-base);text-align:left;vertical-align:top}
 .app-shell .mt-table td :is(.cell-sub,small){display:block;margin-top:1px;color:var(--ds-text-muted);font-size:var(--ds-fs-xs)}
 .app-shell .mt-table :is(th,td).is-right{text-align:right}
 .app-shell .mt-table td.is-money{font-variant-numeric:tabular-nums;white-space:nowrap}
+.app-shell .mt-table td.is-money .cell-sub{min-width:9em;white-space:normal}
 .app-shell .mt-table:has(th:nth-child(9)) :is(th,td){padding-inline:8px}
 .app-shell .mt-table tbody tr:last-child td{border-bottom:0}
 .app-shell .mt-table tbody tr.is-link{cursor:pointer}
@@ -43,6 +48,14 @@
 .app-shell .mt-table .mt-open-cell{width:30px;padding-inline:0 10px;vertical-align:middle}
 .app-shell .mt-table .mt-check-cell{width:36px;padding-inline:14px 0}
 .app-shell .mt-table tbody tr:has(.mt-row-open:focus-visible){outline:2px solid var(--ds-brand);outline-offset:-2px}
+
+/* A table that still cannot fit keeps Status and the row's action on screen; every list gets this here. */
+.app-shell .mt-table-wrap.is-overflowing :is(th,td):is(.table-pin-status,.table-pin-action){position:sticky;z-index:1;background:var(--ds-surface)}
+.app-shell .mt-table-wrap.is-overflowing :is(th,td).table-pin-action{right:0}
+.app-shell .mt-table-wrap.is-overflowing :is(th,td).table-pin-status{right:var(--table-pin-action-width,0px)}
+.app-shell .mt-table-wrap.is-overflowing :is(th,td):is(.table-pin-status,.table-pin-action:not(.table-pin-status + .table-pin-action)){box-shadow:-8px 0 8px -8px rgba(15,23,42,.35)}
+.app-shell .mt-table-wrap.is-overflowing tbody tr.is-link:hover td:is(.table-pin-status,.table-pin-action){background:var(--ds-surface-2)}
+.app-shell .mt-table-wrap.is-overflowing tfoot td:is(.table-pin-status,.table-pin-action){background:var(--ds-surface-2)}
 
 .app-shell .mt-sort{display:inline-flex;align-items:center;gap:4px;min-height:0;padding:0;border:0;background:none;box-shadow:none;color:inherit;font:inherit;white-space:nowrap;cursor:pointer}
 .app-shell .mt-sort svg{flex:none;opacity:.4}
@@ -84,6 +97,11 @@
   .mt-card-title :is(.cell-sub,small)::before{content:" · "}
   .mt-card-lines{color:var(--ds-text-muted);font-size:var(--ds-fs-xs);overflow-wrap:anywhere}
   .mt-card-lines>span+span::before{content:" · "}
+  .mt-card-lines>span:empty{display:none}
+  .mt-card-lines>span:has(>.button){display:block;margin-top:8px}
+  .mt-card-lines>span:has(>.button)::before{content:none}
+  .app-shell .mt-card-lines>span>.button{min-height:44px}
+  .mt-card-lines .hub-row .text-link{display:inline-flex;align-items:center;min-height:44px}
   .mt-card-lines :is(.cell-sub,small){display:inline;font-size:inherit}
   .mt-card-lines :is(.cell-sub,small)::before{content:" · "}
   .mt-card-amount{flex:none;max-width:48%;color:var(--ds-text);font-size:var(--ds-fs-base);font-weight:650;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}

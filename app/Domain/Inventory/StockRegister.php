@@ -358,6 +358,7 @@ final class StockRegister
             'stock_value' => (string) $row->stock_value,
             'is_stock_paused' => (bool) $row->is_stock_paused,
             'active' => (bool) $row->active,
+            'archived_at' => $row->archived_at,
             'expires_on' => $matchedExpiry[(string) $row->row_key] ?? ($row->row_expiry !== null ? substr((string) $row->row_expiry, 0, 10) : null),
             'batch_number' => $row->row_batch,
             ...($showsCost ? ['cost_price' => $row->cost_price] : []),

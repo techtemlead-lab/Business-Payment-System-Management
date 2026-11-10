@@ -148,7 +148,7 @@ class MonthlyTdsAndKycWithdrawalTest extends TestCase
 
     private function turnKycOn(): void
     {
-        $owner = User::factory()->staff('md')->create();
+        $owner = User::factory()->staff('super_admin')->create();
         $settings = app(FinanceSettings::class);
         $settings->saveKycBeforeFirstWithdrawal($owner, true, $settings->kycBeforeFirstWithdrawal()['version'], 'Owner wants ID papers first');
     }

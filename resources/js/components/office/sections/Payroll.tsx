@@ -6,7 +6,7 @@ import type { OfficeHub } from '../../OfficeHubTabs';
 import OfficePage from '../OfficePage';
 import { businessMonth } from '../../../business-date';
 import { useT } from '../../../shared/i18n/t';
-import { commandRoot, currentView, DrawerLines, findTable, pickField, readStored, SectionTableSearch, StaffActionDialog, StaffTable, StoredDetails, textField, ViewSwitch, type StaffAction, type StaffField, type StaffSectionTable } from './staffSectionParts';
+import { commandRoot, currentView, DrawerLines, findTable, pickField, readStored, SectionTableSearch, StaffActionDialog, StaffTable, textField, ViewSwitch, type StaffAction, type StaffField, type StaffSectionTable } from './staffSectionParts';
 
 type PayrollView = 'register' | 'agreements';
 
@@ -100,6 +100,10 @@ export default function Payroll({ tables, staff, paymentAccounts, secondApprover
     const multiPage = (table: StaffSectionTable): boolean => Number(table.page.last_page ?? 1) > 1;
 
     const openedActions = opened ? rowActions(opened) : [];
+    const stored = opened ? readStored(opened.snapshot) : null;
+    const calculation: Row = stored !== null && typeof stored === 'object' ? (stored as Row) : {};
+    const agreement: Row = calculation.contract ?? {};
+    const salaryTarget: Row | null = calculation.target ?? null;
 
     return (
         <OfficePage
@@ -123,6 +127,7 @@ export default function Payroll({ tables, staff, paymentAccounts, secondApprover
                         totalCount={register.page.total}
                         totalLabel={multiPage(register) ? translate('portal', 'table_page_total') : undefined}
                         rows={register.page.data}
+                        phoneColumns={['name', 'net', 'status']}
                         empty={translate('office_staff', 'salary_empty')}
                         onRowClick={(row: Row) => setOpenedId(String(row.id))}
                         rowClassName={() => 'is-link'}
@@ -185,7 +190,17 @@ export default function Payroll({ tables, staff, paymentAccounts, secondApprover
                         ]}
                     />
                     <div className="emp-cat-title">{translate('office_staff', 'detail_calculation')}</div>
-                    <div className="opr-json"><StoredDetails value={readStored(opened.snapshot)} /></div>
+                    <DrawerLines
+                        lines={[
+                            { label: translate('office_staff', 'col_effective_month'), value: agreement.effective_month ? businessMonth(String(agreement.effective_month)) : null },
+                            { label: translate('office_staff', 'col_base_salary'), value: agreement.base_salary != null ? money(agreement.base_salary) : null },
+                            { label: translate('office_staff', 'col_allowance'), value: agreement.allowance != null ? money(agreement.allowance) : null },
+                            { label: translate('office_staff', 'detail_sales_target'), value: salaryTarget ? money(salaryTarget.target) : null },
+                            { label: translate('office_staff', 'detail_sales_counted'), value: salaryTarget ? money(calculation.qualifying_volume) : null },
+                            { label: translate('office_staff', 'detail_bonus_earned'), value: salaryTarget ? money(calculation.earned_bonus) : null },
+                            { label: translate('office_staff', 'col_cut'), value: agreement.deduction != null ? money(agreement.deduction) : null },
+                        ]}
+                    />
                 </Modal>
             )}
 

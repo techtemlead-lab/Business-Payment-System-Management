@@ -72,6 +72,9 @@ return [
     'col_change_number' => 'Change',
     'detail_payment_reference' => 'Payment reference',
     'detail_paid_at' => 'Paid at',
+    'detail_sales_target' => 'Sales target',
+    'detail_sales_counted' => 'Sales counted',
+    'detail_bonus_earned' => 'Bonus earned',
     'detail_calculation' => 'How it was worked out',
     'detail_reason' => 'Reason',
 

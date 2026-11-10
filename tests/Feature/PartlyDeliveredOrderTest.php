@@ -84,6 +84,51 @@ class PartlyDeliveredOrderTest extends TestCase
         $this->assertSame('partially_dispatched', $order->fresh()->status);
     }
 
+    public function test_the_only_parcel_coming_back_leaves_nothing_counted_as_sent(): void
+    {
+        [$order, $parcels] = $this->sentOrder([4], ordered: 5);
+        $stockBefore = (int) $this->product->fresh()->stock;
+
+        $this->receiveBack($order, $parcels[0]);
+
+        $this->assertSame('approved', $order->fresh()->status, 'Nothing is out, and one unit is still to send.');
+        $this->assertSame($stockBefore + 4, (int) $this->product->fresh()->stock, 'The four returned units are back in stock.');
+        $this->assertSame(4, (int) DB::table('orders')->where('id', $order->id)
+            ->selectRaw(OrderListFilter::returnedUnitsSql().' AS units')->value('units'));
+        $this->assertTrue((bool) DB::table('orders')->where('id', $order->id)
+            ->selectRaw(OrderListFilter::cameBackSql().' AS came_back')->value('came_back'));
+    }
+
+    public function test_the_rest_of_an_order_can_still_be_sent_after_its_only_parcel_came_back(): void
+    {
+        [$order, $parcels] = $this->sentOrder([4], ordered: 5);
+        $this->receiveBack($order, $parcels[0]);
+
+        app(OrderService::class)->dispatch($this->owner, $order->fresh(), [
+            'items' => [['line_id' => (int) $order->lines()->value('id'), 'quantity' => 1]],
+            'idempotency_key' => (string) Str::uuid(),
+            'courier' => 'Test courier',
+            'tracking' => 'TRK-'.Str::random(6),
+            'branch_id' => $this->hub->id,
+        ]);
+        $lastParcel = (int) DB::table('shipments')->where('order_id', $order->id)->where('status', 'dispatched')->value('id');
+        $this->assertSame('dispatched', $order->fresh()->status);
+
+        $this->confirmDelivered($order, $lastParcel);
+
+        $this->assertSame('partly_delivered', $order->fresh()->status);
+    }
+
+    public function test_the_returned_list_shows_an_order_whose_only_parcel_came_back(): void
+    {
+        [$order, $parcels] = $this->sentOrder([4], ordered: 5);
+        $this->receiveBack($order, $parcels[0]);
+
+        $this->actingAs($this->owner)->onPortal('sadmin')->get('/orders?status=returned')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('data.orders.data.0.id', $order->id)
+                ->where('data.orders.data.0.returned_units', 4));
+    }
+
     public function test_all_delivered_and_all_returned_keep_their_own_final_status(): void
     {
         [$delivered, $deliveredParcels] = $this->sentOrder([3, 2]);

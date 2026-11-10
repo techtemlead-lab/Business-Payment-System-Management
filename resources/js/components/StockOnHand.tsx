@@ -38,6 +38,7 @@ type StockRow = {
     stock_value: string;
     is_stock_paused?: boolean;
     active?: boolean;
+    archived_at?: string | null;
 };
 
 export type StockTableData = MoneyTableData<StockRow>;
@@ -67,7 +68,7 @@ function StatusBadge({ row }: { row: StockRow }) {
     const translate = useT();
     const t = (key: string) => translate('office_stock', key);
     if (row.active === false) {
-        return <span className="badge archived">{t('status_hidden')}</span>;
+        return <span className="badge archived">{t(row.archived_at ? 'status_hidden' : 'status_draft')}</span>;
     }
     if (row.is_stock_paused) {
         return <span className="badge held">{t('status_orders_stopped')}</span>;

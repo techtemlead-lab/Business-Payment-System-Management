@@ -98,7 +98,7 @@ function AutoApprovalBlock({ setting }: { setting: Row }) {
     );
 }
 
-/** A yes-or-no rule only an owner may change. Everyone else sees it switched off for editing. */
+/** A yes-or-no rule only the Super Admin may change. Everyone else reads where it stands, with no controls. */
 function OwnerSwitchBlock({ setting, action, title, switchLabel, onLabel, offLabel, ownerOnly, tour }: {
     setting: Row;
     action: string;
@@ -116,10 +116,14 @@ function OwnerSwitchBlock({ setting, action, title, switchLabel, onLabel, offLab
         <section className="set-block auto-approval-panel" data-tour={tour}>
             <h2>{title}</h2>
             <form onSubmit={(event) => { event.preventDefault(); form.post(action, { preserveScroll: true, onSuccess: () => form.setData('reason', '') }); }}>
-                <label className="aa-switch">
-                    <input type="checkbox" role="switch" checked={form.data.enabled} disabled={!canEdit} onChange={(event) => form.setData('enabled', event.target.checked)} />
-                    <span><b>{switchLabel}</b><small>{form.data.enabled ? onLabel : offLabel}</small></span>
-                </label>
+                {canEdit ? (
+                    <label className="aa-switch">
+                        <input type="checkbox" role="switch" checked={form.data.enabled} onChange={(event) => form.setData('enabled', event.target.checked)} />
+                        <span><b>{switchLabel}</b><small>{form.data.enabled ? onLabel : offLabel}</small></span>
+                    </label>
+                ) : (
+                    <p className="set-line"><b>{switchLabel}</b><br />{form.data.enabled ? onLabel : offLabel}</p>
+                )}
                 {!canEdit && <p className="aa-note">{ownerOnly}</p>}
                 {canEdit && <ReasonAndSave value={form.data.reason} errors={form.errors} processing={form.processing} onChange={(reason) => form.setData('reason', reason)} />}
             </form>

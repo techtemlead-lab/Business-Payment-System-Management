@@ -417,6 +417,22 @@ html[data-theme="dark"] .ref-md-message .ref-md-text>p:first-child{color:var(--d
     line-height: 1.4;
     margin-top: 2px;
 }
+.ref-confirm-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    min-height: 44px;
+    padding: 8px 0;
+    font-size: 13px;
+    color: inherit;
+    cursor: pointer;
+}
+.ref-confirm-check input[type="checkbox"] {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    margin: 0;
+}
 
 /* Input & Textarea Controls */
 .ref-input-wrap {
