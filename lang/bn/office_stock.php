@@ -25,6 +25,7 @@ return [
 
     'edit' => 'এডিট',
     'photo_alt' => ':name-এর ছবি',
+    'change_photo' => 'ছবি বদলান',
     'sku' => 'কোড',
     'category' => 'ক্যাটাগরি',
     'unit' => 'ইউনিট',

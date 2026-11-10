@@ -25,6 +25,7 @@ return [
 
     'edit' => 'Edit',
     'photo_alt' => 'Photo of :name',
+    'change_photo' => 'Change photo',
     'sku' => 'Code',
     'category' => 'Category',
     'unit' => 'Unit',

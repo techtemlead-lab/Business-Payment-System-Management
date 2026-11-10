@@ -18,6 +18,10 @@
 
 .os-drawer{display:grid;gap:14px}
 .os-drawer-photo{display:block;width:120px;height:120px;border-radius:var(--ds-r-lg);background:var(--ds-surface-2);object-fit:contain}
+.os-drawer-photo-row{display:flex;flex-wrap:wrap;align-items:center;gap:14px}
+.os-product-photo-link{position:relative;flex:none;display:block;width:40px;height:40px}
+.os-product-photo-link .os-product-photo{display:block}
+.os-product-photo-badge{position:absolute;right:-4px;bottom:-4px;display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--ds-brand);color:#fff}
 .os-facts{display:grid;gap:0;margin:0}
 .os-fact{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:8px 0;border-bottom:1px solid var(--ds-line-soft)}
 .os-fact:last-child{border-bottom:0}

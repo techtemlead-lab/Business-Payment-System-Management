@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
-import { Eye, Plus, Save } from 'lucide-react';
+import { Camera, Eye, Plus, Save } from 'lucide-react';
 import { FeaturedProductsManager } from './website/FeaturedProductsManager';
 import { FeaturedOrderList, type FeaturedOrderProduct } from './website/FeaturedOrderList';
 import type { CustomizationData } from './website/types';
@@ -185,6 +185,9 @@ export default function ProductManagementHub({
     const showsStock = products.some(product => product.stock !== undefined);
     const showsChannelPrices = products.some(product => product.dealer_price !== undefined);
     const productFirstLine = (product: Row) => [product.sku, product.category, product.unit].filter(Boolean).join(' · ');
+    const productPhoto = (product: Row) => (product.image_url || product.image_fallback?.url
+        ? <img className="os-product-photo" src={product.image_url || product.image_fallback?.url} alt="" loading="lazy" />
+        : <span className="os-product-photo" aria-hidden="true" />);
 
     const columns: MoneyColumn<Row>[] = [
         {
@@ -194,9 +197,14 @@ export default function ProductManagementHub({
             phone: 'title',
             render: (product) => (
                 <div className="os-product">
-                    {product.image_url || product.image_fallback?.url
-                        ? <img className="os-product-photo" src={product.image_url || product.image_fallback?.url} alt="" loading="lazy" />
-                        : <span className="os-product-photo" aria-hidden="true" />}
+                    {canEditCatalog && canOpenProduct
+                        ? (
+                            <Link className="os-product-photo-link" href={`/products/${product.id}#photo`} title={t('change_photo')} aria-label={`${t('change_photo')}: ${product.name}`}>
+                                {productPhoto(product)}
+                                <span className="os-product-photo-badge" aria-hidden="true"><Camera size={11} /></span>
+                            </Link>
+                        )
+                        : productPhoto(product)}
                     <div>
                         <span className="os-product-name">{product.name}</span>
                         <small className="cell-sub">{productFirstLine(product)}</small>

@@ -287,7 +287,9 @@ class ProductRegistryController extends Controller
                 throw ValidationException::withMessages(['sub_dealer_price' => __('portal.err_sub_dealer_discount_too_small')]);
             }
         }
-        if (Money::cents($mrp) <= 0 || ($dealer !== null && (Money::cents($dealer) <= 0 || Money::cents($dealer) > Money::cents($mrp)))) {
+        // A save that sends no price, such as changing only the photo, must not be stopped by an old price.
+        $sendsPrice = array_intersect(['mrp', 'dealer_price', 'dealer_discount_pct', 'sub_dealer_price', 'sub_dealer_discount_pct'], array_keys($d)) !== [];
+        if ($sendsPrice && (Money::cents($mrp) <= 0 || ($dealer !== null && (Money::cents($dealer) <= 0 || Money::cents($dealer) > Money::cents($mrp))))) {
             throw ValidationException::withMessages(['mrp' => __('portal.err_prod_price_positive')]);
         }
         $source = $d['video_source'] ?? $product?->video_source ?? 'none';
@@ -435,7 +437,8 @@ class ProductRegistryController extends Controller
         foreach (array_filter($old) as $path) {
             Storage::disk('local')->delete($path);
         }
-        if ($r->boolean('sync_concerns') || array_key_exists('featured', $d)) {
+        $photoChanged = isset($stored['image']) || $r->boolean('remove_image') || $r->boolean('restore_original_image');
+        if ($r->boolean('sync_concerns') || array_key_exists('featured', $d) || $photoChanged) {
             SiteCustomization::forgetCache();
         }
         if ($r->input('redirect_to') === 'catalog') {

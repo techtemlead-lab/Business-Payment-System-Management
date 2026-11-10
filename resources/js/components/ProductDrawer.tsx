@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, router } from '@inertiajs/react';
+import { Camera } from 'lucide-react';
 import { Modal, Row, money, number } from './UI';
 import { useT } from '../shared/i18n/t';
 import ProductRemoveDialog, { removalLine, restoreProduct } from './ProductRemoveDialog';
@@ -43,6 +44,7 @@ export default function ProductDrawer({ product, canStock, canEditCatalog, canOp
     const removal = product.removal;
     const isArchived = product.archived === true;
     const canRemove = canEditCatalog && Boolean(removal);
+    const canChangePhoto = canEditCatalog && canOpenProduct;
     const photo = product.image_url || product.image_fallback?.url;
     const line = removalLine(removal, isArchived, translate);
     const hasCommands = canOpenProduct || canEditCatalog || (canStock && !isArchived);
@@ -65,7 +67,12 @@ export default function ProductDrawer({ product, canStock, canEditCatalog, canOp
         <>
             <Modal title={String(product.name)} onClose={onClose} variant="drawer" badge={<ProductStatusBadge product={product} />} footer={hasCommands ? commands : undefined}>
                 <div className="os-drawer">
-                    {photo && <img className="os-drawer-photo" src={photo} alt={translate('office_stock', 'photo_alt', { name: String(product.name) })} loading="lazy" />}
+                    {(photo || canChangePhoto) && (
+                        <div className="os-drawer-photo-row">
+                            {photo && <img className="os-drawer-photo" src={photo} alt={translate('office_stock', 'photo_alt', { name: String(product.name) })} loading="lazy" />}
+                            {canChangePhoto && <Link className="button" href={`/products/${product.id}#photo`}><Camera size={15} aria-hidden="true" /> {t('change_photo')}</Link>}
+                        </div>
+                    )}
                     <dl className="os-facts">
                         <Fact label={t('sku')}>{product.sku || '—'}</Fact>
                         <Fact label={t('category')}>{[product.category, product.sub_category].filter(Boolean).join(' › ') || '—'}</Fact>
