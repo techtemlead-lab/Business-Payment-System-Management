@@ -66,11 +66,11 @@
         <h2>{{ $chrome('about_network_title', $siteCustomization['about_network_title'] ?? null) }}</h2>
         <p>{{ $chrome('about_network', $siteCustomization['about_network'] ?? null) }}</p>
     </div>
-    <div class="ref-information-links">
+    <div class="ref-information-links is-pairs">
         @if($publicPageEnabled['products'] ?? true)<a href="/products" class="ref-primary-button">{{ $chrome('about_btn_products', $siteCustomization['about_btn_products'] ?? null) }}</a>@endif
         @if($publicPageEnabled['dealers'] ?? true)<a href="/dealers" class="ref-secondary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ $chrome('about_btn_dealers', $siteCustomization['about_btn_dealers'] ?? null) }}</a>@endif
-        @if($publicPageEnabled['partnership'] ?? true)<a href="/partnership" class="ref-ghost-button">{{ __('site.become_a_partner') }}</a>@endif
-        @if($publicPageEnabled['contact'] ?? true)<a href="/contact" class="ref-ghost-button">{{ $chrome('about_btn_contact', $siteCustomization['about_btn_contact'] ?? null) }}</a>@endif
+        @if($publicPageEnabled['partnership'] ?? true)<a href="/partnership" class="ref-secondary-button"><i class="fa-solid fa-handshake" aria-hidden="true"></i> {{ __('site.become_a_partner') }}</a>@endif
+        @if($publicPageEnabled['contact'] ?? true)<a href="/contact" class="ref-secondary-button"><i class="fa-solid fa-building" aria-hidden="true"></i> {{ $chrome('about_btn_contact', $siteCustomization['about_btn_contact'] ?? null) }}</a>@endif
     </div>
 </section>
 @endif

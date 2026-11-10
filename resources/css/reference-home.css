@@ -3853,6 +3853,8 @@ html:not([data-theme="dark"]) .ref-inner-main :is(.ref-content-card p,.ref-page-
 .ref-page-closer p{margin:0;line-height:1.85}
 .ref-inner-main .ref-information-links{margin-top:22px;gap:10px}
 .ref-inner-main .ref-page-closer .ref-information-links{justify-content:flex-end;max-width:560px;margin:0}
+.ref-inner-main .ref-page-closer .ref-information-links.is-pairs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));justify-content:stretch;width:min(100%,420px);max-width:none;margin-left:auto}
+.ref-inner-main .ref-page-closer .ref-information-links.is-pairs>a{width:100%;white-space:normal}
 .ref-inner-main .ref-information-links>a{flex:0 1 auto;min-height:46px;padding:11px 22px;border-radius:9px;font-size:var(--ref-fs-link);font-weight:600;box-shadow:none}
 .ref-inner-main .ref-information-links>a.ref-primary-button{background:var(--sm-green-deep);border-color:var(--sm-green-deep)}
 .ref-inner-main .ref-information-links>a.ref-primary-button:hover{background:var(--sm-green);box-shadow:0 10px 20px -10px rgba(12,59,42,.6)}
@@ -3862,6 +3864,7 @@ html:not([data-theme="dark"]) .ref-inner-main :is(.ref-content-card p,.ref-page-
 @media(max-width:1023px){
   .ref-page-closer{grid-template-columns:minmax(0,1fr)}
   .ref-inner-main .ref-page-closer .ref-information-links{justify-content:flex-start;max-width:none}
+  .ref-inner-main .ref-page-closer .ref-information-links.is-pairs{width:min(100%,520px);margin-left:0}
 }
 
 /* Buttons and typing boxes */
