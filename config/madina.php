@@ -17,6 +17,11 @@ return [
             'preprocessor_config.json' => 'f17fdced4118a9be40e3a32c5e456ef0d5234c01c7ff860889497423ec96e3da',
             'onnx/model_fp16.onnx' => '2290313b335cfdb867eefac47b46aa2b225793fc3deb4da8dbc86e71e9cff2d7',
         ],
+        // For computers whose graphics cannot do the half-precision maths the file above needs.
+        // 245 MB, so it is fetched only on request: add `--full-precision` to the install command.
+        'full_precision_files' => [
+            'onnx/model.onnx' => 'b69359ea66471e57f59099d2e84146091a0534d0d56aa2e33d6bc1ef5e92ccca',
+        ],
     ],
     'auto_release_matured' => env('MADINA_AUTO_RELEASE_MATURED', false),
     'auto_release_quota_holds' => env('MADINA_AUTO_RELEASE_QUOTA_HOLDS', false),

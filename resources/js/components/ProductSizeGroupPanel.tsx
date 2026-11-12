@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { router, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { useT } from '../shared/i18n/t';
 import { ProductStatusBadge } from './ProductDrawer';
 
@@ -70,6 +70,9 @@ export default function ProductSizeGroupPanel({ productId, canEdit }: { productI
                                 <small className="cell-sub">{size.current ? t('this_product') : size.name} · {size.sku}</small>
                             </span>
                             <ProductStatusBadge product={size} />
+                            {canEdit && (size.current
+                                ? <a className="button small" href="#pack-size">{t('change_size')}</a>
+                                : <Link className="button small" href={`/products/${size.id}#pack-size`}>{t('change_size')}</Link>)}
                             {canEdit && <button type="button" className="button small" disabled={busy} onClick={() => remove(size.id)}>{t('remove')}</button>}
                         </li>
                     ))}
