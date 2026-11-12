@@ -10,6 +10,7 @@ import {
     type CutoutPrecision,
     type CutoutProgress,
 } from '../shared/productPhotoCutout';
+import { fitProductPhoto } from '../shared/productPhotoFit';
 
 const BLOCKER_MESSAGES: Record<CutoutBlocker, string> = {
     old_browser: 'ppc_unsupported',
@@ -96,14 +97,19 @@ export default function ProductPhotoCutout({ photo, savedPhotoUrl = null, disabl
         setStatus({ name: 'busy', progress: { stage: 'getting_ready' } });
         try {
             const original = photo ?? await downloadSavedPhoto(savedPhotoUrl as string);
-            const cutout = await removeProductPhotoBackground(original, precision, (progress) => {
+            // The result is saved as the product photo, so it has to fit the server's limits like any other.
+            const fit = await fitProductPhoto(await removeProductPhotoBackground(original, precision, (progress) => {
                 if (run === currentRun.current) {
                     setStatus({ name: 'busy', progress });
                 }
-            });
+            }));
             if (run !== currentRun.current) {
                 return;
             }
+            if (fit.outcome === 'too_large') {
+                throw new Error('The photo without background is too large to save.');
+            }
+            const cutout = fit.photo;
             const originalUrl = URL.createObjectURL(original);
             const cutoutUrl = URL.createObjectURL(cutout);
             previewUrls.current.push(originalUrl, cutoutUrl);
