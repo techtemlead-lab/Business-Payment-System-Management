@@ -97,7 +97,7 @@ final class PrescriptionBook
      * of the prescriber's own, or a new one saved by the same request. Medicines are optional
      * when the prescription holds a test, a food or advice.
      *
-     * @param  array{patient_id?: int|null, new_patient?: array{name: string, age?: int|null, sex?: string|null, phone?: string|null, place_code_id?: int|null, notes?: string|null, allergies?: string|null, patient_consent?: bool|int|string|null}|null, prescribed_on: string, complaints?: string|null, diagnosis?: string|null, advice?: string|null, vitals?: array<string, mixed>|null, follow_up_on?: string|null, investigations?: array<int, string|null>|null, foods_allowed?: array<int, string|null>|null, foods_avoided?: array<int, string|null>|null, lines?: list<array<string, mixed>>|null, confirm_below_floor?: bool|null}  $data
+     * @param  array{patient_id?: int|null, new_patient?: array{name: string, age?: int|null, sex?: string|null, phone?: string|null, place_code_id?: int|null, notes?: string|null, allergies?: string|null, patient_consent?: bool|int|string|null}|null, prescribed_on: string, complaints?: string|null, diagnosis?: string|null, advice?: string|null, vitals?: array<string, mixed>|null, follow_up_on?: string|null, investigations?: array<int, string|null>|null, foods_allowed?: array<int, string|null>|null, foods_avoided?: array<int, string|null>|null, lines?: array<int, array<string, mixed>>|null, confirm_below_floor?: bool|null}  $data
      */
     public function create(User $prescriber, array $data): Prescription
     {
@@ -123,7 +123,7 @@ final class PrescriptionBook
         return DB::transaction(function () use ($prescriber, $ownPatient, $newPatient, $data, $clinic, $rawLines, $lists): Prescription {
             $lines = $this->buildLines($rawLines, $clinic);
             // A new patient is saved inside this transaction, so a prescription that fails leaves no patient behind.
-            $patient = $ownPatient ?? $this->savePatient($prescriber, null, $newPatient ?? throw new \LogicException('A prescription needs a patient.'));
+            $patient = $ownPatient ?? $this->savePatient($prescriber, null, $newPatient);
             // The price floor is about what the clinic sells: company products, not hand-typed medicines.
             $belowFloor = $clinic ? $this->linesBelowFloor(array_values(array_filter($lines, fn (array $line): bool => $line['product_id'] !== null))) : [];
             $overridden = ClinicDispensing::enforcePriceFloor($prescriber, $belowFloor, (bool) ($data[ClinicDispensing::ConfirmBelowFloorField] ?? false), 'lines');
