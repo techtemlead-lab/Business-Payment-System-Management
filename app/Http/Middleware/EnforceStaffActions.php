@@ -184,7 +184,7 @@ class EnforceStaffActions
             } elseif (in_array($method, ['destroy', 'restore', 'featuredOrder'], true)) {
                 $this->authorize($actor, ['catalog'], 'edit');
             } else {
-                foreach (['catalog' => ['name', 'sku', 'category', 'sub_category', 'strength', 'description', 'unit', 'active', 'featured', 'image', 'image_original', 'restore_original_image', 'remove_image', 'video_source', 'youtube_url', 'vimeo_url', 'external_video_url', 'video', 'product_category_id', 'product_subcategory_id', 'product_unit_id', 'expires_on', 'batch_number', ...ProductFacts::requestFields()],
+                foreach (['catalog' => ['name', 'sku', 'category', 'sub_category', 'strength', 'description', 'unit', 'active', 'featured', 'home_page_place', 'image', 'image_original', 'restore_original_image', 'remove_image', 'video_source', 'youtube_url', 'vimeo_url', 'external_video_url', 'video', 'product_category_id', 'product_subcategory_id', 'product_unit_id', 'expires_on', 'batch_number', ...ProductFacts::requestFields()],
                     'pricing' => ['mrp', 'dealer_price', 'dealer_discount_pct', 'sub_dealer_price', 'sub_dealer_discount_pct', 'cost_price'], 'inventory' => ['low_stock_at', 'initial_stock']] as $module => $fields) {
                     if (array_intersect(array_keys($request->all()), $fields)) {
                         $required[] = $module;

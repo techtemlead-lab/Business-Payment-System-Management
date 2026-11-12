@@ -89,7 +89,7 @@ export function FeaturedOrderList({
                                     }}
                                 />
                             ) : (
-                                <span className="ed-strong">{index + 1}</span>
+                                <span className="ed-strong">{localizeDigits(String(index + 1))}</span>
                             )}
                             <span className="ed-order-thumb">
                                 {item.image ? <img src={item.image} alt="" loading="lazy" /> : <Package size={20} />}

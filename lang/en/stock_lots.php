@@ -156,7 +156,7 @@ return [
     'product_state_active' => 'Active',
     'product_state_draft' => 'Draft',
     'product_state_archived' => 'Archived',
-    'filter_featured' => 'Featured',
+    'filter_featured' => 'Shown on home page?',
     'filter_paused' => 'Ordering paused',
     'answer_yes' => 'Yes',
     'answer_no' => 'No',

@@ -156,7 +156,7 @@ return [
     'product_state_active' => 'চালু',
     'product_state_draft' => 'খসড়া',
     'product_state_archived' => 'আর্কাইভ করা',
-    'filter_featured' => 'ফিচার্ড',
+    'filter_featured' => 'হোম পেজে দেখায়?',
     'filter_paused' => 'অর্ডার বন্ধ',
     'answer_yes' => 'হ্যাঁ',
     'answer_no' => 'না',

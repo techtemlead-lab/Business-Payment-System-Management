@@ -303,6 +303,36 @@ final class ProductSizeGroups
      */
     private static function refuseRepeatedSize(Collection $sizes): void
     {
+        $repeated = self::repeatedSize($sizes);
+        if ($repeated !== null) {
+            self::refuse('err_size_repeated', ['size' => $repeated['size']]);
+        }
+    }
+
+    /**
+     * Stops a pack size being changed to the words another size of the same product already uses.
+     * Call after the product is saved, inside the same transaction, so the refusal undoes the save.
+     */
+    public static function refuseRepeatedSizeAfterEdit(Product $product): void
+    {
+        if ($product->product_group_id === null || $product->isArchived()) {
+            return;
+        }
+        ProductGroup::query()->whereKey($product->product_group_id)->lockForUpdate()->first();
+        $repeated = self::repeatedSize(Product::query()->where('product_group_id', $product->product_group_id)->get());
+        if ($repeated !== null) {
+            throw ValidationException::withMessages([$repeated['column'] => __('size_groups.err_size_repeated', ['size' => $repeated['size']])]);
+        }
+    }
+
+    /**
+     * The first pack size written the same way on two sizes, ignoring spaces and letter case.
+     *
+     * @param  Collection<int, Product>  $sizes
+     * @return array{column: string, size: string}|null
+     */
+    private static function repeatedSize(Collection $sizes): ?array
+    {
         foreach (['pack_size_en', 'pack_size_bn'] as $column) {
             $seen = [];
             foreach ($sizes->reject(fn (Product $size): bool => $size->isArchived()) as $size) {
@@ -312,11 +342,13 @@ final class ProductSizeGroups
                     continue;
                 }
                 if (isset($seen[$comparable])) {
-                    self::refuse('err_size_repeated', ['size' => trim($written)]);
+                    return ['column' => $column, 'size' => trim($written)];
                 }
                 $seen[$comparable] = true;
             }
         }
+
+        return null;
     }
 
     /**

@@ -1,5 +1,8 @@
 import React from 'react';
+import { usePage } from '@inertiajs/react';
+import type { FeaturedOrderProduct } from '../FeaturedOrderList';
 import { FeaturedProductsManager } from '../FeaturedProductsManager';
+import { HomePageOrderPanel } from '../HomePageOrderPanel';
 import { Field, ImageUploadButton } from '../formFields';
 import { VideoGalleryRows } from '../VideoGalleryRows';
 import { WebsiteGroup, WebsiteToolLink, type WebsiteSectionProps } from '../WebsiteLayout';
@@ -9,6 +12,7 @@ import { useT } from '../../../shared/i18n/t';
 /** Banners, products, reviews and videos on the home page. */
 export default function HomeModule({ form, defaults, products, updateField, updateSlide, updateSideSlide, videoSetting, videoProducts }: WebsiteSectionProps) {
     const translate = useT();
+    const homePageOrder: FeaturedOrderProduct[] = usePage<any>().props.data?.featured_order_products ?? [];
     const yesNo = (value: string) => translate('portal', value === '1' ? 'yes' : 'no');
     const galleryOn = form.data.customization.video_gallery_enabled !== '0';
     const homepageFields: ActionField[] = [
@@ -193,6 +197,11 @@ export default function HomeModule({ form, defaults, products, updateField, upda
         </WebsiteGroup>
 
         <WebsiteGroup title={translate('portal', 'sce_featured_products_section')}>
+                            <HomePageOrderPanel
+                                saved={homePageOrder}
+                                candidates={products}
+                                otherListInUse={form.data.customization.featured_products_mode === 'curated' && (form.data.customization.featured_products_items || []).length > 0}
+                            />
                             <FeaturedProductsManager
                                 customization={form.data.customization}
                                 defaults={defaults}

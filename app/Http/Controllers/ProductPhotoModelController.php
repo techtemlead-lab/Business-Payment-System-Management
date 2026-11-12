@@ -15,9 +15,9 @@ class ProductPhotoModelController extends Controller
     public function __invoke(Request $request, string $file): BinaryFileResponse
     {
         abort_unless($request->user()?->staff() && $request->user()->allows('catalog'), 403);
-        /** @var array{directory: string, files: array<string, string>} $model */
+        /** @var array{directory: string, files: array<string, string>, full_precision_files?: array<string, string>} $model */
         $model = config('madina.product_photo_model');
-        abort_unless(array_key_exists($file, $model['files']), 404);
+        abort_unless(array_key_exists($file, $model['files'] + ($model['full_precision_files'] ?? [])), 404);
 
         $path = $model['directory'].'/'.$file;
         abort_unless(Storage::disk('local')->exists($path), 404);
