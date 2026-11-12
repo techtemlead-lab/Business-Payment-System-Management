@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Support\SiteCustomization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -51,7 +52,8 @@ class SiteSharedFactsTest extends TestCase
     {
         $this->saveAsEditor(['contact_phone' => '01900-111111']);
 
-        $this->get('/')->assertOk()->assertSee('01900-111111')->assertSee('tel:01900111111', false)->assertDontSee('+8801730532966');
+        // The footer shows a Bangladeshi mobile with the +880 prefix, however it was typed, and its link dials the same number.
+        $this->get('/')->assertOk()->assertSee('+8801900111111')->assertSee('tel:+8801900111111', false)->assertDontSee('+8801730532966');
         $this->get('/contact')->assertOk()->assertSee('01900-111111')->assertDontSee('+8801730532966');
     }
 
@@ -79,7 +81,7 @@ class SiteSharedFactsTest extends TestCase
             $this->get($path)->assertOk()->assertDontSee('{company}', false)->assertDontSee('{address}', false)->assertDontSee('{phones}', false)->assertDontSee('{licence}', false);
         }
         $this->get('/about')->assertSee('2026-00563')->assertSee('Thana Road, Pirganj 5470, Rangpur');
-        $this->get('/privacy')->assertSee('+8801730532966 / 01730532967');
+        $this->get('/privacy')->assertSee('+8801730532966 / 01730532965');
     }
 
     public function test_bangla_visitors_get_bangla_digits_inside_sentences(): void
@@ -111,13 +113,13 @@ class SiteSharedFactsTest extends TestCase
     {
         $this->get('/')->assertOk()
             ->assertDontSee('ref-footer-contact-link is-hotline', false)
-            ->assertSeeInOrder(['ref-support-contacts', '01730532967'], false);
-        $this->get('/contact')->assertSee('01730532967');
+            ->assertSeeInOrder(['ref-support-contacts', '01730532965'], false);
+        $this->get('/contact')->assertSee('01730532965');
 
         $this->saveAsEditor(['footer_phone' => '']);
 
-        $this->get('/')->assertOk()->assertDontSee('01730532967');
-        $this->get('/contact')->assertOk()->assertDontSee('01730532967');
+        $this->get('/')->assertOk()->assertDontSee('01730532965');
+        $this->get('/contact')->assertOk()->assertDontSee('01730532965');
     }
 
     public function test_the_number_that_was_never_the_companys_gives_way_when_it_was_saved_earlier(): void
@@ -125,8 +127,31 @@ class SiteSharedFactsTest extends TestCase
         $this->storeOldStyleRow(['footer_phone' => '01723731877']);
 
         foreach (['/', '/contact', '/privacy'] as $path) {
-            $this->get($path)->assertOk()->assertSee('01730532967')->assertDontSee('01723731877');
+            $this->get($path)->assertOk()->assertSee('01730532965')->assertDontSee('01723731877');
         }
+    }
+
+    /** @return array<string, array{string}> */
+    public static function wrongSecondNumbers(): array
+    {
+        return ['as the earlier migration saved it' => ['01730532967'], 'with the country code' => ['+8801730532967']];
+    }
+
+    #[DataProvider('wrongSecondNumbers')]
+    public function test_the_second_number_saved_with_a_wrong_last_digit_gives_way_to_the_right_one(string $saved): void
+    {
+        $this->storeOldStyleRow(['footer_phone' => $saved]);
+
+        foreach (['/', '/contact', '/privacy', '/faq'] as $path) {
+            $this->get($path)->assertOk()->assertSee('01730532965')->assertDontSee('01730532967');
+        }
+    }
+
+    public function test_a_second_number_the_owner_typed_is_still_the_one_shown(): void
+    {
+        $this->saveAsEditor(['footer_phone' => '01812-345678']);
+
+        $this->get('/')->assertOk()->assertSee('+8801812345678')->assertDontSee('01730532965');
     }
 
     public function test_every_social_network_appears_side_by_side_in_the_footer_and_on_the_contact_page(): void
@@ -201,7 +226,9 @@ class SiteSharedFactsTest extends TestCase
     {
         $this->storeOldStyleRow(['contact_phone' => '+8801730532966', 'footer_phone' => '01730-532966']);
         $this->runMergeMigration();
-        $this->assertSame('01730532967', SiteCustomization::raw()['footer_phone']);
+        // The migration saved the number with a wrong last digit; that saved value now gives way to the right one.
+        $this->assertArrayNotHasKey('footer_phone', SiteCustomization::raw());
+        $this->assertSame('01730532965', SiteCustomization::secondPhone());
 
         $this->storeOldStyleRow(['contact_phone' => '+8801730532966', 'footer_phone' => '01812345678']);
         $this->runMergeMigration();

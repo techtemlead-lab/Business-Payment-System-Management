@@ -96,6 +96,10 @@ Schedule::command('stock:count-reminders')->dailyAt('09:45')->timezone('Asia/Dha
 // Failed background jobs are kept for a week to investigate, then removed.
 Schedule::command('queue:prune-failed --hours=168')->dailyAt('04:15')->timezone('Asia/Dhaka')->withoutOverlapping(30)->onOneServer();
 
+// The owner's visitor count keeps page-by-page visit rows for a year; the daily totals stay for good.
+Schedule::command('visits:prune')->dailyAt('04:30')->timezone('Asia/Dhaka')->withoutOverlapping(30)->onOneServer()
+    ->onFailure(fn () => Log::warning('Scheduled clean-up of old website visits failed.'));
+
 if (! in_array(config('queue.default'), ['sync', 'null'], true)) {
     Schedule::command('queue:monitor '.config('queue.default').':default,imports --max=1000')->everyFiveMinutes()->withoutOverlapping()->onOneServer()
         ->onFailure(fn () => Log::critical('Queue monitoring failed.'));

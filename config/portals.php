@@ -86,7 +86,7 @@ return [
             'dashboards', 'employees', 'accounts', 'sub-dealers', 'sub-dealer-applications', 'sub-dealer-orders', 'inventory', 'branches', 'branch-performance',
             'payments', 'policies', 'reports', 'top-sellers', 'partner-scorecard', 'content', 'website', 'customization', 'public-trust',
             'enquiries', 'feedback', 'partnerships', 'audit', 'commissions', 'network-tree', 'area-dealers', 'place-codes', 'ranks',
-            'settlements', 'simulator', 'payouts-hub', 'help', 'support-admin', 'agreement', 'partner-messages', 'training', 'events', 'data-cleanup', 'prescriptions', 'sales-kit', 'schemes', 'contests', 'privacy-requests', 'stock-lots', 'purchasing', 'stock-counts', 'identity-review', 'login-rules',
+            'settlements', 'simulator', 'payouts-hub', 'help', 'support-admin', 'agreement', 'partner-messages', 'training', 'events', 'data-cleanup', 'prescriptions', 'sales-kit', 'schemes', 'contests', 'privacy-requests', 'stock-lots', 'purchasing', 'stock-counts', 'identity-review', 'login-rules', 'visitors',
         ],
         'staff_capabilities' => [
             'dashboards' => 'accounts',

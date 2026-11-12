@@ -425,7 +425,7 @@ class SiteCustomization
             'footer_directory_link' => '/dealers',
             'footer_directory_icon' => 'fa-solid fa-location-dot',
             // The second number. The first is contact_phone.
-            'footer_phone' => '01730532967',
+            'footer_phone' => '01730532965',
             'footer_email' => '',
             'footer_address' => $copy('footer_address'),
             'footer_location' => $copy('footer_location'),
@@ -971,7 +971,7 @@ class SiteCustomization
 
     /**
      * A Bangladeshi mobile shown with the +880 prefix.
-     * 01730532967 and +8801730532967 both display as +8801730532967.
+     * 01730532965 and +8801730532965 both display as +8801730532965.
      */
     public static function internationalDisplay(string $phone): string
     {

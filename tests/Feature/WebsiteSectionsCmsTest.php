@@ -201,7 +201,7 @@ class WebsiteSectionsCmsTest extends TestCase
             ->get('/orders/'.$order->id.'/invoice/print')
             ->assertOk()
             ->assertSee(config('madina.invoice_manufacturer'))
-            ->assertSee('01730532967, +8801730532966');
+            ->assertSee('01730532965, +8801730532966');
     }
 
     public function test_invoice_letterhead_uses_what_the_owner_typed(): void

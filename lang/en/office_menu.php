@@ -44,6 +44,7 @@ return [
     'tab_public_trust' => 'Trust page',
     'tab_video_marketing' => 'Videos',
     'tab_feedback' => 'Customer reviews',
+    'tab_visitors' => 'Visitors',
 
     'partner_tab_orders' => 'Orders',
     'partner_tab_deliveries' => 'Deliveries',

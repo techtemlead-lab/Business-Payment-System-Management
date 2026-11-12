@@ -81,7 +81,7 @@ class PublicInnerPagesTest extends TestCase
     {
         $this->get('/faq')->assertOk()
             ->assertSee('ref-faq-item', false)
-            ->assertSeeInOrder(['ref-faq-help', '+8801730532966', '01730532967'], false);
+            ->assertSeeInOrder(['ref-faq-help', '+8801730532966', '01730532965'], false);
     }
 
     public function test_the_product_page_leads_with_the_price_and_keeps_sharing_beside_the_details(): void

@@ -69,19 +69,20 @@ const Enquiries=React.lazy(()=>import('../components/office/sections/Enquiries')
 const Feedback=React.lazy(()=>import('../components/office/sections/Feedback'));
 const Applications=React.lazy(()=>import('../components/office/sections/Applications'));
 const LoginRules=React.lazy(()=>import('../components/office/sections/LoginRules'));
+const Visitors=React.lazy(()=>import('../components/office/sections/Visitors'));
 const Payments=React.lazy(()=>import('../components/office/sections/Payments'));
 const Inventory=React.lazy(()=>import('../components/office/sections/Inventory'));
 const Accounts=React.lazy(()=>import('../components/office/sections/Accounts'));
 const PartnerFrame=React.lazy(()=>import('../components/office/sections/PartnerFrame'));
 const SettingsHome=React.lazy(()=>import('../components/office/SettingsHome'));
 /** These pages draw their own tab strip through OfficePage, so the page must not print a second one. */
-const DRAWS_OWN_TABS=['accounts','sub-dealers','partnerships','sub-dealer-applications','network-tree','area-dealers','ranks','employees','content','website','customization','public-trust','enquiries','feedback','agreement','training','events','sales-kit','schemes','contests','dashboards','data-cleanup','identity-review','privacy-requests','login-rules','overview','support-admin','partner-messages','top-sellers','branch-performance','partner-scorecard','purchasing'];
+const DRAWS_OWN_TABS=['accounts','sub-dealers','partnerships','sub-dealer-applications','network-tree','area-dealers','ranks','employees','content','website','customization','public-trust','enquiries','feedback','agreement','training','events','sales-kit','schemes','contests','dashboards','data-cleanup','identity-review','privacy-requests','login-rules','visitors','overview','support-admin','partner-messages','top-sellers','branch-performance','partner-scorecard','purchasing'];
 /**
  * Every 30 seconds work queues refresh their list, so new orders and payments show up
  * without a reload. Every other page only refreshes the menu badges: re-sending a whole
  * report or the network tree every few seconds wastes the user's mobile data.
  */
-const LIVE_SECTIONS=['overview','orders','payments','deliveries','notifications','sub-dealer-orders','payouts-hub'];
+const LIVE_SECTIONS=['overview','orders','payments','deliveries','notifications','sub-dealer-orders','payouts-hub','visitors'];
 
 
 export default function Portal({section,data:d,filters}:{section:string,data:Row,filters:Row}){
@@ -139,6 +140,7 @@ export default function Portal({section,data:d,filters}:{section:string,data:Row
  {section==='profile'&&<Profile {...sectionProps}/>}
  {section==='security'&&<Security {...sectionProps}/>}
  {section==='login-rules'&&['super_admin','md','chairman'].includes(u.role)&&<LoginRules otp={securityControls?.partner_login_otp||{}} passwordResetNotice={securityControls?.password_reset_notice}/>}
+ {section==='visitors'&&d.visitors&&<Visitors report={d.visitors} hub={d.hub}/>}
  {section==='content'&&<Content {...sectionProps}/>}
  {(section==='website'||section==='customization')&&<SiteCustomizationEditor trustEditor={d.trust_editor} customization={d.customization} defaults={d.defaults} products={d.products} websitePages={d.websitePages} bnCopy={d.bangla_defaults} videoSetting={d.videoSetting} videoProducts={d.videoProducts}/>}
  {section==='public-trust'&&<PublicTrustHub data={d.public_trust}/>}

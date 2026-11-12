@@ -649,6 +649,41 @@ function prefetchLikelyNextPages() {
     }
 }
 
+/**
+ * Tells the server this public page was opened, for the owner's visitor count. It sends the
+ * page address, the site the visitor came from and the screen width, and nothing about the person.
+ * The server skips bots and the company's own people, and answers nothing either way.
+ */
+function reportPageSeen() {
+    // The portal login pages reuse this script; only the public website is counted.
+    if (PORTAL_SUBDOMAINS.includes(window.location.hostname.split('.')[0] ?? '')) {
+        return;
+    }
+    const token = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content;
+    if (!token) {
+        return;
+    }
+
+    const query = new URLSearchParams(window.location.search);
+    const report = new FormData();
+    report.append('_token', token);
+    report.append('path', window.location.pathname);
+    report.append('referrer', document.referrer);
+    report.append('screen', String(window.innerWidth));
+    // Ad links opened inside the Facebook or Google apps often carry no referrer, only this mark.
+    report.append('tag', query.has('fbclid') ? 'fbclid' : query.has('gclid') ? 'gclid' : '');
+
+    try {
+        if (typeof navigator.sendBeacon === 'function') {
+            navigator.sendBeacon('/seen', report);
+        } else {
+            void fetch('/seen', { method: 'POST', body: report, keepalive: true, credentials: 'same-origin' }).catch(() => undefined);
+        }
+    } catch {
+        // Counting visits must never disturb the page.
+    }
+}
+
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         initScrollReveal();
@@ -657,6 +692,7 @@ if (document.readyState === 'loading') {
         bindLocaleSwitchForms();
         initPageProgressNavigation();
         prefetchLikelyNextPages();
+        reportPageSeen();
     });
 } else {
     initScrollReveal();
@@ -665,4 +701,5 @@ if (document.readyState === 'loading') {
     bindLocaleSwitchForms();
     initPageProgressNavigation();
     prefetchLikelyNextPages();
+    reportPageSeen();
 }
