@@ -119,6 +119,10 @@ final class ClinicDispensing
                 throw ValidationException::withMessages(['prescription' => __('prescription.err_already_dispensed')]);
             }
             $locked->load('lines');
+            if ($locked->lines->isEmpty()) {
+                // A prescription of tests, foods or advice only has no stock to take out and no sale to post.
+                throw ValidationException::withMessages(['prescription' => __('prescription.err_nothing_to_dispense')]);
+            }
             $split = $this->split($locked);
             $overridden = self::enforcePriceFloor($actor, $split['below_floor'], $confirmBelowFloor, 'prices');
             foreach ($locked->lines as $line) {

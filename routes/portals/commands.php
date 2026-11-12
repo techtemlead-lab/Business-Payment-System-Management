@@ -223,6 +223,9 @@ return function (string $portal): void {
     Route::post('/commands/prescriptions/registration', [PrescriptionController::class, 'registration'])->middleware('throttle:10,1');
     Route::post('/commands/prescriptions/templates', [PrescriptionToolsController::class, 'storeTemplate'])->middleware('throttle:30,1');
     Route::delete('/commands/prescriptions/templates/{template}', [PrescriptionToolsController::class, 'destroyTemplate'])->whereNumber('template')->middleware('throttle:30,1');
+    Route::post('/commands/prescriptions/diet-templates', [PrescriptionToolsController::class, 'storeDietTemplate'])->middleware('throttle:30,1');
+    Route::patch('/commands/prescriptions/diet-templates/{dietTemplate}', [PrescriptionToolsController::class, 'updateDietTemplate'])->whereNumber('dietTemplate')->middleware('throttle:30,1');
+    Route::delete('/commands/prescriptions/diet-templates/{dietTemplate}', [PrescriptionToolsController::class, 'destroyDietTemplate'])->whereNumber('dietTemplate')->middleware('throttle:30,1');
     Route::post('/commands/prescriptions/{prescription}/follow-up-done', [PrescriptionToolsController::class, 'markFollowUpDone'])->whereNumber('prescription')->middleware('throttle:60,1');
     Route::get('/prescriptions/{prescription}/print', [PrescriptionController::class, 'print'])->whereNumber('prescription')->middleware('throttle:30,1');
     Route::post('/commands/prescriptions/public-listing', [PrescriberPublicToolsController::class, 'saveListing'])->middleware('throttle:20,1');

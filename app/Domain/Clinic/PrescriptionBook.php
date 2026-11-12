@@ -89,20 +89,37 @@ final class PrescriptionBook
 
     /**
      * Writes a prescription. Partners type every medicine; company-stock prescribers pick
-     * products, and the medicine name and MRP are copied from the product.
+     * products, and the medicine name and MRP are copied from the product. The patient is one
+     * of the prescriber's own, or a new one saved by the same request. Medicines are optional
+     * when the prescription holds a test, a food or advice.
      *
-     * @param  array{patient_id: int, prescribed_on: string, complaints?: string|null, diagnosis?: string|null, advice?: string|null, vitals?: array<string, mixed>|null, follow_up_on?: string|null, lines: list<array<string, mixed>>, confirm_below_floor?: bool|null}  $data
+     * @param  array{patient_id?: int|null, new_patient?: array{name: string, age?: int|null, sex?: string|null, phone?: string|null, place_code_id?: int|null, notes?: string|null, allergies?: string|null, patient_consent?: bool|int|string|null}|null, prescribed_on: string, complaints?: string|null, diagnosis?: string|null, advice?: string|null, vitals?: array<string, mixed>|null, follow_up_on?: string|null, investigations?: array<int, string|null>|null, foods_allowed?: array<int, string|null>|null, foods_avoided?: array<int, string|null>|null, lines?: list<array<string, mixed>>|null, confirm_below_floor?: bool|null}  $data
      */
     public function create(User $prescriber, array $data): Prescription
     {
         abort_unless(PrescriptionAccess::canPrescribe($prescriber), 403);
-        $patient = PrescriptionPatient::query()->findOrFail($data['patient_id']);
-        // A prescription is always written for one of the prescriber's own patients.
-        abort_unless((int) $patient->prescriber_id === (int) $prescriber->id, 404);
+        $newPatient = $data['new_patient'] ?? null;
+        $ownPatient = null;
+        if ($newPatient === null) {
+            $ownPatient = PrescriptionPatient::query()->findOrFail($data['patient_id'] ?? 0);
+            // A prescription is always written for one of the prescriber's own patients.
+            abort_unless((int) $ownPatient->prescriber_id === (int) $prescriber->id, 404);
+        }
         $clinic = PrescriptionAccess::usesCompanyStock($prescriber);
+        $rawLines = array_values($data['lines'] ?? []);
+        $lists = [
+            'investigations' => PrescriptionLists::clean($data['investigations'] ?? null),
+            'foods_allowed' => PrescriptionLists::clean($data['foods_allowed'] ?? null),
+            'foods_avoided' => PrescriptionLists::clean($data['foods_avoided'] ?? null),
+        ];
+        if ($rawLines === [] && array_filter($lists) === [] && $this->text($data['advice'] ?? null) === null) {
+            throw ValidationException::withMessages(['lines' => __('prescription.err_nothing_written')]);
+        }
 
-        return DB::transaction(function () use ($prescriber, $patient, $data, $clinic): Prescription {
-            $lines = $this->buildLines($data['lines'], $clinic);
+        return DB::transaction(function () use ($prescriber, $ownPatient, $newPatient, $data, $clinic, $rawLines, $lists): Prescription {
+            $lines = $this->buildLines($rawLines, $clinic);
+            // A new patient is saved inside this transaction, so a prescription that fails leaves no patient behind.
+            $patient = $ownPatient ?? $this->savePatient($prescriber, null, $newPatient ?? throw new \LogicException('A prescription needs a patient.'));
             $belowFloor = $clinic ? $this->linesBelowFloor($lines) : [];
             $overridden = ClinicDispensing::enforcePriceFloor($prescriber, $belowFloor, (bool) ($data[ClinicDispensing::ConfirmBelowFloorField] ?? false), 'lines');
             $subtotal = array_sum(array_column($lines, 'gross_cents'));
@@ -118,6 +135,7 @@ final class PrescriptionBook
                 'advice' => $data['advice'] ?? null,
                 'vitals' => Vitals::clean($data['vitals'] ?? null),
                 'follow_up_on' => $data['follow_up_on'] ?? null,
+                ...$lists,
                 'subtotal' => Money::decimal($subtotal),
                 'discount_total' => Money::decimal($discount),
                 'total' => Money::decimal($subtotal - $discount),
@@ -236,7 +254,7 @@ final class PrescriptionBook
      */
     private function buildLines(array $rawLines, bool $clinic): array
     {
-        if ($rawLines === [] || count($rawLines) > self::MaxLines) {
+        if (count($rawLines) > self::MaxLines) {
             throw ValidationException::withMessages(['lines' => __('prescription.err_lines_count', ['max' => self::MaxLines])]);
         }
         $products = $clinic

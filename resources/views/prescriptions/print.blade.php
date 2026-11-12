@@ -5,6 +5,9 @@
     $place = $patient?->placeCode ? trim(\App\Models\PlaceCode::displayLabel($patient->placeCode->code).' '.\App\Models\PlaceCode::displayLabel($patient->placeCode->name)) : null;
     $other = $lang === 'bn' ? 'en' : 'bn';
     $digits = fn (string|int|float|null $value): string => \App\Support\LocalDigits::text($value, $lang);
+    $investigations = $prescription->investigations ?? [];
+    $foodsAllowed = $prescription->foods_allowed ?? [];
+    $foodsAvoided = $prescription->foods_avoided ?? [];
 @endphp
 <!DOCTYPE html>
 <html lang="{{ $lang }}">
@@ -35,6 +38,9 @@
         ol li { margin-bottom: 8px; }
         ol li small { display: block; color: #475569; }
         ol li .dosing { margin-top: 2px; font-size: 14px; font-weight: 600; color: #0f172a; }
+        ul { padding-left: 18px; margin: 2px 0 6px; }
+        .foods { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 18px; margin-top: 12px; padding-top: 6px; border-top: 1px solid #cbd5e1; }
+        .main p.advice { margin: 0 0 6px; white-space: pre-wrap; }
         table.totals { margin-left: auto; margin-top: 10px; border-collapse: collapse; }
         table.totals td { padding: 3px 8px; }
         table.totals td.amt { text-align: right; font-weight: 600; }
@@ -83,30 +89,53 @@
             @endif
             @if ($prescription->complaints)<h3>{{ $t('rx_complaints') }}</h3><p>{{ $prescription->complaints }}</p>@endif
             @if ($prescription->diagnosis)<h3>{{ $t('rx_diagnosis') }}</h3><p>{{ $prescription->diagnosis }}</p>@endif
-            @if ($prescription->advice)<h3>{{ $t('rx_advice') }}</h3><p>{{ $prescription->advice }}</p>@endif
+            @if ($investigations !== [])
+                <h3>{{ $t('rx_tests') }}</h3>
+                <ul>@foreach ($investigations as $investigation)<li>{{ $investigation }}</li>@endforeach</ul>
+            @endif
             @if ($prescription->follow_up_on)<h3>{{ $t('rx_follow_up') }}</h3><p>{{ $digits($prescription->follow_up_on->format('d-m-Y')) }}</p>@endif
         </aside>
         <div class="main">
-            <p class="rx">℞</p>
-            <ol>
-                @foreach ($prescription->lines as $line)
-                    <li>
-                        <b>{{ $line->medicine_name }}</b> × {{ $digits($line->quantity) }}
-                        @php $dosing = \App\Domain\Clinic\DoseSchedule::summary($line, $lang); @endphp
-                        @if ($dosing !== '')<div class="dosing">{{ $dosing }}</div>@endif
-                        <small>{{ collect([$line->dose, $line->frequency, $line->duration])->filter()->implode(' · ') }}</small>
-                        @if ($line->instructions)<small>{{ $line->instructions }}</small>@endif
-                    </li>
-                @endforeach
-            </ol>
-            <table class="totals">
-                <tr><td>{{ $t('rx_subtotal') }}</td><td class="amt">৳ {{ $digits($prescription->subtotal) }}</td></tr>
-                @if ((float) $prescription->discount_total > 0)<tr><td>{{ $t('rx_discount_total') }}</td><td class="amt">− ৳ {{ $digits($prescription->discount_total) }}</td></tr>@endif
-                <tr><td><b>{{ $t('rx_total') }}</b></td><td class="amt">৳ {{ $digits($prescription->total) }}</td></tr>
-                @if ($prescription->status === \App\Models\Prescription::StatusDispensed)
-                    <tr><td>{{ $t('payment_method') }}</td><td class="amt">{{ $t('payment_'.$prescription->payment_method) }}@if ($prescription->payment_reference) · {{ $t('payment_ref_short') }} {{ $prescription->payment_reference }}@endif</td></tr>
-                @endif
-            </table>
+            {{-- A prescription of tests, foods or advice only has no medicine list and no bill. --}}
+            @if ($prescription->lines->isNotEmpty())
+                <p class="rx">℞</p>
+                <ol>
+                    @foreach ($prescription->lines as $line)
+                        <li>
+                            <b>{{ $line->medicine_name }}</b> × {{ $digits($line->quantity) }}
+                            @php $dosing = \App\Domain\Clinic\DoseSchedule::summary($line, $lang); @endphp
+                            @if ($dosing !== '')<div class="dosing">{{ $dosing }}</div>@endif
+                            <small>{{ collect([$line->dose, $line->frequency, $line->duration])->filter()->implode(' · ') }}</small>
+                            @if ($line->instructions)<small>{{ $line->instructions }}</small>@endif
+                        </li>
+                    @endforeach
+                </ol>
+                <table class="totals">
+                    <tr><td>{{ $t('rx_subtotal') }}</td><td class="amt">৳ {{ $digits($prescription->subtotal) }}</td></tr>
+                    @if ((float) $prescription->discount_total > 0)<tr><td>{{ $t('rx_discount_total') }}</td><td class="amt">− ৳ {{ $digits($prescription->discount_total) }}</td></tr>@endif
+                    <tr><td><b>{{ $t('rx_total') }}</b></td><td class="amt">৳ {{ $digits($prescription->total) }}</td></tr>
+                    @if ($prescription->status === \App\Models\Prescription::StatusDispensed)
+                        <tr><td>{{ $t('payment_method') }}</td><td class="amt">{{ $t('payment_'.$prescription->payment_method) }}@if ($prescription->payment_reference) · {{ $t('payment_ref_short') }} {{ $prescription->payment_reference }}@endif</td></tr>
+                    @endif
+                </table>
+            @endif
+            @if ($foodsAllowed !== [] || $foodsAvoided !== [])
+                <div class="foods">
+                    @if ($foodsAllowed !== [])
+                        <div>
+                            <h3>{{ $t('rx_foods_allowed') }}</h3>
+                            <ul>@foreach ($foodsAllowed as $food)<li>{{ $food }}</li>@endforeach</ul>
+                        </div>
+                    @endif
+                    @if ($foodsAvoided !== [])
+                        <div>
+                            <h3>{{ $t('rx_foods_avoided') }}</h3>
+                            <ul>@foreach ($foodsAvoided as $food)<li>{{ $food }}</li>@endforeach</ul>
+                        </div>
+                    @endif
+                </div>
+            @endif
+            @if ($prescription->advice)<h3>{{ $t('rx_advice') }}</h3><p class="advice">{{ $prescription->advice }}</p>@endif
         </div>
     </section>
     <div class="sign"><div>{{ $t('print_signature') }}</div></div>
