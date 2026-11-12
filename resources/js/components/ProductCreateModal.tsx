@@ -4,7 +4,9 @@ import { Upload, AlertCircle } from 'lucide-react';
 import { Modal } from './UI';
 import { useT } from '../shared/i18n/t';
 import { suggestSku } from '../shared/sku';
+import { useProductPhotoFit } from '../shared/productPhotoFit';
 import ProductPhotoCutout from './ProductPhotoCutout';
+import ProductPhotoFitNote from './ProductPhotoFitNote';
 
 type CatalogSubcategory = { id: number; name: string; is_active?: boolean };
 type CatalogCategory = { id: number; name: string; is_active?: boolean; subcategories?: CatalogSubcategory[] };
@@ -101,6 +103,17 @@ export default function ProductCreateModal({
     const [submitting, setSubmitting] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const formRef = useRef<HTMLFormElement>(null);
+    const photoInput = useRef<HTMLInputElement>(null);
+    // A photo too heavy or too wide for the server is made smaller here, before anything is sent.
+    const photoFit = useProductPhotoFit((photo) => {
+        setImageFile(photo);
+        setCutoutFile(null);
+        setImagePreview(photo ? URL.createObjectURL(photo) : null);
+        if (!photo && photoInput.current) {
+            // A photo that cannot be used must not stay named in the box.
+            photoInput.current.value = '';
+        }
+    });
 
     // Refresh the pick lists when the page data changes, without touching what was typed.
     useEffect(() => {
@@ -123,6 +136,7 @@ export default function ProductCreateModal({
         setImageFile(null);
         setCutoutFile(null);
         setImagePreview(null);
+        photoFit.forget();
         setMrp('');
         setDealerPct('');
         setDealerPrice('');
@@ -202,6 +216,9 @@ export default function ProductCreateModal({
 
     const handleSubmit = (event: React.FormEvent) => {
         event.preventDefault();
+        if (photoFit.busy) {
+            return;
+        }
         setErrorMsg(null);
         const retail = parseFloat(mrp);
         const dealer = parseFloat(dealerPrice);
@@ -363,17 +380,13 @@ export default function ProductCreateModal({
                                         {imagePreview ? <img src={imagePreview} alt={translate('portal', 'pcm_preview')} /> : <Upload size={18} />}
                                     </span>
                                     <span>
-                                        <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => {
-                                            const file = event.target.files?.[0] ?? null;
-                                            setImageFile(file);
-                                            setCutoutFile(null);
-                                            setImagePreview(file ? URL.createObjectURL(file) : null);
-                                        }} />
+                                        <input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => photoFit.choose(event.target.files?.[0] ?? null)} />
                                         <small>{translate('portal', 'pcm_image_hint')}</small>
                                     </span>
                                 </span>
                             </label>
                             <div className="pcm-span">
+                                <ProductPhotoFitNote status={photoFit.status} />
                                 <ProductPhotoCutout
                                     photo={imageFile}
                                     onUse={(cutout) => {
@@ -467,7 +480,7 @@ export default function ProductCreateModal({
                         <button type="button" className="pcm-secondary" onClick={onClose} disabled={submitting}>
                             {translate('portal', 'pcm_cancel')}
                         </button>
-                        <button type="submit" className="pcm-primary" disabled={submitting}>
+                        <button type="submit" className="pcm-primary" disabled={submitting || photoFit.busy}>
                             {submitting ? translate('portal', 'pcm_creating') : translate('portal', 'pcm_create')}
                         </button>
                     </footer>
