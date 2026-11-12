@@ -60,6 +60,27 @@
 .rx-table .num{text-align:right}
 .app-shell .table-wrap .rx-table :is(.num,td:first-child){white-space:nowrap}
 .pbc-disable{margin-top:14px;padding-top:14px;border-top:1px dashed var(--ds-line,#e2e8f0)}
+
+/* One page for a prescription: who it is for comes first, then the writing area opens below. */
+.rx-patient-step{display:flex;flex-direction:column;gap:10px;padding:12px 14px;border:1px solid var(--ds-line,#e2e8f0);border-radius:10px;background:var(--ds-surface-2,#fafbf8)}
+.rx-mode{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:460px}
+.app-shell .rx-mode .rx-mode-button{display:flex;align-items:center;justify-content:center;gap:8px;min-height:46px;margin:0;padding:10px 12px;border:1.5px solid var(--ds-line-strong,#cbd5e1);border-radius:10px;background:var(--ds-surface,#fff);color:var(--ds-text,#0f172a);font:inherit;font-weight:600;cursor:pointer}
+.app-shell .rx-mode .rx-mode-button[aria-pressed="true"]{border-color:var(--ds-brand,#006a4e);background:var(--ds-ok-bg,#ecfdf3);color:var(--ds-brand,#006a4e)}
+.app-shell .rx-mode .rx-mode-button:focus-visible{outline:none;box-shadow:var(--ds-focus-ring,0 0 0 3px rgba(0,106,78,.18))}
+.rx-patient-pick{display:flex;flex-direction:column;gap:6px;max-width:460px}
+.rx-patient-panel{display:flex;flex-direction:column;gap:14px;padding-top:4px}
+.rx-patient-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid var(--ds-line,#e2e8f0);border-radius:10px;background:var(--ds-surface,#fff)}
+.rx-patient-summary>div{min-width:0;overflow-wrap:anywhere}
+.rx-patient-summary b{font-size:15px}
+.rx-patient-step .rx-actions{align-items:center}
+/* The writing area's children lay out as the form's own, so nothing shifts when it opens. */
+.rx-writing{display:contents}
+.rx-extras textarea{min-height:0}
+.rx-diet-pick{max-width:460px}
+.rx-diet-list{margin-top:14px}
+.rx-diet-list small{overflow-wrap:anywhere}
+.rx-card>small{overflow-wrap:anywhere}
+
 @media (max-width:860px){
   .rx-dosing{grid-template-columns:repeat(3,minmax(0,1fr))}
   .rx-line-grid,.rx-place,.rx-stats{grid-template-columns:repeat(2,minmax(0,1fr))}

@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { router, useForm } from '@inertiajs/react';
 import { BookmarkPlus, Trash2 } from 'lucide-react';
 import { Empty } from './UI';
+import SearchSelect from './SearchSelect';
 import { useT } from '../shared/i18n/t';
+import type { DietTemplateRow } from './PrescriptionExtras';
 import type { AccessLogRow } from './PatientAccessLogList';
 import type { QueueData } from './ClinicQueueTab';
 import type { LineForm } from './PrescriptionsHub';
@@ -36,6 +38,7 @@ export type PrescriptionTools = {
     access_log: AccessLogRow[];
     queue: QueueData;
     templates: TemplateRow[];
+    diet_templates: DietTemplateRow[];
     follow_ups: FollowUpsData;
     report: PrescriberReportData;
 };
@@ -91,10 +94,12 @@ export function TemplatePicker({ templates, products, isDirty, onApply, translat
 
     return (
         <label>{translate('prescription', 'tpl_start_from')}
-            <select value="" onChange={(e) => apply(e.target.value)}>
-                <option value="">{translate('prescription', 'tpl_choose')}</option>
-                {templates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}
-            </select>
+            <SearchSelect
+                value=""
+                placeholder={translate('prescription', 'tpl_choose')}
+                options={templates.map((template) => ({ value: String(template.id), label: template.name, keywords: template.lines.map((line) => line.medicine_name).join(' ') }))}
+                onChange={(id) => apply(id)}
+            />
             {productMissing && <span className="field-error" role="alert">{translate('prescription', 'tpl_product_gone')}</span>}
         </label>
     );
