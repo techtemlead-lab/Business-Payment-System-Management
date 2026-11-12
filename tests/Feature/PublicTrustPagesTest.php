@@ -418,7 +418,9 @@ class PublicTrustPagesTest extends TestCase
             ->assertSee(__('public_trust.grievance_contact_heading'))
             ->assertSee('Md Example')
             ->assertSee('01700000000')
-            ->assertDontSee(__('public_trust.grievance_contact_email'));
+            // The footer has its own "Official Email" box, so look for the contact block's row, not the bare word.
+            ->assertSee('<dt>'.__('public_trust.grievance_contact_phone').'</dt>', false)
+            ->assertDontSee('<dt>'.__('public_trust.grievance_contact_email').'</dt>', false);
     }
 
     public function test_status_change_message_names_the_product_problem_topic(): void

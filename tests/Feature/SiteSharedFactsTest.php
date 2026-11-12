@@ -51,7 +51,8 @@ class SiteSharedFactsTest extends TestCase
     {
         $this->saveAsEditor(['contact_phone' => '01900-111111']);
 
-        $this->get('/')->assertOk()->assertSee('01900-111111')->assertSee('tel:01900111111', false)->assertDontSee('+8801730532966');
+        // The footer shows a Bangladeshi mobile with the +880 prefix, however it was typed, and its link dials the same number.
+        $this->get('/')->assertOk()->assertSee('+8801900111111')->assertSee('tel:+8801900111111', false)->assertDontSee('+8801730532966');
         $this->get('/contact')->assertOk()->assertSee('01900-111111')->assertDontSee('+8801730532966');
     }
 
