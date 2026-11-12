@@ -4,6 +4,7 @@ import { localizeDigits } from '../../business-date';
 import { toLatin } from '../../shared/countUp';
 import { useT } from '../../shared/i18n/t';
 import { money } from '../UI';
+import SearchSelect from '../SearchSelect';
 
 export type FeaturedOrderProduct = { id: number; name: string; mrp: string; image?: string | null };
 
@@ -136,19 +137,17 @@ export function FeaturedOrderList({
 
             {canEdit && addableProducts.length > 0 && (
                 <div className="ed-row is-wrap">
-                    <select
+                    <SearchSelect
                         className="ed-input is-sm is-grow"
-                        aria-label={translate('portal', 'sce_home_order_choose')}
+                        ariaLabel={translate('portal', 'sce_home_order_choose')}
                         value={productToAdd}
-                        onChange={event => setProductToAdd(event.target.value)}
-                    >
-                        <option value="">{translate('portal', 'sce_home_order_choose')}</option>
-                        {addableProducts.map(product => (
-                            <option key={product.id} value={product.id}>
-                                {product.name}{product.category ? ` [${product.category}]` : ''} — {money(product.mrp)}
-                            </option>
-                        ))}
-                    </select>
+                        onChange={(value) => setProductToAdd(value)}
+                        emptyLabel={translate('portal', 'sce_home_order_choose')}
+                        options={addableProducts.map(product => ({
+                            value: String(product.id),
+                            label: `${product.name}${product.category ? ` [${product.category}]` : ''} — ${money(product.mrp)}`,
+                        }))}
+                    />
                     <button type="button" className="button small dark" disabled={!productToAdd} onClick={addProduct}>
                         <Plus size={14} /> {translate('portal', 'sce_home_order_add')}
                     </button>

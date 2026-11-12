@@ -3,6 +3,7 @@ import { withBoldValues } from './formFields';
 import { Plus } from 'lucide-react';
 import { useT } from '../../shared/i18n/t';
 import { notify } from '../../shared/notify';
+import SearchSelect from '../SearchSelect';
 import type { CampaignBundleItem, CampaignCardItem } from './types';
 
 export function CampaignOffersManager({
@@ -610,18 +611,17 @@ export function CampaignOffersManager({
                                                 </button>
                                             )}
                                         </div>
-                                        <select
-                                            value={card.product_id || ''}
-                                            onChange={e => handleProductSelect(idx, e.target.value)}
+                                        <SearchSelect
+                                            value={card.product_id ? String(card.product_id) : ''}
+                                            onChange={(value) => handleProductSelect(idx, value)}
                                             className="ed-input"
-                                        >
-                                            <option value="">{translate('portal', 'sce_choose_catalog_product')}</option>
-                                            {products.map(p => (
-                                                <option key={p.id} value={p.id}>
-                                                    #{p.id}: {p.name} {translate('portal', 'sce_option_mrp_tk', { mrp: String(p.mrp) })} {p.sku ? translate('portal', 'sce_option_sku', { sku: String(p.sku) }) : ''} — {translate('portal', 'sce_option_category', { category: String(p.category ?? '') })}
-                                                </option>
-                                            ))}
-                                        </select>
+                                            emptyLabel={translate('portal', 'sce_choose_catalog_product')}
+                                            options={products.map(p => ({
+                                                value: String(p.id),
+                                                label: `#${p.id}: ${p.name} ${translate('portal', 'sce_option_mrp_tk', { mrp: String(p.mrp) })} ${p.sku ? translate('portal', 'sce_option_sku', { sku: String(p.sku) }) : ''} — ${translate('portal', 'sce_option_category', { category: String(p.category ?? '') })}`,
+                                                keywords: p.sku ? String(p.sku) : undefined,
+                                            }))}
+                                        />
 
                                         {/* Product Base Details & Promotional Discount Rate Setting */}
                                         {linkedProduct ? (
@@ -745,18 +745,17 @@ export function CampaignOffersManager({
 
                                         {/* Product Add Bar */}
                                         <div className="ed-row is-wrap ed-mb">
-                                            <select
-                                                value={bundleSelectedProds[idx] || ''}
-                                                onChange={e => setBundleSelectedProds(prev => ({ ...prev, [idx]: e.target.value }))}
+                                            <SearchSelect
+                                                value={bundleSelectedProds[idx] ? String(bundleSelectedProds[idx]) : ''}
+                                                onChange={(value) => setBundleSelectedProds(prev => ({ ...prev, [idx]: value }))}
                                                 className="ed-input is-grow"
-                                            >
-                                                <option value="">{translate('portal', 'sce_choose_product_for_package')}</option>
-                                                {products.map(p => (
-                                                    <option key={p.id} value={p.id}>
-                                                        #{p.id}: {p.name} {translate('portal', 'sce_option_mrp_tk', { mrp: String(p.mrp) })} {p.sku ? translate('portal', 'sce_option_sku', { sku: String(p.sku) }) : ''} — {p.category}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                                emptyLabel={translate('portal', 'sce_choose_product_for_package')}
+                                                options={products.map(p => ({
+                                                    value: String(p.id),
+                                                    label: `#${p.id}: ${p.name} ${translate('portal', 'sce_option_mrp_tk', { mrp: String(p.mrp) })} ${p.sku ? translate('portal', 'sce_option_sku', { sku: String(p.sku) }) : ''} — ${p.category}`,
+                                                    keywords: p.sku ? String(p.sku) : undefined,
+                                                }))}
+                                            />
                                             <button
                                                 type="button"
                                                 onClick={() => handleAddBundleItem(idx)}

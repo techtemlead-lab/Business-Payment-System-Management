@@ -8,6 +8,7 @@ import Figures from './office/Figures';
 import type { OfficeHub } from './OfficeHubTabs';
 import { useT } from '../shared/i18n/t';
 import { businessTodayIso } from '../business-date';
+import SearchSelect from './SearchSelect';
 
 interface PeriodState {
     period: string;
@@ -293,12 +294,14 @@ export default function BranchPerformanceHub({ performance, branch_options = [] 
         ...(performance.selected_branch_id ? { branch_id: String(performance.selected_branch_id) } : {}),
     }).toString();
     const branchPicker = (
-        <select aria-label={translate('portal', 'col_branch')} value={selectedBranch} onChange={(event) => visit({ branch_id: event.target.value })}>
-            <option value="">{translate('portal', 'branch_perf_all_branches')}</option>
-            {branch_options.map((branch) => (
-                <option key={branch.id} value={branch.id}>{branch.name} · {branch.code}</option>
-            ))}
-        </select>
+        <SearchSelect
+            className="ss-filter"
+            ariaLabel={translate('portal', 'col_branch')}
+            value={String(selectedBranch)}
+            onChange={(value) => visit({ branch_id: value })}
+            emptyLabel={translate('portal', 'branch_perf_all_branches')}
+            options={branch_options.map((branch) => ({ value: String(branch.id), label: `${branch.name} · ${branch.code}` }))}
+        />
     );
     const branchName = (row: BranchMetric) => (row.id
         ? <button type="button" className="text-link" onClick={() => visit({ branch_id: String(row.id) })}><b>{row.name}</b></button>

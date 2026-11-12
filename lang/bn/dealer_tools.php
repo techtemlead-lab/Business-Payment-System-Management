@@ -113,7 +113,7 @@ return [
     'scheme_title_field' => 'স্কিমের নাম',
     'scheme_starts' => 'শুরু',
     'scheme_ends' => 'শেষ',
-    'scheme_products' => 'পণ্য (একাধিক বাছতে Ctrl চেপে ধরুন)',
+    'scheme_products' => 'পণ্য (যতগুলো দরকার টিক দিন)',
     'scheme_min_field' => 'ন্যূনতম পরিমাণ',
     'scheme_type_field' => 'সুবিধার ধরন',
     'scheme_benefit_field' => 'পার্টনার কী পাবেন (যেমন লিখবেন তেমনই দেখাবে)',

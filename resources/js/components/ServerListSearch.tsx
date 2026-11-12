@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { Search } from 'lucide-react';
 import { useT } from '../shared/i18n/t';
+import { AutoSelect } from './SearchSelect';
 
 export type ServerListSelect = {
     name: string;
@@ -53,9 +54,13 @@ export default function ServerListSearch({ query, placeholder, selects = [], kee
             {selects.map((select) => (
                 <label key={select.name}>
                     <span className="sr-only">{select.label}</span>
-                    <select aria-label={select.label} value={select.value} onChange={(event) => apply({ q: text.trim(), [select.name]: event.target.value })}>
-                        {select.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                    </select>
+                    <AutoSelect
+                        className="ss-filter"
+                        ariaLabel={select.label}
+                        value={select.value}
+                        onChange={(value) => apply({ q: text.trim(), [select.name]: value })}
+                        options={select.options.map((option) => ({ value: option.value, label: option.label }))}
+                    />
                 </label>
             ))}
             <button type="submit" className="button small">{translate('portal', 'search')}</button>

@@ -4,6 +4,7 @@ import { ArrowDown, ArrowUp, ArrowUpDown, SlidersHorizontal, X } from 'lucide-re
 import { DateInput, Modal, date, number } from './UI';
 import { useT } from '../shared/i18n/t';
 import { localizeDigits } from '../business-date';
+import { AutoSelect } from './SearchSelect';
 
 export type MoneyFilterOption = { value: string; label: string; count?: number };
 
@@ -89,10 +90,12 @@ function FieldInput({ filter, draft, setDraft }: { filter: MoneyFilter; draft: R
         return (
             <label className="sf-field">
                 <span>{filter.label}</span>
-                <select value={draft[filter.key] ?? ''} onChange={(event) => setDraft(filter.key, event.target.value)}>
-                    <option value="">{translate('portal', 'stock_filter_all')}</option>
-                    {filter.options?.map((option) => <option key={option.value} value={option.value}>{localizeDigits(optionText(option))}</option>)}
-                </select>
+                <AutoSelect
+                    value={draft[filter.key] ?? ''}
+                    onChange={(value) => setDraft(filter.key, value)}
+                    emptyLabel={translate('portal', 'stock_filter_all')}
+                    options={(filter.options ?? []).map((option) => ({ value: option.value, label: localizeDigits(optionText(option)) }))}
+                />
             </label>
         );
     }
