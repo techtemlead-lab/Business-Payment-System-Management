@@ -86,6 +86,40 @@ class SearchableDropdownsTest extends TestCase
         $this->assertStringContainsString('props.options.length >= LongListFrom', $source);
     }
 
+    public function test_stock_in_and_stock_out_always_search_the_product_and_branch_lists(): void
+    {
+        $inventory = $this->source('components/office/sections/Inventory.tsx');
+
+        // The owner named these two forms: the search box is there however few products exist.
+        $this->assertStringContainsString("{name:'product_id',label:translate('portal','stock_field_product'),required:true,search:true,", $inventory);
+        $this->assertStringContainsString('required:false,search:true,options:(d.branches||[])', $inventory);
+        $this->assertStringContainsString('<AutoSelect search={field.search}', $this->source('components/UI.tsx'));
+        $this->assertStringContainsString('search || props.onSearch || props.options.length >= LongListFrom', $this->source('components/SearchSelect.tsx'));
+    }
+
+    public function test_stock_transfers_and_the_movement_log_always_search_products_and_branches(): void
+    {
+        $this->assertSame(3, substr_count($this->source('components/StockLotsHub.tsx'), 'search: true'));
+
+        $filters = $this->source('components/office/portalShared.tsx');
+        $this->assertStringContainsString("{name:'product_id',label:translate('portal','inv_filter_product'),search:true,", $filters);
+        $this->assertStringContainsString("{name:'branch_id',label:translate('portal','inv_filter_branch'),search:true,", $filters);
+        $this->assertStringContainsString('<AutoSelect key={select.name} search={select.search}', $filters);
+    }
+
+    public function test_partner_staff_and_product_fields_of_the_shared_forms_always_search(): void
+    {
+        $staffForms = $this->source('components/office/sections/staffSectionParts.tsx');
+        $this->assertStringContainsString("search: name !== 'payment_account_id',", $staffForms);
+        $this->assertStringContainsString('search={field.search}', $staffForms);
+
+        $operationForms = $this->source('components/office/operationsShared.tsx');
+        $this->assertStringContainsString("search:name!=='payment_account_id',", $operationForms);
+        $this->assertStringContainsString('<AutoSelect search={f.search}', $operationForms);
+
+        $this->assertStringContainsString('search:true,options:replacementCandidates.map(', $this->source('pages/OrderDetail.tsx'));
+    }
+
     public function test_choosing_several_products_for_a_scheme_uses_the_searchable_tick_list(): void
     {
         $source = $this->source('components/dealertools/SchemesHub.tsx');

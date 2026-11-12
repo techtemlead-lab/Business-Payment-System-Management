@@ -6,7 +6,7 @@ import { useT } from '../../../shared/i18n/t';
 import { AutoSelect } from '../../SearchSelect';
 
 export type StaffFieldOption = { value: string; label: string; channel?: string };
-export type StaffField = { name: string; label: string; type?: string; options?: StaffFieldOption[]; required?: boolean; value?: string };
+export type StaffField = { name: string; label: string; type?: string; options?: StaffFieldOption[]; search?: boolean; required?: boolean; value?: string };
 export type StaffAction = { title: string; action: string; fields: StaffField[]; defaults?: Row };
 export type StaffTableFilter = { searchable?: boolean; statuses?: string[]; q?: string; status?: string };
 export type StaffSectionTable = { key: string; page: Row & { data: Row[]; total?: number; last_page?: number }; filter?: StaffTableFilter };
@@ -21,6 +21,8 @@ export const pickField = (rows: Row[], name: string, title: string, required = t
     name,
     label: title,
     required,
+    // People and products are searched; the few company payment accounts stay a plain list.
+    search: name !== 'payment_account_id',
     options: rows.map((row) => ({ value: String(row.id), label: row.dealer_code ? `${row.name} · ${row.dealer_code}` : (row.name ?? `${row.label} · ${row.channel} · ${row.account_number}`) })),
 });
 
@@ -196,6 +198,7 @@ export function StaffActionForm({ title, action, fields, defaults = {}, onDone, 
                         {field.label}
                         {choices ? (
                             <AutoSelect
+                                search={field.search}
                                 required={field.required}
                                 value={String(value)}
                                 onChange={(picked) => change(field.name, picked)}

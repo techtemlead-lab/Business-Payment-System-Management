@@ -338,10 +338,11 @@ export default function SearchSelect({
 
 /**
  * For the shared form helpers, which draw whatever list they are given: a short list stays a
- * plain drop-down, and a list of LongListFrom rows or more gets the search box.
+ * plain drop-down, and a list of LongListFrom rows or more gets the search box. `search` asks for
+ * the search box whatever the size, for lists that grow without limit (products, partners, staff).
  */
-export function AutoSelect(props: SearchSelectProps) {
-    if (props.onSearch || props.options.length >= LongListFrom) {
+export function AutoSelect({ search, ...props }: SearchSelectProps & { search?: boolean }) {
+    if (search || props.onSearch || props.options.length >= LongListFrom) {
         return <SearchSelect {...props} />;
     }
     const { options, value, onChange, emptyLabel, required, disabled, name, id, ariaLabel, className } = props;
