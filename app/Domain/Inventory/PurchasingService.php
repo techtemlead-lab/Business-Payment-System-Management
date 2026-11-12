@@ -175,7 +175,7 @@ final class PurchasingService
      * @param  array{
      *   reference:string,
      *   notes?:?string,
-     *   lines:list<array{purchase_order_line_id:int,quantity:int,batch_number?:?string,expires_on:string,unit_cost:numeric-string|int|float}>
+     *   lines:list<array{purchase_order_line_id:int,quantity:int,batch_number?:?string,expires_on?:?string,unit_cost:numeric-string|int|float}>
      * }  $data
      */
     public function receive(User $actor, PurchaseOrder $order, array $data): GoodsReceipt
@@ -223,6 +223,8 @@ final class PurchasingService
                 $line = $lines->get((int) $row['purchase_order_line_id']);
                 $stockReference = (string) Str::uuid();
                 $batchNumber = trim((string) ($row['batch_number'] ?? ''));
+                // The expiry date is optional. A blank stays blank and is never replaced by a made-up date.
+                $expiresOn = filled($row['expires_on'] ?? null) ? (string) $row['expires_on'] : null;
                 $this->stock->stockIn($actor, [
                     'product_id' => $line->product_id,
                     'branch_id' => (int) $locked->branch_id,
@@ -230,7 +232,7 @@ final class PurchasingService
                     'reason_code' => 'supplier_receipt',
                     'reason' => $locked->displayNumber(),
                     'reference' => $stockReference,
-                    'expires_on' => $row['expires_on'],
+                    'expires_on' => $expiresOn,
                     'batch_number' => $batchNumber,
                     'unit_cost' => $row['unit_cost'],
                 ]);
@@ -239,7 +241,7 @@ final class PurchasingService
                     'product_id' => $line->product_id,
                     'quantity' => (int) $row['quantity'],
                     'batch_number' => $batchNumber !== '' ? $batchNumber : null,
-                    'expires_on' => $row['expires_on'],
+                    'expires_on' => $expiresOn,
                     'unit_cost' => $row['unit_cost'],
                     'stock_reference' => $stockReference,
                 ]);
@@ -258,7 +260,7 @@ final class PurchasingService
                     'purchase_order_line_id' => (int) $row['purchase_order_line_id'],
                     'quantity' => (int) $row['quantity'],
                     'batch_number' => trim((string) ($row['batch_number'] ?? '')),
-                    'expires_on' => $row['expires_on'],
+                    'expires_on' => filled($row['expires_on'] ?? null) ? (string) $row['expires_on'] : null,
                 ], $data['lines']),
             ]);
 

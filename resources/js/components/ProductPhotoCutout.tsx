@@ -6,8 +6,18 @@ import {
     releaseCutoutTool,
     removeProductPhotoBackground,
     type CutoutAvailability,
+    type CutoutBlocker,
+    type CutoutPrecision,
     type CutoutProgress,
 } from '../shared/productPhotoCutout';
+
+const BLOCKER_MESSAGES: Record<CutoutBlocker, string> = {
+    old_browser: 'ppc_unsupported',
+    no_graphics: 'ppc_no_graphics',
+    low_memory: 'ppc_low_memory',
+    tool_missing: 'ppc_tool_missing',
+    no_connection: 'ppc_no_connection',
+};
 
 interface ProductPhotoCutoutProps {
     /** The photo chosen in this form, if any. */
@@ -80,13 +90,13 @@ export default function ProductPhotoCutout({ photo, savedPhotoUrl = null, disabl
         releaseCutoutTool();
     }, []);
 
-    const removeBackground = async () => {
+    const removeBackground = async (precision: CutoutPrecision) => {
         currentRun.current += 1;
         const run = currentRun.current;
         setStatus({ name: 'busy', progress: { stage: 'getting_ready' } });
         try {
             const original = photo ?? await downloadSavedPhoto(savedPhotoUrl as string);
-            const cutout = await removeProductPhotoBackground(original, (progress) => {
+            const cutout = await removeProductPhotoBackground(original, precision, (progress) => {
                 if (run === currentRun.current) {
                     setStatus({ name: 'busy', progress });
                 }
@@ -110,13 +120,15 @@ export default function ProductPhotoCutout({ photo, savedPhotoUrl = null, disabl
         setStatus({ name: 'in_use' });
     };
 
-    if (!hasPhoto || availability === null || availability === 'not_installed') {
+    if (!hasPhoto || availability === null) {
         return null;
     }
 
-    if (availability === 'unsupported') {
-        return <p className="ppc-note">{translate('portal', 'ppc_unsupported')}</p>;
+    // Never hide the tool without a word: say why it cannot run here, and that the photo can go up as it is.
+    if (!availability.ready) {
+        return <p className="ppc-note" role="status">{translate('portal', BLOCKER_MESSAGES[availability.reason])}</p>;
     }
+    const precision = availability.precision;
 
     const progressText = (progress: CutoutProgress): string => {
         if (progress.stage === 'downloading') {
@@ -130,7 +142,7 @@ export default function ProductPhotoCutout({ photo, savedPhotoUrl = null, disabl
         <div className="ppc">
             {(status.name === 'idle' || status.name === 'failed') && (
                 <div className="ppc-row">
-                    <button type="button" className="ppc-button" disabled={disabled} onClick={() => void removeBackground()}>
+                    <button type="button" className="ppc-button" disabled={disabled} onClick={() => void removeBackground(precision)}>
                         <Scissors size={15} aria-hidden="true" />
                         {translate('portal', 'ppc_remove_background')}
                     </button>

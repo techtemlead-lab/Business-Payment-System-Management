@@ -307,7 +307,7 @@ final class ProductSizeGroups
             $seen = [];
             foreach ($sizes->reject(fn (Product $size): bool => $size->isArchived()) as $size) {
                 $written = (string) $size->getAttribute($column);
-                $comparable = mb_strtolower((string) preg_replace('/\s+/u', '', $written));
+                $comparable = self::comparableSize($written);
                 if ($comparable === '') {
                     continue;
                 }
@@ -317,6 +317,44 @@ final class ProductSizeGroups
                 $seen[$comparable] = true;
             }
         }
+    }
+
+    /**
+     * Stops a pack size being changed to the words another size of the same product already uses,
+     * and names the words that were typed. Only this product is checked against the others, so a
+     * repeat left among the other sizes from earlier cannot hold up an edit that is itself fine.
+     * Call after the product is saved, inside the same transaction, so the refusal undoes the save.
+     */
+    public static function refuseRepeatedSizeAfterEdit(Product $product): void
+    {
+        if ($product->product_group_id === null || $product->isArchived()) {
+            return;
+        }
+        ProductGroup::query()->whereKey($product->product_group_id)->lockForUpdate()->first();
+        $otherSizes = Product::query()
+            ->where('product_group_id', $product->product_group_id)
+            ->whereKeyNot($product->id)
+            ->get()
+            ->reject(fn (Product $size): bool => $size->isArchived());
+
+        foreach (['pack_size_en', 'pack_size_bn'] as $column) {
+            $typed = (string) $product->getAttribute($column);
+            $comparable = self::comparableSize($typed);
+            if ($comparable === '') {
+                continue;
+            }
+            foreach ($otherSizes as $other) {
+                if (self::comparableSize((string) $other->getAttribute($column)) === $comparable) {
+                    throw ValidationException::withMessages([$column => __('size_groups.err_size_repeated', ['size' => trim($typed)])]);
+                }
+            }
+        }
+    }
+
+    /** "100 ml", "100ML" and " 100 Ml " are the same size to a person choosing one. */
+    private static function comparableSize(string $written): string
+    {
+        return mb_strtolower((string) preg_replace('/\s+/u', '', $written));
     }
 
     /**

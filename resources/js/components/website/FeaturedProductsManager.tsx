@@ -10,14 +10,11 @@ export function FeaturedProductsManager({
     defaults,
     products,
     updateField,
-    autoModeList,
 }: {
     customization: CustomizationData;
     defaults: CustomizationData;
     products: { id: number; name: string; mrp: string; category: string; featured?: boolean; stock?: number; image?: string }[];
     updateField: (key: keyof CustomizationData, val: any) => void;
-    /** Shown in automatic mode in place of the read-only summary of featured products. */
-    autoModeList?: React.ReactNode;
 }) {
     const translate = useT();
     const isEnabled = customization.featured_products_enabled !== '0';
@@ -168,26 +165,14 @@ export function FeaturedProductsManager({
                     </button>
                 </div>
 
-                {mode === 'auto' && autoModeList}
-
-                {mode === 'auto' && !autoModeList && (
+                {mode === 'auto' && (
                     <div className="ed-well ed-mt">
                         <div className="ed-strong ed-mb-xs">
-                            ℹ️ {translate('portal', 'sce_catalog_featured_heading', { count: String(catalogFeatured.length) })}
+                            {translate('portal', 'sce_catalog_featured_heading', { count: String(catalogFeatured.length) })}
                         </div>
-                        {catalogFeatured.length > 0 ? (
-                            <div className="ed-row is-wrap ed-mt-sm">
-                                {catalogFeatured.map(p => (
-                                    <span key={p.id} className="hub-pill tone-ok">
-                                        ★ {p.name} [{p.category}] — {translate('portal', 'sce_amount_tk', { amount: String(p.mrp) })}
-                                    </span>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="ed-placeholder">
-                                {translate('portal', 'sce_catalog_featured_empty')}
-                            </div>
-                        )}
+                        <div className="ed-placeholder">
+                            {translate('portal', catalogFeatured.length > 0 ? 'sce_home_order_above' : 'sce_catalog_featured_empty')}
+                        </div>
                     </div>
                 )}
             </div>

@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { Link, router, useForm, usePage } from '@inertiajs/react';
+import React, { useState } from 'react';
+import { Link, useForm, usePage } from '@inertiajs/react';
 import { Camera, Eye, Plus, Save } from 'lucide-react';
 import { FeaturedProductsManager } from './website/FeaturedProductsManager';
-import { FeaturedOrderList, type FeaturedOrderProduct } from './website/FeaturedOrderList';
+import { type FeaturedOrderProduct } from './website/FeaturedOrderList';
+import { HomePageOrderPanel } from './website/HomePageOrderPanel';
 import type { CustomizationData } from './website/types';
 import { Row, money, number } from './UI';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from './MoneyTable';
@@ -72,7 +73,7 @@ export default function ProductManagementHub({
     const translate = useT();
     const t = (key: string, replace?: Record<string, string | number>) => translate('office_stock', key, replace);
     const { url, props: pageProps } = usePage<any>();
-    const { auth, staffActions, errors } = pageProps;
+    const { auth, staffActions } = pageProps;
     const archivedCount = Number(pageProps.data?.archived_count ?? 0);
     const draftCount = Number(pageProps.data?.draft_count ?? 0);
     const visit = useAddressVisit(null);
@@ -114,41 +115,15 @@ export default function ProductManagementHub({
         }
     });
 
-    // The owner's list for the home page. It follows the server only when the saved list itself changes,
-    // so a search or an unrelated save never wipes changes that are not saved yet.
-    const [featuredOrder, setFeaturedOrder] = useState<FeaturedOrderProduct[]>(featuredOrderProducts);
-    const [savingFeaturedOrder, setSavingFeaturedOrder] = useState(false);
-    const savedFeaturedIds = featuredOrderProducts.map(product => product.id).join(',');
-    const featuredOrderChanged = featuredOrder.map(product => product.id).join(',') !== savedFeaturedIds;
-    useEffect(() => setFeaturedOrder(featuredOrderProducts), [savedFeaturedIds]);
-
-    const saveFeaturedOrder = () => {
-        router.post('/commands/products/featured-order', { product_ids: featuredOrder.map(product => product.id) }, {
-            preserveScroll: true,
-            onStart: () => setSavingFeaturedOrder(true),
-            onFinish: () => setSavingFeaturedOrder(false),
-        });
-    };
-
+    // The numbered home page list saves on its own button, so this form holds only the section's words and switches.
     const handleSaveFeatured = (e: React.FormEvent) => {
         e.preventDefault();
-        const orderNeedsSaving = canEditCatalog && featuredForm.data.customization.featured_products_mode === 'auto' && featuredOrderChanged;
-        if (orderNeedsSaving && !featuredForm.isDirty) {
-            saveFeaturedOrder();
-
-            return;
-        }
-        featuredForm.post('/commands/customization', {
-            preserveScroll: true,
-            onSuccess: () => {
-                if (orderNeedsSaving) {
-                    saveFeaturedOrder();
-                }
-            },
-        });
+        featuredForm.post('/commands/customization', { preserveScroll: true });
     };
-    const savingFeatured = featuredForm.processing || savingFeaturedOrder;
+    const savingFeatured = featuredForm.processing;
     const showcaseProducts = allProducts.length > 0 ? allProducts : products as any;
+    const handPickedListInUse = customization.featured_products_mode === 'curated'
+        && Array.isArray(customization.featured_products_items) && customization.featured_products_items.length > 0;
 
     const handleTabChange = (t: 'products' | 'featured' | 'taxonomy') => {
         setActiveTab(t);
@@ -325,6 +300,10 @@ export default function ProductManagementHub({
 
             {/* TAB 3: FEATURED PRODUCTS SHOWCASE */}
             {activeTab === 'featured' && (
+                <HomePageOrderPanel saved={featuredOrderProducts} candidates={showcaseProducts} otherListInUse={handPickedListInUse} />
+            )}
+
+            {activeTab === 'featured' && (
                 <form onSubmit={handleSaveFeatured}>
                     <div className="ops-card is-soft ops-mb-5 pmh-bar">
                         <div className="ops-row is-between is-wrap is-loose">
@@ -355,16 +334,6 @@ export default function ProductManagementHub({
                             ...featuredForm.data.customization,
                             [key]: val
                         })}
-                        autoModeList={
-                            <FeaturedOrderList
-                                items={featuredOrder}
-                                candidates={showcaseProducts}
-                                canEdit={canEditCatalog}
-                                changed={featuredOrderChanged}
-                                error={errors?.product_ids}
-                                onChange={setFeaturedOrder}
-                            />
-                        }
                     />
 
                     {/* Bottom Save Bar */}

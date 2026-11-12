@@ -120,5 +120,6 @@ return [
     'err_supplier_already_archived' => 'This supplier is already archived.',
     'err_supplier_not_archived' => 'This supplier is not archived.',
     'batch_optional' => 'Batch no. (optional)',
+    'expiry_optional' => 'Expiry date (optional)',
     'batch_blank_hint' => 'If you do not have the batch number now, leave it blank. It will then wait under Missing details on the Batches and expiry page, where you can add it later.',
 ];
