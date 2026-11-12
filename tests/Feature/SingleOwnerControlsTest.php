@@ -140,32 +140,33 @@ class SingleOwnerControlsTest extends TestCase
         $this->assertDatabaseHas('wallets', ['user_id' => $partner->id, 'available' => '20.00']);
     }
 
-    public function test_rule_3_owner_approves_and_pays_a_withdrawal_alone_with_a_receipt(): void
+    public function test_rule_3_owner_approves_and_pays_a_withdrawal_even_when_another_payer_exists(): void
     {
         $this->openMoneyGate();
         $partner = User::factory()->dealer()->create();
         $service = app(ManualPayoutService::class);
         $id = $this->withdrawal($partner);
         $service->review($this->owner, $id, 'approved', self::Reason);
+        User::factory()->staff('finance')->create();
 
-        $this->assertRefused(fn () => $this->settle($id, false, $this->pdf()), 'withdrawal', __('self_approval.err_confirm'));
-        $this->assertRefused(fn () => $this->settle($id, true, null), 'withdrawal', __('self_approval.err_receipt'));
-        $this->settle($id, true, $this->pdf());
+        $this->settle($id, null);
 
         $this->assertDatabaseHas('withdrawals', ['id' => $id, 'status' => 'paid', 'paid_by' => $this->owner->id]);
         $this->assertAudited('withdrawal.paid');
     }
 
-    public function test_rule_3_a_second_payer_blocks_paying_alone_and_can_finish_it(): void
+    public function test_rule_3_staff_who_approved_a_withdrawal_cannot_pay_it_but_a_second_payer_can(): void
     {
         $this->openMoneyGate();
         $id = $this->withdrawal(User::factory()->dealer()->create());
-        app(ManualPayoutService::class)->review($this->owner, $id, 'approved', self::Reason);
+        $approver = User::factory()->staff('finance')->create();
         $second = User::factory()->staff('finance')->create();
+        $service = app(ManualPayoutService::class);
+        $service->review($approver, $id, 'approved', self::Reason);
 
-        $this->assertRefused(fn () => $this->settle($id, true, $this->pdf()), 'withdrawal', __('portal.err_wd_payer_separation'));
+        $this->assertRefused(fn () => $service->settle($approver, $id, ['method' => 'cash', 'received_by' => 'Rahim'], null, null, now()->toDateTimeString(), 'Paid over the counter'), 'withdrawal', __('portal.err_wd_payer_separation'));
 
-        app(ManualPayoutService::class)->settle($second, $id, ['method' => 'cash', 'received_by' => 'Rahim'], null, null, now()->toDateTimeString(), 'Paid over the counter');
+        $service->settle($second, $id, ['method' => 'cash', 'received_by' => 'Rahim'], null, null, now()->toDateTimeString(), 'Paid over the counter');
         $this->assertDatabaseHas('withdrawals', ['id' => $id, 'status' => 'paid', 'paid_by' => $second->id]);
     }
 
@@ -174,7 +175,7 @@ class SingleOwnerControlsTest extends TestCase
         $this->openMoneyGate();
         $id = $this->withdrawal($this->owner, 'approved', $this->owner->id);
 
-        $this->assertRefused(fn () => $this->settle($id, true, $this->pdf()), 'withdrawal', __('portal.err_wd_payer_separation'));
+        $this->assertRefused(fn () => $this->settle($id, $this->pdf()), 'withdrawal', __('portal.err_wd_payer_separation'));
     }
 
     public function test_rule_4_owner_runs_payroll_alone_and_stays_off_it(): void
@@ -190,9 +191,9 @@ class SingleOwnerControlsTest extends TestCase
         $this->assertCount(1, $ids, 'The owner is left off payroll, even with an old contract on file.');
         $this->assertDatabaseMissing('payroll_entries', ['staff_id' => $this->owner->id]);
 
-        $payroll->review($this->owner, $ids[0], 'approved', self::Reason, true);
+        $payroll->review($this->owner, $ids[0], 'approved', self::Reason);
         $this->assertAudited('payroll.approved');
-        $payroll->pay($this->owner, $ids[0], $this->payrollPayment('PAY-ALONE'), $this->pdf(), true);
+        $payroll->pay($this->owner, $ids[0], $this->payrollPayment('PAY-ALONE'), $this->pdf());
 
         $this->assertDatabaseHas('payroll_entries', ['id' => $ids[0], 'status' => 'paid', 'paid_by' => $this->owner->id]);
         $this->assertAudited('payroll.paid');
@@ -207,43 +208,45 @@ class SingleOwnerControlsTest extends TestCase
         $ids = $payroll->prepare($clerk, '2026-10');
 
         $payroll->review($this->owner, $ids[0], 'approved', self::Reason);
-        $payroll->pay($this->owner, $ids[0], $this->payrollPayment('PAY-CLERK'), $this->pdf(), true);
+        $payroll->pay($this->owner, $ids[0], $this->payrollPayment('PAY-CLERK'), $this->pdf());
 
         $this->assertDatabaseHas('payroll_entries', ['id' => $ids[0], 'status' => 'paid', 'prepared_by' => $clerk->id, 'approved_by' => $this->owner->id]);
     }
 
-    public function test_rule_4_is_refused_when_a_second_approver_exists_or_the_actor_is_the_payee(): void
+    public function test_rule_4_a_second_approver_does_not_stop_the_owner_but_the_payee_is_always_refused(): void
     {
         $this->openMoneyGate();
         $payroll = app(PayrollService::class);
         $employee = User::factory()->enterOnly()->create();
+        $other = User::factory()->enterOnly()->create();
         $payroll->contract($this->owner, $this->contract($employee));
+        $payroll->contract($this->owner, $this->contract($other));
         $ids = $payroll->prepare($this->owner, '2026-10');
         User::factory()->staff('finance')->create();
 
-        $this->assertRefused(fn () => $payroll->review($this->owner, $ids[0], 'approved', self::Reason, true), 'payroll', __('portal.err_payroll_reviewer'));
+        $payroll->review($this->owner, $ids[0], 'approved', self::Reason);
+        $this->assertDatabaseHas('payroll_entries', ['id' => $ids[0], 'status' => 'approved', 'approved_by' => $this->owner->id]);
 
-        DB::table('payroll_entries')->where('id', $ids[0])->update(['staff_id' => $this->owner->id]);
-        $this->assertRefused(fn () => $payroll->review($this->owner, $ids[0], 'approved', self::Reason, true), 'payroll', __('portal.err_payroll_reviewer'));
+        DB::table('payroll_entries')->where('id', $ids[1])->update(['staff_id' => $this->owner->id]);
+        $this->assertRefused(fn () => $payroll->review($this->owner, $ids[1], 'approved', self::Reason), 'payroll', __('portal.err_payroll_reviewer'));
     }
 
-    public function test_rule_5_marketing_expense_owner_alone_needs_a_receipt_to_pay(): void
+    public function test_rule_5_marketing_expense_owner_approves_and_pays_their_own_request(): void
     {
         $this->openMoneyGate();
         $this->allocation('company_marketing_fund', '500.00');
         $reserves = app(ReserveService::class);
         $id = $this->olderMarketingRequest($this->owner);
 
-        $reserves->review($this->owner, $id, 'approved', self::Reason, true);
+        $reserves->review($this->owner, $id, 'approved', self::Reason);
         $this->assertAudited('reserve.approved');
-        $this->assertRefused(fn () => $reserves->pay($this->owner, $id, $this->reservePayment(), null, true), 'reserve', __('self_approval.err_receipt'));
-        $reserves->pay($this->owner, $id, $this->reservePayment(), $this->pdf(), true);
+        $reserves->pay($this->owner, $id, $this->reservePayment(), null);
 
         $this->assertDatabaseHas('reserve_disbursements', ['id' => $id, 'status' => 'paid', 'paid_by' => $this->owner->id]);
         $this->assertAudited('reserve.paid');
     }
 
-    public function test_rule_5_staff_requests_and_owner_approves_but_a_second_approver_blocks_alone(): void
+    public function test_rule_5_owner_approves_a_staff_request_and_their_own_when_a_second_approver_exists(): void
     {
         $this->openMoneyGate();
         $this->allocation('company_marketing_fund', '500.00');
@@ -254,7 +257,8 @@ class SingleOwnerControlsTest extends TestCase
 
         $own = $this->olderMarketingRequest($this->owner);
         User::factory()->staff('finance')->create();
-        $this->assertRefused(fn () => $reserves->review($this->owner, $own, 'approved', self::Reason, true), 'reserve', __('portal.err_reserve_reviewer'));
+        $reserves->review($this->owner, $own, 'approved', self::Reason);
+        $this->assertDatabaseHas('reserve_disbursements', ['id' => $own, 'status' => 'approved', 'approved_by' => $this->owner->id]);
     }
 
     public function test_rule_5_owner_never_approves_a_reward_for_themselves(): void
@@ -262,25 +266,27 @@ class SingleOwnerControlsTest extends TestCase
         $this->openMoneyGate();
         $id = DB::table('reserve_disbursements')->insertGetId(['program' => 'bike', 'user_id' => $this->owner->id, 'amount' => '10.00', 'request_key' => (string) Str::uuid(), 'reason' => 'Self reward', 'created_by' => $this->owner->id, 'created_at' => now(), 'updated_at' => now()]);
 
-        $this->assertRefused(fn () => app(ReserveService::class)->review($this->owner, $id, 'approved', self::Reason, true), 'reserve', __('portal.err_reserve_reviewer'));
+        $this->assertRefused(fn () => app(ReserveService::class)->review($this->owner, $id, 'approved', self::Reason), 'reserve', __('portal.err_reserve_reviewer'));
     }
 
-    public function test_rule_6_owner_approves_their_own_spend_alone_with_a_receipt(): void
+    public function test_rule_6_owner_approves_their_own_spend_with_or_without_a_receipt(): void
     {
         $this->openMoneyGate();
         $this->allocation('company_profit_fund', '500.00');
         $funds = app(FundSpending::class);
-        $id = $funds->request($this->owner, $this->spend('company_profit'), null);
+        $withoutReceipt = $funds->request($this->owner, $this->spend('company_profit'), null);
+        $withReceipt = $funds->request($this->owner, $this->spend('company_profit'), null);
 
-        $this->assertRefused(fn () => $funds->review($this->owner, $id, 'approved', self::Reason, true), 'spend', __('self_approval.err_receipt'));
-        $funds->review($this->owner, $id, 'approved', self::Reason, true, $this->pdf());
+        $funds->review($this->owner, $withoutReceipt, 'approved', self::Reason);
+        $funds->review($this->owner, $withReceipt, 'approved', self::Reason, $this->pdf());
 
-        $this->assertDatabaseHas('reserve_disbursements', ['id' => $id, 'status' => 'paid', 'approved_by' => $this->owner->id]);
-        $this->assertNotNull(DB::table('reserve_disbursements')->where('id', $id)->value('receipt_path'));
+        $this->assertDatabaseHas('reserve_disbursements', ['id' => $withoutReceipt, 'status' => 'paid', 'approved_by' => $this->owner->id, 'receipt_path' => null]);
+        $this->assertDatabaseHas('reserve_disbursements', ['id' => $withReceipt, 'status' => 'paid', 'approved_by' => $this->owner->id]);
+        $this->assertNotNull(DB::table('reserve_disbursements')->where('id', $withReceipt)->value('receipt_path'));
         $this->assertAudited('fund.spend_approved');
     }
 
-    public function test_rule_6_staff_records_and_owner_approves_but_a_second_approver_blocks_alone(): void
+    public function test_rule_6_owner_approves_a_staff_spend_and_their_own_when_a_second_approver_exists(): void
     {
         $this->openMoneyGate();
         $this->allocation('company_profit_fund', '500.00');
@@ -291,24 +297,23 @@ class SingleOwnerControlsTest extends TestCase
 
         $own = $funds->request($this->owner, $this->spend('company_profit'), $this->pdf());
         User::factory()->staff('finance')->create();
-        $this->assertRefused(fn () => $funds->review($this->owner, $own, 'approved', self::Reason, true), 'spend', __('funds.err_own_spend'));
+        $funds->review($this->owner, $own, 'approved', self::Reason);
+        $this->assertDatabaseHas('reserve_disbursements', ['id' => $own, 'status' => 'paid', 'approved_by' => $this->owner->id]);
     }
 
-    public function test_rule_7_benefits_fund_owner_alone_until_another_owner_exists(): void
+    public function test_rule_7_benefits_fund_owner_alone_even_when_an_md_exists(): void
     {
         $this->openMoneyGate();
         $this->benefitsMoney();
         $funds = app(FundSpending::class);
         User::factory()->staff('finance')->create();
+        User::factory()->create(['role' => 'md', 'dealer_code' => null]);
         $id = $funds->request($this->owner, $this->spend('benefits'), $this->pdf());
 
-        $funds->review($this->owner, $id, 'approved', self::Reason, true);
-        $this->assertDatabaseHas('reserve_disbursements', ['id' => $id, 'status' => 'paid']);
-        $this->assertAudited('fund.spend_approved');
+        $funds->review($this->owner, $id, 'approved', self::Reason);
 
-        User::factory()->create(['role' => 'md', 'dealer_code' => null]);
-        $next = $funds->request($this->owner, $this->spend('benefits'), $this->pdf());
-        $this->assertRefused(fn () => $funds->review($this->owner, $next, 'approved', self::Reason, true), 'spend', __('funds.err_own_spend'));
+        $this->assertDatabaseHas('reserve_disbursements', ['id' => $id, 'status' => 'paid', 'approved_by' => $this->owner->id]);
+        $this->assertAudited('fund.spend_approved');
     }
 
     public function test_recorder_can_cancel_their_own_unreviewed_spend_and_nobody_else_can(): void
@@ -341,13 +346,12 @@ class SingleOwnerControlsTest extends TestCase
         $this->assertDatabaseHas('commission_policy_schedules', ['id' => $entered, 'status' => 'approved', 'approved_by' => $this->owner->id]);
     }
 
-    public function test_rule_9_policy_draft_owner_alone_staff_then_owner_and_second_person(): void
+    public function test_rule_9_policy_draft_owner_publishes_their_own_and_a_staff_draft(): void
     {
         $drafts = app(PolicyDraftService::class);
         $own = $this->draft($this->owner);
 
-        $this->assertRefused(fn () => $drafts->publish($this->owner, $own), 'policy', __('self_approval.err_confirm'));
-        $drafts->publish($this->owner, $own, self::Reason, true);
+        $drafts->publish($this->owner, $own);
         $this->assertDatabaseHas('policy_drafts', ['id' => $own, 'status' => 'published', 'self_approved' => true]);
         $this->assertAudited('policy.published');
 
@@ -357,7 +361,16 @@ class SingleOwnerControlsTest extends TestCase
 
         $next = $this->draft($this->owner);
         User::factory()->staff('finance')->create();
-        $this->assertRefused(fn () => $drafts->publish($this->owner, $next, self::Reason, true), 'policy', __('portal.err_draft_publisher'));
+        $drafts->publish($this->owner, $next);
+        $this->assertDatabaseHas('policy_drafts', ['id' => $next, 'status' => 'published', 'self_approved' => true]);
+    }
+
+    public function test_rule_9_staff_never_publish_their_own_policy_draft(): void
+    {
+        $trusted = User::factory()->staff('finance')->create();
+        $own = $this->draft($trusted);
+
+        $this->assertRefused(fn () => app(PolicyDraftService::class)->publish($trusted, $own), 'policy', __('portal.err_draft_publisher'));
     }
 
     public function test_rule_10_owner_decides_their_own_stock_count_alone(): void
@@ -365,15 +378,14 @@ class SingleOwnerControlsTest extends TestCase
         $counts = app(StockCountService::class);
         [$session, $product, $branch] = $this->submittedCount($this->owner);
 
-        $this->assertRefused(fn () => $counts->approve($this->owner, $session, 'Shelf recount', false), 'count', __('self_approval.err_confirm'));
-        $counts->approve($this->owner, $session, 'Shelf recount', true);
+        $counts->approve($this->owner, $session);
 
         $this->assertSame(StockCountSession::StatusApproved, $session->fresh()->status);
         $this->assertSame(7, BranchProductStock::query()->where('branch_id', $branch->id)->where('product_id', $product->id)->value('quantity'));
         $this->assertAudited('stock_count.approved');
     }
 
-    public function test_rule_10_staff_counts_owner_approves_and_a_second_decider_blocks_alone(): void
+    public function test_rule_10_owner_approves_a_staff_count_and_their_own_when_a_second_decider_exists(): void
     {
         $counts = app(StockCountService::class);
         [$session] = $this->submittedCount(User::factory()->staff('inventory')->create());
@@ -383,9 +395,19 @@ class SingleOwnerControlsTest extends TestCase
         [$own] = $this->submittedCount($this->owner);
         User::factory()->staff('inventory')->create();
         DB::table('users')->where('role', 'inventory')->update(['profile' => json_encode(['all_branches' => true])]);
-        $other = User::factory()->create(['role' => 'super_admin', 'dealer_code' => null]);
-        $this->assertRefused(fn () => $counts->approve($this->owner, $own, 'Shelf recount', true), 'count', __('purchasing.err_second_person'));
-        $other->update(['status' => 'suspended']);
+        $counts->approve($this->owner, $own);
+
+        $this->assertSame(StockCountSession::StatusApproved, $own->fresh()->status);
+    }
+
+    public function test_rule_10_staff_never_decide_a_count_they_took_part_in(): void
+    {
+        $counts = app(StockCountService::class);
+        $counter = User::factory()->staff('inventory')->create();
+        [$session] = $this->submittedCount($counter);
+
+        $this->assertRefused(fn () => $counts->approve($counter, $session), 'count', __('purchasing.err_second_person'));
+        $this->assertRefused(fn () => $counts->reject($counter, $session, 'Counted the wrong shelf'), 'count', __('purchasing.err_second_person'));
     }
 
     public function test_rule_10_a_submitted_count_can_be_cancelled_with_a_reason(): void
@@ -408,7 +430,7 @@ class SingleOwnerControlsTest extends TestCase
         $funds = app(FundSpending::class);
         $id = $funds->request($trusted, $this->spend('company_profit'), $this->pdf());
 
-        $this->assertRefused(fn () => $funds->review($trusted, $id, 'approved', self::Reason, true), 'spend', __('funds.err_own_spend'));
+        $this->assertRefused(fn () => $funds->review($trusted, $id, 'approved', self::Reason), 'spend', __('funds.err_own_spend'));
     }
 
     public function test_owners_drawings_head_is_seeded_and_editable(): void
@@ -497,9 +519,9 @@ class SingleOwnerControlsTest extends TestCase
         return $id;
     }
 
-    private function settle(string $id, bool $confirmed, ?UploadedFile $receipt): string
+    private function settle(string $id, ?UploadedFile $receipt): string
     {
-        return app(ManualPayoutService::class)->settle($this->owner, $id, ['method' => 'cash', 'received_by' => 'Rahim'], $receipt, null, now()->toDateTimeString(), 'Paid over the counter', null, $confirmed);
+        return app(ManualPayoutService::class)->settle($this->owner, $id, ['method' => 'cash', 'received_by' => 'Rahim'], $receipt, null, now()->toDateTimeString(), 'Paid over the counter');
     }
 
     /** @return array<string, mixed> */

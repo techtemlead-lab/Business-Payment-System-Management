@@ -70,8 +70,10 @@ function ReviewPanel({ application, onClose, onReject }: { application: Row; onC
     const { auth, portal, staffActions } = usePage<any>().props;
     const reviewAddress = `/commands/operations/staff/applications/${application.id}/review`;
     const mayDecide = !(portal === 'manage' || portal === 'sadmin') || actionAllowed(reviewAddress, staffActions, 'post');
-    const reviewable = application.status === 'pending' && application.submitted_by !== auth?.user?.id;
-    const isOwnApplication = application.status === 'pending' && application.submitted_by === auth?.user?.id;
+    // Staff never decide an application they sent in themselves; the owner may.
+    const sentByViewer = application.submitted_by === auth?.user?.id && auth?.user?.role !== 'super_admin';
+    const reviewable = application.status === 'pending' && !sentByViewer;
+    const isOwnApplication = application.status === 'pending' && sentByViewer;
     const canDecide = reviewable && mayDecide;
     const isOwner = ['super_admin', 'md', 'chairman'].includes(String(auth?.user?.role ?? ''));
     const isDealerApplication = application.role === 'dealer';

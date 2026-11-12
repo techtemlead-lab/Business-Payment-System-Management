@@ -34,7 +34,7 @@ class PayoutRecordingScreensTest extends TestCase
         ]);
     }
 
-    public function test_owner_alone_sees_the_account_list_and_confirms_on_either_payout_screen(): void
+    public function test_owner_sees_the_account_list_and_pays_what_they_approved_on_either_payout_screen(): void
     {
         $accountId = $this->payoutAccount();
         $id = $this->approvedWithdrawal();
@@ -42,31 +42,27 @@ class PayoutRecordingScreensTest extends TestCase
         $this->actingAs($this->owner)->onPortal('sadmin')->get('/payouts-hub')->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('data.payment_accounts.0.id', $accountId)
-                ->where('data.payouts_table.rows.data.0.payer_state', 'alone'));
+                ->where('data.payouts_table.rows.data.0.payer_state', null));
         $this->actingAs($this->owner)->onPortal('sadmin')->get('/withdrawals/'.$id)->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('withdrawal.payer_state', 'alone'));
+            ->assertInertia(fn (Assert $page) => $page->where('withdrawal.payer_state', null));
 
-        $payment = [
+        $this->actingAs($this->owner)->onPortal('sadmin')->post('/commands/withdrawals/'.$id.'/record-payment', [
             'method' => 'bkash', 'wallet_number' => '01711000000', 'payment_reference' => 'BKASH-QA-1', 'payment_account_id' => $accountId,
             'paid_at' => now()->subHour()->format('Y-m-d H:i:s'), 'note' => 'Paid by bKash',
             'receipt' => UploadedFile::fake()->image('bkash.png'),
-        ];
-        $this->actingAs($this->owner)->onPortal('sadmin')->post('/commands/withdrawals/'.$id.'/record-payment', $payment)
-            ->assertSessionHasErrors('withdrawal');
-        $this->assertDatabaseHas('withdrawals', ['id' => $id, 'status' => 'approved']);
-
-        $this->actingAs($this->owner)->onPortal('sadmin')->post('/commands/withdrawals/'.$id.'/record-payment', [...$payment, 'self_approve' => '1'])
-            ->assertSessionHasNoErrors();
+        ])->assertSessionHasNoErrors();
         $this->assertDatabaseHas('withdrawals', ['id' => $id, 'status' => 'paid', 'payment_account_id' => $accountId, 'paid_by' => $this->owner->id]);
     }
 
-    public function test_when_a_second_approver_exists_the_detail_page_says_they_must_pay(): void
+    public function test_a_second_approver_does_not_make_the_owner_wait(): void
     {
         User::factory()->staff('finance')->create();
         $id = $this->approvedWithdrawal();
 
+        $this->actingAs($this->owner)->onPortal('sadmin')->get('/payouts-hub')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('data.payouts_table.rows.data.0.payer_state', null));
         $this->actingAs($this->owner)->onPortal('sadmin')->get('/withdrawals/'.$id)->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('withdrawal.payer_state', 'second_person'));
+            ->assertInertia(fn (Assert $page) => $page->where('withdrawal.payer_state', null));
     }
 
     private function payoutAccount(): int

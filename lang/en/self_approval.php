@@ -4,13 +4,11 @@ return [
     'alone_tag' => 'no second person',
     'confirm_label' => 'Nobody else can do this step. I am doing it alone, and it will be noted in the activity log.',
     'confirm_yes' => 'Yes, I confirm',
-    'reason_label' => 'Reason',
-    'receipt_label' => 'Receipt or bill (needed when you do this alone)',
-    'wait_second_person' => 'You did the earlier step, and someone else can do this one. They need to finish it.',
+    'receipt_label' => 'Receipt or bill (if you have one)',
+    'wait_second_person' => 'You approved this payment, so someone else or the owner needs to pay it.',
 
     'err_confirm' => 'Please confirm that you are doing this alone.',
     'err_reason' => 'Write a reason of at least 5 letters.',
-    'err_receipt' => 'Attach the receipt. It is needed when you do this alone.',
     'err_owner_not_on_payroll' => 'The owner is not on payroll. Record money the owner takes out on the Fund balances page, under Owner\'s drawings.',
     'err_already_checked' => 'This opening copy has already been checked.',
     'err_snapshot_changed' => 'The account book changed after this copy was saved. Send the starting balances again.',
@@ -27,8 +25,4 @@ return [
 
     'count_cancel_submitted' => 'Cancel this count',
     'count_cancel_reason' => 'Why is this count being cancelled?',
-    'count_reason' => 'Reason',
-    'publish_alone' => 'Publish alone',
-    'approve_alone' => 'Approve alone',
-    'reject_alone' => 'Reject alone',
 ];

@@ -75,9 +75,9 @@ final class PolicyScheduling
     /**
      * Approve, reject or cancel a commission change.
      *
-     * Approving or rejecting is for the owner (Super Admin) only, and never for the person who
-     * proposed it. A pending change can be withdrawn by its proposer or a finance approver; an
-     * approved one changes live rates when cancelled, so only the owner may cancel it.
+     * Approving or rejecting is for the owner (Super Admin) only. A pending change can be
+     * withdrawn by its proposer or a finance approver; an approved one changes live rates when
+     * cancelled, so only the owner may cancel it.
      */
     public function review(User $actor, int $id, string $decision, string $reason): void
     {
@@ -105,7 +105,7 @@ final class PolicyScheduling
                     'reviewed_at' => now(), 'review_reason' => $reason, 'updated_at' => now()]);
             } else {
                 abort_unless(CommissionPolicy::approves($actor), 403, __('portal.err_policy_owner_only'));
-                if ($row->status !== 'draft' || $proposerId === (int) $actor->id || ($row->expires_at && CarbonImmutable::parse($row->expires_at)->isPast())) {
+                if ($row->status !== 'draft' || ($row->expires_at && CarbonImmutable::parse($row->expires_at)->isPast())) {
                     throw ValidationException::withMessages(['schedule' => __('portal.err_sched_separate_reviewer')]);
                 }
                 if ($decision === 'rejected') {
@@ -124,6 +124,7 @@ final class PolicyScheduling
                 'proposed_by' => $proposerId,
                 'reviewed_by' => $actor->id,
                 'changes' => $changes,
+                ...($decision !== 'cancelled' && $proposerId === (int) $actor->id ? ['self_approved' => true] : []),
             ]);
         }, 3);
     }

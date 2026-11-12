@@ -102,11 +102,11 @@ final class PayrollService
         return $prepared;
     }
 
-    public function review(User $actor, string $id, string $decision, string $reason, bool $confirmedAlone = false): void
+    public function review(User $actor, string $id, string $decision, string $reason): void
     {
         abort_unless($actor->allows('finance'), 403);
         CommissionWallet::requireActive();
-        DB::transaction(function () use ($actor, $id, $decision, $reason, $confirmedAlone): void {
+        DB::transaction(function () use ($actor, $id, $decision, $reason): void {
             CommissionWallet::lock();
             abort_unless($actor->fresh()->allows('finance'), 403);
             $entry = DB::table('payroll_entries')->where('id', $id)->lockForUpdate()->first();
@@ -116,7 +116,7 @@ final class PayrollService
             }
             $selfApproved = $actor->id === $entry->prepared_by;
             if ($selfApproved) {
-                app(SelfApproval::class)->authorizeAlone($actor, 'payroll', __('portal.err_payroll_reviewer'), $confirmedAlone, $reason, [$entry->staff_id, $entry->prepared_by]);
+                app(SelfApproval::class)->finishOwnStep($actor, 'payroll', __('portal.err_payroll_reviewer'));
             }
             if ($decision === 'approved') {
                 $this->wallets->journal('payroll.approved.'.$id, __('portal.jr_payroll_approved', ['month' => $entry->period_month]), [
@@ -131,13 +131,13 @@ final class PayrollService
     }
 
     /** @param array<string, mixed> $data */
-    public function pay(User $actor, string $id, array $data, UploadedFile $receipt, bool $confirmedAlone = false): void
+    public function pay(User $actor, string $id, array $data, UploadedFile $receipt): void
     {
         abort_unless($actor->allows('finance'), 403);
         CommissionWallet::requireActive();
         $path = $receipt->storeAs('payroll-receipts', Str::uuid().'.'.$receipt->guessExtension(), 'local');
         try {
-            DB::transaction(function () use ($actor, $id, $data, $receipt, $path, $confirmedAlone): void {
+            DB::transaction(function () use ($actor, $id, $data, $receipt, $path): void {
                 CommissionWallet::lock();
                 abort_unless($actor->fresh()->allows('finance'), 403);
                 $entry = DB::table('payroll_entries')->where('id', $id)->lockForUpdate()->first();
@@ -147,7 +147,7 @@ final class PayrollService
                 }
                 $selfApproved = $actor->id === $entry->approved_by;
                 if ($selfApproved) {
-                    app(SelfApproval::class)->authorizeAlone($actor, 'payroll', __('portal.err_payroll_payer'), $confirmedAlone, (string) $data['reason'], [$entry->staff_id, $entry->approved_by]);
+                    app(SelfApproval::class)->finishOwnStep($actor, 'payroll', __('portal.err_payroll_payer'));
                 }
                 $this->accounts->recordReference($actor, $data['payment_reference'], 'payroll:'.$id, (int) $data['payment_account_id']);
                 $amount = Money::cents($entry->net);
