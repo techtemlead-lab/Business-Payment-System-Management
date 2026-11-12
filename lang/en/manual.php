@@ -811,7 +811,7 @@ return [
     'menu_office_s5' => 'Products & stock has Products, Stock, Batches & expiry, Purchases, Stock counts and Branches.',
     'menu_office_s6' => 'Dealers & sub-dealers has Dealers, Sub-dealers, Who is under whom, Area dealers and Ranks. Applications has Dealer applications and Sub-dealer applications.',
     'menu_office_s7' => 'For partners has Schemes, Contests, Sales kit, Training, Meetings and Agreement. Staff has Staff list, Staff salary, SR areas & targets, Field sales and Roles & permissions.',
-    'menu_office_s8' => 'Reports has Top sellers, Partner scorecard, Branch sales and Files. Website has Arrange the website, Page text, Trust page, Videos and Customer reviews. Everything else is on the Settings page.',
+    'menu_office_s8' => 'Reports has Top sellers, Partner scorecard, Branch sales and Files. Website has Arrange the website, Page text, Trust page, Videos and Customer reviews, and for the owners only, Visitors. Everything else is on the Settings page.',
     'menu_office_o1' => 'You can reach every page you are allowed to use from one list.',
     'menu_office_t1' => 'Type a page name in “Search menu” at the top of the menu to jump to it.',
     'menu_office_w1' => 'A page that is not in your menu is not broken. You do not have permission for it. Ask the owner.',

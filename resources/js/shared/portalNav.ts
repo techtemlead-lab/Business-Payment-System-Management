@@ -65,7 +65,7 @@ export const SECTION_LABEL_KEYS: Record<string, string> = {
     'branch-performance': 'branch_performance',
     settlements: 'settlements', simulator: 'simulator', 'payouts-hub': 'payouts_hub', treasury: 'treasury', 'identity-review': 'identity_review',
     'sub-dealers': 'sub_dealers', 'sub-dealer-orders': 'sub_dealer_orders',
-    'sub-dealer-applications': 'sub_dealer_applications', 'login-rules': 'login_rules',
+    'sub-dealer-applications': 'sub_dealer_applications', 'login-rules': 'login_rules', visitors: 'visitors',
     employees: 'employees', dashboards: 'dashboards', help: 'help', 'support-admin': 'support_admin', agreement: 'agreement',
     messages: 'chat_nav_partner', 'partner-messages': 'chat_nav_office', 'top-sellers': 'top_sellers',
     training: 'training', events: 'events', 'data-cleanup': 'cleanup_nav', prescriptions: 'prescriptions', 'sales-kit': 'sales_kit', customers: 'customer_book', schemes: 'dated_schemes', 'privacy-requests': 'privacy_requests_nav',
@@ -216,7 +216,7 @@ const MENU_ROWS: Record<string, MenuRow> = Object.fromEntries(([
     { id: 'office-for-partners', labelKey: 'nav_module_for_partners', iconKey: 'agreement', tabs: ['schemes', 'contests', 'sales-kit', 'training', 'events', 'agreement'] },
     { id: 'office-staff', labelKey: 'nav_module_people', iconKey: 'people', tabs: ['employees', 'payroll', 'staff-operations', 'field-sales', 'access-management'] },
     { id: 'office-reports', labelKey: 'nav_module_reports', iconKey: 'reports', tabs: ['top-sellers', 'partner-scorecard', 'branch-performance', 'financial-reports'] },
-    { id: 'office-website', labelKey: 'label_web', iconKey: 'website', tabs: ['website', 'content', 'public-trust', 'video-marketing', 'feedback'] },
+    { id: 'office-website', labelKey: 'label_web', iconKey: 'website', tabs: ['website', 'content', 'public-trust', 'video-marketing', 'feedback', 'visitors'] },
     { id: 'office-settings', labelKey: 'nav_module_settings', iconKey: 'settings', home: 'settings', tabs: [
         'finance-settings', 'payment-accounts', 'financial-readiness', 'place-codes', 'dashboards', 'identity-review',
         'login-rules', 'service-integrations', 'courier-areas', 'data-imports', 'audit', 'privacy-requests', 'data-cleanup',
@@ -342,6 +342,8 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     if (['super_admin', 'md', 'chairman'].includes(role)) ['accounts', 'sub-dealers', 'employees'].forEach((item) => items.add(item));
     if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('data-cleanup');
     if (ownerPortal && OWNER_ROLES.includes(role)) items.add('login-rules');
+    // The website visitor count is for owners only (PortalCatalog::assertSection).
+    if (ownerPortal && OWNER_ROLES.includes(role)) items.add('visitors');
     if (ownerPortal && OWNER_ROLES.includes(role)) items.add('courier-areas');
     if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('sales-kit');
     if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('schemes');

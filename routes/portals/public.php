@@ -7,6 +7,7 @@ use App\Http\Controllers\ProductReviewController;
 use App\Http\Controllers\PublicBatchCheckController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\PublicPrescriberController;
+use App\Http\Controllers\SiteVisitController;
 use App\Support\PortalHost;
 use App\Support\SiteCustomization;
 use Illuminate\Http\RedirectResponse;
@@ -35,6 +36,8 @@ Route::post('/products/{product}/partner-enquiry', [PartnerProductEnquiryControl
 Route::get('/feedback', [PublicController::class, 'feedbackForm']);
 Route::post('/feedback', [PublicController::class, 'storeFeedback'])->middleware('throttle:5,1');
 Route::post('/locale', [LocaleController::class, 'update'])->middleware('throttle:30,1');
+// The site's own script reports each page opened, for the owner's visitor count.
+Route::post('/seen', [SiteVisitController::class, 'store'])->middleware('throttle:120,1');
 require __DIR__.'/public_trust.php';
 Route::get('/prescribers', [PublicPrescriberController::class, 'index'])->middleware('throttle:60,1');
 Route::post('/prescribers/{listing}/consult', [PublicPrescriberController::class, 'consult'])->whereNumber('listing')->middleware('throttle:5,1');

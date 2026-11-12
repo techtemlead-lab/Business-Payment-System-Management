@@ -9,6 +9,7 @@ use App\Domain\Accounts\PartnerEarningsPresenter;
 use App\Domain\Accounts\PartnerFullReport;
 use App\Domain\Accounts\PartnerIdCard;
 use App\Domain\Accounts\PartnerJoinPoster;
+use App\Domain\Audience\SiteVisitReport;
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Geography\ManagementReferral;
 use App\Domain\Identity\BdrisLookup;
@@ -59,6 +60,7 @@ use App\Http\Portals\Shared\Sections\SupportSection;
 use App\Http\Portals\Shared\Sections\TerritorySection;
 use App\Http\Portals\Shared\Sections\TopSellersSection;
 use App\Http\Portals\Shared\Sections\TrainingSection;
+use App\Http\Portals\Shared\Sections\VisitorsSection;
 use App\Http\Portals\Shared\Sections\WithdrawalsSection;
 use App\Http\Portals\Shared\Sections\WorkspaceSection;
 use App\Jobs\RefreshShipmentTracking;
@@ -123,6 +125,7 @@ class WorkspaceController extends Controller
         PurchasingSection::class,
         StockCountsSection::class,
         StockLotsSection::class,
+        VisitorsSection::class,
     ];
 
     public function index(Request $r, ProductPricing $pricing, string $section = 'overview'): Response|RedirectResponse
@@ -139,9 +142,11 @@ class WorkspaceController extends Controller
             return redirect('/');
         }
         PortalCatalog::assertSection($u, $catalogPortal, $section);
-        $periodRule = $section === 'branch-performance'
-            ? 'nullable|in:today,month,custom'
-            : 'nullable|in:today,week,month,last_month,year,day,custom';
+        $periodRule = match ($section) {
+            'branch-performance' => 'nullable|in:today,month,custom',
+            'visitors' => 'nullable|in:'.implode(',', SiteVisitReport::Periods),
+            default => 'nullable|in:today,week,month,last_month,year,day,custom',
+        };
         $r->validate([
             'q' => 'nullable|string|max:100',
             'status' => 'nullable|string|max:40',

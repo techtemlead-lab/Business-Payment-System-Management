@@ -44,6 +44,7 @@ return [
     'tab_public_trust' => 'বিশ্বাসযোগ্যতার পাতা',
     'tab_video_marketing' => 'ভিডিও',
     'tab_feedback' => 'গ্রাহকের মতামত',
+    'tab_visitors' => 'ভিজিটর',
 
     'partner_tab_orders' => 'অর্ডার',
     'partner_tab_deliveries' => 'ডেলিভারি',

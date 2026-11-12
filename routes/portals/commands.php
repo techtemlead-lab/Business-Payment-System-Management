@@ -34,6 +34,7 @@ use App\Http\Controllers\PurchasingController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SalesKitController;
+use App\Http\Controllers\SiteVisitSettingsController;
 use App\Http\Controllers\StockCountController;
 use App\Http\Controllers\StockLotController;
 use App\Http\Controllers\StockMovementExportController;
@@ -69,6 +70,7 @@ return function (string $portal): void {
     Route::post('/commands/profile/photo', [AuthController::class, 'profilePhoto'])->middleware('throttle:10,1');
     Route::post('/commands/owner/partner-login-otp', [AuthController::class, 'partnerLoginOtp'])->middleware('throttle:5,1');
     Route::post('/commands/owner/password-reset-notice', [AuthController::class, 'passwordResetNotice'])->middleware('throttle:5,1');
+    Route::post('/commands/owner/site-visit-counting', [SiteVisitSettingsController::class, 'update'])->middleware('throttle:10,1');
     Route::post('/commands/agreement/publish', [PartnerAgreementController::class, 'publish'])->middleware('throttle:10,1');
     Route::post('/commands/agreement/setting', [PartnerAgreementController::class, 'setting'])->middleware('throttle:10,1');
     Route::post('/commands/agreement/accept', [PartnerAgreementController::class, 'accept'])->middleware('throttle:10,1');

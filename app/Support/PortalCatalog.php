@@ -66,8 +66,9 @@ final class PortalCatalog
             // Off for every partner until the owner verifies their registration; the owner-doctor always has it.
             abort_unless(PrescriptionAccess::canPrescribe($user), 403, (string) __('prescription.err_not_enabled'));
         }
-        if ($section === 'data-cleanup' || $section === 'login-rules' || $section === 'privacy-requests') {
-            // Owner-only pages on the owner panel: the manual data clean-up, the login switches and data requests.
+        if ($section === 'data-cleanup' || $section === 'login-rules' || $section === 'privacy-requests' || $section === 'visitors') {
+            // Owner-only pages on the owner panel: the manual data clean-up, the login switches, data requests
+            // and the website visitor count.
             abort_unless($portal === 'sadmin' && $user->owner(), 403);
         }
         if ($portal === 'sadmin' && in_array($section, ['sales-kit', 'schemes', 'contests'], true)) {

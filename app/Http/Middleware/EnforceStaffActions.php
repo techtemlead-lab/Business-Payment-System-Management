@@ -26,7 +26,8 @@ class EnforceStaffActions
         $route = $request->route();
         $controller = class_basename($route?->getControllerClass() ?? '');
         $method = (string) ($route?->getActionMethod() ?? '');
-        if ($request->isMethodSafe() || $controller === 'AuthController' || $controller === 'LocaleController' || $controller === 'ProductReviewController') {
+        // SiteVisitController only notes that a public page was opened; it decides itself whose visits count.
+        if ($request->isMethodSafe() || $controller === 'AuthController' || $controller === 'LocaleController' || $controller === 'ProductReviewController' || $controller === 'SiteVisitController') {
             return $next($request);
         }
         if (! $actor) {
@@ -106,6 +107,10 @@ class EnforceStaffActions
             || ($controller === 'PrescriptionController' && in_array($method, ['storePatient', 'updatePatient', 'store', 'dispense'], true));
         if ($prescribing && PrescriptionAccess::usesCompanyStock($actor)) {
             // Office accounts switched on for company stock prescribe and dispense; the domain checks again.
+            return $next($request);
+        }
+        if ($controller === 'SiteVisitSettingsController' && $actor->owner()) {
+            // Only owners turn the website visitor count on or off; the controller checks again.
             return $next($request);
         }
         if ($controller === 'DataCleanupController' && $actor->owner()) {

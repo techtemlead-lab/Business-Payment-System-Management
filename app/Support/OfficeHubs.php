@@ -78,7 +78,7 @@ final class OfficeHubs
         ]],
         'office-website' => ['label' => 'label_web', 'tabs' => [
             'website' => '/website', 'content' => '/content', 'public-trust' => '/public-trust',
-            'video-marketing' => '/operations/video-marketing', 'feedback' => '/feedback',
+            'video-marketing' => '/operations/video-marketing', 'feedback' => '/feedback', 'visitors' => '/visitors',
         ]],
     ];
 
