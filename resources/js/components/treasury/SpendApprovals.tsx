@@ -5,9 +5,9 @@ import { useT } from '../../shared/i18n/t';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from '../MoneyTable';
 import { FUNDS_COMMAND_ROOT, useHeadName } from './FundSpendForm';
 
-export type SpendApproval = Row & { id: number; fund_key: string; amount: string; can_review: boolean; can_cancel?: boolean; can_self_approve?: boolean; waits_for_owner?: boolean; over_budget?: boolean };
+export type SpendApproval = Row & { id: number; fund_key: string; amount: string; can_review: boolean; can_cancel?: boolean; can_add_receipt?: boolean; waits_for_owner?: boolean; over_budget?: boolean };
 
-/** Spends waiting for a second person, on the shared table. Everything else opens in a box. */
+/** Spends waiting for a decision, on the shared table. Everything else opens in a box. */
 export default function SpendApprovals({ table }: { table: MoneyTableData<SpendApproval> }) {
     const translate = useT();
     const headName = useHeadName();
@@ -35,7 +35,7 @@ function ApprovalBox({ row, onClose }: { row: SpendApproval; onClose: () => void
     const translate = useT();
     const headName = useHeadName();
     const [decision, setDecision] = useState<'approved' | 'rejected' | 'cancel' | null>(null);
-    const reviewForm = useForm<Row>({ decision: '', reason: '', self_approve: false, receipt: null });
+    const reviewForm = useForm<Row>({ decision: '', reason: '', receipt: null });
     const cancelForm = useForm<Row>({ reason: '' });
     const facts: Array<[string, React.ReactNode]> = [
         [translate('treasury', 'col_date'), date(row.spent_on)],
@@ -57,7 +57,6 @@ function ApprovalBox({ row, onClose }: { row: SpendApproval; onClose: () => void
         reviewForm.post(`${FUNDS_COMMAND_ROOT}/spends/${row.id}/review`, { preserveScroll: true, onSuccess: onClose });
     };
     const reasonForm = decision === 'cancel' ? cancelForm : reviewForm;
-    const approveAlone = row.can_self_approve && !row.can_review;
 
     return (
         <Modal title={translate('treasury', 'approval_title')} onClose={onClose}>
@@ -73,11 +72,8 @@ function ApprovalBox({ row, onClose }: { row: SpendApproval; onClose: () => void
                     <label>{translate('funds', 'fld_reason')}
                         <textarea required minLength={5} maxLength={1000} value={String(reasonForm.data.reason ?? '')} onChange={(event) => reasonForm.setData('reason', event.target.value)} />
                     </label>
-                    {decision === 'approved' && row.can_self_approve && !row.has_receipt && (
-                        <label>{translate('self_approval', 'receipt_label')}<input type="file" required accept=".pdf,.jpg,.jpeg,.png" onChange={(event) => reviewForm.setData('receipt', event.target.files?.[0] ?? null)} /></label>
-                    )}
-                    {decision !== 'cancel' && row.can_self_approve && (
-                        <label className="import-confirmation"><input type="checkbox" required checked={Boolean(reviewForm.data.self_approve)} onChange={(event) => reviewForm.setData('self_approve', event.target.checked)} /> {translate('self_approval', 'confirm_label')}</label>
+                    {decision === 'approved' && row.can_add_receipt && (
+                        <label>{translate('self_approval', 'receipt_label')}<input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(event) => reviewForm.setData('receipt', event.target.files?.[0] ?? null)} /></label>
                     )}
                     <FormErrors errors={reasonForm.errors} />
                     <div className="ops-row is-inline">
@@ -87,8 +83,8 @@ function ApprovalBox({ row, onClose }: { row: SpendApproval; onClose: () => void
                 </form>
             ) : (
                 <div className="ops-row is-inline is-wrap">
-                    {(row.can_review || row.can_self_approve) && <button type="button" className="button dark" onClick={() => setDecision('approved')}>{translate(approveAlone ? 'self_approval' : 'funds', approveAlone ? 'approve_alone' : 'approve')}</button>}
-                    {(row.can_review || row.can_self_approve) && <button type="button" className="button small" onClick={() => setDecision('rejected')}>{translate(approveAlone ? 'self_approval' : 'funds', approveAlone ? 'reject_alone' : 'reject')}</button>}
+                    {row.can_review && <button type="button" className="button dark" onClick={() => setDecision('approved')}>{translate('funds', 'approve')}</button>}
+                    {row.can_review && <button type="button" className="button small" onClick={() => setDecision('rejected')}>{translate('funds', 'reject')}</button>}
                     {row.can_cancel && <button type="button" className="button small" onClick={() => setDecision('cancel')}>{translate('self_approval', 'cancel_spend')}</button>}
                     {row.waits_for_owner && <span className="muted">{translate('funds', 'owner_approves_hint')}</span>}
                 </div>

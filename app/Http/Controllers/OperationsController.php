@@ -191,7 +191,7 @@ class OperationsController extends Controller
             // Staff who can open the website page manage videos there; the rest keep this form.
             $data['videoManagedOnWebsite'] = $actor->allows('content');
         }
-        if ($actor->role === 'super_admin' && in_array($section, ['payroll', 'reserve-payouts', 'financial-readiness'], true)) {
+        if ($actor->role === 'super_admin' && $section === 'financial-readiness') {
             $data['secondApprovers'] = app(SelfApproval::class)->otherEligible($actor);
         }
         foreach ($tables as $key => $query) {

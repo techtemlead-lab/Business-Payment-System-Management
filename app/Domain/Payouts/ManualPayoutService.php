@@ -20,8 +20,8 @@ use Illuminate\Validation\ValidationException;
 class ManualPayoutService
 {
     /**
-     * Whether the person viewing may record this approved payment: 'alone' when they approved
-     * it themselves and nobody else could pay, 'second_person' when someone else must, otherwise null.
+     * 'second_person' when the staff member viewing approved this payment, so someone else
+     * must record it; otherwise null. The owner records a payment they approved themselves.
      */
     public function payerState(object $withdrawal, User $viewer): ?string
     {
@@ -29,7 +29,7 @@ class ManualPayoutService
             return null;
         }
 
-        return app(SelfApproval::class)->isAvailable($viewer, [$withdrawal->user_id, $withdrawal->reviewed_by]) ? 'alone' : 'second_person';
+        return app(SelfApproval::class)->ownerFinishesAlone($viewer) ? null : 'second_person';
     }
 
     /** @param array<string, mixed> $data */
@@ -155,7 +155,7 @@ class ManualPayoutService
      * @param  array{method: string, bank_name?: ?string, account_number?: ?string, wallet_number?: ?string, received_by?: ?string}  $payout
      * @return string The new receipt number.
      */
-    public function settle(User $actor, string $id, array $payout, ?UploadedFile $receipt, ?string $reference, string $paidAt, string $note, ?int $paymentAccountId = null, bool $confirmedAlone = false): string
+    public function settle(User $actor, string $id, array $payout, ?UploadedFile $receipt, ?string $reference, string $paidAt, string $note, ?int $paymentAccountId = null): string
     {
         abort_unless($actor->allows('finance'), 403);
         CommissionWallet::requireActive();
@@ -167,7 +167,7 @@ class ManualPayoutService
         $path = $receipt?->storeAs('payout-receipts', Str::uuid().'.'.$receipt->guessExtension(), 'local');
         $issued = null;
         try {
-            DB::transaction(function () use ($actor, $id, $payout, $isCash, $receipt, $path, $reference, $paidAt, $note, $paymentAccountId, $confirmedAlone, &$issued) {
+            DB::transaction(function () use ($actor, $id, $payout, $isCash, $receipt, $path, $reference, $paidAt, $note, $paymentAccountId, &$issued) {
                 CommissionWallet::lock();
                 $w = DB::table('withdrawals')->where('id', $id)->lockForUpdate()->first();
                 abort_unless($w, 404);
@@ -182,7 +182,7 @@ class ManualPayoutService
                 }
                 $selfApproved = $actor->id === $w->reviewed_by;
                 if ($selfApproved) {
-                    app(SelfApproval::class)->authorizeAlone($actor, 'withdrawal', __('portal.err_wd_payer_separation'), $confirmedAlone, $note, [$w->user_id, $w->reviewed_by], receiptNeeded: true, hasReceipt: $receipt !== null);
+                    app(SelfApproval::class)->finishOwnStep($actor, 'withdrawal', __('portal.err_wd_payer_separation'));
                 }
                 if ($reference !== null && DB::table('withdrawals')->where('payment_reference', $reference)->exists()) {
                     throw ValidationException::withMessages(['payment_reference' => __('portal.err_wd_payment_ref_used')]);
