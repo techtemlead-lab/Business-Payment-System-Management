@@ -94,11 +94,11 @@ final class ReserveService
         }
     }
 
-    public function review(User $actor, int $id, string $decision, string $reason, bool $confirmedAlone = false): void
+    public function review(User $actor, int $id, string $decision, string $reason): void
     {
         abort_unless($actor->allows('finance'), 403);
         CommissionWallet::requireActive();
-        DB::transaction(function () use ($actor, $id, $decision, $reason, $confirmedAlone): void {
+        DB::transaction(function () use ($actor, $id, $decision, $reason): void {
             CommissionWallet::lock();
             abort_unless($actor->fresh()->allows('finance'), 403);
             $row = DB::table('reserve_disbursements')->where('id', $id)->lockForUpdate()->first();
@@ -112,7 +112,7 @@ final class ReserveService
             }
             $selfApproved = $actor->id === $row->created_by;
             if ($selfApproved) {
-                app(SelfApproval::class)->authorizeAlone($actor, 'reserve', __('portal.err_reserve_reviewer'), $confirmedAlone, $reason, [$row->created_by, $row->user_id]);
+                app(SelfApproval::class)->finishOwnStep($actor, 'reserve', __('portal.err_reserve_reviewer'));
             }
             if ($decision === 'approved') {
                 if ($row->user_id) {
@@ -208,7 +208,7 @@ final class ReserveService
      * @param  array<string, mixed>  $data
      * @return string The new receipt number.
      */
-    public function pay(User $actor, int $id, array $data, ?UploadedFile $receipt, bool $confirmedAlone = false): string
+    public function pay(User $actor, int $id, array $data, ?UploadedFile $receipt): string
     {
         abort_unless($actor->allows('finance'), 403);
         CommissionWallet::requireActive();
@@ -222,7 +222,7 @@ final class ReserveService
         $path = $receipt?->storeAs('reserve-receipts', Str::uuid().'.'.$receipt->guessExtension(), 'local');
         $issued = null;
         try {
-            DB::transaction(function () use ($actor, $id, $data, $receipt, $path, $isCash, $reference, $confirmedAlone, &$issued): void {
+            DB::transaction(function () use ($actor, $id, $data, $receipt, $path, $isCash, $reference, &$issued): void {
                 CommissionWallet::lock();
                 abort_unless($actor->fresh()->allows('finance'), 403);
                 $row = DB::table('reserve_disbursements')->where('id', $id)->lockForUpdate()->first();
@@ -232,7 +232,7 @@ final class ReserveService
                 }
                 $selfApproved = $row->approved_by === $actor->id;
                 if ($selfApproved) {
-                    app(SelfApproval::class)->authorizeAlone($actor, 'reserve', __('portal.err_reserve_payer'), $confirmedAlone, (string) $data['reason'], [$row->approved_by], receiptNeeded: true, hasReceipt: $receipt !== null);
+                    app(SelfApproval::class)->finishOwnStep($actor, 'reserve', __('portal.err_reserve_payer'));
                 }
                 if (DB::table('reserve_expense_clawbacks')->whereColumn('recovered', '<', 'amount')->exists()) {
                     throw ValidationException::withMessages(['reserve' => __('portal.err_reserve_clawback')]);

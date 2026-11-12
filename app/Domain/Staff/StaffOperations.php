@@ -11,6 +11,7 @@ use App\Domain\Geography\ManagementReferral;
 use App\Domain\Geography\PlaceTree;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
+use App\Domain\Security\SelfApproval;
 use App\Models\DealerRank;
 use App\Models\PlaceCode;
 use App\Models\ReferralTreePath;
@@ -166,7 +167,9 @@ final class StaffOperations
             abort_unless($actor->fresh()->allows('accounts'), 403);
             $application = DB::table('dealer_applications')->where('id', $id)->lockForUpdate()->first();
             abort_unless($application, 404);
-            if ($application->status !== 'pending' || ($application->submitted_by !== null && (int) $application->submitted_by === $actor->id)) {
+            // Staff never decide an application they sent in themselves; the owner may.
+            $sentByActor = $application->submitted_by !== null && (int) $application->submitted_by === $actor->id;
+            if ($application->status !== 'pending' || ($sentByActor && ! app(SelfApproval::class)->ownerFinishesAlone($actor))) {
                 throw ValidationException::withMessages(['application' => __('portal.err_staff_app_reviewer')]);
             }
             $userId = null;
@@ -234,7 +237,7 @@ final class StaffOperations
                     __('portal.notice_dealer_app_body', ['email' => $application->email, 'reason' => $reason], $locale),
                 );
             }
-            Audit::record($actor->id, 'dealer_application.'.$decision, $id, ['reason' => $reason, 'user_id' => $userId, 'source' => $application->source ?? 'staff']);
+            Audit::record($actor->id, 'dealer_application.'.$decision, $id, ['reason' => $reason, 'user_id' => $userId, 'source' => $application->source ?? 'staff', ...($sentByActor ? ['self_approved' => true] : [])]);
             $applicantPhone = (string) ($payload['phone'] ?? '');
             $applicantRole = (string) ($payload['role'] ?? 'dealer');
             $supported = config('madina.locales', ['en', 'bn']);

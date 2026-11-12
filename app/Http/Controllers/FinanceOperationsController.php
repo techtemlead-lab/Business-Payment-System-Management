@@ -77,15 +77,15 @@ class FinanceOperationsController extends Controller
 
     public function payrollReview(Request $request, string $id, PayrollService $payroll): Response
     {
-        $data = $request->validate(['decision' => 'required|in:approved,rejected', 'reason' => self::Reason, 'self_approve' => 'sometimes|boolean']);
-        $payroll->review($request->user(), $id, $data['decision'], $data['reason'], $request->boolean('self_approve'));
+        $data = $request->validate(['decision' => 'required|in:approved,rejected', 'reason' => self::Reason]);
+        $payroll->review($request->user(), $id, $data['decision'], $data['reason']);
 
         return $this->done($request);
     }
 
     public function payrollPay(Request $request, string $id, PayrollService $payroll): Response
     {
-        $payroll->pay($request->user(), $id, $this->payment($request), $request->file('receipt'), $request->boolean('self_approve'));
+        $payroll->pay($request->user(), $id, $this->payment($request), $request->file('receipt'));
 
         return $this->done($request);
     }
@@ -129,7 +129,7 @@ class FinanceOperationsController extends Controller
         if ($data['decision'] === 'cancelled') {
             $reserves->cancel($request->user(), $id, $data['reason']);
         } else {
-            $reserves->review($request->user(), $id, $data['decision'], $data['reason'], $request->boolean('self_approve'));
+            $reserves->review($request->user(), $id, $data['decision'], $data['reason']);
         }
 
         return $this->done($request);
@@ -149,7 +149,7 @@ class FinanceOperationsController extends Controller
             }],
             'receipt' => 'nullable|required_unless:method,cash|file|mimes:pdf,jpg,jpeg,png|max:5120', 'reason' => self::Reason], TransactionReference::messages('payment_reference'));
         $data['paid_at'] = CarbonImmutable::parse($data['paid_at'], 'Asia/Dhaka')->utc()->toDateTimeString();
-        $number = $reserves->pay($request->user(), $id, $data, $request->file('receipt'), $request->boolean('self_approve'));
+        $number = $reserves->pay($request->user(), $id, $data, $request->file('receipt'));
 
         return $this->done($request, ['receipt_number' => $number]);
     }

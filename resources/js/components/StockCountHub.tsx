@@ -3,7 +3,6 @@ import { router, useForm, usePage } from '@inertiajs/react';
 import { Play } from 'lucide-react';
 import { ActionForm, Badge, Empty, FormErrors, Pagination, Table, date, number, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
-import { CancelSubmittedCount, DecideCountAlone } from './SelfApprovalForm';
 
 interface StockCountData {
     branch_scope: { view: string; name?: string | null };
@@ -23,6 +22,19 @@ function useText(): Translate {
 }
 
 const signed = (value: number): string => (value > 0 ? `+${number(value)}` : number(value));
+
+/** Closes a submitted stock count so the branch can count again. */
+function CancelSubmittedCount({ sessionId }: { sessionId: number }) {
+    const translate = useT();
+
+    return (
+        <ActionForm
+            action={`/commands/stock-counts/${sessionId}/cancel`}
+            submit={translate('self_approval', 'count_cancel_submitted')}
+            fields={[{ name: 'reason', label: translate('self_approval', 'count_cancel_reason'), type: 'textarea', required: true }]}
+        />
+    );
+}
 
 function StartCount({ branches }: { branches: Row[] }) {
     const text = useText();
@@ -134,7 +146,7 @@ function CountSheet({ session, can }: { session: Row; can: StockCountData['can']
                         submit={text('count_reject')}
                     />
                 </div>
-            ) : session.can_decide_alone ? <DecideCountAlone sessionId={session.id} /> : <p className="muted">{text('count_wait_second_person')}</p>)}
+            ) : <p className="muted">{text('count_wait_second_person')}</p>)}
             {session.status === 'submitted' && can.edit && <CancelSubmittedCount sessionId={session.id} />}
             {session.decision_note && <p className="muted">{text('count_note')}: {session.decision_note}</p>}
         </section>

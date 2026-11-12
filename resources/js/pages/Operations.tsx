@@ -38,7 +38,7 @@ const sectionComponents:Record<string,React.ComponentType<Row>>={
     'access-management':(props)=><StaffAccessEditor modules={props.permissionModules} staff={props.staffAccess} roles={props.customRoles} presets={props.rolePresets} hub={props.hub}/>,
     'finance-settings':(props)=><><FinanceSettings withdrawalSetting={props.withdrawalSetting} autoApproval={props.autoApproval} kycBeforeFirstWithdrawal={props.kycBeforeFirstWithdrawal} fullPaymentWhenOrdering={props.fullPaymentWhenOrdering}/>{props.approvalLimit&&<ApprovalLimitPanel limit={props.approvalLimit}/>}</>,
     'policy-schedules':PolicySchedules,
-    'payroll':(props)=><Payroll tables={props.tables} staff={props.staff} paymentAccounts={props.paymentAccounts} secondApprovers={props.secondApprovers} hub={props.hub}/>,
+    'payroll':(props)=><Payroll tables={props.tables} staff={props.staff} paymentAccounts={props.paymentAccounts} hub={props.hub}/>,
     'reserve-payouts':ReservePayouts,
     'field-sales':(props)=><FieldSales tables={props.tables} partners={props.partners} partnerSearch={props.partnerSearch} products={props.products} regions={props.regions} summary={props.summary} fullPaymentWhenOrdering={props.fullPaymentWhenOrdering} hub={props.hub}/>,
     'staff-operations':(props)=><StaffOperations tables={props.tables} staff={props.staff} hub={props.hub}/>,

@@ -94,14 +94,37 @@ class PurchasingBlankBatchTest extends TestCase
         $this->assertSame(0, app(StockLotReports::class)->missingDetailsCount($this->allBranches()));
     }
 
-    public function test_the_expiry_date_and_cost_are_still_required(): void
+    public function test_the_cost_is_still_required(): void
     {
         $product = Product::factory()->create(['stock' => 0]);
         $order = $this->sentOrder($product, 4);
 
-        $this->receive($order, $product, ['expires_on' => ''])->assertSessionHasErrors('lines.0.expires_on');
         $this->receive($order, $product, ['unit_cost' => ''])->assertSessionHasErrors('lines.0.unit_cost');
         $this->assertDatabaseCount('stock_movements', 0);
+    }
+
+    public function test_a_blank_expiry_date_is_accepted_and_the_stock_goes_in(): void
+    {
+        $product = Product::factory()->create(['stock' => 0]);
+        $order = $this->sentOrder($product, 4);
+
+        $this->receive($order, $product, ['expires_on' => ''])->assertRedirect()->assertSessionHasNoErrors();
+
+        $lot = StockLot::query()->where('product_id', $product->id)->sole();
+        $this->assertNull($lot->expires_on);
+        $this->assertSame('B-100', $lot->batch_number);
+        $this->assertNull(GoodsReceiptLine::query()->sole()->expires_on);
+        $this->assertSame(4, (int) $product->fresh()->stock);
+        $this->assertSame(0, app(StockLotReports::class)->missingDetailsCount($this->allBranches()), 'A blank expiry date is not something left to do.');
+    }
+
+    public function test_the_form_marks_the_expiry_date_as_optional_in_both_languages(): void
+    {
+        $source = (string) file_get_contents(resource_path('js/components/PurchasingHub.tsx'));
+
+        $this->assertStringContainsString("{text('expiry_optional')}<DateInput value={row.expires_on}", $source);
+        $this->assertSame('Expiry date (optional)', __('purchasing.expiry_optional', [], 'en'));
+        $this->assertSame('মেয়াদ শেষের তারিখ (না দিলেও চলবে)', __('purchasing.expiry_optional', [], 'bn'));
     }
 
     public function test_the_form_marks_the_batch_as_optional_in_both_languages(): void

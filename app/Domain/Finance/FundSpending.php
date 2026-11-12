@@ -103,7 +103,11 @@ final class FundSpending
         }
     }
 
-    public function review(User $actor, int $id, string $decision, string $reason, bool $confirmedAlone = false, ?UploadedFile $receipt = null): void
+    /**
+     * Approves or rejects a spend. The owner decides a spend they recorded themselves, and may
+     * add its receipt while doing so.
+     */
+    public function review(User $actor, int $id, string $decision, string $reason, ?UploadedFile $receipt = null): void
     {
         abort_unless(self::canManage($actor), 403);
         if ($decision === 'approved') {
@@ -112,7 +116,7 @@ final class FundSpending
         $path = $receipt?->storeAs('fund-spend-receipts', Str::uuid().'.'.$receipt->guessExtension(), 'local');
         $attached = false;
         try {
-            $this->decide($actor, $id, $decision, $reason, $confirmedAlone, $receipt, $path, $attached);
+            $this->decide($actor, $id, $decision, $reason, $receipt, $path, $attached);
         } catch (\Throwable $exception) {
             if ($path !== null) {
                 Storage::disk('local')->delete($path);
@@ -146,7 +150,7 @@ final class FundSpending
     }
 
     /**
-     * Who else could approve a spend from this fund: owners and finance approvers, or only
+     * Who may approve a spend from this fund: owners and finance approvers, or only
      * owners for the owner-only fund.
      *
      * @return \Closure(User): bool
@@ -156,9 +160,9 @@ final class FundSpending
         return fn (User $person): bool => $person->owner() || (! in_array($fund, CompanyFunds::OwnerOnly, true) && $person->canAct('finance', 'approve'));
     }
 
-    private function decide(User $actor, int $id, string $decision, string $reason, bool $confirmedAlone, ?UploadedFile $receipt, ?string $path, bool &$attached): void
+    private function decide(User $actor, int $id, string $decision, string $reason, ?UploadedFile $receipt, ?string $path, bool &$attached): void
     {
-        DB::transaction(function () use ($actor, $id, $decision, $reason, $confirmedAlone, $receipt, $path, &$attached): void {
+        DB::transaction(function () use ($actor, $id, $decision, $reason, $receipt, $path, &$attached): void {
             CommissionWallet::lock();
             abort_unless(self::canManage($actor->fresh()), 403);
             $row = DB::table('reserve_disbursements')->where('id', $id)->where('program', self::Program)->lockForUpdate()->first();
@@ -169,8 +173,7 @@ final class FundSpending
             }
             $selfApproved = $row->created_by === $actor->id;
             if ($selfApproved) {
-                app(SelfApproval::class)->authorizeAlone($actor, 'spend', __('funds.err_own_spend'), $confirmedAlone, $reason, [$row->created_by],
-                    canDoStep: self::approverOf((string) $row->fund_key), receiptNeeded: $decision === 'approved', hasReceipt: $row->receipt_path !== null || $path !== null);
+                app(SelfApproval::class)->finishOwnStep($actor, 'spend', __('funds.err_own_spend'));
                 if ($row->receipt_path === null && $path !== null) {
                     DB::table('reserve_disbursements')->where('id', $id)->update(['receipt_path' => $path, 'receipt_hash' => hash_file('sha256', $receipt->getRealPath())]);
                     $attached = true;

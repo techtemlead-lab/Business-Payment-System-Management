@@ -13,7 +13,7 @@ use Illuminate\Validation\ValidationException;
 /**
  * The withdrawal size at or above which a request is marked as a large payout in the activity
  * log. The mark does not stop a payment or ask for an extra approver: withdrawals follow the
- * normal approval steps, including the owner finishing alone when nobody else can
+ * normal approval steps, including the owner paying what they approved themselves
  * ({@see SelfApproval}). The owner sets it; every change is audit-logged.
  */
 final class WithdrawalApprovalLimit

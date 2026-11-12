@@ -86,11 +86,36 @@ class ProductPackSizeEditTest extends TestCase
     {
         [$small, $large] = $this->group($this->sized('Syrup X', '100 ml', '100.00'), $this->sized('Syrup X', '300 ml', '250.00'));
 
+        // The refusal names the words that were typed, whichever size the database reads first.
         $this->saveProduct($small, ['pack_size_en' => ' 300ML ', 'name' => 'Renamed Syrup'])
-            ->assertSessionHasErrors(['pack_size_en' => __('size_groups.err_size_repeated', ['size' => '300 ml'])]);
+            ->assertSessionHasErrors(['pack_size_en' => __('size_groups.err_size_repeated', ['size' => '300ML'])]);
 
         $this->assertDatabaseHas('products', ['id' => $small->id, 'pack_size_en' => '100 ml', 'name' => 'Syrup X']);
         $this->assertDatabaseHas('products', ['id' => $large->id, 'pack_size_en' => '300 ml']);
+    }
+
+    public function test_the_refusal_names_the_typed_words_whichever_size_was_made_first(): void
+    {
+        [$first, $second] = $this->group($this->sized('Syrup X', '100 ml', '100.00'), $this->sized('Syrup X', '300 ml', '250.00'));
+
+        $this->saveProduct($second, ['pack_size_en' => '100 ML'])
+            ->assertSessionHasErrors(['pack_size_en' => __('size_groups.err_size_repeated', ['size' => '100 ML'])]);
+
+        $this->assertDatabaseHas('products', ['id' => $second->id, 'pack_size_en' => '300 ml']);
+        $this->assertDatabaseHas('products', ['id' => $first->id, 'pack_size_en' => '100 ml']);
+    }
+
+    public function test_a_repeat_among_the_other_sizes_does_not_hold_up_a_size_that_is_itself_new(): void
+    {
+        [, , $third] = $this->group(
+            $this->sized('Syrup X', '100 ml', '100.00'),
+            $this->sized('Syrup X', '100 ml', '250.00'),
+            $this->sized('Syrup X', '500 ml', '400.00'),
+        );
+
+        $this->saveProduct($third, ['pack_size_en' => '700 ml'])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('products', ['id' => $third->id, 'pack_size_en' => '700 ml']);
     }
 
     public function test_an_archived_size_does_not_block_the_same_words(): void

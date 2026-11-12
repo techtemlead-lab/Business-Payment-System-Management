@@ -64,7 +64,7 @@ return [
     'err_line_not_on_order' => 'One of these products is not on this order.',
     'err_over_receipt' => 'Too many units for :sku. Only :due are still due on this order.',
 
-    'count_intro' => 'Count what is on the shelf, compare it with the system, and have a second person approve any difference when one is available.',
+    'count_intro' => 'Count what is on the shelf and compare it with the system. Staff who counted cannot approve the difference; someone else or the owner approves it.',
     'count_start' => 'Start a count',
     'count_session' => 'Count #:id',
     'count_list' => 'Counts',
@@ -84,7 +84,7 @@ return [
     'count_reject' => 'Reject',
     'count_reject_note' => 'Why is this count being rejected?',
     'count_note' => 'Note',
-    'count_wait_second_person' => 'Someone who did not take part in this count needs to approve it.',
+    'count_wait_second_person' => 'Someone who did not take part in this count, or the owner, needs to approve it.',
     'count_uncounted_hint' => 'Leave a line empty if you did not count it. Its stock will not change.',
     'count_overdue_title' => 'Overdue for a count',
     'count_overdue_body' => 'These branches have not had an approved count in :days days: :branches',
@@ -101,7 +101,7 @@ return [
     'err_count_not_submitted' => 'This count is not waiting for approval.',
     'err_count_line_unknown' => 'One of these lines is not part of this count.',
     'err_nothing_counted' => 'Enter at least one counted quantity first.',
-    'err_second_person' => 'Someone who took part in this count cannot approve or reject it. A second person must do it.',
+    'err_second_person' => 'Staff who took part in this count cannot approve or reject it. Someone else or the owner must do it.',
 
     'notice_count_overdue_title' => 'Stock count overdue',
     'notice_count_overdue_body' => 'These branches have not had an approved stock count in :days days: :branches',
@@ -120,5 +120,6 @@ return [
     'err_supplier_already_archived' => 'This supplier is already archived.',
     'err_supplier_not_archived' => 'This supplier is not archived.',
     'batch_optional' => 'Batch no. (optional)',
+    'expiry_optional' => 'Expiry date (optional)',
     'batch_blank_hint' => 'If you do not have the batch number now, leave it blank. It will then wait under Missing details on the Batches and expiry page, where you can add it later.',
 ];
