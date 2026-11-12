@@ -36,6 +36,9 @@ jobs:
       MADINA_FINANCIAL_ACTIVATION: "false"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # A pull request needs main's history to work out which test files it touches.
+          fetch-depth: ${{ github.event_name == 'pull_request' && '0' || '1' }}
       - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: "8.4"
@@ -60,7 +63,23 @@ jobs:
       - run: npm run build
       # Every scheduled job definition must load (a typo here silently stops backups or payouts).
       - run: php artisan schedule:list
-      - run: php artisan test --compact --log-junit storage/test-results.xml
+      # Owner's rule (2026-11-13): a pull request runs only the test files related to what it changes;
+      # every push to main runs the whole suite, so the full check still happens after each merge.
+      - name: Tests related to this pull request
+        if: github.event_name == 'pull_request'
+        run: |
+          tests=$(bash .github/scripts/related-tests.sh "origin/${{ github.base_ref }}")
+          if [ "$tests" = "ALL" ]; then
+            echo "This change can reach every page, so the whole suite runs."
+            php artisan test --compact --log-junit storage/test-results.xml
+          else
+            echo "Running $(echo "$tests" | wc -l) related test files:"
+            echo "$tests"
+            php artisan test --compact --log-junit storage/test-results.xml $tests
+          fi
+      - name: Whole test suite
+        if: github.event_name != 'pull_request'
+        run: php artisan test --compact --log-junit storage/test-results.xml
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
