@@ -198,10 +198,15 @@ class EventEmailTest extends TestCase
         $this->actingAs($staff)->onPortal('manage')->post($url, ['enabled' => [], 'version' => 0, 'reason' => 'Trying to change it'])->assertForbidden();
 
         $owner = $this->owner();
+        $this->reasonFields(['settings.email_events' => 'required']);
         $this->actingAs($owner)->onPortal('sadmin')->post($url, ['enabled' => ['not.an.event'], 'version' => 0, 'reason' => 'Trying this'])->assertSessionHasErrors('enabled.0');
-        $this->actingAs($owner)->onPortal('sadmin')->post($url, ['enabled' => [], 'version' => 0])->assertSessionHasErrors('reason');
         $this->actingAs($owner)->onPortal('sadmin')->post($url, ['enabled' => [], 'version' => 9, 'reason' => 'Out of date form'])->assertSessionHasErrors('version');
         $this->assertDatabaseMissing('business_settings', ['key' => EmailEventSwitches::SettingsKey]);
+
+        // Only the Super Admin saves these switches, and that account is never made to write a reason.
+        $this->actingAs($owner)->onPortal('sadmin')->post($url, ['enabled' => [], 'version' => 0])->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('business_settings', ['key' => EmailEventSwitches::SettingsKey]);
+        $this->assertSame('', json_decode((string) DB::table('audit_events')->where('action', 'integrations.email_events_saved')->value('metadata'), true)['reason']);
     }
 
     public function test_the_page_gives_the_switches_and_the_failures_to_the_screen(): void

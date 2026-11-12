@@ -73,6 +73,7 @@ class EditSchemesContestsKitTest extends TestCase
     #[DataProvider('wrongSchemeEdits')]
     public function test_a_wrong_scheme_edit_is_refused_and_nothing_changes(array $change, string $field): void
     {
+        $this->reasonFields(['partner.scheme_edit' => 'required']);
         $scheme = $this->scheme();
 
         $this->actingAs($this->owner)->onPortal('sadmin')->from('/schemes')
@@ -85,6 +86,7 @@ class EditSchemesContestsKitTest extends TestCase
 
     public function test_a_refused_scheme_edit_gives_its_reason_in_the_persons_language(): void
     {
+        $this->reasonFields(['partner.scheme_edit' => 'required']);
         $scheme = $this->scheme();
         foreach (['bn' => 'কারণ দিতে হবে', 'en' => 'reason'] as $locale => $expected) {
             $person = User::factory()->create(['role' => 'md', 'status' => 'active', 'locale' => $locale]);
@@ -315,6 +317,7 @@ class EditSchemesContestsKitTest extends TestCase
     #[DataProvider('wrongContestEdits')]
     public function test_a_wrong_contest_edit_is_refused(array $change, string $field): void
     {
+        $this->reasonFields(['partner.contest_edit' => 'required']);
         $contest = $this->contest(['starts_on' => '2026-12-01', 'ends_on' => '2026-12-31']);
         if ($field === 'prize_text') {
             $change['prize_text'] = str_repeat('x', 501);
@@ -458,6 +461,7 @@ class EditSchemesContestsKitTest extends TestCase
     #[DataProvider('wrongKitEdits')]
     public function test_a_wrong_kit_edit_is_refused(array $change, string $field): void
     {
+        $this->reasonFields(['partner.sales_kit_edit' => 'required']);
         $item = $this->kitItem();
 
         $this->actingAs($this->owner)->onPortal('sadmin')->from('/sales-kit')
@@ -555,6 +559,36 @@ class EditSchemesContestsKitTest extends TestCase
             foreach (['bn', 'en'] as $locale) {
                 $this->assertNotSame($key, __($key, [], $locale), $action.' has no '.$locale.' label');
             }
+        }
+    }
+
+    public function test_an_edit_with_no_reason_is_saved_while_the_reason_is_optional_or_switched_off(): void
+    {
+        $scheme = $this->scheme();
+        $contest = $this->contest(['starts_on' => '2026-12-01', 'ends_on' => '2026-12-31']);
+        $item = $this->kitItem();
+
+        foreach (['optional' => 'First', 'off' => 'Second'] as $mode => $word) {
+            $this->reasonFields(['partner.scheme_edit' => $mode, 'partner.contest_edit' => $mode, 'partner.sales_kit_edit' => $mode]);
+
+            $this->actingAs($this->owner)->onPortal('sadmin')
+                ->patch('/commands/schemes/'.$scheme->id, [...$this->schemeEdit($scheme), 'title' => $word.' offer', 'reason' => ''])
+                ->assertSessionHasNoErrors();
+            $this->actingAs($this->owner)->onPortal('sadmin')
+                ->patch('/commands/contests/'.$contest->id, [...array_diff_key($this->contestEdit($contest), ['reason' => true]), 'title' => $word.' push'])
+                ->assertSessionHasNoErrors();
+            $this->actingAs($this->owner)->onPortal('sadmin')
+                ->post('/commands/sales-kit/'.$item->id, [...$this->kitEdit(), 'title' => $word.' poster', 'reason' => '   '])
+                ->assertSessionHasNoErrors();
+        }
+
+        $this->assertSame('Second offer', $scheme->fresh()->title);
+        $this->assertSame('Second push', $contest->fresh()->title);
+        $this->assertSame('Second poster', $item->fresh()->title);
+        foreach (['dated_scheme.updated', 'contest.updated', 'sales_kit.updated'] as $action) {
+            $reasons = DB::table('audit_events')->where('action', $action)->orderBy('id')->pluck('metadata')
+                ->map(fn (string $metadata): mixed => json_decode($metadata, true)['reason'])->all();
+            $this->assertSame(['', ''], $reasons, $action);
         }
     }
 

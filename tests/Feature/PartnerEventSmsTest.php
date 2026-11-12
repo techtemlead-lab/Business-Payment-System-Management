@@ -638,6 +638,37 @@ class PartnerEventSmsTest extends TestCase
         $this->assertDatabaseHas('users', ['id' => $dealer->id, 'status' => 'active']);
     }
 
+    public function test_a_partner_suspended_with_no_reason_is_told_none_was_written(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $dealer = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'locale' => 'en',
+            'phone' => '01720000103',
+        ]);
+
+        $this->actingAs($admin)->onPortal('sadmin')
+            ->patch('/commands/accounts/'.$dealer->id, ['status' => 'suspended'])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('users', ['id' => $dealer->id, 'status' => 'suspended']);
+        $this->assertSame(
+            __('sms.account_suspended', ['reason' => __('reason_fields.not_written', [], 'bn')], 'bn'),
+            config('madina.sms.sent')[0]['message'] ?? null,
+        );
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $dealer->id,
+            'body' => __('portal.notice_account_suspended_body', ['reason' => __('reason_fields.not_written', [], 'en')], 'en'),
+        ]);
+        $audit = DB::table('audit_events')->where('action', 'account.updated')->where('subject', (string) $dealer->id)->sole();
+        $this->assertSame('', json_decode((string) $audit->metadata, true)['reason']);
+    }
+
     public function test_staff_territory_assign_sends_localized_sms(): void
     {
         Config::set('madina.sms.driver', 'array');
@@ -1025,5 +1056,41 @@ class PartnerEventSmsTest extends TestCase
             $sent[0]['message'] ?? null,
         );
         $this->assertDatabaseMissing('users', ['email' => 'reject.sms@example.test']);
+    }
+
+    public function test_an_applicant_rejected_with_no_reason_is_told_none_was_written(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+
+        $this->onPortal('public')
+            ->from('/partnership')
+            ->post('/partnership/apply', [
+                'name' => 'No Reason Applicant',
+                'email' => 'reject.blank@example.test',
+                'phone' => '01720000095',
+                'date_of_birth' => '1990-01-01',
+                'role' => 'sub_dealer',
+                'division' => 'Barisal',
+                'district' => 'Barisal',
+            ])
+            ->assertRedirect('/partnership#partner-apply-status');
+        $id = DB::table('dealer_applications')->where('email', 'reject.blank@example.test')->value('id');
+        Config::set('madina.sms.sent', []);
+
+        $reviewer = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $this->actingAs($reviewer)->onPortal('sadmin')
+            ->post('/commands/operations/staff/applications/'.$id.'/review', ['decision' => 'rejected'])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('dealer_applications', ['id' => $id, 'status' => 'rejected', 'reason' => '']);
+        $this->assertSame(
+            __('sms.partnership_application_rejected', [
+                'role' => __('portal.acct_role_sub_dealer', [], 'bn'),
+                'reason' => __('reason_fields.not_written', [], 'bn'),
+            ], 'bn'),
+            config('madina.sms.sent')[0]['message'] ?? null,
+        );
     }
 }

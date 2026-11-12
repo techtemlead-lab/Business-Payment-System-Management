@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Accounts\AccountPhoneRules;
 use App\Domain\Accounts\CustomerBook;
+use App\Support\ReasonFields;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -47,7 +48,7 @@ class CustomerBookController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:150',
             'phone' => 'nullable|string|max:30',
-            'notes' => 'nullable|string|max:2000',
+            'notes' => ReasonFields::rule('partner.customer_note', 2000),
             'follow_up_on' => 'nullable|date_format:Y-m-d',
         ]);
 

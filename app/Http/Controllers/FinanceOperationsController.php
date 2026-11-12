@@ -15,6 +15,7 @@ use App\Domain\Payouts\PayoutReceipts;
 use App\Support\Audit;
 use App\Support\Money;
 use App\Support\PdfFonts;
+use App\Support\ReasonFields;
 use App\Support\SpreadsheetCell;
 use App\Support\TableWorkbook;
 use App\Support\TransactionReference;
@@ -63,7 +64,8 @@ class FinanceOperationsController extends Controller
     {
         abort_unless($request->user()->allows('finance'), 403);
         $data = $request->validate(['staff_id' => 'required|integer|exists:users,id', 'effective_month' => 'required|date_format:Y-m',
-            'base_salary' => self::Amount, 'allowance' => self::Amount, 'deduction' => self::Amount, 'reason' => self::Reason]);
+            'base_salary' => self::Amount, 'allowance' => self::Amount, 'deduction' => self::Amount, 'reason' => ReasonFields::rule('staff.contract', 1000, 5)]);
+        $data['reason'] = ReasonFields::text($data['reason'] ?? null);
 
         return $this->done($request, ['id' => $payroll->contract($request->user(), $data)]);
     }
@@ -77,8 +79,8 @@ class FinanceOperationsController extends Controller
 
     public function payrollReview(Request $request, string $id, PayrollService $payroll): Response
     {
-        $data = $request->validate(['decision' => 'required|in:approved,rejected', 'reason' => self::Reason]);
-        $payroll->review($request->user(), $id, $data['decision'], $data['reason']);
+        $data = $request->validate(['decision' => 'required|in:approved,rejected', 'reason' => ReasonFields::rule('staff.payroll_review', 1000, 5)]);
+        $payroll->review($request->user(), $id, $data['decision'], ReasonFields::text($data['reason'] ?? null));
 
         return $this->done($request);
     }
@@ -94,7 +96,8 @@ class FinanceOperationsController extends Controller
     {
         abort_unless($request->user()->allows('finance'), 403);
         $data = $request->validate(['scope' => 'required|in:global,buyer,recipient', 'user_id' => 'nullable|required_unless:scope,global|integer|exists:users,id',
-            'rules' => 'required|array|min:1', 'effective_at' => 'required|date', 'expires_at' => 'nullable|date|after:effective_at', 'reason' => self::Reason]);
+            'rules' => 'required|array|min:1', 'effective_at' => 'required|date', 'expires_at' => 'nullable|date|after:effective_at', 'reason' => ReasonFields::rule('money.policy_schedule', 1000, 5)]);
+        $data['reason'] = ReasonFields::text($data['reason'] ?? null);
         $data['effective_at'] = CarbonImmutable::parse($data['effective_at'], 'Asia/Dhaka')->utc()->toIso8601String();
         if (! empty($data['expires_at'])) {
             $data['expires_at'] = CarbonImmutable::parse($data['expires_at'], 'Asia/Dhaka')->utc()->toIso8601String();
@@ -105,8 +108,8 @@ class FinanceOperationsController extends Controller
 
     public function scheduleReview(Request $request, int $id, PolicyScheduling $schedules): Response
     {
-        $data = $request->validate(['decision' => 'required|in:approved,rejected,cancelled', 'reason' => self::Reason]);
-        $schedules->review($request->user(), $id, $data['decision'], $data['reason']);
+        $data = $request->validate(['decision' => 'required|in:approved,rejected,cancelled', 'reason' => ReasonFields::rule('money.policy_schedule_review', 1000, 5)]);
+        $schedules->review($request->user(), $id, $data['decision'], ReasonFields::text($data['reason'] ?? null));
 
         return $this->done($request);
     }
@@ -117,7 +120,8 @@ class FinanceOperationsController extends Controller
         $data = $request->validate(['program' => ['required', Rule::in(array_keys(ReserveService::Programs))],
             'user_id' => 'nullable|required_unless:program,marketing|prohibited_if:program,marketing|integer|exists:users,id',
             'payee_name' => 'nullable|required_if:program,marketing|string|max:150', 'amount' => [...self::Amount, 'gt:0'],
-            'request_key' => 'required|uuid', 'reason' => self::Reason]);
+            'request_key' => 'required|uuid', 'reason' => ReasonFields::rule('money.reserve_request', 1000, 5)]);
+        $data['reason'] = ReasonFields::text($data['reason'] ?? null);
         $data['user_id'] = isset($data['user_id']) ? (int) $data['user_id'] : null;
 
         return $this->done($request, ['id' => $reserves->request($request->user(), $data)]);
@@ -125,11 +129,12 @@ class FinanceOperationsController extends Controller
 
     public function reserveReview(Request $request, int $id, ReserveService $reserves): Response
     {
-        $data = $request->validate(['decision' => 'required|in:approved,rejected,cancelled', 'reason' => self::Reason]);
+        $data = $request->validate(['decision' => 'required|in:approved,rejected,cancelled', 'reason' => ReasonFields::rule('money.reserve_review', 1000, 5)]);
+        $reason = ReasonFields::text($data['reason'] ?? null);
         if ($data['decision'] === 'cancelled') {
-            $reserves->cancel($request->user(), $id, $data['reason']);
+            $reserves->cancel($request->user(), $id, $reason);
         } else {
-            $reserves->review($request->user(), $id, $data['decision'], $data['reason']);
+            $reserves->review($request->user(), $id, $data['decision'], $reason);
         }
 
         return $this->done($request);
@@ -147,7 +152,8 @@ class FinanceOperationsController extends Controller
                     $fail(__('portal.err_wd_paid_at_future'));
                 }
             }],
-            'receipt' => 'nullable|required_unless:method,cash|file|mimes:pdf,jpg,jpeg,png|max:5120', 'reason' => self::Reason], TransactionReference::messages('payment_reference'));
+            'receipt' => 'nullable|required_unless:method,cash|file|mimes:pdf,jpg,jpeg,png|max:5120', 'reason' => ReasonFields::rule('money.reserve_pay', 1000, 5)], TransactionReference::messages('payment_reference'));
+        $data['reason'] = ReasonFields::text($data['reason'] ?? null);
         $data['paid_at'] = CarbonImmutable::parse($data['paid_at'], 'Asia/Dhaka')->utc()->toDateTimeString();
         $number = $reserves->pay($request->user(), $id, $data, $request->file('receipt'));
 
@@ -156,16 +162,16 @@ class FinanceOperationsController extends Controller
 
     public function reassignHeld(Request $request, int $id, ReserveService $reserves): Response
     {
-        $data = $request->validate(['user_id' => 'required|integer|exists:users,id', 'reason' => self::Reason, 'request_key' => 'required|uuid']);
-        $reserves->reassignHeld($request->user(), $id, (int) $data['user_id'], $data['reason'], $data['request_key']);
+        $data = $request->validate(['user_id' => 'required|integer|exists:users,id', 'reason' => ReasonFields::rule('money.held_reassign', 1000, 5), 'request_key' => 'required|uuid']);
+        $reserves->reassignHeld($request->user(), $id, (int) $data['user_id'], ReasonFields::text($data['reason'] ?? null), $data['request_key']);
 
         return $this->done($request);
     }
 
     public function release(Request $request, int $id, ReserveService $reserves): Response
     {
-        $data = $request->validate(['reason' => self::Reason]);
-        $reserves->release($request->user(), $id, $data['reason']);
+        $data = $request->validate(['reason' => ReasonFields::rule('money.held_release', 1000, 5)]);
+        $reserves->release($request->user(), $id, ReasonFields::text($data['reason'] ?? null));
 
         return $this->done($request);
     }
@@ -174,7 +180,7 @@ class FinanceOperationsController extends Controller
     {
         abort_unless($request->user()->allows('finance'), 403);
         CommissionWallet::requireActive();
-        $data = [...$this->payment($request), ...$request->validate(['amount' => [...self::Amount, 'gt:0']])];
+        $data = [...$this->payment($request, 'money.reserve_recover'), ...$request->validate(['amount' => [...self::Amount, 'gt:0']])];
         $path = $request->file('receipt')->storeAs('reserve-recoveries', Str::uuid().'.'.$request->file('receipt')->guessExtension(), 'local');
         try {
             DB::transaction(function () use ($request, $id, $data, $path, $wallets): void {
@@ -221,17 +227,17 @@ class FinanceOperationsController extends Controller
 
     public function openingVerify(Request $request, int $id, FinancialReadiness $readiness): Response
     {
-        $data = $request->validate(['reason' => 'nullable|string|max:1000', 'self_approve' => 'sometimes|boolean']);
-        $readiness->verify($request->user(), $id, (string) ($data['reason'] ?? ''), $request->boolean('self_approve'));
+        $data = $request->validate(['reason' => ReasonFields::rule('money.opening_verify', 1000), 'self_approve' => 'sometimes|boolean']);
+        $readiness->verify($request->user(), $id, ReasonFields::text($data['reason'] ?? null), $request->boolean('self_approve'));
 
         return $this->done($request);
     }
 
     public function openingFreshStart(Request $request, FinancialReadiness $readiness): Response
     {
-        $data = $request->validate(['reason' => self::Reason, 'self_approve' => 'required|boolean']);
+        $data = $request->validate(['reason' => ReasonFields::rule('money.opening_fresh_start', 1000, 5), 'self_approve' => 'required|boolean']);
 
-        return $this->done($request, ['id' => $readiness->freshStart($request->user(), $data['reason'], $request->boolean('self_approve'))]);
+        return $this->done($request, ['id' => $readiness->freshStart($request->user(), ReasonFields::text($data['reason'] ?? null), $request->boolean('self_approve'))]);
     }
 
     public function receipt(Request $request, string $kind, string $id): Response
@@ -398,8 +404,13 @@ class FinanceOperationsController extends Controller
         return response()->download($path, 'Madina-'.$data['type'].'-'.$data['from'].'-'.$data['to'].'.'.$data['format'], ['Cache-Control' => 'private, no-store'])->deleteFileAfterSend();
     }
 
-    /** @return array<string, mixed> */
-    private function payment(Request $request): array
+    /**
+     * The payment details every recorded payout or collection needs. The reason box follows the
+     * owners' switch for `$reasonPlace`; a step with no switch of its own keeps it compulsory.
+     *
+     * @return array<string, mixed>
+     */
+    private function payment(Request $request, ?string $reasonPlace = null): array
     {
         abort_unless($request->user()->allows('finance'), 403);
         TransactionReference::tidy($request, 'payment_reference');
@@ -408,7 +419,9 @@ class FinanceOperationsController extends Controller
                 if (CarbonImmutable::parse($value, 'Asia/Dhaka')->isFuture()) {
                     $fail(__('portal.err_wd_paid_at_future'));
                 }
-            }], 'receipt' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120', 'reason' => self::Reason], TransactionReference::messages('payment_reference'));
+            }], 'receipt' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'reason' => $reasonPlace === null ? self::Reason : ReasonFields::rule($reasonPlace, 1000, 5)], TransactionReference::messages('payment_reference'));
+        $data['reason'] = ReasonFields::text($data['reason'] ?? null);
         $data['paid_at'] = CarbonImmutable::parse($data['paid_at'], 'Asia/Dhaka')->utc()->toDateTimeString();
 
         return $data;

@@ -16,7 +16,7 @@ export default function CustomerBookHub({ data, filters }: { data: CustomerBookD
     const fields: Field[] = [
         { name: 'name', label: translate('dealer_tools', 'customer_name'), required: true },
         { name: 'phone', label: translate('dealer_tools', 'customer_phone') },
-        { name: 'notes', label: translate('dealer_tools', 'customer_notes'), type: 'textarea' },
+        { name: 'notes', label: translate('dealer_tools', 'customer_notes'), type: 'textarea', place: 'partner.customer_note' },
         { name: 'follow_up_on', label: translate('dealer_tools', 'customer_follow_up'), type: 'date' },
     ];
     const go = (next: Row) => router.get('/customers', Object.fromEntries(Object.entries({ q: search, status, ...next }).filter(([, value]) => value !== '' && value != null)) as Record<string, string>, { preserveState: true, preserveScroll: true });

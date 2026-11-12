@@ -224,6 +224,7 @@ class StatementImportTest extends TestCase
 
     public function test_a_flagged_match_needs_a_note_before_it_can_be_confirmed(): void
     {
+        $this->reasonFields(['payment.statement_confirm' => 'required']);
         $this->claim('DUP111', '1500.00');
         $finance = $this->finance();
         $id = $this->importCsv($finance, "Date,TrxID,Details,Amount\n2026-10-05,DUP111,Sent,1500\n2026-10-06,DUP111,Sent,1500\n");
@@ -234,6 +235,30 @@ class StatementImportTest extends TestCase
 
         $this->actingAs($finance)->onPortal('manage')->postJson('/commands/operations/accounting/statement-lines/'.$line->id.'/confirm', ['reason' => 'Checked with the bank, one real payment'])->assertOk();
         $this->assertSame('confirmed', DB::table('statement_import_lines')->where('id', $line->id)->value('state'));
+    }
+
+    public function test_the_note_on_a_match_follows_the_owners_switch(): void
+    {
+        $this->claim('DUP111', '1500.00');
+        $this->claim('ABC123', '1500.00');
+        $finance = $this->finance();
+        $id = $this->importCsv($finance, "Date,TrxID,Details,Amount\n2026-10-05,DUP111,Sent,1500\n2026-10-06,DUP111,Sent,1500\n2026-10-07,ABC123,Sent,1500\n");
+        $flagged = $this->line($id, 'DUP111');
+        $unflagged = $this->line($id, 'ABC123');
+        $confirm = fn (object $line): string => '/commands/operations/accounting/statement-lines/'.$line->id.'/confirm';
+        $this->assertNotSame([], json_decode($flagged->flags, true));
+        $this->assertSame([], json_decode($unflagged->flags, true));
+
+        $this->reasonFields(['payment.statement_confirm' => 'required']);
+        $this->actingAs($finance)->onPortal('manage')->postJson($confirm($unflagged), [])->assertStatus(422)->assertJsonValidationErrors('reason');
+        $this->assertSame('suggested', $this->line($id, 'ABC123')->state);
+
+        $this->reasonFields(['payment.statement_confirm' => 'optional']);
+        $this->actingAs($finance)->onPortal('manage')->postJson($confirm($flagged), [])->assertOk();
+        $this->actingAs($finance)->onPortal('manage')->postJson($confirm($unflagged), [])->assertOk();
+
+        $this->assertDatabaseHas('statement_import_lines', ['id' => $flagged->id, 'state' => 'confirmed', 'note' => null]);
+        $this->assertDatabaseHas('statement_import_lines', ['id' => $unflagged->id, 'state' => 'confirmed', 'note' => null]);
     }
 
     public function test_one_claim_cannot_be_confirmed_on_two_lines(): void
@@ -277,6 +302,7 @@ class StatementImportTest extends TestCase
         $this->actingAs($finance)->onPortal('manage')->post('/commands/operations/accounting/statement-lines/'.$this->line($id, 'ABC123')->id.'/dismiss', [])->assertRedirect();
 
         $this->assertSame('dismissed', $this->line($id, 'ABC123')->state);
+        $this->assertSame(__('accounting.dismiss_reason'), $this->line($id, 'ABC123')->note);
         $this->assertDatabaseHas('audit_events', ['action' => 'statement_import.match_dismissed']);
     }
 

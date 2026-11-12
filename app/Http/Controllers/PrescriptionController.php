@@ -117,7 +117,7 @@ class PrescriptionController extends Controller
         $data = $request->validate([
             'registration_type' => ['required', Rule::in(PrescriberRegistration::Types)],
             'registration_number' => 'required|string|min:2|max:60',
-            'note' => 'nullable|string|max:1000',
+            'note' => \App\Support\ReasonFields::rule('clinic.registration_note', 1000),
         ]);
         $verification->saveOwn($request->user(), $data);
 
@@ -185,7 +185,7 @@ class PrescriptionController extends Controller
             'sex' => ['nullable', Rule::in(PrescriptionPatient::Sexes)],
             'phone' => ['nullable', 'string', 'max:20', 'regex:/^\+?[\d\s-]{6,20}$/'],
             'place_code_id' => 'nullable|integer|exists:place_codes,id',
-            'notes' => 'nullable|string|max:2000',
+            'notes' => \App\Support\ReasonFields::rule('clinic.patient_notes', 2000),
             'allergies' => 'nullable|string|max:1000',
         ];
     }

@@ -12,6 +12,7 @@ use App\Models\ReferralTreePath;
 use App\Models\User;
 use App\Support\DashboardManagement;
 use App\Support\Money;
+use App\Support\ReasonFields;
 use App\Support\TransactionReference;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -30,7 +31,7 @@ class CommissionController extends Controller
     public function updatePolicy(Request $request, CommissionPolicy $policy): JsonResponse
     {
         abort_unless($request->user()->allows('finance'), 403);
-        $data = $request->validate(['rules' => 'required|array', 'reason' => 'nullable|string|max:500']);
+        $data = $request->validate(['rules' => 'required|array', 'reason' => ReasonFields::rule('money.commission_rules', 500)]);
         $result = $policy->update($request->user(), $data['rules'], $data['reason'] ?? null);
 
         // A pending change is accepted but not live yet: the returned rules are still the old ones.
@@ -68,9 +69,9 @@ class CommissionController extends Controller
     {
         abort_unless($request->user()->allows('finance'), 403);
         $data = $request->validate(['refund_amount' => ['required', 'regex:/^\d{1,8}(\.\d{1,2})?$/D'],
-            'reference' => 'required|string|'.TransactionReference::MinRule.'|max:100', 'reason' => 'required|string|min:5|max:1000', 'request_key' => 'required|uuid'], TransactionReference::messages('reference'));
+            'reference' => 'required|string|'.TransactionReference::MinRule.'|max:100', 'reason' => ReasonFields::rule('order.refund', 1000, 5), 'request_key' => 'required|uuid'], TransactionReference::messages('reference'));
 
-        return response()->json(['data' => $service->reverseOrderPartial($order, $data['refund_amount'], $data['reason'], $data['reference'], $request->user()->id, $data['request_key']), 'records_commission_adjustment_only' => true]);
+        return response()->json(['data' => $service->reverseOrderPartial($order, $data['refund_amount'], ReasonFields::text($data['reason'] ?? null), $data['reference'], $request->user()->id, $data['request_key']), 'records_commission_adjustment_only' => true]);
     }
 
     public function settle(Request $request, CommissionService $service): JsonResponse

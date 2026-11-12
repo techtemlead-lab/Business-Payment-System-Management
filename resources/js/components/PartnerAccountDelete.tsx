@@ -3,6 +3,7 @@ import { useForm, usePage } from '@inertiajs/react';
 import { Trash2 } from 'lucide-react';
 import { type Row, FormErrors } from './UI';
 import { useT } from '../shared/i18n/t';
+import { useReasonField } from '../shared/reasonFields';
 
 type DeletionCheck = {
     outcome: 'deleted' | 'closed';
@@ -22,6 +23,7 @@ export default function PartnerAccountDelete({ account, onDone }: { account: Row
     const [check, setCheck] = useState<DeletionCheck | null>(null);
     const [failed, setFailed] = useState(false);
     const form = useForm({ reason: '', confirmation: '' });
+    const deleteReason = useReasonField('partner.account_delete');
 
     const load = () => {
         setFailed(false);
@@ -81,10 +83,12 @@ export default function PartnerAccountDelete({ account, onDone }: { account: Row
                                 form.delete(`/commands/accounts/${account.id}`, { preserveScroll: true, onSuccess: onDone });
                             }}
                         >
-                            <label>
-                                {translate('portal', 'partner_delete_reason')}
-                                <textarea required minLength={5} maxLength={1000} value={form.data.reason} onChange={(event) => form.setData('reason', event.target.value)} />
-                            </label>
+                            {deleteReason.shown && (
+                                <label>
+                                    {deleteReason.required ? translate('portal', 'partner_delete_reason') : deleteReason.label(translate('reason_fields', 'box_reason'))}
+                                    <textarea required={deleteReason.required} minLength={deleteReason.required ? 5 : undefined} maxLength={1000} value={form.data.reason} onChange={(event) => form.setData('reason', event.target.value)} />
+                                </label>
+                            )}
                             <label>
                                 {translate('portal', 'partner_delete_type_code', { code: check.dealer_code })}
                                 <input required autoComplete="off" maxLength={60} value={form.data.confirmation} onChange={(event) => form.setData('confirmation', event.target.value)} />

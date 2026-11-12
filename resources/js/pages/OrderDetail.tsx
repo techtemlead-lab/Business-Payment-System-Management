@@ -5,6 +5,7 @@ import Shell from '../components/Shell';
 import { Row, Table, Badge, money, number, date, label, ActionForm, DateInput, FormErrors } from '../components/UI';
 import { actionAllowed } from '../components/action-permissions';
 import { useT } from '../shared/i18n/t';
+import { useReasonField } from '../shared/reasonFields';
 import { randomUuid } from '../shared/randomUuid';
 import TransactionProgressStepper from '../components/TransactionProgressStepper';
 import CourierTrackingPanel from '../components/CourierTrackingPanel';
@@ -50,16 +51,17 @@ function DispatchForm({ order, courierChoices }: { order: Row; courierChoices: {
 function SupplyDateForm({ order }: { order: Row }) {
     const translate = useT();
     const form = useForm({ supply_eta: order.supply_eta ?? '', supply_note: order.supply_note ?? '' });
+    const supplyNote = useReasonField('order.supply_note');
     return <div className="panel"><form className="action-form" onSubmit={event => {
         event.preventDefault();
-        form.transform(data => ({ supply_eta: data.supply_eta || null, supply_note: data.supply_note || null }));
+        form.transform(data => ({ supply_eta: data.supply_eta || null, supply_note: supplyNote.shown ? data.supply_note || null : null }));
         form.post(`/commands/orders/${order.id}/supply-date`, { preserveScroll: true });
     }}>
         <h3>{translate('portal', 'supply_eta_form_title')}</h3>
         <p className="muted">{translate('portal', 'supply_eta_form_hint')}</p>
         <div className="form-grid">
             <label>{translate('portal', 'supply_eta_label')}<DateInput value={form.data.supply_eta} onChange={event => form.setData('supply_eta', event.target.value)} /></label>
-            <label>{translate('portal', 'supply_note_label')}<input maxLength={300} value={form.data.supply_note} onChange={event => form.setData('supply_note', event.target.value)} /></label>
+            {supplyNote.shown && <label>{supplyNote.label(translate('reason_fields', 'box_supply_note'))}<input maxLength={300} required={supplyNote.required} value={form.data.supply_note} onChange={event => form.setData('supply_note', event.target.value)} /></label>}
         </div>
         <FormErrors errors={form.errors}/>
         <button className="button" disabled={form.processing}>{translate('portal', 'supply_eta_save')}</button>
@@ -198,7 +200,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                     <h3>{translate('portal', 'review_claim', { reference: claim.reference })}</h3>
                     <ActionForm action={`/commands/claims/${claim.id}/verify`} fields={[
                         { name: 'approve', label: translate('portal', 'decision'), required: true, options: [{ value: '1', label: translate('portal', 'verify_received_payment') }, { value: '0', label: translate('portal', 'reject_claim') }] },
-                        { name: 'reason', label: translate(claim.channel === 'Office' ? 'order_payment' : 'portal', claim.channel === 'Office' ? 'office_who_took' : 'verification_evidence'), type: 'textarea', required: true },
+                        { name: 'reason', label: translate(claim.channel === 'Office' ? 'order_payment' : 'portal', claim.channel === 'Office' ? 'office_who_took' : 'verification_evidence'), type: 'textarea', required: true, place: 'payment.verify' },
                     ]} submit={translate('portal', 'record_payment_review')} />
                 </div>)}
             </section>
@@ -219,9 +221,9 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                                 <p className="muted" role="status">{translate('courier', 'returned_cannot_confirm')}</p>
                                 <p className="muted">{translate('courier', 'received_back_hint')}</p>
                                 <p className="muted">{translate('courier', 'received_back_money_note')}</p>
-                                <ActionForm action={`/commands/orders/${order.id}/shipments/${shipment.id}/received-back`} fields={[{ name: 'note', label: translate('courier', 'received_back_note_label'), type: 'textarea' }]} submit={translate('courier', 'received_back_action')} />
+                                <ActionForm action={`/commands/orders/${order.id}/shipments/${shipment.id}/received-back`} fields={[{ name: 'note', label: translate('reason_fields', 'box_received_back_note'), type: 'textarea', place: 'order.received_back' }]} submit={translate('courier', 'received_back_action')} />
                             </>
-                            : <ActionForm action={`/commands/orders/${order.id}/shipments/${shipment.id}/delivered`} fields={[{ name: 'reason', label: translate('portal', 'delivery_confirmation_evidence'), required: true }]} submit={translate('portal', 'confirm_delivery')} />)}
+                            : <ActionForm action={`/commands/orders/${order.id}/shipments/${shipment.id}/delivered`} fields={[{ name: 'reason', label: translate('portal', 'delivery_confirmation_evidence'), required: true, place: 'order.delivery_confirm' }]} submit={translate('portal', 'confirm_delivery')} />)}
                         {capabilities.includes('inventory') && shipment.status === 'returned' && <p className="muted" role="status">{translate('courier', 'received_back_money_note')}</p>}
                     </div></div>;
                 }) : <p className="muted">{translate('portal', 'shipment_empty')}</p>}
@@ -230,11 +232,11 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
         {order.note && <div className="notice"><b>{translate('portal', 'order_note')}</b><p>{order.note}</p></div>}
         {order.decision_reason && <div className="notice"><b>{translate('portal', 'staff_decision')}</b><p>{order.decision_reason}</p></div>}
         <PartlyDeliveredCommission />
-        {refund && <section className="panel" data-testid="order-refund"><h2>{translate('portal', 'order_refund_recorded')}</h2><p>{translate('portal', 'order_refund_recorded_body', { amount: money(refund.amount), name: String(refund.refunded_by), date: date(refund.created_at) })}</p>{Number(refund.to_account) > 0 && <p data-testid="refund-to-account">{translate('order_payment', 'refund_to_account', { amount: money(refund.to_account) })}</p>}<p className="muted">{refund.reason}</p></section>}
+        {refund && <section className="panel" data-testid="order-refund"><h2>{translate('portal', 'order_refund_recorded')}</h2><p>{translate('portal', 'order_refund_recorded_body', { amount: money(refund.amount), name: String(refund.refunded_by), date: date(refund.created_at) })}</p>{Number(refund.to_account) > 0 && <p data-testid="refund-to-account">{translate('order_payment', 'refund_to_account', { amount: money(refund.to_account) })}</p>}{refund.reason && <p className="muted">{refund.reason}</p>}</section>}
         {canRefund && !refund && <section className="panel narrow-panel"><h2>{translate('portal', 'order_refund_title')}</h2><p className="muted">{translate('portal', 'order_refund_hint')}</p><p className="notice" data-testid="order-refund-part-warning">{translate('portal', 'order_refund_part_warning')}</p>
             <ActionForm action={`/commands/orders/${order.id}/refund`} fields={[
                 { name: 'amount', label: translate('portal', 'order_refund_amount'), type: 'number', required: true, value: String(order.paid) },
-                { name: 'reason', label: translate('portal', 'order_refund_reason'), type: 'textarea', required: true },
+                { name: 'reason', label: translate('portal', 'order_refund_reason'), type: 'textarea', required: true, place: 'order.refund' },
             ]} submit={translate('portal', 'order_refund_submit')} />
         </section>}
         {owner && paymentPrompt.ask_for_payment && <PayWithoutDetails orderId={String(order.id)} outstanding={outstanding} payOptions={payOptions} />}
@@ -257,7 +259,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
             <ActionForm action={`/commands/orders/${order.id}/decision`} fields={[
                 { name: 'status', label: translate('portal', 'decision'), required: true, options: ['approved', 'held', 'rejected'].map(value => ({ value, label: label(value, translate) })) },
                 ...replacementSlots.map((slot:Row)=>({name:`referral_replacement_${slot.generation}`,label:translate('portal','replacement_for_generation',{generation:String(slot.generation),name:String(slot.name)}),options:replacementCandidates.map((person:Row)=>({value:String(person.id),label:`${person.name} · ${person.dealer_code??translate('portal','col_partner')}`}))})),
-                { name: 'reason', label: translate('portal', 'decision_reason'), type: 'textarea', required: true },
+                { name: 'reason', label: translate('portal', 'decision_reason'), type: 'textarea', required: true, place: 'order.decision' },
             ]} submit={translate('portal', 'record_decision')} />
         </section>}
         {capabilities.includes('inventory') && (staffActions?.inventory?.edit??true) && ['approved', 'partially_dispatched'].includes(order.status) && <section className="panel"><h2>{translate('portal', 'dispatch_available_items')}</h2><DispatchForm key={`${order.id}-${shipments.length}`} order={order} courierChoices={courierChoices} /></section>}

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { money, type Row, Table, number, FormErrors } from './UI';
 import { useT } from '../shared/i18n/t';
+import { useReasonField } from '../shared/reasonFields';
 import { randomUuid } from '../shared/randomUuid';
 import RepeatOrderPanel, { repeatChangeNotes, type RepeatOption } from './dealertools/RepeatOrderPanel';
 import SchemeNotices, { type RunningScheme } from './dealertools/SchemeNotices';
@@ -300,6 +301,7 @@ export default function ProductPurchaseMatrix({
         courier_choice: 'company',
         proof: null as File | null,
     });
+    const orderNote = useReasonField('order.note');
 
     /** Company accounts that take the chosen payment method. */
     const channelAccounts = useMemo(
@@ -341,7 +343,7 @@ export default function ProductPurchaseMatrix({
                 quantity: item.quantity,
             })),
             channel: f.data.channel,
-            note: f.data.note,
+            note: orderNote.shown ? f.data.note : undefined,
             courier_choice: courierChoices.length ? f.data.courier_choice : undefined,
             ...(serverSetsPayment ? {} : {
                 reference: f.data.reference,
@@ -977,15 +979,16 @@ export default function ProductPurchaseMatrix({
                                 </label>
                             )}
 
-                            <label>
-                                {translate('portal', 'note')}
+                            {orderNote.shown && <label>
+                                {orderNote.label(translate('portal', 'note'))}
                                 <textarea
                                     rows={2}
+                                    required={orderNote.required}
                                     placeholder={translate('portal', 'order_note_placeholder')}
                                     value={f.data.note}
                                     onChange={e => f.setData('note', e.target.value)}
                                 />
-                            </label>
+                            </label>}
 
                             {/* FormErrors also keeps the page-top message quiet, so errors are not shown twice. */}
                             <FormErrors errors={f.errors} className="error ppm-error" besideFields={['payment_account_id', 'proof', 'courier_choice']} />

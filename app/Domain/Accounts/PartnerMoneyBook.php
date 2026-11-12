@@ -9,6 +9,7 @@ use App\Support\Money;
 use App\Support\MoneyTable;
 use App\Support\MoneyTableFilter;
 use App\Support\MoneyTableSpec;
+use App\Support\ReasonFields;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Query\Builder;
@@ -188,7 +189,7 @@ final class PartnerMoneyBook
                 'created_at' => CarbonImmutable::parse((string) $row->created_at, 'UTC')->toIso8601String(),
                 'amount' => FundCatalog::decimalOf(FundCatalog::centsOf($row->amount)),
                 'status' => (string) $row->status,
-                'reason' => $row->status === 'rejected' ? (string) $row->reason : null,
+                'reason' => $row->status === 'rejected' ? ReasonFields::shown($row->reason) : null,
             ])
             ->all();
     }

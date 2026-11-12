@@ -10,6 +10,7 @@ use App\Domain\Payouts\ManualPayoutService;
 use App\Domain\Payouts\PayoutReceipts;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\ReasonFields;
 use App\Support\TransactionReference;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -67,8 +68,8 @@ class WithdrawalController extends Controller
     public function review(Request $r, string $id, ManualPayoutService $s): RedirectResponse
     {
         abort_unless($r->user()->allows('finance'), 403);
-        $d = $r->validate(['decision' => 'required|in:approved,rejected', 'reason' => 'required|string|max:1000']);
-        $s->review($r->user(), $id, $d['decision'], $d['reason']);
+        $d = $r->validate(['decision' => 'required|in:approved,rejected', 'reason' => ReasonFields::rule('money.withdrawal_review', 1000)]);
+        $s->review($r->user(), $id, $d['decision'], ReasonFields::text($d['reason'] ?? null));
         $this->notifyPartnerWithdrawal($id, $d['decision']);
 
         return back()->with('success', __('portal.flash_withdrawal_review'));
@@ -83,9 +84,9 @@ class WithdrawalController extends Controller
             if (Carbon::parse($value, 'Asia/Dhaka')->isFuture()) {
                 $fail(__('portal.err_wd_paid_at_future'));
             }
-        }], 'note' => 'required|string|max:1000'], TransactionReference::messages('payment_reference'));
+        }], 'note' => ReasonFields::rule('money.withdrawal_settle', 1000)], TransactionReference::messages('payment_reference'));
         $reference = isset($d['payment_reference']) ? strtoupper(trim($d['payment_reference'])) : null;
-        $number = $s->settle($r->user(), $id, $d, $r->file('receipt'), $reference, Carbon::parse($d['paid_at'], 'Asia/Dhaka')->utc()->toDateTimeString(), $d['note'], isset($d['payment_account_id']) ? (int) $d['payment_account_id'] : null);
+        $number = $s->settle($r->user(), $id, $d, $r->file('receipt'), $reference, Carbon::parse($d['paid_at'], 'Asia/Dhaka')->utc()->toDateTimeString(), ReasonFields::text($d['note'] ?? null), isset($d['payment_account_id']) ? (int) $d['payment_account_id'] : null);
         $this->notifyPartnerWithdrawal($id, 'paid');
 
         return back()->with('success', __('portal.flash_withdrawal_paid_receipt', ['number' => $number]));

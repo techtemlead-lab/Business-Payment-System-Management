@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useForm } from '@inertiajs/react';
 import { Badge, FormErrors, Modal, date, money, type Row } from '../UI';
 import { useT } from '../../shared/i18n/t';
+import { useReasonFields } from '../../shared/reasonFields';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from '../MoneyTable';
 import { FUNDS_COMMAND_ROOT, useHeadName } from './FundSpendForm';
 
@@ -30,10 +31,11 @@ export default function SpendApprovals({ table }: { table: MoneyTableData<SpendA
     );
 }
 
-/** One spend in full, with the decision. A decision needs a reason, as before. */
+/** One spend in full, with the decision. The owner's choice says whether a decision needs a reason. */
 function ApprovalBox({ row, onClose }: { row: SpendApproval; onClose: () => void }) {
     const translate = useT();
     const headName = useHeadName();
+    const reasonOf = useReasonFields();
     const [decision, setDecision] = useState<'approved' | 'rejected' | 'cancel' | null>(null);
     const reviewForm = useForm<Row>({ decision: '', reason: '', receipt: null });
     const cancelForm = useForm<Row>({ reason: '' });
@@ -57,6 +59,7 @@ function ApprovalBox({ row, onClose }: { row: SpendApproval; onClose: () => void
         reviewForm.post(`${FUNDS_COMMAND_ROOT}/spends/${row.id}/review`, { preserveScroll: true, onSuccess: onClose });
     };
     const reasonForm = decision === 'cancel' ? cancelForm : reviewForm;
+    const why = reasonOf(decision === 'cancel' ? 'money.fund_spend_cancel' : 'money.fund_spend_review');
 
     return (
         <Modal title={translate('treasury', 'approval_title')} onClose={onClose}>
@@ -69,9 +72,9 @@ function ApprovalBox({ row, onClose }: { row: SpendApproval; onClose: () => void
             </dl>
             {decision ? (
                 <form className="action-form" onSubmit={submit}>
-                    <label>{translate('funds', 'fld_reason')}
-                        <textarea required minLength={5} maxLength={1000} value={String(reasonForm.data.reason ?? '')} onChange={(event) => reasonForm.setData('reason', event.target.value)} />
-                    </label>
+                    {why.shown && <label>{why.label(translate('funds', 'fld_reason'))}
+                        <textarea required={why.required} minLength={why.required ? 5 : undefined} maxLength={1000} value={String(reasonForm.data.reason ?? '')} onChange={(event) => reasonForm.setData('reason', event.target.value)} />
+                    </label>}
                     {decision === 'approved' && row.can_add_receipt && (
                         <label>{translate('self_approval', 'receipt_label')}<input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(event) => reviewForm.setData('receipt', event.target.files?.[0] ?? null)} /></label>
                     )}

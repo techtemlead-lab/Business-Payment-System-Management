@@ -75,6 +75,7 @@ return [
     'settings_link_dashboards' => 'Partner panels',
     'settings_link_identity_review' => 'Same person, two accounts',
     'settings_link_login_rules' => 'Login and password rules',
+    'settings_link_reason_fields' => 'Reason and note boxes',
     'settings_link_service_integrations' => 'SMS and courier connections',
     'settings_link_courier_areas' => 'Courier areas',
     'settings_link_data_imports' => 'Data from Excel',

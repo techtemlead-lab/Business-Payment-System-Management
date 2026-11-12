@@ -6,6 +6,7 @@ import { settingsBack } from '../components/office/sections/SettingsForm';
 import EmailEventSwitches, { EmailEventPanel } from '../components/EmailEventSwitches';
 import { Badge, Row, humanize } from '../components/UI';
 import { useT } from '../shared/i18n/t';
+import { useReasonField } from '../shared/reasonFields';
 
 type Provider = Row & { key: string; label: string; fields: string[]; enabled: boolean };
 type Group = { label: string; description: string; providers: Record<string, Provider> };
@@ -15,6 +16,7 @@ const secretFields = new Set(['api_key', 'api_secret', 'app_key', 'app_secret', 
 
 function ProviderForm({ group, provider, version, canEdit }: { group: string; provider: Provider; version: number; canEdit: boolean }) {
     const translate = useT();
+    const saveReason = useReasonField('settings.integration_provider');
     const [balanceMsg, setBalanceMsg] = useState('');
     const [balanceBusy, setBalanceBusy] = useState(false);
     const defaults = useMemo(() => {
@@ -111,9 +113,9 @@ function ProviderForm({ group, provider, version, canEdit }: { group: string; pr
                     {form.errors[field] && <span className="field-error">{String(form.errors[field])}</span>}
                 </label>
             ))}
-            <label>{translate('portal', 'si_reason')}
-                <textarea required minLength={5} maxLength={1000} rows={2} value={String(form.data.reason)} onChange={e => form.setData('reason', e.target.value)} disabled={!canEdit} />
-            </label>
+            {saveReason.shown && <label>{saveReason.label(translate('portal', 'si_reason'))}
+                <textarea required={saveReason.required} minLength={saveReason.required ? 5 : undefined} maxLength={1000} rows={2} value={String(form.data.reason)} onChange={e => form.setData('reason', e.target.value)} disabled={!canEdit} />
+            </label>}
             {Object.keys(form.errors).length > 0 && <div role="alert" className="error">{Object.values(form.errors).join(' ')}</div>}
             <div className="ops-row is-wrap">
                 <button className="button dark" disabled={!canEdit || form.processing}>{form.processing ? translate('portal', 'si_saving') : translate('portal', 'si_save_provider')}</button>
@@ -140,6 +142,7 @@ export default function ServiceIntegrations({ integrations, startup, canEdit, ow
     const page = usePage<any>();
     const { portal } = page.props;
     const startupForm = useForm({ mode: startup.mode ?? 'fresh', version: startup.version, reason: '' });
+    const startupReason = useReasonField('settings.integration_startup');
     const groupKeys = Object.keys(integrations.groups);
     const search = new URLSearchParams(page.url.split('?')[1] ?? '');
     const requested = search.get('group') ?? '';
@@ -172,9 +175,9 @@ export default function ServiceIntegrations({ integrations, startup, canEdit, ow
                                         <option value="import">{translate('portal', 'si_mode_import')}</option>
                                     </select>
                                 </label>
-                                <label>{translate('portal', 'si_startup_reason')}
-                                    <textarea required minLength={5} maxLength={1000} rows={2} value={String(startupForm.data.reason)} onChange={e => startupForm.setData('reason', e.target.value)} disabled={!canEdit} />
-                                </label>
+                                {startupReason.shown && <label>{startupReason.label(translate('portal', 'si_startup_reason'))}
+                                    <textarea required={startupReason.required} minLength={startupReason.required ? 5 : undefined} maxLength={1000} rows={2} value={String(startupForm.data.reason)} onChange={e => startupForm.setData('reason', e.target.value)} disabled={!canEdit} />
+                                </label>}
                                 {Object.keys(startupForm.errors).length > 0 && <div role="alert" className="error">{Object.values(startupForm.errors).join(' ')}</div>}
                                 <button className="button dark set-save" disabled={!canEdit || startupForm.processing}>{startupForm.processing ? translate('portal', 'si_saving') : translate('portal', 'si_save_startup')}</button>
                             </form>

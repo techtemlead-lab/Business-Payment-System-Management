@@ -10,6 +10,7 @@ use App\Models\StockCountLine;
 use App\Models\StockCountSession;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\ReasonFields;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -255,7 +256,8 @@ final class StockCountService
 
     /**
      * Closes a count that has not been decided, so the branch can start again. Nothing has
-     * been posted to stock yet. A submitted count needs a written reason.
+     * been posted to stock yet. A submitted count needs a written reason while the owner keeps
+     * the `stock.count_cancel` reason compulsory for the person cancelling.
      */
     public function cancel(User $actor, StockCountSession $session, ?string $reason = null): StockCountSession
     {
@@ -267,7 +269,9 @@ final class StockCountService
             if (! in_array($locked->status, [StockCountSession::StatusCounting, StockCountSession::StatusSubmitted], true)) {
                 throw ValidationException::withMessages(['count' => __('purchasing.err_count_not_open')]);
             }
-            if ($locked->status === StockCountSession::StatusSubmitted && mb_strlen(trim((string) $reason)) < SelfApproval::MinimumReasonLength) {
+            if ($locked->status === StockCountSession::StatusSubmitted
+                && mb_strlen(trim((string) $reason)) < SelfApproval::MinimumReasonLength
+                && ReasonFields::required('stock.count_cancel', $actor)) {
                 throw ValidationException::withMessages(['count' => __('self_approval.err_reason')]);
             }
             $previousStatus = $locked->status;

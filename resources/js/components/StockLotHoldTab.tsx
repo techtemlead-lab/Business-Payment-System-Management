@@ -35,7 +35,7 @@ export default function StockLotHoldTab({ data }: { data: Row }) {
                 <h3>{t('held_heading')}</h3>
                 <Table rows={data.held ?? []} tools={false} empty={t('none_held')} columns={[
                     ...lotColumns,
-                    { key: 'hold_reason', title: t('col_hold_reason') },
+                    { key: 'hold_reason', title: t('col_hold_reason'), render: (row: Row) => row.hold_reason || '—' },
                     { key: 'held_by', title: t('col_held_by'), render: (row: Row) => row.held_by || '—' },
                     { key: 'held_at', title: t('col_held_on'), render: (row: Row) => date(row.held_at) },
                     ...(canChange ? [{ key: 'action', title: t('col_action'), render: (row: Row) => <div className="ops-row is-wrap">{button(row, 'release')}{button(row, 'write-off')}</div> }] : []),
@@ -58,7 +58,7 @@ export default function StockLotHoldTab({ data }: { data: Row }) {
                     {pending.action === 'write-off' && <p className="notice">{t('write_off_warning', { quantity: String(pending.row.quantity) })}</p>}
                     <ActionForm
                         action={`/commands/stock-lots/${pending.row.id}/${pending.action}`}
-                        fields={[{ name: 'reason', label: t('fld_hold_reason'), type: 'textarea', required: true }]}
+                        fields={[{ name: 'reason', label: t('fld_hold_reason'), type: 'textarea', required: true, place: 'stock.lot_hold' }]}
                         submit={t(SUBMITS[pending.action])}
                         onDone={() => setPending(null)}
                     />

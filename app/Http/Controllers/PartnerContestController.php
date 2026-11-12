@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Orders\PartnerContests;
 use App\Models\PartnerContest;
+use App\Support\ReasonFields;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -22,8 +23,8 @@ class PartnerContestController extends Controller
     public function update(Request $request, PartnerContest $partnerContest, PartnerContests $contests): RedirectResponse
     {
         abort_unless(PartnerContests::canManage($request->user()), 403);
-        $data = $request->validate([...$this->rules(), 'reason' => FinanceOperationsController::Reason]);
-        $contests->update($request->user(), $partnerContest, $data);
+        $data = $request->validate([...$this->rules(), 'reason' => ReasonFields::rule('partner.contest_edit', 1000, 5)]);
+        $contests->update($request->user(), $partnerContest, [...$data, 'reason' => ReasonFields::text($data['reason'] ?? null)]);
 
         return back()->with('success', __('dealer_tools.contest_updated'));
     }

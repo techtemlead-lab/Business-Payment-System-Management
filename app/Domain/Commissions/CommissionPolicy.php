@@ -7,6 +7,7 @@ use App\Models\CommissionRuleParameter;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
+use App\Support\ReasonFields;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -229,6 +230,7 @@ final class CommissionPolicy
                 'changes' => $changes,
                 'proposed_by' => $actor->id,
                 'approved_by' => $actor->id,
+                ...(ReasonFields::text($reason) !== '' ? ['reason' => ReasonFields::text($reason)] : []),
             ]);
 
             return ['status' => 'applied', 'schedule_id' => null];

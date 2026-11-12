@@ -11,6 +11,7 @@ use App\Models\ReferralTreePath;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
+use App\Support\ReasonFields;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -177,7 +178,7 @@ final class CommissionReversal
                 $locale = $buyer?->preferredLocale() ?? app()->getLocale();
                 $this->wallets->journal(
                     'commissions.reversal.'.$id,
-                    __('portal.jr_commission_reversal', ['reason' => $reason], $locale),
+                    __('portal.jr_commission_reversal', ['reason' => ReasonFields::shown($reason, $locale)], $locale),
                     $journal,
                 );
             }
@@ -208,7 +209,7 @@ final class CommissionReversal
                 __('portal.notice_order_refunded_body', [
                     'number' => $order->number,
                     'amount' => $amountDecimal,
-                    'reason' => $reason,
+                    'reason' => ReasonFields::shown($reason, $locale),
                 ], $locale),
             );
             $userId = (int) $order->user_id;
@@ -224,7 +225,7 @@ final class CommissionReversal
                     SmsText::make('sms.order_refunded', [
                         'number' => $orderNumber,
                         'amount' => $amountDecimal,
-                        'reason' => $reason,
+                        'reason' => ReasonFields::shown($reason, SmsText::Locale),
                     ]),
                 );
             });
@@ -256,7 +257,7 @@ final class CommissionReversal
             }
             $locale = $partner->preferredLocale();
             $owed = Money::cents((string) $row->unrecovered);
-            $replace = ['number' => $order->number, 'reason' => $reason, 'amount' => Money::grouped(Money::decimal(Money::cents((string) $row->recovered) + $owed)), 'owed' => Money::grouped(Money::decimal($owed))];
+            $replace = ['number' => $order->number, 'reason' => ReasonFields::shown($reason, $locale), 'amount' => Money::grouped(Money::decimal(Money::cents((string) $row->recovered) + $owed)), 'owed' => Money::grouped(Money::decimal($owed))];
             Audit::notice($partner->id, __('courier_more.notice_commission_taken_back_title', $replace, $locale),
                 __($owed > 0 ? 'courier_more.notice_commission_taken_back_owed_body' : 'courier_more.notice_commission_taken_back_body', $replace, $locale));
         }

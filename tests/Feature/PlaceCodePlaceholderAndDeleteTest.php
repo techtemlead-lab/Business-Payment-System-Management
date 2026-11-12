@@ -2,10 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Geography\PlaceCodeCatalog;
 use App\Models\PlaceCode;
 use App\Models\User;
 use Database\Seeders\PlaceCodeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -123,6 +126,45 @@ class PlaceCodePlaceholderAndDeleteTest extends TestCase
 
         $this->assertDatabaseMissing('place_codes', ['id' => $management->id]);
         $this->assertSame(0, PlaceCode::query()->count());
+    }
+
+    public function test_a_place_is_removed_without_a_reason_unless_the_owner_made_the_reason_compulsory(): void
+    {
+        $manager = User::factory()->staff('account_manager')->create();
+        $superAdmin = User::factory()->create(['role' => 'super_admin']);
+        $newPlace = fn (): PlaceCode => PlaceCode::query()->create(['level' => PlaceCode::LevelManagement, 'code' => null, 'name' => '—', 'parent_id' => null, 'sort_order' => 0, 'is_active' => true]);
+
+        $this->reasonFields(['settings.place_code_remove' => 'required']);
+        $kept = $newPlace();
+        foreach ([[], ['reason' => 'ab']] as $sent) {
+            $this->actingAs($manager)->onPortal('manage')->from('/place-codes')
+                ->delete('/commands/place-codes/'.$kept->id, $sent)
+                ->assertSessionHasErrors('reason');
+        }
+        try {
+            app(PlaceCodeCatalog::class)->delete($kept, 'ab', $manager->id);
+            $this->fail('A two-letter reason was accepted while the reason is compulsory.');
+        } catch (ValidationException $refusal) {
+            $this->assertSame(__('portal.err_pc_delete_reason'), $refusal->validator->errors()->first('reason'));
+        }
+        $this->assertDatabaseHas('place_codes', ['id' => $kept->id]);
+
+        // The owner's own account is never made to write a reason, even while it is compulsory.
+        $this->actingAs($superAdmin)->onPortal('sadmin')->from('/place-codes')
+            ->delete('/commands/place-codes/'.$kept->id)
+            ->assertSessionHasNoErrors();
+        $this->assertDatabaseMissing('place_codes', ['id' => $kept->id]);
+
+        foreach (['optional', 'off'] as $mode) {
+            $this->reasonFields(['settings.place_code_remove' => $mode]);
+            $removed = $newPlace();
+            $this->actingAs($manager)->onPortal('manage')->from('/place-codes')
+                ->delete('/commands/place-codes/'.$removed->id)
+                ->assertSessionHasNoErrors();
+            $this->assertDatabaseMissing('place_codes', ['id' => $removed->id]);
+        }
+        $this->assertSame(['', '', ''], DB::table('audit_events')->where('action', 'place_code.deleted')->orderBy('id')->pluck('metadata')
+            ->map(fn (string $metadata): mixed => json_decode($metadata, true)['reason'])->all());
     }
 
     public function test_admin_cannot_delete_place_with_children(): void

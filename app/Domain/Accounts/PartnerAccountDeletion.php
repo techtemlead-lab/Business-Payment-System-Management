@@ -12,6 +12,7 @@ use App\Models\PlaceCode;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\PortalHost;
+use App\Support\ReasonFields;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -380,9 +381,9 @@ final class PartnerAccountDeletion
         Audit::notice(
             $fresh->id,
             __('portal.notice_account_suspended_title', [], $locale),
-            __('portal.notice_account_suspended_body', ['reason' => $reason], $locale),
+            __('portal.notice_account_suspended_body', ['reason' => ReasonFields::shown($reason, $locale)], $locale),
         );
-        $this->sms->send($fresh, 'account.suspended', SmsText::make('sms.account_suspended', ['reason' => $reason]));
+        $this->sms->send($fresh, 'account.suspended', SmsText::make('sms.account_suspended', ['reason' => ReasonFields::shown($reason, SmsText::Locale)]));
     }
 
     /**

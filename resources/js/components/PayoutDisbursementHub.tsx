@@ -4,6 +4,7 @@ import { Download } from 'lucide-react';
 import { FormErrors, money, date } from './UI';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from './MoneyTable';
 import { useT } from '../shared/i18n/t';
+import { useReasonFields } from '../shared/reasonFields';
 import { useEscape } from '../shared/useEscape';
 import { channelName, methodForChannel, payoutMethods, type PayoutMethod } from '../shared/payoutMethods';
 
@@ -102,6 +103,9 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
     const [settleNote, setSettleNote] = useState('');
     const [receiptFile, setReceiptFile] = useState<File | null>(null);
     const [processingSettle, setProcessingSettle] = useState(false);
+    const reasonOf = useReasonFields();
+    const reviewNote = reasonOf('money.withdrawal_review');
+    const paymentNote = reasonOf('money.withdrawal_settle');
     const [payoutMethod, setPayoutMethod] = useState<PayoutMethod>('bank');
     const [bankName, setBankName] = useState('');
     const [accountNumber, setAccountNumber] = useState('');
@@ -360,18 +364,18 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                                 </div>
                             </div>
 
-                            <div className="hub-field is-last">
+                            {reviewNote.shown && <div className="hub-field is-last">
                                 <label>
-                                    {translate('portal', 'pay_verify_note')}
+                                    {reviewNote.label(translate('portal', 'pay_verify_note'))}
                                 </label>
                                 <textarea
-                                    required
+                                    required={reviewNote.required}
                                     rows={3}
                                     value={reviewReason}
                                     onChange={(e) => setReviewReason(e.target.value)}
                                     placeholder={reviewDecision === 'approved' ? translate('portal', 'pay_ph_approve') : translate('portal', 'pay_ph_reject')}
                                 />
-                            </div>
+                            </div>}
 
                             <FormErrors errors={modalErrors} />
 
@@ -499,18 +503,19 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                                 />
                             </div>
 
-                            <div className="hub-field is-last">
+                            {paymentNote.shown && <div className="hub-field is-last">
                                 <label>
-                                    {translate('portal', 'pay_fld_notes')}
+                                    {/* The saved label ends with a star, which only fits a box that must be filled. */}
+                                    {paymentNote.required ? translate('portal', 'pay_fld_notes') : paymentNote.label(translate('portal', 'pay_fld_notes').replace(/\s*\*$/, ''))}
                                 </label>
                                 <textarea
-                                    required
+                                    required={paymentNote.required}
                                     rows={2}
                                     placeholder={translate('portal', 'pay_ph_notes')}
                                     value={settleNote}
                                     onChange={(e) => setSettleNote(e.target.value)}
                                 />
-                            </div>
+                            </div>}
 
                             <FormErrors errors={modalErrors} />
 

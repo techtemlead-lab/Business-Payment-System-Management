@@ -7,6 +7,7 @@ import PartnerPrescriberControls from './PartnerPrescriberControls';
 import PartnerAccountDelete from './PartnerAccountDelete';
 import AccountPasswordManager from './AccountPasswordManager';
 import { useT } from '../shared/i18n/t';
+import { useReasonField } from '../shared/reasonFields';
 import { toLatin } from '../shared/countUp';
 
 /** Plain labels for the editable profile fields; the create form keys carry a required marker, so editing uses its own. */
@@ -46,6 +47,8 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
     const isPartner = ['dealer', 'sub_dealer'].includes(account.role);
     const isSubDealer = account.role === 'sub_dealer';
     const isStaff = !isPartner && account.role !== 'super_admin';
+    const changeReason = useReasonField(isPartner ? 'partner.account_edit' : 'staff.account_edit');
+    const kycNote = useReasonField('partner.kyc_note');
     const isOwner = ['super_admin', 'md', 'chairman'].includes(currentUser?.role);
     const staffActions = ((usePage().props as any).staffActions ?? {}) as Record<string, Record<string, boolean> | undefined>;
     // Owners without the Accounts edit right open this only for the password box.
@@ -179,7 +182,7 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                 <label>{translate('portal', 'col_status')}<select value={form.data.status} onChange={event => form.setData('status', event.target.value)}><option value="active">{translate('portal', 'status_active')}</option><option value="suspended">{translate('portal', 'status_suspended')}</option></select></label>
                 {account.role === 'dealer' && <label>{translate('portal', 'acct_directory_visibility')}<select value={form.data.directory_visible} onChange={event => form.setData('directory_visible', event.target.value)}><option value="0">{translate('portal', 'acct_private')}</option><option value="1">{translate('portal', 'acct_publish_contact')}</option></select></label>}
             </div>
-            <label>{translate('portal', 'acct_correction_reason')}<textarea required maxLength={1000} value={form.data.reason} onChange={event => form.setData('reason', event.target.value)} /></label>
+            {changeReason.shown && <label>{changeReason.required ? translate('portal', 'acct_correction_reason') : changeReason.label(translate('reason_fields', 'box_account_change_reason'))}<textarea required={changeReason.required} maxLength={1000} value={form.data.reason} onChange={event => form.setData('reason', event.target.value)} /></label>}
             <FormErrors errors={form.errors} besideFields={['phone', 'place_code', 'latitude', 'longitude']}/>
             <button className="button dark" disabled={form.processing}>{translate('portal', 'acct_save_correction')}</button>
         </form>}
@@ -221,9 +224,9 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                             <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*" onChange={event => kyc.setData('document', event.target.files?.[0] ?? null)} />
                             {kyc.errors.document && <span className="field-error">{kyc.errors.document}</span>}
                         </label>
-                        <label>{translate('portal', 'kyc_note')}
-                            <input value={kyc.data.note} maxLength={500} onChange={event => kyc.setData('note', event.target.value)} />
-                        </label>
+                        {kycNote.shown && <label>{kycNote.label(translate('reason_fields', 'box_staff_note'))}
+                            <input required={kycNote.required} value={kyc.data.note} maxLength={500} onChange={event => kyc.setData('note', event.target.value)} />
+                        </label>}
                     </div>
                     <button className="button dark" disabled={kyc.processing || !kyc.data.document}>{translate('portal', 'kyc_upload')}</button>
                 </form>

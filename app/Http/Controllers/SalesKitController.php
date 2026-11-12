@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Content\SalesKit;
 use App\Models\SalesKitItem;
+use App\Support\ReasonFields;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -23,8 +24,8 @@ class SalesKitController extends Controller
     public function update(Request $request, SalesKitItem $salesKitItem, SalesKit $kit): RedirectResponse
     {
         abort_unless(SalesKit::canManage($request->user()), 403);
-        $data = $request->validate([...$this->rules('nullable'), 'reason' => FinanceOperationsController::Reason]);
-        $kit->update($request->user(), $salesKitItem, $data, $request->file('file'));
+        $data = $request->validate([...$this->rules('nullable'), 'reason' => ReasonFields::rule('partner.sales_kit_edit', 1000, 5)]);
+        $kit->update($request->user(), $salesKitItem, [...$data, 'reason' => ReasonFields::text($data['reason'] ?? null)], $request->file('file'));
 
         return back()->with('success', __('dealer_tools.kit_updated'));
     }

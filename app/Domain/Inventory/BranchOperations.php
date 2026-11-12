@@ -13,6 +13,7 @@ use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\ReasonFields;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -47,6 +48,13 @@ final class BranchOperations
         'correction',
         'other',
     ];
+
+    /**
+     * The code a stock movement is filed under when no reason was given and the owner does not
+     * ask for one, so the movement list and reports never hold an empty reason. It is in both
+     * {@see ProductInReasonCodes} and {@see ProductOutReasonCodes}.
+     */
+    public const UnstatedReasonCode = 'other';
 
     public function __construct(private StockNotifications $notifications, private StockLots $lots) {}
 
@@ -302,11 +310,12 @@ final class BranchOperations
      *
      * Explicit kinds `product_in` / `product_out` take a positive quantity and map the sign.
      * Legacy callers may omit kind and pass a signed quantity (receipt / adjustment).
+     * The reason may be blank or missing unless the `stock.adjust` box is compulsory for the actor.
      *
      * @param  array{
      *   product_id:int,
      *   quantity:int,
-     *   reason:string,
+     *   reason?:string|null,
      *   reference:string,
      *   branch_id?:int,
      *   kind?:string,
@@ -351,7 +360,7 @@ final class BranchOperations
      * @param  array{
      *   product_id:int,
      *   quantity:int,
-     *   reason:string,
+     *   reason?:string|null,
      *   reference:string,
      *   branch_id?:int,
      *   kind?:string,
@@ -372,7 +381,7 @@ final class BranchOperations
             $product = Product::query()->whereKey($data['product_id'])->lockForUpdate()->firstOrFail();
             $stock = $this->ensureBranchStock($branch, $product);
 
-            [$quantity, $kind, $reason] = $this->resolveMovementDirection($data);
+            [$quantity, $kind, $reason] = $this->resolveMovementDirection($data, $actor);
             $next = (int) $stock->quantity + $quantity;
             if ($quantity === 0 || abs($quantity) > 100000 || $next < 0 || $next > 2147483647) {
                 throw ValidationException::withMessages(['quantity' => __('portal.err_stock_nonnegative')]);
@@ -448,22 +457,29 @@ final class BranchOperations
             return $this->lots->takeFromLot($stock, $product, (int) $data['from_lot_id'], -$quantity, $context);
         }
 
-        $reasonCode = trim((string) ($data['reason_code'] ?? '')) ?: trim((string) $data['reason']);
+        $reasonCode = trim((string) ($data['reason_code'] ?? '')) ?: ReasonFields::text($data['reason'] ?? null);
         $disposal = $kind !== self::KindProductOut || in_array($reasonCode, StockLots::DisposalReasons, true);
 
         return $this->lots->take($stock, $product, -$quantity, $context, $disposal);
     }
 
     /**
-     * @param  array{quantity:int,reason:string,kind?:string,reason_code?:string}  $data
+     * The signed quantity, the movement kind and the reason to store. When nothing was chosen or
+     * written and this person is not made to give a reason, the movement is filed under
+     * {@see UnstatedReasonCode}; a code or text that is given is still checked as before.
+     *
+     * @param  array{quantity:int,reason?:string|null,kind?:string,reason_code?:string}  $data
      * @return array{0:int,1:string,2:string}
      */
-    private function resolveMovementDirection(array $data): array
+    private function resolveMovementDirection(array $data, User $actor): array
     {
         $kind = isset($data['kind']) ? trim((string) $data['kind']) : '';
         $absolute = abs((int) $data['quantity']);
         $reasonCode = isset($data['reason_code']) ? trim((string) $data['reason_code']) : '';
-        $reason = trim((string) $data['reason']);
+        $reason = ReasonFields::text($data['reason'] ?? null);
+        if ($reasonCode === '' && $reason === '' && ! ReasonFields::required('stock.adjust', $actor)) {
+            $reasonCode = self::UnstatedReasonCode;
+        }
 
         if ($kind === self::KindProductIn) {
             $this->assertReasonCode($reasonCode !== '' ? $reasonCode : $reason, self::ProductInReasonCodes, self::KindProductIn);
@@ -479,10 +495,13 @@ final class BranchOperations
 
         $signed = (int) $data['quantity'];
 
-        return [$signed, $signed > 0 ? 'receipt' : 'adjustment', $reason];
+        return [$signed, $signed > 0 ? 'receipt' : 'adjustment', $reason !== '' ? $reason : $reasonCode];
     }
 
     /**
+     * A blank reaches here only while the `stock.adjust` reason is compulsory for the person
+     * acting; otherwise it has already been filed under {@see UnstatedReasonCode}.
+     *
      * @param  list<string>  $allowed
      */
     private function assertReasonCode(string $candidate, array $allowed, string $kind): void

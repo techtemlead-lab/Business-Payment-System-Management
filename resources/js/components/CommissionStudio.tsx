@@ -3,6 +3,7 @@ import { router, usePage } from '@inertiajs/react';
 import { ShieldCheck, AlertCircle, RefreshCw, Check } from 'lucide-react';
 import { label, humanize } from './UI';
 import { useT } from '../shared/i18n/t';
+import { useReasonField } from '../shared/reasonFields';
 
 /** Pool limits the backend commission policy enforces (CommissionsSection::commissionPoolLimits). */
 export interface PolicyLimits {
@@ -58,6 +59,10 @@ export default function CommissionStudio({ rules: initialRules, limits }: { rule
     });
 
     const [saving, setSaving] = useState(false);
+    // Why the rates are changing: the box follows the owner's switch for this place.
+    const changeReason = useReasonField('money.commission_rules');
+    const [reason, setReason] = useState('');
+    const reasonMissing = changeReason.required && reason.trim() === '';
 
     // Which rules fill the dealer pool and which are sub-dealer extras comes from the policy.
     const subDealerKeys = policyLimits.sub_dealer_rule_keys
@@ -78,10 +83,11 @@ export default function CommissionStudio({ rules: initialRules, limits }: { rule
     };
 
     const handleSave = () => {
-        if (isOverAllocated) return;
+        if (isOverAllocated || reasonMissing) return;
         setSaving(true);
-        router.post('/commands/commissions/rules', { rules: rules as any }, {
+        router.post('/commands/commissions/rules', { rules: rules as any, ...(changeReason.shown ? { reason } : {}) }, {
             preserveScroll: true,
+            onSuccess: () => setReason(''),
             onFinish: () => setSaving(false),
         });
     };
@@ -116,9 +122,15 @@ export default function CommissionStudio({ rules: initialRules, limits }: { rule
 
                     {canEdit && (
                         <div className="hub-row">
+                            {changeReason.shown && (
+                                <label>
+                                    {changeReason.label(translate('reason_fields', 'box_rate_change_reason'))}
+                                    <input type="text" maxLength={500} required={changeReason.required} value={reason} onChange={e => setReason(e.target.value)} />
+                                </label>
+                            )}
                             <button
                                 type="button"
-                                disabled={isOverAllocated || saving}
+                                disabled={isOverAllocated || saving || reasonMissing}
                                 onClick={handleSave}
                                 className="button dark"
                             >

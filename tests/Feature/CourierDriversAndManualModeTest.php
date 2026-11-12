@@ -256,6 +256,7 @@ class CourierDriversAndManualModeTest extends TestCase
                 ->where('data.courier_board.can_decide', true));
 
         $url = '/commands/orders/'.$order->id.'/mixed-outcome-decision';
+        $this->reasonFields(['order.commission_decision' => 'required']);
         $this->actingAs($reviewer)->onPortal('manage')->post($url, ['decision' => 'no_commission'])->assertSessionHasErrors('reason');
         $this->assertDatabaseMissing('order_events', ['order_id' => $order->id, 'action' => 'order.mixed_outcome_decided']);
 

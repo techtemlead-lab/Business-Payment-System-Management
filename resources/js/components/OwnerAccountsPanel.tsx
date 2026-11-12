@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useForm } from '@inertiajs/react';
 import { Badge, Empty, FormErrors, Modal, label } from './UI';
 import { useT } from '../shared/i18n/t';
+import { useReasonField } from '../shared/reasonFields';
 
 export type OwnerAccount = { id: number; name: string; role: string; status: string };
 
@@ -10,6 +11,7 @@ export default function OwnerAccountsPanel({ accounts = [] }: { accounts?: Owner
     const translate = useT();
     const [opened, setOpened] = useState<OwnerAccount | null>(null);
     const form = useForm({ status: 'suspended', reason: '' });
+    const statusReason = useReasonField('staff.account_edit');
 
     const open = (account: OwnerAccount) => {
         form.clearErrors();
@@ -60,9 +62,11 @@ export default function OwnerAccountsPanel({ accounts = [] }: { accounts?: Owner
                 <Modal title={translate('office_staff', turningOff ? 'owner_turn_off_title' : 'owner_turn_on_title', { name: opened.name })} onClose={() => setOpened(null)}>
                     <form className="action-form" onSubmit={save}>
                         <p className="muted">{translate('portal', turningOff ? 'owner_status_off_note' : 'owner_status_on_note')}</p>
-                        <label>{translate('portal', 'owner_status_reason')}
-                            <textarea required maxLength={1000} rows={2} value={form.data.reason} onChange={(event) => form.setData('reason', event.target.value)} />
-                        </label>
+                        {statusReason.shown && (
+                            <label>{statusReason.label(translate('portal', 'owner_status_reason'))}
+                                <textarea required={statusReason.required} maxLength={1000} rows={2} value={form.data.reason} onChange={(event) => form.setData('reason', event.target.value)} />
+                            </label>
+                        )}
                         <FormErrors errors={form.errors} />
                         <div className="ops-row is-end is-loose">
                             <button type="button" className="button" disabled={form.processing} onClick={() => setOpened(null)}>{translate('portal', 'owner_status_cancel')}</button>

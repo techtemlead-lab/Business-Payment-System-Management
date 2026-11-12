@@ -7,6 +7,7 @@ use App\Domain\Notifications\SmsText;
 use App\Domain\Security\SelfApproval;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\ReasonFields;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
@@ -31,7 +32,7 @@ final class PolicyDraftService
         return DB::transaction(function () use ($actor, $data): int {
             $id = DB::table('policy_drafts')->insertGetId([
                 'name' => $data['name'], 'account_type' => $data['account_type'], 'basis' => 'purchase_value',
-                'components' => json_encode($data['components'], JSON_THROW_ON_ERROR), 'notes' => $data['notes'],
+                'components' => json_encode($data['components'], JSON_THROW_ON_ERROR), 'notes' => ReasonFields::text($data['notes'] ?? null),
                 'created_by' => $actor->id, 'created_at' => now(), 'updated_at' => now(),
             ]);
             Audit::record($actor->id, 'policy.drafted', (string) $id);

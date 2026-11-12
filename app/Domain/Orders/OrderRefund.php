@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
+use App\Support\ReasonFields;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -89,7 +90,7 @@ final class OrderRefund
                 Audit::notice(
                     $locked->user_id,
                     __('portal.notice_order_refunded_title', [], $locale),
-                    __('portal.notice_order_refunded_body', ['number' => $locked->number, 'amount' => Money::decimal($cents), 'reason' => $reason], $locale),
+                    __('portal.notice_order_refunded_body', ['number' => $locked->number, 'amount' => Money::decimal($cents), 'reason' => ReasonFields::shown($reason, $locale)], $locale),
                 );
             }
 

@@ -5,6 +5,7 @@ import type {OfficeHub} from './OfficeHubTabs';
 import OfficePage from './office/OfficePage';
 import {ViewSwitch, currentView} from './office/sections/staffSectionParts';
 import {useT} from '../shared/i18n/t';
+import {useReasonField} from '../shared/reasonFields';
 
 const actions = ['view', 'create', 'edit', 'approve'];
 const empty = () => ({view:false,create:false,edit:false,approve:false});
@@ -31,6 +32,7 @@ function Matrix({modules,value,change}:{modules:string[];value:Row;change:(value
 function PermissionForm({modules,entry,mode,roles}:{modules:string[];entry:Row;mode:'staff'|'role';roles:Row[]}) {
     const translate = useT();
     const {staffRoles=[]}=usePage<any>().props;
+    const saveReason=useReasonField(mode==='role'?'staff.role_save':'staff.access_save');
     const form=useForm<Row>({permissions:entry.permissions??{},version:entry.version??0,key:entry.key??'custom_',name:entry.name??'',staff_id:entry.id,role:entry.role??'employee',reason:''});
     const sr=mode==='staff'&&(entry.role==='sr'||form.data.role==='sr');
     const visible=sr?modules.filter(module=>['field_sales','sr_orders','sr_onboarding'].includes(module)):modules;
@@ -44,7 +46,7 @@ function PermissionForm({modules,entry,mode,roles}:{modules:string[];entry:Row;m
             const preset=roles.find(item=>item.key===role);if(preset)form.setData('permissions',preset.permissions);
         }}>{[...new Set(staffRoles as string[])].filter(role=>role!=='super_admin').map(role=><option value={role} key={role}>{roles.find(item=>item.key===role)?.name??label(role, translate)}</option>)}</select></label>}
         <Matrix modules={visible} value={form.data.permissions} change={value=>form.setData('permissions',value)}/>
-        <label>{translate('portal', 'sa_reason')}<textarea required minLength={5} maxLength={1000} value={form.data.reason} onChange={e=>form.setData('reason',e.target.value)}/></label>
+        {saveReason.shown&&<label>{saveReason.label(translate('portal', 'sa_reason'))}<textarea required={saveReason.required} minLength={saveReason.required?5:undefined} maxLength={1000} value={form.data.reason} onChange={e=>form.setData('reason',e.target.value)}/></label>}
         <FormErrors errors={form.errors}/>
         <button className="button dark" disabled={form.processing}>{form.processing?translate('portal', 'saving'):mode==='role'?translate('portal', 'sa_save_role'):translate('portal', 'sa_save_staff')}</button>
     </form>;

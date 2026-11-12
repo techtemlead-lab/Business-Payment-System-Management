@@ -6,6 +6,7 @@ use App\Domain\Commissions\CommissionWallet;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\LocalDigits;
+use App\Support\ReasonFields;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -48,7 +49,7 @@ final class PaymentAccounts
         $data = Validator::make($data, ['label' => 'required|string|max:120', 'channel' => 'required|in:'.implode(',', self::channels()),
             'holder' => 'required|string|max:150', 'account_number' => [$id ? 'nullable' : 'required', 'string', 'max:120', $this->mobileNumberRule($data['channel'] ?? null)],
             'details' => 'nullable|string|max:1500', 'collects_payments' => 'required|boolean', 'pays_out' => 'required|boolean',
-            'is_active' => 'required|boolean', 'version' => $id ? 'required|integer|min:1' : 'nullable', 'reason' => 'required|string|min:5|max:1000'])->validate();
+            'is_active' => 'required|boolean', 'version' => $id ? 'required|integer|min:1' : 'nullable', 'reason' => ReasonFields::rule('payment.account_save', 1000, 5)])->validate();
 
         return DB::transaction(function () use ($actor, $data, $id): int {
             CommissionWallet::lock();
@@ -69,7 +70,7 @@ final class PaymentAccounts
             } else {
                 $id = DB::table('payment_accounts')->insertGetId([...$record, 'created_by' => $actor->id, 'created_at' => now()]);
             }
-            Audit::record($actor->id, 'payment_account.saved', (string) $id, ['reason' => $data['reason'], 'version' => $record['version'],
+            Audit::record($actor->id, 'payment_account.saved', (string) $id, ['reason' => ReasonFields::text($data['reason'] ?? null), 'version' => $record['version'],
                 'before' => $old ? encrypt((array) $old) : null, 'after' => encrypt([...$record, 'id' => $id])]);
 
             return $id;

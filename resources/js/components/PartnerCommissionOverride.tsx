@@ -3,6 +3,7 @@ import { Percent } from 'lucide-react';
 import { type Row } from './UI';
 import { actionAllowed } from './action-permissions';
 import { useT } from '../shared/i18n/t';
+import { useReasonField } from '../shared/reasonFields';
 
 const editableKeys = [
     { key: 'own_dealer_cashback', labelKey: 'pco_own' },
@@ -17,6 +18,7 @@ export default function PartnerCommissionOverride({ account }: { account: Row })
     const translate = useT();
     const { staffActions } = usePage<any>().props;
     const canPropose = actionAllowed('/commands/operations/policy-schedules', staffActions, 'post');
+    const why = useReasonField('money.policy_schedule');
     const form = useForm({
         scope: 'buyer',
         user_id: String(account.id),
@@ -68,7 +70,7 @@ export default function PartnerCommissionOverride({ account }: { account: Row })
                         user_id: account.id,
                         effective_at: form.data.effective_at,
                         expires_at: form.data.expires_at || null,
-                        reason: form.data.reason,
+                        reason: why.shown ? form.data.reason : '',
                         rules,
                     }));
                     form.post('/commands/operations/policy-schedules', { preserveScroll: true });
@@ -107,16 +109,18 @@ export default function PartnerCommissionOverride({ account }: { account: Row })
                         />
                     </label>
                 </div>
-                <label>
-                    {translate('portal', 'pco_reason')}
-                    <textarea
-                        required
-                        rows={3}
-                        value={form.data.reason}
-                        onChange={(e) => form.setData('reason', e.target.value)}
-                        placeholder={translate('portal', 'pco_reason_ph')}
-                    />
-                </label>
+                {why.shown && (
+                    <label>
+                        {why.label(translate('portal', 'pco_reason'))}
+                        <textarea
+                            required={why.required}
+                            rows={3}
+                            value={form.data.reason}
+                            onChange={(e) => form.setData('reason', e.target.value)}
+                            placeholder={translate('portal', 'pco_reason_ph')}
+                        />
+                    </label>
+                )}
                 {Object.keys(form.errors).length > 0 && (
                     <div className="error" role="alert">{Object.values(form.errors).join(' ')}</div>
                 )}

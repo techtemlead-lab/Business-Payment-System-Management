@@ -57,6 +57,7 @@ use App\Http\Portals\Shared\Sections\SectionDates;
 use App\Http\Portals\Shared\Sections\StockCountsSection;
 use App\Http\Portals\Shared\Sections\StockLotsSection;
 use App\Http\Portals\Shared\Sections\SupportSection;
+use App\Http\Portals\Shared\Sections\ReasonFieldsSection;
 use App\Http\Portals\Shared\Sections\TerritorySection;
 use App\Http\Portals\Shared\Sections\TopSellersSection;
 use App\Http\Portals\Shared\Sections\TrainingSection;
@@ -126,6 +127,7 @@ class WorkspaceController extends Controller
         StockCountsSection::class,
         StockLotsSection::class,
         VisitorsSection::class,
+        ReasonFieldsSection::class,
     ];
 
     public function index(Request $r, ProductPricing $pricing, string $section = 'overview'): Response|RedirectResponse

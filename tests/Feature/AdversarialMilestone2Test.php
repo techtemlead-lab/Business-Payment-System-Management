@@ -464,6 +464,7 @@ class AdversarialMilestone2Test extends TestCase
      */
     public function test_inventory_adjustments_returns_structured_422_on_invalid_payloads(): void
     {
+        $this->reasonFields(['stock.adjust' => 'required']);
         $inventory = User::factory()->staff('inventory')->create(['status' => 'active']);
 
         $resEmpty = $this->actingAs($inventory)->postJson('/api/v1/inventory/adjustments', []);

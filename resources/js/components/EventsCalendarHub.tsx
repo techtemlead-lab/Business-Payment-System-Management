@@ -4,6 +4,7 @@ import { CalendarDays, Clock, MapPin, MessageSquareText, Pencil, Plus, Send, Tra
 import { Badge, DateInput, Empty, FormErrors, Modal, Table } from './UI';
 import OfficePage from './office/OfficePage';
 import { useT } from '../shared/i18n/t';
+import { useReasonField } from '../shared/reasonFields';
 import { isBanglaDocument, localizeDigits } from '../business-date';
 import { banglaSmsSegments, hasBanglaLetters } from '../shared/smsRules';
 
@@ -231,6 +232,7 @@ function eventSmsPreview(compose: StaffData['sms_compose'], form: FormShape): st
 
 function EventForm({ data, event, onDone }: { data: StaffData; event: PartnerEventRow | null; onDone: () => void }) {
     const translate = useT();
+    const notesBox = useReasonField('partner.event_notes');
     const form = useForm<FormShape>({
         title_bn: event?.title_bn ?? '',
         title_en: event?.title_en ?? '',
@@ -314,9 +316,11 @@ function EventForm({ data, event, onDone }: { data: StaffData; event: PartnerEve
                     {error('divisions')}
                 </fieldset>
             )}
-            <label>{translate('portal', 'events_field_notes')}
-                <textarea rows={3} maxLength={5000} value={form.data.notes} onChange={(e) => form.setData('notes', e.target.value)} />{error('notes')}
-            </label>
+            {notesBox.shown && (
+                <label>{notesBox.label(translate('portal', 'events_field_notes'))}
+                    <textarea rows={3} maxLength={5000} required={notesBox.required} value={form.data.notes} onChange={(e) => form.setData('notes', e.target.value)} />{error('notes')}
+                </label>
+            )}
             <label className="events-check">
                 <input type="checkbox" checked={form.data.send_sms} onChange={(e) => form.setData('send_sms', e.target.checked)} />
                 <span>{translate('portal', 'events_field_send_sms')}<small className="field-hint">{translate('portal', 'events_field_send_sms_hint')}</small></span>
@@ -344,12 +348,15 @@ function EventForm({ data, event, onDone }: { data: StaffData; event: PartnerEve
 function CancelForm({ event, onDone }: { event: PartnerEventRow; onDone: () => void }) {
     const translate = useT();
     const form = useForm({ reason: '' });
+    const why = useReasonField('partner.event_cancel');
     return (
         <form className="action-form" onSubmit={(e) => { e.preventDefault(); form.post(`/commands/events/${event.id}/cancel`, { preserveScroll: true, onSuccess: () => onDone() }); }}>
             <FormErrors errors={form.errors} />
-            <label>{translate('portal', 'events_field_cancel_reason')}
-                <textarea rows={2} maxLength={300} value={form.data.reason} onChange={(e) => form.setData('reason', e.target.value)} />
-            </label>
+            {why.shown && (
+                <label>{why.label(translate('reason_fields', 'box_event_cancel_reason'))}
+                    <textarea rows={2} maxLength={300} required={why.required} value={form.data.reason} onChange={(e) => form.setData('reason', e.target.value)} />
+                </label>
+            )}
             <button type="submit" className="button dark" disabled={form.processing}>
                 <XCircle size={16} aria-hidden="true" />{translate('portal', 'events_cancel_submit')}
             </button>

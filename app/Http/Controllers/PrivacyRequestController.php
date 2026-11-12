@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Security\PrivacyRequests;
 use App\Models\PrivacyRequest;
+use App\Support\ReasonFields;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -26,7 +27,7 @@ class PrivacyRequestController extends Controller
         abort_unless(PrivacyRequests::canResolve($request->user()), 403);
         $data = $request->validate([
             'status' => ['required', Rule::in(PrivacyRequest::ResolutionStatuses)],
-            'note' => 'nullable|string|max:1000',
+            'note' => ReasonFields::rule('partner.privacy_resolve', 1000),
         ]);
         $requests->resolve($request->user(), $privacyRequest, $data['status'], $data['note'] ?? null);
 

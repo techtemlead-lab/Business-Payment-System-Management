@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Backend;
 
+use App\Support\ReasonFields;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ConfirmDeliveryRequest extends FormRequest
@@ -13,6 +14,6 @@ class ConfirmDeliveryRequest extends FormRequest
 
     public function rules(): array
     {
-        return ['reason' => 'required|string|max:1000'];
+        return ['reason' => ReasonFields::rule('order.delivery_confirm', 1000)];
     }
 }

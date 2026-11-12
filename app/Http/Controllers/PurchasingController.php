@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Inventory\PurchasingService;
 use App\Models\PurchaseOrder;
 use App\Models\Supplier;
+use App\Support\ReasonFields;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -44,7 +45,7 @@ class PurchasingController extends Controller
         $data = $request->validate([
             'supplier_id' => ['bail', 'required', 'integer', Rule::exists('suppliers', 'id')->whereNull('archived_at')],
             'branch_id' => ['required', 'integer', 'exists:company_branches,id'],
-            'notes' => ['nullable', 'string', 'max:2000'],
+            'notes' => ReasonFields::rule('stock.purchase_note', 2000),
             'lines' => ['required', 'array', 'min:1', 'max:200'],
             'lines.*.product_id' => ['required', 'integer', 'distinct', Rule::exists('products', 'id')->where('active', true)],
             'lines.*.quantity' => ['required', 'integer', 'min:1', 'max:100000'],
@@ -65,8 +66,8 @@ class PurchasingController extends Controller
 
     public function cancelOrder(Request $request, PurchaseOrder $purchaseOrder, PurchasingService $purchasing): RedirectResponse
     {
-        $data = $request->validate(['reason' => ['required', 'string', 'max:1000']]);
-        $purchasing->cancelOrder($request->user(), $purchaseOrder, $data['reason']);
+        $data = $request->validate(['reason' => ReasonFields::rule('stock.purchase_cancel', 1000)]);
+        $purchasing->cancelOrder($request->user(), $purchaseOrder, ReasonFields::text($data['reason'] ?? null));
 
         return back()->with('success', __('purchasing.flash_order_cancelled', ['number' => $purchaseOrder->displayNumber()]));
     }
@@ -75,7 +76,7 @@ class PurchasingController extends Controller
     {
         $data = $request->validate([
             'reference' => ['required', 'uuid'],
-            'notes' => ['nullable', 'string', 'max:2000'],
+            'notes' => ReasonFields::rule('stock.purchase_receive_note', 2000),
             'lines' => ['required', 'array', 'min:1', 'max:200'],
             'lines.*.purchase_order_line_id' => ['required', 'integer'],
             'lines.*.quantity' => ['required', 'integer', 'min:1', 'max:100000'],
@@ -98,7 +99,7 @@ class PurchasingController extends Controller
         return $request->validate([
             'name' => ['required', 'string', 'max:160'],
             'contact' => ['nullable', 'string', 'max:160'],
-            'notes' => ['nullable', 'string', 'max:2000'],
+            'notes' => ReasonFields::rule('stock.supplier_note', 2000),
         ]);
     }
 }

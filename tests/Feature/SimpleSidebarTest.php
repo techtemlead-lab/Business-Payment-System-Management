@@ -240,7 +240,7 @@ class SimpleSidebarTest extends TestCase
     public function test_settings_page_offers_only_what_each_person_can_open(): void
     {
         $expected = [
-            ['super_admin', 'sadmin', ['finance-settings', 'payment-accounts', 'financial-readiness', 'place-codes', 'dashboards', 'identity-review', 'login-rules', 'service-integrations', 'courier-areas', 'data-imports', 'audit', 'privacy-requests', 'data-cleanup']],
+            ['super_admin', 'sadmin', ['finance-settings', 'payment-accounts', 'financial-readiness', 'place-codes', 'dashboards', 'identity-review', 'login-rules', 'reason-fields', 'service-integrations', 'courier-areas', 'data-imports', 'audit', 'privacy-requests', 'data-cleanup']],
             ['finance', 'manage', ['finance-settings', 'payment-accounts', 'financial-readiness', 'identity-review', 'service-integrations', 'data-imports']],
             ['account_manager', 'manage', ['place-codes', 'dashboards', 'data-imports']],
         ];

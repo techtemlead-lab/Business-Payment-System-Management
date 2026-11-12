@@ -3,6 +3,7 @@ import { router, useForm, usePage } from '@inertiajs/react';
 import { Stethoscope } from 'lucide-react';
 import { type Row, FormErrors, dateTime } from './UI';
 import { useT } from '../shared/i18n/t';
+import { useReasonFields } from '../shared/reasonFields';
 
 type PrescriberStatus = {
     can_edit: boolean;
@@ -25,6 +26,9 @@ type PrescriberStatus = {
  */
 export default function PartnerPrescriberControls({ account }: { account: Row }) {
     const translate = useT();
+    const reasonOf = useReasonFields();
+    const noteBox = reasonOf('partner.prescriber_note');
+    const disableReason = reasonOf('partner.prescriber_disable');
     const { auth } = usePage<any>().props;
     const office = !['dealer', 'sub_dealer'].includes(String(account.role));
     const self = Number(auth?.user?.id) === Number(account.id);
@@ -105,10 +109,12 @@ export default function PartnerPrescriberControls({ account }: { account: Row })
                             {translate('prescription', 'registration_number')}
                             <input required maxLength={60} value={form.data.registration_number} onChange={(e) => form.setData('registration_number', e.target.value)} />
                         </label>
-                        <label>
-                            {translate('prescription', 'registration_note')}
-                            <textarea rows={2} maxLength={1000} value={form.data.note} onChange={(e) => form.setData('note', e.target.value)} />
-                        </label>
+                        {noteBox.shown && (
+                            <label>
+                                {noteBox.label(translate('prescription', 'registration_note'))}
+                                <textarea rows={2} maxLength={1000} required={noteBox.required} value={form.data.note} onChange={(e) => form.setData('note', e.target.value)} />
+                            </label>
+                        )}
                         <FormErrors errors={form.errors} />
                         <button className="button dark" disabled={form.processing}>
                             {translate('prescription', status.enabled ? 'verify_update' : 'verify_enable')}
@@ -128,10 +134,12 @@ export default function PartnerPrescriberControls({ account }: { account: Row })
                                 });
                             }}
                         >
-                            <label>
-                                {translate('prescription', 'verify_reason')}
-                                <input maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} />
-                            </label>
+                            {disableReason.shown && (
+                                <label>
+                                    {disableReason.label(translate('prescription', 'verify_reason'))}
+                                    <input maxLength={500} required={disableReason.required} value={reason} onChange={(e) => setReason(e.target.value)} />
+                                </label>
+                            )}
                             <button className="button" disabled={busy}>{translate('prescription', 'verify_disable')}</button>
                         </form>
                     )}

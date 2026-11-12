@@ -5,15 +5,18 @@ import {actionAllowed} from '../action-permissions';
 import {Badge, Modal, Pagination, Row, Table, label, money, date, dateTime} from '../UI';
 import {businessMonth} from '../../business-date';
 import {useT} from '../../shared/i18n/t';
+import {usePlacedFields,type ReasonPlace} from '../../shared/reasonFields';
 import {randomUuid} from '../../shared/randomUuid';
 import {payoutMethods} from '../../shared/payoutMethods';
 
 export type TranslateFn = (group:string,key:string,replace?:Record<string,string>)=>string;
 export type Option = {value:string;label:string};
-export type Field = {name:string;label:string;type?:string;options?:Option[];required?:boolean;value?:string};
+export type Field = {name:string;label:string;type?:string;options?:Option[];required?:boolean;value?:string;place?:ReasonPlace};
 export type Action = {title:string;action:string;fields:Field[];defaults?:Row;policy?:boolean;policyRules?:Row;fundingSources?:string[]};
 export const root = '/commands/operations';
-export type TableFilter = {searchable?:boolean;statuses?:string[];q?:string;status?:string};
+/** A section's own form built with the shared reason box: the owners' place that box belongs to, by the command it posts to. */
+const formReasonPlaces:Record<string,string>={[`${root}/policy-schedules`]:'money.policy_schedule',[`${root}/reserves`]:'money.reserve_request'};
+const withFormReasonPlace=(a:Action):Action=>formReasonPlaces[a.action]?{...a,fields:a.fields.map(f=>f.name==='reason'&&!f.place?{...f,place:formReasonPlaces[a.action]}:f)}:a;export type TableFilter = {searchable?:boolean;statuses?:string[];q?:string;status?:string};
 /** Search box and status filter for one paged table; both run on the server, so they cover every page. */
 export function TableSearch({tableKey,filter}:{tableKey:string;filter?:TableFilter}){
     const translate=useT();
@@ -99,6 +102,7 @@ export function cellValue(key:string, value:unknown, translate:TranslateFn):Reac
 }
 export function OperationForm({title,action,fields,defaults={},policy,policyRules={},fundingSources=[],onDone}:Action & {onDone?:()=>void}) {
     const translate=useT();
+    fields=usePlacedFields(fields);
     const form = useForm<Row>({...Object.fromEntries(fields.map(f=>[f.name,f.type==='file'?null:(f.value??'')])),...defaults});
     const [fundCount,setFundCount]=useState(1);
     const [itemCount,setItemCount] = useState(1);
@@ -162,7 +166,7 @@ export function OperationForm({title,action,fields,defaults={},policy,policyRule
 
 export function Detail({value}:{value:any}):React.ReactNode {
     const translate=useT();
-    if(value===null||value===undefined)return '—';
+    if(value===null||value===undefined||value==='')return '—';
     if(typeof value!=='object')return typeof value==='boolean'?(value?translate('portal','ops_fld_yes'):translate('portal','ops_fld_no')):String(value);
     return <dl className="opr-detail">{Object.entries(value).map(([key,item])=><div key={key}><dt>{label(key,translate)}</dt><dd><Detail value={item}/></dd></div>)}</dl>;
 }
@@ -183,47 +187,49 @@ export function useOperationsPage(props:Row){
     const no=translate('portal','ops_fld_no');
     const choice=(name:string,title:string,values:string[],required=true):Field=>options(name,title,values,required,yes,no,translate);
     const reason:Field={name:'reason',label:translate('portal','ops_fld_reason'),type:'textarea',required:true};
+    /** The reason box of one action, following the owners' choice for that place. */
+    const reasonFor=(place:ReasonPlace):Field=>({...reason,place});
     const choose=(rows:Row[],name:string,title:string,required=true):Field=>({name,label:title,required,options:rows.map(r=>({value:String(r.id),label:r.dealer_code?`${r.name} · ${r.dealer_code}`:(r.name??`${r.label} · ${r.channel} · ${r.account_number}`)}))});
     const staffField=choose(staff.filter((s:Row)=>s.role!=='super_admin'),'staff_id',translate('portal','ops_fld_staff'));
     const partnerField=choose(partners,'user_id',translate('portal','ops_fld_partner'));
-    const review=(title:string,action:string,decisions:string[]):Action=>({title,action,fields:[choice('decision',translate('portal','ops_fld_decision'),decisions),reason]});
-    const payment=(title:string,action:string):Action=>({title,action,fields:[choose(paymentAccounts.filter((a:Row)=>a.is_active&&a.pays_out),'payment_account_id',translate('portal','ops_fld_payout_account')),field('payment_reference',translate('portal','ops_fld_payment_ref')),field('paid_at',translate('portal','ops_fld_paid_at'),'datetime-local'),field('receipt',translate('portal','ops_fld_payment_receipt'),'file'),reason]});
+    const review=(title:string,action:string,decisions:string[],place?:ReasonPlace):Action=>({title,action,fields:[choice('decision',translate('portal','ops_fld_decision'),decisions),place?reasonFor(place):reason]});
+    const payment=(title:string,action:string,place?:ReasonPlace):Action=>({title,action,fields:[choose(paymentAccounts.filter((a:Row)=>a.is_active&&a.pays_out),'payment_account_id',translate('portal','ops_fld_payout_account')),field('payment_reference',translate('portal','ops_fld_payment_ref')),field('paid_at',translate('portal','ops_fld_paid_at'),'datetime-local'),field('receipt',translate('portal','ops_fld_payment_receipt'),'file'),place?reasonFor(place):reason]});
     const confirmAlone=(label:string):Field=>({name:'self_approve',label,required:true,options:[{value:'1',label:translate('self_approval','confirm_yes')}]});
     // Opening balances only: the owner checks their own figures alone when nobody else could.
     const aloneFor=(people:number[])=>auth.user.role==='super_admin'&&(secondApprovers as number[]).filter(id=>!people.includes(id)).length===0;
     const alone=(a:Action):Action=>({...a,title:`${a.title} (${translate('self_approval','alone_tag')})`,fields:[...a.fields,confirmAlone(translate('self_approval','confirm_label'))]});
     // Staff hand the next step to someone else; the owner finishes a step they started themselves.
     const mayFinish=(startedBy:unknown)=>startedBy!==auth.user.id||auth.user.role==='super_admin';
-    const names={translate,metricLabel,auth,financeActive,staffActions,portalBase,collectionAccounts,capabilities,selected,setSelected,account,setAccount,yes,no,choice,reason,choose,staffField,partnerField,review,payment,confirmAlone,aloneFor,alone,mayFinish};
+    const names={translate,metricLabel,auth,financeActive,staffActions,portalBase,collectionAccounts,capabilities,selected,setSelected,account,setAccount,yes,no,choice,reason,reasonFor,choose,staffField,partnerField,review,payment,confirmAlone,aloneFor,alone,mayFinish};
     return {...props,...names} as Row&typeof names;
 }
 export type OperationsPage=ReturnType<typeof useOperationsPage>;
 
 /** What every Operations section shares: hub tabs, notices, its own forms, its tables, and one dialog. `top`, `middle` and `below` hold the section's own panels. */
 export function OperationsFrame({page,forms=[],top,middle,below}:{page:OperationsPage,forms?:Action[],top?:React.ReactNode,middle?:React.ReactNode,below?:React.ReactNode}){
-    const {section,tables,hub,paymentAccounts,partners,partnerSearch,staff,summary,policy,translate,metricLabel,auth,financeActive,staffActions,portalBase,capabilities,selected,setSelected,account,setAccount,reason,choose,review,payment,aloneFor,alone,mayFinish}=page;
+    const {section,tables,hub,paymentAccounts,partners,partnerSearch,staff,summary,policy,translate,metricLabel,auth,financeActive,staffActions,portalBase,capabilities,selected,setSelected,account,setAccount,reasonFor,choose,review,payment,aloneFor,alone,mayFinish}=page;
     const rowActions=(row:Row,tableKey:string)=> {
         const actions:Action[]=[];
-        if(tableKey==='territories'&&row.is_active)actions.push({title:translate('portal','ops_remove_territory'),action:`${root}/staff/territories/${row.id}/remove`,fields:[reason]});
-        if(tableKey==='dealer_applications'&&row.status==='pending'&&capabilities.includes('accounts')&&mayFinish(row.submitted_by)){const applicationReview=review(translate('portal','ops_review_application'),`${root}/staff/applications/${row.id}/review`,['approved','rejected']);actions.push({...applicationReview,fields:[...applicationReview.fields,field('place_code',translate('portal','ops_fld_place_code_review'),'text',false)]});}
+        if(tableKey==='territories'&&row.is_active)actions.push({title:translate('portal','ops_remove_territory'),action:`${root}/staff/territories/${row.id}/remove`,fields:[reasonFor('staff.territory_remove')]});
+        if(tableKey==='dealer_applications'&&row.status==='pending'&&capabilities.includes('accounts')&&mayFinish(row.submitted_by)){const applicationReview=review(translate('portal','ops_review_application'),`${root}/staff/applications/${row.id}/review`,['approved','rejected'],'partner.application_review');actions.push({...applicationReview,fields:[...applicationReview.fields,field('place_code',translate('portal','ops_fld_place_code_review'),'text',false)]});}
         if(tableKey==='salary_register'&&section==='payroll'&&financeActive&&capabilities.includes('finance')) {
-            if(row.status==='draft'&&row.staff_id!==auth.user.id){const a=review(translate('portal','ops_review_payroll'),`${root}/payroll/${row.id}/review`,['approved','rejected']);if(mayFinish(row.prepared_by))actions.push(a);}
+            if(row.status==='draft'&&row.staff_id!==auth.user.id){const a=review(translate('portal','ops_review_payroll'),`${root}/payroll/${row.id}/review`,['approved','rejected'],'staff.payroll_review');if(mayFinish(row.prepared_by))actions.push(a);}
             if(row.status==='approved'&&row.staff_id!==auth.user.id){const a=payment(translate('portal','ops_record_salary_payment'),`${root}/payroll/${row.id}/pay`);if(mayFinish(row.approved_by))actions.push(a);}
         }
-        if(tableKey==='policy_schedules'){const isOwner=auth.user.role==='super_admin';const isMine=row.created_by===auth.user.id;actions.push(review(translate('portal','ops_review_schedule'),`${root}/policy-schedules/${row.id}/review`,[...(row.status==='draft'&&isOwner?['approved','rejected']:[]),...(row.status==='draft'&&(isMine||isOwner||capabilities.includes('finance'))?['cancelled']:[]),...(row.status==='approved'&&isOwner&&row.origin!=='rule_edit'?['cancelled']:[])]));}
+        if(tableKey==='policy_schedules'){const isOwner=auth.user.role==='super_admin';const isMine=row.created_by===auth.user.id;actions.push(review(translate('portal','ops_review_schedule'),`${root}/policy-schedules/${row.id}/review`,[...(row.status==='draft'&&isOwner?['approved','rejected']:[]),...(row.status==='draft'&&(isMine||isOwner||capabilities.includes('finance'))?['cancelled']:[]),...(row.status==='approved'&&isOwner&&row.origin!=='rule_edit'?['cancelled']:[])],'money.policy_schedule_review'));}
         if(tableKey==='reserve_requests'&&financeActive) {
-            if(row.status==='requested'&&row.user_id!==auth.user.id){const a=review(translate('portal','ops_review_reserve_request'),`${root}/reserves/${row.id}/review`,['approved','rejected']);if(mayFinish(row.created_by))actions.push(a);}
+            if(row.status==='requested'&&row.user_id!==auth.user.id){const a=review(translate('portal','ops_review_reserve_request'),`${root}/reserves/${row.id}/review`,['approved','rejected'],'money.reserve_review');if(mayFinish(row.created_by))actions.push(a);}
             if(row.program==='marketing'&&row.status==='approved') {
                 // Same method details as a withdrawal payout; the server checks which ones each method needs.
-                if(mayFinish(row.approved_by))actions.push({title:translate('portal','ops_record_expense_payment'),action:`${root}/reserves/${row.id}/pay`,fields:[{name:'method',label:translate('portal','pay_fld_method'),required:true,options:payoutMethods.map(m=>({value:m,label:translate('portal',`payout_method_${m}`)}))},{...choose(paymentAccounts.filter((a:Row)=>a.is_active&&a.pays_out),'payment_account_id',translate('portal','ops_fld_payout_account_not_cash')),required:false},field('payment_reference',translate('portal','ops_fld_payment_ref_not_cash'),'text',false),field('bank_name',translate('portal','ops_fld_bank_name_bank'),'text',false),field('account_number',translate('portal','ops_fld_account_number_bank'),'text',false),field('wallet_number',translate('portal','ops_fld_wallet_number_mobile'),'text',false),field('received_by',translate('portal','ops_fld_received_by_cash'),'text',false),field('paid_at',translate('portal','ops_fld_paid_at'),'datetime-local'),field('receipt',translate('portal','ops_fld_payment_receipt_not_cash'),'file',false),reason]});
-                actions.push(review(translate('portal','ops_cancel_unpaid_expense'),`${root}/reserves/${row.id}/review`,['cancelled']));
+                if(mayFinish(row.approved_by))actions.push({title:translate('portal','ops_record_expense_payment'),action:`${root}/reserves/${row.id}/pay`,fields:[{name:'method',label:translate('portal','pay_fld_method'),required:true,options:payoutMethods.map(m=>({value:m,label:translate('portal',`payout_method_${m}`)}))},{...choose(paymentAccounts.filter((a:Row)=>a.is_active&&a.pays_out),'payment_account_id',translate('portal','ops_fld_payout_account_not_cash')),required:false},field('payment_reference',translate('portal','ops_fld_payment_ref_not_cash'),'text',false),field('bank_name',translate('portal','ops_fld_bank_name_bank'),'text',false),field('account_number',translate('portal','ops_fld_account_number_bank'),'text',false),field('wallet_number',translate('portal','ops_fld_wallet_number_mobile'),'text',false),field('received_by',translate('portal','ops_fld_received_by_cash'),'text',false),field('paid_at',translate('portal','ops_fld_paid_at'),'datetime-local'),field('receipt',translate('portal','ops_fld_payment_receipt_not_cash'),'file',false),reasonFor('money.reserve_pay')]});
+                actions.push(review(translate('portal','ops_cancel_unpaid_expense'),`${root}/reserves/${row.id}/review`,['cancelled'],'money.reserve_review'));
             }
         }
-        if(tableKey==='held_allocations'&&financeActive&&row.partner_status!=='active'&&['direct_referral','d2d_gen2','d2d_gen3'].includes(row.category)&&(staffActions?.finance?.edit??true))actions.push({title:translate('portal','ops_select_replacement_release'),action:`${root}/holds/${row.id}/reassign`,fields:[choose(partners,'user_id',translate('portal','ops_fld_replacement_partner')),reason],defaults:{request_key:randomUuid()}});
-        if(tableKey==='opening_holds'&&financeActive)actions.push({title:translate('portal','ops_review_and_release_opening_hold'),action:`${root}/imports/opening-holds/${row.id}/release`,fields:[reason]});
-        if(tableKey==='held_allocations'&&financeActive)actions.push({title:translate('portal','ops_review_and_release_hold'),action:`${root}/holds/${row.id}/release`,fields:[reason]});
-        if(tableKey==='opening_reviews'&&!row.verified_at){const a:Action={title:translate('portal','ops_verify_opening_evidence'),action:`${root}/opening-balances/${row.id}/verify`,fields:[]};if(row.created_by!==auth.user.id)actions.push(a);else if(aloneFor([row.created_by]))actions.push(alone({...a,fields:[reason]}));}
-        if(tableKey==='reserve_clawbacks'&&Number(row.amount)>Number(row.recovered)&&financeActive)actions.push({...payment(translate('portal','ops_record_recovered_reserve'),`${root}/reserves/clawbacks/${row.id}/recover`),fields:[choose(paymentAccounts.filter((a:Row)=>a.is_active&&a.collects_payments),'payment_account_id',translate('portal','ops_fld_collection_account')),field('amount',translate('portal','ops_fld_recovered_amount'),'number'),field('payment_reference',translate('portal','ops_fld_collection_ref')),field('paid_at',translate('portal','ops_fld_collection_time'),'datetime-local'),field('receipt',translate('portal','ops_fld_recovery_receipt'),'file'),reason]});
+        if(tableKey==='held_allocations'&&financeActive&&row.partner_status!=='active'&&['direct_referral','d2d_gen2','d2d_gen3'].includes(row.category)&&(staffActions?.finance?.edit??true))actions.push({title:translate('portal','ops_select_replacement_release'),action:`${root}/holds/${row.id}/reassign`,fields:[choose(partners,'user_id',translate('portal','ops_fld_replacement_partner')),reasonFor('money.held_reassign')],defaults:{request_key:randomUuid()}});
+        if(tableKey==='opening_holds'&&financeActive)actions.push({title:translate('portal','ops_review_and_release_opening_hold'),action:`${root}/imports/opening-holds/${row.id}/release`,fields:[reasonFor('money.opening_hold_release')]});
+        if(tableKey==='held_allocations'&&financeActive)actions.push({title:translate('portal','ops_review_and_release_hold'),action:`${root}/holds/${row.id}/release`,fields:[reasonFor('money.held_release')]});
+        if(tableKey==='opening_reviews'&&!row.verified_at){const a:Action={title:translate('portal','ops_verify_opening_evidence'),action:`${root}/opening-balances/${row.id}/verify`,fields:[reasonFor('money.opening_verify')]};if(row.created_by!==auth.user.id)actions.push(a);else if(aloneFor([row.created_by]))actions.push(alone(a));}
+        if(tableKey==='reserve_clawbacks'&&Number(row.amount)>Number(row.recovered)&&financeActive)actions.push({...payment(translate('portal','ops_record_recovered_reserve'),`${root}/reserves/clawbacks/${row.id}/recover`),fields:[choose(paymentAccounts.filter((a:Row)=>a.is_active&&a.collects_payments),'payment_account_id',translate('portal','ops_fld_collection_account')),field('amount',translate('portal','ops_fld_recovered_amount'),'number'),field('payment_reference',translate('portal','ops_fld_collection_ref')),field('paid_at',translate('portal','ops_fld_collection_time'),'datetime-local'),field('receipt',translate('portal','ops_fld_recovery_receipt'),'file'),reasonFor('money.reserve_recover')]});
         const receiptKind=tableKey==='salary_register'?'payroll':tableKey==='reserve_requests'?'reserve':tableKey==='clawback_recoveries'?'recovery':tableKey==='opening_reviews'?'opening':null;
         return <div className="ops-row is-wrap">{tableKey==='territory_orders'&&capabilities.includes('sr_orders')&&<Link className="button small" href={`${root}/staff/orders/${row.id}`}>{translate('portal','ops_fld_order_details')}</Link>}{actions.filter(a=>actionAllowed(a.action,staffActions)).filter(a=>!a.fields.find(f=>f.name==='decision')?.options?.length&&a.fields.some(f=>f.name==='decision')?false:true).map(a=><button key={a.title} className="button small" onClick={()=>setSelected(a)}>{a.title}</button>)}{receiptKind&&(row.has_receipt||(receiptKind==='opening'&&!row.fresh_start))&&<a className="button small" href={`${root}/receipts/${receiptKind}/${row.id}`}>{translate('portal','ops_fld_private_evidence')}</a>}{tableKey==='reserve_requests'&&row.payout_receipt_id&&<a className="button small" href={`${portalBase??''}/payment-receipts/${row.payout_receipt_id}/print`} target="_blank" rel="noopener">{translate('portal','prc_view_print')}</a>}</div>;
     };
@@ -234,7 +240,7 @@ export function OperationsFrame({page,forms=[],top,middle,below}:{page:Operation
         {middle}
         {['field-sales','policy-schedules','reserve-payouts','commission-holds'].includes(section)&&<form method="get" className="action-form"><label>{translate('portal','ops_find_partner')}<input name="q" type="search" defaultValue={partnerSearch}/></label><button className="button">{translate('portal','ops_search_partners')}</button></form>}
         {below}
-        {forms.filter(a=>actionAllowed(a.action,staffActions,a.defaults?._method??'post')).map(a=><section className="panel narrow-panel" key={a.title+(account?.version??'')}><h2>{a.title}</h2><OperationForm {...a} onDone={()=>{if(section==='payment-accounts')setAccount(null);}}/></section>)}
+        {forms.filter(a=>actionAllowed(a.action,staffActions,a.defaults?._method??'post')).map(withFormReasonPlace).map(a=><section className="panel narrow-panel" key={a.title+(account?.version??'')}><h2>{a.title}</h2><OperationForm {...a} onDone={()=>{if(section==='payment-accounts')setAccount(null);}}/></section>)}
         {tables.map((table:Row)=>{const rows=table.page.data as Row[];const tableKey=String(table.key??table.title??'');const tableTitle=translate('portal',`ops_tbl_${tableKey}`);const shown=[...new Set(rows.flatMap(r=>Object.keys(r)))].filter(k=>!['staff_id','submitted_by','created_by','approved_by','verified_by','user_id','has_receipt','payout_receipt_id','territory_key','territories','created_at','updated_at'].includes(k)&&!(k==='id'&&rows.some(r=>r.number)));const keys=rows.some(r=>r.created_at)?['created_at',...shown]:shown;const multiPage=Number(table.page.last_page??1)>1;return <section className="panel" key={tableKey}><h2>{tableTitle===`ops_tbl_${tableKey}`?label(tableKey,translate):tableTitle}</h2><TableSearch tableKey={tableKey} filter={table.filter}/><Table searchable={false} printable totalCount={table.page.total} totalLabel={multiPage?translate('portal','table_page_total'):undefined} rows={rows} columns={[...keys.map(key=>({key,title:columnLabel(key,translate),money:isMoneyKey(key),total:totalKeys.has(key),render:(row:Row)=>['rules','metadata','data','snapshot'].includes(key)?<details><summary>{translate('portal','ops_view_details')}</summary><div className="opr-json"><Detail value={parseJson(row[key], translate('portal','ops_invalid_json'))}/></div></details>:cellValue(key,row[key],translate)})),{key:'actions',title:translate('portal','ops_actions'),render:r=>rowActions(r,tableKey)}]}/><Pagination page={table.page}/></section>;})}
         {selected&&<Modal title={selected.title} onClose={()=>setSelected(null)}><OperationForm {...selected} onDone={()=>setSelected(null)}/></Modal>}
     </>;

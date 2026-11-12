@@ -6,6 +6,7 @@ use App\Domain\Finance\ImportWorkbook;
 use App\Domain\Finance\OpeningBalanceImport;
 use App\Domain\Integrations\IntegrationSettings;
 use App\Domain\Security\SelfApproval;
+use App\Support\ReasonFields;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -69,9 +70,10 @@ class DataImportController extends Controller
 
     public function apply(Request $request, string $id, OpeningBalanceImport $imports): Response
     {
-        $data = $request->validate(['reason' => FinanceOperationsController::Reason, 'confirmed' => 'required|accepted', 'self_approve' => 'sometimes|boolean']);
+        $data = $request->validate(['reason' => ReasonFields::rule('money.import_apply', 1000, 5), 'confirmed' => 'required|accepted', 'self_approve' => 'sometimes|boolean']);
+        $reason = ReasonFields::text($data['reason'] ?? null);
         $queued = config('queue.default') !== 'sync';
-        $queued ? $imports->queue($request->user(), $id, $data['reason'], $request->boolean('self_approve')) : $imports->apply($request->user(), $id, $data['reason'], $request->boolean('self_approve'));
+        $queued ? $imports->queue($request->user(), $id, $reason, $request->boolean('self_approve')) : $imports->apply($request->user(), $id, $reason, $request->boolean('self_approve'));
 
         $status = DB::table('data_import_batches')->where('id', $id)->value('status');
 
@@ -129,8 +131,8 @@ class DataImportController extends Controller
 
     public function releaseHold(Request $request, int $id, OpeningBalanceImport $imports): Response
     {
-        $data = $request->validate(['reason' => FinanceOperationsController::Reason]);
-        $imports->releaseHold($request->user(), $id, $data['reason']);
+        $data = $request->validate(['reason' => ReasonFields::rule('money.opening_hold_release', 1000, 5)]);
+        $imports->releaseHold($request->user(), $id, ReasonFields::text($data['reason'] ?? null));
 
         return $request->expectsJson()
             ? response()->json(['data' => ['released' => true]])

@@ -20,6 +20,7 @@ use App\Support\Audit;
 use App\Support\CatalogCms;
 use App\Support\Money;
 use App\Support\ProductVideo;
+use App\Support\ReasonFields;
 use App\Support\SiteCustomization;
 use App\Support\YouTubeVideo;
 use Illuminate\Http\RedirectResponse;
@@ -109,7 +110,7 @@ class ProductRegistryController extends Controller
     public function destroy(Request $r, Product $product): RedirectResponse
     {
         abort_unless($r->user()->allows('catalog'), 403);
-        $data = $r->validate(['reason' => 'required|string|min:5|max:1000']);
+        $data = ['reason' => ReasonFields::text($r->validate(['reason' => ReasonFields::rule('product.remove', 1000, 5)])['reason'] ?? null)];
         $reasonsItStays = DB::transaction(function () use ($r, $product, $data): ?array {
             $locked = Product::whereKey($product->id)->lockForUpdate()->firstOrFail();
             $hasHistory = $locked->stock > 0 || $locked->isReferenced();
@@ -237,7 +238,7 @@ class ProductRegistryController extends Controller
         $maxSubDealerPct = $isOwner ? 70 : 40;
         $hasCmsSubcategory = $catalog && $r->filled('product_subcategory_id');
         $hasCmsUnit = $catalog && $r->filled('product_unit_id');
-        $rules = ['name' => $catalog ? $required.'|string|max:150' : 'prohibited', 'sku' => $catalog ? [...explode('|', $required), 'string', 'max:60', Rule::unique('products')->ignore($product?->id)] : 'prohibited', 'category' => $catalog ? ($hasCmsSubcategory ? 'nullable|string|max:100' : $required.'|string|max:100') : 'prohibited', 'sub_category' => $catalog ? 'nullable|string|max:100' : 'prohibited', 'strength' => $catalog ? 'nullable|string|max:100' : 'prohibited', 'description' => $catalog ? 'nullable|string|max:3000' : 'prohibited', 'unit' => $catalog ? ($hasCmsUnit ? 'nullable|string|max:30' : $required.'|string|max:30') : 'prohibited', 'active' => $catalog ? 'sometimes|boolean' : 'prohibited', 'featured' => $catalog ? 'sometimes|boolean' : 'prohibited', 'mrp' => $pricing ? $required.'|regex:/^\d{1,8}(\.\d{1,2})?$/D' : 'prohibited', 'dealer_price' => $pricing ? 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/D' : 'prohibited', 'cost_price' => ($pricing && $r->user()->allows('cost_read')) ? 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/D' : 'prohibited', 'low_stock_at' => $inventory ? 'sometimes|integer|min:0|max:100000' : 'prohibited', 'reason' => 'required|string|min:5|max:1000', 'version' => $product ? 'required|string|max:80' : 'nullable', 'stock' => 'prohibited', 'image_path' => 'prohibited', 'image_original_path' => 'prohibited', 'video_path' => 'prohibited', 'video_youtube_id' => 'prohibited',
+        $rules = ['name' => $catalog ? $required.'|string|max:150' : 'prohibited', 'sku' => $catalog ? [...explode('|', $required), 'string', 'max:60', Rule::unique('products')->ignore($product?->id)] : 'prohibited', 'category' => $catalog ? ($hasCmsSubcategory ? 'nullable|string|max:100' : $required.'|string|max:100') : 'prohibited', 'sub_category' => $catalog ? 'nullable|string|max:100' : 'prohibited', 'strength' => $catalog ? 'nullable|string|max:100' : 'prohibited', 'description' => $catalog ? 'nullable|string|max:3000' : 'prohibited', 'unit' => $catalog ? ($hasCmsUnit ? 'nullable|string|max:30' : $required.'|string|max:30') : 'prohibited', 'active' => $catalog ? 'sometimes|boolean' : 'prohibited', 'featured' => $catalog ? 'sometimes|boolean' : 'prohibited', 'mrp' => $pricing ? $required.'|regex:/^\d{1,8}(\.\d{1,2})?$/D' : 'prohibited', 'dealer_price' => $pricing ? 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/D' : 'prohibited', 'cost_price' => ($pricing && $r->user()->allows('cost_read')) ? 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/D' : 'prohibited', 'low_stock_at' => $inventory ? 'sometimes|integer|min:0|max:100000' : 'prohibited', 'reason' => ReasonFields::rule('product.edit', 1000, 5), 'version' => $product ? 'required|string|max:80' : 'nullable', 'stock' => 'prohibited', 'image_path' => 'prohibited', 'image_original_path' => 'prohibited', 'video_path' => 'prohibited', 'video_youtube_id' => 'prohibited',
             'image' => $catalog ? 'nullable|file|image|mimes:jpg,jpeg,png,webp|max:5120|dimensions:max_width=4096,max_height=4096' : 'prohibited', 'image_original' => $catalog ? 'nullable|file|image|mimes:jpg,jpeg,png,webp|max:5120|dimensions:max_width=4096,max_height=4096' : 'prohibited', 'restore_original_image' => $catalog ? 'sometimes|boolean' : 'prohibited', 'remove_image' => $catalog ? 'sometimes|boolean' : 'prohibited', 'video_source' => $catalog ? 'sometimes|in:none,youtube,vimeo,url,upload' : 'prohibited', 'youtube_url' => $catalog ? 'nullable|string|max:500' : 'prohibited', 'vimeo_url' => $catalog ? 'nullable|string|max:500' : 'prohibited', 'external_video_url' => $catalog ? 'nullable|string|max:2000' : 'prohibited', 'video' => $catalog ? 'nullable|file|mimetypes:video/mp4,video/webm|max:102400' : 'prohibited',
             'dealer_discount_pct' => $pricing ? 'nullable|numeric|between:0,'.$maxDealerPct.'|decimal:0,2' : 'prohibited',
             'sub_dealer_price' => $pricing ? 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/D' : 'prohibited',
@@ -251,6 +252,7 @@ class ProductRegistryController extends Controller
             'initial_stock' => $inventory ? 'nullable|integer|min:0|max:100000' : 'nullable|integer|in:0'];
         $rules += ProductFacts::validationRules($catalog);
         $d = $r->validate($rules);
+        $d['reason'] = ReasonFields::text($d['reason'] ?? null);
         if (! $r->user()->allows('cost_read')) {
             unset($d['cost_price']);
         }
@@ -422,7 +424,7 @@ class ProductRegistryController extends Controller
                         'branch_id' => $hub->id,
                         'quantity' => $initialStock,
                         'kind' => 'receipt',
-                        'reason' => __('portal.stock_reason_initial_onboarding', ['reason' => $d['reason']]),
+                        'reason' => __('portal.stock_reason_initial_onboarding', ['reason' => ReasonFields::shown($d['reason'])]),
                         'reference' => (string) Str::uuid(),
                         'actor_id' => $r->user()->id,
                         'created_at' => now(),

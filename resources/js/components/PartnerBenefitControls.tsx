@@ -2,9 +2,12 @@ import { useForm, usePage } from '@inertiajs/react';
 import { ShieldCheck } from 'lucide-react';
 import { type Row } from './UI';
 import { useT } from '../shared/i18n/t';
+import { useReasonField } from '../shared/reasonFields';
 
 export default function PartnerBenefitControls({ account }: { account: Row }) {
     const translate = useT();
+    const benefitReason = useReasonField('partner.benefit_reason');
+    const benefitNote = useReasonField('partner.benefit_note');
     const { auth } = usePage<any>().props;
     // Only owners can grant no-condition benefits (server: CommandController::benefitControls).
     const canEdit = ['super_admin', 'md', 'chairman'].includes(auth?.user?.role);
@@ -85,24 +88,29 @@ export default function PartnerBenefitControls({ account }: { account: Row }) {
                     />
                     {translate('portal', 'pbc_grant_incentive')}
                 </label>
-                <label>
-                    {translate('portal', 'pbc_note')}
-                    <input
-                        value={form.data.note}
-                        onChange={(e) => form.setData('note', e.target.value)}
-                        placeholder={translate('portal', 'pbc_note_ph')}
-                    />
-                </label>
-                <label>
-                    {translate('portal', 'pbc_reason')}
-                    <textarea
-                        required
-                        rows={3}
-                        value={form.data.reason}
-                        onChange={(e) => form.setData('reason', e.target.value)}
-                        placeholder={translate('portal', 'pbc_reason_ph')}
-                    />
-                </label>
+                {benefitNote.shown && (
+                    <label>
+                        {benefitNote.label(translate('portal', 'pbc_note'))}
+                        <input
+                            required={benefitNote.required}
+                            value={form.data.note}
+                            onChange={(e) => form.setData('note', e.target.value)}
+                            placeholder={benefitNote.required ? undefined : translate('portal', 'pbc_note_ph')}
+                        />
+                    </label>
+                )}
+                {benefitReason.shown && (
+                    <label>
+                        {benefitReason.required ? translate('portal', 'pbc_reason') : benefitReason.label(translate('reason_fields', 'box_reason'))}
+                        <textarea
+                            required={benefitReason.required}
+                            rows={3}
+                            value={form.data.reason}
+                            onChange={(e) => form.setData('reason', e.target.value)}
+                            placeholder={translate('portal', 'pbc_reason_ph')}
+                        />
+                    </label>
+                )}
                 {Object.keys(form.errors).length > 0 && (
                     <div className="error" role="alert">{Object.values(form.errors).join(' ')}</div>
                 )}

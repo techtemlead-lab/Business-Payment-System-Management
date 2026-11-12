@@ -288,6 +288,34 @@ class StockCountFlowTest extends TestCase
         $this->assertDatabaseCount('stock_count_sessions', 2);
     }
 
+    public function test_notes_and_reasons_on_a_count_follow_the_owners_switches(): void
+    {
+        $product = $this->productHolding(10);
+        $session = $this->startCount();
+        $this->enterCounts($session, [$product->id => 8])->assertSessionHasNoErrors();
+        $this->submit($session)->assertSessionHasNoErrors();
+        $reject = fn (): TestResponse => $this->actingAs($this->approver)->onPortal('manage')->post("/commands/stock-counts/{$session->id}/reject");
+        $cancel = fn (StockCountSession $count): TestResponse => $this->actingAs($this->counter)->onPortal('manage')->post("/commands/stock-counts/{$count->id}/cancel");
+
+        $this->reasonFields(['stock.count_approve' => 'required', 'stock.count_reject' => 'required', 'stock.count_cancel' => 'required']);
+        $this->approve($session)->assertSessionHasErrors('note');
+        $reject()->assertSessionHasErrors('note');
+        $cancel($session)->assertSessionHasErrors('reason');
+        $this->assertSame(StockCountSession::StatusSubmitted, $session->fresh()->status);
+
+        $this->reasonFields(['stock.count_reject' => 'optional', 'stock.count_cancel' => 'off']);
+        $reject()->assertSessionHasNoErrors();
+        $this->assertSame(StockCountSession::StatusRejected, $session->fresh()->status);
+        $this->assertSame('', $session->fresh()->decision_note);
+
+        $next = $this->startCount();
+        $this->enterCounts($next, [$product->id => 8])->assertSessionHasNoErrors();
+        $this->submit($next)->assertSessionHasNoErrors();
+        $cancel($next)->assertSessionHasNoErrors();
+        $this->assertSame(StockCountSession::StatusCancelled, $next->fresh()->status);
+        $this->assertSame(10, $this->branchStock($product));
+    }
+
     public function test_a_branch_can_have_only_one_open_count(): void
     {
         $this->startCount();

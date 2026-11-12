@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useForm, usePage } from '@inertiajs/react';
 import { useT } from '../../../shared/i18n/t';
+import { useReasonField } from '../../../shared/reasonFields';
 import { actionAllowed } from '../../action-permissions';
 import type { OfficeHub } from '../../OfficeHubTabs';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from '../../MoneyTable';
@@ -78,6 +79,7 @@ function ReviewPanel({ application, onClose, onReject }: { application: Row; onC
     const isOwner = ['super_admin', 'md', 'chairman'].includes(String(auth?.user?.role ?? ''));
     const isDealerApplication = application.role === 'dealer';
     const [phoneWasRefused, setPhoneWasRefused] = useState(false);
+    const reviewReason = useReasonField('partner.application_review');
     const form = useForm({ decision: 'approved', place_code: application.place_code || '', sponsor_code: application.sponsor_code || '', reason: '', directory_visible: isDealerApplication, phone_share_reason: '' });
 
     const lines: [string, React.ReactNode][] = [
@@ -143,11 +145,13 @@ function ReviewPanel({ application, onClose, onReject }: { application: Row; onC
                             <small className="field-hint">{translate('office_partners', 'directory_visible_hint')}</small>
                         </label>
                     )}
-                    <label>
-                        {translate('office_partners', 'review_note')}
-                        <textarea rows={3} required maxLength={1000} value={form.data.reason} onChange={(event) => form.setData('reason', event.target.value)} />
-                        {form.errors.reason && <span className="field-error" role="alert">{form.errors.reason}</span>}
-                    </label>
+                    {reviewReason.shown && (
+                        <label>
+                            {reviewReason.label(translate('office_partners', 'review_note'))}
+                            <textarea rows={3} required={reviewReason.required} maxLength={1000} value={form.data.reason} onChange={(event) => form.setData('reason', event.target.value)} />
+                            {form.errors.reason && <span className="field-error" role="alert">{form.errors.reason}</span>}
+                        </label>
+                    )}
                     <FormErrors errors={form.errors} besideFields={['place_code', 'sponsor_code', 'reason', 'phone_share_reason']} />
                 </form>
             )}
@@ -158,6 +162,7 @@ function ReviewPanel({ application, onClose, onReject }: { application: Row; onC
 /** Rejecting asks for one thing: the reason. The same address as approving. */
 function RejectDialog({ application, onClose }: { application: Row; onClose: () => void }) {
     const translate = useT();
+    const rejectReason = useReasonField('partner.application_review');
     const form = useForm({ decision: 'rejected', reason: '' });
 
     return (
@@ -170,11 +175,13 @@ function RejectDialog({ application, onClose }: { application: Row; onClose: () 
                     form.post(`/commands/operations/staff/applications/${application.id}/review`, { preserveScroll: true, onSuccess: onClose });
                 }}
             >
-                <label>
-                    {translate('office_partners', 'reject_reason')}
-                    <textarea rows={3} required autoFocus maxLength={1000} value={form.data.reason} onChange={(event) => form.setData('reason', event.target.value)} />
-                    {form.errors.reason && <span className="field-error" role="alert">{form.errors.reason}</span>}
-                </label>
+                {rejectReason.shown && (
+                    <label>
+                        {rejectReason.label(translate('office_partners', 'reject_reason'))}
+                        <textarea rows={3} required={rejectReason.required} autoFocus maxLength={1000} value={form.data.reason} onChange={(event) => form.setData('reason', event.target.value)} />
+                        {form.errors.reason && <span className="field-error" role="alert">{form.errors.reason}</span>}
+                    </label>
+                )}
                 <FormErrors errors={form.errors} besideFields={['reason']} />
                 <div className="ops-row">
                     <button type="button" className="button" onClick={onClose}>{translate('portal', 'cancel')}</button>

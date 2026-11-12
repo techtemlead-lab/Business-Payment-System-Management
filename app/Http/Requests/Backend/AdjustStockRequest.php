@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Backend;
 
 use App\Domain\Inventory\BranchOperations;
+use App\Support\ReasonFields;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -38,7 +39,7 @@ class AdjustStockRequest extends FormRequest
                     [Rule::in(BranchOperations::ProductOutReasonCodes)],
                 ),
             ],
-            'reason' => ['required', 'string', 'max:1000'],
+            'reason' => ReasonFields::rule('stock.adjust', 1000),
             'reference' => ['required', 'uuid'],
             'branch_id' => ['nullable', 'integer', 'exists:company_branches,id'],
             'expires_on' => [
@@ -79,6 +80,11 @@ class AdjustStockRequest extends FormRequest
         ];
     }
 
+    /**
+     * Checks a stock-in or stock-out reason against the codes allowed for its kind. A blank one
+     * is refused only while the `stock.adjust` reason is compulsory for the person signed in;
+     * otherwise the movement is filed under {@see BranchOperations::UnstatedReasonCode}.
+     */
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
@@ -99,7 +105,9 @@ class AdjustStockRequest extends FormRequest
                 : BranchOperations::ProductOutReasonCodes;
 
             if ($candidate === '') {
-                $validator->errors()->add('reason', __('portal.err_stock_reason_required'));
+                if (ReasonFields::required('stock.adjust')) {
+                    $validator->errors()->add('reason', __('portal.err_stock_reason_required'));
+                }
 
                 return;
             }

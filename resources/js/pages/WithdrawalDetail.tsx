@@ -5,6 +5,7 @@ import { Download, Upload, ShieldCheck, Check, Clock, Radio, XCircle, Banknote, 
 import Shell from '../components/Shell';
 import { Row, Badge, ActionForm, money, date, FormErrors, label } from '../components/UI';
 import { useT } from '../shared/i18n/t';
+import { useReasonField } from '../shared/reasonFields';
 import { channelName, methodForChannel, payoutMethods, type PayoutMethod } from '../shared/payoutMethods';
 
 function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row; events: Row[] }) {
@@ -358,6 +359,7 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
         method: methodForChannel(String(w.channel ?? '')), bank_name: '', account_number: '', wallet_number: '', received_by: '',
     });
     const isCash = form.data.method === 'cash';
+    const paymentNote = useReasonField('money.withdrawal_settle');
 
     const inFlight = ['requested', 'processing', 'approved'].includes(w.status);
     const { stop } = usePoll(5000, { only: ['withdrawal', 'payoutReceipt'], headers: backgroundRefreshHeaders }, { autoStart: inFlight });
@@ -398,7 +400,7 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                 <h2>{translate('portal', 'wd_history_title')}</h2>
                 {events.map((e, i) => (
                     <div key={i} className="timeline-item">
-                        <i /><div><b>{label(String(e.event), translate)} · {e.name}</b><p>{e.note}</p><small>{date(e.created_at)}</small></div>
+                        <i /><div><b>{label(String(e.event), translate)} · {e.name}</b>{e.note && <p>{e.note}</p>}<small>{date(e.created_at)}</small></div>
                     </div>
                 ))}
             </section>
@@ -417,7 +419,7 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                                     { value: 'rejected', label: translate('portal', 'wd_reject') },
                                 ],
                             },
-                            { name: 'reason', label: translate('portal', 'wd_review_reason'), type: 'textarea', required: true },
+                            { name: 'reason', label: translate('portal', 'wd_review_reason'), type: 'textarea', required: true, place: 'money.withdrawal_review' },
                         ]}
                         submit={translate('portal', 'wd_record_review')}
                     />
@@ -462,7 +464,7 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                         <label>{translate('portal', isCash ? 'pay_fld_reference_cash' : 'wd_payment_ref')}<input required={!isCash} maxLength={100} value={form.data.payment_reference} onChange={e => form.setData('payment_reference', e.target.value)} /></label>
                         <label>{translate('portal', 'wd_paid_at')}<input required type="datetime-local" value={form.data.paid_at} onChange={e => form.setData('paid_at', e.target.value)} /></label>
                         <label>{translate('portal', isCash ? 'pay_fld_receipt_cash' : 'wd_upload_receipt')}<input required={!isCash} type="file" accept="application/pdf,image/jpeg,image/png" onChange={e => form.setData('receipt', e.target.files?.[0] ?? null)} /></label>
-                        <label>{translate('portal', 'wd_payment_note')}<textarea required maxLength={1000} value={form.data.note} onChange={e => form.setData('note', e.target.value)} /></label>
+                        {paymentNote.shown && <label>{paymentNote.label(translate('portal', 'wd_payment_note'))}<textarea required={paymentNote.required} maxLength={1000} value={form.data.note} onChange={e => form.setData('note', e.target.value)} /></label>}
                         {form.progress && <progress max={100} value={form.progress.percentage} aria-label={translate('portal', 'wd_upload_progress')} />}
                         <FormErrors errors={form.errors}/>
                         <button disabled={form.processing} className="button dark">

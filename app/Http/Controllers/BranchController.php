@@ -6,6 +6,7 @@ use App\Domain\Inventory\BranchOperations;
 use App\Models\BranchStaffAssignment;
 use App\Models\CompanyBranch;
 use App\Models\User;
+use App\Support\ReasonFields;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -119,6 +120,8 @@ class BranchController extends Controller
     /**
      * A branch is placed by its place code (typed as MNHC-…, or a place code id from the API);
      * its division/district/upazila names are filled in from that code, never typed.
+     * The note follows the owner's `stock.branch_note` choice when a branch is added; an edit
+     * that sends no note keeps the one on file, as before.
      *
      * @return array{
      *   code:string,name:string,place_code?:?string,
@@ -142,7 +145,7 @@ class BranchController extends Controller
             'is_active' => 'nullable|boolean',
             'is_delivery_point' => 'nullable|boolean',
             'is_stock_hub' => 'nullable|boolean',
-            'notes' => 'nullable|string|max:2000',
+            'notes' => [...($branch ? ['sometimes'] : []), ...ReasonFields::rule('stock.branch_note', 2000)],
         ]);
     }
 }

@@ -413,10 +413,13 @@ class SingleOwnerControlsTest extends TestCase
     public function test_rule_10_a_submitted_count_can_be_cancelled_with_a_reason(): void
     {
         $counts = app(StockCountService::class);
-        [$session] = $this->submittedCount($this->owner);
+        // The owner is never made to write a reason, so the refusal is shown with a staff member.
+        $counter = User::factory()->staff('inventory')->create();
+        [$session] = $this->submittedCount($counter);
+        $this->reasonFields(['stock.count_cancel' => 'required']);
 
-        $this->assertRefused(fn () => $counts->cancel($this->owner, $session), 'count', __('self_approval.err_reason'));
-        $counts->cancel($this->owner, $session, 'Counted the wrong shelf');
+        $this->assertRefused(fn () => $counts->cancel($counter, $session), 'count', __('self_approval.err_reason'));
+        $counts->cancel($counter, $session, 'Counted the wrong shelf');
 
         $this->assertSame(StockCountSession::StatusCancelled, $session->fresh()->status);
     }
@@ -431,6 +434,48 @@ class SingleOwnerControlsTest extends TestCase
         $id = $funds->request($trusted, $this->spend('company_profit'), $this->pdf());
 
         $this->assertRefused(fn () => $funds->review($trusted, $id, 'approved', self::Reason), 'spend', __('funds.err_own_spend'));
+    }
+
+    public function test_the_owner_finishing_a_step_alone_is_never_made_to_write_a_reason(): void
+    {
+        $this->openMoneyGate();
+        $payroll = app(PayrollService::class);
+        $payroll->contract($this->owner, $this->contract(User::factory()->enterOnly()->create()));
+        $ids = $payroll->prepare($this->owner, '2026-10');
+        $url = '/api/v1/operations/payroll/'.$ids[0].'/review';
+
+        // The payroll reason starts as compulsory, so anyone but the owner must write it.
+        $finance = User::factory()->staff('finance')->create();
+        $this->actingAs($finance)->postJson($url, ['decision' => 'approved'])->assertUnprocessable()->assertJsonValidationErrors('reason');
+        DB::table('users')->where('id', $finance->id)->update(['status' => 'suspended']);
+
+        $this->actingAs($this->owner)->postJson($url, ['decision' => 'approved', 'self_approve' => true])->assertOk();
+
+        $this->assertDatabaseHas('payroll_entries', ['id' => $ids[0], 'status' => 'approved']);
+        $this->assertDatabaseHas('payroll_events', ['payroll_id' => $ids[0], 'action' => 'approved', 'reason' => '']);
+        $this->assertAudited('payroll.approved');
+    }
+
+    public function test_fresh_start_never_makes_the_owner_write_a_reason(): void
+    {
+        $this->reasonFields(['money.opening_fresh_start' => 'required']);
+
+        $this->actingAs($this->owner)->postJson('/api/v1/operations/opening-balances/fresh-start', ['self_approve' => true])->assertOk();
+
+        $this->assertAudited('opening_balances.fresh_start');
+        $this->assertSame('', json_decode((string) DB::table('audit_events')->where('action', 'opening_balances.fresh_start')->value('metadata'), true)['reason']);
+    }
+
+    public function test_a_reason_written_on_a_two_person_opening_check_is_kept(): void
+    {
+        $readiness = app(FinancialReadiness::class);
+        $entered = $readiness->submit(User::factory()->enterOnly()->create(), $this->zeroTotals(), 'Staff closing statement', $this->pdf());
+
+        $readiness->verify($this->owner, $entered, 'Matched the bank statement');
+
+        $metadata = json_decode((string) DB::table('audit_events')->where('action', 'opening_balances.verified')->value('metadata'), true);
+        $this->assertSame('Matched the bank statement', $metadata['reason']);
+        $this->assertArrayNotHasKey('self_approved', $metadata);
     }
 
     public function test_owners_drawings_head_is_seeded_and_editable(): void

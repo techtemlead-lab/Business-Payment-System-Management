@@ -3,6 +3,7 @@ import OfficePage from '../OfficePage';
 import { actionAllowed } from '../../action-permissions';
 import { money, type Row } from '../../UI';
 import { useT } from '../../../shared/i18n/t';
+import { useReasonField } from '../../../shared/reasonFields';
 import SettingsForm, { settingsBack, type SettingsField } from './SettingsForm';
 
 const root = '/commands/operations';
@@ -16,7 +17,7 @@ export default function FinanceSettings({ withdrawalSetting, autoApproval, kycBe
     const canEditWithdrawal = actionAllowed(withdrawalAction, staffActions, 'post');
     const withdrawalFields: SettingsField[] = [
         { name: 'amount', label: translate('portal', 'ops_fld_min_withdrawal'), type: 'number', required: true },
-        { name: 'reason', label: translate('portal', 'ops_fld_reason'), type: 'textarea', required: true },
+        { name: 'reason', label: translate('portal', 'ops_fld_reason'), type: 'textarea', required: true, place: 'money.withdrawal_minimum' },
     ];
 
     return (
@@ -33,6 +34,7 @@ export default function FinanceSettings({ withdrawalSetting, autoApproval, kycBe
                     offLabel={translate('portal', 'fpo_off')}
                     ownerOnly={translate('portal', 'fpo_owner_only')}
                     tour="full-payment-when-ordering"
+                    place={'money.full_payment_when_ordering'}
                 />}
                 {kycBeforeFirstWithdrawal && <OwnerSwitchBlock
                     setting={kycBeforeFirstWithdrawal}
@@ -42,6 +44,7 @@ export default function FinanceSettings({ withdrawalSetting, autoApproval, kycBe
                     onLabel={translate('portal', 'kyc_wd_on')}
                     offLabel={translate('portal', 'kyc_wd_off')}
                     ownerOnly={translate('portal', 'kyc_wd_owner_only')}
+                    place={'money.kyc_before_withdrawal'}
                 />}
                 {withdrawalSetting && (
                     <section className="set-block">
@@ -92,14 +95,14 @@ function AutoApprovalBlock({ setting }: { setting: Row }) {
                     ))}
                     <p className="aa-note">{translate('portal', 'aa_car_bike_note')}</p>
                 </fieldset>
-                {canEdit && <ReasonAndSave value={form.data.reason} errors={form.errors} processing={form.processing} onChange={(reason) => form.setData('reason', reason)} />}
+                {canEdit && <ReasonAndSave place={'money.auto_approval'} value={form.data.reason} errors={form.errors} processing={form.processing} onChange={(reason) => form.setData('reason', reason)} />}
             </form>
         </section>
     );
 }
 
 /** A yes-or-no rule only the Super Admin may change. Everyone else reads where it stands, with no controls. */
-function OwnerSwitchBlock({ setting, action, title, switchLabel, onLabel, offLabel, ownerOnly, tour }: {
+function OwnerSwitchBlock({ setting, action, title, switchLabel, onLabel, offLabel, ownerOnly, tour, place }: {
     setting: Row;
     action: string;
     title: string;
@@ -108,6 +111,8 @@ function OwnerSwitchBlock({ setting, action, title, switchLabel, onLabel, offLab
     offLabel: string;
     ownerOnly: string;
     tour?: string;
+    /** The reason box's place in the owner's reason and note switches. */
+    place: string;
 }) {
     const form = useForm<Row>({ enabled: Boolean(setting.enabled), version: setting.version ?? 0, reason: '' });
     const canEdit = Boolean(setting.can_edit);
@@ -125,18 +130,19 @@ function OwnerSwitchBlock({ setting, action, title, switchLabel, onLabel, offLab
                     <p className="set-line"><b>{switchLabel}</b><br />{form.data.enabled ? onLabel : offLabel}</p>
                 )}
                 {!canEdit && <p className="aa-note">{ownerOnly}</p>}
-                {canEdit && <ReasonAndSave value={form.data.reason} errors={form.errors} processing={form.processing} onChange={(reason) => form.setData('reason', reason)} />}
+                {canEdit && <ReasonAndSave place={place} value={form.data.reason} errors={form.errors} processing={form.processing} onChange={(reason) => form.setData('reason', reason)} />}
             </form>
         </section>
     );
 }
 
-function ReasonAndSave({ value, errors, processing, onChange }: { value: string; errors: Record<string, unknown>; processing: boolean; onChange: (reason: string) => void }) {
+function ReasonAndSave({ place, value, errors, processing, onChange }: { place: string; value: string; errors: Record<string, unknown>; processing: boolean; onChange: (reason: string) => void }) {
     const translate = useT();
+    const changeReason = useReasonField(place);
 
     return (
         <>
-            <label className="aa-reason">{translate('portal', 'change_reason_label')}<textarea rows={2} required value={value} onChange={(event) => onChange(event.target.value)} /></label>
+            {changeReason.shown && <label className="aa-reason">{changeReason.label(translate('portal', 'change_reason_label'))}<textarea rows={2} required={changeReason.required} value={value} onChange={(event) => onChange(event.target.value)} /></label>}
             {Object.values(errors).map((error) => <span key={String(error)} className="field-error" role="alert">{String(error)}</span>)}
             <button className="button dark set-save" disabled={processing}>{processing ? translate('portal', 'saving') : translate('portal', 'save_changes')}</button>
         </>

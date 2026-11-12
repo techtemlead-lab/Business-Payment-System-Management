@@ -3,6 +3,7 @@ import { router, useForm, usePage } from '@inertiajs/react';
 import { Play } from 'lucide-react';
 import { ActionForm, Badge, Empty, FormErrors, Pagination, Table, date, number, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
+import { useReasonField } from '../shared/reasonFields';
 
 interface StockCountData {
     branch_scope: { view: string; name?: string | null };
@@ -31,7 +32,7 @@ function CancelSubmittedCount({ sessionId }: { sessionId: number }) {
         <ActionForm
             action={`/commands/stock-counts/${sessionId}/cancel`}
             submit={translate('self_approval', 'count_cancel_submitted')}
-            fields={[{ name: 'reason', label: translate('self_approval', 'count_cancel_reason'), type: 'textarea', required: true }]}
+            fields={[{ name: 'reason', label: translate('self_approval', 'count_cancel_reason'), type: 'textarea', required: true, place: 'stock.count_cancel' }]}
         />
     );
 }
@@ -65,6 +66,9 @@ function StartCount({ branches }: { branches: Row[] }) {
 /** The open count: type counted numbers, see the difference as you go, then send for approval. */
 function CountSheet({ session, can }: { session: Row; can: StockCountData['can'] }) {
     const text = useText();
+    const translate = useT();
+    const cancelReason = useReasonField('stock.count_cancel');
+    const [cancelReasonText, setCancelReasonText] = useState('');
     const lines: Row[] = session.lines;
     const editable = session.status === 'counting' && can.create;
     const saved = Object.fromEntries(lines.map((line) => [line.id, line.counted === null ? '' : String(line.counted)])) as Record<string, string>;
@@ -133,16 +137,35 @@ function CountSheet({ session, can }: { session: Row; can: StockCountData['can']
                 <div className="ops-row is-wrap">
                     <button type="button" className="button dark" disabled={form.processing || changed.length === 0} onClick={save}>{text('count_save')}</button>
                     <button type="button" className="button" disabled={changed.length > 0} onClick={() => post('submit')}>{text('count_submit')}</button>
-                    {can.edit && <button type="button" className="button" onClick={() => post('cancel')}>{text('count_cancel')}</button>}
+                    {can.edit && !cancelReason.shown && <button type="button" className="button" onClick={() => post('cancel')}>{text('count_cancel')}</button>}
                     {changed.length > 0 && <small className="muted">{text('count_save_first')}</small>}
+                    {can.edit && cancelReason.shown && (
+                        <form
+                            className="ops-row is-wrap"
+                            onSubmit={(event) => {
+                                event.preventDefault();
+                                router.post(`/commands/stock-counts/${session.id}/cancel`, { reason: cancelReasonText }, { preserveScroll: true });
+                            }}
+                        >
+                            <label>
+                                {cancelReason.label(translate('self_approval', 'count_cancel_reason'))}
+                                <textarea rows={2} maxLength={1000} required={cancelReason.required} value={cancelReasonText} onChange={(event) => setCancelReasonText(event.target.value)} />
+                            </label>
+                            <button type="submit" className="button">{text('count_cancel')}</button>
+                        </form>
+                    )}
                 </div>
             )}
             {session.status === 'submitted' && (session.can_decide ? (
                 <div className="ops-row is-wrap">
-                    <button type="button" className="button dark" onClick={() => post('approve')}>{text('count_approve')}</button>
+                    <ActionForm
+                        action={`/commands/stock-counts/${session.id}/approve`}
+                        fields={[{ name: 'note', label: text('count_note'), type: 'textarea', place: 'stock.count_approve' }]}
+                        submit={text('count_approve')}
+                    />
                     <ActionForm
                         action={`/commands/stock-counts/${session.id}/reject`}
-                        fields={[{ name: 'note', label: text('count_reject_note'), type: 'textarea', required: true }]}
+                        fields={[{ name: 'note', label: text('count_reject_note'), type: 'textarea', required: true, place: 'stock.count_reject' }]}
                         submit={text('count_reject')}
                     />
                 </div>

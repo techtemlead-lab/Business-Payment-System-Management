@@ -17,6 +17,7 @@ use App\Models\PlaceCode;
 use App\Models\ReferralTreePath;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\ReasonFields;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -703,7 +704,7 @@ final class PartnerAccountProvisioning
                 __('portal.notice_geography_updated_title', [], $locale),
                 __('portal.notice_geography_updated_body', [
                     'place' => $label,
-                    'reason' => $reason,
+                    'reason' => ReasonFields::shown($reason, $locale),
                 ], $locale),
             );
             if ($codeChange !== null) {
@@ -719,7 +720,7 @@ final class PartnerAccountProvisioning
                     'account.geography_updated',
                     SmsText::make('sms.geography_updated', [
                         'place' => $label,
-                        'reason' => $reason,
+                        'reason' => ReasonFields::shown($reason, SmsText::Locale),
                     ]),
                 );
                 if ($codeChange !== null) {

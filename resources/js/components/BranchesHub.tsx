@@ -4,6 +4,7 @@ import { Link } from '@inertiajs/react';
 import { Building2, MapPin, Plus, Store, Truck, Users } from 'lucide-react';
 import { Badge, Modal, Table, Pagination, label, money, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
+import { useReasonField } from '../shared/reasonFields';
 import { toLatin } from '../shared/countUp';
 
 interface BranchStaff {
@@ -71,6 +72,7 @@ export default function BranchesHub({
     canManage = true,
 }: BranchesHubProps) {
     const translate = useT();
+    const branchNote = useReasonField('stock.branch_note');
     const [createOpen, setCreateOpen] = useState(false);
     const [editRow, setEditRow] = useState<BranchRow | null>(null);
     const [assignRow, setAssignRow] = useState<BranchRow | null>(null);
@@ -294,6 +296,7 @@ export default function BranchesHub({
                         <label>{translate('portal', 'ops_fld_place_code')}<input value={createForm.data.place_code} onChange={(e) => createForm.setData('place_code', toLatin(e.target.value))} placeholder="MNHC-" required /><span className="muted">{translate('portal', 'branch_place_code_hint')}</span>{createForm.errors.place_code && <span className="field-error">{createForm.errors.place_code}</span>}</label>
                         <label>{translate('portal', 'branch_phone')}<input value={createForm.data.phone} onChange={(e) => createForm.setData('phone', e.target.value)} /></label>
                         <label className="full">{translate('portal', 'branch_address')}<input value={createForm.data.address} onChange={(e) => createForm.setData('address', e.target.value)} /></label>
+                        {branchNote.shown && <label className="full">{branchNote.label(translate('portal', 'note'))}<textarea rows={2} maxLength={2000} required={branchNote.required} value={createForm.data.notes} onChange={(e) => createForm.setData('notes', e.target.value)} />{createForm.errors.notes && <span className="field-error">{createForm.errors.notes}</span>}</label>}
                         <label><input type="checkbox" checked={createForm.data.is_stock_hub} onChange={(e) => createForm.setData('is_stock_hub', e.target.checked)} /> {translate('portal', 'branch_stock_hub')}</label>
                         <label><input type="checkbox" checked={createForm.data.is_delivery_point} onChange={(e) => createForm.setData('is_delivery_point', e.target.checked)} /> {translate('portal', 'branch_delivery_point')}</label>
                         <div className="toolbar-end full">

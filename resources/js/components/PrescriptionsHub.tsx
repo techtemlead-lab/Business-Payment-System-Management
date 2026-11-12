@@ -3,6 +3,7 @@ import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { AlertTriangle, FileText, History, Pill, Plus, Printer, Repeat, Search, Stethoscope, Trash2, UserPlus } from 'lucide-react';
 import { DateInput, Empty, FormErrors, date, money, number, Pagination, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
+import { useReasonField } from '../shared/reasonFields';
 import { businessTodayIso, localizeDigits } from '../business-date';
 import { linesFromSaved, SaveAsTemplate, TemplatePicker, TemplatesTab, type PrescriptionTools, type TemplateRow } from './PrescriptionTemplates';
 import { FollowUpsPanel } from './PrescriptionFollowUps';
@@ -648,6 +649,7 @@ function PatientsTab({ data, translate }: { data: PrescriptionsData; translate: 
     const [query, setQuery] = useState(String(filters?.q ?? ''));
     const blank = { name: '', age: '', sex: '', phone: '', place_code_id: '', notes: '', allergies: '', patient_consent: false };
     const form = useForm(blank);
+    const notesBox = useReasonField('clinic.patient_notes');
 
     useEffect(() => {
         if (editing) {
@@ -702,7 +704,7 @@ function PatientsTab({ data, translate }: { data: PrescriptionsData; translate: 
                         <textarea rows={2} maxLength={1000} value={form.data.allergies} onChange={(e) => form.setData('allergies', e.target.value)} />
                         <small className="muted">{translate('clinic_records', 'allergies_hint')}</small>
                     </label>
-                    <label>{translate('prescription', 'patient_notes')}<textarea rows={2} maxLength={2000} value={form.data.notes} onChange={(e) => form.setData('notes', e.target.value)} /></label>
+                    {notesBox.shown && <label>{notesBox.label(translate('prescription', 'patient_notes'))}<textarea rows={2} maxLength={2000} required={notesBox.required} value={form.data.notes} onChange={(e) => form.setData('notes', e.target.value)} /></label>}
                     {(!editing || !editing.consent_at) && (
                         <label className="rx-consent">
                             <input type="checkbox" required={!editing} checked={form.data.patient_consent} onChange={(e) => form.setData('patient_consent', e.target.checked)} />
@@ -828,6 +830,7 @@ function SettingsTab({ data, translate }: { data: PrescriptionsData; translate: 
         registration_number: data.registration?.number ?? '',
         note: '',
     });
+    const noteBox = useReasonField('clinic.registration_note');
 
     return (
         <>
@@ -840,7 +843,7 @@ function SettingsTab({ data, translate }: { data: PrescriptionsData; translate: 
                         </select>
                     </label>
                     <label>{translate('prescription', 'registration_number')}<input required maxLength={60} value={registration.data.registration_number} onChange={(e) => registration.setData('registration_number', e.target.value)} /></label>
-                    <label>{translate('prescription', 'registration_note')}<input maxLength={1000} value={registration.data.note} onChange={(e) => registration.setData('note', e.target.value)} /></label>
+                    {noteBox.shown && <label>{noteBox.label(translate('prescription', 'registration_note'))}<input maxLength={1000} required={noteBox.required} value={registration.data.note} onChange={(e) => registration.setData('note', e.target.value)} /></label>}
                     <FormErrors errors={registration.errors} />
                     <button className="button dark" disabled={registration.processing}>{translate('prescription', 'registration_save')}</button>
                 </form>

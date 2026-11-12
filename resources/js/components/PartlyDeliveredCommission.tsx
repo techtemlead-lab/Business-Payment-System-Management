@@ -36,7 +36,7 @@ export default function PartlyDeliveredCommission() {
         {outcome.can_choose_no_commission && <>
             <p className="muted" role="status">{translate('courier_more', 'part_action_warning')}</p>
             <ActionForm action={`/commands/orders/${order.id}/mixed-outcome-decision`} defaults={{ decision: 'no_commission' }} fields={[
-                { name: 'reason', label: translate('courier_more', 'part_action_reason'), type: 'textarea', required: true },
+                { name: 'reason', label: translate('courier_more', 'decision_reason_label'), type: 'textarea', required: true, place: 'order.commission_decision' },
             ]} submit={translate('courier_more', 'part_action')} />
         </>}
     </section>;

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Notifications\EmailEventSwitches;
+use App\Support\ReasonFields;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\Response;
@@ -16,9 +17,9 @@ class EmailEventSwitchesController extends Controller
             'enabled' => 'present|array',
             'enabled.*' => ['string', Rule::in(EmailEventSwitches::Events)],
             'version' => 'required|integer|min:0',
-            'reason' => FinanceOperationsController::Reason,
+            'reason' => ReasonFields::rule('settings.email_events', 1000, 5),
         ]);
-        $switches->save($request->user(), array_values($data['enabled']), (int) $data['version'], $data['reason']);
+        $switches->save($request->user(), array_values($data['enabled']), (int) $data['version'], ReasonFields::text($data['reason'] ?? null));
 
         return $request->expectsJson()
             ? response()->json(['data' => []])

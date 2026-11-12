@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Content\PartnerEventCalendar;
 use App\Models\PartnerEvent;
 use App\Rules\BanglaSmsText;
+use App\Support\ReasonFields;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -50,7 +51,7 @@ class PartnerEventController extends Controller
     public function cancel(Request $request, PartnerEvent $partnerEvent): RedirectResponse
     {
         $this->authorizeManager($request);
-        $reason = $request->validate(['reason' => 'nullable|string|max:300'])['reason'] ?? null;
+        $reason = $request->validate(['reason' => ReasonFields::rule('partner.event_cancel', 300)])['reason'] ?? null;
         $this->calendar->cancel($request->user(), $partnerEvent, $reason);
 
         return back()->with('success', __('portal.events_flash_cancelled'));
@@ -94,7 +95,7 @@ class PartnerEventController extends Controller
             'audience' => ['required', Rule::in(PartnerEvent::Audiences)],
             'divisions' => 'nullable|required_if:audience,divisions|array|max:20',
             'divisions.*' => ['integer', Rule::in(array_column($this->calendar->divisionOptions(), 'id'))],
-            'notes' => 'nullable|string|max:5000',
+            'notes' => ReasonFields::rule('partner.event_notes', 5000),
             'send_sms' => 'sometimes|boolean',
         ];
     }

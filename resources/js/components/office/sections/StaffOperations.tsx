@@ -50,7 +50,7 @@ export default function StaffOperations({ tables, staff, hub }: StaffOperationsP
         if (!row.is_active) {
             return null;
         }
-        const action: StaffAction = { title: translate('portal', 'ops_remove_territory'), action: `${commandRoot}/staff/territories/${row.id}/remove`, fields: [{ name: 'reason', label: translate('portal', 'ops_fld_reason'), type: 'textarea', required: true }] };
+        const action: StaffAction = { title: translate('portal', 'ops_remove_territory'), action: `${commandRoot}/staff/territories/${row.id}/remove`, fields: [{ name: 'reason', label: translate('portal', 'ops_fld_reason'), type: 'textarea', required: true, place: 'staff.territory_remove' }] };
 
         return actionAllowed(action.action, staffActions) ? action : null;
     };
