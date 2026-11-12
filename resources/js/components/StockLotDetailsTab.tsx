@@ -23,7 +23,8 @@ export default function StockLotDetailsTab({ data }: { data: Row }) {
                 { key: 'product', title: t('col_product') },
                 { key: 'branch_code', title: t('col_branch') },
                 { key: 'batch_number', title: t('col_batch'), render: (row: Row) => row.batch_number || <span className="badge">{t('missing_badge')}</span> },
-                { key: 'expires_on', title: t('col_expiry'), render: (row: Row) => row.expires_on ? date(row.expires_on) : <span className="badge">{t('missing_badge')}</span> },
+                // The expiry date is optional, so a blank one is a dash and not something waiting to be done.
+                { key: 'expires_on', title: t('col_expiry'), render: (row: Row) => date(row.expires_on) },
                 { key: 'quantity', title: t('col_quantity'), align: 'right', render: (row: Row) => number(row.quantity) },
                 { key: 'received_on', title: t('col_received'), render: (row: Row) => date(row.received_on) },
                 ...(canChange ? [{ key: 'action', title: t('col_action'), render: (row: Row) => <button type="button" className="button small" onClick={() => setFilling(row)}>{t('fill_in_action')}</button> }] : []),
