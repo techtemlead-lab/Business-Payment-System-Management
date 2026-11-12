@@ -53,7 +53,7 @@ class PrescriptionTemplatesTest extends TestCase
         $this->assertSame('Fever, adult', $template->name);
         $this->assertSame('Rest for a week', $template->advice);
         $this->assertSame([[
-            'product_id' => null, 'medicine_name' => 'Napa 500', 'dose' => '1 tab', 'frequency' => '3 times', 'duration' => '5 days',
+            'product_id' => null, 'medicine_name' => 'Napa 500', 'strength' => null, 'dose' => '1 tab', 'frequency' => '3 times', 'duration' => '5 days',
             'instructions' => 'After food', 'dose_schedule' => null, 'food_timing' => null, 'duration_count' => null, 'duration_unit' => null,
             'unit_price' => '2.50', 'quantity' => 15, 'discount' => '2.50',
         ]], $template->lines);
