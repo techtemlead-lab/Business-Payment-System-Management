@@ -4,12 +4,17 @@ namespace App\Domain\Security;
 
 use App\Domain\Staff\PartnerStaffLink;
 use App\Models\User;
-use Closure;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Two-person control, with one way out for a company that has nobody else yet: the Super
- * Admin may finish a step alone when no other active person could do that step.
+ * Who may finish a step they started themselves.
+ *
+ * The company has a single owner and nobody ranks above them, so the owner finishes their own
+ * step directly ({@see self::finishOwnStep()}). Staff never do: someone else must take the
+ * next step after them.
+ *
+ * Opening balances keep the older two-person rule ({@see self::authorizeAlone()}): the owner
+ * checks their own figures alone only when no other active person could.
  *
  * Callers run this inside their locked transaction and refuse the person receiving the
  * money before they get here, because that block is never waived.
@@ -19,13 +24,41 @@ final class SelfApproval
     public const MinimumReasonLength = 5;
 
     /**
-     * Everyone else who could do this step.
+     * The accounts nobody ranks above. The MD and Chairman keep their present rights until
+     * the owner decides otherwise.
+     */
+    private const OwnerRoles = ['super_admin'];
+
+    /** Whether this person is the owner, who finishes their own steps without a second person. */
+    public function ownerFinishesAlone(User $actor): bool
+    {
+        $current = $actor->fresh();
+
+        return $current !== null
+            && $current->status === 'active'
+            && in_array($current->role, self::OwnerRoles, true);
+    }
+
+    /**
+     * Lets the owner finish a step they started, or refuses anyone else. The caller marks the
+     * step as done alone in the activity log.
      *
-     * @param  array<int, int|string|null>  $cannotDoStep  People already ruled out, such as the one who entered it or the payee.
-     * @param  (Closure(User): bool)|null  $canDoStep  For a step whose route rule is not a plain module and action.
+     * @throws ValidationException
+     */
+    public function finishOwnStep(User $actor, string $field, string $refusal): void
+    {
+        if (! $this->ownerFinishesAlone($actor)) {
+            throw ValidationException::withMessages([$field => $refusal]);
+        }
+    }
+
+    /**
+     * Everyone else who could approve a money step.
+     *
+     * @param  array<int, int|string|null>  $cannotDoStep  People already ruled out, such as the one who entered it.
      * @return list<int>
      */
-    public function otherEligible(User $actor, array $cannotDoStep = [], string $module = 'finance', string $action = 'approve', ?Closure $canDoStep = null): array
+    public function otherEligible(User $actor, array $cannotDoStep = []): array
     {
         $excluded = array_map('intval', array_filter([$actor->id, ...$cannotDoStep], fn (int|string|null $id): bool => $id !== null));
 
@@ -34,63 +67,34 @@ final class SelfApproval
             ->whereNotIn('id', $excluded)
             ->where(fn ($people) => $people->staffAccounts()->orWhere(fn ($linked) => $linked->whereIn('role', ['dealer', 'sub_dealer'])->whereNotNull('linked_staff_role')))
             ->get()
-            ->filter(fn (User $person): bool => $canDoStep !== null ? $canDoStep($person) : $this->holdsRight($person, $module, $action))
+            ->filter(fn (User $person): bool => $this->approvesMoney($person))
             ->map(fn (User $person): int => (int) $person->id)
             ->values()
             ->all();
     }
 
     /**
-     * Whether this person holds the right the route checks. A partner's linked staff desk only
-     * counts in a staff session, which is not this request, so its capabilities are read directly.
+     * The two-person rule's one way out: whether the owner may check their own opening
+     * balances because no other active person could.
+     *
+     * @param  array<int, int|string|null>  $cannotDoStep
      */
-    public function holdsRight(User $person, string $module, string $action): bool
+    public function isAvailable(User $actor, array $cannotDoStep = []): bool
     {
-        if ($person->hasLinkedStaffAccess() && in_array($module, app(PartnerStaffLink::class)->linkedCapabilities($person), true)) {
-            return true;
-        }
-
-        return $person->canAct($module, $action);
+        return $this->ownerFinishesAlone($actor) && $this->otherEligible($actor, $cannotDoStep) === [];
     }
 
     /**
-     * Whether the actor may finish this step alone.
+     * Opening balances only: lets the step go ahead with one person, or refuses it. The owner
+     * confirms they are doing it alone and writes why.
      *
      * @param  array<int, int|string|null>  $cannotDoStep
-     * @param  (Closure(User): bool)|null  $canDoStep
-     */
-    public function isAvailable(User $actor, array $cannotDoStep = [], string $module = 'finance', string $action = 'approve', ?Closure $canDoStep = null): bool
-    {
-        $current = $actor->fresh();
-
-        return $current !== null
-            && $current->status === 'active'
-            && $current->role === 'super_admin'
-            && $this->otherEligible($current, $cannotDoStep, $module, $action, $canDoStep) === [];
-    }
-
-    /**
-     * Lets the step go ahead with one person, or refuses it.
-     *
-     * @param  array<int, int|string|null>  $cannotDoStep
-     * @param  (Closure(User): bool)|null  $canDoStep
      *
      * @throws ValidationException
      */
-    public function authorizeAlone(
-        User $actor,
-        string $field,
-        string $refusal,
-        bool $confirmed,
-        string $reason,
-        array $cannotDoStep = [],
-        string $module = 'finance',
-        string $action = 'approve',
-        ?Closure $canDoStep = null,
-        bool $receiptNeeded = false,
-        bool $hasReceipt = false,
-    ): void {
-        if (! $this->isAvailable($actor, $cannotDoStep, $module, $action, $canDoStep)) {
+    public function authorizeAlone(User $actor, string $field, string $refusal, bool $confirmed, string $reason, array $cannotDoStep = []): void
+    {
+        if (! $this->isAvailable($actor, $cannotDoStep)) {
             throw ValidationException::withMessages([$field => $refusal]);
         }
         if (! $confirmed) {
@@ -99,8 +103,18 @@ final class SelfApproval
         if (mb_strlen(trim($reason)) < self::MinimumReasonLength) {
             throw ValidationException::withMessages([$field => __('self_approval.err_reason')]);
         }
-        if ($receiptNeeded && ! $hasReceipt) {
-            throw ValidationException::withMessages([$field => __('self_approval.err_receipt')]);
+    }
+
+    /**
+     * Whether this person holds the finance approval right. A partner's linked staff desk only
+     * counts in a staff session, which is not this request, so its capabilities are read directly.
+     */
+    private function approvesMoney(User $person): bool
+    {
+        if ($person->hasLinkedStaffAccess() && in_array('finance', app(PartnerStaffLink::class)->linkedCapabilities($person), true)) {
+            return true;
         }
+
+        return $person->canAct('finance', 'approve');
     }
 }

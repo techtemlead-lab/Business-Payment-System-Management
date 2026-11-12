@@ -48,8 +48,8 @@ class FundSpendingController extends Controller
     public function review(Request $request, int $id, FundSpending $spending): RedirectResponse|JsonResponse
     {
         $data = $request->validate(['decision' => 'required|in:approved,rejected', 'reason' => 'required|string|min:5|max:1000',
-            'self_approve' => 'sometimes|boolean', 'receipt' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120']);
-        $spending->review($request->user(), $id, $data['decision'], $data['reason'], $request->boolean('self_approve'), $request->file('receipt'));
+            'receipt' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120']);
+        $spending->review($request->user(), $id, $data['decision'], $data['reason'], $request->file('receipt'));
 
         return $this->done($request, [], __($data['decision'] === 'approved' ? 'funds.flash_spend_approved' : 'funds.flash_spend_rejected'), $data['decision'] === 'approved' ? $this->budgets->warningFor($id) : null);
     }

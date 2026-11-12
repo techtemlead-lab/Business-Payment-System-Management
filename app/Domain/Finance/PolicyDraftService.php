@@ -40,10 +40,10 @@ final class PolicyDraftService
         });
     }
 
-    public function publish(User $actor, int $id, string $reason = '', bool $confirmedAlone = false): void
+    public function publish(User $actor, int $id, string $reason = ''): void
     {
         abort_unless($actor->canAct('finance', 'approve') || $actor->role === 'super_admin', 403);
-        DB::transaction(function () use ($actor, $id, $reason, $confirmedAlone): void {
+        DB::transaction(function () use ($actor, $id, $reason): void {
             abort_unless($actor->fresh()->canAct('finance', 'approve') || $actor->fresh()->role === 'super_admin', 403);
             $draft = DB::table('policy_drafts')->where('id', $id)->lockForUpdate()->first();
             abort_unless($draft, 404);
@@ -52,7 +52,7 @@ final class PolicyDraftService
             }
             $selfApproved = (int) $draft->created_by === (int) $actor->id;
             if ($selfApproved) {
-                app(SelfApproval::class)->authorizeAlone($actor, 'policy', __('portal.err_draft_publisher'), $confirmedAlone, $reason, [$draft->created_by]);
+                app(SelfApproval::class)->finishOwnStep($actor, 'policy', __('portal.err_draft_publisher'));
             }
             DB::table('policy_drafts')->where('id', $id)->update([
                 'status' => 'published',

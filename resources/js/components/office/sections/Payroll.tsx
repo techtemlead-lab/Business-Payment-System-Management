@@ -14,12 +14,11 @@ export type PayrollProps = {
     tables: StaffSectionTable[];
     staff: Row[];
     paymentAccounts: Row[];
-    secondApprovers?: number[];
     hub?: OfficeHub | null;
 };
 
 /** The Staff salary tab: one table per view, the two forms open as dialogs, a row's work is in its drawer. */
-export default function Payroll({ tables, staff, paymentAccounts, secondApprovers = [], hub }: PayrollProps) {
+export default function Payroll({ tables, staff, paymentAccounts, hub }: PayrollProps) {
     const translate = useT();
     const { auth, financeActive, staffActions } = usePage<any>().props;
     const { url } = usePage();
@@ -54,14 +53,8 @@ export default function Payroll({ tables, staff, paymentAccounts, secondApprover
     });
     const allowedForms = forms.filter((form) => actionAllowed(form.action.action, staffActions, 'post'));
 
-    const yes = translate('self_approval', 'confirm_yes');
-    const confirmAlone: StaffField = { name: 'self_approve', label: translate('self_approval', 'confirm_label'), required: true, options: [{ value: '1', label: yes }] };
-    const aloneFor = (people: number[]): boolean => auth.user.role === 'super_admin' && secondApprovers.filter((id) => !people.includes(id)).length === 0;
-    const alone = (action: StaffAction): StaffAction => ({
-        ...action,
-        title: `${action.title} (${translate('self_approval', 'alone_tag')})`,
-        fields: [...action.fields.map((field) => (field.name === 'receipt' ? { ...field, required: true } : field)), confirmAlone],
-    });
+    // Staff hand the next step to someone else; the owner finishes a step they started themselves.
+    const mayFinish = (startedBy: unknown): boolean => startedBy !== auth.user.id || auth.user.role === 'super_admin';
 
     const rowActions = (row: Row): StaffAction[] => {
         const actions: StaffAction[] = [];
@@ -74,10 +67,8 @@ export default function Payroll({ tables, staff, paymentAccounts, secondApprover
                 action: `${commandRoot}/payroll/${row.id}/review`,
                 fields: [{ name: 'decision', label: translate('portal', 'ops_fld_decision'), required: true, options: ['approved', 'rejected'].map((value) => ({ value, label: label(value, translate) })) }, reason],
             };
-            if (row.prepared_by !== auth.user.id) {
+            if (mayFinish(row.prepared_by)) {
                 actions.push(review);
-            } else if (aloneFor([row.prepared_by, row.staff_id])) {
-                actions.push(alone(review));
             }
         }
         if (row.status === 'approved' && row.staff_id !== auth.user.id) {
@@ -86,10 +77,8 @@ export default function Payroll({ tables, staff, paymentAccounts, secondApprover
                 action: `${commandRoot}/payroll/${row.id}/pay`,
                 fields: [pickField(paymentAccounts.filter((account) => account.is_active && account.pays_out), 'payment_account_id', translate('portal', 'ops_fld_payout_account')), textField('payment_reference', translate('portal', 'ops_fld_payment_ref')), textField('paid_at', translate('portal', 'ops_fld_paid_at'), 'datetime-local'), textField('receipt', translate('portal', 'ops_fld_payment_receipt'), 'file'), reason],
             };
-            if (row.approved_by !== auth.user.id) {
+            if (mayFinish(row.approved_by)) {
                 actions.push(pay);
-            } else if (aloneFor([row.approved_by, row.staff_id])) {
-                actions.push(alone(pay));
             }
         }
 

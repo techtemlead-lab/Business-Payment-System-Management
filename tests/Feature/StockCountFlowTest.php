@@ -146,7 +146,7 @@ class StockCountFlowTest extends TestCase
         $this->assertDatabaseCount('stock_movements', 0);
     }
 
-    public function test_anyone_who_helped_with_the_count_cannot_approve_even_an_owner(): void
+    public function test_staff_who_helped_with_the_count_cannot_approve_it_but_the_owner_who_helped_can(): void
     {
         $product = $this->productHolding(10);
         $other = $this->productHolding(10);
@@ -162,12 +162,10 @@ class StockCountFlowTest extends TestCase
         foreach ([$starter, $this->approver, $submitter] as $person) {
             $this->approve($session, $person)->assertSessionHasErrors('count');
         }
-        $this->actingAs($owner)->onPortal('sadmin')->post("/commands/stock-counts/{$session->id}/approve")
-            ->assertSessionHasErrors('count');
-
         $this->assertSame(10, $this->branchStock($product));
 
-        $this->approve($session, User::factory()->staff('inventory')->create())->assertSessionHasNoErrors();
+        $this->actingAs($owner)->onPortal('sadmin')->post("/commands/stock-counts/{$session->id}/approve")
+            ->assertSessionHasNoErrors();
 
         $this->assertSame(8, $this->branchStock($product));
     }

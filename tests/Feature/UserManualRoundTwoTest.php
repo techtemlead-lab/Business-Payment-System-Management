@@ -203,8 +203,8 @@ class UserManualRoundTwoTest extends TestCase
         app()->setLocale('en');
         $chapters = collect(app(UserManual::class)->chaptersFor($owner))->keyBy('key');
 
-        $this->assertStringContainsString('the owner can finish it alone', implode(' ', $chapters['payouts_settlements']['tips']));
-        $this->assertStringContainsString('the owner can finish it alone', implode(' ', $chapters['withdrawals']['steps']));
+        $this->assertStringContainsString('The owner can prepare and approve alone', implode(' ', $chapters['payouts_settlements']['tips']));
+        $this->assertStringContainsString('The owner can approve and pay alone', implode(' ', $chapters['withdrawals']['steps']));
         $this->assertMatchesRegularExpression('/ \d+(\.\d+)?% of each dealer purchase/', $chapters['commissions_pool']['purpose']);
     }
 

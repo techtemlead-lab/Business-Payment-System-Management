@@ -11,7 +11,7 @@ type WithdrawalStatus = 'requested' | 'approved' | 'paid' | 'rejected';
 
 interface WithdrawalRecord {
     id: string;
-    payer_state?: 'alone' | 'second_person' | null;
+    payer_state?: 'second_person' | null;
     user_id: number;
     user_name: string;
     dealer_code: string;
@@ -102,8 +102,6 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
     const [settleNote, setSettleNote] = useState('');
     const [receiptFile, setReceiptFile] = useState<File | null>(null);
     const [processingSettle, setProcessingSettle] = useState(false);
-    const [confirmedAlone, setConfirmedAlone] = useState(false);
-    const paysAlone = settleModalRecord?.payer_state === 'alone';
     const [payoutMethod, setPayoutMethod] = useState<PayoutMethod>('bank');
     const [bankName, setBankName] = useState('');
     const [accountNumber, setAccountNumber] = useState('');
@@ -149,16 +147,14 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
         setWalletNumber('');
         setReceivedBy('');
         setPaymentAccountId(payoutAccounts.length === 1 ? String(payoutAccounts[0].id) : '');
-        setConfirmedAlone(false);
     };
 
     const handleSubmitSettle = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!settleModalRecord || ((!isCash || paysAlone) && !receiptFile)) return;
+        if (!settleModalRecord || (!isCash && !receiptFile)) return;
 
         const formData = new FormData();
         if (receiptFile) formData.append('receipt', receiptFile);
-        if (paysAlone) formData.append('self_approve', confirmedAlone ? '1' : '0');
         formData.append('method', payoutMethod);
         if (!isCash && paymentAccountId) formData.append('payment_account_id', paymentAccountId);
         formData.append('payment_reference', paymentReference);
@@ -497,20 +493,11 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                                 </label>
                                 <input
                                     type="file"
-                                    required={!isCash || paysAlone}
+                                    required={!isCash}
                                     accept=".pdf,.jpg,.jpeg,.png"
                                     onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
                                 />
                             </div>
-
-                            {paysAlone && (
-                                <div className="hub-field">
-                                    <label>
-                                        <input type="checkbox" required checked={confirmedAlone} onChange={(e) => setConfirmedAlone(e.target.checked)} />{' '}
-                                        {translate('self_approval', 'confirm_label')}
-                                    </label>
-                                </div>
-                            )}
 
                             <div className="hub-field is-last">
                                 <label>

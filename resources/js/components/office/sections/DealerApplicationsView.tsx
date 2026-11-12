@@ -20,7 +20,7 @@ export default function DealerApplicationsView({ table }: { table: StaffSectionT
     };
 
     const reviewFor = (row: Row): StaffAction | null => {
-        if (row.status !== 'pending' || !capabilities.includes('accounts') || row.submitted_by === auth.user.id) {
+        if (row.status !== 'pending' || !capabilities.includes('accounts') || (row.submitted_by === auth.user.id && auth.user.role !== 'super_admin')) {
             return null;
         }
         const reason: StaffField = { name: 'reason', label: translate('portal', 'ops_fld_reason'), type: 'textarea', required: true };
