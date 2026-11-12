@@ -6386,6 +6386,7 @@ return [
     'event_prescription_template_deleted' => 'প্রেসক্রিপশনের টেমপ্লেট মুছে দেওয়া হয়েছে',
     'event_prescription_diet_template_saved' => 'খাবারের টেমপ্লেট রাখা হয়েছে',
     'event_prescription_diet_template_deleted' => 'খাবারের টেমপ্লেট মুছে দেওয়া হয়েছে',
+    'event_prescription_other_medicines_changed' => 'প্রেসক্রিপশনে অন্য কোম্পানির ওষুধ লেখার নিয়ম বদলানো হয়েছে',
     'event_prescription_follow_up_done' => 'রোগীকে আবার দেখা হয়ে গেছে',
     'status_returned' => 'ফেরত এসেছে',
     'event_prescriber_company_stock_granted' => 'অফিস অ্যাকাউন্টে কোম্পানির স্টক থেকে প্রেসক্রিপশন চালু হয়েছে',

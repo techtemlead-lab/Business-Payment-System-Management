@@ -65,7 +65,9 @@ class PrescriptionTemplatesTest extends TestCase
                 ->where('data.prescription_tools.templates.0.name', 'Fever, adult')
                 ->where('data.prescription_tools.templates.0.lines.0.medicine_name', 'Napa 500'));
 
-        // The form sends the template's lines through the normal prescription save.
+        // The form sends the template's lines through the normal prescription save; they are
+        // typed by hand, which needs the owners' switch.
+        $this->allowOtherMedicines();
         $this->actingAs($dealer)->onPortal('dealer')->post('/commands/prescriptions', [
             'patient_id' => $prescription->patient_id,
             'prescribed_on' => '2026-11-08',

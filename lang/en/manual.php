@@ -711,7 +711,7 @@ return [
     'prescriptions_partner_s2' => 'After that, open “Prescriptions” from the menu.',
     'prescriptions_partner_s3' => 'On the “Prescriptions” tab, in “New prescription”, first say who it is for. Press “Old patient” to choose from the list; when the list opens you can type a name in the box at the top to find it.',
     'prescriptions_partner_s4' => 'For a new patient press “New patient”, type the name and other details, tick the consent box and press “Continue”. The patient is saved together with the prescription; there is no separate save.',
-    'prescriptions_partner_s5' => 'For each medicine, type the name, dose, how often and how long. Then type the price, quantity and any discount. The boxes below take tests, foods to eat, foods to avoid and advice.',
+    'prescriptions_partner_s5' => 'Choose each medicine from the company list. While the owner allows other companies\' medicines, press “Other medicine” to type a name and strength by hand. Type the dose, how often and how long. Then type the price, quantity and any discount. The boxes below take tests, foods to eat, foods to avoid and advice.',
     'prescriptions_partner_s6' => 'Press “Add medicine” for another line. A prescription may also hold only tests or advice, with no medicine. Check everything and press “Save prescription”.',
     'prescriptions_partner_s7' => 'Press “Print (Bangla)” or “Print (English)” to print it.',
     'prescriptions_partner_o1' => 'Only you can see your patients and prescriptions. Not even the owner can see them.',

@@ -58,7 +58,7 @@ type PrescriptionRow = {
     clinic_fund: string;
     payment_method: string;
     payment_reference: string | null;
-    lines: { medicine_name: string; dose: string | null; frequency: string | null; duration: string | null; dose_summary: string; quantity: number; line_total: string }[];
+    lines: { medicine_name: string; strength: string | null; company_product: boolean; dose: string | null; frequency: string | null; duration: string | null; dose_summary: string; quantity: number; line_total: string }[];
 };
 
 type ReportData = {
@@ -87,7 +87,11 @@ export type PrescriptionsData = {
     dose_amounts: string[];
     food_timings: string[];
     duration_units: string[];
-    products?: { id: number; name: string; sku: string; mrp: string }[];
+    products: { id: number; name: string; sku: string; mrp: string }[];
+    /** The owners' switch: may a medicine that is not a company product be typed by hand? */
+    other_medicines_allowed: boolean;
+    /** Only for owners, who can change the switch. */
+    other_medicines?: { enabled: boolean; version: number };
     branches?: { id: number; code: string; name: string }[];
     payment_methods?: string[];
     manufacturer_percent?: string;
@@ -95,8 +99,11 @@ export type PrescriptionsData = {
 };
 
 export type LineForm = {
+    /** A company product, or another medicine typed by hand while the owners allow it. */
+    kind: 'product' | 'other';
     product_id: string;
     medicine_name: string;
+    strength: string;
     dose: string;
     frequency: string;
     duration: string;
@@ -110,7 +117,7 @@ export type LineForm = {
     discount: string;
 };
 
-const emptyLine = (): LineForm => ({ product_id: '', medicine_name: '', dose: '', frequency: '', duration: '', instructions: '', dose_schedule: '', food_timing: '', duration_count: '', duration_unit: 'day', unit_price: '', quantity: '1', discount: '' });
+const emptyLine = (): LineForm => ({ kind: 'product', product_id: '', medicine_name: '', strength: '', dose: '', frequency: '', duration: '', instructions: '', dose_schedule: '', food_timing: '', duration_count: '', duration_unit: 'day', unit_price: '', quantity: '1', discount: '' });
 
 /** The dosing fields of one line as the server expects them; an unfinished duration is left out. */
 const dosingFields = (line: LineForm) => ({
@@ -199,7 +206,9 @@ export default function PrescriptionsHub({ data, tools, publicTools }: { data: P
         { id: 'queue', label: translate('clinic_records', 'queue_tab') },
         { id: 'access-log', label: translate('clinic_records', 'access_log_tab') },
         { id: 'public-listing', label: translate('prescriber_public', 'tab_listing') },
-        ...(data.is_owner ? [{ id: 'report', label: translate('prescription', 'tab_report') }, { id: 'settings', label: translate('prescription', 'tab_settings') }] : []),
+        ...(data.is_owner ? [{ id: 'report', label: translate('prescription', 'tab_report') }] : []),
+        // The owner-doctor's registration, and for every owner the switch for other companies' medicines.
+        ...(data.is_owner || data.other_medicines ? [{ id: 'settings', label: translate('prescription', 'tab_settings') }] : []),
     ];
     const activeTab = tabs.some((item) => item.id === tab) ? tab : 'prescriptions';
 
@@ -241,7 +250,7 @@ export default function PrescriptionsHub({ data, tools, publicTools }: { data: P
             {activeTab === 'requests' && <ConsultationRequestsTab data={publicTools} translate={translate} />}
             {activeTab === 'public-listing' && <PublicListingTab data={publicTools} translate={translate} />}
             {activeTab === 'report' && data.is_owner && data.report && <ReportTab report={data.report} translate={translate} />}
-            {activeTab === 'settings' && data.is_owner && <SettingsTab data={data} translate={translate} />}
+            {activeTab === 'settings' && (data.is_owner || data.other_medicines) && <SettingsTab data={data} translate={translate} />}
         </div>
     );
 }
@@ -310,7 +319,7 @@ function PrescriptionsTab({ data, tools, translate }: { data: PrescriptionsData;
         if (askFirst && lines.some((line) => line.product_id !== '' || line.medicine_name !== '') && !window.confirm(translate('prescription', 'tpl_replace_confirm'))) {
             return;
         }
-        const { lines: repeated, productMissing } = linesFromSaved(json.draft.lines, products);
+        const { lines: repeated, productMissing, otherDropped } = linesFromSaved(json.draft.lines, products, data.other_medicines_allowed);
         form.setData({
             ...form.data,
             patient_id: String(json.patient.id),
@@ -321,7 +330,7 @@ function PrescriptionsTab({ data, tools, translate }: { data: PrescriptionsData;
             foods_avoided: (json.draft.foods_avoided ?? []).join('\n'),
             lines: repeated,
         });
-        setRepeatNote(`${translate('clinic_records', 'repeat_filled', { number: json.draft.number })}${productMissing ? ` ${translate('prescription', 'tpl_product_gone')}` : ''}`);
+        setRepeatNote(`${translate('clinic_records', 'repeat_filled', { number: json.draft.number })}${productMissing ? ` ${translate('prescription', 'tpl_product_gone')}` : ''}${otherDropped ? ` ${translate('prescription', 'rx_other_dropped')}` : ''}`);
     };
 
     useEffect(() => {
@@ -344,9 +353,13 @@ function PrescriptionsTab({ data, tools, translate }: { data: PrescriptionsData;
             investigations: linesOf(values.investigations),
             foods_allowed: linesOf(values.foods_allowed),
             foods_avoided: linesOf(values.foods_avoided),
-            lines: values.lines.map((line) => clinic
-                ? { product_id: Number(line.product_id), ...dosingFields(line), unit_price: line.unit_price || '0', quantity: line.quantity, discount: line.discount || '0' }
-                : { medicine_name: line.medicine_name, ...dosingFields(line), unit_price: line.unit_price || '0', quantity: line.quantity, discount: line.discount || '0' }),
+            lines: values.lines.map((line) => {
+                const priced = { unit_price: line.unit_price || '0', quantity: line.quantity || '1', discount: line.discount || '0' };
+                return line.kind === 'product'
+                    ? { product_id: Number(line.product_id) || null, ...dosingFields(line), ...priced }
+                    // In the clinic another medicine is bought elsewhere; the server prices it at nothing.
+                    : { medicine_name: line.medicine_name, strength: line.strength || null, ...dosingFields(line), ...(clinic ? { unit_price: '0', quantity: '1', discount: '0' } : priced) };
+            }),
         }));
         form.post('/commands/prescriptions', {
             preserveScroll: true,
@@ -400,6 +413,7 @@ function PrescriptionsTab({ data, tools, translate }: { data: PrescriptionsData;
                         <TemplatePicker
                             templates={tools.templates}
                             products={products}
+                            otherAllowed={data.other_medicines_allowed}
                             isDirty={lines.some((line) => line.product_id !== '' || line.medicine_name !== '') || form.data.advice !== ''}
                             onApply={(draft) => form.setData({ ...form.data, advice: draft.advice, lines: draft.lines })}
                             translate={translate}
@@ -439,11 +453,22 @@ function PrescriptionsTab({ data, tools, translate }: { data: PrescriptionsData;
                             {!clinic && <p className="muted rx-note">{translate('prescription', 'rx_no_stock_note')}</p>}
                             {lines.map((line, index) => {
                                 const cents = lineCents(line);
+                                // While the switch is off a line saved as another medicine still shows, so it can be changed.
+                                const other = line.kind === 'other';
+                                const unpriced = clinic && other;
                                 return (
                                     <div className="rx-line" key={index}>
+                                        {(data.other_medicines_allowed || other) && (
+                                            <div className="rx-kind" role="group" aria-label={translate('prescription', 'rx_lines')}>
+                                                <button type="button" aria-pressed={!other} onClick={() => setLine(index, { kind: 'product', medicine_name: '', strength: '' })}>{translate('prescription', 'rx_kind_product')}</button>
+                                                {data.other_medicines_allowed && (
+                                                    <button type="button" aria-pressed={other} onClick={() => setLine(index, { kind: 'other', product_id: '', ...(clinic ? { unit_price: '', discount: '' } : {}) })}>{translate('prescription', 'rx_kind_other')}</button>
+                                                )}
+                                            </div>
+                                        )}
                                         <div className="rx-line-head">
                                             <b>{number(index + 1)}.</b>
-                                            {clinic ? (
+                                            {!other ? (
                                                 <label className="rx-wide">{translate('prescription', 'rx_product')}
                                                     <SearchSelect
                                                         required
@@ -457,28 +482,36 @@ function PrescriptionsTab({ data, tools, translate }: { data: PrescriptionsData;
                                                     />
                                                 </label>
                                             ) : (
-                                                <label className="rx-wide">{translate('prescription', 'rx_medicine')}
-                                                    <input required maxLength={160} value={line.medicine_name} onChange={(e) => setLine(index, { medicine_name: e.target.value })} />
-                                                </label>
+                                                <>
+                                                    <label className="rx-wide">{translate('prescription', 'rx_medicine')}
+                                                        <input required maxLength={160} value={line.medicine_name} onChange={(e) => setLine(index, { medicine_name: e.target.value })} />
+                                                    </label>
+                                                    <label>{translate('prescription', 'rx_strength')}
+                                                        <input maxLength={80} value={line.strength} placeholder={translate('prescription', 'rx_strength_hint')} onChange={(e) => setLine(index, { strength: e.target.value })} />
+                                                    </label>
+                                                </>
                                             )}
                                             <button type="button" className="icon-button" aria-label={translate('prescription', 'rx_remove_line')} onClick={() => form.setData('lines', lines.filter((_, i) => i !== index))}>
                                                 <Trash2 size={16} />
                                             </button>
                                         </div>
+                                        {unpriced && <p className="muted rx-note">{translate('prescription', 'rx_other_clinic_note')}</p>}
                                         <StructuredDosing data={data} line={line} onChange={(patch) => setLine(index, patch)} translate={translate} />
                                         <div className="rx-line-grid">
                                             <label>{translate('prescription', 'rx_dose')}<input maxLength={80} value={line.dose} onChange={(e) => setLine(index, { dose: e.target.value })} /></label>
                                             <label>{translate('prescription', 'rx_frequency')}<input maxLength={80} value={line.frequency} onChange={(e) => setLine(index, { frequency: e.target.value })} /></label>
                                             <label>{translate('prescription', 'rx_duration')}<input maxLength={80} value={line.duration} onChange={(e) => setLine(index, { duration: e.target.value })} /></label>
                                             <label className="rx-wide">{translate('prescription', 'rx_instructions')}<input maxLength={300} value={line.instructions} onChange={(e) => setLine(index, { instructions: e.target.value })} /></label>
-                                            <label>{translate('prescription', 'rx_unit_price')}<input type="number" inputMode="decimal" min="0" step="0.01" required value={line.unit_price} onChange={(e) => setLine(index, { unit_price: e.target.value })} /></label>
-                                            <label>{translate('prescription', 'rx_quantity')}<input type="number" inputMode="numeric" min="1" step="1" required value={line.quantity} onChange={(e) => setLine(index, { quantity: e.target.value })} /></label>
-                                            <label>{translate('prescription', 'rx_discount')}<input type="number" inputMode="decimal" min="0" step="0.01" value={line.discount} onChange={(e) => setLine(index, { discount: e.target.value })} /></label>
-                                            <div className="rx-line-total">
-                                                <small>{translate('prescription', 'rx_line_total')}</small>
-                                                <b className={cents.total < 0 ? 'is-bad' : undefined}>{money(taka(Math.max(0, cents.total)))}</b>
-                                                {belowFloor(line) && <span className="rx-floor is-bad">{translate('prescription', 'rx_below_floor_warn')}</span>}
-                                            </div>
+                                            {!unpriced && <>
+                                                <label>{translate('prescription', 'rx_unit_price')}<input type="number" inputMode="decimal" min="0" step="0.01" required value={line.unit_price} onChange={(e) => setLine(index, { unit_price: e.target.value })} /></label>
+                                                <label>{translate('prescription', 'rx_quantity')}<input type="number" inputMode="numeric" min="1" step="1" required value={line.quantity} onChange={(e) => setLine(index, { quantity: e.target.value })} /></label>
+                                                <label>{translate('prescription', 'rx_discount')}<input type="number" inputMode="decimal" min="0" step="0.01" value={line.discount} onChange={(e) => setLine(index, { discount: e.target.value })} /></label>
+                                                <div className="rx-line-total">
+                                                    <small>{translate('prescription', 'rx_line_total')}</small>
+                                                    <b className={cents.total < 0 ? 'is-bad' : undefined}>{money(taka(Math.max(0, cents.total)))}</b>
+                                                    {belowFloor(line) && <span className="rx-floor is-bad">{translate('prescription', 'rx_below_floor_warn')}</span>}
+                                                </div>
+                                            </>}
                                         </div>
                                         {Object.entries(form.errors).filter(([key]) => key.startsWith(`lines.${index}.`)).map(([key, message]) => <span key={key} className="field-error" role="alert">{String(message)}</span>)}
                                     </div>
@@ -578,7 +611,7 @@ function PrescriptionList({ data, translate }: { data: PrescriptionsData; transl
                             {row.lines.length > 0 && (
                                 <ol className="rx-card-lines">
                                     {row.lines.map((line, index) => (
-                                        <li key={index}>{line.medicine_name} × {number(line.quantity)}<small>{[line.dose_summary, line.dose, line.frequency, line.duration].filter(Boolean).join(' · ')}</small></li>
+                                        <li key={index}>{line.medicine_name}{line.strength ? ` ${line.strength}` : ''}{row.kind === 'clinic' && !line.company_product ? '' : ` × ${number(line.quantity)}`}<small>{[line.dose_summary, line.dose, line.frequency, line.duration].filter(Boolean).join(' · ')}</small></li>
                                     ))}
                                 </ol>
                             )}
@@ -806,7 +839,8 @@ function SettingsTab({ data, translate }: { data: PrescriptionsData; translate: 
 
     return (
         <>
-            <section className="panel">
+            {data.other_medicines && <OtherMedicinesSwitch setting={data.other_medicines} translate={translate} />}
+            {data.is_owner && <section className="panel">
                 <div className="panel-heading"><div><h2>{translate('prescription', 'registration_title')}</h2><p className="muted">{translate('prescription', data.registration ? 'registration_hint' : 'registration_missing')}</p></div></div>
                 <form className="action-form" onSubmit={(e) => { e.preventDefault(); registration.post('/commands/prescriptions/registration', { preserveScroll: true }); }}>
                     <label>{translate('prescription', 'registration_type')}
@@ -819,7 +853,39 @@ function SettingsTab({ data, translate }: { data: PrescriptionsData; translate: 
                     <FormErrors errors={registration.errors} />
                     <button className="button dark" disabled={registration.processing}>{translate('prescription', 'registration_save')}</button>
                 </form>
-            </section>
+            </section>}
         </>
+    );
+}
+
+/** The owners' switch: may a medicine that is not a company product be typed on a prescription? */
+function OtherMedicinesSwitch({ setting, translate }: { setting: { enabled: boolean; version: number }; translate: Translate }) {
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const change = () => {
+        const next = !setting.enabled;
+        if (!window.confirm(translate('prescription', next ? 'other_confirm_on' : 'other_confirm_off'))) {
+            return;
+        }
+        setBusy(true);
+        router.post('/commands/owner/prescription-other-medicines', { enabled: next ? '1' : '0', version: setting.version }, {
+            preserveScroll: true,
+            onSuccess: () => setError(null),
+            onError: (errors) => setError(String(Object.values(errors)[0] ?? '')),
+            onFinish: () => setBusy(false),
+        });
+    };
+
+    return (
+        <section className="panel">
+            <div className="panel-heading"><div><h2>{translate('prescription', 'other_title')}</h2><p className="muted">{translate('prescription', 'other_intro')}</p></div></div>
+            <div className="rx-switch">
+                <b className={setting.enabled ? 'is-on' : 'is-off'}>{translate('prescription', setting.enabled ? 'other_state_on' : 'other_state_off')}</b>
+                <button type="button" className={`button ${setting.enabled ? '' : 'dark'}`} disabled={busy} onClick={change}>
+                    {translate('prescription', setting.enabled ? 'other_turn_off' : 'other_turn_on')}
+                </button>
+            </div>
+            {error && <span className="field-error" role="alert">{error}</span>}
+        </section>
     );
 }

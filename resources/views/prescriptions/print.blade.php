@@ -8,6 +8,9 @@
     $investigations = $prescription->investigations ?? [];
     $foodsAllowed = $prescription->foods_allowed ?? [];
     $foodsAvoided = $prescription->foods_avoided ?? [];
+    $clinicPrescription = $prescription->kind === \App\Models\Prescription::KindClinic;
+    // A bill is shown when something on the prescription is sold: any dealer line, or a company product in the clinic.
+    $billed = $prescription->lines->contains(fn ($line): bool => ! $clinicPrescription || $line->product_id !== null);
 @endphp
 <!DOCTYPE html>
 <html lang="{{ $lang }}">
@@ -102,7 +105,9 @@
                 <ol>
                     @foreach ($prescription->lines as $line)
                         <li>
-                            <b>{{ $line->medicine_name }}</b> × {{ $digits($line->quantity) }}
+                            <b>{{ $line->medicine_name }}</b>@if ($line->strength) {{ $line->strength }}@endif
+                            {{-- In the clinic a hand-typed medicine is bought elsewhere: no quantity or price here. --}}
+                            @if (! $clinicPrescription || $line->product_id !== null)× {{ $digits($line->quantity) }}@endif
                             @php $dosing = \App\Domain\Clinic\DoseSchedule::summary($line, $lang); @endphp
                             @if ($dosing !== '')<div class="dosing">{{ $dosing }}</div>@endif
                             <small>{{ collect([$line->dose, $line->frequency, $line->duration])->filter()->implode(' · ') }}</small>
@@ -110,14 +115,16 @@
                         </li>
                     @endforeach
                 </ol>
-                <table class="totals">
-                    <tr><td>{{ $t('rx_subtotal') }}</td><td class="amt">৳ {{ $digits($prescription->subtotal) }}</td></tr>
-                    @if ((float) $prescription->discount_total > 0)<tr><td>{{ $t('rx_discount_total') }}</td><td class="amt">− ৳ {{ $digits($prescription->discount_total) }}</td></tr>@endif
-                    <tr><td><b>{{ $t('rx_total') }}</b></td><td class="amt">৳ {{ $digits($prescription->total) }}</td></tr>
-                    @if ($prescription->status === \App\Models\Prescription::StatusDispensed)
-                        <tr><td>{{ $t('payment_method') }}</td><td class="amt">{{ $t('payment_'.$prescription->payment_method) }}@if ($prescription->payment_reference) · {{ $t('payment_ref_short') }} {{ $prescription->payment_reference }}@endif</td></tr>
-                    @endif
-                </table>
+                @if ($billed)
+                    <table class="totals">
+                        <tr><td>{{ $t('rx_subtotal') }}</td><td class="amt">৳ {{ $digits($prescription->subtotal) }}</td></tr>
+                        @if ((float) $prescription->discount_total > 0)<tr><td>{{ $t('rx_discount_total') }}</td><td class="amt">− ৳ {{ $digits($prescription->discount_total) }}</td></tr>@endif
+                        <tr><td><b>{{ $t('rx_total') }}</b></td><td class="amt">৳ {{ $digits($prescription->total) }}</td></tr>
+                        @if ($prescription->status === \App\Models\Prescription::StatusDispensed)
+                            <tr><td>{{ $t('payment_method') }}</td><td class="amt">{{ $t('payment_'.$prescription->payment_method) }}@if ($prescription->payment_reference) · {{ $t('payment_ref_short') }} {{ $prescription->payment_reference }}@endif</td></tr>
+                        @endif
+                    </table>
+                @endif
             @endif
             @if ($foodsAllowed !== [] || $foodsAvoided !== [])
                 <div class="foods">

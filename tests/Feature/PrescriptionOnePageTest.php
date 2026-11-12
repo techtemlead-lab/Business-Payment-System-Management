@@ -27,6 +27,8 @@ class PrescriptionOnePageTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
+        // These tests type medicines by hand; PrescriptionOtherMedicinesTest covers the switch being off.
+        $this->allowOtherMedicines();
     }
 
     private function prescriber(): User

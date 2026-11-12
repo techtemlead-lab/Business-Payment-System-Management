@@ -20,6 +20,7 @@ use App\Http\Controllers\PlaceCodeController;
 use App\Http\Controllers\PrescriberPublicToolsController;
 use App\Http\Controllers\PrescriberVerificationController;
 use App\Http\Controllers\PrescriptionController;
+use App\Http\Controllers\PrescriptionSettingsController;
 use App\Http\Controllers\PrescriptionToolsController;
 use App\Http\Controllers\PrivacyRequestController;
 use App\Http\Controllers\ProductCategoryController;
@@ -71,6 +72,7 @@ return function (string $portal): void {
     Route::post('/commands/owner/partner-login-otp', [AuthController::class, 'partnerLoginOtp'])->middleware('throttle:5,1');
     Route::post('/commands/owner/password-reset-notice', [AuthController::class, 'passwordResetNotice'])->middleware('throttle:5,1');
     Route::post('/commands/owner/site-visit-counting', [SiteVisitSettingsController::class, 'update'])->middleware('throttle:10,1');
+    Route::post('/commands/owner/prescription-other-medicines', [PrescriptionSettingsController::class, 'otherMedicines'])->middleware('throttle:10,1');
     Route::post('/commands/agreement/publish', [PartnerAgreementController::class, 'publish'])->middleware('throttle:10,1');
     Route::post('/commands/agreement/setting', [PartnerAgreementController::class, 'setting'])->middleware('throttle:10,1');
     Route::post('/commands/agreement/accept', [PartnerAgreementController::class, 'accept'])->middleware('throttle:10,1');

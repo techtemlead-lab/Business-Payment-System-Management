@@ -48,7 +48,6 @@ class PrescriptionController extends Controller
     public function store(Request $request): RedirectResponse
     {
         abort_unless(PrescriptionAccess::canPrescribe($request->user()), 403);
-        $clinic = PrescriptionAccess::usesCompanyStock($request->user());
         $data = $request->validate([
             ClinicDispensing::ConfirmBelowFloorField => 'nullable|boolean',
             // Either one of the prescriber's own patients, or a new patient saved by the same request.
@@ -67,8 +66,11 @@ class PrescriptionController extends Controller
             ...PrescriptionLists::rules('foods_avoided'),
             // A prescription may hold tests, foods or advice only; PrescriptionBook refuses an empty one.
             'lines' => 'nullable|array|max:'.PrescriptionBook::MaxLines,
-            'lines.*.product_id' => $clinic ? 'required|integer' : 'prohibited',
-            'lines.*.medicine_name' => $clinic ? 'nullable|string|max:160' : 'required|string|max:160',
+            // A line is a company product, or a medicine typed by hand while the owners allow that;
+            // PrescriptionBook decides which, and refuses a hand-typed one when the switch is off.
+            'lines.*.product_id' => 'nullable|integer',
+            'lines.*.medicine_name' => 'nullable|string|max:160',
+            'lines.*.strength' => 'nullable|string|max:80',
             'lines.*.dose' => 'nullable|string|max:80',
             'lines.*.frequency' => 'nullable|string|max:80',
             'lines.*.duration' => 'nullable|string|max:80',

@@ -17,14 +17,18 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Patients and prescriptions. Dealer and sub-dealer prescriptions are typed by hand
- * (medicine, dose, price, discount) and never touch company stock. Clinic prescriptions, by
- * the owner-doctor and office accounts switched on for company stock, pick company products;
- * ClinicDispensing takes them out of stock. Patients and prescriptions are private to the
- * person who wrote them: nobody else can read them, the owner included.
+ * Patients and prescriptions. Every prescriber picks medicines from the company's product
+ * list; a medicine typed by hand is allowed only while the owners' switch is on
+ * (PrescriptionSettings). Dealer and sub-dealer prescriptions carry the dealer's own prices
+ * and never touch company stock. Clinic prescriptions, by the owner-doctor and office accounts
+ * switched on for company stock, are taken out of stock by ClinicDispensing, product lines
+ * only. Patients and prescriptions are private to the person who wrote them: nobody else can
+ * read them, the owner included.
  */
 final class PrescriptionBook
 {
+    public function __construct(private PrescriptionSettings $settings) {}
+
     /** Most medicines one prescription may hold. */
     public const MaxLines = 30;
 
@@ -120,7 +124,8 @@ final class PrescriptionBook
             $lines = $this->buildLines($rawLines, $clinic);
             // A new patient is saved inside this transaction, so a prescription that fails leaves no patient behind.
             $patient = $ownPatient ?? $this->savePatient($prescriber, null, $newPatient ?? throw new \LogicException('A prescription needs a patient.'));
-            $belowFloor = $clinic ? $this->linesBelowFloor($lines) : [];
+            // The price floor is about what the clinic sells: company products, not hand-typed medicines.
+            $belowFloor = $clinic ? $this->linesBelowFloor(array_values(array_filter($lines, fn (array $line): bool => $line['product_id'] !== null))) : [];
             $overridden = ClinicDispensing::enforcePriceFloor($prescriber, $belowFloor, (bool) ($data[ClinicDispensing::ConfirmBelowFloorField] ?? false), 'lines');
             $subtotal = array_sum(array_column($lines, 'gross_cents'));
             $discount = array_sum(array_column($lines, 'discount_cents'));
@@ -148,6 +153,7 @@ final class PrescriptionBook
                     'prescription_id' => $prescription->id,
                     'product_id' => $line['product_id'],
                     'medicine_name' => $line['medicine_name'],
+                    'strength' => $line['strength'],
                     'dose' => $line['dose'],
                     'frequency' => $line['frequency'],
                     'duration' => $line['duration'],
@@ -250,35 +256,53 @@ final class PrescriptionBook
 
     /**
      * @param  list<array<string, mixed>>  $rawLines
-     * @return list<array{product_id: int|null, medicine_name: string, dose: string|null, frequency: string|null, duration: string|null, instructions: string|null, dose_schedule: string|null, food_timing: string|null, duration_count: int|null, duration_unit: string|null, unit_cents: int, quantity: int, discount_cents: int, gross_cents: int, mrp_unit_cents: int|null, mrp_cents: int}>
+     * @return list<array{product_id: int|null, medicine_name: string, strength: string|null, dose: string|null, frequency: string|null, duration: string|null, instructions: string|null, dose_schedule: string|null, food_timing: string|null, duration_count: int|null, duration_unit: string|null, unit_cents: int, quantity: int, discount_cents: int, gross_cents: int, mrp_unit_cents: int|null, mrp_cents: int}>
      */
     private function buildLines(array $rawLines, bool $clinic): array
     {
         if (count($rawLines) > self::MaxLines) {
             throw ValidationException::withMessages(['lines' => __('prescription.err_lines_count', ['max' => self::MaxLines])]);
         }
-        $products = $clinic
-            ? Product::query()->where('active', true)->whereIn('id', array_filter(array_map(fn (array $line): int => (int) ($line['product_id'] ?? 0), $rawLines)))->get(['id', 'name', 'mrp'])->keyBy('id')
-            : collect();
+        $productIds = array_filter(array_map(fn (array $line): int => (int) ($line['product_id'] ?? 0), $rawLines));
+        $products = $productIds === []
+            ? collect()
+            : Product::query()->where('active', true)->whereIn('id', $productIds)->get(['id', 'name', 'mrp'])->keyBy('id');
+        $otherMedicinesAllowed = null;
         $lines = [];
         foreach ($rawLines as $index => $line) {
             $productId = null;
             $mrpUnit = null;
+            $strength = null;
             $name = trim((string) ($line['medicine_name'] ?? ''));
-            if ($clinic) {
-                $product = $products->get((int) ($line['product_id'] ?? 0));
+            $typedByHand = ! filled($line['product_id'] ?? null);
+            if ($typedByHand) {
+                // Read once, and only when a prescription really holds a hand-typed medicine.
+                $otherMedicinesAllowed ??= $this->settings->otherMedicinesAllowed();
+                if (! $otherMedicinesAllowed) {
+                    // With nothing typed the person simply left the product unchosen.
+                    throw ValidationException::withMessages($name === ''
+                        ? ["lines.$index.product_id" => __('prescription.err_product_required')]
+                        : ["lines.$index.medicine_name" => __('prescription.err_other_medicine_off')]);
+                }
+                if ($name === '') {
+                    throw ValidationException::withMessages(["lines.$index.medicine_name" => __('prescription.err_medicine_required')]);
+                }
+                $strength = $this->text($line['strength'] ?? null);
+            } else {
+                $product = $products->get((int) $line['product_id']);
                 if ($product === null) {
                     throw ValidationException::withMessages(["lines.$index.product_id" => __('prescription.err_product_required')]);
                 }
                 $productId = (int) $product->id;
-                $mrpUnit = Money::cents((string) $product->mrp);
                 $name = (string) $product->name;
-            } elseif ($name === '') {
-                throw ValidationException::withMessages(["lines.$index.medicine_name" => __('prescription.err_medicine_required')]);
+                // Only a clinic line leaves company stock, so only it carries the MRP its sale is split by.
+                $mrpUnit = $clinic ? Money::cents((string) $product->mrp) : null;
             }
             $quantity = (int) ($line['quantity'] ?? 1);
-            $unit = Money::cents(number_format((float) ($line['unit_price'] ?? 0), 2, '.', ''));
-            $discount = Money::cents(number_format((float) ($line['discount'] ?? 0), 2, '.', ''));
+            // In the clinic a hand-typed medicine is bought elsewhere: it has no price here, whatever was sent.
+            $priced = ! ($clinic && $typedByHand);
+            $unit = $priced ? Money::cents(number_format((float) ($line['unit_price'] ?? 0), 2, '.', '')) : 0;
+            $discount = $priced ? Money::cents(number_format((float) ($line['discount'] ?? 0), 2, '.', '')) : 0;
             $gross = $unit * $quantity;
             if ($discount > $gross) {
                 throw ValidationException::withMessages(["lines.$index.discount" => __('prescription.err_discount_too_big')]);
@@ -286,6 +310,7 @@ final class PrescriptionBook
             $lines[] = [
                 'product_id' => $productId,
                 'medicine_name' => mb_substr($name, 0, 160),
+                'strength' => $strength,
                 'dose' => $this->text($line['dose'] ?? null),
                 'frequency' => $this->text($line['frequency'] ?? null),
                 'duration' => $this->text($line['duration'] ?? null),

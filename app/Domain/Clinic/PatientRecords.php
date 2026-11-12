@@ -84,6 +84,7 @@ final class PatientRecords
                 'total' => $prescription->total,
                 'lines' => $prescription->lines->map(fn (PrescriptionLine $line): array => [
                     'medicine_name' => $line->medicine_name,
+                    'strength' => $line->strength,
                     'dose' => $line->dose,
                     'frequency' => $line->frequency,
                     'duration' => $line->duration,

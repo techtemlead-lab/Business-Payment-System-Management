@@ -6,6 +6,7 @@ use App\Domain\Clinic\ClinicDispensing;
 use App\Domain\Clinic\DoseSchedule;
 use App\Domain\Clinic\PrescriptionAccess;
 use App\Domain\Clinic\PrescriptionBook;
+use App\Domain\Clinic\PrescriptionSettings;
 use App\Domain\Inventory\BranchOperations;
 use App\Models\BranchStaffAssignment;
 use App\Models\CompanyBranch;
@@ -18,16 +19,22 @@ use Illuminate\Support\Arr;
 
 /**
  * The prescriptions page. Every prescriber sees only their own patients and prescriptions,
- * the owner included. Partners type their medicines; company-stock prescribers pick company
- * products and dispense from a branch. The owner also reads the clinic report, which holds
- * totals only and no patient details.
+ * the owner included. Everyone picks from the company's products, and may type another
+ * medicine only while the owners' switch allows it; company-stock prescribers also dispense
+ * from a branch. The owner also reads the clinic report, which holds totals only and no
+ * patient details.
  */
 final class PrescriptionsSection implements WorkspaceSection
 {
     /** Rows shown on each page of a list. */
     private const ListLimit = 100;
 
-    public function __construct(private PrescriptionBook $book, private ClinicDispensing $dispensing, private BranchOperations $branches) {}
+    public function __construct(
+        private PrescriptionBook $book,
+        private ClinicDispensing $dispensing,
+        private BranchOperations $branches,
+        private PrescriptionSettings $settings,
+    ) {}
 
     public function data(SectionContext $context, array $data): array
     {
@@ -83,6 +90,9 @@ final class PrescriptionsSection implements WorkspaceSection
                 'payment_reference' => $prescription->payment_reference,
                 'lines' => $prescription->lines->map(fn ($line): array => [
                     'medicine_name' => $line->medicine_name,
+                    'strength' => $line->strength,
+                    // False for a medicine typed by hand, which is never dispensed or billed by the clinic.
+                    'company_product' => $line->product_id !== null,
                     'dose' => $line->dose,
                     'frequency' => $line->frequency,
                     'duration' => $line->duration,
@@ -95,6 +105,7 @@ final class PrescriptionsSection implements WorkspaceSection
             ->all();
 
         $registration = PrescriberRegistration::query()->where('user_id', $user->id)->first(['registration_type', 'registration_number']);
+        $otherMedicines = $this->settings->otherMedicines();
         $payload = [
             'mode' => $clinic ? 'clinic' : 'partner',
             'is_owner' => $owner,
@@ -110,12 +121,18 @@ final class PrescriptionsSection implements WorkspaceSection
             'dose_amounts' => DoseSchedule::Amounts,
             'food_timings' => DoseSchedule::FoodTimings,
             'duration_units' => DoseSchedule::DurationUnits,
+            // Every prescriber picks from the company's products on sale; dealers too.
+            'products' => Product::query()->where('active', true)->orderBy('name')->get(['id', 'name', 'sku', 'mrp'])
+                ->map(fn (Product $product): array => ['id' => $product->id, 'name' => $product->name, 'sku' => $product->sku, 'mrp' => $product->mrp])
+                ->all(),
+            // Whether a medicine may also be typed by hand: the owners' switch, off until they turn it on.
+            'other_medicines_allowed' => $otherMedicines['enabled'],
         ];
+        if ($user->owner()) {
+            $payload['other_medicines'] = $otherMedicines;
+        }
 
         if ($clinic) {
-            $payload['products'] = Product::query()->where('active', true)->orderBy('name')->get(['id', 'name', 'sku', 'mrp'])
-                ->map(fn (Product $product): array => ['id' => $product->id, 'name' => $product->name, 'sku' => $product->sku, 'mrp' => $product->mrp])
-                ->all();
             // Only branches this person can really take stock out of (BranchOperations::resolveWritableBranch).
             $payload['branches'] = CompanyBranch::query()->active()->where('is_stock_hub', true)
                 ->when(! $this->branches->canManageAllBranches($user), fn ($query) => $query->whereIn('id', BranchStaffAssignment::query()->where('user_id', $user->id)->select('branch_id')))

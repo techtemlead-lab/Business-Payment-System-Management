@@ -113,6 +113,10 @@ class EnforceStaffActions
             // Only owners turn the website visitor count on or off; the controller checks again.
             return $next($request);
         }
+        if ($controller === 'PrescriptionSettingsController' && $actor->owner()) {
+            // Only owners allow or stop medicines that are not company products; the controller checks again.
+            return $next($request);
+        }
         if ($controller === 'DataCleanupController' && $actor->owner()) {
             // Only owners delete old login codes, SMS records and closed enquiries; the controller checks again.
             return $next($request);

@@ -80,6 +80,15 @@
 .rx-diet-list{margin-top:14px}
 .rx-diet-list small{overflow-wrap:anywhere}
 .rx-card>small{overflow-wrap:anywhere}
+/* Company product or another medicine, per line; shown only while the owners allow other medicines. */
+.rx-kind{display:inline-flex;gap:4px;align-self:flex-start;padding:3px;border:1px solid var(--ds-line,#e2e8f0);border-radius:999px;background:var(--ds-surface,#fff)}
+.app-shell .rx-kind button{min-height:30px;margin:0;padding:4px 12px;border:0;border-radius:999px;background:transparent;color:var(--ds-text-muted,#64748b);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
+.app-shell .rx-kind button[aria-pressed="true"]{background:var(--ds-brand,#006a4e);color:#fff}
+.rx-line-head>label:not(.rx-wide){flex:0 1 200px;min-width:0}
+.rx-switch{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+.rx-switch .is-on{color:var(--ds-ok-fg,#067647)}
+.rx-switch .is-off{color:var(--ds-text-muted,#64748b)}
+@media (max-width:640px){.rx-line-head{flex-wrap:wrap}.rx-line-head>label:not(.rx-wide){flex-basis:100%}}
 
 @media (max-width:860px){
   .rx-dosing{grid-template-columns:repeat(3,minmax(0,1fr))}
