@@ -44,11 +44,11 @@ class PublicSiteHeaderAndFooterTest extends TestCase
 
     public function test_a_different_hotline_number_still_shows_in_the_footer(): void
     {
-        SiteCustomization::save(['footer_support_title' => '+8801730532966', 'footer_phone' => '01730532967']);
+        SiteCustomization::save(['footer_support_title' => '+8801730532966', 'footer_phone' => '01730532965']);
 
         $this->get('/')->assertOk()
             ->assertDontSee('ref-footer-contact-link is-hotline', false)
-            ->assertSeeInOrder(['ref-support-contacts', '+8801730532966', '+8801730532967', 'ref-support-mail', 'mailto:madinanaturalhealthcare@gmail.com'], false);
+            ->assertSeeInOrder(['ref-support-contacts', '+8801730532966', '+8801730532965', 'ref-support-mail', 'mailto:madinanaturalhealthcare@gmail.com'], false);
     }
 
     public function test_the_footer_shows_the_location_only_once(): void
