@@ -166,4 +166,64 @@ class ProductPhotoCutoutTest extends TestCase
         Storage::disk('local')->assertMissing('product-photo-model/cutout/config.json');
         Storage::disk('local')->assertMissing('product-photo-model/cutout/config.json.partial');
     }
+
+    public function test_the_full_size_file_is_downloaded_only_when_asked_for(): void
+    {
+        config([
+            'madina.product_photo_model.files' => ['config.json' => hash('sha256', 'expected')],
+            'madina.product_photo_model.full_precision_files' => ['onnx/model.onnx' => hash('sha256', 'full size')],
+        ]);
+        Http::fake([
+            'huggingface.co/*/config.json' => Http::response('expected'),
+            'huggingface.co/*/onnx/model.onnx' => Http::response('full size'),
+        ]);
+
+        $this->artisan('madina:install-product-photo-model')->assertSuccessful();
+        Storage::disk('local')->assertExists('product-photo-model/cutout/config.json');
+        Storage::disk('local')->assertMissing('product-photo-model/cutout/onnx/model.onnx');
+
+        $this->artisan('madina:install-product-photo-model', ['--full-precision' => true])->assertSuccessful();
+        Storage::disk('local')->assertExists('product-photo-model/cutout/onnx/model.onnx');
+    }
+
+    public function test_the_full_size_file_that_does_not_match_is_refused(): void
+    {
+        config([
+            'madina.product_photo_model.files' => ['config.json' => hash('sha256', 'expected')],
+            'madina.product_photo_model.full_precision_files' => ['onnx/model.onnx' => hash('sha256', 'full size')],
+        ]);
+        Http::fake([
+            'huggingface.co/*/config.json' => Http::response('expected'),
+            'huggingface.co/*/onnx/model.onnx' => Http::response('something else'),
+        ]);
+
+        $this->artisan('madina:install-product-photo-model', ['--full-precision' => true])->assertFailed();
+
+        Storage::disk('local')->assertMissing('product-photo-model/cutout/onnx/model.onnx');
+    }
+
+    public function test_the_browser_can_ask_whether_the_full_size_file_is_on_the_server(): void
+    {
+        $url = '/commands/product-photo-model/cutout/onnx/model.onnx';
+        $this->actingAs($this->admin())->call('HEAD', $url)->assertNotFound();
+
+        Storage::disk('local')->put('product-photo-model/cutout/onnx/model.onnx', 'full size');
+
+        $this->actingAs($this->admin())->call('HEAD', $url)->assertOk();
+        $this->actingAs(User::factory()->create(['role' => 'inventory']))->call('HEAD', $url)->assertForbidden();
+    }
+
+    public function test_each_reason_the_tool_cannot_run_has_a_plain_message_that_offers_the_photo_as_it_is(): void
+    {
+        foreach (['ppc_unsupported', 'ppc_no_graphics', 'ppc_low_memory', 'ppc_tool_missing', 'ppc_no_connection', 'ppc_failed'] as $key) {
+            $bangla = __('portal.'.$key, [], 'bn');
+            $english = __('portal.'.$key, [], 'en');
+
+            $this->assertNotSame('portal.'.$key, $bangla, $key.' has no Bangla words.');
+            $this->assertNotSame('portal.'.$key, $english, $key.' has no English words.');
+            $this->assertNotSame($english, $bangla, $key.' must be translated.');
+            $this->assertStringContainsString('যেমন আছে তেমনই আপলোড', $bangla, $key);
+            $this->assertStringContainsString('as it is', $english, $key);
+        }
+    }
 }

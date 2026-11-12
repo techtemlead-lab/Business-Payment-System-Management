@@ -81,7 +81,8 @@ class PurchasingController extends Controller
             'lines.*.purchase_order_line_id' => ['required', 'integer'],
             'lines.*.quantity' => ['required', 'integer', 'min:1', 'max:100000'],
             'lines.*.batch_number' => ['nullable', 'string', 'max:60'],
-            'lines.*.expires_on' => ['required', 'date', 'after_or_equal:'.now('Asia/Dhaka')->toDateString()],
+            // The expiry date is filled in only when the office wants it; a date that is given must not have passed.
+            'lines.*.expires_on' => ['nullable', 'date', 'after_or_equal:'.now('Asia/Dhaka')->toDateString()],
             'lines.*.unit_cost' => ['required', 'numeric', 'min:0', 'max:999999999.99', 'decimal:0,2'],
         ], [
             'lines.*.expires_on.after_or_equal' => __('portal.err_stock_expiry_past'),

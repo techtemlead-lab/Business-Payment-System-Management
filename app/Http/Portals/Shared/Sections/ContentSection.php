@@ -2,6 +2,7 @@
 
 namespace App\Http\Portals\Shared\Sections;
 
+use App\Domain\Catalog\HomePageOrder;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\LocalDigits;
@@ -174,6 +175,8 @@ final class ContentSection implements WorkspaceSection
                 ...($revealStock ? ['stock' => $p->sellableStock()] : []),
                 'image' => $p->media()['image_url'] ?? '',
             ]);
+        // The numbered home page list, so the order can be set from the website screen too.
+        $props['featured_order_products'] = HomePageOrder::forEditor();
 
         return $props;
     }

@@ -143,7 +143,7 @@ function ReceiveForm({ order, onDone }: { order: Row; onDone: () => void }) {
                         <div className="ops-row is-wrap">
                             <label>{text('quantity_now')}<input type="number" min={1} max={line.due} value={row.quantity} onChange={(event) => setLine(index, 'quantity', event.target.value)} /></label>
                             <label>{text('batch_optional')}<input maxLength={60} value={row.batch_number} onChange={(event) => setLine(index, 'batch_number', event.target.value)} /></label>
-                            <label>{text('expiry')}<DateInput required={required} value={row.expires_on} onChange={(event) => setLine(index, 'expires_on', event.target.value)} /></label>
+                            <label>{text('expiry_optional')}<DateInput value={row.expires_on} onChange={(event) => setLine(index, 'expires_on', event.target.value)} /></label>
                             <label>{text('unit_cost')}<input type="number" min={0} step="0.01" required={required} value={row.unit_cost} onChange={(event) => setLine(index, 'unit_cost', event.target.value)} /></label>
                         </div>
                     </fieldset>

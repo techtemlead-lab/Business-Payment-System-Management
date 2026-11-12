@@ -9,17 +9,19 @@ use Illuminate\Support\Facades\Storage;
 
 class InstallProductPhotoModel extends Command
 {
-    protected $signature = 'madina:install-product-photo-model';
+    protected $signature = 'madina:install-product-photo-model
+        {--full-precision : Also fetch the 245 MB file for computers whose graphics cannot run the smaller one}';
 
     protected $description = 'Download the model that removes product photo backgrounds and confirm each file is the expected one';
 
     public function handle(): int
     {
-        /** @var array{repository: string, revision: string, directory: string, files: array<string, string>} $model */
+        /** @var array{repository: string, revision: string, directory: string, files: array<string, string>, full_precision_files?: array<string, string>} $model */
         $model = config('madina.product_photo_model');
         $disk = Storage::disk('local');
+        $wanted = $model['files'] + ($this->option('full-precision') ? ($model['full_precision_files'] ?? []) : []);
 
-        foreach ($model['files'] as $file => $checksum) {
+        foreach ($wanted as $file => $checksum) {
             $target = $disk->path($model['directory'].'/'.$file);
             if (File::exists($target) && hash_file('sha256', $target) === $checksum) {
                 $this->components->twoColumnDetail($file, 'already in place');

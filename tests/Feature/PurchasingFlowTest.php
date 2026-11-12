@@ -224,14 +224,13 @@ class PurchasingFlowTest extends TestCase
         $this->assertSame(0, $product->fresh()->stock);
     }
 
-    public function test_a_receipt_needs_cost_and_an_expiry_that_has_not_passed(): void
+    public function test_a_receipt_needs_cost_and_an_expiry_date_that_is_given_must_not_have_passed(): void
     {
         $product = Product::factory()->create(['stock' => 0]);
         $order = $this->sentOrder([$product->id => 2]);
         $row = $this->receiptRow($this->lineFor($order, $product), 1);
 
         $this->receive($order, [[...$row, 'unit_cost' => '']])->assertSessionHasErrors('lines.0.unit_cost');
-        $this->receive($order, [[...$row, 'expires_on' => '']])->assertSessionHasErrors('lines.0.expires_on');
         $this->receive($order, [[...$row, 'expires_on' => now('Asia/Dhaka')->subDay()->toDateString()]])
             ->assertSessionHasErrors('lines.0.expires_on');
 

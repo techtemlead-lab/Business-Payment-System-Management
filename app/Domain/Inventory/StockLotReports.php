@@ -252,20 +252,28 @@ final class StockLotReports
     }
 
     /**
-     * Goods that came in with no batch number or expiry date, whether by a direct stock-in, a
-     * goods receipt or a stock count. Nothing can warn about their expiry until someone fills
-     * these in. Returns and transfers carry the details of the lot they came from.
+     * Goods that came in with a blank batch number or a blank expiry date, whether by a direct
+     * stock-in, a goods receipt or a stock count, so either can still be written in later.
+     * Lots with no batch number come first: those are the ones waiting. The expiry date is
+     * optional, so a lot that only has no date is listed but is not waiting for anything.
+     * Returns and transfers carry the details of the lot they came from.
      *
      * @return list<array<string, mixed>>
      */
     public function lotsMissingDetails(BranchScope $scope): array
     {
-        return $this->lotRows($this->missingDetailsQuery($scope)->with(['product:id,name,sku', 'branch:id,code,name']));
+        return $this->lotRows($this->missingDetailsQuery($scope)
+            ->orderByRaw('(batch_number IS NULL) DESC')
+            ->with(['product:id,name,sku', 'branch:id,code,name']));
     }
 
+    /**
+     * How many lots still wait for a batch number. A blank expiry date is the office's choice
+     * and is never counted as missing.
+     */
     public function missingDetailsCount(BranchScope $scope): int
     {
-        return $this->missingDetailsQuery($scope)->count();
+        return $this->missingDetailsQuery($scope)->whereNull('batch_number')->count();
     }
 
     /**

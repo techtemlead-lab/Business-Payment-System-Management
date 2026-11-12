@@ -132,11 +132,14 @@ class StockLotMissingDetailsTest extends TestCase
 
         app(StockLotDetails::class)->fillIn($this->owner, $lot, ['batch_number' => 'FOUND-2']);
 
-        $this->assertSame(1, app(StockLotReports::class)->missingDetailsCount($this->allBranches()));
+        // The expiry date is optional: with the batch number written nothing is left waiting,
+        // but the lot stays on the list so the date can still be added.
+        $this->assertSame(0, app(StockLotReports::class)->missingDetailsCount($this->allBranches()));
+        $this->assertSame([$lot->id], array_column(app(StockLotReports::class)->lotsMissingDetails($this->allBranches()), 'id'));
 
         app(StockLotDetails::class)->fillIn($this->owner, $lot, ['expires_on' => now()->addYear()->toDateString()]);
 
-        $this->assertSame(0, app(StockLotReports::class)->missingDetailsCount($this->allBranches()));
+        $this->assertSame([], app(StockLotReports::class)->lotsMissingDetails($this->allBranches()));
     }
 
     public function test_a_real_past_expiry_can_be_recorded_so_the_goods_are_blocked(): void

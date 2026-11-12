@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Catalog\HomePageOrder;
 use App\Domain\Catalog\ProductFacts;
 use App\Domain\Catalog\ProductPageAccess;
 use App\Domain\Catalog\ProductRemoval;
@@ -81,6 +82,7 @@ class ProductRegistryController extends Controller
         return Inertia::render('ProductEditor', [
             'product' => $data,
             'size_group' => $product ? ProductSizeGroups::forEditor($product) : null,
+            'home_page' => HomePageOrder::placeOf($product),
             'stock_stages' => $product && $r->user()->allows('inventory') ? app(StockStages::class)->forProduct($product) : null,
             'removal' => $product && $r->user()->allows('catalog') ? app(ProductRemoval::class)->forProduct($product, $r->user()->allows('inventory')) : null,
             'catalog_categories' => CatalogCms::categoryOptions($product),
@@ -238,7 +240,7 @@ class ProductRegistryController extends Controller
         $maxSubDealerPct = $isOwner ? 70 : 40;
         $hasCmsSubcategory = $catalog && $r->filled('product_subcategory_id');
         $hasCmsUnit = $catalog && $r->filled('product_unit_id');
-        $rules = ['name' => $catalog ? $required.'|string|max:150' : 'prohibited', 'sku' => $catalog ? [...explode('|', $required), 'string', 'max:60', Rule::unique('products')->ignore($product?->id)] : 'prohibited', 'category' => $catalog ? ($hasCmsSubcategory ? 'nullable|string|max:100' : $required.'|string|max:100') : 'prohibited', 'sub_category' => $catalog ? 'nullable|string|max:100' : 'prohibited', 'strength' => $catalog ? 'nullable|string|max:100' : 'prohibited', 'description' => $catalog ? 'nullable|string|max:3000' : 'prohibited', 'unit' => $catalog ? ($hasCmsUnit ? 'nullable|string|max:30' : $required.'|string|max:30') : 'prohibited', 'active' => $catalog ? 'sometimes|boolean' : 'prohibited', 'featured' => $catalog ? 'sometimes|boolean' : 'prohibited', 'mrp' => $pricing ? $required.'|regex:/^\d{1,8}(\.\d{1,2})?$/D' : 'prohibited', 'dealer_price' => $pricing ? 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/D' : 'prohibited', 'cost_price' => ($pricing && $r->user()->allows('cost_read')) ? 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/D' : 'prohibited', 'low_stock_at' => $inventory ? 'sometimes|integer|min:0|max:100000' : 'prohibited', 'reason' => ReasonFields::rule('product.edit', 1000, 5), 'version' => $product ? 'required|string|max:80' : 'nullable', 'stock' => 'prohibited', 'image_path' => 'prohibited', 'image_original_path' => 'prohibited', 'video_path' => 'prohibited', 'video_youtube_id' => 'prohibited',
+        $rules = ['name' => $catalog ? $required.'|string|max:150' : 'prohibited', 'sku' => $catalog ? [...explode('|', $required), 'string', 'max:60', Rule::unique('products')->ignore($product?->id)] : 'prohibited', 'category' => $catalog ? ($hasCmsSubcategory ? 'nullable|string|max:100' : $required.'|string|max:100') : 'prohibited', 'sub_category' => $catalog ? 'nullable|string|max:100' : 'prohibited', 'strength' => $catalog ? 'nullable|string|max:100' : 'prohibited', 'description' => $catalog ? 'nullable|string|max:3000' : 'prohibited', 'unit' => $catalog ? ($hasCmsUnit ? 'nullable|string|max:30' : $required.'|string|max:30') : 'prohibited', 'active' => $catalog ? 'sometimes|boolean' : 'prohibited', 'featured' => $catalog ? 'sometimes|boolean' : 'prohibited', 'home_page_place' => $catalog ? 'sometimes|nullable|integer|min:1|max:'.HomePageOrder::LastPlace : 'prohibited', 'mrp' => $pricing ? $required.'|regex:/^\d{1,8}(\.\d{1,2})?$/D' : 'prohibited', 'dealer_price' => $pricing ? 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/D' : 'prohibited', 'cost_price' => ($pricing && $r->user()->allows('cost_read')) ? 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/D' : 'prohibited', 'low_stock_at' => $inventory ? 'sometimes|integer|min:0|max:100000' : 'prohibited', 'reason' => ReasonFields::rule('product.edit', 1000, 5), 'version' => $product ? 'required|string|max:80' : 'nullable', 'stock' => 'prohibited', 'image_path' => 'prohibited', 'image_original_path' => 'prohibited', 'video_path' => 'prohibited', 'video_youtube_id' => 'prohibited',
             'image' => $catalog ? 'nullable|file|image|mimes:jpg,jpeg,png,webp|max:5120|dimensions:max_width=4096,max_height=4096' : 'prohibited', 'image_original' => $catalog ? 'nullable|file|image|mimes:jpg,jpeg,png,webp|max:5120|dimensions:max_width=4096,max_height=4096' : 'prohibited', 'restore_original_image' => $catalog ? 'sometimes|boolean' : 'prohibited', 'remove_image' => $catalog ? 'sometimes|boolean' : 'prohibited', 'video_source' => $catalog ? 'sometimes|in:none,youtube,vimeo,url,upload' : 'prohibited', 'youtube_url' => $catalog ? 'nullable|string|max:500' : 'prohibited', 'vimeo_url' => $catalog ? 'nullable|string|max:500' : 'prohibited', 'external_video_url' => $catalog ? 'nullable|string|max:2000' : 'prohibited', 'video' => $catalog ? 'nullable|file|mimetypes:video/mp4,video/webm|max:102400' : 'prohibited',
             'dealer_discount_pct' => $pricing ? 'nullable|numeric|between:0,'.$maxDealerPct.'|decimal:0,2' : 'prohibited',
             'sub_dealer_price' => $pricing ? 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/D' : 'prohibited',
@@ -401,6 +403,14 @@ class ProductRegistryController extends Controller
                 $p->fill($attributes);
                 $p->updated_at = now();
                 $p->save();
+                $sizeWordsChanged = $p->wasChanged(['pack_size_bn', 'pack_size_en']);
+                if ($p->featured && isset($d['home_page_place'])) {
+                    HomePageOrder::moveTo($p, (int) $d['home_page_place']);
+                    $attributes['home_page_place'] = true;
+                }
+                if ($sizeWordsChanged) {
+                    ProductSizeGroups::refuseRepeatedSizeAfterEdit($p);
+                }
                 if ($p->wasChanged('low_stock_at')) {
                     // The reorder list and branch dashboards read this level from each branch's row.
                     BranchProductStock::query()->where('product_id', $p->id)->update(['low_stock_at' => $p->low_stock_at]);
@@ -445,7 +455,9 @@ class ProductRegistryController extends Controller
             Storage::disk('local')->delete($path);
         }
         $photoChanged = isset($stored['image']) || $r->boolean('remove_image') || $r->boolean('restore_original_image');
-        if ($r->boolean('sync_concerns') || array_key_exists('featured', $d) || $photoChanged) {
+        // The public cards also carry the size words, so a changed size must not wait for the cache to run out.
+        $sizeChanged = array_intersect(['strength', 'pack_size_bn', 'pack_size_en'], array_keys($d)) !== [];
+        if ($r->boolean('sync_concerns') || array_key_exists('featured', $d) || array_key_exists('home_page_place', $d) || $photoChanged || $sizeChanged) {
             SiteCustomization::forgetCache();
         }
         if ($r->input('redirect_to') === 'catalog') {
