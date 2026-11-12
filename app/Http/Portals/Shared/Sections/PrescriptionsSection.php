@@ -128,7 +128,8 @@ final class PrescriptionsSection implements WorkspaceSection
             // Whether a medicine may also be typed by hand: the owners' switch, off until they turn it on.
             'other_medicines_allowed' => $otherMedicines['enabled'],
         ];
-        if ($user->owner()) {
+        if ($owner) {
+            // Only the owner's own account changes the switch.
             $payload['other_medicines'] = $otherMedicines;
         }
 

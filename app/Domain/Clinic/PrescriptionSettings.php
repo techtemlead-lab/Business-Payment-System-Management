@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * The owners' switch for medicines that are not company products. It is off until an owner
- * turns it on: while it is off every prescriber, dealers and sub-dealers included, can only
+ * The owner's switch for medicines that are not company products. Only the owner's own
+ * account (Super Admin) can change it, not MD or Chairman. It is off until the owner turns it on: while it is off every prescriber, dealers and sub-dealers included, can only
  * prescribe from the company's product list. While it is on a medicine may also be typed by
  * hand; such a medicine never touches stock, the clinic sale or any commission.
  */
@@ -40,7 +40,9 @@ final class PrescriptionSettings
     public function save(User $actor, bool $enabled, int $version): void
     {
         DB::transaction(function () use ($actor, $enabled, $version): void {
-            abort_unless($actor->fresh()?->owner(), 403);
+            // The owner's own account only (owner decision 2026-11-13): not MD or Chairman.
+            $fresh = $actor->fresh();
+            abort_unless($fresh !== null && PrescriptionAccess::isOwnerDoctor($fresh), 403);
             $before = $this->otherMedicines();
             if ($version !== $before['version']) {
                 throw ValidationException::withMessages(['version' => __('portal.err_security_setting_stale')]);

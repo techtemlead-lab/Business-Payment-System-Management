@@ -14,6 +14,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 /**
@@ -160,20 +161,39 @@ class PrescriptionOtherMedicinesTest extends TestCase
         $this->assertTrue(app(PrescriptionSettings::class)->otherMedicinesAllowed());
     }
 
-    public function test_md_and_chairman_may_change_the_switch_but_staff_and_partners_may_not(): void
+    public function test_only_the_super_admin_may_change_the_switch_and_md_chairman_staff_and_partners_are_refused(): void
     {
-        $md = User::factory()->staff('md')->create();
-        $employee = User::factory()->staff('employee')->create(['can_prescribe' => true]);
-        $dealer = User::factory()->dealer()->create(['status' => 'active', 'can_prescribe' => true]);
+        $refused = [
+            [User::factory()->staff('md')->create(['can_prescribe' => true]), 'sadmin'],
+            [User::factory()->staff('chairman')->create(['can_prescribe' => true]), 'sadmin'],
+            [User::factory()->staff('employee')->create(['can_prescribe' => true]), 'manage'],
+            [User::factory()->dealer()->create(['status' => 'active', 'can_prescribe' => true]), 'dealer'],
+        ];
         $payload = ['enabled' => '1', 'version' => 0];
 
-        $this->actingAs($employee)->onPortal('manage')->post('/commands/owner/prescription-other-medicines', $payload)->assertForbidden();
-        $this->actingAs($dealer)->onPortal('dealer')->post('/commands/owner/prescription-other-medicines', $payload)->assertForbidden();
+        foreach ($refused as [$user, $portal]) {
+            $this->actingAs($user)->onPortal($portal)->post('/commands/owner/prescription-other-medicines', $payload)->assertForbidden();
+        }
         $this->assertFalse(app(PrescriptionSettings::class)->otherMedicinesAllowed());
+        $this->assertFalse(DB::table('audit_events')->where('action', 'prescription.other_medicines_changed')->exists());
 
-        $this->actingAs($md)->onPortal('sadmin')->post('/commands/owner/prescription-other-medicines', $payload)
+        // MD and Chairman who prescribe from company stock see the state, not the switch.
+        $this->actingAs($refused[0][0])->onPortal('sadmin')->get('/prescriptions')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('data.prescriptions.other_medicines_allowed', false)
+                ->missing('data.prescriptions.other_medicines'));
+
+        $this->actingAs(User::factory()->staff('super_admin')->create())->onPortal('sadmin')
+            ->post('/commands/owner/prescription-other-medicines', $payload)
             ->assertRedirect()->assertSessionHasNoErrors();
         $this->assertTrue(app(PrescriptionSettings::class)->otherMedicinesAllowed());
+    }
+
+    public function test_md_or_chairman_cannot_change_the_switch_even_through_the_settings_class(): void
+    {
+        $this->expectException(HttpException::class);
+
+        app(PrescriptionSettings::class)->save(User::factory()->staff('chairman')->create(), true, 0);
     }
 
     public function test_with_the_switch_on_a_dealer_types_a_medicine_with_its_strength_and_price(): void
