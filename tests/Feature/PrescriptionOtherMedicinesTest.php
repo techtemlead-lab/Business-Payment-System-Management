@@ -71,6 +71,96 @@ class PrescriptionOtherMedicinesTest extends TestCase
                 ->missing('data.prescriptions.other_medicines'));
     }
 
+    /**
+     * The empty medicine row the writing form sends before a product is chosen: price 0, quantity 1.
+     *
+     * @return array<string, mixed>
+     */
+    private function blankMedicineRow(): array
+    {
+        return [
+            'product_id' => null,
+            'dose' => '',
+            'frequency' => '',
+            'duration' => '',
+            'instructions' => '',
+            'dose_schedule' => null,
+            'food_timing' => null,
+            'duration_count' => null,
+            'duration_unit' => null,
+            'unit_price' => '0',
+            'quantity' => 1,
+            'discount' => '0',
+        ];
+    }
+
+    public function test_the_forms_empty_medicine_row_does_not_block_a_chosen_product(): void
+    {
+        [$dealer, $patient] = $this->dealerWithPatient();
+        $product = Product::factory()->create(['name' => 'Madina Syrup', 'mrp' => '200.00']);
+
+        $this->actingAs($dealer)->onPortal('dealer')->post('/commands/prescriptions', [
+            'patient_id' => $patient->id,
+            'prescribed_on' => '2026-11-13',
+            'lines' => [
+                $this->blankMedicineRow(),
+                ['product_id' => $product->id, 'unit_price' => '180.00', 'quantity' => 2],
+            ],
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $prescription = Prescription::query()->where('prescriber_id', $dealer->id)->sole();
+        $line = $prescription->lines->sole();
+        $this->assertSame($product->id, $line->product_id);
+        $this->assertSame(0, $line->position);
+        $this->assertSame('360.00', $prescription->total);
+    }
+
+    public function test_the_forms_empty_medicine_row_does_not_block_advice_and_tests(): void
+    {
+        [$dealer, $patient] = $this->dealerWithPatient();
+
+        $this->actingAs($dealer)->onPortal('dealer')->post('/commands/prescriptions', [
+            'patient_id' => $patient->id,
+            'prescribed_on' => '2026-11-13',
+            'advice' => 'Rest and drink water',
+            'investigations' => ['CBC'],
+            'lines' => [$this->blankMedicineRow()],
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $prescription = Prescription::query()->where('prescriber_id', $dealer->id)->sole();
+        $this->assertSame(0, $prescription->lines()->count());
+        $this->assertSame('Rest and drink water', $prescription->advice);
+        $this->assertSame(['CBC'], $prescription->investigations);
+        $this->assertSame('0.00', $prescription->total);
+    }
+
+    public function test_an_empty_medicine_row_with_nothing_else_written_is_rejected(): void
+    {
+        [$dealer, $patient] = $this->dealerWithPatient();
+
+        $this->actingAs($dealer)->onPortal('dealer')->post('/commands/prescriptions', [
+            'patient_id' => $patient->id,
+            'prescribed_on' => '2026-11-13',
+            'lines' => [$this->blankMedicineRow()],
+        ])->assertSessionHasErrors(['lines' => __('prescription.err_nothing_written')]);
+
+        $this->assertSame(0, Prescription::query()->count());
+    }
+
+    public function test_a_medicine_row_with_a_dose_but_no_product_is_still_refused(): void
+    {
+        [$dealer, $patient] = $this->dealerWithPatient();
+
+        $this->actingAs($dealer)->onPortal('dealer')->post('/commands/prescriptions', [
+            'patient_id' => $patient->id,
+            'prescribed_on' => '2026-11-13',
+            'advice' => 'Rest and drink water',
+            'lines' => [[...$this->blankMedicineRow(), 'dose' => '1+0+1']],
+        ])->assertSessionHasErrors(['lines.0.product_id' => __('prescription.err_product_required')]);
+
+        $this->assertSame(0, Prescription::query()->count());
+    }
+
     public function test_a_hand_typed_medicine_is_refused_while_the_switch_is_off(): void
     {
         [$dealer, $patient] = $this->dealerWithPatient();
