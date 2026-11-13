@@ -116,7 +116,9 @@ final class PrescriptionBook
             'foods_allowed' => PrescriptionLists::clean($data['foods_allowed'] ?? null),
             'foods_avoided' => PrescriptionLists::clean($data['foods_avoided'] ?? null),
         ];
-        if ($rawLines === [] && array_filter($lists) === [] && $this->text($data['advice'] ?? null) === null) {
+        // The writing form always sends its empty medicine row. That row is not a medicine, so it
+        // must not block a prescription that holds only a test, a food or advice.
+        if (! $this->hasMedicineLine($rawLines) && array_filter($lists) === [] && $this->text($data['advice'] ?? null) === null) {
             throw ValidationException::withMessages(['lines' => __('prescription.err_nothing_written')]);
         }
 
@@ -270,6 +272,9 @@ final class PrescriptionBook
         $otherMedicinesAllowed = null;
         $lines = [];
         foreach ($rawLines as $index => $line) {
+            if ($this->isBlankLine($line)) {
+                continue;
+            }
             $productId = null;
             $mrpUnit = null;
             $strength = null;
@@ -279,7 +284,7 @@ final class PrescriptionBook
                 // Read once, and only when a prescription really holds a hand-typed medicine.
                 $otherMedicinesAllowed ??= $this->settings->otherMedicinesAllowed();
                 if (! $otherMedicinesAllowed) {
-                    // With nothing typed the person simply left the product unchosen.
+                    // A completely empty row is skipped above. This row was started, but no product was chosen.
                     throw ValidationException::withMessages($name === ''
                         ? ["lines.$index.product_id" => __('prescription.err_product_required')]
                         : ["lines.$index.medicine_name" => __('prescription.err_other_medicine_off')]);
@@ -364,5 +369,44 @@ final class PrescriptionBook
         $text = trim((string) $value);
 
         return $text === '' ? null : $text;
+    }
+
+    /**
+     * The empty medicine row the writing form sends before anyone has chosen a product or typed
+     * a name. A dose, a price or a quantity other than the row's starting 1 means they started it.
+     *
+     * @param  array<string, mixed>  $line
+     */
+    private function isBlankLine(array $line): bool
+    {
+        if (filled($line['product_id'] ?? null) || $this->text($line['medicine_name'] ?? null) !== null) {
+            return false;
+        }
+        foreach (['strength', 'dose', 'frequency', 'duration', 'instructions', 'dose_schedule', 'food_timing', 'duration_unit'] as $field) {
+            if ($this->text($line[$field] ?? null) !== null) {
+                return false;
+            }
+        }
+        if (filled($line['duration_count'] ?? null) || (int) ($line['quantity'] ?? 1) !== 1) {
+            return false;
+        }
+        $unit = Money::cents(number_format((float) ($line['unit_price'] ?? 0), 2, '.', ''));
+        $discount = Money::cents(number_format((float) ($line['discount'] ?? 0), 2, '.', ''));
+
+        return $unit === 0 && $discount === 0;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rawLines
+     */
+    private function hasMedicineLine(array $rawLines): bool
+    {
+        foreach ($rawLines as $line) {
+            if (! $this->isBlankLine($line)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
