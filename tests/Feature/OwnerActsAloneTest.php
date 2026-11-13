@@ -257,7 +257,7 @@ class OwnerActsAloneTest extends TestCase
     private function spend(): array
     {
         return ['fund' => 'company_profit', 'expense_head_id' => (int) DB::table('fund_expense_heads')->where('name_en', "Owner's drawings")->value('id'), 'amount' => '100.00', 'spent_on' => '2026-11-07',
-            'payee' => 'Office rent', 'payment_method' => 'cash', 'request_key' => (string) Str::uuid()];
+            'payee' => 'Office rent', 'payment_method' => 'cash', 'request_key' => (string) Str::uuid(), 'note' => 'Rent for November'];
     }
 
     private function withdrawal(): string

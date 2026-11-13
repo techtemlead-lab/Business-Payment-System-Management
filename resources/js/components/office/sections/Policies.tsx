@@ -1,6 +1,6 @@
-import {router,useForm,usePage} from '@inertiajs/react';
+import {useForm,usePage} from '@inertiajs/react';
 import {Plus} from 'lucide-react';
-import {Row,Table,Modal,Badge,Empty,label,FormErrors} from '../../UI';
+import {Row,Table,Modal,Badge,Empty,label,FormErrors,ActionForm} from '../../UI';
 import {useT} from '../../../shared/i18n/t';
 import {useReasonField} from '../../../shared/reasonFields';
 import {actionAllowed} from '../../action-permissions';
@@ -11,7 +11,7 @@ export default function Policies(props:PortalSectionProps){
  const {section,d,translate,open,close,modal}=usePortalSection(props);
  const {staffActions}=usePage<any>().props;
  return <>
- {section==='policies'&&<><FinanceGate/>{actionAllowed('/commands/policies',staffActions,'post')&&<div className="toolbar-end"><button className="button dark" onClick={()=>open('policy')}><Plus size={17}/>{translate('portal','policy_new_draft')}</button></div>}{d.policies.length?d.policies.map((p:Row)=><section className="panel" key={p.id}><div className="panel-heading"><div><h2>{p.name}</h2><p>{label(p.account_type,translate)} · {translate('portal','policy_purchase_value_basis')}</p></div><Badge status={p.status||'draft'}/></div><Table rows={parseJson(p.components, [])} columns={[{key:'name',title:translate('portal','policy_component')},{key:'rate',title:translate('portal','policy_purchase_rate')}]}/>{p.notes&&<p className="prose muted">{p.notes}</p>}{p.status!=='published'&&actionAllowed(`/commands/policies/${p.id}/publish`,staffActions,'post')&&<button className="button small" onClick={()=>router.post(`/commands/policies/${p.id}/publish`)}>{translate('portal','policy_mark_published')}</button>}<p className="muted ops-mt-2">{translate('portal','policy_publish_hint')}</p></section>):<Empty title={translate('portal','policy_empty_title')} body={translate('portal','policy_empty_body')}/>}</>}
+ {section==='policies'&&<><FinanceGate/>{actionAllowed('/commands/policies',staffActions,'post')&&<div className="toolbar-end"><button className="button dark" onClick={()=>open('policy')}><Plus size={17}/>{translate('portal','policy_new_draft')}</button></div>}{d.policies.length?d.policies.map((p:Row)=><section className="panel" key={p.id}><div className="panel-heading"><div><h2>{p.name}</h2><p>{label(p.account_type,translate)} · {translate('portal','policy_purchase_value_basis')}</p></div><Badge status={p.status||'draft'}/></div><Table rows={parseJson(p.components, [])} columns={[{key:'name',title:translate('portal','policy_component')},{key:'rate',title:translate('portal','policy_purchase_rate')}]}/>{p.notes&&<p className="prose muted">{p.notes}</p>}{p.status!=='published'&&actionAllowed(`/commands/policies/${p.id}/publish`,staffActions,'post')&&<ActionForm action={`/commands/policies/${p.id}/publish`} submit={translate('portal','policy_mark_published')} fields={[{name:'reason',label:translate('reason_fields','box_reason'),type:'textarea',place:'money.policy_publish'}]}/>}<p className="muted ops-mt-2">{translate('portal','policy_publish_hint')}</p></section>):<Empty title={translate('portal','policy_empty_title')} body={translate('portal','policy_empty_body')}/>}</>}
  {modal&&<Modal title={translate('portal','policy_modal_title')} onClose={close}>
  {modal==='policy'&&<PolicyEditor onDone={close}/>}
  </Modal>}
