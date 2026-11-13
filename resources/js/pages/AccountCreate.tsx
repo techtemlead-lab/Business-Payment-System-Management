@@ -4,6 +4,7 @@ import Shell from '../components/Shell';
 import { label, type Row, DateInput, FormErrors } from '../components/UI';
 import { ArrowLeft, Search, AlertTriangle, CheckCircle2, Check } from 'lucide-react';
 import { useT } from '../shared/i18n/t';
+import SearchSelect from '../components/SearchSelect';
 import { toLatin } from '../shared/countUp';
 import { localizeDigits } from '../business-date';
 
@@ -697,28 +698,39 @@ export default function AccountCreate({
                                 {heading('address', sectionFor('address'))}
                                 <div className="acf-grid">
                                     <Box text={translate('portal', 'acct_division')}>
-                                        <select value={divisionId} onChange={(e) => { setDivisionId(e.target.value); setDistrictId(''); setUpazilaId(''); setUnionId(''); }}>
-                                            <option value="">{translate('portal', 'acct_select_division')}</option>
-                                            {place_divisions.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}
-                                        </select>
+                                        <SearchSelect
+                                            value={divisionId}
+                                            onChange={(value) => { setDivisionId(value); setDistrictId(''); setUpazilaId(''); setUnionId(''); }}
+                                            emptyLabel={translate('portal', 'acct_select_division')}
+                                            options={place_divisions.map((item) => ({ value: String(item.id), label: `${item.code} — ${item.name}` }))}
+                                        />
                                     </Box>
                                     <Box text={translate('portal', 'acct_district')}>
-                                        <select value={districtId} onChange={(e) => { setDistrictId(e.target.value); setUpazilaId(''); setUnionId(''); }} disabled={!divisionId}>
-                                            <option value="">{translate('portal', 'acct_select_district')}</option>
-                                            {districts.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}
-                                        </select>
+                                        <SearchSelect
+                                            value={districtId}
+                                            onChange={(value) => { setDistrictId(value); setUpazilaId(''); setUnionId(''); }}
+                                            disabled={!divisionId}
+                                            emptyLabel={translate('portal', 'acct_select_district')}
+                                            options={districts.map((item) => ({ value: String(item.id), label: `${item.code} — ${item.name}` }))}
+                                        />
                                     </Box>
                                     <Box text={translate('portal', 'acct_upazila')}>
-                                        <select value={upazilaId} onChange={(e) => { setUpazilaId(e.target.value); setUnionId(''); }} disabled={!districtId}>
-                                            <option value="">{translate('portal', 'acct_select_upazila')}</option>
-                                            {upazilas.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}
-                                        </select>
+                                        <SearchSelect
+                                            value={upazilaId}
+                                            onChange={(value) => { setUpazilaId(value); setUnionId(''); }}
+                                            disabled={!districtId}
+                                            emptyLabel={translate('portal', 'acct_select_upazila')}
+                                            options={upazilas.map((item) => ({ value: String(item.id), label: `${item.code} — ${item.name}` }))}
+                                        />
                                     </Box>
                                     <Box text={translate('portal', 'acct_union')}>
-                                        <select value={unionId} onChange={(e) => setUnionId(e.target.value)} disabled={!upazilaId}>
-                                            <option value="">{translate('portal', 'acct_select_union')}</option>
-                                            {unions.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}
-                                        </select>
+                                        <SearchSelect
+                                            value={unionId}
+                                            onChange={(value) => setUnionId(value)}
+                                            disabled={!upazilaId}
+                                            emptyLabel={translate('portal', 'acct_select_union')}
+                                            options={unions.map((item) => ({ value: String(item.id), label: `${item.code} — ${item.name}` }))}
+                                        />
                                     </Box>
                                     <Box text={translate('portal', 'acct_village')} error={errorOf('village')}><input autoComplete="off" value={form.data.village} onChange={(e) => setBox('village', e.target.value)} /></Box>
                                     <Box text={translate('portal', 'acct_post_office')} error={errorOf('post_office')}><input autoComplete="off" value={form.data.post_office} onChange={(e) => setBox('post_office', e.target.value)} /></Box>
@@ -863,10 +875,12 @@ export default function AccountCreate({
                             )}
                             {!isPartner && (
                                 <Box text={translate('portal', 'acct_sponsoring_dealer')} error={errorOf('sponsor_id')} wide>
-                                    <select value={form.data.sponsor_id} onChange={(e) => setBox('sponsor_id', e.target.value)}>
-                                        <option value="">{translate('portal', 'acct_no_sponsor')}</option>
-                                        {sponsors.map((s) => <option key={s.id} value={s.id}>{s.name} ({s.dealer_code})</option>)}
-                                    </select>
+                                    <SearchSelect
+                                        value={form.data.sponsor_id}
+                                        onChange={(value) => setBox('sponsor_id', value)}
+                                        emptyLabel={translate('portal', 'acct_no_sponsor')}
+                                        options={sponsors.map((s) => ({ value: String(s.id), label: `${s.name} (${s.dealer_code})` }))}
+                                    />
                                 </Box>
                             )}
                         </div>

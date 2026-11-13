@@ -30,6 +30,10 @@ final class PrescriptionTemplates
             throw ValidationException::withMessages(['name' => __('prescription.err_template_limit', ['max' => self::MaxTemplates])]);
         }
         $lines = $prescription->lines->map(fn (PrescriptionLine $line): array => $line->toDraft())->values()->all();
+        if ($lines === []) {
+            // These templates hold medicines; foods have their own templates.
+            throw ValidationException::withMessages(['name' => __('prescription.err_template_no_medicine')]);
+        }
 
         try {
             $template = DB::transaction(fn (): PrescriptionTemplate => PrescriptionTemplate::query()->create([

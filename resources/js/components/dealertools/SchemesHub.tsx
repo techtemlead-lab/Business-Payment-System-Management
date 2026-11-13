@@ -4,6 +4,7 @@ import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { DateInput, FormErrors, Modal, Table, date, number } from '../UI';
 import OfficePage from '../office/OfficePage';
 import { useT } from '../../shared/i18n/t';
+import SearchSelect, { SearchCheckList } from '../SearchSelect';
 
 type Scheme = { id: number; title: string; starts_on: string; ends_on: string; product_ids: number[]; min_quantity: number; benefit_type: string; benefit_text: string; free_product_id: number | null; free_quantity: number | null; orders_using: number; earliest_end: string | null };
 type Product = { id: number; name: string; active: boolean };
@@ -49,12 +50,18 @@ function SchemeFields({ values, change, errors, products, benefitTypes, offerLoc
             <label>{translate('dealer_tools', 'scheme_title_field')}<input required maxLength={150} value={values.title} onChange={(e) => change({ title: e.target.value })} />{problem('title')}</label>
             <label>{translate('dealer_tools', 'scheme_starts')}<DateInput required disabled={offerLocked} value={values.starts_on} onChange={(e) => change({ starts_on: e.target.value })} />{problem('starts_on')}</label>
             <label>{translate('dealer_tools', 'scheme_ends')}<DateInput required value={values.ends_on} onChange={(e) => change({ ends_on: e.target.value })} />{endHint && <small className="field-hint">{endHint}</small>}{problem('ends_on')}</label>
-            <label>{translate('dealer_tools', 'scheme_products')}
-                <select multiple size={6} required disabled={offerLocked} value={values.product_ids} onChange={(e) => change({ product_ids: Array.from(e.target.selectedOptions).map((option) => option.value) })}>
-                    {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
-                </select>
+            {/* Not a <label>: every row of the list is a label of its own. */}
+            <div className="ss-field">
+                <span>{translate('dealer_tools', 'scheme_products')}</span>
+                <SearchCheckList
+                    ariaLabel={translate('dealer_tools', 'scheme_products')}
+                    disabled={offerLocked}
+                    values={values.product_ids}
+                    onChange={(productIds) => change({ product_ids: productIds })}
+                    options={products.map((product) => ({ value: String(product.id), label: product.name }))}
+                />
                 {problem('product_ids')}
-            </label>
+            </div>
             <label>{translate('dealer_tools', 'scheme_min_field')}<input type="number" min={1} required disabled={offerLocked} value={values.min_quantity} onChange={(e) => change({ min_quantity: e.target.value })} />{problem('min_quantity')}</label>
             <label>{translate('dealer_tools', 'scheme_type_field')}
                 <select disabled={offerLocked} value={values.benefit_type} onChange={(e) => change({ benefit_type: e.target.value, free_product_id: '', free_quantity: '' })}>
@@ -66,10 +73,13 @@ function SchemeFields({ values, change, errors, products, benefitTypes, offerLoc
             {values.benefit_type === 'free_goods' && <>
                 <p className="muted">{translate('schemes_commission', 'scheme_free_hint')}</p>
                 <label>{translate('schemes_commission', 'scheme_free_product')}
-                    <select disabled={offerLocked} value={values.free_product_id} onChange={(e) => change({ free_product_id: e.target.value, free_quantity: e.target.value === '' ? '' : values.free_quantity })}>
-                        <option value="">{translate('schemes_commission', 'scheme_free_none')}</option>
-                        {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
-                    </select>
+                    <SearchSelect
+                        disabled={offerLocked}
+                        value={values.free_product_id}
+                        onChange={(value) => change({ free_product_id: value, free_quantity: value === '' ? '' : values.free_quantity })}
+                        emptyLabel={translate('schemes_commission', 'scheme_free_none')}
+                        options={products.map((product) => ({ value: String(product.id), label: product.name }))}
+                    />
                     {problem('free_product_id')}
                 </label>
                 {values.free_product_id !== '' && <label>{translate('schemes_commission', 'scheme_free_quantity')}<input type="number" min={1} required disabled={offerLocked} value={values.free_quantity} onChange={(e) => change({ free_quantity: e.target.value })} />{problem('free_quantity')}</label>}

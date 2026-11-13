@@ -4,6 +4,7 @@ import { Plus } from 'lucide-react';
 import { FormErrors, Modal, money, type Row } from '../UI';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from '../MoneyTable';
 import { useT } from '../../shared/i18n/t';
+import SearchSelect from '../SearchSelect';
 import { FUNDS_COMMAND_ROOT, useHeadName, type ExpenseHead } from './FundSpendForm';
 
 export type HeadBudget = { head_id: number; name_en: string; name_bn: string; month: string; budget: string; used: string; left_amount: string; over: boolean };
@@ -87,10 +88,13 @@ function BudgetForm({ heads, month, onClose }: { heads: ExpenseHead[]; month: st
             <form className="action-form" onSubmit={submit}>
                 <label>{translate('funds', 'budget_month')}<input type="month" required value={form.data.month} onChange={(event) => form.setData('month', event.target.value)} /></label>
                 <label>{translate('funds', 'budget_head')}
-                    <select required value={form.data.expense_head_id} onChange={(event) => form.setData('expense_head_id', event.target.value)}>
-                        <option value="">—</option>
-                        {heads.filter((head) => head.is_active !== false).map((head) => <option key={head.id} value={head.id}>{headName(head)}</option>)}
-                    </select>
+                    <SearchSelect
+                        required
+                        value={form.data.expense_head_id}
+                        onChange={(value) => form.setData('expense_head_id', value)}
+                        emptyLabel="—"
+                        options={heads.filter((head) => head.is_active !== false).map((head) => ({ value: String(head.id), label: headName(head) }))}
+                    />
                 </label>
                 <label>{translate('funds', 'budget_amount')}
                     <input inputMode="decimal" value={form.data.amount} onChange={(event) => form.setData('amount', event.target.value)} />

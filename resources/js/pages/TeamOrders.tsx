@@ -4,6 +4,7 @@ import { Download } from 'lucide-react';
 import Shell from '../components/Shell';
 import { Badge, Row, Table, Pagination, money, dateTime, DateInput } from '../components/UI';
 import { useT } from '../shared/i18n/t';
+import SearchSelect from '../components/SearchSelect';
 
 type Filters = { from: string; to: string; member: number | null; status: string | null };
 type Totals = { orders: number; buyers: number; ordered: string; paid: string; due: string };
@@ -81,10 +82,14 @@ export default function TeamOrders({ partner, filters, statuses, orders, totals,
                     <DateInput aria-label={translate('portal', 'stmt_from')} value={from} onChange={event => setFrom(event.target.value)} />
                     <DateInput aria-label={translate('portal', 'stmt_to')} value={to} onChange={event => setTo(event.target.value)} />
                 </div>
-                <select aria-label={translate('portal', 'team_orders_member')} value={member} onChange={event => { setMember(event.target.value); go({ member: event.target.value }); }}>
-                    <option value="">{translate('portal', 'team_orders_all_members')}</option>
-                    {members.map(item => <option key={item.id} value={item.id}>{item.name}{item.dealer_code ? ` (${item.dealer_code})` : ''}</option>)}
-                </select>
+                <SearchSelect
+                    className="ss-filter"
+                    ariaLabel={translate('portal', 'team_orders_member')}
+                    value={member}
+                    onChange={value => { setMember(value); go({ member: value }); }}
+                    emptyLabel={translate('portal', 'team_orders_all_members')}
+                    options={members.map(item => ({ value: String(item.id), label: `${item.name}${item.dealer_code ? ` (${item.dealer_code})` : ''}` }))}
+                />
                 <select aria-label={translate('portal', 'col_status')} value={status} onChange={event => { setStatus(event.target.value); go({ status: event.target.value }); }}>
                     <option value="">{translate('portal', 'team_orders_all_statuses')}</option>
                     {statuses.map(item => <option key={item} value={item}>{translate('portal', `status_${item}`)}</option>)}

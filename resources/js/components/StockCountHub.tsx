@@ -3,6 +3,7 @@ import { router, useForm, usePage } from '@inertiajs/react';
 import { Play } from 'lucide-react';
 import { ActionForm, Badge, Empty, FormErrors, Pagination, Table, date, number, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
+import SearchSelect from './SearchSelect';
 
 interface StockCountData {
     branch_scope: { view: string; name?: string | null };
@@ -51,10 +52,13 @@ function StartCount({ branches }: { branches: Row[] }) {
         >
             <label>
                 {translate('purchasing', 'branch')}
-                <select required value={form.data.branch_id} onChange={(event) => form.setData('branch_id', event.target.value)}>
-                    <option value="">{translate('portal', 'select_placeholder')}</option>
-                    {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.code} · {branch.name}</option>)}
-                </select>
+                <SearchSelect
+                    required
+                    value={form.data.branch_id}
+                    onChange={(value) => form.setData('branch_id', value)}
+                    emptyLabel={translate('portal', 'select_placeholder')}
+                    options={branches.map((branch) => ({ value: String(branch.id), label: `${branch.code} · ${branch.name}` }))}
+                />
             </label>
             <button className="button dark" disabled={form.processing}><Play size={16} /> {text('count_start')}</button>
             <FormErrors errors={form.errors} />

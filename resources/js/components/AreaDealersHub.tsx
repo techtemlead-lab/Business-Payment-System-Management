@@ -4,6 +4,7 @@ import { MapPin, Search, Filter, Building2, Compass } from 'lucide-react';
 import { FormErrors, Modal, money, number, Table, Pagination, type Row } from './UI';
 import { actionAllowed } from './action-permissions';
 import { useT } from '../shared/i18n/t';
+import SearchSelect from './SearchSelect';
 
 interface AreaAssignment {
     id: number | string;
@@ -70,12 +71,9 @@ const levelMeta: Record<string, { labelKey: string; tone: string; defaultQuota: 
     union: { labelKey: 'area_lvl_union', tone: 'tone-warn', defaultQuota: 10000 },
 };
 
-const PickLimit = 200;
-
-/** A find box above a short list: there can be thousands of dealers or places. */
-function FindAndPick({ title, findLabel, options, value, onChange, disabled, error }: {
+/** One searchable list: there can be thousands of dealers or places. */
+function FindAndPick({ title, options, value, onChange, disabled, error }: {
     title: string;
-    findLabel: string;
     options: { value: string; label: string }[];
     value: string;
     onChange: (value: string) => void;
@@ -83,28 +81,13 @@ function FindAndPick({ title, findLabel, options, value, onChange, disabled, err
     error?: string;
 }) {
     const translate = useT();
-    const [words, setWords] = useState('');
-    const needle = words.trim().toLowerCase();
-    const matches = useMemo(() => (needle === '' ? options : options.filter((option) => option.label.toLowerCase().includes(needle))), [options, needle]);
-    const shown = matches.slice(0, PickLimit);
-    const chosen = options.find((option) => option.value === value);
-    const list = chosen && !shown.includes(chosen) ? [chosen, ...shown] : shown;
 
     return (
-        <>
-            <label>
-                {title}
-                <input type="search" placeholder={findLabel} value={words} disabled={disabled} onChange={(event) => setWords(event.target.value)} />
-            </label>
-            <label>
-                <select aria-label={title} required disabled={disabled} value={value} onChange={(event) => onChange(event.target.value)}>
-                    <option value="">{translate('portal', 'select_placeholder')}</option>
-                    {list.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                </select>
-                {matches.length > PickLimit && <small className="field-hint">{translate('office_partners', 'area_assign_too_many', { count: number(PickLimit) })}</small>}
-                {error && <span className="field-error" role="alert">{error}</span>}
-            </label>
-        </>
+        <label>
+            {title}
+            <SearchSelect ariaLabel={title} required disabled={disabled} value={value} onChange={(picked) => onChange(picked)} emptyLabel={translate('portal', 'select_placeholder')} options={options} />
+            {error && <span className="field-error" role="alert">{error}</span>}
+        </label>
     );
 }
 
@@ -122,7 +105,6 @@ function AddAreaDealerDialog({ dealers, places, onClose }: { dealers: DealerOpti
             <form className="action-form" aria-label={title} onSubmit={(event) => { event.preventDefault(); form.post('/commands/area-dealers', { preserveScroll: true, onSuccess: onClose }); }}>
                 <FindAndPick
                     title={translate('office_partners', 'area_assign_dealer')}
-                    findLabel={translate('office_partners', 'area_assign_find_dealer')}
                     options={dealerOptions}
                     value={form.data.user_id}
                     onChange={(value) => form.setData('user_id', value)}
@@ -139,7 +121,6 @@ function AddAreaDealerDialog({ dealers, places, onClose }: { dealers: DealerOpti
                 <FindAndPick
                     key={form.data.level}
                     title={translate('office_partners', 'area_assign_place')}
-                    findLabel={translate('office_partners', 'area_assign_find_place')}
                     options={placeOptions}
                     value={form.data.place_code_id}
                     onChange={(value) => form.setData('place_code_id', value)}

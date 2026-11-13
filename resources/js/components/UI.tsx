@@ -5,6 +5,7 @@ import {actionAllowed} from './action-permissions';
 import {businessDate, businessDateTime, businessTodayIso, isPastBusinessDate, localizeDigits} from '../business-date';
 import {useT} from '../shared/i18n/t';
 import DateInput from './DateInput';
+import {AutoSelect} from './SearchSelect';
 
 export { default as DateInput } from './DateInput';
 export type Row=Record<string,any>;
@@ -705,20 +706,18 @@ export function Table<T extends Row = any>({
       </select>
      )}
      {tools && filters?.map(f => (
-      <select
+      <AutoSelect
        key={f.key}
-       aria-label={f.label}
+       className="ss-filter"
+       ariaLabel={f.label}
        value={customFilters[f.key] ?? ''}
-       onChange={e => {
-        setCustomFilters(prev => ({ ...prev, [f.key]: e.target.value }));
+       onChange={value => {
+        setCustomFilters(prev => ({ ...prev, [f.key]: value }));
         setCurrentPage(1);
        }}
-      >
-       <option value="">{f.label}</option>
-       {f.options.map(opt => (
-        <option key={opt.value} value={opt.value}>{opt.label}</option>
-       ))}
-      </select>
+       emptyLabel={f.label}
+       options={f.options.map(opt => ({ value: opt.value, label: opt.label }))}
+      />
      ))}
      {tools && hasActiveFilters && (
       <button
@@ -1023,12 +1022,12 @@ export function Modal({title,onClose,children,variant='dialog',badge,footer}:{ti
   </dialog>
  );
 }
-export type Field={name:string,label:string,type?:string,options?:{value:string,label:string}[],required?:boolean,value?:any,warnPast?:boolean,accept?:string,hint?:string};
+export type Field={name:string,label:string,type?:string,options?:{value:string,label:string}[],search?:boolean,required?:boolean,value?:any,warnPast?:boolean,accept?:string,hint?:string};
 export function ActionForm({action,fields,defaults={},submit,method='post',onDone}:{action:string,fields:Field[],defaults?:Row,submit?:string,method?:'post'|'patch',onDone?:()=>void}){
  const translate=useT();
  const {portal,staffActions}=usePage<any>().props;
  const initial:Row={...Object.fromEntries(fields.map(f=>[f.name,f.value??''])),...defaults}; const f=useForm<Row>(initial);
  if((portal==='manage'||portal==='sadmin')&&!actionAllowed(action,staffActions,method))return null;
  const pastField=fields.find(field=>field.warnPast&&isPastBusinessDate(String(f.data[field.name]??'')));
- return <form className="action-form" onSubmit={e=>{e.preventDefault();if(pastField){f.setError(pastField.name,translate('portal','err_stock_expiry_past'));return;}f.clearErrors();f.submit(method,action,{preserveScroll:true,onSuccess:()=>onDone?.()})}}>{fields.map(field=>{const past=field.warnPast&&isPastBusinessDate(String(f.data[field.name]??''));const message=past?translate('portal','err_stock_expiry_past'):(f.errors[field.name]?String(f.errors[field.name]):'');return <label key={field.name}>{field.label}{field.type==='textarea'?<textarea rows={4} value={f.data[field.name]} required={field.required} onChange={e=>f.setData(field.name,e.target.value)}/>:field.type==='file'?<input type="file" accept={field.accept} required={field.required} onChange={e=>f.setData(field.name,e.target.files?.[0]??null)}/>:field.type==='date'?<DateInput value={f.data[field.name]} required={field.required} min={field.warnPast?businessTodayIso():undefined} onChange={e=>f.setData(field.name,e.target.value)}/>:field.options?<select value={String(f.data[field.name])} required={field.required} onChange={e=>f.setData(field.name,e.target.value)}><option value="">{translate('portal','select_placeholder')}</option>{field.options.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select>:<input type={field.type??'text'} value={f.data[field.name]} step={field.type==='number'?'any':undefined} required={field.required} onChange={e=>f.setData(field.name,e.target.value)}/>} {field.hint&&<small className="field-hint">{field.hint}</small>}{message&&<span className="field-error" role="alert">{message}</span>}</label>})}{/* A refusal about something with no box here (such as an email already in use) still shows inside the form. */}<FormErrors errors={f.errors} besideFields={fields.map(field=>field.name)}/><button disabled={f.processing||Boolean(pastField)} className="button dark">{f.processing?translate('portal','saving'):(submit??translate('portal','save_changes'))}<ArrowUpRight size={17}/></button></form>
+ return <form className="action-form" onSubmit={e=>{e.preventDefault();if(pastField){f.setError(pastField.name,translate('portal','err_stock_expiry_past'));return;}f.clearErrors();f.submit(method,action,{preserveScroll:true,onSuccess:()=>onDone?.()})}}>{fields.map(field=>{const past=field.warnPast&&isPastBusinessDate(String(f.data[field.name]??''));const message=past?translate('portal','err_stock_expiry_past'):(f.errors[field.name]?String(f.errors[field.name]):'');return <label key={field.name}>{field.label}{field.type==='textarea'?<textarea rows={4} value={f.data[field.name]} required={field.required} onChange={e=>f.setData(field.name,e.target.value)}/>:field.type==='file'?<input type="file" accept={field.accept} required={field.required} onChange={e=>f.setData(field.name,e.target.files?.[0]??null)}/>:field.type==='date'?<DateInput value={f.data[field.name]} required={field.required} min={field.warnPast?businessTodayIso():undefined} onChange={e=>f.setData(field.name,e.target.value)}/>:field.options?<AutoSelect search={field.search} value={String(f.data[field.name])} required={field.required} onChange={value=>f.setData(field.name,value)} emptyLabel={translate('portal','select_placeholder')} options={field.options.map(o=>({value:o.value,label:o.label}))}/>:<input type={field.type??'text'} value={f.data[field.name]} step={field.type==='number'?'any':undefined} required={field.required} onChange={e=>f.setData(field.name,e.target.value)}/>} {field.hint&&<small className="field-hint">{field.hint}</small>}{message&&<span className="field-error" role="alert">{message}</span>}</label>})}{/* A refusal about something with no box here (such as an email already in use) still shows inside the form. */}<FormErrors errors={f.errors} besideFields={fields.map(field=>field.name)}/><button disabled={f.processing||Boolean(pastField)} className="button dark">{f.processing?translate('portal','saving'):(submit??translate('portal','save_changes'))}<ArrowUpRight size={17}/></button></form>
 }

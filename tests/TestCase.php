@@ -3,6 +3,7 @@
 namespace Tests;
 
 use App\Domain\Auth\LoginCaptcha;
+use App\Domain\Clinic\PrescriptionSettings;
 use App\Domain\Finance\FinancialReadiness;
 use App\Models\PlaceCode;
 use App\Models\User;
@@ -15,6 +16,19 @@ use Illuminate\Testing\TestResponse;
 abstract class TestCase extends BaseTestCase
 {
     private ?string $portalHostOnce = null;
+
+    /**
+     * Turns on the owners' switch for medicines that are not company products, which is off
+     * until an owner turns it on. Tests that type a medicine by hand need it.
+     */
+    protected function allowOtherMedicines(?User $owner = null): void
+    {
+        $settings = app(PrescriptionSettings::class);
+        if ($settings->otherMedicinesAllowed()) {
+            return;
+        }
+        $settings->save($owner ?? User::factory()->staff('super_admin')->create(), true, $settings->otherMedicines()['version']);
+    }
 
     /**
      * Arm financial posting the same way production does: activation plus a

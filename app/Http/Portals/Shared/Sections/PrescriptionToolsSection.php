@@ -6,6 +6,7 @@ use App\Domain\Clinic\ClinicQueue;
 use App\Domain\Clinic\PatientAccessLog;
 use App\Domain\Clinic\PrescriberReport;
 use App\Domain\Clinic\PrescriptionAccess;
+use App\Domain\Clinic\PrescriptionDietTemplates;
 use App\Domain\Clinic\PrescriptionFollowUps;
 use App\Domain\Clinic\PrescriptionTemplates;
 use Carbon\CarbonImmutable;
@@ -22,6 +23,7 @@ final class PrescriptionToolsSection implements WorkspaceSection
         private PrescriberReport $report,
         private PatientAccessLog $accessLog,
         private ClinicQueue $queue,
+        private PrescriptionDietTemplates $dietTemplates,
     ) {}
 
     public function data(SectionContext $context, array $data): array
@@ -36,6 +38,7 @@ final class PrescriptionToolsSection implements WorkspaceSection
 
         return ['prescription_tools' => [
             'templates' => $this->templates->listFor($context->user),
+            'diet_templates' => $this->dietTemplates->listFor($context->user),
             'follow_ups' => $this->followUps->forPrescriber($context->user),
             'access_log' => $this->accessLog->forPrescriber($context->user),
             'queue' => $this->queue->forDay($context->user, SectionDates::optionalDate($context->request->query('queue_date'))),

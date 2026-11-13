@@ -19,6 +19,9 @@ type HistoryRow = {
     complaints: string | null;
     diagnosis: string | null;
     advice: string | null;
+    investigations: string[];
+    foods_allowed: string[];
+    foods_avoided: string[];
     vitals: { label: string; value: string }[];
     total: string;
     lines: HistoryLine[];
@@ -91,17 +94,22 @@ export default function PatientRecord({ record }: { record: PatientRecordData })
                                     {row.vitals.length > 0 && <small>{row.vitals.map((reading) => `${reading.label}: ${reading.value}`).join(' · ')}</small>}
                                     {row.complaints && <small><b>{translate('prescription', 'rx_complaints')}:</b> {row.complaints}</small>}
                                     {row.diagnosis && <small><b>{translate('prescription', 'rx_diagnosis')}:</b> {row.diagnosis}</small>}
-                                    <ol className="rx-card-lines">
-                                        {row.lines.map((line, index) => (
-                                            <li key={index}>
-                                                {line.medicine_name} × {number(line.quantity)}
-                                                <small>{[line.dose_summary, line.dose, line.frequency, line.duration, line.instructions].filter(Boolean).join(' · ')}</small>
-                                            </li>
-                                        ))}
-                                    </ol>
+                                    {row.lines.length > 0 && (
+                                        <ol className="rx-card-lines">
+                                            {row.lines.map((line, index) => (
+                                                <li key={index}>
+                                                    {line.medicine_name} × {number(line.quantity)}
+                                                    <small>{[line.dose_summary, line.dose, line.frequency, line.duration, line.instructions].filter(Boolean).join(' · ')}</small>
+                                                </li>
+                                            ))}
+                                        </ol>
+                                    )}
+                                    {row.investigations.length > 0 && <small><b>{translate('prescription', 'rx_tests')}:</b> {row.investigations.join(', ')}</small>}
+                                    {row.foods_allowed.length > 0 && <small><b>{translate('prescription', 'rx_foods_allowed')}:</b> {row.foods_allowed.join(', ')}</small>}
+                                    {row.foods_avoided.length > 0 && <small><b>{translate('prescription', 'rx_foods_avoided')}:</b> {row.foods_avoided.join(', ')}</small>}
                                     {row.advice && <small><b>{translate('prescription', 'rx_advice')}:</b> {row.advice}</small>}
                                     <div className="rx-card-foot">
-                                        <span>{translate('prescription', 'rx_total')}: <b>{money(row.total)}</b></span>
+                                        {row.lines.length > 0 ? <span>{translate('prescription', 'rx_total')}: <b>{money(row.total)}</b></span> : <span />}
                                         <span className="rx-actions">
                                             <a className="button small" href={`${base}/prescriptions/${row.id}/print?lang=bn`} target="_blank" rel="noopener"><Printer size={15} /> {translate('prescription', 'rx_print_bn')}</a>
                                             <a className="button small" href={`${base}/prescriptions/${row.id}/print?lang=en`} target="_blank" rel="noopener"><Printer size={15} /> {translate('prescription', 'rx_print_en')}</a>

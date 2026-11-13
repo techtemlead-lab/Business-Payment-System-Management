@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { router, useForm } from '@inertiajs/react';
 import { BookmarkPlus, Trash2 } from 'lucide-react';
 import { Empty } from './UI';
+import SearchSelect from './SearchSelect';
 import { useT } from '../shared/i18n/t';
+import type { DietTemplateRow } from './PrescriptionExtras';
 import type { AccessLogRow } from './PatientAccessLogList';
 import type { QueueData } from './ClinicQueueTab';
 import type { LineForm } from './PrescriptionsHub';
@@ -18,6 +20,7 @@ export type TemplateRow = {
     lines: {
         product_id: number | null;
         medicine_name: string;
+        strength?: string | null;
         dose: string | null;
         frequency: string | null;
         duration: string | null;
@@ -36,19 +39,26 @@ export type PrescriptionTools = {
     access_log: AccessLogRow[];
     queue: QueueData;
     templates: TemplateRow[];
+    diet_templates: DietTemplateRow[];
     follow_ups: FollowUpsData;
     report: PrescriberReportData;
 };
 
-/** Turns saved lines into form lines; a product no longer sold is left blank to choose again. */
-export function linesFromSaved(saved: TemplateRow['lines'], products: { id: number }[]): { lines: LineForm[]; productMissing: boolean } {
+/**
+ * Turns saved lines into form lines. A product no longer sold is left blank to choose again; a
+ * medicine typed by hand is left out while the owners do not allow other medicines.
+ */
+export function linesFromSaved(saved: TemplateRow['lines'], products: { id: number }[], otherAllowed: boolean): { lines: LineForm[]; productMissing: boolean; otherDropped: boolean } {
     let productMissing = false;
-    const lines = saved.map((line): LineForm => {
+    const otherDropped = !otherAllowed && saved.some((line) => line.product_id === null);
+    const lines = saved.filter((line) => otherAllowed || line.product_id !== null).map((line): LineForm => {
         const stillSold = line.product_id === null || products.some((product) => product.id === line.product_id);
         productMissing = productMissing || !stillSold;
         return {
+            kind: line.product_id === null ? 'other' : 'product',
             product_id: line.product_id !== null && stillSold ? String(line.product_id) : '',
             medicine_name: line.medicine_name,
+            strength: line.strength ?? '',
             dose: line.dose ?? '',
             frequency: line.frequency ?? '',
             duration: line.duration ?? '',
@@ -62,18 +72,20 @@ export function linesFromSaved(saved: TemplateRow['lines'], products: { id: numb
             discount: Number(line.discount) > 0 ? line.discount : '',
         };
     });
-    return { lines, productMissing };
+    return { lines, productMissing, otherDropped };
 }
 
 /** Fills the new-prescription form from a saved template; nothing is saved until the form is. */
-export function TemplatePicker({ templates, products, isDirty, onApply, translate }: {
+export function TemplatePicker({ templates, products, otherAllowed, isDirty, onApply, translate }: {
     templates: TemplateRow[];
     products: { id: number }[];
+    otherAllowed: boolean;
     isDirty: boolean;
     onApply: (draft: { advice: string; lines: LineForm[] }) => void;
     translate: Translate;
 }) {
     const [productMissing, setProductMissing] = useState(false);
+    const [otherDropped, setOtherDropped] = useState(false);
 
     if (templates.length === 0) {
         return null;
@@ -84,18 +96,22 @@ export function TemplatePicker({ templates, products, isDirty, onApply, translat
         if (!template || (isDirty && !window.confirm(translate('prescription', 'tpl_replace_confirm')))) {
             return;
         }
-        const { lines, productMissing: missing } = linesFromSaved(template.lines, products);
+        const { lines, productMissing: missing, otherDropped: dropped } = linesFromSaved(template.lines, products, otherAllowed);
         setProductMissing(missing);
+        setOtherDropped(dropped);
         onApply({ advice: template.advice ?? '', lines });
     };
 
     return (
         <label>{translate('prescription', 'tpl_start_from')}
-            <select value="" onChange={(e) => apply(e.target.value)}>
-                <option value="">{translate('prescription', 'tpl_choose')}</option>
-                {templates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}
-            </select>
+            <SearchSelect
+                value=""
+                placeholder={translate('prescription', 'tpl_choose')}
+                options={templates.map((template) => ({ value: String(template.id), label: template.name, keywords: template.lines.map((line) => line.medicine_name).join(' ') }))}
+                onChange={(id) => apply(id)}
+            />
             {productMissing && <span className="field-error" role="alert">{translate('prescription', 'tpl_product_gone')}</span>}
+            {otherDropped && <span className="field-error" role="alert">{translate('prescription', 'rx_other_dropped')}</span>}
         </label>
     );
 }

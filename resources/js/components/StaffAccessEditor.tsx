@@ -5,6 +5,7 @@ import type {OfficeHub} from './OfficeHubTabs';
 import OfficePage from './office/OfficePage';
 import {ViewSwitch, currentView} from './office/sections/staffSectionParts';
 import {useT} from '../shared/i18n/t';
+import SearchSelect from './SearchSelect';
 
 const actions = ['view', 'create', 'edit', 'approve'];
 const empty = () => ({view:false,create:false,edit:false,approve:false});
@@ -64,7 +65,7 @@ export default function StaffAccessEditor({modules,staff,roles,presets,hub}:{mod
     return <OfficePage title={translate('office_staff','page_title')} hub={hub}>
         <ViewSwitch views={views} active={view} fallback="staff" label={translate('office_staff','views_label')}/>
         {view==='staff'&&<div className="ops-stack">
-            <label>{translate('portal', 'sa_staff_member')}<select value={staffId} onChange={e=>setStaffId(e.target.value)}><option value="">{translate('portal', 'sa_select_staff')}</option>{staff.map(user=><option key={user.id} value={user.id}>{user.name} · {roles.find(item=>item.key===user.role)?.name??label(user.role, translate)}</option>)}</select></label>
+            <label>{translate('portal', 'sa_staff_member')}<SearchSelect value={staffId} onChange={value=>setStaffId(value)} emptyLabel={translate('portal', 'sa_select_staff')} options={staff.map(user=>({value:String(user.id),label:`${user.name} · ${roles.find(item=>item.key===user.role)?.name??label(user.role, translate)}`}))}/></label>
             {selected&&<PermissionForm key={selected.id+':'+selected.version} modules={modules} entry={selected} mode="staff" roles={[...presets,...roles]}/>}
         </div>}
         {view==='roles'&&<div className="ops-stack">

@@ -128,6 +128,8 @@ class PrescriptionModuleTest extends TestCase
             ->assertRedirect()->assertSessionHasNoErrors();
         $patient = PrescriptionPatient::query()->where('prescriber_id', $dealer->id)->firstOrFail();
         $movementsBefore = DB::table('stock_movements')->count();
+        // Typing a medicine by hand needs the owners' switch (PrescriptionOtherMedicinesTest covers it off).
+        $this->allowOtherMedicines();
 
         $this->actingAs($dealer)->onPortal('dealer')->post('/commands/prescriptions', [
             'patient_id' => $patient->id,
@@ -153,11 +155,15 @@ class PrescriptionModuleTest extends TestCase
         $this->assertSame($movementsBefore, DB::table('stock_movements')->count());
         $this->assertFalse(DB::table('journal_entries')->where('event_key', 'like', 'clinic.%')->exists());
 
-        // A partner may not link a line to a company product.
+        // A partner may pick a company product (owner decision 2026-11-13): the name comes from
+        // the product, the price is the dealer's own, and company stock still stays put.
         $this->actingAs($dealer)->onPortal('dealer')->post('/commands/prescriptions', [
             'patient_id' => $patient->id, 'prescribed_on' => '2026-11-08',
             'lines' => [['product_id' => $product->id, 'medicine_name' => 'X', 'unit_price' => 1, 'quantity' => 1]],
-        ])->assertSessionHasErrors('lines.0.product_id');
+        ])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame($product->name, Prescription::query()->latest('id')->firstOrFail()->lines->sole()->medicine_name);
+        $this->assertSame(20, $product->fresh()->stock);
+        $this->assertSame($movementsBefore, DB::table('stock_movements')->count());
         // The discount can't be bigger than the line.
         $this->actingAs($dealer)->onPortal('dealer')->post('/commands/prescriptions', [
             'patient_id' => $patient->id, 'prescribed_on' => '2026-11-08',

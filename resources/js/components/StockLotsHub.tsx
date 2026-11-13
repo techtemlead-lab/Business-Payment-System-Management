@@ -120,9 +120,9 @@ function Transfers({ data }: { data: Row }) {
             {askingTransfer && (
                 <Modal title={t('transfer_new')} onClose={() => setAskingTransfer(false)}>
                     <ActionForm action="/commands/stock-transfers" submit={t('transfer_request')} onDone={() => setAskingTransfer(false)} fields={[
-                        { name: 'product_id', label: t('col_product'), required: true, options: data.product_options ?? [] },
-                        { name: 'source_branch_id', label: t('col_from'), required: true, options: data.branch_options ?? [] },
-                        { name: 'destination_branch_id', label: t('col_to'), required: true, options: data.branch_options ?? [] },
+                        { name: 'product_id', label: t('col_product'), required: true, search: true, options: data.product_options ?? [] },
+                        { name: 'source_branch_id', label: t('col_from'), required: true, search: true, options: data.branch_options ?? [] },
+                        { name: 'destination_branch_id', label: t('col_to'), required: true, search: true, options: data.branch_options ?? [] },
                         { name: 'quantity', label: t('col_quantity'), type: 'number', required: true },
                         { name: 'note', label: t('transfer_note') },
                     ]} />

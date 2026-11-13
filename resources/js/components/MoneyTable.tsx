@@ -5,6 +5,7 @@ import { useT } from '../shared/i18n/t';
 import { DateInput, FormErrors, Modal, Pagination, money, number, useTableOverflow } from './UI';
 import { MoreFilterControls, filterKeys, isToolbarFilter, optionText, type MoneyFilter, type SortOption } from './MoneyTableFilters';
 import { BulkBar, type BulkKind } from './OfficeListTools';
+import { AutoSelect } from './SearchSelect';
 
 export type MoneyColumn<T> = {
     key: string;
@@ -279,10 +280,14 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
     };
 
     const filterSelect = (filter: MoneyFilter) => (
-        <select aria-label={filter.label} value={state.filters[filter.key] ?? ''} onChange={(event) => visit({ [filter.key]: event.target.value || null })}>
-            <option value="">{filter.label}</option>
-            {filter.options?.map((option) => <option key={option.value} value={option.value}>{optionText(option)}</option>)}
-        </select>
+        <AutoSelect
+            className="ss-filter"
+            ariaLabel={filter.label}
+            value={state.filters[filter.key] ?? ''}
+            onChange={(value) => visit({ [filter.key]: value || null })}
+            emptyLabel={filter.label}
+            options={(filter.options ?? []).map((option) => ({ value: option.value, label: optionText(option) }))}
+        />
     );
 
     const rowId = (row: T): string => String((row as Record<string, unknown>).id);

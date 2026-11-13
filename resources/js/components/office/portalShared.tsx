@@ -3,6 +3,7 @@ import {Link,router,usePage} from '@inertiajs/react';
 import {Search,ShieldCheck} from 'lucide-react';
 import {Row,Field,Badge,money,number,label,DateInput} from '../UI';
 import {useT} from '../../shared/i18n/t';
+import {AutoSelect} from '../SearchSelect';
 /** Placeholder shown for the moment an office screen is being fetched. */
 export function SectionLoading(){const translate=useT();return <div className="section-loading" role="status" aria-live="polite"><span className="section-loading-bar"/><span className="section-loading-bar short"/><span className="section-loading-block"/><span className="sr-only">{translate('portal','loading')}</span></div>;}
 export type TranslateFn=(group:string,key:string,replace?:Record<string,string>)=>string;
@@ -131,13 +132,13 @@ export function stockMovementsExportHref(filters:Row|undefined):string{
 export function stockMovementSelects(d:Row,translate:TranslateFn):FilterSelect[]{
  const products=[...new Map((d.products??[]).map((product:Row)=>[String(product.id),product.sku?`${product.name} (${product.sku})`:String(product.name)])).entries()];
  return [
-  ...(d.branch_scope?.view==='all'&&(d.branches??[]).length>1?[{name:'branch_id',label:translate('portal','inv_filter_branch'),options:(d.branches??[]).map((branch:Row)=>({value:String(branch.id),label:branch.name||branch.code}))}]:[]),
-  {name:'product_id',label:translate('portal','inv_filter_product'),options:products.map(([value,text])=>({value,label:String(text)}))},
+  ...(d.branch_scope?.view==='all'&&(d.branches??[]).length>1?[{name:'branch_id',label:translate('portal','inv_filter_branch'),search:true,options:(d.branches??[]).map((branch:Row)=>({value:String(branch.id),label:branch.name||branch.code}))}]:[]),
+  {name:'product_id',label:translate('portal','inv_filter_product'),search:true,options:products.map(([value,text])=>({value,label:String(text)}))},
   {name:'movement',label:translate('portal','inv_filter_movement'),options:(d.movement_kinds??[]).map((kind:string)=>({value:kind,label:stockKindLabel(kind,translate)}))},
  ];
 }
 /** An extra server filter drop-down in the filter bar; its value lives in the URL like the search. */
-export type FilterSelect={name:string,label:string,options:{value:string,label:string}[],resets?:string[]};
+export type FilterSelect={name:string,label:string,options:{value:string,label:string}[],resets?:string[],search?:boolean};
 export function Filter({section,filters,actions,selects=[]}:{section:string,filters:Row,actions?:React.ReactNode,selects?:FilterSelect[]}){
  const translate=useT();
  const {portalBase:base,portal}=usePage<any>().props;
@@ -191,7 +192,7 @@ export function Filter({section,filters,actions,selects=[]}:{section:string,filt
   {staff&&['orders','payments','withdrawals'].includes(section)&&<select className="order-partner-select" data-tour="orders-buyer-role" aria-label={translate('portal','orders_filter_all')} value={buyerRole} onChange={e=>apply({buyer_role:e.target.value})}><option value="">{translate('portal','orders_filter_all')}</option><option value="dealer">{section==='withdrawals'?translate('portal','wd_filter_dealers'):translate('portal','orders_filter_dealers')}</option><option value="sub_dealer">{section==='withdrawals'?translate('portal','wd_filter_sub_dealers'):translate('portal','orders_filter_sub_dealers')}</option></select>}
   {showListFilters&&!isAccountSection&&<select className="order-period-select" data-tour="orders-period" aria-label={translate('portal','orders_period_all')} value={periodChoice} onChange={e=>{const next=e.target.value;setPeriodChoice(next);apply({period:next});}}>{periods.map(option=><option key={option.value||'all-dates'} value={option.value}>{option.label}</option>)}</select>}
   {showListFilters&&!['orders','payments','withdrawals','accounts','sub-dealers','ledger','audit','inventory'].includes(section)&&<select className="order-status-select" aria-label={translate('portal','orders_filter_status')} value={status} onChange={e=>apply({status:e.target.value})}><option value="">{translate('portal','orders_filter_status')}</option>{statusChoices.map(item=><option key={item} value={item}>{label(item,translate)}</option>)}</select>}
-  {selects.map(select=><select key={select.name} className="order-extra-select" aria-label={select.label} value={String(filters[select.name]??'')} onChange={e=>apply({[select.name]:e.target.value,...Object.fromEntries((select.resets??[]).map(name=>[name,'']))})}><option value="">{select.label}</option>{select.options.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select>)}
+  {selects.map(select=><AutoSelect key={select.name} search={select.search} className="order-extra-select ss-filter" ariaLabel={select.label} value={String(filters[select.name]??'')} onChange={value=>apply({[select.name]:value,...Object.fromEntries((select.resets??[]).map(name=>[name,'']))})} emptyLabel={select.label} options={select.options.map(option=>({value:option.value,label:option.label}))}/>)}
   {showListFilters&&periodChoice==='day'&&<div className="order-dates"><DateInput aria-label={translate('portal','orders_period_day')} value={from} onChange={e=>{setFrom(e.target.value);if(/^\d{4}-\d{2}-\d{2}$/.test(e.target.value))apply({period:'day',from:e.target.value});}}/></div>}
   {showListFilters&&periodChoice==='custom'&&<div className="order-dates"><DateInput aria-label={translate('portal','orders_period_custom')} value={from} onChange={e=>{setFrom(e.target.value);if(/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)&&/^\d{4}-\d{2}-\d{2}$/.test(to))apply({period:'custom',from:e.target.value,to});}}/><DateInput aria-label={translate('portal','orders_period_custom')} value={to} onChange={e=>{setTo(e.target.value);if(/^\d{4}-\d{2}-\d{2}$/.test(from)&&/^\d{4}-\d{2}-\d{2}$/.test(e.target.value))apply({period:'custom',from,to:e.target.value});}}/></div>}
   {(filtered||actions)&&<div className="order-filter-actions">{filtered&&<Link href={`${base}/${section}`} className="text-link" preserveState={false}>{translate('portal','clear')}</Link>}{actions}</div>}

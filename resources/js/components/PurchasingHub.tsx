@@ -7,6 +7,7 @@ import OfficePage from './office/OfficePage';
 import { currentView, DrawerLines, StaffActionDialog, ViewSwitch, type StaffAction } from './office/sections/staffSectionParts';
 import { useT } from '../shared/i18n/t';
 import { randomUuid } from '../shared/randomUuid';
+import SearchSelect from './SearchSelect';
 
 type PurchasingView = 'orders' | 'suppliers' | 'archived';
 
@@ -53,26 +54,35 @@ function NewOrderForm({ data, onDone }: { data: PurchasingData; onDone: () => vo
             <FormErrors errors={form.errors} />
             <label>
                 {text('supplier')}
-                <select required value={form.data.supplier_id} onChange={(event) => form.setData('supplier_id', event.target.value)}>
-                    <option value="">{translate('portal', 'select_placeholder')}</option>
-                    {data.suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
-                </select>
+                <SearchSelect
+                    required
+                    value={form.data.supplier_id}
+                    onChange={(value) => form.setData('supplier_id', value)}
+                    emptyLabel={translate('portal', 'select_placeholder')}
+                    options={data.suppliers.map((supplier) => ({ value: String(supplier.id), label: String(supplier.name) }))}
+                />
             </label>
             <label>
                 {text('receiving_branch')}
-                <select required value={form.data.branch_id} onChange={(event) => form.setData('branch_id', event.target.value)}>
-                    <option value="">{translate('portal', 'select_placeholder')}</option>
-                    {data.branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.code} · {branch.name}</option>)}
-                </select>
+                <SearchSelect
+                    required
+                    value={form.data.branch_id}
+                    onChange={(value) => form.setData('branch_id', value)}
+                    emptyLabel={translate('portal', 'select_placeholder')}
+                    options={data.branches.map((branch) => ({ value: String(branch.id), label: `${branch.code} · ${branch.name}` }))}
+                />
             </label>
             {form.data.lines.map((line, index) => (
                 <div className="ops-row is-wrap" key={index}>
                     <label style={{ flex: '1 1 16rem' }}>
                         {text('product')}
-                        <select required value={line.product_id} onChange={(event) => setLine(index, 'product_id', event.target.value)}>
-                            <option value="">{translate('portal', 'select_placeholder')}</option>
-                            {data.products.map((product) => <option key={product.id} value={product.id}>{product.sku} · {product.name}</option>)}
-                        </select>
+                        <SearchSelect
+                            required
+                            value={line.product_id}
+                            onChange={(value) => setLine(index, 'product_id', value)}
+                            emptyLabel={translate('portal', 'select_placeholder')}
+                            options={data.products.map((product) => ({ value: String(product.id), label: `${product.sku} · ${product.name}` }))}
+                        />
                     </label>
                     <label style={{ flex: '0 1 8rem' }}>
                         {text('quantity')}

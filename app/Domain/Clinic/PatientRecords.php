@@ -77,10 +77,14 @@ final class PatientRecords
                 'complaints' => $prescription->complaints,
                 'diagnosis' => $prescription->diagnosis,
                 'advice' => $prescription->advice,
+                'investigations' => $prescription->investigations ?? [],
+                'foods_allowed' => $prescription->foods_allowed ?? [],
+                'foods_avoided' => $prescription->foods_avoided ?? [],
                 'vitals' => Vitals::lines($prescription->vitals, app()->getLocale()),
                 'total' => $prescription->total,
                 'lines' => $prescription->lines->map(fn (PrescriptionLine $line): array => [
                     'medicine_name' => $line->medicine_name,
+                    'strength' => $line->strength,
                     'dose' => $line->dose,
                     'frequency' => $line->frequency,
                     'duration' => $line->duration,
@@ -95,10 +99,11 @@ final class PatientRecords
 
     /**
      * The newest prescription as a draft for the new-prescription form. Nothing is saved until
-     * the form is, and PrescriptionBook checks and prices it again then. Complaints are left
-     * out on purpose: they belong to today's visit.
+     * the form is, and PrescriptionBook checks and prices it again then. Complaints and tests
+     * are left out on purpose: they belong to one visit. The food lists are kept, because a
+     * diet usually goes on.
      *
-     * @return array{patient: array{id: int, name: string, age: int|null, allergies: string|null}, draft: array{number: string, prescribed_on: string, diagnosis: string|null, advice: string|null, lines: list<array<string, mixed>>}|null}
+     * @return array{patient: array{id: int, name: string, age: int|null, allergies: string|null}, draft: array{number: string, prescribed_on: string, diagnosis: string|null, advice: string|null, foods_allowed: list<string>, foods_avoided: list<string>, lines: list<array<string, mixed>>}|null}
      */
     public function repeatDraft(User $viewer, PrescriptionPatient $patient): array
     {
@@ -112,6 +117,8 @@ final class PatientRecords
                 'prescribed_on' => $last->prescribed_on->toDateString(),
                 'diagnosis' => $last->diagnosis,
                 'advice' => $last->advice,
+                'foods_allowed' => $last->foods_allowed ?? [],
+                'foods_avoided' => $last->foods_avoided ?? [],
                 'lines' => $last->lines->map(fn (PrescriptionLine $line): array => $line->toDraft())->values()->all(),
             ],
         ];

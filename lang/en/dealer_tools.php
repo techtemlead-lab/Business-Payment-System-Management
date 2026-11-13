@@ -113,7 +113,7 @@ return [
     'scheme_title_field' => 'Scheme name',
     'scheme_starts' => 'Starts',
     'scheme_ends' => 'Ends',
-    'scheme_products' => 'Products (hold Ctrl to pick more than one)',
+    'scheme_products' => 'Products (tick as many as you need)',
     'scheme_min_field' => 'Minimum quantity',
     'scheme_type_field' => 'Benefit type',
     'scheme_benefit_field' => 'What the partner gets (shown as written)',

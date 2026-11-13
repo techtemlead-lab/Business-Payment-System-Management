@@ -6,13 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * One medicine on a prescription. `product_id` and `mrp` are set only on clinic
- * prescriptions; partner lines are typed by hand and never linked to stock.
+ * One medicine on a prescription. A line with a `product_id` is a company product; a line
+ * without one was typed by hand, which the owners' switch (PrescriptionSettings) must allow.
+ * `mrp` is set only on a clinic prescription's product lines, the only lines that leave stock.
  *
  * @property int $id
  * @property int $prescription_id
  * @property int|null $product_id
  * @property string $medicine_name
+ * @property string|null $strength
  * @property string|null $dose
  * @property string|null $frequency
  * @property string|null $duration
@@ -33,7 +35,7 @@ class PrescriptionLine extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'prescription_id', 'product_id', 'medicine_name', 'dose', 'frequency', 'duration', 'instructions',
+        'prescription_id', 'product_id', 'medicine_name', 'strength', 'dose', 'frequency', 'duration', 'instructions',
         'unit_price', 'quantity', 'discount', 'line_total', 'mrp', 'position',
         'dose_schedule', 'food_timing', 'duration_count', 'duration_unit',
     ];
@@ -62,6 +64,7 @@ class PrescriptionLine extends Model
         return [
             'product_id' => $this->product_id,
             'medicine_name' => $this->medicine_name,
+            'strength' => $this->strength,
             'dose' => $this->dose,
             'frequency' => $this->frequency,
             'duration' => $this->duration,

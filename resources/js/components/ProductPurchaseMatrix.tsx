@@ -10,6 +10,7 @@ import { randomUuid } from '../shared/randomUuid';
 import RepeatOrderPanel, { repeatChangeNotes, type RepeatOption } from './dealertools/RepeatOrderPanel';
 import SchemeNotices, { type RunningScheme } from './dealertools/SchemeNotices';
 import { choiceName, sizesByGroup } from '../shared/productSizes';
+import SearchSelect from './SearchSelect';
 
 interface Props {
     products: Row[];
@@ -492,17 +493,14 @@ export default function ProductPurchaseMatrix({
                             <label className="ops-field-label">
                                 {translate('portal', 'b2b_step_category')}
                             </label>
-                            <select
+                            <SearchSelect
                                 required
                                 value={selectedCategory}
-                                onChange={e => handleCategoryChange(e.target.value)}
+                                onChange={(value) => handleCategoryChange(value)}
                                 className="ppm-control"
-                            >
-                                <option value="">{translate('portal', 'b2b_select_category_first')}</option>
-                                {availableCategories.map(cat => (
-                                    <option key={cat} value={cat}>{cat}</option>
-                                ))}
-                            </select>
+                                emptyLabel={translate('portal', 'b2b_select_category_first')}
+                                options={availableCategories.map(cat => ({ value: cat, label: cat }))}
+                            />
                         </div>
 
                         {/* Step 2: Sub-Category */}
@@ -510,16 +508,13 @@ export default function ProductPurchaseMatrix({
                             <label className="ops-field-label">
                                 {translate('portal', 'b2b_step_subcategory')}
                             </label>
-                            <select
+                            <SearchSelect
                                 value={selectedSubCategory}
-                                onChange={e => handleSubCategoryChange(e.target.value)}
+                                onChange={(value) => handleSubCategoryChange(value)}
                                 className="ppm-control"
-                            >
-                                <option value="">{translate('portal', 'b2b_all_subcategories')}</option>
-                                {availableSubCategories.map(sub => (
-                                    <option key={sub} value={sub}>{sub}</option>
-                                ))}
-                            </select>
+                                emptyLabel={translate('portal', 'b2b_all_subcategories')}
+                                options={availableSubCategories.map(sub => ({ value: sub, label: sub }))}
+                            />
                         </div>
 
                         {/* Step 3: Product Name */}
@@ -527,18 +522,15 @@ export default function ProductPurchaseMatrix({
                             <label className="ops-field-label">
                                 {translate('portal', 'b2b_step_product')}
                             </label>
-                            <select
+                            <SearchSelect
                                 required
                                 value={selectedProductName}
-                                onChange={e => handleProductNameChange(e.target.value)}
+                                onChange={(value) => handleProductNameChange(value)}
                                 disabled={!selectedCategory || availableProductNames.length === 0}
                                 className="ppm-control"
-                            >
-                                <option value="">{translate('portal', 'b2b_select_product_first')}</option>
-                                {availableProductNames.map(name => (
-                                    <option key={name} value={name}>{name}</option>
-                                ))}
-                            </select>
+                                emptyLabel={translate('portal', 'b2b_select_product_first')}
+                                options={availableProductNames.map(name => ({ value: name, label: name }))}
+                            />
                         </div>
 
                         {/* Step 4: Strength / Measure / Variant */}
