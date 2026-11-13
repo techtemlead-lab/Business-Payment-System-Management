@@ -4,9 +4,10 @@ import { Empty, FormErrors, Modal, Table, label, type Row, type TableProps } fro
 import { randomUuid } from '../../../shared/randomUuid';
 import { useT } from '../../../shared/i18n/t';
 import { usePlacedFields, type ReasonPlace } from '../../../shared/reasonFields';
+import { AutoSelect } from '../../SearchSelect';
 
 export type StaffFieldOption = { value: string; label: string; channel?: string };
-export type StaffField = { name: string; label: string; type?: string; options?: StaffFieldOption[]; required?: boolean; value?: string; place?: ReasonPlace };
+export type StaffField = { name: string; label: string; type?: string; options?: StaffFieldOption[]; search?: boolean; required?: boolean; value?: string; place?: ReasonPlace };
 export type StaffAction = { title: string; action: string; fields: StaffField[]; defaults?: Row };
 export type StaffTableFilter = { searchable?: boolean; statuses?: string[]; q?: string; status?: string };
 export type StaffSectionTable = { key: string; page: Row & { data: Row[]; total?: number; last_page?: number }; filter?: StaffTableFilter };
@@ -21,6 +22,8 @@ export const pickField = (rows: Row[], name: string, title: string, required = t
     name,
     label: title,
     required,
+    // People and products are searched; the few company payment accounts stay a plain list.
+    search: name !== 'payment_account_id',
     options: rows.map((row) => ({ value: String(row.id), label: row.dealer_code ? `${row.name} · ${row.dealer_code}` : (row.name ?? `${row.label} · ${row.channel} · ${row.account_number}`) })),
 });
 
@@ -196,10 +199,14 @@ export function StaffActionForm({ title, action, fields, defaults = {}, onDone, 
                     <label key={field.name}>
                         {field.label}
                         {choices ? (
-                            <select required={field.required} value={String(value)} onChange={(event) => change(field.name, event.target.value)}>
-                                <option value="">{translate('portal', 'ops_fld_select')}</option>
-                                {choices.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                            </select>
+                            <AutoSelect
+                                search={field.search}
+                                required={field.required}
+                                value={String(value)}
+                                onChange={(picked) => change(field.name, picked)}
+                                emptyLabel={translate('portal', 'ops_fld_select')}
+                                options={choices.map((option) => ({ value: option.value, label: option.label }))}
+                            />
                         ) : field.type === 'textarea' ? (
                             <textarea rows={3} required={field.required} value={value} onChange={(event) => change(field.name, event.target.value)} />
                         ) : field.type === 'file' ? (

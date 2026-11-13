@@ -24,6 +24,9 @@ use Illuminate\Support\Carbon;
  * @property string|null $diagnosis
  * @property string|null $advice
  * @property array<string, string>|null $vitals
+ * @property list<string>|null $investigations
+ * @property list<string>|null $foods_allowed
+ * @property list<string>|null $foods_avoided
  * @property Carbon|null $follow_up_on
  * @property string $subtotal
  * @property string $discount_total
@@ -58,6 +61,7 @@ class Prescription extends Model
 
     protected $fillable = [
         'number', 'kind', 'prescriber_id', 'patient_id', 'prescribed_on', 'complaints', 'diagnosis', 'advice', 'vitals', 'follow_up_on',
+        'investigations', 'foods_allowed', 'foods_avoided',
         'subtotal', 'discount_total', 'total', 'status', 'branch_id', 'mrp_total', 'manufacturer_share', 'clinic_fund',
         'dispensed_by', 'dispensed_at', 'payment_method', 'payment_reference',
     ];
@@ -70,6 +74,9 @@ class Prescription extends Model
             'diagnosis' => 'encrypted',
             'advice' => 'encrypted',
             'vitals' => 'encrypted:array',
+            'investigations' => 'encrypted:array',
+            'foods_allowed' => 'encrypted:array',
+            'foods_avoided' => 'encrypted:array',
             'prescribed_on' => 'date',
             'follow_up_on' => 'date',
             'dispensed_at' => 'datetime',

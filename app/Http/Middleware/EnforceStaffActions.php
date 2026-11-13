@@ -117,6 +117,10 @@ class EnforceStaffActions
             // Only owners decide which reason and note boxes are asked; the controller checks again.
             return $next($request);
         }
+        if ($controller === 'PrescriptionSettingsController' && PrescriptionAccess::isOwnerDoctor($actor)) {
+            // Only the owner's own account allows or stops medicines that are not company products; the controller checks again.
+            return $next($request);
+        }
         if ($controller === 'DataCleanupController' && $actor->owner()) {
             // Only owners delete old login codes, SMS records and closed enquiries; the controller checks again.
             return $next($request);

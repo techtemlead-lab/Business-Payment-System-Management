@@ -3,6 +3,7 @@ import { DateInput, FormErrors, Modal, money, type Row } from '../UI';
 import { useT } from '../../shared/i18n/t';
 import { useReasonField } from '../../shared/reasonFields';
 import { randomUuid } from '../../shared/randomUuid';
+import SearchSelect from '../SearchSelect';
 import { businessTodayIso } from '../../business-date';
 import type { FundCardData } from './FundCard';
 
@@ -37,10 +38,13 @@ export default function FundSpendForm({ card, spend, onClose }: { card: FundCard
                 <p className="muted">{translate('funds', 'form_available', { amount: money(spend.available) })}</p>
                 {card.key === 'tour' && <p className="muted">{translate('funds', 'tour_rule')}</p>}
                 <label>{translate('funds', 'fld_head')}
-                    <select required value={form.data.expense_head_id} onChange={(event) => form.setData('expense_head_id', event.target.value)}>
-                        <option value="">{translate('funds', 'choose_head')}</option>
-                        {usableHeads.map((head) => <option key={head.id} value={head.id}>{headName(head)}</option>)}
-                    </select>
+                    <SearchSelect
+                        required
+                        value={form.data.expense_head_id}
+                        onChange={(value) => form.setData('expense_head_id', value)}
+                        emptyLabel={translate('funds', 'choose_head')}
+                        options={usableHeads.map((head) => ({ value: String(head.id), label: headName(head) }))}
+                    />
                 </label>
                 <label>{translate('funds', 'fld_amount')}<input required inputMode="decimal" value={form.data.amount} onChange={(event) => form.setData('amount', event.target.value)} /></label>
                 <label>{translate('funds', 'fld_date')}<DateInput required value={form.data.spent_on} onChange={(event) => form.setData('spent_on', event.target.value)} /></label>

@@ -6,6 +6,7 @@ import { Badge, Modal, Table, Pagination, label, money, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
 import { useReasonField } from '../shared/reasonFields';
 import { toLatin } from '../shared/countUp';
+import SearchSelect from './SearchSelect';
 
 interface BranchStaff {
     user_id: number;
@@ -374,12 +375,13 @@ export default function BranchesHub({
                     >
                         <label className="full">
                             {translate('portal', 'branch_staff_member')}
-                            <select value={assignForm.data.user_id} onChange={(e) => assignForm.setData('user_id', e.target.value)} required>
-                                <option value="">{translate('portal', 'branch_pick_staff')}</option>
-                                {assignable_staff.map((staff) => (
-                                    <option key={staff.id} value={staff.id}>{staff.name} · {staff.role_name || label(staff.role, translate)}</option>
-                                ))}
-                            </select>
+                            <SearchSelect
+                                value={String(assignForm.data.user_id)}
+                                onChange={(value) => assignForm.setData('user_id', value)}
+                                required
+                                emptyLabel={translate('portal', 'branch_pick_staff')}
+                                options={assignable_staff.map((staff) => ({ value: String(staff.id), label: `${staff.name} · ${staff.role_name || label(staff.role, translate)}` }))}
+                            />
                         </label>
                         <label>
                             {translate('portal', 'branch_duty')}

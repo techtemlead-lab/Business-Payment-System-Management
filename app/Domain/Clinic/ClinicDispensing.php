@@ -72,7 +72,8 @@ final class ClinicDispensing
 
     /**
      * The manufacturer share and clinic fund for a clinic prescription, and the lines priced
-     * below 30% of their MRP.
+     * below 30% of their MRP. Only company products count: a medicine typed by hand is not
+     * sold by the clinic.
      *
      * @return array{price: int, mrp: int, manufacturer: int, clinic: int, below_floor: list<string>}
      */
@@ -82,7 +83,8 @@ final class ClinicDispensing
         $price = 0;
         $mrp = 0;
         $below = [];
-        foreach ($prescription->lines as $line) {
+        $sold = $prescription->lines->whereNotNull('product_id');
+        foreach ($sold as $line) {
             $lineMrp = Money::cents((string) ($line->mrp ?? '0.00')) * (int) $line->quantity;
             $linePrice = Money::cents((string) $line->line_total);
             if ($linePrice < $percent->of($lineMrp, 'half_up')) {
@@ -93,7 +95,7 @@ final class ClinicDispensing
         }
         $manufacturer = $percent->of($mrp, 'half_up');
         if ($below === [] && $price < $manufacturer) {
-            $below = $prescription->lines->pluck('medicine_name')->all();
+            $below = $sold->pluck('medicine_name')->values()->all();
         }
 
         return ['price' => $price, 'mrp' => $mrp, 'manufacturer' => $manufacturer, 'clinic' => $price - $manufacturer, 'below_floor' => $below];
@@ -119,9 +121,15 @@ final class ClinicDispensing
                 throw ValidationException::withMessages(['prescription' => __('prescription.err_already_dispensed')]);
             }
             $locked->load('lines');
+            // Only company products leave stock; a medicine typed by hand is bought elsewhere.
+            $stockLines = $locked->lines->whereNotNull('product_id');
+            if ($stockLines->isEmpty()) {
+                // Tests, foods, advice or hand-typed medicines only: no stock to take out and no sale to post.
+                throw ValidationException::withMessages(['prescription' => __('prescription.err_nothing_to_dispense')]);
+            }
             $split = $this->split($locked);
             $overridden = self::enforcePriceFloor($actor, $split['below_floor'], $confirmBelowFloor, 'prices');
-            foreach ($locked->lines as $line) {
+            foreach ($stockLines as $line) {
                 $this->branches->adjustStockForClinicDispense($actor, [
                     'product_id' => (int) $line->product_id,
                     'quantity' => (int) $line->quantity,

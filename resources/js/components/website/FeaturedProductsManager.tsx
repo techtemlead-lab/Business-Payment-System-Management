@@ -1,6 +1,7 @@
 import React from 'react';
 import { Package, Plus, Trash2 } from 'lucide-react';
 import { Field } from './formFields';
+import SearchSelect from '../SearchSelect';
 import { useT } from '../../shared/i18n/t';
 import type { FeaturedProductItem, CustomizationData } from './types';
 
@@ -220,18 +221,16 @@ export function FeaturedProductsManager({
                                             <span className="ed-label">
                                                 {translate('portal', 'sce_select_product', { n: String(idx + 1) })}
                                             </span>
-                                            <select
-                                                value={item.product_id}
-                                                onChange={e => handleUpdateItem(idx, { product_id: e.target.value })}
+                                            <SearchSelect
+                                                value={item.product_id ? String(item.product_id) : ''}
+                                                onChange={(value) => handleUpdateItem(idx, { product_id: value })}
                                                 className="ed-input is-sm"
-                                            >
-                                                <option value="">{translate('portal', 'sce_choose_product')}</option>
-                                                {products.map(p => (
-                                                    <option key={p.id} value={p.id}>
-                                                        {p.name} [{p.category}] — {translate('portal', 'sce_amount_tk', { amount: String(p.mrp) })} {p.stock !== undefined ? translate('portal', 'sce_stock_label', { count: String(p.stock) }) : ''}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                                emptyLabel={translate('portal', 'sce_choose_product')}
+                                                options={products.map(p => ({
+                                                    value: String(p.id),
+                                                    label: `${p.name} [${p.category}] — ${translate('portal', 'sce_amount_tk', { amount: String(p.mrp) })} ${p.stock !== undefined ? translate('portal', 'sce_stock_label', { count: String(p.stock) }) : ''}`,
+                                                }))}
+                                            />
                                         </label>
 
                                         {/* Marketing Badge */}

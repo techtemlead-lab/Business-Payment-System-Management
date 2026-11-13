@@ -6,6 +6,7 @@ import { useT } from '../shared/i18n/t';
 import { suggestSku } from '../shared/sku';
 import { useProductPhotoFit } from '../shared/productPhotoFit';
 import ProductPhotoCutout from './ProductPhotoCutout';
+import SearchSelect from './SearchSelect';
 import ProductPhotoFitNote from './ProductPhotoFitNote';
 
 type CatalogSubcategory = { id: number; name: string; is_active?: boolean };
@@ -313,10 +314,13 @@ export default function ProductCreateModal({
     ) => (
         <label className="pcm-field">
             <span>{label}</span>
-            <select value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)}>
-                <option value="">{translate('portal', 'pcm_select')}</option>
-                {options.map((option) => <option key={option.id} value={String(option.id)}>{option.name}</option>)}
-            </select>
+            <SearchSelect
+                value={value}
+                disabled={disabled}
+                onChange={(next) => onChange(next)}
+                emptyLabel={translate('portal', 'pcm_select')}
+                options={options.map((option) => ({ value: String(option.id), label: option.name }))}
+            />
             <span className="pcm-create">
                 <input
                     value={drafts[target]}

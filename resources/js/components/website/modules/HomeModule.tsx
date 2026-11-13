@@ -17,7 +17,7 @@ export default function HomeModule({ form, defaults, products, updateField, upda
     const galleryOn = form.data.customization.video_gallery_enabled !== '0';
     const homepageFields: ActionField[] = [
         { name: 'enabled', label: translate('portal', 'ops_fld_show_video'), required: true, options: ['1', '0'].map((value) => ({ value, label: yesNo(value) })) },
-        { name: 'product_id', label: translate('portal', 'ops_fld_product_video'), required: false, options: videoProducts.map((product) => ({ value: String(product.id), label: product.name })) },
+        { name: 'product_id', label: translate('portal', 'ops_fld_product_video'), required: false, search: true, options: videoProducts.map((product) => ({ value: String(product.id), label: product.name })) },
         { name: 'title', label: translate('portal', 'ops_fld_section_title'), required: true },
         { name: 'description', label: translate('portal', 'ops_fld_introduction'), type: 'textarea', required: false },
         { name: 'reason', label: translate('portal', 'ops_fld_reason'), type: 'textarea', required: true, place: 'settings.homepage_video' },

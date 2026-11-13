@@ -2,6 +2,7 @@ import { useForm } from '@inertiajs/react';
 import type { Row } from '../../UI';
 import { useT } from '../../../shared/i18n/t';
 import { usePlacedFields, type ReasonPlace } from '../../../shared/reasonFields';
+import { AutoSelect } from '../../SearchSelect';
 
 export type SettingsField = {
     name: string;
@@ -49,10 +50,13 @@ export default function SettingsForm({ action, fields, defaults = {}, submitLabe
                 return (
                     <label key={field.name}>{field.label}
                         {field.options ? (
-                            <select required={field.required} value={String(value)} onChange={(event) => form.setData(field.name, event.target.value)}>
-                                <option value="">{translate('portal', 'ops_fld_select')}</option>
-                                {field.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                            </select>
+                            <AutoSelect
+                                required={field.required}
+                                value={String(value)}
+                                onChange={(picked) => form.setData(field.name, picked)}
+                                emptyLabel={translate('portal', 'ops_fld_select')}
+                                options={field.options.map((option) => ({ value: option.value, label: option.label }))}
+                            />
                         ) : field.type === 'textarea' ? (
                             <textarea rows={3} required={field.required} value={value} onChange={(event) => form.setData(field.name, event.target.value)} />
                         ) : field.type === 'file' ? (

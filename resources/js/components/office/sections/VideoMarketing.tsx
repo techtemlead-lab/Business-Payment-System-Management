@@ -20,7 +20,7 @@ export default function VideoMarketing({ hub, managedOnWebsite, videoSetting, vi
     const yesOrNo = (value: string): string => translate('portal', value === '1' ? 'yes' : 'no');
     const fields: Field[] = [
         { name: 'enabled', label: translate('portal', 'ops_fld_show_video'), required: true, options: ['1', '0'].map((value) => ({ value, label: yesOrNo(value) })) },
-        { name: 'product_id', label: translate('portal', 'ops_fld_product_video'), required: false, hint: translate('portal', videoProducts.length === 0 ? 'ops_no_product_videos' : 'ops_promote_video_hide'), options: videoProducts.map((product) => ({ value: String(product.id), label: product.name })) },
+        { name: 'product_id', label: translate('portal', 'ops_fld_product_video'), required: false, search: true, hint: translate('portal', videoProducts.length === 0 ? 'ops_no_product_videos' : 'ops_promote_video_hide'), options: videoProducts.map((product) => ({ value: String(product.id), label: product.name })) },
         { name: 'title', label: translate('portal', 'ops_fld_section_title'), required: true },
         { name: 'description', label: translate('portal', 'ops_fld_introduction'), type: 'textarea', required: false },
         { name: 'reason', label: translate('portal', 'ops_fld_reason'), type: 'textarea', required: true, place: 'settings.homepage_video' },

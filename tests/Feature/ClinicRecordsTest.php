@@ -143,6 +143,9 @@ class ClinicRecordsTest extends TestCase
      */
     private function writePrescription(PrescriptionPatient $patient, array $line = [], array $extra = []): TestResponse
     {
+        // The line is typed by hand, which needs the owners' switch.
+        $this->allowOtherMedicines();
+
         return $this->actingAs($this->prescriber)->onPortal('dealer')->post('/commands/prescriptions', [
             'patient_id' => $patient->id,
             'prescribed_on' => '2026-11-08',

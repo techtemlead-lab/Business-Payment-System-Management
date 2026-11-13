@@ -8,6 +8,7 @@ use App\Domain\Clinic\PatientRecords;
 use App\Domain\Clinic\PrescriberVerification;
 use App\Domain\Clinic\PrescriptionAccess;
 use App\Domain\Clinic\PrescriptionBook;
+use App\Domain\Clinic\PrescriptionLists;
 use App\Domain\Clinic\Vitals;
 use App\Models\PlaceCode;
 use App\Models\PrescriberRegistration;
@@ -48,19 +49,29 @@ class PrescriptionController extends Controller
     public function store(Request $request): RedirectResponse
     {
         abort_unless(PrescriptionAccess::canPrescribe($request->user()), 403);
-        $clinic = PrescriptionAccess::usesCompanyStock($request->user());
         $data = $request->validate([
             ClinicDispensing::ConfirmBelowFloorField => 'nullable|boolean',
-            'patient_id' => 'required|integer',
+            // Either one of the prescriber's own patients, or a new patient saved by the same request.
+            'patient_id' => 'required_without:new_patient|nullable|integer|prohibits:new_patient',
+            'new_patient' => 'nullable|array',
+            // Only when a new patient is sent: "accepted" would otherwise refuse every old patient.
+            ...($request->filled('new_patient') ? $this->newPatientRules() : []),
             'prescribed_on' => 'required|date_format:Y-m-d',
             'complaints' => 'nullable|string|max:3000',
             'diagnosis' => 'nullable|string|max:3000',
             'advice' => 'nullable|string|max:3000',
             'follow_up_on' => 'nullable|date_format:Y-m-d|after_or_equal:prescribed_on',
             ...Vitals::rules(),
-            'lines' => 'required|array|min:1|max:'.PrescriptionBook::MaxLines,
-            'lines.*.product_id' => $clinic ? 'required|integer' : 'prohibited',
-            'lines.*.medicine_name' => $clinic ? 'nullable|string|max:160' : 'required|string|max:160',
+            ...PrescriptionLists::rules('investigations'),
+            ...PrescriptionLists::rules('foods_allowed'),
+            ...PrescriptionLists::rules('foods_avoided'),
+            // A prescription may hold tests, foods or advice only; PrescriptionBook refuses an empty one.
+            'lines' => 'nullable|array|max:'.PrescriptionBook::MaxLines,
+            // A line is a company product, or a medicine typed by hand while the owners allow that;
+            // PrescriptionBook decides which, and refuses a hand-typed one when the switch is off.
+            'lines.*.product_id' => 'nullable|integer',
+            'lines.*.medicine_name' => 'nullable|string|max:160',
+            'lines.*.strength' => 'nullable|string|max:80',
             'lines.*.dose' => 'nullable|string|max:80',
             'lines.*.frequency' => 'nullable|string|max:80',
             'lines.*.duration' => 'nullable|string|max:80',
@@ -175,6 +186,22 @@ class PrescriptionController extends Controller
             'phone' => PhoneIdentity::maskedForPrint($prescription->patient?->phone),
             'csp_nonce' => (string) $request->attributes->get('csp_nonce', ''),
         ]);
+    }
+
+    /**
+     * The patient rules for a patient added on the prescription form itself. The consent tick
+     * is as compulsory there as on the patient form.
+     *
+     * @return array<string, mixed>
+     */
+    private function newPatientRules(): array
+    {
+        $rules = ['new_patient.patient_consent' => 'accepted'];
+        foreach ($this->patientRules() as $field => $rule) {
+            $rules['new_patient.'.$field] = $rule;
+        }
+
+        return $rules;
     }
 
     /** @return array<string, mixed> */

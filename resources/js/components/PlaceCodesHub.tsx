@@ -4,6 +4,7 @@ import { Hash, Plus, Search, MapPinned, Building2, Landmark, Layers3, CheckCircl
 import { Table, Pagination, Badge, Modal, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
 import { useReasonField } from '../shared/reasonFields';
+import SearchSelect from './SearchSelect';
 import { toLatin } from '../shared/countUp';
 
 interface PlaceRow extends Row {
@@ -166,11 +167,11 @@ function ManagementReferralPanel({ settings }: { settings: ManagementReferralSet
                     {settings.options.length > 0 && (
                         <label>
                             {translate('portal', 'pc_mgmt_place')}
-                            <select value={form.data.place_code_id} onChange={(e) => form.setData('place_code_id', e.target.value)}>
-                                {settings.options.map((option) => (
-                                    <option key={option.id} value={option.id}>{option.name} ({option.code})</option>
-                                ))}
-                            </select>
+                            <SearchSelect
+                                value={form.data.place_code_id}
+                                onChange={(value) => form.setData('place_code_id', value)}
+                                options={settings.options.map((option) => ({ value: String(option.id), label: `${option.name} (${option.code})` }))}
+                            />
                             {form.errors.place_code_id && <span className="field-error">{form.errors.place_code_id}</span>}
                         </label>
                     )}
@@ -426,11 +427,12 @@ export default function PlaceCodesHub({
                         {parent_options.length > 0 && (
                             <label>
                                 {translate('portal', 'pc_fld_parent')}
-                                <select value={createForm.data.parent_id} onChange={(e) => createForm.setData('parent_id', e.target.value)} required>
-                                    {parent_options.map((option) => (
-                                        <option key={option.id} value={option.id}>{displayPlace(option.name)} ({displayPlace(option.code)})</option>
-                                    ))}
-                                </select>
+                                <SearchSelect
+                                    value={createForm.data.parent_id}
+                                    onChange={(value) => createForm.setData('parent_id', value)}
+                                    required
+                                    options={parent_options.map((option) => ({ value: String(option.id), label: `${displayPlace(option.name)} (${displayPlace(option.code)})` }))}
+                                />
                                 {createForm.errors.parent_id && <span className="field-error">{createForm.errors.parent_id}</span>}
                             </label>
                         )}
@@ -462,22 +464,22 @@ export default function PlaceCodesHub({
                         {parent_options.length > 0 && (
                             <label>
                                 {translate('portal', 'pc_fld_parent')}
-                                <select value={editForm.data.parent_id} onChange={(e) => editForm.setData('parent_id', e.target.value)}>
-                                    {parent_options.map((option) => (
-                                        <option key={option.id} value={option.id}>{displayPlace(option.name)} ({displayPlace(option.code)})</option>
-                                    ))}
-                                </select>
+                                <SearchSelect
+                                    value={editForm.data.parent_id}
+                                    onChange={(value) => editForm.setData('parent_id', value)}
+                                    options={parent_options.map((option) => ({ value: String(option.id), label: `${displayPlace(option.name)} (${displayPlace(option.code)})` }))}
+                                />
                             </label>
                         )}
                         {(editRow.base_options?.length ?? 0) > 0 && (
                             <label>
                                 {translate('portal', 'pc_fld_base_serial')}
-                                <select value={editForm.data.base_place_id} onChange={(e) => editForm.setData('base_place_id', e.target.value)}>
-                                    <option value="">—</option>
-                                    {editRow.base_options?.map((option) => (
-                                        <option key={option.id} value={option.id}>{displayPlace(option.name)} ({option.note ?? displayPlace(option.code)})</option>
-                                    ))}
-                                </select>
+                                <SearchSelect
+                                    value={editForm.data.base_place_id}
+                                    onChange={(value) => editForm.setData('base_place_id', value)}
+                                    emptyLabel="—"
+                                    options={(editRow.base_options ?? []).map((option) => ({ value: String(option.id), label: `${displayPlace(option.name)} (${option.note ?? displayPlace(option.code)})` }))}
+                                />
                                 {editForm.errors.base_place_id && <span className="field-error">{editForm.errors.base_place_id}</span>}
                             </label>
                         )}

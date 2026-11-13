@@ -4,6 +4,7 @@ import { FolderTree, Layers, Plus, Ruler } from 'lucide-react';
 import { Badge, Modal, Table, type Row, number } from './UI';
 import { useT } from '../shared/i18n/t';
 import { useReasonField } from '../shared/reasonFields';
+import SearchSelect from './SearchSelect';
 
 interface SubcategoryRow {
     id: number;
@@ -470,15 +471,12 @@ export default function CatalogTaxonomyHub({
                     <form className="action-form" onSubmit={submitSubcategory}>
                         <label>
                             {translate('portal', 'cms_fld_category')}
-                            <select
-                                value={subcategoryForm.data.product_category_id}
-                                onChange={(e) => subcategoryForm.setData('product_category_id', e.target.value)}
+                            <SearchSelect
+                                value={String(subcategoryForm.data.product_category_id)}
+                                onChange={(value) => subcategoryForm.setData('product_category_id', value)}
                                 required
-                            >
-                                {categories.map((category) => (
-                                    <option key={category.id} value={category.id}>{category.name}</option>
-                                ))}
-                            </select>
+                                options={categories.map((category) => ({ value: String(category.id), label: category.name }))}
+                            />
                             {subcategoryForm.errors.product_category_id && <span className="field-error">{subcategoryForm.errors.product_category_id}</span>}
                         </label>
                         <label>

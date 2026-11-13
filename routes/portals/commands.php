@@ -20,6 +20,7 @@ use App\Http\Controllers\PlaceCodeController;
 use App\Http\Controllers\PrescriberPublicToolsController;
 use App\Http\Controllers\PrescriberVerificationController;
 use App\Http\Controllers\PrescriptionController;
+use App\Http\Controllers\PrescriptionSettingsController;
 use App\Http\Controllers\PrescriptionToolsController;
 use App\Http\Controllers\PrivacyRequestController;
 use App\Http\Controllers\ProductCategoryController;
@@ -73,6 +74,7 @@ return function (string $portal): void {
     Route::post('/commands/owner/password-reset-notice', [AuthController::class, 'passwordResetNotice'])->middleware('throttle:5,1');
     Route::post('/commands/owner/site-visit-counting', [SiteVisitSettingsController::class, 'update'])->middleware('throttle:10,1');
     Route::post('/commands/owner/reason-fields', [ReasonFieldsController::class, 'update'])->middleware('throttle:20,1');
+    Route::post('/commands/owner/prescription-other-medicines', [PrescriptionSettingsController::class, 'otherMedicines'])->middleware('throttle:10,1');
     Route::post('/commands/agreement/publish', [PartnerAgreementController::class, 'publish'])->middleware('throttle:10,1');
     Route::post('/commands/agreement/setting', [PartnerAgreementController::class, 'setting'])->middleware('throttle:10,1');
     Route::post('/commands/agreement/accept', [PartnerAgreementController::class, 'accept'])->middleware('throttle:10,1');
@@ -225,6 +227,9 @@ return function (string $portal): void {
     Route::post('/commands/prescriptions/registration', [PrescriptionController::class, 'registration'])->middleware('throttle:10,1');
     Route::post('/commands/prescriptions/templates', [PrescriptionToolsController::class, 'storeTemplate'])->middleware('throttle:30,1');
     Route::delete('/commands/prescriptions/templates/{template}', [PrescriptionToolsController::class, 'destroyTemplate'])->whereNumber('template')->middleware('throttle:30,1');
+    Route::post('/commands/prescriptions/diet-templates', [PrescriptionToolsController::class, 'storeDietTemplate'])->middleware('throttle:30,1');
+    Route::patch('/commands/prescriptions/diet-templates/{dietTemplate}', [PrescriptionToolsController::class, 'updateDietTemplate'])->whereNumber('dietTemplate')->middleware('throttle:30,1');
+    Route::delete('/commands/prescriptions/diet-templates/{dietTemplate}', [PrescriptionToolsController::class, 'destroyDietTemplate'])->whereNumber('dietTemplate')->middleware('throttle:30,1');
     Route::post('/commands/prescriptions/{prescription}/follow-up-done', [PrescriptionToolsController::class, 'markFollowUpDone'])->whereNumber('prescription')->middleware('throttle:60,1');
     Route::get('/prescriptions/{prescription}/print', [PrescriptionController::class, 'print'])->whereNumber('prescription')->middleware('throttle:30,1');
     Route::post('/commands/prescriptions/public-listing', [PrescriberPublicToolsController::class, 'saveListing'])->middleware('throttle:20,1');

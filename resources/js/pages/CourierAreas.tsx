@@ -5,6 +5,7 @@ import OfficePage from '../components/office/OfficePage';
 import { settingsBack } from '../components/office/sections/SettingsForm';
 import { Modal, Pagination, Row, date } from '../components/UI';
 import { useT } from '../shared/i18n/t';
+import SearchSelect from '../components/SearchSelect';
 
 type Option = { id: string; name: string };
 type Provider = { key: string; label: string; levels: string[]; required: string[]; can_fetch: boolean; option_count: number; fetched_at: string | null };
@@ -21,10 +22,12 @@ function LevelFields({ level, required, value, name, options, onChange }: {
         <>
             {options.length > 0 && (
                 <label>{label} — {translate('courier_areas', 'pick_from_list')}
-                    <select value={value} onChange={event => onChange(event.target.value, options.find(option => option.id === event.target.value)?.name ?? '')}>
-                        <option value="">{translate('portal', 'select_placeholder')}</option>
-                        {options.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
-                    </select>
+                    <SearchSelect
+                        value={value}
+                        onChange={picked => onChange(picked, options.find(option => option.id === picked)?.name ?? '')}
+                        emptyLabel={translate('portal', 'select_placeholder')}
+                        options={options.map(option => ({ value: option.id, label: option.name }))}
+                    />
                 </label>
             )}
             <label>{translate('courier_areas', 'field_id', { level: label })}{suffix}
