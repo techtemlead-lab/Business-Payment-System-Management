@@ -1,6 +1,7 @@
 import { useForm } from '@inertiajs/react';
 import type { Row } from '../../UI';
 import { useT } from '../../../shared/i18n/t';
+import { usePlacedFields, type ReasonPlace } from '../../../shared/reasonFields';
 import { AutoSelect } from '../../SearchSelect';
 
 export type SettingsField = {
@@ -10,6 +11,8 @@ export type SettingsField = {
     required?: boolean;
     options?: { value: string; label: string }[];
     accept?: string;
+    /** A reason or note box names its place; the owner's choice for it hides or requires the box. */
+    place?: ReasonPlace;
 };
 
 export type SettingsAction = { title: string; action: string; fields: SettingsField[]; defaults?: Row };
@@ -33,6 +36,7 @@ export default function SettingsForm({ action, fields, defaults = {}, submitLabe
     onDone?: () => void;
 }) {
     const translate = useT();
+    fields = usePlacedFields(fields);
     const form = useForm<Row>({ ...Object.fromEntries(fields.map((field) => [field.name, field.type === 'file' ? null : ''])), ...defaults });
 
     return (

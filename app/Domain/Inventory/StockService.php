@@ -13,10 +13,13 @@ final class StockService
     public function __construct(private BranchOperations $branches) {}
 
     /**
+     * The reason may be blank or missing unless the `stock.adjust` box is compulsory for the
+     * actor; {@see BranchOperations::UnstatedReasonCode} is stored for a blank one.
+     *
      * @param  array{
      *   product_id: int,
      *   quantity: int,
-     *   reason: string,
+     *   reason?: string|null,
      *   reference: string,
      *   branch_id?: int,
      *   kind?: string,

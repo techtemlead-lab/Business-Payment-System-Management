@@ -21,7 +21,7 @@ export default function MixedOutcomeDecisionList({ rows, canDecide, orderLink }:
                         { value: 'delivered_part', label: translate('schemes_commission', 'decision_delivered_part') },
                         { value: 'no_commission', label: translate('schemes_commission', 'decision_no_commission') },
                     ] },
-                    { name: 'reason', label: translate('courier_more', 'decision_reason_label'), type: 'textarea', required: true },
+                    { name: 'reason', label: translate('courier_more', 'decision_reason_label'), type: 'textarea', required: true, place: 'order.commission_decision' },
                 ]} submit={translate('courier_more', 'decision_submit')} />
                 : <span className="muted">{translate('courier_more', 'decision_view_only')}</span> },
         ]} />

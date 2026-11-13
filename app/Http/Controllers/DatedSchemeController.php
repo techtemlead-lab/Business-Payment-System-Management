@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Orders\DatedSchemes;
 use App\Models\DatedScheme;
+use App\Support\ReasonFields;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -23,8 +24,8 @@ class DatedSchemeController extends Controller
     public function update(Request $request, DatedScheme $datedScheme, DatedSchemes $schemes): RedirectResponse
     {
         abort_unless(DatedSchemes::canManage($request->user()), 403);
-        $data = $request->validate([...$this->rules($datedScheme), 'reason' => FinanceOperationsController::Reason]);
-        $schemes->update($request->user(), $datedScheme, $data);
+        $data = $request->validate([...$this->rules($datedScheme), 'reason' => ReasonFields::rule('partner.scheme_edit', 1000, 5)]);
+        $schemes->update($request->user(), $datedScheme, [...$data, 'reason' => ReasonFields::text($data['reason'] ?? null)]);
 
         return back()->with('success', __('dealer_tools.scheme_updated'));
     }

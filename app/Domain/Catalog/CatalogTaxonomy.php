@@ -6,7 +6,9 @@ use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ProductSubcategory;
 use App\Models\ProductUnit;
+use App\Models\User;
 use App\Support\Audit;
+use App\Support\ReasonFields;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -217,7 +219,7 @@ final class CatalogTaxonomy
      */
     public function deleteCategory(ProductCategory $category, string $reason, ?int $actorId = null, bool $force = false): void
     {
-        $reason = $this->requireDeletionReason($reason);
+        $reason = $this->requireDeletionReason($reason, $actorId);
 
         DB::transaction(function () use ($category, $reason, $actorId, $force): void {
             $locked = ProductCategory::query()->whereKey($category->id)->lockForUpdate()->firstOrFail();
@@ -266,7 +268,7 @@ final class CatalogTaxonomy
      */
     public function deleteSubcategory(ProductSubcategory $subcategory, string $reason, ?int $actorId = null): void
     {
-        $reason = $this->requireDeletionReason($reason);
+        $reason = $this->requireDeletionReason($reason, $actorId);
 
         DB::transaction(function () use ($subcategory, $reason, $actorId): void {
             $locked = ProductSubcategory::query()->whereKey($subcategory->id)->lockForUpdate()->firstOrFail();
@@ -291,7 +293,7 @@ final class CatalogTaxonomy
      */
     public function deleteUnit(ProductUnit $unit, string $reason, ?int $actorId = null): void
     {
-        $reason = $this->requireDeletionReason($reason);
+        $reason = $this->requireDeletionReason($reason, $actorId);
 
         DB::transaction(function () use ($unit, $reason, $actorId): void {
             $locked = ProductUnit::query()->whereKey($unit->id)->lockForUpdate()->firstOrFail();
@@ -310,10 +312,15 @@ final class CatalogTaxonomy
         }, 3);
     }
 
-    private function requireDeletionReason(string $reason): string
+    /**
+     * The reason as written. A blank or short one is refused only while the
+     * `product.taxonomy_remove` reason is compulsory for the person deleting: the one named by
+     * `$actorId`, or the person signed in when no one is named.
+     */
+    private function requireDeletionReason(string $reason, ?int $actorId): string
     {
         $trimmed = trim($reason);
-        if (mb_strlen($trimmed) < 5) {
+        if (mb_strlen($trimmed) < 5 && ReasonFields::required('product.taxonomy_remove', $actorId === null ? null : User::query()->find($actorId))) {
             throw ValidationException::withMessages([
                 'reason' => __('portal.err_catalog_reason_required'),
             ]);

@@ -1,6 +1,7 @@
 import { useForm, usePage } from '@inertiajs/react';
 import { DateInput, FormErrors, Modal, money, type Row } from '../UI';
 import { useT } from '../../shared/i18n/t';
+import { useReasonField } from '../../shared/reasonFields';
 import { randomUuid } from '../../shared/randomUuid';
 import SearchSelect from '../SearchSelect';
 import { businessTodayIso } from '../../business-date';
@@ -23,6 +24,7 @@ export function useHeadName() {
 export default function FundSpendForm({ card, spend, onClose }: { card: FundCardData; spend: FundSpendOptions; onClose: () => void }) {
     const translate = useT();
     const headName = useHeadName();
+    const spendNote = useReasonField('money.fund_spend_note');
     const form = useForm<Row>({ fund: card.key, expense_head_id: '', amount: '', spent_on: businessTodayIso(), payee: '', payment_method: '', reference: '', note: '', receipt: null, request_key: randomUuid() });
     const usableHeads = spend.heads.filter((head) => head.is_active !== false && (card.key !== 'tour' || head.for_tours));
     const submit = (event: React.FormEvent) => {
@@ -55,7 +57,7 @@ export default function FundSpendForm({ card, spend, onClose }: { card: FundCard
                 </label>
                 <label>{translate('funds', 'fld_reference')}<input maxLength={100} required={form.data.payment_method !== 'cash'} value={form.data.reference} onChange={(event) => form.setData('reference', event.target.value)} /></label>
                 <label>{translate('funds', 'fld_receipt')}<input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(event) => form.setData('receipt', event.target.files?.[0] ?? null)} /></label>
-                <label>{translate('funds', 'fld_note')}<textarea maxLength={1000} value={form.data.note} onChange={(event) => form.setData('note', event.target.value)} /></label>
+                {spendNote.shown && <label>{spendNote.label(translate('funds', 'col_note'))}<textarea required={spendNote.required} maxLength={1000} value={form.data.note} onChange={(event) => form.setData('note', event.target.value)} /></label>}
                 <FormErrors errors={form.errors} />
                 <div className="ops-row is-inline">
                     <button type="submit" className="button dark" disabled={form.processing}>{translate('funds', 'save_spend')}</button>

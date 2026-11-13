@@ -4,6 +4,7 @@ import { date, dateTime, FormErrors, Modal, Pagination, Table, type Row } from '
 import OfficePage from './office/OfficePage';
 import { settingsBack } from './office/sections/SettingsForm';
 import { useT } from '../shared/i18n/t';
+import { useReasonField } from '../shared/reasonFields';
 
 type QueueRow = {
     id: number;
@@ -26,6 +27,7 @@ const isWaiting = (status: string): boolean => status === 'open' || status === '
 /** Owners only: partners' data requests. Account and request details only, never patient records. */
 export default function PrivacyRequestsHub({ data }: { data?: QueueData | null }) {
     const translate = useT();
+    const noteBox = useReasonField('partner.privacy_resolve');
     const [openRow, setOpenRow] = useState<QueueRow | null>(null);
     const [status, setStatus] = useState('');
     const [note, setNote] = useState('');
@@ -83,9 +85,11 @@ export default function PrivacyRequestsHub({ data }: { data?: QueueData | null }
                                     {data.statuses.map((item) => <option key={item} value={item}>{translate('prescriber_public', `privacy_status_${item}`)}</option>)}
                                 </select>
                             </label>
-                            <label>{translate('prescriber_public', 'queue_note')}
-                                <input maxLength={1000} value={note} onChange={(event) => setNote(event.target.value)} />
-                            </label>
+                            {noteBox.shown && (
+                                <label>{noteBox.label(translate('reason_fields', 'box_privacy_note'))}
+                                    <input maxLength={1000} required={noteBox.required} value={note} onChange={(event) => setNote(event.target.value)} />
+                                </label>
+                            )}
                             <button type="button" className="button dark set-save" disabled={busy} onClick={() => save(openRow)}>{translate('prescriber_public', 'queue_save')}</button>
                         </div>
                     ) : (

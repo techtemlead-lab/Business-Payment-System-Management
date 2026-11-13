@@ -141,7 +141,7 @@ export default function CourierTrackingPanel({ order, shipments, events, courier
             <p className="muted">{translate('courier', 'change_hint')}</p>
             {others.length ? <ActionForm action={`/commands/orders/${order.id}/courier`} fields={[
                 { name: 'courier', label: translate('courier', 'change_label'), required: true, options: others.map(choice => ({ value: choice.key, label: choice.label })) },
-                { name: 'note', label: translate('courier', 'change_note_label'), type: 'textarea', hint: translate('courier', 'change_note_hint') },
+                { name: 'note', label: translate('reason_fields', 'box_courier_change_note'), type: 'textarea', hint: translate('courier', 'change_note_hint'), place: 'order.courier_change' },
             ]} submit={translate('courier', 'change_submit')} /> : <p className="muted">{translate('courier', 'no_other_courier')}</p>}
         </div>}
     </section>;

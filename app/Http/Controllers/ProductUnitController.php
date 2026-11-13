@@ -7,6 +7,7 @@ use App\Http\Requests\Catalog\DestroyProductUnitRequest;
 use App\Http\Requests\Catalog\StoreProductUnitRequest;
 use App\Http\Requests\Catalog\UpdateProductUnitRequest;
 use App\Models\ProductUnit;
+use App\Support\ReasonFields;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -48,7 +49,7 @@ class ProductUnitController extends Controller
     public function destroy(DestroyProductUnitRequest $request, ProductUnit $productUnit, CatalogTaxonomy $taxonomy): RedirectResponse|JsonResponse
     {
         $name = $productUnit->name;
-        $taxonomy->deleteUnit($productUnit, $request->validated('reason'), $request->user()->id);
+        $taxonomy->deleteUnit($productUnit, ReasonFields::text($request->validated('reason')), $request->user()->id);
 
         if ($request->expectsJson()) {
             return response()->json(['data' => ['deleted' => true, 'name' => $name]]);

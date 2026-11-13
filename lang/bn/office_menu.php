@@ -75,6 +75,7 @@ return [
     'settings_link_dashboards' => 'পার্টনারের প্যানেল',
     'settings_link_identity_review' => 'একই ব্যক্তির অ্যাকাউন্ট',
     'settings_link_login_rules' => 'লগইন ও পাসওয়ার্ডের নিয়ম',
+    'settings_link_reason_fields' => 'কারণ ও নোটের ঘর',
     'settings_link_service_integrations' => 'এসএমএস ও কুরিয়ার সংযোগ',
     'settings_link_courier_areas' => 'কুরিয়ারের এলাকা',
     'settings_link_data_imports' => 'এক্সেল থেকে তথ্য',

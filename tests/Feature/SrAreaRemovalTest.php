@@ -38,9 +38,9 @@ class SrAreaRemovalTest extends TestCase
         $this->territoryId = app(TerritoryAccess::class)->assign($this->owner, ['staff_id' => $this->salesRep->id, 'place_code' => $place->code]);
     }
 
-    private function remove(User $actor, array $body): TestResponse
+    private function remove(User $actor, array $body, string $portal = 'sadmin'): TestResponse
     {
-        return $this->actingAs($actor)->onPortal('sadmin')->post("/commands/operations/staff/territories/{$this->territoryId}/remove", $body);
+        return $this->actingAs($actor)->onPortal($portal)->post("/commands/operations/staff/territories/{$this->territoryId}/remove", $body);
     }
 
     public function test_removing_an_area_needs_only_a_reason_and_keeps_targets(): void
@@ -66,11 +66,34 @@ class SrAreaRemovalTest extends TestCase
 
     public function test_an_empty_or_too_short_reason_is_refused(): void
     {
-        $this->remove($this->owner, ['reason' => ''])->assertSessionHasErrors('reason');
-        $this->remove($this->owner, ['reason' => 'abc'])->assertSessionHasErrors('reason');
+        $this->reasonFields(['staff.territory_remove' => 'required']);
+        $staffManager = User::factory()->staff('employee')->create(['profile' => ['permissions' => ['staff_admin']]]);
+
+        $this->remove($staffManager, ['reason' => ''], 'manage')->assertSessionHasErrors('reason');
+        $this->remove($staffManager, ['reason' => 'abc'], 'manage')->assertSessionHasErrors('reason');
 
         $this->assertDatabaseHas('staff_territories', ['id' => $this->territoryId, 'is_active' => true]);
         $this->assertDatabaseMissing('audit_events', ['action' => 'staff.territory_removed']);
+    }
+
+    public function test_the_super_admin_is_never_made_to_write_a_reason(): void
+    {
+        $this->reasonFields(['staff.territory_remove' => 'required']);
+
+        $this->remove($this->owner, ['reason' => ''])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('staff_territories', ['id' => $this->territoryId, 'is_active' => false]);
+    }
+
+    public function test_an_area_removed_with_no_reason_tells_the_sales_rep_none_was_written(): void
+    {
+        $this->remove($this->owner, [])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('staff_territories', ['id' => $this->territoryId, 'is_active' => false]);
+        $audit = DB::table('audit_events')->where('action', 'staff.territory_removed')->where('subject', (string) $this->territoryId)->sole();
+        $this->assertSame('', json_decode((string) $audit->metadata, true)['reason']);
+        $notice = DB::table('account_notices')->where('user_id', $this->salesRep->id)->orderByDesc('id')->value('body');
+        $this->assertStringContainsString(__('reason_fields.not_written', [], $this->salesRep->preferredLocale()), (string) $notice);
     }
 
     public function test_staff_without_the_staff_edit_right_are_refused(): void

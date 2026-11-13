@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Accounts\PartnerAccountDeletion;
 use App\Models\User;
+use App\Support\ReasonFields;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,11 +23,11 @@ class PartnerAccountDeletionController extends Controller
     {
         $this->permit($r, $user);
         $data = $r->validate([
-            'reason' => 'required|string|min:5|max:1000',
+            'reason' => ReasonFields::rule('partner.account_delete', 1000, 5),
             'confirmation' => 'required|string|max:60',
         ]);
 
-        $result = $deletion->remove($r->user(), $user, $data['reason'], $data['confirmation']);
+        $result = $deletion->remove($r->user(), $user, ReasonFields::text($data['reason'] ?? null), $data['confirmation']);
 
         if ($result['outcome'] === PartnerAccountDeletion::OutcomeDeleted) {
             return back()->with('success', __('portal.flash_partner_deleted', ['code' => $result['dealer_code']]));

@@ -193,6 +193,24 @@ class DuplicateIdentityReviewTest extends TestCase
         $this->assertDatabaseHas('identity_review_flags', ['id' => $flagId, 'status' => 'cleared', 'reviewed_by' => $finance->id]);
     }
 
+    public function test_a_compulsory_note_is_asked_when_clearing_a_match_but_not_when_opening_it_again(): void
+    {
+        $owner = User::factory()->staff('md')->create();
+        User::factory()->dealer()->create(['nid' => '3330001111']);
+        User::factory()->dealer()->create(['nid' => '3330001111']);
+        $this->scan();
+        $this->reasonFields(['partner.identity_review' => 'required']);
+        $flagId = (int) DB::table('identity_review_flags')->value('id');
+        $address = '/commands/identity-review/'.$flagId.'/mark';
+
+        $this->actingAs($owner)->onPortal('sadmin')->postJson($address, ['status' => 'cleared'])->assertJsonValidationErrors('note');
+        $this->assertSame('open', DB::table('identity_review_flags')->where('id', $flagId)->value('status'));
+
+        $this->actingAs($owner)->onPortal('sadmin')->postJson($address, ['status' => 'cleared', 'note' => 'Father and son'])->assertOk();
+        $this->actingAs($owner)->onPortal('sadmin')->postJson($address, ['status' => 'open'])->assertOk();
+        $this->assertSame('open', DB::table('identity_review_flags')->where('id', $flagId)->value('status'));
+    }
+
     public function test_staff_without_finance_cannot_run_or_mark(): void
     {
         $orders = User::factory()->staff('employee')->create(['profile' => ['permissions' => ['orders']]]);

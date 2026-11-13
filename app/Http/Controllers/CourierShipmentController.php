@@ -8,6 +8,7 @@ use App\Domain\Orders\ShipmentTracking;
 use App\Http\Requests\Backend\ChangeCourierRequest;
 use App\Models\Order;
 use App\Support\Money;
+use App\Support\ReasonFields;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -42,7 +43,7 @@ class CourierShipmentController extends Controller
 
     public function receivedBack(Request $request, Order $order, int $shipment, OrderService $orders): RedirectResponse
     {
-        $data = $request->validate(['note' => ['nullable', 'string', 'max:500']]);
+        $data = $request->validate(['note' => ReasonFields::rule('order.received_back', 500)]);
         $orders->receiveReturnedParcel($request->user(), $order, $shipment, $data['note'] ?? null);
 
         return back(fallback: '/orders/'.$order->id)->with('success', __('courier.flash_received_back'));
@@ -63,9 +64,9 @@ class CourierShipmentController extends Controller
     {
         $data = $request->validate([
             'decision' => ['required', 'string', Rule::in(MixedOutcomeDecisions::Choices)],
-            'reason' => ['required', 'string', 'min:5', 'max:1000'],
+            'reason' => ReasonFields::rule('order.commission_decision', 1000, 5),
         ]);
-        $money = $decisions->decide($request->user(), $order, $data['decision'], trim($data['reason']));
+        $money = $decisions->decide($request->user(), $order, $data['decision'], ReasonFields::text($data['reason'] ?? null));
         $message = match (true) {
             $money['fund_amount'] === null => __('courier_more.flash_decision_saved'),
             $money['recovered'] + $money['still_owed'] > 0 => __('courier_more.flash_no_commission_taken_back', [

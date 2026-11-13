@@ -5,6 +5,7 @@ namespace App\Http\Requests\Backend;
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Orders\CourierOptions;
 use App\Domain\Orders\PaymentProof;
+use App\Support\ReasonFields;
 use App\Support\TransactionReference;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -47,7 +48,7 @@ class StoreOrderRequest extends FormRequest
             'items.*.product_id' => 'required|integer|distinct|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1|max:10000',
             'idempotency_key' => 'required|uuid',
-            'note' => 'nullable|string|max:1000',
+            'note' => ReasonFields::rule('order.note', 1000),
             // Only the couriers the owner switched on, or "company decides" (the default).
             'courier_choice' => ['nullable', 'string', Rule::in(app(CourierOptions::class)->choiceKeys())],
             'reference' => [...$this->paymentDetailRules($paidWithOrder), 'string', TransactionReference::MinRule, 'max:100'],

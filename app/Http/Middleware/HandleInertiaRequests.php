@@ -16,6 +16,7 @@ use App\Domain\Support\UserManual;
 use App\Support\DashboardManagement;
 use App\Support\PortalCatalog;
 use App\Support\PortalHost;
+use App\Support\ReasonFields;
 use App\Support\SiteCustomization;
 use Closure;
 use Illuminate\Http\JsonResponse;
@@ -37,6 +38,7 @@ class HandleInertiaRequests extends Middleware
         $portalShell = in_array($portal, ['dealer', 'subdealer', 'manage', 'sadmin'], true);
 
         $payments = app(PaymentAccounts::class);
+        $security = app(SecuritySettings::class);
         // Unread notices and unread chat messages come from one query per request; navAttention and
         // unreadNotices both read them. Partners count office replies; staff who may answer count
         // partner messages.
@@ -113,7 +115,11 @@ class HandleInertiaRequests extends Middleware
             'financeActive' => (bool) config('madina.financial_activation'),
             'withdrawalMinimum' => fn () => $u ? app(FinanceSettings::class)->withdrawalMinimum()['amount'] : config('madina.withdrawal_minimum'),
             'demoMode' => (bool) config('madina.preview_mode'),
-            'securityControls' => fn () => $u ? app(SecuritySettings::class)->portalPayload($u) : null,
+            'securityControls' => fn () => $u ? $security->portalPayload($u) : null,
+            // The owner's choice for each reason or note box that is not optional for this person; a place
+            // left out is optional. It comes from the row the security switches already read, so it costs
+            // no query of its own.
+            'reasonFields' => fn () => ($u && $portalShell) ? app(ReasonFields::class)->forPagesFrom($security->reasonFieldsRow(), $u) : [],
             'staffRoles' => fn () => $u?->role === 'super_admin' ? ['employee', ...array_keys(config('madina.roles')), ...app(StaffPermissions::class)->roleKeys()] : [],
             'staffActions' => fn () => ($u?->staff() || $u?->usingStaffWorkspace())
                 ? app(StaffPermissions::class)->matrix($u)
@@ -248,6 +254,7 @@ class HandleInertiaRequests extends Middleware
                 'office_settings' => Lang::get('office_settings'),
                 'office_reports' => Lang::get('office_reports'),
                 'office_visitors' => Lang::get('office_visitors'),
+                'reason_fields' => Lang::get('reason_fields'),
             ])->as('i18n:'.$locale),
             'portalCatalog' => Inertia::once(fn () => $portalShell
                 ? PortalCatalog::inertiaPayload($portal)

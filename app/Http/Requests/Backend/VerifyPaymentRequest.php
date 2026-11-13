@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Backend;
 
+use App\Support\ReasonFields;
 use Illuminate\Foundation\Http\FormRequest;
 
 class VerifyPaymentRequest extends FormRequest
@@ -13,6 +14,6 @@ class VerifyPaymentRequest extends FormRequest
 
     public function rules(): array
     {
-        return ['approve' => 'required|boolean', 'reason' => 'required|string|max:1000'];
+        return ['approve' => 'required|boolean', 'reason' => ReasonFields::rule('payment.verify', 1000)];
     }
 }

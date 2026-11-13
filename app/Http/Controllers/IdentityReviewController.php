@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Accounts\DuplicateIdentityScan;
 use App\Domain\Accounts\IdentityReviewList;
+use App\Support\ReasonFields;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -39,7 +40,9 @@ class IdentityReviewController extends Controller
     public function mark(Request $request, int $flag): JsonResponse
     {
         abort_unless(IdentityReviewList::mayReview($request->user()), 403);
-        $data = $request->validate(['status' => ['required', Rule::in(['open', 'cleared'])], 'note' => 'nullable|string|max:300']);
+        // The note box is only shown when a flag is cleared; opening one again asks for nothing.
+        $noteRule = $request->input('status') === 'cleared' ? ReasonFields::rule('partner.identity_review', 300) : ['nullable', 'string', 'max:300'];
+        $data = $request->validate(['status' => ['required', Rule::in(['open', 'cleared'])], 'note' => $noteRule]);
         $this->list->mark($request->user(), $flag, $data['status'], $data['note'] ?? null);
 
         return response()->json(['message' => __('productivity.review_saved')]);

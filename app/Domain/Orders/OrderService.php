@@ -25,6 +25,7 @@ use App\Support\Audit;
 use App\Support\DashboardManagement;
 use App\Support\LocalDigits;
 use App\Support\Money;
+use App\Support\ReasonFields;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\UploadedFile;
@@ -280,12 +281,12 @@ class OrderService
             $this->partnerNotice($locked->user_id, 'portal.notice_order_decision_title', 'portal.notice_order_decision_body', [
                 'status' => $statusLabel,
                 'number' => $locked->number,
-                'reason' => $reason,
+                'reason' => ReasonFields::shown($reason, $locale),
             ], 'order.'.$status);
             $this->partnerSms($locked->user_id, 'order.'.$status, 'sms.order_decision', [
                 'status' => SmsText::make('portal.order_status_'.$status),
                 'number' => $locked->number,
-                'reason' => $reason,
+                'reason' => ReasonFields::shown($reason, SmsText::Locale),
             ]);
             if ($status === 'approved') {
                 // The dealer picked a courier: the parcel is booked now, without waiting for manual dispatch.

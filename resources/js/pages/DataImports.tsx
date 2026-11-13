@@ -8,6 +8,7 @@ import OfficePage from '../components/office/OfficePage';
 import { settingsBack } from '../components/office/sections/SettingsForm';
 import { Badge, Modal, Pagination, Row, Table, humanize, money } from '../components/UI';
 import { useT } from '../shared/i18n/t';
+import { useReasonFields } from '../shared/reasonFields';
 
 
 export default function DataImports({ types, batches, preview, openingLocked, canApproveOwnOpening, templateBase, startup }: Row) {
@@ -19,10 +20,13 @@ export default function DataImports({ types, batches, preview, openingLocked, ca
     const typeTitle = (value: string) => translated(`imp_type_opt_${value}`, value);
     const title = (value: string) => translated(`imp_field_${value}`, value);
     const { auth, staffActions } = usePage<any>().props;
+    const reasonOf = useReasonFields();
     usePoll(10000, { only: ['batches', 'preview'], headers: backgroundRefreshHeaders });
     const [mode, setMode] = useState(startup?.mode === 'fresh' ? 'zero' : 'import');
     const [uploadOpen, setUploadOpen] = useState(false);
-    const startupForm = useForm({ mode: startup?.mode ?? (mode === 'zero' ? 'fresh' : 'import'), version: startup?.version ?? 0, reason: translate('portal', 'imp_reason_selected') });
+    // The start mode has no box here: the page sends a set sentence, and leaves it out when the owners switched that reason off.
+    const startupReason = reasonOf('settings.integration_startup');
+    const startupForm = useForm({ mode: startup?.mode ?? (mode === 'zero' ? 'fresh' : 'import'), version: startup?.version ?? 0, reason: startupReason.shown ? translate('portal', 'imp_reason_selected') : '' });
     const upload = useForm<{ type: string; source_reference: string; file: File | null }>({
         type: types[0]?.key ?? '', source_reference: '', file: null,
     });
@@ -30,6 +34,7 @@ export default function DataImports({ types, batches, preview, openingLocked, ca
     const selectedType = types.find((type: Row) => type.key === upload.data.type);
     const isOpening = preview?.type === 'opening_balances';
     const ownOpening = isOpening && preview.created_by === auth.user.id;
+    const applyReason = reasonOf('money.import_apply');
     const canApply = preview?.status === 'preview' && (!ownOpening || canApproveOwnOpening) && (isOpening
         ? !openingLocked && (staffActions?.finance?.approve ?? false)
         : types.find((type: Row) => type.key === preview.type)?.can_create);
@@ -37,7 +42,7 @@ export default function DataImports({ types, batches, preview, openingLocked, ca
     const chooseMode = (next: 'zero' | 'import') => {
         setMode(next);
         const saved = next === 'zero' ? 'fresh' : 'import';
-        startupForm.setData({ mode: saved, version: startup?.version ?? 0, reason: next === 'zero'
+        startupForm.setData({ mode: saved, version: startup?.version ?? 0, reason: !startupReason.shown ? '' : next === 'zero'
             ? translate('portal', 'imp_reason_fresh')
             : translate('portal', 'imp_reason_import') });
         startupForm.post('/commands/operations/integrations/startup-mode', { preserveScroll: true });
@@ -104,7 +109,7 @@ export default function DataImports({ types, batches, preview, openingLocked, ca
                     event.preventDefault();
                     apply.post('/commands/operations/imports/' + preview.id + '/apply', { preserveScroll: true, onSuccess: () => apply.reset() });
                 }}>
-                    <label>{translate('portal','imp_review_notes')}<textarea required minLength={5} maxLength={1000} rows={3} value={apply.data.reason} onChange={event => apply.setData('reason', event.target.value)} /></label>
+                    {applyReason.shown && <label>{applyReason.label(translate('portal','imp_review_notes'))}<textarea required={applyReason.required} minLength={applyReason.required ? 5 : undefined} maxLength={1000} rows={3} value={apply.data.reason} onChange={event => apply.setData('reason', event.target.value)} /></label>}
                     <label className="import-confirmation"><input type="checkbox" required checked={apply.data.confirmed} onChange={event => apply.setData('confirmed', event.target.checked)} /> {translate('portal','imp_confirm')}</label>
                     {ownOpening && <label className="import-confirmation"><input type="checkbox" required checked={apply.data.self_approve} onChange={event => apply.setData('self_approve', event.target.checked)} /> {translate('self_approval','confirm_label')}</label>}
                     {Object.keys(apply.errors).length > 0 && <p role="alert" className="error">{Object.values(apply.errors).join(' ')}</p>}

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Accounts\PartnerMoneyBook;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -65,6 +66,43 @@ class ManualReceiptTest extends TestCase
         $this->actingAs($payer)->post('/commands/withdrawals/'.$id.'/record-payment', $data)->assertSessionHasErrors('withdrawal');
         $this->assertDatabaseCount('journal_entries', 1);
         $this->assertCount(1, Storage::disk('local')->allFiles('payout-receipts'));
+    }
+
+    public function test_a_withdrawal_rejected_with_no_reason_tells_the_partner_none_was_written(): void
+    {
+        $owner = User::factory()->create(['role' => 'dealer']);
+        $reviewer = User::factory()->create(['role' => 'finance']);
+        $id = $this->withdrawal($owner, $reviewer);
+        DB::table('withdrawals')->where('id', $id)->update(['status' => 'requested', 'reviewed_by' => null]);
+        $this->reasonFields(['money.withdrawal_review' => 'optional']);
+
+        $this->actingAs($reviewer)->post('/commands/withdrawals/'.$id.'/review', ['decision' => 'rejected'])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('withdrawals', ['id' => $id, 'status' => 'rejected', 'reason' => '']);
+        $this->assertDatabaseHas('withdrawal_events', ['withdrawal_id' => $id, 'event' => 'rejected', 'note' => '']);
+        $notice = (string) DB::table('account_notices')->where('user_id', $owner->id)->orderByDesc('id')->value('body');
+        $this->assertStringContainsString(__('reason_fields.not_written', [], $owner->preferredLocale()), $notice);
+        $this->assertSame(__('reason_fields.not_written'), app(PartnerMoneyBook::class)->withdrawalRequests($owner)[0]['reason']);
+    }
+
+    public function test_a_blank_review_reason_or_payment_note_is_refused_once_the_owner_makes_it_compulsory(): void
+    {
+        $owner = User::factory()->create(['role' => 'dealer']);
+        $reviewer = User::factory()->create(['role' => 'finance']);
+        $payer = User::factory()->create(['role' => 'finance']);
+        $id = $this->withdrawal($owner, $reviewer);
+        $payment = ['method' => 'other', 'payment_reference' => 'PAY-002', 'paid_at' => now()->subHour()->format('Y-m-d H:i:s')];
+        $this->reasonFields(['money.withdrawal_review' => 'required', 'money.withdrawal_settle' => 'required']);
+
+        $this->actingAs($payer)->post('/commands/withdrawals/'.$id.'/review', ['decision' => 'rejected'])->assertSessionHasErrors('reason');
+        $this->actingAs($payer)->post('/commands/withdrawals/'.$id.'/record-payment', [...$payment, 'receipt' => UploadedFile::fake()->create('proof.pdf', 20, 'application/pdf')])->assertSessionHasErrors('note');
+        $this->assertDatabaseHas('withdrawals', ['id' => $id, 'status' => 'approved']);
+
+        $this->reasonFields(['money.withdrawal_settle' => 'off']);
+        $this->actingAs($payer)->post('/commands/withdrawals/'.$id.'/record-payment', [...$payment, 'receipt' => UploadedFile::fake()->create('proof.pdf', 20, 'application/pdf')])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('withdrawals', ['id' => $id, 'status' => 'paid']);
+        $this->assertDatabaseHas('withdrawal_events', ['withdrawal_id' => $id, 'event' => 'paid', 'note' => '']);
     }
 
     public function test_arbitrary_executable_file_is_rejected(): void

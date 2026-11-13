@@ -3,6 +3,7 @@ import { Badge, Modal, date, label } from './UI';
 import OfficePage from './office/OfficePage';
 import { settingsBack } from './office/sections/SettingsForm';
 import { useT } from '../shared/i18n/t';
+import { useReasonField } from '../shared/reasonFields';
 import { jsonRequest } from '../shared/jsonRequest';
 
 type Account = { id: number; name: string; code: string | null; role: string; status: string; phone: string };
@@ -12,6 +13,7 @@ type Listing = { rows: Flag[]; page: number; last_page: number; total: number; o
 /** Accounts that look like the same person. Only lists them: it never blocks anyone or changes a commission. */
 export default function IdentityReviewHub() {
     const translate = useT();
+    const noteBox = useReasonField('partner.identity_review');
     const [status, setStatus] = useState<'open' | 'cleared'>('open');
     const [page, setPage] = useState(1);
     const [listing, setListing] = useState<Listing | null>(null);
@@ -131,9 +133,11 @@ export default function IdentityReviewHub() {
             {clearing && (
                 <Modal title={translate('office_settings', 'review_note_title')} onClose={() => setClearing(null)}>
                     <form className="action-form" onSubmit={(event) => { event.preventDefault(); mark(clearing, 'cleared', note); }}>
-                        <label>{translate('productivity', 'review_note_prompt')}
-                            <input maxLength={300} value={note} onChange={(event) => setNote(event.target.value)} />
-                        </label>
+                        {noteBox.shown && (
+                            <label>{noteBox.label(translate('reason_fields', 'box_identity_review_note'))}
+                                <input maxLength={300} required={noteBox.required} value={note} onChange={(event) => setNote(event.target.value)} />
+                            </label>
+                        )}
                         <button type="submit" className="button dark set-save" disabled={busy}>{translate('productivity', 'review_clear')}</button>
                     </form>
                 </Modal>

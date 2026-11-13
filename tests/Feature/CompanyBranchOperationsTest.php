@@ -204,6 +204,23 @@ class CompanyBranchOperationsTest extends TestCase
         $this->assertSame(0, BranchStaffAssignment::query()->whereHas('branch', fn ($q) => $q->where('code', 'SYL-01'))->count());
     }
 
+    public function test_the_branch_note_follows_the_owners_switch_and_an_edit_without_one_keeps_it(): void
+    {
+        $storekeeper = User::factory()->staff('inventory')->create();
+        $place = PlaceCode::factory()->district(PlaceCode::factory()->division()->create(['name' => 'Khulna']))->create(['name' => 'Khulna'])->code;
+        $client = $this->actingAs($storekeeper)->onPortal('manage')->from('/branches');
+        $this->reasonFields(['stock.branch_note' => 'required']);
+
+        $client->post('/commands/branches', ['code' => 'KHL-01', 'name' => 'Khulna Hub', 'place_code' => $place])->assertSessionHasErrors('notes');
+        $client->post('/commands/branches', ['code' => 'KHL-01', 'name' => 'Khulna Hub', 'place_code' => $place, 'notes' => 'Rented godown'])->assertSessionHasNoErrors();
+        $branch = CompanyBranch::query()->where('code', 'KHL-01')->firstOrFail();
+
+        $client->patch('/commands/branches/'.$branch->id, ['code' => 'KHL-01', 'name' => 'Khulna Main Hub', 'place_code' => $place])->assertSessionHasNoErrors();
+
+        $this->assertSame('Khulna Main Hub', $branch->refresh()->name);
+        $this->assertSame('Rented godown', $branch->notes);
+    }
+
     public function test_empty_branch_can_be_deleted_and_head_office_cannot(): void
     {
         $owner = User::factory()->staff('super_admin')->create();

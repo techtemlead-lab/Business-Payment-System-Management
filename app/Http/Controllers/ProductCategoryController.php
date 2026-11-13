@@ -7,6 +7,7 @@ use App\Http\Requests\Catalog\DestroyProductCategoryRequest;
 use App\Http\Requests\Catalog\StoreProductCategoryRequest;
 use App\Http\Requests\Catalog\UpdateProductCategoryRequest;
 use App\Models\ProductCategory;
+use App\Support\ReasonFields;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -51,7 +52,7 @@ class ProductCategoryController extends Controller
         $name = $productCategory->name;
         $taxonomy->deleteCategory(
             $productCategory,
-            $data['reason'],
+            ReasonFields::text($data['reason'] ?? null),
             $request->user()->id,
             (bool) ($data['force'] ?? false),
         );

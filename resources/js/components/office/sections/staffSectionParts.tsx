@@ -3,10 +3,11 @@ import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { Empty, FormErrors, Modal, Table, label, type Row, type TableProps } from '../../UI';
 import { randomUuid } from '../../../shared/randomUuid';
 import { useT } from '../../../shared/i18n/t';
+import { usePlacedFields, type ReasonPlace } from '../../../shared/reasonFields';
 import { AutoSelect } from '../../SearchSelect';
 
 export type StaffFieldOption = { value: string; label: string; channel?: string };
-export type StaffField = { name: string; label: string; type?: string; options?: StaffFieldOption[]; search?: boolean; required?: boolean; value?: string };
+export type StaffField = { name: string; label: string; type?: string; options?: StaffFieldOption[]; search?: boolean; required?: boolean; value?: string; place?: ReasonPlace };
 export type StaffAction = { title: string; action: string; fields: StaffField[]; defaults?: Row };
 export type StaffTableFilter = { searchable?: boolean; statuses?: string[]; q?: string; status?: string };
 export type StaffSectionTable = { key: string; page: Row & { data: Row[]; total?: number; last_page?: number }; filter?: StaffTableFilter };
@@ -119,6 +120,7 @@ export function SectionTableSearch({ table }: { table: StaffSectionTable }) {
 /** One form inside a dialog: same address and same fields as the page form it replaced. */
 export function StaffActionForm({ title, action, fields, defaults = {}, onDone, onCancel }: StaffAction & { onDone?: () => void; onCancel: () => void }) {
     const translate = useT();
+    fields = usePlacedFields(fields);
     const form = useForm<Row>({ ...Object.fromEntries(fields.map((field) => [field.name, field.type === 'file' ? null : (field.value ?? '')])), ...defaults });
     const [itemCount, setItemCount] = useState(1);
     const itemFields = fields.filter((field) => field.name.startsWith('items.0.'));

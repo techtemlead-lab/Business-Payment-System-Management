@@ -17,6 +17,7 @@ use App\Models\PlaceCode;
 use App\Models\ReferralTreePath;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\ReasonFields;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
@@ -234,7 +235,7 @@ final class StaffOperations
                 Audit::notice(
                     (int) $application->submitted_by,
                     __('portal.notice_dealer_app_title', ['decision' => $decisionLabel], $locale),
-                    __('portal.notice_dealer_app_body', ['email' => $application->email, 'reason' => $reason], $locale),
+                    __('portal.notice_dealer_app_body', ['email' => $application->email, 'reason' => ReasonFields::shown($reason, $locale)], $locale),
                 );
             }
             Audit::record($actor->id, 'dealer_application.'.$decision, $id, ['reason' => $reason, 'user_id' => $userId, 'source' => $application->source ?? 'staff', ...($sentByActor ? ['self_approved' => true] : [])]);
@@ -290,7 +291,7 @@ final class StaffOperations
             'partnership.application_rejected',
             SmsText::make('sms.partnership_application_rejected', [
                 'role' => $smsRoleLabel,
-                'reason' => $reason,
+                'reason' => ReasonFields::shown($reason, SmsText::Locale),
             ]),
         );
     }

@@ -8,6 +8,7 @@ use App\Domain\Security\SelfApproval;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
+use App\Support\ReasonFields;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -137,7 +138,7 @@ final class FinancialReadiness
                 throw ValidationException::withMessages(['balances' => __('self_approval.err_snapshot_changed')]);
             }
             DB::table('financial_verifications')->where('id', $id)->update(['verified_by' => $actor->id, 'verified_at' => now(), 'updated_at' => now()]);
-            Audit::record($actor->id, 'opening_balances.verified', (string) $id, $selfApproved ? ['self_approved' => true, 'reason' => $reason] : []);
+            Audit::record($actor->id, 'opening_balances.verified', (string) $id, $selfApproved ? ['self_approved' => true, 'reason' => $reason] : ($reason === '' ? [] : ['reason' => $reason]));
         }, 3);
     }
 
@@ -154,7 +155,7 @@ final class FinancialReadiness
             if (! $confirmed) {
                 throw ValidationException::withMessages(['fresh_start' => __('self_approval.err_confirm')]);
             }
-            if (mb_strlen(trim($reason)) < SelfApproval::MinimumReasonLength) {
+            if (ReasonFields::required('money.opening_fresh_start', $current) && mb_strlen(trim($reason)) < SelfApproval::MinimumReasonLength) {
                 throw ValidationException::withMessages(['fresh_start' => __('self_approval.err_reason')]);
             }
             if (DB::table('financial_verifications')->whereNotNull('verified_at')->exists()) {

@@ -3,6 +3,7 @@ import { Link, router, useForm } from '@inertiajs/react';
 import { Hash, Plus, Search, MapPinned, Building2, Landmark, Layers3, CheckCircle2 } from 'lucide-react';
 import { Table, Pagination, Badge, Modal, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
+import { useReasonField } from '../shared/reasonFields';
 import SearchSelect from './SearchSelect';
 import { toLatin } from '../shared/countUp';
 
@@ -214,6 +215,7 @@ export default function PlaceCodesHub({
     places,
 }: PlaceCodesHubProps) {
     const translate = useT();
+    const removeReason = useReasonField('settings.place_code_remove');
     const [search, setSearch] = useState(filters.q || '');
     const [createOpen, setCreateOpen] = useState(false);
     const [editRow, setEditRow] = useState<PlaceRow | null>(null);
@@ -258,7 +260,10 @@ export default function PlaceCodesHub({
 
     const removePlace = (row: PlaceRow) => {
         const label = displayPlace(row.name);
-        const reason = window.prompt(translate('portal', 'pc_remove_prompt', { name: label }));
+        // The owner can make the reason compulsory, optional or switch it off; off asks only "remove?".
+        const reason = !removeReason.shown
+            ? (window.confirm(translate('reason_fields', 'ask_area_code_remove_plain', { name: label })) ? '' : null)
+            : window.prompt(removeReason.required ? translate('portal', 'pc_remove_prompt', { name: label }) : translate('reason_fields', 'ask_area_code_remove_optional', { name: label }));
         if (reason === null) {
             return;
         }

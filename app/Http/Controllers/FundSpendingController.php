@@ -6,6 +6,7 @@ use App\Domain\Finance\CompanyFunds;
 use App\Domain\Finance\FundBudgets;
 use App\Domain\Finance\FundSpending;
 use App\Domain\Payouts\PayoutReceipts;
+use App\Support\ReasonFields;
 use App\Support\TransactionReference;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -37,7 +38,7 @@ class FundSpendingController extends Controller
             'payment_method' => ['required', Rule::in(PayoutReceipts::Methods)],
             'reference' => 'nullable|required_unless:payment_method,cash|string|'.TransactionReference::MinRule.'|max:100',
             'receipt' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'note' => 'nullable|string|max:1000',
+            'note' => ReasonFields::rule('money.fund_spend_note', 1000),
             'request_key' => 'required|uuid',
         ], TransactionReference::messages('reference'));
         $id = $spending->request($request->user(), $data, $request->file('receipt'));
@@ -47,9 +48,9 @@ class FundSpendingController extends Controller
 
     public function review(Request $request, int $id, FundSpending $spending): RedirectResponse|JsonResponse
     {
-        $data = $request->validate(['decision' => 'required|in:approved,rejected', 'reason' => 'required|string|min:5|max:1000',
+        $data = $request->validate(['decision' => 'required|in:approved,rejected', 'reason' => ReasonFields::rule('money.fund_spend_review', 1000, 5),
             'receipt' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120']);
-        $spending->review($request->user(), $id, $data['decision'], $data['reason'], $request->file('receipt'));
+        $spending->review($request->user(), $id, $data['decision'], ReasonFields::text($data['reason'] ?? null), $request->file('receipt'));
 
         return $this->done($request, [], __($data['decision'] === 'approved' ? 'funds.flash_spend_approved' : 'funds.flash_spend_rejected'), $data['decision'] === 'approved' ? $this->budgets->warningFor($id) : null);
     }
@@ -70,8 +71,8 @@ class FundSpendingController extends Controller
 
     public function cancel(Request $request, int $id, FundSpending $spending): RedirectResponse|JsonResponse
     {
-        $data = $request->validate(['reason' => 'required|string|min:5|max:1000']);
-        $spending->cancel($request->user(), $id, $data['reason']);
+        $data = $request->validate(['reason' => ReasonFields::rule('money.fund_spend_cancel', 1000, 5)]);
+        $spending->cancel($request->user(), $id, ReasonFields::text($data['reason'] ?? null));
 
         return $this->done($request, [], __('self_approval.flash_spend_cancelled'));
     }

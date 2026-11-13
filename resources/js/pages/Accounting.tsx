@@ -5,6 +5,7 @@ import Shell from '../components/Shell';
 import { actionAllowed } from '../components/action-permissions';
 import { Badge, Pagination, Row, Table, dateTime, money } from '../components/UI';
 import { useT } from '../shared/i18n/t';
+import { useReasonFields } from '../shared/reasonFields';
 
 type Translate = (key: string, replace?: Record<string, string | number>) => string;
 
@@ -50,15 +51,25 @@ function ColumnMapping({ statement, t }: { statement: Row; t: Translate }) {
 
 function LineDecision({ line, t }: { line: Row; t: Translate }) {
     const form = useForm({ reason: '' });
+    const translate = useT();
+    const reasonOf = useReasonFields();
     if (!useCanWorkOnStatements()) {
         return null;
     }
+    // One box serves both buttons: it shows when either step asks for a note, and each step sends it only when its own place is on.
+    const note = reasonOf(['payment.statement_confirm', 'payment.statement_dismiss']);
+    const noteLabel = note.label(translate('portal', 'note'));
+    const decide = (step: 'confirm' | 'dismiss') => {
+        const asked = reasonOf(step === 'confirm' ? 'payment.statement_confirm' : 'payment.statement_dismiss').shown;
+        form.transform(data => ({ reason: asked ? data.reason : '' }));
+        form.post(`/commands/operations/accounting/statement-lines/${line.id}/${step}`, { preserveScroll: true });
+    };
     return <div className="action-form">
-        <input aria-label={t('reason_placeholder')} placeholder={t('reason_placeholder')} maxLength={1000} required={line.flags.length > 0} value={form.data.reason} onChange={event => form.setData('reason', event.target.value)} />
+        {note.shown && <input aria-label={noteLabel} placeholder={noteLabel} maxLength={1000} required={note.required} value={form.data.reason} onChange={event => form.setData('reason', event.target.value)} />}
         {Object.keys(form.errors).length > 0 && <p role="alert" className="error">{Object.values(form.errors).join(' ')}</p>}
         <div className="button-row">
-            <button type="button" className="button small dark" disabled={form.processing} onClick={() => form.post(`/commands/operations/accounting/statement-lines/${line.id}/confirm`, { preserveScroll: true })}>{t('confirm')}</button>
-            <button type="button" className="button small" disabled={form.processing} onClick={() => form.post(`/commands/operations/accounting/statement-lines/${line.id}/dismiss`, { preserveScroll: true })}>{t('dismiss')}</button>
+            <button type="button" className="button small dark" disabled={form.processing} onClick={() => decide('confirm')}>{t('confirm')}</button>
+            <button type="button" className="button small" disabled={form.processing} onClick={() => decide('dismiss')}>{t('dismiss')}</button>
         </div>
     </div>;
 }

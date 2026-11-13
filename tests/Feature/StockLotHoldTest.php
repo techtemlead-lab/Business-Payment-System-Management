@@ -177,13 +177,45 @@ class StockLotHoldTest extends TestCase
 
     public function test_a_reason_is_required(): void
     {
+        $this->reasonFields(['stock.lot_hold' => 'required']);
+        $lot = $this->stockIn($this->product(), 5, 'PLAIN', 60);
+        $storekeeper = User::factory()->staff('inventory')->create(['active_branch_id' => $this->hub->id]);
+
+        $this->actingAs($storekeeper)->onPortal('manage')
+            ->post('/commands/stock-lots/'.$lot->id.'/hold', ['reason' => ''])
+            ->assertSessionHasErrors('reason');
+        $this->onPortal('manage')->post('/commands/stock-lots/'.$lot->id.'/hold', ['reason' => 'no'])->assertSessionHasErrors('reason');
+
+        $this->assertNull($lot->refresh()->held_at);
+    }
+
+    public function test_the_super_admin_may_leave_a_compulsory_hold_reason_blank(): void
+    {
+        $this->reasonFields(['stock.lot_hold' => 'required']);
         $lot = $this->stockIn($this->product(), 5, 'PLAIN', 60);
 
         $this->actingAs($this->owner)->onPortal('sadmin')
             ->post('/commands/stock-lots/'.$lot->id.'/hold', ['reason' => ''])
-            ->assertSessionHasErrors('reason');
+            ->assertRedirect()->assertSessionHasNoErrors();
 
-        $this->assertNull($lot->refresh()->held_at);
+        $this->assertNotNull($lot->refresh()->held_at);
+    }
+
+    public function test_a_lot_is_held_and_written_off_without_a_reason_when_the_owner_does_not_ask_for_one(): void
+    {
+        $product = $this->product();
+        $lot = $this->stockIn($product, 5, 'PLAIN', 60);
+        $client = $this->actingAs(User::factory()->staff('inventory')->create(['active_branch_id' => $this->hub->id]))->onPortal('manage');
+
+        $client->post('/commands/stock-lots/'.$lot->id.'/hold')->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertNotNull($lot->refresh()->held_at);
+        $this->assertSame('', $lot->hold_reason);
+
+        $client->post('/commands/stock-lots/'.$lot->id.'/write-off', ['reason' => ''])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertSame(0, $lot->refresh()->quantity);
+        $this->assertSame('write_off', DB::table('stock_movements')->where('product_id', $product->id)->where('quantity', -5)->value('reason'));
     }
 
     public function test_staff_without_stock_rights_and_partners_are_refused(): void

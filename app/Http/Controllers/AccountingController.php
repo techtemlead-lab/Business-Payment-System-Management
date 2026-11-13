@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Support\Audit;
 use App\Support\PdfFonts;
 use App\Support\PortalHost;
+use App\Support\ReasonFields;
 use App\Support\SpreadsheetCell;
 use App\Support\TableWorkbook;
 use Carbon\CarbonImmutable;
@@ -66,9 +67,9 @@ class AccountingController extends Controller
         $data = $request->validate([
             'amount' => [...FinanceOperationsController::Amount, 'gt:0'],
             'version' => 'required|integer|min:0',
-            'reason' => FinanceOperationsController::Reason,
+            'reason' => ReasonFields::rule('money.approval_limit', 1000, 5),
         ]);
-        $limit->save($request->user(), $data['amount'], (int) $data['version'], $data['reason']);
+        $limit->save($request->user(), $data['amount'], (int) $data['version'], ReasonFields::text($data['reason'] ?? null));
 
         return $request->expectsJson() ? response()->json(['data' => $limit->current()]) : back()->with('success', __('accounting.flash_limit_saved'));
     }
@@ -165,7 +166,7 @@ class AccountingController extends Controller
     public function confirmStatementLine(Request $request, int $id, StatementImports $imports): Response
     {
         $this->authorizeAccounting($request->user());
-        $data = $request->validate(['reason' => 'nullable|string|max:1000']);
+        $data = $request->validate(['reason' => ReasonFields::rule('payment.statement_confirm', 1000)]);
         $imports->confirm($request->user(), $id, $data['reason'] ?? null);
 
         return $request->expectsJson() ? response()->json(['data' => ['id' => $id]]) : back()->with('success', __('accounting.flash_line_confirmed'));
@@ -174,8 +175,9 @@ class AccountingController extends Controller
     public function dismissStatementLine(Request $request, int $id, StatementImports $imports): Response
     {
         $this->authorizeAccounting($request->user());
-        $data = $request->validate(['reason' => 'nullable|string|max:1000']);
-        $imports->dismiss($request->user(), $id, $data['reason'] ?? __('accounting.dismiss_reason'));
+        $data = $request->validate(['reason' => ReasonFields::rule('payment.statement_dismiss', 1000)]);
+        $reason = ReasonFields::text($data['reason'] ?? null);
+        $imports->dismiss($request->user(), $id, $reason !== '' ? $reason : (string) __('accounting.dismiss_reason'));
 
         return $request->expectsJson() ? response()->json(['data' => ['id' => $id]]) : back()->with('success', __('accounting.flash_line_dismissed'));
     }

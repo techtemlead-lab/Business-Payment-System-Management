@@ -31,7 +31,7 @@ export default function PaymentAccounts({ paymentAccounts = [], accountHistory =
         { name: 'collects_payments', label: translate('portal', 'ops_fld_accept_collections'), required: true, options: yesNo },
         { name: 'pays_out', label: translate('portal', 'ops_fld_allow_payouts'), required: true, options: yesNo },
         { name: 'is_active', label: translate('portal', 'ops_fld_account_active'), required: true, options: yesNo },
-        { name: 'reason', label: translate('portal', 'ops_fld_reason'), type: 'textarea', required: true },
+        { name: 'reason', label: translate('portal', 'ops_fld_reason'), type: 'textarea', required: true, place: 'payment.account_save' },
     ];
     const account = editing !== 'new' ? editing : null;
 
@@ -79,7 +79,7 @@ export default function PaymentAccounts({ paymentAccounts = [], accountHistory =
                             { key: 'label', title: translate('portal', 'ops_account') },
                             { key: 'account_number', title: translate('portal', 'ops_number_at_version') },
                             { key: 'recorded_at', title: translate('portal', 'ops_recorded_at'), render: (row: Row) => dateTime(row.recorded_at) },
-                            { key: 'reason', title: translate('portal', 'ops_reason') },
+                            { key: 'reason', title: translate('portal', 'ops_reason'), render: (row: Row) => row.reason || '—' },
                         ]}
                     />
                 </Modal>

@@ -67,6 +67,32 @@ class OrderServiceLocaleTest extends TestCase
         $this->assertStringContainsString($order->number, (string) $notice->body);
     }
 
+    public function test_a_decision_with_no_reason_is_saved_blank_and_the_partner_is_told_none_was_written(): void
+    {
+        $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active', 'locale' => 'bn']);
+        $product = Product::create([
+            'sku' => 'LOC-'.Str::random(6),
+            'name' => 'Locale Product',
+            'category' => 'Test',
+            'mrp' => '200.00',
+            'dealer_price' => '140.00',
+            'stock' => 20,
+        ]);
+        $order = app(OrderService::class)->create($dealer, [
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+            'idempotency_key' => (string) Str::uuid(),
+        ]);
+
+        $this->reasonFields(['order.decision' => 'optional']);
+        $this->actingAs(User::factory()->staff('finance')->create())
+            ->postJson('/api/v1/orders/'.$order->id.'/decision', ['status' => 'held'])->assertOk();
+
+        $this->assertSame('held', $order->fresh()->status);
+        $this->assertSame('', $order->fresh()->decision_reason);
+        $notice = DB::table('account_notices')->where('user_id', $dealer->id)->orderByDesc('id')->first();
+        $this->assertStringContainsString(__('reason_fields.not_written', [], 'bn'), (string) $notice->body);
+    }
+
     public function test_dispatch_before_approval_returns_localized_error(): void
     {
         app()->setLocale('bn');

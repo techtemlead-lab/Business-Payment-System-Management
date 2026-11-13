@@ -4,6 +4,7 @@ import { AlertTriangle, FileText, History, Pill, Plus, Printer, Repeat, Search, 
 import { DateInput, Empty, FormErrors, date, money, number, Pagination, type Row } from './UI';
 import SearchSelect from './SearchSelect';
 import { useT } from '../shared/i18n/t';
+import { useReasonField } from '../shared/reasonFields';
 import { businessTodayIso, localizeDigits } from '../business-date';
 import { linesFromSaved, SaveAsTemplate, TemplatePicker, TemplatesTab, type PrescriptionTools, type TemplateRow } from './PrescriptionTemplates';
 import { DietTemplatesSection } from './PrescriptionDietTemplates';
@@ -836,6 +837,7 @@ function SettingsTab({ data, translate }: { data: PrescriptionsData; translate: 
         registration_number: data.registration?.number ?? '',
         note: '',
     });
+    const noteBox = useReasonField('clinic.registration_note');
 
     return (
         <>
@@ -849,7 +851,7 @@ function SettingsTab({ data, translate }: { data: PrescriptionsData; translate: 
                         </select>
                     </label>
                     <label>{translate('prescription', 'registration_number')}<input required maxLength={60} value={registration.data.registration_number} onChange={(e) => registration.setData('registration_number', e.target.value)} /></label>
-                    <label>{translate('prescription', 'registration_note')}<input maxLength={1000} value={registration.data.note} onChange={(e) => registration.setData('note', e.target.value)} /></label>
+                    {noteBox.shown && <label>{noteBox.label(translate('prescription', 'registration_note'))}<input maxLength={1000} required={noteBox.required} value={registration.data.note} onChange={(e) => registration.setData('note', e.target.value)} /></label>}
                     <FormErrors errors={registration.errors} />
                     <button className="button dark" disabled={registration.processing}>{translate('prescription', 'registration_save')}</button>
                 </form>

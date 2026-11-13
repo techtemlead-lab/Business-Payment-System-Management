@@ -1,5 +1,6 @@
 import React from 'react';
 import { useForm } from '@inertiajs/react';
+import { useReasonField } from '../shared/reasonFields';
 
 type EmailEventRow = { key: string; label: string; enabled: boolean };
 type EmailFailure = { id: number; event: string; recipient: string; reason: string | null; created_at: string };
@@ -15,6 +16,7 @@ export type EmailEventPanel = {
 /** The owner's on/off box for each event email, and the emails the mail server refused. */
 export default function EmailEventSwitches({ panel, canEdit }: { panel: EmailEventPanel; canEdit: boolean }) {
     const { text } = panel;
+    const changeReason = useReasonField('settings.email_events');
     const form = useForm({
         enabled: panel.events.filter(event => event.enabled).map(event => event.key),
         reason: '',
@@ -41,9 +43,9 @@ export default function EmailEventSwitches({ panel, canEdit }: { panel: EmailEve
                             </label>
                         ))}
                     </div>
-                    <label>{text.reason}
-                        <textarea required minLength={5} maxLength={1000} rows={2} value={form.data.reason} onChange={event => form.setData('reason', event.target.value)} disabled={!canEdit} />
-                    </label>
+                    {changeReason.shown && <label>{changeReason.label(text.reason)}
+                        <textarea required={changeReason.required} minLength={changeReason.required ? 5 : undefined} maxLength={1000} rows={2} value={form.data.reason} onChange={event => form.setData('reason', event.target.value)} disabled={!canEdit} />
+                    </label>}
                     {Object.keys(form.errors).length > 0 && <div role="alert" className="error">{Object.values(form.errors).join(' ')}</div>}
                     <button className="button dark set-save" disabled={!canEdit || form.processing}>{form.processing ? text.saving : text.save}</button>
                 </form>

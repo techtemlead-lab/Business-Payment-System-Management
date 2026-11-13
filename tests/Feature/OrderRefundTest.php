@@ -99,6 +99,7 @@ class OrderRefundTest extends TestCase
         }
         $this->post('/commands/orders/'.$paid->id.'/refund', $this->payload('100.01'))->assertSessionHasErrors('amount');
         $this->post('/commands/orders/'.$paid->id.'/refund', $this->payload('0'))->assertSessionHasErrors('amount');
+        $this->reasonFields(['order.refund' => 'required']);
         $this->post('/commands/orders/'.$paid->id.'/refund', ['amount' => '50.00', 'reason' => ''])->assertSessionHasErrors('reason');
 
         $this->assertDatabaseCount('order_refunds', 0);
@@ -115,6 +116,21 @@ class OrderRefundTest extends TestCase
 
         $this->assertDatabaseCount('order_refunds', 1);
         $this->assertSame(1, DB::table('audit_events')->where('action', 'order.refunded')->count());
+    }
+
+    public function test_a_refund_with_no_reason_is_saved_blank_and_the_dealer_is_told_none_was_written(): void
+    {
+        $order = $this->paidOrder();
+        $finance = User::factory()->staff('finance')->create();
+        $this->reasonFields(['order.refund' => 'optional']);
+
+        $this->actingAs($finance)->onPortal('manage')->post('/commands/orders/'.$order->id.'/refund', ['amount' => '100.00'])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('order_refunds', ['order_id' => $order->id, 'reason' => '']);
+        $this->assertSame('cancelled', $order->fresh()->status);
+        $locale = User::find($order->user_id)->preferredLocale();
+        $body = DB::table('account_notices')->where('user_id', $order->user_id)->where('title', __('portal.notice_order_refunded_title', [], $locale))->value('body');
+        $this->assertStringContainsString(__('reason_fields.not_written', [], $locale), (string) $body);
     }
 
     public function test_every_commission_from_the_order_is_reversed_on_refund(): void

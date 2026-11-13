@@ -160,6 +160,7 @@ class MixedOutcomeDeliveredPartCommissionTest extends TestCase
         $mixed = $this->mixedOrder(3, 4);
         $url = '/commands/orders/'.$mixed->id.'/mixed-outcome-decision';
 
+        $this->reasonFields(['order.commission_decision' => 'required']);
         $this->actingAs($this->reviewer)->onPortal('manage')->post($url, ['decision' => MixedOutcomeDecisions::DeliveredPart])->assertSessionHasErrors('reason');
         $this->assertSame(0, DB::table('commission_batches')->where('order_id', $mixed->id)->count());
 
@@ -173,6 +174,22 @@ class MixedOutcomeDeliveredPartCommissionTest extends TestCase
         $this->assertDatabaseHas('account_notices', ['user_id' => $this->dealer->id, 'title' => __('courier_more.notice_decision_title', ['number' => $mixed->number], $locale)]);
         $body = DB::table('account_notices')->where('user_id', $this->dealer->id)->where('title', __('courier_more.notice_decision_title', ['number' => $mixed->number], $locale))->value('body');
         $this->assertStringContainsString(__('schemes_commission.decision_delivered_part', [], $locale), (string) $body);
+    }
+
+    public function test_a_decision_with_no_reason_is_saved_blank_and_the_dealer_is_told_none_was_written(): void
+    {
+        $mixed = $this->mixedOrder(3, 4);
+        $url = '/commands/orders/'.$mixed->id.'/mixed-outcome-decision';
+        $this->reasonFields(['order.commission_decision' => 'optional']);
+
+        $this->actingAs($this->reviewer)->onPortal('manage')->post($url, ['decision' => MixedOutcomeDecisions::NoCommission])->assertSessionHasNoErrors();
+
+        $event = DB::table('order_events')->where('order_id', $mixed->id)->where('action', MixedOutcomeDecisions::Action)->first();
+        $this->assertSame('', json_decode($event->metadata, true)['reason']);
+        $this->assertSame('', CommissionAllocation::query()->where('order_id', $mixed->id)->where('category', CommissionPosting::NoCommissionCategory)->firstOrFail()->metadata['reason']);
+        $locale = $this->dealer->preferredLocale();
+        $body = DB::table('account_notices')->where('user_id', $this->dealer->id)->where('title', __('courier_more.notice_decision_title', ['number' => $mixed->number], $locale))->value('body');
+        $this->assertStringContainsString(__('reason_fields.not_written', [], $locale), (string) $body);
     }
 
     public function test_only_the_two_new_choices_are_accepted(): void

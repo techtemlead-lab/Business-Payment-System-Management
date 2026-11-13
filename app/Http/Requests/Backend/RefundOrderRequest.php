@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Backend;
 
 use App\Domain\Orders\OrderRefund;
+use App\Support\ReasonFields;
 use Illuminate\Foundation\Http\FormRequest;
 
 class RefundOrderRequest extends FormRequest
@@ -14,9 +15,9 @@ class RefundOrderRequest extends FormRequest
         return $user !== null && OrderRefund::canRefund($user);
     }
 
-    /** @return array<string, string> */
+    /** @return array<string, mixed> */
     public function rules(): array
     {
-        return ['amount' => ['required', 'regex:/^\d{1,12}(\.\d{1,2})?$/D'], 'reason' => 'required|string|min:3|max:1000'];
+        return ['amount' => ['required', 'regex:/^\d{1,12}(\.\d{1,2})?$/D'], 'reason' => ReasonFields::rule('order.refund', 1000, 3)];
     }
 }

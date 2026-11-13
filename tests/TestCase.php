@@ -8,6 +8,7 @@ use App\Domain\Finance\FinancialReadiness;
 use App\Models\PlaceCode;
 use App\Models\User;
 use App\Support\PortalHost;
+use App\Support\ReasonFields;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\DB;
@@ -201,6 +202,25 @@ abstract class TestCase extends BaseTestCase
                 'is_active' => true,
             ]);
         }
+    }
+
+    /**
+     * Set the owners' choice for reason and note boxes, e.g. ['order.refund' => 'required'].
+     * Written straight to the settings row, so a test needs no extra owner account for it.
+     *
+     * @param  array<string, string>  $modes
+     */
+    protected function reasonFields(array $modes): void
+    {
+        $row = DB::table('business_settings')->where('key', ReasonFields::SettingsKey)->first();
+        $saved = $row === null ? [] : (json_decode((string) $row->value, true)['modes'] ?? []);
+        DB::table('business_settings')->updateOrInsert(['key' => ReasonFields::SettingsKey], [
+            'value' => json_encode(['modes' => (object) [...$saved, ...$modes]], JSON_THROW_ON_ERROR),
+            'version' => (int) ($row->version ?? 0) + 1,
+            'updated_by' => $row->updated_by ?? (User::query()->orderBy('id')->value('id') ?? User::factory()->staff('md')->create(['status' => 'suspended'])->id),
+            'created_at' => $row->created_at ?? now(),
+            'updated_at' => now(),
+        ]);
     }
 
     private function originForHost(string $host): string

@@ -8,6 +8,7 @@ use App\Domain\Staff\StaffPermissions;
 use App\Models\Product;
 use App\Support\Audit;
 use App\Support\ProductVideo;
+use App\Support\ReasonFields;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -17,8 +18,8 @@ class ModuleCompletionController extends Controller
 {
     public function minimum(Request $request, FinanceSettings $settings): Response
     {
-        $data = $request->validate(['amount' => [...FinanceOperationsController::Amount, 'gt:0'], 'version' => 'required|integer|min:0', 'reason' => FinanceOperationsController::Reason]);
-        $settings->saveMinimum($request->user(), $data['amount'], (int) $data['version'], $data['reason']);
+        $data = $request->validate(['amount' => [...FinanceOperationsController::Amount, 'gt:0'], 'version' => 'required|integer|min:0', 'reason' => ReasonFields::rule('money.withdrawal_minimum', 1000, 5)]);
+        $settings->saveMinimum($request->user(), $data['amount'], (int) $data['version'], ReasonFields::text($data['reason'] ?? null));
 
         return $this->done($request);
     }
@@ -31,9 +32,9 @@ class ModuleCompletionController extends Controller
             'items' => 'array',
             ...array_fill_keys($items, 'boolean'),
             'version' => 'required|integer|min:0',
-            'reason' => FinanceOperationsController::Reason,
+            'reason' => ReasonFields::rule('money.auto_approval', 1000, 5),
         ]);
-        $settings->saveAutoApproval($request->user(), (bool) $data['enabled'], $data['items'] ?? [], (int) $data['version'], $data['reason']);
+        $settings->saveAutoApproval($request->user(), (bool) $data['enabled'], $data['items'] ?? [], (int) $data['version'], ReasonFields::text($data['reason'] ?? null));
 
         return $this->done($request);
     }
@@ -45,9 +46,9 @@ class ModuleCompletionController extends Controller
         $data = $request->validate([
             'enabled' => 'required|boolean',
             'version' => 'required|integer|min:0',
-            'reason' => FinanceOperationsController::Reason,
+            'reason' => ReasonFields::rule('money.kyc_before_withdrawal', 1000, 5),
         ]);
-        $settings->saveKycBeforeFirstWithdrawal($request->user(), (bool) $data['enabled'], (int) $data['version'], $data['reason']);
+        $settings->saveKycBeforeFirstWithdrawal($request->user(), (bool) $data['enabled'], (int) $data['version'], ReasonFields::text($data['reason'] ?? null));
 
         return $this->done($request);
     }
@@ -59,9 +60,9 @@ class ModuleCompletionController extends Controller
         $data = $request->validate([
             'enabled' => 'required|boolean',
             'version' => 'required|integer|min:0',
-            'reason' => FinanceOperationsController::Reason,
+            'reason' => ReasonFields::rule('money.full_payment_when_ordering', 1000, 5),
         ]);
-        $settings->saveFullPaymentWhenOrdering($request->user(), (bool) $data['enabled'], (int) $data['version'], $data['reason']);
+        $settings->saveFullPaymentWhenOrdering($request->user(), (bool) $data['enabled'], (int) $data['version'], ReasonFields::text($data['reason'] ?? null));
 
         return $this->done($request);
     }
@@ -70,8 +71,8 @@ class ModuleCompletionController extends Controller
     {
         abort_unless($request->user()->role === 'super_admin', 403);
         $data = $request->validate(['key' => 'required|string|max:60', 'name' => 'required|string|max:100', 'permissions' => 'present|array',
-            'version' => 'required|integer|min:0', 'reason' => FinanceOperationsController::Reason]);
-        $key = $permissions->saveRole($request->user(), $data['key'], $data['name'], $data['permissions'], (int) $data['version'], $data['reason']);
+            'version' => 'required|integer|min:0', 'reason' => ReasonFields::rule('staff.role_save', 1000, 5)]);
+        $key = $permissions->saveRole($request->user(), $data['key'], $data['name'], $data['permissions'], (int) $data['version'], ReasonFields::text($data['reason'] ?? null));
 
         return $this->done($request, ['key' => $key]);
     }
@@ -80,8 +81,8 @@ class ModuleCompletionController extends Controller
     {
         abort_unless($request->user()->role === 'super_admin', 403);
         $data = $request->validate(['staff_id' => 'required|integer|exists:users,id', 'permissions' => 'present|array',
-            'version' => 'required|string|size:64', 'role' => 'nullable|string|max:60', 'reason' => FinanceOperationsController::Reason]);
-        $permissions->assign($request->user(), (int) $data['staff_id'], $data['permissions'], $data['version'], $data['reason'], $data['role'] ?? null);
+            'version' => 'required|string|size:64', 'role' => 'nullable|string|max:60', 'reason' => ReasonFields::rule('staff.access_save', 1000, 5)]);
+        $permissions->assign($request->user(), (int) $data['staff_id'], $data['permissions'], $data['version'], ReasonFields::text($data['reason'] ?? null), $data['role'] ?? null);
 
         return $this->done($request);
     }
@@ -89,7 +90,7 @@ class ModuleCompletionController extends Controller
     public function homepageVideo(Request $request): Response
     {
         $data = $request->validate(['enabled' => 'required|boolean', 'product_id' => 'nullable|integer|exists:products,id', 'title' => 'required|string|max:150',
-            'description' => 'nullable|string|max:1000', 'version' => 'required|integer|min:0', 'reason' => FinanceOperationsController::Reason]);
+            'description' => 'nullable|string|max:1000', 'version' => 'required|integer|min:0', 'reason' => ReasonFields::rule('settings.homepage_video', 1000, 5)]);
         DB::transaction(function () use ($request, $data): void {
             CommissionWallet::lock();
             $actor = $request->user()->fresh();
@@ -108,7 +109,7 @@ class ModuleCompletionController extends Controller
             $value['enabled'] = (bool) $value['enabled'];
             DB::table('business_settings')->updateOrInsert(['key' => 'homepage_video'], ['value' => json_encode($value, JSON_THROW_ON_ERROR),
                 'version' => (int) $data['version'] + 1, 'updated_by' => $actor->id, 'created_at' => $before?->created_at ?? now(), 'updated_at' => now()]);
-            Audit::record($actor->id, 'homepage.video_saved', 'homepage_video', ['before' => $before ? json_decode($before->value, true, 512, JSON_THROW_ON_ERROR) : null, 'after' => $value, 'reason' => $data['reason']]);
+            Audit::record($actor->id, 'homepage.video_saved', 'homepage_video', ['before' => $before ? json_decode($before->value, true, 512, JSON_THROW_ON_ERROR) : null, 'after' => $value, 'reason' => ReasonFields::text($data['reason'] ?? null)]);
             ProductVideo::forgetHomepageCache();
         }, 3);
 

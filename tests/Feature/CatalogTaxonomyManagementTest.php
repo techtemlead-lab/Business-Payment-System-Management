@@ -9,6 +9,7 @@ use App\Models\ProductUnit;
 use App\Models\User;
 use App\Support\SiteCustomization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -315,12 +316,13 @@ class CatalogTaxonomyManagementTest extends TestCase
 
     public function test_taxonomy_delete_requires_reason_and_catalog_capability(): void
     {
-        $admin = User::factory()->create(['role' => 'super_admin']);
+        $this->reasonFields(['product.taxonomy_remove' => 'required']);
+        $editor = User::factory()->create(['role' => 'editor']);
         $support = User::factory()->create(['role' => 'support']);
         $category = ProductCategory::factory()->create(['name' => 'Guard Cat', 'slug' => 'guard-cat']);
         $unit = ProductUnit::factory()->create(['name' => 'Guard Unit', 'code' => 'guard-unit']);
 
-        $this->actingAs($admin)->onPortal('sadmin')->delete('/commands/product-categories/'.$category->id, [
+        $this->actingAs($editor)->onPortal('manage')->delete('/commands/product-categories/'.$category->id, [
             'reason' => 'no',
         ])->assertSessionHasErrors('reason');
 
@@ -330,6 +332,36 @@ class CatalogTaxonomyManagementTest extends TestCase
 
         $this->assertDatabaseHas('product_categories', ['id' => $category->id]);
         $this->assertDatabaseHas('product_units', ['id' => $unit->id]);
+    }
+
+    public function test_taxonomy_is_deleted_without_a_reason_when_the_owner_does_not_ask_for_one(): void
+    {
+        $editor = User::factory()->create(['role' => 'editor']);
+        $category = ProductCategory::factory()->create(['name' => 'No Reason Cat', 'slug' => 'no-reason-cat']);
+        $subcategory = ProductSubcategory::factory()->create(['product_category_id' => $category->id, 'name' => 'No Reason Sub', 'slug' => 'no-reason-sub']);
+        $unit = ProductUnit::factory()->create(['name' => 'No Reason Unit', 'code' => 'no-reason-unit']);
+        $client = $this->actingAs($editor)->onPortal('manage');
+
+        $client->delete('/commands/product-subcategories/'.$subcategory->id)->assertRedirect()->assertSessionHasNoErrors();
+        $client->delete('/commands/product-units/'.$unit->id, ['reason' => ''])->assertRedirect()->assertSessionHasNoErrors();
+        $this->reasonFields(['product.taxonomy_remove' => 'off']);
+        $client->delete('/commands/product-categories/'.$category->id, ['reason' => 'ok'])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertDatabaseMissing('product_subcategories', ['id' => $subcategory->id]);
+        $this->assertDatabaseMissing('product_units', ['id' => $unit->id]);
+        $this->assertDatabaseMissing('product_categories', ['id' => $category->id]);
+        $this->assertSame('', json_decode((string) DB::table('audit_events')->where('action', 'product_unit.deleted')->value('metadata'), true)['reason']);
+    }
+
+    public function test_the_super_admin_may_delete_taxonomy_without_the_compulsory_reason(): void
+    {
+        $this->reasonFields(['product.taxonomy_remove' => 'required']);
+        $admin = User::factory()->create(['role' => 'super_admin']);
+        $unit = ProductUnit::factory()->create(['name' => 'Owner Unit', 'code' => 'owner-unit']);
+
+        $this->actingAs($admin)->onPortal('sadmin')->delete('/commands/product-units/'.$unit->id)->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertDatabaseMissing('product_units', ['id' => $unit->id]);
     }
 
     public function test_backend_api_can_delete_unused_taxonomy(): void

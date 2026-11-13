@@ -124,7 +124,7 @@ function Transfers({ data }: { data: Row }) {
                         { name: 'source_branch_id', label: t('col_from'), required: true, search: true, options: data.branch_options ?? [] },
                         { name: 'destination_branch_id', label: t('col_to'), required: true, search: true, options: data.branch_options ?? [] },
                         { name: 'quantity', label: t('col_quantity'), type: 'number', required: true },
-                        { name: 'note', label: t('transfer_note') },
+                        { name: 'note', label: t('transfer_note'), place: 'stock.transfer_note' },
                     ]} />
                 </Modal>
             )}

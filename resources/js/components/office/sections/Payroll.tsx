@@ -6,6 +6,7 @@ import type { OfficeHub } from '../../OfficeHubTabs';
 import OfficePage from '../OfficePage';
 import { businessMonth } from '../../../business-date';
 import { useT } from '../../../shared/i18n/t';
+import type { ReasonPlace } from '../../../shared/reasonFields';
 import { commandRoot, currentView, DrawerLines, findTable, pickField, readStored, SectionTableSearch, StaffActionDialog, StaffTable, textField, ViewSwitch, type StaffAction, type StaffField, type StaffSectionTable } from './staffSectionParts';
 
 type PayrollView = 'register' | 'agreements';
@@ -36,6 +37,7 @@ export default function Payroll({ tables, staff, paymentAccounts, hub }: Payroll
     const opened = register?.page.data.find((row) => String(row.id) === openedId) ?? null;
 
     const reason: StaffField = { name: 'reason', label: translate('portal', 'ops_fld_reason'), type: 'textarea', required: true };
+    const reasonFor = (place: ReasonPlace): StaffField => ({ ...reason, place });
     const staffField = pickField(staff.filter((person) => person.role !== 'super_admin'), 'staff_id', translate('portal', 'ops_fld_staff'));
 
     const forms: { action: StaffAction; label: string; primary: boolean }[] = [];
@@ -43,7 +45,7 @@ export default function Payroll({ tables, staff, paymentAccounts, hub }: Payroll
         forms.push({
             label: translate('office_staff', 'add_salary_agreement'),
             primary: false,
-            action: { title: translate('portal', 'ops_create_salary_contract'), action: `${commandRoot}/payroll/contracts`, fields: [staffField, textField('effective_month', translate('portal', 'ops_fld_effective_month'), 'month'), textField('base_salary', translate('portal', 'ops_fld_base_salary'), 'number'), textField('allowance', translate('portal', 'ops_fld_allowance'), 'number'), textField('deduction', translate('portal', 'ops_fld_deduction'), 'number'), reason] },
+            action: { title: translate('portal', 'ops_create_salary_contract'), action: `${commandRoot}/payroll/contracts`, fields: [staffField, textField('effective_month', translate('portal', 'ops_fld_effective_month'), 'month'), textField('base_salary', translate('portal', 'ops_fld_base_salary'), 'number'), textField('allowance', translate('portal', 'ops_fld_allowance'), 'number'), textField('deduction', translate('portal', 'ops_fld_deduction'), 'number'), reasonFor('staff.contract')] },
         });
     }
     forms.push({
@@ -65,7 +67,7 @@ export default function Payroll({ tables, staff, paymentAccounts, hub }: Payroll
             const review: StaffAction = {
                 title: translate('portal', 'ops_review_payroll'),
                 action: `${commandRoot}/payroll/${row.id}/review`,
-                fields: [{ name: 'decision', label: translate('portal', 'ops_fld_decision'), required: true, options: ['approved', 'rejected'].map((value) => ({ value, label: label(value, translate) })) }, reason],
+                fields: [{ name: 'decision', label: translate('portal', 'ops_fld_decision'), required: true, options: ['approved', 'rejected'].map((value) => ({ value, label: label(value, translate) })) }, reasonFor('staff.payroll_review')],
             };
             if (mayFinish(row.prepared_by)) {
                 actions.push(review);

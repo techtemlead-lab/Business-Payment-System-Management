@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\User;
 use App\Support\PortalHost;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -139,6 +140,30 @@ class ProductStockInOutTest extends TestCase
             'reason' => 'supplier_receipt',
         ]);
         $this->assertSame(4, $product->fresh()->stock);
+    }
+
+    public function test_a_movement_with_no_reason_is_filed_under_other_unless_the_owner_asks_for_one(): void
+    {
+        $hub = CompanyBranch::query()->where('code', 'HO-PIRGANJ')->firstOrFail();
+        $actor = User::factory()->staff('inventory')->create(['active_branch_id' => $hub->id]);
+        $product = Product::factory()->create(['stock' => 5]);
+        $movement = fn (array $fields): array => ['product_id' => $product->id, 'reference' => (string) Str::uuid(), 'branch_id' => $hub->id, ...$fields];
+
+        $this->actingAs($actor)->postJson('/api/v1/inventory/adjustments', $movement(['kind' => BranchOperations::KindProductIn, 'quantity' => 3]))
+            ->assertOk()->assertJsonPath('data.stock', 8);
+        $this->from('/inventory')->post('/commands/stock', $movement(['kind' => BranchOperations::KindProductOut, 'quantity' => 2, 'reason' => '']))
+            ->assertRedirect('/inventory')->assertSessionHasNoErrors();
+        $this->postJson('/api/v1/inventory/adjustments', $movement(['quantity' => -1]))->assertOk()->assertJsonPath('data.stock', 5);
+
+        $this->assertSame(['other', 'other', 'other'], DB::table('stock_movements')->where('product_id', $product->id)->orderBy('id')->pluck('reason')->all());
+
+        $this->postJson('/api/v1/inventory/adjustments', $movement(['kind' => BranchOperations::KindProductOut, 'quantity' => 1, 'reason' => 'supplier_receipt']))
+            ->assertUnprocessable()->assertJsonValidationErrors('reason_code');
+
+        $this->reasonFields(['stock.adjust' => 'required']);
+        $this->postJson('/api/v1/inventory/adjustments', $movement(['kind' => BranchOperations::KindProductIn, 'quantity' => 1]))
+            ->assertUnprocessable()->assertJsonValidationErrors('reason');
+        $this->assertSame(5, $product->fresh()->stock);
     }
 
     public function test_product_in_rejects_a_past_expiry_date(): void

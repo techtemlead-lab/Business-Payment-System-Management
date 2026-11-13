@@ -8,6 +8,7 @@ use App\Domain\Inventory\StockLotReports;
 use App\Domain\Inventory\StockTransfers;
 use App\Models\StockLot;
 use App\Models\StockTransfer;
+use App\Support\ReasonFields;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -64,7 +65,7 @@ class StockLotController extends Controller
             'quantity' => ['required', 'integer', 'min:1', 'max:100000'],
             'source_branch_id' => ['required', 'integer', 'exists:company_branches,id'],
             'destination_branch_id' => ['required', 'integer', 'exists:company_branches,id'],
-            'note' => ['nullable', 'string', 'max:500'],
+            'note' => ReasonFields::rule('stock.transfer_note', 500),
         ]);
         $transfers->request($request->user(), $data);
 
@@ -94,6 +95,6 @@ class StockLotController extends Controller
 
     private function holdReason(Request $request): string
     {
-        return $request->validate(['reason' => ['required', 'string', 'min:5', 'max:500']])['reason'];
+        return ReasonFields::text($request->validate(['reason' => ReasonFields::rule('stock.lot_hold', 500, 5)])['reason'] ?? null);
     }
 }

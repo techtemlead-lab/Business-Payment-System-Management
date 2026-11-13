@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Support\Audit;
 use App\Support\LocalDigits;
 use App\Support\Money;
+use App\Support\ReasonFields;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -141,7 +142,7 @@ class ManualPayoutService
             Audit::notice(
                 $w->user_id,
                 __('portal.notice_wd_reviewed_title', [], $locale),
-                __('portal.notice_wd_reviewed_body', ['decision' => $decisionLabel, 'reason' => $reason], $locale),
+                __('portal.notice_wd_reviewed_body', ['decision' => $decisionLabel, 'reason' => ReasonFields::shown($reason, $locale)], $locale),
                 'withdrawal.'.$decision,
             );
         }, 3);

@@ -11,6 +11,7 @@ import Figures from './office/Figures';
 import OfficePage from './office/OfficePage';
 import { DrawerLines, ViewSwitch, currentView } from './office/sections/staffSectionParts';
 import { useT } from '../shared/i18n/t';
+import { useReasonField } from '../shared/reasonFields';
 
 export interface PermissionDefinition {
     key: string;
@@ -110,13 +111,14 @@ function PermissionPicker({ available, selected, onChange, adding, onlyKeys }: {
 
 function AddStaffDialog({ available, onClose }: { available: PermissionDefinition[]; onClose: () => void }) {
     const translate = useT();
+    const addReason = useReasonField('staff.account_create');
     const form = useForm({
         role: 'employee',
         name: '',
         email: '',
         phone: '',
         status: 'active',
-        reason: translate('office_staff', 'reason_add'),
+        reason: addReason.shown ? translate('office_staff', 'reason_add') : '',
         permissions: ['orders', 'inventory'] as string[],
     });
 
@@ -151,11 +153,13 @@ function AddStaffDialog({ available, onClose }: { available: PermissionDefinitio
                     </select>
                 </label>
                 <PermissionPicker available={available} selected={form.data.permissions} onChange={(keys) => form.setData('permissions', keys)} adding />
-                <label>
-                    {translate('office_staff', 'field_reason_add')}
-                    <textarea required rows={2} value={form.data.reason} onChange={(event) => form.setData('reason', event.target.value)} />
-                    {form.errors.reason && <span className="field-error">{form.errors.reason}</span>}
-                </label>
+                {addReason.shown && (
+                    <label>
+                        {addReason.label(translate('office_staff', 'field_reason_add'))}
+                        <textarea required={addReason.required} rows={2} value={form.data.reason} onChange={(event) => form.setData('reason', event.target.value)} />
+                        {form.errors.reason && <span className="field-error">{form.errors.reason}</span>}
+                    </label>
+                )}
                 <FormErrors errors={form.errors} besideFields={['name', 'email', 'phone', 'reason']} />
                 <div className="ops-row is-end is-loose">
                     <button type="button" className="button" onClick={onClose}>{translate('portal', 'emp_cancel')}</button>
@@ -175,11 +179,12 @@ function EditStaffDialog({ employee, available, canResetPassword, onClose }: { e
     const startingPermissions: string[] = Array.isArray(employee.profile?.permissions)
         ? employee.profile.permissions
         : employee.role === 'sr' ? SR_PERMISSIONS : [];
+    const editReason = useReasonField('staff.account_edit');
     const form = useForm<{ name: string; phone: string; status: string; reason: string; permissions: string[] }>({
         name: employee.name || '',
         phone: employee.phone || '',
         status: employee.status || 'active',
-        reason: translate('office_staff', 'reason_update'),
+        reason: editReason.shown ? translate('office_staff', 'reason_update') : '',
         permissions: [...startingPermissions],
     });
 
@@ -220,11 +225,13 @@ function EditStaffDialog({ employee, available, canResetPassword, onClose }: { e
                 ) : (
                     <p className="muted">{translate('portal', 'emp_action_perms_notice')} <Link href="/operations/access-management" className="text-link">{translate('portal', 'emp_manage_roles')}</Link></p>
                 )}
-                <label>
-                    {translate('office_staff', 'field_reason_edit')}
-                    <textarea required rows={2} placeholder={translate('portal', 'emp_ph_correction_reason')} value={form.data.reason} onChange={(event) => form.setData('reason', event.target.value)} />
-                    {form.errors.reason && <span className="field-error">{form.errors.reason}</span>}
-                </label>
+                {editReason.shown && (
+                    <label>
+                        {editReason.label(translate('office_staff', 'field_reason_edit'))}
+                        <textarea required={editReason.required} rows={2} placeholder={translate('portal', 'emp_ph_correction_reason')} value={form.data.reason} onChange={(event) => form.setData('reason', event.target.value)} />
+                        {form.errors.reason && <span className="field-error">{form.errors.reason}</span>}
+                    </label>
+                )}
                 <FormErrors errors={form.errors} besideFields={['name', 'phone', 'reason']} />
                 <div className="ops-row is-end is-loose">
                     <button type="button" className="button" onClick={onClose}>{translate('portal', 'emp_cancel')}</button>

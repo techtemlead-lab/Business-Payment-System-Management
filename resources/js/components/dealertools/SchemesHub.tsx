@@ -4,6 +4,7 @@ import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { DateInput, FormErrors, Modal, Table, date, number } from '../UI';
 import OfficePage from '../office/OfficePage';
 import { useT } from '../../shared/i18n/t';
+import { useReasonField } from '../../shared/reasonFields';
 import SearchSelect, { SearchCheckList } from '../SearchSelect';
 
 type Scheme = { id: number; title: string; starts_on: string; ends_on: string; product_ids: number[]; min_quantity: number; benefit_type: string; benefit_text: string; free_product_id: number | null; free_quantity: number | null; orders_using: number; earliest_end: string | null };
@@ -91,6 +92,7 @@ function SchemeFields({ values, change, errors, products, benefitTypes, offerLoc
 function SchemeEditor({ scheme, data, onDone }: { scheme: Scheme; data: SchemesData; onDone: () => void }) {
     const translate = useT();
     const form = useForm<SchemeValues & { reason: string }>({ ...valuesOf(scheme), reason: '' });
+    const why = useReasonField('partner.scheme_edit');
     const used = scheme.orders_using > 0;
     const offer = used ? offerOf(scheme) : {};
     const products = data.products.filter((product) => product.active || scheme.product_ids.includes(product.id) || scheme.free_product_id === product.id);
@@ -111,7 +113,7 @@ function SchemeEditor({ scheme, data, onDone }: { scheme: Scheme; data: SchemesD
                 offerLocked={used}
                 endHint={scheme.earliest_end ? translate('dealer_tools', 'scheme_earliest_end_hint', { date: date(scheme.earliest_end) }) : undefined}
             />
-            <label>{translate('dealer_tools', 'edit_reason_field')}<textarea required rows={2} minLength={5} maxLength={1000} value={form.data.reason} onChange={(e) => form.setData('reason', e.target.value)} /><small className="field-hint">{translate('dealer_tools', 'edit_reason_hint')}</small>{form.errors.reason && <span className="field-error" role="alert">{form.errors.reason}</span>}</label>
+            {why.shown && <label>{why.label(translate('dealer_tools', 'edit_reason_field'))}<textarea required={why.required} rows={2} minLength={why.required ? 5 : undefined} maxLength={1000} value={form.data.reason} onChange={(e) => form.setData('reason', e.target.value)} /><small className="field-hint">{why.required ? translate('dealer_tools', 'edit_reason_hint') : translate('reason_fields', 'hint_kept_in_record')}</small>{form.errors.reason && <span className="field-error" role="alert">{form.errors.reason}</span>}</label>}
             <FormErrors errors={form.errors} besideFields={FIELDS_WITH_OWN_ERROR} />
             <button type="submit" className="button dark" disabled={form.processing}>{translate('portal', form.processing ? 'saving' : 'save_changes')}</button>
         </form>

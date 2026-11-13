@@ -11,6 +11,7 @@ use App\Models\PlaceCode;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
+use App\Support\ReasonFields;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -174,7 +175,7 @@ final class TerritoryAccess
                 __('portal.notice_staff_territory_removed_body', [
                     'level' => $row->level,
                     'territory' => $label,
-                    'reason' => $reason,
+                    'reason' => ReasonFields::shown($reason, $locale),
                 ], $locale),
             );
             DB::afterCommit(function () use ($staff, $row, $label): void {

@@ -114,6 +114,7 @@ final class OfficeHubs
         ],
         'system' => [
             'login-rules' => '/login-rules',
+            'reason-fields' => '/reason-fields',
             'service-integrations' => '/operations/service-integrations',
             'courier-areas' => '/operations/courier-areas',
             'data-imports' => '/operations/data-imports',

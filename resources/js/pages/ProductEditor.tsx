@@ -3,6 +3,7 @@ import {Head,Link,router,useForm,usePage} from '@inertiajs/react';
 import Shell from '../components/Shell';
 import {money, number, FormErrors, type Row} from '../components/UI';
 import {useT} from '../shared/i18n/t';
+import {useReasonField} from '../shared/reasonFields';
 import {isPastBusinessDate} from '../business-date';
 import {skuPrefix, suggestSku} from '../shared/sku';
 import {useProductPhotoFit} from '../shared/productPhotoFit';
@@ -93,6 +94,7 @@ export default function ProductEditor({
  });
  const [chosenPhoto,setChosenPhoto]=useState<File|null>(null);
  const defaultPhotoReason=translate('portal','pe_photo_default_reason');
+ const changeReason=useReasonField('product.edit');
  const [photoReason,setPhotoReason]=useState(defaultPhotoReason);
  const [photoOnlySave,setPhotoOnlySave]=useState(false);
  const [photoInputKey,setPhotoInputKey]=useState(0);
@@ -315,7 +317,7 @@ export default function ProductEditor({
     </div>
    </div>
   {cost&&<label>{translate('portal','pe_cost')}<input type="number" min="0" step="0.01" disabled={!pricing} value={form.data.cost_price} onChange={e=>form.setData('cost_price',e.target.value)}/></label>}<label>{translate('portal','pe_low_stock_at')}<input type="number" min="0" max="100000" step="1" disabled={!inventory} value={form.data.low_stock_at} onChange={e=>form.setData('low_stock_at',e.target.value)}/></label><label>{translate('portal','pe_publication')}<select aria-label={translate('portal','pe_publication')} disabled={!catalog} value={form.data.active} onChange={e=>form.setData('active',e.target.value)}><option value="0">{translate('portal','pe_draft_hidden')}</option><option value="1">{translate('portal','pe_published')}</option></select></label><ProductHomePageChoice shown={form.data.featured} place={form.data.home_page_place} listedCount={home_page.count} canEdit={catalog} onShownChange={shown=>form.setData('featured',shown)} onPlaceChange={place=>form.setData('home_page_place',place)}/><p className="muted">{translate('portal','pe_stock_note')}</p></section>
- {editable&&<section className="panel"><h2>{translate('portal','pe_save_title')}</h2><label>{translate('portal','pe_change_reason')}<textarea required minLength={5} maxLength={1000} rows={3} value={form.data.reason} onChange={e=>form.setData('reason',e.target.value)}/></label>{form.progress&&<progress max={100} value={form.progress.percentage} aria-label={translate('portal','pe_upload_progress')}/>}{!photoOnlySave&&<FormErrors errors={form.errors}/>}<button type="submit" className="button dark" disabled={form.processing||photoFit.busy}>{form.processing?translate('portal','pe_saving'):p?translate('portal','pe_save_product'):translate('portal','pe_create_product')}</button></section>}
+ {editable&&<section className="panel"><h2>{translate('portal','pe_save_title')}</h2>{changeReason.shown&&<label>{changeReason.label(translate('portal','pe_change_reason'))}<textarea required={changeReason.required} minLength={changeReason.required?5:undefined} maxLength={1000} rows={3} value={form.data.reason} onChange={e=>form.setData('reason',e.target.value)}/></label>}{form.progress&&<progress max={100} value={form.progress.percentage} aria-label={translate('portal','pe_upload_progress')}/>}{!photoOnlySave&&<FormErrors errors={form.errors}/>}<button type="submit" className="button dark" disabled={form.processing||photoFit.busy}>{form.processing?translate('portal','pe_saving'):p?translate('portal','pe_save_product'):translate('portal','pe_create_product')}</button></section>}
  </div></form>
  {p && catalog && removal && <div className="registry-layout pe-remove-row"><div><ProductRemovePanel product={{id:p.id,name:String(p.name),archived:Boolean(p.archived)}} removal={removal}/></div></div>}
  </Shell>;

@@ -8,6 +8,7 @@ use App\Domain\Clinic\PatientRecords;
 use App\Models\PrescriptionAppointment;
 use App\Models\PrescriptionPatient;
 use App\Models\PrescriptionPatientAttachment;
+use App\Support\ReasonFields;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -76,7 +77,7 @@ class ClinicRecordsController extends Controller
         $data = $request->validate([
             'appointment_on' => 'required|date_format:Y-m-d|after_or_equal:'.$queue->today(),
             'appointment_time' => 'nullable|date_format:H:i',
-            'note' => 'nullable|string|max:500',
+            'note' => ReasonFields::rule('clinic.appointment_note', 500),
         ]);
         $appointment = $queue->book($request->user(), $patient, $data['appointment_on'], $data['appointment_time'] ?? null, $data['note'] ?? null);
 

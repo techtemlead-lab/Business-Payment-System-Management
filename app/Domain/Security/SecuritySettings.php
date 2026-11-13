@@ -4,6 +4,7 @@ namespace App\Domain\Security;
 
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\ReasonFields;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
@@ -209,11 +210,20 @@ final class SecuritySettings
         }, 3);
     }
 
+    /**
+     * The reason box switches as saved, read in the same query as the security switches because
+     * every portal page needs both. Null when no owner has changed one yet.
+     */
+    public function reasonFieldsRow(): ?object
+    {
+        return $this->settingRow(ReasonFields::SettingsKey);
+    }
+
     /** The owner switches are read together, so a page pays for one query, not one per switch. */
     private function settingRow(string $key): ?object
     {
         $this->settingRows ??= DB::table('business_settings')
-            ->whereIn('key', [self::PartnerLoginOtpKey, self::PasswordResetNoticeKey])
+            ->whereIn('key', [self::PartnerLoginOtpKey, self::PasswordResetNoticeKey, ReasonFields::SettingsKey])
             ->get()
             ->keyBy('key')
             ->all();

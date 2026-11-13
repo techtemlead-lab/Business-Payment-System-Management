@@ -4,6 +4,7 @@ import { Download, Eye, Pencil, Plus, Trash2 } from 'lucide-react';
 import { ActionForm, Empty, Modal, Table, type Field, type Row } from '../UI';
 import OfficePage from '../office/OfficePage';
 import { useT } from '../../shared/i18n/t';
+import { useReasonField } from '../../shared/reasonFields';
 
 type SalesKitItem = {
     id: number; title: string; kind: string; language: string; caption: string | null;
@@ -65,6 +66,7 @@ function PartnerKit({ data }: { data: SalesKitData }) {
 function OfficeKit({ data }: { data: SalesKitData }) {
     const translate = useT();
     const hub = usePage<any>().props.data?.hub ?? null;
+    const why = useReasonField('partner.sales_kit_edit');
     const [adding, setAdding] = useState(false);
     const [openedId, setOpenedId] = useState<number | null>(null);
     const [editingId, setEditingId] = useState<number | null>(null);
@@ -83,7 +85,7 @@ function OfficeKit({ data }: { data: SalesKitData }) {
     const editFields: Field[] = editing ? [
         ...fields.filter((field) => field.name !== 'file'),
         { name: 'file', label: translate('dealer_tools', 'kit_replace_file_field'), type: 'file', accept: '.pdf,.png,.jpg,.jpeg,.webp', hint: translate('dealer_tools', 'kit_replace_file_hint', { name: editing.file_name }) },
-        { name: 'reason', label: translate('dealer_tools', 'edit_reason_field'), type: 'textarea', required: true, hint: translate('dealer_tools', 'edit_reason_hint') },
+        { name: 'reason', label: translate('dealer_tools', 'edit_reason_field'), type: 'textarea', required: true, place: 'partner.sales_kit_edit', hint: why.required ? translate('dealer_tools', 'edit_reason_hint') : translate('reason_fields', 'hint_kept_in_record') },
     ] : [];
     const remove = (item: SalesKitItem) => {
         if (window.confirm(translate('dealer_tools', 'kit_remove_confirm', { title: item.title }))) {

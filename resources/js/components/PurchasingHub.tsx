@@ -6,6 +6,7 @@ import type { OfficeHub } from './OfficeHubTabs';
 import OfficePage from './office/OfficePage';
 import { currentView, DrawerLines, StaffActionDialog, ViewSwitch, type StaffAction } from './office/sections/staffSectionParts';
 import { useT } from '../shared/i18n/t';
+import { useReasonField } from '../shared/reasonFields';
 import { randomUuid } from '../shared/randomUuid';
 import SearchSelect from './SearchSelect';
 
@@ -33,6 +34,7 @@ function useText(): Translate {
 function NewOrderForm({ data, onDone }: { data: PurchasingData; onDone: () => void }) {
     const text = useText();
     const translate = useT();
+    const orderNote = useReasonField('stock.purchase_note');
     const form = useForm<{ supplier_id: string; branch_id: string; notes: string; lines: { product_id: string; quantity: string }[] }>({
         supplier_id: '',
         branch_id: data.branches.length === 1 ? String(data.branches[0].id) : '',
@@ -104,10 +106,12 @@ function NewOrderForm({ data, onDone }: { data: PurchasingData; onDone: () => vo
             <button type="button" className="button" onClick={() => form.setData('lines', [...form.data.lines, { product_id: '', quantity: '' }])}>
                 <Plus size={16} /> {text('add_line')}
             </button>
-            <label>
-                {text('notes')}
-                <textarea rows={2} value={form.data.notes} onChange={(event) => form.setData('notes', event.target.value)} />
-            </label>
+            {orderNote.shown && (
+                <label>
+                    {orderNote.label(text('notes'))}
+                    <textarea rows={2} maxLength={2000} required={orderNote.required} value={form.data.notes} onChange={(event) => form.setData('notes', event.target.value)} />
+                </label>
+            )}
             <button className="button dark" disabled={form.processing}>{text('save_draft')}</button>
         </form>
     );
@@ -116,10 +120,12 @@ function NewOrderForm({ data, onDone }: { data: PurchasingData; onDone: () => vo
 /** One row per line still due; rows left empty are not sent. */
 function ReceiveForm({ order, onDone }: { order: Row; onDone: () => void }) {
     const text = useText();
+    const receiptNote = useReasonField('stock.purchase_receive_note');
     const dueLines: Row[] = order.lines.filter((line: Row) => Number(line.due) > 0);
     const [reference] = useState(() => randomUuid());
-    const form = useForm<{ reference: string; lines: Row[] }>({
+    const form = useForm<{ reference: string; notes: string; lines: Row[] }>({
         reference,
+        notes: '',
         lines: dueLines.map((line) => ({ purchase_order_line_id: line.id, quantity: '', batch_number: '', expires_on: '', unit_cost: '' })),
     });
     form.transform((values) => ({ ...values, lines: values.lines.filter((line) => String(line.quantity) !== '') }));
@@ -153,6 +159,12 @@ function ReceiveForm({ order, onDone }: { order: Row; onDone: () => void }) {
                     </fieldset>
                 );
             })}
+            {receiptNote.shown && (
+                <label>
+                    {receiptNote.label(text('notes'))}
+                    <textarea rows={2} maxLength={2000} required={receiptNote.required} value={form.data.notes} onChange={(event) => form.setData('notes', event.target.value)} />
+                </label>
+            )}
             <button className="button dark" disabled={form.processing}><PackageCheck size={16} /> {text('book_in')}</button>
         </form>
     );
@@ -195,7 +207,7 @@ function OrderDetail({ order, data, onClose }: { order: Row; data: PurchasingDat
                     {Number(order.received) > 0 && <p className="muted">{text('cancel_keeps_stock')}</p>}
                     <ActionForm
                         action={`/commands/purchasing/orders/${order.id}/cancel`}
-                        fields={[{ name: 'reason', label: text('cancel_reason'), type: 'textarea', required: true }]}
+                        fields={[{ name: 'reason', label: text('cancel_reason'), type: 'textarea', required: true, place: 'stock.purchase_cancel' }]}
                         submit={text('cancel_order')}
                         onDone={() => setCancelling(false)}
                     />
@@ -206,6 +218,7 @@ function OrderDetail({ order, data, onClose }: { order: Row; data: PurchasingDat
             {order.receipts.map((receipt: Row) => (
                 <div key={receipt.id}>
                     <p className="muted">{text('received_by_on', { name: String(receipt.received_by_name ?? ''), date: date(receipt.created_at) })}</p>
+                    {receipt.notes && <p className="muted">{text('notes')}: {receipt.notes}</p>}
                     <Table
                         tools={false}
                         rows={receipt.lines}
@@ -340,7 +353,7 @@ export default function PurchasingHub({ data, hub }: { data: PurchasingData; hub
                         fields={[
                             { name: 'name', label: text('supplier_name'), required: true },
                             { name: 'contact', label: text('contact') },
-                            { name: 'notes', label: text('notes'), type: 'textarea' },
+                            { name: 'notes', label: text('notes'), type: 'textarea', place: 'stock.supplier_note' },
                         ]}
                         onDone={() => { setAddingSupplier(false); setEditingSupplier(null); }}
                     />

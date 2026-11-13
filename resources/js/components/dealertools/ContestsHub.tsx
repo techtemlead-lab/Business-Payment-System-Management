@@ -4,6 +4,7 @@ import { Pencil, Plus, Trash2, Trophy } from 'lucide-react';
 import { ActionForm, DateInput, Empty, FormErrors, Modal, Table, date, money, number, type Field, type Row } from '../UI';
 import OfficePage from '../office/OfficePage';
 import { useT } from '../../shared/i18n/t';
+import { useReasonField } from '../../shared/reasonFields';
 
 type Standing = { rank: number; name: string; dealer_code: string | null; place: string | null; value: string | null; is_me: boolean };
 type ContestLocks = { metric: boolean; starts_on: boolean; ends_on: boolean };
@@ -22,6 +23,7 @@ const NOTHING_LOCKED: ContestLocks = { metric: false, starts_on: false, ends_on:
 function ContestEditor({ contest, metrics, metricLabel, onDone }: { contest: Contest; metrics: string[]; metricLabel: (metric: string) => string; onDone: () => void }) {
     const translate = useT();
     const form = useForm({ title: contest.title, starts_on: contest.starts_on, ends_on: contest.ends_on, metric: contest.metric, prize_text: contest.prize_text ?? '', reason: '' });
+    const why = useReasonField('partner.contest_edit');
     const locked = contest.locked ?? NOTHING_LOCKED;
     /** A locked box always shows and sends what is saved, even if results arrived while this window was open. */
     const saved = {
@@ -50,7 +52,7 @@ function ContestEditor({ contest, metrics, metricLabel, onDone }: { contest: Con
                 {problem('metric')}
             </label>
             <label>{translate('dealer_tools', 'contest_prize_field')}<textarea rows={4} maxLength={500} value={values.prize_text} onChange={(e) => form.setData('prize_text', e.target.value)} />{problem('prize_text')}</label>
-            <label>{translate('dealer_tools', 'edit_reason_field')}<textarea required rows={2} minLength={5} maxLength={1000} value={form.data.reason} onChange={(e) => form.setData('reason', e.target.value)} /><small className="field-hint">{translate('dealer_tools', 'edit_reason_hint')}</small>{problem('reason')}</label>
+            {why.shown && <label>{why.label(translate('dealer_tools', 'edit_reason_field'))}<textarea required={why.required} rows={2} minLength={why.required ? 5 : undefined} maxLength={1000} value={form.data.reason} onChange={(e) => form.setData('reason', e.target.value)} /><small className="field-hint">{why.required ? translate('dealer_tools', 'edit_reason_hint') : translate('reason_fields', 'hint_kept_in_record')}</small>{problem('reason')}</label>}
             <FormErrors errors={form.errors} besideFields={FIELDS_WITH_OWN_ERROR} />
             <button type="submit" className="button dark" disabled={form.processing}>{translate('portal', form.processing ? 'saving' : 'save_changes')}</button>
         </form>

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Domain\Accounts\AccountPhoneRules;
 use App\Domain\Accounts\DealerVerification;
 use App\Domain\Accounts\PartnerAccountDeletion;
+use App\Http\Middleware\EnforceStaffActions;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\DealerRank;
 use App\Models\Order;
@@ -138,6 +139,26 @@ class PartnerAccountDeletionTest extends TestCase
         $this->assertSame('Account was made by mistake', $metadata['reason']);
         $this->assertSame(1, $metadata['records']['orders.user_id']);
         $this->assertStringNotContainsString('01711113333', (string) $audit->metadata);
+    }
+
+    public function test_a_partner_closed_with_no_reason_is_told_none_was_written(): void
+    {
+        $partner = $this->cleanPartner(['locale' => 'en', 'phone' => '01711114444']);
+        $this->orderFor($partner);
+
+        $this->removePartner($partner, ['reason' => ''])->assertSessionHasNoErrors()->assertSessionHas('success');
+
+        $this->assertDatabaseHas('users', ['id' => $partner->id, 'status' => 'suspended']);
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $partner->id,
+            'body' => __('portal.notice_account_suspended_body', ['reason' => __('reason_fields.not_written', [], 'en')], 'en'),
+        ]);
+        $this->assertSame(
+            __('sms.account_suspended', ['reason' => __('reason_fields.not_written', [], 'bn')], 'bn'),
+            config('madina.sms.sent')[0]['message'] ?? null,
+        );
+        $audit = DB::table('audit_events')->where('action', 'account.closed')->where('subject', (string) $partner->id)->sole();
+        $this->assertSame('', json_decode((string) $audit->metadata, true)['reason']);
     }
 
     public function test_closing_an_already_suspended_partner_does_not_send_another_notice(): void
@@ -314,10 +335,29 @@ class PartnerAccountDeletionTest extends TestCase
     public function test_a_reason_is_required(): void
     {
         $partner = $this->cleanPartner();
+        $this->reasonFields(['partner.account_delete' => 'required']);
+        // The staff action check lets only the Super Admin through today, and that account is never
+        // made to write a reason. It is set aside here so the rule is checked for the next owner.
+        $this->withoutMiddleware(EnforceStaffActions::class);
+        $managingDirector = User::factory()->staff('md')->create();
 
-        $this->removePartner($partner, ['reason' => 'no'])->assertSessionHasErrors('reason');
+        $this->actingAs($managingDirector)->onPortal('sadmin')
+            ->delete('/commands/accounts/'.$partner->id, ['reason' => 'no', 'confirmation' => $partner->dealer_code])
+            ->assertSessionHasErrors('reason');
 
         $this->assertDatabaseHas('users', ['id' => $partner->id]);
+    }
+
+    public function test_the_super_admin_is_never_made_to_write_a_reason(): void
+    {
+        $partner = $this->cleanPartner();
+        $this->reasonFields(['partner.account_delete' => 'required']);
+
+        $this->removePartner($partner, ['reason' => ''])->assertSessionHasNoErrors()->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('users', ['id' => $partner->id]);
+        $audit = DB::table('audit_events')->where('action', 'account.deleted')->where('subject', (string) $partner->id)->sole();
+        $this->assertSame('', json_decode((string) $audit->metadata, true)['reason']);
     }
 
     public function test_finance_staff_and_a_dealer_are_refused(): void

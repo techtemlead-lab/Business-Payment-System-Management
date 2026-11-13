@@ -7,6 +7,7 @@ use App\Domain\Notifications\SmsText;
 use App\Models\DealerRank;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\ReasonFields;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -112,7 +113,7 @@ final class PartnerBenefitControls
             __('portal.notice_benefit_controls_title', [], $locale),
             __('portal.notice_benefit_controls_body', [
                 'summary' => $summary,
-                'reason' => $reason,
+                'reason' => ReasonFields::shown($reason, $locale),
             ], $locale),
         );
         DB::afterCommit(function () use ($partner, $summaryIn): void {

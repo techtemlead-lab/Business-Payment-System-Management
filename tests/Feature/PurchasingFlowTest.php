@@ -305,6 +305,28 @@ class PurchasingFlowTest extends TestCase
             ->where('data.purchasing.orders.data.0.due', 0));
     }
 
+    public function test_the_cancel_reason_and_the_receipt_note_follow_the_owners_switches(): void
+    {
+        $product = Product::factory()->create(['stock' => 0]);
+        $order = $this->sentOrder([$product->id => 10]);
+        $row = $this->receiptRow($this->lineFor($order, $product), 4);
+        $cancel = fn (): TestResponse => $this->actingAs($this->storekeeper)->onPortal('manage')->post("/commands/purchasing/orders/{$order->id}/cancel");
+
+        $this->reasonFields(['stock.purchase_cancel' => 'required', 'stock.purchase_receive_note' => 'required']);
+        $this->receive($order, [$row])->assertSessionHasErrors('notes');
+        $cancel()->assertSessionHasErrors('reason');
+        $this->assertSame(PurchaseOrder::StatusSent, $order->fresh()->status);
+        $this->assertSame(0, $product->fresh()->stock);
+
+        $this->reasonFields(['stock.purchase_cancel' => 'optional', 'stock.purchase_receive_note' => 'off']);
+        $this->receive($order, [$row])->assertSessionHasNoErrors();
+        $cancel()->assertSessionHasNoErrors();
+
+        $this->assertSame(4, $product->fresh()->stock);
+        $this->assertSame(PurchaseOrder::StatusCancelled, $order->fresh()->status);
+        $this->assertSame('', $order->fresh()->cancel_reason);
+    }
+
     public function test_a_fully_received_order_cannot_be_cancelled(): void
     {
         $product = Product::factory()->create(['stock' => 0]);

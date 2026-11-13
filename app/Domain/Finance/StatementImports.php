@@ -5,6 +5,7 @@ namespace App\Domain\Finance;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
+use App\Support\ReasonFields;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -127,7 +128,7 @@ final class StatementImports
                 throw ValidationException::withMessages(['line' => __('accounting.err_line_not_open')]);
             }
             $flags = json_decode((string) $line->flags, true) ?: [];
-            if ($flags !== [] && trim((string) $reason) === '') {
+            if ($flags !== [] && trim((string) $reason) === '' && ReasonFields::required('payment.statement_confirm', $actor)) {
                 throw ValidationException::withMessages(['reason' => __('accounting.err_flagged_needs_reason')]);
             }
             $claim = DB::table('payment_claims')->where('id', $line->suggested_claim_id)->first();

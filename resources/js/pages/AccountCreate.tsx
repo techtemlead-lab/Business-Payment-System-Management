@@ -4,6 +4,7 @@ import Shell from '../components/Shell';
 import { label, type Row, DateInput, FormErrors } from '../components/UI';
 import { ArrowLeft, Search, AlertTriangle, CheckCircle2, Check } from 'lucide-react';
 import { useT } from '../shared/i18n/t';
+import { useReasonField } from '../shared/reasonFields';
 import SearchSelect from '../components/SearchSelect';
 import { toLatin } from '../shared/countUp';
 import { localizeDigits } from '../business-date';
@@ -144,6 +145,8 @@ export default function AccountCreate({
     };
 
     const isPartner = ['dealer', 'sub_dealer'].includes(form.data.role);
+    // The verification note follows the owner's switch for opening a partner or a staff account.
+    const accountReason = useReasonField(isPartner ? 'partner.account_create' : 'staff.account_create');
     const isSubDealer = form.data.role === 'sub_dealer';
     const hasPermissionChoice = ['employee', 'sr'].includes(form.data.role);
 
@@ -393,7 +396,7 @@ export default function AccountCreate({
                 ...typeSection,
                 ...(hasPermissionChoice ? [{ key: 'privileges', title: translate('portal', 'acct_employee_privileges'), required: [], boxes: ['permissions'] }] : []),
                 { key: 'person', title: translate('portal', 'acct_step_contact'), required: ['name', 'email', 'phone'], boxes: ['name', 'email', 'phone', 'phone_share_reason'] },
-                { key: 'last', title: translate('portal', 'acct_section_last'), required: ['reason'], boxes: ['reason', 'sponsor_id'] },
+                { key: 'last', title: translate('portal', 'acct_section_last'), required: accountReason.required ? ['reason'] : [], boxes: [...(accountReason.shown ? ['reason'] : []), 'sponsor_id'] },
             ];
         }
         const identityNumber = form.data.identity_type === 'nid' ? 'nid' : 'birth_certificate_number';
@@ -404,9 +407,9 @@ export default function AccountCreate({
             { key: 'place', title: translate('portal', 'acct_step_area'), hint: translate('portal', isSubDealer ? 'acct_area_hint_sub' : 'acct_area_hint_dealer'), required: ['place_code'], boxes: ['place_code', 'dealer_code'] },
             { key: 'refer', title: translate('portal', 'acct_step_refer'), required: [], boxes: ['reference_code'] },
             { key: 'contact', title: translate('portal', 'acct_step_contact'), hint: translate('portal', 'acct_step_contact_hint'), required: ['phone', 'email', ...(isSubDealer ? ['shop_name'] : [])], boxes: ['phone', 'phone_share_reason', 'email', 'extra_contact', 'shop_name', 'pharmacy'] },
-            { key: 'last', title: translate('portal', 'acct_section_last'), required: ['reason'], boxes: ['reason', 'directory_visible', ...finishKyc] },
+            { key: 'last', title: translate('portal', 'acct_section_last'), required: accountReason.required ? ['reason'] : [], boxes: [...(accountReason.shown ? ['reason'] : []), 'directory_visible', ...finishKyc] },
         ];
-    }, [isPartner, isSubDealer, hasPermissionChoice, singlePartnerRole, form.data.identity_type, translate]);
+    }, [isPartner, isSubDealer, hasPermissionChoice, singlePartnerRole, form.data.identity_type, translate, accountReason.required, accountReason.shown]);
 
     const isFilled = (field: string): boolean => String((form.data as Record<string, unknown>)[field] ?? '').trim() !== '';
     const requiredBoxes = sections.flatMap((section) => section.required);
@@ -442,7 +445,7 @@ export default function AccountCreate({
         const afterRefusal = { onError: () => { focusFirstErrorNext.current = true; } };
         if (!isPartner) {
             form.transform((data) => {
-                const { permissions, ...rest } = data;
+                const { permissions, ...rest } = { ...data, reason: accountReason.shown ? data.reason : '' };
                 return hasPermissionChoice ? { ...rest, permissions } : rest;
             });
             form.post('/commands/accounts', { preserveScroll: true, ...afterRefusal });
@@ -478,7 +481,7 @@ export default function AccountCreate({
             shop_name: data.role === 'sub_dealer' ? data.shop_name : '',
             directory_visible: data.directory_visible,
             status: data.status,
-            reason: data.reason,
+            reason: accountReason.shown ? data.reason : '',
             kyc_photo: data.kyc_photo,
             kyc_nid_front: data.kyc_nid_front,
             kyc_nid_back: data.kyc_nid_back,
@@ -864,9 +867,11 @@ export default function AccountCreate({
                     <section className="panel acf-section" id="acf-last">
                         {heading('last', sectionFor('last'))}
                         <div className="acf-grid">
-                            <Box text={translate('portal', 'acct_verification_note')} error={errorOf('reason')} wide>
-                                <textarea rows={2} value={form.data.reason} onChange={(e) => setBox('reason', e.target.value)} />
-                            </Box>
+                            {accountReason.shown && (
+                                <Box text={accountReason.required ? translate('portal', 'acct_verification_note') : accountReason.label(translate('reason_fields', 'box_verification_note'))} error={errorOf('reason')} wide>
+                                    <textarea rows={2} value={form.data.reason} onChange={(e) => setBox('reason', e.target.value)} />
+                                </Box>
+                            )}
                             {form.data.role === 'dealer' && (
                                 <label className="checkbox-label acf-box is-wide acf-check">
                                     <input type="checkbox" checked={!!form.data.directory_visible} onChange={(e) => form.setData('directory_visible', e.target.checked)} />

@@ -4,6 +4,7 @@ import {ArrowUpRight, X, Inbox, ArrowUpDown, ArrowUp, ArrowDown, ArrowLeftRight,
 import {actionAllowed} from './action-permissions';
 import {businessDate, businessDateTime, businessTodayIso, isPastBusinessDate, localizeDigits} from '../business-date';
 import {useT} from '../shared/i18n/t';
+import {usePlacedFields,type ReasonPlace} from '../shared/reasonFields';
 import DateInput from './DateInput';
 import {AutoSelect} from './SearchSelect';
 
@@ -1022,10 +1023,12 @@ export function Modal({title,onClose,children,variant='dialog',badge,footer}:{ti
   </dialog>
  );
 }
-export type Field={name:string,label:string,type?:string,options?:{value:string,label:string}[],search?:boolean,required?:boolean,value?:any,warnPast?:boolean,accept?:string,hint?:string};
+export type Field={name:string,label:string,type?:string,options?:{value:string,label:string}[],search?:boolean,required?:boolean,value?:any,warnPast?:boolean,accept?:string,hint?:string,place?:ReasonPlace};
 export function ActionForm({action,fields,defaults={},submit,method='post',onDone}:{action:string,fields:Field[],defaults?:Row,submit?:string,method?:'post'|'patch',onDone?:()=>void}){
  const translate=useT();
  const {portal,staffActions}=usePage<any>().props;
+ // A reason or note box follows the owner's choice for its place: left out when off, required or not otherwise.
+ fields=usePlacedFields(fields);
  const initial:Row={...Object.fromEntries(fields.map(f=>[f.name,f.value??''])),...defaults}; const f=useForm<Row>(initial);
  if((portal==='manage'||portal==='sadmin')&&!actionAllowed(action,staffActions,method))return null;
  const pastField=fields.find(field=>field.warnPast&&isPastBusinessDate(String(f.data[field.name]??'')));

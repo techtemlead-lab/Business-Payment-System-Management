@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Geography\ManagementReferral;
 use App\Domain\Geography\PlaceCodeCatalog;
 use App\Models\PlaceCode;
+use App\Support\ReasonFields;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -56,10 +57,10 @@ class PlaceCodeController extends Controller
     {
         $this->permit($request);
         $data = $request->validate([
-            'reason' => 'required|string|min:3|max:1000',
+            'reason' => ReasonFields::rule('settings.place_code_remove', 1000, 3),
         ]);
         $label = PlaceCode::displayLabel($placeCode->code);
-        $catalog->delete($placeCode, $data['reason'], $request->user()->id);
+        $catalog->delete($placeCode, ReasonFields::text($data['reason'] ?? null), $request->user()->id);
         if ($request->expectsJson()) {
             return response()->json(['data' => ['deleted' => true]]);
         }

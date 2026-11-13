@@ -7,6 +7,7 @@ use App\Http\Requests\Catalog\DestroyProductSubcategoryRequest;
 use App\Http\Requests\Catalog\StoreProductSubcategoryRequest;
 use App\Http\Requests\Catalog\UpdateProductSubcategoryRequest;
 use App\Models\ProductSubcategory;
+use App\Support\ReasonFields;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 
@@ -35,7 +36,7 @@ class ProductSubcategoryController extends Controller
     public function destroy(DestroyProductSubcategoryRequest $request, ProductSubcategory $productSubcategory, CatalogTaxonomy $taxonomy): RedirectResponse|JsonResponse
     {
         $name = $productSubcategory->name;
-        $taxonomy->deleteSubcategory($productSubcategory, $request->validated('reason'), $request->user()->id);
+        $taxonomy->deleteSubcategory($productSubcategory, ReasonFields::text($request->validated('reason')), $request->user()->id);
 
         if ($request->expectsJson()) {
             return response()->json(['data' => ['deleted' => true, 'name' => $name]]);

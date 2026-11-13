@@ -7,6 +7,7 @@ use App\Domain\Integrations\IntegrationSettings;
 use App\Domain\Integrations\SmsGatewayClient;
 use App\Domain\Integrations\SmtpMailConfig;
 use App\Domain\Notifications\EmailEventSwitches;
+use App\Support\ReasonFields;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
@@ -37,7 +38,7 @@ class IntegrationSettingsController extends Controller
             'group' => 'required|string|max:40',
             'provider' => 'required|string|max:40',
             'version' => 'required|integer|min:0',
-            'reason' => FinanceOperationsController::Reason,
+            'reason' => ReasonFields::rule('settings.integration_provider', 1000, 5),
             'enabled' => 'required|boolean',
             'base_url' => 'nullable|string|max:255',
             'balance_url' => 'nullable|string|max:255',
@@ -78,7 +79,7 @@ class IntegrationSettingsController extends Controller
             $data['provider'],
             $data,
             (int) $data['version'],
-            $data['reason']
+            ReasonFields::text($data['reason'] ?? null)
         );
         if ($data['group'] === 'mail') {
             $smtp->apply();
@@ -102,9 +103,9 @@ class IntegrationSettingsController extends Controller
         $data = $request->validate([
             'mode' => 'required|in:fresh,import',
             'version' => 'required|integer|min:0',
-            'reason' => FinanceOperationsController::Reason,
+            'reason' => ReasonFields::rule('settings.integration_startup', 1000, 5),
         ]);
-        $integrations->saveStartupMode($request->user(), $data['mode'], (int) $data['version'], $data['reason']);
+        $integrations->saveStartupMode($request->user(), $data['mode'], (int) $data['version'], ReasonFields::text($data['reason'] ?? null));
 
         return $this->done($request);
     }

@@ -13,6 +13,7 @@ use App\Http\Requests\Backend\StoreOrderRequest;
 use App\Http\Requests\Backend\VerifyPaymentRequest;
 use App\Http\Resources\Api\V1\OrderResource;
 use App\Models\Order;
+use App\Support\ReasonFields;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -66,7 +67,7 @@ class OrderController extends Controller
     public function decision(DecideOrderRequest $request, Order $order, OrderService $service): OrderResource
     {
         $data = $request->validated();
-        $service->decision($request->user(), $order, $data['status'], $data['reason'], $request->replacements());
+        $service->decision($request->user(), $order, $data['status'], ReasonFields::text($data['reason'] ?? null), $request->replacements());
 
         return new OrderResource($order->refresh()->load('lines'));
     }
@@ -88,14 +89,14 @@ class OrderController extends Controller
     public function verify(VerifyPaymentRequest $request, int $claim, OrderService $service): JsonResponse
     {
         $data = $request->validated();
-        $service->verify($request->user(), $claim, $request->boolean('approve'), $data['reason']);
+        $service->verify($request->user(), $claim, $request->boolean('approve'), ReasonFields::text($data['reason'] ?? null));
 
         return response()->json(['data' => ['message' => __('portal.flash_payment_review')]]);
     }
 
     public function delivered(ConfirmDeliveryRequest $request, Order $order, int $shipment, OrderService $service): OrderResource
     {
-        $service->deliver($request->user(), $order, $shipment, $request->validated('reason'));
+        $service->deliver($request->user(), $order, $shipment, ReasonFields::text($request->validated('reason')));
 
         return new OrderResource($order->refresh()->load('lines'));
     }

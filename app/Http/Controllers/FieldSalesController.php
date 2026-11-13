@@ -10,6 +10,7 @@ use App\Domain\Staff\TerritoryAccess;
 use App\Http\Requests\Backend\StoreOrderRequest;
 use App\Http\Resources\Api\V1\OrderResource;
 use App\Models\Order;
+use App\Support\ReasonFields;
 use App\Support\TransactionReference;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -29,8 +30,8 @@ class FieldSalesController extends Controller
 
     public function removeTerritory(Request $request, int $id, TerritoryAccess $territories): Response
     {
-        $data = $request->validate(['reason' => FinanceOperationsController::Reason]);
-        $territories->remove($request->user(), $id, $data['reason']);
+        $data = $request->validate(['reason' => ReasonFields::rule('staff.territory_remove', 1000, 5)]);
+        $territories->remove($request->user(), $id, ReasonFields::text($data['reason'] ?? null));
 
         return $this->done($request, [], 'portal.flash_sr_area_removed');
     }
@@ -54,12 +55,12 @@ class FieldSalesController extends Controller
 
     public function reviewApplication(Request $request, string $id, StaffOperations $operations): Response
     {
-        $data = $request->validate(['decision' => 'required|in:approved,rejected', 'reason' => FinanceOperationsController::Reason,
+        $data = $request->validate(['decision' => 'required|in:approved,rejected', 'reason' => ReasonFields::rule('partner.application_review', 1000, 5),
             'place_code' => 'nullable|string|max:32', 'sponsor_code' => 'nullable|string|max:40',
             'directory_visible' => 'sometimes|boolean', 'phone_share_reason' => 'nullable|string|max:500']);
         $corrections = $request->has('sponsor_code') ? ['sponsor_code' => $data['sponsor_code'] ?? null] : [];
         $choices = ['directory_visible' => $request->boolean('directory_visible'), 'phone_share_reason' => $data['phone_share_reason'] ?? null];
-        $operations->review($request->user(), $id, $data['decision'], $data['reason'], $data['place_code'] ?? null, $corrections, $choices);
+        $operations->review($request->user(), $id, $data['decision'], ReasonFields::text($data['reason'] ?? null), $data['place_code'] ?? null, $corrections, $choices);
         if ($request->expectsJson()) {
             return response()->json(['data' => []]);
         }

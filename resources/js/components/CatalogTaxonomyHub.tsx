@@ -3,6 +3,7 @@ import { router, useForm } from '@inertiajs/react';
 import { FolderTree, Layers, Plus, Ruler } from 'lucide-react';
 import { Badge, Modal, Table, type Row, number } from './UI';
 import { useT } from '../shared/i18n/t';
+import { useReasonField } from '../shared/reasonFields';
 import SearchSelect from './SearchSelect';
 
 interface SubcategoryRow {
@@ -43,6 +44,7 @@ export default function CatalogTaxonomyHub({
     canManage = false,
 }: CatalogTaxonomyHubProps) {
     const translate = useT();
+    const removalReason = useReasonField('product.taxonomy_remove');
     const [createCategoryOpen, setCreateCategoryOpen] = useState(false);
     const [editCategory, setEditCategory] = useState<CategoryRow | null>(null);
     const [createSubOpen, setCreateSubOpen] = useState(false);
@@ -201,13 +203,20 @@ export default function CatalogTaxonomyHub({
         });
     };
 
-    /** The reason typed into the browser box. A reason that is too short is refused out loud, never silently. */
-    const askRemovalReason = (question: string): string | null => {
-        const reason = window.prompt(question);
+    /**
+     * The reason typed into the browser box, following the owner's choice: a compulsory reason that is
+     * too short is refused out loud, never silently; an optional one may be left blank; and when the
+     * box is off the person is only asked to confirm. Null means "do not remove".
+     */
+    const askRemovalReason = (question: string, plainQuestion: string): string | null => {
+        if (!removalReason.shown) {
+            return window.confirm(plainQuestion) ? '' : null;
+        }
+        const reason = window.prompt(removalReason.required ? question : `${plainQuestion} ${translate('reason_fields', 'taxonomy_remove_reason_optional')}`);
         if (reason === null) {
             return null;
         }
-        if (reason.trim().length < 5) {
+        if (removalReason.required && reason.trim().length < 5) {
             window.alert(translate('portal', 'cms_remove_reason_too_short'));
             return null;
         }
@@ -220,7 +229,10 @@ export default function CatalogTaxonomyHub({
         const promptLabel = childCount > 0
             ? translate('portal', 'cms_remove_category_force_prompt', { name: row.name, count: String(childCount) })
             : translate('portal', 'cms_remove_category_prompt', { name: row.name });
-        const reason = askRemovalReason(promptLabel);
+        const plainQuestion = childCount > 0
+            ? translate('reason_fields', 'taxonomy_remove_category_force', { name: row.name, count: String(childCount) })
+            : translate('reason_fields', 'taxonomy_remove_category', { name: row.name });
+        const reason = askRemovalReason(promptLabel, plainQuestion);
         if (reason === null) {
             return;
         }
@@ -231,7 +243,7 @@ export default function CatalogTaxonomyHub({
     };
 
     const removeSubcategory = (row: SubcategoryRow) => {
-        const reason = askRemovalReason(translate('portal', 'cms_remove_subcategory_prompt', { name: row.name }));
+        const reason = askRemovalReason(translate('portal', 'cms_remove_subcategory_prompt', { name: row.name }), translate('reason_fields', 'taxonomy_remove_subcategory', { name: row.name }));
         if (reason === null) {
             return;
         }
@@ -242,7 +254,7 @@ export default function CatalogTaxonomyHub({
     };
 
     const removeUnit = (row: UnitRow) => {
-        const reason = askRemovalReason(translate('portal', 'cms_remove_unit_prompt', { name: row.name }));
+        const reason = askRemovalReason(translate('portal', 'cms_remove_unit_prompt', { name: row.name }), translate('reason_fields', 'taxonomy_remove_unit', { name: row.name }));
         if (reason === null) {
             return;
         }

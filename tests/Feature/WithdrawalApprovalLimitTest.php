@@ -134,9 +134,15 @@ class WithdrawalApprovalLimitTest extends TestCase
         $this->assertStringContainsString('একাই', $bangla['limit_hint']);
     }
 
-    public function test_the_change_needs_a_reason(): void
+    /** Only the Super Admin changes the limit, and that account is never made to write a reason. */
+    public function test_the_owner_can_change_it_without_writing_a_reason(): void
     {
+        $this->reasonFields(['money.approval_limit' => 'required']);
         $this->actingAs($this->owner())->onPortal('sadmin')->postJson('/commands/operations/accounting/approval-limit', $this->payload(['reason' => '']))
-            ->assertStatus(422);
+            ->assertOk();
+
+        $this->assertSame('250000.00', app(WithdrawalApprovalLimit::class)->current()['amount']);
+        $metadata = json_decode((string) DB::table('audit_events')->where('action', 'finance.withdrawal_approval_limit_changed')->value('metadata'), true);
+        $this->assertSame('', $metadata['reason']);
     }
 }

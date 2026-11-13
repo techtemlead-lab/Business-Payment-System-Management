@@ -1,0 +1,37 @@
+/* =========================================================================
+   Reason and note boxes (owner panel): one list for each area, a name on the
+   left and three choices on the right. Mobile first: the choices sit under
+   the name and move beside it on wide screens. Colours come from --ds tokens.
+   ========================================================================= */
+.app-shell .rf-form{display:grid;gap:var(--ds-s-4);max-width:920px}
+.app-shell .rf-legend,.app-shell .rf-group{min-width:0;padding:var(--ds-s-5);background:var(--ds-surface);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg)}
+.app-shell .rf-legend{display:grid;gap:var(--ds-s-2)}
+.app-shell .rf-legend p{margin:0;font-size:var(--ds-fs-sm);line-height:1.5;color:var(--ds-text-2)}
+.app-shell .rf-legend b{margin-right:6px;font-weight:700;color:var(--ds-text)}
+.app-shell .rf-group h2{margin:0 0 var(--ds-s-2);font-size:var(--ds-fs-md);font-weight:700;letter-spacing:0;line-height:1.3;color:var(--ds-text)}
+.app-shell .rf-places{display:grid;margin:0;padding:0;list-style:none}
+.app-shell .rf-place{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--ds-s-2);padding:var(--ds-s-3) 0;border-bottom:1px solid var(--ds-line-soft)}
+.app-shell .rf-place:last-child{border-bottom:0;padding-bottom:0}
+.app-shell .rf-name{display:grid;gap:4px;min-width:0}
+.app-shell .rf-name span{font-size:var(--ds-fs-sm);font-weight:600;line-height:1.45;color:var(--ds-text);overflow-wrap:anywhere}
+.app-shell .rf-name small{font-size:var(--ds-fs-xs);line-height:1.5;color:var(--ds-text-muted)}
+.app-shell .rf-name small b{font-weight:600;color:var(--ds-warn-fg)}
+.app-shell .rf-place[data-changed] .rf-name span{color:var(--ds-brand)}
+
+/* Three choices as one control. The radio stays in the page for keyboards and screen readers. */
+.app-shell .rf-choice{display:inline-flex;justify-self:start;gap:2px;min-width:0;margin:0;padding:3px;border:0;background:var(--ds-surface-2);border-radius:var(--ds-r-md)}
+.app-shell .rf-choice label{position:relative;display:inline-flex;flex-direction:row;align-items:center;margin:0;font-size:var(--ds-fs-sm);font-weight:600;cursor:pointer}
+.app-shell .rf-choice input{position:absolute;inset:0;width:100%;height:100%;min-height:0;margin:0;padding:0;opacity:0;cursor:pointer}
+.app-shell .rf-choice span{display:inline-flex;align-items:center;min-height:36px;padding:0 var(--ds-s-3);border-radius:var(--ds-r-sm);color:var(--ds-text-2);white-space:nowrap}
+.app-shell .rf-choice input:checked+span{background:var(--ds-surface);color:var(--ds-text);box-shadow:var(--ds-shadow-xs)}
+.app-shell .rf-choice label[data-mode="required"] input:checked+span{color:var(--ds-brand)}
+.app-shell .rf-choice label[data-mode="off"] input:checked+span{color:var(--ds-text-muted)}
+.app-shell .rf-choice input:focus-visible+span{outline:2px solid var(--ds-brand);outline-offset:1px}
+
+.app-shell .rf-foot{position:sticky;bottom:0;z-index:2;display:flex;flex-wrap:wrap;align-items:center;gap:var(--ds-s-3);padding:var(--ds-s-3) var(--ds-s-4);background:var(--ds-surface);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg)}
+.app-shell .rf-foot span{font-size:var(--ds-fs-sm);color:var(--ds-text-2)}
+
+@media (min-width:760px){
+    .app-shell .rf-place{grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:var(--ds-s-4)}
+    .app-shell .rf-choice{justify-self:end}
+}

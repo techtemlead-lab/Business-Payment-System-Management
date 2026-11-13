@@ -6,6 +6,7 @@ use App\Domain\Clinic\PrescriberVerification;
 use App\Domain\Clinic\PrescriptionAccess;
 use App\Models\PrescriberRegistration;
 use App\Models\User;
+use App\Support\ReasonFields;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -66,7 +67,7 @@ class PrescriberVerificationController extends Controller
         $data = $request->validate([
             'registration_type' => ['required', Rule::in(PrescriberRegistration::Types)],
             'registration_number' => 'required|string|min:2|max:60',
-            'note' => 'nullable|string|max:1000',
+            'note' => ReasonFields::rule('partner.prescriber_note', 1000),
         ]);
         $this->verification->enable($request->user(), $user, $data);
 
@@ -75,7 +76,7 @@ class PrescriberVerificationController extends Controller
 
     public function disable(Request $request, User $user): RedirectResponse
     {
-        $data = $request->validate(['reason' => 'nullable|string|max:500']);
+        $data = $request->validate(['reason' => ReasonFields::rule('partner.prescriber_disable', 500)]);
         $this->verification->disable($request->user(), $user, $data['reason'] ?? null);
 
         return back()->with('success', __('prescription.flash_disabled', ['name' => $user->name]));

@@ -3,6 +3,7 @@ import { AlertTriangle, UserCheck, UserPlus } from 'lucide-react';
 import { number } from './UI';
 import SearchSelect from './SearchSelect';
 import { useT } from '../shared/i18n/t';
+import { useReasonField } from '../shared/reasonFields';
 
 type Translate = ReturnType<typeof useT>;
 
@@ -149,6 +150,7 @@ export function PatientFields({ value, onChange, sexes, errors = {}, errorPrefix
     consentRequired: boolean;
     translate: Translate;
 }) {
+    const notesBox = useReasonField('clinic.patient_notes');
     const error = (box: string) => {
         const message = errors[`${errorPrefix}${box}`];
         return message ? <span className="field-error" role="alert">{message}</span> : null;
@@ -188,10 +190,10 @@ export function PatientFields({ value, onChange, sexes, errors = {}, errorPrefix
                 <small className="muted">{translate('clinic_records', 'allergies_hint')}</small>
                 {error('allergies')}
             </label>
-            <label>{translate('prescription', 'patient_notes')}
-                <textarea rows={2} maxLength={2000} value={value.notes} onChange={(e) => onChange({ notes: e.target.value })} />
+            {notesBox.shown && <label>{notesBox.label(translate('prescription', 'patient_notes'))}
+                <textarea rows={2} maxLength={2000} required={notesBox.required} value={value.notes} onChange={(e) => onChange({ notes: e.target.value })} />
                 {error('notes')}
-            </label>
+            </label>}
             {askConsent && (
                 <label className="rx-consent">
                     <input type="checkbox" required={consentRequired} checked={value.patient_consent} onChange={(e) => onChange({ patient_consent: e.target.checked })} />

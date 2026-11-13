@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Catalog;
 
+use App\Support\ReasonFields;
 use Illuminate\Foundation\Http\FormRequest;
 
 class DestroyProductCategoryRequest extends FormRequest
@@ -17,7 +18,7 @@ class DestroyProductCategoryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'reason' => ['required', 'string', 'min:5', 'max:1000'],
+            'reason' => ReasonFields::rule('product.taxonomy_remove', 1000, 5),
             'force' => ['sometimes', 'boolean'],
         ];
     }

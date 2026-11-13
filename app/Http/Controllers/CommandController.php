@@ -50,6 +50,7 @@ use App\Support\Audit;
 use App\Support\DashboardManagement;
 use App\Support\Money;
 use App\Support\PhoneIdentity;
+use App\Support\ReasonFields;
 use App\Support\SiteCustomization;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -80,7 +81,7 @@ class CommandController extends Controller
     public function decision(DecideOrderRequest $r, Order $order, OrderService $s): RedirectResponse
     {
         $d = $r->validated();
-        $s->decision($r->user(), $order, $d['status'], $d['reason'], $r->replacements());
+        $s->decision($r->user(), $order, $d['status'], ReasonFields::text($d['reason'] ?? null), $r->replacements());
 
         return back(fallback: '/orders/'.$order->id)->with('success', __('portal.flash_order_decision'));
     }
@@ -89,7 +90,7 @@ class CommandController extends Controller
     public function refund(RefundOrderRequest $r, Order $order, OrderRefund $refunds): RedirectResponse
     {
         $d = $r->validated();
-        $refunds->refund($r->user(), $order, (string) $d['amount'], $d['reason']);
+        $refunds->refund($r->user(), $order, (string) $d['amount'], ReasonFields::text($d['reason'] ?? null));
 
         return back(fallback: '/orders/'.$order->id)->with('success', __('portal.flash_order_refunded'));
     }
@@ -98,7 +99,7 @@ class CommandController extends Controller
     {
         $d = $r->validated();
         $claimRow = DB::table('payment_claims')->find($claim);
-        $s->verify($r->user(), $claim, $d['approve'], $d['reason']);
+        $s->verify($r->user(), $claim, $d['approve'], ReasonFields::text($d['reason'] ?? null));
 
         return back(fallback: $claimRow ? '/orders/'.$claimRow->order_id : '/payments')->with('success', __('portal.flash_payment_review'));
     }
@@ -153,7 +154,7 @@ class CommandController extends Controller
                 'shop_name' => 'nullable|string|max:150',
                 'directory_visible' => 'sometimes|boolean',
                 'status' => 'sometimes|in:active,suspended',
-                'reason' => 'nullable|string|max:1000',
+                'reason' => ReasonFields::rule('partner.account_create', 1000),
             ]);
             $media = [];
             foreach (PartnerKycDocuments::Kinds as $kind) {
@@ -209,7 +210,7 @@ class CommandController extends Controller
             'status' => 'sometimes|in:active,suspended',
             'sponsor_id' => 'nullable|integer|exists:users,id',
             'nid' => 'nullable|string|max:30',
-            'reason' => 'nullable|string|max:1000',
+            'reason' => ReasonFields::rule('staff.account_create', 1000),
             'permissions' => [Rule::prohibitedIf($r->user()->role !== 'super_admin' || ! in_array($r->input('role'), ['employee', 'sr'], true)), 'nullable', 'array'],
             'permissions.*' => ['string', Rule::in(config($r->input('role') === 'sr' ? 'madina.roles.sr' : 'madina.roles.super_admin'))],
             'profile' => 'sometimes|array:name_bn,father_name,mother_name,village,post_office,upazila,union,pharmacy,shop_name,area_code',
@@ -299,7 +300,7 @@ class CommandController extends Controller
             $this->permit($r, 'identity_write');
         }
         $isPartner = in_array($user->role, ['dealer', 'sub_dealer'], true);
-        $d = $r->validate(['status' => 'sometimes|in:active,suspended', 'name' => 'sometimes|required|string|max:150', 'dealer_code' => 'sometimes|'.($isPartner ? 'required' : 'nullable').'|string|max:40|unique:users,dealer_code,'.$user->id, 'phone' => 'sometimes|required|string|max:30', 'phone_share_reason' => 'sometimes|nullable|string|max:500', 'division' => 'nullable|string|max:80', 'district' => 'nullable|string|max:80', 'place_code' => [$isPartner ? 'sometimes' : 'prohibited', 'nullable', 'string', 'max:32'], 'latitude' => 'sometimes|nullable|numeric|between:-90,90', 'longitude' => 'sometimes|nullable|numeric|between:-180,180', 'sponsor_id' => 'sometimes|nullable|integer|exists:users,id', 'directory_visible' => 'sometimes|boolean', 'reason' => 'required|string|max:1000',
+        $d = $r->validate(['status' => 'sometimes|in:active,suspended', 'name' => 'sometimes|required|string|max:150', 'dealer_code' => 'sometimes|'.($isPartner ? 'required' : 'nullable').'|string|max:40|unique:users,dealer_code,'.$user->id, 'phone' => 'sometimes|required|string|max:30', 'phone_share_reason' => 'sometimes|nullable|string|max:500', 'division' => 'nullable|string|max:80', 'district' => 'nullable|string|max:80', 'place_code' => [$isPartner ? 'sometimes' : 'prohibited', 'nullable', 'string', 'max:32'], 'latitude' => 'sometimes|nullable|numeric|between:-90,90', 'longitude' => 'sometimes|nullable|numeric|between:-180,180', 'sponsor_id' => 'sometimes|nullable|integer|exists:users,id', 'directory_visible' => 'sometimes|boolean', 'reason' => ReasonFields::rule($isPartner ? 'partner.account_edit' : 'staff.account_edit', 1000),
             'permissions' => [Rule::prohibitedIf($r->user()->role !== 'super_admin' || ! in_array($user->role, ['employee', 'sr'], true)), 'sometimes', 'nullable', 'array'],
             'permissions.*' => ['string', Rule::in(config($user->role === 'sr' ? 'madina.roles.sr' : 'madina.roles.super_admin'))],
             'profile' => 'sometimes|array:name_bn,father_name,mother_name,village,post_office,upazila,union,pharmacy,shop_name,area_code', 'profile.name_bn' => 'nullable|string|max:150', 'profile.father_name' => 'nullable|string|max:150', 'profile.mother_name' => 'nullable|string|max:150', 'profile.village' => 'nullable|string|max:150', 'profile.post_office' => 'nullable|string|max:150', 'profile.upazila' => 'nullable|string|max:150', 'profile.union' => 'nullable|string|max:150', 'profile.pharmacy' => 'nullable|string|max:150', 'profile.shop_name' => 'nullable|string|max:150', 'profile.area_code' => 'nullable|string|max:80', 'nid' => 'sometimes|nullable|string|max:30']);
@@ -372,7 +373,7 @@ class CommandController extends Controller
         $phoneChange = null;
         DB::transaction(function () use ($r, $user, $d, $partners, $isPartner, $placeCode, &$statusChange, &$sponsorChange, &$directoryChange, &$phoneChange, $phoneCheck) {
             CommissionWallet::lock();
-            $reason = $d['reason'];
+            $reason = ReasonFields::text($d['reason'] ?? null);
             unset($d['reason']);
             $locked = User::whereKey($user->id)->lockForUpdate()->firstOrFail();
             $previousStatus = (string) $locked->status;
@@ -474,12 +475,12 @@ class CommandController extends Controller
                     Audit::notice(
                         $partner->id,
                         __('portal.notice_account_suspended_title', [], $locale),
-                        __('portal.notice_account_suspended_body', ['reason' => $statusChange['reason']], $locale),
+                        __('portal.notice_account_suspended_body', ['reason' => ReasonFields::shown($statusChange['reason'], $locale)], $locale),
                     );
                     app(PartnerEventSms::class)->send(
                         $partner,
                         'account.suspended',
-                        SmsText::make('sms.account_suspended', ['reason' => $statusChange['reason']]),
+                        SmsText::make('sms.account_suspended', ['reason' => ReasonFields::shown($statusChange['reason'], SmsText::Locale)]),
                     );
                 } elseif ($statusChange['to'] === 'active' && $statusChange['from'] === 'suspended') {
                     Audit::notice(
@@ -508,7 +509,7 @@ class CommandController extends Controller
                     __('portal.notice_sponsor_updated_title', [], $locale),
                     __('portal.notice_sponsor_updated_body', [
                         'sponsor' => $sponsorLabel,
-                        'reason' => $sponsorChange['reason'],
+                        'reason' => ReasonFields::shown($sponsorChange['reason'], $locale),
                     ], $locale),
                 );
                 app(PartnerEventSms::class)->send(
@@ -516,7 +517,7 @@ class CommandController extends Controller
                     'account.sponsor_updated',
                     SmsText::make('sms.sponsor_updated', [
                         'sponsor' => $sponsor ? $sponsorLabel : SmsText::make('portal.sponsor_none'),
-                        'reason' => $sponsorChange['reason'],
+                        'reason' => ReasonFields::shown($sponsorChange['reason'], SmsText::Locale),
                     ]),
                 );
             }
@@ -535,7 +536,7 @@ class CommandController extends Controller
                     ),
                     __(
                         $visible ? 'portal.notice_directory_listed_body' : 'portal.notice_directory_unlisted_body',
-                        ['reason' => $directoryChange['reason']],
+                        ['reason' => ReasonFields::shown($directoryChange['reason'], $locale)],
                         $locale,
                     ),
                 );
@@ -562,8 +563,8 @@ class CommandController extends Controller
             'unconditional_rank_royalty' => 'sometimes|boolean',
             'forced_royalty_rank' => 'nullable|in:mo,am,sm,me',
             'unconditional_rank_incentive' => 'sometimes|boolean',
-            'note' => 'nullable|string|max:500',
-            'reason' => 'required|string|min:5|max:1000',
+            'note' => ReasonFields::rule('partner.benefit_note', 500),
+            'reason' => ReasonFields::rule('partner.benefit_reason', 1000, 5),
         ]);
         $controls->save($r->user(), $user, [
             'unconditional_salary' => $r->boolean('unconditional_salary'),
@@ -571,7 +572,7 @@ class CommandController extends Controller
             'forced_royalty_rank' => $d['forced_royalty_rank'] ?? 'mo',
             'unconditional_rank_incentive' => $r->boolean('unconditional_rank_incentive'),
             'note' => $d['note'] ?? null,
-            'reason' => $d['reason'],
+            'reason' => ReasonFields::text($d['reason'] ?? null),
         ]);
 
         return back()->with('success', __('portal.pbc_saved', ['name' => $user->name]));
@@ -611,7 +612,7 @@ class CommandController extends Controller
     public function policy(Request $r, PolicyDraftService $service): RedirectResponse
     {
         $this->permit($r, 'finance');
-        $d = $r->validate(['name' => 'required|string|max:150', 'account_type' => 'required|in:dealer,sub_dealer', 'components' => 'required|array|min:1|max:20', 'components.*.name' => 'required|string|max:80', 'components.*.rate' => 'required|numeric|min:0|max:100', 'notes' => 'required|string|max:4000']);
+        $d = $r->validate(['name' => 'required|string|max:150', 'account_type' => 'required|in:dealer,sub_dealer', 'components' => 'required|array|min:1|max:20', 'components.*.name' => 'required|string|max:80', 'components.*.rate' => 'required|numeric|min:0|max:100', 'notes' => ReasonFields::rule('money.policy_notes', 4000)]);
         $service->create($r->user(), $d);
 
         return back()->with('success', __('portal.flash_policy_draft_saved'));
@@ -649,8 +650,8 @@ class CommandController extends Controller
     public function publishPolicy(Request $r, int $id, PolicyDraftService $service): RedirectResponse
     {
         $this->permit($r, 'finance');
-        $data = $r->validate(['reason' => 'nullable|string|max:1000']);
-        $service->publish($r->user(), $id, (string) ($data['reason'] ?? ''));
+        $data = $r->validate(['reason' => ReasonFields::rule('money.policy_publish', 1000)]);
+        $service->publish($r->user(), $id, ReasonFields::text($data['reason'] ?? null));
 
         return back()->with('success', __('portal.flash_policy_published'));
     }
@@ -1021,7 +1022,7 @@ class CommandController extends Controller
     public function delivered(ConfirmDeliveryRequest $r, Order $order, int $shipment, OrderService $service): RedirectResponse
     {
         $data = $r->validated();
-        $service->deliver($r->user(), $order, $shipment, $data['reason']);
+        $service->deliver($r->user(), $order, $shipment, ReasonFields::text($data['reason'] ?? null));
 
         return back()->with('success', __('portal.flash_delivery_recorded'));
     }
@@ -1032,7 +1033,7 @@ class CommandController extends Controller
         $this->permit($r, 'inventory');
         $data = $r->validate([
             'supply_eta' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:today', 'before:'.now()->addYear()->toDateString()],
-            'supply_note' => ['nullable', 'string', 'max:300'],
+            'supply_note' => ReasonFields::rule('order.supply_note', 300),
         ]);
         $service->setSupplyDate($r->user(), $order, $data['supply_eta'] ?? null, $data['supply_note'] ?? null);
 
@@ -1174,7 +1175,7 @@ class CommandController extends Controller
         $data = $r->validate([
             'kind' => ['required', Rule::in(PartnerKycDocuments::Kinds)],
             'document' => 'required|file|mimes:pdf,jpg,jpeg,png,webp|max:10240',
-            'note' => 'nullable|string|max:500',
+            'note' => ReasonFields::rule('partner.kyc_note', 500),
         ]);
         $stored = $documents->store($r->user(), $user, $data['kind'], $r->file('document'), $data['note'] ?? null);
 
@@ -1192,7 +1193,7 @@ class CommandController extends Controller
     public function updateCommissionRules(Request $r, CommissionPolicy $policy): RedirectResponse
     {
         $this->permit($r, 'finance');
-        $data = $r->validate(['rules' => 'required|array', 'reason' => 'nullable|string|max:500']);
+        $data = $r->validate(['rules' => 'required|array', 'reason' => ReasonFields::rule('money.commission_rules', 500)]);
         $result = $policy->update($r->user(), $data['rules'], $data['reason'] ?? null);
 
         return back()->with('success', $result['status'] === 'pending'

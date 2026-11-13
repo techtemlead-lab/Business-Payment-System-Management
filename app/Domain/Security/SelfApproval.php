@@ -86,7 +86,9 @@ final class SelfApproval
 
     /**
      * Opening balances only: lets the step go ahead with one person, or refuses it. The owner
-     * confirms they are doing it alone and writes why.
+     * confirms they are doing it alone. A reason is the caller's to record and is never demanded
+     * here: only the owner finishes alone, and that account is never made to write one
+     * (ReasonFields::neverForced()).
      *
      * @param  array<int, int|string|null>  $cannotDoStep
      *
@@ -99,9 +101,6 @@ final class SelfApproval
         }
         if (! $confirmed) {
             throw ValidationException::withMessages([$field => __('self_approval.err_confirm')]);
-        }
-        if (mb_strlen(trim($reason)) < self::MinimumReasonLength) {
-            throw ValidationException::withMessages([$field => __('self_approval.err_reason')]);
         }
     }
 

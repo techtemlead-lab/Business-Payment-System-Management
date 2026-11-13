@@ -7,6 +7,7 @@ use App\Models\CompanyBranch;
 use App\Models\PlaceCode;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\ReasonFields;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -137,7 +138,9 @@ final class PlaceCodeCatalog
     public function delete(PlaceCode $place, string $reason, ?int $actorId = null): void
     {
         $reason = trim($reason);
-        if (mb_strlen($reason) < 3) {
+        // Follows the owner's choice for the person removing the place; with no actor given, the person signed in.
+        $actor = $actorId === null ? null : User::query()->find($actorId);
+        if (ReasonFields::required('settings.place_code_remove', $actor) && mb_strlen($reason) < 3) {
             throw ValidationException::withMessages(['reason' => __('portal.err_pc_delete_reason')]);
         }
 

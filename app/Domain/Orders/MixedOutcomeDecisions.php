@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
+use App\Support\ReasonFields;
 use Closure;
 use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
@@ -22,7 +23,7 @@ use Illuminate\Validation\ValidationException;
  * delivered goods by default, the same way it posts on a whole order. Goods that came back are
  * already in stock again.
  *
- * Staff can still choose no commission, with a required reason. Then nobody keeps the commission:
+ * Staff can still choose no commission, with a reason when the owner asks for one. Then nobody keeps the commission:
  * it goes to the company profit fund with that reason, and whatever already reached partners is
  * taken back. An order that could not post by itself waits for staff, who choose either way.
  *
@@ -105,7 +106,7 @@ final class MixedOutcomeDecisions
             Audit::record($actor->id, self::Action, $locked->id, $metadata);
             $partner = User::query()->find($locked->user_id);
             $locale = $partner?->preferredLocale() ?? app()->getLocale();
-            $replace = ['number' => $locked->number, 'decision' => __('schemes_commission.decision_'.$choice, [], $locale), 'reason' => $reason];
+            $replace = ['number' => $locked->number, 'decision' => __('schemes_commission.decision_'.$choice, [], $locale), 'reason' => ReasonFields::shown($reason, $locale)];
             Audit::notice($locked->user_id, __('courier_more.notice_decision_title', $replace, $locale), __('courier_more.notice_decision_body', $replace, $locale));
 
             return $money;

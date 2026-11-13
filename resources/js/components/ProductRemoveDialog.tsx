@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { router, useForm } from '@inertiajs/react';
 import { FormErrors, Modal } from './UI';
 import { useT } from '../shared/i18n/t';
+import { useReasonField } from '../shared/reasonFields';
 import { localizeDigits } from '../business-date';
 
 export type ProductRemoval = { can_delete: boolean; reasons: string[] };
@@ -44,6 +45,7 @@ export default function ProductRemoveDialog({ product, removal, onClose, onDone 
     const translate = useT();
     const t = (key: string, replace?: Record<string, string>) => translate('office_stock', key, replace);
     const form = useForm({ reason: '' });
+    const removeReason = useReasonField('product.remove');
     const willDelete = removal.can_delete;
 
     const submit = (event: React.FormEvent) => {
@@ -63,10 +65,12 @@ export default function ProductRemoveDialog({ product, removal, onClose, onDone 
                             <p className="os-remove-line">{t('archive_what_happens')}</p>
                         </>
                     )}
-                <label className="os-remove-reason">
-                    {t('remove_reason')}
-                    <textarea value={form.data.reason} rows={3} maxLength={1000} onChange={(event) => form.setData('reason', event.target.value)} />
-                </label>
+                {removeReason.shown && (
+                    <label className="os-remove-reason">
+                        {removeReason.label(t('remove_reason'))}
+                        <textarea value={form.data.reason} rows={3} maxLength={1000} required={removeReason.required} minLength={removeReason.required ? 5 : undefined} onChange={(event) => form.setData('reason', event.target.value)} />
+                    </label>
+                )}
                 <div className="os-remove-actions">
                     <button type="submit" className={willDelete ? 'button os-danger' : 'button dark'} disabled={form.processing}>{t(willDelete ? 'confirm_delete' : 'confirm_archive')}</button>
                     <button type="button" className="button" onClick={onClose}>{t('cancel')}</button>
