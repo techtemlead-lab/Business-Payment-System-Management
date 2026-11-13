@@ -1351,7 +1351,7 @@ return [
     'settings_home_s4' => 'Area codes: the place codes for each division, district, upazila and union.',
     'settings_home_s5' => 'Partner panels: turn parts of the dealer and sub-dealer panels on or off, show a notice at the top of every page, or close a panel for a while during maintenance. Staff can keep working.',
     'settings_home_s6' => 'Same person, two accounts: accounts that may belong to one person because the NID or phone matches.',
-    'settings_home_s7' => 'Login and password rules: the SMS code at sign-in. An account with no mobile number cannot sign in while this is on, so turn it off only if the SMS service is down. When a staff member who is not an owner resets a password, every owner gets a notice. The notice never shows the new password.',
+    'settings_home_s7' => 'Login and password rules: the SMS code at sign-in. An account with no mobile number cannot sign in while this is on, so turn it off only if the SMS service is down. When a staff member who is not an owner resets a password, every owner gets a notice. The notice never shows the new password. Reason and note boxes: which forms must have a reason or note, which may leave it blank, and which do not ask at all. Nothing is compulsory for the owner\'s own account.',
     'settings_home_s8' => 'SMS and courier connections: these services stay off until you turn them on and enter the login details. Work done by hand carries on without them.',
     'settings_home_s9' => 'Courier areas: which areas each courier delivers to.',
     'settings_home_s10' => 'Data from Excel: bring in old records. Use the Data sheet of the sample file, bring in referrers before the people they referred, and partners before money balances. You see a checked preview first.',
