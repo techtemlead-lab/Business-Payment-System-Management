@@ -33,7 +33,8 @@ final class PartnerRegistrationForm
      */
     public function sections(User $partner, string $locale, bool $showIdentityNumber): array
     {
-        $profile = is_array($partner->profile) ? $partner->profile : [];
+        $savedProfile = $partner->getAttribute('profile');
+        $profile = is_array($savedProfile) ? $savedProfile : [];
         $t = static fn (string $key): string => __('partner_form.'.$key, [], $locale);
         $text = static fn (mixed $value): string => trim((string) ($value ?? ''));
         $digits = static fn (string $value): string => LocalDigits::text($value, $locale);

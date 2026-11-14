@@ -211,7 +211,7 @@ final class PartnerAccountProvisioning
                     'nid' => trim((string) ($input['nid'] ?? '')) ?: null,
                     'latitude' => isset($input['latitude']) && $input['latitude'] !== '' ? (float) $input['latitude'] : null,
                     'longitude' => isset($input['longitude']) && $input['longitude'] !== '' ? (float) $input['longitude'] : null,
-                    'directory_visible' => in_array($role, ['dealer', 'sub_dealer'], true) && ! empty($input['directory_visible']),
+                    'directory_visible' => ! empty($input['directory_visible']),
                     'status' => in_array(($status = (string) ($input['status'] ?? 'active')), ['active', 'suspended'], true) ? $status : 'active',
                     'password' => $plainPassword,
                     'password_managed_by' => User::PasswordManagedByAdmin,

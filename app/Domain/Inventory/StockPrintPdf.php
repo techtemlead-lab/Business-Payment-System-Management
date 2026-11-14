@@ -27,7 +27,7 @@ final class StockPrintPdf
         $now = now('Asia/Dhaka');
         $html = view('invoices.stock-list', [
             'company' => $this->company(),
-            'branch' => $scope->allBranches ? __('stock_print.all_branches') : (string) ($scope->branch?->name ?? ''),
+            'branch' => $scope->allBranches ? __('stock_print.all_branches') : (string) ($scope->branch->name ?? ''),
             'printed_at' => $now,
             'rows' => $stock['rows'],
             'total_quantity' => $stock['total_quantity'],
@@ -68,7 +68,7 @@ final class StockPrintPdf
         }
 
         Audit::record($actor->id, 'report.exported', 'stock-print', [
-            'branch' => $scope->allBranches ? 'all' : ($scope->branch?->code ?? ''),
+            'branch' => $scope->allBranches ? 'all' : ($scope->branch->code ?? ''),
             'rows' => count($stock['rows']),
         ]);
 
