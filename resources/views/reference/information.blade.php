@@ -235,22 +235,16 @@
     <form method="get" class="ref-directory-filter">
         @if(request('lat'))<input type="hidden" name="lat" value="{{ request('lat') }}">@endif
         @if(request('lng'))<input type="hidden" name="lng" value="{{ request('lng') }}">@endif
-        <label>{{ $chrome('directory_division') }}
-            <select name="division">
-                <option value="">{{ $chrome('directory_all_divisions') }}</option>
-                @foreach($divisions as $division)
-                <option value="{{ $division['id'] }}" @selected((string) request('division') === (string) $division['id'])>{{ $division['name'] }}</option>
+        @foreach(\App\Domain\Geography\DirectoryAreaFilter::Levels as $areaLevel)
+        <label>{{ $chrome('directory_'.$areaLevel) }}
+            <select name="{{ $areaLevel }}">
+                <option value="">{{ $chrome('directory_all_'.$areaLevel.'s') }}</option>
+                @foreach($areaPickers['options'][$areaLevel] as $area)
+                <option value="{{ $area['id'] }}" @selected((string) ($areaPickers['chosen'][$areaLevel] ?? '') === (string) $area['id'])>{{ $area['name'] }}</option>
                 @endforeach
             </select>
         </label>
-        <label>{{ $chrome('directory_district') }}
-            <select name="district">
-                <option value="">{{ $chrome('directory_all_districts') }}</option>
-                @foreach($districts as $district)
-                <option value="{{ $district['id'] }}" @selected((string) request('district') === (string) $district['id'])>{{ $district['name'] }}</option>
-                @endforeach
-            </select>
-        </label>
+        @endforeach
         <button class="ref-primary-button">{{ $chrome('directory_filter_btn', $siteCustomization['directory_filter_btn'] ?? null) }}</button>
         <a href="/dealers">{{ $chrome('directory_clear_btn', $siteCustomization['directory_clear_btn'] ?? null) }}</a>
     </form>
@@ -260,7 +254,7 @@
     @forelse($dealers as $dealer)
     <article class="ref-content-card">
         <div class="ref-dealer-icon"><i class="fa-solid fa-store" aria-hidden="true"></i></div>
-        <span class="ref-dealer-badge">{{ $chrome('directory_approved_badge') }}</span>
+        <span class="ref-dealer-badge">{{ $dealer->role === 'sub_dealer' ? $chrome('directory_approved_subdealer_badge') : $chrome('directory_approved_badge') }}</span>
         <h2>{{ $dealer->name }}</h2>
         @php
             $profile = is_array($dealer->profile) ? $dealer->profile : [];

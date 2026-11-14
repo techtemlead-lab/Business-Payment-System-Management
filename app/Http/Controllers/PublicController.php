@@ -10,6 +10,7 @@ use App\Domain\Audience\PublicPartnerApplication;
 use App\Domain\Catalog\ProductFacts;
 use App\Domain\Catalog\ProductSizeGroups;
 use App\Domain\Content\TestimonialLabels;
+use App\Domain\Geography\DirectoryAreaFilter;
 use App\Domain\Geography\PlaceTree;
 use App\Domain\Integrations\MapsPresentation;
 use App\Domain\Notifications\PartnerEventSms;
@@ -44,7 +45,7 @@ class PublicController extends Controller
         abort_unless(in_array($page, ['home', 'products', 'dealers', 'about', 'contact', 'partnership', 'services', 'quality', 'faq', 'privacy', 'terms', 'notice', 'circular-training', 'circular-price', 'circular-meeting'], true), 404);
         abort_unless(SiteCustomization::isPageEnabled($page), 404);
         $request->validate(['q' => 'nullable|string|max:100', 'district' => 'nullable|string|max:80',
-            'division' => 'nullable|string|max:80', 'category' => 'nullable|string|max:100',
+            'division' => 'nullable|string|max:80', 'upazila' => 'nullable|string|max:80', 'union' => 'nullable|string|max:80', 'category' => 'nullable|string|max:100',
             'page' => 'nullable|integer|min:1', 'sort' => 'nullable|in:name,price_asc,price_desc', 'in_stock' => 'nullable|in:0,1', 'concern' => 'nullable|integer|min:1',
             'min_price' => 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/D', 'max_price' => 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/D',
             'lat' => 'nullable|numeric|between:-90,90', 'lng' => 'nullable|numeric|between:-180,180']);
@@ -60,10 +61,9 @@ class PublicController extends Controller
         $products = new LengthAwarePaginator([], 0, 12);
 
         $dealers = new LengthAwarePaginator([], 0, 12);
-        $districts = collect();
-        $divisions = collect();
+        $areaPickers = DirectoryAreaFilter::build([], []);
         if ($needsDealers) {
-            [$dealers, $districts, $divisions] = $this->dealerDirectory($request);
+            [$dealers, $areaPickers] = $this->dealerDirectory($request);
         }
 
         $featuredProducts = $needsCatalog ? $this->cachedFeaturedProducts() : [];
@@ -101,7 +101,7 @@ class PublicController extends Controller
             ? SocialShareMeta::homepage()
             : SocialShareMeta::page($page, $customTitle, $customDesc);
 
-        return view($page === 'home' ? 'reference.home' : 'reference.information', compact('page', 'products', 'dealers', 'districts', 'divisions', 'featuredItems', 'featuredProducts', 'featuredCategoryTabs', 'homepageVideo', 'testimonials') + [
+        return view($page === 'home' ? 'reference.home' : 'reference.information', compact('page', 'products', 'dealers', 'areaPickers', 'featuredItems', 'featuredProducts', 'featuredCategoryTabs', 'homepageVideo', 'testimonials') + [
             'content' => $pageContent,
             'notice' => $contentPages['notice'] ?? null,
             // Home does not render catalog category filters; skip the cached pluck there.
@@ -258,17 +258,22 @@ class PublicController extends Controller
     }
 
     /**
-     * @return array{0: LengthAwarePaginator, 1: Collection<int, array{id: int, name: string}>, 2: Collection<int, array{id: int, name: string}>}
+     * @return array{0: LengthAwarePaginator, 1: array{chosen: array<string, int|null>, options: array<string, list<array{id: int, name: string}>>}}
      */
     private function dealerDirectory(Request $request): array
     {
-        $directory = User::where('directory_visible', true)->where('status', 'active')->where('role', 'dealer');
-        $dealerCols = ['name', 'dealer_code', 'phone', 'division', 'district', 'latitude', 'longitude', 'profile'];
+        // Dealers and sub-dealers whose account has "Show in the website dealer list" switched on.
+        $directory = User::where('directory_visible', true)->where('status', 'active')->whereIn('role', ['dealer', 'sub_dealer']);
+        $dealerCols = ['name', 'role', 'dealer_code', 'phone', 'division', 'district', 'latitude', 'longitude', 'profile'];
+        // Pickers list the places the listed partners' place codes lie in or under;
+        // the value is the place code id, the label is that code's name.
+        $areaPickers = DirectoryAreaFilter::build(PlaceTree::areaOptions(clone $directory), $request->query());
+        $chosenAreas = $areaPickers['chosen'];
         if ($request->filled(['lat', 'lng'])) {
             $userLat = (float) $request->input('lat');
             $userLng = (float) $request->input('lng');
             $allDealers = (clone $directory)
-                ->tap(fn ($query) => $this->directoryPlaceFilter($query, $request))
+                ->tap(fn ($query) => $this->directoryPlaceFilter($query, $chosenAreas))
                 ->get($dealerCols)
                 ->map(function ($dealer) use ($userLat, $userLng) {
                     if ($dealer->latitude !== null && $dealer->longitude !== null) {
@@ -303,37 +308,25 @@ class PublicController extends Controller
             $dealers = new LengthAwarePaginator($allDealers->slice(($pageNumber - 1) * 12, 12)->values(), $allDealers->count(), 12, $pageNumber, ['path' => '/dealers', 'query' => $request->query()]);
         } else {
             $dealers = (clone $directory)
-                ->tap(fn ($query) => $this->directoryPlaceFilter($query, $request))
+                ->tap(fn ($query) => $this->directoryPlaceFilter($query, $chosenAreas))
                 ->orderBy('name')->paginate(12, $dealerCols)->withQueryString();
         }
-        // Pickers list the divisions and districts the listed dealers' place codes lie in:
-        // the value is the place code id, the label is that code's name.
-        $areas = PlaceTree::divisionAndDistrictOptions(clone $directory);
-        $chosenDivision = PlaceTree::idFrom($request->query('division'));
-        $divisions = collect($areas)->map(fn (array $area): array => ['id' => $area['division_id'], 'name' => $area['division']]);
-        $districts = collect($areas)
-            ->filter(fn (array $area): bool => $chosenDivision === null || $area['division_id'] === $chosenDivision)
-            ->flatMap(fn (array $area): array => array_map(fn (array $district): array => [
-                'id' => $district['id'],
-                'name' => $chosenDivision === null ? $district['name'].' ('.$area['division'].')' : $district['name'],
-            ], $area['districts']))
-            ->values();
 
-        return [$dealers, $districts, $divisions];
+        return [$dealers, $areaPickers];
     }
 
     /**
-     * Narrow the directory to dealers whose place code lies in the chosen division or
-     * district (place code ids from the pickers). Names are never matched.
+     * Narrow the directory to partners whose place code lies in every chosen division,
+     * district, upazila and union (place code ids from the pickers). Names are never matched.
      *
      * @param  Builder<User>  $query
+     * @param  array<string, int|null>  $chosenAreas
      */
-    private function directoryPlaceFilter(Builder $query, Request $request): void
+    private function directoryPlaceFilter(Builder $query, array $chosenAreas): void
     {
-        foreach (['division', 'district'] as $field) {
-            $placeId = PlaceTree::idFrom($request->query($field));
-            if ($request->filled($field)) {
-                PlaceTree::whereInside($query, $placeId !== null ? [$placeId] : []);
+        foreach ($chosenAreas as $placeId) {
+            if ($placeId !== null) {
+                PlaceTree::whereInside($query, [$placeId]);
             }
         }
     }
