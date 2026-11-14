@@ -47,6 +47,7 @@ export default function CompanyModule(props: WebsiteSectionProps) {
                     <p className="ed-desc is-sm">{trustLabel('admin_identity_hint')}</p>
                     <div className="form-grid ed-grid">
                         <Field label={trustLabel('identity_trade_licence')} fieldKey={'trust_trade_licence' as keyof CustomizationData} value={trustValue('trust_trade_licence')} placeholder="2026-00563" onChange={updateField} />
+                        <Field label={trustLabel('identity_trademark')} fieldKey={'trust_trademark' as keyof CustomizationData} value={trustValue('trust_trademark')} placeholder="BD-H-1-335903 (Class 5, filed 26 Oct 2026)" onChange={updateField} />
                         <Field label={trustLabel('identity_tin')} fieldKey={'trust_tin' as keyof CustomizationData} value={trustValue('trust_tin')} onChange={updateField} />
                         <Field label={trustLabel('identity_digital_business_id')} fieldKey={'trust_digital_business_id' as keyof CustomizationData} value={trustValue('trust_digital_business_id')} onChange={updateField} />
                         <Field label={trustLabel('identity_joint_stock_registration')} fieldKey={'trust_joint_stock_registration' as keyof CustomizationData} value={trustValue('trust_joint_stock_registration')} onChange={updateField} />

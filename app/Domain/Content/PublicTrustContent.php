@@ -37,7 +37,7 @@ final class PublicTrustContent
     ];
 
     /** Single-language fields, shown only when the owner fills them in. */
-    public const IdentityKeys = ['trade_licence', 'tin', 'digital_business_id', 'joint_stock_registration'];
+    public const IdentityKeys = ['trade_licence', 'trademark', 'tin', 'digital_business_id', 'joint_stock_registration'];
 
     public const ContactKeys = ['grievance_contact_name', 'grievance_contact_role', 'grievance_contact_phone', 'grievance_contact_email', 'grievance_contact_hours'];
 

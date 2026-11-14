@@ -14,6 +14,7 @@ return [
     // Business identity block
     'identity_heading' => 'Business details',
     'identity_trade_licence' => 'Trade licence',
+    'identity_trademark' => 'Trademark application',
     'identity_tin' => 'TIN',
     'identity_digital_business_id' => 'Digital Business ID',
     'identity_joint_stock_registration' => 'Joint-stock registration',

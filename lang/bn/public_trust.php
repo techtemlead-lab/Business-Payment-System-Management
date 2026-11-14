@@ -14,6 +14,7 @@ return [
     // Business identity block
     'identity_heading' => 'ব্যবসার তথ্য',
     'identity_trade_licence' => 'ট্রেড লাইসেন্স',
+    'identity_trademark' => 'ট্রেডমার্ক আবেদন',
     'identity_tin' => 'টিআইএন',
     'identity_digital_business_id' => 'ডিজিটাল বিজনেস আইডি',
     'identity_joint_stock_registration' => 'জয়েন্ট স্টক নিবন্ধন',
