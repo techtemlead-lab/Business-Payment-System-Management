@@ -130,7 +130,7 @@ class DealerOnboardingTest extends TestCase
         $this->assertSame($sponsor->id, $sub->sponsor_id);
     }
 
-    public function test_subdealer_cannot_be_published_in_public_directory(): void
+    public function test_subdealer_can_be_published_in_public_directory_when_the_admin_chooses(): void
     {
         $this->seedClassicPlaceCodes();
         $admin = User::factory()->create(['role' => 'super_admin']);
@@ -144,7 +144,7 @@ class DealerOnboardingTest extends TestCase
             'directory_visible' => '1',
         ]))->assertSessionHasNoErrors();
 
-        $this->assertFalse(User::where('email', 'err@example.com')->firstOrFail()->directory_visible);
+        $this->assertTrue(User::where('email', 'err@example.com')->firstOrFail()->directory_visible);
     }
 
     public function test_a_partner_needs_a_place_and_a_free_dealer_code(): void

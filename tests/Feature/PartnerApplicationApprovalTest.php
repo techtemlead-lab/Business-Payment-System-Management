@@ -195,11 +195,14 @@ class PartnerApplicationApprovalTest extends TestCase
         $this->onPortal('public')->get('/dealers')->assertOk()->assertDontSee('Private Dealer');
     }
 
-    public function test_a_sub_dealer_never_goes_on_the_dealer_list(): void
+    public function test_a_sub_dealer_goes_on_the_dealer_list_only_when_the_reviewer_chooses(): void
     {
-        $this->decide($this->apply('sub_dealer'), ['directory_visible' => '1'])->assertSessionHasNoErrors();
+        $this->decide($this->apply('sub_dealer', ['name' => 'Listed Sub']), ['directory_visible' => '1'])->assertSessionHasNoErrors();
+        $this->decide($this->apply('sub_dealer', ['name' => 'Unlisted Sub']), ['directory_visible' => '0'])->assertSessionHasNoErrors();
 
-        $this->assertFalse(User::query()->where('role', 'sub_dealer')->sole()->directory_visible);
+        $this->assertTrue(User::query()->where('name', 'Listed Sub')->sole()->directory_visible);
+        $this->assertFalse(User::query()->where('name', 'Unlisted Sub')->sole()->directory_visible);
+        $this->onPortal('public')->get('/dealers')->assertOk()->assertSee('Listed Sub')->assertDontSee('Unlisted Sub');
     }
 
     public function test_the_review_list_shows_the_reference_code_the_applicant_typed(): void

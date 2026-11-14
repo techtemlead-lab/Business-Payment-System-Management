@@ -3762,7 +3762,6 @@ return [
     'acct_val_name_bn_required' => 'Enter the name in Bangla.',
     'acct_val_father_required' => 'Enter the father\'s name.',
     'acct_val_mother_required' => 'Enter the mother\'s name.',
-    'cmd_val_directory_dealer_only' => 'Only approved dealers can be shown in the public list. Sub-dealers cannot be shown.',
     'cmd_val_self_sponsor' => 'A partner cannot refer themselves.',
     'cmd_val_circular_sponsor' => 'This referrer is already in this person\'s team below them, so they cannot be the referrer.',
     'err_tree_self_sponsor' => 'A partner cannot refer themselves.',

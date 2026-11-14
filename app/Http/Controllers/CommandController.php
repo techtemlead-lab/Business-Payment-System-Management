@@ -250,9 +250,6 @@ class CommandController extends Controller
         if (! empty($d['sponsor_id'])) {
             abort_unless(User::whereKey($d['sponsor_id'])->whereIn('role', PartnerAccountProvisioning::SponsorRoles)->where('status', 'active')->exists(), 422, __('portal.cmd_val_sponsor_active_dealer'));
         }
-        if (($d['directory_visible'] ?? false) && $d['role'] !== 'dealer') {
-            throw ValidationException::withMessages(['directory_visible' => __('portal.cmd_val_directory_dealer_only')]);
-        }
         $u = DB::transaction(function () use ($r, $d, $phoneCheck) {
             CommissionWallet::lock();
             $role = $d['role'];
@@ -445,7 +442,7 @@ class CommandController extends Controller
                     ];
                 }
             }
-            if ($isPartner && $locked->role === 'dealer' && array_key_exists('directory_visible', $d)) {
+            if ($isPartner && array_key_exists('directory_visible', $d)) {
                 $nextDirectoryVisible = (bool) $d['directory_visible'];
                 if ($previousDirectoryVisible !== $nextDirectoryVisible) {
                     $directoryChange = [

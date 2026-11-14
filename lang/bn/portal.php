@@ -3762,7 +3762,6 @@ return [
     'acct_val_name_bn_required' => 'বাংলায় নাম লিখুন।',
     'acct_val_father_required' => 'বাবার নাম লিখুন।',
     'acct_val_mother_required' => 'মায়ের নাম লিখুন।',
-    'cmd_val_directory_dealer_only' => 'শুধু অনুমোদিত ডিলারের যোগাযোগ পাবলিক তালিকায় দেখানো যাবে। সাব-ডিলারকে দেখানো যাবে না।',
     'cmd_val_self_sponsor' => 'কেউ নিজেকে রেফার করতে পারবেন না।',
     'cmd_val_circular_sponsor' => 'বেছে নেওয়া রেফারকারী আগেই এই ব্যক্তির নিচের টিমে আছেন, তাই তাকে রেফারকারী করা যাবে না।',
     'err_tree_self_sponsor' => 'কেউ নিজেকে রেফার করতে পারবেন না।',
