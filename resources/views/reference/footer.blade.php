@@ -14,11 +14,11 @@
                     <i class="{{ $siteCustomization['footer_support_icon'] ?? 'fa-solid fa-phone' }}" aria-hidden="true"></i>
                     <span>
                         <small>{{ $chrome('company_support', $siteCustomization['footer_support_subtitle'] ?? null) }}</small>
-                        @if(trim($mainPhone) !== '')
-                        <a href="{{ \App\Support\SiteCustomization::phoneLink($mainPhone) }}"><b>{{ $mainPhone }}</b></a>
-                        @endif
                         @if($secondPhone !== null)
                         <a href="{{ \App\Support\SiteCustomization::phoneLink($secondPhone) }}"><b>{{ $secondPhone }}</b></a>
+                        @endif
+                        @if(trim($mainPhone) !== '')
+                        <a href="{{ \App\Support\SiteCustomization::phoneLink($mainPhone) }}"><b>{{ $mainPhone }}</b></a>
                         @endif
                     </span>
                 </div>
