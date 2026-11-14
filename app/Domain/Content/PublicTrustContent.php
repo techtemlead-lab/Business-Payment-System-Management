@@ -34,6 +34,7 @@ final class PublicTrustContent
         'grievance_title', 'grievance_lead', 'grievance_contact_note',
         'quality_documents_title', 'quality_documents_lead',
         'articles_title', 'articles_lead', 'articles_disclaimer',
+        'form_signer_1', 'form_signer_2', 'form_signer_3',
     ];
 
     /** Single-language fields, shown only when the owner fills them in. */

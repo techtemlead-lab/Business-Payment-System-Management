@@ -104,6 +104,10 @@ return [
     'articles_title' => 'স্বাস্থ্য বিষয়ক লেখা',
     'articles_lead' => 'প্রতিদিনের স্বাস্থ্য নিয়ে সহজ লেখা।',
     'articles_disclaimer' => 'এই লেখাগুলো স্বাস্থ্য বিষয়ে সাধারণ তথ্য। এগুলো চিকিৎসকের পরামর্শের বিকল্প নয়। অসুস্থ বোধ করলে চিকিৎসকের কাছে যান।',
+    // Partner registration form: the titles under the three company signature places. Blank means a blank line to write by hand.
+    'form_signer_1' => '',
+    'form_signer_2' => '',
+    'form_signer_3' => '',
     'articles_read' => 'পড়ুন',
     'articles_back' => 'সব লেখা',
 
@@ -113,6 +117,11 @@ return [
     'admin_tab_pages' => 'পাতা',
     'admin_tab_identity' => 'ব্যবসার তথ্য',
     'admin_tab_grievance' => 'অভিযোগের যোগাযোগ',
+    'admin_tab_registration_form' => 'পার্টনার নিবন্ধন ফর্ম',
+    'admin_registration_form_hint' => 'ডিলার বা সাব-ডিলার তৈরির পর যে প্রিন্ট ফর্ম পাওয়া যায় তাতে চারটি স্বাক্ষরের জায়গা আছে। প্রথমটি সবসময় পার্টনারের নিজের। বাকি তিনটির পদবি এখানে লিখুন (যেমন ম্যানেজিং ডিরেক্টর)। পদবি ফাঁকা রাখলে হাতে লেখার জন্য একটি লাইন থাকবে।',
+    'admin_field_signer_1' => 'দ্বিতীয় স্বাক্ষরের পদবি',
+    'admin_field_signer_2' => 'তৃতীয় স্বাক্ষরের পদবি',
+    'admin_field_signer_3' => 'চতুর্থ স্বাক্ষরের পদবি',
     'admin_tab_documents' => 'মানের কাগজপত্র',
     'admin_tab_articles' => 'স্বাস্থ্য বিষয়ক লেখা',
     'admin_group_refund' => 'ফেরত ও রিফান্ড নীতি',

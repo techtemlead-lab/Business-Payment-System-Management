@@ -32,7 +32,12 @@ const PAGE_GROUPS: { group: string; page: string; fields: string[] }[] = [
     { group: 'articles', page: 'articles', fields: ['articles_title', 'articles_lead', 'articles_disclaimer'] },
 ];
 
+const SIGNER_FIELDS = ['form_signer_1', 'form_signer_2', 'form_signer_3'];
+
 const fieldLabelKey = (field: string): string => {
+    if (SIGNER_FIELDS.includes(field)) {
+        return `admin_field_${field.replace('form_', '')}`;
+    }
     if (field.endsWith('_contact_note')) {
         return 'admin_field_contact_note';
     }
@@ -95,6 +100,9 @@ function keysOfSection(section: string, data: TrustData): string[] {
     if (section === 'identity') {
         return data.identity_keys.map((key) => `trust_${key}`);
     }
+    if (section === 'registration_form') {
+        return SIGNER_FIELDS.flatMap((field) => [`trust_${field}`, `trust_${field}_bn`]);
+    }
     if (section === 'grievance_contact') {
         return ['trust_grievance_contact_note', 'trust_grievance_contact_note_bn', ...data.contact_keys.map((key) => `trust_${key}`)];
     }
@@ -102,7 +110,7 @@ function keysOfSection(section: string, data: TrustData): string[] {
     return pageGroup ? [`page_enabled_${pageGroup.page}`, ...pageGroup.fields.flatMap((field) => [`trust_${field}`, `trust_${field}_bn`])] : [];
 }
 
-const TEXT_SECTIONS = [...PAGE_GROUPS.map(({ group }) => group), 'identity', 'grievance_contact'];
+const TEXT_SECTIONS = [...PAGE_GROUPS.map(({ group }) => group), 'identity', 'registration_form', 'grievance_contact'];
 
 function TextSections({ data, label }: HubProps) {
     const form = useForm<{ values: Record<string, string> }>({ values: initialValues(data) });
@@ -185,6 +193,10 @@ function TextSections({ data, label }: HubProps) {
             <Row title={label('admin_tab_identity')} open={isOpen('identity')} onToggle={(open) => toggle('identity', open)}>
                 <p className="field-hint">{label('admin_identity_hint')}</p>
                 {data.identity_keys.map((key) => plainField(key, label(`identity_${key}`)))}
+            </Row>
+            <Row title={label('admin_tab_registration_form')} open={isOpen('registration_form')} onToggle={(open) => toggle('registration_form', open)}>
+                <p className="field-hint">{label('admin_registration_form_hint')}</p>
+                {SIGNER_FIELDS.map(bilingualField)}
             </Row>
             <Row title={label('admin_tab_grievance')} open={isOpen('grievance_contact')} onToggle={(open) => toggle('grievance_contact', open)}>
                 <p className="field-hint">{label('admin_contact_hint')}</p>
