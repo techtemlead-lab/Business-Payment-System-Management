@@ -76,7 +76,7 @@
     <section>
         <h2>{{ $chrome('footer_stay_connected', $siteCustomization['footer_stay_connected_heading'] ?? null) }}</h2>
         <div class="ref-footer-brand">
-            <a href="/" aria-label="{{ __('site.brand_home') }}"><img src="{{ \App\Support\SiteCustomization::whiteLogoUrl() }}" alt="{{ \App\Support\SiteCustomization::brandName() }}" width="56" height="56" decoding="async" loading="lazy"></a>
+            <a href="/" aria-label="{{ __('site.brand_home') }}"><img src="{{ \App\Support\SiteCustomization::logoUrl() }}" alt="{{ \App\Support\SiteCustomization::brandName() }}" width="56" height="56" decoding="async" loading="lazy"></a>
             <h3>{{ \App\Support\SiteCustomization::brandName() }}</h3>
         </div>
         <p>{{ $chrome('footer_about_desc', $siteCustomization['footer_about_desc'] ?? null) }}</p>
