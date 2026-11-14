@@ -16,6 +16,7 @@ use App\Http\Controllers\PartnerAgreementController;
 use App\Http\Controllers\PartnerChatController;
 use App\Http\Controllers\PartnerContestController;
 use App\Http\Controllers\PartnerEventController;
+use App\Http\Controllers\PartnerRegistrationFormController;
 use App\Http\Controllers\PlaceCodeController;
 use App\Http\Controllers\PrescriberPublicToolsController;
 use App\Http\Controllers\PrescriberVerificationController;
@@ -40,6 +41,7 @@ use App\Http\Controllers\SiteVisitSettingsController;
 use App\Http\Controllers\StockCountController;
 use App\Http\Controllers\StockLotController;
 use App\Http\Controllers\StockMovementExportController;
+use App\Http\Controllers\StockPrintController;
 use App\Http\Controllers\TrainingController;
 use App\Http\Controllers\WithdrawalController;
 use Illuminate\Support\Facades\Route;
@@ -84,7 +86,9 @@ return function (string $portal): void {
     Route::get('/exports/orders', [ReportController::class, 'export'])->middleware('throttle:15,1,data-exports');
     Route::get('/exports/genealogy', [ReportController::class, 'genealogy'])->middleware('throttle:15,1,data-exports');
     Route::get('/exports/accounts', AccountListExportController::class)->middleware('throttle:15,1,data-exports');
+    Route::get('/exports/partner-registration-form/{user}', PartnerRegistrationFormController::class)->whereNumber('user')->middleware('throttle:30,1');
     Route::get('/exports/stock-movements', StockMovementExportController::class)->middleware('throttle:15,1,data-exports');
+    Route::get('/exports/stock-print', StockPrintController::class)->middleware('throttle:15,1,data-exports');
     Route::get('/exports/branch-performance', BranchPerformanceExportController::class)->middleware('throttle:15,1,data-exports');
 
     Route::post('/commands/orders/{order}/decision', [CommandController::class, 'decision']);

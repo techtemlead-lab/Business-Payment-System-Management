@@ -185,6 +185,7 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
             {changeReason.shown && <label>{changeReason.required ? translate('portal', 'acct_correction_reason') : changeReason.label(translate('reason_fields', 'box_account_change_reason'))}<textarea required={changeReason.required} maxLength={1000} value={form.data.reason} onChange={event => form.setData('reason', event.target.value)} /></label>}
             <FormErrors errors={form.errors} besideFields={['phone', 'place_code', 'latitude', 'longitude']}/>
             <button className="button dark" disabled={form.processing}>{translate('portal', 'acct_save_correction')}</button>
+            {isPartner && <a className="button" href={`/exports/partner-registration-form/${account.id}`} title={translate('partner_form', 'download_hint')}>{translate('partner_form', 'download_form')}</a>}
         </form>}
         {canKyc && isPartner && (
             <section className="panel aed-kyc">

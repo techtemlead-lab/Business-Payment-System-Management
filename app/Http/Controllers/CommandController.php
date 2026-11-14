@@ -187,7 +187,12 @@ class CommandController extends Controller
 
             $otherBranch = app(BranchOperations::class)->otherBranchOfNewPartner($r->user(), $r, $created['user']);
 
-            return redirect($redirect)->with('success', trim(__($deliveryMessage, [
+            // The success banner offers the filled form for printing and signing.
+            return redirect($redirect)->with('partner_form', [
+                'url' => '/exports/partner-registration-form/'.$created['user']->id,
+                'label' => __('partner_form.download_form'),
+                'hint' => __('partner_form.download_hint'),
+            ])->with('success', trim(__($deliveryMessage, [
                 'role' => __($created['user']->role === 'sub_dealer' ? 'portal.acct_role_sub_dealer' : 'portal.acct_role_dealer'),
                 'code' => $created['user']->dealer_code,
                 'phone' => $created['user']->phone,

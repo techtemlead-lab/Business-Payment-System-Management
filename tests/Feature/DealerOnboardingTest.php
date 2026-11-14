@@ -76,6 +76,7 @@ class DealerOnboardingTest extends TestCase
 
         $user = User::where('email', 'rafiq@example.com')->first();
         $this->assertNotNull($user);
+        $res->assertSessionHas('partner_form.url', '/exports/partner-registration-form/'.$user->id);
         $this->assertSame('dealer', $user->role);
         $this->assertSame('D-DHK-001', $user->dealer_code);
         $this->assertSame('Md. Rafiqul Islam', $user->name);
@@ -125,6 +126,7 @@ class DealerOnboardingTest extends TestCase
 
         $sub = User::where('email', 'kashem@example.com')->first();
         $this->assertNotNull($sub);
+        $res->assertSessionHas('partner_form.url', '/exports/partner-registration-form/'.$sub->id);
         $this->assertSame('sub_dealer', $sub->role);
         $this->assertSame('MNHC-561-000001', $sub->dealer_code);
         $this->assertSame($sponsor->id, $sub->sponsor_id);
