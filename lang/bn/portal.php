@@ -5881,6 +5881,7 @@ return [
     'event_account_created' => 'অ্যাকাউন্ট খোলা হয়েছে',
     'event_account_deleted' => 'পার্টনার মুছে ফেলা হয়েছে',
     'event_account_geography_updated' => 'এলাকার তথ্য বদলানো হয়েছে',
+    'event_account_registration_form_downloaded' => 'পার্টনার নিবন্ধন ফর্ম ডাউনলোড করা হয়েছে',
     'event_account_invitation_sent' => 'আমন্ত্রণ পাঠানো হয়েছে',
     'event_account_kyc_document_uploaded' => 'এনআইডি কাগজ আপলোড হয়েছে',
     'event_account_kyc_document_viewed' => 'এনআইডি কাগজ দেখা হয়েছে',

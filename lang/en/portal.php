@@ -5881,6 +5881,7 @@ return [
     'event_account_created' => 'Account opened',
     'event_account_deleted' => 'Partner deleted',
     'event_account_geography_updated' => 'Area details changed',
+    'event_account_registration_form_downloaded' => 'Partner registration form downloaded',
     'event_account_invitation_sent' => 'Invitation sent',
     'event_account_kyc_document_uploaded' => 'NID paper uploaded',
     'event_account_kyc_document_viewed' => 'NID paper opened',
