@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use App\Domain\Orders\OrderService;
 use App\Models\Product;
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -13,7 +13,7 @@ use Tests\TestCase;
 
 class AdversarialM1LocaleTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
 
     public function test_active_account_locale_switching_between_bn_and_en(): void
     {
