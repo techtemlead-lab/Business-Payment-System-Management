@@ -24,6 +24,31 @@ class PublicSiteHeaderAndFooterTest extends TestCase
         $response->assertDontSee('ref-madina-logo', false);
     }
 
+    public function test_the_top_band_shows_the_trade_licence_above_the_trademark_number_on_the_right(): void
+    {
+        $this->get('/')->assertOk()
+            ->assertSeeInOrder(['ref-bar-logo', 'ref-bar-text', 'ref-bar-legal', 'Trade Licence', '2026-00563', 'TM No.', 'BD-H-1-335903', 'ref-sticky-chrome'], false);
+    }
+
+    public function test_the_top_band_follows_the_owners_licence_and_shows_only_the_trademark_number(): void
+    {
+        SiteCustomization::save(['trust_trade_licence' => 'TL-777', 'trust_trademark' => 'BD-H-1-999999 (Class 5, filed 1 Jan 2027)']);
+
+        $band = $this->get('/')->assertOk()->getContent();
+        $band = substr($band, (int) strpos($band, 'ref-bar-legal'), 400);
+
+        $this->assertStringContainsString('TL-777', $band);
+        $this->assertStringContainsString('BD-H-1-999999', $band);
+        $this->assertStringNotContainsString('Class 5', $band);
+    }
+
+    public function test_the_top_band_labels_are_in_bangla_on_a_bangla_page(): void
+    {
+        $this->onPortal('public')->post('/locale', ['locale' => 'bn'])->assertRedirect();
+
+        $this->onPortal('public')->get('/')->assertOk()->assertSee('ট্রেড লাইসেন্স')->assertSee('টিএম নম্বর');
+    }
+
     public function test_home_is_marked_as_the_current_page_only_on_the_home_page(): void
     {
         $this->get('/')->assertOk()->assertSee('class="ref-nav-home" aria-current="page"', false);

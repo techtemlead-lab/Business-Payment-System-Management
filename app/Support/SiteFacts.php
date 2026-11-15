@@ -18,13 +18,32 @@ final class SiteFacts
         return strtr($text, self::values());
     }
 
+    /** The trade licence number: the owner's own, or the number built into the site. */
+    public static function tradeLicence(): string
+    {
+        $licence = trim((string) (SiteCustomization::forPublicPages()['trust_trade_licence'] ?? ''));
+
+        return $licence !== '' ? $licence : (string) __('site.trade_licence_number');
+    }
+
+    /**
+     * The trademark application number for the top bar. The owner may write more after the number
+     * (class, filing date); only the first word is shown here, so the bar stays short.
+     */
+    public static function trademarkNumber(): string
+    {
+        $saved = trim((string) (SiteCustomization::forPublicPages()['trust_trademark'] ?? ''));
+        $number = $saved !== '' ? (string) preg_split('/[\s(]/', $saved, 2)[0] : '';
+
+        return $number !== '' ? $number : (string) __('site.trademark_number');
+    }
+
     /** @return array<string, string> */
     private static function values(): array
     {
         $all = SiteCustomization::forPublicPages();
         $phone = trim((string) ($all['contact_phone'] ?? ''));
         $second = SiteCustomization::secondPhone();
-        $licence = trim((string) ($all['trust_trade_licence'] ?? ''));
 
         return [
             '{company}' => SiteChrome::plain('contact_company_title', $all['contact_company_title'] ?? null),
@@ -34,7 +53,7 @@ final class SiteFacts
             '{email}' => trim((string) ($all['contact_email'] ?? '')),
             '{address}' => SiteChrome::plain('office_address', $all['office_address'] ?? null),
             '{location}' => SiteChrome::plain('footer_location', $all['footer_location'] ?? null),
-            '{licence}' => LocalDigits::text($licence !== '' ? $licence : (string) __('site.trade_licence_number')),
+            '{licence}' => LocalDigits::text(self::tradeLicence()),
         ];
     }
 }
