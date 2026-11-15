@@ -104,6 +104,7 @@ final class StockPrintPdf
                 $this->phoneForLetterhead(SiteCustomization::secondPhone()),
                 $this->phoneForLetterhead($letterhead('contact_phone')),
             ])),
+            'email' => trim($letterhead('contact_email')),
             'licence' => SiteFacts::tradeLicence(),
             'trademark' => SiteFacts::trademarkNumber(),
             'logo_path' => is_file($logoPath) ? $logoPath : null,

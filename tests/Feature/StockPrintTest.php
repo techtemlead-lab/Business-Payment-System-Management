@@ -214,6 +214,7 @@ class StockPrintTest extends TestCase
         $company = app(StockPrintPdf::class)->company();
 
         $this->assertSame('+8801730532965, +8801730532966', $company['phones']);
+        $this->assertSame('madinanaturalhealthcare@gmail.com', $company['email']);
         $this->assertSame('2026-00563', $company['licence']);
         $this->assertSame('BD-H-1-335903', $company['trademark']);
 

@@ -14,10 +14,10 @@
         body { font-family: freeserif, sans-serif; color: #0f172a; font-size: 9.5pt; margin: 0; }
         table.header { width: 100%; border-collapse: collapse; }
         table.header td { vertical-align: middle; }
-        .logo-cell { width: 86px; }
-        .legal-cell { width: 215px; text-align: right; }
-        .brand-name { font-size: 21pt; font-weight: bold; color: #006837; }
-        .brand-line { font-size: 11.5pt; color: #334155; line-height: 1.45; }
+        .logo-cell { width: 190px; text-align: left; }
+        .legal-cell { width: 190px; text-align: right; }
+        .brand-name { font-size: 19pt; font-weight: bold; color: #006837; }
+        .brand-line { font-size: 11pt; color: #334155; line-height: 1.45; }
         .title { text-align: center; margin: 8px 0 6px; }
         .title span { font-size: 14pt; font-weight: bold; color: #006837; border-bottom: 2px solid #006837; padding: 0 18px 2px; }
         table.meta { width: 100%; border-collapse: collapse; margin-bottom: 6px; font-size: 9.5pt; }
@@ -43,7 +43,10 @@
             <div class="brand-name">{{ $company['name'] }}</div>
             <div class="brand-line">{{ $company['address'] }}</div>
             @if ($company['phones'] !== '')
-                <div class="brand-line">{{ __('portal.inv_mobile_short') }}: {{ $digits($company['phones']) }}</div>
+                <div class="brand-line">{{ __('stock_print.mobile_whatsapp') }}: {{ $digits($company['phones']) }}</div>
+            @endif
+            @if ($company['email'] !== '')
+                <div class="brand-line">{{ __('stock_print.email') }}: {{ $company['email'] }}</div>
             @endif
         </td>
         <td class="legal-cell">

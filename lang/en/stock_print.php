@@ -7,6 +7,8 @@ return [
     'branch' => 'Branch',
     'all_branches' => 'All branches',
     'printed_on' => 'Date',
+    'mobile_whatsapp' => 'Mob / WhatsApp',
+    'email' => 'Email',
     'col_serial' => 'SL',
     'col_product' => 'Product name',
     'col_pack' => 'Pack size',

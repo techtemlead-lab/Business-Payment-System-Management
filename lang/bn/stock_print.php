@@ -7,6 +7,8 @@ return [
     'branch' => 'শাখা',
     'all_branches' => 'সব শাখা',
     'printed_on' => 'তারিখ',
+    'mobile_whatsapp' => 'মোবাইল / হোয়াটসঅ্যাপ',
+    'email' => 'ইমেইল',
     'col_serial' => 'ক্রমিক',
     'col_product' => 'পণ্যের নাম',
     'col_pack' => 'প্যাকের মাপ',
