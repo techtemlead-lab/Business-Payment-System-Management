@@ -51,6 +51,9 @@ class SupportDeskTableTest extends TestCase
 
     public function test_search_filters_and_the_date_view_narrow_the_list(): void
     {
+        // "This week" starts at Dhaka midnight, so the tickets made a few hours ago must not straddle it:
+        // the test pins the clock to the middle of the week instead of running on whatever hour CI starts.
+        $this->travelTo(now('Asia/Dhaka')->startOfWeek()->addDays(3)->setTime(12, 0));
         $rahim = User::factory()->dealer()->create(['status' => 'active', 'name' => 'Rahim Dealer']);
         $karim = User::factory()->subDealer()->create(['status' => 'active', 'name' => 'Karim Partner']);
         $this->ticket($rahim, 'Invoice will not print', now()->subHours(3));

@@ -139,7 +139,7 @@ function ReviewPanel({ application, onClose, onReject }: { application: Row; onC
                             {form.errors.phone_share_reason && <span className="field-error" role="alert">{form.errors.phone_share_reason}</span>}
                         </label>
                     )}
-                    {isDealerApplication && (
+                    {(application.role === 'dealer' || application.role === 'sub_dealer') && (
                         <label className="import-confirmation">
                             <input type="checkbox" checked={form.data.directory_visible} onChange={(event) => form.setData('directory_visible', event.target.checked)} /> {translate('portal', 'acct_directory_visible')}
                             <small className="field-hint">{translate('office_partners', 'directory_visible_hint')}</small>

@@ -14,6 +14,7 @@ return [
     // Business identity block
     'identity_heading' => 'Business details',
     'identity_trade_licence' => 'Trade licence',
+    'identity_trademark' => 'Trademark application',
     'identity_tin' => 'TIN',
     'identity_digital_business_id' => 'Digital Business ID',
     'identity_joint_stock_registration' => 'Joint-stock registration',
@@ -103,6 +104,10 @@ return [
     'articles_title' => 'Health articles',
     'articles_lead' => 'Simple articles about everyday health.',
     'articles_disclaimer' => 'These articles are general health information. They do not replace a doctor\'s advice. If you are unwell, see a doctor.',
+    // Partner registration form: the titles under the three company signature places. Blank means a blank line to write by hand.
+    'form_signer_1' => '',
+    'form_signer_2' => '',
+    'form_signer_3' => '',
     'articles_read' => 'Read',
     'articles_back' => 'All articles',
 
@@ -112,6 +117,11 @@ return [
     'admin_tab_pages' => 'Pages',
     'admin_tab_identity' => 'Business details',
     'admin_tab_grievance' => 'Complaint contact',
+    'admin_tab_registration_form' => 'Partner registration form',
+    'admin_registration_form_hint' => 'The printable form after a dealer or sub-dealer is created has four signature places. The first is always the partner\'s own. Write the titles of the other three here (for example Managing Director). A blank title leaves a line to write by hand.',
+    'admin_field_signer_1' => 'Signature place 2 title',
+    'admin_field_signer_2' => 'Signature place 3 title',
+    'admin_field_signer_3' => 'Signature place 4 title',
     'admin_tab_documents' => 'Quality documents',
     'admin_tab_articles' => 'Health articles',
     'admin_group_refund' => 'Return and refund policy',

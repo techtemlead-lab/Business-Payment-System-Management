@@ -35,14 +35,25 @@ class WebsiteCmsAuditTest extends TestCase
         $this->assertGreaterThanOrEqual(3, substr_count($html, '/branding/site-photos/new-logo.png'));
     }
 
-    public function test_a_new_white_logo_reaches_the_footer_and_the_phone_menu(): void
+    public function test_a_new_white_logo_reaches_the_phone_menu_only(): void
     {
         SiteCustomization::save(['footer_logo_url' => '/branding/site-photos/white.png']);
 
         $html = $this->get('/')->assertOk()->getContent();
 
         $this->assertSame(0, substr_count($html, 'madina-header-logo-white.png'));
-        $this->assertSame(2, substr_count($html, '/branding/site-photos/white.png'));
+        $this->assertSame(1, substr_count($html, '/branding/site-photos/white.png'));
+    }
+
+    public function test_the_footer_shows_the_same_certified_logo_as_the_header(): void
+    {
+        SiteCustomization::save(['site_logo_url' => '/branding/site-photos/new-logo.png', 'footer_logo_url' => '/branding/site-photos/white.png']);
+
+        $html = $this->get('/')->assertOk()->getContent();
+        $footer = substr($html, (int) strpos($html, 'ref-footer-brand'), 400);
+
+        $this->assertStringContainsString('/branding/site-photos/new-logo.png', $footer);
+        $this->assertStringNotContainsString('white.png', $footer);
     }
 
     public function test_the_login_and_error_pages_use_the_saved_logo(): void

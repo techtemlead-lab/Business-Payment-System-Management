@@ -34,10 +34,11 @@ final class PublicTrustContent
         'grievance_title', 'grievance_lead', 'grievance_contact_note',
         'quality_documents_title', 'quality_documents_lead',
         'articles_title', 'articles_lead', 'articles_disclaimer',
+        'form_signer_1', 'form_signer_2', 'form_signer_3',
     ];
 
     /** Single-language fields, shown only when the owner fills them in. */
-    public const IdentityKeys = ['trade_licence', 'tin', 'digital_business_id', 'joint_stock_registration'];
+    public const IdentityKeys = ['trade_licence', 'trademark', 'tin', 'digital_business_id', 'joint_stock_registration'];
 
     public const ContactKeys = ['grievance_contact_name', 'grievance_contact_role', 'grievance_contact_phone', 'grievance_contact_email', 'grievance_contact_hours'];
 

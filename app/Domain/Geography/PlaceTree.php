@@ -132,6 +132,45 @@ final class PlaceTree
     }
 
     /**
+     * Every division, district, upazila and union that the given partners' place codes lie
+     * in or under, one row per place with its parent, for the cascading filter pickers.
+     * A partner placed on a union adds that union and the upazila, district and division above it.
+     *
+     * @param  EloquentBuilder<User>  $partners
+     * @return array<int, array{id: int, name: string, level: string, parent_id: int|null}>
+     */
+    public static function areaOptions(EloquentBuilder $partners): array
+    {
+        $starts = $partners->clone()->reorder()->select(DB::raw(self::partnerPlaceIdSql('users').' AS place_id'))->toBase();
+        $rows = DB::select('WITH RECURSIVE starts AS ('.$starts->toSql().'), chain AS (
+                SELECT place.id, place.parent_id, place.level, place.name, 0 AS depth
+                FROM place_codes AS place
+                WHERE place.id IN (SELECT place_id FROM starts)
+                UNION ALL
+                SELECT parent.id, parent.parent_id, parent.level, parent.name, chain.depth + 1
+                FROM chain
+                JOIN place_codes AS parent ON parent.id = chain.parent_id
+                WHERE chain.depth < 8
+            )
+            SELECT DISTINCT id, parent_id, level, name FROM chain WHERE level IN (?, ?, ?, ?) ORDER BY name, id', [
+            ...$starts->getBindings(),
+            PlaceCode::LevelDivision, PlaceCode::LevelDistrict, PlaceCode::LevelUpazila, PlaceCode::LevelUnion,
+        ]);
+
+        $places = [];
+        foreach ($rows as $row) {
+            $places[(int) $row->id] = [
+                'id' => (int) $row->id,
+                'name' => (string) $row->name,
+                'level' => (string) $row->level,
+                'parent_id' => $row->parent_id !== null ? (int) $row->parent_id : null,
+            ];
+        }
+
+        return $places;
+    }
+
+    /**
      * A positive place code id from a filter value, or null (names and junk are ignored).
      */
     public static function idFrom(mixed $value): ?int

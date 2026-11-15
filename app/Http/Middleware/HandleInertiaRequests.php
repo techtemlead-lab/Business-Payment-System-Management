@@ -109,6 +109,7 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'warning' => fn () => $request->session()->get('warning'),
+                'partner_form' => fn () => $request->session()->get('partner_form'),
                 'totp_setup' => fn () => $request->session()->get('totp_setup'),
                 'totp_recovery_codes' => fn () => $request->session()->get('totp_recovery_codes'),
             ],
@@ -224,6 +225,7 @@ class HandleInertiaRequests extends Middleware
                 'courier_more' => Lang::get('courier_more'),
                 'schemes_commission' => Lang::get('schemes_commission'),
                 'prescription' => Lang::get('prescription'),
+                'partner_form' => Lang::get('partner_form'),
                 'website_admin' => Lang::get('website_admin'),
                 'partner_hub' => Lang::get('partner_hub'),
                 'product_facts' => Lang::get('product_facts'),
@@ -236,6 +238,7 @@ class HandleInertiaRequests extends Middleware
                 'productivity' => Lang::get('productivity'),
                 'clinic_records' => Lang::get('clinic_records'),
                 'stock_lots' => Lang::get('stock_lots'),
+                'stock_print' => Lang::get('stock_print'),
                 'courier_areas' => Lang::get('courier_areas'),
                 'wave3_ops' => Lang::get('wave3_ops'),
                 'order_payment' => Lang::get('order_payment'),

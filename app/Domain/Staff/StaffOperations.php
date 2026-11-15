@@ -205,7 +205,7 @@ final class StaffOperations
                 }
                 $user = (new User)->forceFill(['name' => $data['name'], 'email' => $application->email, 'phone' => $data['phone'],
                     'phone_share_approved_by' => $phoneCheck['phone_share_approved_by'], 'phone_share_reason' => $phoneCheck['phone_share_reason'],
-                    'directory_visible' => ! $isSubDealer && ($choices['directory_visible'] ?? false),
+                    'directory_visible' => (bool) ($choices['directory_visible'] ?? false),
                     'role' => $data['role'], 'status' => 'active', 'password' => Str::random(48),
                     'dealer_code' => $partnerCode, 'refer_code' => $partnerCode, 'sponsor_id' => $sponsorId,
                     'division' => $data['division'], 'district' => $data['district'],

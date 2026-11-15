@@ -3036,7 +3036,8 @@ aside.ref-floating-tools > a.ref-chat:focus-visible::after {
     display: block;
     font-weight: 700;
     line-height: 1.35;
-    font-size: var(--ref-fs-lead, 17px);
+    font-size: 14px;
+    color: #e9c766;
 }
 
 .ref-footer-contact-info {

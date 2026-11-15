@@ -872,7 +872,7 @@ export default function AccountCreate({
                                     <textarea rows={2} value={form.data.reason} onChange={(e) => setBox('reason', e.target.value)} />
                                 </Box>
                             )}
-                            {form.data.role === 'dealer' && (
+                            {(form.data.role === 'dealer' || form.data.role === 'sub_dealer') && (
                                 <label className="checkbox-label acf-box is-wide acf-check">
                                     <input type="checkbox" checked={!!form.data.directory_visible} onChange={(e) => form.setData('directory_visible', e.target.checked)} />
                                     <span>{translate('portal', 'acct_directory_visible')}</span>

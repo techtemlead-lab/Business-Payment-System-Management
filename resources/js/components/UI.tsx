@@ -152,7 +152,7 @@ export function FormErrors({errors,className='error',besideFields=[]}:{errors:Re
  const opensStartingBalances=['manage','sadmin'].includes(portal)&&messages.includes(translate('portal','err_wallet_posting_unverified'));
  return messages.length>0?<div className={className} role="alert">{messages.join(' ')}{opensStartingBalances&&<> <Link className="text-link" href="/operations/financial-readiness">{translate('portal','financial_readiness')}</Link></>}</div>:null;
 }
-export function Flash(){const {flash,errors}=usePage<any>().props;const owned=useFormErrorsOwned();return <>{flash?.success&&<div className="success" role="status">{flash.success}</div>}{flash?.warning&&<div className="notice warning" role="alert">{flash.warning}</div>}{!owned&&Object.keys(errors??{}).length>0&&<div className="error" role="alert">{Object.values(errors).join(' ')}</div>}</>}
+export function Flash(){const {flash,errors}=usePage<any>().props;const owned=useFormErrorsOwned();return <>{flash?.success&&<div className="success" role="status">{flash.success}{flash?.partner_form?.url&&<> <a className="text-link" href={flash.partner_form.url} title={flash.partner_form.hint}><b>{flash.partner_form.label}</b></a></>}</div>}{flash?.warning&&<div className="notice warning" role="alert">{flash.warning}</div>}{!owned&&Object.keys(errors??{}).length>0&&<div className="error" role="alert">{Object.values(errors).join(' ')}</div>}</>}
 function rowSearchText(value:unknown,depth=0):string{
  if(value==null||depth>2)return '';
  if(typeof value==='string'||typeof value==='number')return String(value);

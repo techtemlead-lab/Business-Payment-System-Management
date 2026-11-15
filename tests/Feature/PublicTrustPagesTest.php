@@ -247,12 +247,13 @@ class PublicTrustPagesTest extends TestCase
     {
         $this->publicGet('/')->assertOk()->assertDontSee(__('public_trust.identity_heading'));
 
-        $this->saveTrustText(['trust_tin' => '123456789012', 'trust_trade_licence' => '<b>TL-9</b>'])->assertRedirect();
+        $this->saveTrustText(['trust_tin' => '123456789012', 'trust_trade_licence' => '<b>TL-9</b>', 'trust_trademark' => 'BD-H-1-335903 (Class 5)'])->assertRedirect();
 
         $this->publicGet('/')
             ->assertOk()
             ->assertSee(__('public_trust.identity_heading'))
             ->assertSee(__('public_trust.identity_tin').': 123456789012')
+            ->assertSee(__('public_trust.identity_trademark').': BD-H-1-335903 (Class 5)')
             ->assertSee('&lt;b&gt;TL-9&lt;/b&gt;', false)
             ->assertDontSee(__('public_trust.identity_digital_business_id'))
             ->assertDontSee(__('public_trust.identity_joint_stock_registration'));

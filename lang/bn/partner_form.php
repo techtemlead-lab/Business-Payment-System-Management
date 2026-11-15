@@ -1,0 +1,53 @@
+<?php
+
+return [
+    'doc_title' => 'পার্টনার নিবন্ধন ফর্ম :code',
+    'title_dealer' => 'ডিলার নিবন্ধন ফর্ম',
+    'title_sub_dealer' => 'সাব-ডিলার নিবন্ধন ফর্ম',
+    'subtitle' => 'ফর্মটি প্রিন্ট করে স্বাক্ষর নিন এবং পার্টনারের ফাইলে রাখুন।',
+    'photo_box' => 'পাসপোর্ট সাইজ ছবি',
+
+    'section_account' => 'অ্যাকাউন্ট',
+    'section_personal' => 'ব্যক্তিগত তথ্য',
+    'section_address' => 'ঠিকানা',
+    'section_business' => 'ব্যবসা',
+
+    'f_role' => 'পার্টনারের ধরন',
+    'f_code' => 'পার্টনার কোড',
+    'f_registered_on' => 'নিবন্ধনের তারিখ',
+    'f_sponsor' => 'স্পন্সর',
+    'f_name_en' => 'নাম (ইংরেজি)',
+    'f_name_bn' => 'নাম (বাংলা)',
+    'f_father' => 'পিতার নাম',
+    'f_mother' => 'মাতার নাম',
+    'f_dob' => 'জন্ম তারিখ',
+    'f_identity_nid' => 'জাতীয় পরিচয়পত্র নম্বর',
+    'f_identity_birth' => 'জন্ম নিবন্ধন নম্বর',
+    'f_occupation' => 'পেশা',
+    'f_phone' => 'মোবাইল নম্বর',
+    'f_extra_contact' => 'অন্য যোগাযোগ',
+    'f_email' => 'ইমেইল',
+    'f_division' => 'বিভাগ',
+    'f_district' => 'জেলা',
+    'f_upazila' => 'উপজেলা',
+    'f_union' => 'ইউনিয়ন',
+    'f_village' => 'গ্রাম / সড়ক',
+    'f_post_office' => 'ডাকঘর',
+    'f_place_code' => 'এলাকা কোড',
+    'f_shop' => 'ফার্মেসি / দোকানের নাম',
+
+    'role_dealer' => 'ডিলার',
+    'role_sub_dealer' => 'সাব-ডিলার',
+
+    'declaration' => 'আমি ঘোষণা করছি যে উপরের তথ্য আমার জানামতে সত্য ও সঠিক।',
+    'sign_partner_dealer' => 'ডিলারের স্বাক্ষর',
+    'sign_partner_sub_dealer' => 'সাব-ডিলারের স্বাক্ষর',
+    'sign_designation' => 'পদবি',
+    'sign_name' => 'নাম',
+    'sign_date' => 'তারিখ',
+
+    'foot' => 'কোম্পানির রেকর্ড থেকে :date তারিখে তৈরি। সিরিয়াল :serial।',
+
+    'download_form' => 'নিবন্ধন ফর্ম ডাউনলোড করুন',
+    'download_hint' => 'আপনি যে তথ্য দিয়েছেন সেটি সহ প্রিন্ট করার মতো ফর্ম, নিচে চারটি স্বাক্ষরের জায়গা সহ।',
+];
