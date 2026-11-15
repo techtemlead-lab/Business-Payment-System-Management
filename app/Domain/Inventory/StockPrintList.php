@@ -9,78 +9,63 @@ use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 /**
- * The rows of the printed stock list. Each pack size is its own product, so a row is one
- * product (pack size) and one expiry date: batches that share an expiry date are added up.
- * Stock whose lot was never recorded is listed under the expiry date saved on the product, and
- * stock with no expiry date at all is listed with a blank date. Nothing here changes stock.
- *
- * The quantity is what a branch physically holds, so batches on hold or past their expiry
- * date are listed too, with their date visible. Units with a courier are not in it.
+ * The rows of the printed stock list: one row for every product that has stock in the branch
+ * scope, grouped by category (a product with no category comes last), then by name. The list
+ * shows no quantities and no totals: it is the product list with prices and discounts.
+ * Nothing here changes stock.
  */
 final class StockPrintList
 {
     /**
      * @return array{
-     *     rows: list<array{serial: int, name: string, pack_size: ?string, expires_on: ?string, quantity: int, mrp: ?string, dealer_discount: ?string, sub_dealer_discount: ?string, total: string}>,
-     *     total_quantity: int,
-     *     total_value: string
+     *     rows: list<array{serial: int, name: string, pack_size: ?string, category: ?string, mrp: ?string, dealer_discount: ?string, sub_dealer_discount: ?string}>
      * }
      */
     public function build(BranchScope $scope): array
     {
-        $units = $this->unitsByProductAndExpiry($scope);
-        if ($units === []) {
-            return ['rows' => [], 'total_quantity' => 0, 'total_value' => Money::decimal(0)];
+        $productIds = $this->productIdsWithStock($scope);
+        if ($productIds === []) {
+            return ['rows' => []];
         }
-
-        $products = Product::query()
-            ->whereIn('id', array_unique(array_column($units, 'product_id')))
-            ->get(['id', 'name', 'strength', 'pack_size_en', 'pack_size_bn', 'mrp', 'dealer_price', 'sub_dealer_price'])
-            ->keyBy('id');
 
         $entries = [];
-        foreach ($units as $unit) {
-            $product = $products->get($unit['product_id']);
-            if ($product === null) {
-                continue;
-            }
-            $entries[] = ['product' => $product, 'expires_on' => $unit['expires_on'], 'quantity' => $unit['quantity']];
+        foreach (Product::query()->whereIn('id', $productIds)->get(['id', 'name', 'strength', 'category', 'pack_size_en', 'pack_size_bn', 'mrp', 'dealer_price', 'sub_dealer_price']) as $product) {
+            [$name, $packSize] = StockPrintName::split($product->registerName(), ProductSizeGroups::label($product));
+            $category = trim((string) $product->category);
+            $entries[] = ['product' => $product, 'name' => $name, 'pack_size' => $packSize, 'category' => $category !== '' ? $category : null];
         }
-        usort($entries, static fn (array $first, array $second): int => strnatcasecmp($first['product']->registerName(), $second['product']->registerName())
-            ?: strnatcasecmp((string) ProductSizeGroups::label($first['product']), (string) ProductSizeGroups::label($second['product']))
-            ?: ((int) $first['product']->id <=> (int) $second['product']->id)
-            ?: (($first['expires_on'] ?? '9999-12-31') <=> ($second['expires_on'] ?? '9999-12-31')));
+        usort($entries, static fn (array $first, array $second): int => ($first['category'] === null) <=> ($second['category'] === null)
+            ?: strnatcasecmp((string) $first['category'], (string) $second['category'])
+            ?: strnatcasecmp($first['name'], $second['name'])
+            ?: strnatcasecmp((string) $first['pack_size'], (string) $second['pack_size'])
+            ?: ((int) $first['product']->id <=> (int) $second['product']->id));
 
         $rows = [];
-        $totalQuantity = 0;
-        $totalCents = 0;
         foreach ($entries as $index => $entry) {
             /** @var Product $product */
             $product = $entry['product'];
             $mrpCents = $this->cents($product->mrp);
-            $lineCents = $mrpCents * $entry['quantity'];
-            $totalQuantity += $entry['quantity'];
-            $totalCents += $lineCents;
             $rows[] = [
                 'serial' => $index + 1,
-                'name' => $product->registerName(),
-                'pack_size' => ProductSizeGroups::label($product),
-                'expires_on' => $entry['expires_on'],
-                'quantity' => $entry['quantity'],
+                'name' => $entry['name'],
+                'pack_size' => $entry['pack_size'],
+                'category' => $entry['category'],
                 'mrp' => $mrpCents > 0 ? Money::decimal($mrpCents) : null,
                 'dealer_discount' => $this->discount($product, $product->dealer_price),
                 'sub_dealer_discount' => $this->discount($product, $product->sub_dealer_price),
-                'total' => Money::decimal($lineCents),
             ];
         }
 
-        return ['rows' => $rows, 'total_quantity' => $totalQuantity, 'total_value' => Money::decimal($totalCents)];
+        return ['rows' => $rows];
     }
 
     /**
-     * @return list<array{product_id: int, expires_on: ?string, quantity: int}>
+     * The products that have at least one unit in the branches of the scope: units in a lot, and
+     * units that were never put in a lot.
+     *
+     * @return list<int>
      */
-    private function unitsByProductAndExpiry(BranchScope $scope): array
+    private function productIdsWithStock(BranchScope $scope): array
     {
         if (! $scope->allBranches && $scope->branchIds === []) {
             return [];
@@ -88,35 +73,19 @@ final class StockPrintList
 
         $lots = DB::table('stock_lots')
             ->where('quantity', '>', 0)
-            ->groupBy('product_id', 'expires_on')
-            ->selectRaw('product_id, expires_on, CAST(SUM(quantity) AS integer) AS units');
+            ->groupBy('product_id')
+            ->selectRaw('product_id');
         $scope->restrict($lots, 'branch_id');
-
-        /** @var array<string, array{product_id: int, expires_on: ?string, quantity: int}> $merged */
-        $merged = [];
-        $add = static function (int $productId, ?string $expiresOn, int $quantity) use (&$merged): void {
-            $key = $productId.'|'.($expiresOn ?? '');
-            $merged[$key] = [
-                'product_id' => $productId,
-                'expires_on' => $expiresOn,
-                'quantity' => ($merged[$key]['quantity'] ?? 0) + $quantity,
-            ];
-        };
-        foreach ($lots->get() as $lot) {
-            $add((int) $lot->product_id, $lot->expires_on !== null ? substr((string) $lot->expires_on, 0, 10) : null, (int) $lot->units);
-        }
+        $ids = array_map('intval', $lots->pluck('product_id')->all());
 
         $branchId = $scope->allBranches ? null : $scope->branchIds[0];
         $unlotted = DB::query()->fromSub(StockStages::rows($branchId), 'stage')
-            ->join('products', 'products.id', '=', 'stage.product_id')
             ->where('stage.unlotted', '>', 0)
-            ->groupBy('stage.product_id', 'products.expires_on')
-            ->selectRaw('stage.product_id, products.expires_on, CAST(SUM(stage.unlotted) AS integer) AS units');
-        foreach ($unlotted->get() as $row) {
-            $add((int) $row->product_id, $row->expires_on !== null ? substr((string) $row->expires_on, 0, 10) : null, (int) $row->units);
-        }
+            ->groupBy('stage.product_id')
+            ->selectRaw('stage.product_id');
+        array_push($ids, ...array_map('intval', $unlotted->pluck('product_id')->all()));
 
-        return array_values($merged);
+        return array_values(array_unique($ids));
     }
 
     private function cents(mixed $amount): int

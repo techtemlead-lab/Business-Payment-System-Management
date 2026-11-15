@@ -7,6 +7,7 @@ use App\Support\Audit;
 use App\Support\LocalDigits;
 use App\Support\PdfFonts;
 use App\Support\SiteCustomization;
+use App\Support\SiteFacts;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Mpdf\Mpdf;
@@ -30,8 +31,6 @@ final class StockPrintPdf
             'branch' => $scope->allBranches ? __('stock_print.all_branches') : (string) ($scope->branch->name ?? ''),
             'printed_at' => $now,
             'rows' => $stock['rows'],
-            'total_quantity' => $stock['total_quantity'],
-            'total_value' => $stock['total_value'],
         ])->render();
 
         $dir = Storage::disk('local')->path('report-exports');
@@ -80,7 +79,15 @@ final class StockPrintPdf
      *
      * @return array{name: string, address: string, phones: string, logo_path: ?string}
      */
-    private function company(): array
+    /** A phone number the way the website shows it (+8801…); empty when none is set. */
+    private function phoneForLetterhead(?string $number): string
+    {
+        $number = trim((string) $number);
+
+        return $number === '' ? '' : SiteCustomization::internationalDisplay($number);
+    }
+
+    public function company(): array
     {
         $custom = SiteCustomization::all();
         $defaults = SiteCustomization::defaults();
@@ -93,7 +100,13 @@ final class StockPrintPdf
         return [
             'name' => $letterhead('contact_company_title'),
             'address' => $letterhead('office_address'),
-            'phones' => $letterhead('contact_phone'),
+            'phones' => implode(', ', array_filter([
+                $this->phoneForLetterhead(SiteCustomization::secondPhone()),
+                $this->phoneForLetterhead($letterhead('contact_phone')),
+            ])),
+            'email' => trim($letterhead('contact_email')),
+            'licence' => SiteFacts::tradeLicence(),
+            'trademark' => SiteFacts::trademarkNumber(),
             'logo_path' => is_file($logoPath) ? $logoPath : null,
         ];
     }
