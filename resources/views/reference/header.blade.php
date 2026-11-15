@@ -19,6 +19,10 @@
             <{{ $companyNameTag }} class="ref-bar-text">{{ $chrome('company_bar', $siteCustomization['top_bar_text'] ?? null) }}</{{ $companyNameTag }}>
             <i class="fa-solid fa-seedling ref-bar-leaf is-right" aria-hidden="true"></i>
         </div>
+        <div class="ref-bar-legal">
+            <span>{{ __('site.top_bar_trade_licence') }}: <b>{{ \App\Support\LocalDigits::text(\App\Support\SiteFacts::tradeLicence()) }}</b></span>
+            <span>{{ __('site.top_bar_trademark') }}: <b>{{ \App\Support\SiteFacts::trademarkNumber() }}</b></span>
+        </div>
     </div>
 </div>
 <div class="ref-sticky-chrome">

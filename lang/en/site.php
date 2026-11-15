@@ -598,5 +598,8 @@ We humbly ask for everyone\'s prayers and support.',
     'prescribers_emergency_note' => 'In an emergency, go to the nearest hospital now. Do not wait for a reply here.',
     'office_map_title' => 'Office location map',
     'trade_licence_number' => '2026-00563',
+    'trademark_number' => 'BD-H-1-335903',
+    'top_bar_trade_licence' => 'Trade Licence',
+    'top_bar_trademark' => 'TM No.',
     'prescribers_consent_line' => 'I agree that my name, phone number and this problem will go only to this practitioner, so they can contact me.',
 ];

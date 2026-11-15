@@ -598,5 +598,8 @@ Madina Natural Health Care-এর মূল উদ্দেশ্য শুধ�
     'prescribers_emergency_note' => 'জরুরি অবস্থায় এখনই কাছের হাসপাতালে যান। এখানে উত্তরের জন্য অপেক্ষা করবেন না।',
     'office_map_title' => 'অফিসের অবস্থানের ম্যাপ',
     'trade_licence_number' => '2026-00563',
+    'trademark_number' => 'BD-H-1-335903',
+    'top_bar_trade_licence' => 'ট্রেড লাইসেন্স',
+    'top_bar_trademark' => 'টিএম নম্বর',
     'prescribers_consent_line' => 'আমি রাজি যে আমার নাম, ফোন নম্বর আর এই সমস্যার কথা শুধু এই চিকিৎসকের কাছে যাবে, যাতে তিনি আমার সাথে যোগাযোগ করতে পারেন।',
 ];
