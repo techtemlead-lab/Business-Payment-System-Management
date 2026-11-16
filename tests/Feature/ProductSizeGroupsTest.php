@@ -402,7 +402,10 @@ class ProductSizeGroupsTest extends TestCase
             ->where('data.products', function ($products) use ($small, $plain): bool {
                 $rows = collect($products)->keyBy('id');
 
-                return $rows[$small->id]['size_label'] === '100 ml' && ! isset($rows[$plain->id]['size_label']);
+                return $rows[$small->id]['size_label'] === '100 ml'
+                    && $rows[$small->id]['size_group_members'] === ['100 ml', '300 ml']
+                    && ! isset($rows[$plain->id]['size_label'])
+                    && ! isset($rows[$plain->id]['size_group_members']);
             }));
     }
 
