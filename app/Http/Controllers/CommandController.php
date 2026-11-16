@@ -1109,8 +1109,8 @@ class CommandController extends Controller
         abort_unless($access->canReset($r->user(), $user), 403);
         abort_unless($user->status === 'active', 422, __('portal.acct_password_inactive'));
 
-        // Only owners may choose or see the new password. Other authorised staff can reset it, but
-        // the new password goes only to the account holder by SMS, so staff cannot sign in as them.
+        // People who may see this password can choose the new one and read it back.
+        // Anyone else who may reset it only sends the new password to the account holder by SMS.
         $ownerActor = $access->canView($r->user(), $user);
         // A reset nobody can read would lock the person out: without an owner the new password only goes by SMS.
         abort_unless($ownerActor || PhoneIdentity::normalize((string) $user->phone) !== null, 422, __('portal.acct_password_reset_needs_phone'));

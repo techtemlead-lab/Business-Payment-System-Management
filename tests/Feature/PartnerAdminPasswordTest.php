@@ -134,7 +134,7 @@ class PartnerAdminPasswordTest extends TestCase
         $this->assertSame('CustomAdminPass999!', $partner->adminVisiblePassword());
     }
 
-    public function test_account_manager_sees_password_status_but_not_the_password(): void
+    public function test_account_manager_can_see_a_dealer_password_and_the_status_call_does_not_reveal_it(): void
     {
         $manager = User::factory()->staff('account_manager')->create();
         $partner = User::factory()->dealer()->create([
@@ -145,10 +145,15 @@ class PartnerAdminPasswordTest extends TestCase
         $this->actingAs($manager)->onPortal('manage')
             ->getJson('/commands/accounts/'.$partner->id.'/password-status')
             ->assertOk()
-            ->assertJsonPath('data.can_reveal', false)
+            ->assertJsonPath('data.can_reveal', true)
             ->assertJsonPath('data.password', null);
-
         $this->assertDatabaseMissing('audit_events', ['actor_id' => $manager->id, 'action' => 'account.password_revealed']);
+
+        $this->actingAs($manager)->onPortal('manage')
+            ->postJson('/commands/accounts/'.$partner->id.'/reveal-password')
+            ->assertOk()
+            ->assertJsonPath('data.password', 'TempPassword123!');
+        $this->assertDatabaseHas('audit_events', ['actor_id' => $manager->id, 'action' => 'account.password_revealed', 'subject' => (string) $partner->id]);
     }
 
     public function test_owner_password_reveal_is_audited(): void
@@ -180,7 +185,7 @@ class PartnerAdminPasswordTest extends TestCase
         $this->assertArrayHasKey('ip', json_decode($event->metadata, true));
     }
 
-    public function test_only_owners_can_reveal_and_staff_resets_are_audited_without_showing_the_password(): void
+    public function test_an_account_manager_sees_the_new_dealer_password_and_the_reset_is_audited(): void
     {
         $manager = User::factory()->staff('account_manager')->create();
         $partner = User::factory()->dealer()->create([
@@ -190,27 +195,24 @@ class PartnerAdminPasswordTest extends TestCase
         ]);
 
         $this->actingAs($manager)->onPortal('manage')
-            ->postJson('/commands/accounts/'.$partner->id.'/reveal-password')
-            ->assertForbidden();
-
-        $this->actingAs($manager)->onPortal('manage')
-            ->postJson('/commands/accounts/'.$partner->id.'/reset-password')
+            ->postJson('/commands/accounts/'.$partner->id.'/reset-password', ['password' => 'OfficeChosenPass1!'])
             ->assertOk()
-            ->assertJsonPath('data.password', null);
+            ->assertJsonPath('data.password', 'OfficeChosenPass1!');
         $event = DB::table('audit_events')->where('action', 'account.password_reset_by_admin')->first();
         $this->assertSame($manager->id, (int) $event->actor_id);
-        $this->assertFalse(json_decode($event->metadata, true)['new_password_shown_to_actor']);
-        $this->assertDatabaseMissing('audit_events', ['action' => 'account.password_revealed']);
+        $this->assertTrue(json_decode($event->metadata, true)['new_password_shown_to_actor']);
     }
 
-    public function test_staff_reset_without_a_phone_is_refused_when_nobody_could_read_the_new_password(): void
+    public function test_an_account_manager_can_reset_a_dealer_who_has_no_phone_because_the_office_can_read_the_password(): void
     {
         $manager = User::factory()->staff('account_manager')->create();
         $partner = User::factory()->dealer()->create(['phone' => null]);
 
         $this->actingAs($manager)->onPortal('manage')
             ->postJson('/commands/accounts/'.$partner->id.'/reset-password')
-            ->assertStatus(422);
+            ->assertOk()
+            ->assertJsonPath('data.can_reveal', true);
+        $this->assertNotSame('', (string) $this->actingAs($manager)->onPortal('manage')->postJson('/commands/accounts/'.$partner->id.'/reveal-password')->json('data.password'));
     }
 
     public function test_md_can_reset_and_view_staff_but_not_the_super_admin_md_or_chairman(): void

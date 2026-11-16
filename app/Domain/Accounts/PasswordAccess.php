@@ -11,8 +11,9 @@ use App\Models\User;
  *   or the Accounts permission; staff passwords need an owner or the staff-admin permission;
  *   MD and Chairman passwords only the Super Admin. Nobody resets the Super Admin
  *   from here, and nobody resets their own password from here (use Security).
- * - See the real password: owners only (Super Admin, MD, Chairman), and only for
- *   accounts they are allowed to reset.
+ * - See the real password: owners, and also Accounts staff for a dealer or sub-dealer
+ *   they are allowed to reset, so the office can read the password back to that partner.
+ *   Staff passwords stay with owners. MD and Chairman passwords stay with the Super Admin.
  */
 final class PasswordAccess
 {
@@ -36,6 +37,13 @@ final class PasswordAccess
 
     public function canView(User $actor, User $target): bool
     {
-        return $actor->owner() && $this->canReset($actor, $target);
+        if (! $this->canReset($actor, $target)) {
+            return false;
+        }
+        if (in_array($target->role, ['dealer', 'sub_dealer'], true)) {
+            return true;
+        }
+
+        return $actor->owner();
     }
 }
