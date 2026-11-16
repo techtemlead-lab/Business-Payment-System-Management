@@ -29,4 +29,5 @@ return [
     'err_archived' => ':name is archived. Bring it back first.',
     'err_no_size_written' => 'Write the pack size of :name and save it first.',
     'err_size_repeated' => 'Two sizes cannot both say :size. Change one pack size first.',
+    'list_group' => 'Group: :sizes',
 ];
