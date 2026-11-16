@@ -10,7 +10,7 @@ import { useReasonField } from '../shared/reasonFields';
 import { randomUuid } from '../shared/randomUuid';
 import RepeatOrderPanel, { repeatChangeNotes, type RepeatOption } from './dealertools/RepeatOrderPanel';
 import SchemeNotices, { type RunningScheme } from './dealertools/SchemeNotices';
-import { choiceName, sizesByGroup } from '../shared/productSizes';
+import { choiceName, oneCardPerGroup, sizesByGroup, type SizeCard } from '../shared/productSizes';
 import SearchSelect from './SearchSelect';
 
 interface Props {
@@ -84,25 +84,30 @@ export default function ProductPurchaseMatrix({
     const sizeGroups = useMemo(() => sizesByGroup(products), [products]);
     const productChoiceName = (product: Row) => choiceName(product, sizeGroups);
 
-    // Instant search suggestions across name, sku, category, strength
+    // Search finds the product once. Package sizes of that product are the next step.
     const searchResults = useMemo(() => {
         const q = searchQuery.trim().toLowerCase();
         if (!q || q.length < 2) return [];
-        return products.filter(p => {
-            const name = String(p.name || '').toLowerCase();
+        const matches = products.filter(p => {
+            const name = productChoiceName(p).toLowerCase();
+            const ownName = String(p.name || '').toLowerCase();
             const sku = String(p.sku || '').toLowerCase();
             const cat = String(p.category || '').toLowerCase();
             const sub = String(p.sub_category || '').toLowerCase();
-            const str = String(p.strength || '').toLowerCase();
-            return name.includes(q) || sku.includes(q) || cat.includes(q) || sub.includes(q) || str.includes(q);
-        }).slice(0, 8);
-    }, [products, searchQuery]);
+            const size = String(p.size_label || p.strength || '').toLowerCase();
+            return name.includes(q) || ownName.includes(q) || sku.includes(q) || cat.includes(q) || sub.includes(q) || size.includes(q);
+        });
+        return oneCardPerGroup(matches, sizeGroups).slice(0, 8);
+    }, [products, searchQuery, sizeGroups]);
 
-    const selectProductFromSearch = (p: Row) => {
-        setSelectedCategory(p.category || '');
-        setSelectedSubCategory(p.sub_category || '');
-        setSelectedProductName(productChoiceName(p));
-        setSelectedProductId(p.id);
+    const selectProductFromSearch = (card: SizeCard) => {
+        const product = card.first;
+        const several = card.sizes.length > 1;
+        setSelectedCategory(product.category || '');
+        // A shared subcategory filter would hide the other package sizes.
+        setSelectedSubCategory(several ? '' : (product.sub_category || ''));
+        setSelectedProductName(productChoiceName(product));
+        setSelectedProductId(product.id);
         setSearchQuery('');
     };
 
@@ -164,14 +169,20 @@ export default function ProductPurchaseMatrix({
         return arr;
     }, [products, selectedCategory, selectedSubCategory, sizeGroups]);
 
-    // Available variants (strengths/packs) under the selected product name
+    // Package sizes of the chosen product. One size needs no choice; several come from the group.
     const availableVariants = useMemo(() => {
-        if (!selectedCategory || !selectedProductName) return [];
-        return products.filter(p => {
-            if (p.category !== selectedCategory) return false;
-            if (selectedSubCategory && p.sub_category !== selectedSubCategory) return false;
-            return productChoiceName(p) === selectedProductName;
-        }).sort((first, second) => Number(first.size_position ?? 0) - Number(second.size_position ?? 0));
+        if (!selectedProductName) return [];
+        const named = products.filter(p => productChoiceName(p) === selectedProductName);
+        const groupId = named.find(p => p.size_group_id && (sizeGroups.get(p.size_group_id)?.length ?? 0) > 1)?.size_group_id;
+        const rows = groupId
+            ? (sizeGroups.get(groupId) ?? named)
+            : named.filter(p => {
+                if (selectedCategory && p.category !== selectedCategory) return false;
+                if (selectedSubCategory && p.sub_category !== selectedSubCategory) return false;
+                return true;
+            });
+        return [...rows].sort((first, second) => Number(first.size_position ?? 0) - Number(second.size_position ?? 0)
+            || String(first.size_label || first.strength || '').localeCompare(String(second.size_label || second.strength || '')));
     }, [products, selectedCategory, selectedSubCategory, selectedProductName, sizeGroups]);
 
     // Active selected product object
@@ -457,33 +468,38 @@ export default function ProductPurchaseMatrix({
                     </div>
                     {searchResults.length > 0 && (
                         <div className="ppm-results">
-                            {searchResults.map(p => (
-                                <div
-                                    key={p.id}
-                                    onClick={() => selectProductFromSearch(p)}
-                                    className="ppm-result"
-                                    onMouseEnter={e => (e.currentTarget.style.background = '#f0fdf4')}
-                                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                                >
-                                    <div>
-                                        <strong className="hub-strong ops-fs-sm">{p.name}</strong>
-                                        {(p.size_label || p.strength) && <span className="ppm-strength">({p.size_label || p.strength})</span>}
-                                        <div className="ops-meta">
-                                            {p.category} {p.sub_category ? `› ${p.sub_category}` : ''} · {translate('portal', 'product_code_value', { sku: String(p.sku) })}
-                                        </div>
-                                    </div>
-                                    <div className="ops-right">
-                                        <div className="ppm-price">
-                                            {money(p.price || p.mrp || 0)}
-                                        </div>
-                                        {Number(p.mrp || 0) > Number(p.price || p.mrp || 0) && (
-                                            <div className="ops-fs-2xs ops-faint ppm-struck">
-                                                {money(p.mrp)}
+                            {searchResults.map(card => {
+                                const product = card.first;
+                                const several = card.sizes.length > 1;
+                                return (
+                                    <div
+                                        key={card.key}
+                                        onClick={() => selectProductFromSearch(card)}
+                                        className="ppm-result"
+                                        onMouseEnter={e => (e.currentTarget.style.background = '#f0fdf4')}
+                                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                                    >
+                                        <div>
+                                            <strong className="hub-strong ops-fs-sm">{productChoiceName(product)}</strong>
+                                            {several
+                                                ? <span className="ppm-strength">{translate('size_groups', 'search_several', { count: String(card.sizes.length) })}</span>
+                                                : (product.size_label || product.strength) && <span className="ppm-strength">({product.size_label || product.strength})</span>}
+                                            <div className="ops-meta">
+                                                {product.category} {product.sub_category ? `› ${product.sub_category}` : ''}
                                             </div>
-                                        )}
+                                        </div>
+                                        <div className="ops-right">
+                                            {several
+                                                ? <div className="ops-meta">{translate('size_groups', 'package_size')}</div>
+                                                : (
+                                                    <div className="ppm-price">
+                                                        {money(product.price || product.mrp || 0)}
+                                                    </div>
+                                                )}
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </div>
@@ -538,12 +554,12 @@ export default function ProductPurchaseMatrix({
                         {/* Step 4: Strength / Measure / Variant */}
                         <div>
                             <label className="ops-field-label">
-                                {activeProduct?.size_group_id && availableVariants.length > 1 ? translate('size_groups', 'choose_size') : translate('portal', 'b2b_step_strength')}
+                                {translate('size_groups', 'package_size')}
                             </label>
                             <select
                                 value={activeProduct ? activeProduct.id : ''}
                                 onChange={e => handleVariantChange(e.target.value)}
-                                disabled={!selectedProductName || availableVariants.length === 0}
+                                disabled={!selectedProductName || availableVariants.length <= 1}
                                 className="ppm-control"
                             >
                                 {availableVariants.map(v => {

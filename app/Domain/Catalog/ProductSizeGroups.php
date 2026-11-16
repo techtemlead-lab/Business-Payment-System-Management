@@ -178,42 +178,6 @@ final class ProductSizeGroups
     }
 
     /**
-     * Every size in each group represented on this list, so the office can show the group
-     * even when a size is on another page.
-     *
-     * @param  Collection<int, Product>  $products
-     * @return array<int, list<string>> product id => size labels, smallest first
-     */
-    public static function memberLabels(Collection $products): array
-    {
-        $groupIds = $products->pluck('product_group_id')->filter()->unique()->map(fn (mixed $id): int => (int) $id)->values()->all();
-        if ($groupIds === []) {
-            return [];
-        }
-
-        $byGroup = Product::query()
-            ->whereIn('product_group_id', $groupIds)
-            ->get(['id', 'product_group_id', 'name', 'sku', 'strength', 'pack_size_bn', 'pack_size_en', 'mrp'])
-            ->groupBy('product_group_id');
-        $labels = [];
-        foreach ($products as $product) {
-            if ($product->product_group_id === null) {
-                continue;
-            }
-            $sizes = $byGroup->get($product->product_group_id);
-            if (! $sizes instanceof Collection || $sizes->count() < 2) {
-                continue;
-            }
-            $labels[(int) $product->id] = self::inSizeOrder($sizes)
-                ->map(fn (Product $size): string => self::buttonLabel($size))
-                ->values()
-                ->all();
-        }
-
-        return $labels;
-    }
-
-    /**
      * Products the office can add as another size of this one.
      *
      * @return list<array{id: int, name: string, sku: string, label: ?string, in_group: bool}>
