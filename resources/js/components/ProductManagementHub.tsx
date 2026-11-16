@@ -182,11 +182,15 @@ export default function ProductManagementHub({
                         : productPhoto(product)}
                     <div>
                         <span className="os-product-name">{product.name}{product.size_label && <span className="os-size-tag">{product.size_label}</span>}</span>
-                        {Array.isArray(product.size_group_members) && product.size_group_members.length > 1 && <small className="cell-sub os-size-group">{translate('size_groups', 'list_group', { sizes: product.size_group_members.join(' · ') })}</small>}
                         <small className="cell-sub">{productFirstLine(product)}</small>
                     </div>
                 </div>
             ),
+        },
+        {
+            key: 'manufacturer',
+            title: translate('product_facts', 'field_manufacturer'),
+            render: (product) => (product.manufacturer ? String(product.manufacturer) : '—'),
         },
         { key: 'mrp', title: t('mrp'), sortKey: 'mrp', money: true, phone: 'hide' },
         ...(showsChannelPrices ? [{

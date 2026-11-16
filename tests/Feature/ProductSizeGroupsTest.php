@@ -395,7 +395,10 @@ class ProductSizeGroupsTest extends TestCase
     public function test_office_list_shows_the_size_label_only_on_grouped_products(): void
     {
         $owner = $this->owner();
-        [$small] = $this->group($this->sized('Syrup X', '100 ml', '100.00'), $this->sized('Syrup X', '300 ml', '250.00'));
+        [$small] = $this->group($this->sized('Syrup X', '100 ml', '100.00', [
+            'manufacturer_en' => 'Beximco',
+            'manufacturer_bn' => 'বেক্সিমকো',
+        ]), $this->sized('Syrup X', '300 ml', '250.00'));
         $plain = $this->sized('Zinc Plain', '30 tablets', '90.00');
 
         $this->actingAs($owner)->onPortal('sadmin')->get('/catalog')->assertOk()->assertInertia(fn (Assert $page) => $page
@@ -403,10 +406,19 @@ class ProductSizeGroupsTest extends TestCase
                 $rows = collect($products)->keyBy('id');
 
                 return $rows[$small->id]['size_label'] === '100 ml'
-                    && $rows[$small->id]['size_group_members'] === ['100 ml', '300 ml']
-                    && ! isset($rows[$plain->id]['size_label'])
-                    && ! isset($rows[$plain->id]['size_group_members']);
+                    && $rows[$small->id]['manufacturer'] === 'Beximco'
+                    && $rows[$plain->id]['manufacturer'] === null
+                    && ! isset($rows[$plain->id]['size_label']);
             }));
+    }
+
+    public function test_the_order_form_finds_one_product_and_then_picks_the_package_size(): void
+    {
+        $form = (string) file_get_contents(resource_path('js/components/ProductPurchaseMatrix.tsx'));
+
+        $this->assertStringContainsString('oneCardPerGroup(matches, sizeGroups)', $form);
+        $this->assertStringContainsString("translate('size_groups', 'package_size')", $form);
+        $this->assertStringContainsString('availableVariants.length <= 1', $form);
     }
 
     public function test_both_languages_have_the_same_size_words(): void
