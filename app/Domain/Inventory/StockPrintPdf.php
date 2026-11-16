@@ -74,11 +74,6 @@ final class StockPrintPdf
         return response()->download($path, $filename, ['Cache-Control' => 'private, no-store'])->deleteFileAfterSend(true);
     }
 
-    /**
-     * The letterhead as the owner set it in the website editor.
-     *
-     * @return array{name: string, address: string, phones: string, logo_path: ?string}
-     */
     /** A phone number the way the website shows it (+8801…); empty when none is set. */
     private function phoneForLetterhead(?string $number): string
     {
@@ -87,27 +82,57 @@ final class StockPrintPdf
         return $number === '' ? '' : SiteCustomization::internationalDisplay($number);
     }
 
+    /**
+     * The letterhead as the owner set it in the website editor.
+     *
+     * @return array{name: string, address: string, whatsapp: string, mobile: string, email: string, licence: string, trademark: string, logo_path: ?string}
+     */
     public function company(): array
     {
         $custom = SiteCustomization::all();
         $defaults = SiteCustomization::defaults();
         $letterhead = static fn (string $key): string => filled($custom[$key] ?? null) ? (string) $custom[$key] : (string) ($defaults[$key] ?? '');
-        $logoPath = SiteCustomization::logoFilePath() ?? public_path('branding/madina-logo-latest.png');
-        if (! is_file($logoPath)) {
+        $logoPath = SiteCustomization::logoFilePath();
+        if ($logoPath === null || ! is_file($logoPath)) {
             $logoPath = public_path('madina-header-logo.png');
         }
+        if (! is_file($logoPath)) {
+            $logoPath = public_path('branding/madina-logo-latest.png');
+        }
+        $phones = $this->letterheadPhones($letterhead('contact_phone'), SiteCustomization::secondPhone());
 
         return [
             'name' => $letterhead('contact_company_title'),
             'address' => $letterhead('office_address'),
-            'phones' => implode(', ', array_filter([
-                $this->phoneForLetterhead(SiteCustomization::secondPhone()),
-                $this->phoneForLetterhead($letterhead('contact_phone')),
-            ])),
+            'whatsapp' => $phones['whatsapp'],
+            'mobile' => $phones['mobile'],
             'email' => trim($letterhead('contact_email')),
             'licence' => SiteFacts::tradeLicence(),
             'trademark' => SiteFacts::trademarkNumber(),
             'logo_path' => is_file($logoPath) ? $logoPath : null,
+        ];
+    }
+
+    /**
+     * WhatsApp is the number ending in 66. The other number is the mobile line.
+     *
+     * @return array{whatsapp: string, mobile: string}
+     */
+    private function letterheadPhones(string $primary, ?string $second): array
+    {
+        $digits = static fn (string $number): string => (string) preg_replace('/\D/', '', $number);
+        $second = trim((string) $second);
+        $primaryDigits = $digits($primary);
+        $secondDigits = $digits($second);
+        $whatsappSource = str_ends_with($secondDigits, '66') && ! str_ends_with($primaryDigits, '66') ? $second : $primary;
+        $mobileSource = $digits($whatsappSource) === $primaryDigits ? $second : $primary;
+        if ($mobileSource !== '' && $digits($mobileSource) === $digits($whatsappSource)) {
+            $mobileSource = '';
+        }
+
+        return [
+            'whatsapp' => $this->phoneForLetterhead($whatsappSource),
+            'mobile' => $this->phoneForLetterhead($mobileSource),
         ];
     }
 }
