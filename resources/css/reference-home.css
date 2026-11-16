@@ -3618,10 +3618,11 @@ html[data-theme="dark"],html[data-theme="dark"] body.ref-home{background:#0a1712
 /* The top band: logo at the left, the name in gold in the middle. */
 .ref-company-bar{padding:4px 0;background:linear-gradient(100deg,#08291d 0%,#0c3b2a 50%,#124f38 100%);border-bottom:1px solid rgba(233,199,102,.4)}
 .ref-company-bar::before{background:linear-gradient(90deg,transparent,rgba(233,199,102,.6),transparent)}
-.ref-company-bar-inner{display:grid;grid-template-columns:minmax(76px,1fr) auto minmax(76px,1fr);align-items:center;gap:14px;container-type:normal}
-.ref-bar-legal{grid-column:3;justify-self:end;display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding-right:12px;font-size:17px;line-height:1.3;color:#d9ccaa;white-space:nowrap}
+.ref-company-bar-inner{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:14px;container-type:normal}
+.ref-bar-brand{grid-column:1;justify-self:start;display:flex;align-items:center;gap:10px;min-width:0;padding-left:8px}
+.ref-bar-legal{display:flex;flex-direction:column;align-items:flex-start;gap:2px;font-size:15px;line-height:1.25;color:#d9ccaa}
 .ref-bar-legal b{font-weight:700;color:var(--sm-gold-light)}
-.ref-bar-logo{grid-column:1;justify-self:start;display:block;width:76px;height:76px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px var(--sm-gold-light)}
+.ref-bar-logo{display:block;flex:none;width:76px;height:76px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px var(--sm-gold-light)}
 .ref-bar-logo img{display:block;width:100%;height:100%;border-radius:50%;object-fit:cover}
 .ref-bar-name{grid-column:2;display:flex;align-items:center;justify-content:center;gap:.55em;min-width:0}
 .ref-bar-text{flex:none;margin:0;font-family:var(--ds-font-display);font-size:clamp(26px,3.2vw,42px);font-weight:400;line-height:1.2;letter-spacing:.035em;white-space:nowrap;color:var(--sm-gold-light);background:linear-gradient(180deg,#f7e6a8 0%,#e6c264 55%,#c8992e 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
@@ -3726,11 +3727,12 @@ html[data-theme="dark"] .ref-card-cta i{color:var(--sm-green-deep)}
 /* Phones and tablets */
 @media(max-width:1023px){
   .ref-company-bar{padding:6px 0}
-  .ref-company-bar-inner{grid-template-columns:48px minmax(0,1fr);gap:10px}
-  .ref-bar-logo{width:48px;height:48px}
-  .ref-bar-legal{display:none}
-  .ref-bar-name{justify-content:flex-start}
-  .ref-bar-text{font-size:clamp(19px,5.1vw,30px);letter-spacing:.02em}
+  .ref-company-bar-inner{grid-template-columns:minmax(0,1fr);gap:4px}
+  .ref-bar-brand{padding-left:0}
+  .ref-bar-logo{width:44px;height:44px}
+  .ref-bar-legal{display:flex;font-size:13px;line-height:1.3}
+  .ref-bar-name{grid-column:1;justify-content:flex-start}
+  .ref-bar-text,.locale-bn .ref-bar-text{font-size:clamp(19px,5.1vw,30px);letter-spacing:.02em;white-space:normal}
   .locale-bn .ref-bar-text{font-size:clamp(20px,5.6vw,32px)}
   .ref-bar-leaf{display:none}
   .ref-nav-home{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2}
@@ -4064,4 +4066,13 @@ html[data-theme="dark"] .ref-inner-main .ref-partner-information{background:var(
   .ref-page-plate::before{inset:7px;border-radius:9px}
   .ref-page-plate-seal{display:none}
   .ref-page-plate-sprig{top:auto;right:-70px;bottom:-60px;width:230px;height:230px}
+}
+
+/* Home products stay on screen. The list is taller than a phone, so a fade that
+   waits until a percentage of the whole list is visible never starts. */
+.ref-home .ref-featured-products.ref-reveal-init,
+.ref-home #refProductGrid > .ref-reveal-card{
+  opacity:1;
+  transform:none;
+  animation:none;
 }

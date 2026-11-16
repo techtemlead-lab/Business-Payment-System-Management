@@ -397,7 +397,6 @@ function initScrollReveal() {
 
     // Assign staggered index variable to grid children
     const staggerContainers = [
-        '#refProductGrid',
         '.ref-directory-grid',
         '.ref-contact-grid',
         '.ref-about-sections-grid',
@@ -422,7 +421,6 @@ function initScrollReveal() {
     const sectionSelectors = [
         '.ref-promotions',
         '.ref-announcement',
-        '.ref-featured-products',
         '.ref-home-video',
         '.ref-home-about',
         '.ref-content-card',
@@ -460,8 +458,8 @@ function initScrollReveal() {
             });
         },
         {
-            rootMargin: '0px 0px -40px 0px',
-            threshold: 0.05,
+            rootMargin: '120px 0px 120px 0px',
+            threshold: 0,
         }
     );
 
@@ -494,8 +492,8 @@ function initScrollReveal() {
             });
         },
         {
-            rootMargin: '0px 0px -25px 0px',
-            threshold: 0.04,
+            rootMargin: '120px 0px 120px 0px',
+            threshold: 0,
         }
     );
 

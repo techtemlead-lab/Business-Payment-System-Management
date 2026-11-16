@@ -14,6 +14,8 @@ class PublicSiteHeaderAndFooterTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
+        // A stock-list test in the same process can leave the website facts in cache.
+        SiteCustomization::reset();
     }
 
     public function test_the_logo_is_in_the_top_band_and_home_takes_its_place_in_the_navigation(): void
@@ -24,10 +26,10 @@ class PublicSiteHeaderAndFooterTest extends TestCase
         $response->assertDontSee('ref-madina-logo', false);
     }
 
-    public function test_the_top_band_shows_the_trade_licence_above_the_trademark_number_on_the_right(): void
+    public function test_the_top_band_shows_the_trade_licence_and_trademark_number_beside_the_logo(): void
     {
         $this->get('/')->assertOk()
-            ->assertSeeInOrder(['ref-bar-logo', 'ref-bar-text', 'ref-bar-legal', 'Trade Licence', '2026-00563', 'TM No.', 'BD-H-1-335903', 'ref-sticky-chrome'], false);
+            ->assertSeeInOrder(['ref-bar-brand', 'ref-bar-logo', 'ref-bar-legal', 'Trade Licence', '2026-00563', 'TM No.', 'BD-H-1-335903', 'ref-bar-text', 'ref-sticky-chrome'], false);
     }
 
     public function test_the_top_band_follows_the_owners_licence_and_shows_only_the_trademark_number(): void
