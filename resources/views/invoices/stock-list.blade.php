@@ -28,6 +28,7 @@
         .num { text-align: right; }
         .mid { text-align: center; }
         .note { font-size: 8pt; color: #64748b; margin-top: 8px; line-height: 1.5; }
+        h2.section { margin: 14px 0 4px; font-size: 12pt; color: #006837; }
         .empty { text-align: center; color: #64748b; padding: 14px 0; }
     </style>
 </head>
@@ -42,8 +43,11 @@
         <td style="text-align:center">
             <div class="brand-name">{{ $company['name'] }}</div>
             <div class="brand-line">{{ $company['address'] }}</div>
-            @if ($company['phones'] !== '')
-                <div class="brand-line">{{ __('stock_print.mobile_whatsapp') }}: {{ $digits($company['phones']) }}</div>
+            @if ($company['whatsapp'] !== '')
+                <div class="brand-line">{{ __('stock_print.whatsapp') }}: {{ $digits($company['whatsapp']) }}</div>
+            @endif
+            @if ($company['mobile'] !== '')
+                <div class="brand-line">{{ __('stock_print.mobile') }}: {{ $digits($company['mobile']) }}</div>
             @endif
             @if ($company['email'] !== '')
                 <div class="brand-line">{{ __('stock_print.email') }}: {{ $company['email'] }}</div>
@@ -90,6 +94,78 @@
             </tr>
         @empty
             <tr><td colspan="7" class="empty">{{ __('stock_print.empty') }}</td></tr>
+        @endforelse
+    </tbody>
+</table>
+
+<h2 class="section">{{ __('stock_print.table_images') }}</h2>
+<table class="items" repeat_header="1">
+    <thead>
+        <tr>
+            <th style="width:8%">{{ __('stock_print.col_serial') }}</th>
+            <th style="width:32%">{{ __('stock_print.col_product') }}</th>
+            <th style="width:60%">{{ __('stock_print.col_image') }}</th>
+        </tr>
+    </thead>
+    <tbody>
+        @forelse ($rows as $row)
+            <tr>
+                <td class="mid">{{ $digits($row['serial']) }}</td>
+                <td>{{ $row['name'] }}</td>
+                <td class="mid">
+                    @if (! empty($row['image']))
+                        <img src="{{ $row['image'] }}" alt="" width="46" height="46">
+                    @else
+                        —
+                    @endif
+                </td>
+            </tr>
+        @empty
+            <tr><td colspan="3" class="empty">{{ __('stock_print.empty') }}</td></tr>
+        @endforelse
+    </tbody>
+</table>
+
+<h2 class="section">{{ __('stock_print.table_usage') }}</h2>
+<table class="items" repeat_header="1">
+    <thead>
+        <tr>
+            <th style="width:8%">{{ __('stock_print.col_serial') }}</th>
+            <th style="width:28%">{{ __('stock_print.col_product') }}</th>
+            <th style="width:64%">{{ __('stock_print.col_usage') }}</th>
+        </tr>
+    </thead>
+    <tbody>
+        @forelse ($rows as $row)
+            <tr>
+                <td class="mid">{{ $digits($row['serial']) }}</td>
+                <td>{{ $row['name'] }}</td>
+                <td>{!! nl2br(e($row['usage'] ?? '—')) !!}</td>
+            </tr>
+        @empty
+            <tr><td colspan="3" class="empty">{{ __('stock_print.empty') }}</td></tr>
+        @endforelse
+    </tbody>
+</table>
+
+<h2 class="section">{{ __('stock_print.table_efficacy') }}</h2>
+<table class="items" repeat_header="1">
+    <thead>
+        <tr>
+            <th style="width:8%">{{ __('stock_print.col_serial') }}</th>
+            <th style="width:28%">{{ __('stock_print.col_product') }}</th>
+            <th style="width:64%">{{ __('stock_print.col_efficacy') }}</th>
+        </tr>
+    </thead>
+    <tbody>
+        @forelse ($rows as $row)
+            <tr>
+                <td class="mid">{{ $digits($row['serial']) }}</td>
+                <td>{{ $row['name'] }}</td>
+                <td>{!! nl2br(e($row['efficacy'] ?? '—')) !!}</td>
+            </tr>
+        @empty
+            <tr><td colspan="3" class="empty">{{ __('stock_print.empty') }}</td></tr>
         @endforelse
     </tbody>
 </table>

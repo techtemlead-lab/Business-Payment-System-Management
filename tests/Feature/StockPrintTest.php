@@ -15,6 +15,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Lang;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -80,7 +81,7 @@ class StockPrintTest extends TestCase
     {
         $product = $this->product([
             'name' => 'Herbal Syrup', 'strength' => null, 'category' => 'Syrup', 'pack_size_en' => '100 ml', 'mrp' => '200.00',
-            'dealer_price' => '160.00', 'sub_dealer_price' => '175.00',
+            'dealer_price' => '160.00', 'sub_dealer_price' => '175.00', 'description' => null,
         ]);
         $this->stockOf($product, $this->hub, 7, '2027-03-31');
 
@@ -95,7 +96,35 @@ class StockPrintTest extends TestCase
             'mrp' => '200.00',
             'dealer_discount' => '20',
             'sub_dealer_discount' => '12.5',
+            'image' => null,
+            'usage' => null,
+            'efficacy' => null,
         ]], $list['rows']);
+    }
+
+    public function test_a_row_carries_the_photo_how_to_use_and_what_the_product_does(): void
+    {
+        Storage::fake('local');
+        $stored = 'product-media/images/syrup.jpg';
+        Storage::disk('local')->put($stored, 'photo');
+        $product = $this->product([
+            'name' => 'Herbal Syrup',
+            'description' => '<b>Helps digestion</b>',
+            'dose_en' => 'One spoon after food',
+            'dose_bn' => 'খাবারের পর এক চামচ',
+            'image_path' => $stored,
+        ]);
+        $this->stockOf($product, $this->hub, 1, null);
+
+        $row = (new StockPrintList)->build(new BranchScope(false, [$this->hub->id], $this->hub))['rows'][0];
+
+        $this->assertSame('Helps digestion', $row['efficacy']);
+        $this->assertSame('One spoon after food', $row['usage']);
+        $this->assertSame(Storage::disk('local')->path($stored), $row['image']);
+
+        App::setLocale('bn');
+        $bangla = (new StockPrintList)->build(new BranchScope(false, [$this->hub->id], $this->hub))['rows'][0];
+        $this->assertSame('খাবারের পর এক চামচ', $bangla['usage']);
     }
 
     public function test_the_size_in_the_name_moves_to_the_pack_size_column(): void
@@ -213,7 +242,10 @@ class StockPrintTest extends TestCase
     {
         $company = app(StockPrintPdf::class)->company();
 
-        $this->assertSame('+8801730532965, +8801730532966', $company['phones']);
+        $this->assertSame('+8801730532966', $company['whatsapp']);
+        $this->assertSame('+8801730532965', $company['mobile']);
+        $this->assertStringEndsWith('madina-header-logo.png', (string) $company['logo_path']);
+        $this->assertFileExists((string) $company['logo_path']);
         $this->assertSame('madinanaturalhealthcare@gmail.com', $company['email']);
         $this->assertSame('2026-00563', $company['licence']);
         $this->assertSame('BD-H-1-335903', $company['trademark']);
