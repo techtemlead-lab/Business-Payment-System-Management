@@ -5,6 +5,7 @@ namespace App\Domain\Accounts;
 use App\Models\DealerRank;
 use App\Models\User;
 use App\Support\Money;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -23,7 +24,8 @@ final class PartnerProfileSheet
      */
     public function for(User $partner, User $viewer): array
     {
-        $profile = is_array($partner->profile) ? $partner->profile : [];
+        $stored = $partner->getAttribute('profile');
+        $profile = is_array($stored) ? $stored : [];
         $rank = DealerRank::query()->where('user_id', $partner->id)->first();
         $sponsor = $partner->sponsor_id ? User::query()->whereKey($partner->sponsor_id)->first(['id', 'name', 'dealer_code', 'role']) : null;
         $team = DB::table('referral_tree_paths')->where('ancestor_id', $partner->id)->where('depth', '>', 0)
@@ -45,8 +47,8 @@ final class PartnerProfileSheet
                 'occupation' => $profile['occupation'] ?? null,
                 'date_of_birth' => $profile['date_of_birth'] ?? null,
                 'shop_name' => $profile['shop_name'] ?? $profile['pharmacy'] ?? null,
-                'joined' => $partner->created_at?->toIso8601String(),
-                'closed_at' => $partner->closed_at?->toIso8601String(),
+                'joined' => $this->iso($partner->getAttribute('created_at')),
+                'closed_at' => $this->iso($partner->getAttribute('closed_at')),
                 'locale' => $partner->locale,
             ],
             'contact' => [
@@ -77,7 +79,7 @@ final class PartnerProfileSheet
             'network' => [
                 'sponsor' => $sponsor ? ['id' => $sponsor->id, 'name' => $sponsor->name, 'dealer_code' => $sponsor->dealer_code, 'role' => $sponsor->role] : null,
                 'rank' => $partner->role === 'dealer' ? ($rank->current_rank ?? 'dealer') : null,
-                'rank_achieved_at' => $rank?->achieved_at?->toIso8601String(),
+                'rank_achieved_at' => $this->iso($rank?->getAttribute('achieved_at')),
                 'lifetime_purchases' => Money::decimal(Money::cents((string) ($rank->lifetime_purchase_total ?? '0'))),
                 'team_size' => (int) ($team->team ?? 0),
                 'direct_count' => (int) ($team->direct ?? 0),
@@ -87,6 +89,11 @@ final class PartnerProfileSheet
                 'payouts' => $this->payouts($partner),
             ],
         ];
+    }
+
+    private function iso(mixed $value): ?string
+    {
+        return $value === null || $value === '' ? null : CarbonImmutable::parse($value)->toIso8601String();
     }
 
     /** National ID: full for owners, last four digits for other office staff. */

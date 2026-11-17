@@ -2,6 +2,7 @@
 
 namespace App\Http\Portals\Shared\Sections;
 
+use App\Domain\Accounts\PartnerProfileLock;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 

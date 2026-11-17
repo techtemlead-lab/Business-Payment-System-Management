@@ -17,14 +17,17 @@ final class PartnerProfileLock
 
     public static function isLocked(User $partner): bool
     {
-        return is_array($partner->profile) && ! empty($partner->profile[self::Flag]);
+        $profile = $partner->getAttribute('profile');
+
+        return is_array($profile) && ! empty($profile[self::Flag]);
     }
 
     public function set(User $actor, User $partner, bool $locked): void
     {
         DB::transaction(function () use ($actor, $partner, $locked): void {
             $fresh = User::query()->whereKey($partner->id)->lockForUpdate()->firstOrFail();
-            $profile = is_array($fresh->profile) ? $fresh->profile : [];
+            $stored = $fresh->getAttribute('profile');
+            $profile = is_array($stored) ? $stored : [];
             if ($locked === ! empty($profile[self::Flag])) {
                 return;
             }
