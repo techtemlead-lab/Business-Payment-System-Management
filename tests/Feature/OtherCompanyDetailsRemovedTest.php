@@ -23,6 +23,8 @@ class OtherCompanyDetailsRemovedTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
+        // An earlier test class may have left its own saved settings in the in-process copy.
+        SiteCustomization::forgetCache();
     }
 
     public function test_no_default_website_text_names_the_other_company(): void

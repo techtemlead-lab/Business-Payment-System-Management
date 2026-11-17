@@ -372,6 +372,7 @@ export interface CustomizationData {
     directory_gps_btn?: string;
     directory_empty_title?: string;
     directory_empty_desc?: string;
+    dealer_contact_phone?: string;
 
     // Footer & Support
     footer_support_heading?: string;

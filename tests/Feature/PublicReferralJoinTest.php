@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\PortalHost;
+use App\Support\SiteCustomization;
 use App\Support\SocialShareMeta;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -36,7 +37,28 @@ class PublicReferralJoinTest extends TestCase
             ->assertSee('og:title', false)
             ->assertSee('og:image', false)
             ->assertSee('/contact?referred_by=REF-PARTNER-01', false)
-            ->assertSee((string) $dealer->phone, false);
+            ->assertSee('+8801730532966', false)
+            ->assertDontSee((string) $dealer->phone, false);
+    }
+
+    public function test_the_share_card_shows_the_dealer_number_set_in_the_website_editor(): void
+    {
+        SiteCustomization::save(['dealer_contact_phone' => '+8801911223344']);
+        $dealer = User::factory()->dealer()->create([
+            'status' => 'active',
+            'refer_code' => 'REF-EDITOR-01',
+            'dealer_code' => 'REF-EDITOR-01',
+            'phone' => '01710000055',
+            'directory_visible' => true,
+        ]);
+
+        $this->onPortal('public')
+            ->get('/join/REF-EDITOR-01')
+            ->assertOk()
+            ->assertSee('+8801911223344', false)
+            ->assertDontSee('01710000055', false);
+
+        $this->assertSame('+8801911223344', SocialShareMeta::referral($dealer)['partner']['phone']);
     }
 
     public function test_join_link_and_share_card_hide_phone_of_dealer_hidden_from_directory(): void
@@ -65,7 +87,7 @@ class PublicReferralJoinTest extends TestCase
             ->assertSee('Private Partner', false)
             ->assertDontSee('01710000099', false);
 
-        $this->assertNull(SocialShareMeta::referral($dealer)['partner']['phone']);
+        $this->assertSame('+8801730532966', SocialShareMeta::referral($dealer)['partner']['phone']);
     }
 
     public function test_contact_page_prefills_referred_by_from_query(): void

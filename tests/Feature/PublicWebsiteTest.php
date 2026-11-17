@@ -42,7 +42,7 @@ class PublicWebsiteTest extends TestCase
         User::factory()->inPlace($dhakaDistrict)->create(['name' => 'Hidden Partner', 'directory_visible' => false]);
         User::factory()->inPlace($dhakaDistrict)->create(['name' => 'Suspended Partner', 'status' => 'suspended', 'directory_visible' => true]);
         User::factory()->inPlace($dhakaDistrict)->create(['name' => 'Staff Partner', 'role' => 'super_admin', 'directory_visible' => true]);
-        $this->get('/dealers?district='.$dhakaDistrict->id)->assertOk()->assertSee('Published Partner')->assertSee('PUBLIC-TEST-PHONE')->assertDontSee('Hidden Partner')->assertDontSee('Suspended Partner')->assertDontSee('Staff Partner')->assertDontSee('PRIVATE-NID')->assertDontSee('PRIVATE-PARENT')->assertDontSee($visible->email);
+        $this->get('/dealers?district='.$dhakaDistrict->id)->assertOk()->assertSee('Published Partner')->assertSee('+8801730532966')->assertDontSee('PUBLIC-TEST-PHONE')->assertDontSee('Hidden Partner')->assertDontSee('Suspended Partner')->assertDontSee('Staff Partner')->assertDontSee('PRIVATE-NID')->assertDontSee('PRIVATE-PARENT')->assertDontSee($visible->email);
     }
 
     public function test_directory_area_filters_use_place_codes_not_names(): void
