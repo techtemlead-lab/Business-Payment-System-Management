@@ -291,6 +291,7 @@ class EnforceStaffActions
             'PartnerChatController' => [['partner_chat'], 'create'],
             'PrescriberVerificationController' => [['prescriber_verify'], 'edit'],
             'PublicTrustAdminController' => [['content'], 'edit'],
+            'PartnerProfileController' => [['accounts'], 'edit'],
             'AccountingController' => [['finance'], $method === 'saveApprovalLimit' ? 'edit' : 'create'],
             'PurchasingController' => [['inventory'], in_array($method, ['updateSupplier', 'archiveSupplier', 'restoreSupplier', 'sendOrder', 'cancelOrder'], true) ? 'edit' : 'create'],
             'StockCountController' => [['inventory'], match ($method) {

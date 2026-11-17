@@ -29,6 +29,7 @@ const pages: Record<string, () => Promise<{default: React.ComponentType<any>}>> 
     ServiceIntegrations: () => import('./pages/ServiceIntegrations'),
     Accounting: () => import('./pages/Accounting'),
     TeamOrders: () => import('./pages/TeamOrders'),
+    PartnerProfile: () => import('./pages/PartnerProfile'),
     CourierAreas: () => import('./pages/CourierAreas'),
     TreasuryFunds: () => import('./pages/TreasuryFunds'),
     TreasuryFund: () => import('./pages/TreasuryFund'),

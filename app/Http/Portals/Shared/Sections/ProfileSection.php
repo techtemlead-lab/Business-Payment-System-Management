@@ -40,6 +40,7 @@ final class ProfileSection implements WorkspaceSection
             'shop_name' => $profile['shop_name'] ?? $profile['pharmacy'] ?? null,
             'place_code' => $profile['place_code'] ?? $profile['area_code'] ?? null,
             'name_bn' => $profile['name_bn'] ?? null,
+            'locked' => PartnerProfileLock::isLocked($user),
             'upazila' => $profile['upazila'] ?? null,
             'union' => $profile['union'] ?? null,
             'village' => $profile['village'] ?? null,

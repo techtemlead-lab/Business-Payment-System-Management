@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Accounts\AccountPhoneRules;
+use App\Domain\Accounts\PartnerProfileLock;
 use App\Domain\Auth\LoginCaptcha;
 use App\Domain\Auth\LoginOtpChallenge;
 use App\Domain\Auth\TotpAuthenticator;
@@ -533,6 +534,7 @@ class AuthController extends Controller
     {
         $user = $request->user();
         abort_unless($user instanceof User && $this->mayReplaceWorkspacePhoto($user), 403);
+        abort_if(PartnerProfileLock::isLocked($user), 403, __('partner_profile.err_profile_locked'));
 
         $data = $request->validate([
             'photo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120', 'dimensions:max_width=4096,max_height=4096'],

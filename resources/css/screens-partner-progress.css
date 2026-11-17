@@ -73,3 +73,12 @@
 /* Sub-dealer salary and tour fund rows on the home Targets card: an amount, no bar. */
 .partner-home-target-amount .partner-home-target-top span{font-size:var(--ds-fs-md,15px);font-weight:700;color:var(--ds-text)}
 .partner-home-target-amount .partner-home-target-top b{display:inline-flex;align-items:center;gap:6px}
+
+/* Office partner file: calm stack of panels and the month's targets. */
+.partner-profile{display:flex;flex-direction:column;gap:var(--ds-s-4)}
+.partner-profile .plain-list{margin:0;padding:0;list-style:none;text-align:right}
+.pp-target-list{display:grid;gap:var(--ds-s-4);grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr))}
+.pp-target{display:flex;flex-direction:column;gap:var(--ds-s-2);padding:var(--ds-s-4);border:1px solid var(--ds-line);border-radius:var(--ds-r-md,12px)}
+.pp-target h3{margin:0;font-size:var(--ds-fs-md,15px)}
+.pp-target .office-facts{margin:0}
+.pp-target label{display:flex;flex-direction:column;gap:4px;font-size:var(--ds-fs-sm)}
