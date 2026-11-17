@@ -67,7 +67,13 @@ final class OwnerConfirmation
      */
     public function method(User $owner): string
     {
-        return match ($this->current()['mode']) {
+        return $this->methodFor($owner, $this->current()['mode']);
+    }
+
+    /** @return 'none'|'password'|'code' */
+    private function methodFor(User $owner, string $mode): string
+    {
+        return match ($mode) {
             self::ModeOff => 'none',
             self::ModeSms => $this->smsWorks($owner) && ! Cache::has($this->failureKey($owner)) ? 'code' : 'password',
             default => 'password',
@@ -78,7 +84,7 @@ final class OwnerConfirmation
     public function payload(User $owner): array
     {
         $current = $this->current();
-        $method = $this->method($owner);
+        $method = $this->methodFor($owner, $current['mode']);
 
         return [
             ...$current,

@@ -146,6 +146,14 @@ class OwnerConfirmationTest extends TestCase
         $this->assertSame('off', app(OwnerConfirmation::class)->current()['mode']);
     }
 
+    public function test_the_login_rules_page_shows_the_choice_and_other_pages_do_not_load_it(): void
+    {
+        $this->actingAs($this->owner)->onPortal('sadmin')->get('/login-rules')
+            ->assertInertia(fn ($page) => $page->where('securityControls.owner_confirmation.mode', 'password')->where('securityControls.owner_confirmation.method', 'password'));
+        $this->actingAs($this->owner)->onPortal('sadmin')->get('/orders')
+            ->assertInertia(fn ($page) => $page->where('securityControls.owner_confirmation', null));
+    }
+
     /** @param array<string, mixed> $extra */
     private function postNotice(array $extra)
     {

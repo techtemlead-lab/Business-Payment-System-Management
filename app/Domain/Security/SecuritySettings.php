@@ -187,7 +187,8 @@ final class SecuritySettings
             'preview_mode' => $this->previewMode(),
             'partner_login_otp' => $otp,
             'password_reset_notice' => $this->passwordResetNotice(),
-            'owner_confirmation' => $user->owner() ? app(OwnerConfirmation::class)->payload($user) : null,
+            // Only the two pages that show it ask for it, so no other page pays for the extra query.
+            'owner_confirmation' => $user->owner() && request()->is('login-rules', 'profile') ? app(OwnerConfirmation::class)->payload($user) : null,
             'totp' => [
                 'challenges_enabled' => $this->totpChallengesEnabled(),
                 'confirmed' => filled($user->totp_confirmed_at),
