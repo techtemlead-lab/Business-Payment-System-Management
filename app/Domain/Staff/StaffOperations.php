@@ -158,7 +158,7 @@ final class StaffOperations
      * account the Add dealer form makes: its code comes from the place and a dealer holds that place.
      *
      * @param  array{sponsor_code?: string|null}  $corrections  What the reviewer corrected from the application
-     * @param  array{directory_visible?: bool, phone_share_reason?: string|null}  $choices  What the reviewer decided while approving
+     * @param  array{directory_visible?: bool}  $choices  What the reviewer decided while approving
      */
     public function review(User $actor, string $id, string $decision, string $reason, ?string $placeCode = null, array $corrections = [], array $choices = []): void
     {
@@ -182,8 +182,7 @@ final class StaffOperations
                     throw ValidationException::withMessages(['email' => __('portal.err_staff_email_exists')]);
                 }
                 $phones = app(AccountPhoneRules::class);
-                $phoneCheck = $phones->check($actor, $data['phone'] ?? '', null, $choices['phone_share_reason'] ?? null);
-                $data['phone'] = $phoneCheck['phone'];
+                $data['phone'] = $phones->available($data['phone'] ?? '');
                 if (filled($data['date_of_birth'] ?? null) && ! PartnerAge::isAdult($data['date_of_birth'])) {
                     throw ValidationException::withMessages(['date_of_birth' => __('portal.acct_val_dob_under_age', ['years' => PartnerAge::MinimumYears])]);
                 }
@@ -204,7 +203,6 @@ final class StaffOperations
                     throw ValidationException::withMessages(['sponsor_id' => __('portal.err_staff_sponsor_inactive')]);
                 }
                 $user = (new User)->forceFill(['name' => $data['name'], 'email' => $application->email, 'phone' => $data['phone'],
-                    'phone_share_approved_by' => $phoneCheck['phone_share_approved_by'], 'phone_share_reason' => $phoneCheck['phone_share_reason'],
                     'directory_visible' => (bool) ($choices['directory_visible'] ?? false),
                     'role' => $data['role'], 'status' => 'active', 'password' => Str::random(48),
                     'dealer_code' => $partnerCode, 'refer_code' => $partnerCode, 'sponsor_id' => $sponsorId,
@@ -215,7 +213,6 @@ final class StaffOperations
                         'application_source' => $application->source ?? 'staff', 'application_message' => $data['message'] ?? null,
                         ...(filled($data['date_of_birth'] ?? null) ? ['date_of_birth' => $data['date_of_birth']] : [])]]);
                 $user->save();
-                $phones->recordShare($actor, $user, $phoneCheck);
                 ReferralTreePath::attachUser($user->id, $user->sponsor_id);
                 DealerRank::firstOrCreate(['user_id' => $user->id]);
                 DB::table('wallets')->insert(['user_id' => $user->id, 'created_at' => now(), 'updated_at' => now()]);

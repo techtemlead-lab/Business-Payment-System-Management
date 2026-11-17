@@ -4,7 +4,6 @@ namespace App\Domain\Accounts;
 
 use App\Domain\Security\SecuritySettings;
 use App\Models\User;
-use App\Support\Audit;
 use App\Support\LocalDigits;
 use App\Support\PhoneIdentity;
 use Illuminate\Validation\ValidationException;
@@ -14,9 +13,9 @@ use Illuminate\Validation\ValidationException;
  *
  * - Every account must have a valid Bangladeshi mobile number: it is where the sign-in code goes.
  * - Only while the owner's "one number, one account" switch is on (off by default, 2026-11-17):
- *   a number belongs to one account only. An owner (Super Admin, MD, Chairman) may then let one
- *   account share a number another account already uses, with a written reason that goes in the
- *   audit log. With the switch off, any number of accounts may share a number.
+ *   a number belongs to one account only: no new account may take a number another account has,
+ *   not even an owner, until the switch is turned off. Accounts that already share a number keep
+ *   working. With the switch off, any number of accounts may share a number.
  * - Numbers are stored as 01XXXXXXXXX, and compared in the same normalised form login uses, so
  *   "+8801711…" and "01711…" count as the same number.
  */
@@ -88,49 +87,21 @@ final class AccountPhoneRules
     }
 
     /**
-     * Check a number for an account being created or changed.
+     * A valid number for an account being created or whose number is being changed.
      *
-     * Returns the share approval to store on the account (both null when the number is not shared).
-     * While the owner's switch is off, a shared number needs no approval and no reason.
+     * While the owner's switch is on, a number another account already holds is refused for
+     * everyone, owners included, until the switch is turned off. Accounts that already share a
+     * number keep working: callers skip this check when an account keeps its own number.
      *
-     * @return array{phone: string, phone_share_approved_by: ?int, phone_share_reason: ?string}
-     *
-     * @throws ValidationException when the number is invalid, or taken and no owner approved sharing it
+     * @throws ValidationException when the number is invalid, or taken while the switch is on
      */
-    public function check(User $actor, mixed $phone, ?int $accountId = null, mixed $shareReason = null, string $field = 'phone'): array
+    public function available(mixed $phone, ?int $accountId = null, string $field = 'phone'): string
     {
         $normalized = $this->normalize($phone, $field);
-        if (! $this->isTaken($normalized, $accountId)) {
-            return ['phone' => $normalized, 'phone_share_approved_by' => null, 'phone_share_reason' => null];
-        }
-        $reason = is_string($shareReason) ? trim($shareReason) : '';
-        if (! $actor->owner() || $actor->status !== 'active') {
+        if ($this->isTaken($normalized, $accountId)) {
             throw ValidationException::withMessages([$field => __('portal.acct_val_phone_taken')]);
         }
-        if ($reason === '') {
-            throw ValidationException::withMessages([$field => __('portal.acct_val_phone_taken_owner')]);
-        }
-        if (mb_strlen($reason) > 500) {
-            throw ValidationException::withMessages(['phone_share_reason' => __('portal.acct_val_phone_share_reason_long')]);
-        }
 
-        return ['phone' => $normalized, 'phone_share_approved_by' => $actor->id, 'phone_share_reason' => $reason];
-    }
-
-    /**
-     * Audit an owner's approval to share a number, once the account exists.
-     *
-     * @param  array{phone: string, phone_share_approved_by: ?int, phone_share_reason: ?string}  $checked
-     */
-    public function recordShare(User $actor, User $account, array $checked): void
-    {
-        if ($checked['phone_share_approved_by'] === null) {
-            return;
-        }
-        Audit::record($actor->id, 'account.phone_share_approved', (string) $account->id, [
-            'phone_last_digits' => substr($checked['phone'], -4),
-            'shared_with' => $this->holders($checked['phone'], $account->id),
-            'reason' => $checked['phone_share_reason'],
-        ]);
+        return $normalized;
     }
 }

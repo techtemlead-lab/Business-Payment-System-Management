@@ -121,7 +121,7 @@ class OneAccountPerIdentitySwitchTest extends TestCase
         $this->assertDatabaseHas('audit_events', ['actor_id' => $owner->id, 'action' => 'security.one_account_per_identity_changed']);
 
         $this->actingAs($owner)->onPortal('sadmin')->post('/commands/accounts', $this->dealerForm())
-            ->assertSessionHasErrors(['phone' => __('portal.acct_val_phone_taken_owner')]);
+            ->assertSessionHasErrors(['phone' => __('portal.acct_val_phone_taken')]);
         $this->assertDatabaseMissing('users', ['email' => 'shared-number-dealer@example.com']);
     }
 

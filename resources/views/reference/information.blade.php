@@ -505,9 +505,6 @@
                         <i class="fa-solid fa-phone ref-input-icon" aria-hidden="true"></i>
                         <input id="partner-phone" type="tel" name="phone" value="{{ old('phone') }}" required maxlength="30" autocomplete="tel" placeholder="01XXXXXXXXX" class="ref-input-control">
                     </div>
-                    @error('phone_taken')
-                    <label class="ref-field-hint ref-confirm-check"><input type="checkbox" name="phone_taken_confirmed" value="{{ old('phone') }}"> {{ __('site.partner_phone_taken_confirm') }}</label>
-                    @enderror
                 </div>
 
                 <div class="ref-field-group">

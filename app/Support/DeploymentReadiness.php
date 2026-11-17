@@ -116,9 +116,6 @@ final class DeploymentReadiness
         if ($checks['database'] && $this->accountsMissingMobile()) {
             $warnings[] = 'accounts_missing_mobile';
         }
-        if ($checks['database'] && $this->accountsSharingMobileWithoutApproval()) {
-            $warnings[] = 'accounts_sharing_mobile';
-        }
         if ($partnerOtp['preview_forced_off'] && $partnerOtp['stored_enabled']) {
             $warnings[] = 'partner_login_otp_forced_off_in_preview';
         }
@@ -637,23 +634,5 @@ final class DeploymentReadiness
             ->where(fn ($query) => $query->whereNull('totp_confirmed_at')->orWhereNull('totp_secret'))
             ->lazyById(200)
             ->contains(fn (User $user): bool => $security->totpRequiredByRole($user));
-    }
-
-    /** Two accounts on one mobile number, where no owner approved sharing it. Only a problem while the owner's one-number switch is on. */
-    private function accountsSharingMobileWithoutApproval(): bool
-    {
-        if (! app(SecuritySettings::class)->oneAccountPerIdentityEnforced()) {
-            return false;
-        }
-
-        return DB::table('users')
-            ->whereNotNull('phone')
-            ->whereRaw("phone ~ '^[0-9[:space:]()+.-]+$'")
-            ->selectRaw('('.PhoneIdentity::SQL.') as identity')
-            ->selectRaw('count(*) - count(phone_share_approved_by) as unapproved')
-            ->groupByRaw(PhoneIdentity::SQL)
-            ->havingRaw('count(*) > 1')
-            ->havingRaw('count(*) - count(phone_share_approved_by) > 1')
-            ->exists();
     }
 }

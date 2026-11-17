@@ -17,7 +17,7 @@ class PublicFormResultTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** The taken-number warning belongs to the owner's "one number, one account" switch, which is off by default. */
+    /** The taken-number refusal belongs to the owner's "one number, one account" switch, which is off by default. */
     private function switchOneNumberRuleOn(): void
     {
         app(SecuritySettings::class)->saveOneAccountPerIdentity(User::factory()->staff('super_admin')->create(['phone' => '01900000001']), true, 0);
@@ -55,7 +55,7 @@ class PublicFormResultTest extends TestCase
             ->assertRedirect('/partnership#partner-apply-status')->assertSessionHasErrors('email');
     }
 
-    public function test_a_taken_number_is_warned_about_first_without_saying_whose(): void
+    public function test_a_taken_number_is_refused_without_saying_whose_while_the_rule_is_on(): void
     {
         $this->switchOneNumberRuleOn();
         Config::set('madina.sms.driver', 'array');
@@ -65,13 +65,13 @@ class PublicFormResultTest extends TestCase
         foreach (['dealer', 'sub_dealer'] as $role) {
             $this->onPortal('public')->from('/partnership')->post('/partnership/apply', ['role' => $role] + $this->application())
                 ->assertRedirect('/partnership#partner-apply-status')
-                ->assertSessionHasErrors(['phone_taken' => __('portal.err_public_app_phone_taken')]);
+                ->assertSessionHasErrors(['phone' => __('portal.err_public_app_phone_taken')]);
         }
 
         $this->onPortal('public')->from('/partnership')->followingRedirects()->post('/partnership/apply', $this->application())
             ->assertOk()
             ->assertSee(__('portal.err_public_app_phone_taken'))
-            ->assertSee('name="phone_taken_confirmed" value="01811112223"', false)
+            ->assertDontSee('phone_taken_confirmed')
             ->assertDontSee('Existing Holder');
 
         $this->assertSame(0, DB::table('dealer_applications')->count());
@@ -79,39 +79,18 @@ class PublicFormResultTest extends TestCase
         $this->assertSame([], config('madina.sms.sent'));
     }
 
-    public function test_the_confirm_box_appears_only_after_the_warning(): void
-    {
-        $this->onPortal('public')->get('/partnership')->assertOk()->assertDontSee('phone_taken_confirmed');
-    }
-
-    public function test_the_applicant_can_still_send_a_taken_number_by_confirming_it(): void
+    public function test_the_old_confirm_box_no_longer_gets_a_taken_number_through(): void
     {
         $this->switchOneNumberRuleOn();
         User::factory()->dealer()->create(['phone' => '01811112223']);
 
         $this->onPortal('public')->from('/partnership')->post('/partnership/apply', ['phone_taken_confirmed' => '01811112223'] + $this->application())
-            ->assertRedirect('/partnership#partner-apply-status')
-            ->assertSessionHasNoErrors()
-            ->assertSessionHas('success', __('portal.flash_partnership_received'));
-
-        $application = DB::table('dealer_applications')->sole();
-        $this->assertSame('pending', $application->status);
-        $this->assertSame('01811112223', json_decode($application->data, true, 512, JSON_THROW_ON_ERROR)['phone']);
-        $this->assertArrayNotHasKey('phone_taken_confirmed', json_decode($application->data, true, 512, JSON_THROW_ON_ERROR));
-    }
-
-    public function test_confirming_one_number_does_not_pass_a_different_taken_number(): void
-    {
-        $this->switchOneNumberRuleOn();
-        User::factory()->dealer()->create(['phone' => '01811112223']);
-
-        $this->onPortal('public')->from('/partnership')->post('/partnership/apply', ['phone_taken_confirmed' => '01811112299'] + $this->application())
-            ->assertSessionHasErrors('phone_taken');
+            ->assertSessionHasErrors(['phone' => __('portal.err_public_app_phone_taken')]);
 
         $this->assertSame(0, DB::table('dealer_applications')->count());
     }
 
-    public function test_the_taken_number_warning_reads_in_each_language_and_ignores_number_formats(): void
+    public function test_the_taken_number_refusal_reads_in_each_language_and_ignores_number_formats(): void
     {
         $this->switchOneNumberRuleOn();
         User::factory()->dealer()->create(['phone' => '01811112223']);
@@ -120,11 +99,11 @@ class PublicFormResultTest extends TestCase
         foreach (['en', 'bn'] as $locale) {
             $this->onPortal('public')->from('/partnership')->withSession(['locale' => $locale])
                 ->post('/partnership/apply', ['phone' => '+880 1811-112223'] + $this->application())
-                ->assertSessionHasErrors(['phone_taken' => __('portal.err_public_app_phone_taken', [], $locale)]);
+                ->assertSessionHasErrors(['phone' => __('portal.err_public_app_phone_taken', [], $locale)]);
         }
     }
 
-    public function test_the_taken_number_warning_and_its_confirmation_stay_under_the_form_rate_limit(): void
+    public function test_the_taken_number_refusal_stays_under_the_form_rate_limit(): void
     {
         $this->switchOneNumberRuleOn();
         User::factory()->dealer()->create(['phone' => '01811112223']);
@@ -133,7 +112,7 @@ class PublicFormResultTest extends TestCase
             $this->onPortal('public')->from('/partnership')->post('/partnership/apply', $this->application())->assertRedirect();
         }
 
-        $this->onPortal('public')->from('/partnership')->post('/partnership/apply', ['phone_taken_confirmed' => '01811112223'] + $this->application())->assertTooManyRequests();
+        $this->onPortal('public')->from('/partnership')->post('/partnership/apply', $this->application())->assertTooManyRequests();
         $this->assertSame(0, DB::table('dealer_applications')->count());
     }
 

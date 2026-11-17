@@ -134,7 +134,7 @@ class PartnerCreationCodesTest extends TestCase
         app(SecuritySettings::class)->saveOneAccountPerIdentity($this->owner, true, 0);
         $this->submit($this->partnerForm(['phone' => $this->owner->phone]))
             ->assertRedirect(self::FormPage)
-            ->assertSessionHasErrors(['phone' => __('portal.acct_val_phone_taken_owner')]);
+            ->assertSessionHasErrors(['phone' => __('portal.acct_val_phone_taken')]);
 
         $this->assertDatabaseMissing('users', ['email' => 'partner@example.com']);
     }

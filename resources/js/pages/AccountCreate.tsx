@@ -85,7 +85,6 @@ export default function AccountCreate({
 }) {
     const translate = useT();
     // Only owners may let an account share a mobile number another account already uses.
-    const isOwner = ['super_admin', 'md', 'chairman'].includes(String((usePage().props as any).auth?.user?.role ?? ''));
     // The server refuses an NID number from anyone without this permission, so the choice is not offered to them.
     const canEnterNid = ((usePage().props as any).auth?.capabilities ?? []).includes('identity_write');
     const csrf = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content || '';
@@ -115,7 +114,6 @@ export default function AccountCreate({
         dealer_code: '',
         reference_code: '',
         phone: '',
-        phone_share_reason: '',
         email: '',
         extra_contact: '',
         pharmacy: '',
@@ -395,7 +393,7 @@ export default function AccountCreate({
             return [
                 ...typeSection,
                 ...(hasPermissionChoice ? [{ key: 'privileges', title: translate('portal', 'acct_employee_privileges'), required: [], boxes: ['permissions'] }] : []),
-                { key: 'person', title: translate('portal', 'acct_step_contact'), required: ['name', 'email', 'phone'], boxes: ['name', 'email', 'phone', 'phone_share_reason'] },
+                { key: 'person', title: translate('portal', 'acct_step_contact'), required: ['name', 'email', 'phone'], boxes: ['name', 'email', 'phone'] },
                 { key: 'last', title: translate('portal', 'acct_section_last'), required: accountReason.required ? ['reason'] : [], boxes: [...(accountReason.shown ? ['reason'] : []), 'sponsor_id'] },
             ];
         }
@@ -406,7 +404,7 @@ export default function AccountCreate({
             { key: 'address', title: translate('portal', 'acct_step_address'), hint: translate('portal', 'acct_step_address_hint'), required: [], boxes: ['village', 'post_office', 'latitude', 'longitude'] },
             { key: 'place', title: translate('portal', 'acct_step_area'), hint: translate('portal', isSubDealer ? 'acct_area_hint_sub' : 'acct_area_hint_dealer'), required: ['place_code'], boxes: ['place_code', 'dealer_code'] },
             { key: 'refer', title: translate('portal', 'acct_step_refer'), required: [], boxes: ['reference_code'] },
-            { key: 'contact', title: translate('portal', 'acct_step_contact'), hint: translate('portal', 'acct_step_contact_hint'), required: ['phone', 'email', ...(isSubDealer ? ['shop_name'] : [])], boxes: ['phone', 'phone_share_reason', 'email', 'extra_contact', 'shop_name', 'pharmacy'] },
+            { key: 'contact', title: translate('portal', 'acct_step_contact'), hint: translate('portal', 'acct_step_contact_hint'), required: ['phone', 'email', ...(isSubDealer ? ['shop_name'] : [])], boxes: ['phone', 'email', 'extra_contact', 'shop_name', 'pharmacy'] },
             { key: 'last', title: translate('portal', 'acct_section_last'), required: accountReason.required ? ['reason'] : [], boxes: [...(accountReason.shown ? ['reason'] : []), 'directory_visible', ...finishKyc] },
         ];
     }, [isPartner, isSubDealer, hasPermissionChoice, singlePartnerRole, form.data.identity_type, translate, accountReason.required, accountReason.shown]);
@@ -474,7 +472,6 @@ export default function AccountCreate({
             dealer_code: data.dealer_code,
             reference_code: data.reference_code,
             phone: data.phone,
-            phone_share_reason: data.phone_share_reason,
             email: data.email,
             extra_contact: data.extra_contact,
             pharmacy: data.role === 'sub_dealer' ? (data.shop_name || data.pharmacy) : data.pharmacy,
@@ -516,20 +513,6 @@ export default function AccountCreate({
 
     const commissionLines = placePreview?.commission_places ?? [];
     const placeLevelTitle = (level: string) => translate('portal', ({ management: 'acct_level_management', division: 'acct_level_div', district: 'acct_level_dist', upazila: 'acct_level_upazila' } as Record<string, string>)[level] ?? 'acct_level_union');
-    // Only needed once the server says the number is in use, so it stays out of the way until then.
-    const phoneRefused = Boolean(errorOf('phone')) && errorOf('phone') !== translate('portal', 'acct_box_required');
-    const [phoneWasRefused, setPhoneWasRefused] = useState(false);
-    useEffect(() => {
-        if (phoneRefused) {
-            setPhoneWasRefused(true);
-        }
-    }, [phoneRefused]);
-    const showsPhoneShareReason = isOwner && (phoneWasRefused || form.data.phone_share_reason !== '');
-    const phoneShareReason = showsPhoneShareReason && (
-        <Box text={translate('portal', 'acct_phone_share_reason')} error={errorOf('phone_share_reason')} hint={translate('portal', 'acct_phone_share_reason_hint')} wide>
-            <input maxLength={500} autoComplete="off" value={form.data.phone_share_reason} onChange={(e) => setBox('phone_share_reason', e.target.value)} />
-        </Box>
-    );
     const typedReference = form.data.reference_code.trim() !== '';
     const referenceHint = !typedReference && management_referral?.enabled && management_referral.auto_blank_reference && management_referral.place_code
         ? translate('portal', 'acct_reference_blank_hint', { code: management_referral.place_code })
@@ -646,7 +629,6 @@ export default function AccountCreate({
                                 <Box text={translate('portal', 'acct_full_name')} error={errorOf('name')}><input autoComplete="off" value={form.data.name} onChange={(e) => setBox('name', e.target.value)} /></Box>
                                 <Box text={translate('portal', 'acct_email')} error={errorOf('email')}><input type="email" autoComplete="off" value={form.data.email} onChange={(e) => setBox('email', e.target.value)} /></Box>
                                 <Box text={translate('portal', 'acct_phone')} error={errorOf('phone')}><input type="tel" inputMode="tel" autoComplete="off" value={form.data.phone} onChange={(e) => setBox('phone', e.target.value)} placeholder={translate('portal', 'acct_phone_ph')} /></Box>
-                                {phoneShareReason}
                             </div>
                         </section>
                     )}
@@ -843,7 +825,6 @@ export default function AccountCreate({
                                     <Box text={translate('portal', 'acct_mobile')} error={errorOf('phone')}>
                                         <input type="tel" inputMode="tel" autoComplete="off" value={form.data.phone} onChange={(e) => setBox('phone', e.target.value)} placeholder={translate('portal', 'acct_phone_ph')} />
                                     </Box>
-                                    {phoneShareReason}
                                     <Box text={translate('portal', 'acct_email')} error={errorOf('email')}>
                                         <input type="email" inputMode="email" autoComplete="off" value={form.data.email} onChange={(e) => setBox('email', e.target.value)} />
                                     </Box>
