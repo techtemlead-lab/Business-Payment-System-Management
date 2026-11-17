@@ -122,7 +122,7 @@ final class FinancialReadiness
     public function verify(User $actor, int $id, string $reason = '', bool $confirmedAlone = false): void
     {
         abort_unless($actor->allows('finance'), 403);
-        DB::transaction(function () use ($actor, $id, $reason, $confirmedAlone): void {
+        DB::transaction(function () use ($actor, $id, $reason): void {
             CommissionWallet::lock();
             abort_unless($actor->fresh()->allows('finance'), 403);
             $row = DB::table('financial_verifications')->where('id', $id)->lockForUpdate()->first();

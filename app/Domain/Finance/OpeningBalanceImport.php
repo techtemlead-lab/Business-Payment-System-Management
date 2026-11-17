@@ -109,7 +109,7 @@ final class OpeningBalanceImport
 
     public function apply(User $actor, string $id, string $reason, bool $confirmedAlone = false): void
     {
-        DB::transaction(function () use ($actor, $id, $reason, $confirmedAlone): void {
+        DB::transaction(function () use ($actor, $id, $reason): void {
             CommissionWallet::lock();
             $batch = DB::table('data_import_batches')->where('id', $id)->lockForUpdate()->first();
             abort_unless($batch, 404);
