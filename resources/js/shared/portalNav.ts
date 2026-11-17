@@ -65,7 +65,7 @@ export const SECTION_LABEL_KEYS: Record<string, string> = {
     'branch-performance': 'branch_performance',
     settlements: 'settlements', simulator: 'simulator', 'payouts-hub': 'payouts_hub', treasury: 'treasury', 'identity-review': 'identity_review',
     'sub-dealers': 'sub_dealers', 'sub-dealer-orders': 'sub_dealer_orders',
-    'sub-dealer-applications': 'sub_dealer_applications', 'login-rules': 'login_rules', visitors: 'visitors', 'reason-fields': 'reason_fields',
+    'sub-dealer-applications': 'sub_dealer_applications', 'login-rules': 'login_rules', visitors: 'visitors', 'reason-fields': 'reason_fields', errors: 'errors_nav',
     employees: 'employees', dashboards: 'dashboards', help: 'help', 'support-admin': 'support_admin', agreement: 'agreement',
     messages: 'chat_nav_partner', 'partner-messages': 'chat_nav_office', 'top-sellers': 'top_sellers',
     training: 'training', events: 'events', 'data-cleanup': 'cleanup_nav', prescriptions: 'prescriptions', 'sales-kit': 'sales_kit', customers: 'customer_book', schemes: 'dated_schemes', 'privacy-requests': 'privacy_requests_nav',
@@ -219,7 +219,7 @@ const MENU_ROWS: Record<string, MenuRow> = Object.fromEntries(([
     { id: 'office-website', labelKey: 'label_web', iconKey: 'website', tabs: ['website', 'content', 'public-trust', 'video-marketing', 'feedback', 'visitors'] },
     { id: 'office-settings', labelKey: 'nav_module_settings', iconKey: 'settings', home: 'settings', tabs: [
         'finance-settings', 'payment-accounts', 'financial-readiness', 'place-codes', 'dashboards', 'identity-review',
-        'login-rules', 'reason-fields', 'service-integrations', 'courier-areas', 'data-imports', 'audit', 'privacy-requests', 'data-cleanup',
+        'login-rules', 'reason-fields', 'service-integrations', 'courier-areas', 'data-imports', 'audit', 'privacy-requests', 'data-cleanup', 'errors',
     ] },
     { id: 'partner-orders', labelKey: 'nav_module_commerce', iconKey: 'orders', tabs: ['orders', 'deliveries'] },
     { id: 'partner-team', labelKey: 'nav_module_network', iconKey: 'network', tabs: ['network', 'customers', 'ranks', 'top-sellers', 'contests'] },
@@ -341,6 +341,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     // Owners open the account lists to reset or see passwords (PortalCatalog::assertSection).
     if (['super_admin', 'md', 'chairman'].includes(role)) ['accounts', 'sub-dealers', 'employees'].forEach((item) => items.add(item));
     if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('data-cleanup');
+    if (ownerPortal && OWNER_ROLES.includes(role)) items.add('errors');
     if (ownerPortal && OWNER_ROLES.includes(role)) items.add('login-rules');
     // The website visitor count is for owners only (PortalCatalog::assertSection).
     if (ownerPortal && OWNER_ROLES.includes(role)) items.add('visitors');

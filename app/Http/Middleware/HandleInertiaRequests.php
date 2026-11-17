@@ -257,6 +257,7 @@ class HandleInertiaRequests extends Middleware
                 'office_settings' => Lang::get('office_settings'),
                 'office_reports' => Lang::get('office_reports'),
                 'office_visitors' => Lang::get('office_visitors'),
+                'office_errors' => Lang::get('office_errors'),
                 'reason_fields' => Lang::get('reason_fields'),
             ])->as('i18n:'.$locale),
             'portalCatalog' => Inertia::once(fn () => $portalShell

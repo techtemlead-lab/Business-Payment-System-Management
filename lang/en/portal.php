@@ -6780,4 +6780,8 @@ return [
     'order_footer_counted' => 'Delivered goods only',
     'team_orders_counted_note' => 'Ordered and Paid count delivered goods only, and only the delivered part of a partly delivered order.',
     'net_show_all' => 'Show every dealer',
+    'errors_nav' => 'Site problems',
+    'section_hint_errors' => 'Problems the site hit while running, how often, and a way to mark each one as fixed.',
+    'event_errors_tracking_changed' => 'Problem log switched or its days changed',
+    'event_errors_marked_fixed' => 'Site problem marked as fixed',
 ];

@@ -113,6 +113,10 @@ class EnforceStaffActions
             // Only owners turn the website visitor count on or off; the controller checks again.
             return $next($request);
         }
+        if ($controller === 'ErrorTrackingController' && $actor->owner()) {
+            // Only owners switch the error log and mark problems fixed; the controller checks again.
+            return $next($request);
+        }
         if ($controller === 'ReasonFieldsController' && $actor->owner()) {
             // Only owners decide which reason and note boxes are asked; the controller checks again.
             return $next($request);

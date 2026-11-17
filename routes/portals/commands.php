@@ -10,6 +10,7 @@ use App\Http\Controllers\CourierShipmentController;
 use App\Http\Controllers\CustomerBookController;
 use App\Http\Controllers\DataCleanupController;
 use App\Http\Controllers\DatedSchemeController;
+use App\Http\Controllers\ErrorTrackingController;
 use App\Http\Controllers\IdentityLookupController;
 use App\Http\Controllers\PartnerAccountDeletionController;
 use App\Http\Controllers\PartnerAgreementController;
@@ -75,6 +76,8 @@ return function (string $portal): void {
     Route::post('/commands/owner/partner-login-otp', [AuthController::class, 'partnerLoginOtp'])->middleware('throttle:5,1');
     Route::post('/commands/owner/password-reset-notice', [AuthController::class, 'passwordResetNotice'])->middleware('throttle:5,1');
     Route::post('/commands/owner/site-visit-counting', [SiteVisitSettingsController::class, 'update'])->middleware('throttle:10,1');
+    Route::post('/commands/owner/error-tracking', [ErrorTrackingController::class, 'settings'])->middleware('throttle:10,1');
+    Route::post('/commands/errors/{errorReport}/fixed', [ErrorTrackingController::class, 'fixed'])->whereNumber('errorReport')->middleware('throttle:60,1');
     Route::post('/commands/owner/reason-fields', [ReasonFieldsController::class, 'update'])->middleware('throttle:20,1');
     Route::post('/commands/owner/prescription-other-medicines', [PrescriptionSettingsController::class, 'otherMedicines'])->middleware('throttle:10,1');
     Route::post('/commands/agreement/publish', [PartnerAgreementController::class, 'publish'])->middleware('throttle:10,1');
