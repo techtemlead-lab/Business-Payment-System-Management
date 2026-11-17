@@ -40,7 +40,7 @@ class PartnerAgreementTest extends TestCase
         $this->assertFalse(app(PartnerAgreement::class)->setting()['required'], 'The switch starts off.');
     }
 
-    public function test_version_one_carries_the_company_details_and_leaves_only_three_legal_choices_open(): void
+    public function test_version_one_carries_the_company_details_and_has_no_blank_field_left(): void
     {
         $first = PartnerAgreementVersion::query()->sole();
 
@@ -53,8 +53,50 @@ class PartnerAgreementTest extends TestCase
         $this->assertStringContainsString('the laws of the People’s Republic of Bangladesh', $first->body_en);
         $this->assertStringContainsString('বাংলাদেশের প্রচলিত আইন', $first->body_bn);
 
-        $this->assertSame(3, substr_count($first->body_en, '[Company to complete:'), 'Notice period, closing rules and court are still the owner’s or lawyer’s to write.');
-        $this->assertSame(3, substr_count($first->body_bn, '[কোম্পানি পূরণ করবে:'));
+        $this->assertStringNotContainsString('[Company to complete:', $first->body_en, 'The agreement is plain and has no blank field left.');
+        $this->assertStringNotContainsString('[কোম্পানি পূরণ করবে:', $first->body_bn);
+        $this->assertStringNotContainsString('Notice period', $first->body_en);
+        $this->assertStringNotContainsString('Court or forum', $first->body_en);
+        $this->assertStringNotContainsString('unopened goods', $first->body_en);
+    }
+
+    public function test_the_simple_agreement_update_adds_the_plain_text_after_a_version_that_still_has_blanks(): void
+    {
+        DB::table('partner_agreement_versions')->insert([
+            'version' => 2,
+            'body_bn' => "মদিনা ন্যাচারাল হেলথ কেয়ার\n• নোটিশের সময়: [কোম্পানি পূরণ করবে: চুক্তি শেষ করার নোটিশের সময়]।",
+            'body_en' => "Madina Natural Health Care\n• Notice period: [Company to complete: notice period for ending this agreement].",
+            'published_by' => null,
+            'published_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->runSimpleAgreementMigration();
+
+        $latest = PartnerAgreementVersion::query()->orderByDesc('version')->first();
+        $this->assertSame(3, $latest->version);
+        $this->assertNull($latest->published_by);
+        $this->assertStringContainsString('Either you or the company can end this agreement.', $latest->body_en);
+        $this->assertStringNotContainsString('[Company to complete:', $latest->body_en);
+        $this->assertStringContainsString('[Company to complete:', (string) PartnerAgreementVersion::query()->where('version', 2)->value('body_en'), 'The older version stays as it was.');
+    }
+
+    public function test_the_simple_agreement_update_leaves_an_owners_own_version_alone(): void
+    {
+        $owner = User::factory()->staff('md')->create();
+        app(PartnerAgreement::class)->publish($owner, 'মালিকের লেখা। [কোম্পানি পূরণ করবে: কিছু]', 'Owner text. [Company to complete: something]');
+
+        $this->runSimpleAgreementMigration();
+
+        $this->assertSame(2, PartnerAgreementVersion::query()->count());
+    }
+
+    public function test_the_simple_agreement_update_does_nothing_when_no_blank_is_left(): void
+    {
+        $this->runSimpleAgreementMigration();
+
+        $this->assertSame(1, PartnerAgreementVersion::query()->count());
     }
 
     public function test_the_company_details_update_adds_the_filled_text_after_a_blank_one_the_system_published(): void
@@ -434,6 +476,11 @@ class PartnerAgreementTest extends TestCase
     private function runFinalTextMigration(): void
     {
         (require database_path('migrations/2026_11_09_214358_publish_final_partner_agreement_text.php'))->up();
+    }
+
+    private function runSimpleAgreementMigration(): void
+    {
+        (require database_path('migrations/2026_11_17_034152_publish_simple_partner_agreement.php'))->up();
     }
 
     private function runCompanyDetailsMigration(): void
