@@ -6784,4 +6784,9 @@ return [
     'notice_area_held_too_long_title' => 'আটকে থাকা এরিয়া কমিশন কোম্পানির ফান্ডে গেছে',
     'notice_area_held_too_long_body' => 'আপনার ৳:amount এরিয়া কমিশন :months মাসের বেশি আটকে ছিল, তাই কোম্পানির লাভের ফান্ডে গেছে।',
     'event_commission_stale_area_holds_released' => 'আটকে থাকা এরিয়া কমিশন কোম্পানির লাভে গেছে: অনেকদিন আটকে ছিল',
+    'cs_param_division_monthly_quota' => 'বিভাগ আসনের শুরুর মাসিক টার্গেট (৳)',
+    'cs_param_district_monthly_quota' => 'জেলা আসনের শুরুর মাসিক টার্গেট (৳)',
+    'cs_param_upazila_monthly_quota' => 'উপজেলা আসনের শুরুর মাসিক টার্গেট (৳)',
+    'cs_param_union_monthly_quota' => 'ইউনিয়ন / পৌরসভা আসনের শুরুর মাসিক টার্গেট (৳)',
+    'cs_param_held_share_months' => 'আটকে থাকা এরিয়া অংশ কত মাস পর কোম্পানির ফান্ডে যাবে (০ = কখনো নয়)',
 ];

@@ -4,12 +4,6 @@ return [
     'err_held_months' => 'Months a held share may wait must be a whole number from 0 to 120 (0 means never).',
     'err_target_zero' => 'The target ":name" must be more than zero.',
 
-    'cs_param_division_monthly_quota' => 'Starting monthly target, division seat (৳)',
-    'cs_param_district_monthly_quota' => 'Starting monthly target, district seat (৳)',
-    'cs_param_upazila_monthly_quota' => 'Starting monthly target, upazila seat (৳)',
-    'cs_param_union_monthly_quota' => 'Starting monthly target, union / pourashava seat (৳)',
-    'cs_param_held_share_months' => 'Months a held area share waits before it goes to the company fund (0 = never)',
-
     'fund_check_title' => 'Bike and car fund check',
     'fund_check_intro' => 'A calculation from the settings saved now. It only shows numbers and changes nothing. Save the settings above to see it again.',
     'fund_check_note' => 'The fund collects money only from orders that were delivered and fully paid.',

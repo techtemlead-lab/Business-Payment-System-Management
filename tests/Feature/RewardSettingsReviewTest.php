@@ -148,10 +148,11 @@ class RewardSettingsReviewTest extends TestCase
 
     public function test_the_fund_check_words_exist_in_both_languages(): void
     {
-        foreach (['fund_check_covers', 'fund_check_short', 'fund_check_award_missing', 'cs_param_held_share_months'] as $key) {
+        foreach (['fund_check_covers', 'fund_check_short', 'fund_check_award_missing'] as $key) {
             $this->assertNotSame('reward_settings.'.$key, __('reward_settings.'.$key, [], 'bn'));
             $this->assertNotSame('reward_settings.'.$key, __('reward_settings.'.$key, [], 'en'));
         }
+        $this->assertNotSame('portal.cs_param_held_share_months', __('portal.cs_param_held_share_months', [], 'bn'));
     }
 
     // ---- held area shares that wait too long ----

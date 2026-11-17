@@ -6784,4 +6784,9 @@ return [
     'notice_area_held_too_long_title' => 'Held area commission moved to the company',
     'notice_area_held_too_long_body' => '৳:amount of your area commission stayed on hold for more than :months months, so it went to the company profit fund.',
     'event_commission_stale_area_holds_released' => 'Held area commission moved to company profit: held too long',
+    'cs_param_division_monthly_quota' => 'Starting monthly target, division seat (৳)',
+    'cs_param_district_monthly_quota' => 'Starting monthly target, district seat (৳)',
+    'cs_param_upazila_monthly_quota' => 'Starting monthly target, upazila seat (৳)',
+    'cs_param_union_monthly_quota' => 'Starting monthly target, union / pourashava seat (৳)',
+    'cs_param_held_share_months' => 'Months a held area share waits before it goes to the company fund (0 = never)',
 ];
