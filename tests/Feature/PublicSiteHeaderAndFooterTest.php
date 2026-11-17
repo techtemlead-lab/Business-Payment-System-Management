@@ -14,6 +14,8 @@ class PublicSiteHeaderAndFooterTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
+        // A stock-list test in the same process can leave the website facts in cache.
+        SiteCustomization::reset();
     }
 
     public function test_the_logo_is_in_the_top_band_and_home_takes_its_place_in_the_navigation(): void

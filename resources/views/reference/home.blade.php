@@ -128,7 +128,7 @@
 
         <div class="ref-product-grid" id="refProductGrid">
             @foreach($featuredProducts as $item)
-                @include('reference.product-card', compact('item'))
+                @include('reference.product-card', ['item' => $item, 'imageLoading' => $loop->iteration <= 2 ? 'eager' : 'lazy', 'imagePriority' => $loop->first])
             @endforeach
         </div>
 
