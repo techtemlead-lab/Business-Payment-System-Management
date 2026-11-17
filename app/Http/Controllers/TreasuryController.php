@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Accounts\PartnerIncomeBook;
 use App\Domain\Accounts\PartnerMoneyBook;
 use App\Domain\Finance\EventLog;
 use App\Domain\Finance\OrderMoneyReport;
@@ -93,17 +94,21 @@ class TreasuryController extends Controller
         return Inertia::render('TreasuryPartners', [...$this->shared($request), 'table' => $list->table($request)]);
     }
 
-    public function partner(Request $request, User $partner, PartnerMoneyBook $book): Response
+    public function partner(Request $request, User $partner, PartnerMoneyBook $book, PartnerIncomeBook $income): Response
     {
         abort_unless(TreasuryAccess::mayOpenPartner($request->user()), 403);
         abort_unless(in_array($partner->role, ['dealer', 'sub_dealer'], true), 404);
+
+        $incomeView = $request->query('view') === 'income';
 
         return Inertia::render('TreasuryPartner', [
             ...$this->shared($request),
             'partner' => ['id' => $partner->id, 'name' => $partner->name, 'code' => $partner->dealer_code, 'role' => $partner->role, 'area' => OrderMoneyReport::areaOf((object) ['profile' => $partner->getAttribute('profile'), 'district' => $partner->district, 'division' => $partner->division])],
             'summary' => $book->summary($partner),
             'cards' => $book->incomeCards($partner),
-            'table' => $book->table($request, $partner),
+            'view' => $incomeView ? 'income' : 'money',
+            'table' => $incomeView ? null : $book->table($request, $partner),
+            'income' => $incomeView ? $income->page($request, $partner) : null,
         ]);
     }
 
