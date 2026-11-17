@@ -6,6 +6,7 @@ use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Commissions\CommissionSettlement;
+use App\Domain\Finance\RewardFundCheck;
 use App\Domain\Orders\OrderListFilter;
 use App\Models\CommissionAllocation;
 use App\Models\CommissionRuleParameter;
@@ -48,6 +49,7 @@ final class CommissionsSection implements WorkspaceSection
         $commissionSnapshot = app(CommissionPolicy::class)->snapshot(false);
         $props['rules'] = array_values($commissionSnapshot['rules']);
         $props['policy_limits'] = $this->commissionPoolLimits($commissionSnapshot);
+        $props['reward_fund_check'] = app(RewardFundCheck::class)->check($commissionSnapshot['rules']);
 
         return $props;
     }
