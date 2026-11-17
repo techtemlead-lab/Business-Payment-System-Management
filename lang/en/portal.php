@@ -6004,6 +6004,8 @@ return [
     'event_product_unit_deleted' => 'Product unit deleted',
     'event_product_unit_updated' => 'Product unit changed',
     'event_profile_photo_updated' => 'Profile photo changed',
+    'event_profile_details_updated' => 'Partner changed his own profile details',
+    'event_accounts_profile_lock_changed' => 'Profile lock changed',
     'event_receipt_downloaded' => 'Receipt downloaded',
     'event_recovery_receipt_downloaded' => 'Fund return proof downloaded',
     'event_report_exported' => 'Report downloaded',

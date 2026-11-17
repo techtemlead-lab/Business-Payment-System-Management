@@ -6004,6 +6004,8 @@ return [
     'event_product_unit_deleted' => 'পণ্যের একক মুছে ফেলা হয়েছে',
     'event_product_unit_updated' => 'পণ্যের একক বদলানো হয়েছে',
     'event_profile_photo_updated' => 'প্রোফাইলের ছবি বদলানো হয়েছে',
+    'event_profile_details_updated' => 'প্রোফাইলের তথ্য নিজে বদলানো হয়েছে',
+    'event_accounts_profile_lock_changed' => 'প্রোফাইলের তালা বদলানো হয়েছে',
     'event_receipt_downloaded' => 'রসিদ ডাউনলোড',
     'event_recovery_receipt_downloaded' => 'ফান্ডে টাকা ফেরতের প্রমাণ ডাউনলোড',
     'event_report_exported' => 'রিপোর্ট ডাউনলোড',
