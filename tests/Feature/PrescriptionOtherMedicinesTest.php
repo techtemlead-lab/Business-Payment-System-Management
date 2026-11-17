@@ -209,7 +209,7 @@ class PrescriptionOtherMedicinesTest extends TestCase
             'patient_id' => $patient->id,
             'prescribed_on' => '2026-11-13',
             'lines' => [['product_id' => $retired->id, 'unit_price' => '10', 'quantity' => 1]],
-        ])->assertSessionHasErrors(['lines.0.medicine_name' => __('prescription.err_medicine_required')]);
+        ])->assertSessionHasErrors(['lines.0.product_id' => __('prescription.err_product_required')]);
 
         $this->assertSame(0, Prescription::query()->count());
     }
