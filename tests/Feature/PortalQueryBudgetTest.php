@@ -89,7 +89,8 @@ class PortalQueryBudgetTest extends TestCase
             ->where('data.stats.supply', 1)
             ->has('data.partner_home')
             ->has('data.guide_prerequisites.checklist'));
-        $this->assertQueriesAtMost(39, $queries, 'dealer dashboard');
+        $this->// 40: one read for the owner's monthly target overrides.
+        $this->assertQueriesAtMost(40, $queries, 'dealer dashboard');
 
         foreach (range(1, 8) as $index) {
             $this->line($this->order($dealer, $index % 2 === 0 ? 'delivered' : 'submitted', total: '20.00'), $product, quantity: 1, dispatched: 0);

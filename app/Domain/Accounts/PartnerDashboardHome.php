@@ -19,6 +19,11 @@ use Illuminate\Support\Facades\DB;
 
 final class PartnerDashboardHome
 {
+    /** This month's volume and rank, kept from the dealer targets so the owner's overrides cost no further reads. */
+    private int $targetsVolume = 0;
+
+    private string $targetsRank = 'dealer';
+
     public function __construct(private CommissionQualification $qualification, private PartnerProgress $progress, private PartnerEarningsPresenter $earnings, private PartnerMoneyBook $moneyBook) {}
 
     /**
@@ -166,7 +171,9 @@ final class PartnerDashboardHome
         }
 
         // The owner's own target for this dealer this month, and the royalty target, are added by the targets class.
-        return app(PartnerMonthlyTargets::class)->forHome($user, $targets, $month);
+        return $user->role === 'dealer'
+            ? app(PartnerMonthlyTargets::class)->forHome($user, $targets, $month, $rules, $this->targetsVolume, $this->targetsRank)
+            : $targets;
     }
 
     /**
@@ -212,6 +219,7 @@ final class PartnerDashboardHome
         $targets = [];
         $controls = PartnerBenefitControls::for($user);
         $monthlyVolume = $this->qualification->monthlyVolume($user->id, $month);
+        $this->targetsVolume = $monthlyVolume;
         $salaryTarget = Money::cents((string) ($rules['dealer_monthly_salary']['parameters']['min_monthly_volume'] ?? '10000.00'));
         if ($controls['unconditional_salary']) {
             $targets[] = [
@@ -236,6 +244,7 @@ final class PartnerDashboardHome
         // Read only: a page view never creates the rank row (posting creates it with the first purchase).
         $rank = DealerRank::query()->where('user_id', $user->id)->first();
         $currentRank = $rank->current_rank ?? 'dealer';
+        $this->targetsRank = $currentRank;
         $moTarget = Money::cents((string) ($rules['rank_royalty']['parameters']['mo_target'] ?? '250000.00'));
         $lifetime = Money::cents((string) ($rank->lifetime_purchase_total ?? '0'));
 

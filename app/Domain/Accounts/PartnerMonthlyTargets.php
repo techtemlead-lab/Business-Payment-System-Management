@@ -64,33 +64,36 @@ final class PartnerMonthlyTargets
 
     /**
      * Puts the owner's overrides into the target rows the dealer's home page already shows and
-     * adds the royalty row. Rows without an override are left exactly as they were.
+     * adds the royalty row. Rows without an override are left exactly as they were. Everything is
+     * worked out from what the home page already read, so this costs one extra query.
      *
      * @param  list<array<string, mixed>>  $targets
+     * @param  array<string, array<string, mixed>>  $rules
      * @return list<array<string, mixed>>
      */
-    public function forHome(User $user, array $targets, string $month): array
+    public function forHome(User $user, array $targets, string $month, array $rules, int $monthlyVolume, string $currentRank): array
     {
         if ($user->role !== 'dealer') {
             return $targets;
         }
         $overrides = $this->overrides((int) $user->id, $month);
-        $rows = collect($this->for($user, $month))->keyBy('kind');
         $homeKey = array_flip(self::HomeKeys);
         foreach ($targets as $index => $row) {
             $kind = $homeKey[$row['key'] ?? ''] ?? null;
             if ($kind === null || ! isset($overrides[$kind]) || $this->isUnconditional($user, $kind)) {
                 continue;
             }
-            $mine = $rows[$kind];
+            $isMoney = str_contains((string) $row['current'], '.');
+            $current = $isMoney ? Money::cents((string) $row['current']) : (int) $row['current'];
+            $target = $isMoney ? Money::cents($overrides[$kind]['amount']) : (int) round((float) $overrides[$kind]['amount']);
             $targets[$index] = [
                 ...$row,
-                'target' => $mine['unit'] === 'money' ? $mine['target'] : (string) (int) $mine['target'],
-                'remaining' => $mine['remaining'],
-                'percent' => $mine['percent'],
+                'target' => $isMoney ? Money::decimal($target) : (string) $target,
+                'remaining' => $isMoney ? Money::decimal(max(0, $target - $current)) : (string) max(0, $target - $current),
+                'percent' => $this->percent($current, $target),
             ];
         }
-        $royalty = $rows[self::Royalty];
+        $royalty = $this->royaltyRow($rules, $monthlyVolume, $currentRank, $overrides);
         if ($royalty['has_target']) {
             $targets[] = [
                 'key' => 'royalty_volume',
