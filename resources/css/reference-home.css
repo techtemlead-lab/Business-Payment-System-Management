@@ -4065,3 +4065,12 @@ html[data-theme="dark"] .ref-inner-main .ref-partner-information{background:var(
   .ref-page-plate-seal{display:none}
   .ref-page-plate-sprig{top:auto;right:-70px;bottom:-60px;width:230px;height:230px}
 }
+
+/* Home products stay on screen. The list is taller than a phone, so a fade that
+   waits until a percentage of the whole list is visible never starts. */
+.ref-home .ref-featured-products.ref-reveal-init,
+.ref-home #refProductGrid > .ref-reveal-card{
+  opacity:1;
+  transform:none;
+  animation:none;
+}

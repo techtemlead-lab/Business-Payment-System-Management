@@ -15,6 +15,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Lang;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -80,7 +81,7 @@ class StockPrintTest extends TestCase
     {
         $product = $this->product([
             'name' => 'Herbal Syrup', 'strength' => null, 'category' => 'Syrup', 'pack_size_en' => '100 ml', 'mrp' => '200.00',
-            'dealer_price' => '160.00', 'sub_dealer_price' => '175.00',
+            'dealer_price' => '160.00', 'sub_dealer_price' => '175.00', 'description' => null,
         ]);
         $this->stockOf($product, $this->hub, 7, '2027-03-31');
 
@@ -95,7 +96,35 @@ class StockPrintTest extends TestCase
             'mrp' => '200.00',
             'dealer_discount' => '20',
             'sub_dealer_discount' => '12.5',
+            'image' => null,
+            'usage' => null,
+            'efficacy' => null,
         ]], $list['rows']);
+    }
+
+    public function test_a_row_carries_the_photo_how_to_use_and_what_the_product_does(): void
+    {
+        Storage::fake('local');
+        $stored = 'product-media/images/syrup.jpg';
+        Storage::disk('local')->put($stored, 'photo');
+        $product = $this->product([
+            'name' => 'Herbal Syrup',
+            'description' => '<b>Helps digestion</b>',
+            'dose_en' => 'One spoon after food',
+            'dose_bn' => 'খাবারের পর এক চামচ',
+            'image_path' => $stored,
+        ]);
+        $this->stockOf($product, $this->hub, 1, null);
+
+        $row = (new StockPrintList)->build(new BranchScope(false, [$this->hub->id], $this->hub))['rows'][0];
+
+        $this->assertSame('Helps digestion', $row['efficacy']);
+        $this->assertSame('One spoon after food', $row['usage']);
+        $this->assertSame(Storage::disk('local')->path($stored), $row['image']);
+
+        App::setLocale('bn');
+        $bangla = (new StockPrintList)->build(new BranchScope(false, [$this->hub->id], $this->hub))['rows'][0];
+        $this->assertSame('খাবারের পর এক চামচ', $bangla['usage']);
     }
 
     public function test_the_size_in_the_name_moves_to_the_pack_size_column(): void
@@ -213,7 +242,10 @@ class StockPrintTest extends TestCase
     {
         $company = app(StockPrintPdf::class)->company();
 
-        $this->assertSame('+8801730532965, +8801730532966', $company['phones']);
+        $this->assertSame('+8801730532966', $company['whatsapp']);
+        $this->assertSame('+8801730532965', $company['mobile']);
+        $this->assertStringEndsWith('madina-header-logo.png', (string) $company['logo_path']);
+        $this->assertFileExists((string) $company['logo_path']);
         $this->assertSame('madinanaturalhealthcare@gmail.com', $company['email']);
         $this->assertSame('2026-00563', $company['licence']);
         $this->assertSame('BD-H-1-335903', $company['trademark']);
@@ -222,6 +254,49 @@ class StockPrintTest extends TestCase
         $changed = app(StockPrintPdf::class)->company();
         $this->assertSame('TL-9', $changed['licence']);
         $this->assertSame('BD-H-1-111111', $changed['trademark']);
+    }
+
+    public function test_the_whatsapp_line_follows_the_owners_whatsapp_link_not_the_last_digits(): void
+    {
+        SiteCustomization::save(['social_whatsapp' => 'https://wa.me/8801730532965?text=hello']);
+        $swapped = app(StockPrintPdf::class)->company();
+        $this->assertSame('+8801730532965', $swapped['whatsapp']);
+        $this->assertSame('+8801730532966', $swapped['mobile']);
+
+        SiteCustomization::save(['social_whatsapp' => 'https://wa.me/8801999999999']);
+        $unmatched = app(StockPrintPdf::class)->company();
+        $this->assertSame('+8801730532966', $unmatched['whatsapp']);
+        $this->assertSame('+8801730532965', $unmatched['mobile']);
+    }
+
+    public function test_a_big_product_photo_is_shrunk_so_the_pdf_stays_small_and_no_copy_is_left_behind(): void
+    {
+        Storage::fake('local');
+        $photo = $this->noisyPhoto();
+        Storage::disk('local')->put('product-media/images/big.jpg', $photo);
+        $product = $this->product(['name' => 'Photo Syrup', 'image_path' => 'product-media/images/big.jpg']);
+        $this->stockOf($product, $this->hub, 3, null);
+        $owner = User::factory()->staff()->create();
+
+        $response = app(StockPrintPdf::class)->download($owner, new BranchScope(false, [$this->hub->id], $this->hub));
+        $pdf = $response->getFile()->getPathname();
+
+        $this->assertGreaterThan(200_000, strlen($photo), 'The test photo has to be big to prove anything.');
+        $this->assertLessThan(strlen($photo), filesize($pdf), 'The PDF holds a small copy of the photo, not the whole file.');
+        $this->assertSame([], glob(dirname($pdf).'/stock-photo-*.jpg') ?: [], 'The small copies are deleted once the PDF is written.');
+    }
+
+    public function test_a_photo_that_cannot_be_read_is_left_out_and_the_pdf_still_prints(): void
+    {
+        Storage::fake('local');
+        Storage::disk('local')->put('product-media/images/broken.jpg', 'this is not a picture');
+        $product = $this->product(['name' => 'Broken Photo Syrup', 'image_path' => 'product-media/images/broken.jpg']);
+        $this->stockOf($product, $this->hub, 1, null);
+        $owner = User::factory()->staff()->create();
+
+        $response = app(StockPrintPdf::class)->download($owner, new BranchScope(false, [$this->hub->id], $this->hub));
+
+        $this->assertStringStartsWith('%PDF', (string) file_get_contents($response->getFile()->getPathname()));
     }
 
     public function test_both_languages_carry_the_same_keys_and_the_bangla_text_is_not_a_copy_of_the_english(): void
@@ -235,6 +310,24 @@ class StockPrintTest extends TestCase
             $this->assertMatchesRegularExpression('/\p{Bengali}/u', $bangla[$key], $key.' has no Bangla letters.');
         }
         $this->assertTrue(Lang::has('stock_print.button', 'en'));
+    }
+
+    /** A busy 1000 x 1000 picture that does not compress well, like a real photo of a bottle. */
+    private function noisyPhoto(): string
+    {
+        mt_srand(7);
+        $image = imagecreatetruecolor(1000, 1000);
+        imagefilledrectangle($image, 0, 0, 1000, 1000, (int) imagecolorallocate($image, 245, 245, 240));
+        for ($n = 0; $n < 260; $n++) {
+            imagefilledellipse($image, mt_rand(0, 1000), mt_rand(0, 1000), mt_rand(20, 300), mt_rand(20, 300), (int) imagecolorallocate($image, mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255)));
+        }
+        for ($n = 0; $n < 60000; $n++) {
+            imagesetpixel($image, mt_rand(0, 999), mt_rand(0, 999), (int) imagecolorallocate($image, mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255)));
+        }
+        ob_start();
+        imagejpeg($image, null, 85);
+
+        return (string) ob_get_clean();
     }
 
     /** @param  array<string, mixed>  $attributes */

@@ -29,4 +29,6 @@ return [
     'err_archived' => ':name আর্কাইভে আছে। আগে ফিরিয়ে আনুন।',
     'err_no_size_written' => ':name-এর প্যাক সাইজ লিখে আগে সংরক্ষণ করুন।',
     'err_size_repeated' => 'দুটি সাইজে একই :size লেখা থাকতে পারে না। আগে একটির প্যাক সাইজ বদলান।',
+    'package_size' => 'প্যাকেজ সাইজ',
+    'search_several' => ':count প্যাকেজ সাইজ',
 ];

@@ -161,6 +161,12 @@ class NetworkAndFinancePageScalingTest extends TestCase
         $this->assertCount(402, $more['dealers']);
         $this->assertFalse($more['dealers_truncated']);
         $this->assertNull($more['dealers_next_limit']);
+
+        $capped = $this->actingAs($owner)->onPortal('sadmin')
+            ->withHeaders(['X-Inertia' => 'true', 'X-Inertia-Version' => $this->inertiaVersion()])
+            ->get('/network-tree?tree_limit=999999')->assertOk()->json('props.data');
+        $this->assertSame(2500, $capped['dealers_limit'], 'Show every dealer asks for the whole tree, and the server still cuts a request to its limit.');
+        $this->assertCount(402, $capped['dealers']);
     }
 
     public function test_partner_home_team_sales_still_count_only_the_downline(): void

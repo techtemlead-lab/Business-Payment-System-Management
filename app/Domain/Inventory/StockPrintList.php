@@ -6,6 +6,7 @@ use App\Domain\Catalog\ProductSizeGroups;
 use App\Models\Product;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
 
 /**
@@ -18,7 +19,7 @@ final class StockPrintList
 {
     /**
      * @return array{
-     *     rows: list<array{serial: int, name: string, pack_size: ?string, category: ?string, mrp: ?string, dealer_discount: ?string, sub_dealer_discount: ?string}>
+     *     rows: list<array{serial: int, name: string, pack_size: ?string, category: ?string, mrp: ?string, dealer_discount: ?string, sub_dealer_discount: ?string, image: ?string, usage: ?string, efficacy: ?string}>
      * }
      */
     public function build(BranchScope $scope): array
@@ -29,7 +30,7 @@ final class StockPrintList
         }
 
         $entries = [];
-        foreach (Product::query()->whereIn('id', $productIds)->get(['id', 'name', 'strength', 'category', 'pack_size_en', 'pack_size_bn', 'mrp', 'dealer_price', 'sub_dealer_price']) as $product) {
+        foreach (Product::query()->whereIn('id', $productIds)->get(['id', 'name', 'strength', 'category', 'pack_size_en', 'pack_size_bn', 'mrp', 'dealer_price', 'sub_dealer_price', 'description', 'dose_bn', 'dose_en', 'image_path']) as $product) {
             [$name, $packSize] = StockPrintName::split($product->registerName(), ProductSizeGroups::label($product));
             $category = trim((string) $product->category);
             $entries[] = ['product' => $product, 'name' => $name, 'pack_size' => $packSize, 'category' => $category !== '' ? $category : null];
@@ -53,6 +54,9 @@ final class StockPrintList
                 'mrp' => $mrpCents > 0 ? Money::decimal($mrpCents) : null,
                 'dealer_discount' => $this->discount($product, $product->dealer_price),
                 'sub_dealer_discount' => $this->discount($product, $product->sub_dealer_price),
+                'image' => $this->imagePath($product),
+                'usage' => $this->localizedFact($product, 'dose'),
+                'efficacy' => $this->plainText($product->description),
             ];
         }
 
@@ -86,6 +90,39 @@ final class StockPrintList
         array_push($ids, ...array_map('intval', $unlotted->pluck('product_id')->all()));
 
         return array_values(array_unique($ids));
+    }
+
+    /** The saved product photo, as a file this server can embed in the PDF. */
+    private function imagePath(Product $product): ?string
+    {
+        $relative = $product->image_path;
+        if (! is_string($relative) || $relative === '') {
+            return null;
+        }
+        $path = Storage::disk('local')->path($relative);
+
+        return is_file($path) ? $path : null;
+    }
+
+    /** Bangla first on a Bangla page, then English, for a fact stored in both languages. */
+    private function localizedFact(Product $product, string $field): ?string
+    {
+        $languages = app()->getLocale() === 'bn' ? ['bn', 'en'] : ['en', 'bn'];
+        foreach ($languages as $language) {
+            $text = $this->plainText($product->getAttribute($field.'_'.$language));
+            if ($text !== null) {
+                return $text;
+            }
+        }
+
+        return null;
+    }
+
+    private function plainText(mixed $value): ?string
+    {
+        $text = trim(strip_tags((string) $value));
+
+        return $text === '' ? null : $text;
     }
 
     private function cents(mixed $amount): int

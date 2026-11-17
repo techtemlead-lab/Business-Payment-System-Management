@@ -86,6 +86,8 @@ export default function ProductCreateModal({
     const [subcategoryId, setSubcategoryId] = useState('');
     const [unitId, setUnitId] = useState('');
     const [strength, setStrength] = useState('');
+    const [manufacturerBn, setManufacturerBn] = useState('');
+    const [manufacturerEn, setManufacturerEn] = useState('');
     const [description, setDescription] = useState('');
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [cutoutFile, setCutoutFile] = useState<File | null>(null);
@@ -133,6 +135,8 @@ export default function ProductCreateModal({
         setSubcategoryId('');
         setUnitId('');
         setStrength('');
+        setManufacturerBn('');
+        setManufacturerEn('');
         setDescription('');
         setImageFile(null);
         setCutoutFile(null);
@@ -254,6 +258,17 @@ export default function ProductCreateModal({
             setErrorMsg(translate('portal', 'pcm_err_subdealer'));
             return;
         }
+        // The server keeps a dealer or sub-dealer price only when it is at most 80% of the MRP.
+        const dealerOff = Number.isNaN(dealerRate) ? parseFloat(percentFromPrice(mrp, dealerPrice)) : dealerRate;
+        const subOff = Number.isNaN(subRate) ? parseFloat(percentFromPrice(mrp, subDealerPrice)) : subRate;
+        if (!Number.isFinite(dealerOff) || dealerOff < 20) {
+            setErrorMsg(translate('portal', 'err_dealer_discount_too_small'));
+            return;
+        }
+        if (!Number.isFinite(subOff) || subOff < 20) {
+            setErrorMsg(translate('portal', 'err_sub_dealer_discount_too_small'));
+            return;
+        }
 
         const subcategory = subcategories.find((item) => String(item.id) === subcategoryId);
         const unit = activeUnits.find((item) => String(item.id) === unitId);
@@ -267,6 +282,8 @@ export default function ProductCreateModal({
         formData.append('unit', unit?.name ?? '');
         formData.append('product_unit_id', unitId);
         formData.append('strength', strength.trim());
+        formData.append('manufacturer_bn', manufacturerBn.trim());
+        formData.append('manufacturer_en', manufacturerEn.trim());
         formData.append('description', description.trim());
         formData.append('mrp', retail.toFixed(2));
         formData.append('dealer_price', dealer.toFixed(2));
@@ -370,6 +387,14 @@ export default function ProductCreateModal({
                             <label className="pcm-field">
                                 <span>{translate('portal', 'pcm_strength')}</span>
                                 <input value={strength} placeholder={translate('portal', 'pcm_strength_ph')} onChange={(event) => setStrength(event.target.value)} />
+                            </label>
+                            <label className="pcm-field">
+                                <span>{translate('product_facts', 'field_manufacturer')} ({translate('product_facts', 'column_bn')})</span>
+                                <input value={manufacturerBn} maxLength={200} onChange={(event) => setManufacturerBn(event.target.value)} />
+                            </label>
+                            <label className="pcm-field">
+                                <span>{translate('product_facts', 'field_manufacturer')} ({translate('product_facts', 'column_en')})</span>
+                                <input value={manufacturerEn} maxLength={200} onChange={(event) => setManufacturerEn(event.target.value)} />
                             </label>
                             {choice('category', translate('portal', 'pcm_category'), categoryId, activeCategories, (value) => {
                                 setCategoryId(value);

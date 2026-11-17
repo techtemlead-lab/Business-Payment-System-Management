@@ -6779,4 +6779,5 @@ return [
     'rpt_col_delivered_value' => 'Value of delivered goods (৳)',
     'order_footer_counted' => 'Delivered goods only',
     'team_orders_counted_note' => 'Ordered and Paid count delivered goods only, and only the delivered part of a partly delivered order.',
+    'net_show_all' => 'Show every dealer',
 ];

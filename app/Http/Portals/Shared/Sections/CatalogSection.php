@@ -4,6 +4,7 @@ namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Catalog\CatalogTaxonomy;
 use App\Domain\Catalog\HomePageOrder;
+use App\Domain\Catalog\ProductFacts;
 use App\Domain\Catalog\ProductPageAccess;
 use App\Domain\Catalog\ProductRemoval;
 use App\Domain\Catalog\ProductSizeGroups;
@@ -55,7 +56,10 @@ final class CatalogSection implements WorkspaceSection
             ->when($context->section === 'catalog' && $request->string('availability')->toString() === 'draft', fn ($q) => $q->where('active', false)->whereNull('archived_at'))
             ->when($context->section === 'catalog' && $request->string('availability')->toString() === 'in_stock', fn ($q) => $q->whereSellable()->where(fn ($stock) => $stock->where('is_stock_paused', false)->orWhereNull('is_stock_paused')))
             ->when($context->section === 'catalog' && $request->string('availability')->toString() === 'out_of_stock', fn ($q) => $q->where(fn ($stock) => $stock->whereNotSellable()->orWhere('is_stock_paused', true)))
-            ->when($context->section === 'catalog', fn ($q) => $this->sortCatalog($q, $request), fn ($q) => $q->orderBy('name'));
+            ->when($context->section === 'catalog', fn ($q) => $this->sortCatalog($q, $request), fn ($q) => $q->orderBy('name'))
+            // Package sizes of one product share a name, and without a last sort key the database
+            // may return them in any order, and a staff page can repeat or skip one between pages.
+            ->orderBy('products.id');
         $revealStock = ! $context->isStaff || $user->allows('inventory');
         $stagesByProduct = [];
         $removalByProduct = [];
@@ -97,6 +101,9 @@ final class CatalogSection implements WorkspaceSection
             $base = [...$p->only(['id', 'sku', 'name', 'category', 'sub_category', 'strength', 'description', 'unit', 'mrp', 'active', 'featured', 'tone', 'is_stock_paused']), 'archived' => $p->isArchived(), 'stock_status' => $p->stockStatus(), ...$p->media(), 'image_fallback' => $p->image_path ? null : StockImage::forCategory($p->category, $p->name), ...($user->allows('cost_read') ? ['cost_price' => $p->cost_price] : [])];
             if (isset($sizePositions[$p->id])) {
                 $base += ['size_group_id' => (int) $p->product_group_id, 'size_label' => ProductSizeGroups::buttonLabel($p), 'size_position' => $sizePositions[$p->id]];
+            }
+            if ($context->isStaff && $context->section === 'catalog') {
+                $base['manufacturer'] = ProductFacts::forPublic($p)['manufacturer'];
             }
             if (! $context->isStaff) {
                 try {

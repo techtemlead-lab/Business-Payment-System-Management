@@ -392,17 +392,37 @@ class ProductSizeGroupsTest extends TestCase
         }
     }
 
+    public function test_sizes_with_the_same_name_keep_one_order_even_after_the_first_one_is_edited(): void
+    {
+        [$small, $medium] = $this->group(
+            $this->sized('Syrup Order', '100 ml', '100.00', ['dealer_price' => '60.00']),
+            $this->sized('Syrup Order', '300 ml', '250.00', ['dealer_price' => '150.00']),
+        );
+        $small->update(['description' => 'Edited after the larger size was saved, so the database may hand it back last.']);
+        $dealer = User::factory()->dealer()->create(['status' => 'active']);
+
+        $this->actingAs($dealer)->onPortal('dealer')->get('/purchase')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.products.0.id', $small->id)
+            ->where('data.products.1.id', $medium->id));
+    }
+
     public function test_office_list_shows_the_size_label_only_on_grouped_products(): void
     {
         $owner = $this->owner();
-        [$small] = $this->group($this->sized('Syrup X', '100 ml', '100.00'), $this->sized('Syrup X', '300 ml', '250.00'));
+        [$small] = $this->group($this->sized('Syrup X', '100 ml', '100.00', [
+            'manufacturer_en' => 'Beximco',
+            'manufacturer_bn' => 'বেক্সিমকো',
+        ]), $this->sized('Syrup X', '300 ml', '250.00'));
         $plain = $this->sized('Zinc Plain', '30 tablets', '90.00');
 
         $this->actingAs($owner)->onPortal('sadmin')->get('/catalog')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('data.products', function ($products) use ($small, $plain): bool {
                 $rows = collect($products)->keyBy('id');
 
-                return $rows[$small->id]['size_label'] === '100 ml' && ! isset($rows[$plain->id]['size_label']);
+                return $rows[$small->id]['size_label'] === '100 ml'
+                    && $rows[$small->id]['manufacturer'] === 'Beximco'
+                    && $rows[$plain->id]['manufacturer'] === null
+                    && ! isset($rows[$plain->id]['size_label']);
             }));
     }
 

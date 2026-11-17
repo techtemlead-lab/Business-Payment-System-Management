@@ -187,6 +187,11 @@ export default function ProductManagementHub({
                 </div>
             ),
         },
+        {
+            key: 'manufacturer',
+            title: translate('product_facts', 'field_manufacturer'),
+            render: (product) => (product.manufacturer ? String(product.manufacturer) : '—'),
+        },
         { key: 'mrp', title: t('mrp'), sortKey: 'mrp', money: true, phone: 'hide' },
         ...(showsChannelPrices ? [{
             key: 'dealer_price',

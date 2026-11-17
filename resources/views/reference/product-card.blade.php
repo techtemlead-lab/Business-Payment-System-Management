@@ -20,6 +20,8 @@
     $displayMrp = $priceWords($item['mrp'] ?? '0');
     $isFeatured = !empty($item['featured']);
     $sizes = $item['sizes'] ?? [];
+    $imageLoading = ($imageLoading ?? 'lazy') === 'eager' ? 'eager' : 'lazy';
+    $imagePriority = (bool) ($imagePriority ?? false);
 @endphp
 <article class="ref-product-card"
     data-category="{{ $catSlug }}"
@@ -35,9 +37,9 @@
     {{-- The picture stands alone on a bright panel: no shadow, overlay or badge on top of it. --}}
     <a class="ref-card-picture{{ $hasCustomImage ? '' : ' is-stock' }}" href="{{ $item['url'] }}" aria-label="{{ $item['name'] }}">
         @if($hasCustomImage)
-            <img src="{{ $imageSrc }}" alt="{{ $item['name'] }}" loading="lazy" decoding="async">
+            <img src="{{ $imageSrc }}" alt="{{ $item['name'] }}" loading="{{ $imageLoading }}" @if($imagePriority) fetchpriority="high" @endif decoding="async">
         @else
-            <img src="{{ $stockImage['url'] }}" alt="{{ $stockImage['alt'] }}" width="{{ $stockImage['width'] }}" height="{{ $stockImage['height'] }}" loading="lazy" decoding="async">
+            <img src="{{ $stockImage['url'] }}" alt="{{ $stockImage['alt'] }}" width="{{ $stockImage['width'] }}" height="{{ $stockImage['height'] }}" loading="{{ $imageLoading }}" @if($imagePriority) fetchpriority="high" @endif decoding="async">
         @endif
     </a>
     @if($sizes !== [])

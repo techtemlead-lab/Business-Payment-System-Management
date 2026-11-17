@@ -287,7 +287,7 @@ function initCounters(): void {
  * This module is imported first, so the tags are in place before that code reads them.
  */
 function tagRevealGroups(): void {
-    const groups = ['.ref-product-grid', '.ref-testimonials-grid:not(.is-marquee)', '.ref-video-gallery-grid', '.ref-product-highlights-grid', '.ref-trust-pillars-inner', '.ref-role-selector'];
+    const groups = ['.ref-product-grid:not(#refProductGrid)', '.ref-testimonials-grid:not(.is-marquee)', '.ref-video-gallery-grid', '.ref-product-highlights-grid', '.ref-trust-pillars-inner', '.ref-role-selector'];
     groups.forEach((selector) => {
         document.querySelectorAll<HTMLElement>(selector).forEach((group) => {
             [...group.children].forEach((child, index) => {
