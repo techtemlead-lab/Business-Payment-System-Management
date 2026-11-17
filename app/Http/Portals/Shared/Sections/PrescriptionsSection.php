@@ -173,8 +173,8 @@ final class PrescriptionsSection implements WorkspaceSection
         return ['prescriptions' => $payload];
     }
 
-     * The prescriber's letterhead, read from the letterhead settings.
-     * settings page has been built and filled in.
+    /**
+     * The prescriber's letterhead (header, footer, logo) for the writing screen.
      *
      * @return array<string, mixed>
      */
