@@ -92,7 +92,7 @@ final class OpeningBalanceImport
             if ($batch->type === 'opening_balances') {
                 $this->assertOpeningAllowed();
                 if ($batch->created_by === $actor->id) {
-                    app(SelfApproval::class)->authorizeAlone($actor, 'import', __('portal.err_import_separate_reviewer'), $confirmedAlone, $reason, [$batch->created_by]);
+                    app(SelfApproval::class)->finishOwnStep($actor, 'import', __('portal.err_import_separate_reviewer'));
                     $selfApproved = true;
                 }
             }
@@ -124,7 +124,7 @@ final class OpeningBalanceImport
             if ($batch->type === 'opening_balances') {
                 $this->assertOpeningAllowed();
                 if ($batch->created_by === $actor->id) {
-                    app(SelfApproval::class)->authorizeAlone($actor, 'import', __('portal.err_import_separate_reviewer'), $confirmedAlone, $reason, [$batch->created_by]);
+                    app(SelfApproval::class)->finishOwnStep($actor, 'import', __('portal.err_import_separate_reviewer'));
                     $selfApproved = true;
                 }
             }

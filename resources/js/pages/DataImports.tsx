@@ -30,7 +30,7 @@ export default function DataImports({ types, batches, preview, openingLocked, ca
     const upload = useForm<{ type: string; source_reference: string; file: File | null }>({
         type: types[0]?.key ?? '', source_reference: '', file: null,
     });
-    const apply = useForm({ reason: '', confirmed: false, self_approve: false });
+    const apply = useForm({ reason: '', confirmed: false });
     const selectedType = types.find((type: Row) => type.key === upload.data.type);
     const isOpening = preview?.type === 'opening_balances';
     const ownOpening = isOpening && preview.created_by === auth.user.id;
@@ -111,7 +111,6 @@ export default function DataImports({ types, batches, preview, openingLocked, ca
                 }}>
                     {applyReason.shown && <label>{applyReason.label(translate('portal','imp_review_notes'))}<textarea required={applyReason.required} minLength={applyReason.required ? 5 : undefined} maxLength={1000} rows={3} value={apply.data.reason} onChange={event => apply.setData('reason', event.target.value)} /></label>}
                     <label className="import-confirmation"><input type="checkbox" required checked={apply.data.confirmed} onChange={event => apply.setData('confirmed', event.target.checked)} /> {translate('portal','imp_confirm')}</label>
-                    {ownOpening && <label className="import-confirmation"><input type="checkbox" required checked={apply.data.self_approve} onChange={event => apply.setData('self_approve', event.target.checked)} /> {translate('self_approval','confirm_label')}</label>}
                     {Object.keys(apply.errors).length > 0 && <p role="alert" className="error">{Object.values(apply.errors).join(' ')}</p>}
                     <button className="button dark set-save" disabled={apply.processing}>{apply.processing ? translate('portal','imp_applying') : isOpening ? translate('portal','imp_approve_opening') : translate('portal','imp_import_records')}</button>
                 </form></div>}

@@ -132,7 +132,7 @@ final class FinancialReadiness
             }
             $selfApproved = $row->created_by === $actor->id;
             if ($selfApproved) {
-                app(SelfApproval::class)->authorizeAlone($actor, 'balances', __('portal.err_ready_separate_verify'), $confirmedAlone, $reason, [$row->created_by]);
+                app(SelfApproval::class)->finishOwnStep($actor, 'balances', __('portal.err_ready_separate_verify'));
             }
             if ($row->fingerprint !== $this->inspect()['fingerprint']) {
                 throw ValidationException::withMessages(['balances' => __('self_approval.err_snapshot_changed')]);

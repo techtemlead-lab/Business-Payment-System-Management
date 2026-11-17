@@ -159,7 +159,7 @@ return [
     'financial_activation_gates_s1' => 'Know the two switches: trial mode and live money records (plus the separate auto-release setting).',
     'financial_activation_gates_s2' => 'While live money records are off, the calculator and many dealer pages still work, but no real amounts to pay or earnings are created.',
     'financial_activation_gates_s3' => 'Run the system readiness checks before deciding to go live.',
-    'financial_activation_gates_s4' => 'Have the opening balances and commission rules checked by a second accounts person when one is available. If there are no old balances, the owner can choose a fresh start.',
+    'financial_activation_gates_s4' => 'The owner can check the opening balances and commission rules alone; no second person is needed. Staff who prepare them need the owner or another approver to check. If there are no old balances, the owner can choose a fresh start.',
     'financial_activation_gates_s5' => 'Turn on live money records only from the controlled go-live settings, not by quick changes on the server.',
     'financial_activation_gates_s6' => 'Tell partners about the start through a circular with the exact date and time.',
     'financial_activation_gates_s7' => 'Watch the account books and payments closely on the first day.',
