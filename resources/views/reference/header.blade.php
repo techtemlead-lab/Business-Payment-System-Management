@@ -146,7 +146,7 @@
 <aside id="refMobileDrawer" class="ref-mobile-drawer" aria-hidden="true" aria-label="{{ __('site.mobile_nav_drawer') }}">
     <div class="ref-mobile-drawer-header">
         <a href="/" class="ref-mobile-drawer-logo">
-            <img src="{{ \App\Support\SiteCustomization::whiteLogoUrl() }}" alt="{{ \App\Support\SiteCustomization::brandName() }}" class="ref-mobile-drawer-logo-img" width="160" height="40" decoding="async">
+            <img src="{{ \App\Support\SiteCustomization::whiteLogoUrl() }}" alt="{{ \App\Support\SiteCustomization::brandName() }}" class="ref-mobile-drawer-logo-img" width="92" height="92" decoding="async">
         </a>
         <button type="button" class="ref-mobile-drawer-close" id="refMobileDrawerClose" aria-label="{{ __('site.close_menu') }}">
             <i class="fa-solid fa-xmark" aria-hidden="true"></i>
