@@ -24,7 +24,13 @@ final class DoseSchedule
     /** @var list<string> */
     private const Slots = ['morning', 'noon', 'night'];
 
-    /** Three amounts joined by "+", with at least one above zero. */
+    /** The most one slot may hold when counted with the notepad's up/down arrows. */
+    public const MaxWholeAmount = 20;
+
+    /**
+     * Three amounts joined by "+", with at least one above zero. An amount is a whole number
+     * from 0 to 20 (the notepad's arrows) or one of the older fractions such as ½.
+     */
     public static function isValid(string $schedule): bool
     {
         $parts = explode('+', $schedule);
@@ -32,7 +38,8 @@ final class DoseSchedule
             return false;
         }
         foreach ($parts as $part) {
-            if (! in_array($part, self::Amounts, true)) {
+            $whole = preg_match('/^(0|[1-9]\d?)$/', $part) === 1 && (int) $part <= self::MaxWholeAmount;
+            if (! $whole && ! in_array($part, self::Amounts, true)) {
                 return false;
             }
         }

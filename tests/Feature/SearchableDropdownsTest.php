@@ -25,7 +25,8 @@ class SearchableDropdownsTest extends TestCase
     {
         return [
             'prescription: clinic product and dispense branch' => ['components/PrescriptionsHub.tsx', 2],
-            'prescription: patient and place codes' => ['components/PrescriptionPatientStep.tsx', 2],
+            // The place-code pickers were removed (address is free text), so only the patient search remains.
+            'prescription: patient search' => ['components/PrescriptionPatientStep.tsx', 1],
             'prescription: medicine template' => ['components/PrescriptionTemplates.tsx', 1],
             'prescription: food template' => ['components/PrescriptionExtras.tsx', 1],
             'account opening: division, district, upazila, union, sponsor' => ['pages/AccountCreate.tsx', 5],

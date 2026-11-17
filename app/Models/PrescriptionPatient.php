@@ -22,6 +22,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property int|null $place_code_id
  * @property string|null $notes
  * @property string|null $allergies
+ * @property string|null $address_text
+ * @property string|null $patient_code
  */
 class PrescriptionPatient extends Model
 {
@@ -30,12 +32,18 @@ class PrescriptionPatient extends Model
 
     public const Sexes = ['male', 'female', 'other'];
 
-    protected $fillable = ['prescriber_id', 'name', 'age', 'sex', 'phone', 'place_code_id', 'notes', 'allergies'];
+    protected $fillable = ['prescriber_id', 'name', 'age', 'sex', 'phone', 'place_code_id', 'notes', 'allergies', 'address_text', 'patient_code'];
 
     /** @return array<string, string> */
     protected function casts(): array
     {
-        return ['age' => 'integer', 'phone' => 'encrypted', 'notes' => 'encrypted', 'allergies' => 'encrypted'];
+        return ['age' => 'integer', 'phone' => 'encrypted', 'notes' => 'encrypted', 'allergies' => 'encrypted', 'address_text' => 'encrypted'];
+    }
+
+    /** The patient number shown on the notepad; a patient saved before numbers existed shows the record id. */
+    public function displayCode(): string
+    {
+        return $this->patient_code ?? (string) $this->id;
     }
 
     /** @return BelongsTo<User, $this> */
