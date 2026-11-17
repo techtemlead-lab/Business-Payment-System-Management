@@ -6,6 +6,7 @@ use App\Domain\Finance\Percentage;
 use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\StockLots;
 use App\Models\Prescription;
+use App\Models\Product;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
@@ -108,6 +109,7 @@ final class ClinicDispensing
         string $paymentMethod = Prescription::PaymentCash,
         ?string $paymentReference = null,
         bool $confirmBelowFloor = false,
+        array $links = [],
     ): Prescription {
         abort_unless(PrescriptionAccess::usesCompanyStock($actor), 403);
         abort_unless($prescription->kind === Prescription::KindClinic, 422, __('prescription.err_not_clinic'));
@@ -115,12 +117,13 @@ final class ClinicDispensing
         $branch = $this->branches->resolveWritableBranch($actor, $branchId);
         $reference = filled($paymentReference) ? trim($paymentReference) : null;
 
-        return DB::transaction(function () use ($actor, $prescription, $branch, $paymentMethod, $reference, $confirmBelowFloor): Prescription {
+        return DB::transaction(function () use ($actor, $prescription, $branch, $paymentMethod, $reference, $confirmBelowFloor, $links): Prescription {
             $locked = Prescription::query()->whereKey($prescription->id)->lockForUpdate()->firstOrFail();
             if ($locked->status === Prescription::StatusDispensed) {
                 throw ValidationException::withMessages(['prescription' => __('prescription.err_already_dispensed')]);
             }
             $locked->load('lines');
+            $this->linkLines($locked, $links);
             // Only company products leave stock; a medicine typed by hand is bought elsewhere.
             $stockLines = $locked->lines->whereNotNull('product_id');
             if ($stockLines->isEmpty()) {
@@ -183,6 +186,49 @@ final class ClinicDispensing
 
             return $locked->refresh();
         });
+    }
+
+    /**
+     * Links medicines the doctor wrote as free text to company products, with the quantity and
+     * the price the owner sets, so they can leave stock. Only lines of this prescription that
+     * are not yet linked can be linked, and the typed name stays as written.
+     *
+     * @param  array<int|string, array{product_id: int|string, quantity: int|string, unit_price: string|float|int, discount?: string|float|int|null}>  $links  Keyed by prescription line id.
+     */
+    private function linkLines(Prescription $prescription, array $links): void
+    {
+        foreach ($links as $lineId => $link) {
+            $line = $prescription->lines->firstWhere('id', (int) $lineId);
+            if ($line === null || $line->product_id !== null) {
+                throw ValidationException::withMessages(['links' => __('prescription_notepad.err_link_line')]);
+            }
+            $product = Product::query()->where('active', true)->find((int) $link['product_id']);
+            if ($product === null) {
+                throw ValidationException::withMessages(['links' => __('prescription_notepad.err_link_product')]);
+            }
+            $quantity = (int) $link['quantity'];
+            $unit = Money::cents(number_format((float) $link['unit_price'], 2, '.', ''));
+            $discount = Money::cents(number_format((float) ($link['discount'] ?? 0), 2, '.', ''));
+            if ($discount > $unit * $quantity) {
+                throw ValidationException::withMessages(['links' => __('prescription.err_discount_too_big')]);
+            }
+            $line->forceFill([
+                'product_id' => $product->id,
+                'quantity' => $quantity,
+                'unit_price' => Money::decimal($unit),
+                'discount' => Money::decimal($discount),
+                'line_total' => Money::decimal($unit * $quantity - $discount),
+                'mrp' => Money::decimal(Money::cents((string) $product->mrp)),
+            ])->save();
+        }
+        if ($links !== []) {
+            $lines = $prescription->lines;
+            $prescription->forceFill([
+                'subtotal' => Money::decimal($lines->sum(fn ($line): int => Money::cents((string) $line->unit_price) * (int) $line->quantity)),
+                'discount_total' => Money::decimal($lines->sum(fn ($line): int => Money::cents((string) $line->discount))),
+                'total' => Money::decimal($lines->sum(fn ($line): int => Money::cents((string) $line->line_total))),
+            ])->save();
+        }
     }
 
     /**
