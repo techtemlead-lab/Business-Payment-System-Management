@@ -63,7 +63,7 @@ final class PrescriptionLetterhead
         $row = LetterheadRow::query()->where('user_id', $prescriber->id)->first();
         $values = [];
         foreach ($this->keys() as $key) {
-            $values[$key] = (string) ($row?->{$key} ?? '');
+            $values[$key] = $row === null ? '' : (string) $row->{$key};
         }
 
         return [
@@ -204,14 +204,14 @@ final class PrescriptionLetterhead
         $defaults = $this->defaults($prescriber);
         $out = [];
         foreach ($this->keys() as $key) {
-            $own = trim((string) ($row?->{$key} ?? ''));
+            $own = $row === null ? '' : trim((string) $row->{$key});
             $out[$key] = $own !== '' ? $own : ($defaults[$key] ?? '');
         }
 
         return $out;
     }
 
-    private function logoUrl(User $prescriber): ?string
+    private function logoUrl(User $prescriber): string
     {
         if ($this->ownLogoPath($prescriber) !== null) {
             $row = LetterheadRow::query()->where('user_id', $prescriber->id)->first(['updated_at']);
