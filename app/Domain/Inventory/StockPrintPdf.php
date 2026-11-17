@@ -99,7 +99,7 @@ final class StockPrintPdf
         if (! is_file($logoPath)) {
             $logoPath = public_path('branding/madina-logo-latest.png');
         }
-        $phones = $this->letterheadPhones($letterhead('contact_phone'), SiteCustomization::secondPhone());
+        $phones = $this->letterheadPhones($letterhead('contact_phone'), SiteCustomization::secondPhone(), $letterhead('social_whatsapp'));
 
         return [
             'name' => $letterhead('contact_company_title'),
@@ -114,25 +114,36 @@ final class StockPrintPdf
     }
 
     /**
-     * WhatsApp is the number ending in 66. The other number is the mobile line.
+     * The WhatsApp line is the website number that matches the owner's WhatsApp link, or the first
+     * number when none matches. The other number is the mobile line.
      *
      * @return array{whatsapp: string, mobile: string}
      */
-    private function letterheadPhones(string $primary, ?string $second): array
+    private function letterheadPhones(string $primary, ?string $second, string $whatsappLink): array
     {
-        $digits = static fn (string $number): string => (string) preg_replace('/\D/', '', $number);
-        $second = trim((string) $second);
-        $primaryDigits = $digits($primary);
-        $secondDigits = $digits($second);
-        $whatsappSource = str_ends_with($secondDigits, '66') && ! str_ends_with($primaryDigits, '66') ? $second : $primary;
-        $mobileSource = $digits($whatsappSource) === $primaryDigits ? $second : $primary;
-        if ($mobileSource !== '' && $digits($mobileSource) === $digits($whatsappSource)) {
-            $mobileSource = '';
+        $tail = static fn (string $number): string => substr((string) preg_replace('/\D/', '', $number), -10);
+        $numbers = array_values(array_filter([trim($primary), trim((string) $second)], static fn (string $number): bool => $number !== ''));
+        $linkTail = $tail((string) strtok($whatsappLink, '?'));
+
+        $whatsapp = $numbers[0] ?? '';
+        foreach ($numbers as $number) {
+            if ($linkTail !== '' && $tail($number) === $linkTail) {
+                $whatsapp = $number;
+                break;
+            }
+        }
+
+        $mobile = '';
+        foreach ($numbers as $number) {
+            if ($tail($number) !== $tail($whatsapp)) {
+                $mobile = $number;
+                break;
+            }
         }
 
         return [
-            'whatsapp' => $this->phoneForLetterhead($whatsappSource),
-            'mobile' => $this->phoneForLetterhead($mobileSource),
+            'whatsapp' => $this->phoneForLetterhead($whatsapp),
+            'mobile' => $this->phoneForLetterhead($mobile),
         ];
     }
 }

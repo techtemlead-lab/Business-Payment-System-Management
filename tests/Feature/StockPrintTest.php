@@ -256,6 +256,19 @@ class StockPrintTest extends TestCase
         $this->assertSame('BD-H-1-111111', $changed['trademark']);
     }
 
+    public function test_the_whatsapp_line_follows_the_owners_whatsapp_link_not_the_last_digits(): void
+    {
+        SiteCustomization::save(['social_whatsapp' => 'https://wa.me/8801730532965?text=hello']);
+        $swapped = app(StockPrintPdf::class)->company();
+        $this->assertSame('+8801730532965', $swapped['whatsapp']);
+        $this->assertSame('+8801730532966', $swapped['mobile']);
+
+        SiteCustomization::save(['social_whatsapp' => 'https://wa.me/8801999999999']);
+        $unmatched = app(StockPrintPdf::class)->company();
+        $this->assertSame('+8801730532966', $unmatched['whatsapp']);
+        $this->assertSame('+8801730532965', $unmatched['mobile']);
+    }
+
     public function test_both_languages_carry_the_same_keys_and_the_bangla_text_is_not_a_copy_of_the_english(): void
     {
         $english = require lang_path('en/stock_print.php');
