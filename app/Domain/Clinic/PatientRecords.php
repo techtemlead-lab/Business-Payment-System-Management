@@ -103,7 +103,7 @@ final class PatientRecords
      * are left out on purpose: they belong to one visit. The food lists are kept, because a
      * diet usually goes on.
      *
-     * @return array{patient: array{id: int, name: string, age: int|null, allergies: string|null}, draft: array{number: string, prescribed_on: string, diagnosis: string|null, advice: string|null, foods_allowed: list<string>, foods_avoided: list<string>, lines: list<array<string, mixed>>}|null}
+     * @return array{patient: array{id: int, name: string, age: int|null, sex: string|null, address: string|null, code: string, phone: string|null, allergies: string|null}, draft: array{number: string, prescribed_on: string, diagnosis: string|null, advice: string|null, foods_allowed: list<string>, foods_avoided: list<string>, lines: list<array<string, mixed>>}|null}
      */
     public function repeatDraft(User $viewer, PrescriptionPatient $patient): array
     {
@@ -111,7 +111,7 @@ final class PatientRecords
         $last = $this->newestFirst($viewer, $patient)->with('lines')->first();
 
         return [
-            'patient' => ['id' => $patient->id, 'name' => $patient->name, 'age' => $patient->age, 'allergies' => $patient->allergies],
+            'patient' => ['id' => $patient->id, 'name' => $patient->name, 'age' => $patient->age, 'sex' => $patient->sex, 'address' => $patient->address_text, 'code' => $patient->displayCode(), 'phone' => $patient->phone, 'allergies' => $patient->allergies],
             'draft' => $last === null ? null : [
                 'number' => $last->number,
                 'prescribed_on' => $last->prescribed_on->toDateString(),

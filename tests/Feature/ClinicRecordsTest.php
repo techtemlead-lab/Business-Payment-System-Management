@@ -193,7 +193,7 @@ class ClinicRecordsTest extends TestCase
         return [
             'two parts only' => [['dose_schedule' => '1+0'], 'lines.0.dose_schedule'],
             'all zero' => [['dose_schedule' => '0+0+0'], 'lines.0.dose_schedule'],
-            'made-up amount' => [['dose_schedule' => '9+0+1'], 'lines.0.dose_schedule'],
+            'amount over the limit of 20' => [['dose_schedule' => '21+0+1'], 'lines.0.dose_schedule'],
             'unknown food timing' => [['food_timing' => 'during'], 'lines.0.food_timing'],
             'length without a unit' => [['duration_count' => 7], 'lines.0.duration_unit'],
             'unit without a length' => [['duration_unit' => 'day'], 'lines.0.duration_count'],

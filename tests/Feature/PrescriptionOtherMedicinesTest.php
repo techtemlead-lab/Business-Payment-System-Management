@@ -147,7 +147,7 @@ class PrescriptionOtherMedicinesTest extends TestCase
         $this->assertSame(0, Prescription::query()->count());
     }
 
-    public function test_a_medicine_row_with_a_dose_but_no_product_is_still_refused(): void
+    public function test_a_medicine_row_with_a_dose_but_no_name_is_refused(): void
     {
         [$dealer, $patient] = $this->dealerWithPatient();
 
@@ -156,12 +156,14 @@ class PrescriptionOtherMedicinesTest extends TestCase
             'prescribed_on' => '2026-11-13',
             'advice' => 'Rest and drink water',
             'lines' => [[...$this->blankMedicineRow(), 'dose' => '1+0+1']],
-        ])->assertSessionHasErrors(['lines.0.product_id' => __('prescription.err_product_required')]);
+        ])->assertSessionHasErrors(['lines.0.medicine_name' => __('prescription.err_medicine_required')]);
 
         $this->assertSame(0, Prescription::query()->count());
     }
 
-    public function test_a_hand_typed_medicine_is_refused_while_the_switch_is_off(): void
+    // Owner decision 2026-11-17: the notepad writes every medicine as free text, so the old switch no longer
+    // blocks a hand-typed one. This test used to expect a refusal while the switch was off.
+    public function test_a_hand_typed_medicine_is_saved_even_while_the_old_switch_is_off(): void
     {
         [$dealer, $patient] = $this->dealerWithPatient();
 
@@ -169,9 +171,9 @@ class PrescriptionOtherMedicinesTest extends TestCase
             'patient_id' => $patient->id,
             'prescribed_on' => '2026-11-13',
             'lines' => [['medicine_name' => 'Napa 500', 'unit_price' => '2.50', 'quantity' => 10]],
-        ])->assertSessionHasErrors(['lines.0.medicine_name' => __('prescription.err_other_medicine_off')]);
+        ])->assertRedirect()->assertSessionHasNoErrors();
 
-        $this->assertSame(0, Prescription::query()->count());
+        $this->assertSame(1, Prescription::query()->count());
     }
 
     public function test_a_dealer_prescribes_a_company_product_at_their_own_price_without_touching_stock(): void
@@ -207,7 +209,7 @@ class PrescriptionOtherMedicinesTest extends TestCase
             'patient_id' => $patient->id,
             'prescribed_on' => '2026-11-13',
             'lines' => [['product_id' => $retired->id, 'unit_price' => '10', 'quantity' => 1]],
-        ])->assertSessionHasErrors(['lines.0.product_id' => __('prescription.err_product_required')]);
+        ])->assertSessionHasErrors(['lines.0.medicine_name' => __('prescription.err_medicine_required')]);
 
         $this->assertSame(0, Prescription::query()->count());
     }
@@ -379,7 +381,7 @@ class PrescriptionOtherMedicinesTest extends TestCase
         $this->assertSame($movementsBefore, DB::table('stock_movements')->count());
     }
 
-    public function test_turning_the_switch_off_keeps_old_prescriptions_readable_and_refuses_new_hand_typed_medicines(): void
+    public function test_turning_the_switch_off_changes_nothing_for_old_or_new_hand_typed_medicines(): void
     {
         [$dealer, $patient] = $this->dealerWithPatient();
         $owner = User::factory()->staff('super_admin')->create();
@@ -395,7 +397,7 @@ class PrescriptionOtherMedicinesTest extends TestCase
         $this->actingAs($dealer)->onPortal('dealer')->get('/prescriptions/'.$old->id.'/print?lang=en')->assertOk()->assertSee('Napa 500');
         $this->actingAs($dealer)->onPortal('dealer')
             ->post('/commands/prescriptions', ['patient_id' => $patient->id, 'prescribed_on' => '2026-11-13', 'lines' => [$line]])
-            ->assertSessionHasErrors('lines.0.medicine_name');
-        $this->assertSame(1, Prescription::query()->count());
+            ->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame(2, Prescription::query()->count());
     }
 }

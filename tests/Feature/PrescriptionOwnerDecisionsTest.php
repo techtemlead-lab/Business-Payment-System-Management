@@ -406,6 +406,6 @@ class PrescriptionOwnerDecisionsTest extends TestCase
                 ->where('data.prescriptions.prescriptions.0.number', 'RX-OLDEST'));
 
         $this->actingAs($this->owner)->onPortal('sadmin')->getJson('/commands/prescriptions/patients/options?q=Oldest')
-            ->assertOk()->assertExactJson(['data' => [['id' => $oldest->id, 'name' => 'Oldest Rahima', 'age' => $oldest->age, 'allergies' => null]]]);
+            ->assertOk()->assertExactJson(['data' => [['id' => $oldest->id, 'name' => 'Oldest Rahima', 'age' => $oldest->age, 'sex' => $oldest->sex, 'address' => null, 'code' => (string) $oldest->id, 'phone' => $oldest->phone, 'allergies' => null]]]);
     }
 }

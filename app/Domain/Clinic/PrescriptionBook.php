@@ -13,22 +13,20 @@ use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
 use App\Support\PhoneIdentity;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Patients and prescriptions. Every prescriber picks medicines from the company's product
- * list; a medicine typed by hand is allowed only while the owners' switch is on
- * (PrescriptionSettings). Dealer and sub-dealer prescriptions carry the dealer's own prices
- * and never touch company stock. Clinic prescriptions, by the owner-doctor and office accounts
+ * Patients and prescriptions. A medicine is written as free text, like on paper; no company
+ * product is needed, and a company product can still be linked to a line when the owner-doctor
+ * dispenses it. Dealer and sub-dealer prescriptions never touch company stock. Clinic prescriptions, by the owner-doctor and office accounts
  * switched on for company stock, are taken out of stock by ClinicDispensing, product lines
  * only. Patients and prescriptions are private to the person who wrote them: nobody else can
  * read them, the owner included.
  */
 final class PrescriptionBook
 {
-    public function __construct(private PrescriptionSettings $settings) {}
-
     /** Most medicines one prescription may hold. */
     public const MaxLines = 30;
 
@@ -53,13 +51,17 @@ final class PrescriptionBook
             'place_code_id' => $data['place_code_id'] ?? null,
             'notes' => filled($data['notes'] ?? null) ? trim((string) $data['notes']) : null,
         ];
+        // The address is plain text. A save that doesn't mention it leaves the old one alone.
+        if (array_key_exists('address_text', $data)) {
+            $values['address_text'] = filled($data['address_text']) ? trim((string) $data['address_text']) : null;
+        }
         // A safety field: a save that doesn't mention allergies must not wipe them.
         if (array_key_exists('allergies', $data)) {
             $values['allergies'] = filled($data['allergies']) ? trim((string) $data['allergies']) : null;
         }
         if ($patient === null) {
             return DB::transaction(function () use ($values, $prescriber, $consent): PrescriptionPatient {
-                $created = PrescriptionPatient::query()->create([...$values, 'prescriber_id' => $prescriber->id]);
+                $created = PrescriptionPatient::query()->create([...$values, 'prescriber_id' => $prescriber->id, 'patient_code' => $this->nextPatientCode($prescriber)]);
                 Audit::record($prescriber->id, 'prescription.patient_created', (string) $created->id, []);
                 $this->recordConsent($created, $prescriber, $consent);
 
@@ -72,6 +74,24 @@ final class PrescriptionBook
         }
 
         return $patient;
+    }
+
+    /**
+     * The number printed on the prescription for a new patient: the date as ddmmyy and the
+     * day's serial, such as 28072507 for the seventh patient of 28 July 2025. It is unique only
+     * among the prescriber's own patients, who are the only people who can see it.
+     */
+    public function nextPatientCode(User $prescriber): string
+    {
+        $prefix = CarbonImmutable::now((string) config('madina.business_timezone', 'Asia/Dhaka'))->format('dmy');
+        $last = PrescriptionPatient::query()
+            ->where('prescriber_id', $prescriber->id)
+            ->where('patient_code', 'like', $prefix.'%')
+            ->pluck('patient_code')
+            ->map(fn (string $code): int => (int) substr($code, 6))
+            ->max() ?? 0;
+
+        return $prefix.str_pad((string) ($last + 1), 2, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -97,7 +117,7 @@ final class PrescriptionBook
      * of the prescriber's own, or a new one saved by the same request. Medicines are optional
      * when the prescription holds a test, a food or advice.
      *
-     * @param  array{patient_id?: int|null, new_patient?: array{name: string, age?: int|null, sex?: string|null, phone?: string|null, place_code_id?: int|null, notes?: string|null, allergies?: string|null, patient_consent?: bool|int|string|null}|null, prescribed_on: string, complaints?: string|null, diagnosis?: string|null, advice?: string|null, vitals?: array<string, mixed>|null, follow_up_on?: string|null, investigations?: array<int, string|null>|null, foods_allowed?: array<int, string|null>|null, foods_avoided?: array<int, string|null>|null, lines?: array<int, array<string, mixed>>|null, confirm_below_floor?: bool|null}  $data
+     * @param  array{patient_id?: int|null, new_patient?: array{name: string, age?: int|null, sex?: string|null, phone?: string|null, place_code_id?: int|null, notes?: string|null, allergies?: string|null, patient_consent?: bool|int|string|null}|null, prescribed_on: string, visit_type?: string|null, complaints?: string|null, examination?: string|null, diagnosis?: string|null, advice?: string|null, vitals?: array<string, mixed>|null, follow_up_on?: string|null, investigations?: array<int, string|null>|null, foods_allowed?: array<int, string|null>|null, foods_avoided?: array<int, string|null>|null, lines?: array<int, array<string, mixed>>|null, confirm_below_floor?: bool|null}  $data
      */
     public function create(User $prescriber, array $data): Prescription
     {
@@ -137,7 +157,9 @@ final class PrescriptionBook
                 'prescriber_id' => $prescriber->id,
                 'patient_id' => $patient->id,
                 'prescribed_on' => $data['prescribed_on'],
+                'visit_type' => $data['visit_type'] ?? ($newPatient === null ? null : 'new'),
                 'complaints' => $data['complaints'] ?? null,
+                'examination' => $data['examination'] ?? null,
                 'diagnosis' => $data['diagnosis'] ?? null,
                 'advice' => $data['advice'] ?? null,
                 'vitals' => Vitals::clean($data['vitals'] ?? null),
@@ -212,7 +234,7 @@ final class PrescriptionBook
      * The prescriber's own patients for the prescription picker, newest first; a search by
      * name reaches older ones.
      *
-     * @return list<array{id: int, name: string, age: int|null, allergies: string|null}>
+     * @return list<array{id: int, name: string, age: int|null, sex: string|null, address: string|null, code: string, phone: string|null, allergies: string|null}>
      */
     public function patientOptions(User $prescriber, string $search = ''): array
     {
@@ -223,8 +245,17 @@ final class PrescriptionBook
             ->when($term !== '', fn ($query) => $query->where('name', 'ilike', '%'.$term.'%'))
             ->orderByDesc('id')
             ->limit(self::PatientOptionLimit)
-            ->get(['id', 'name', 'age', 'allergies'])
-            ->map(fn (PrescriptionPatient $patient): array => ['id' => $patient->id, 'name' => $patient->name, 'age' => $patient->age, 'allergies' => $patient->allergies])
+            ->get(['id', 'name', 'age', 'sex', 'phone', 'address_text', 'patient_code', 'allergies'])
+            ->map(fn (PrescriptionPatient $patient): array => [
+                'id' => $patient->id,
+                'name' => $patient->name,
+                'age' => $patient->age,
+                'sex' => $patient->sex,
+                'address' => $patient->address_text,
+                'code' => $patient->displayCode(),
+                'phone' => $patient->phone,
+                'allergies' => $patient->allergies,
+            ])
             ->values()
             ->all();
     }
@@ -248,6 +279,8 @@ final class PrescriptionBook
             'phone_masked' => PhoneIdentity::masked($patient->phone),
             'place_code_id' => $patient->place_code_id,
             'place' => $patient->placeCode ? trim(PlaceCode::displayLabel($patient->placeCode->code).' '.PlaceCode::displayLabel($patient->placeCode->name)) : null,
+            'address_text' => $patient->address_text,
+            'patient_code' => $patient->displayCode(),
             'notes' => $patient->notes,
             'consent_at' => $patient->consent?->confirmed_at?->toIso8601String(),
             'allergies' => $patient->allergies,
@@ -269,7 +302,6 @@ final class PrescriptionBook
         $products = $productIds === []
             ? collect()
             : Product::query()->where('active', true)->whereIn('id', $productIds)->get(['id', 'name', 'mrp'])->keyBy('id');
-        $otherMedicinesAllowed = null;
         $lines = [];
         foreach ($rawLines as $index => $line) {
             if ($this->isBlankLine($line)) {
@@ -281,14 +313,7 @@ final class PrescriptionBook
             $name = trim((string) ($line['medicine_name'] ?? ''));
             $typedByHand = ! filled($line['product_id'] ?? null);
             if ($typedByHand) {
-                // Read once, and only when a prescription really holds a hand-typed medicine.
-                $otherMedicinesAllowed ??= $this->settings->otherMedicinesAllowed();
-                if (! $otherMedicinesAllowed) {
-                    // A completely empty row is skipped above. This row was started, but no product was chosen.
-                    throw ValidationException::withMessages($name === ''
-                        ? ["lines.$index.product_id" => __('prescription.err_product_required')]
-                        : ["lines.$index.medicine_name" => __('prescription.err_other_medicine_off')]);
-                }
+                // A completely empty row is skipped above. This row was started, but no name was written.
                 if ($name === '') {
                     throw ValidationException::withMessages(["lines.$index.medicine_name" => __('prescription.err_medicine_required')]);
                 }
