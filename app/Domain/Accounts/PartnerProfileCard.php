@@ -28,7 +28,7 @@ final class PartnerProfileCard
      */
     public function for(User $user): array
     {
-        $profile = is_array($user->profile) ? $user->profile : [];
+        $profile = PartnerProfileLock::profileOf($user);
         $tz = (string) config('madina.business_timezone', config('app.timezone'));
         $address = [
             'division' => $this->clean($user->division),

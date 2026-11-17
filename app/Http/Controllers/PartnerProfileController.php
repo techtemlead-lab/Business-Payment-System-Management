@@ -37,7 +37,7 @@ class PartnerProfileController extends Controller
             'shop_name' => 'nullable|string|max:150',
             'village' => 'nullable|string|max:150',
         ]);
-        $profile = is_array($user->profile) ? $user->profile : [];
+        $profile = PartnerProfileLock::profileOf($user);
         $before = ['shop_name' => $profile['shop_name'] ?? null, 'village' => $profile['village'] ?? null];
         $profile['shop_name'] = trim((string) ($data['shop_name'] ?? '')) ?: null;
         $profile['village'] = trim((string) ($data['village'] ?? '')) ?: null;

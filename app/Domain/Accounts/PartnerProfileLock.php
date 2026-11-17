@@ -15,9 +15,17 @@ final class PartnerProfileLock
 {
     public const Key = 'profile_locked';
 
+    /** The saved profile as an array, whatever the model's docblock says about the column. */
+    public static function profileOf(User $user): array
+    {
+        $profile = $user->getAttribute('profile');
+
+        return is_array($profile) ? $profile : [];
+    }
+
     public static function isLocked(User $user): bool
     {
-        $profile = is_array($user->profile) ? $user->profile : [];
+        $profile = self::profileOf($user);
 
         return (bool) ($profile[self::Key] ?? true);
     }
@@ -34,7 +42,7 @@ final class PartnerProfileLock
             throw ValidationException::withMessages(['user_id' => __('partner_profile.err_partners_only')]);
         }
         $was = self::isLocked($partner);
-        $profile = is_array($partner->profile) ? $partner->profile : [];
+        $profile = self::profileOf($partner);
         $profile[self::Key] = $locked;
         $partner->forceFill(['profile' => $profile])->save();
 

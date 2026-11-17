@@ -261,7 +261,7 @@ final class OrderInvoice
                 'referred_code' => $sponsor?->dealer_code ?: $sponsor?->refer_code,
                 'referred_name' => $sponsor?->name,
                 // A partner bought from a company-added or direct account has no sponsor: say so instead of leaving it blank.
-                'referred_company' => $sponsor === null && in_array($buyer?->role, ['dealer', 'sub_dealer'], true),
+                'referred_company' => $sponsor === null && in_array($buyer?->getAttribute('role'), ['dealer', 'sub_dealer'], true),
             ],
             'lines' => $lines,
             'totals' => [
