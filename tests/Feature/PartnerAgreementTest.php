@@ -35,11 +35,66 @@ class PartnerAgreementTest extends TestCase
         $this->assertStringNotContainsString('আইনজীবী', $first->body_bn);
         $this->assertStringNotContainsStringIgnoringCase('draft', $first->body_en);
         $this->assertStringNotContainsStringIgnoringCase('lawyer', $first->body_en);
-        $this->assertStringContainsString('[Company to complete: registered legal name of the company]', $first->body_en);
-        $this->assertStringContainsString('[কোম্পানি পূরণ করবে: কোম্পানির নিবন্ধিত আইনি নাম]', $first->body_bn);
         $this->assertStringContainsString('মদিনা ন্যাচারাল হেলথ কেয়ার', $first->body_bn);
         $this->assertStringContainsString('Madina Natural Health Care', $first->body_en);
         $this->assertFalse(app(PartnerAgreement::class)->setting()['required'], 'The switch starts off.');
+    }
+
+    public function test_version_one_carries_the_company_details_and_leaves_only_three_legal_choices_open(): void
+    {
+        $first = PartnerAgreementVersion::query()->sole();
+
+        foreach (['Registered legal name: Madina Natural Health Care', 'Trade licence number: 2026-00563', 'Registered address: Thana Road, Pirganj 5470, Rangpur, Bangladesh', 'Authorised signatory: Md. Anowar Hossain, Proprietor', 'Legal form of the business: Sole proprietorship'] as $line) {
+            $this->assertStringContainsString($line, $first->body_en);
+        }
+        foreach (['নিবন্ধিত আইনি নাম: মদিনা ন্যাচারাল হেলথ কেয়ার', 'ট্রেড লাইসেন্স নম্বর: ২০২৬-০০৫৬৩', 'নিবন্ধিত ঠিকানা: থানা রোড, পীরগঞ্জ ৫৪৭০, রংপুর, বাংলাদেশ'] as $line) {
+            $this->assertStringContainsString($line, $first->body_bn);
+        }
+        $this->assertStringContainsString('the laws of the People’s Republic of Bangladesh', $first->body_en);
+        $this->assertStringContainsString('বাংলাদেশের প্রচলিত আইন', $first->body_bn);
+
+        $this->assertSame(3, substr_count($first->body_en, '[Company to complete:'), 'Notice period, closing rules and court are still the owner’s or lawyer’s to write.');
+        $this->assertSame(3, substr_count($first->body_bn, '[কোম্পানি পূরণ করবে:'));
+    }
+
+    public function test_the_company_details_update_adds_the_filled_text_after_a_blank_one_the_system_published(): void
+    {
+        DB::table('partner_agreement_versions')->insert([
+            'version' => 2,
+            'body_bn' => "মদিনা ন্যাচারাল হেলথ কেয়ার\n• নিবন্ধিত আইনি নাম: [কোম্পানি পূরণ করবে: কোম্পানির নিবন্ধিত আইনি নাম]",
+            'body_en' => "Madina Natural Health Care\n• Registered legal name: [Company to complete: registered legal name of the company]",
+            'published_by' => null,
+            'published_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->runCompanyDetailsMigration();
+
+        $latest = PartnerAgreementVersion::query()->orderByDesc('version')->first();
+        $this->assertSame(3, $latest->version);
+        $this->assertNull($latest->published_by);
+        $this->assertStringContainsString('2026-00563', $latest->body_en);
+        $this->assertStringNotContainsString('[Company to complete: registered legal name', $latest->body_en);
+        $this->assertStringContainsString('[Company to complete:', (string) PartnerAgreementVersion::query()->where('version', 2)->value('body_en'), 'The blank version stays as it was.');
+    }
+
+    public function test_the_company_details_update_leaves_an_owners_own_version_alone(): void
+    {
+        $owner = User::factory()->staff('md')->create();
+        app(PartnerAgreement::class)->publish($owner, 'মালিকের লেখা। [কোম্পানি পূরণ করবে: কোম্পানির নিবন্ধিত আইনি নাম]', 'Owner text. [Company to complete: registered legal name of the company]');
+
+        $this->runCompanyDetailsMigration();
+
+        $this->assertSame(2, PartnerAgreementVersion::query()->count());
+        $this->assertSame($owner->id, PartnerAgreementVersion::query()->orderByDesc('version')->first()->published_by);
+    }
+
+    public function test_the_company_details_update_does_nothing_on_a_new_install(): void
+    {
+        $this->runCompanyDetailsMigration();
+
+        $this->assertSame(1, PartnerAgreementVersion::query()->count());
     }
 
     public function test_owner_publishes_a_new_version_and_the_old_one_stays(): void
@@ -379,6 +434,11 @@ class PartnerAgreementTest extends TestCase
     private function runFinalTextMigration(): void
     {
         (require database_path('migrations/2026_11_09_214358_publish_final_partner_agreement_text.php'))->up();
+    }
+
+    private function runCompanyDetailsMigration(): void
+    {
+        (require database_path('migrations/2026_11_17_021457_publish_company_details_in_partner_agreement.php'))->up();
     }
 
     private function turnSwitchOn(): void
