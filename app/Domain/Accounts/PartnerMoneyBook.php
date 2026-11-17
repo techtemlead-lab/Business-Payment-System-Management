@@ -230,6 +230,16 @@ final class PartnerMoneyBook
         return FundCatalog::decimalOf(FundCatalog::centsOf($paid) - FundCatalog::centsOf($returned));
     }
 
+    /**
+     * Only the rows that are income, in the statement's shape, for the income-by-part view.
+     *
+     * @param  int|Builder  $people  One partner's id, or a sub-query of partner ids.
+     */
+    public function incomeRows(int|Builder $people): Builder
+    {
+        return DB::query()->fromSub($this->statementRows($people), 'u')->whereIn('u.type', self::IncomeTypes)->select('u.*');
+    }
+
     /** The three kinds of movement, as one list of rows. */
     private function statementRows(int|Builder $people): Builder
     {
@@ -251,7 +261,7 @@ final class PartnerMoneyBook
             ->whereRaw("a.metadata->>'released_at' IS NULL")
             ->whereRaw("(a.status IN ('available', 'maturing') OR (a.status = 'reversed' AND NOT EXISTS (SELECT 1 FROM commission_reversals cr WHERE cr.allocation_id = a.id AND cr.source_status = 'held')))")
             ->whereRaw('COALESCE(a.original_amount, a.amount) > 0')
-            ->selectRaw("('a-' || a.id::text) AS id, j.created_at AS occurred_at, ".self::typeOfCategory('a.category')." AS type, a.category, a.rate_percentage AS percent, o.id::text AS order_id, o.number AS order_number, buyer.name AS from_name, NULL AS withdrawal_id, CASE WHEN a.status = 'maturing' THEN a.metadata->>'maturation_due_at' END AS waiting_until, COALESCE(a.original_amount, a.amount) AS amount");
+            ->selectRaw("('a-' || a.id::text) AS id, j.created_at AS occurred_at, ".self::typeOfCategory('a.category')." AS type, a.category, a.rate_percentage AS percent, o.id::text AS order_id, o.number AS order_number, buyer.name AS from_name, NULL AS withdrawal_id, CASE WHEN a.status = 'maturing' THEN a.metadata->>'maturation_due_at' END AS waiting_until, COALESCE(a.original_amount, a.amount) AS amount, NULL::text AS program");
     }
 
     /** Every other money movement, one row per record, typed by what caused it. */
@@ -284,7 +294,7 @@ final class PartnerMoneyBook
                 WHEN {$accountPay} THEN 'spent'
                 WHEN starts_with(e.event_key, 'commissions.debt_recovery.') THEN 'taken_back'
                 WHEN e.net < 0 THEN 'taken_back' ELSE 'returned' END AS type,
-                h.category, h.rate_percentage AS percent, o.id::text AS order_id, o.number AS order_number, buyer.name AS from_name, CASE WHEN {$payout} THEN substr(e.event_key, 15) END AS withdrawal_id, NULL AS waiting_until, e.net AS amount");
+                h.category, h.rate_percentage AS percent, o.id::text AS order_id, o.number AS order_number, buyer.name AS from_name, CASE WHEN {$payout} THEN substr(e.event_key, 15) END AS withdrawal_id, NULL AS waiting_until, e.net AS amount, CASE WHEN starts_with(e.event_key, 'reserve.award.') THEN (SELECT rd.program FROM reserve_disbursements rd WHERE rd.id::text = substr(e.event_key, 15)) END AS program");
     }
 
     /**
@@ -306,7 +316,7 @@ final class PartnerMoneyBook
             ->joinSub($taken, 't', fn ($join) => $join->on('t.entry_id', '=', 'j.id')->on('t.user_id', '=', 'r.user_id'))
             ->leftJoin('orders as o', 'o.id', '=', 'a.order_id')->leftJoin('users as buyer', 'buyer.id', '=', 'o.user_id')
             ->whereRaw("{$amount} > 0")
-            ->selectRaw("('r-' || r.id::text) AS id, j.created_at AS occurred_at, ".self::typeOfCategory('a.category')." AS type, a.category, a.rate_percentage AS percent, o.id::text AS order_id, o.number AS order_number, buyer.name AS from_name, NULL AS withdrawal_id, NULL AS waiting_until, -{$amount} AS amount");
+            ->selectRaw("('r-' || r.id::text) AS id, j.created_at AS occurred_at, ".self::typeOfCategory('a.category')." AS type, a.category, a.rate_percentage AS percent, o.id::text AS order_id, o.number AS order_number, buyer.name AS from_name, NULL AS withdrawal_id, NULL AS waiting_until, -{$amount} AS amount, NULL::text AS program");
     }
 
     /** SQL naming the statement type of a commission category. */

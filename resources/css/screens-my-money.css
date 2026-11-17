@@ -95,3 +95,11 @@
   .mm-lifetime dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ds-s-3)}
   .mm-lifetime dl>div{flex-direction:column;gap:0}
 }
+
+/* Income part by part */
+.mm-income-parts{display:flex;flex-direction:column;gap:var(--ds-s-6);min-width:0}
+.mm-income-parts h2{margin:0 0 var(--ds-s-3);font-size:var(--ds-fs-md);font-weight:600;color:var(--ds-text)}
+.mm-card small{font-size:var(--ds-fs-sm);color:var(--ds-text-2)}
+.mm-part-hint{margin:0 0 var(--ds-s-3);font-size:var(--ds-fs-base);color:var(--ds-text-2)}
+.mm-part-hint b{color:var(--ds-text);font-variant-numeric:tabular-nums}
+.mm-income-link{align-self:flex-start}

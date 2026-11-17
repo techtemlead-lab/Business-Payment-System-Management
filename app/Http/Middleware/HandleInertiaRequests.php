@@ -250,6 +250,7 @@ class HandleInertiaRequests extends Middleware
                 'shipping_label' => Lang::get('shipping_label'),
                 'treasury' => Lang::get('treasury'),
                 'my_money' => Lang::get('my_money'),
+                'income' => Lang::get('income'),
                 'office_shell' => Lang::get('office_shell'),
                 'office_menu' => Lang::get('office_menu'),
                 'office_orders' => Lang::get('office_orders'),

@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Finance\FundCatalog;
+use App\Http\Controllers\PartnerIncomeController;
 use App\Http\Controllers\TreasuryController;
 use Illuminate\Support\Facades\Route;
 
@@ -17,3 +18,4 @@ Route::get('/treasury/events', [TreasuryController::class, 'events']);
 Route::get('/treasury/partners', [TreasuryController::class, 'partners']);
 Route::get('/treasury/partners/{partner}', [TreasuryController::class, 'partner'])->whereNumber('partner');
 Route::get('/treasury/work', [TreasuryController::class, 'work']);
+Route::get('/treasury/partners/{partner}/income/{part}/pdf', [PartnerIncomeController::class, 'pdfFor'])->whereNumber('partner')->whereAlpha('part')->middleware('throttle:10,1');
