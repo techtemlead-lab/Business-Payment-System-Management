@@ -34,7 +34,7 @@ final class PrescriptionBook
     public const PatientOptionLimit = 30;
 
     /**
-     * @param  array{name: string, age?: int|null, sex?: string|null, phone?: string|null, place_code_id?: int|null, notes?: string|null, allergies?: string|null, patient_consent?: bool|int|string|null}  $data
+     * @param  array{name: string, age?: int|null, sex?: string|null, phone?: string|null, place_code_id?: int|null, address_text?: string|null, notes?: string|null, allergies?: string|null, patient_consent?: bool|int|string|null}  $data
      * @param  array{source: string, statement: string, consultation_request_id?: int|null}|null  $consent  Null means the prescriber confirmed it themselves.
      */
     public function savePatient(User $prescriber, ?PrescriptionPatient $patient, array $data, ?array $consent = null): PrescriptionPatient

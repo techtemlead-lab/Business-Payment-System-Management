@@ -96,14 +96,18 @@ class Prescription extends Model
     /** The patient's address as free text (or the older place label); the print page reads this. */
     protected function patientAddress(): Attribute
     {
-        return Attribute::get(fn (): ?string => $this->patient?->address_text
-            ?? ($this->patient?->placeCode ? trim(PlaceCode::displayLabel($this->patient->placeCode->code).' '.PlaceCode::displayLabel($this->patient->placeCode->name)) : null));
+        return Attribute::get(function (): ?string {
+            $patient = $this->patient;
+
+            return $patient->address_text
+                ?? ($patient->placeCode ? trim(PlaceCode::displayLabel($patient->placeCode->code).' '.PlaceCode::displayLabel($patient->placeCode->name)) : null);
+        });
     }
 
     /** The patient number printed beside the name, e.g. 28072507. */
     protected function patientCode(): Attribute
     {
-        return Attribute::get(fn (): ?string => $this->patient?->displayCode());
+        return Attribute::get(fn (): string => $this->patient->displayCode());
     }
 
     /** @return BelongsTo<User, $this> */
