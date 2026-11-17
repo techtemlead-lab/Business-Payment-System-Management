@@ -11,24 +11,24 @@
     <meta charset="utf-8">
     <title>{{ __('stock_print.title') }}</title>
     <style>
-        body { font-family: freeserif, sans-serif; color: #0f172a; font-size: 9.5pt; margin: 0; }
+        body { font-family: freeserif, sans-serif; color: #0f172a; font-size: 11pt; margin: 0; }
         table.header { width: 100%; border-collapse: collapse; }
         table.header td { vertical-align: middle; }
-        .logo-cell { width: 190px; text-align: left; }
-        .legal-cell { width: 190px; text-align: right; }
-        .brand-name { font-size: 19pt; font-weight: bold; color: #006837; }
-        .brand-line { font-size: 11pt; color: #334155; line-height: 1.45; }
+        .logo-cell { width: 110px; text-align: left; }
+        .legal-cell { width: 200px; text-align: right; }
+        .brand-name { font-size: 23pt; font-weight: bold; color: #006837; }
+        .brand-line { font-size: 13pt; color: #334155; line-height: 1.45; }
         .title { text-align: center; margin: 8px 0 6px; }
-        .title span { font-size: 14pt; font-weight: bold; color: #006837; border-bottom: 2px solid #006837; padding: 0 18px 2px; }
-        table.meta { width: 100%; border-collapse: collapse; margin-bottom: 6px; font-size: 9.5pt; }
+        .title span { font-size: 18pt; font-weight: bold; color: #006837; border-bottom: 2px solid #006837; padding: 0 18px 2px; }
+        table.meta { width: 100%; border-collapse: collapse; margin-bottom: 6px; font-size: 12pt; }
         table.items { width: 100%; border-collapse: collapse; }
-        table.items th { background: #e3f1eb; color: #00482f; border: 1px solid #94a3b8; padding: 4px 3px; text-align: center; font-size: 9pt; }
-        table.items td { border: 1px solid #cbd5e1; padding: 3px 4px; vertical-align: middle; }
+        table.items th { background: #e3f1eb; color: #00482f; border: 1px solid #94a3b8; padding: 5px 3px; text-align: center; font-size: 10.5pt; }
+        table.items td { border: 1px solid #cbd5e1; padding: 4px 5px; vertical-align: middle; font-size: 11.5pt; }
         table.items tr { page-break-inside: avoid; }
         .num { text-align: right; }
         .mid { text-align: center; }
-        .note { font-size: 8pt; color: #64748b; margin-top: 8px; line-height: 1.5; }
-        h2.section { margin: 14px 0 4px; font-size: 12pt; color: #006837; }
+        .note { font-size: 10.5pt; color: #64748b; margin-top: 8px; line-height: 1.5; }
+        h2.section { margin: 14px 0 4px; font-size: 15pt; color: #006837; }
         .empty { text-align: center; color: #64748b; padding: 14px 0; }
     </style>
 </head>
@@ -43,15 +43,6 @@
         <td style="text-align:center">
             <div class="brand-name">{{ $company['name'] }}</div>
             <div class="brand-line">{{ $company['address'] }}</div>
-            @if ($company['whatsapp'] !== '')
-                <div class="brand-line">{{ __('stock_print.whatsapp') }}: {{ $digits($company['whatsapp']) }}</div>
-            @endif
-            @if ($company['mobile'] !== '')
-                <div class="brand-line">{{ __('stock_print.mobile') }}: {{ $digits($company['mobile']) }}</div>
-            @endif
-            @if ($company['email'] !== '')
-                <div class="brand-line">{{ __('stock_print.email') }}: {{ $company['email'] }}</div>
-            @endif
         </td>
         <td class="legal-cell">
             <div class="brand-line">{{ __('site.top_bar_trade_licence') }}: <b>{{ $digits($company['licence']) }}</b></div>
@@ -59,6 +50,9 @@
         </td>
     </tr>
 </table>
+<div style="text-align:center;margin-top:4px">
+    @include('partials.letterhead-contacts', ['company' => $company, 'size' => '12.5pt', 'localDigits' => true])
+</div>
 
 <div class="title"><span>{{ __('stock_print.title') }}</span></div>
 

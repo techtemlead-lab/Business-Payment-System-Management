@@ -11,6 +11,7 @@ return [
     'whatsapp' => 'WhatsApp',
     'mobile' => 'Mobile',
     'email' => 'Email',
+    'website' => 'Website',
     'col_serial' => 'SL',
     'col_product' => 'Product name',
     'col_pack' => 'Pack size',

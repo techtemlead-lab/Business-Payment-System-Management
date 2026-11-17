@@ -11,6 +11,7 @@ return [
     'whatsapp' => 'হোয়াটসঅ্যাপ',
     'mobile' => 'মোবাইল',
     'email' => 'ইমেইল',
+    'website' => 'ওয়েবসাইট',
     'col_serial' => 'ক্রমিক',
     'col_product' => 'পণ্যের নাম',
     'col_pack' => 'প্যাকের মাপ',
