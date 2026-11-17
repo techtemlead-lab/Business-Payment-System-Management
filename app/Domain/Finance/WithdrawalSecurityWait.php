@@ -48,7 +48,7 @@ final class WithdrawalSecurityWait
                 'value' => json_encode(['hours' => $hours], JSON_THROW_ON_ERROR),
                 'version' => $version + 1,
                 'updated_by' => $actor->id,
-                'created_at' => $existing?->created_at ?? now(),
+                'created_at' => $existing->created_at ?? now(),
                 'updated_at' => now(),
             ]);
             Audit::record($actor->id, 'withdrawal.security_wait_changed', self::SettingKey, [
@@ -66,7 +66,7 @@ final class WithdrawalSecurityWait
         if ($hours <= 0 || $changed === null) {
             return null;
         }
-        $opens = CarbonImmutable::instance($changed)->addHours($hours);
+        $opens = CarbonImmutable::parse($changed)->addHours($hours);
 
         return $opens->isFuture() ? $opens : null;
     }

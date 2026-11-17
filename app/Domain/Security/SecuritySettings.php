@@ -171,8 +171,9 @@ final class SecuritySettings
     /**
      * @return array{
      *   preview_mode: bool,
-     *   partner_login_otp: array{enabled: bool, version: int, preview_forced_off: bool, config_default: bool, stored_enabled: bool},
+     *   partner_login_otp: array{enabled: bool, version: int, preview_forced_off: bool, config_default: bool},
      *   password_reset_notice: array{enabled: bool, version: int},
+     *   owner_confirmation: array{mode: string, version: int, method: string, sms_works: bool, has_phone: bool, code_fell_back: bool}|null,
      *   totp: array{challenges_enabled: bool, confirmed: bool, preview_forced_off: bool, required: bool},
      *   admin_ip_allowlist_active: bool,
      *   session_count: int
