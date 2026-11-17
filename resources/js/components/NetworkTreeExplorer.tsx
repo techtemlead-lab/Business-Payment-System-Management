@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Link, usePage } from '@inertiajs/react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { Search, GitFork, Users, Award, ChevronRight, ChevronDown, Phone, MapPin, Calendar, DollarSign, ArrowUpRight, ShieldCheck, Filter, UserCheck, Eye, Download } from 'lucide-react';
 import { money, date, Table, type TableColumn, number } from './UI';
 import JargonHint from './JargonHint';
@@ -46,6 +46,8 @@ export interface NetworkTreeStats {
 interface NetworkTreeExplorerProps {
     dealers: DealerNode[];
     treeStats?: NetworkTreeStats | null;
+    /** Office tree only: lets the page load one partner's complete tree from the server. */
+    serverFocus?: { rootId: number | null; rootName: string | null } | null;
 }
 
 /**
@@ -81,9 +83,13 @@ function generationTone(depth: number): string {
     return 'tone-neutral';
 }
 
-export default function NetworkTreeExplorer({ dealers, treeStats = null }: NetworkTreeExplorerProps) {
+/** On a big tree only these first levels start open, so the first view stays short and readable. */
+const OPEN_LEVELS = 2;
+const FOLD_ABOVE = 40;
+
+export default function NetworkTreeExplorer({ dealers, treeStats = null, serverFocus = null }: NetworkTreeExplorerProps) {
     const translate = useT();
-    const { portal, auth } = usePage<any>().props;
+    const { portal, auth, portalBase } = usePage<any>().props;
     const isDealerPortal = portal === 'dealer';
     const viewerId: number | null = auth?.user?.id ?? null;
     const showsViewerEarnings = dealers.some(d => d.viewer_earned !== undefined);
@@ -115,6 +121,39 @@ export default function NetworkTreeExplorer({ dealers, treeStats = null }: Netwo
 
         return { childrenMap: cMap, dealerMap: dMap, roots: rootList };
     }, [dealers]);
+
+    /** Office tree: load the chosen partner with every level below, or go back to the whole company. */
+    const loadTree = (rootId: number | null) => {
+        router.get(`${portalBase ?? ''}/network-tree`, rootId ? { tree_root: String(rootId) } : {}, { preserveState: true, preserveScroll: true, replace: true, only: ['data'] });
+        setSelectedDealerId(null);
+        setViewMode('tree');
+    };
+    const focusPartner = (id: number) => {
+        if (serverFocus) {
+            loadTree(id);
+        } else {
+            setFocusedRootId(id);
+            setViewMode('tree');
+        }
+    };
+
+    // On a big tree only the first levels start open.
+    useEffect(() => {
+        if (dealers.length <= FOLD_ABOVE) {
+            setCollapsedNodes({});
+            return;
+        }
+        const folded: Record<number, boolean> = {};
+        const walk = (node: DealerNode, level: number) => {
+            const kids = childrenMap[node.id] || [];
+            if (kids.length > 0 && level >= OPEN_LEVELS) {
+                folded[node.id] = true;
+            }
+            kids.forEach(kid => walk(kid, level + 1));
+        };
+        roots.forEach(root => walk(root, 0));
+        setCollapsedNodes(folded);
+    }, [dealers, childrenMap, roots]);
 
     // Active dealer details card
     const activeDealer = selectedDealerId ? dealerMap[selectedDealerId] : null;
@@ -360,10 +399,10 @@ export default function NetworkTreeExplorer({ dealers, treeStats = null }: Netwo
                         </select>
                     </div>
 
-                    {focusedRootId && (
+                    {(focusedRootId || serverFocus?.rootId) && (
                         <button
                             type="button"
-                            onClick={() => setFocusedRootId(null)}
+                            onClick={() => (serverFocus?.rootId ? loadTree(null) : setFocusedRootId(null))}
                             className="button small danger"
                         >
                             ✕ {translate('portal','net_reset_focus')}
@@ -405,7 +444,7 @@ export default function NetworkTreeExplorer({ dealers, treeStats = null }: Netwo
                         <div className="ops-row is-between is-wrap ops-mb-4">
                             <div>
                                 <h3 className="hub-title">
-                                    {focusedRootId ? translate('portal','net_subtree_for',{name: dealerMap[focusedRootId]?.name || '—'}) : translate('portal', isDealerPortal ? 'net_my_tree' : 'net_company_tree')}
+                                    {serverFocus?.rootId ? translate('portal','net_subtree_for',{name: serverFocus.rootName || '—'}) : focusedRootId ? translate('portal','net_subtree_for',{name: dealerMap[focusedRootId]?.name || '—'}) : translate('portal', isDealerPortal ? 'net_my_tree' : 'net_company_tree')}
                                 </h3>
                                 <p className="hub-sub">
                                     {translate('portal', 'net_tree_hint')}
@@ -524,8 +563,7 @@ export default function NetworkTreeExplorer({ dealers, treeStats = null }: Netwo
                                             type="button"
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                setFocusedRootId(d.id);
-                                                setViewMode('tree');
+                                                focusPartner(d.id);
                                             }}
                                             className="button small light"
                                         >
@@ -674,13 +712,16 @@ export default function NetworkTreeExplorer({ dealers, treeStats = null }: Netwo
                             </Link>
                         )}
 
+                        {!isDealerPortal && (
+                            <Link href={`${portalBase ?? ''}/accounts/${activeDealer.id}`} className="button small hub-block ops-mt-3">
+                                <UserCheck size={14} /> {translate('partner_profile', 'open_full_profile')}
+                            </Link>
+                        )}
+
                         {/* Focus Subtree Button */}
                         <button
                             type="button"
-                            onClick={() => {
-                                setFocusedRootId(activeDealer.id);
-                                setViewMode('tree');
-                            }}
+                            onClick={() => focusPartner(activeDealer.id)}
                             className="button dark hub-block ops-mt-4"
                         >
                             <GitFork size={15} /> {translate('portal','net_focus_subtree')}
