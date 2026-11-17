@@ -18,15 +18,15 @@ class AreaDealerDirectoryTest extends TestCase
         $admin = User::factory()->staff('super_admin')->create();
         $division = PlaceCode::factory()->create([
             'level' => PlaceCode::LevelDivision,
-            'code' => 'MNHC-102',
+            'code' => 'MNHC102',
             'name' => 'Rangpur',
         ]);
         $district = PlaceCode::factory()->district($division)->create([
-            'code' => 'MNHC-301',
+            'code' => 'MNHC301',
             'name' => 'Rangpur',
         ]);
         PlaceCode::factory()->upazila($district)->create([
-            'code' => 'MNHC-401',
+            'code' => 'MNHC401',
             'name' => 'Rangpur Sadar',
         ]);
         User::factory()->dealer()->create([
@@ -34,14 +34,14 @@ class AreaDealerDirectoryTest extends TestCase
             'status' => 'active',
             'division' => 'Rangpur',
             'district' => 'Rangpur',
-            'profile' => ['place_code' => 'MNHC-301'],
+            'profile' => ['place_code' => 'MNHC301'],
         ]);
         User::factory()->dealer()->create([
             'name' => 'Rangpur Sadar Dealer',
             'status' => 'active',
             'division' => 'Rangpur',
             'district' => 'Rangpur',
-            'profile' => ['place_code' => 'MNHC-401', 'upazila' => 'Rangpur Sadar'],
+            'profile' => ['place_code' => 'MNHC401', 'upazila' => 'Rangpur Sadar'],
         ]);
         $other = User::factory()->dealer()->create([
             'name' => 'Unseated Person',
@@ -52,7 +52,7 @@ class AreaDealerDirectoryTest extends TestCase
             'user_id' => $other->id,
             'level' => 'district',
             'place_code_id' => $district->id,
-            'zone_name' => 'Rangpur (MNHC-301)',
+            'zone_name' => 'Rangpur (MNHC301)',
             'division' => 'Rangpur',
             'district' => 'Rangpur',
             'monthly_quota' => '40000.00',
@@ -66,8 +66,8 @@ class AreaDealerDirectoryTest extends TestCase
                 ->where('data.area_pool_rate', '10.00')
                 ->where('data.assignments.data', function (mixed $rows): bool {
                     $seats = collect($rows);
-                    $districtSeat = $seats->first(fn (array $row): bool => is_array($row['place_code'] ?? null) && ($row['place_code']['code'] ?? null) === 'MNHC-301');
-                    $sadarSeat = $seats->first(fn (array $row): bool => is_array($row['place_code'] ?? null) && ($row['place_code']['code'] ?? null) === 'MNHC-401');
+                    $districtSeat = $seats->first(fn (array $row): bool => is_array($row['place_code'] ?? null) && ($row['place_code']['code'] ?? null) === 'MNHC301');
+                    $sadarSeat = $seats->first(fn (array $row): bool => is_array($row['place_code'] ?? null) && ($row['place_code']['code'] ?? null) === 'MNHC401');
                     $unseated = $seats->first(fn (array $row): bool => ($row['user']['name'] ?? null) === 'Unseated Person');
 
                     return is_array($districtSeat)

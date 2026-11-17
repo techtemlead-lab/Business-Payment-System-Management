@@ -26,7 +26,7 @@ class DealerCodeLoginTest extends TestCase
         $dealer = User::factory()->create([
             'role' => 'dealer',
             'status' => 'active',
-            'dealer_code' => 'MNHC-1001',
+            'dealer_code' => 'MNHC1001',
             'password' => 'SyntheticPassword123',
             'phone' => null,
         ]);
@@ -42,18 +42,18 @@ class DealerCodeLoginTest extends TestCase
         $dealer = User::factory()->create([
             'role' => 'dealer',
             'status' => 'active',
-            'dealer_code' => 'MNHC-2002',
+            'dealer_code' => 'MNHC2002',
             'password' => 'SyntheticPassword123',
             'phone' => null,
         ]);
-        $key = 'MNHC-2002|127.0.0.1';
+        $key = 'MNHC2002|127.0.0.1';
         RateLimiter::clear($key);
         for ($i = 0; $i < 5; $i++) {
             RateLimiter::hit($key, 60);
         }
 
         $this->onPortal('dealer')
-            ->post('/login', ['email' => 'MNHC-2002', 'password' => 'WrongPassword123'])
+            ->post('/login', ['email' => 'MNHC2002', 'password' => 'WrongPassword123'])
             ->assertSessionHasErrors('email');
         $message = session('errors')->first('email');
         $this->assertMatchesRegularExpression('/\d+/', (string) $message);

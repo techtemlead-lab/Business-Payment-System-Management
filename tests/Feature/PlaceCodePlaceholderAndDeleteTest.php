@@ -49,7 +49,7 @@ class PlaceCodePlaceholderAndDeleteTest extends TestCase
         ])->assertRedirect();
 
         $management = PlaceCode::query()->where('level', PlaceCode::LevelManagement)->firstOrFail();
-        $this->assertSame('MNHC-100', $management->code);
+        $this->assertSame('MNHC100', $management->code);
         $this->assertSame('Management', $management->name);
 
         $this->actingAs($admin)->onPortal('sadmin')->post('/commands/place-codes', [
@@ -60,7 +60,7 @@ class PlaceCodePlaceholderAndDeleteTest extends TestCase
             'sort_order' => 1,
         ])->assertRedirect();
 
-        $division = PlaceCode::query()->where('code', 'MNHC-101')->firstOrFail();
+        $division = PlaceCode::query()->where('code', 'MNHC101')->firstOrFail();
         $this->assertSame($management->id, $division->parent_id);
         $this->assertTrue($division->isReadyForAssignment());
     }
@@ -87,7 +87,7 @@ class PlaceCodePlaceholderAndDeleteTest extends TestCase
         ])->assertRedirect();
 
         $management->refresh();
-        $this->assertSame('MNHC-100', $management->code);
+        $this->assertSame('MNHC100', $management->code);
         $this->assertSame('Management', $management->name);
         $this->assertTrue($management->isReadyForAssignment());
     }
@@ -171,8 +171,8 @@ class PlaceCodePlaceholderAndDeleteTest extends TestCase
     {
         $this->seedClassicPlaceCodes();
         $admin = User::factory()->create(['role' => 'super_admin']);
-        $dhaka = PlaceCode::query()->where('code', 'MNHC-101')->firstOrFail();
-        PlaceCode::factory()->district($dhaka)->create(['code' => 'MNHC-201', 'name' => 'Dhaka']);
+        $dhaka = PlaceCode::query()->where('code', 'MNHC101')->firstOrFail();
+        PlaceCode::factory()->district($dhaka)->create(['code' => 'MNHC201', 'name' => 'Dhaka']);
 
         $this->actingAs($admin)->onPortal('sadmin')->from('/place-codes?level=division')
             ->delete('/commands/place-codes/'.$dhaka->id, [
@@ -181,7 +181,7 @@ class PlaceCodePlaceholderAndDeleteTest extends TestCase
             ->assertRedirect('/place-codes?level=division')
             ->assertSessionHasErrors('place');
 
-        $this->assertDatabaseHas('place_codes', ['id' => $dhaka->id, 'code' => 'MNHC-101']);
+        $this->assertDatabaseHas('place_codes', ['id' => $dhaka->id, 'code' => 'MNHC101']);
     }
 
     public function test_placeholder_place_cannot_be_used_for_area_assignment(): void

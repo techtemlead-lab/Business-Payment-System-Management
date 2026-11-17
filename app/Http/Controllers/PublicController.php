@@ -15,6 +15,7 @@ use App\Domain\Geography\PlaceTree;
 use App\Domain\Integrations\MapsPresentation;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\ProductConcern;
 use App\Models\SiteFeedback;
@@ -557,14 +558,15 @@ class PublicController extends Controller
         $normalized = strtoupper(trim($code));
         abort_if($normalized === '' || strlen($normalized) > 40, 404);
 
+        $forms = PlaceCode::serialForms($normalized);
         $partner = User::query()
             ->where('status', 'active')
             ->whereIn('role', ['dealer', 'sub_dealer'])
-            ->where(function ($query) use ($normalized): void {
-                $query->whereRaw('UPPER(refer_code) = ?', [$normalized])
-                    ->orWhereRaw('UPPER(dealer_code) = ?', [$normalized]);
+            ->where(function ($query) use ($forms): void {
+                $query->whereIn(DB::raw('UPPER(refer_code)'), $forms)
+                    ->orWhereIn(DB::raw('UPPER(dealer_code)'), $forms);
             })
-            ->first() ?? app(PartnerFormerCodes::class)->activeHolder([$normalized]);
+            ->first() ?? app(PartnerFormerCodes::class)->activeHolder($forms);
 
         if (! $partner) {
             // Unknown code still opens the company contact form with the code prefilled.
@@ -646,13 +648,13 @@ class PublicController extends Controller
     {
         $sponsor = null;
         if (! empty($data['sponsor_code'])) {
-            $code = (string) $data['sponsor_code'];
+            $forms = PlaceCode::serialForms((string) $data['sponsor_code']);
             $sponsor = User::query()
                 ->where('status', 'active')
                 ->whereIn('role', ['dealer', 'sub_dealer'])
-                ->where(fn ($query) => $query->whereRaw('UPPER(refer_code) = ?', [$code])->orWhereRaw('UPPER(dealer_code) = ?', [$code]))
+                ->where(fn ($query) => $query->whereIn(DB::raw('UPPER(refer_code)'), $forms)->orWhereIn(DB::raw('UPPER(dealer_code)'), $forms))
                 ->first(['dealer_code', 'refer_code', 'division', 'district'])
-                ?? app(PartnerFormerCodes::class)->activeHolder([$code]);
+                ?? app(PartnerFormerCodes::class)->activeHolder($forms);
             if (! $sponsor) {
                 throw ValidationException::withMessages(['sponsor_code' => __('partner_profile.err_sponsor_unknown')]);
             }

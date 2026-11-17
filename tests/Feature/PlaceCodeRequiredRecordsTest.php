@@ -40,7 +40,7 @@ class PlaceCodeRequiredRecordsTest extends TestCase
 
         $this->actingAs($owner)->postJson('/api/v1/branches', ['code' => 'NO-PLACE', 'name' => 'Nameless hub', 'division' => 'Rangpur'])
             ->assertUnprocessable()->assertJsonValidationErrors('place_code');
-        $this->postJson('/api/v1/branches', ['code' => 'BAD-PLACE', 'name' => 'Bad hub', 'place_code' => 'MNHC-999999'])
+        $this->postJson('/api/v1/branches', ['code' => 'BAD-PLACE', 'name' => 'Bad hub', 'place_code' => 'MNHC999999'])
             ->assertUnprocessable()->assertJsonValidationErrors('place_code');
         $this->assertDatabaseMissing('company_branches', ['code' => 'NO-PLACE']);
 

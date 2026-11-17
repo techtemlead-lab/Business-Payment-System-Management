@@ -171,7 +171,7 @@ class SiteVisitCountingTest extends TestCase
 
     public function test_a_referral_link_is_kept_without_the_partners_code(): void
     {
-        $this->see('/join/MNHC-1010001');
+        $this->see('/join/MNHC1010001');
 
         $this->assertSame('/join', DB::table('site_visits')->sole()->path);
     }

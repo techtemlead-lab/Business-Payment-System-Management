@@ -68,7 +68,7 @@ class ApplicationSponsorCorrectionTest extends TestCase
                 'email' => 'applicant@example.test',
                 'phone' => '01700000011',
                 'role' => 'dealer',
-                'place_code' => 'MNHC-102',
+                'place_code' => 'MNHC102',
                 'sponsor_id' => $this->firstSponsor->id,
             ], JSON_THROW_ON_ERROR),
             'status' => 'pending',

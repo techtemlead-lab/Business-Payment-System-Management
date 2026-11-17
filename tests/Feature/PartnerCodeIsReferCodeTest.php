@@ -34,18 +34,18 @@ class PartnerCodeIsReferCodeTest extends TestCase
 
     public function test_a_new_dealer_gets_their_code_as_refer_code_whatever_the_form_sends(): void
     {
-        $this->submit($this->partnerForm(['place_code' => 'MNHC-102', 'refer_code' => 'HAND-PICKED']))
+        $this->submit($this->partnerForm(['place_code' => 'MNHC102', 'refer_code' => 'HAND-PICKED']))
             ->assertRedirect('/accounts')
             ->assertSessionHasNoErrors();
 
         $dealer = $this->created();
-        $this->assertSame('MNHC-102', $dealer->dealer_code);
-        $this->assertSame('MNHC-102', $dealer->refer_code);
+        $this->assertSame('MNHC102', $dealer->dealer_code);
+        $this->assertSame('MNHC102', $dealer->refer_code);
     }
 
     public function test_a_changed_dealer_code_is_the_refer_code_too(): void
     {
-        $this->submit($this->partnerForm(['place_code' => 'MNHC-102', 'dealer_code' => 'SHOP-77', 'refer_code' => 'HAND-PICKED']))
+        $this->submit($this->partnerForm(['place_code' => 'MNHC102', 'dealer_code' => 'SHOP-77', 'refer_code' => 'HAND-PICKED']))
             ->assertSessionHasNoErrors();
 
         $this->assertSame('SHOP-77', $this->created()->dealer_code);
@@ -67,7 +67,7 @@ class PartnerCodeIsReferCodeTest extends TestCase
     {
         User::factory()->dealer()->create(['status' => 'active', 'dealer_code' => 'OTHER-1', 'refer_code' => 'SHOP-77']);
 
-        $this->submit($this->partnerForm(['place_code' => 'MNHC-102', 'dealer_code' => 'SHOP-77']))
+        $this->submit($this->partnerForm(['place_code' => 'MNHC102', 'dealer_code' => 'SHOP-77']))
             ->assertSessionHasErrors(['dealer_code' => __('portal.acct_val_refer_taken')])
             ->assertSessionDoesntHaveErrors('refer_code');
 
@@ -76,7 +76,7 @@ class PartnerCodeIsReferCodeTest extends TestCase
 
     public function test_the_company_management_code_is_refused_beside_the_dealer_code_box(): void
     {
-        $this->submit($this->partnerForm(['place_code' => 'MNHC-102', 'dealer_code' => 'MNHC-100']))
+        $this->submit($this->partnerForm(['place_code' => 'MNHC102', 'dealer_code' => 'MNHC100']))
             ->assertSessionHasErrors(['dealer_code' => __('portal.acct_val_refer_is_management')])
             ->assertSessionDoesntHaveErrors('refer_code');
     }
@@ -84,9 +84,9 @@ class PartnerCodeIsReferCodeTest extends TestCase
     public function test_someone_cannot_be_referred_by_their_own_code_and_the_refusal_is_on_the_one_box(): void
     {
         // The only way a new person's code already points at someone: its old holder moved away.
-        $this->move($this->seatedDealer('MNHC-102', 'MNHC-102'), 'MNHC-103')->assertSessionHasNoErrors();
+        $this->move($this->seatedDealer('MNHC102', 'MNHC102'), 'MNHC103')->assertSessionHasNoErrors();
 
-        $this->submit($this->partnerForm(['place_code' => 'MNHC-102', 'reference_code' => 'MNHC-102']))
+        $this->submit($this->partnerForm(['place_code' => 'MNHC102', 'reference_code' => 'MNHC102']))
             ->assertSessionHasErrors(['reference_code' => __('portal.acct_val_reference_same_as_refer')])
             ->assertSessionDoesntHaveErrors('refer_code');
     }
@@ -96,10 +96,10 @@ class PartnerCodeIsReferCodeTest extends TestCase
         $dealer = User::factory()->dealer()->create(['status' => 'active', 'dealer_code' => 'D-SPONSOR', 'refer_code' => 'D-SPONSOR']);
         $subDealer = User::factory()->subDealer()->create(['status' => 'active', 'dealer_code' => 'S-SPONSOR', 'refer_code' => 'S-SPONSOR']);
 
-        $this->submit($this->partnerForm(['place_code' => 'MNHC-102', 'reference_code' => 'D-SPONSOR']))->assertSessionHasNoErrors();
+        $this->submit($this->partnerForm(['place_code' => 'MNHC102', 'reference_code' => 'D-SPONSOR']))->assertSessionHasNoErrors();
         $this->assertSame($dealer->id, $this->created()->sponsor_id);
 
-        $this->submit($this->partnerForm(['place_code' => 'MNHC-101', 'reference_code' => 'S-SPONSOR', 'phone' => '01712345679', 'email' => 'second@example.test']))->assertSessionHasNoErrors();
+        $this->submit($this->partnerForm(['place_code' => 'MNHC101', 'reference_code' => 'S-SPONSOR', 'phone' => '01712345679', 'email' => 'second@example.test']))->assertSessionHasNoErrors();
         $this->assertSame($subDealer->id, User::query()->where('email', 'second@example.test')->firstOrFail()->sponsor_id);
     }
 
@@ -116,16 +116,16 @@ class PartnerCodeIsReferCodeTest extends TestCase
 
     public function test_a_place_move_replaces_a_hand_chosen_refer_code_and_the_old_ones_still_work(): void
     {
-        $dealer = $this->seatedDealer('MNHC-102', 'HAND-PICKED');
+        $dealer = $this->seatedDealer('MNHC102', 'HAND-PICKED');
 
-        $this->move($dealer, 'MNHC-103')->assertSessionHasNoErrors();
+        $this->move($dealer, 'MNHC103')->assertSessionHasNoErrors();
 
         $moved = $dealer->fresh();
-        $this->assertSame('MNHC-103', $moved->dealer_code);
-        $this->assertSame('MNHC-103', $moved->refer_code);
+        $this->assertSame('MNHC103', $moved->dealer_code);
+        $this->assertSame('MNHC103', $moved->refer_code);
         $partners = app(PartnerAccountProvisioning::class);
         $this->assertSame($dealer->id, $partners->findSponsor('HAND-PICKED')?->id, 'A QR already printed with the old refer code still finds the dealer.');
-        $this->assertSame($dealer->id, $partners->findSponsor('MNHC-102')?->id);
+        $this->assertSame($dealer->id, $partners->findSponsor('MNHC102')?->id);
     }
 
     public function test_correcting_a_partner_code_by_hand_moves_the_refer_code_with_it(): void
@@ -170,18 +170,18 @@ class PartnerCodeIsReferCodeTest extends TestCase
 
     public function test_a_reopened_dealer_gets_the_home_code_back_as_refer_code(): void
     {
-        $dealer = $this->seatedDealer('MNHC-102', 'MNHC-102');
+        $dealer = $this->seatedDealer('MNHC102', 'MNHC102');
         $dealer->forceFill([
             'status' => 'suspended',
             'closed_at' => now(),
-            'dealer_code' => 'MNHC-102-CLOSED-'.$dealer->id,
+            'dealer_code' => 'MNHC102-CLOSED-'.$dealer->id,
             'refer_code' => 'HAND-PICKED',
         ])->save();
 
         $this->edit($dealer, ['status' => 'active'])->assertSessionHasNoErrors();
 
-        $this->assertSame('MNHC-102', $dealer->fresh()->dealer_code);
-        $this->assertSame('MNHC-102', $dealer->fresh()->refer_code);
+        $this->assertSame('MNHC102', $dealer->fresh()->dealer_code);
+        $this->assertSame('MNHC102', $dealer->fresh()->refer_code);
     }
 
     public function test_the_migration_makes_every_partner_refer_code_equal_the_code(): void
@@ -226,7 +226,7 @@ class PartnerCodeIsReferCodeTest extends TestCase
 
     public function test_the_migration_leaves_a_closed_accounts_retired_mark_out_of_the_old_codes(): void
     {
-        $closed = $this->partnerRow('D-CLOSED', 'MNHC-102-CLOSED-9');
+        $closed = $this->partnerRow('D-CLOSED', 'MNHC102-CLOSED-9');
 
         $this->runMigration();
 
@@ -258,11 +258,11 @@ class PartnerCodeIsReferCodeTest extends TestCase
 
     private function unionCode(): string
     {
-        $division = PlaceCode::query()->where('code', 'MNHC-102')->firstOrFail();
-        $district = PlaceCode::factory()->district($division)->create(['code' => 'MNHC-371', 'name' => 'Code District']);
-        $upazila = PlaceCode::factory()->upazila($district)->create(['code' => 'MNHC-471', 'name' => 'Code Upazila']);
+        $division = PlaceCode::query()->where('code', 'MNHC102')->firstOrFail();
+        $district = PlaceCode::factory()->district($division)->create(['code' => 'MNHC371', 'name' => 'Code District']);
+        $upazila = PlaceCode::factory()->upazila($district)->create(['code' => 'MNHC471', 'name' => 'Code Upazila']);
 
-        return (string) PlaceCode::factory()->union($upazila)->create(['code' => 'MNHC-571', 'name' => 'Code Union'])->code;
+        return (string) PlaceCode::factory()->union($upazila)->create(['code' => 'MNHC571', 'name' => 'Code Union'])->code;
     }
 
     private function runMigration(): void
@@ -332,7 +332,7 @@ class PartnerCodeIsReferCodeTest extends TestCase
             'name_bn' => 'মোঃ রফিক',
             'father_name' => 'Abdur Rahman',
             'mother_name' => 'Rahima Begum',
-            'place_code' => 'MNHC-102',
+            'place_code' => 'MNHC102',
             'phone' => '01712345678',
             'email' => 'partner@example.test',
             'reason' => 'Papers checked in person.',

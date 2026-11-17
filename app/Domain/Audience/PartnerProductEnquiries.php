@@ -4,6 +4,7 @@ namespace App\Domain\Audience;
 
 use App\Domain\Accounts\PartnerFormerCodes;
 use App\Domain\Notifications\WebPushNotices;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -32,14 +33,16 @@ final class PartnerProductEnquiries
             return null;
         }
 
+        $forms = PlaceCode::serialForms($code);
+
         return User::query()
             ->where('status', 'active')
             ->whereIn('role', ['dealer', 'sub_dealer'])
-            ->where(function ($query) use ($code): void {
-                $query->whereRaw('UPPER(refer_code) = ?', [$code])
-                    ->orWhereRaw('UPPER(dealer_code) = ?', [$code]);
+            ->where(function ($query) use ($forms): void {
+                $query->whereIn(DB::raw('UPPER(refer_code)'), $forms)
+                    ->orWhereIn(DB::raw('UPPER(dealer_code)'), $forms);
             })
-            ->first() ?? app(PartnerFormerCodes::class)->activeHolder([$code]);
+            ->first() ?? app(PartnerFormerCodes::class)->activeHolder($forms);
     }
 
     /**

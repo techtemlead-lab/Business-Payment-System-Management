@@ -2,6 +2,7 @@
 
 namespace App\Domain\Accounts;
 
+use App\Models\PlaceCode;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -59,11 +60,13 @@ final class PartnerFormerCodes
     }
 
     /**
+     * Each code in every spelling it may be saved under (MNHC100, MNHC-100, 100), upper-cased.
+     *
      * @param  list<string>  $codes
      * @return list<string>
      */
     private function normalized(array $codes): array
     {
-        return array_values(array_unique(array_map(fn (string $code): string => strtoupper(trim($code)), $codes)));
+        return array_values(array_unique(array_merge([], ...array_map(PlaceCode::serialForms(...), array_values($codes)))));
     }
 }

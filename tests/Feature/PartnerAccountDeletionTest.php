@@ -507,7 +507,7 @@ class PartnerAccountDeletionTest extends TestCase
             'name_bn' => 'নতুন ডিলার',
             'father_name' => 'Father',
             'mother_name' => 'Mother',
-            'place_code' => 'MNHC-102',
+            'place_code' => 'MNHC102',
             'reason' => 'Replacement account',
             ...$overrides,
         ];

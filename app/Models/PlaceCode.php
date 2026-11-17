@@ -94,53 +94,95 @@ class PlaceCode extends Model
     }
 
     /**
-     * Normalize a place / management code to the branded form MNHC-{digits}.
-     * Accepts bare digits (100) or already-prefixed values (MNHC-100).
+     * The digits of a place / management code, whichever way it was typed:
+     * 100, MNHC100, MNHC-100 and "mnhc 100" all give 100. Null when it is not a code.
      */
-    public static function normalizeCode(?string $code): ?string
+    public static function codeDigits(?string $code): ?string
     {
-        $raw = strtoupper(trim((string) $code));
+        $raw = self::compact($code);
         if ($raw === '' || self::isPlaceholderLabel($raw)) {
             return null;
         }
 
-        $prefix = self::BrandPrefix.'-';
-        if (str_starts_with($raw, $prefix)) {
-            $numeric = substr($raw, strlen($prefix));
-        } elseif (str_starts_with($raw, self::BrandPrefix)) {
-            $numeric = ltrim(substr($raw, strlen(self::BrandPrefix)), '-');
-        } else {
-            $numeric = $raw;
-        }
+        $numeric = str_starts_with($raw, self::BrandPrefix)
+            ? ltrim(substr($raw, strlen(self::BrandPrefix)), '-')
+            : $raw;
 
-        if (! preg_match('/^\d{2,8}$/', $numeric)) {
-            return null;
-        }
-
-        return $prefix.$numeric;
+        return preg_match('/^\d{2,8}$/D', $numeric) === 1 ? $numeric : null;
     }
 
     /**
-     * Prefix a dealer / sub-dealer serial that embeds a place code.
-     * Examples: 100 → MNHC-100, 501-001 → MNHC-501-001, MNHC-501-001 → unchanged.
+     * Normalize a place / management code to the branded form MNHC{digits}, e.g. MNHC100.
+     * Accepts bare digits (100), the older hyphen form (MNHC-100), any case and spaces.
+     */
+    public static function normalizeCode(?string $code): ?string
+    {
+        $digits = self::codeDigits($code);
+
+        return $digits === null ? null : self::BrandPrefix.$digits;
+    }
+
+    /**
+     * Every spelling a stored place code may have: the current MNHC100, the older MNHC-100
+     * (cards printed before the change) and the bare digits 100 (rows from before the brand).
+     *
+     * @return list<string>
+     */
+    public static function storedCodeForms(?string $code): array
+    {
+        $digits = self::codeDigits($code);
+        if ($digits === null) {
+            return [];
+        }
+
+        return [self::BrandPrefix.$digits, self::BrandPrefix.'-'.$digits, $digits];
+    }
+
+    /**
+     * Prefix a dealer / sub-dealer serial that embeds a place code. The only hyphen kept is the
+     * one between the place code and the serial. Examples: 100 → MNHC100,
+     * 100001-000001 → MNHC100001-000001, MNHC-100001-000001 → MNHC100001-000001.
+     * Anything else is returned upper-cased and unchanged.
      */
     public static function brandSerial(?string $serial): ?string
     {
-        $raw = strtoupper(trim((string) $serial));
+        $raw = self::compact($serial);
         if ($raw === '') {
             return null;
         }
 
-        $prefix = self::BrandPrefix.'-';
-        if (str_starts_with($raw, $prefix)) {
+        $parts = self::serialParts($raw);
+        if ($parts === null) {
             return $raw;
         }
 
-        if (preg_match('/^(\d{2,8})(?:-([A-Z0-9]{1,16}))?$/', $raw, $matches) !== 1) {
-            return $raw;
+        return self::BrandPrefix.$parts['digits'].($parts['serial'] !== '' ? '-'.$parts['serial'] : '');
+    }
+
+    /**
+     * Every spelling a typed dealer, sub-dealer or refer code may be stored under, upper-cased:
+     * as typed, the current MNHC100001-000001, the older MNHC-100001-000001 and the bare
+     * 100001-000001. Old ID cards and shared links keep working this way.
+     *
+     * @return list<string>
+     */
+    public static function serialForms(?string $code): array
+    {
+        $typed = strtoupper(trim((string) $code));
+        if ($typed === '') {
+            return [];
         }
 
-        return $prefix.$matches[1].(isset($matches[2]) && $matches[2] !== '' ? '-'.$matches[2] : '');
+        $forms = [$typed];
+        $parts = self::serialParts(self::compact($typed));
+        if ($parts !== null) {
+            $tail = $parts['serial'] !== '' ? '-'.$parts['serial'] : '';
+            $forms[] = self::BrandPrefix.$parts['digits'].$tail;
+            $forms[] = self::BrandPrefix.'-'.$parts['digits'].$tail;
+            $forms[] = $parts['digits'].$tail;
+        }
+
+        return array_values(array_unique($forms));
     }
 
     public static function findByCode(string $code, bool $activeOnly = true): ?self
@@ -150,15 +192,35 @@ class PlaceCode extends Model
             return null;
         }
 
-        $legacy = substr($normalized, strlen(self::BrandPrefix) + 1);
-
         return self::query()
             ->when($activeOnly, fn ($q) => $q->where('is_active', true))
-            ->where(function ($q) use ($normalized, $legacy): void {
-                $q->where('code', $normalized)->orWhere('code', $legacy);
-            })
+            ->whereIn('code', self::storedCodeForms($normalized))
             ->orderByRaw('CASE WHEN code = ? THEN 0 ELSE 1 END', [$normalized])
             ->first();
+    }
+
+    /** Upper-cased with every space removed, so "mnhc 100" reads as MNHC100. */
+    private static function compact(?string $value): string
+    {
+        return strtoupper((string) preg_replace('/\s+/u', '', (string) $value));
+    }
+
+    /**
+     * The place-code digits and the serial after them, without the brand prefix.
+     *
+     * @return array{digits: string, serial: string}|null
+     */
+    private static function serialParts(string $compact): ?array
+    {
+        $body = str_starts_with($compact, self::BrandPrefix)
+            ? ltrim(substr($compact, strlen(self::BrandPrefix)), '-')
+            : $compact;
+
+        if (preg_match('/^(\d{2,8})(?:-([A-Z0-9]{1,16}))?$/D', $body, $matches) !== 1) {
+            return null;
+        }
+
+        return ['digits' => $matches[1], 'serial' => $matches[2] ?? ''];
     }
 
     protected static function booted(): void

@@ -27,7 +27,7 @@ class PlaceWithPartnersStaysActiveTest extends TestCase
         parent::setUp();
         $this->seedClassicPlaceCodes();
         $this->admin = User::factory()->staff()->create();
-        $this->place = PlaceCode::query()->where('code', 'MNHC-102')->firstOrFail();
+        $this->place = PlaceCode::query()->where('code', 'MNHC102')->firstOrFail();
     }
 
     public function test_a_place_holding_an_active_dealer_seat_cannot_be_switched_off(): void
