@@ -83,15 +83,31 @@ class InvoiceBuyerPlaceTest extends TestCase
         $this->assertSame('Badarganj, Mithapukur, Rangpur, Rangpur', $payload['buyer']['area']);
     }
 
-    public function test_a_partner_with_no_place_falls_back_to_the_plain_dealer_title_and_the_old_area(): void
+    public function test_a_partner_with_no_place_code_is_typed_from_the_deepest_place_name_they_saved(): void
     {
-        $dealer = User::factory()->dealer()->create(['district' => 'Dinajpur', 'profile' => ['upazila' => 'Birol']]);
+        $union = User::factory()->dealer()->create(['division' => 'Rangpur', 'district' => 'Rangpur', 'profile' => ['upazila' => 'Mithapukur', 'union' => 'Badarganj']]);
+        $upazila = User::factory()->dealer()->create(['division' => 'Rangpur', 'district' => 'Rangpur', 'profile' => ['upazila' => 'Mithapukur']]);
+        $district = User::factory()->dealer()->create(['division' => 'Rangpur', 'district' => 'Dinajpur', 'profile' => []]);
+        $division = User::factory()->dealer()->create(['division' => 'Rajshahi', 'district' => null, 'profile' => []]);
+
+        $this->assertSame(['level' => 'union', 'address' => 'Badarganj, Mithapukur, Rangpur, Rangpur'], app(InvoiceBuyerPlace::class)->for($union));
+        $this->assertSame(['level' => 'upazila', 'address' => 'Mithapukur, Rangpur, Rangpur'], app(InvoiceBuyerPlace::class)->for($upazila));
+        $this->assertSame(['level' => 'district', 'address' => 'Dinajpur'], app(InvoiceBuyerPlace::class)->for($district));
+        $this->assertSame(['level' => 'division', 'address' => 'Rajshahi'], app(InvoiceBuyerPlace::class)->for($division));
+
+        $payload = app(OrderInvoice::class)->payload($this->orderFor($union), 'none');
+        $this->assertSame('Union Dealer', $payload['buyer']['designation']);
+    }
+
+    public function test_a_partner_with_no_place_and_no_saved_names_gets_the_plain_dealer_title(): void
+    {
+        $dealer = User::factory()->dealer()->create(['division' => null, 'district' => null, 'profile' => []]);
 
         $payload = app(OrderInvoice::class)->payload($this->orderFor($dealer), 'none');
 
         $this->assertSame(['level' => null, 'address' => null], app(InvoiceBuyerPlace::class)->for($dealer));
         $this->assertSame('Dealer', $payload['buyer']['designation']);
-        $this->assertSame('Dinajpur', $payload['buyer']['area']);
+        $this->assertSame('—', $payload['buyer']['area']);
     }
 
     public function test_the_invoice_page_shows_the_type_above_the_details_and_every_contact_line(): void

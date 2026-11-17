@@ -22,10 +22,41 @@ final class InvoiceBuyerPlace
     {
         $place = $buyer instanceof User ? $this->placeOf($buyer) : null;
         if (! $place instanceof PlaceCode) {
-            return ['level' => null, 'address' => null];
+            return $buyer instanceof User ? $this->fromSavedNames($buyer) : ['level' => null, 'address' => null];
         }
 
         return ['level' => $place->level, 'address' => $this->address($place)];
+    }
+
+    /**
+     * A partner with no place code on file (the place list was cleared, or the account came from
+     * an import) still saved the names of their division, district, upazila and union. The
+     * deepest name that is filled in says what kind of dealer they are.
+     *
+     * @return array{level: ?string, address: ?string}
+     */
+    private function fromSavedNames(User $buyer): array
+    {
+        $savedProfile = $buyer->getAttribute('profile');
+        $profile = is_array($savedProfile) ? $savedProfile : [];
+        $names = [
+            PlaceCode::LevelUnion => trim((string) ($profile['union'] ?? '')),
+            PlaceCode::LevelUpazila => trim((string) ($profile['upazila'] ?? '')),
+            PlaceCode::LevelDistrict => trim((string) $buyer->getAttribute('district')),
+            PlaceCode::LevelDivision => trim((string) $buyer->getAttribute('division')),
+        ];
+        foreach ($names as $level => $name) {
+            if ($name === '') {
+                continue;
+            }
+            $upward = in_array($level, [PlaceCode::LevelDivision, PlaceCode::LevelDistrict], true)
+                ? [$name]
+                : array_values(array_filter($names, static fn (string $each): bool => $each !== ''));
+
+            return ['level' => $level, 'address' => implode(', ', $upward)];
+        }
+
+        return ['level' => null, 'address' => null];
     }
 
     /** The partner's saved place, then the area they were given, never a guess from a name. */
