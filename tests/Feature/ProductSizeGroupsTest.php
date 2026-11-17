@@ -392,6 +392,20 @@ class ProductSizeGroupsTest extends TestCase
         }
     }
 
+    public function test_sizes_with_the_same_name_keep_one_order_even_after_the_first_one_is_edited(): void
+    {
+        [$small, $medium] = $this->group(
+            $this->sized('Syrup Order', '100 ml', '100.00', ['dealer_price' => '60.00']),
+            $this->sized('Syrup Order', '300 ml', '250.00', ['dealer_price' => '150.00']),
+        );
+        $small->update(['description' => 'Edited after the larger size was saved, so the database may hand it back last.']);
+        $dealer = User::factory()->dealer()->create(['status' => 'active']);
+
+        $this->actingAs($dealer)->onPortal('dealer')->get('/purchase')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.products.0.id', $small->id)
+            ->where('data.products.1.id', $medium->id));
+    }
+
     public function test_office_list_shows_the_size_label_only_on_grouped_products(): void
     {
         $owner = $this->owner();

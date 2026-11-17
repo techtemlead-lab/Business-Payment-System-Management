@@ -56,7 +56,10 @@ final class CatalogSection implements WorkspaceSection
             ->when($context->section === 'catalog' && $request->string('availability')->toString() === 'draft', fn ($q) => $q->where('active', false)->whereNull('archived_at'))
             ->when($context->section === 'catalog' && $request->string('availability')->toString() === 'in_stock', fn ($q) => $q->whereSellable()->where(fn ($stock) => $stock->where('is_stock_paused', false)->orWhereNull('is_stock_paused')))
             ->when($context->section === 'catalog' && $request->string('availability')->toString() === 'out_of_stock', fn ($q) => $q->where(fn ($stock) => $stock->whereNotSellable()->orWhere('is_stock_paused', true)))
-            ->when($context->section === 'catalog', fn ($q) => $this->sortCatalog($q, $request), fn ($q) => $q->orderBy('name'));
+            ->when($context->section === 'catalog', fn ($q) => $this->sortCatalog($q, $request), fn ($q) => $q->orderBy('name'))
+            // Package sizes of one product share a name, and without a last sort key the database
+            // may return them in any order, and a staff page can repeat or skip one between pages.
+            ->orderBy('products.id');
         $revealStock = ! $context->isStaff || $user->allows('inventory');
         $stagesByProduct = [];
         $removalByProduct = [];
