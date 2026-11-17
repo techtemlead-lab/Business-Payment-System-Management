@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Audience\PublicPartnerApplication;
+use App\Domain\Security\SecuritySettings;
 use App\Models\AreaDealerAssignment;
 use App\Models\PlaceCode;
 use App\Models\User;
@@ -132,38 +133,48 @@ class PartnerApplicationApprovalTest extends TestCase
         $this->assertDatabaseHas('dealer_applications', ['id' => $id, 'status' => 'rejected']);
     }
 
-    public function test_the_owner_must_give_a_reason_to_approve_a_number_already_in_use(): void
+    /** These tests check the one-number rule itself, so the owner's switch (off by default) is turned on. */
+    private function switchOneNumberRuleOn(): void
     {
+        app(SecuritySettings::class)->saveOneAccountPerIdentity($this->reviewer, true, 0);
+    }
+
+    public function test_an_application_on_a_number_already_in_use_cannot_be_approved_while_the_rule_is_on(): void
+    {
+        $this->switchOneNumberRuleOn();
         User::factory()->dealer()->create(['phone' => '01712220099']);
         $id = $this->apply('dealer', ['phone' => '01712220099']);
 
-        $this->decide($id, [])->assertSessionHasErrors(['phone' => __('portal.acct_val_phone_taken_owner')]);
+        // Not even the owner, and a written reason changes nothing.
+        $this->decide($id, ['phone_share_reason' => 'Two shops of the same family.'])
+            ->assertSessionHasErrors(['phone' => __('portal.acct_val_phone_taken')]);
 
         $this->assertDatabaseHas('dealer_applications', ['id' => $id, 'status' => 'pending']);
+        $this->assertSame(1, User::query()->where('phone', '01712220099')->count());
     }
 
-    public function test_the_owner_can_approve_a_number_already_in_use_with_a_written_reason(): void
+    public function test_the_same_application_can_be_approved_once_the_rule_is_switched_off(): void
     {
+        $this->switchOneNumberRuleOn();
         User::factory()->dealer()->create(['phone' => '01712220099']);
         $id = $this->apply('dealer', ['phone' => '01712220099']);
+        $this->decide($id, [])->assertSessionHasErrors('phone');
 
-        $this->decide($id, ['phone_share_reason' => 'Two shops of the same family.'])->assertSessionHasNoErrors();
+        app(SecuritySettings::class)->saveOneAccountPerIdentity($this->reviewer, false, 1);
+        $this->decide($id, [])->assertSessionHasNoErrors();
 
-        $dealer = User::query()->where('dealer_code', 'MNHC-100111')->sole();
-        $this->assertSame('01712220099', $dealer->phone);
-        $this->assertSame($this->reviewer->id, (int) $dealer->phone_share_approved_by);
-        $this->assertSame('Two shops of the same family.', $dealer->phone_share_reason);
+        $this->assertSame(2, User::query()->where('phone', '01712220099')->count());
         $this->assertDatabaseHas('dealer_applications', ['id' => $id, 'status' => 'approved']);
-        $this->assertDatabaseHas('audit_events', ['action' => 'account.phone_share_approved', 'subject' => (string) $dealer->id]);
     }
 
-    public function test_only_the_owner_can_override_a_number_already_in_use(): void
+    public function test_staff_who_are_not_owners_are_refused_the_same_way(): void
     {
+        $this->switchOneNumberRuleOn();
         User::factory()->dealer()->create(['phone' => '01712220099']);
         $id = $this->apply('dealer', ['phone' => '01712220099']);
 
         $this->actingAs(User::factory()->staff('account_manager')->create())->onPortal('manage')->from('/partnerships')
-            ->post('/commands/operations/staff/applications/'.$id.'/review', ['decision' => 'approved', 'reason' => 'Papers checked by the office.', 'place_code' => $this->union->code, 'phone_share_reason' => 'Trying to share it.'])
+            ->post('/commands/operations/staff/applications/'.$id.'/review', ['decision' => 'approved', 'reason' => 'Papers checked by the office.', 'place_code' => $this->union->code])
             ->assertSessionHasErrors(['phone' => __('portal.acct_val_phone_taken')]);
 
         $this->assertDatabaseHas('dealer_applications', ['id' => $id, 'status' => 'pending']);

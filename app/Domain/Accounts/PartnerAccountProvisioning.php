@@ -57,8 +57,7 @@ final class PartnerAccountProvisioning
             throw ValidationException::withMessages(['role' => __('portal.acct_val_role')]);
         }
 
-        $phoneCheck = $this->phones->check($actor, $input['phone'] ?? '', null, $input['phone_share_reason'] ?? null);
-        $phone = $phoneCheck['phone'];
+        $phone = $this->phones->available($input['phone'] ?? '');
         $email = strtolower(trim((string) ($input['email'] ?? '')));
         $referenceCode = strtoupper(trim((string) ($input['reference_code'] ?? '')));
         $identityType = (string) ($input['identity_type'] ?? 'birth_certificate');
@@ -193,7 +192,7 @@ final class PartnerAccountProvisioning
         }
 
         try {
-            $user = DB::transaction(function () use ($actor, $input, $role, $phone, $email, $referCode, $sponsor, $place, $path, $dealerCode, $profile, $plainPassword, $managementReferral, $managementSettings, $phoneCheck): User {
+            $user = DB::transaction(function () use ($actor, $input, $role, $phone, $email, $referCode, $sponsor, $place, $path, $dealerCode, $profile, $plainPassword, $managementReferral, $managementSettings): User {
                 CommissionWallet::lock();
                 $this->claimCodes($actor, [$dealerCode]);
                 $user = (new User)->forceFill([
@@ -203,8 +202,6 @@ final class PartnerAccountProvisioning
                     'name' => trim((string) $input['name']),
                     'email' => $email,
                     'phone' => $phone,
-                    'phone_share_approved_by' => $phoneCheck['phone_share_approved_by'],
-                    'phone_share_reason' => $phoneCheck['phone_share_reason'],
                     'division' => $path['division'] ?? ($input['division'] ?? null),
                     'district' => $path['district'] ?? ($input['district'] ?? null),
                     'sponsor_id' => $sponsor?->id,
@@ -236,7 +233,6 @@ final class PartnerAccountProvisioning
                     'referred_by_management' => $managementReferral,
                     'reason' => $input['reason'] ?? __('portal.acct_default_onboarding_reason'),
                 ]);
-                $this->phones->recordShare($actor, $user, $phoneCheck);
 
                 return $user;
             }, 3);

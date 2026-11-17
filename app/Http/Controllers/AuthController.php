@@ -489,7 +489,7 @@ class AuthController extends Controller
         if (array_key_exists('phone', $data)) {
             $phones = app(AccountPhoneRules::class);
             $data['phone'] = $phones->normalize($data['phone']);
-            if (PhoneIdentity::normalize($data['phone']) !== PhoneIdentity::normalize((string) $owner->phone) && $phones->holders($data['phone'], $owner->id) !== []) {
+            if (PhoneIdentity::normalize($data['phone']) !== PhoneIdentity::normalize((string) $owner->phone) && $phones->isTaken($data['phone'], $owner->id)) {
                 throw ValidationException::withMessages(['phone' => __('portal.acct_val_phone_taken')]);
             }
         }
@@ -694,6 +694,21 @@ class AuthController extends Controller
         $security->savePasswordResetNotice($owner, $data['enabled'] === '1', (int) $data['version']);
 
         return back()->with('success', __('portal.flash_password_reset_notice_updated'));
+    }
+
+    /** Owners only: switch "one mobile number, one account" on or off (off by default). */
+    public function oneAccountPerIdentity(Request $request, SecuritySettings $security, OwnerConfirmation $confirmation): Response
+    {
+        $owner = $request->user();
+        abort_unless($owner?->owner(), 403);
+        $confirmation->require($request, $owner);
+        $data = $request->validate([
+            'enabled' => 'required|in:0,1',
+            'version' => 'required|integer|min:0',
+        ]);
+        $security->saveOneAccountPerIdentity($owner, $data['enabled'] === '1', (int) $data['version']);
+
+        return back()->with('success', __('portal.flash_one_account_per_identity_updated'));
     }
 
     public function beginTotp(Request $request, TotpAuthenticator $totp, SecuritySettings $security): Response

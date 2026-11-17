@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Domain\Security\SecuritySettings;
 use App\Models\User;
 use App\Support\DeploymentReadiness;
-use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
@@ -29,6 +28,12 @@ class AccountPhoneRulesTest extends TestCase
         Config::set('madina.preview_mode', false);
         Config::set('madina.sms.driver', 'array');
         Config::set('madina.sms.sent', []);
+    }
+
+    /** These tests check the rule itself, so the owner's "one number, one account" switch (off by default) is turned on. */
+    private function switchOneNumberRuleOn(User $owner): void
+    {
+        app(SecuritySettings::class)->saveOneAccountPerIdentity($owner, true, 0);
     }
 
     /** @return array<string, mixed> */
@@ -65,18 +70,20 @@ class AccountPhoneRulesTest extends TestCase
     public function test_a_number_used_by_another_account_is_refused_in_any_format(): void
     {
         $owner = User::factory()->staff('super_admin')->create(['phone' => '01900000001']);
+        $this->switchOneNumberRuleOn($owner);
         User::factory()->dealer()->create(['phone' => '01711112222']);
 
         $this->actingAs($owner)->onPortal('sadmin')->post('/commands/accounts', $this->dealerForm(['phone' => '+880 1711-112222']))
-            ->assertSessionHasErrors(['phone' => __('portal.acct_val_phone_taken_owner')]);
+            ->assertSessionHasErrors(['phone' => __('portal.acct_val_phone_taken')]);
         $this->assertDatabaseMissing('users', ['email' => 'phone-rule-dealer@example.com']);
     }
 
-    public function test_an_owner_can_allow_a_shared_number_with_a_reason_that_is_audited(): void
+    public function test_even_an_owner_cannot_add_a_second_account_on_a_number_while_the_rule_is_on(): void
     {
         $owner = User::factory()->staff('chairman')->create(['phone' => '01900000001']);
-        $existing = User::factory()->dealer()->create(['phone' => '01711112222']);
-        // The chairman needs the accounts screen to create partners; owners still decide on sharing.
+        $this->switchOneNumberRuleOn($owner);
+        User::factory()->dealer()->create(['phone' => '01711112222']);
+        // The chairman needs the accounts screen to create partners.
         DB::table('users')->where('id', $owner->id)->update(['profile' => json_encode(['action_permissions' => ['accounts' => ['view' => true, 'create' => true, 'edit' => true, 'approve' => true]]])]);
 
         $this->actingAs($owner->fresh())->onPortal('sadmin')->post('/commands/accounts', $this->dealerForm([
@@ -84,27 +91,49 @@ class AccountPhoneRulesTest extends TestCase
             'nid' => null,
             'birth_certificate_number' => '19901234567890123',
             'phone_share_reason' => 'Husband and wife run two shops from one phone.',
-        ]))->assertRedirect('/accounts');
+        ]))->assertSessionHasErrors(['phone' => __('portal.acct_val_phone_taken')]);
 
-        $created = User::query()->where('email', 'phone-rule-dealer@example.com')->firstOrFail();
-        $this->assertSame('01711112222', $created->phone);
-        $this->assertSame($owner->id, (int) $created->phone_share_approved_by);
-        $this->assertSame('Husband and wife run two shops from one phone.', $created->phone_share_reason);
-        $audit = DB::table('audit_events')->where('action', 'account.phone_share_approved')->where('subject', (string) $created->id)->first();
-        $this->assertNotNull($audit);
-        $this->assertStringContainsString((string) $existing->id, (string) $audit->metadata);
+        $this->assertDatabaseMissing('users', ['email' => 'phone-rule-dealer@example.com']);
+        $this->assertDatabaseMissing('audit_events', ['action' => 'account.phone_share_approved']);
+    }
+
+    public function test_accounts_that_already_share_a_number_keep_working_when_the_rule_is_switched_on(): void
+    {
+        $owner = User::factory()->staff('super_admin')->create(['phone' => '01900000001']);
+        $first = User::factory()->dealer()->create(['phone' => '01711112222']);
+        $second = User::factory()->dealer()->create(['phone' => '+8801711112222']);
+
+        $this->switchOneNumberRuleOn($owner);
+
+        // Saving an old account with its own number, in any format, is not a new entry.
+        $this->actingAs($owner)->onPortal('sadmin')->patch('/commands/accounts/'.$second->id, ['phone' => '01711112222', 'name' => 'Renamed', 'reason' => 'Rename'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame('Renamed', $second->fresh()->name);
+        $this->assertSame('01711112222', $first->fresh()->phone);
+
+        // Moving an old account to a number another account has is a new entry, and is refused.
+        $third = User::factory()->dealer()->create(['phone' => '01733334444']);
+        $this->actingAs($owner)->onPortal('sadmin')->patch('/commands/accounts/'.$third->id, ['phone' => '01711112222', 'reason' => 'Move'])
+            ->assertSessionHasErrors(['phone' => __('portal.acct_val_phone_taken')]);
+        $this->assertSame('01733334444', $third->fresh()->phone);
+
+        // Switched off again, the same move goes through.
+        app(SecuritySettings::class)->saveOneAccountPerIdentity($owner, false, 1);
+        $this->actingAs($owner)->onPortal('sadmin')->patch('/commands/accounts/'.$third->id, ['phone' => '01711112222', 'reason' => 'Move'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame('01711112222', $third->fresh()->phone);
     }
 
     public function test_staff_who_are_not_owners_cannot_approve_a_shared_number(): void
     {
         $manager = User::factory()->staff('account_manager')->create(['phone' => '01900000002']);
+        $this->switchOneNumberRuleOn(User::factory()->staff('super_admin')->create(['phone' => '01900000001']));
         User::factory()->dealer()->create(['phone' => '01711112222']);
 
         $response = $this->actingAs($manager)->onPortal('manage')->post('/commands/accounts', $this->dealerForm([
             'identity_type' => 'birth_certificate',
             'nid' => null,
             'birth_certificate_number' => '19901234567890123',
-            'phone_share_reason' => 'Trying to share anyway',
         ]));
         $response->assertSessionHasErrors(['phone' => __('portal.acct_val_phone_taken')]);
         $this->assertDatabaseMissing('users', ['email' => 'phone-rule-dealer@example.com']);
@@ -113,6 +142,7 @@ class AccountPhoneRulesTest extends TestCase
     public function test_staff_accounts_need_a_unique_mobile_too(): void
     {
         $owner = User::factory()->staff('super_admin')->create(['phone' => '01900000001']);
+        $this->switchOneNumberRuleOn($owner);
         $form = ['role' => 'finance', 'name' => 'Finance Person', 'email' => 'finance-new@example.com', 'reason' => 'New staff'];
 
         $this->actingAs($owner)->onPortal('sadmin')->post('/commands/accounts', $form)->assertSessionHasErrors('phone');
@@ -126,6 +156,7 @@ class AccountPhoneRulesTest extends TestCase
     public function test_editing_cannot_clear_a_number_or_take_another_accounts_number(): void
     {
         $owner = User::factory()->staff('super_admin')->create(['phone' => '01900000001']);
+        $this->switchOneNumberRuleOn($owner);
         $dealer = User::factory()->dealer()->create(['phone' => '01711112222']);
         User::factory()->dealer()->create(['phone' => '01733334444']);
 
@@ -187,27 +218,28 @@ class AccountPhoneRulesTest extends TestCase
         $this->artisan('madina:sms-login', ['state' => 'maybe'])->assertFailed();
     }
 
-    public function test_go_live_check_flags_missing_and_shared_numbers_and_the_sms_switch(): void
+    public function test_go_live_check_flags_missing_numbers_and_the_sms_switch(): void
     {
         $owner = User::factory()->staff('super_admin')->create(['phone' => '01900000001']);
         $missing = User::factory()->dealer()->create(['phone' => null]);
+        // Accounts sharing a number are allowed now, so they are no go-live warning either way.
         User::factory()->dealer()->create(['phone' => '01711112222']);
-        // The database itself refuses a second unapproved account on one number.
-        $this->assertThrows(fn () => DB::transaction(fn () => User::factory()->dealer()->create(['phone' => '+8801711112222'])), UniqueConstraintViolationException::class);
-        User::factory()->dealer()->create(['phone' => '+8801711112222', 'phone_share_approved_by' => $owner->id, 'phone_share_reason' => 'Approved']);
+        User::factory()->dealer()->create(['phone' => '+8801711112222']);
         app(SecuritySettings::class)->savePartnerLoginOtp($owner, false, 0);
 
         $warnings = app(DeploymentReadiness::class)->inspect()['warnings'];
         $this->assertContains('accounts_missing_mobile', $warnings);
-        $this->assertNotContains('accounts_sharing_mobile', $warnings);
         $this->assertContains('sms_login_code_switched_off', $warnings);
+        $this->assertNotContains('accounts_sharing_mobile', $warnings);
+
+        $this->switchOneNumberRuleOn($owner);
+        $this->assertNotContains('accounts_sharing_mobile', app(DeploymentReadiness::class)->inspect()['warnings']);
 
         $missing->forceFill(['phone' => '01755556666'])->save();
         app(SecuritySettings::class)->savePartnerLoginOtp($owner, true, 1);
 
         $warnings = app(DeploymentReadiness::class)->inspect()['warnings'];
         $this->assertNotContains('accounts_missing_mobile', $warnings);
-        $this->assertNotContains('accounts_sharing_mobile', $warnings);
         $this->assertNotContains('sms_login_code_switched_off', $warnings);
     }
 }

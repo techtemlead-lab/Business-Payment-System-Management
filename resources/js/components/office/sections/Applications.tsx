@@ -76,11 +76,9 @@ function ReviewPanel({ application, onClose, onReject }: { application: Row; onC
     const reviewable = application.status === 'pending' && !sentByViewer;
     const isOwnApplication = application.status === 'pending' && sentByViewer;
     const canDecide = reviewable && mayDecide;
-    const isOwner = ['super_admin', 'md', 'chairman'].includes(String(auth?.user?.role ?? ''));
     const isDealerApplication = application.role === 'dealer';
-    const [phoneWasRefused, setPhoneWasRefused] = useState(false);
     const reviewReason = useReasonField('partner.application_review');
-    const form = useForm({ decision: 'approved', place_code: application.place_code || '', sponsor_code: application.sponsor_code || '', reason: '', directory_visible: isDealerApplication, phone_share_reason: '' });
+    const form = useForm({ decision: 'approved', place_code: application.place_code || '', sponsor_code: application.sponsor_code || '', reason: '', directory_visible: isDealerApplication });
 
     const lines: [string, React.ReactNode][] = [
         [translate('office_partners', 'detail_email'), application.email],
@@ -116,7 +114,7 @@ function ReviewPanel({ application, onClose, onReject }: { application: Row; onC
                     onSubmit={(event) => {
                         event.preventDefault();
                         form.clearErrors();
-                        form.post(reviewAddress, { preserveScroll: true, onSuccess: onClose, onError: (errors) => { if (errors.phone) { setPhoneWasRefused(true); } } });
+                        form.post(reviewAddress, { preserveScroll: true, onSuccess: onClose });
                     }}
                 >
                     <label>
@@ -131,14 +129,6 @@ function ReviewPanel({ application, onClose, onReject }: { application: Row; onC
                         <small className="field-hint">{translate('portal', 'partnership_sponsor_code_hint')}</small>
                         {form.errors.sponsor_code && <span className="field-error" role="alert">{form.errors.sponsor_code}</span>}
                     </label>
-                    {isOwner && phoneWasRefused && (
-                        <label>
-                            {translate('portal', 'acct_phone_share_reason')}
-                            <input maxLength={500} autoComplete="off" value={form.data.phone_share_reason} onChange={(event) => form.setData('phone_share_reason', event.target.value)} />
-                            <small className="field-hint">{translate('portal', 'acct_phone_share_reason_hint')}</small>
-                            {form.errors.phone_share_reason && <span className="field-error" role="alert">{form.errors.phone_share_reason}</span>}
-                        </label>
-                    )}
                     {(application.role === 'dealer' || application.role === 'sub_dealer') && (
                         <label className="import-confirmation">
                             <input type="checkbox" checked={form.data.directory_visible} onChange={(event) => form.setData('directory_visible', event.target.checked)} /> {translate('portal', 'acct_directory_visible')}
@@ -152,7 +142,7 @@ function ReviewPanel({ application, onClose, onReject }: { application: Row; onC
                             {form.errors.reason && <span className="field-error" role="alert">{form.errors.reason}</span>}
                         </label>
                     )}
-                    <FormErrors errors={form.errors} besideFields={['place_code', 'sponsor_code', 'reason', 'phone_share_reason']} />
+                    <FormErrors errors={form.errors} besideFields={['place_code', 'sponsor_code', 'reason']} />
                 </form>
             )}
         </Modal>
