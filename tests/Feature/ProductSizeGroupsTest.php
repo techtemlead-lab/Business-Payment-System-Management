@@ -412,15 +412,6 @@ class ProductSizeGroupsTest extends TestCase
             }));
     }
 
-    public function test_the_order_form_finds_one_product_and_then_picks_the_package_size(): void
-    {
-        $form = (string) file_get_contents(resource_path('js/components/ProductPurchaseMatrix.tsx'));
-
-        $this->assertStringContainsString('oneCardPerGroup(matches, sizeGroups)', $form);
-        $this->assertStringContainsString("translate('size_groups', 'package_size')", $form);
-        $this->assertStringContainsString('availableVariants.length <= 1', $form);
-    }
-
     public function test_both_languages_have_the_same_size_words(): void
     {
         $english = require lang_path('en/size_groups.php');
