@@ -21,7 +21,7 @@ export function productFactFormKeys(fields:ProductFactField[]):string[]{
  return ['registration_number','concern_ids','sync_concerns',...fields.flatMap(field=>[`${field.name}_bn`,`${field.name}_en`])];
 }
 
-const FIELD_HINTS:Record<string,string>={product_system:'hint_product_system',quality_points:'hint_quality_points'};
+const FIELD_HINTS:Record<string,string>={product_system:'hint_product_system',quality_points:'hint_quality_points',group:'hint_group',efficacy:'hint_efficacy',warnings:'hint_warnings'};
 
 function ConcernTagManager({concerns,canManage}:{concerns:ProductConcernOption[];canManage:boolean}){
  const translate=useT();
@@ -59,8 +59,9 @@ function ConcernTagManager({concerns,canManage}:{concerns:ProductConcernOption[]
 }
 
 /** Facts and concern tags the owner fills in for the public product page. */
-export default function ProductFactsPanel({fields,concerns,data,setField,canEdit}:{
+export default function ProductFactsPanel({fields,concerns,groupSuggestions,data,setField,canEdit}:{
  fields:ProductFactField[];
+ groupSuggestions?:{bn:string[];en:string[]};
  concerns:ProductConcernOption[];
  data:Row;
  setField:(name:string,value:unknown)=>void;
@@ -79,9 +80,10 @@ export default function ProductFactsPanel({fields,concerns,data,setField,canEdit
    <div className="form-grid">
     {(['bn','en'] as const).map(language=><label key={language}>{translate('product_facts',`column_${language}`)}{field.multiline
      ?<textarea rows={3} maxLength={field.max_length} value={data[`${field.name}_${language}`]??''} onChange={e=>setField(`${field.name}_${language}`,e.target.value)}/>
-     :<input maxLength={field.max_length} value={data[`${field.name}_${language}`]??''} onChange={e=>setField(`${field.name}_${language}`,e.target.value)}/>}</label>)}
+     :<input maxLength={field.max_length} list={field.name==='group'?`product-group-${language}`:undefined} value={data[`${field.name}_${language}`]??''} onChange={e=>setField(`${field.name}_${language}`,e.target.value)}/>}</label>)}
    </div>
   </fieldset>)}
+  {((['bn','en'] as const).map(language=><datalist key={language} id={`product-group-${language}`}>{(groupSuggestions?.[language]??[]).map(name=><option key={name} value={name}/>)}</datalist>))}
   <h3>{translate('product_facts','concerns_title')}</h3>
   <p className="muted">{translate('product_facts','concerns_hint')}</p>
   {concerns.length===0&&<p className="muted">{translate('product_facts','concerns_empty')}</p>}

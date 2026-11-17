@@ -91,6 +91,7 @@ class ProductRegistryController extends Controller
             'sub_categories' => SiteCustomization::getConfiguredSubCategories(),
             'supports_product_expiry' => Schema::hasColumn('products', 'expires_on'),
             'product_fact_fields' => ProductFacts::editorFields(),
+            'product_group_suggestions' => ProductFacts::groupSuggestions(),
             'product_concerns' => ProductConcern::query()->orderBy('name_en')->get(['id', 'name_bn', 'name_en']),
         ]);
     }

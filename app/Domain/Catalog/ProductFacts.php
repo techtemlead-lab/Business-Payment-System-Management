@@ -22,10 +22,12 @@ final class ProductFacts
      */
     public const BilingualFields = [
         'manufacturer' => ['max_length' => 200, 'multiline' => false],
+        'group' => ['max_length' => 120, 'multiline' => false],
         'product_system' => ['max_length' => 120, 'multiline' => false],
         'pack_size' => ['max_length' => 120, 'multiline' => false],
         'ingredients' => ['max_length' => 3000, 'multiline' => true],
         'dose' => ['max_length' => 2000, 'multiline' => true],
+        'efficacy' => ['max_length' => 2000, 'multiline' => true],
         'warnings' => ['max_length' => 2000, 'multiline' => true],
         'storage' => ['max_length' => 1000, 'multiline' => true],
         'quality_points' => ['max_length' => 2000, 'multiline' => true],
@@ -120,12 +122,14 @@ final class ProductFacts
      * Facts for the visitor's language. A blank fact is null, and a fact filled in only
      * one language is shown in that language rather than hidden.
      *
-     * @return array{manufacturer: ?string, product_system: ?string, registration_number: ?string, pack_size: ?string, ingredients: ?string, dose: ?string, warnings: ?string, storage: ?string, quality_points: list<string>}
+     * @return array{manufacturer: ?string, group: ?string, efficacy: ?string, product_system: ?string, registration_number: ?string, pack_size: ?string, ingredients: ?string, dose: ?string, warnings: ?string, storage: ?string, quality_points: list<string>}
      */
     public static function forPublic(Product $product): array
     {
         return [
             'manufacturer' => self::inVisitorLanguage($product, 'manufacturer'),
+            'group' => self::inVisitorLanguage($product, 'group'),
+            'efficacy' => self::inVisitorLanguage($product, 'efficacy'),
             'product_system' => self::inVisitorLanguage($product, 'product_system'),
             'registration_number' => self::textOrNull($product->getAttribute('registration_number')),
             'pack_size' => self::inVisitorLanguage($product, 'pack_size'),
@@ -135,6 +139,31 @@ final class ProductFacts
             'storage' => self::inVisitorLanguage($product, 'storage'),
             'quality_points' => self::lines(self::inVisitorLanguage($product, 'quality_points')),
         ];
+    }
+
+    /**
+     * Groups already used on products, so the editor can suggest them and one group is not
+     * spelled two ways. One list per language, sorted and without repeats.
+     *
+     * @return array{bn: list<string>, en: list<string>}
+     */
+    public static function groupSuggestions(): array
+    {
+        $names = ['bn' => [], 'en' => []];
+        foreach (array_keys($names) as $language) {
+            $column = 'group_'.$language;
+            $names[$language] = Product::query()
+                ->whereNotNull($column)
+                ->where($column, '<>', '')
+                ->distinct()
+                ->orderBy($column)
+                ->pluck($column)
+                ->map(fn (mixed $name): string => (string) $name)
+                ->values()
+                ->all();
+        }
+
+        return $names;
     }
 
     /**

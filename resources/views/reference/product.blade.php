@@ -131,25 +131,31 @@
 @php
     $hasVideo = !empty($item['video_url']) || !empty($item['video_embed_url']);
     $hasDescription = filled($item['description'] ?? null);
+    // Efficacy and warnings sit under the description, so the description tab exists when any of the three is filled.
+    $descriptionExtras = array_filter([
+        ['fa-leaf', __('product_facts.efficacy'), $facts['efficacy']],
+        ['fa-triangle-exclamation', __('product_facts.warnings'), $facts['warnings']],
+    ], fn (array $section): bool => $section[2] !== null);
+    $hasDescriptionTab = $hasDescription || $descriptionExtras !== [];
     $qualityPoints = $facts['quality_points'];
     $usageSections = array_filter([
         ['fa-book-medical', __('site.pd_directions_title'), $facts['dose']],
         ['fa-seedling', __('product_facts.ingredients'), $facts['ingredients']],
-        ['fa-triangle-exclamation', __('product_facts.warnings'), $facts['warnings']],
         ['fa-temperature-arrow-down', __('site.pd_storage_title'), $facts['storage']],
     ], fn (array $section): bool => $section[2] !== null);
     $factRows = array_filter([
         __('product_facts.manufacturer') => $facts['manufacturer'],
+        __('product_facts.group') => $facts['group'],
         __('product_facts.product_system') => $facts['product_system'],
         __('product_facts.registration_number') => $facts['registration_number'],
         __('product_facts.pack_size') => $facts['pack_size'],
     ], fn (?string $value): bool => $value !== null);
-    $firstTab = $hasDescription ? 'description' : ($qualityPoints !== [] ? 'quality' : ($usageSections !== [] ? 'usage' : 'specification'));
+    $firstTab = $hasDescriptionTab ? 'description' : ($qualityPoints !== [] ? 'quality' : ($usageSections !== [] ? 'usage' : 'specification'));
 @endphp
 
 <section class="ref-product-description">
     <div class="ref-product-tabs" role="tablist" aria-label="{{ __('site.product_information') }}">
-        @if($hasDescription)
+        @if($hasDescriptionTab)
         <button role="tab" id="description-tab" aria-controls="description-panel" aria-selected="true" data-info-tab="description-panel">
             <i class="fa-solid fa-align-left" aria-hidden="true"></i> {{ $chrome('product_tab_description', $siteCustomization['product_tab_description'] ?? null) }}
         </button>
@@ -175,12 +181,25 @@
     </div>
 
     {{-- Description Panel --}}
-    @if($hasDescription)
+    @if($hasDescriptionTab)
     <div id="description-panel" role="tabpanel" aria-labelledby="description-tab">
         <h2>{{ $chrome('product_tab_description', $siteCustomization['product_tab_description'] ?? null) }}</h2>
         <h3>{{ $item['name'] }}</h3>
+        @if($hasDescription)
         {{-- Kept on one line: this paragraph keeps the description's own line breaks (pre-wrap), so template indentation would show. --}}
         <p class="ref-product-description-text">{{ $item['description'] }}</p>
+        @endif
+        @if($descriptionExtras !== [])
+        <div class="ref-usage-content">
+            @foreach($descriptionExtras as [$icon, $title, $text])
+            <div class="ref-usage-section">
+                <h3><i class="fa-solid {{ $icon }}" aria-hidden="true"></i> {{ $title }}</h3>
+                {{-- Kept on one line: this paragraph keeps the owner's own line breaks, so template indentation would show. --}}
+                <p class="ref-product-description-text">{{ $text }}</p>
+            </div>
+            @endforeach
+        </div>
+        @endif
     </div>
     @endif
 

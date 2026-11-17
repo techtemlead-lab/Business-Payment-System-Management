@@ -46,7 +46,7 @@ final class CatalogSection implements WorkspaceSection
         $productQuery = Product::query()
             ->withSellableStock()
             ->when(! $context->isStaff, fn ($q) => $q->where('active', true))
-            ->when($context->section !== 'inventory' && $request->filled('q'), fn ($q) => $q->where(fn ($match) => $match->where('name', 'ilike', '%'.$request->string('q').'%')->orWhere('sku', 'ilike', '%'.$request->string('q').'%')->orWhere('category', 'ilike', '%'.$request->string('q').'%')))
+            ->when($context->section !== 'inventory' && $request->filled('q'), fn ($q) => $q->where(fn ($match) => $match->where('name', 'ilike', '%'.$request->string('q').'%')->orWhere('sku', 'ilike', '%'.$request->string('q').'%')->orWhere('category', 'ilike', '%'.$request->string('q').'%')->orWhere('group_bn', 'ilike', '%'.$request->string('q').'%')->orWhere('group_en', 'ilike', '%'.$request->string('q').'%')))
             ->when($context->section === 'catalog' && $request->filled('category'), fn ($q) => $q->where('category', $request->string('category')))
             ->when($context->section === 'catalog' && $request->filled('sub_category'), fn ($q) => $q->where('sub_category', $request->string('sub_category')))
             ->when($context->section === 'catalog' && $request->filled('unit'), fn ($q) => $q->where('unit', $request->string('unit')))
@@ -78,7 +78,7 @@ final class CatalogSection implements WorkspaceSection
                 $productQuery->where('products.active', true);
             }
             $offSale = Product::query()->where('active', false)
-                ->when($request->filled('q'), fn ($q) => $q->where(fn ($match) => $match->where('name', 'ilike', '%'.$request->string('q').'%')->orWhere('sku', 'ilike', '%'.$request->string('q').'%')->orWhere('category', 'ilike', '%'.$request->string('q').'%')));
+                ->when($request->filled('q'), fn ($q) => $q->where(fn ($match) => $match->where('name', 'ilike', '%'.$request->string('q').'%')->orWhere('sku', 'ilike', '%'.$request->string('q').'%')->orWhere('category', 'ilike', '%'.$request->string('q').'%')->orWhere('group_bn', 'ilike', '%'.$request->string('q').'%')->orWhere('group_en', 'ilike', '%'.$request->string('q').'%')));
             $props['archived_count'] = (clone $offSale)->whereNotNull('archived_at')->count();
             $props['draft_count'] = (clone $offSale)->whereNull('archived_at')->count();
             $page = $productQuery->paginate(self::StaffProductsPerPage)->withQueryString();
@@ -104,7 +104,9 @@ final class CatalogSection implements WorkspaceSection
                 $base += ['size_group_id' => (int) $p->product_group_id, 'size_label' => ProductSizeGroups::buttonLabel($p), 'size_position' => $sizePositions[$p->id]];
             }
             if ($context->isStaff && $context->section === 'catalog') {
-                $base['manufacturer'] = ProductFacts::forPublic($p)['manufacturer'];
+                $facts = ProductFacts::forPublic($p);
+                $base['manufacturer'] = $facts['manufacturer'];
+                $base['group'] = $facts['group'];
             }
             if (! $context->isStaff) {
                 try {
@@ -160,6 +162,9 @@ final class CatalogSection implements WorkspaceSection
                 : CatalogCms::unitOptions();
             $props['supports_product_expiry'] = Schema::hasColumn('products', 'expires_on');
             if ($context->isStaff) {
+                $props['product_group_suggestions'] = ProductFacts::groupSuggestions();
+            }
+            if ($context->isStaff) {
                 $props['used_categories'] = Product::query()->whereNotNull('category')->where('category', '<>', '')->distinct()->orderBy('category')->pluck('category')->all();
                 $props['customization'] = SiteCustomization::raw();
                 $props['defaults'] = SiteCustomization::defaults();
@@ -169,7 +174,7 @@ final class CatalogSection implements WorkspaceSection
                     ->when($request->filled('q'), fn ($q) => $q->where(fn ($match) => $match
                         ->where('name', 'ilike', '%'.$request->string('q').'%')
                         ->orWhere('sku', 'ilike', '%'.$request->string('q').'%')
-                        ->orWhere('category', 'ilike', '%'.$request->string('q').'%')))
+                        ->orWhere('category', 'ilike', '%'.$request->string('q').'%')->orWhere('group_bn', 'ilike', '%'.$request->string('q').'%')->orWhere('group_en', 'ilike', '%'.$request->string('q').'%')))
                     ->orderBy('name');
                 $pickerLimit = 250;
                 $props['all_catalog_products_truncated'] = (clone $pickerQuery)->count() > $pickerLimit;
