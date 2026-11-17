@@ -165,7 +165,8 @@ final class PartnerDashboardHome
             );
         }
 
-        return $targets;
+        // The owner's own target for this dealer this month, and the royalty target, are added by the targets class.
+        return app(PartnerMonthlyTargets::class)->forHome($user, $targets, $month);
     }
 
     /**
