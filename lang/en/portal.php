@@ -6024,6 +6024,7 @@ return [
     'event_risk_anomaly_detected' => 'Unusual activity found',
     'event_security_partner_login_otp_changed' => 'Partner login code setting changed',
     'event_security_password_reset_notice_changed' => 'Password reset message changed',
+    'event_security_one_account_per_identity_changed' => 'One account per mobile number rule changed',
     'event_security_owner_confirmation_changed' => 'How the owner confirms sensitive changes was changed',
     'event_security_owner_code_not_sent' => 'A confirmation code could not be sent to the owner',
     'event_withdrawal_security_wait_changed' => 'Waiting time before a withdrawal after a phone or password change was changed',
