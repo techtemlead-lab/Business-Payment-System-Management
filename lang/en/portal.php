@@ -6017,6 +6017,8 @@ return [
     'event_risk_anomaly_detected' => 'Unusual activity found',
     'event_security_partner_login_otp_changed' => 'Partner login code setting changed',
     'event_security_password_reset_notice_changed' => 'Password reset message changed',
+    'event_security_owner_confirmation_changed' => 'How the owner confirms sensitive changes was changed',
+    'event_security_owner_code_not_sent' => 'A confirmation code could not be sent to the owner',
     'event_withdrawal_security_wait_changed' => 'Waiting time before a withdrawal after a phone or password change was changed',
     'event_withdrawal_refused_security_wait' => 'A withdrawal was refused because the phone or password was changed recently',
     'event_website_visit_counting_changed' => 'Website visitor counting turned on or off',

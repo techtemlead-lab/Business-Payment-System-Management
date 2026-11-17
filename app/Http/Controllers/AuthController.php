@@ -6,6 +6,7 @@ use App\Domain\Accounts\AccountPhoneRules;
 use App\Domain\Auth\LoginCaptcha;
 use App\Domain\Auth\LoginOtpChallenge;
 use App\Domain\Auth\TotpAuthenticator;
+use App\Domain\Security\OwnerConfirmation;
 use App\Domain\Security\SecuritySettings;
 use App\Http\Middleware\RequireAuthenticatorSetup;
 use App\Models\User;
@@ -474,12 +475,12 @@ class AuthController extends Controller
         return redirect(User::where('email', $data['email'])->first()?->loginPath() ?? PortalHost::url(PortalHost::current() ?? 'dealer', '/login'))->with('success', __('portal.flash_password_set'));
     }
 
-    public function ownerContact(Request $request): Response
+    public function ownerContact(Request $request, OwnerConfirmation $confirmation): Response
     {
         $owner = $request->user();
         abort_unless($owner?->owner(), 403);
+        $confirmation->require($request, $owner);
         $data = $request->validate([
-            'current_password' => 'required|current_password',
             'name' => ['sometimes', 'required', 'string', 'max:150'],
             'email' => ['required', 'email', 'max:254', Rule::unique('users')->ignore($owner->id)],
             'phone' => ['sometimes', 'required', 'string', 'max:30'],
@@ -631,29 +632,63 @@ class AuthController extends Controller
         return back()->with('success', __('portal.flash_password_updated'));
     }
 
-    public function partnerLoginOtp(Request $request, SecuritySettings $security): Response
+    public function partnerLoginOtp(Request $request, SecuritySettings $security, OwnerConfirmation $confirmation): Response
     {
         $owner = $request->user();
         abort_unless($owner?->owner(), 403);
+        $confirmation->require($request, $owner);
         $data = $request->validate([
             'enabled' => 'required|in:0,1',
             'version' => 'required|integer|min:0',
-            'current_password' => 'required|current_password',
         ]);
         $security->savePartnerLoginOtp($owner, $data['enabled'] === '1', (int) $data['version']);
 
         return back()->with('success', __('portal.flash_partner_login_otp_updated'));
     }
 
-    /** Owners only: switch the "staff reset a password" notice on or off. */
-    public function passwordResetNotice(Request $request, SecuritySettings $security): Response
+    /** Owners only: choose how a sensitive change is confirmed (nothing, the password, or a code sent to the owner's phone). */
+    public function ownerConfirmation(Request $request, OwnerConfirmation $confirmation): Response
     {
         $owner = $request->user();
         abort_unless($owner?->owner(), 403);
+        $confirmation->require($request, $owner);
+        $data = $request->validate([
+            'mode' => 'required|in:'.implode(',', OwnerConfirmation::Modes),
+            'version' => 'required|integer|min:0',
+            'accept_no_sms' => 'sometimes|in:0,1',
+        ]);
+        $confirmation->save($owner, $data['mode'], (int) $data['version'], ($data['accept_no_sms'] ?? '0') === '1');
+
+        return back()->with('success', __('owner_security.flash_saved'));
+    }
+
+    /** Owners only: send a one-time confirmation code to the owner's own phone. */
+    public function ownerConfirmationCode(Request $request, OwnerConfirmation $confirmation): Response
+    {
+        $owner = $request->user();
+        abort_unless($owner?->owner(), 403);
+        $result = $confirmation->sendCode($owner);
+        if ($result['sent']) {
+            return back()->with('success', __('owner_security.flash_code_sent'))->with('owner_code_on_screen', $result['code']);
+        }
+        $message = match ($result['reason']) {
+            'cooldown' => __('sms.err_otp_resend_wait', ['seconds' => (string) $result['retry_after']]),
+            'limit' => __('owner_security.err_code_limit'),
+            default => __('owner_security.err_code_not_sent'),
+        };
+
+        return back()->withErrors(['confirm_code' => $message]);
+    }
+
+    /** Owners only: switch the "staff reset a password" notice on or off. */
+    public function passwordResetNotice(Request $request, SecuritySettings $security, OwnerConfirmation $confirmation): Response
+    {
+        $owner = $request->user();
+        abort_unless($owner?->owner(), 403);
+        $confirmation->require($request, $owner);
         $data = $request->validate([
             'enabled' => 'required|in:0,1',
             'version' => 'required|integer|min:0',
-            'current_password' => 'required|current_password',
         ]);
         $security->savePasswordResetNotice($owner, $data['enabled'] === '1', (int) $data['version']);
 

@@ -186,6 +186,7 @@ final class SecuritySettings
             'preview_mode' => $this->previewMode(),
             'partner_login_otp' => $otp,
             'password_reset_notice' => $this->passwordResetNotice(),
+            'owner_confirmation' => $user->owner() ? app(OwnerConfirmation::class)->payload($user) : null,
             'totp' => [
                 'challenges_enabled' => $this->totpChallengesEnabled(),
                 'confirmed' => filled($user->totp_confirmed_at),

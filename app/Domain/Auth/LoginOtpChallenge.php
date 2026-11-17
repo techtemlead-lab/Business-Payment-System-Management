@@ -102,7 +102,7 @@ final class LoginOtpChallenge
      *
      * @return array{sent: bool, reason: 'sent'|'cooldown'|'limit'|'failed', retry_after: int, code: ?string}
      */
-    public function issue(User $user, string $portal): array
+    public function issue(User $user, string $portal, string $event = 'login.otp', string $textKey = 'sms.login_otp'): array
     {
         $key = $this->cacheKey($user->id, $portal);
         $previous = Cache::get($key);
@@ -123,8 +123,8 @@ final class LoginOtpChallenge
         $code = (string) random_int(100000, 999999);
         $sent = $this->sms->send(
             $user,
-            'login.otp',
-            SmsText::make('sms.login_otp', [
+            $event,
+            SmsText::make($textKey, [
                 'code' => $code,
                 'minutes' => (string) max(1, intdiv($this->ttl(), 60)),
             ]),

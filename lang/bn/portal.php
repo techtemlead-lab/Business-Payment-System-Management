@@ -6017,6 +6017,8 @@ return [
     'event_risk_anomaly_detected' => 'অস্বাভাবিক কাজ ধরা পড়েছে',
     'event_security_partner_login_otp_changed' => 'পার্টনারের লগইন কোডের সেটিং বদলানো হয়েছে',
     'event_security_password_reset_notice_changed' => 'পাসওয়ার্ড রিসেটের বার্তা বদলানো হয়েছে',
+    'event_security_owner_confirmation_changed' => 'গুরুত্বপূর্ণ পরিবর্তনে মালিকের নিশ্চিতকরণের নিয়ম বদলানো হয়েছে',
+    'event_security_owner_code_not_sent' => 'মালিকের ফোনে নিশ্চিতকরণ কোড পাঠানো যায়নি',
     'event_withdrawal_security_wait_changed' => 'ফোন বা পাসওয়ার্ড বদলের পর টাকা তোলার অপেক্ষার সময় বদলানো হয়েছে',
     'event_withdrawal_refused_security_wait' => 'ফোন বা পাসওয়ার্ড সম্প্রতি বদলানোয় টাকা তোলার অনুরোধ ফেরানো হয়েছে',
     'event_website_visit_counting_changed' => 'ওয়েবসাইটের ভিজিটর গণনা চালু বা বন্ধ করা হয়েছে',

@@ -14,10 +14,10 @@ use Illuminate\Support\Facades\RateLimiter;
 final class PartnerEventSms
 {
     /** Messages that carry a login code or password. */
-    public const SecretEvents = ['login.otp', 'account.password_reset', 'account.created'];
+    public const SecretEvents = ['login.otp', 'owner.confirm', 'account.password_reset', 'account.created'];
 
     /** One-time codes. Greenweb's Bangla-only rule makes an exception for these; all others are refused without Bangla. */
-    public const OtpEvents = ['login.otp'];
+    public const OtpEvents = ['login.otp', 'owner.confirm'];
 
     /** "We got your message" texts that anyone on the public website can trigger. */
     public const PublicEvents = ['enquiry.public_received', 'partnership.application_received'];

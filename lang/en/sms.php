@@ -2,6 +2,7 @@
 
 return [
     'login_otp' => 'Madina login code: :code. Valid for :minutes minutes. Do not share.',
+    'owner_confirm_code' => 'Madina confirmation code: :code. Valid for :minutes minutes. Do not share.',
     'account_created' => 'Madina account created. Username: :username Password: :password. Please log in and change your password.',
     'account_created_redacted' => 'Madina account created. Username: :username Password: [REDACTED]. Please log in and change your password.',
     'password_reset_by_admin' => 'Madina: the company reset your password. Username: :username New password: :password. Log in and change it if you want.',

@@ -1,0 +1,28 @@
+<?php
+
+return [
+    'confirm_title' => 'Confirming sensitive changes',
+    'confirm_intro' => 'Before the owner changes their own contact details or the sign-in rules, the system can ask for a confirmation. Choose how below. Changing this choice also needs the confirmation you have now.',
+    'confirm_mode_label' => 'How should a sensitive change be confirmed?',
+    'mode_off' => 'Do not ask',
+    'mode_password' => 'Ask for my password (recommended)',
+    'mode_sms' => 'Send a code to my phone',
+    'confirm_save' => 'Save this choice',
+    'sms_not_working' => 'Text messages are not working yet, so a code cannot be sent. Until they work, your password is asked instead.',
+    'sms_no_phone' => 'Your account has no valid mobile number, so a code cannot be sent. Add one in your profile, or keep using your password.',
+    'accept_no_sms' => 'Text messages are not working. Do you still want to choose the phone code?',
+    'accept_no' => 'No, do not change it',
+    'accept_yes' => 'Yes, choose it. Ask my password until texts work',
+    'note_none' => 'Nothing is asked now. Changes are saved straight away.',
+    'note_code' => 'A code will be sent to your phone. Press the button, then type the code below.',
+    'note_code_fell_back' => 'A code could not be sent to your phone, so please type your password instead.',
+    'send_code' => 'Send me a code',
+    'code_label' => 'Code sent to your phone',
+    'code_on_screen' => 'Test code (shown only on a developer computer):',
+    'flash_saved' => 'Saved. The new way of confirming is on.',
+    'flash_code_sent' => 'A code was sent to your phone.',
+    'err_mode' => 'Please choose one of the three ways.',
+    'err_sms_not_working' => 'Text messages are not working, so a code cannot be sent. Choose "Yes" below if you still want this, or keep your password.',
+    'err_code_limit' => 'Too many codes were asked for. Please try again later, or use your password.',
+    'err_code_not_sent' => 'The code could not be sent. Please type your password instead.',
+];
