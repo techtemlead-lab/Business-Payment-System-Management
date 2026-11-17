@@ -30,3 +30,7 @@ Thumbs.db
 storage/inertia-devtools
 /.agents/
 
+
+# Business documents (quotation, business plan, internal review, requirement clarifications) stay off the public repository
+/docs/Madina-Natural-Health-Care-*.pdf
+/docs/Madina-Natural-Health-Care-*.html
