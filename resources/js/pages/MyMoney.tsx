@@ -48,6 +48,7 @@ export default function MyMoney({ summary, cards, table, withdrawal_requests: wi
                 <WithdrawalRequests requests={withdrawalRequests} />
                 <NotEarnedAreaList rows={notEarnedArea} />
                 <IncomeCards cards={cards} selected={selected} onChoose={chooseType} />
+                <Link className="button mm-income-link" href={`${base}/my-income`}>{translate('income', 'open')}</Link>
                 <Lifetime lifetime={summary.lifetime} />
                 <MoneyBook table={table} actions={<Downloads certificates={certificates} receipts={reserveReceipts} view={table.state} />} />
             </div>
