@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Domain\Diagnostics\ErrorTrackingSettings;
 use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Integrations\SmsGatewayClient;
 use App\Domain\Security\SecuritySettings;
@@ -207,7 +208,7 @@ final class DeploymentReadiness
         if (! $strict && (! is_string(config('app.key')) || strlen((string) config('app.key')) < 32)) {
             $warnings[] = 'app_key_missing_or_weak';
         }
-        if (! $strict && config('app.env') === 'production' && blank(config('sentry.dsn'))) {
+        if (! $strict && config('app.env') === 'production' && blank(config('sentry.dsn')) && ! app(ErrorTrackingSettings::class)->enabled()) {
             $warnings[] = 'error_tracking_not_configured';
         }
         if (! $strict

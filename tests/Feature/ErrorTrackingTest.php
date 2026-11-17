@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Diagnostics\ErrorTrackingSettings;
+use App\Models\User;
 use App\Support\DeploymentReadiness;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Sentry\Client;
@@ -35,9 +37,10 @@ class ErrorTrackingTest extends TestCase
         $this->assertEquals(ResultStatus::skipped(), $result->getStatus());
     }
 
-    public function test_readiness_warns_on_production_without_a_dsn_and_clears_once_set(): void
+    public function test_readiness_warns_on_production_only_when_neither_a_dsn_nor_the_built_in_log_is_on(): void
     {
         config(['app.env' => 'production', 'sentry.dsn' => null]);
+        app(ErrorTrackingSettings::class)->save(User::factory()->staff('super_admin')->create(), false, 90, 0);
         $this->assertContains('error_tracking_not_configured', app(DeploymentReadiness::class)->inspect()['warnings']);
 
         config(['sentry.dsn' => 'https://public@o0.ingest.sentry.io/1']);

@@ -104,3 +104,7 @@ if (! in_array(config('queue.default'), ['sync', 'null'], true)) {
     Schedule::command('queue:monitor '.config('queue.default').':default,imports --max=1000')->everyFiveMinutes()->withoutOverlapping()->onOneServer()
         ->onFailure(fn () => Log::critical('Queue monitoring failed.'));
 }
+
+// The owner's error log keeps each problem for the days set on the Errors page (90 unless changed).
+Schedule::command('errors:prune')->dailyAt('04:40')->timezone('Asia/Dhaka')->withoutOverlapping(30)->onOneServer()
+    ->onFailure(fn () => Log::warning('Scheduled clean-up of the old error log failed.'));
