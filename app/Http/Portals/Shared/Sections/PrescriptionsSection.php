@@ -173,14 +173,13 @@ final class PrescriptionsSection implements WorkspaceSection
         return ['prescriptions' => $payload];
     }
 
-    /**
-     * The prescriber's letterhead from the letterhead settings, or null until the prescription
+     * The prescriber's letterhead, read from the letterhead settings.
      * settings page has been built and filled in.
      *
-     * @return array<string, mixed>|null
+     * @return array<string, mixed>
      */
-    private function letterhead(User $user): ?array
+    private function letterhead(User $user): array
     {
-        return class_exists(PrescriptionLetterhead::class) ? PrescriptionLetterhead::forPrescriber($user) : null;
+        return $this->letterheads->forPrescriber($user);
     }
 }
