@@ -1,4 +1,5 @@
 import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Check, ChevronDown, Search } from 'lucide-react';
 import { useT } from '../shared/i18n/t';
 import { matchesSearch } from '../shared/search-match';
@@ -240,6 +241,63 @@ export default function SearchSelect({
 
     const shownLabel = chosen?.label ?? (value !== '' ? selectedLabel : undefined) ?? emptyLabel ?? placeholder ?? translate('portal', 'select_placeholder');
     const isBlank = chosen === null && (value === '' || selectedLabel === undefined);
+    // The list is lifted out of any dialog. A dialog uses transform and overflow, which
+    // would hide a menu that stays inside it, so Add product could not pick a category.
+    const menu = open ? (
+        <div
+            ref={panel}
+            className="ss-panel"
+            popover={supportsPopover() ? 'manual' : undefined}
+            style={place ? { left: place.left, width: place.width, maxHeight: place.maxHeight, top: place.top, bottom: place.bottom } : { visibility: 'hidden' }}
+            onClick={(event) => event.preventDefault()}
+        >
+            <div className="ss-search">
+                <Search size={15} aria-hidden="true" />
+                <input
+                    ref={searchBox}
+                    type="text"
+                    inputMode="search"
+                    enterKeyHint="search"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    role="combobox"
+                    aria-expanded="true"
+                    aria-controls={listId}
+                    aria-autocomplete="list"
+                    aria-activedescendant={rows.list[active] ? `${listId}-${active}` : undefined}
+                    aria-label={translate('portal', 'search_select_search')}
+                    placeholder={translate('portal', 'search_select_search')}
+                    value={query}
+                    onChange={(event) => { setQuery(event.target.value); setActive(0); onSearch?.(event.target.value); }}
+                    onKeyDown={onSearchKey}
+                />
+            </div>
+            <ul className="ss-list" id={listId} role="listbox" aria-label={ariaLabel}>
+                {rows.list.map((option, index) => (
+                    <li
+                        key={`${option.value}|${index}`}
+                        id={`${listId}-${index}`}
+                        data-row={index}
+                        role="option"
+                        aria-selected={option.value === value}
+                        aria-disabled={option.disabled || undefined}
+                        className={`ss-option${index === active ? ' is-active' : ''}${option.value === '' ? ' is-blank' : ''}`}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onMouseEnter={() => setActive(index)}
+                        onClick={() => choose(option)}
+                    >
+                        <span className="ss-option-label">{option.label}</span>
+                        {option.hint && <span className="ss-option-hint">{option.hint}</span>}
+                        {option.value === value && option.value !== '' && <Check size={14} aria-hidden="true" />}
+                    </li>
+                ))}
+            </ul>
+            {loading && <p className="ss-note" role="status">{translate('portal', 'search_select_loading')}</p>}
+            {!loading && rows.list.length === 0 && <p className="ss-note" role="status">{translate('portal', 'search_select_none')}</p>}
+            {rows.hidden > 0 && <p className="ss-note">{translate('portal', 'search_select_more', { count: rows.hidden })}</p>}
+        </div>
+    ) : null;
 
     return (
         <span className={`ss${className ? ` ${className}` : ''}`} ref={root}>
@@ -275,63 +333,7 @@ export default function SearchSelect({
                     onFocus={() => trigger.current?.focus()}
                 />
             )}
-            {open && (
-                <div
-                    ref={panel}
-                    className="ss-panel"
-                    popover={supportsPopover() ? 'manual' : undefined}
-                    style={place ? { left: place.left, width: place.width, maxHeight: place.maxHeight, top: place.top, bottom: place.bottom } : { visibility: 'hidden' }}
-                    // Inside a <label>, a press on the list must not count as a press on the label.
-                    onClick={(event) => event.preventDefault()}
-                >
-                    <div className="ss-search">
-                        <Search size={15} aria-hidden="true" />
-                        <input
-                            ref={searchBox}
-                            type="text"
-                            inputMode="search"
-                            enterKeyHint="search"
-                            autoComplete="off"
-                            autoCorrect="off"
-                            spellCheck={false}
-                            role="combobox"
-                            aria-expanded="true"
-                            aria-controls={listId}
-                            aria-autocomplete="list"
-                            aria-activedescendant={rows.list[active] ? `${listId}-${active}` : undefined}
-                            aria-label={translate('portal', 'search_select_search')}
-                            placeholder={translate('portal', 'search_select_search')}
-                            value={query}
-                            onChange={(event) => { setQuery(event.target.value); setActive(0); onSearch?.(event.target.value); }}
-                            onKeyDown={onSearchKey}
-                        />
-                    </div>
-                    <ul className="ss-list" id={listId} role="listbox" aria-label={ariaLabel}>
-                        {rows.list.map((option, index) => (
-                            <li
-                                key={`${option.value}|${index}`}
-                                id={`${listId}-${index}`}
-                                data-row={index}
-                                role="option"
-                                aria-selected={option.value === value}
-                                aria-disabled={option.disabled || undefined}
-                                className={`ss-option${index === active ? ' is-active' : ''}${option.value === '' ? ' is-blank' : ''}`}
-                                // Keeps the cursor in the search box while a row is pressed.
-                                onMouseDown={(event) => event.preventDefault()}
-                                onMouseEnter={() => setActive(index)}
-                                onClick={() => choose(option)}
-                            >
-                                <span className="ss-option-label">{option.label}</span>
-                                {option.hint && <span className="ss-option-hint">{option.hint}</span>}
-                                {option.value === value && option.value !== '' && <Check size={14} aria-hidden="true" />}
-                            </li>
-                        ))}
-                    </ul>
-                    {loading && <p className="ss-note" role="status">{translate('portal', 'search_select_loading')}</p>}
-                    {!loading && rows.list.length === 0 && <p className="ss-note" role="status">{translate('portal', 'search_select_none')}</p>}
-                    {rows.hidden > 0 && <p className="ss-note">{translate('portal', 'search_select_more', { count: rows.hidden })}</p>}
-                </div>
-            )}
+            {menu && typeof document !== 'undefined' ? createPortal(menu, document.body) : null}
         </span>
     );
 }

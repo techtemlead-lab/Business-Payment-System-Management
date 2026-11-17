@@ -254,6 +254,17 @@ export default function ProductCreateModal({
             setErrorMsg(translate('portal', 'pcm_err_subdealer'));
             return;
         }
+        // The server keeps a dealer or sub-dealer price only when it is at most 80% of the MRP.
+        const dealerOff = Number.isNaN(dealerRate) ? parseFloat(percentFromPrice(mrp, dealerPrice)) : dealerRate;
+        const subOff = Number.isNaN(subRate) ? parseFloat(percentFromPrice(mrp, subDealerPrice)) : subRate;
+        if (!Number.isFinite(dealerOff) || dealerOff < 20) {
+            setErrorMsg(translate('portal', 'err_dealer_discount_too_small'));
+            return;
+        }
+        if (!Number.isFinite(subOff) || subOff < 20) {
+            setErrorMsg(translate('portal', 'err_sub_dealer_discount_too_small'));
+            return;
+        }
 
         const subcategory = subcategories.find((item) => String(item.id) === subcategoryId);
         const unit = activeUnits.find((item) => String(item.id) === unitId);

@@ -21,8 +21,13 @@ export type PhotoFitStatus = 'idle' | 'checking' | 'making_smaller' | 'made_smal
 function openPhoto(address: string): Promise<HTMLImageElement | null> {
     return new Promise((resolve) => {
         const image = new Image();
-        image.onload = () => resolve(image.naturalWidth > 0 && image.naturalHeight > 0 ? image : null);
-        image.onerror = () => resolve(null);
+        const timer = window.setTimeout(() => resolve(null), 8000);
+        const finish = (result: HTMLImageElement | null) => {
+            window.clearTimeout(timer);
+            resolve(result);
+        };
+        image.onload = () => finish(image.naturalWidth > 0 && image.naturalHeight > 0 ? image : null);
+        image.onerror = () => finish(null);
         image.src = address;
     });
 }

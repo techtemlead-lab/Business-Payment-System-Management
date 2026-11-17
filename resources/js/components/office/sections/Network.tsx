@@ -36,7 +36,8 @@ export function TreeShowMore({data,base}:{data:Row,base:string}){
  const [loading,setLoading]=useState(false);
  if(!data.dealers_truncated)return null;
  const shown=(data.dealers||[]).length;
- return <div className="notice ops-mt-3 ops-row is-between is-wrap"><p>{translate('portal','net_truncated_notice',{shown:String(shown),total:String(data.dealers_total||shown)})}</p>{data.dealers_next_limit&&<button type="button" className="button small" disabled={loading} onClick={()=>{setLoading(true);router.get(base+'/network-tree',{tree_limit:String(data.dealers_next_limit)},{preserveState:true,preserveScroll:true,replace:true,only:['data'],onFinish:()=>setLoading(false)});}}>{translate('portal','net_show_more',{count:String(Math.min(300,Number(data.dealers_total||0)-shown))})}</button>}</div>;
+ const load=(limit:number)=>{setLoading(true);router.get(base+'/network-tree',{tree_limit:String(limit)},{preserveState:true,preserveScroll:true,replace:true,only:['data'],onFinish:()=>setLoading(false)});};
+ return <div className="notice ops-mt-3 ops-row is-between is-wrap"><p>{translate('portal','net_truncated_notice',{shown:String(shown),total:String(data.dealers_total||shown)})}</p><span className="ops-row">{data.dealers_next_limit&&<button type="button" className="button small" disabled={loading} onClick={()=>load(Number(data.dealers_next_limit))}>{translate('portal','net_show_more',{count:String(Math.min(300,Number(data.dealers_total||0)-shown))})}</button>}<button type="button" className="button small dark" disabled={loading} onClick={()=>load(Math.min(2500,Number(data.dealers_total||shown)))}>{translate('portal','net_show_all')}</button></span></div>;
 }
 /** A partner's own team, or the whole tree for the office, and one member's purchases. */
 export default function Network(props:PortalSectionProps){
