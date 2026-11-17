@@ -22,10 +22,9 @@ class PlaceCodePlaceholderAndDeleteTest extends TestCase
         $this->withoutVite();
     }
 
-    public function test_default_place_code_seeder_leaves_catalog_empty(): void
+    public function test_an_empty_catalog_shows_no_places(): void
     {
-        $this->seed(PlaceCodeSeeder::class);
-
+        // Tests start without the default place list; it is only loaded when a test asks for it.
         $this->assertSame(0, PlaceCode::query()->count());
 
         $owner = User::factory()->create(['role' => 'super_admin']);
@@ -34,6 +33,18 @@ class PlaceCodePlaceholderAndDeleteTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('data.places.data', [])
                 ->where('data.places.total', 0));
+    }
+
+    public function test_the_default_place_code_seeder_loads_the_bangladesh_list(): void
+    {
+        $this->seed(PlaceCodeSeeder::class);
+
+        $owner = User::factory()->create(['role' => 'super_admin']);
+        $this->actingAs($owner)->onPortal('sadmin')->get('/place-codes?level=division')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('data.places.total', 8)
+                ->where('data.places.data.0.code', 'MNHC101'));
     }
 
     public function test_admin_can_create_management_and_division_from_empty_catalog(): void
