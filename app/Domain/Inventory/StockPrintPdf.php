@@ -16,8 +16,8 @@ use Mpdf\Output\Destination;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
- * The current stock list as an invoice-style PDF for staff who may see the Stock page,
- * in the language they are reading the portal in.
+ * The list of live products as an invoice-style PDF for staff who may see the Stock page,
+ * in the language they are reading the portal in. It is the same list for every branch.
  */
 final class StockPrintPdf
 {
@@ -29,9 +29,9 @@ final class StockPrintPdf
 
     public function __construct(private StockPrintList $list) {}
 
-    public function download(User $actor, BranchScope $scope): BinaryFileResponse
+    public function download(User $actor): BinaryFileResponse
     {
-        $stock = $this->list->build($scope);
+        $stock = $this->list->build();
         $now = now('Asia/Dhaka');
 
         $dir = Storage::disk('local')->path('report-exports');
@@ -45,13 +45,11 @@ final class StockPrintPdf
         try {
             $html = view('invoices.stock-list', [
                 'company' => $this->company(),
-                'branch' => $scope->allBranches ? __('stock_print.all_branches') : (string) ($scope->branch->name ?? ''),
-                'printed_at' => $now,
                 'rows' => $this->withThumbnails($stock['rows'], $dir, $thumbnails),
             ])->render();
             $pdf = new Mpdf([
                 'tempDir' => $dir,
-                'format' => 'A4',
+                'format' => 'A4-L',
                 'margin_left' => 10,
                 'margin_right' => 10,
                 'margin_top' => 10,
@@ -79,7 +77,6 @@ final class StockPrintPdf
         }
 
         Audit::record($actor->id, 'report.exported', 'stock-print', [
-            'branch' => $scope->allBranches ? 'all' : ($scope->branch->code ?? ''),
             'rows' => count($stock['rows']),
         ]);
 

@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Domain\Inventory\BranchOperations;
-use App\Domain\Inventory\BranchScope;
 use App\Domain\Inventory\StockPrintList;
 use App\Domain\Inventory\StockPrintName;
 use App\Domain\Inventory\StockPrintPdf;
@@ -13,7 +12,6 @@ use App\Models\User;
 use App\Support\SiteCustomization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\App;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -85,7 +83,7 @@ class StockPrintTest extends TestCase
         ]);
         $this->stockOf($product, $this->hub, 7, '2027-03-31');
 
-        $list = (new StockPrintList)->build(new BranchScope(false, [$this->hub->id], $this->hub));
+        $list = (new StockPrintList)->build();
 
         $this->assertSame(['rows'], array_keys($list));
         $this->assertSame([[
@@ -117,14 +115,14 @@ class StockPrintTest extends TestCase
         ]);
         $this->stockOf($product, $this->hub, 1, null);
 
-        $row = (new StockPrintList)->build(new BranchScope(false, [$this->hub->id], $this->hub))['rows'][0];
+        $row = (new StockPrintList)->build()['rows'][0];
 
         $this->assertSame('Helps digestion', $row['efficacy']);
         $this->assertSame('One spoon after food', $row['usage']);
         $this->assertSame(Storage::disk('local')->path($stored), $row['image']);
 
         App::setLocale('bn');
-        $bangla = (new StockPrintList)->build(new BranchScope(false, [$this->hub->id], $this->hub))['rows'][0];
+        $bangla = (new StockPrintList)->build()['rows'][0];
         $this->assertSame('খাবারের পর এক চামচ', $bangla['usage']);
     }
 
@@ -135,28 +133,34 @@ class StockPrintTest extends TestCase
             'description' => 'Old description', 'efficacy_en' => 'Helps with fever',
         ]);
         $this->stockOf($product, $this->hub, 3, null);
-        $scope = new BranchScope(false, [$this->hub->id], $this->hub);
 
-        $row = (new StockPrintList)->build($scope)['rows'][0];
+        $row = (new StockPrintList)->build()['rows'][0];
         $this->assertSame('Paracetamol', $row['group']);
         $this->assertSame('Helps with fever', $row['efficacy']);
 
         App::setLocale('bn');
-        $this->assertSame('প্যারাসিটামল', (new StockPrintList)->build($scope)['rows'][0]['group']);
+        $this->assertSame('প্যারাসিটামল', (new StockPrintList)->build()['rows'][0]['group']);
     }
 
-    public function test_the_main_table_has_group_and_photo_columns_and_no_separate_photo_table(): void
+    public function test_one_table_carries_photo_group_what_it_does_and_how_to_use_and_there_is_no_branch_or_date_line(): void
     {
         $html = view('invoices.stock-list', [
-            'company' => app(StockPrintPdf::class)->company(), 'branch' => 'Hub', 'printed_at' => now(),
+            'company' => app(StockPrintPdf::class)->company(),
             'rows' => [['serial' => 1, 'name' => 'Napa Test', 'pack_size' => null, 'category' => 'Tablet', 'group' => 'Paracetamol',
-                'mrp' => '10.00', 'dealer_discount' => null, 'sub_dealer_discount' => null, 'image' => '/tmp/napa.jpg', 'usage' => null, 'efficacy' => null]],
+                'mrp' => '10.00', 'dealer_discount' => null, 'sub_dealer_discount' => null, 'image' => '/tmp/napa.jpg',
+                'usage' => 'One after food', 'efficacy' => 'Helps with fever']],
         ])->render();
 
-        $this->assertStringContainsString(__('stock_print.col_group'), $html);
-        $this->assertStringContainsString('Paracetamol', $html);
+        $this->assertSame(1, substr_count($html, '<table class="items"'), 'The product list is one table.');
         $this->assertSame(1, substr_count($html, 'src="/tmp/napa.jpg"'));
-        $this->assertStringContainsString(__('stock_print.col_image'), $html);
+        foreach (['col_image', 'col_group', 'col_category', 'col_efficacy', 'col_usage', 'col_mrp', 'col_dealer_discount', 'col_sub_dealer_discount'] as $column) {
+            $this->assertSame(1, substr_count($html, '>'.__('stock_print.'.$column).'</th>'), $column);
+        }
+        $this->assertStringContainsString('Paracetamol', $html);
+        $this->assertStringContainsString('One after food', $html);
+        $this->assertStringContainsString('Helps with fever', $html);
+        $this->assertStringNotContainsString('Branch', $html);
+        $this->assertStringNotContainsString('class="meta"', $html);
     }
 
     public function test_the_size_in_the_name_moves_to_the_pack_size_column(): void
@@ -164,7 +168,7 @@ class StockPrintTest extends TestCase
         $this->stockOf($this->product(['name' => 'Asthma Kit (অাজমা কিট) 30Tab', 'category' => 'Medicine', 'mrp' => '400.00']), $this->hub, 2, null);
         $this->stockOf($this->product(['name' => 'Syrup Ulica (সিরাপ ইউলিকা) 100 ML', 'category' => 'Syrup', 'pack_size_en' => '100 ml', 'mrp' => '180.00']), $this->hub, 2, null);
 
-        $rows = (new StockPrintList)->build(new BranchScope(false, [$this->hub->id], $this->hub))['rows'];
+        $rows = (new StockPrintList)->build()['rows'];
 
         $this->assertSame(['Asthma Kit (অাজমা কিট)', 'Syrup Ulica (সিরাপ ইউলিকা)'], array_column($rows, 'name'));
         $this->assertSame(['30Tab', '100 ml'], array_column($rows, 'pack_size'));
@@ -204,34 +208,30 @@ class StockPrintTest extends TestCase
         $this->stockOf($this->product(['name' => 'Amla Tab', 'category' => 'Medicine', 'mrp' => '10.00']), $this->hub, 1, null);
         $this->stockOf($this->product(['name' => 'Basil Syrup', 'category' => 'Syrup', 'mrp' => '10.00']), $this->hub, 1, null);
 
-        $rows = (new StockPrintList)->build(new BranchScope(false, [$this->hub->id], $this->hub))['rows'];
+        $rows = (new StockPrintList)->build()['rows'];
 
         $this->assertSame(['Amla Tab', 'Zinc Tab', 'Basil Syrup', 'Cough Syrup', 'Orphan Product'], array_column($rows, 'name'));
         $this->assertSame(['Medicine', 'Medicine', 'Syrup', 'Syrup', null], array_column($rows, 'category'));
         $this->assertSame([1, 2, 3, 4, 5], array_column($rows, 'serial'));
     }
 
-    public function test_stock_with_no_expiry_date_is_still_listed_and_batches_make_one_row_per_product(): void
+    public function test_only_live_products_are_listed_whatever_their_stock_and_branch(): void
     {
-        $product = $this->product(['name' => 'Herbal Syrup', 'mrp' => '100.00']);
-        $this->stockOf($product, $this->hub, 4, null);
-        $this->stockOf($product, $this->hub, 6, '2027-09-30');
-        $this->stockOf($product, $this->hub, 10, '2027-02-28');
-        $this->stockOf($this->product(['name' => 'Undated Tonic', 'mrp' => '50.00']), $this->hub, 3, null);
+        $this->product(['name' => 'Live Without Stock', 'mrp' => '10.00']);
+        $this->stockOf($this->product(['name' => 'Live In Khulna', 'mrp' => '10.00']), $this->khulna, 2, null);
+        $this->product(['name' => 'Switched Off', 'mrp' => '10.00', 'active' => false]);
+        $this->product(['name' => 'Removed From Sale', 'mrp' => '10.00', 'active' => false, 'archived_at' => now()]);
 
-        $rows = (new StockPrintList)->build(new BranchScope(false, [$this->hub->id], $this->hub))['rows'];
+        $rows = (new StockPrintList)->build()['rows'];
 
-        $this->assertSame(['Herbal Syrup', 'Undated Tonic'], array_column($rows, 'name'));
+        $this->assertSame(['Live In Khulna', 'Live Without Stock'], array_column($rows, 'name'));
     }
 
-    public function test_units_that_were_never_put_in_a_lot_still_make_the_product_appear(): void
+    public function test_no_live_products_gives_an_empty_list(): void
     {
-        $product = $this->product(['name' => 'Old Stock Oil', 'mrp' => '80.00', 'expires_on' => '2027-06-30']);
-        DB::table('branch_product_stocks')->insert(['product_id' => $product->id, 'branch_id' => $this->hub->id, 'quantity' => 9, 'created_at' => now(), 'updated_at' => now()]);
+        $this->product(['name' => 'Switched Off', 'mrp' => '10.00', 'active' => false]);
 
-        $rows = (new StockPrintList)->build(new BranchScope(false, [$this->hub->id], $this->hub))['rows'];
-
-        $this->assertSame(['Old Stock Oil'], array_column($rows, 'name'));
+        $this->assertSame(['rows' => []], (new StockPrintList)->build());
     }
 
     public function test_a_missing_price_shows_no_discount_and_a_price_above_mrp_is_not_called_a_discount(): void
@@ -239,35 +239,11 @@ class StockPrintTest extends TestCase
         $this->stockOf($this->product(['name' => 'No Trade Price', 'mrp' => '100.00', 'dealer_price' => null, 'sub_dealer_price' => '0.00']), $this->hub, 1, null);
         $this->stockOf($this->product(['name' => 'Odd Price', 'mrp' => '100.00', 'dealer_price' => '120.00', 'sub_dealer_price' => '66.67']), $this->hub, 1, null);
 
-        $rows = (new StockPrintList)->build(new BranchScope(false, [$this->hub->id], $this->hub))['rows'];
+        $rows = (new StockPrintList)->build()['rows'];
 
         $this->assertSame([null, null], [$rows[0]['dealer_discount'], $rows[0]['sub_dealer_discount']]);
         $this->assertNull($rows[1]['dealer_discount']);
         $this->assertSame('33.33', $rows[1]['sub_dealer_discount']);
-    }
-
-    public function test_a_branch_list_leaves_out_other_branches_and_all_branches_lists_every_stocked_product_once(): void
-    {
-        $this->stockOf($this->product(['name' => 'Hub Only', 'mrp' => '10.00']), $this->hub, 4, '2027-05-05');
-        $shared = $this->product(['name' => 'Shared', 'mrp' => '10.00']);
-        $this->stockOf($shared, $this->hub, 4, '2027-05-05');
-        $this->stockOf($shared, $this->khulna, 6, '2027-05-05');
-        $this->stockOf($this->product(['name' => 'Khulna Only', 'mrp' => '10.00']), $this->khulna, 2, null);
-
-        $hubOnly = (new StockPrintList)->build(new BranchScope(false, [$this->hub->id], $this->hub));
-        $everywhere = (new StockPrintList)->build(new BranchScope(true, []));
-        $nowhere = (new StockPrintList)->build(new BranchScope(false, []));
-
-        $this->assertSame(['Hub Only', 'Shared'], array_column($hubOnly['rows'], 'name'));
-        $this->assertSame(['Hub Only', 'Khulna Only', 'Shared'], array_column($everywhere['rows'], 'name'));
-        $this->assertSame([], $nowhere['rows']);
-    }
-
-    public function test_an_empty_stock_gives_an_empty_list(): void
-    {
-        $this->product(['name' => 'Sold Out', 'mrp' => '10.00']);
-
-        $this->assertSame(['rows' => []], (new StockPrintList)->build(new BranchScope(true, [])));
     }
 
     public function test_the_letterhead_has_both_phone_numbers_65_first_and_the_licence_and_trademark_numbers(): void
@@ -279,6 +255,7 @@ class StockPrintTest extends TestCase
         $this->assertStringEndsWith('madina-header-logo.png', (string) $company['logo_path']);
         $this->assertFileExists((string) $company['logo_path']);
         $this->assertSame('madinanaturalhealthcare@gmail.com', $company['email']);
+        $this->assertSame(['whatsapp', 'mobile', 'email', 'website'], array_keys($company['icons']));
         $this->assertSame('2026-00563', $company['licence']);
         $this->assertSame('BD-H-1-335903', $company['trademark']);
 
@@ -310,7 +287,7 @@ class StockPrintTest extends TestCase
         $this->stockOf($product, $this->hub, 3, null);
         $owner = User::factory()->staff()->create();
 
-        $response = app(StockPrintPdf::class)->download($owner, new BranchScope(false, [$this->hub->id], $this->hub));
+        $response = app(StockPrintPdf::class)->download($owner);
         $pdf = $response->getFile()->getPathname();
 
         $this->assertGreaterThan(200_000, strlen($photo), 'The test photo has to be big to prove anything.');
@@ -326,7 +303,7 @@ class StockPrintTest extends TestCase
         $this->stockOf($product, $this->hub, 1, null);
         $owner = User::factory()->staff()->create();
 
-        $response = app(StockPrintPdf::class)->download($owner, new BranchScope(false, [$this->hub->id], $this->hub));
+        $response = app(StockPrintPdf::class)->download($owner);
 
         $this->assertStringStartsWith('%PDF', (string) file_get_contents($response->getFile()->getPathname()));
     }

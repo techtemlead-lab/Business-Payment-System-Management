@@ -5,15 +5,14 @@ namespace App\Domain\Inventory;
 use App\Domain\Catalog\ProductSizeGroups;
 use App\Models\Product;
 use App\Support\Money;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
 
 /**
- * The rows of the printed stock list: one row for every product that has stock in the branch
- * scope, grouped by category (a product with no category comes last), then by name. The list
- * shows no quantities and no totals: it is the product list with prices and discounts.
- * Nothing here changes stock.
+ * The rows of the printed product list: one row for every product that is live (on sale, not
+ * archived, deleted or switched off), grouped by category (a product with no category comes
+ * last), then by name. It shows no quantities and no totals: it is the product list with prices
+ * and discounts, the same for every branch. Nothing here changes stock.
  */
 final class StockPrintList
 {
@@ -22,15 +21,10 @@ final class StockPrintList
      *     rows: list<array{serial: int, name: string, pack_size: ?string, category: ?string, group: ?string, mrp: ?string, dealer_discount: ?string, sub_dealer_discount: ?string, image: ?string, usage: ?string, efficacy: ?string}>
      * }
      */
-    public function build(BranchScope $scope): array
+    public function build(): array
     {
-        $productIds = $this->productIdsWithStock($scope);
-        if ($productIds === []) {
-            return ['rows' => []];
-        }
-
         $entries = [];
-        foreach (Product::query()->whereIn('id', $productIds)->get(['id', 'name', 'strength', 'category', 'pack_size_en', 'pack_size_bn', 'mrp', 'dealer_price', 'sub_dealer_price', 'description', 'dose_bn', 'dose_en', 'group_bn', 'group_en', 'efficacy_bn', 'efficacy_en', 'image_path']) as $product) {
+        foreach (Product::query()->where('active', true)->get(['id', 'name', 'strength', 'category', 'pack_size_en', 'pack_size_bn', 'mrp', 'dealer_price', 'sub_dealer_price', 'description', 'dose_bn', 'dose_en', 'group_bn', 'group_en', 'efficacy_bn', 'efficacy_en', 'image_path']) as $product) {
             [$name, $packSize] = StockPrintName::split($product->registerName(), ProductSizeGroups::label($product));
             $category = trim((string) $product->category);
             $entries[] = ['product' => $product, 'name' => $name, 'pack_size' => $packSize, 'category' => $category !== '' ? $category : null];
@@ -63,35 +57,6 @@ final class StockPrintList
         }
 
         return ['rows' => $rows];
-    }
-
-    /**
-     * The products that have at least one unit in the branches of the scope: units in a lot, and
-     * units that were never put in a lot.
-     *
-     * @return list<int>
-     */
-    private function productIdsWithStock(BranchScope $scope): array
-    {
-        if (! $scope->allBranches && $scope->branchIds === []) {
-            return [];
-        }
-
-        $lots = DB::table('stock_lots')
-            ->where('quantity', '>', 0)
-            ->groupBy('product_id')
-            ->selectRaw('product_id');
-        $scope->restrict($lots, 'branch_id');
-        $ids = array_map('intval', $lots->pluck('product_id')->all());
-
-        $branchId = $scope->allBranches ? null : $scope->branchIds[0];
-        $unlotted = DB::query()->fromSub(StockStages::rows($branchId), 'stage')
-            ->where('stage.unlotted', '>', 0)
-            ->groupBy('stage.product_id')
-            ->selectRaw('stage.product_id');
-        array_push($ids, ...array_map('intval', $unlotted->pluck('product_id')->all()));
-
-        return array_values(array_unique($ids));
     }
 
     /** The saved product photo, as a file this server can embed in the PDF. */
