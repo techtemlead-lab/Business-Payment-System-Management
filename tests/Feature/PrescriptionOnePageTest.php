@@ -251,12 +251,12 @@ class PrescriptionOnePageTest extends TestCase
         ]);
 
         $this->actingAs($dealer)->onPortal('dealer')->get('/prescriptions/'.$prescription->id.'/print?lang=en')->assertOk()
-            ->assertSeeInOrder(['Tests to do', 'CBC', 'Chest X-ray'])
+            ->assertSeeInOrder(['Investigation', 'CBC', 'Chest X-ray'])
             ->assertSeeInOrder(['Foods to eat', 'Papaya'])
             ->assertSeeInOrder(['Foods to avoid', 'Beef'])
             ->assertSee('Walk every morning');
         $this->actingAs($dealer)->onPortal('dealer')->get('/prescriptions/'.$prescription->id.'/print?lang=bn')->assertOk()
-            ->assertSeeInOrder(['যে টেস্ট করাবেন', 'CBC'])
+            ->assertSeeInOrder(['পরীক্ষা-নিরীক্ষা', 'CBC'])
             ->assertSeeInOrder(['যা খাবেন', 'Papaya'])
             ->assertSeeInOrder(['যা খাবেন না', 'Beef']);
     }
