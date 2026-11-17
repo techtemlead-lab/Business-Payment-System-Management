@@ -639,9 +639,13 @@ final class DeploymentReadiness
             ->contains(fn (User $user): bool => $security->totpRequiredByRole($user));
     }
 
-    /** Two accounts on one mobile number, where no owner approved sharing it. */
+    /** Two accounts on one mobile number, where no owner approved sharing it. Only a problem while the owner's one-number switch is on. */
     private function accountsSharingMobileWithoutApproval(): bool
     {
+        if (! app(SecuritySettings::class)->oneAccountPerIdentityEnforced()) {
+            return false;
+        }
+
         return DB::table('users')
             ->whereNotNull('phone')
             ->whereRaw("phone ~ '^[0-9[:space:]()+.-]+$'")

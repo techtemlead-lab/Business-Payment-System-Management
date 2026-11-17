@@ -619,7 +619,7 @@ class PublicController extends Controller
             $data['phone'] = $phones->normalize($data['phone']);
             $confirmedNumber = $data['phone_taken_confirmed'] ?? null;
             unset($data['phone_taken_confirmed']);
-            if ($phones->holders($data['phone']) !== [] && ! ($phones->isValid($confirmedNumber) && $phones->normalize($confirmedNumber) === $data['phone'])) {
+            if ($phones->isTaken($data['phone']) && ! ($phones->isValid($confirmedNumber) && $phones->normalize($confirmedNumber) === $data['phone'])) {
                 throw ValidationException::withMessages(['phone_taken' => __('portal.err_public_app_phone_taken')]);
             }
             if (! empty($data['sponsor_code'])) {

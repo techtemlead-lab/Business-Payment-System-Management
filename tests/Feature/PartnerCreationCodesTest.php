@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Security\SecuritySettings;
 use App\Models\PlaceCode;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -129,6 +130,8 @@ class PartnerCreationCodesTest extends TestCase
 
     public function test_a_refused_form_goes_back_to_the_form_and_says_why(): void
     {
+        // The one-number rule is an owner switch, off by default: turn it on for this refusal.
+        app(SecuritySettings::class)->saveOneAccountPerIdentity($this->owner, true, 0);
         $this->submit($this->partnerForm(['phone' => $this->owner->phone]))
             ->assertRedirect(self::FormPage)
             ->assertSessionHasErrors(['phone' => __('portal.acct_val_phone_taken_owner')]);

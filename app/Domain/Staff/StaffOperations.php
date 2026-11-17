@@ -97,7 +97,7 @@ final class StaffOperations
             $data = [...$data, ...$this->placeFields($place)];
             $phones = app(AccountPhoneRules::class);
             $data['phone'] = $phones->normalize($data['phone'] ?? '');
-            if ($phones->holders($data['phone']) !== []) {
+            if ($phones->isTaken($data['phone'])) {
                 throw ValidationException::withMessages(['phone' => __('portal.acct_val_phone_taken')]);
             }
             if (User::whereRaw('LOWER(email) = ?', [mb_strtolower($data['email'])])->exists()

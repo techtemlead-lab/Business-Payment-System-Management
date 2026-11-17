@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Domain\Security\SecuritySettings;
 use App\Models\User;
 use App\Support\DeploymentReadiness;
-use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
@@ -29,6 +28,12 @@ class AccountPhoneRulesTest extends TestCase
         Config::set('madina.preview_mode', false);
         Config::set('madina.sms.driver', 'array');
         Config::set('madina.sms.sent', []);
+    }
+
+    /** These tests check the rule itself, so the owner's "one number, one account" switch (off by default) is turned on. */
+    private function switchOneNumberRuleOn(User $owner): void
+    {
+        app(SecuritySettings::class)->saveOneAccountPerIdentity($owner, true, 0);
     }
 
     /** @return array<string, mixed> */
@@ -65,6 +70,7 @@ class AccountPhoneRulesTest extends TestCase
     public function test_a_number_used_by_another_account_is_refused_in_any_format(): void
     {
         $owner = User::factory()->staff('super_admin')->create(['phone' => '01900000001']);
+        $this->switchOneNumberRuleOn($owner);
         User::factory()->dealer()->create(['phone' => '01711112222']);
 
         $this->actingAs($owner)->onPortal('sadmin')->post('/commands/accounts', $this->dealerForm(['phone' => '+880 1711-112222']))
@@ -75,6 +81,7 @@ class AccountPhoneRulesTest extends TestCase
     public function test_an_owner_can_allow_a_shared_number_with_a_reason_that_is_audited(): void
     {
         $owner = User::factory()->staff('chairman')->create(['phone' => '01900000001']);
+        $this->switchOneNumberRuleOn($owner);
         $existing = User::factory()->dealer()->create(['phone' => '01711112222']);
         // The chairman needs the accounts screen to create partners; owners still decide on sharing.
         DB::table('users')->where('id', $owner->id)->update(['profile' => json_encode(['action_permissions' => ['accounts' => ['view' => true, 'create' => true, 'edit' => true, 'approve' => true]]])]);
@@ -98,6 +105,7 @@ class AccountPhoneRulesTest extends TestCase
     public function test_staff_who_are_not_owners_cannot_approve_a_shared_number(): void
     {
         $manager = User::factory()->staff('account_manager')->create(['phone' => '01900000002']);
+        $this->switchOneNumberRuleOn(User::factory()->staff('super_admin')->create(['phone' => '01900000001']));
         User::factory()->dealer()->create(['phone' => '01711112222']);
 
         $response = $this->actingAs($manager)->onPortal('manage')->post('/commands/accounts', $this->dealerForm([
@@ -113,6 +121,7 @@ class AccountPhoneRulesTest extends TestCase
     public function test_staff_accounts_need_a_unique_mobile_too(): void
     {
         $owner = User::factory()->staff('super_admin')->create(['phone' => '01900000001']);
+        $this->switchOneNumberRuleOn($owner);
         $form = ['role' => 'finance', 'name' => 'Finance Person', 'email' => 'finance-new@example.com', 'reason' => 'New staff'];
 
         $this->actingAs($owner)->onPortal('sadmin')->post('/commands/accounts', $form)->assertSessionHasErrors('phone');
@@ -126,6 +135,7 @@ class AccountPhoneRulesTest extends TestCase
     public function test_editing_cannot_clear_a_number_or_take_another_accounts_number(): void
     {
         $owner = User::factory()->staff('super_admin')->create(['phone' => '01900000001']);
+        $this->switchOneNumberRuleOn($owner);
         $dealer = User::factory()->dealer()->create(['phone' => '01711112222']);
         User::factory()->dealer()->create(['phone' => '01733334444']);
 
@@ -192,10 +202,17 @@ class AccountPhoneRulesTest extends TestCase
         $owner = User::factory()->staff('super_admin')->create(['phone' => '01900000001']);
         $missing = User::factory()->dealer()->create(['phone' => null]);
         User::factory()->dealer()->create(['phone' => '01711112222']);
-        // The database itself refuses a second unapproved account on one number.
-        $this->assertThrows(fn () => DB::transaction(fn () => User::factory()->dealer()->create(['phone' => '+8801711112222'])), UniqueConstraintViolationException::class);
-        User::factory()->dealer()->create(['phone' => '+8801711112222', 'phone_share_approved_by' => $owner->id, 'phone_share_reason' => 'Approved']);
+        // The database no longer refuses a second account on one number: the owner's switch decides.
+        $unapproved = User::factory()->dealer()->create(['phone' => '+8801711112222']);
         app(SecuritySettings::class)->savePartnerLoginOtp($owner, false, 0);
+
+        // Switch off (the default): sharing a number is allowed, so it is no go-live warning.
+        $this->assertNotContains('accounts_sharing_mobile', app(DeploymentReadiness::class)->inspect()['warnings']);
+
+        // Switch on: the same unapproved sharing is flagged until an owner approves it.
+        $this->switchOneNumberRuleOn($owner);
+        $this->assertContains('accounts_sharing_mobile', app(DeploymentReadiness::class)->inspect()['warnings']);
+        $unapproved->forceFill(['phone_share_approved_by' => $owner->id, 'phone_share_reason' => 'Approved'])->save();
 
         $warnings = app(DeploymentReadiness::class)->inspect()['warnings'];
         $this->assertContains('accounts_missing_mobile', $warnings);

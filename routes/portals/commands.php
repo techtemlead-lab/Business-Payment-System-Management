@@ -81,6 +81,7 @@ return function (string $portal): void {
     Route::post('/commands/owner/confirmation', [AuthController::class, 'ownerConfirmation'])->middleware('throttle:5,1');
     Route::post('/commands/owner/confirmation-code', [AuthController::class, 'ownerConfirmationCode'])->middleware('throttle:5,1');
     Route::post('/commands/owner/password-reset-notice', [AuthController::class, 'passwordResetNotice'])->middleware('throttle:5,1');
+    Route::post('/commands/owner/one-account-per-identity', [AuthController::class, 'oneAccountPerIdentity'])->middleware('throttle:5,1');
     Route::post('/commands/owner/site-visit-counting', [SiteVisitSettingsController::class, 'update'])->middleware('throttle:10,1');
     Route::post('/commands/owner/error-tracking', [ErrorTrackingController::class, 'settings'])->middleware('throttle:10,1');
     Route::post('/commands/errors/{errorReport}/fixed', [ErrorTrackingController::class, 'fixed'])->whereNumber('errorReport')->middleware('throttle:60,1');

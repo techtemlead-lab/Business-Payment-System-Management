@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Audience\PublicPartnerApplication;
+use App\Domain\Security\SecuritySettings;
 use App\Models\AreaDealerAssignment;
 use App\Models\PlaceCode;
 use App\Models\User;
@@ -132,8 +133,15 @@ class PartnerApplicationApprovalTest extends TestCase
         $this->assertDatabaseHas('dealer_applications', ['id' => $id, 'status' => 'rejected']);
     }
 
+    /** These tests check the one-number rule itself, so the owner's switch (off by default) is turned on. */
+    private function switchOneNumberRuleOn(): void
+    {
+        app(SecuritySettings::class)->saveOneAccountPerIdentity($this->reviewer, true, 0);
+    }
+
     public function test_the_owner_must_give_a_reason_to_approve_a_number_already_in_use(): void
     {
+        $this->switchOneNumberRuleOn();
         User::factory()->dealer()->create(['phone' => '01712220099']);
         $id = $this->apply('dealer', ['phone' => '01712220099']);
 
@@ -144,6 +152,7 @@ class PartnerApplicationApprovalTest extends TestCase
 
     public function test_the_owner_can_approve_a_number_already_in_use_with_a_written_reason(): void
     {
+        $this->switchOneNumberRuleOn();
         User::factory()->dealer()->create(['phone' => '01712220099']);
         $id = $this->apply('dealer', ['phone' => '01712220099']);
 
@@ -159,6 +168,7 @@ class PartnerApplicationApprovalTest extends TestCase
 
     public function test_only_the_owner_can_override_a_number_already_in_use(): void
     {
+        $this->switchOneNumberRuleOn();
         User::factory()->dealer()->create(['phone' => '01712220099']);
         $id = $this->apply('dealer', ['phone' => '01712220099']);
 

@@ -21,6 +21,8 @@ final class SecuritySettings
 
     public const PasswordResetNoticeKey = 'password_reset_owner_notice';
 
+    public const OneAccountPerIdentityKey = 'one_account_per_identity';
+
     /** @var array<string, object>|null */
     private ?array $settingRows = null;
 
@@ -87,6 +89,53 @@ final class SecuritySettings
                 'updated_at' => now(),
             ]);
             Audit::record($actor->id, 'security.password_reset_notice_changed', self::PasswordResetNoticeKey, [
+                'before' => ['enabled' => $before['enabled']],
+                'after' => $after,
+            ]);
+            $this->settingRows = null;
+        }, 3);
+    }
+
+    /**
+     * Whether one mobile number may hold only one account. Off by default (owner's word,
+     * 2026-11-17): several accounts may share a number until an owner switches this on.
+     *
+     * @return array{enabled: bool, version: int}
+     */
+    public function oneAccountPerIdentity(): array
+    {
+        $row = $this->settingRow(self::OneAccountPerIdentityKey);
+
+        return [
+            'enabled' => $row ? (bool) (json_decode($row->value, true, 512, JSON_THROW_ON_ERROR)['enabled'] ?? false) : false,
+            'version' => (int) ($row->version ?? 0),
+        ];
+    }
+
+    public function oneAccountPerIdentityEnforced(): bool
+    {
+        return $this->oneAccountPerIdentity()['enabled'];
+    }
+
+    public function saveOneAccountPerIdentity(User $actor, bool $enabled, int $version): void
+    {
+        DB::transaction(function () use ($actor, $enabled, $version): void {
+            abort_unless($actor->fresh()->owner(), 403);
+            $this->settingRows = null;
+            $before = $this->oneAccountPerIdentity();
+            if ($version !== $before['version']) {
+                throw ValidationException::withMessages(['version' => __('portal.err_security_setting_stale')]);
+            }
+            $existing = DB::table('business_settings')->where('key', self::OneAccountPerIdentityKey)->first();
+            $after = ['enabled' => $enabled];
+            DB::table('business_settings')->updateOrInsert(['key' => self::OneAccountPerIdentityKey], [
+                'value' => json_encode($after, JSON_THROW_ON_ERROR),
+                'version' => $version + 1,
+                'updated_by' => $actor->id,
+                'created_at' => $existing?->created_at ?? now(),
+                'updated_at' => now(),
+            ]);
+            Audit::record($actor->id, 'security.one_account_per_identity_changed', self::OneAccountPerIdentityKey, [
                 'before' => ['enabled' => $before['enabled']],
                 'after' => $after,
             ]);
@@ -173,6 +222,7 @@ final class SecuritySettings
      *   preview_mode: bool,
      *   partner_login_otp: array{enabled: bool, version: int, preview_forced_off: bool, config_default: bool},
      *   password_reset_notice: array{enabled: bool, version: int},
+     *   one_account_per_identity: array{enabled: bool, version: int},
      *   owner_confirmation: array{mode: string, version: int, method: string, sms_works: bool, has_phone: bool, code_fell_back: bool}|null,
      *   totp: array{challenges_enabled: bool, confirmed: bool, preview_forced_off: bool, required: bool},
      *   admin_ip_allowlist_active: bool,
@@ -187,6 +237,7 @@ final class SecuritySettings
             'preview_mode' => $this->previewMode(),
             'partner_login_otp' => $otp,
             'password_reset_notice' => $this->passwordResetNotice(),
+            'one_account_per_identity' => $this->oneAccountPerIdentity(),
             // Only the two pages that show it ask for it, so no other page pays for the extra query.
             'owner_confirmation' => $user->owner() && request()->is('login-rules', 'profile') ? app(OwnerConfirmation::class)->payload($user) : null,
             'totp' => [
@@ -226,7 +277,7 @@ final class SecuritySettings
     private function settingRow(string $key): ?object
     {
         $this->settingRows ??= DB::table('business_settings')
-            ->whereIn('key', [self::PartnerLoginOtpKey, self::PasswordResetNoticeKey, ReasonFields::SettingsKey])
+            ->whereIn('key', [self::PartnerLoginOtpKey, self::PasswordResetNoticeKey, self::OneAccountPerIdentityKey, ReasonFields::SettingsKey])
             ->get()
             ->keyBy('key')
             ->all();

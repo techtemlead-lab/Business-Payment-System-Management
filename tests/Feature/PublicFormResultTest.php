@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Security\SecuritySettings;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
@@ -15,6 +16,12 @@ use Tests\TestCase;
 class PublicFormResultTest extends TestCase
 {
     use RefreshDatabase;
+
+    /** The taken-number warning belongs to the owner's "one number, one account" switch, which is off by default. */
+    private function switchOneNumberRuleOn(): void
+    {
+        app(SecuritySettings::class)->saveOneAccountPerIdentity(User::factory()->staff('super_admin')->create(['phone' => '01900000001']), true, 0);
+    }
 
     /** @return array<string, string> */
     private function application(): array
@@ -50,6 +57,7 @@ class PublicFormResultTest extends TestCase
 
     public function test_a_taken_number_is_warned_about_first_without_saying_whose(): void
     {
+        $this->switchOneNumberRuleOn();
         Config::set('madina.sms.driver', 'array');
         Config::set('madina.sms.sent', []);
         User::factory()->dealer()->create(['name' => 'Existing Holder', 'phone' => '01811112223']);
@@ -78,6 +86,7 @@ class PublicFormResultTest extends TestCase
 
     public function test_the_applicant_can_still_send_a_taken_number_by_confirming_it(): void
     {
+        $this->switchOneNumberRuleOn();
         User::factory()->dealer()->create(['phone' => '01811112223']);
 
         $this->onPortal('public')->from('/partnership')->post('/partnership/apply', ['phone_taken_confirmed' => '01811112223'] + $this->application())
@@ -93,6 +102,7 @@ class PublicFormResultTest extends TestCase
 
     public function test_confirming_one_number_does_not_pass_a_different_taken_number(): void
     {
+        $this->switchOneNumberRuleOn();
         User::factory()->dealer()->create(['phone' => '01811112223']);
 
         $this->onPortal('public')->from('/partnership')->post('/partnership/apply', ['phone_taken_confirmed' => '01811112299'] + $this->application())
@@ -103,6 +113,7 @@ class PublicFormResultTest extends TestCase
 
     public function test_the_taken_number_warning_reads_in_each_language_and_ignores_number_formats(): void
     {
+        $this->switchOneNumberRuleOn();
         User::factory()->dealer()->create(['phone' => '01811112223']);
         $this->assertNotSame(__('portal.err_public_app_phone_taken', [], 'en'), __('portal.err_public_app_phone_taken', [], 'bn'));
 
@@ -115,6 +126,7 @@ class PublicFormResultTest extends TestCase
 
     public function test_the_taken_number_warning_and_its_confirmation_stay_under_the_form_rate_limit(): void
     {
+        $this->switchOneNumberRuleOn();
         User::factory()->dealer()->create(['phone' => '01811112223']);
 
         foreach (range(1, 5) as $attempt) {

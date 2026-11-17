@@ -2,6 +2,7 @@
 
 namespace App\Domain\Accounts;
 
+use App\Domain\Security\SecuritySettings;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\LocalDigits;
@@ -12,8 +13,10 @@ use Illuminate\Validation\ValidationException;
  * Mobile number rules for every account (owner decisions, 2026-11-05).
  *
  * - Every account must have a valid Bangladeshi mobile number: it is where the sign-in code goes.
- * - A number belongs to one account only. An owner (Super Admin, MD, Chairman) may let one account
- *   share a number another account already uses, with a written reason that goes in the audit log.
+ * - Only while the owner's "one number, one account" switch is on (off by default, 2026-11-17):
+ *   a number belongs to one account only. An owner (Super Admin, MD, Chairman) may then let one
+ *   account share a number another account already uses, with a written reason that goes in the
+ *   audit log. With the switch off, any number of accounts may share a number.
  * - Numbers are stored as 01XXXXXXXXX, and compared in the same normalised form login uses, so
  *   "+8801711…" and "01711…" count as the same number.
  */
@@ -72,10 +75,23 @@ final class AccountPhoneRules
             ->all();
     }
 
+    /** True when the owner switched "one number, one account" on. Off by default. */
+    public function enforced(): bool
+    {
+        return app(SecuritySettings::class)->oneAccountPerIdentityEnforced();
+    }
+
+    /** True when another account holds this number and the owner's switch makes that a problem. */
+    public function isTaken(string $phone, ?int $ignoreUserId = null): bool
+    {
+        return $this->enforced() && $this->holders($phone, $ignoreUserId) !== [];
+    }
+
     /**
      * Check a number for an account being created or changed.
      *
      * Returns the share approval to store on the account (both null when the number is not shared).
+     * While the owner's switch is off, a shared number needs no approval and no reason.
      *
      * @return array{phone: string, phone_share_approved_by: ?int, phone_share_reason: ?string}
      *
@@ -84,8 +100,7 @@ final class AccountPhoneRules
     public function check(User $actor, mixed $phone, ?int $accountId = null, mixed $shareReason = null, string $field = 'phone'): array
     {
         $normalized = $this->normalize($phone, $field);
-        $holders = $this->holders($normalized, $accountId);
-        if ($holders === []) {
+        if (! $this->isTaken($normalized, $accountId)) {
             return ['phone' => $normalized, 'phone_share_approved_by' => null, 'phone_share_reason' => null];
         }
         $reason = is_string($shareReason) ? trim($shareReason) : '';
