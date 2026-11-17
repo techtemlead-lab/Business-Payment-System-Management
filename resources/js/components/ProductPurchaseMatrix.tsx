@@ -263,6 +263,7 @@ export default function ProductPurchaseMatrix({
         payment_account_id: '',
         channel: openedWithAccount && payOptions.account_usable ? ACCOUNT_CHANNEL : 'Bank',
         amount: '',
+        use_account: false,
         note: '',
         courier_choice: 'company',
         proof: null as File | null,
@@ -287,6 +288,10 @@ export default function ProductPurchaseMatrix({
     const accountBalance = Number(payOptions.account_available);
     const accountAfter = accountBalance - cartSummary.totalPayable;
     const accountIsShort = paisa(cartSummary.totalPayable) > paisa(accountBalance);
+    // Not enough in the account for the whole order: let the balance pay part and another way pay the rest.
+    const splitAvailable = payOptions.account_usable && accountBalance > 0 && accountIsShort && !paysFromAccount;
+    const splitOn = splitAvailable && f.data.use_account;
+    const splitRest = (paisa(cartSummary.totalPayable) - paisa(accountBalance)) / 100;
     const budgetLeft = budget === null ? 0 : budget - cartSummary.totalPayable;
 
     // One key for one order: a retry of the same order is charged once, and only a changed order gets a new key.
@@ -309,12 +314,13 @@ export default function ProductPurchaseMatrix({
                 quantity: item.quantity,
             })),
             channel: f.data.channel,
+            ...(splitOn ? { use_account: true } : {}),
             note: orderNote.shown ? f.data.note : undefined,
             courier_choice: courierChoices.length ? f.data.courier_choice : undefined,
             ...(serverSetsPayment ? {} : {
                 reference: f.data.reference,
                 payment_account_id: f.data.payment_account_id,
-                amount: fullPaymentRequired ? cartSummary.totalPayable.toFixed(2) : f.data.amount,
+                amount: splitOn ? splitRest.toFixed(2) : fullPaymentRequired ? cartSummary.totalPayable.toFixed(2) : f.data.amount,
                 proof: f.data.proof,
             }),
         };
@@ -857,6 +863,22 @@ export default function ProductPurchaseMatrix({
                                     {payOptions.account_block === 'debt' && <small className="field-hint is-warn" role="status">{translate('order_payment', 'account_block_debt')}</small>}
                                 </label>
 
+                                {splitAvailable && (
+                                    <div data-testid="split-pay">
+                                        <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                            <input type="checkbox" checked={f.data.use_account} onChange={e => f.setData('use_account', e.target.checked)} />
+                                            {translate('order_split', 'toggle')}
+                                        </label>
+                                        <small className="field-hint">{translate('order_split', 'toggle_hint')}</small>
+                                        {splitOn && (
+                                            <p className="field-hint" role="status" data-testid="split-summary">
+                                                {translate('order_split', 'summary', { balance: money(accountBalance), total: money(cartSummary.totalPayable), rest: money(splitRest) })}
+                                            </p>
+                                        )}
+                                        {splitOn && paysAtOffice && <small className="field-hint">{translate('order_split', 'cash_note')}</small>}
+                                    </div>
+                                )}
+
                                 {!serverSetsPayment && <>
                                 <label>
                                     {translate('portal', 'collection_account')}
@@ -887,16 +909,16 @@ export default function ProductPurchaseMatrix({
                                     />
                                 </label>
 
-                                {fullPaymentRequired ? (
+                                {fullPaymentRequired || splitOn ? (
                                     <label>
-                                        {translate('portal', 'ppm_full_amount_label')}
+                                        {splitOn ? translate('order_split', 'still_to_pay') : translate('portal', 'ppm_full_amount_label')}
                                         <input
                                             type="text"
                                             readOnly
                                             aria-readonly="true"
-                                            value={money(cartSummary.totalPayable)}
+                                            value={money(splitOn ? splitRest : cartSummary.totalPayable)}
                                         />
-                                        <small className="field-hint">{translate('portal', 'ppm_full_amount_hint')}</small>
+                                        {!splitOn && <small className="field-hint">{translate('portal', 'ppm_full_amount_hint')}</small>}
                                     </label>
                                 ) : (
                                     <label>
@@ -986,7 +1008,9 @@ export default function ProductPurchaseMatrix({
                                 >
                                     {f.processing
                                         ? translate('portal', 'submitting')
-                                        : paysFromAccount
+                                        : splitOn
+                                            ? translate('order_split', 'submit', { balance: money(accountBalance), rest: money(splitRest) })
+                                            : paysFromAccount
                                             ? translate('order_payment', 'account_submit', { amount: money(cartSummary.totalPayable) })
                                             : translate('portal', 'submit_purchase_request')}
                                     <ArrowRight size={17} />
