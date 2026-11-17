@@ -248,6 +248,7 @@ class HandleInertiaRequests extends Middleware
                 'courier_areas' => Lang::get('courier_areas'),
                 'wave3_ops' => Lang::get('wave3_ops'),
                 'order_payment' => Lang::get('order_payment'),
+                'order_split' => Lang::get('order_split'),
                 'shipping_label' => Lang::get('shipping_label'),
                 'treasury' => Lang::get('treasury'),
                 'my_money' => Lang::get('my_money'),

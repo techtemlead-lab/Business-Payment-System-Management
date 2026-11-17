@@ -53,6 +53,8 @@ class StoreOrderRequest extends FormRequest
             'courier_choice' => ['nullable', 'string', Rule::in(app(CourierOptions::class)->choiceKeys())],
             'reference' => [...$this->paymentDetailRules($paidWithOrder), 'string', TransactionReference::MinRule, 'max:100'],
             'payment_account_id' => ['nullable', self::ServerSetsPayment, 'integer', 'exists:payment_accounts,id'],
+            // "Use my account balance first": the balance pays part, the chosen method pays the rest.
+            'use_account' => ['nullable', 'boolean', 'prohibited_if:channel,Account'],
             'channel' => ($paidWithOrder ? 'required' : 'nullable|required_with:reference').'|in:bKash,Nagad,Rocket,Bank,Office,Account',
             'amount' => [...$this->paymentDetailRules($paidWithOrder), 'required_with:reference', 'regex:/^\d{1,9}(\.\d{1,2})?$/D'],
             'proof' => [...$this->paymentDetailRules($paidWithOrder), 'required_with:reference', ...explode('|', PaymentProof::Rules)],

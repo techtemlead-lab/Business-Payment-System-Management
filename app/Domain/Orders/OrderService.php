@@ -87,7 +87,7 @@ class OrderService
             $lines = [...$lines, ...app(SchemeFreeLines::class)->for($lines)];
             DashboardManagement::assertPartnerCanOrder($user, $total);
             $channel = (string) ($data['channel'] ?? '');
-            if (! in_array($channel, [self::OfficeChannel, AccountOrderPayment::Channel], true)) {
+            if (! in_array($channel, [self::OfficeChannel, AccountOrderPayment::Channel], true) && empty($data['use_account'])) {
                 $this->assertPaidInFullWithOrder($data, $total);
             }
             $order = Order::create(['number' => 'MN-'.now((string) config('madina.business_timezone'))->format('ymd').'-'.Str::upper(Str::random(8)),
@@ -95,14 +95,19 @@ class OrderService
                 'payload_hash' => $hash, 'note' => $data['note'] ?? null, 'courier_choice' => CourierOptions::stored($data['courier_choice'] ?? null)]);
             $order->lines()->createMany($lines);
             $this->commissions->capture($order, $user);
-            if ($channel === self::OfficeChannel) {
-                $data = [...$data, 'reference' => $this->officeReference($order), 'amount' => Money::decimal($total)];
+            $this->event($order, $submittedBy ?? $user, 'order.submitted');
+            $accountPart = 0;
+            $paidWholly = false;
+            if (! empty($data['use_account']) && $channel !== AccountOrderPayment::Channel) {
+                [$accountPart, $paidWholly] = $this->takeAccountPart($order, $user, $submittedBy, $data, $total);
             }
-            $claimedWithOrder = ! empty($data['reference']);
+            if ($channel === self::OfficeChannel) {
+                $data = [...$data, 'reference' => $this->officeReference($order), 'amount' => Money::decimal($total - $accountPart)];
+            }
+            $claimedWithOrder = ! $paidWholly && ! empty($data['reference']);
             if ($claimedWithOrder) {
                 $this->insertClaim($order, $data);
             }
-            $this->event($order, $submittedBy ?? $user, 'order.submitted');
             if ($channel === AccountOrderPayment::Channel) {
                 app(AccountOrderPayment::class)->pay($order, $user, $submittedBy);
             }
@@ -838,6 +843,43 @@ class OrderService
                 ]);
             }
         }, 3);
+    }
+
+    /**
+     * "Account balance + another way": the usable balance pays first and a second method pays
+     * the rest. The balance is read again here, under the money lock, so what the form showed
+     * never decides anything. When the balance covers the whole order it pays it all.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{0: int, 1: bool} Paisa taken from the account, and whether that settled the whole order.
+     */
+    private function takeAccountPart(Order $order, User $buyer, ?User $submittedBy, array $data, int $totalCents): array
+    {
+        $accounts = app(AccountOrderPayment::class);
+        CommissionWallet::lock();
+        $part = $accounts->usableFor($buyer, $totalCents);
+        if ($part >= $totalCents) {
+            $accounts->pay($order, $buyer, $submittedBy);
+
+            return [$totalCents, true];
+        }
+        $rest = $totalCents - $part;
+        $channel = (string) ($data['channel'] ?? '');
+        if ($channel === '') {
+            throw ValidationException::withMessages(['channel' => __('order_split.err_split_second_method', [
+                'balance' => LocalDigits::text(Money::grouped(Money::decimal($part))),
+                'rest' => LocalDigits::text(Money::grouped(Money::decimal($rest))),
+            ])]);
+        }
+        $accounts->pay($order, $buyer, $submittedBy, $part);
+        if ($channel !== self::OfficeChannel && Money::cents((string) ($data['amount'] ?? '0')) !== $rest) {
+            throw ValidationException::withMessages(['amount' => __('order_split.err_split_changed', [
+                'balance' => LocalDigits::text(Money::grouped(Money::decimal($part))),
+                'rest' => LocalDigits::text(Money::grouped(Money::decimal($rest))),
+            ])]);
+        }
+
+        return [$part, false];
     }
 
     /** The reference the server gives a By Office payment; the partner types nothing. */
