@@ -6409,6 +6409,7 @@ return [
     'branch_head_office_place_code_action' => 'Add place code',
     'event_prescription_template_saved' => 'Prescription template saved',
     'event_prescription_template_deleted' => 'Prescription template deleted',
+    'event_prescription_letterhead_saved' => 'Prescription letterhead saved',
     'event_prescription_diet_template_saved' => 'Food template saved',
     'event_prescription_diet_template_deleted' => 'Food template deleted',
     'event_prescription_other_medicines_changed' => 'Rule for other companies\' medicines on prescriptions changed',

@@ -6409,6 +6409,7 @@ return [
     'branch_head_office_place_code_action' => 'প্লেস কোড দিন',
     'event_prescription_template_saved' => 'প্রেসক্রিপশনের টেমপ্লেট রাখা হয়েছে',
     'event_prescription_template_deleted' => 'প্রেসক্রিপশনের টেমপ্লেট মুছে দেওয়া হয়েছে',
+    'event_prescription_letterhead_saved' => 'প্রেসক্রিপশনের লেটারহেড সংরক্ষণ করা হয়েছে',
     'event_prescription_diet_template_saved' => 'খাবারের টেমপ্লেট রাখা হয়েছে',
     'event_prescription_diet_template_deleted' => 'খাবারের টেমপ্লেট মুছে দেওয়া হয়েছে',
     'event_prescription_other_medicines_changed' => 'প্রেসক্রিপশনে অন্য কোম্পানির ওষুধ লেখার নিয়ম বদলানো হয়েছে',
