@@ -46,7 +46,7 @@ export type WithdrawalRequest = {
 
 export type NotEarnedArea = { month: string; amount: string };
 
-export type WithdrawInfo ={ can: boolean; kyc_block: boolean; minimum: string };
+export type WithdrawInfo ={ can: boolean; kyc_block: boolean; security_wait: string | null; minimum: string };
 
 export type Certificates = { years: number[]; rank: boolean };
 

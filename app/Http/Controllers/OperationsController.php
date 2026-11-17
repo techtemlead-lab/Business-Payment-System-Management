@@ -13,6 +13,7 @@ use App\Domain\Finance\ReportData;
 use App\Domain\Finance\ReserveService;
 use App\Domain\Finance\TreasuryAccess;
 use App\Domain\Finance\WithdrawalApprovalLimit;
+use App\Domain\Finance\WithdrawalSecurityWait;
 use App\Domain\Integrations\IntegrationSettings;
 use App\Domain\Staff\StaffPermissions;
 use App\Domain\Staff\TerritoryAccess;
@@ -169,6 +170,7 @@ class OperationsController extends Controller
         }
         if ($section === 'finance-settings') {
             $data['withdrawalSetting'] = app(FinanceSettings::class)->withdrawalMinimum();
+            $data['withdrawalSecurityWait'] = [...app(WithdrawalSecurityWait::class)->settings(), 'default' => WithdrawalSecurityWait::DefaultHours, 'can_edit' => $actor->owner() && $actor->canAct('finance', 'edit')];
             $data['autoApproval'] = app(FinanceSettings::class)->autoApproval();
             $data['kycBeforeFirstWithdrawal'] = [...app(FinanceSettings::class)->kycBeforeFirstWithdrawal(), 'can_edit' => $actor->role === 'super_admin'];
             $data['fullPaymentWhenOrdering'] = [...app(FinanceSettings::class)->fullPaymentWhenOrdering(), 'can_edit' => $actor->role === 'super_admin'];

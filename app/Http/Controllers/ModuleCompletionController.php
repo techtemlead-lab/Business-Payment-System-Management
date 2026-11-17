@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Finance\FinanceSettings;
+use App\Domain\Finance\WithdrawalSecurityWait;
 use App\Domain\Staff\StaffPermissions;
 use App\Models\Product;
 use App\Support\Audit;
@@ -20,6 +21,15 @@ class ModuleCompletionController extends Controller
     {
         $data = $request->validate(['amount' => [...FinanceOperationsController::Amount, 'gt:0'], 'version' => 'required|integer|min:0', 'reason' => ReasonFields::rule('money.withdrawal_minimum', 1000, 5)]);
         $settings->saveMinimum($request->user(), $data['amount'], (int) $data['version'], ReasonFields::text($data['reason'] ?? null));
+
+        return $this->done($request);
+    }
+
+    /** Owners only: how many hours a partner waits to withdraw after changing their phone or password (0 = no wait). */
+    public function withdrawalSecurityWait(Request $request, WithdrawalSecurityWait $wait): Response
+    {
+        $data = $request->validate(['hours' => 'required|integer|min:0|max:'.WithdrawalSecurityWait::MaximumHours, 'version' => 'required|integer|min:0']);
+        $wait->save($request->user(), (int) $data['hours'], (int) $data['version']);
 
         return $this->done($request);
     }

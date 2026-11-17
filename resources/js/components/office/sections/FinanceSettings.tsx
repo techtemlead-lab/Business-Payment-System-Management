@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useForm, usePage } from '@inertiajs/react';
 import OfficePage from '../OfficePage';
 import { actionAllowed } from '../../action-permissions';
@@ -9,7 +10,7 @@ import SettingsForm, { settingsBack, type SettingsField } from './SettingsForm';
 const root = '/commands/operations';
 
 /** Owner and finance money rules: one column, one thin line between the forms, each with its own reason and Save. */
-export default function FinanceSettings({ withdrawalSetting, autoApproval, kycBeforeFirstWithdrawal, fullPaymentWhenOrdering }: Row) {
+export default function FinanceSettings({ withdrawalSetting, withdrawalSecurityWait, autoApproval, kycBeforeFirstWithdrawal, fullPaymentWhenOrdering }: Row) {
     const translate = useT();
     const { auth, financeActive, staffActions } = usePage<any>().props;
     const capabilities: string[] = auth.capabilities;
@@ -46,6 +47,13 @@ export default function FinanceSettings({ withdrawalSetting, autoApproval, kycBe
                     ownerOnly={translate('portal', 'kyc_wd_owner_only')}
                     place={'money.kyc_before_withdrawal'}
                 />}
+                {withdrawalSecurityWait && (
+                    <section className="set-block" data-tour="withdrawal-security-wait">
+                        <h2>{translate('withdrawal_wait', 'wait_title')}</h2>
+                        <p className="set-line">{translate('withdrawal_wait', 'wait_body', { hours: String(withdrawalSecurityWait.hours), default: String(withdrawalSecurityWait.default) })}</p>
+                        {withdrawalSecurityWait.can_edit ? <WaitHoursForm setting={withdrawalSecurityWait} /> : <p className="aa-note">{translate('withdrawal_wait', 'wait_owner_only')}</p>}
+                    </section>
+                )}
                 {withdrawalSetting && (
                     <section className="set-block">
                         <h2>{translate('portal', 'ops_withdrawal_policy')}</h2>
@@ -146,5 +154,25 @@ function ReasonAndSave({ place, value, errors, processing, onChange }: { place: 
             {Object.values(errors).map((error) => <span key={String(error)} className="field-error" role="alert">{String(error)}</span>)}
             <button className="button dark set-save" disabled={processing}>{processing ? translate('portal', 'saving') : translate('portal', 'save_changes')}</button>
         </>
+    );
+}
+
+/** Hours a partner waits to withdraw after changing their phone or password. 0 switches the wait off. */
+function WaitHoursForm({ setting }: { setting: Row }) {
+    const translate = useT();
+    const form = useForm<Row>({ hours: String(setting.hours), version: setting.version });
+    // After a save the page brings the new number and version; keep the box in step with them.
+    useEffect(() => { form.setData({ hours: String(setting.hours), version: setting.version }); }, [setting.hours, setting.version]);
+
+    return (
+        <form className="action-form" aria-label={translate('withdrawal_wait', 'wait_save')} onSubmit={(event) => { event.preventDefault(); form.post(`${root}/settings/withdrawal-security-wait`, { preserveScroll: true }); }}>
+            <label>{translate('withdrawal_wait', 'wait_hours_label')}
+                <input type="number" min={0} max={720} step={1} required value={form.data.hours} onChange={(event) => form.setData('hours', event.target.value)} />
+                <small>{translate('withdrawal_wait', 'wait_hours_hint')}</small>
+                {form.errors.hours && <span className="field-error" role="alert">{String(form.errors.hours)}</span>}
+            </label>
+            {form.errors.version && <span className="field-error" role="alert">{String(form.errors.version)}</span>}
+            <button className="button dark set-save" disabled={form.processing}>{form.processing ? translate('portal', 'saving') : translate('withdrawal_wait', 'wait_save')}</button>
+        </form>
     );
 }
