@@ -321,7 +321,7 @@ return [
     'place_codes_admin_purpose' => 'A clean list of area codes keeps area dealer rules and reports correct.',
     'place_codes_admin_s1' => 'Open Settings → Area codes (place codes).',
     'place_codes_admin_s2' => 'Go through Division / District / Upazila / Union / Pourashava.',
-    'place_codes_admin_s3' => 'Add codes with clear names. The form can add the MNHC- start for you.',
+    'place_codes_admin_s3' => 'Add codes with clear names. The form can add the MNHC start for you.',
     'place_codes_admin_s4' => 'Link partners to codes when they join or when you edit their account.',
     'place_codes_admin_s5' => 'Turn off old codes instead of reusing them for new places.',
     'place_codes_admin_s6' => 'Check the changes after updating many codes at once.',

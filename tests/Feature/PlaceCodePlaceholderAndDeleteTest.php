@@ -22,10 +22,9 @@ class PlaceCodePlaceholderAndDeleteTest extends TestCase
         $this->withoutVite();
     }
 
-    public function test_default_place_code_seeder_leaves_catalog_empty(): void
+    public function test_an_empty_catalog_shows_no_places(): void
     {
-        $this->seed(PlaceCodeSeeder::class);
-
+        // Tests start without the default place list; it is only loaded when a test asks for it.
         $this->assertSame(0, PlaceCode::query()->count());
 
         $owner = User::factory()->create(['role' => 'super_admin']);
@@ -34,6 +33,18 @@ class PlaceCodePlaceholderAndDeleteTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('data.places.data', [])
                 ->where('data.places.total', 0));
+    }
+
+    public function test_the_default_place_code_seeder_loads_the_bangladesh_list(): void
+    {
+        $this->seed(PlaceCodeSeeder::class);
+
+        $owner = User::factory()->create(['role' => 'super_admin']);
+        $this->actingAs($owner)->onPortal('sadmin')->get('/place-codes?level=division')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('data.places.total', 8)
+                ->where('data.places.data.0.code', 'MNHC101'));
     }
 
     public function test_admin_can_create_management_and_division_from_empty_catalog(): void
@@ -49,7 +60,7 @@ class PlaceCodePlaceholderAndDeleteTest extends TestCase
         ])->assertRedirect();
 
         $management = PlaceCode::query()->where('level', PlaceCode::LevelManagement)->firstOrFail();
-        $this->assertSame('MNHC-100', $management->code);
+        $this->assertSame('MNHC100', $management->code);
         $this->assertSame('Management', $management->name);
 
         $this->actingAs($admin)->onPortal('sadmin')->post('/commands/place-codes', [
@@ -60,7 +71,7 @@ class PlaceCodePlaceholderAndDeleteTest extends TestCase
             'sort_order' => 1,
         ])->assertRedirect();
 
-        $division = PlaceCode::query()->where('code', 'MNHC-101')->firstOrFail();
+        $division = PlaceCode::query()->where('code', 'MNHC101')->firstOrFail();
         $this->assertSame($management->id, $division->parent_id);
         $this->assertTrue($division->isReadyForAssignment());
     }
@@ -87,7 +98,7 @@ class PlaceCodePlaceholderAndDeleteTest extends TestCase
         ])->assertRedirect();
 
         $management->refresh();
-        $this->assertSame('MNHC-100', $management->code);
+        $this->assertSame('MNHC100', $management->code);
         $this->assertSame('Management', $management->name);
         $this->assertTrue($management->isReadyForAssignment());
     }
@@ -171,8 +182,8 @@ class PlaceCodePlaceholderAndDeleteTest extends TestCase
     {
         $this->seedClassicPlaceCodes();
         $admin = User::factory()->create(['role' => 'super_admin']);
-        $dhaka = PlaceCode::query()->where('code', 'MNHC-101')->firstOrFail();
-        PlaceCode::factory()->district($dhaka)->create(['code' => 'MNHC-201', 'name' => 'Dhaka']);
+        $dhaka = PlaceCode::query()->where('code', 'MNHC101')->firstOrFail();
+        PlaceCode::factory()->district($dhaka)->create(['code' => 'MNHC201', 'name' => 'Dhaka']);
 
         $this->actingAs($admin)->onPortal('sadmin')->from('/place-codes?level=division')
             ->delete('/commands/place-codes/'.$dhaka->id, [
@@ -181,7 +192,7 @@ class PlaceCodePlaceholderAndDeleteTest extends TestCase
             ->assertRedirect('/place-codes?level=division')
             ->assertSessionHasErrors('place');
 
-        $this->assertDatabaseHas('place_codes', ['id' => $dhaka->id, 'code' => 'MNHC-101']);
+        $this->assertDatabaseHas('place_codes', ['id' => $dhaka->id, 'code' => 'MNHC101']);
     }
 
     public function test_placeholder_place_cannot_be_used_for_area_assignment(): void

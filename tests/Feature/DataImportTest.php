@@ -59,7 +59,7 @@ class DataImportTest extends TestCase
         $sponsor = User::factory()->dealer()->create(['dealer_code' => 'SPONSOR']);
         $response = $this->actingAs($admin)->postJson('/api/v1/operations/imports/preview', [
             'type' => 'partners', 'source_reference' => 'Approved partner register', 'file' => $this->workbook('partners', [
-                ['D-101', 'নতুন ডিলার', 'new@example.test', '01700000001', 'dealer', 'SPONSOR', 'MNHC-102'],
+                ['D-101', 'নতুন ডিলার', 'new@example.test', '01700000001', 'dealer', 'SPONSOR', 'MNHC102'],
             ]),
         ])->assertCreated();
         $id = $response->json('data.id');
@@ -68,9 +68,9 @@ class DataImportTest extends TestCase
         $partner = User::where('dealer_code', 'D-101')->firstOrFail();
         $this->assertSame($sponsor->id, $partner->sponsor_id);
         $this->assertFalse($partner->directory_visible);
-        $this->assertSame('MNHC-102', $partner->profile['place_code'] ?? null);
+        $this->assertSame('MNHC102', $partner->profile['place_code'] ?? null);
         $this->assertSame('Rangpur', $partner->division);
-        $rangpur = PlaceCode::query()->where('code', 'MNHC-102')->firstOrFail();
+        $rangpur = PlaceCode::query()->where('code', 'MNHC102')->firstOrFail();
         $this->assertTrue(AreaDealerAssignment::query()->where('user_id', $partner->id)->where('place_code_id', $rangpur->id)->where('is_active', true)->exists());
         $this->assertDatabaseHas('referral_tree_paths', ['ancestor_id' => $sponsor->id, 'descendant_id' => $partner->id, 'depth' => 1]);
         $this->assertDatabaseHas('users', ['id' => $sponsor->id, 'dealer_code' => 'SPONSOR']);
@@ -173,8 +173,8 @@ class DataImportTest extends TestCase
         Storage::fake('local');
         $admin = User::factory()->staff()->create();
         $id = app(OpeningBalanceImport::class)->preview($admin, 'partners', $this->workbook('partners', [
-            ['D-DUP', 'First dealer', 'first@example.test', '01700000001', 'dealer', '', 'MNHC-101'],
-            ['D-DUP', 'Second dealer', 'second@example.test', '01700000002', 'dealer', '', 'MNHC-102'],
+            ['D-DUP', 'First dealer', 'first@example.test', '01700000001', 'dealer', '', 'MNHC101'],
+            ['D-DUP', 'Second dealer', 'second@example.test', '01700000002', 'dealer', '', 'MNHC102'],
         ]), 'Duplicate source register');
         $this->assertDatabaseHas('data_import_batches', ['id' => $id, 'status' => 'invalid']);
         $this->actingAs($admin)->postJson('/api/v1/operations/imports/'.$id.'/apply', ['reason' => 'Attempt invalid import', 'confirmed' => true])->assertUnprocessable();
@@ -185,10 +185,10 @@ class DataImportTest extends TestCase
     {
         Storage::fake('local');
         $admin = User::factory()->staff()->create();
-        $file = $this->workbook('partners', [[new FormulaCell('=HYPERLINK("https://example.test")'), 'Unsafe dealer', 'new@example.test', '01700000001', 'dealer', '', 'MNHC-101']]);
+        $file = $this->workbook('partners', [[new FormulaCell('=HYPERLINK("https://example.test")'), 'Unsafe dealer', 'new@example.test', '01700000001', 'dealer', '', 'MNHC101']]);
         $this->actingAs($admin)->postJson('/api/v1/operations/imports/preview', ['type' => 'partners', 'source_reference' => 'Formula source', 'file' => $file])->assertUnprocessable()->assertJsonValidationErrors('file');
         $id = app(OpeningBalanceImport::class)->preview($admin, 'partners', $this->workbook('partners', [
-            ['D-SAFE', 'Safe dealer', 'safe@example.test', '01700000002', 'dealer', '', 'MNHC-101'],
+            ['D-SAFE', 'Safe dealer', 'safe@example.test', '01700000002', 'dealer', '', 'MNHC101'],
         ]), 'Approved source register');
         Storage::disk('local')->put(DB::table('data_import_batches')->where('id', $id)->value('file_path'), 'changed');
         $this->postJson('/api/v1/operations/imports/'.$id.'/apply', ['reason' => 'Apply changed workbook', 'confirmed' => true])->assertUnprocessable();
@@ -217,7 +217,7 @@ class DataImportTest extends TestCase
         $admin = User::factory()->staff()->create();
         $imports = app(OpeningBalanceImport::class);
         $id = $imports->preview($admin, 'partners', $this->workbook('partners', [
-            ['D-QUEUE', 'Queued partner', 'queued@example.test', '01700000005', 'dealer', '', 'MNHC-101'],
+            ['D-QUEUE', 'Queued partner', 'queued@example.test', '01700000005', 'dealer', '', 'MNHC101'],
         ]), 'Approved source register');
         $this->actingAs($admin)->postJson('/api/v1/operations/imports/'.$id.'/apply', ['reason' => 'Background import review', 'confirmed' => true])->assertAccepted();
         $this->postJson('/api/v1/operations/imports/'.$id.'/apply', ['reason' => 'Repeated request', 'confirmed' => true])->assertAccepted();
@@ -234,8 +234,8 @@ class DataImportTest extends TestCase
         Storage::fake('local');
         $admin = User::factory()->staff()->create();
         $id = app(OpeningBalanceImport::class)->preview($admin, 'partners', $this->workbook('partners', [
-            ['D-FIRST', 'First partner', 'first@example.test', '01700000006', 'dealer', '', 'MNHC-101'],
-            ['D-SECOND', 'Second partner', 'second@example.test', '01700000007', 'dealer', '', 'MNHC-102'],
+            ['D-FIRST', 'First partner', 'first@example.test', '01700000006', 'dealer', '', 'MNHC101'],
+            ['D-SECOND', 'Second partner', 'second@example.test', '01700000007', 'dealer', '', 'MNHC102'],
         ]), 'Approved source register');
         User::factory()->dealer()->create(['dealer_code' => 'D-SECOND']);
         $this->actingAs($admin)->postJson('/api/v1/operations/imports/'.$id.'/apply', ['reason' => 'Data changed since preview', 'confirmed' => true])->assertUnprocessable();
@@ -250,7 +250,7 @@ class DataImportTest extends TestCase
         $admin = User::factory()->staff()->create();
         $imports = app(OpeningBalanceImport::class);
         $id = $imports->preview($admin, 'partners', $this->workbook('partners', [
-            ['D-ATOMIC', 'Atomic partner', 'atomic@example.test', '01700000008', 'dealer', '', 'MNHC-101'],
+            ['D-ATOMIC', 'Atomic partner', 'atomic@example.test', '01700000008', 'dealer', '', 'MNHC101'],
         ]), 'Approved source register');
         DB::beginTransaction();
         try {

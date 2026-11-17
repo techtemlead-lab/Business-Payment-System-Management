@@ -144,7 +144,7 @@ class PartnerAgeLimitTest extends TestCase
             'name_bn' => 'তরুণ ডিলার',
             'father_name' => 'Father',
             'mother_name' => 'Mother',
-            'place_code' => 'MNHC-101',
+            'place_code' => 'MNHC101',
             'phone' => '01710000888',
             'email' => 'young-dealer@example.com',
             'reason' => 'New dealer for the division',

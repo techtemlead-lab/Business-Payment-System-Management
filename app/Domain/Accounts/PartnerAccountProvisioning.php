@@ -118,7 +118,7 @@ final class PartnerAccountProvisioning
                 throw ValidationException::withMessages(['place_code' => __('portal.acct_val_place_taken')]);
             }
             $dealerCode = PlaceCode::brandSerial(trim((string) ($input['dealer_code'] ?? ''))) ?: $place->code;
-            if (User::query()->where('dealer_code', $dealerCode)->whereNull('closed_at')->exists()) {
+            if (User::query()->whereIn(DB::raw('UPPER(dealer_code)'), PlaceCode::serialForms($dealerCode))->whereNull('closed_at')->exists()) {
                 throw ValidationException::withMessages(['dealer_code' => __('portal.acct_val_dealer_code_taken')]);
             }
         } else {
@@ -297,7 +297,7 @@ final class PartnerAccountProvisioning
         if (AreaDealerAssignment::query()->where('place_code_id', $place->id)->where('is_active', true)->exists()) {
             throw ValidationException::withMessages(['place_code' => __('portal.acct_val_place_taken')]);
         }
-        if (User::query()->where('dealer_code', $place->code)->whereNull('closed_at')->exists() || $this->referCodeInUse($place->code, openAccountsOnly: true)) {
+        if (User::query()->whereIn(DB::raw('UPPER(dealer_code)'), PlaceCode::serialForms($place->code))->whereNull('closed_at')->exists() || $this->referCodeInUse($place->code, openAccountsOnly: true)) {
             throw ValidationException::withMessages(['place_code' => __('portal.acct_val_dealer_code_taken')]);
         }
         $this->claimCodes($actor, [$place->code]);
@@ -314,7 +314,8 @@ final class PartnerAccountProvisioning
      */
     private function claimCodes(User $actor, array $codes): void
     {
-        $wanted = array_values(array_unique(array_map(fn (string $code): string => strtoupper(trim($code)), $codes)));
+        // Every spelling, so a closed account still holding the older MNHC-… form gives it up too.
+        $wanted = array_values(array_unique(array_merge([], ...array_map(PlaceCode::serialForms(...), array_values($codes)))));
         $closedHolders = User::query()
             ->whereNotNull('closed_at')
             ->where(fn ($query) => $query->whereIn(DB::raw('UPPER(dealer_code)'), $wanted)->orWhereIn(DB::raw('UPPER(refer_code)'), $wanted))
@@ -406,10 +407,11 @@ final class PartnerAccountProvisioning
      */
     private function assertCodeIsFree(User $dealer, string $code, string $field): void
     {
+        $forms = PlaceCode::serialForms($code);
         $inUse = User::query()
             ->whereKeyNot($dealer->id)
             ->whereNull('closed_at')
-            ->where(fn ($query) => $query->whereRaw('UPPER(dealer_code) = ?', [strtoupper($code)])->orWhereRaw('UPPER(refer_code) = ?', [strtoupper($code)]))
+            ->where(fn ($query) => $query->whereIn(DB::raw('UPPER(dealer_code)'), $forms)->orWhereIn(DB::raw('UPPER(refer_code)'), $forms))
             ->exists();
         if ($inUse) {
             throw ValidationException::withMessages([$field => __('portal.acct_val_dealer_code_taken')]);
@@ -528,12 +530,12 @@ final class PartnerAccountProvisioning
 
     /**
      * The active dealer or sub-dealer a typed reference code belongs to. People may type their
-     * refer code or dealer code, with or without the MNHC- prefix, or a code a dealer
-     * had before moving.
+     * refer code or dealer code, with or without the MNHC prefix, in the older MNHC-… spelling,
+     * or a code a dealer had before moving.
      */
     public function findSponsor(string $reference): ?User
     {
-        $forms = $this->codeForms($reference);
+        $forms = PlaceCode::serialForms($reference);
 
         return User::query()
             ->where(function ($query) use ($forms): void {
@@ -547,36 +549,21 @@ final class PartnerAccountProvisioning
     }
 
     /**
-     * True when an account already uses this refer code, with or without the MNHC- prefix.
+     * True when an account already uses this refer code in any spelling (MNHC100, MNHC-100, 100).
      * A closed account's code can be given to someone else, so it may be left out.
      */
     public function referCodeInUse(string $code, bool $openAccountsOnly = false): bool
     {
         return User::query()
-            ->whereIn(DB::raw('UPPER(refer_code)'), $this->codeForms($code))
+            ->whereIn(DB::raw('UPPER(refer_code)'), PlaceCode::serialForms($code))
             ->when($openAccountsOnly, fn ($query) => $query->whereNull('closed_at'))
             ->exists();
     }
 
-    /** True when two typed codes are the same code, with or without the MNHC- prefix. */
+    /** True when two typed codes are the same code in any spelling (MNHC100, MNHC-100, 100). */
     public function isSameCode(string $first, string $second): bool
     {
         return PlaceCode::brandSerial($first) === PlaceCode::brandSerial($second);
-    }
-
-    /**
-     * A typed code as written, with the MNHC- prefix, and without it.
-     *
-     * @return list<string>
-     */
-    private function codeForms(string $code): array
-    {
-        $typed = strtoupper(trim($code));
-        $branded = PlaceCode::brandSerial($typed) ?? $typed;
-        $prefix = PlaceCode::BrandPrefix.'-';
-        $bare = str_starts_with($branded, $prefix) ? substr($branded, strlen($prefix)) : $branded;
-
-        return array_values(array_unique([$typed, $branded, $bare]));
     }
 
     public function placeLabel(PlaceCode $place): string
@@ -869,25 +856,35 @@ final class PartnerAccountProvisioning
         ];
     }
 
+    /**
+     * The next sub-dealer serial in a union: the union code, one hyphen, six digits,
+     * e.g. MNHC100001-000001. Serials saved in the older MNHC-100001-000001 or bare
+     * 100001-000001 spelling still count, so numbering never restarts.
+     */
     public function nextSubDealerCode(string $unionCode): string
     {
-        $brandedUnion = PlaceCode::normalizeCode($unionCode) ?? PlaceCode::brandSerial($unionCode) ?? $unionCode;
-        $prefix = rtrim((string) $brandedUnion, '-').'-';
-        $legacyPrefix = (PlaceCode::normalizeCode($unionCode) ? substr((string) PlaceCode::normalizeCode($unionCode), strlen(PlaceCode::BrandPrefix) + 1) : $unionCode).'-';
+        $digits = PlaceCode::codeDigits($unionCode);
+        if ($digits === null) {
+            $prefix = rtrim(strtoupper(trim($unionCode)), '-').'-';
+            $prefixes = [$prefix];
+            $serialPattern = '^'.preg_quote($prefix).'[0-9]{6}$';
+        } else {
+            $prefix = PlaceCode::BrandPrefix.$digits.'-';
+            $prefixes = array_map(fn (string $form): string => $form.'-', PlaceCode::storedCodeForms($digits));
+            $serialPattern = '^('.PlaceCode::BrandPrefix.'-?)?'.$digits.'-[0-9]{6}$';
+        }
         $latest = User::query()
             ->where('role', 'sub_dealer')
-            ->where(function ($q) use ($prefix, $legacyPrefix): void {
-                $q->where('dealer_code', 'like', $prefix.'%')
-                    ->orWhere('dealer_code', 'like', $legacyPrefix.'%');
+            ->where(function ($q) use ($prefixes): void {
+                foreach ($prefixes as $form) {
+                    $q->orWhere('dealer_code', 'like', $form.'%');
+                }
             })
-            // Only regular serials count; an imported code in another shape would sort last and restart the count.
-            ->whereRaw('dealer_code ~ ?', ['-[0-9]{6}$'])
-            ->orderByDesc('dealer_code')
+            // Only regular serials count; an imported code in another shape would restart the count.
+            ->whereRaw('dealer_code ~ ?', [$serialPattern])
+            ->orderByRaw('RIGHT(dealer_code, 6) DESC')
             ->value('dealer_code');
-        $next = 1;
-        if (is_string($latest) && preg_match('/(?:^'.preg_quote($prefix, '/').'|^'.preg_quote($legacyPrefix, '/').')(\d{6})$/', $latest, $matches)) {
-            $next = ((int) $matches[1]) + 1;
-        }
+        $next = is_string($latest) ? ((int) substr($latest, -6)) + 1 : 1;
 
         return $prefix.str_pad((string) $next, 6, '0', STR_PAD_LEFT);
     }

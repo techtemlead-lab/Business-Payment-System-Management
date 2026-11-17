@@ -196,16 +196,16 @@ final class PlaceGeographyResolver
             }
         }
 
-        /** @var array<int, array{0: string, 1: string}> $profileCodes */
+        /** @var array<int, list<string>> $profileCodes Each buyer's code in every stored spelling, current form first */
         $profileCodes = [];
         foreach ($buyers as $buyer) {
             if (isset($anchors[(int) $buyer->id])) {
                 continue;
             }
             $profileCode = trim((string) ($buyer->profile['place_code'] ?? $buyer->profile['area_code'] ?? ''));
-            $normalized = $profileCode !== '' ? PlaceCode::normalizeCode($profileCode) : null;
-            if ($normalized !== null) {
-                $profileCodes[(int) $buyer->id] = [$normalized, substr($normalized, strlen(PlaceCode::BrandPrefix) + 1)];
+            $forms = $profileCode !== '' ? PlaceCode::storedCodeForms($profileCode) : [];
+            if ($forms !== []) {
+                $profileCodes[(int) $buyer->id] = $forms;
             }
         }
         if ($profileCodes === []) {
@@ -217,8 +217,11 @@ final class PlaceGeographyResolver
             ->orderBy('id')
             ->get()
             ->groupBy('code');
-        foreach ($profileCodes as $userId => [$normalized, $legacy]) {
-            $place = $placesByCode->get($normalized)?->first() ?? $placesByCode->get($legacy)?->first();
+        foreach ($profileCodes as $userId => $forms) {
+            $place = null;
+            foreach ($forms as $form) {
+                $place ??= $placesByCode->get($form)?->first();
+            }
             if ($place && $place->level !== PlaceCode::LevelManagement) {
                 $anchors[$userId] = $place;
             }

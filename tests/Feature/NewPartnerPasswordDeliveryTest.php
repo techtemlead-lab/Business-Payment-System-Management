@@ -117,7 +117,7 @@ class NewPartnerPasswordDeliveryTest extends TestCase
             'name_bn' => 'মোঃ পার্টনার',
             'father_name' => 'Father',
             'mother_name' => 'Mother',
-            'place_code' => 'MNHC-102',
+            'place_code' => 'MNHC102',
             'refer_code' => 'REF-DELIVERY',
             'phone' => '01712345678',
             'email' => 'partner@example.com',
@@ -128,6 +128,6 @@ class NewPartnerPasswordDeliveryTest extends TestCase
     /** @return array{role: string, code: string, phone: string, email: string} */
     private function flashValues(): array
     {
-        return ['role' => __('portal.acct_role_dealer'), 'code' => 'MNHC-102', 'phone' => '01712345678', 'email' => 'partner@example.com'];
+        return ['role' => __('portal.acct_role_dealer'), 'code' => 'MNHC102', 'phone' => '01712345678', 'email' => 'partner@example.com'];
     }
 }

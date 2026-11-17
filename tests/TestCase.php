@@ -174,7 +174,7 @@ abstract class TestCase extends BaseTestCase
     {
         $management = PlaceCode::query()->create([
             'level' => PlaceCode::LevelManagement,
-            'code' => 'MNHC-100',
+            'code' => 'MNHC100',
             'name' => 'Management',
             'parent_id' => null,
             'sort_order' => 0,
@@ -182,14 +182,14 @@ abstract class TestCase extends BaseTestCase
         ]);
 
         $divisions = [
-            1 => ['code' => 'MNHC-101', 'name' => 'Dhaka'],
-            2 => ['code' => 'MNHC-102', 'name' => 'Rangpur'],
-            3 => ['code' => 'MNHC-103', 'name' => 'Chattogram'],
-            4 => ['code' => 'MNHC-104', 'name' => 'Rajshahi'],
-            5 => ['code' => 'MNHC-105', 'name' => 'Khulna'],
-            6 => ['code' => 'MNHC-106', 'name' => 'Barishal'],
-            7 => ['code' => 'MNHC-107', 'name' => 'Sylhet'],
-            8 => ['code' => 'MNHC-108', 'name' => 'Mymensingh'],
+            1 => ['code' => 'MNHC101', 'name' => 'Dhaka'],
+            2 => ['code' => 'MNHC102', 'name' => 'Rangpur'],
+            3 => ['code' => 'MNHC103', 'name' => 'Chattogram'],
+            4 => ['code' => 'MNHC104', 'name' => 'Rajshahi'],
+            5 => ['code' => 'MNHC105', 'name' => 'Khulna'],
+            6 => ['code' => 'MNHC106', 'name' => 'Barishal'],
+            7 => ['code' => 'MNHC107', 'name' => 'Sylhet'],
+            8 => ['code' => 'MNHC108', 'name' => 'Mymensingh'],
         ];
 
         foreach ($divisions as $sortOrder => $meta) {

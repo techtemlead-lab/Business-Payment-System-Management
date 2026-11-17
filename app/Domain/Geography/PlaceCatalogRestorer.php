@@ -58,12 +58,9 @@ final class PlaceCatalogRestorer
                 }
                 $codedIds[$id] = true;
                 $byCode[$row->code] = $id;
-                $normalized = PlaceCode::normalizeCode($row->code);
-                if ($normalized === null) {
-                    continue;
+                foreach (PlaceCode::storedCodeForms($row->code) as $form) {
+                    $byCode[$form] = $id;
                 }
-                $byCode[$normalized] = $id;
-                $byCode[substr($normalized, strlen(PlaceCode::BrandPrefix) + 1)] = $id;
             }
             foreach ($byStructure as &$ids) {
                 sort($ids, SORT_NUMERIC);
@@ -132,13 +129,7 @@ final class PlaceCatalogRestorer
      */
     private function claimByCode(string $source, array $byCode, array $used): ?int
     {
-        $keys = [$source];
-        $normalized = PlaceCode::normalizeCode($source);
-        if ($normalized !== null) {
-            $keys[] = $normalized;
-            $keys[] = substr($normalized, strlen(PlaceCode::BrandPrefix) + 1);
-        }
-        foreach ($keys as $key) {
+        foreach ([$source, ...PlaceCode::storedCodeForms($source)] as $key) {
             $id = $byCode[$key] ?? null;
             if ($id !== null && ! isset($used[$id])) {
                 return $id;

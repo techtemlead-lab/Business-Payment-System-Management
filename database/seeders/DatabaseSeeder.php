@@ -18,12 +18,9 @@ class DatabaseSeeder extends Seeder
             CommissionRuleSeeder::class,
             // Starter training lessons, saved as drafts until staff publish them.
             TrainingItemSeeder::class,
-            // Place codes are never seeded by default — admins create Management,
-            // divisions, and all lower levels in the Place codes panel.
-            // Optional full Bangladesh registry:
-            // php artisan db:seed --class=BangladeshPlaceCodeSeeder
+            // The default Bangladesh place list with its default codes; admins can change any of it in the Place codes panel.
+            PlaceCodeSeeder::class,
         ]);
         $this->command?->info('No default accounts are seeded. Use madina:admin to create an administrator, or madina:demo for a local synthetic preview.');
-        $this->command?->info('Place codes start empty. Admins create them in the Place codes panel, or optionally: php artisan db:seed --class=BangladeshPlaceCodeSeeder');
     }
 }

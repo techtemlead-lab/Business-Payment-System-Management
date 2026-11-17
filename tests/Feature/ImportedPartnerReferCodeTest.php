@@ -35,7 +35,7 @@ class ImportedPartnerReferCodeTest extends TestCase
         $admin = User::factory()->staff()->create();
         $imports = app(OpeningBalanceImport::class);
         $id = $imports->preview($admin, 'partners', $this->workbook([
-            ['D-101', 'Imported dealer', 'imported@example.test', '01700000001', 'dealer', '', 'MNHC-102'],
+            ['D-101', 'Imported dealer', 'imported@example.test', '01700000001', 'dealer', '', 'MNHC102'],
         ]), 'Approved partner register');
         $imports->apply($admin, $id, 'Checked against the register');
 
@@ -50,7 +50,7 @@ class ImportedPartnerReferCodeTest extends TestCase
         User::factory()->dealer()->create(['refer_code' => 'D-101']);
 
         $id = app(OpeningBalanceImport::class)->preview($admin, 'partners', $this->workbook([
-            ['D-101', 'Imported dealer', 'imported@example.test', '01700000001', 'dealer', '', 'MNHC-102'],
+            ['D-101', 'Imported dealer', 'imported@example.test', '01700000001', 'dealer', '', 'MNHC102'],
         ]), 'Approved partner register');
 
         $this->assertDatabaseHas('data_import_batches', ['id' => $id, 'status' => 'invalid']);

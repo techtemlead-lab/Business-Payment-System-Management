@@ -5,6 +5,7 @@ namespace App\Domain\Accounts;
 use App\Domain\Geography\PlaceTree;
 use App\Models\PlaceCode;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Answers the public "is this a real dealer?" question. Only the fields below ever
@@ -32,15 +33,17 @@ final class DealerVerification
             return null;
         }
 
+        // Cards printed before the hyphen was dropped (MNHC-100001-000001) still verify.
+        $forms = PlaceCode::serialForms($normalized);
         $partner = User::query()
             ->whereIn('role', ['dealer', 'sub_dealer'])
-            ->where(function ($query) use ($normalized): void {
-                $query->whereRaw('UPPER(dealer_code) = ?', [$normalized])
-                    ->orWhereRaw('UPPER(refer_code) = ?', [$normalized]);
+            ->where(function ($query) use ($forms): void {
+                $query->whereIn(DB::raw('UPPER(dealer_code)'), $forms)
+                    ->orWhereIn(DB::raw('UPPER(refer_code)'), $forms);
             })
-            ->orderByRaw('CASE WHEN UPPER(dealer_code) = ? THEN 0 ELSE 1 END', [$normalized])
+            ->orderByRaw('CASE WHEN UPPER(dealer_code) IN ('.implode(', ', array_fill(0, count($forms), '?')).') THEN 0 ELSE 1 END', $forms)
             ->orderBy('id')
-            ->first(['id', 'name', 'role', 'status', 'profile']) ?? app(PartnerFormerCodes::class)->holder([$normalized]);
+            ->first(['id', 'name', 'role', 'status', 'profile']) ?? app(PartnerFormerCodes::class)->holder($forms);
 
         if (! $partner instanceof User) {
             return null;
@@ -70,6 +73,8 @@ final class DealerVerification
 
         $code = trim((string) ($profile['place_code'] ?? ''));
 
-        return $code !== '' ? PlaceCode::query()->where('code', $code)->first(['id', 'code', 'name']) : null;
+        $forms = PlaceCode::storedCodeForms($code);
+
+        return $forms !== [] ? PlaceCode::query()->whereIn('code', $forms)->orderBy('id')->first(['id', 'code', 'name']) : null;
     }
 }

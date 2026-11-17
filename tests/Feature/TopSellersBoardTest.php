@@ -29,7 +29,7 @@ class TopSellersBoardTest extends TestCase
 
     public function test_a_confirmed_order_counts_for_nothing_until_it_is_delivered(): void
     {
-        $rahim = $this->dealer('Rahim', 'MNHC-101', 'Dhaka', 'Gazipur');
+        $rahim = $this->dealer('Rahim', 'MNHC101', 'Dhaka', 'Gazipur');
         foreach (['approved', 'partially_dispatched', 'dispatched'] as $status) {
             $this->order($rahim, $status, '5000.00');
         }
@@ -50,8 +50,8 @@ class TopSellersBoardTest extends TestCase
 
     public function test_a_partly_delivered_order_counts_only_its_delivered_part(): void
     {
-        $rahim = $this->dealer('Rahim', 'MNHC-101', 'Dhaka', 'Gazipur');
-        $karim = $this->dealer('Karim', 'MNHC-102', 'Dhaka', 'Gazipur');
+        $rahim = $this->dealer('Rahim', 'MNHC101', 'Dhaka', 'Gazipur');
+        $karim = $this->dealer('Karim', 'MNHC102', 'Dhaka', 'Gazipur');
         $this->partlyDeliveredOrder($rahim, deliveredUnits: 3, returnedUnits: 7, unitPrice: '100.00');
         $this->order($karim, 'delivered', '200.00');
 
@@ -65,9 +65,9 @@ class TopSellersBoardTest extends TestCase
 
     public function test_dealers_are_ranked_by_their_own_delivered_purchases_in_the_dhaka_month(): void
     {
-        $rahim = $this->dealer('Rahim', 'MNHC-101', 'Dhaka', 'Gazipur');
-        $karim = $this->dealer('Karim', 'MNHC-102', 'Dhaka', null);
-        $suspended = $this->dealer('Suspended Seller', 'MNHC-103', 'Dhaka', 'Dhaka');
+        $rahim = $this->dealer('Rahim', 'MNHC101', 'Dhaka', 'Gazipur');
+        $karim = $this->dealer('Karim', 'MNHC102', 'Dhaka', null);
+        $suspended = $this->dealer('Suspended Seller', 'MNHC103', 'Dhaka', 'Dhaka');
         $suspended->forceFill(['status' => 'suspended'])->save();
         $subDealer = User::factory()->subDealer()->inPlace($this->place('Dhaka', null))->create(['sponsor_id' => $rahim->id, 'directory_visible' => true]);
 
@@ -88,8 +88,8 @@ class TopSellersBoardTest extends TestCase
         $this->assertSame('2026-11', $board['month']);
         $this->assertSame(['2026-11', '2026-10', '2026-09'], $board['months']);
         $this->assertSame([
-            ['rank' => 1, 'name' => 'Rahim', 'dealer_code' => 'MNHC-101', 'place' => 'Gazipur', 'amount' => '800.00', 'percent' => 100.0, 'is_me' => true],
-            ['rank' => 2, 'name' => 'Karim', 'dealer_code' => 'MNHC-102', 'place' => 'Dhaka', 'amount' => '700.00', 'percent' => 87.5, 'is_me' => false],
+            ['rank' => 1, 'name' => 'Rahim', 'dealer_code' => 'MNHC101', 'place' => 'Gazipur', 'amount' => '800.00', 'percent' => 100.0, 'is_me' => true],
+            ['rank' => 2, 'name' => 'Karim', 'dealer_code' => 'MNHC102', 'place' => 'Dhaka', 'amount' => '700.00', 'percent' => 87.5, 'is_me' => false],
         ], $board['national']);
         $this->assertSame(1, $board['me']['national_rank']);
         $this->assertTrue($board['me']['in_top']);
@@ -101,7 +101,7 @@ class TopSellersBoardTest extends TestCase
 
     public function test_only_this_month_and_the_last_two_closed_months_can_be_picked(): void
     {
-        $rahim = $this->dealer('Rahim', 'MNHC-101', 'Dhaka', null);
+        $rahim = $this->dealer('Rahim', 'MNHC101', 'Dhaka', null);
         $this->order($rahim, 'delivered', '100.00', '2026-08-10 10:00:00');
 
         $board = app(TopSellersBoard::class)->forPartner($rahim, '2026-08');
@@ -112,10 +112,10 @@ class TopSellersBoardTest extends TestCase
 
     public function test_division_board_ranks_inside_the_viewers_division_and_ties_share_a_place(): void
     {
-        $dhakaOne = $this->dealer('Anis', 'MNHC-201', 'Dhaka', 'Narsingdi');
-        $dhakaTwo = $this->dealer('Babul', 'MNHC-202', 'Dhaka', 'Tangail');
-        $dhakaThree = $this->dealer('Chandan', 'MNHC-203', 'Dhaka', 'Faridpur');
-        $rajshahi = $this->dealer('Dipu', 'MNHC-301', 'Rajshahi', 'Bogura');
+        $dhakaOne = $this->dealer('Anis', 'MNHC201', 'Dhaka', 'Narsingdi');
+        $dhakaTwo = $this->dealer('Babul', 'MNHC202', 'Dhaka', 'Tangail');
+        $dhakaThree = $this->dealer('Chandan', 'MNHC203', 'Dhaka', 'Faridpur');
+        $rajshahi = $this->dealer('Dipu', 'MNHC301', 'Rajshahi', 'Bogura');
         $this->order($dhakaOne, 'delivered', '400.00');
         $this->order($dhakaTwo, 'delivered', '400.00');
         $this->order($dhakaThree, 'delivered', '100.00');
@@ -138,11 +138,11 @@ class TopSellersBoardTest extends TestCase
 
     public function test_the_division_board_groups_by_division_place_code_not_by_name(): void
     {
-        $viewer = $this->dealer('Anis', 'MNHC-801', 'Dhaka', 'Gazipur');
-        $sameDivision = $this->dealer('Babul', 'MNHC-802', 'Dhaka', 'Tangail');
+        $viewer = $this->dealer('Anis', 'MNHC801', 'Dhaka', 'Gazipur');
+        $sameDivision = $this->dealer('Babul', 'MNHC802', 'Dhaka', 'Tangail');
         $otherDhaka = User::factory()->dealer()->inPlace(PlaceCode::factory()->division()->create(['name' => 'Dhaka']))
-            ->create(['name' => 'Other Dhaka', 'dealer_code' => 'MNHC-803']);
-        $namesOnly = User::factory()->dealer()->create(['name' => 'Names Only', 'dealer_code' => 'MNHC-804', 'division' => 'Dhaka', 'district' => 'Gazipur']);
+            ->create(['name' => 'Other Dhaka', 'dealer_code' => 'MNHC803']);
+        $namesOnly = User::factory()->dealer()->create(['name' => 'Names Only', 'dealer_code' => 'MNHC804', 'division' => 'Dhaka', 'district' => 'Gazipur']);
         foreach ([$viewer, $sameDivision, $otherDhaka, $namesOnly] as $dealer) {
             $this->order($dealer, 'delivered', '100.00');
         }
@@ -161,10 +161,10 @@ class TopSellersBoardTest extends TestCase
     public function test_viewer_outside_the_top_ten_sees_their_own_place(): void
     {
         foreach (range(1, 22) as $index) {
-            $dealer = $this->dealer('Dealer '.str_pad((string) $index, 2, '0', STR_PAD_LEFT), 'MNHC-4'.str_pad((string) $index, 2, '0', STR_PAD_LEFT), 'Khulna', 'Jashore');
+            $dealer = $this->dealer('Dealer '.str_pad((string) $index, 2, '0', STR_PAD_LEFT), 'MNHC4'.str_pad((string) $index, 2, '0', STR_PAD_LEFT), 'Khulna', 'Jashore');
             $this->order($dealer, 'delivered', (string) (5000 - $index * 10).'.00');
         }
-        $viewer = $this->dealer('Rahim', 'MNHC-500', 'Khulna', 'Jashore');
+        $viewer = $this->dealer('Rahim', 'MNHC500', 'Khulna', 'Jashore');
         $this->order($viewer, 'delivered', '100.00');
 
         DB::flushQueryLog();
@@ -185,8 +185,8 @@ class TopSellersBoardTest extends TestCase
 
     public function test_dealers_left_out_of_the_public_directory_still_appear_on_the_board(): void
     {
-        $unlisted = $this->dealer('Unlisted Leader', 'MNHC-601', 'Sylhet', 'Sylhet', visible: false);
-        $listed = $this->dealer('Listed Second', 'MNHC-602', 'Sylhet', 'Moulvibazar');
+        $unlisted = $this->dealer('Unlisted Leader', 'MNHC601', 'Sylhet', 'Sylhet', visible: false);
+        $listed = $this->dealer('Listed Second', 'MNHC602', 'Sylhet', 'Moulvibazar');
         $this->order($unlisted, 'delivered', '1000.00');
         $this->order($listed, 'delivered', '500.00');
 
@@ -206,8 +206,8 @@ class TopSellersBoardTest extends TestCase
 
     public function test_sub_dealers_see_the_dealer_board_for_their_division(): void
     {
-        $dhaka = $this->dealer('Rahim', 'MNHC-101', 'Dhaka', 'Gazipur');
-        $rangpur = $this->dealer('Selim', 'MNHC-701', 'Rangpur', 'Dinajpur');
+        $dhaka = $this->dealer('Rahim', 'MNHC101', 'Dhaka', 'Gazipur');
+        $rangpur = $this->dealer('Selim', 'MNHC701', 'Rangpur', 'Dinajpur');
         $this->order($dhaka, 'delivered', '300.00');
         $this->order($rangpur, 'delivered', '800.00');
         $subDealer = User::factory()->subDealer()->inPlace($this->place('Dhaka', null))->create(['sponsor_id' => $dhaka->id]);
@@ -227,7 +227,7 @@ class TopSellersBoardTest extends TestCase
 
     public function test_owner_switches_hide_the_amounts_or_the_whole_board(): void
     {
-        $rahim = $this->dealer('Rahim', 'MNHC-101', 'Dhaka', 'Gazipur');
+        $rahim = $this->dealer('Rahim', 'MNHC101', 'Dhaka', 'Gazipur');
         $this->order($rahim, 'delivered', '800.00');
         $owner = User::factory()->staff()->create();
 
@@ -270,7 +270,7 @@ class TopSellersBoardTest extends TestCase
 
     public function test_the_board_never_carries_earnings_or_commission(): void
     {
-        $rahim = $this->dealer('Rahim', 'MNHC-101', 'Dhaka', 'Gazipur');
+        $rahim = $this->dealer('Rahim', 'MNHC101', 'Dhaka', 'Gazipur');
         $this->order($rahim, 'delivered', '800.00');
 
         $response = $this->actingAs($rahim)->onPortal('dealer')->get('/top-sellers')->assertOk();
@@ -287,7 +287,7 @@ class TopSellersBoardTest extends TestCase
 
     public function test_office_staff_see_the_board_under_reports(): void
     {
-        $rahim = $this->dealer('Rahim', 'MNHC-101', 'Dhaka', 'Gazipur');
+        $rahim = $this->dealer('Rahim', 'MNHC101', 'Dhaka', 'Gazipur');
         $this->order($rahim, 'delivered', '800.00');
         $reports = User::factory()->staff('employee')->create(['profile' => ['permissions' => ['reports']]]);
         $inventory = User::factory()->staff('employee')->create(['profile' => ['permissions' => ['inventory']]]);

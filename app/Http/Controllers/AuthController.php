@@ -10,6 +10,7 @@ use App\Domain\Auth\TotpAuthenticator;
 use App\Domain\Security\OwnerConfirmation;
 use App\Domain\Security\SecuritySettings;
 use App\Http\Middleware\RequireAuthenticatorSetup;
+use App\Models\PlaceCode;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\PhoneIdentity;
@@ -261,8 +262,9 @@ class AuthController extends Controller
         } elseif ($phone) {
             $query->whereNotNull('phone')->whereRaw("phone ~ '^[0-9[:space:]()+.-]+$'")->whereRaw('('.PhoneIdentity::SQL.') = ?', [$phone]);
         } else {
-            // Partner ID-card / dealer codes (e.g. MNHC-1001, MNHC-100001-000001).
-            $query->whereNotNull('dealer_code')->whereRaw('UPPER(dealer_code) = ?', [Str::upper($identity)]);
+            // Partner ID-card / dealer codes (e.g. MNHC1001, MNHC100001-000001). Cards printed
+            // before the hyphen was dropped (MNHC-100001-000001) still sign in.
+            $query->whereNotNull('dealer_code')->whereIn(DB::raw('UPPER(dealer_code)'), PlaceCode::serialForms($identity));
         }
         // Shared phone contacts must never select an arbitrary account. Email
         // remains available if more than one active identity matches a phone.

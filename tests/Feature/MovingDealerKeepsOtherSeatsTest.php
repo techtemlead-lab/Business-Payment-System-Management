@@ -26,7 +26,7 @@ class MovingDealerKeepsOtherSeatsTest extends TestCase
         parent::setUp();
         $this->seedClassicPlaceCodes();
         $this->admin = User::factory()->staff()->create();
-        $home = $this->place('MNHC-101');
+        $home = $this->place('MNHC101');
         $this->dealer = User::factory()->dealer()->create([
             'profile' => ['place_code' => $home->code, 'place_code_id' => $home->id],
         ]);
@@ -35,13 +35,13 @@ class MovingDealerKeepsOtherSeatsTest extends TestCase
 
     public function test_changing_the_home_place_leaves_the_other_seat_active(): void
     {
-        $other = $this->place('MNHC-102');
+        $other = $this->place('MNHC102');
         $this->seat($other);
 
-        app(PartnerAccountProvisioning::class)->rebindGeography($this->admin, $this->dealer, 'MNHC-103', 'Office moved to a new division');
+        app(PartnerAccountProvisioning::class)->rebindGeography($this->admin, $this->dealer, 'MNHC103', 'Office moved to a new division');
 
         $this->assertSame(
-            ['MNHC-102', 'MNHC-103'],
+            ['MNHC102', 'MNHC103'],
             $this->activeSeatCodes(),
             'Only the home seat should move; the Rangpur seat is a separate one.'
         );
@@ -49,23 +49,23 @@ class MovingDealerKeepsOtherSeatsTest extends TestCase
 
     public function test_moving_home_onto_a_seat_the_dealer_already_holds_keeps_one_seat_there(): void
     {
-        $other = $this->place('MNHC-102');
+        $other = $this->place('MNHC102');
         $this->seat($other);
 
-        app(PartnerAccountProvisioning::class)->rebindGeography($this->admin, $this->dealer, 'MNHC-102', 'Office moved to the second area');
+        app(PartnerAccountProvisioning::class)->rebindGeography($this->admin, $this->dealer, 'MNHC102', 'Office moved to the second area');
 
-        $this->assertSame(['MNHC-102'], $this->activeSeatCodes());
-        $this->assertSame('MNHC-102', $this->dealer->fresh()->profile['place_code']);
+        $this->assertSame(['MNHC102'], $this->activeSeatCodes());
+        $this->assertSame('MNHC102', $this->dealer->fresh()->profile['place_code']);
     }
 
     public function test_a_dealer_with_one_seat_still_moves_that_seat(): void
     {
-        app(PartnerAccountProvisioning::class)->rebindGeography($this->admin, $this->dealer, 'MNHC-103', 'Office moved to a new division');
+        app(PartnerAccountProvisioning::class)->rebindGeography($this->admin, $this->dealer, 'MNHC103', 'Office moved to a new division');
 
-        $this->assertSame(['MNHC-103'], $this->activeSeatCodes());
+        $this->assertSame(['MNHC103'], $this->activeSeatCodes());
         $this->assertDatabaseHas('area_dealer_assignments', [
             'user_id' => $this->dealer->id,
-            'place_code_id' => $this->place('MNHC-101')->id,
+            'place_code_id' => $this->place('MNHC101')->id,
             'is_active' => false,
             'territory_key' => null,
         ]);

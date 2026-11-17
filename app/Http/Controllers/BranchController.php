@@ -118,7 +118,7 @@ class BranchController extends Controller
     }
 
     /**
-     * A branch is placed by its place code (typed as MNHC-…, or a place code id from the API);
+     * A branch is placed by its place code (typed as MNHC…, or a place code id from the API);
      * its division/district/upazila names are filled in from that code, never typed.
      * The note follows the owner's `stock.branch_note` choice when a branch is added; an edit
      * that sends no note keeps the one on file, as before.

@@ -124,7 +124,7 @@ class LoginTwoStepTest extends TestCase
     public function test_sub_dealer_code_signs_in_with_sms_code_and_success_is_audited(): void
     {
         $subDealer = User::factory()->subDealer()->create([
-            'dealer_code' => 'MNHC-100001-000001',
+            'dealer_code' => 'MNHC100001-000001',
             'phone' => '01812345678',
             'password' => 'SyntheticPassword123',
         ]);

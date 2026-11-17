@@ -47,7 +47,7 @@ class DealerOnboardingTest extends TestCase
             'role' => 'dealer',
             'identity_type' => 'nid',
             'date_of_birth' => '1985-03-03',
-            'place_code' => 'MNHC-102',
+            'place_code' => 'MNHC102',
             'dealer_code' => 'D-DHK-001',
             'name' => 'Md. Rafiqul Islam',
             'name_bn' => 'মোঃ রফিকুল ইসলাম',
@@ -128,7 +128,7 @@ class DealerOnboardingTest extends TestCase
         $this->assertNotNull($sub);
         $res->assertSessionHas('partner_form.url', '/exports/partner-registration-form/'.$sub->id);
         $this->assertSame('sub_dealer', $sub->role);
-        $this->assertSame('MNHC-561-000001', $sub->dealer_code);
+        $this->assertSame('MNHC561-000001', $sub->dealer_code);
         $this->assertSame($sponsor->id, $sub->sponsor_id);
     }
 
@@ -155,7 +155,7 @@ class DealerOnboardingTest extends TestCase
         $admin = User::factory()->create(['role' => 'super_admin']);
         User::factory()->create([
             'role' => 'dealer',
-            'dealer_code' => 'MNHC-102',
+            'dealer_code' => 'MNHC102',
             'email' => 'existing@example.com',
         ]);
 
@@ -193,11 +193,11 @@ class DealerOnboardingTest extends TestCase
 
     private function unionCode(): string
     {
-        $division = PlaceCode::query()->where('code', 'MNHC-102')->firstOrFail();
-        $district = PlaceCode::factory()->district($division)->create(['code' => 'MNHC-361', 'name' => 'Test District']);
-        $upazila = PlaceCode::factory()->upazila($district)->create(['code' => 'MNHC-461', 'name' => 'Test Upazila']);
+        $division = PlaceCode::query()->where('code', 'MNHC102')->firstOrFail();
+        $district = PlaceCode::factory()->district($division)->create(['code' => 'MNHC361', 'name' => 'Test District']);
+        $upazila = PlaceCode::factory()->upazila($district)->create(['code' => 'MNHC461', 'name' => 'Test Upazila']);
 
-        return (string) PlaceCode::factory()->union($upazila)->create(['code' => 'MNHC-561', 'name' => 'Test Union'])->code;
+        return (string) PlaceCode::factory()->union($upazila)->create(['code' => 'MNHC561', 'name' => 'Test Union'])->code;
     }
 
     /**
@@ -214,7 +214,7 @@ class DealerOnboardingTest extends TestCase
             'name_bn' => 'পরীক্ষা ডিলার',
             'father_name' => 'Father',
             'mother_name' => 'Mother',
-            'place_code' => 'MNHC-102',
+            'place_code' => 'MNHC102',
             'reason' => 'Onboarding test',
             ...$overrides,
         ];

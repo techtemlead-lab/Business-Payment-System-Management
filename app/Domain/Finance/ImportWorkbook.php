@@ -123,6 +123,10 @@ final class ImportWorkbook
                 if (in_array($key, ['dealer_code', 'sponsor_code', 'sku', 'reference', 'place_code'], true)) {
                     $data[$key] = Str::upper($value);
                 }
+                // A partner code from an older sheet (MNHC-100001-000001) is read as today's MNHC100001-000001.
+                if (in_array($key, ['dealer_code', 'sponsor_code'], true) && str_starts_with($data[$key], PlaceCode::BrandPrefix)) {
+                    $data[$key] = PlaceCode::brandSerial($data[$key]) ?? $data[$key];
+                }
                 if ($key === 'email') {
                     $data[$key] = Str::lower($value);
                 }
