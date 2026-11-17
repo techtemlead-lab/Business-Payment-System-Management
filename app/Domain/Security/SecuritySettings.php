@@ -132,7 +132,7 @@ final class SecuritySettings
                 'value' => json_encode($after, JSON_THROW_ON_ERROR),
                 'version' => $version + 1,
                 'updated_by' => $actor->id,
-                'created_at' => $existing?->created_at ?? now(),
+                'created_at' => $existing->created_at ?? now(),
                 'updated_at' => now(),
             ]);
             Audit::record($actor->id, 'security.one_account_per_identity_changed', self::OneAccountPerIdentityKey, [
