@@ -153,10 +153,19 @@ final class NetworkSection implements WorkspaceSection
     {
         $props = [];
         $networkQuery = User::query()->whereIn('role', ['dealer', 'sub_dealer']);
+        $rootId = $this->focusedRoot($request);
+        if ($rootId !== null) {
+            // One partner and everyone under them, every level, nearest levels first.
+            $networkQuery->where(fn (Builder $query) => $query->whereKey($rootId)->orWhereIn('id', DB::table('referral_tree_paths')
+                ->where('ancestor_id', $rootId)->select('descendant_id')));
+            $props['tree_root'] = $rootId;
+            $props['tree_root_name'] = (string) User::query()->whereKey($rootId)->value('name');
+        }
         $totalPartners = (clone $networkQuery)->count();
         // The page opens with the top of the tree (level by level) and grows by "Show more",
-        // so a phone never downloads thousands of partners at once.
-        $requested = (int) $request->query('tree_limit', (string) self::TreeFirstLoad);
+        // so a phone never downloads thousands of partners at once. A chosen partner's own tree
+        // opens complete, up to the same 2,500 limit.
+        $requested = (int) $request->query('tree_limit', (string) ($rootId !== null ? self::DownlineLimit : self::TreeFirstLoad));
         $limit = min(self::DownlineLimit, max(self::TreeFirstLoad, $requested));
         $props['dealers_truncated'] = $totalPartners > $limit;
         $props['dealers_total'] = $totalPartners;
@@ -164,7 +173,9 @@ final class NetworkSection implements WorkspaceSection
         $props['dealers_next_limit'] = $totalPartners > $limit && $limit < self::DownlineLimit ? min(self::DownlineLimit, $limit + self::TreeFirstLoad) : null;
         $nodes = $this->networkDealerNodes(
             $networkQuery
-                ->orderByRaw('(SELECT COUNT(*) FROM referral_tree_paths AS levels WHERE levels.descendant_id = users.id AND levels.depth > 0) ASC')
+                ->orderByRaw($rootId !== null
+                    ? '(SELECT depth FROM referral_tree_paths WHERE ancestor_id = ? AND descendant_id = users.id) ASC NULLS FIRST'
+                    : '(SELECT COUNT(*) FROM referral_tree_paths AS levels WHERE levels.descendant_id = users.id AND levels.depth > 0) ASC', $rootId !== null ? [$rootId] : [])
                 ->orderBy('id')
                 ->limit($limit),
             maskPhone: true,
@@ -183,9 +194,20 @@ final class NetworkSection implements WorkspaceSection
             'team_size' => (int) ($teams->get($node['id'])->team ?? 0),
             'direct_count' => (int) ($teams->get($node['id'])->direct ?? 0),
         ], $nodes);
-        $props['tree_stats'] = $this->treeStats();
+        $props['tree_stats'] = $this->treeStats($rootId);
 
         return $props;
+    }
+
+    /** The partner whose whole tree is asked for, when the address names one that exists. */
+    private function focusedRoot(Request $request): ?int
+    {
+        $asked = $request->query('tree_root');
+        if (! is_string($asked) || ! ctype_digit($asked)) {
+            return null;
+        }
+
+        return User::query()->whereKey((int) $asked)->whereIn('role', ['dealer', 'sub_dealer'])->exists() ? (int) $asked : null;
     }
 
     /**
@@ -194,11 +216,14 @@ final class NetworkSection implements WorkspaceSection
      *
      * @return array{total: int, ranks: array<string, int>, sales_total: string}
      */
-    private function treeStats(): array
+    private function treeStats(?int $rootId = null): array
     {
+        $inTree = fn ($query) => $rootId === null ? $query : $query->where(fn ($inner) => $inner->where('users.id', $rootId)
+            ->orWhereIn('users.id', DB::table('referral_tree_paths')->where('ancestor_id', $rootId)->select('descendant_id')));
         $ranks = DB::table('users')
             ->leftJoin('dealer_ranks', 'dealer_ranks.user_id', '=', 'users.id')
             ->whereIn('users.role', ['dealer', 'sub_dealer'])
+            ->when($rootId !== null, $inTree)
             ->groupByRaw("COALESCE(dealer_ranks.current_rank, 'dealer')")
             ->selectRaw("COALESCE(dealer_ranks.current_rank, 'dealer') AS rank, COUNT(*) AS total")
             ->pluck('total', 'rank')
@@ -207,6 +232,7 @@ final class NetworkSection implements WorkspaceSection
         $sales = DB::table('orders')
             ->join('users', 'users.id', '=', 'orders.user_id')
             ->whereIn('users.role', ['dealer', 'sub_dealer'])
+            ->when($rootId !== null, $inTree)
             ->whereIn('orders.status', CommissionQualification::DeliveredStatuses)
             ->sum(DB::raw(CommissionQualification::deliveredValueSql()));
 

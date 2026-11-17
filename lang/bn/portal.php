@@ -5879,6 +5879,8 @@ return [
     'push_failed' => 'নোটিফিকেশন বদলানো গেল না। আবার চেষ্টা করুন।',
     'event_account_closed' => 'পার্টনার বন্ধ করে লুকানো হয়েছে',
     'event_account_created' => 'অ্যাকাউন্ট খোলা হয়েছে',
+    'event_partner_target_set' => 'পার্টনারের মাসিক টার্গেট ঠিক করা হয়েছে',
+    'event_partner_target_cleared' => 'মাসিক টার্গেট আবার কোম্পানির নিয়মে ফেরানো হয়েছে',
     'event_account_deleted' => 'পার্টনার মুছে ফেলা হয়েছে',
     'event_account_geography_updated' => 'এলাকার তথ্য বদলানো হয়েছে',
     'event_account_registration_form_downloaded' => 'পার্টনার নিবন্ধন ফর্ম ডাউনলোড করা হয়েছে',

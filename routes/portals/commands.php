@@ -16,6 +16,7 @@ use App\Http\Controllers\PartnerAgreementController;
 use App\Http\Controllers\PartnerChatController;
 use App\Http\Controllers\PartnerContestController;
 use App\Http\Controllers\PartnerEventController;
+use App\Http\Controllers\PartnerFileController;
 use App\Http\Controllers\PartnerProfileController;
 use App\Http\Controllers\PartnerRegistrationFormController;
 use App\Http\Controllers\PlaceCodeController;
@@ -113,6 +114,8 @@ return function (string $portal): void {
     Route::delete('/commands/accounts/{user}', [PartnerAccountDeletionController::class, 'destroy'])->middleware('throttle:10,1');
     Route::get('/commands/accounts/{user}/deletion-check', [PartnerAccountDeletionController::class, 'show'])->middleware('throttle:60,1');
     Route::post('/commands/accounts/{user}/benefit-controls', [CommandController::class, 'benefitControls']);
+    Route::post('/commands/accounts/{partner}/monthly-targets', [PartnerFileController::class, 'setTarget'])->whereNumber('partner')->middleware('throttle:30,1');
+    Route::post('/commands/accounts/{partner}/monthly-targets/clear', [PartnerFileController::class, 'clearTarget'])->whereNumber('partner')->middleware('throttle:30,1');
     Route::post('/commands/accounts/{user}/invite', [CommandController::class, 'invite'])->middleware('throttle:3,1');
     Route::get('/commands/accounts/{user}/password-status', [CommandController::class, 'partnerPasswordStatus'])->middleware('throttle:60,1');
     Route::post('/commands/accounts/{user}/reset-password', [CommandController::class, 'resetPartnerPassword'])->middleware('throttle:10,1');
