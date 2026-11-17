@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Database\Factories\PrescriptionFactory;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,7 +21,9 @@ use Illuminate\Support\Carbon;
  * @property int $prescriber_id
  * @property int $patient_id
  * @property Carbon $prescribed_on
+ * @property string|null $visit_type
  * @property string|null $complaints
+ * @property string|null $examination
  * @property string|null $diagnosis
  * @property string|null $advice
  * @property array<string, string>|null $vitals
@@ -60,7 +63,7 @@ class Prescription extends Model
     public const PaymentMethods = [self::PaymentCash, 'bkash', 'nagad', 'bank', 'other'];
 
     protected $fillable = [
-        'number', 'kind', 'prescriber_id', 'patient_id', 'prescribed_on', 'complaints', 'diagnosis', 'advice', 'vitals', 'follow_up_on',
+        'number', 'kind', 'prescriber_id', 'patient_id', 'prescribed_on', 'visit_type', 'complaints', 'examination', 'diagnosis', 'advice', 'vitals', 'follow_up_on',
         'investigations', 'foods_allowed', 'foods_avoided',
         'subtotal', 'discount_total', 'total', 'status', 'branch_id', 'mrp_total', 'manufacturer_share', 'clinic_fund',
         'dispensed_by', 'dispensed_at', 'payment_method', 'payment_reference',
@@ -71,6 +74,7 @@ class Prescription extends Model
     {
         return [
             'complaints' => 'encrypted',
+            'examination' => 'encrypted',
             'diagnosis' => 'encrypted',
             'advice' => 'encrypted',
             'vitals' => 'encrypted:array',
@@ -87,6 +91,23 @@ class Prescription extends Model
             'manufacturer_share' => 'decimal:2',
             'clinic_fund' => 'decimal:2',
         ];
+    }
+
+    /** The patient's address as free text (or the older place label); the print page reads this. */
+    protected function patientAddress(): Attribute
+    {
+        return Attribute::get(function (): ?string {
+            $patient = $this->patient;
+
+            return $patient->address_text
+                ?? ($patient->placeCode ? trim(PlaceCode::displayLabel($patient->placeCode->code).' '.PlaceCode::displayLabel($patient->placeCode->name)) : null);
+        });
+    }
+
+    /** The patient number printed beside the name, e.g. 28072507. */
+    protected function patientCode(): Attribute
+    {
+        return Attribute::get(fn (): string => $this->patient->displayCode());
     }
 
     /** @return BelongsTo<User, $this> */

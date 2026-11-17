@@ -6,6 +6,7 @@ use App\Domain\Clinic\ClinicDispensing;
 use App\Domain\Clinic\DoseSchedule;
 use App\Domain\Clinic\PrescriptionAccess;
 use App\Domain\Clinic\PrescriptionBook;
+use App\Domain\Clinic\PrescriptionLetterhead;
 use App\Domain\Clinic\PrescriptionSettings;
 use App\Domain\Inventory\BranchOperations;
 use App\Models\BranchStaffAssignment;
@@ -14,6 +15,7 @@ use App\Models\PrescriberRegistration;
 use App\Models\Prescription;
 use App\Models\PrescriptionPatient;
 use App\Models\Product;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Arr;
 
@@ -74,6 +76,8 @@ final class PrescriptionsSection implements WorkspaceSection
                 'kind' => $prescription->kind,
                 'own' => true,
                 'patient' => $prescription->patient?->name,
+                'patient_id' => $prescription->patient_id,
+                'advice' => $prescription->advice,
                 'prescribed_on' => $prescription->prescribed_on->toDateString(),
                 'follow_up_on' => $prescription->follow_up_on?->toDateString(),
                 'diagnosis' => $prescription->diagnosis,
@@ -89,6 +93,12 @@ final class PrescriptionsSection implements WorkspaceSection
                 'payment_method' => $prescription->payment_method,
                 'payment_reference' => $prescription->payment_reference,
                 'lines' => $prescription->lines->map(fn ($line): array => [
+                    'id' => $line->id,
+                    'dose_schedule' => $line->dose_schedule,
+                    'food_timing' => $line->food_timing,
+                    'duration_count' => $line->duration_count,
+                    'duration_unit' => $line->duration_unit,
+                    'instructions' => $line->instructions,
                     'medicine_name' => $line->medicine_name,
                     'strength' => $line->strength,
                     // False for a medicine typed by hand, which is never dispensed or billed by the clinic.
@@ -118,6 +128,10 @@ final class PrescriptionsSection implements WorkspaceSection
             'registration' => $registration ? ['type' => $registration->registration_type, 'number' => $registration->registration_number] : null,
             'registration_types' => PrescriberRegistration::Types,
             'max_lines' => PrescriptionBook::MaxLines,
+            'letterhead' => $this->letterhead($user),
+            'doctor_name' => $user->name,
+            'next_patient_code' => $this->book->nextPatientCode($user),
+            'today' => CarbonImmutable::now((string) config('madina.business_timezone', 'Asia/Dhaka'))->toDateString(),
             'dose_amounts' => DoseSchedule::Amounts,
             'food_timings' => DoseSchedule::FoodTimings,
             'duration_units' => DoseSchedule::DurationUnits,
@@ -154,5 +168,16 @@ final class PrescriptionsSection implements WorkspaceSection
         }
 
         return ['prescriptions' => $payload];
+    }
+
+    /**
+     * The prescriber's letterhead from the letterhead settings, or null until the prescription
+     * settings page has been built and filled in.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function letterhead(User $user): ?array
+    {
+        return class_exists(PrescriptionLetterhead::class) ? PrescriptionLetterhead::forPrescriber($user) : null;
     }
 }
