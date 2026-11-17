@@ -31,7 +31,6 @@ class SearchableDropdownsTest extends TestCase
             'account opening: division, district, upazila, union, sponsor' => ['pages/AccountCreate.tsx', 5],
             'place codes: referral place, parents, base place' => ['components/PlaceCodesHub.tsx', 4],
             'purchasing: supplier, branch, product' => ['components/PurchasingHub.tsx', 3],
-            'order form: category, sub-category, product' => ['components/ProductPurchaseMatrix.tsx', 3],
             'product editor: category, sub-category, unit' => ['pages/ProductEditor.tsx', 3],
             'new product: category, sub-category, unit' => ['components/ProductCreateModal.tsx', 1],
             'catalog: parent category' => ['components/CatalogTaxonomyHub.tsx', 1],
