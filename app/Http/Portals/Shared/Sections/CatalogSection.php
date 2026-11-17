@@ -88,7 +88,8 @@ final class CatalogSection implements WorkspaceSection
             $stagesByProduct = $revealStock ? $register->stagesByProduct($products->pluck('id')->map(fn (mixed $id): int => (int) $id)->all()) : [];
             $removalByProduct = $user->allows('catalog') ? app(ProductRemoval::class)->forProducts($products, $user->allows('inventory')) : [];
         } else {
-            $productLimit = $context->isStaff ? 250 : 200;
+            // Ordering searches the whole range, so a partner is sent far more than a browsing page needs.
+            $productLimit = $context->isStaff ? 250 : ($context->section === 'purchase' ? 1000 : 200);
             $props['products_truncated'] = (clone $productQuery)->count() > $productLimit;
             $products = (clone $productQuery)->limit($productLimit)->get();
         }

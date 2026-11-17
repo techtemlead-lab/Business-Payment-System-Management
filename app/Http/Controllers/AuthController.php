@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Accounts\AccountPhoneRules;
+use App\Domain\Accounts\PartnerProfileLock;
 use App\Domain\Auth\LoginCaptcha;
 use App\Domain\Auth\LoginOtpChallenge;
 use App\Domain\Auth\TotpAuthenticator;
@@ -589,7 +590,7 @@ class AuthController extends Controller
     private function mayReplaceWorkspacePhoto(User $user): bool
     {
         if (in_array($user->role, ['dealer', 'sub_dealer'], true)) {
-            return $user->usingStaffWorkspace();
+            return $user->usingStaffWorkspace() || PartnerProfileLock::partnerMayEdit($user);
         }
 
         return $user->owner() || $user->staff();

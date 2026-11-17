@@ -98,6 +98,8 @@ class PartnerEventSmsTest extends TestCase
 
     public function test_public_partnership_application_acknowledges_phone_in_request_locale(): void
     {
+        // The referrer code on the form must belong to a real partner.
+        User::factory()->dealer()->create(['status' => 'active', 'refer_code' => 'REF-SMOKE-01']);
         Config::set('madina.sms.driver', 'array');
         Config::set('madina.sms.sent', []);
 

@@ -22,6 +22,14 @@ final class CommissionPolicy
     /** Award amounts that may stay blank until the owner decides. They are only shown; nothing pays them automatically. */
     private const AwardAmountParameters = ['bike_award_amount', 'car_award_amount'];
 
+    /** Sales targets: a target of zero would make every partner qualify, so it must stay above zero. */
+    private const TargetParameters = ['bike_target', 'car_target', 'mo_target'];
+
+    /** Months a held area share may wait before it goes to the company fund (0 = never). */
+    private const HeldMonthsParameter = 'held_share_months';
+
+    private const HeldMonthsLimit = 120;
+
     /** @return array<string, array<string, mixed>> */
     public static function defaults(): array
     {
@@ -29,7 +37,9 @@ final class CommissionPolicy
             'own_dealer_cashback' => ['cashback', 'Own purchase cashback', '5.00', []],
             'direct_referral' => ['referral', 'Direct referral', '10.00', []],
             'd2d_multitier' => ['d2d', 'Dealer-to-dealer referral', '3.00', ['gen2_pct' => '2.00', 'gen3_pct' => '1.00', 'dynamic_compression' => false]],
-            'area_dealer_pool' => ['area', 'Area dealer pool', '10.00', ['management_share_pct' => '2.00', 'division_share_pct' => '2.00', 'district_share_pct' => '2.00', 'upazila_share_pct' => '2.00', 'union_share_pct' => '2.00']],
+            'area_dealer_pool' => ['area', 'Area dealer pool', '10.00', ['management_share_pct' => '2.00', 'division_share_pct' => '2.00', 'district_share_pct' => '2.00', 'upazila_share_pct' => '2.00', 'union_share_pct' => '2.00',
+                'division_monthly_quota' => '50000.00', 'district_monthly_quota' => '40000.00', 'upazila_monthly_quota' => '20000.00', 'union_monthly_quota' => '10000.00',
+                'held_share_months' => 3]],
             'dealer_monthly_salary' => ['salary', 'Dealer monthly salary pool', '2.00', ['min_monthly_volume' => '10000.00']],
             'rank_royalty' => ['rank', 'Rank royalty pool', '4.00', ['mo_target' => '250000.00', 'am_count' => 10, 'sm_count' => 10, 'me_count' => 10, 'qualification_depth' => 3, 'mo_share_pct' => '1.00', 'am_share_pct' => '1.00', 'sm_share_pct' => '1.00', 'me_share_pct' => '1.00']],
             'rank_incentive' => ['incentive', 'Rank incentive reserve', '2.00', ['mo_bonus' => '5000.00', 'am_bonus' => '50000.00', 'sm_bonus' => '250000.00', 'me_bonus' => '300000.00']],
@@ -79,8 +89,13 @@ final class CommissionPolicy
             $rules = json_decode($override->rules, true, flags: JSON_THROW_ON_ERROR);
         }
         $rules['d2d_multitier']['parameters']['dynamic_compression'] = false;
-        // Revisions saved before the award amounts existed do not carry them.
-        $rules['car_bike_incentive']['parameters'] = ($rules['car_bike_incentive']['parameters'] ?? []) + self::defaults()['car_bike_incentive']['parameters'];
+        // Revisions saved before a setting existed (award amounts, standard area targets, the held-share limit)
+        // do not carry it: the default applies until the owner saves the rule.
+        foreach (self::defaults() as $key => $default) {
+            if (isset($rules[$key]) && is_array($rules[$key])) {
+                $rules[$key]['parameters'] = ($rules[$key]['parameters'] ?? []) + $default['parameters'];
+            }
+        }
         foreach ($rules as $key => $rule) {
             if (! is_array($rule)) {
                 continue;
@@ -295,12 +310,18 @@ final class CommissionPolicy
                         continue;
                     } elseif (str_ends_with($name, '_pct')) {
                         Percentage::from((string) $value);
+                    } elseif ($name === self::HeldMonthsParameter) {
+                        if (filter_var($value, FILTER_VALIDATE_INT) === false || $value < 0 || $value > self::HeldMonthsLimit) {
+                            throw new InvalidArgumentException(__('reward_settings.err_held_months'));
+                        }
                     } elseif (in_array($name, ['cooling_off_days', 'grace_period_days', 'am_count', 'sm_count', 'me_count', 'qualification_depth'], true)) {
                         if (filter_var($value, FILTER_VALIDATE_INT) === false || $value < 0 || $value > 366 || (str_ends_with($name, '_count') && $value < 1)) {
                             throw new InvalidArgumentException(__('portal.err_policy_invalid_int', ['name' => $name]));
                         }
                     } else {
-                        Money::cents((string) $value);
+                        if (Money::cents((string) $value) === 0 && in_array($name, self::TargetParameters, true)) {
+                            throw new InvalidArgumentException(__('reward_settings.err_target_zero', ['name' => $name]));
+                        }
                     }
                 }
             }
@@ -326,6 +347,26 @@ final class CommissionPolicy
         } catch (InvalidArgumentException $exception) {
             throw ValidationException::withMessages(['rules' => $exception->getMessage()]);
         }
+    }
+
+    /**
+     * The monthly target a newly seated area dealer starts with, from the area rule (the seat itself
+     * can still be changed by hand). An unknown level has none.
+     */
+    public static function standardAreaQuota(?string $level): string
+    {
+        if (! in_array($level, ['division', 'district', 'upazila', 'union'], true)) {
+            return '0.00';
+        }
+        $parameters = app(self::class)->snapshot(false)['rules']['area_dealer_pool']['parameters'];
+
+        return Money::decimal(Money::cents((string) $parameters[$level.'_monthly_quota']));
+    }
+
+    /** Months a held area share may wait before it goes to the company fund; 0 means it never does. */
+    public static function heldShareMonths(): int
+    {
+        return max(0, (int) app(self::class)->snapshot(false)['rules']['area_dealer_pool']['parameters'][self::HeldMonthsParameter]);
     }
 
     /** @param array<string, array<string, mixed>> $rules */
