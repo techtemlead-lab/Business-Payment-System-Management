@@ -6780,4 +6780,8 @@ return [
     'order_footer_counted' => 'Delivered goods only',
     'team_orders_counted_note' => 'Ordered and Paid count delivered goods only, and only the delivered part of a partly delivered order.',
     'net_show_all' => 'Show every dealer',
+    'retained_reason_profit_held_too_long' => 'This area share stayed on hold past the limit the owner set, so it went to the company profit fund.',
+    'notice_area_held_too_long_title' => 'Held area commission moved to the company',
+    'notice_area_held_too_long_body' => '৳:amount of your area commission stayed on hold for more than :months months, so it went to the company profit fund.',
+    'event_commission_stale_area_holds_released' => 'Held area commission moved to company profit: held too long',
 ];
