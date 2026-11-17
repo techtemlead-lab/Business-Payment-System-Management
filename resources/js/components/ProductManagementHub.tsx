@@ -192,6 +192,11 @@ export default function ProductManagementHub({
             title: translate('product_facts', 'field_manufacturer'),
             render: (product) => (product.manufacturer ? String(product.manufacturer) : '—'),
         },
+        {
+            key: 'group',
+            title: translate('product_facts', 'field_group'),
+            render: (product) => (product.group ? String(product.group) : '—'),
+        },
         { key: 'mrp', title: t('mrp'), sortKey: 'mrp', money: true, phone: 'hide' },
         ...(showsChannelPrices ? [{
             key: 'dealer_price',

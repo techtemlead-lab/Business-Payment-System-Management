@@ -18,6 +18,7 @@ interface ProductCreateModalProps {
     onClose: () => void;
     categories?: CatalogCategory[];
     units?: CatalogUnit[];
+    groupSuggestions?: { bn: string[]; en: string[] };
     maxDealerPct?: number;
     maxSubDealerPct?: number;
 }
@@ -74,6 +75,7 @@ export default function ProductCreateModal({
     onClose,
     categories = [],
     units = [],
+    groupSuggestions,
     maxDealerPct = 50,
     maxSubDealerPct = 40,
 }: ProductCreateModalProps) {
@@ -88,7 +90,13 @@ export default function ProductCreateModal({
     const [strength, setStrength] = useState('');
     const [manufacturerBn, setManufacturerBn] = useState('');
     const [manufacturerEn, setManufacturerEn] = useState('');
+    const [groupBn, setGroupBn] = useState('');
+    const [groupEn, setGroupEn] = useState('');
     const [description, setDescription] = useState('');
+    const [efficacyBn, setEfficacyBn] = useState('');
+    const [efficacyEn, setEfficacyEn] = useState('');
+    const [warningsBn, setWarningsBn] = useState('');
+    const [warningsEn, setWarningsEn] = useState('');
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [cutoutFile, setCutoutFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -138,6 +146,12 @@ export default function ProductCreateModal({
         setManufacturerBn('');
         setManufacturerEn('');
         setDescription('');
+        setGroupBn('');
+        setGroupEn('');
+        setEfficacyBn('');
+        setEfficacyEn('');
+        setWarningsBn('');
+        setWarningsEn('');
         setImageFile(null);
         setCutoutFile(null);
         setImagePreview(null);
@@ -284,6 +298,12 @@ export default function ProductCreateModal({
         formData.append('strength', strength.trim());
         formData.append('manufacturer_bn', manufacturerBn.trim());
         formData.append('manufacturer_en', manufacturerEn.trim());
+        formData.append('group_bn', groupBn.trim());
+        formData.append('group_en', groupEn.trim());
+        formData.append('efficacy_bn', efficacyBn.trim());
+        formData.append('efficacy_en', efficacyEn.trim());
+        formData.append('warnings_bn', warningsBn.trim());
+        formData.append('warnings_en', warningsEn.trim());
         formData.append('description', description.trim());
         formData.append('mrp', retail.toFixed(2));
         formData.append('dealer_price', dealer.toFixed(2));
@@ -396,6 +416,16 @@ export default function ProductCreateModal({
                                 <span>{translate('product_facts', 'field_manufacturer')} ({translate('product_facts', 'column_en')})</span>
                                 <input value={manufacturerEn} maxLength={200} onChange={(event) => setManufacturerEn(event.target.value)} />
                             </label>
+                            <label className="pcm-field">
+                                <span>{translate('product_facts', 'field_group')} ({translate('product_facts', 'column_bn')})</span>
+                                <input value={groupBn} maxLength={120} list="pcm-group-bn" onChange={(event) => setGroupBn(event.target.value)} />
+                                <datalist id="pcm-group-bn">{(groupSuggestions?.bn ?? []).map((item) => <option key={item} value={item} />)}</datalist>
+                            </label>
+                            <label className="pcm-field">
+                                <span>{translate('product_facts', 'field_group')} ({translate('product_facts', 'column_en')})</span>
+                                <input value={groupEn} maxLength={120} list="pcm-group-en" onChange={(event) => setGroupEn(event.target.value)} />
+                                <datalist id="pcm-group-en">{(groupSuggestions?.en ?? []).map((item) => <option key={item} value={item} />)}</datalist>
+                            </label>
                             {choice('category', translate('portal', 'pcm_category'), categoryId, activeCategories, (value) => {
                                 setCategoryId(value);
                                 setSubcategoryId('');
@@ -431,6 +461,22 @@ export default function ProductCreateModal({
                             <label className="pcm-field pcm-span">
                                 <span>{translate('portal', 'pcm_description')}</span>
                                 <textarea rows={3} value={description} placeholder={translate('portal', 'pcm_description_ph')} onChange={(event) => setDescription(event.target.value)} />
+                            </label>
+                            <label className="pcm-field pcm-span">
+                                <span>{translate('product_facts', 'field_efficacy')} ({translate('product_facts', 'column_bn')})</span>
+                                <textarea rows={3} maxLength={2000} value={efficacyBn} onChange={(event) => setEfficacyBn(event.target.value)} />
+                            </label>
+                            <label className="pcm-field pcm-span">
+                                <span>{translate('product_facts', 'field_efficacy')} ({translate('product_facts', 'column_en')})</span>
+                                <textarea rows={3} maxLength={2000} value={efficacyEn} onChange={(event) => setEfficacyEn(event.target.value)} />
+                            </label>
+                            <label className="pcm-field pcm-span">
+                                <span>{translate('product_facts', 'field_warnings')} ({translate('product_facts', 'column_bn')})</span>
+                                <textarea rows={3} maxLength={2000} value={warningsBn} onChange={(event) => setWarningsBn(event.target.value)} />
+                            </label>
+                            <label className="pcm-field pcm-span">
+                                <span>{translate('product_facts', 'field_warnings')} ({translate('product_facts', 'column_en')})</span>
+                                <textarea rows={3} maxLength={2000} value={warningsEn} onChange={(event) => setWarningsEn(event.target.value)} />
                             </label>
                         </div>
                     </section>

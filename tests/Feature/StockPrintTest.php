@@ -93,6 +93,7 @@ class StockPrintTest extends TestCase
             'name' => 'Herbal Syrup',
             'pack_size' => '100 ml',
             'category' => 'Syrup',
+            'group' => null,
             'mrp' => '200.00',
             'dealer_discount' => '20',
             'sub_dealer_discount' => '12.5',
@@ -125,6 +126,37 @@ class StockPrintTest extends TestCase
         App::setLocale('bn');
         $bangla = (new StockPrintList)->build(new BranchScope(false, [$this->hub->id], $this->hub))['rows'][0];
         $this->assertSame('খাবারের পর এক চামচ', $bangla['usage']);
+    }
+
+    public function test_a_row_carries_the_group_in_the_page_language_and_the_efficacy_field_beats_the_description(): void
+    {
+        $product = $this->product([
+            'name' => 'Napa Test', 'group_en' => 'Paracetamol', 'group_bn' => 'প্যারাসিটামল',
+            'description' => 'Old description', 'efficacy_en' => 'Helps with fever',
+        ]);
+        $this->stockOf($product, $this->hub, 3, null);
+        $scope = new BranchScope(false, [$this->hub->id], $this->hub);
+
+        $row = (new StockPrintList)->build($scope)['rows'][0];
+        $this->assertSame('Paracetamol', $row['group']);
+        $this->assertSame('Helps with fever', $row['efficacy']);
+
+        App::setLocale('bn');
+        $this->assertSame('প্যারাসিটামল', (new StockPrintList)->build($scope)['rows'][0]['group']);
+    }
+
+    public function test_the_main_table_has_group_and_photo_columns_and_no_separate_photo_table(): void
+    {
+        $html = view('invoices.stock-list', [
+            'company' => app(StockPrintPdf::class)->company(), 'branch' => 'Hub', 'printed_at' => now(),
+            'rows' => [['serial' => 1, 'name' => 'Napa Test', 'pack_size' => null, 'category' => 'Tablet', 'group' => 'Paracetamol',
+                'mrp' => '10.00', 'dealer_discount' => null, 'sub_dealer_discount' => null, 'image' => '/tmp/napa.jpg', 'usage' => null, 'efficacy' => null]],
+        ])->render();
+
+        $this->assertStringContainsString(__('stock_print.col_group'), $html);
+        $this->assertStringContainsString('Paracetamol', $html);
+        $this->assertSame(1, substr_count($html, 'src="/tmp/napa.jpg"'));
+        $this->assertStringContainsString(__('stock_print.col_image'), $html);
     }
 
     public function test_the_size_in_the_name_moves_to_the_pack_size_column(): void

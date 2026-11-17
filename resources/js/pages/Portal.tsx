@@ -154,6 +154,6 @@ export default function Portal({section,data:d,filters}:{section:string,data:Row
  {['partnerships','sub-dealer-applications'].includes(section)&&<Applications {...sectionProps}/>}
  {section==='audit'&&<section className="panel table-panel"><div className="panel-heading"><h2>{translate('portal','audit_recorded_activity')}</h2><span>{translate('portal','audit_recorded_activity_hint')}</span></div><WorkLogTable data={d.work_log_table}/></section>}
  {section==='notifications'&&<Notifications {...sectionProps}/>}
- {modal==='product'&&<ProductCreateModal isOpen onClose={close} categories={d.catalog_categories||[]} units={d.catalog_units||[]} maxDealerPct={['super_admin','md','chairman'].includes(u.role)?70:50} maxSubDealerPct={['super_admin','md','chairman'].includes(u.role)?70:40}/>}
+ {modal==='product'&&<ProductCreateModal isOpen onClose={close} categories={d.catalog_categories||[]} units={d.catalog_units||[]} groupSuggestions={d.product_group_suggestions} maxDealerPct={['super_admin','md','chairman'].includes(u.role)?70:50} maxSubDealerPct={['super_admin','md','chairman'].includes(u.role)?70:40}/>}
  </React.Suspense></Shell>
 }
