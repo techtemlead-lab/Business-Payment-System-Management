@@ -400,7 +400,9 @@
             <td class="invoice-no">{{ __('portal.inv_number') }} : {{ $order['number'] }}</td>
             <td style="text-align:right">
                 @if (! empty($buyer['referred_code']))
-                    <div class="referred">{{ __('portal.inv_referred_code') }}: {{ $buyer['referred_code'] }}</div>
+                    <div class="referred">{{ __('portal.inv_referred_code') }}: {{ $buyer['referred_code'] }}@if (! empty($buyer['referred_name'])) · {{ __('partner_profile.inv_referred_by') }}: {{ $buyer['referred_name'] }}@endif</div>
+                @elseif (! empty($buyer['referred_company']))
+                    <div class="referred">{{ __('partner_profile.inv_referred_by') }}: {{ __('partner_profile.referred_by_company') }}</div>
                 @endif
             </td>
         </tr>

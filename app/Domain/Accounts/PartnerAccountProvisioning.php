@@ -524,12 +524,7 @@ final class PartnerAccountProvisioning
             'district' => $path['district'],
             'upazila' => $path['upazila'],
             'union' => $path['union'],
-            'monthly_quota' => match ($place->level) {
-                'division' => '50000.00',
-                'district' => '40000.00',
-                'upazila' => '20000.00',
-                default => '10000.00',
-            },
+            'monthly_quota' => CommissionPolicy::standardAreaQuota($place->level),
             'territory_key' => hash('sha256', $place->level.'|code:'.$place->code),
             'is_active' => true,
         ]);

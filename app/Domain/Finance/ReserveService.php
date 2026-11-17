@@ -39,6 +39,9 @@ final class ReserveService
     /** Why a share whose target was missed went to the company profit fund. */
     public const AreaTargetMissedReason = 'retained_reason_profit_quota_missed';
 
+    /** Why a share that stayed held past the owner's limit went to the company profit fund. */
+    public const AreaHeldTooLongReason = 'retained_reason_profit_held_too_long';
+
     public function __construct(private CommissionWallet $wallets, private CommissionQualification $qualification, private PaymentAccounts $accounts) {}
 
     /** @param array<string, mixed> $data */
@@ -368,6 +371,62 @@ final class ReserveService
 
             return ['status' => $count > 0 ? 'forfeited' : 'nothing_to_forfeit', 'period' => $month,
                 'forfeited_count' => $count, 'total_amount' => Money::decimal($total)];
+        }, 3);
+    }
+
+    /**
+     * Area shares still held more than N months after the month of their order go to the company profit
+     * fund (owner decision, 2026-11-17). N is the "held_share_months" setting of the area rule; 0 means
+     * never. This is for whatever the month-end rule leaves held, such as a share held for a suspended
+     * dealer. A share is never moved before its own month has ended. Running it again moves nothing twice.
+     *
+     * @return array{status: string, months: int, forfeited_count: int, total_amount: string}
+     */
+    public function forfeitStaleAreaHolds(?int $actorId = null): array
+    {
+        CommissionWallet::requireActive();
+        $months = CommissionPolicy::heldShareMonths();
+        if ($months === 0) {
+            return ['status' => 'off', 'months' => 0, 'forfeited_count' => 0, 'total_amount' => '0.00'];
+        }
+        $newestMonth = CarbonImmutable::createFromFormat('!Y-m', CommissionQualification::currentMonth())->subMonthsNoOverflow($months)->format('Y-m');
+
+        return DB::transaction(function () use ($months, $newestMonth, $actorId): array {
+            CommissionWallet::lock();
+            $funds = CommissionAllocation::query()
+                ->where('status', 'held')
+                ->where('category', 'like', 'area_%')
+                ->whereNotNull('user_id')
+                ->where('metadata->period_month', '<=', $newestMonth)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get();
+            $settlement = app(CommissionSettlement::class);
+            $total = 0;
+            $byPartner = [];
+            foreach ($funds as $fund) {
+                $amount = Money::cents($fund->amount);
+                $month = (string) $fund->metadata['period_month'];
+                $profitId = $settlement->toCompanyProfit($fund, $amount, $month, 'area_held', null, self::AreaHeldTooLongReason);
+                $fund->update(['status' => 'forfeited', 'metadata' => [...$fund->metadata, 'forfeited_at' => now()->toIso8601String(),
+                    'forfeited_to' => CommissionSettlement::CompanyProfitCategory, 'company_profit_allocation_id' => $profitId, 'forfeit_reason' => 'held_too_long']]);
+                $total += $amount;
+                $byPartner[(int) $fund->user_id] = ($byPartner[(int) $fund->user_id] ?? 0) + $amount;
+            }
+            if ($funds->isNotEmpty()) {
+                Audit::record($actorId, 'commission.stale_area_holds_released', $newestMonth, ['count' => $funds->count(), 'amount' => Money::decimal($total), 'months' => $months]);
+            }
+            foreach (User::query()->whereIn('id', array_keys($byPartner))->get() as $partner) {
+                $locale = $partner->preferredLocale();
+                Audit::notice(
+                    $partner->id,
+                    __('portal.notice_area_held_too_long_title', [], $locale),
+                    __('portal.notice_area_held_too_long_body', ['months' => $months, 'amount' => Money::decimal($byPartner[$partner->id])], $locale),
+                );
+            }
+
+            return ['status' => $funds->isNotEmpty() ? 'forfeited' : 'nothing_to_forfeit', 'months' => $months,
+                'forfeited_count' => $funds->count(), 'total_amount' => Money::decimal($total)];
         }, 3);
     }
 

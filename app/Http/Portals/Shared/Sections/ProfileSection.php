@@ -2,6 +2,7 @@
 
 namespace App\Http\Portals\Shared\Sections;
 
+use App\Domain\Accounts\PartnerProfileCard;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -44,6 +45,7 @@ final class ProfileSection implements WorkspaceSection
             'union' => $profile['union'] ?? null,
             'village' => $profile['village'] ?? null,
             'refer_code' => $user->refer_code,
+            'partner_card' => in_array($user->role, ['dealer', 'sub_dealer'], true) ? app(PartnerProfileCard::class)->for($user) : null,
             'kyc' => [
                 'identity_type' => $identityType !== '' ? $identityType : null,
                 'identity_label' => match ($identityType) {

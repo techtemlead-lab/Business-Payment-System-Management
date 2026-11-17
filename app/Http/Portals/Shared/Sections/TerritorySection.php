@@ -265,12 +265,6 @@ final class TerritorySection implements WorkspaceSection
 
     private function standardAreaQuota(?string $level): string
     {
-        return match ($level) {
-            'division' => '50000.00',
-            'district' => '40000.00',
-            'upazila' => '20000.00',
-            'union' => '10000.00',
-            default => '0.00',
-        };
+        return CommissionPolicy::standardAreaQuota($level);
     }
 }

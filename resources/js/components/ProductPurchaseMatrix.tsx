@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useForm, usePage, Link } from '@inertiajs/react';
 import {
     Trash2, ShoppingBag, ArrowRight, CheckCircle2, RotateCcw,
-    AlertCircle, Sparkles, Package, Layers, Info, Search, X
+    AlertCircle, Sparkles, Package, Info, Search, X
 } from 'lucide-react';
 import { money, type Row, Table, number, FormErrors } from './UI';
 import { useT } from '../shared/i18n/t';
@@ -11,7 +11,7 @@ import { randomUuid } from '../shared/randomUuid';
 import RepeatOrderPanel, { repeatChangeNotes, type RepeatOption } from './dealertools/RepeatOrderPanel';
 import SchemeNotices, { type RunningScheme } from './dealertools/SchemeNotices';
 import { choiceName, oneCardPerGroup, sizesByGroup, type SizeCard } from '../shared/productSizes';
-import SearchSelect from './SearchSelect';
+import { cardStock, filterChoices, partnerPrice, priceRange, searchProducts, stockState } from '../shared/orderSearch';
 
 interface Props {
     products: Row[];
@@ -31,6 +31,9 @@ interface Props {
 
 /** The most the server accepts on one order line. */
 const MAX_ORDER_QUANTITY = 10000;
+
+/** Most products listed under the search box at once. */
+const RESULT_LIMIT = 30;
 
 /** By Office and From My Account: the partner enters nothing, the server sets the payment details. */
 const OFFICE_CHANNEL = 'Office';
@@ -71,156 +74,103 @@ export default function ProductPurchaseMatrix({
         return openedWithAccount && Number.isFinite(planned) && planned > 0 ? planned : null;
     }, [url, openedWithAccount]);
 
-    // Cascading selection state
-    const [selectedCategory, setSelectedCategory] = useState<string>('');
-    const [selectedSubCategory, setSelectedSubCategory] = useState<string>('');
-    const [selectedProductName, setSelectedProductName] = useState<string>('');
-    const [selectedProductId, setSelectedProductId] = useState<number | string>('');
+    // Search-first ordering: one box over every product the partner may order. Categories are only
+    // optional filters. The picked card shows its sizes (if several), then the quantity.
+    const [pickedKey, setPickedKey] = useState<string>('');
+    const [activeId, setActiveId] = useState<number | string>('');
     const [quantity, setQuantity] = useState<number>(1);
     const [addedBanner, setAddedBanner] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState<string>('');
+    const [listOpen, setListOpen] = useState<boolean>(false);
+    const [highlight, setHighlight] = useState<number>(0);
+    const [filterCategory, setFilterCategory] = useState<string>('');
+    const [filterSub, setFilterSub] = useState<string>('');
+    const searchRef = useRef<HTMLInputElement>(null);
+    const quantityRef = useRef<HTMLInputElement>(null);
+    const sizesRef = useRef<HTMLFieldSetElement>(null);
 
-    // Sizes of one product are one choice in the product step; the next step picks the size.
+    // Sizes of one product are one card; the size step comes after the product is found.
     const sizeGroups = useMemo(() => sizesByGroup(products), [products]);
-    const productChoiceName = (product: Row) => choiceName(product, sizeGroups);
 
-    // Search finds the product once. Package sizes of that product are the next step.
-    const searchResults = useMemo(() => {
-        const q = searchQuery.trim().toLowerCase();
-        if (!q || q.length < 2) return [];
-        const matches = products.filter(p => {
-            const name = productChoiceName(p).toLowerCase();
-            const ownName = String(p.name || '').toLowerCase();
-            const sku = String(p.sku || '').toLowerCase();
-            const cat = String(p.category || '').toLowerCase();
-            const sub = String(p.sub_category || '').toLowerCase();
-            const size = String(p.size_label || p.strength || '').toLowerCase();
-            return name.includes(q) || ownName.includes(q) || sku.includes(q) || cat.includes(q) || sub.includes(q) || size.includes(q);
-        });
-        return oneCardPerGroup(matches, sizeGroups).slice(0, 8);
-    }, [products, searchQuery, sizeGroups]);
+    const filterOptions = useMemo(() => filterChoices(products, filterCategory), [products, filterCategory]);
+    const availableCategories = filterOptions.categories.length ? filterOptions.categories : categories;
+    const searchResults = useMemo(
+        () => searchProducts(products, searchQuery, sizeGroups, { category: filterCategory, subCategory: filterSub }, RESULT_LIMIT),
+        [products, searchQuery, sizeGroups, filterCategory, filterSub],
+    );
+    const hasSearch = searchQuery.trim() !== '' || filterCategory !== '';
+    const listVisible = listOpen && hasSearch;
 
-    const selectProductFromSearch = (card: SizeCard) => {
-        const product = card.first;
-        const several = card.sizes.length > 1;
-        setSelectedCategory(product.category || '');
-        // A shared subcategory filter would hide the other package sizes.
-        setSelectedSubCategory(several ? '' : (product.sub_category || ''));
-        setSelectedProductName(productChoiceName(product));
-        setSelectedProductId(product.id);
-        setSearchQuery('');
-    };
+    // The card the dealer picked, and the size on it.
+    const pickedCard = useMemo<SizeCard | null>(() => {
+        if (!pickedKey) return null;
+        const product = products.find(p => (p.size_group_id && (sizeGroups.get(p.size_group_id)?.length ?? 0) > 1 ? `g${p.size_group_id}` : `p${p.id}`) === pickedKey);
+        if (!product) return null;
+        const sizes = product.size_group_id && (sizeGroups.get(product.size_group_id)?.length ?? 0) > 1 ? (sizeGroups.get(product.size_group_id) ?? [product]) : [product];
+        return { key: pickedKey, sizes, first: sizes[0] };
+    }, [pickedKey, products, sizeGroups]);
+    const availableVariants = pickedCard?.sizes ?? [];
+    const activeProduct = useMemo(
+        () => availableVariants.find(p => String(p.id) === String(activeId)) ?? availableVariants[0] ?? null,
+        [availableVariants, activeId],
+    );
 
     // Multi-item cart
     const [cart, setCart] = useState<CartItem[]>([]);
 
-    // Filter available categories from active products
-    const availableCategories = useMemo(() => {
-        const set = new Set<string>();
-        products.forEach(p => {
-            if (p.category) set.add(p.category);
-        });
-        const arr = Array.from(set);
-        arr.sort((a, b) => a.localeCompare(b));
-        return arr.length ? arr : categories;
-    }, [products, categories]);
-
-    // Initialize with first category or pre-selected product
-    useEffect(() => {
-        if (initialProductId) {
-            const found = products.find(p => String(p.id) === String(initialProductId));
-            if (found) {
-                setSelectedCategory(found.category || '');
-                setSelectedSubCategory(found.sub_category || '');
-                setSelectedProductName(productChoiceName(found));
-                setSelectedProductId(found.id);
-                return;
+    /** Picks a card: one size goes straight to quantity; several sizes ask for the size first. */
+    const pickCard = (card: SizeCard) => {
+        setPickedKey(card.key);
+        setActiveId(card.first.id);
+        setQuantity(1);
+        setSearchQuery('');
+        setListOpen(false);
+        setHighlight(0);
+        window.setTimeout(() => {
+            if (card.sizes.length > 1) {
+                sizesRef.current?.querySelector<HTMLInputElement>('input:checked')?.focus();
+            } else {
+                quantityRef.current?.focus();
+                quantityRef.current?.select();
             }
-        }
-        if (!selectedCategory && availableCategories.length > 0) {
-            setSelectedCategory(availableCategories[0]);
-        }
-    }, [availableCategories, initialProductId, products]);
-
-    // Available subcategories under selected category
-    const availableSubCategories = useMemo(() => {
-        if (!selectedCategory) return [];
-        const set = new Set<string>();
-        products.filter(p => p.category === selectedCategory).forEach(p => {
-            if (p.sub_category) set.add(p.sub_category);
-        });
-        const arr = Array.from(set);
-        arr.sort((a, b) => a.localeCompare(b));
-        return arr;
-    }, [products, selectedCategory]);
-
-    // Available product names under category + subcategory
-    const availableProductNames = useMemo(() => {
-        if (!selectedCategory) return [];
-        const filtered = products.filter(p => {
-            if (p.category !== selectedCategory) return false;
-            if (selectedSubCategory && p.sub_category !== selectedSubCategory) return false;
-            return true;
-        });
-        const set = new Set<string>();
-        filtered.forEach(p => set.add(productChoiceName(p)));
-        const arr = Array.from(set);
-        arr.sort((a, b) => a.localeCompare(b));
-        return arr;
-    }, [products, selectedCategory, selectedSubCategory, sizeGroups]);
-
-    // Package sizes of the chosen product. One size needs no choice; several come from the group.
-    const availableVariants = useMemo(() => {
-        if (!selectedProductName) return [];
-        const named = products.filter(p => productChoiceName(p) === selectedProductName);
-        const groupId = named.find(p => p.size_group_id && (sizeGroups.get(p.size_group_id)?.length ?? 0) > 1)?.size_group_id;
-        const rows = groupId
-            ? (sizeGroups.get(groupId) ?? named)
-            : named.filter(p => {
-                if (selectedCategory && p.category !== selectedCategory) return false;
-                if (selectedSubCategory && p.sub_category !== selectedSubCategory) return false;
-                return true;
-            });
-        return [...rows].sort((first, second) => Number(first.size_position ?? 0) - Number(second.size_position ?? 0)
-            || String(first.size_label || first.strength || '').localeCompare(String(second.size_label || second.strength || '')));
-    }, [products, selectedCategory, selectedSubCategory, selectedProductName, sizeGroups]);
-
-    // Active selected product object
-    const activeProduct = useMemo(() => {
-        if (!selectedProductId) {
-            return availableVariants[0] || null;
-        }
-        return availableVariants.find(p => String(p.id) === String(selectedProductId)) || availableVariants[0] || null;
-    }, [availableVariants, selectedProductId]);
-
-    // Handle cascading changes
-    const handleCategoryChange = (cat: string) => {
-        setSelectedCategory(cat);
-        setSelectedSubCategory('');
-        setSelectedProductName('');
-        setSelectedProductId('');
+        }, 0);
     };
 
-    const handleSubCategoryChange = (sub: string) => {
-        setSelectedSubCategory(sub);
-        setSelectedProductName('');
-        setSelectedProductId('');
-    };
+    // Opened with ?product_id=: that product is ready for quantity.
+    useEffect(() => {
+        if (!initialProductId) return;
+        const found = products.find(p => String(p.id) === String(initialProductId));
+        if (found) {
+            const card = oneCardPerGroup([found], sizeGroups)[0];
+            setPickedKey(card.key);
+            setActiveId(found.id);
+        }
+    }, [initialProductId, products]);
 
-    const handleProductNameChange = (name: string) => {
-        setSelectedProductName(name);
-        setSelectedProductId('');
-    };
-
-    const handleVariantChange = (id: string | number) => {
-        setSelectedProductId(id);
+    const onSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === 'Escape') {
+            setListOpen(false);
+            return;
+        }
+        if (!searchResults.length) return;
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            setListOpen(true);
+            setHighlight(index => Math.min(index + 1, searchResults.length - 1));
+        } else if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            setHighlight(index => Math.max(index - 1, 0));
+        } else if (event.key === 'Enter' && listVisible) {
+            event.preventDefault();
+            pickCard(searchResults[Math.min(highlight, searchResults.length - 1)]);
+        }
     };
 
     // Add current selection to cart
     const handleAddToCart = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!activeProduct) return;
-        const qty = Math.max(1, Number(quantity) || 1);
+        if (!activeProduct || stockState(activeProduct) !== 'in') return;
+        const qty = Math.min(MAX_ORDER_QUANTITY, Math.max(1, Number(quantity) || 1));
 
         setCart(prev => {
             const existingIndex = prev.findIndex(item => item.product.id === activeProduct.id);
@@ -228,7 +178,7 @@ export default function ProductPurchaseMatrix({
                 const next = [...prev];
                 next[existingIndex] = {
                     ...next[existingIndex],
-                    quantity: next[existingIndex].quantity + qty,
+                    quantity: Math.min(MAX_ORDER_QUANTITY, next[existingIndex].quantity + qty),
                 };
                 return next;
             }
@@ -240,8 +190,12 @@ export default function ProductPurchaseMatrix({
         setAddedBanner(`${activeProduct.name}${strengthLabel} — ${number(qty)} ${activeProduct.unit || translate('portal', 'ppm_box_unit')} ${translate('portal', 'b2b_added_success')}`);
         setTimeout(() => setAddedBanner(null), 4000);
 
-        // Intentionally keep selectedCategory, selectedSubCategory, and selectedProductName!
-        // This allows dealer to immediately add another strength/variant or change quantity.
+        // The box is ready for the next product at once.
+        setPickedKey('');
+        setActiveId('');
+        setQuantity(1);
+        setSearchQuery('');
+        searchRef.current?.focus();
     };
 
     // One tap: the cart becomes this past order, at today's prices and stock.
@@ -434,7 +388,7 @@ export default function ProductPurchaseMatrix({
                 </div>
             )}
 
-            {/* Cascading Matrix Builder Panel */}
+            {/* Search-first order builder: one box over every product, no category step. */}
             <section className="panel ppm-panel ppm-builder">
                 <div className="ppm-head">
                     <Sparkles size={18} />
@@ -446,189 +400,217 @@ export default function ProductPurchaseMatrix({
                     </span>
                 </div>
 
-                {/* Instant Product Search */}
-                <div className="ppm-search">
+                <div
+                    className="ppm-search"
+                    onBlur={event => {
+                        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setListOpen(false);
+                    }}
+                >
+                    <label className="ops-field-label" htmlFor="ppm-search-input">{translate('order_search', 'search_label')}</label>
                     <div className="ppm-search-box">
-                        <Search size={16} className="ops-shrink-0" />
+                        <Search size={16} className="ops-shrink-0" aria-hidden="true" />
                         <input
-                            type="text"
-                            placeholder={translate('portal', 'b2b_quick_search_placeholder')}
+                            id="ppm-search-input"
+                            ref={searchRef}
+                            type="search"
+                            role="combobox"
+                            aria-expanded={listVisible}
+                            aria-controls="ppm-results"
+                            aria-autocomplete="list"
+                            aria-activedescendant={listVisible && searchResults.length ? `ppm-opt-${Math.min(highlight, searchResults.length - 1)}` : undefined}
+                            autoComplete="off"
+                            autoCapitalize="none"
+                            enterKeyHint="go"
+                            placeholder={translate('order_search', 'search_placeholder')}
                             value={searchQuery}
-                            onChange={e => setSearchQuery(e.target.value)}
+                            onFocus={() => setListOpen(true)}
+                            onChange={e => {
+                                setSearchQuery(e.target.value);
+                                setListOpen(true);
+                                setHighlight(0);
+                            }}
+                            onKeyDown={onSearchKeyDown}
                         />
                         {searchQuery && (
                             <button
                                 type="button"
-                                onClick={() => setSearchQuery('')}
+                                onClick={() => { setSearchQuery(''); searchRef.current?.focus(); }}
                                 className="ppm-icon-btn"
+                                title={translate('order_search', 'clear')}
+                                aria-label={translate('order_search', 'clear')}
                             >
                                 <X size={14} />
                             </button>
                         )}
                     </div>
-                    {searchResults.length > 0 && (
-                        <div className="ppm-results">
-                            {searchResults.map(card => {
+                    {!hasSearch && <small className="field-hint">{translate('order_search', 'search_hint')}</small>}
+
+                    {listVisible && (
+                        <div className="ppm-results" id="ppm-results" role="listbox" aria-label={translate('order_search', 'listbox_label')}>
+                            {searchResults.length === 0 && (
+                                <p className="ppm-result-empty" role="status">
+                                    {searchQuery.trim()
+                                        ? translate('order_search', 'no_matches', { query: searchQuery.trim() })
+                                        : translate('order_search', 'no_matches_filter')}
+                                </p>
+                            )}
+                            {searchResults.map((card, index) => {
                                 const product = card.first;
                                 const several = card.sizes.length > 1;
+                                const state = cardStock(card);
+                                const range = priceRange(card);
                                 return (
                                     <div
                                         key={card.key}
-                                        onClick={() => selectProductFromSearch(card)}
-                                        className="ppm-result"
-                                        onMouseEnter={e => (e.currentTarget.style.background = '#f0fdf4')}
-                                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                                        id={`ppm-opt-${index}`}
+                                        role="option"
+                                        aria-selected={index === Math.min(highlight, searchResults.length - 1)}
+                                        onMouseDown={event => event.preventDefault()}
+                                        onClick={() => pickCard(card)}
+                                        onMouseEnter={() => setHighlight(index)}
+                                        className={`ppm-result${index === Math.min(highlight, searchResults.length - 1) ? ' is-active' : ''}${state === 'in' ? '' : ' is-off'}`}
                                     >
                                         <div>
-                                            <strong className="hub-strong ops-fs-sm">{productChoiceName(product)}</strong>
+                                            <strong className="hub-strong ops-fs-sm">{choiceName(product, sizeGroups)}</strong>
                                             {several
-                                                ? <span className="ppm-strength">{translate('size_groups', 'search_several', { count: String(card.sizes.length) })}</span>
+                                                ? <span className="ppm-strength">{card.sizes.map(size => size.size_label || size.strength).filter(Boolean).join(' · ') || translate('order_search', 'sizes_count', { count: String(card.sizes.length) })}</span>
                                                 : (product.size_label || product.strength) && <span className="ppm-strength">({product.size_label || product.strength})</span>}
                                             <div className="ops-meta">
                                                 {product.category} {product.sub_category ? `› ${product.sub_category}` : ''}
                                             </div>
                                         </div>
                                         <div className="ops-right">
-                                            {several
-                                                ? <div className="ops-meta">{translate('size_groups', 'package_size')}</div>
-                                                : (
-                                                    <div className="ppm-price">
-                                                        {money(product.price || product.mrp || 0)}
-                                                    </div>
-                                                )}
+                                            <div className="ppm-price">
+                                                {several && range.low !== range.high
+                                                    ? translate('order_search', 'price_range', { low: money(range.low), high: money(range.high) })
+                                                    : money(range.low)}
+                                            </div>
+                                            <span className={`hub-pill ${state === 'in' ? 'tone-ok' : 'tone-danger'}`}>
+                                                {translate('order_search', `stock_${state}`)}
+                                            </span>
                                         </div>
                                     </div>
                                 );
                             })}
+                            {searchResults.length >= RESULT_LIMIT && (
+                                <p className="ppm-result-empty">{translate('order_search', 'more_hint', { count: String(RESULT_LIMIT) })}</p>
+                            )}
                         </div>
                     )}
                 </div>
 
-                <form onSubmit={handleAddToCart}>
-                    <div className="hub-grid">
-                        {/* Step 1: Category */}
-                        <div>
-                            <label className="ops-field-label">
-                                {translate('portal', 'b2b_step_category')}
-                            </label>
-                            <SearchSelect
-                                required
-                                value={selectedCategory}
-                                onChange={(value) => handleCategoryChange(value)}
-                                className="ppm-control"
-                                emptyLabel={translate('portal', 'b2b_select_category_first')}
-                                options={availableCategories.map(cat => ({ value: cat, label: cat }))}
-                            />
-                        </div>
+                {/* Optional filters: they only narrow the list, ordering never needs them. */}
+                {availableCategories.length > 1 && (
+                    <div className="ppm-filters" role="group" aria-label={translate('order_search', 'filters_label')}>
+                        <button type="button" className={`ppm-filter${filterCategory === '' ? ' is-on' : ''}`} aria-pressed={filterCategory === ''}
+                            onClick={() => { setFilterCategory(''); setFilterSub(''); }}>
+                            {translate('order_search', 'filter_all')}
+                        </button>
+                        {availableCategories.map(category => (
+                            <button key={category} type="button" className={`ppm-filter${filterCategory === category ? ' is-on' : ''}`} aria-pressed={filterCategory === category}
+                                onClick={() => { setFilterCategory(category); setFilterSub(''); setListOpen(true); searchRef.current?.focus(); }}>
+                                {category}
+                            </button>
+                        ))}
+                    </div>
+                )}
+                {filterCategory !== '' && filterOptions.subCategories.length > 1 && (
+                    <div className="ppm-filters is-sub" role="group" aria-label={translate('order_search', 'filter_sub_label')}>
+                        {filterOptions.subCategories.map(sub => (
+                            <button key={sub} type="button" className={`ppm-filter${filterSub === sub ? ' is-on' : ''}`} aria-pressed={filterSub === sub}
+                                onClick={() => { setFilterSub(current => current === sub ? '' : sub); setListOpen(true); searchRef.current?.focus(); }}>
+                                {sub}
+                            </button>
+                        ))}
+                    </div>
+                )}
 
-                        {/* Step 2: Sub-Category */}
-                        <div>
-                            <label className="ops-field-label">
-                                {translate('portal', 'b2b_step_subcategory')}
-                            </label>
-                            <SearchSelect
-                                value={selectedSubCategory}
-                                onChange={(value) => handleSubCategoryChange(value)}
-                                className="ppm-control"
-                                emptyLabel={translate('portal', 'b2b_all_subcategories')}
-                                options={availableSubCategories.map(sub => ({ value: sub, label: sub }))}
-                            />
-                        </div>
+                {!pickedCard && <p className="ppm-pick-prompt">{translate('order_search', 'pick_prompt')}</p>}
 
-                        {/* Step 3: Product Name */}
-                        <div>
-                            <label className="ops-field-label">
-                                {translate('portal', 'b2b_step_product')}
-                            </label>
-                            <SearchSelect
-                                required
-                                value={selectedProductName}
-                                onChange={(value) => handleProductNameChange(value)}
-                                disabled={!selectedCategory || availableProductNames.length === 0}
-                                className="ppm-control"
-                                emptyLabel={translate('portal', 'b2b_select_product_first')}
-                                options={availableProductNames.map(name => ({ value: name, label: name }))}
-                            />
-                        </div>
+                {pickedCard && activeProduct && (
+                    <form onSubmit={handleAddToCart} className="ppm-pick">
+                        <div className="ppm-pick-name">{choiceName(pickedCard.first, sizeGroups)}</div>
 
-                        {/* Step 4: Strength / Measure / Variant */}
-                        <div>
-                            <label className="ops-field-label">
-                                {translate('size_groups', 'package_size')}
-                            </label>
-                            <select
-                                value={activeProduct ? activeProduct.id : ''}
-                                onChange={e => handleVariantChange(e.target.value)}
-                                disabled={!selectedProductName || availableVariants.length <= 1}
-                                className="ppm-control"
-                            >
+                        {availableVariants.length > 1 && (
+                            <fieldset className="ppm-sizes" ref={sizesRef}>
+                                <legend className="ops-field-label">{translate('order_search', 'choose_size')}</legend>
                                 {availableVariants.map(v => {
                                     const vMrp = Number(v.mrp || 0);
-                                    const vPrice = Number(v.price || v.mrp || 0);
+                                    const vPrice = partnerPrice(v);
                                     const vDisc = vMrp > vPrice ? Math.round(((vMrp - vPrice) / vMrp) * 100) : 0;
-                                    const specText = v.size_label || v.strength || v.unit || translate('portal', 'b2b_single_spec');
+                                    const state = stockState(v);
                                     return (
-                                        <option key={v.id} value={v.id}>
-                                            {specText} — {money(vPrice)} ({translate('portal', 'mrp_label', { amount: money(vMrp) })}{vDisc > 0 ? ` · ${translate('portal', 'pct_off', { pct: String(vDisc) })}` : ''})
-                                        </option>
+                                        <label key={v.id} className={`ppm-size${String(v.id) === String(activeProduct.id) ? ' is-on' : ''}${state === 'in' ? '' : ' is-off'}`}>
+                                            <input
+                                                type="radio"
+                                                name="ppm-size"
+                                                value={v.id}
+                                                checked={String(v.id) === String(activeProduct.id)}
+                                                onChange={() => setActiveId(v.id)}
+                                            />
+                                            <span className="ppm-size-label">{v.size_label || v.strength || v.unit || translate('portal', 'b2b_single_spec')}</span>
+                                            <span className="ppm-size-price">{money(vPrice)}{vDisc > 0 ? ` · ${translate('portal', 'pct_off', { pct: String(vDisc) })}` : ''}</span>
+                                            <span className="ppm-size-stock">{translate('order_search', `stock_${state}`)}</span>
+                                        </label>
                                     );
                                 })}
-                            </select>
-                        </div>
+                            </fieldset>
+                        )}
 
-                        {/* Step 5: Quantity & Add Button */}
-                        <div className="ops-stack is-snug">
-                            <div className="ppm-qty-row">
-                                <div className="ops-grow">
-                                    <label className="ops-field-label">
-                                        {translate('portal', 'b2b_step_quantity')} {activeProduct?.unit ? `(${activeProduct.unit})` : ''}
-                                    </label>
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        max={MAX_ORDER_QUANTITY}
-                                        required
-                                        value={quantity}
-                                        onChange={e => setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                                        className="ppm-control is-qty"
-                                    />
-                                </div>
-                                <button
-                                    type="submit"
-                                    className="button dark ppm-add"
-                                    disabled={!activeProduct || activeProduct.is_stock_paused || Number(activeProduct.stock || 0) <= 0}
-                                >
-                                    {/* The label already starts with "+", so no extra plus icon. */}
-                                    {translate('portal', 'b2b_add_to_order')}
-                                </button>
+                        <div className="ppm-qty-row">
+                            <div className="ops-grow">
+                                <label className="ops-field-label" htmlFor="ppm-qty-input">
+                                    {translate('order_search', 'quantity_for')} {activeProduct?.unit ? `(${activeProduct.unit})` : ''}
+                                </label>
+                                <input
+                                    id="ppm-qty-input"
+                                    ref={quantityRef}
+                                    type="number"
+                                    inputMode="numeric"
+                                    min="1"
+                                    max={MAX_ORDER_QUANTITY}
+                                    required
+                                    value={quantity}
+                                    onChange={e => setQuantity(Math.min(MAX_ORDER_QUANTITY, Math.max(1, parseInt(e.target.value, 10) || 1)))}
+                                    className="ppm-control is-qty"
+                                />
                             </div>
-                            <div className="ops-row is-wrap is-tight">
-                                <span className="ops-meta ops-semibold">{translate('portal', 'b2b_quick_qty')}:</span>
-                                {[5, 10, 20, 50, 100].map(chip => (
-                                    <button
-                                        key={chip}
-                                        type="button"
-                                        onClick={() => setQuantity(q => q + chip)}
-                                        className="ppm-chip"
-                                    >
-                                        +{chip}
-                                    </button>
-                                ))}
+                            <button
+                                type="submit"
+                                className="button dark ppm-add"
+                                disabled={stockState(activeProduct) !== 'in'}
+                            >
+                                {/* The label already starts with "+", so no extra plus icon. */}
+                                {translate('portal', 'b2b_add_to_order')}
+                            </button>
+                        </div>
+                        {stockState(activeProduct) !== 'in' && (
+                            <p className="field-hint is-warn" role="status">{translate('order_search', `blocked_${stockState(activeProduct)}`)}</p>
+                        )}
+                        <div className="ops-row is-wrap is-tight">
+                            <span className="ops-meta ops-semibold">{translate('portal', 'b2b_quick_qty')}:</span>
+                            {[5, 10, 20, 50, 100].map(chip => (
                                 <button
+                                    key={chip}
                                     type="button"
-                                    onClick={() => setQuantity(1)}
-                                    className="ppm-chip is-reset"
-                                    title={translate('portal', 'b2b_qty_reset')}
-                                    aria-label={translate('portal', 'b2b_qty_reset')}
+                                    onClick={() => setQuantity(q => Math.min(MAX_ORDER_QUANTITY, q + chip))}
+                                    className="ppm-chip"
                                 >
-                                    <RotateCcw size={12} aria-hidden="true" /> {number(1)}
+                                    +{chip}
                                 </button>
-                            </div>
+                            ))}
+                            <button
+                                type="button"
+                                onClick={() => setQuantity(1)}
+                                className="ppm-chip is-reset"
+                                title={translate('portal', 'b2b_qty_reset')}
+                                aria-label={translate('portal', 'b2b_qty_reset')}
+                            >
+                                <RotateCcw size={12} aria-hidden="true" /> {number(1)}
+                            </button>
                         </div>
-                    </div>
 
-                    {/* Active Selection Details Strip */}
-                    {activeProduct && (
+                        {/* Active Selection Details Strip */}
                         <div className="ppm-selection">
                             <div className="ops-row is-loose is-wrap">
                                 <div className="ppm-sel-name">
@@ -637,8 +619,8 @@ export default function ProductPurchaseMatrix({
                                         {translate('portal', 'product_code_value', { sku: String(activeProduct.sku) })} · {activeProduct.category}{activeProduct.sub_category ? ` / ${activeProduct.sub_category}` : ''}
                                     </span>
                                 </div>
-                                <span className={`hub-pill ${activeProduct.stock > 0 && !activeProduct.is_stock_paused ? 'tone-ok' : 'tone-danger'}`}>
-                                    {activeProduct.stock > 0 && !activeProduct.is_stock_paused
+                                <span className={`hub-pill ${stockState(activeProduct) === 'in' ? 'tone-ok' : 'tone-danger'}`}>
+                                    {stockState(activeProduct) === 'in'
                                         ? translate('portal', 'ppm_stock_left', { qty: number(activeProduct.stock), unit: String(activeProduct.unit || translate('portal', 'ppm_unit_fallback')) })
                                         : translate('portal', 'ppm_stock_awaiting')}
                                 </span>
@@ -675,14 +657,9 @@ export default function ProductPurchaseMatrix({
                                     </strong>
                                 </div>
                             </div>
-
-                            <div className="ppm-sel-hint">
-                                <Info size={13} className="ops-shrink-0" />
-                                <span>{translate('portal', 'b2b_keep_category_hint')}</span>
-                            </div>
                         </div>
-                    )}
-                </form>
+                    </form>
+                )}
             </section>
 
             {/* Selected Products Order Table Breakdown */}
