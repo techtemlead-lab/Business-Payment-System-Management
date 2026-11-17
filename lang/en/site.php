@@ -569,7 +569,7 @@ Questions about these terms, partnership rules or the website:
     'partner_help_body' => 'One Madina family.',
     'home_title_tagline' => 'Products & Dealer Network',
     'md_message_heading' => 'Managing Director\'s Message',
-    'md_message_name' => 'Mohammad Anwar Hossain',
+    'md_message_name' => 'Md Anowar Hossain',
     'md_message_title' => 'Managing Director',
     'md_message_company' => '{company}',
     'md_message_body' => 'In the Name of Allah, the Most Gracious, the Most Merciful.

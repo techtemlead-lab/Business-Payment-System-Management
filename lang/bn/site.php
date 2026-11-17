@@ -569,7 +569,7 @@ return [
     'partner_help_body' => 'এক মদিনা পরিবার।',
     'home_title_tagline' => 'পণ্য ও ডিলার নেটওয়ার্ক',
     'md_message_heading' => 'ব্যবস্থাপনা পরিচালকের বাণী',
-    'md_message_name' => 'মোহাম্মদ আনোয়ার হোসেন',
+    'md_message_name' => 'মো. আনোয়ার হোসেন',
     'md_message_title' => 'ব্যবস্থাপনা পরিচালক',
     'md_message_company' => '{company}',
     'md_message_body' => 'বিসমিল্লাহির রাহমানির রাহিম।
