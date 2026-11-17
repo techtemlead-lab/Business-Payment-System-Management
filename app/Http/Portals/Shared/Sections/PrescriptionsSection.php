@@ -6,6 +6,7 @@ use App\Domain\Clinic\ClinicDispensing;
 use App\Domain\Clinic\DoseSchedule;
 use App\Domain\Clinic\PrescriptionAccess;
 use App\Domain\Clinic\PrescriptionBook;
+use App\Domain\Clinic\PrescriptionLetterhead;
 use App\Domain\Clinic\PrescriptionSettings;
 use App\Domain\Inventory\BranchOperations;
 use App\Models\BranchStaffAssignment;
@@ -34,6 +35,7 @@ final class PrescriptionsSection implements WorkspaceSection
         private ClinicDispensing $dispensing,
         private BranchOperations $branches,
         private PrescriptionSettings $settings,
+        private PrescriptionLetterhead $letterheads,
     ) {}
 
     public function data(SectionContext $context, array $data): array
@@ -127,6 +129,8 @@ final class PrescriptionsSection implements WorkspaceSection
                 ->all(),
             // Whether a medicine may also be typed by hand: the owners' switch, off until they turn it on.
             'other_medicines_allowed' => $otherMedicines['enabled'],
+            // The prescriber's own paper (header, footer, logo) for the settings tab.
+            'letterhead_settings' => $this->letterheads->forSettings($user),
         ];
         if ($owner) {
             // Only the owner's own account changes the switch.

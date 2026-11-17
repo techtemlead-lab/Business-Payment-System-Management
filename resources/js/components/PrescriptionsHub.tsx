@@ -14,6 +14,7 @@ import { FollowUpsPanel } from './PrescriptionFollowUps';
 import { PrescriberReportTab } from './PrescriberReport';
 import { ConsultationRequestsTab, PublicListingTab, type PrescriberPublicData } from './PrescriberPublicTabs';
 import { ClinicQueueTab } from './ClinicQueueTab';
+import { LetterheadSettings, type LetterheadSettingsData } from './LetterheadSettings';
 import { PatientAccessLogList } from './PatientAccessLogList';
 import { emptyVitals, VitalsFields, vitalsForServer } from './VitalsFields';
 
@@ -93,6 +94,8 @@ export type PrescriptionsData = {
     other_medicines_allowed: boolean;
     /** Only for owners, who can change the switch. */
     other_medicines?: { enabled: boolean; version: number };
+    /** The prescriber's own printed paper: header, footer and logo. */
+    letterhead_settings: LetterheadSettingsData;
     branches?: { id: number; code: string; name: string }[];
     payment_methods?: string[];
     manufacturer_percent?: string;
@@ -209,7 +212,7 @@ export default function PrescriptionsHub({ data, tools, publicTools }: { data: P
         { id: 'public-listing', label: translate('prescriber_public', 'tab_listing') },
         ...(data.is_owner ? [{ id: 'report', label: translate('prescription', 'tab_report') }] : []),
         // The owner-doctor's registration, and for every owner the switch for other companies' medicines.
-        ...(data.is_owner || data.other_medicines ? [{ id: 'settings', label: translate('prescription', 'tab_settings') }] : []),
+        { id: 'settings', label: translate('prescription', 'tab_settings') },
     ];
     const activeTab = tabs.some((item) => item.id === tab) ? tab : 'prescriptions';
 
@@ -251,7 +254,7 @@ export default function PrescriptionsHub({ data, tools, publicTools }: { data: P
             {activeTab === 'requests' && <ConsultationRequestsTab data={publicTools} translate={translate} />}
             {activeTab === 'public-listing' && <PublicListingTab data={publicTools} translate={translate} />}
             {activeTab === 'report' && data.is_owner && data.report && <ReportTab report={data.report} translate={translate} />}
-            {activeTab === 'settings' && (data.is_owner || data.other_medicines) && <SettingsTab data={data} translate={translate} />}
+            {activeTab === 'settings' && <SettingsTab data={data} translate={translate} />}
         </div>
     );
 }
@@ -841,6 +844,7 @@ function SettingsTab({ data, translate }: { data: PrescriptionsData; translate: 
 
     return (
         <>
+            <LetterheadSettings settings={data.letterhead_settings} translate={translate} />
             {data.other_medicines && <OtherMedicinesSwitch setting={data.other_medicines} translate={translate} />}
             {data.is_owner && <section className="panel">
                 <div className="panel-heading"><div><h2>{translate('prescription', 'registration_title')}</h2><p className="muted">{translate('prescription', data.registration ? 'registration_hint' : 'registration_missing')}</p></div></div>

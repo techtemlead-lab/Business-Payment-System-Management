@@ -1,0 +1,27 @@
+/* The prescription paper settings: a two-column form beside a live preview of the paper. */
+.lh-layout{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:20px;align-items:start}
+.lh-form{display:grid;gap:14px}
+.lh-two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.lh-fieldset{border:1px solid var(--ds-border,#d5dde5);border-radius:10px;padding:12px;display:grid;gap:10px;min-width:0}
+.lh-fieldset legend{font-weight:700;padding:0 6px}
+.lh-fieldset label{display:grid;gap:4px;font-size:13px}
+.lh-fieldset input[type=text],.lh-fieldset input:not([type]),.lh-fieldset textarea{width:100%;min-width:0}
+.lh-footer-col{display:grid;gap:10px;align-content:start}
+.lh-hint{margin:0;font-size:12px}
+.lh-preview-wrap{position:sticky;top:12px;min-width:0}
+.lh-paper{background:#fff;color:#0f172a;border:1px solid var(--ds-border,#d5dde5);border-radius:6px;padding:10px;font-size:10px;line-height:1.35;box-shadow:0 1px 6px rgba(15,23,42,.08);min-height:300px;display:grid;grid-template-rows:auto auto 1fr auto}
+.lh-head{display:grid;grid-template-columns:1fr 70px 1fr;gap:6px;padding-bottom:6px;border-bottom:2px solid #0f172a}
+.lh-block{display:grid;gap:1px;align-content:start;overflow-wrap:anywhere}
+.lh-block span{display:block}
+.lh-name{font-size:13px;color:#006837}
+.lh-logo{display:flex;align-items:center;justify-content:center}
+.lh-logo img{max-width:100%;max-height:60px;object-fit:contain}
+.lh-bar{display:flex;justify-content:space-between;gap:6px;padding:5px 2px;border-bottom:1px solid #0f172a;font-weight:600}
+.lh-body{display:grid;grid-template-columns:32% 1fr;gap:8px;padding:6px 0}
+.lh-left{display:grid;gap:14px;align-content:start;border-right:1px solid #0f172a;padding-right:6px}
+.lh-right{display:grid;gap:2px;align-content:start}
+.lh-foot{border-top:2px solid #0f172a;padding-top:4px}
+.lh-foot-cols{display:grid;grid-template-columns:1fr 1fr;gap:6px;overflow-wrap:anywhere}
+.lh-foot-cols span{display:block}
+.lh-note{display:block;margin-top:3px}
+@media (max-width:900px){.lh-layout{grid-template-columns:1fr}.lh-preview-wrap{position:static}.lh-two{grid-template-columns:1fr}}
