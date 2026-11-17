@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\AmountInWords;
+use App\Support\LetterheadContacts;
 use App\Support\Money;
 use App\Support\PaymentChannel;
 use App\Support\PdfFonts;
@@ -96,6 +97,7 @@ final class OrderInvoice
         $payload['auto_print'] = true;
         $payload['csp_nonce'] = (string) request()->attributes->get('csp_nonce', '');
         $payload['order_id'] = $order->id;
+        $payload['company']['icons'] = LetterheadContacts::icons(forBrowser: true);
         $payload['share_url'] = PortalHost::url(PortalHost::forUser($actor), '/orders/'.$order->id.'/invoice/print');
         if (! empty($payload['company']['logo_path']) && is_file((string) $payload['company']['logo_path'])) {
             $publicLogo = public_path('branding/madina-logo-latest.png');
@@ -134,6 +136,8 @@ final class OrderInvoice
             'marketed_by' => $letterhead('invoice_marketed_by') ?: $letterhead('contact_company_title'),
             'marketed_phones' => $letterhead('invoice_marketed_phones') ?: implode(', ', array_filter([SiteCustomization::secondPhone(), $letterhead('contact_phone')])),
             'logo_path' => is_file($logoPath) ? $logoPath : null,
+            ...LetterheadContacts::lines(),
+            'icons' => LetterheadContacts::icons(),
         ];
 
         $products = Product::query()
@@ -206,8 +210,9 @@ final class OrderInvoice
             $buyer?->division,
         ])->filter()->implode(', ');
 
+        $place = app(InvoiceBuyerPlace::class)->for($buyer);
         $designation = match ($buyer?->role) {
-            'dealer' => __('portal.inv_role_dealer'),
+            'dealer' => $place['level'] !== null ? __('portal.inv_type_'.$place['level'].'_dealer') : __('portal.inv_role_dealer'),
             'sub_dealer' => __('portal.inv_role_sub_dealer'),
             default => Str::headline((string) $buyer?->role),
         };
@@ -254,8 +259,9 @@ final class OrderInvoice
                 'name' => $buyer?->name,
                 'code' => $buyer?->dealer_code,
                 'designation' => $designation,
-                'area' => $buyer?->district
-                    ?: ($profile['upazila'] ?? $profile['place_code'] ?? $profile['area_code'] ?? '—'),
+                // The address runs from the partner's own place up to the division; with no place it is the old district or upazila.
+                'area' => $place['address']
+                    ?? ($buyer?->district ?: ($profile['upazila'] ?? $profile['place_code'] ?? $profile['area_code'] ?? '—')),
                 'phone' => $buyer?->phone,
                 'booking_address' => $bookingAddress !== '' ? $bookingAddress : '—',
                 'referred_code' => $sponsor?->dealer_code ?: $sponsor?->refer_code,
