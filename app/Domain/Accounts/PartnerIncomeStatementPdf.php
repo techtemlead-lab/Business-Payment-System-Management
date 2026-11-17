@@ -31,7 +31,7 @@ final class PartnerIncomeStatementPdf
         $t = fn (string $key, array $replace = []): string => __('income.'.$key, $replace);
         $money = fn (string $value): string => (str_starts_with($value, '-') ? '-' : '').Money::grouped(ltrim($value, '-'));
         $partWord = PartnerIncomeBook::partWord($part);
-        $sponsor = $partner->sponsor;
+        $sponsor = User::query()->find($partner->sponsor_id);
         $referredBy = $sponsor === null ? '—' : $sponsor->name.($sponsor->dealer_code ? ' ('.$sponsor->dealer_code.')' : '');
         $head = fn (string $label, string $value): string => '<tr><td class="k">'.e($label).'</td><td>'.e($value).'</td></tr>';
 

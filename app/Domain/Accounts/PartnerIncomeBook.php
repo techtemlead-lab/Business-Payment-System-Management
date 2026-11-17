@@ -109,7 +109,7 @@ final class PartnerIncomeBook
     {
         $rows = MoneyTable::filtered($request, $this->partRows($partner, $part), $this->spec());
         $count = (clone $rows)->count();
-        $total = (string) ((clone $rows)->sum('x.amount') ?? '0');
+        $total = (string) (clone $rows)->sum('x.amount');
         $range = MoneyTable::range($request, 'month');
 
         return [
