@@ -122,7 +122,7 @@ final class FinancialReadiness
     public function verify(User $actor, int $id, string $reason = '', bool $confirmedAlone = false): void
     {
         abort_unless($actor->allows('finance'), 403);
-        DB::transaction(function () use ($actor, $id, $reason, $confirmedAlone): void {
+        DB::transaction(function () use ($actor, $id, $reason): void {
             CommissionWallet::lock();
             abort_unless($actor->fresh()->allows('finance'), 403);
             $row = DB::table('financial_verifications')->where('id', $id)->lockForUpdate()->first();
@@ -132,7 +132,7 @@ final class FinancialReadiness
             }
             $selfApproved = $row->created_by === $actor->id;
             if ($selfApproved) {
-                app(SelfApproval::class)->authorizeAlone($actor, 'balances', __('portal.err_ready_separate_verify'), $confirmedAlone, $reason, [$row->created_by]);
+                app(SelfApproval::class)->finishOwnStep($actor, 'balances', __('portal.err_ready_separate_verify'));
             }
             if ($row->fingerprint !== $this->inspect()['fingerprint']) {
                 throw ValidationException::withMessages(['balances' => __('self_approval.err_snapshot_changed')]);

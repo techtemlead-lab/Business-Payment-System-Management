@@ -177,7 +177,7 @@ export function Detail({value}:{value:any}):React.ReactNode {
  * The open dialog (`selected`) and the account being edited (`account`) belong to the calling section.
  */
 export function useOperationsPage(props:Row){
-    const {paymentAccounts,partners,staff,secondApprovers}=props;
+    const {paymentAccounts,partners,staff}=props;
     const translate=useT();
     const metricLabel=(key:string)=>{const localized=translate('portal',`ops_chk_${key}`);return localized===`ops_chk_${key}`?label(key,translate):localized;};
     const {auth,financeActive,staffActions,portalBase,collectionAccounts=[]}=usePage<any>().props;
@@ -196,9 +196,9 @@ export function useOperationsPage(props:Row){
     const review=(title:string,action:string,decisions:string[],place?:ReasonPlace):Action=>({title,action,fields:[choice('decision',translate('portal','ops_fld_decision'),decisions),place?reasonFor(place):reason]});
     const payment=(title:string,action:string,place?:ReasonPlace):Action=>({title,action,fields:[choose(paymentAccounts.filter((a:Row)=>a.is_active&&a.pays_out),'payment_account_id',translate('portal','ops_fld_payout_account')),field('payment_reference',translate('portal','ops_fld_payment_ref')),field('paid_at',translate('portal','ops_fld_paid_at'),'datetime-local'),field('receipt',translate('portal','ops_fld_payment_receipt'),'file'),place?reasonFor(place):reason]});
     const confirmAlone=(label:string):Field=>({name:'self_approve',label,required:true,options:[{value:'1',label:translate('self_approval','confirm_yes')}]});
-    // Opening balances only: the owner checks their own figures alone when nobody else could.
-    const aloneFor=(people:number[])=>auth.user.role==='super_admin'&&(secondApprovers as number[]).filter(id=>!people.includes(id)).length===0;
-    const alone=(a:Action):Action=>({...a,title:`${a.title} (${translate('self_approval','alone_tag')})`,fields:[...a.fields,confirmAlone(translate('self_approval','confirm_label'))]});
+    // Opening balances: the owner checks their own figures directly; no second person is needed.
+    const aloneFor=(_people:number[])=>auth.user.role==='super_admin';
+    const alone=(a:Action):Action=>({...a,title:`${a.title} (${translate('self_approval','alone_tag')})`});
     // Staff hand the next step to someone else; the owner finishes a step they started themselves.
     const mayFinish=(startedBy:unknown)=>startedBy!==auth.user.id||auth.user.role==='super_admin';
     const names={translate,metricLabel,auth,financeActive,staffActions,portalBase,collectionAccounts,capabilities,selected,setSelected,account,setAccount,yes,no,choice,reason,reasonFor,choose,staffField,partnerField,review,payment,confirmAlone,aloneFor,alone,mayFinish};

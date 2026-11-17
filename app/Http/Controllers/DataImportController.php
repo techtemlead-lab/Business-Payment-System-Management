@@ -51,7 +51,7 @@ class DataImportController extends Controller
                 default => $actor->canAct('finance', 'create'),
             }], $types), 'batches' => $batches, 'preview' => $preview,
             'openingLocked' => $imports->openingLocked(),
-            'canApproveOwnOpening' => $batch !== null && $batch->type === 'opening_balances' && $batch->created_by === $actor->id && app(SelfApproval::class)->isAvailable($actor, [$batch->created_by]),
+            'canApproveOwnOpening' => $batch !== null && $batch->type === 'opening_balances' && $batch->created_by === $actor->id && app(SelfApproval::class)->ownerFinishesAlone($actor),
             'templateBase' => '/commands/operations/imports/templates/',
             'startup' => app(IntegrationSettings::class)->startupMode()];
 

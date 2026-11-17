@@ -10,7 +10,7 @@ import SettingsForm, { settingsBack, type SettingsAction, type SettingsField } f
 const root = '/commands/operations';
 
 /** The opening check: do the money records match, is the server ready, and which opening balances wait for a second person. */
-export default function FinancialReadiness({ readiness, deploymentStatus, startupMode, tables = [], secondApprovers = [] }: Row) {
+export default function FinancialReadiness({ readiness, deploymentStatus, startupMode, tables = [] }: Row) {
     const translate = useT();
     const page = usePage<any>();
     const { auth, financeActive, staffActions } = page.props;
@@ -37,7 +37,7 @@ export default function FinancialReadiness({ readiness, deploymentStatus, startu
     };
     const reasonFor = (place: string): SettingsField => ({ name: 'reason', label: translate('portal', 'ops_fld_reason'), type: 'textarea', required: true, place });
     const confirmAlone = (text: string): SettingsField => ({ name: 'self_approve', label: text, required: true, options: [{ value: '1', label: translate('self_approval', 'confirm_yes') }] });
-    const aloneFor = (people: number[]) => auth.user.role === 'super_admin' && (secondApprovers as number[]).filter((id) => !people.includes(id)).length === 0;
+    const aloneFor = (_people: number[]) => auth.user.role === 'super_admin';
     const freshStart: SettingsAction | null = auth.user.role === 'super_admin' && readiness && !readiness.opening_verified ? {
         title: translate('self_approval', 'fresh_start_title'),
         action: `${root}/opening-balances/fresh-start`,
@@ -65,7 +65,7 @@ export default function FinancialReadiness({ readiness, deploymentStatus, startu
             return verify;
         }
         if (aloneFor([row.created_by])) {
-            return { ...verify, title: `${verify.title} (${translate('self_approval', 'alone_tag')})`, fields: [reasonFor('money.opening_verify'), confirmAlone(translate('self_approval', 'confirm_label'))] };
+            return { ...verify, title: `${verify.title} (${translate('self_approval', 'alone_tag')})`, fields: [reasonFor('money.opening_verify')] };
         }
 
         return null;

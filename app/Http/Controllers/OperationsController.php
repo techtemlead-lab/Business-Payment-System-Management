@@ -13,8 +13,8 @@ use App\Domain\Finance\ReportData;
 use App\Domain\Finance\ReserveService;
 use App\Domain\Finance\TreasuryAccess;
 use App\Domain\Finance\WithdrawalApprovalLimit;
+use App\Domain\Finance\WithdrawalSecurityWait;
 use App\Domain\Integrations\IntegrationSettings;
-use App\Domain\Security\SelfApproval;
 use App\Domain\Staff\StaffPermissions;
 use App\Domain\Staff\TerritoryAccess;
 use App\Models\Product;
@@ -170,6 +170,7 @@ class OperationsController extends Controller
         }
         if ($section === 'finance-settings') {
             $data['withdrawalSetting'] = app(FinanceSettings::class)->withdrawalMinimum();
+            $data['withdrawalSecurityWait'] = [...app(WithdrawalSecurityWait::class)->settings(), 'default' => WithdrawalSecurityWait::DefaultHours, 'can_edit' => $actor->owner() && $actor->canAct('finance', 'edit')];
             $data['autoApproval'] = app(FinanceSettings::class)->autoApproval();
             $data['kycBeforeFirstWithdrawal'] = [...app(FinanceSettings::class)->kycBeforeFirstWithdrawal(), 'can_edit' => $actor->role === 'super_admin'];
             $data['fullPaymentWhenOrdering'] = [...app(FinanceSettings::class)->fullPaymentWhenOrdering(), 'can_edit' => $actor->role === 'super_admin'];
@@ -190,9 +191,6 @@ class OperationsController extends Controller
             $data = [...$data, ...ProductVideo::managementData()];
             // Staff who can open the website page manage videos there; the rest keep this form.
             $data['videoManagedOnWebsite'] = $actor->allows('content');
-        }
-        if ($actor->role === 'super_admin' && $section === 'financial-readiness') {
-            $data['secondApprovers'] = app(SelfApproval::class)->otherEligible($actor);
         }
         foreach ($tables as $key => $query) {
             $filter = $this->applyTableFilter($request, $key, $query);

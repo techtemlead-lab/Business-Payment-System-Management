@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Accounts\PartnerMoneyBook;
 use App\Domain\Finance\FinanceSettings;
+use App\Domain\Finance\WithdrawalSecurityWait;
 use App\Domain\Payouts\PayoutReceipts;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,6 +22,8 @@ class MyMoneyController extends Controller
         $partner = $request->user();
         abort_unless(in_array($partner->role, ['dealer', 'sub_dealer'], true), 403);
         $kycBlock = $settings->needsKycBeforeWithdrawal($partner);
+        $wait = app(WithdrawalSecurityWait::class);
+        $opensAt = $wait->opensAt($partner);
 
         return Inertia::render('MyMoney', [
             'section' => 'my-money',
@@ -29,7 +32,7 @@ class MyMoneyController extends Controller
             'table' => $book->table($request, $partner),
             'withdrawal_requests' => $book->withdrawalRequests($partner),
             'not_earned_area' => $book->notEarnedAreaCommission($partner),
-            'withdraw' => ['can' => ! $kycBlock, 'kyc_block' => $kycBlock, 'minimum' => (string) $settings->withdrawalMinimum()['amount']],
+            'withdraw' => ['can' => ! $kycBlock, 'kyc_block' => $kycBlock, 'security_wait' => $opensAt === null ? null : $wait->reason($opensAt), 'minimum' => (string) $settings->withdrawalMinimum()['amount']],
             'reserve_receipts' => $receipts->reservePayoutsFor($partner),
             'certificates' => [
                 'years' => range((int) now('Asia/Dhaka')->format('Y'), max(2024, (int) ($partner->created_at?->timezone('Asia/Dhaka')->format('Y') ?? 2024))),

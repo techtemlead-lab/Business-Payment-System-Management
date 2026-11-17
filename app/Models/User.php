@@ -47,7 +47,21 @@ class User extends Authenticatable implements HasLocalePreference
         'phone_share_approved_by',
         'phone_share_reason',
         'can_prescribe',
+        'credentials_changed_at',
     ];
+
+    /**
+     * Remembers when a saved account's phone number or password changed, because a withdrawal
+     * waits a short while after either (see WithdrawalSecurityWait). A new account has no change yet.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (self $user): void {
+            if ($user->exists && ($user->isDirty('password') || $user->isDirty('phone'))) {
+                $user->credentials_changed_at = now();
+            }
+        });
+    }
 
     protected $attributes = ['status' => 'active', 'role' => 'dealer', 'locale' => self::DefaultLocale];
 
@@ -213,6 +227,7 @@ class User extends Authenticatable implements HasLocalePreference
             'totp_confirmed_at' => 'datetime',
             'directory_visible' => 'boolean',
             'closed_at' => 'datetime',
+            'credentials_changed_at' => 'datetime',
             'linked_staff_permissions' => 'array',
             'staff_linked_at' => 'datetime',
             'can_prescribe' => 'boolean',

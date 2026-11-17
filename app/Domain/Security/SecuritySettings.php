@@ -171,8 +171,9 @@ final class SecuritySettings
     /**
      * @return array{
      *   preview_mode: bool,
-     *   partner_login_otp: array{enabled: bool, version: int, preview_forced_off: bool, config_default: bool, stored_enabled: bool},
+     *   partner_login_otp: array{enabled: bool, version: int, preview_forced_off: bool, config_default: bool},
      *   password_reset_notice: array{enabled: bool, version: int},
+     *   owner_confirmation: array{mode: string, version: int, method: string, sms_works: bool, has_phone: bool, code_fell_back: bool}|null,
      *   totp: array{challenges_enabled: bool, confirmed: bool, preview_forced_off: bool, required: bool},
      *   admin_ip_allowlist_active: bool,
      *   session_count: int
@@ -186,6 +187,8 @@ final class SecuritySettings
             'preview_mode' => $this->previewMode(),
             'partner_login_otp' => $otp,
             'password_reset_notice' => $this->passwordResetNotice(),
+            // Only the two pages that show it ask for it, so no other page pays for the extra query.
+            'owner_confirmation' => $user->owner() && request()->is('login-rules', 'profile') ? app(OwnerConfirmation::class)->payload($user) : null,
             'totp' => [
                 'challenges_enabled' => $this->totpChallengesEnabled(),
                 'confirmed' => filled($user->totp_confirmed_at),

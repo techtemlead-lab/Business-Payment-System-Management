@@ -93,7 +93,7 @@ final class OpeningBalanceImport
             if ($batch->type === 'opening_balances') {
                 $this->assertOpeningAllowed();
                 if ($batch->created_by === $actor->id) {
-                    app(SelfApproval::class)->authorizeAlone($actor, 'import', __('portal.err_import_separate_reviewer'), $confirmedAlone, $reason, [$batch->created_by]);
+                    app(SelfApproval::class)->finishOwnStep($actor, 'import', __('portal.err_import_separate_reviewer'));
                     $selfApproved = true;
                 }
             }
@@ -110,7 +110,7 @@ final class OpeningBalanceImport
 
     public function apply(User $actor, string $id, string $reason, bool $confirmedAlone = false): void
     {
-        DB::transaction(function () use ($actor, $id, $reason, $confirmedAlone): void {
+        DB::transaction(function () use ($actor, $id, $reason): void {
             CommissionWallet::lock();
             $batch = DB::table('data_import_batches')->where('id', $id)->lockForUpdate()->first();
             abort_unless($batch, 404);
@@ -125,7 +125,7 @@ final class OpeningBalanceImport
             if ($batch->type === 'opening_balances') {
                 $this->assertOpeningAllowed();
                 if ($batch->created_by === $actor->id) {
-                    app(SelfApproval::class)->authorizeAlone($actor, 'import', __('portal.err_import_separate_reviewer'), $confirmedAlone, $reason, [$batch->created_by]);
+                    app(SelfApproval::class)->finishOwnStep($actor, 'import', __('portal.err_import_separate_reviewer'));
                     $selfApproved = true;
                 }
             }

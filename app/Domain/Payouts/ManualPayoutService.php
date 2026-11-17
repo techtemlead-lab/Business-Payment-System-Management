@@ -6,6 +6,7 @@ use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Finance\FraudAnomalyDetector;
 use App\Domain\Finance\PaymentAccounts;
+use App\Domain\Finance\WithdrawalSecurityWait;
 use App\Domain\Security\SelfApproval;
 use App\Models\User;
 use App\Support\Audit;
@@ -50,6 +51,12 @@ class ManualPayoutService
     public function submit(User $actor, array $data): array
     {
         CommissionWallet::requireActive();
+        // Outside the transaction below, so the record of a refusal is kept. A replay of a request that
+        // already went through is not refused: it just returns the existing one.
+        $replay = DB::table('withdrawals')->where('user_id', $actor->id)->where('idempotency_key', $data['idempotency_key'])->exists();
+        if (! $replay) {
+            app(WithdrawalSecurityWait::class)->refuseWhileWaiting($actor);
+        }
 
         return DB::transaction(function () use ($actor, $data): array {
             CommissionWallet::lock();

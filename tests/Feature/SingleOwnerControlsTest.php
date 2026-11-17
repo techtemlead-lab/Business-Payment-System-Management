@@ -98,8 +98,7 @@ class SingleOwnerControlsTest extends TestCase
         $readiness = app(FinancialReadiness::class);
         $own = $readiness->submit($this->owner, $this->zeroTotals(), 'Owner closing statement', $this->pdf());
 
-        $this->assertRefused(fn () => $readiness->verify($this->owner, $own), 'balances', __('self_approval.err_confirm'));
-        $readiness->verify($this->owner, $own, self::Reason, true);
+        $readiness->verify($this->owner, $own, self::Reason);
         CommissionWallet::requireActive();
         $this->assertAudited('opening_balances.verified');
 
@@ -110,23 +109,37 @@ class SingleOwnerControlsTest extends TestCase
         $this->assertDatabaseHas('financial_verifications', ['id' => $entered, 'verified_by' => $this->owner->id]);
     }
 
-    public function test_rule_1_is_refused_when_a_second_approver_exists(): void
+    public function test_rule_1_owner_checks_their_own_opening_copy_even_when_a_second_approver_exists(): void
     {
         $readiness = app(FinancialReadiness::class);
         $id = $readiness->submit($this->owner, $this->zeroTotals(), 'Owner closing statement', $this->pdf());
         User::factory()->staff('finance')->create();
 
-        $this->assertRefused(fn () => $readiness->verify($this->owner, $id, self::Reason, true), 'balances', __('portal.err_ready_separate_verify'));
+        $readiness->verify($this->owner, $id, self::Reason);
+
+        $this->assertDatabaseHas('financial_verifications', ['id' => $id, 'verified_by' => $this->owner->id]);
+        $this->assertAudited('opening_balances.verified');
     }
 
-    public function test_rule_2_opening_import_is_refused_when_a_second_approver_exists(): void
+    public function test_rule_1_staff_never_check_their_own_opening_copy(): void
+    {
+        $readiness = app(FinancialReadiness::class);
+        $staff = User::factory()->staff('finance')->create();
+        $id = $readiness->submit($staff, $this->zeroTotals(), 'Staff closing statement', $this->pdf());
+
+        $this->assertRefused(fn () => $readiness->verify($staff, $id), 'balances', __('portal.err_ready_separate_verify'));
+    }
+
+    public function test_rule_2_owner_approves_their_own_opening_import_even_when_a_second_approver_exists(): void
     {
         User::factory()->dealer()->create(['dealer_code' => 'D-OPEN']);
         $imports = app(OpeningBalanceImport::class);
         $id = $imports->preview($this->owner, 'opening_balances', $this->workbook([['D-OPEN', 'OPEN-2', '2026-10-01', '10.00', '0.00', '0.00', '0.00']]), 'Client closing statement');
         User::factory()->staff('finance')->create();
 
-        $this->assertRefused(fn () => $imports->apply($this->owner, $id, self::Reason, true), 'import', __('portal.err_import_separate_reviewer'));
+        $imports->apply($this->owner, $id, self::Reason);
+
+        $this->assertDatabaseHas('data_import_batches', ['id' => $id, 'status' => 'applied']);
     }
 
     public function test_rule_2_staff_prepares_and_owner_approves(): void

@@ -77,6 +77,8 @@ return function (string $portal): void {
     Route::post('/commands/accounts/{user}/profile-lock', [PartnerProfileController::class, 'lock'])->middleware('throttle:20,1');
     Route::post('/commands/profile/photo', [AuthController::class, 'profilePhoto'])->middleware('throttle:10,1');
     Route::post('/commands/owner/partner-login-otp', [AuthController::class, 'partnerLoginOtp'])->middleware('throttle:5,1');
+    Route::post('/commands/owner/confirmation', [AuthController::class, 'ownerConfirmation'])->middleware('throttle:5,1');
+    Route::post('/commands/owner/confirmation-code', [AuthController::class, 'ownerConfirmationCode'])->middleware('throttle:5,1');
     Route::post('/commands/owner/password-reset-notice', [AuthController::class, 'passwordResetNotice'])->middleware('throttle:5,1');
     Route::post('/commands/owner/site-visit-counting', [SiteVisitSettingsController::class, 'update'])->middleware('throttle:10,1');
     Route::post('/commands/owner/reason-fields', [ReasonFieldsController::class, 'update'])->middleware('throttle:20,1');
