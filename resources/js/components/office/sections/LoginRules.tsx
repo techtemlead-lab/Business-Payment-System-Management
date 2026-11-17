@@ -5,11 +5,12 @@ import { settingsBack } from './SettingsForm';
 import { OwnerConfirmationNote, ownerConfirmFields, type OwnerConfirmationControl } from '../OwnerConfirmation';
 
 /** Owners' sign-in switches. The look is new; the two forms post the same fields to the same addresses as before. */
-export default function LoginRules({ otp, passwordResetNotice, ownerConfirmation }: { otp: Row; passwordResetNotice?: Row | null; ownerConfirmation?: OwnerConfirmationControl | null }) {
+export default function LoginRules({ otp, passwordResetNotice, oneAccountPerIdentity, ownerConfirmation }: { otp: Row; passwordResetNotice?: Row | null; oneAccountPerIdentity?: Row | null; ownerConfirmation?: OwnerConfirmationControl | null }) {
     const translate = useT();
     const confirmFields = ownerConfirmFields(ownerConfirmation, translate);
     const smsDown = ownerConfirmation ? !ownerConfirmation.sms_works : true;
     const noticeEnabled = (passwordResetNotice?.enabled ?? true) ? '1' : '0';
+    const oneAccountEnabled = (oneAccountPerIdentity?.enabled ?? false) ? '1' : '0';
 
     return (
         <OfficePage title={translate('portal', 'login_rules')} back={settingsBack(translate)}>
@@ -53,6 +54,19 @@ export default function LoginRules({ otp, passwordResetNotice, ownerConfirmation
                             ...confirmFields,
                         ]}
                         submit={translate('portal', 'password_reset_notice_save')}
+                    />
+                </section>
+                <section className="set-block" data-tour="one-account-per-identity">
+                    <h2>{translate('portal', 'one_account_per_identity_title')}</h2>
+                    <p className="set-line">{translate('portal', 'one_account_per_identity_intro')}</p>
+                    <ActionForm
+                        action="/commands/owner/one-account-per-identity"
+                        defaults={{ enabled: oneAccountEnabled, version: String(oneAccountPerIdentity?.version ?? 0) }}
+                        fields={[
+                            { name: 'enabled', label: translate('portal', 'one_account_per_identity_enabled'), options: [{ value: '1', label: translate('portal', 'one_account_per_identity_on') }, { value: '0', label: translate('portal', 'one_account_per_identity_off') }], required: true, value: oneAccountEnabled },
+                            ...confirmFields,
+                        ]}
+                        submit={translate('portal', 'one_account_per_identity_save')}
                     />
                 </section>
             </div>

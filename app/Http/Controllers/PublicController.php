@@ -614,14 +614,11 @@ class PublicController extends Controller
                 'sponsor_code' => 'nullable|string|max:40',
                 'message' => 'nullable|string|max:2000',
                 'website' => 'nullable|max:0',
-                'phone_taken_confirmed' => 'nullable|string|max:30',
             ]);
             unset($data['website']);
             $data['phone'] = $phones->normalize($data['phone']);
-            $confirmedNumber = $data['phone_taken_confirmed'] ?? null;
-            unset($data['phone_taken_confirmed']);
-            if ($phones->holders($data['phone']) !== [] && ! ($phones->isValid($confirmedNumber) && $phones->normalize($confirmedNumber) === $data['phone'])) {
-                throw ValidationException::withMessages(['phone_taken' => __('portal.err_public_app_phone_taken')]);
+            if ($phones->isTaken($data['phone'])) {
+                throw ValidationException::withMessages(['phone' => __('portal.err_public_app_phone_taken')]);
             }
             if (! empty($data['sponsor_code'])) {
                 $data['sponsor_code'] = strtoupper(trim((string) $data['sponsor_code']));
