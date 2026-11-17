@@ -315,7 +315,7 @@ final class PartnerAccountProvisioning
     private function claimCodes(User $actor, array $codes): void
     {
         // Every spelling, so a closed account still holding the older MNHC-… form gives it up too.
-        $wanted = array_values(array_unique(array_merge([], ...array_map(PlaceCode::serialForms(...), array_values($codes)))));
+        $wanted = array_values(array_unique(array_merge([], ...array_map(PlaceCode::serialForms(...), $codes))));
         $closedHolders = User::query()
             ->whereNotNull('closed_at')
             ->where(fn ($query) => $query->whereIn(DB::raw('UPPER(dealer_code)'), $wanted)->orWhereIn(DB::raw('UPPER(refer_code)'), $wanted))

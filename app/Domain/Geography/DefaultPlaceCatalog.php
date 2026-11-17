@@ -90,7 +90,7 @@ final class DefaultPlaceCatalog
     {
         $summary = ['created' => 0, 'coded' => 0, 'filled' => 0, 'linked' => 0, 'codes_taken' => []];
 
-        /** @var array<int, object{id: int, level: string, code: ?string, name: string, parent_id: ?int, base_place_id: ?int}> $rows */
+        /** @var array<int, \stdClass> $rows */
         $rows = [];
         /** @var array<string, int> $codeOwner The place id that holds each code, by its current spelling */
         $codeOwner = [];
@@ -181,11 +181,11 @@ final class DefaultPlaceCatalog
      * The place the office already has for this row of the list, if any.
      *
      * @param  array{code: string, level: string, name: string, parent_code: ?string, sort_order: int, bn_name: ?string, kind: string}  $place
-     * @param  array<int, object{id: int, level: string, code: ?string, name: string, parent_id: ?int, base_place_id: ?int}>  $rows
+     * @param  array<int, \stdClass>  $rows
      * @param  array<string, int>  $codeOwner
      * @param  array<string, list<int>>  $byStructure
      * @param  array<int, true>  $claimed
-     * @return object{id: int, level: string, code: ?string, name: string, parent_id: ?int, base_place_id: ?int}|null
+     * @return \stdClass|null
      */
     private function match(array $place, string $code, ?int $parentId, array $rows, array $codeOwner, array $byStructure, array $claimed): ?object
     {
@@ -224,7 +224,7 @@ final class DefaultPlaceCatalog
     /**
      * Fill only what the office left blank: the code, the name and the parent.
      *
-     * @param  object{id: int, level: string, code: ?string, name: string, parent_id: ?int, base_place_id: ?int}  $row
+     * @param  \stdClass  $row
      * @param  array{code: string, level: string, name: string, parent_code: ?string, sort_order: int, bn_name: ?string, kind: string}  $place
      * @param  array<string, int>  $codeOwner
      * @param  array{created: int, coded: int, filled: int, linked: int, codes_taken: list<string>}  $summary
@@ -237,7 +237,7 @@ final class DefaultPlaceCatalog
                 $summary['codes_taken'][] = $code;
             } else {
                 $changes['code'] = $code;
-                $codeOwner[$code] = $row->id;
+                $codeOwner[$code] = (int) $row->id;
                 $summary['coded']++;
             }
         }
@@ -264,7 +264,7 @@ final class DefaultPlaceCatalog
      * list, and nothing new under that parent had that name, so parent and name find each row.
      *
      * @param  list<array{source: string, row: array<string, mixed>}>  $pending
-     * @param  array<int, object{id: int, level: string, code: ?string, name: string, parent_id: ?int, base_place_id: ?int}>  $rows
+     * @param  array<int, \stdClass>  $rows
      * @param  array<string, int>  $codeOwner
      * @param  array<string, int>  $idBySource
      */
@@ -296,17 +296,17 @@ final class DefaultPlaceCatalog
     }
 
     /**
-     * @param  object{id: int, level: string, code: ?string, name: string, parent_id: ?int, base_place_id: ?int}  $row
+     * @param  \stdClass  $row
      * @param  array<string, int>  $codeOwner
      * @param  array<string, list<int>>  $byStructure
      */
     private function index(object $row, array &$codeOwner, array &$byStructure): void
     {
         if (is_string($row->code) && ! PlaceCode::isPlaceholderLabel($row->code)) {
-            $codeOwner[PlaceCode::normalizeCode($row->code) ?? $row->code] ??= $row->id;
+            $codeOwner[PlaceCode::normalizeCode($row->code) ?? $row->code] ??= (int) $row->id;
         }
         if (! PlaceCode::isPlaceholderLabel($row->name)) {
-            $byStructure[$row->level.'|'.($row->parent_id ?? '').'|'.$this->nameKey($row->name)][] = $row->id;
+            $byStructure[$row->level.'|'.($row->parent_id ?? '').'|'.$this->nameKey($row->name)][] = (int) $row->id;
         }
     }
 

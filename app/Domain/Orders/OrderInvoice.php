@@ -210,7 +210,7 @@ final class OrderInvoice
             $buyer?->division,
         ])->filter()->implode(', ');
 
-        $place = app(InvoiceBuyerPlace::class)->for($buyer);
+        $place = app(InvoiceBuyerPlace::class)->for($buyer instanceof User ? $buyer : null);
         $designation = match ($buyer?->role) {
             'dealer' => $place['level'] !== null ? __('portal.inv_type_'.$place['level'].'_dealer') : __('portal.inv_role_dealer'),
             'sub_dealer' => __('portal.inv_role_sub_dealer'),

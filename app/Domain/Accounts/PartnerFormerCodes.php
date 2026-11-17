@@ -67,6 +67,6 @@ final class PartnerFormerCodes
      */
     private function normalized(array $codes): array
     {
-        return array_values(array_unique(array_merge([], ...array_map(PlaceCode::serialForms(...), array_values($codes)))));
+        return array_values(array_unique(array_merge([], ...array_map(PlaceCode::serialForms(...), $codes))));
     }
 }
