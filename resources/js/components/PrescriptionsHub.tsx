@@ -311,6 +311,7 @@ function PrescriptionList({ data, translate, onCopy }: { data: PrescriptionsData
                                 <span className="rx-actions">
                                     <a className="button small" href={`${base}/prescriptions/${row.id}/print?lang=bn`} target="_blank" rel="noopener"><Printer size={15} /> {translate('prescription', 'rx_print_bn')}</a>
                                     <a className="button small" href={`${base}/prescriptions/${row.id}/print?lang=en`} target="_blank" rel="noopener"><Printer size={15} /> {translate('prescription', 'rx_print_en')}</a>
+                                    <a className="button small" href={`${base}/prescriptions/${row.id}/print.pdf?lang=${document.documentElement.lang.startsWith('bn') ? 'bn' : 'en'}`} target="_blank" rel="noopener"><Printer size={15} /> {translate('prescription_notepad', 'print_pdf')}</a>
                                     <button type="button" className="button small" onClick={() => onCopy(row)}><Repeat size={15} /> {translate('prescription_notepad', 'copy')}</button>
                                     {row.own && row.lines.length > 0 && <SaveAsTemplate prescriptionId={row.id} translate={translate} />}
                                 </span>
