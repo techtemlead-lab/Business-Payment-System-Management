@@ -72,46 +72,21 @@
 <table class="items" repeat_header="1">
     <thead>
         <tr>
-            <th style="width:6%">{{ __('stock_print.col_serial') }}</th>
-            <th style="width:38%">{{ __('stock_print.col_product') }}</th>
-            <th style="width:14%">{{ __('stock_print.col_pack') }}</th>
-            <th style="width:16%">{{ __('stock_print.col_category') }}</th>
-            <th style="width:10%">{{ __('stock_print.col_mrp') }}</th>
-            <th style="width:8%">{{ __('stock_print.col_dealer_discount') }}</th>
-            <th style="width:8%">{{ __('stock_print.col_sub_dealer_discount') }}</th>
+            <th style="width:5%">{{ __('stock_print.col_serial') }}</th>
+            <th style="width:9%">{{ __('stock_print.col_image') }}</th>
+            <th style="width:27%">{{ __('stock_print.col_product') }}</th>
+            <th style="width:11%">{{ __('stock_print.col_pack') }}</th>
+            <th style="width:13%">{{ __('stock_print.col_category') }}</th>
+            <th style="width:13%">{{ __('stock_print.col_group') }}</th>
+            <th style="width:8%">{{ __('stock_print.col_mrp') }}</th>
+            <th style="width:7%">{{ __('stock_print.col_dealer_discount') }}</th>
+            <th style="width:7%">{{ __('stock_print.col_sub_dealer_discount') }}</th>
         </tr>
     </thead>
     <tbody>
         @forelse ($rows as $row)
             <tr>
                 <td class="mid">{{ $digits($row['serial']) }}</td>
-                <td>{{ $row['name'] }}</td>
-                <td class="mid">{{ $row['pack_size'] ?? '—' }}</td>
-                <td class="mid">{{ $row['category'] ?? '—' }}</td>
-                <td class="num">{{ $amount($row['mrp']) }}</td>
-                <td class="mid">{{ $percent($row['dealer_discount']) }}</td>
-                <td class="mid">{{ $percent($row['sub_dealer_discount']) }}</td>
-            </tr>
-        @empty
-            <tr><td colspan="7" class="empty">{{ __('stock_print.empty') }}</td></tr>
-        @endforelse
-    </tbody>
-</table>
-
-<h2 class="section">{{ __('stock_print.table_images') }}</h2>
-<table class="items" repeat_header="1">
-    <thead>
-        <tr>
-            <th style="width:8%">{{ __('stock_print.col_serial') }}</th>
-            <th style="width:32%">{{ __('stock_print.col_product') }}</th>
-            <th style="width:60%">{{ __('stock_print.col_image') }}</th>
-        </tr>
-    </thead>
-    <tbody>
-        @forelse ($rows as $row)
-            <tr>
-                <td class="mid">{{ $digits($row['serial']) }}</td>
-                <td>{{ $row['name'] }}</td>
                 <td class="mid">
                     @if (! empty($row['image']))
                         <img src="{{ $row['image'] }}" alt="" width="46" height="46">
@@ -119,9 +94,16 @@
                         —
                     @endif
                 </td>
+                <td>{{ $row['name'] }}</td>
+                <td class="mid">{{ $row['pack_size'] ?? '—' }}</td>
+                <td class="mid">{{ $row['category'] ?? '—' }}</td>
+                <td class="mid">{{ $row['group'] ?? '—' }}</td>
+                <td class="num">{{ $amount($row['mrp']) }}</td>
+                <td class="mid">{{ $percent($row['dealer_discount']) }}</td>
+                <td class="mid">{{ $percent($row['sub_dealer_discount']) }}</td>
             </tr>
         @empty
-            <tr><td colspan="3" class="empty">{{ __('stock_print.empty') }}</td></tr>
+            <tr><td colspan="9" class="empty">{{ __('stock_print.empty') }}</td></tr>
         @endforelse
     </tbody>
 </table>
