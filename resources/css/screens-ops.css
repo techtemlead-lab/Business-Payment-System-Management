@@ -183,6 +183,31 @@
 .app-shell .ppm-result:last-child{border-bottom:0}
 .app-shell .ppm-strength{margin-left:6px;font-size:var(--ds-fs-xs);font-weight:600;color:var(--ds-brand-text)}
 .app-shell .ppm-price{font-size:var(--ds-fs-sm);font-weight:700;color:var(--ds-brand-text)}
+.app-shell .ppm-search .ops-field-label{margin-bottom:6px}
+.app-shell .ppm-search-box input[type=search]{-webkit-appearance:none;appearance:none;font-size:var(--ds-fs-base);min-height:28px}
+.app-shell .ppm-search-box input[type=search]::-webkit-search-cancel-button{display:none}
+.app-shell .ppm-result:hover,.app-shell .ppm-result.is-active{background:var(--ds-ok-bg)}
+.app-shell .ppm-result.is-off .hub-strong{color:var(--ds-text-muted)}
+.app-shell .ppm-result .hub-pill{margin-top:2px}
+.app-shell .ppm-result-empty{margin:0;padding:12px 14px;color:var(--ds-text-muted);font-size:var(--ds-fs-sm)}
+.app-shell .ppm-filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:var(--ds-s-3)}
+.app-shell .ppm-filters.is-sub{margin-top:calc(var(--ds-s-2) * -1)}
+.app-shell button.ppm-filter{min-height:36px;padding:4px 12px;border:1px solid var(--ds-line-strong);border-radius:999px;background:var(--ds-surface);color:var(--ds-text-2);font:inherit;font-size:var(--ds-fs-xs);font-weight:600;cursor:pointer}
+.app-shell button.ppm-filter.is-on{border-color:var(--ds-brand);background:var(--ds-brand);color:#fff}
+.app-shell .ppm-pick-prompt{margin:var(--ds-s-2) 0 0;color:var(--ds-text-muted);font-size:var(--ds-fs-sm)}
+.app-shell .ppm-pick{display:grid;gap:var(--ds-s-3);margin-top:var(--ds-s-3)}
+.app-shell .ppm-pick-name{font-size:var(--ds-fs-base);font-weight:700}
+.app-shell .ppm-sizes{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;border:0}
+.app-shell .ppm-sizes legend{padding:0;margin-bottom:6px}
+.app-shell label.ppm-size{display:flex;flex-direction:column;gap:2px;min-width:120px;min-height:44px;padding:8px 12px;border:1.5px solid var(--ds-line-strong);border-radius:var(--ds-r-md);background:var(--ds-surface);cursor:pointer}
+.app-shell label.ppm-size input{position:absolute;opacity:0;width:1px;height:1px}
+.app-shell label.ppm-size.is-on{border-color:var(--ds-brand);box-shadow:var(--ds-focus-ring)}
+.app-shell label.ppm-size:focus-within{box-shadow:var(--ds-focus-ring)}
+.app-shell label.ppm-size.is-off{opacity:.65}
+.app-shell .ppm-size-label{font-size:var(--ds-fs-sm);font-weight:700}
+.app-shell .ppm-size-price{font-size:var(--ds-fs-xs);color:var(--ds-brand-text);font-weight:600}
+.app-shell .ppm-size-stock{font-size:var(--ds-fs-2xs);color:var(--ds-text-muted)}
+.app-shell .ppm-pick .ppm-selection{margin-top:0}
 .app-shell .ppm-struck{text-decoration:line-through}
 .app-shell :is(select,input).ppm-control{width:100%;min-height:42px;height:42px;padding:8px 12px;border-width:1.5px;border-radius:var(--ds-r-md);background-color:var(--ds-surface-2);font-size:var(--ds-fs-sm);font-weight:600}
 .app-shell select.ppm-control{padding-right:32px}

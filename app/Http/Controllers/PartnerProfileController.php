@@ -2,92 +2,51 @@
 
 namespace App\Http\Controllers;
 
-use App\Domain\Accounts\PartnerMonthlyTargets;
 use App\Domain\Accounts\PartnerProfileLock;
-use App\Domain\Accounts\PartnerProfileSheet;
-use App\Domain\Commissions\CommissionQualification;
 use App\Models\User;
+use App\Support\Audit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
-use Inertia\Inertia;
-use Inertia\Response;
 
 /**
- * One dealer's whole file for the office: every stored fact, the password (owners only, through the
- * audited reveal), the monthly targets and a link to the dealer's own tree. Reading is for staff
- * with the Accounts right; only owners change a dealer's monthly target.
+ * The partner profile lock: the office locks or opens a profile, and a partner whose profile is
+ * open may fix his own shop name and village.
  */
 class PartnerProfileController extends Controller
 {
-    public function show(Request $request, User $partner, PartnerProfileSheet $sheet, PartnerMonthlyTargets $targets): Response
+    /** Office: lock a partner's profile, or open it so the partner can fix his own details. */
+    public function lock(Request $request, User $user, PartnerProfileLock $lock): RedirectResponse
     {
-        $this->authorizeStaff($request, $partner);
-        $month = $this->month($request);
-
-        return Inertia::render('PartnerProfile', [
-            'section' => 'accounts',
-            'sheet' => $sheet->for($partner, $request->user()),
-            'month' => $month,
-            'targets' => $targets->for($partner, $month),
-            'canSetTargets' => $request->user()->owner(),
-            'canManagePassword' => $request->user()->owner() || $request->user()->allows('accounts'),
-        ]);
-    }
-
-    public function setTarget(Request $request, User $partner, PartnerMonthlyTargets $targets): RedirectResponse
-    {
-        $this->authorizeOwner($request, $partner);
+        abort_unless($request->user()->allows('accounts'), 403);
+        abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 422, __('partner_profile.err_partners_only'));
         $data = $request->validate([
-            'month' => ['required', 'regex:/^\d{4}-(0[1-9]|1[0-2])$/D'],
-            'kind' => ['required', Rule::in(PartnerMonthlyTargets::Kinds)],
-            'amount' => ['required', 'numeric', 'min:0.01', 'max:999999999'],
-            'note' => ['nullable', 'string', 'max:255'],
+            'locked' => 'required|boolean',
+            'reason' => 'nullable|string|max:500',
         ]);
-        $targets->set($request->user(), $partner, $data['month'], $data['kind'], (string) $data['amount'], $data['note'] ?? null);
+        $lock->set($request->user(), $user, (bool) $data['locked'], (string) ($data['reason'] ?? ''));
 
-        return back()->with('status', __('partner_profile.flash_target_saved'));
+        return back()->with('success', __($data['locked'] ? 'partner_profile.flash_locked' : 'partner_profile.flash_unlocked', ['name' => $user->name]));
     }
 
-    public function clearTarget(Request $request, User $partner, PartnerMonthlyTargets $targets): RedirectResponse
+    /** Partner: change his own shop name and village, only while the office has left his profile open. */
+    public function details(Request $request): RedirectResponse
     {
-        $this->authorizeOwner($request, $partner);
+        $user = $request->user();
+        abort_unless($user instanceof User && PartnerProfileLock::partnerMayEdit($user), 403, __('partner_profile.err_locked'));
         $data = $request->validate([
-            'month' => ['required', 'regex:/^\d{4}-(0[1-9]|1[0-2])$/D'],
-            'kind' => ['required', Rule::in(PartnerMonthlyTargets::Kinds)],
+            'shop_name' => 'nullable|string|max:150',
+            'village' => 'nullable|string|max:150',
         ]);
-        $targets->clear($request->user(), $partner, $data['month'], $data['kind']);
+        $profile = PartnerProfileLock::profileOf($user);
+        $before = ['shop_name' => $profile['shop_name'] ?? null, 'village' => $profile['village'] ?? null];
+        $profile['shop_name'] = trim((string) ($data['shop_name'] ?? '')) ?: null;
+        $profile['village'] = trim((string) ($data['village'] ?? '')) ?: null;
+        $user->forceFill(['profile' => $profile])->save();
+        Audit::record($user->id, 'profile.details_updated', (string) $user->id, [
+            'before' => $before,
+            'after' => ['shop_name' => $profile['shop_name'], 'village' => $profile['village']],
+        ]);
 
-        return back()->with('status', __('partner_profile.flash_target_cleared'));
-    }
-
-    public function setLock(Request $request, User $partner, PartnerProfileLock $lock): RedirectResponse
-    {
-        $this->authorizeStaff($request, $partner);
-        $data = $request->validate(['locked' => ['required', 'boolean']]);
-        $lock->set($request->user(), $partner, (bool) $data['locked']);
-
-        return back()->with('status', __($data['locked'] ? 'partner_profile.flash_locked' : 'partner_profile.flash_unlocked'));
-    }
-
-    private function authorizeStaff(Request $request, User $partner): void
-    {
-        $viewer = $request->user();
-        abort_unless($viewer->staff() || $viewer->usingStaffWorkspace(), 403);
-        abort_unless($viewer->owner() || $viewer->allows('accounts'), 403);
-        abort_unless(in_array($partner->role, ['dealer', 'sub_dealer'], true), 404);
-    }
-
-    private function authorizeOwner(Request $request, User $partner): void
-    {
-        abort_unless($request->user()->owner(), 403);
-        abort_unless($partner->role === 'dealer', 404);
-    }
-
-    private function month(Request $request): string
-    {
-        $month = $request->query('month');
-
-        return is_string($month) && preg_match('/^\d{4}-(0[1-9]|1[0-2])$/D', $month) ? $month : CommissionQualification::currentMonth();
+        return back()->with('success', __('partner_profile.flash_details_saved'));
     }
 }

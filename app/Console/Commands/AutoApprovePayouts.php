@@ -67,6 +67,9 @@ class AutoApprovePayouts extends Command
             $summary['area_quota_close:'.$month] = $this->attempt(fn () => $reserves->forfeitUnmetQuotaHolds($month)['status']);
         }
 
+        // Owner decision: a share still held after the owner's limit of months (setting, 3 by default, 0 = never) goes to the company fund too.
+        $summary['area_held_too_long'] = $this->attempt(fn () => $reserves->forfeitStaleAreaHolds()['status']);
+
         // Month close for the sub-dealer additional-rank fund (last month, plus one for a missed run).
         $current = CarbonImmutable::createFromFormat('!Y-m', CommissionQualification::currentMonth());
         foreach ([2, 1] as $back) {

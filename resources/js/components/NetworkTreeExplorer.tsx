@@ -714,7 +714,7 @@ export default function NetworkTreeExplorer({ dealers, treeStats = null, serverF
 
                         {!isDealerPortal && (
                             <Link href={`${portalBase ?? ''}/accounts/${activeDealer.id}`} className="button small hub-block ops-mt-3">
-                                <UserCheck size={14} /> {translate('partner_profile', 'open_full_profile')}
+                                <UserCheck size={14} /> {translate('partner_file', 'open_full_profile')}
                             </Link>
                         )}
 

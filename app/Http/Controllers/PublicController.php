@@ -607,8 +607,8 @@ class PublicController extends Controller
                 'phone' => 'required|string|max:30',
                 'date_of_birth' => ['required', 'date_format:Y-m-d', PartnerAge::rule()],
                 'role' => ['required', Rule::in(['dealer', 'sub_dealer'])],
-                'division' => 'required|string|max:80',
-                'district' => 'required|string|max:80',
+                'division' => 'nullable|string|max:80',
+                'district' => 'nullable|string|max:80',
                 'upazila' => 'nullable|string|max:150',
                 'sponsor_code' => 'nullable|string|max:40',
                 'message' => 'nullable|string|max:2000',
@@ -625,12 +625,45 @@ class PublicController extends Controller
             if (! empty($data['sponsor_code'])) {
                 $data['sponsor_code'] = strtoupper(trim((string) $data['sponsor_code']));
             }
+            $data = $this->withReferrerPlace($data);
             $applications->submit($data);
         } catch (ValidationException $exception) {
             throw $exception->redirectTo($result);
         }
 
         return redirect($result)->with('success', __('portal.flash_partnership_received'));
+    }
+
+    /**
+     * The referrer's code must belong to a real partner (a typo would silently lose the referral),
+     * and a new partner who leaves the division and district empty is placed where the referrer is.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function withReferrerPlace(array $data): array
+    {
+        $sponsor = null;
+        if (! empty($data['sponsor_code'])) {
+            $code = (string) $data['sponsor_code'];
+            $sponsor = User::query()
+                ->where('status', 'active')
+                ->whereIn('role', ['dealer', 'sub_dealer'])
+                ->where(fn ($query) => $query->whereRaw('UPPER(refer_code) = ?', [$code])->orWhereRaw('UPPER(dealer_code) = ?', [$code]))
+                ->first(['dealer_code', 'refer_code', 'division', 'district'])
+                ?? app(PartnerFormerCodes::class)->activeHolder([$code]);
+            if (! $sponsor) {
+                throw ValidationException::withMessages(['sponsor_code' => __('partner_profile.err_sponsor_unknown')]);
+            }
+        }
+        foreach (['division', 'district'] as $field) {
+            $data[$field] = trim((string) ($data[$field] ?? '')) ?: ($sponsor?->{$field} ?: null);
+            if ($data[$field] === null) {
+                throw ValidationException::withMessages([$field => __('validation.required', ['attribute' => __('site.'.$field)])]);
+            }
+        }
+
+        return $data;
     }
 
     private function nullableMapCoordinate(mixed $value): ?float

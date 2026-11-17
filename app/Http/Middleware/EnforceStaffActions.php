@@ -48,6 +48,8 @@ class EnforceStaffActions
                 'ReportController' => $method === 'export',
                 'FinanceOperationsController' => in_array($method, ['accounts', 'export', 'receipt'], true),
                 'PartnerAgreementController' => $method === 'accept',
+                // A partner whose profile the office left open fixes his own shop name and village; the controller checks the lock.
+                'PartnerProfileController' => $method === 'details',
                 'PartnerChatController' => $method === 'send',
                 'TrainingController' => $method === 'submitQuiz',
                 // Verified prescribers only; PrescriptionAccess checks again.
@@ -260,6 +262,7 @@ class EnforceStaffActions
             'TrainingController', 'PartnerEventController' => [['content'], $method === 'store' ? 'create' : 'edit'],
             'IntegrationSettingsController' => [['finance'], 'edit'],
             'IdentityLookupController' => [['accounts'], 'view'],
+            'PartnerProfileController' => [['accounts'], 'edit'],
             'PlaceCodeController' => [['accounts'], match ($method) {
                 'store' => 'create',
                 'destroy' => 'edit',
@@ -291,7 +294,7 @@ class EnforceStaffActions
             'PartnerChatController' => [['partner_chat'], 'create'],
             'PrescriberVerificationController' => [['prescriber_verify'], 'edit'],
             'PublicTrustAdminController' => [['content'], 'edit'],
-            'PartnerProfileController' => [['accounts'], 'edit'],
+            'PartnerFileController' => [['accounts'], 'edit'],
             'AccountingController' => [['finance'], $method === 'saveApprovalLimit' ? 'edit' : 'create'],
             'PurchasingController' => [['inventory'], in_array($method, ['updateSupplier', 'archiveSupplier', 'restoreSupplier', 'sendOrder', 'cancelOrder'], true) ? 'edit' : 'create'],
             'StockCountController' => [['inventory'], match ($method) {

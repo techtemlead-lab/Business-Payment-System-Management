@@ -401,10 +401,41 @@
         @csrf
         <input type="text" name="website" value="" tabindex="-1" autocomplete="off" aria-hidden="true" class="ref-honeypot" style="position:absolute;left:-9999px;height:0;width:0;opacity:0;">
 
-        {{-- Section 1: Partnership Tier Selection --}}
+        {{-- Section 1: who referred you. The referrer's code is the one thing that matters most; the new partner's own code is issued by the company when the application is approved. --}}
+        @php
+            $typedSponsor = strtoupper(trim((string) old('sponsor_code', request('sponsor_code', ''))));
+            $typedSponsorUser = $typedSponsor !== '' && strlen($typedSponsor) <= 40
+                ? \App\Models\User::query()->where('status', 'active')->whereIn('role', ['dealer', 'sub_dealer'])
+                    ->where(fn ($q) => $q->whereRaw('UPPER(refer_code) = ?', [$typedSponsor])->orWhereRaw('UPPER(dealer_code) = ?', [$typedSponsor]))
+                    ->first(['name', 'dealer_code'])
+                : null;
+        @endphp
         <div class="ref-form-section">
             <div class="ref-section-header">
                 <span class="ref-section-num">1</span>
+                <div>
+                    <h3 class="ref-section-title">{{ __('partner_profile.form_referrer_title') }}</h3>
+                </div>
+            </div>
+            <div class="ref-field-group">
+                <label for="partner-sponsor" class="ref-field-label">
+                    <span>{{ __('partner_profile.form_referrer_label') }}</span>
+                </label>
+                <div class="ref-input-wrap">
+                    <i class="fa-solid fa-id-badge ref-input-icon" aria-hidden="true"></i>
+                    <input id="partner-sponsor" type="text" name="sponsor_code" value="{{ $typedSponsor }}" maxlength="40" autocomplete="off" placeholder="e.g. D-1042" class="ref-input-control">
+                </div>
+                @if($typedSponsorUser)
+                    <small class="ref-field-hint"><b>{{ __('partner_profile.form_referrer_found', ['name' => $typedSponsorUser->name]) }}</b></small>
+                @endif
+                <small class="ref-field-hint">{{ __('partner_profile.form_own_code_hint') }}</small>
+            </div>
+        </div>
+
+        {{-- Section 1: Partnership Tier Selection --}}
+        <div class="ref-form-section">
+            <div class="ref-section-header">
+                <span class="ref-section-num">2</span>
                 <div>
                     <h3 class="ref-section-title">{{ __('site.partner_section_tier') }}</h3>
                 </div>
@@ -449,7 +480,7 @@
         {{-- Section 2: Personal & Contact Information --}}
         <div class="ref-form-section">
             <div class="ref-section-header">
-                <span class="ref-section-num">2</span>
+                <span class="ref-section-num">3</span>
                 <div>
                     <h3 class="ref-section-title">{{ __('site.partner_section_personal') }}</h3>
                 </div>
@@ -498,26 +529,13 @@
                         <input id="partner-dob" type="date" name="date_of_birth" value="{{ old('date_of_birth') }}" required max="{{ \App\Domain\Accounts\PartnerAge::latestAllowedBirthDate() }}" autocomplete="bday" class="ref-input-control">
                     </div>
                     <small class="ref-field-hint">{{ __('site.partner_date_of_birth_hint') }}</small>
-                </div>
-
-                <div class="ref-field-group">
-                    <label for="partner-sponsor" class="ref-field-label">
-                        <span>{{ __('site.sponsor_code_optional') }}</span>
-                        <span class="ref-badge-optional">{{ __('site.optional') }}</span>
-                    </label>
-                    <div class="ref-input-wrap">
-                        <i class="fa-solid fa-id-badge ref-input-icon" aria-hidden="true"></i>
-                        <input id="partner-sponsor" type="text" name="sponsor_code" value="{{ old('sponsor_code', request('sponsor_code')) }}" maxlength="40" autocomplete="off" placeholder="e.g. D-1042" class="ref-input-control">
-                    </div>
-                    <small class="ref-field-hint">{{ __('site.partner_sponsor_hint') }}</small>
-                </div>
-            </div>
+                </div>            </div>
         </div>
 
         {{-- Section 3: Proposed Business Territory --}}
         <div class="ref-form-section">
             <div class="ref-section-header">
-                <span class="ref-section-num">3</span>
+                <span class="ref-section-num">4</span>
                 <div>
                     <h3 class="ref-section-title">{{ __('site.partner_section_location') }}</h3>
                 </div>
@@ -526,11 +544,11 @@
             <div class="ref-form-grid ref-grid-3">
                 <div class="ref-field-group">
                     <label for="partner-division" class="ref-field-label">
-                        <span>{{ __('site.division') }} <span class="ref-req">*</span></span>
+                        <span>{{ __('site.division') }}</span>
                     </label>
                     <div class="ref-input-wrap">
                         <i class="fa-solid fa-map ref-input-icon" aria-hidden="true"></i>
-                        <input id="partner-division" type="text" name="division" list="bd-division-list" value="{{ old('division') }}" required maxlength="80" autocomplete="address-level1" placeholder="{{ __('site.division') }}" class="ref-input-control">
+                        <input id="partner-division" type="text" name="division" list="bd-division-list" value="{{ old('division') }}" maxlength="80" autocomplete="address-level1" placeholder="{{ __('site.division') }}" class="ref-input-control">
                         <datalist id="bd-division-list">
                             <option value="Dhaka">
                             <option value="Chattogram">
@@ -554,11 +572,11 @@
 
                 <div class="ref-field-group">
                     <label for="partner-district" class="ref-field-label">
-                        <span>{{ __('site.district') }} <span class="ref-req">*</span></span>
+                        <span>{{ __('site.district') }}</span>
                     </label>
                     <div class="ref-input-wrap">
                         <i class="fa-solid fa-city ref-input-icon" aria-hidden="true"></i>
-                        <input id="partner-district" type="text" name="district" value="{{ old('district') }}" required maxlength="80" autocomplete="address-level2" placeholder="{{ __('site.district') }}" class="ref-input-control">
+                        <input id="partner-district" type="text" name="district" value="{{ old('district') }}" maxlength="80" autocomplete="address-level2" placeholder="{{ __('site.district') }}" class="ref-input-control">
                     </div>
                 </div>
 
@@ -578,7 +596,7 @@
         {{-- Section 4: Experience / Additional Notes --}}
         <div class="ref-form-section" style="border-bottom:0;padding-bottom:0;margin-bottom:0;">
             <div class="ref-section-header">
-                <span class="ref-section-num">4</span>
+                <span class="ref-section-num">5</span>
                 <div>
                     <h3 class="ref-section-title">{{ __('site.partner_section_notes') }}</h3>
                 </div>

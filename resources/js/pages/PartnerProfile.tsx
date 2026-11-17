@@ -55,7 +55,7 @@ function Facts({ title, lines, note }: { title: string; lines: [string, React.Re
  */
 export default function PartnerProfile({ sheet, month, targets, canSetTargets, canManagePassword }: { sheet: Row; month: string; targets: Target[]; canSetTargets: boolean; canManagePassword: boolean }) {
     const translate = useT();
-    const t = (key: string, replace?: Record<string, string>) => translate('partner_profile', key, replace);
+    const t = (key: string, replace?: Record<string, string>) => translate('partner_file', key, replace);
     const { portalBase: base = '', auth } = usePage<any>().props;
     const isDealer = sheet.role === 'dealer';
     const listPath = `${base}/${isDealer ? 'accounts' : 'sub-dealers'}`;
@@ -189,7 +189,7 @@ export default function PartnerProfile({ sheet, month, targets, canSetTargets, c
 /** The month's targets with progress; the owner can set a different number for this dealer and month. */
 function TargetsPanel({ partnerId, isDealer, month, monthText, targets, canSet }: { partnerId: number; isDealer: boolean; month: string; monthText: string; targets: Target[]; canSet: boolean }) {
     const translate = useT();
-    const t = (key: string) => translate('partner_profile', key);
+    const t = (key: string) => translate('partner_file', key);
     const { portalBase: base = '' } = usePage<any>().props;
     const [editing, setEditing] = useState<Target['kind'] | null>(null);
     const [value, setValue] = useState('');

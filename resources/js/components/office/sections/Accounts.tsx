@@ -174,7 +174,7 @@ export default function Accounts({ section, data }: { section: string; data: Row
                     onClose={() => setOpened(null)}
                     footer={(
                         <>
-                            <Link className="button dark" href={`${base}/accounts/${opened.id}`}>{translate('partner_profile', 'open_full_profile')}</Link>
+                            <Link className="button dark" href={`${base}/accounts/${opened.id}`}>{translate('partner_file', 'open_full_profile')}</Link>
                             <button type="button" className="button" disabled={!canEditRow(opened)} onClick={() => { setEditing(opened); setOpened(null); }}>{translate('portal', 'edit_status')}</button>
                             <button type="button" className="button" disabled={opened.status !== 'active' || !canEdit} onClick={() => invite(opened)}>{translate('portal', 'send_invitation')}</button>
                             <Link className="button" href={`${base}/accounts/${opened.id}/statement`}>{translate('portal', 'stmt_open')}</Link>

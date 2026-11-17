@@ -534,7 +534,6 @@ class AuthController extends Controller
     {
         $user = $request->user();
         abort_unless($user instanceof User && $this->mayReplaceWorkspacePhoto($user), 403);
-        abort_if(PartnerProfileLock::isLocked($user), 403, __('partner_profile.err_profile_locked'));
 
         $data = $request->validate([
             'photo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120', 'dimensions:max_width=4096,max_height=4096'],
@@ -590,7 +589,7 @@ class AuthController extends Controller
     private function mayReplaceWorkspacePhoto(User $user): bool
     {
         if (in_array($user->role, ['dealer', 'sub_dealer'], true)) {
-            return $user->usingStaffWorkspace();
+            return $user->usingStaffWorkspace() || PartnerProfileLock::partnerMayEdit($user);
         }
 
         return $user->owner() || $user->staff();

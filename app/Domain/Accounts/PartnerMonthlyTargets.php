@@ -131,11 +131,11 @@ final class PartnerMonthlyTargets
         $this->assertPartner($partner, $month, $kind);
         $cents = Money::cents($amount);
         if ($cents <= 0) {
-            throw ValidationException::withMessages(['amount' => __('partner_profile.err_target_positive')]);
+            throw ValidationException::withMessages(['amount' => __('partner_file.err_target_positive')]);
         }
         $isCount = $kind === self::Rank && $this->rankUnit($partner) === 'count';
         if ($isCount && $cents % 100 !== 0) {
-            throw ValidationException::withMessages(['amount' => __('partner_profile.err_target_whole')]);
+            throw ValidationException::withMessages(['amount' => __('partner_file.err_target_whole')]);
         }
         $note = $note !== null && trim($note) !== '' ? mb_substr(trim($note), 0, 255) : null;
         DB::transaction(function () use ($actor, $partner, $month, $kind, $cents, $note): void {
@@ -175,7 +175,7 @@ final class PartnerMonthlyTargets
     {
         CommissionQualification::period($month);
         if ($partner->role !== 'dealer' || ! in_array($kind, self::Kinds, true)) {
-            throw ValidationException::withMessages(['kind' => __('partner_profile.err_target_kind')]);
+            throw ValidationException::withMessages(['kind' => __('partner_file.err_target_kind')]);
         }
     }
 
@@ -195,7 +195,7 @@ final class PartnerMonthlyTargets
     {
         $default = Money::cents((string) ($rules['dealer_monthly_salary']['parameters']['min_monthly_volume'] ?? '10000.00'));
 
-        return $this->moneyRow(self::Salary, __('partner_profile.target_salary'), __('partner_profile.target_salary_hint'), $volume, $default, $overrides);
+        return $this->moneyRow(self::Salary, __('partner_file.target_salary'), __('partner_file.target_salary_hint'), $volume, $default, $overrides);
     }
 
     /**
@@ -211,7 +211,7 @@ final class PartnerMonthlyTargets
         $current = Money::cents((string) ($stored === null ? $this->qualification->milestone($user->id, 'bike')['qualifying_volume'] : $stored->qualifying_volume));
         $default = Money::cents((string) ($rules['car_bike_incentive']['parameters']['bike_target'] ?? '0'));
 
-        return $this->moneyRow(self::Incentive, __('partner_profile.target_incentive'), __('partner_profile.target_incentive_hint'), $current, $default, $overrides);
+        return $this->moneyRow(self::Incentive, __('partner_file.target_incentive'), __('partner_file.target_incentive_hint'), $current, $default, $overrides);
     }
 
     /**
@@ -225,7 +225,7 @@ final class PartnerMonthlyTargets
         $code = $currentRank === 'dealer' ? 'mo' : $currentRank;
         $default = Money::cents((string) ($rules['rank_maintenance']['parameters'][$code.'_min_monthly_volume'] ?? '0'));
 
-        return $this->moneyRow(self::Royalty, __('partner_profile.target_royalty', ['rank' => strtoupper($code)]), __('partner_profile.target_royalty_hint', ['rank' => strtoupper($code)]), $volume, $default, $overrides);
+        return $this->moneyRow(self::Royalty, __('partner_file.target_royalty', ['rank' => strtoupper($code)]), __('partner_file.target_royalty_hint', ['rank' => strtoupper($code)]), $volume, $default, $overrides);
     }
 
     /**
@@ -240,20 +240,20 @@ final class PartnerMonthlyTargets
             $default = Money::cents((string) ($parameters['mo_target'] ?? '250000.00'));
             $lifetime = Money::cents((string) ($rank->lifetime_purchase_total ?? '0'));
 
-            return $this->moneyRow(self::Rank, __('partner_profile.target_rank', ['rank' => 'MO']), __('partner_profile.target_rank_mo_hint'), $lifetime, $default, $overrides);
+            return $this->moneyRow(self::Rank, __('partner_file.target_rank', ['rank' => 'MO']), __('partner_file.target_rank_mo_hint'), $lifetime, $default, $overrides);
         }
         $levels = CommissionQualification::RankLevels;
         $next = $levels[array_search($currentRank, $levels, true) + 1] ?? null;
         $required = $next !== null ? (CommissionQualification::TeamRankRequirements[$next] ?? null) : null;
         if ($next === null || $required === null) {
-            return [...$this->countRow(self::Rank, __('partner_profile.target_rank_top'), __('partner_profile.target_rank_top_hint'), 0, 0, $overrides), 'has_target' => false];
+            return [...$this->countRow(self::Rank, __('partner_file.target_rank_top'), __('partner_file.target_rank_top_hint'), 0, 0, $overrides), 'has_target' => false];
         }
         $needed = (int) ($parameters[$next.'_count'] ?? 10);
         $depth = (int) ($parameters['qualification_depth'] ?? 3);
         $counts = $this->qualification->teamRankCounts([(int) $user->id], $depth)[(int) $user->id] ?? [];
         $have = CommissionQualification::leadersAtOrAbove($counts, $required);
 
-        return $this->countRow(self::Rank, __('partner_profile.target_rank', ['rank' => strtoupper($next)]), __('partner_profile.target_rank_team_hint', ['needed' => $needed, 'rank' => strtoupper($required), 'depth' => $depth]), $have, $needed, $overrides);
+        return $this->countRow(self::Rank, __('partner_file.target_rank', ['rank' => strtoupper($next)]), __('partner_file.target_rank_team_hint', ['needed' => $needed, 'rank' => strtoupper($required), 'depth' => $depth]), $have, $needed, $overrides);
     }
 
     /**

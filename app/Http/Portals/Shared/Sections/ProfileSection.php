@@ -2,7 +2,7 @@
 
 namespace App\Http\Portals\Shared\Sections;
 
-use App\Domain\Accounts\PartnerProfileLock;
+use App\Domain\Accounts\PartnerProfileCard;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -41,11 +41,11 @@ final class ProfileSection implements WorkspaceSection
             'shop_name' => $profile['shop_name'] ?? $profile['pharmacy'] ?? null,
             'place_code' => $profile['place_code'] ?? $profile['area_code'] ?? null,
             'name_bn' => $profile['name_bn'] ?? null,
-            'locked' => PartnerProfileLock::isLocked($user),
             'upazila' => $profile['upazila'] ?? null,
             'union' => $profile['union'] ?? null,
             'village' => $profile['village'] ?? null,
             'refer_code' => $user->refer_code,
+            'partner_card' => in_array($user->role, ['dealer', 'sub_dealer'], true) ? app(PartnerProfileCard::class)->for($user) : null,
             'kyc' => [
                 'identity_type' => $identityType !== '' ? $identityType : null,
                 'identity_label' => match ($identityType) {

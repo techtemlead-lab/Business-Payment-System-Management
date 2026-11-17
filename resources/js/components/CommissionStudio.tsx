@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { ShieldCheck, AlertCircle, RefreshCw, Check } from 'lucide-react';
-import { label, humanize } from './UI';
+import { label, humanize, money } from './UI';
 import { useT } from '../shared/i18n/t';
 import { useReasonField } from '../shared/reasonFields';
 
@@ -212,6 +212,57 @@ export default function CommissionStudio({ rules: initialRules, limits }: { rule
                     );
                 })}
             </div>
+            <RewardFundCheckPanel check={pageData?.reward_fund_check} />
+        </div>
+    );
+}
+
+interface FundCheckRow {
+    target: string;
+    rate: string;
+    fund_at_target: string;
+    award: string | null;
+    status: 'covers' | 'short' | 'not_set';
+    shortfall: string | null;
+    break_even_sales: string | null;
+}
+
+/** Read-only: does the money the bike and car fund collects at the target cover the award? */
+function RewardFundCheckPanel({ check }: { check?: Record<'bike' | 'car', FundCheckRow> }) {
+    const translate = useT();
+    if (!check) {
+        return null;
+    }
+    const statusText = (row: FundCheckRow) => row.status === 'covers'
+        ? translate('reward_settings', 'fund_check_covers')
+        : row.status === 'short'
+            ? translate('reward_settings', 'fund_check_short', { amount: money(row.shortfall, { symbol: false }) })
+            : translate('reward_settings', 'fund_check_award_missing');
+    return (
+        <div className="panel reward-fund-check">
+            <h3 className="hub-title is-sm">{translate('reward_settings', 'fund_check_title')}</h3>
+            <p className="hub-hint">{translate('reward_settings', 'fund_check_intro')}</p>
+            <div className="hub-grid is-xwide">
+                {(['bike', 'car'] as const).map(program => {
+                    const row = check[program];
+                    return (
+                        <div key={program} className="hub-tile hub-col">
+                            <h4 className="hub-title is-sm">{translate('reward_settings', `fund_check_${program}`)}</h4>
+                            <dl className="hub-col">
+                                <div className="hub-row is-between"><dt>{translate('reward_settings', 'fund_check_target')}</dt><dd>{money(row.target)}</dd></div>
+                                <div className="hub-row is-between"><dt>{translate('reward_settings', 'fund_check_rate')}</dt><dd>{row.rate}%</dd></div>
+                                <div className="hub-row is-between"><dt>{translate('reward_settings', 'fund_check_at_target')}</dt><dd>{money(row.fund_at_target)}</dd></div>
+                                <div className="hub-row is-between"><dt>{translate('reward_settings', 'fund_check_award')}</dt><dd>{row.award === null ? translate('reward_settings', 'fund_check_not_set') : money(row.award)}</dd></div>
+                                {row.break_even_sales !== null && (
+                                    <div className="hub-row is-between"><dt>{translate('reward_settings', 'fund_check_break_even')}</dt><dd>{money(row.break_even_sales)}</dd></div>
+                                )}
+                            </dl>
+                            <div className={`hub-pill ${row.status === 'covers' ? 'tone-ok' : row.status === 'short' ? 'tone-danger' : 'tone-warn'}`} data-status={row.status}>{statusText(row)}</div>
+                        </div>
+                    );
+                })}
+            </div>
+            <p className="hub-hint">{translate('reward_settings', 'fund_check_note')}</p>
         </div>
     );
 }

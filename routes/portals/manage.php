@@ -6,7 +6,7 @@ use App\Http\Controllers\DataImportController;
 use App\Http\Controllers\IntegrationSettingsController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\OperationsController;
-use App\Http\Controllers\PartnerProfileController;
+use App\Http\Controllers\PartnerFileController;
 use App\Http\Controllers\PartnerStatementController;
 use App\Http\Controllers\PayoutReceiptController;
 use App\Http\Controllers\ProductRegistryController;
@@ -45,7 +45,7 @@ Route::middleware(['auth', 'active', 'portal:manage', 'authenticator'])->group(f
     Route::get('/accounts/create', [DashboardController::class, 'createAccount']);
     Route::get('/accounts/{partner}/statement/{format}', [PartnerStatementController::class, 'downloadFor'])->whereNumber('partner')->whereIn('format', ['xlsx', 'pdf'])->middleware('throttle:10,1');
     Route::get('/accounts/{partner}/team-orders', [TeamOrdersController::class, 'show'])->whereNumber('partner');
-    Route::get('/accounts/{partner}', [PartnerProfileController::class, 'show'])->whereNumber('partner');
+    Route::get('/accounts/{partner}', [PartnerFileController::class, 'show'])->whereNumber('partner');
     Route::get('/accounts/{partner}/team-orders/xlsx', [TeamOrdersController::class, 'downloadFor'])->whereNumber('partner')->middleware('throttle:10,1');
     Route::get('/products/create', [ProductRegistryController::class, 'edit']);
     Route::get('/products/{product}', [ProductRegistryController::class, 'edit']);

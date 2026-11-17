@@ -4,14 +4,12 @@ namespace Tests\Feature;
 
 use App\Domain\Accounts\PartnerDashboardHome;
 use App\Domain\Accounts\PartnerMonthlyTargets;
-use App\Domain\Accounts\PartnerProfileLock;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\ReferralTreePath;
 use App\Models\User;
 use Database\Seeders\CommissionRuleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
-use Illuminate\Http\UploadedFile;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -155,22 +153,6 @@ class PartnerProfileAndTargetsTest extends TestCase
         $this->actingAs($owner)->onPortal('sadmin')->post('/commands/accounts/'.$dealer->id.'/monthly-targets', ['month' => '2026-11', 'kind' => 'salary', 'amount' => '0'])->assertSessionHasErrors('amount');
         $this->actingAs($owner)->onPortal('sadmin')->post('/commands/accounts/'.$sub->id.'/monthly-targets', ['month' => '2026-11', 'kind' => 'salary', 'amount' => '500'])->assertNotFound();
         $this->assertSame([], app(PartnerMonthlyTargets::class)->for($sub, '2026-11'));
-    }
-
-    public function test_the_office_can_lock_a_profile_and_the_partner_cannot_change_the_photo(): void
-    {
-        $owner = User::factory()->staff()->create();
-        $dealer = $this->partner(null);
-
-        $this->actingAs($owner)->onPortal('sadmin')->post('/commands/accounts/'.$dealer->id.'/profile-lock', ['locked' => true])->assertRedirect();
-        $this->assertTrue(PartnerProfileLock::isLocked($dealer->fresh()));
-        $this->assertDatabaseHas('audit_events', ['action' => 'partner.profile_locked', 'subject' => (string) $dealer->id]);
-
-        $this->actingAs($dealer->fresh())->onPortal('dealer')
-            ->post('/commands/profile/photo', ['photo' => UploadedFile::fake()->image('me.jpg')])->assertForbidden();
-
-        $this->actingAs($owner)->onPortal('sadmin')->post('/commands/accounts/'.$dealer->id.'/profile-lock', ['locked' => false])->assertRedirect();
-        $this->assertFalse(PartnerProfileLock::isLocked($dealer->fresh()));
     }
 
     public function test_the_incentive_target_can_be_set_like_the_others(): void
