@@ -37,6 +37,7 @@ use App\Http\Portals\Shared\Sections\ContentSection;
 use App\Http\Portals\Shared\Sections\DataCleanupSection;
 use App\Http\Portals\Shared\Sections\DealerToolsSection;
 use App\Http\Portals\Shared\Sections\EmployeesSection;
+use App\Http\Portals\Shared\Sections\ErrorsSection;
 use App\Http\Portals\Shared\Sections\EventsSection;
 use App\Http\Portals\Shared\Sections\FeedbackSection;
 use App\Http\Portals\Shared\Sections\FinanceSection;
@@ -127,6 +128,7 @@ class WorkspaceController extends Controller
         StockCountsSection::class,
         StockLotsSection::class,
         VisitorsSection::class,
+        ErrorsSection::class,
         ReasonFieldsSection::class,
     ];
 
@@ -166,7 +168,7 @@ class WorkspaceController extends Controller
             'min_mrp' => 'nullable|numeric|min:0',
             'max_mrp' => 'nullable|numeric|min:0',
             'availability' => 'nullable|in:published,draft,in_stock,out_of_stock',
-            'sort' => in_array($section, ['inventory', 'payments', 'audit', 'payouts-hub', 'accounts', 'sub-dealers', 'partnerships', 'sub-dealer-applications', 'employees', 'content', 'feedback', 'enquiries', 'support-admin', 'orders', 'deliveries', 'partner-scorecard', 'branch-performance'], true) ? 'nullable|string|max:40' : 'nullable|in:name,mrp,stock,created,name_asc,name_desc,price_asc,price_desc,newest,stock_asc,stock_desc',
+            'sort' => in_array($section, ['errors', 'inventory', 'payments', 'audit', 'payouts-hub', 'accounts', 'sub-dealers', 'partnerships', 'sub-dealer-applications', 'employees', 'content', 'feedback', 'enquiries', 'support-admin', 'orders', 'deliveries', 'partner-scorecard', 'branch-performance'], true) ? 'nullable|string|max:40' : 'nullable|in:name,mrp,stock,created,name_asc,name_desc,price_asc,price_desc,newest,stock_asc,stock_desc',
             ...Arr::only(PartnerAccountList::rules(), ['division', 'district', 'rank', 'no_order_days']),
             ...Arr::only(StockMovementList::rules(), ['product_id', 'movement']),
         ]);

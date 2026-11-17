@@ -135,7 +135,7 @@ const icons: Record<string, LucideIcon> = {
     treasury: Landmark, 'sub-dealers': Store, 'sub-dealer-orders': ShoppingBag, 'sub-dealer-applications': Briefcase,
     employees: UserCheck, dashboards: SlidersHorizontal, help: LifeBuoy, 'support-admin': MessageSquare, agreement: ScrollText, 'top-sellers': Trophy,
     finance: Landmark, payouts: Wallet, accounting: BookOpen, 'partner-messages': MessageSquare, messages: MessageSquare, partners: Users, people: UserCheck, settings: Settings, 'login-rules': ShieldCheck, visitors: BarChart3, 'reason-fields': SlidersHorizontal,
-    training: GraduationCap, learning: GraduationCap, events: CalendarDays, 'data-cleanup': Settings, 'privacy-requests': ShieldCheck, prescriptions: Stethoscope, clinic: Stethoscope, purchasing: ShoppingCart, 'stock-counts': Hash,
+    training: GraduationCap, learning: GraduationCap, events: CalendarDays, 'data-cleanup': Settings, errors: AlertTriangle, 'privacy-requests': ShieldCheck, prescriptions: Stethoscope, clinic: Stethoscope, purchasing: ShoppingCart, 'stock-counts': Hash,
 };
 
 export default function Shell({ section, children, action }: { section: string; children: ReactNode; action?: ReactNode }) {

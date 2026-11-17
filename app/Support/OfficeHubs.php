@@ -121,6 +121,7 @@ final class OfficeHubs
             'audit' => '/audit',
             'privacy-requests' => '/privacy-requests',
             'data-cleanup' => '/data-cleanup',
+            'errors' => '/errors',
         ],
     ];
 

@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Diagnostics\ErrorTracker;
 use App\Http\Middleware\ActiveAccount;
 use App\Http\Middleware\BindSessionFingerprint;
 use App\Http\Middleware\CoordinateBackups;
@@ -51,6 +52,12 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         // Reports errors to Sentry only when SENTRY_LARAVEL_DSN is set; without it nothing is sent.
         Integration::handles($exceptions);
+
+        // The site's own error log. Laravel only calls this for errors it would report anyway (not
+        // validation, sign-in or missing pages); the tracker swallows its own failures.
+        $exceptions->report(function (Throwable $e): void {
+            app(ErrorTracker::class)->capture($e);
+        });
 
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
