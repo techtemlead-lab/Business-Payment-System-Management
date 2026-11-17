@@ -14,14 +14,14 @@
         body { font-family: freeserif, sans-serif; color: #0f172a; font-size: 11pt; margin: 0; }
         table.header { width: 100%; border-collapse: collapse; }
         table.header td { vertical-align: middle; }
-        .logo-cell { width: 150px; text-align: left; }
-        .legal-cell { width: 230px; text-align: right; }
+        .logo-cell { width: 165px; text-align: left; }
+        .legal-cell { width: 245px; text-align: right; }
         .brand-name { font-size: 25pt; font-weight: bold; color: #006837; }
         .brand-line { font-size: 13pt; color: #334155; line-height: 1.45; }
         .title { text-align: center; margin: 8px 0 8px; }
         .title span { font-size: 18pt; font-weight: bold; color: #006837; border-bottom: 2px solid #006837; padding: 0 18px 2px; }
         table.items { width: 100%; border-collapse: collapse; }
-        table.items th { background: #e3f1eb; color: #00482f; border: 1px solid #94a3b8; padding: 5px 3px; text-align: center; font-size: 11pt; }
+        table.items th { background: #e3f1eb; color: #00482f; border: 1px solid #94a3b8; padding: 5px 2px; text-align: center; font-size: 10.5pt; }
         table.items td { border: 1px solid #cbd5e1; padding: 4px 5px; vertical-align: middle; font-size: 11pt; }
         table.items tr { page-break-inside: avoid; }
         .num { text-align: right; }
@@ -33,24 +33,26 @@
 <body>
 <table class="header">
     <tr>
-        <td class="logo-cell">
+        <td class="logo-cell" rowspan="2">
             @if (! empty($company['logo_path']))
-                <img src="{{ $company['logo_path'] }}" alt="" width="120" height="120">
+                <img src="{{ $company['logo_path'] }}" alt="" width="140" height="140">
             @endif
         </td>
-        <td style="text-align:center">
+        <td style="text-align:center;vertical-align:bottom">
             <div class="brand-name">{{ $company['name'] }}</div>
             <div class="brand-line">{{ $company['address'] }}</div>
         </td>
-        <td class="legal-cell">
+        <td class="legal-cell" rowspan="2">
             <div class="brand-line">{{ __('site.top_bar_trade_licence') }}: <b>{{ $digits($company['licence']) }}</b></div>
             <div class="brand-line">{{ __('site.top_bar_trademark') }}: <b>{{ $company['trademark'] }}</b></div>
         </td>
     </tr>
+    <tr>
+        <td style="text-align:center;vertical-align:top">
+            @include('partials.letterhead-contacts', ['company' => $company, 'size' => '13pt', 'localDigits' => true])
+        </td>
+    </tr>
 </table>
-<div style="text-align:center;margin-top:4px">
-    @include('partials.letterhead-contacts', ['company' => $company, 'size' => '13pt', 'localDigits' => true])
-</div>
 
 <div class="title"><span>{{ __('stock_print.title') }}</span></div>
 
@@ -59,15 +61,15 @@
         <tr>
             <th style="width:4%">{{ __('stock_print.col_serial') }}</th>
             <th style="width:7%">{{ __('stock_print.col_image') }}</th>
-            <th style="width:14%">{{ __('stock_print.col_product') }}</th>
+            <th style="width:13%">{{ __('stock_print.col_product') }}</th>
             <th style="width:7%">{{ __('stock_print.col_pack') }}</th>
             <th style="width:8%">{{ __('stock_print.col_group') }}</th>
             <th style="width:8%">{{ __('stock_print.col_category') }}</th>
             <th style="width:15%">{{ __('stock_print.col_efficacy') }}</th>
             <th style="width:15%">{{ __('stock_print.col_usage') }}</th>
             <th style="width:8%">{{ __('stock_print.col_mrp') }}</th>
-            <th style="width:7%">{{ __('stock_print.col_dealer_discount') }}</th>
-            <th style="width:7%">{{ __('stock_print.col_sub_dealer_discount') }}</th>
+            <th style="width:8%">{{ __('stock_print.col_dealer_discount') }}</th>
+            <th style="width:9%">{{ __('stock_print.col_sub_dealer_discount') }}</th>
         </tr>
     </thead>
     <tbody>
