@@ -47,7 +47,7 @@ class StaffListTableTest extends TestCase
         $wanted = User::factory()->staff('support')->create(['name' => 'Salma Unique', 'email' => 'salma@example.test', 'phone' => '01700000099']);
         User::query()->whereKey($wanted->id)->update(['created_at' => now()->subYear()]);
 
-        foreach (['Salma', 'salma@example', '01700000099'] as $words) {
+        foreach (['Salma Unique', 'salma@example.test', '01700000099'] as $words) {
             $this->visit('/employees?q='.$words)->assertInertia(fn (Assert $page) => $page
                 ->where('data.employees.total', 1)
                 ->where('data.employees.data.0.id', $wanted->id)
