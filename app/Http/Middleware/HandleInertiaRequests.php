@@ -253,6 +253,7 @@ class HandleInertiaRequests extends Middleware
                 'office_home' => Lang::get('office_home'),
                 'office_stock' => Lang::get('office_stock'),
                 'size_groups' => Lang::get('size_groups'),
+                'order_search' => Lang::get('order_search'),
                 'office_partners' => Lang::get('office_partners'),
                 'office_staff' => Lang::get('office_staff'),
                 'office_website' => Lang::get('office_website'),
