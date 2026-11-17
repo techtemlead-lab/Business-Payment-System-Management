@@ -36,6 +36,7 @@ final class PrescriptionsSection implements WorkspaceSection
         private ClinicDispensing $dispensing,
         private BranchOperations $branches,
         private PrescriptionSettings $settings,
+        private PrescriptionLetterhead $letterheads,
     ) {}
 
     public function data(SectionContext $context, array $data): array
@@ -141,6 +142,8 @@ final class PrescriptionsSection implements WorkspaceSection
                 ->all(),
             // Whether a medicine may also be typed by hand: the owners' switch, off until they turn it on.
             'other_medicines_allowed' => $otherMedicines['enabled'],
+            // The prescriber's own paper (header, footer, logo) for the settings tab.
+            'letterhead_settings' => $this->letterheads->forSettings($user),
         ];
         if ($owner) {
             // Only the owner's own account changes the switch.
@@ -171,13 +174,12 @@ final class PrescriptionsSection implements WorkspaceSection
     }
 
     /**
-     * The prescriber's letterhead from the letterhead settings, or null until the prescription
-     * settings page has been built and filled in.
+     * The prescriber's letterhead (header, footer, logo) for the writing screen.
      *
-     * @return array<string, mixed>|null
+     * @return array<string, mixed>
      */
-    private function letterhead(User $user): ?array
+    private function letterhead(User $user): array
     {
-        return class_exists(PrescriptionLetterhead::class) ? PrescriptionLetterhead::forPrescriber($user) : null;
+        return $this->letterheads->forPrescriber($user);
     }
 }

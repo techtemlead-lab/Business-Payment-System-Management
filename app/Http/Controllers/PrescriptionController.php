@@ -8,13 +8,14 @@ use App\Domain\Clinic\PatientRecords;
 use App\Domain\Clinic\PrescriberVerification;
 use App\Domain\Clinic\PrescriptionAccess;
 use App\Domain\Clinic\PrescriptionBook;
+use App\Domain\Clinic\PrescriptionLetterhead;
 use App\Domain\Clinic\PrescriptionLists;
+use App\Domain\Clinic\PrescriptionPdf;
 use App\Domain\Clinic\Vitals;
 use App\Models\PlaceCode;
 use App\Models\PrescriberRegistration;
 use App\Models\Prescription;
 use App\Models\PrescriptionPatient;
-use App\Support\PhoneIdentity;
 use App\Support\ReasonFields;
 use App\Support\TransactionReference;
 use Illuminate\Http\JsonResponse;
@@ -180,20 +181,36 @@ class PrescriptionController extends Controller
     }
 
     /** The printable prescription in Bangla (?lang=bn) or English (?lang=en). */
-    public function print(Request $request, Prescription $prescription, PatientRecords $records): Response
+    public function print(Request $request, Prescription $prescription, PatientRecords $records, PrescriptionLetterhead $letterheads): Response
     {
         $records->openForPrint($request->user(), $prescription);
         $lang = in_array($request->query('lang'), ['bn', 'en'], true) ? (string) $request->query('lang') : app()->getLocale();
         $prescription->load(['lines', 'patient.placeCode', 'prescriber:id,name,phone']);
-        $registration = PrescriberRegistration::query()->where('user_id', $prescription->prescriber_id)->first();
+        $prescriber = $prescription->prescriber;
+        abort_if($prescriber === null, 404);
 
         return response()->view('prescriptions.print', [
             'prescription' => $prescription,
-            'registration' => $registration,
+            'letterhead' => $letterheads->forPrescriber($prescriber),
+            'logo' => $letterheads->logoDataUri($prescriber),
             'lang' => $lang,
             'company' => (string) __('portal.brand_company_bar', [], $lang),
-            'phone' => PhoneIdentity::maskedForPrint($prescription->patient?->phone),
             'csp_nonce' => (string) $request->attributes->get('csp_nonce', ''),
+        ]);
+    }
+
+    /** The same prescription as an A4 PDF. Opening it is logged like printing it. */
+    public function printPdf(Request $request, Prescription $prescription, PatientRecords $records, PrescriptionPdf $pdf): Response
+    {
+        $records->openForPrint($request->user(), $prescription);
+        $lang = in_array($request->query('lang'), ['bn', 'en'], true) ? (string) $request->query('lang') : app()->getLocale();
+        $prescription->load(['lines', 'patient.placeCode', 'prescriber:id,name,phone']);
+
+        return response($pdf->render($prescription, $lang), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.PrescriptionPdf::fileName($prescription).'"',
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
         ]);
     }
 

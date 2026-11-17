@@ -24,6 +24,7 @@ use App\Http\Controllers\PlaceCodeController;
 use App\Http\Controllers\PrescriberPublicToolsController;
 use App\Http\Controllers\PrescriberVerificationController;
 use App\Http\Controllers\PrescriptionController;
+use App\Http\Controllers\PrescriptionLetterheadController;
 use App\Http\Controllers\PrescriptionSettingsController;
 use App\Http\Controllers\PrescriptionToolsController;
 use App\Http\Controllers\PrivacyRequestController;
@@ -247,6 +248,9 @@ return function (string $portal): void {
     Route::delete('/commands/prescriptions/diet-templates/{dietTemplate}', [PrescriptionToolsController::class, 'destroyDietTemplate'])->whereNumber('dietTemplate')->middleware('throttle:30,1');
     Route::post('/commands/prescriptions/{prescription}/follow-up-done', [PrescriptionToolsController::class, 'markFollowUpDone'])->whereNumber('prescription')->middleware('throttle:60,1');
     Route::get('/prescriptions/{prescription}/print', [PrescriptionController::class, 'print'])->whereNumber('prescription')->middleware('throttle:30,1');
+    Route::get('/prescriptions/{prescription}/print.pdf', [PrescriptionController::class, 'printPdf'])->whereNumber('prescription')->middleware('throttle:20,1');
+    Route::post('/commands/prescriptions/letterhead', [PrescriptionLetterheadController::class, 'save'])->middleware('throttle:20,1');
+    Route::get('/prescriptions/letterhead/logo', [PrescriptionLetterheadController::class, 'logo'])->middleware('throttle:60,1');
     Route::post('/commands/prescriptions/public-listing', [PrescriberPublicToolsController::class, 'saveListing'])->middleware('throttle:20,1');
     Route::post('/commands/prescriptions/consultations/{consultation}/accept', [PrescriberPublicToolsController::class, 'accept'])->whereNumber('consultation')->middleware('throttle:60,1');
     Route::post('/commands/prescriptions/consultations/{consultation}/decline', [PrescriberPublicToolsController::class, 'decline'])->whereNumber('consultation')->middleware('throttle:60,1');
