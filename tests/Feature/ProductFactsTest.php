@@ -166,14 +166,13 @@ class ProductFactsTest extends TestCase
 
     public function test_one_filled_usage_fact_shows_only_its_own_row(): void
     {
-        $product = Product::factory()->create(['warnings_en' => 'Keep away from test children']);
+        $product = Product::factory()->create(['storage_en' => 'Keep away from test sunlight']);
 
         $this->withCookie('locale', 'en')->get('/products/'.$product->id)->assertOk()
             ->assertSee('id="usage-tab"', false)
-            ->assertSee('Keep away from test children')
-            ->assertSee(__('product_facts.warnings'))
-            ->assertDontSee(__('site.pd_directions_title'))
-            ->assertDontSee(__('site.pd_storage_title'));
+            ->assertSee('Keep away from test sunlight')
+            ->assertSee(__('site.pd_storage_title'))
+            ->assertDontSee(__('site.pd_directions_title'));
     }
 
     public function test_no_fixed_claim_or_directions_appear_on_a_product_page_in_either_language(): void

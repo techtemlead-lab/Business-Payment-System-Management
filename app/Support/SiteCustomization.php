@@ -383,6 +383,8 @@ class SiteCustomization
             'directory_gps_btn' => 'Find nearest dealers',
             'directory_empty_title' => $copy('directory_empty_title'),
             'directory_empty_desc' => 'Contact us for help finding a local dealer.',
+            // The one number every dealer and sub-dealer card and share card shows; their own numbers stay private.
+            'dealer_contact_phone' => '+8801730532966',
 
             // Products Catalog Page (/products)
             'catalog_categories_title' => 'Categories',
@@ -1046,6 +1048,17 @@ class SiteCustomization
         $value = trim((string) (self::all()[$key] ?? ''));
 
         return $value !== '' ? $value : (string) self::defaults()[$key];
+    }
+
+    /**
+     * The one number shown for every dealer and sub-dealer on the public site.
+     * A blank box goes back to the built-in company number.
+     */
+    public static function dealerContactPhone(): string
+    {
+        $phone = trim((string) (self::all()['dealer_contact_phone'] ?? ''));
+
+        return $phone !== '' ? $phone : (string) self::defaults()['dealer_contact_phone'];
     }
 
     /** The second phone number, or null when there is none or it repeats the first. */

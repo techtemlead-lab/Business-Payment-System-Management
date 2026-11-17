@@ -19,7 +19,7 @@ final class StockPrintList
 {
     /**
      * @return array{
-     *     rows: list<array{serial: int, name: string, pack_size: ?string, category: ?string, mrp: ?string, dealer_discount: ?string, sub_dealer_discount: ?string, image: ?string, usage: ?string, efficacy: ?string}>
+     *     rows: list<array{serial: int, name: string, pack_size: ?string, category: ?string, group: ?string, mrp: ?string, dealer_discount: ?string, sub_dealer_discount: ?string, image: ?string, usage: ?string, efficacy: ?string}>
      * }
      */
     public function build(BranchScope $scope): array
@@ -30,7 +30,7 @@ final class StockPrintList
         }
 
         $entries = [];
-        foreach (Product::query()->whereIn('id', $productIds)->get(['id', 'name', 'strength', 'category', 'pack_size_en', 'pack_size_bn', 'mrp', 'dealer_price', 'sub_dealer_price', 'description', 'dose_bn', 'dose_en', 'image_path']) as $product) {
+        foreach (Product::query()->whereIn('id', $productIds)->get(['id', 'name', 'strength', 'category', 'pack_size_en', 'pack_size_bn', 'mrp', 'dealer_price', 'sub_dealer_price', 'description', 'dose_bn', 'dose_en', 'group_bn', 'group_en', 'efficacy_bn', 'efficacy_en', 'image_path']) as $product) {
             [$name, $packSize] = StockPrintName::split($product->registerName(), ProductSizeGroups::label($product));
             $category = trim((string) $product->category);
             $entries[] = ['product' => $product, 'name' => $name, 'pack_size' => $packSize, 'category' => $category !== '' ? $category : null];
@@ -51,12 +51,14 @@ final class StockPrintList
                 'name' => $entry['name'],
                 'pack_size' => $entry['pack_size'],
                 'category' => $entry['category'],
+                'group' => $this->localizedFact($product, 'group'),
                 'mrp' => $mrpCents > 0 ? Money::decimal($mrpCents) : null,
                 'dealer_discount' => $this->discount($product, $product->dealer_price),
                 'sub_dealer_discount' => $this->discount($product, $product->sub_dealer_price),
                 'image' => $this->imagePath($product),
                 'usage' => $this->localizedFact($product, 'dose'),
-                'efficacy' => $this->plainText($product->description),
+                // The product description stands in until the owner fills in the efficacy.
+                'efficacy' => $this->localizedFact($product, 'efficacy') ?? $this->plainText($product->description),
             ];
         }
 

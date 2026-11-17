@@ -271,9 +271,8 @@
             <span class="ref-dealer-distance"><i class="fa-solid fa-location-arrow" aria-hidden="true"></i> {{ __('site.directory_distance_km', ['km' => \App\Support\LocalDigits::text($dealer->distance_km)]) }}</span>
             @endif
         </div>
-        @if($dealer->phone)
-        <p><i class="fa-solid fa-phone" aria-hidden="true"></i> {{ $dealer->phone }}</p>
-        @endif
+        @php $dealerContactPhone = \App\Support\SiteCustomization::dealerContactPhone(); @endphp
+        <p><i class="fa-solid fa-phone" aria-hidden="true"></i> <a href="{{ \App\Support\SiteCustomization::phoneLink($dealerContactPhone) }}">{{ $dealerContactPhone }}</a></p>
     </article>
     @empty
     <div class="ref-empty">

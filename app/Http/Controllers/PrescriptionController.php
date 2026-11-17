@@ -8,13 +8,14 @@ use App\Domain\Clinic\PatientRecords;
 use App\Domain\Clinic\PrescriberVerification;
 use App\Domain\Clinic\PrescriptionAccess;
 use App\Domain\Clinic\PrescriptionBook;
+use App\Domain\Clinic\PrescriptionLetterhead;
 use App\Domain\Clinic\PrescriptionLists;
+use App\Domain\Clinic\PrescriptionPdf;
 use App\Domain\Clinic\Vitals;
 use App\Models\PlaceCode;
 use App\Models\PrescriberRegistration;
 use App\Models\Prescription;
 use App\Models\PrescriptionPatient;
-use App\Support\PhoneIdentity;
 use App\Support\ReasonFields;
 use App\Support\TransactionReference;
 use Illuminate\Http\JsonResponse;
@@ -57,7 +58,9 @@ class PrescriptionController extends Controller
             // Only when a new patient is sent: "accepted" would otherwise refuse every old patient.
             ...($request->filled('new_patient') ? $this->newPatientRules() : []),
             'prescribed_on' => 'required|date_format:Y-m-d',
+            'visit_type' => ['nullable', Rule::in(['new', 'old'])],
             'complaints' => 'nullable|string|max:3000',
+            'examination' => 'nullable|string|max:3000',
             'diagnosis' => 'nullable|string|max:3000',
             'advice' => 'nullable|string|max:3000',
             'follow_up_on' => 'nullable|date_format:Y-m-d|after_or_equal:prescribed_on',
@@ -84,8 +87,8 @@ class PrescriptionController extends Controller
             'lines.*.food_timing' => ['nullable', Rule::in(DoseSchedule::FoodTimings)],
             'lines.*.duration_count' => 'nullable|integer|min:1|max:365|required_with:lines.*.duration_unit',
             'lines.*.duration_unit' => ['nullable', Rule::in(DoseSchedule::DurationUnits), 'required_with:lines.*.duration_count'],
-            'lines.*.unit_price' => 'required|numeric|decimal:0,2|min:0|max:9999999',
-            'lines.*.quantity' => 'required|integer|min:1|max:10000',
+            'lines.*.unit_price' => 'nullable|numeric|decimal:0,2|min:0|max:9999999',
+            'lines.*.quantity' => 'nullable|integer|min:1|max:10000',
             'lines.*.discount' => 'nullable|numeric|decimal:0,2|min:0|max:9999999',
         ]);
         $prescription = $this->book->create($request->user(), $data);
@@ -101,6 +104,12 @@ class PrescriptionController extends Controller
             'payment_method' => ['nullable', Rule::in(Prescription::PaymentMethods)],
             'payment_reference' => 'nullable|string|'.TransactionReference::MinRule.'|max:80',
             ClinicDispensing::ConfirmBelowFloorField => 'nullable|boolean',
+            // The owner links a medicine written as free text to a company product, keyed by the line's id.
+            'links' => 'nullable|array|max:'.PrescriptionBook::MaxLines,
+            'links.*.product_id' => 'required|integer|exists:products,id',
+            'links.*.quantity' => 'required|integer|min:1|max:10000',
+            'links.*.unit_price' => 'required|numeric|decimal:0,2|min:0|max:9999999',
+            'links.*.discount' => 'nullable|numeric|decimal:0,2|min:0|max:9999999',
         ], TransactionReference::messages('payment_reference'));
         $this->book->assertVisible($request->user(), $prescription);
         $this->dispensing->dispense(
@@ -110,6 +119,7 @@ class PrescriptionController extends Controller
             $data['payment_method'] ?? Prescription::PaymentCash,
             $data['payment_reference'] ?? null,
             (bool) ($data[ClinicDispensing::ConfirmBelowFloorField] ?? false),
+            $data['links'] ?? [],
         );
 
         return back()->with('success', __('prescription.flash_dispensed', ['number' => $prescription->number]));
@@ -171,20 +181,36 @@ class PrescriptionController extends Controller
     }
 
     /** The printable prescription in Bangla (?lang=bn) or English (?lang=en). */
-    public function print(Request $request, Prescription $prescription, PatientRecords $records): Response
+    public function print(Request $request, Prescription $prescription, PatientRecords $records, PrescriptionLetterhead $letterheads): Response
     {
         $records->openForPrint($request->user(), $prescription);
         $lang = in_array($request->query('lang'), ['bn', 'en'], true) ? (string) $request->query('lang') : app()->getLocale();
         $prescription->load(['lines', 'patient.placeCode', 'prescriber:id,name,phone']);
-        $registration = PrescriberRegistration::query()->where('user_id', $prescription->prescriber_id)->first();
+        $prescriber = $prescription->prescriber;
+        abort_if($prescriber === null, 404);
 
         return response()->view('prescriptions.print', [
             'prescription' => $prescription,
-            'registration' => $registration,
+            'letterhead' => $letterheads->forPrescriber($prescriber),
+            'logo' => $letterheads->logoDataUri($prescriber),
             'lang' => $lang,
             'company' => (string) __('portal.brand_company_bar', [], $lang),
-            'phone' => PhoneIdentity::maskedForPrint($prescription->patient?->phone),
             'csp_nonce' => (string) $request->attributes->get('csp_nonce', ''),
+        ]);
+    }
+
+    /** The same prescription as an A4 PDF. Opening it is logged like printing it. */
+    public function printPdf(Request $request, Prescription $prescription, PatientRecords $records, PrescriptionPdf $pdf): Response
+    {
+        $records->openForPrint($request->user(), $prescription);
+        $lang = in_array($request->query('lang'), ['bn', 'en'], true) ? (string) $request->query('lang') : app()->getLocale();
+        $prescription->load(['lines', 'patient.placeCode', 'prescriber:id,name,phone']);
+
+        return response($pdf->render($prescription, $lang), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.PrescriptionPdf::fileName($prescription).'"',
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
         ]);
     }
 
@@ -212,6 +238,7 @@ class PrescriptionController extends Controller
             'age' => 'nullable|integer|min:0|max:130',
             'sex' => ['nullable', Rule::in(PrescriptionPatient::Sexes)],
             'phone' => ['nullable', 'string', 'max:20', 'regex:/^\+?[\d\s-]{6,20}$/'],
+            'address_text' => 'nullable|string|max:500',
             'place_code_id' => 'nullable|integer|exists:place_codes,id',
             'notes' => ReasonFields::rule('clinic.patient_notes', 2000),
             'allergies' => 'nullable|string|max:1000',

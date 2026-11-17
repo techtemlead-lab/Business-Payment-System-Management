@@ -7,7 +7,7 @@ import { useT } from '../shared/i18n/t';
 import type { DietTemplateRow } from './PrescriptionExtras';
 import type { AccessLogRow } from './PatientAccessLogList';
 import type { QueueData } from './ClinicQueueTab';
-import type { LineForm } from './PrescriptionsHub';
+import { linesFromSaved, type LineForm } from './PrescriptionNotepad';
 import type { FollowUpsData } from './PrescriptionFollowUps';
 import type { PrescriberReportData } from './PrescriberReport';
 
@@ -44,49 +44,13 @@ export type PrescriptionTools = {
     report: PrescriberReportData;
 };
 
-/**
- * Turns saved lines into form lines. A product no longer sold is left blank to choose again; a
- * medicine typed by hand is left out while the owners do not allow other medicines.
- */
-export function linesFromSaved(saved: TemplateRow['lines'], products: { id: number }[], otherAllowed: boolean): { lines: LineForm[]; productMissing: boolean; otherDropped: boolean } {
-    let productMissing = false;
-    const otherDropped = !otherAllowed && saved.some((line) => line.product_id === null);
-    const lines = saved.filter((line) => otherAllowed || line.product_id !== null).map((line): LineForm => {
-        const stillSold = line.product_id === null || products.some((product) => product.id === line.product_id);
-        productMissing = productMissing || !stillSold;
-        return {
-            kind: line.product_id === null ? 'other' : 'product',
-            product_id: line.product_id !== null && stillSold ? String(line.product_id) : '',
-            medicine_name: line.medicine_name,
-            strength: line.strength ?? '',
-            dose: line.dose ?? '',
-            frequency: line.frequency ?? '',
-            duration: line.duration ?? '',
-            instructions: line.instructions ?? '',
-            dose_schedule: line.dose_schedule ?? '',
-            food_timing: line.food_timing ?? '',
-            duration_count: line.duration_count ? String(line.duration_count) : '',
-            duration_unit: line.duration_unit ?? '',
-            unit_price: line.unit_price,
-            quantity: String(line.quantity),
-            discount: Number(line.discount) > 0 ? line.discount : '',
-        };
-    });
-    return { lines, productMissing, otherDropped };
-}
-
-/** Fills the new-prescription form from a saved template; nothing is saved until the form is. */
-export function TemplatePicker({ templates, products, otherAllowed, isDirty, onApply, translate }: {
+/** Fills the notepad from a saved template; nothing is saved until the prescription is. */
+export function TemplatePicker({ templates, isDirty, onApply, translate }: {
     templates: TemplateRow[];
-    products: { id: number }[];
-    otherAllowed: boolean;
     isDirty: boolean;
     onApply: (draft: { advice: string; lines: LineForm[] }) => void;
     translate: Translate;
 }) {
-    const [productMissing, setProductMissing] = useState(false);
-    const [otherDropped, setOtherDropped] = useState(false);
-
     if (templates.length === 0) {
         return null;
     }
@@ -96,10 +60,7 @@ export function TemplatePicker({ templates, products, otherAllowed, isDirty, onA
         if (!template || (isDirty && !window.confirm(translate('prescription', 'tpl_replace_confirm')))) {
             return;
         }
-        const { lines, productMissing: missing, otherDropped: dropped } = linesFromSaved(template.lines, products, otherAllowed);
-        setProductMissing(missing);
-        setOtherDropped(dropped);
-        onApply({ advice: template.advice ?? '', lines });
+        onApply({ advice: template.advice ?? '', lines: linesFromSaved(template.lines) });
     };
 
     return (
@@ -110,8 +71,6 @@ export function TemplatePicker({ templates, products, otherAllowed, isDirty, onA
                 options={templates.map((template) => ({ value: String(template.id), label: template.name, keywords: template.lines.map((line) => line.medicine_name).join(' ') }))}
                 onChange={(id) => apply(id)}
             />
-            {productMissing && <span className="field-error" role="alert">{translate('prescription', 'tpl_product_gone')}</span>}
-            {otherDropped && <span className="field-error" role="alert">{translate('prescription', 'rx_other_dropped')}</span>}
         </label>
     );
 }

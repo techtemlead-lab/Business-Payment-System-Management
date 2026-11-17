@@ -33,17 +33,17 @@ class ManagingDirectorMessageTest extends TestCase
             $this->withSession(['locale' => 'en'])->get($path)->assertOk()
                 ->assertSee('id="md-message"', false)
                 ->assertSee(__('site.md_message_heading', [], 'en'))
-                ->assertSee('Mohammad Anwar Hossain')
+                ->assertSee('Md Anowar Hossain')
                 ->assertSee('Managing Director')
                 ->assertSee('In the Name of Allah, the Most Gracious, the Most Merciful.')
                 ->assertSee('We humbly ask for everyone\'s prayers and support.')
                 ->assertSee(__('site.md_message_read_more', [], 'en'))
                 ->assertSee('/branding/md-message/managing-director.webp', false)
-                ->assertSee('alt="Photo of Mohammad Anwar Hossain, Managing Director, Madina Natural Health Care"', false);
+                ->assertSee('alt="Photo of Md Anowar Hossain, Managing Director, Madina Natural Health Care"', false);
 
             $this->withSession(['locale' => 'bn'])->get($path)->assertOk()
                 ->assertSee('ব্যবস্থাপনা পরিচালকের বাণী')
-                ->assertSee('মোহাম্মদ আনোয়ার হোসেন')
+                ->assertSee('মো. আনোয়ার হোসেন')
                 ->assertSee('বিসমিল্লাহির রাহমানির রাহিম।')
                 ->assertSee('সবার দোয়া ও সহযোগিতা কামনা করছি।')
                 ->assertSee(__('site.md_message_read_more', [], 'bn'))
@@ -63,7 +63,7 @@ class ManagingDirectorMessageTest extends TestCase
 
         $this->withSession(['locale' => 'en'])->get('/about')->assertOk()
             ->assertSee('id="md-message"', false)
-            ->assertSee('Mohammad Anwar Hossain');
+            ->assertSee('Md Anowar Hossain');
         $this->withSession(['locale' => 'en'])->get('/')->assertOk()->assertSee('Since 2019');
     }
 
@@ -85,7 +85,7 @@ class ManagingDirectorMessageTest extends TestCase
         $owner = User::factory()->staff('super_admin')->create();
 
         $this->actingAs($owner)->post('/commands/customization', ['customization' => [
-            'md_message_name' => 'Md Anowar Hossain',
+            'md_message_name' => 'Owner Edited Name',
             'md_message_body' => "First paragraph from the owner.\n\nSecond paragraph from the owner.",
             'md_message_body_bn' => "মালিকের প্রথম অনুচ্ছেদ।\n\nমালিকের দ্বিতীয় অনুচ্ছেদ।",
             'md_message_image' => '/branding/site-photos/new-md.webp',
@@ -95,7 +95,7 @@ class ManagingDirectorMessageTest extends TestCase
         $this->app['auth']->forgetGuards();
 
         $this->withSession(['locale' => 'en'])->get('/about')->assertOk()
-            ->assertSee('Md Anowar Hossain')
+            ->assertSee('Owner Edited Name')
             ->assertSee('<p>First paragraph from the owner.</p>', false)
             ->assertSee('<p>Second paragraph from the owner.</p>', false)
             ->assertSee('/branding/site-photos/new-md.webp', false)
@@ -107,11 +107,11 @@ class ManagingDirectorMessageTest extends TestCase
             ->assertSee('<p>মালিকের প্রথম অনুচ্ছেদ।</p>', false)
             ->assertDontSee('First paragraph from the owner.')
             // The Bangla name box is empty, so the owner's English edit is shown as written.
-            ->assertSee('Md Anowar Hossain');
+            ->assertSee('Owner Edited Name');
 
         $this->actingAs($owner)->get('/company/website')->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('data.customization.md_message_name', 'Md Anowar Hossain')
+                ->where('data.customization.md_message_name', 'Owner Edited Name')
                 ->where('data.defaults.md_message_image', '/branding/md-message/managing-director.webp')
                 ->where('data.bangla_defaults.md_message_body', __('site.md_message_body', [], 'bn')));
     }

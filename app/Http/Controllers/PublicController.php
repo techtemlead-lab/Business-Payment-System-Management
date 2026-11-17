@@ -264,7 +264,8 @@ class PublicController extends Controller
     {
         // Dealers and sub-dealers whose account has "Show in the website dealer list" switched on.
         $directory = User::where('directory_visible', true)->where('status', 'active')->whereIn('role', ['dealer', 'sub_dealer']);
-        $dealerCols = ['name', 'role', 'dealer_code', 'phone', 'division', 'district', 'latitude', 'longitude', 'profile'];
+        // The partner's own phone is never loaded: the directory shows the company dealer number instead.
+        $dealerCols = ['name', 'role', 'dealer_code', 'division', 'district', 'latitude', 'longitude', 'profile'];
         // Pickers list the places the listed partners' place codes lie in or under;
         // the value is the place code id, the label is that code's name.
         $areaPickers = DirectoryAreaFilter::build(PlaceTree::areaOptions(clone $directory), $request->query());

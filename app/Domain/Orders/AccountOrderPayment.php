@@ -47,11 +47,12 @@ final class AccountOrderPayment
     }
 
     /**
-     * Takes the whole amount still due on the order from the buyer's usable balance.
-     * Must run inside a transaction. The order row is written here, so pass a locked or
-     * just-created one.
+     * Takes the amount still due on the order from the buyer's usable balance: all of it, or
+     * (with `$partCents`) only that part, when the rest is paid another way. Must run inside a
+     * transaction. The order row is written here, so pass a locked or just-created one.
+     * An order takes money from the account once; a second go is refused.
      */
-    public function pay(Order $order, User $buyer, ?User $submittedBy = null): void
+    public function pay(Order $order, User $buyer, ?User $submittedBy = null, ?int $partCents = null): void
     {
         CommissionWallet::lock();
         $this->assertMoneyMovementIsOn();
@@ -63,7 +64,13 @@ final class AccountOrderPayment
         }
         $wallet = DB::table('wallets')->where('user_id', $buyer->id)->lockForUpdate()->first();
         $available = $wallet ? Money::cents($wallet->available) : 0;
-        $cents = Money::cents($order->outstanding());
+        if ($this->paidFromAccount($order) > 0) {
+            $this->refuse(__('order_split.err_account_twice'));
+        }
+        $cents = $partCents ?? Money::cents($order->outstanding());
+        if ($cents <= 0 || $cents > Money::cents($order->outstanding())) {
+            $this->refuse(__('order_split.err_account_empty'));
+        }
         if ($wallet === null || $available < $cents) {
             $this->refuse(__('order_payment.err_account_short', [
                 'balance' => $this->taka($available),
@@ -94,6 +101,17 @@ final class AccountOrderPayment
             __('order_payment.notice_paid_title', [], $locale),
             __('order_payment.notice_paid_body', ['number' => $order->number, 'amount' => LocalDigits::text(Money::grouped($amount), $locale)], $locale),
         );
+    }
+
+    /**
+     * What can be taken from the account for an order of this size, in paisa: all of it, or
+     * everything usable when that is less. Run inside the transaction, after the money lock.
+     */
+    public function usableFor(User $buyer, int $totalCents): int
+    {
+        $available = Money::cents((string) (DB::table('wallets')->where('user_id', $buyer->id)->lockForUpdate()->value('available') ?? '0.00'));
+
+        return max(0, min($available, $totalCents));
     }
 
     /** How much of this order was paid from the partner's account, in paisa. */
