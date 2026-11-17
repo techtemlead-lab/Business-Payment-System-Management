@@ -132,6 +132,7 @@ export function DealersModule({ form, defaults, updateField }: WebsiteSectionPro
                                 <Field label={translate('portal', 'sce_f_gps_button')} fieldKey="directory_gps_btn" value={form.data.customization.directory_gps_btn} placeholder={defaults.directory_gps_btn} onChange={updateField} span2 />
                                 <Field label={translate('portal', 'sce_f_dir_empty_title')} fieldKey="directory_empty_title" value={form.data.customization.directory_empty_title} placeholder={defaults.directory_empty_title} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_f_dir_empty_desc')} fieldKey="directory_empty_desc" value={form.data.customization.directory_empty_desc} placeholder={defaults.directory_empty_desc} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_dealer_contact_phone')} fieldKey="dealer_contact_phone" value={form.data.customization.dealer_contact_phone} placeholder={defaults.dealer_contact_phone} onChange={updateField} span2 />
                             </div>
         </WebsiteGroup>
         </>

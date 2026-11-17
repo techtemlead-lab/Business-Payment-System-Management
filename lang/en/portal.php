@@ -5013,6 +5013,7 @@ return [
     'sce_f_dir_box2_link' => 'Dealer list box 2: link',
     'sce_f_dir_box2_subtitle' => 'Dealer list box 2: small text',
     'sce_f_dir_box2_title' => 'Dealer list box 2: title',
+    'sce_f_dealer_contact_phone' => 'Dealer and sub-dealer contact number (shown for every dealer and sub-dealer on the website)',
     'sce_f_dir_empty_desc' => 'No dealers found: text',
     'sce_f_dir_empty_title' => 'No dealers found: title',
     'sce_f_dir_title' => 'Dealer list: title',

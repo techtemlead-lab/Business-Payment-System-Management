@@ -403,6 +403,7 @@ export function buildCustomizationFormData(customization: CustomizationData, def
             directory_gps_btn: customization.directory_gps_btn || '',
             directory_empty_title: customization.directory_empty_title || '',
             directory_empty_desc: customization.directory_empty_desc || '',
+            dealer_contact_phone: customization.dealer_contact_phone || '',
 
             // Footer & Support
             footer_support_heading: customization.footer_support_heading || '',

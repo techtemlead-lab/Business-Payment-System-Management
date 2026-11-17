@@ -46,7 +46,7 @@ final class SocialShareMeta
 
     /**
      * @param  array<string, mixed>  $product
-     * @return array{title:string,description:string,url:string,image:?string,type:string,site_name:string,partner:?array{name:string,phone:?string,photo:?string,code:string}}
+     * @return array{title:string,description:string,url:string,image:?string,type:string,site_name:string,partner:?array{name:string,phone:string,photo:?string,code:string}}
      */
     public static function product(array $product, ?User $partner = null): array
     {
@@ -80,13 +80,11 @@ final class SocialShareMeta
             $url .= (str_contains($url, '?') ? '&' : '?').'ref='.rawurlencode($code);
             $partnerPayload = [
                 'name' => (string) $partner->name,
-                'phone' => self::publicPhone($partner),
+                'phone' => self::publicPhone(),
                 'photo' => self::partnerPhoto($partner),
                 'code' => $code,
             ];
-            $contactLine = $partnerPayload['phone'] !== null
-                ? __('site.share_product_partner_contact', ['name' => $partner->name, 'phone' => $partnerPayload['phone']])
-                : __('site.share_product_partner_name', ['name' => $partner->name]);
+            $contactLine = __('site.share_product_partner_contact', ['name' => $partner->name, 'phone' => $partnerPayload['phone']]);
             $description = $contactLine.' '.$description;
             if ($partnerPayload['photo']) {
                 $image = $partnerPayload['photo'];
@@ -113,7 +111,7 @@ final class SocialShareMeta
     }
 
     /**
-     * @return array{title:string,description:string,url:string,image:?string,type:string,site_name:string,partner:array{name:string,phone:?string,photo:?string,code:string}}
+     * @return array{title:string,description:string,url:string,image:?string,type:string,site_name:string,partner:array{name:string,phone:string,photo:?string,code:string}}
      */
     public static function referral(User $partner): array
     {
@@ -139,7 +137,7 @@ final class SocialShareMeta
             'site_name' => SiteCustomization::brandName(),
             'partner' => [
                 'name' => (string) $partner->name,
-                'phone' => self::publicPhone($partner),
+                'phone' => self::publicPhone(),
                 'photo' => $photo,
                 'code' => $code,
             ],
@@ -147,18 +145,12 @@ final class SocialShareMeta
     }
 
     /**
-     * The partner's phone number as it may appear on public pages and share cards.
-     * Partners hidden from the public dealer directory keep their number private.
+     * The number shown for a partner on public pages and share cards: always the
+     * company dealer number from the website editor, never the partner's own phone.
      */
-    public static function publicPhone(User $partner): ?string
+    public static function publicPhone(): string
     {
-        if (! $partner->directory_visible) {
-            return null;
-        }
-
-        $phone = trim((string) $partner->phone);
-
-        return $phone === '' ? null : $phone;
+        return SiteCustomization::dealerContactPhone();
     }
 
     public static function partnerPhoto(User $partner): ?string
