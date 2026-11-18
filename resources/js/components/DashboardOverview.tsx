@@ -201,9 +201,6 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
                 </section>
             )}
 
-            {/* The sidebar already lists every page, so the home keeps only the big easy-way buttons above the dashboard. */}
-            <CallMeCard />
-
             <DashboardGrid home={home} moneyCards={moneyCards} targetsPanel={targets.length > 0 ? (
                 <section className="ph-card ph-targets" data-tour="home-targets">
                     <div className="ph-card-head ph-targets-head">
@@ -257,6 +254,9 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
                     )}
                 </section>
             ) : null} />
+
+            {/* The big easy-way buttons sit under the money and targets, above the long report. */}
+            <CallMeCard />
 
             <IncomeReport />
 

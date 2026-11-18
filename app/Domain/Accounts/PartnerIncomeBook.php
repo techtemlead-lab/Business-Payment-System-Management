@@ -46,7 +46,8 @@ final class PartnerIncomeBook
     {
         $asked = (string) $request->query('rtab', 'all');
         $tab = in_array($asked, self::ReportTabs, true) ? $asked : 'all';
-        $table = MoneyTable::make($request, $this->reportRows($partner, $tab), $this->spec());
+        // The dashboard report opens on every day, so a first look shows all the income, not just this month's.
+        $table = MoneyTable::make($request, $this->reportRows($partner, $tab), $this->spec(null));
         $ownOrders = PartnerMoneyBook::ownOrderIds($partner, $table['rows']->getCollection()->pluck('order_id')->all());
         $table['rows'] = $table['rows']->through(fn (object $row): array => [...$this->rowFor($row), 'order_is_own' => $row->order_id !== null && isset($ownOrders[(string) $row->order_id])]);
 
@@ -161,7 +162,7 @@ final class PartnerIncomeBook
         ];
     }
 
-    private function spec(): MoneyTableSpec
+    private function spec(?string $defaultPeriod = 'month'): MoneyTableSpec
     {
         return new MoneyTableSpec(
             dateColumn: 'x.occurred_at',
@@ -174,7 +175,7 @@ final class PartnerIncomeBook
             defaultSort: 'date',
             tieBreaker: 'x.id',
             sums: ['amount' => 'x.amount'],
-            defaultPeriod: 'month',
+            defaultPeriod: $defaultPeriod,
         );
     }
 

@@ -397,12 +397,15 @@ export default function ProductPurchaseMatrix({
                         {translate('portal', 'b2b_purchase_subtitle')}
                     </p>
                 </div>
-                <Link
-                    href="/catalog"
-                    className="button small ppm-hero-link"
-                >
-                    <Package size={15} /> {translate('portal', 'b2b_catalog_list_title')} ↗
-                </Link>
+                {/* The product list page is switched off for partners (CR-01); the link returns with it. */}
+                {pageProps.dashboardControls?.partner_catalog_off !== true && (
+                    <Link
+                        href="/catalog"
+                        className="button small ppm-hero-link"
+                    >
+                        <Package size={15} /> {translate('portal', 'b2b_catalog_list_title')} ↗
+                    </Link>
+                )}
             </div>
 
             {budget !== null && (
