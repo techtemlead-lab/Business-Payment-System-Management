@@ -2,6 +2,7 @@
 
 namespace App\Domain\Orders;
 
+use App\Domain\Finance\PendingPaymentChecks;
 use App\Domain\Inventory\BranchScope;
 use App\Domain\Inventory\SellableStock;
 use App\Models\Order;
@@ -65,7 +66,7 @@ final class StaffDashboardSummary
         if ($viewer->allows('finance')) {
             $queue[] = [
                 'key' => 'payments_to_check',
-                'count' => (int) $this->onScopedOrders(DB::table('payment_claims'), $branchScope)->where('status', 'pending')->count(),
+                'count' => $this->onScopedOrders(PendingPaymentChecks::query(), $branchScope)->count(),
                 'section' => 'payments',
             ];
             $queue[] = [
