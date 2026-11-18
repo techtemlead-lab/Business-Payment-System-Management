@@ -225,7 +225,7 @@ final class StaffOperations
                     'password_managed_by' => User::PasswordManagedByAdmin, 'admin_password_cipher' => $firstPassword,
                     'dealer_code' => $partnerCode, 'refer_code' => $partnerCode, 'sponsor_id' => $sponsorId,
                     'division' => $data['division'], 'district' => $data['district'],
-                    'profile' => ['upazila' => $data['upazila'], 'union' => $data['union'], 'area_code' => $isSubDealer ? $partnerCode : $data['place_code'],
+                    'profile' => ['shop_name' => $data['shop_name'] ?? null, 'pharmacy' => $data['shop_name'] ?? null, 'upazila' => $data['upazila'], 'union' => $data['union'], 'area_code' => $isSubDealer ? $partnerCode : $data['place_code'],
                         'place_code' => $data['place_code'], 'place_code_id' => $data['place_code_id'],
                         'union_place_code' => $isSubDealer ? $data['place_code'] : null,
                         'application_source' => $application->source ?? 'staff', 'application_message' => $data['message'] ?? null,

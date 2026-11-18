@@ -115,7 +115,8 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
             event.preventDefault();
             form.transform((data) => {
                 const profile = { ...data.profile };
-                if (isSubDealer && profile.shop_name) {
+                // One shop name for dealers and sub-dealers; the older pharmacy field just follows it.
+                if (isPartner) {
                     profile.pharmacy = profile.shop_name;
                 }
                 return { ...data, profile };
@@ -162,10 +163,7 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                     </label>
                 </>}
                 {profileFields.map(field => {
-                    if (field === 'shop_name' && !isSubDealer) {
-                        return null;
-                    }
-                    if (field === 'pharmacy' && isSubDealer) {
+                    if (field === 'pharmacy' && isPartner) {
                         return null;
                     }
                     if (isPartner && ['upazila', 'union', 'area_code'].includes(field)) {
