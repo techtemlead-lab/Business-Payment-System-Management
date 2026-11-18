@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useT } from '../../shared/i18n/t';
+import { bilingualBox } from '../../shared/banglaFill/pair';
 import { notify } from '../../shared/notify';
 import type { CustomizationData } from './types';
 
@@ -164,12 +165,15 @@ function FieldBox({
     const fieldLabelKey = `sce_fld_${String(fieldKey)}`;
     const localizedLabel = translate('portal', fieldLabelKey);
     const displayLabel = localizedLabel === fieldLabelKey ? label : localizedLabel;
+    // English first: a "_bn" box fills itself from its English twin when left empty (CR-06).
+    const pair = bilingualBox(String(fieldKey), 'sce-');
 
     return (
         <label className={span2 ? 'ed-block hub-span-all' : 'ed-block'} data-field={String(fieldKey)}>
             <span className="ed-label">{displayLabel}</span>
             {multiline ? (
                 <textarea
+                    {...pair}
                     rows={rows}
                     value={value || ''}
                     placeholder={placeholder}
@@ -178,6 +182,7 @@ function FieldBox({
                 />
             ) : (
                 <input
+                    {...pair}
                     type="text"
                     value={value || ''}
                     placeholder={placeholder}
