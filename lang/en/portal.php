@@ -9,7 +9,7 @@ return [
     'owner_dashboard' => 'Owner dashboard',
     'company_dashboard' => 'Company dashboard',
     'my_account' => 'My account',
-    'welcome_back' => 'Welcome back, :name. Here is what is going on in your :scope.',
+    'welcome_back' => 'Welcome, :name. Here is what is going on in your :scope.',
     'business' => 'business',
     'account' => 'account',
     'language' => 'Language',

@@ -9,7 +9,7 @@ return [
     'owner_dashboard' => 'মালিক ড্যাশবোর্ড',
     'company_dashboard' => 'কোম্পানি ড্যাশবোর্ড',
     'my_account' => 'আমার অ্যাকাউন্ট',
-    'welcome_back' => 'আবার স্বাগতম, :name। আপনার :scope-এ এখন যা চলছে, এখানে দেখুন।',
+    'welcome_back' => 'স্বাগতম, :name। আপনার :scope-এ এখন যা চলছে, এখানে দেখুন।',
     'business' => 'ব্যবসা',
     'account' => 'অ্যাকাউন্ট',
     'language' => 'ভাষা',

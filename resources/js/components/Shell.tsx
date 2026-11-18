@@ -17,6 +17,7 @@ import OnboardingTour from './OnboardingTour';
 import { useNativeFieldMessages } from '../shared/useNativeFieldMessages';
 import ThemeToggle from './ThemeToggle';
 import TextSizeSwitch from './TextSizeSwitch';
+import { firstNameOf } from '../shared/personName';
 import { t, useT, useTranslations } from '../shared/i18n/t';
 import {
     type NavMother,
@@ -182,6 +183,10 @@ export default function Shell({ section, children, action }: { section: string; 
     }, [page.url]);
 
     const sectionLabel = (item: string) => {
+        // The sub-dealer's contract carries the sub-dealer's name, not the dealer's.
+        if (item === 'agreement' && !staff && user.role === 'sub_dealer') {
+            return translate('partner_ux', 'agreement_subdealer');
+        }
         const key = labelKeyForNavItem(item, staff);
         return translate('portal', key);
     };
@@ -466,12 +471,15 @@ export default function Shell({ section, children, action }: { section: string; 
         : sectionLabel(headingItem);
     /** Each page has its own short subtitle; staff and partners get different wording. */
     const sectionHint = (item: string): string => {
+        if (item === 'agreement' && !staff && user.role === 'sub_dealer') {
+            return translate('partner_ux', 'agreement_hint_subdealer');
+        }
         const key = `${staff ? 'section_hint_' : 'section_hint_partner_'}${item.replaceAll('-', '_')}`;
         const localized = translate('portal', key);
         return localized !== key ? localized : translate('portal', 'section_hint');
     };
     const currentSectionHint = section === 'overview' || section === ''
-        ? translate('portal', 'welcome_back', { name: user.name.split(' ')[0], scope: translate('portal', staff ? 'business' : 'account') })
+        ? translate('portal', 'welcome_back', { name: firstNameOf(user.name), scope: translate('portal', staff ? 'business' : 'account') })
         : (section === 'catalog' && staff
             ? translate('portal', 'catalog_staff_hint')
             : sectionHint(headingItem));
@@ -570,8 +578,7 @@ export default function Shell({ section, children, action }: { section: string; 
                             <Menu size={19} />
                         </button>
                         <span>{hubLabel}</span>
-                        <span>/</span>
-                        <b>{currentSectionTitle}</b>
+                        {currentSectionTitle !== hubLabel && <><span>/</span><b>{currentSectionTitle}</b></>}
                     </div>
                     {!staff && <PartnerProductSearch />}
                     {staff && workspaceBranches?.branches?.length > 0 && (
