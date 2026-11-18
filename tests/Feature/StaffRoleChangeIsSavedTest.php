@@ -21,6 +21,7 @@ class StaffRoleChangeIsSavedTest extends TestCase
             'staff_id' => $managingDirector->id,
             'version' => $permissions->version($managingDirector),
             'role' => 'employee',
+            'confirm_leadership' => true,
             'permissions' => ['orders' => ['view' => true, 'create' => false, 'edit' => false, 'approve' => false]],
             'reason' => 'Moved out of the owner group',
         ])->assertOk();

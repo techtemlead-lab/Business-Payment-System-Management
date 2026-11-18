@@ -165,7 +165,7 @@ class PartnerListsTableTest extends TestCase
 
         $rejected = $this->data($owner, '/partnerships?status=rejected');
         $this->assertSame(1, $rejected['applications']['total']);
-        $this->assertEquals(['pending' => 23, 'approved' => 0, 'rejected' => 1, 'total' => 24], $rejected['application_counts']);
+        $this->assertEquals(['pending' => 23, 'correction' => 0, 'approved' => 0, 'rejected' => 1, 'total' => 24], $rejected['application_counts']);
     }
 
     public function test_application_rows_keep_every_field_the_review_panel_reads(): void
