@@ -256,7 +256,7 @@ class EnforceStaffActions
                 'customization', 'uploadCategoryIcon' => [['content', 'catalog'], 'edit'],
                 'policy' => [['finance'], 'create'], 'publishPolicy' => [['finance'], 'approve'], 'updateCommissionRules' => [['finance'], 'edit'],
                 'settleSalaryPool', 'settleRankRoyaltyPool', 'claimRankIncentive', 'releaseMaturedCommissions', 'financialGate' => [['finance'], 'approve'],
-                'assignAreaDealer', 'removeAreaDealer' => [['accounts'], 'edit'], 'simulateCommissions' => [['finance'], 'view'],
+                'assignAreaDealer', 'updateAreaDealer', 'removeAreaDealer' => [['accounts'], 'edit'], 'simulateCommissions' => [['finance'], 'view'],
                 'order', 'claim' => [['orders', 'sr_orders'], 'create'],
                 'supportTicket', 'supportTicketReply' => [['accounts', 'content', 'support_desk'], 'edit'],
                 'linkStaffRole', 'unlinkStaffRole' => [['accounts'], 'edit'],

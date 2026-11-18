@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AreaDealerAssignment extends Model
 {
+    /** The most a seat's monthly target may be (৳1 crore). Catches a slipped digit before it blocks every share. */
+    public const MaxMonthlyQuota = 10000000;
+
     protected $guarded = ['id'];
 
     protected static function booted(): void

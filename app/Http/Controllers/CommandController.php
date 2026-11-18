@@ -1315,9 +1315,10 @@ class CommandController extends Controller
             // An area seat is always a place code; names are filled in from it, never typed.
             'place_code_id' => 'bail|required|integer|exists:place_codes,id',
             'zone_name' => 'nullable|string|max:128',
-            'monthly_quota' => 'required|numeric|min:0|max:99999999999|decimal:0,2',
+            'monthly_quota' => self::areaQuotaRules(),
         ], [
             'place_code_id.required' => __('portal.place_code_required'),
+            ...self::areaQuotaMessages(),
         ]);
 
         $place = PlaceCode::query()
@@ -1391,12 +1392,67 @@ class CommandController extends Controller
         return back()->with('success', __('portal.flash_area_dealer_assigned', ['zone' => $d['zone_name']]));
     }
 
+    /** @return list<string> */
+    private static function areaQuotaRules(): array
+    {
+        return ['required', 'numeric', 'min:0', 'max:'.AreaDealerAssignment::MaxMonthlyQuota, 'decimal:0,2'];
+    }
+
+    /** @return array<string, string> */
+    private static function areaQuotaMessages(): array
+    {
+        return [
+            'monthly_quota.required' => __('money_core.area_quota_required'),
+            'monthly_quota.numeric' => __('money_core.area_quota_numeric'),
+            'monthly_quota.min' => __('money_core.area_quota_min'),
+            'monthly_quota.max' => __('money_core.area_quota_max', ['max' => Money::grouped(AreaDealerAssignment::MaxMonthlyQuota)]),
+            'monthly_quota.decimal' => __('money_core.area_quota_decimal'),
+        ];
+    }
+
+    /** Changes only the monthly target of a live seat; the seat holder and place stay as they are. */
+    public function updateAreaDealer(Request $r, int $id): RedirectResponse
+    {
+        $this->permit($r, 'accounts');
+        $d = $r->validate(['monthly_quota' => self::areaQuotaRules()], self::areaQuotaMessages());
+
+        $before = '';
+        $assignment = DB::transaction(function () use ($id, $d, &$before): AreaDealerAssignment {
+            CommissionWallet::lock();
+            $seat = AreaDealerAssignment::query()->whereKey($id)->where('is_active', true)->lockForUpdate()->firstOrFail();
+            $before = (string) $seat->monthly_quota;
+            $seat->update(['monthly_quota' => $d['monthly_quota']]);
+
+            return $seat;
+        }, 3);
+        $after = Money::decimal(Money::cents((string) $assignment->monthly_quota));
+        Audit::record($r->user()->id, 'area_dealer.updated', (string) $assignment->user_id, [
+            'level' => $assignment->level,
+            'zone' => $assignment->zone_name,
+            'place_code_id' => $assignment->place_code_id,
+            'monthly_quota_before' => $before,
+            'monthly_quota_after' => $after,
+        ]);
+        $dealer = User::find($assignment->user_id);
+        if ($dealer) {
+            $locale = $dealer->preferredLocale();
+            Audit::notice(
+                $dealer->id,
+                __('money_core.notice_area_target_changed_title', [], $locale),
+                __('money_core.notice_area_target_changed_body', ['zone' => $assignment->zone_name, 'quota' => $after], $locale),
+            );
+        }
+
+        return back()->with('success', __('money_core.flash_area_target_changed', ['zone' => $assignment->zone_name, 'quota' => $after]));
+    }
+
+    /** Closes a seat. The row and every commission that points at it stay, so no money history is lost. */
     public function removeAreaDealer(Request $r, int $id): RedirectResponse
     {
         $this->permit($r, 'accounts');
-        $assignment = AreaDealerAssignment::findOrFail($id);
+        $assignment = AreaDealerAssignment::query()->where('is_active', true)->findOrFail($id);
         $assignment->update(['is_active' => false, 'territory_key' => null]);
-        Audit::record($r->user()->id, 'area_dealer.removed', (string) $assignment->user_id, ['level' => $assignment->level, 'zone' => $assignment->zone_name]);
+        Audit::record($r->user()->id, 'area_dealer.removed', (string) $assignment->user_id, ['level' => $assignment->level, 'zone' => $assignment->zone_name, 'place_code_id' => $assignment->place_code_id, 'monthly_quota' => (string) $assignment->monthly_quota]);
         $dealer = User::find($assignment->user_id);
         if ($dealer) {
             $locale = $dealer->preferredLocale();
