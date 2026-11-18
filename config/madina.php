@@ -95,10 +95,22 @@ return [
         'enabled' => env('MADINA_LOGIN_OTP', false),
         'ttl' => (int) env('MADINA_LOGIN_OTP_TTL', 300),
     ],
-    // Picture on the sign-in form. Off until an owner turns it on: the letters are hard
-    // to read for older partners, and a wrong-password lockout still stops guessing.
+    // Picture on the sign-in form for everyone. Off until an owner turns it on: the letters are
+    // hard to read for older partners. It switches on by itself for one internet address after
+    // many wrong sign-ins from it (see SignInGuard).
     'login_captcha' => [
         'enabled' => env('MADINA_LOGIN_CAPTCHA', false),
+    ],
+    // Separate key for the readable copy of dealer and sub-dealer passwords (see PasswordVault).
+    // Keep it out of the backup set: set the key directly, or point at a file outside .env.
+    'password_vault' => [
+        'key' => env('PASSWORD_VAULT_KEY'),
+        'key_file' => env('PASSWORD_VAULT_KEY_FILE'),
+    ],
+    // Owner reading a dealer's password: how long one password confirmation lasts, and a daily cap.
+    'password_reveal' => [
+        'confirm_minutes' => (int) env('MADINA_PASSWORD_REVEAL_CONFIRM_MINUTES', 5),
+        'per_day' => (int) env('MADINA_PASSWORD_REVEAL_PER_DAY', 60),
     ],
     // Browser push services a subscription may point at (Chrome/Android/Samsung, Firefox,
     // Edge/Windows, Safari). Anything else is refused, so the server never posts to other hosts.

@@ -25,4 +25,10 @@ return [
     'err_sms_not_working' => 'Text messages are not working, so a code cannot be sent. Choose "Yes" below if you still want this, or keep your password.',
     'err_code_limit' => 'Too many codes were asked for. Please try again later, or use your password.',
     'err_code_not_sent' => 'The code could not be sent. Please type your password instead.',
+    'reveal_password_label' => 'Type your own password before it is shown',
+    'reveal_password_note' => 'After you type it once, it is not asked again for a few minutes. Every view is told to the other owners and kept in the record.',
+    'reveal_daily_cap' => 'Passwords were shown :count times today, which is the daily limit. You can see them again tomorrow, or set a new password now.',
+    'never_shown_office' => 'Office passwords (staff, MD, Chairman) are never kept in a readable form, so they cannot be shown. Set a new password if needed.',
+    'notice_password_revealed_title' => 'An owner looked at a partner password',
+    'notice_password_revealed_body' => ':owner looked at the password of :account (:code) at :time.',
 ];

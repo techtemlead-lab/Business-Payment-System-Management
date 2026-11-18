@@ -6,6 +6,10 @@ type PasswordStatus = {
     managed_by: string;
     can_reveal: boolean;
     owner_only?: boolean;
+    // Office accounts (staff, MD, Chairman): an owner may reset but never read the password.
+    never_shown?: boolean;
+    // The owner types their own password before a partner password is shown.
+    reveal_needs_password?: boolean;
     password: string | null;
 };
 
@@ -43,6 +47,7 @@ export default function AccountPasswordManager({ account, canManage }: AccountPa
     const [showCustom, setShowCustom] = useState(false);
     const [customPassword, setCustomPassword] = useState('');
     const [customVisible, setCustomVisible] = useState(false);
+    const [ownerPassword, setOwnerPassword] = useState('');
 
     const loadPasswordStatus = useCallback((signal?: AbortSignal) => {
         if (!canManage) {
@@ -178,17 +183,21 @@ export default function AccountPasswordManager({ account, canManage }: AccountPa
             method: 'POST',
             headers: {
                 Accept: 'application/json',
+                'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest',
                 'X-CSRF-TOKEN': csrf,
                 'X-XSRF-TOKEN': csrf,
             },
             credentials: 'same-origin',
+            body: JSON.stringify(status?.reveal_needs_password ? { current_password: ownerPassword } : {}),
         })
             .then(async (res) => {
                 const json = await res.json().catch(() => ({}));
                 if (!res.ok) {
-                    throw new Error(json.message || translate('portal', 'acct_password_load_failed'));
+                    const fieldError = json.errors?.current_password?.[0];
+                    throw new Error(fieldError || json.message || translate('portal', 'acct_password_load_failed'));
                 }
+                setOwnerPassword('');
                 setStatus(json.data || null);
                 setVisible(true);
             })
@@ -330,14 +339,44 @@ export default function AccountPasswordManager({ account, canManage }: AccountPa
                                     <strong className="pw-secret is-masked">••••••••••••••••</strong>
                                 </div>
                             </div>
-                            <button type="button" className="button" disabled={busy} onClick={handleReveal}>
+                            <button
+                                type="button"
+                                className="button"
+                                disabled={busy || (Boolean(status?.reveal_needs_password) && ownerPassword.trim() === '')}
+                                onClick={handleReveal}
+                            >
                                 <span>👁️</span>
                                 <span>{translate('portal', 'acct_password_reveal')}</span>
                             </button>
                         </div>
+                        {status?.reveal_needs_password && (
+                            <div className="pw-custom">
+                                <label htmlFor={`pw-owner-confirm-${account.id}`}>
+                                    {translate('owner_security', 'reveal_password_label')}
+                                </label>
+                                <div className="pw-input-wrap">
+                                    <input
+                                        id={`pw-owner-confirm-${account.id}`}
+                                        type="password"
+                                        autoComplete="current-password"
+                                        value={ownerPassword}
+                                        onChange={(e) => setOwnerPassword(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && ownerPassword.trim() !== '') {
+                                                e.preventDefault();
+                                                handleReveal();
+                                            }
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        )}
                         <p className="pw-note">
                             <span>ℹ️</span>
-                            <span>{translate('portal', 'acct_password_reveal_note')}</span>
+                            <span>
+                                {translate('portal', 'acct_password_reveal_note')}{' '}
+                                {translate('owner_security', 'reveal_password_note')}
+                            </span>
                         </p>
                     </div>
                 ) : (
@@ -345,7 +384,9 @@ export default function AccountPasswordManager({ account, canManage }: AccountPa
                         <p>
                             {status?.owner_only
                                 ? <>🔒 {translate('portal', 'acct_password_owner_only')}</>
-                                : <>⚠️ {translate('portal', 'acct_password_self_changed')}</>}
+                                : status?.never_shown
+                                    ? <>🔒 {translate('owner_security', 'never_shown_office')}</>
+                                    : <>⚠️ {translate('portal', 'acct_password_self_changed')}</>}
                         </p>
                     </div>
                 )}

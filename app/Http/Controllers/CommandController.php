@@ -10,6 +10,7 @@ use App\Domain\Accounts\PartnerCreateMedia;
 use App\Domain\Accounts\PartnerKycDocuments;
 use App\Domain\Accounts\PasswordAccess;
 use App\Domain\Accounts\PasswordResetOwnerNotice;
+use App\Domain\Auth\SignInGuard;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Commissions\CommissionWallet;
@@ -59,7 +60,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -1062,37 +1065,94 @@ class CommandController extends Controller
     public function partnerPasswordStatus(Request $r, User $user, PasswordAccess $access): JsonResponse
     {
         abort_unless($access->canReset($r->user(), $user), 403);
+        $mayChoose = $access->mayChooseOnReset($r->user(), $user);
 
         return response()->json([
             'data' => [
                 'managed_by' => $user->password_managed_by ?: User::PasswordManagedByAdmin,
                 'can_reveal' => $access->canView($r->user(), $user) && $user->adminVisiblePassword() !== null,
-                'owner_only' => ! $access->canView($r->user(), $user),
+                'owner_only' => ! $mayChoose,
+                // Office passwords (staff, MD, Chairman) are never kept readable; an owner can only reset them.
+                'never_shown' => $mayChoose && ! $access->canView($r->user(), $user),
+                'reveal_needs_password' => ! $this->passwordRevealConfirmed($r),
                 'password' => null,
             ],
         ]);
     }
 
-    /** Owners only: show the real password. Every view is audited with who, when and from where. */
+    /**
+     * Owners only, dealer and sub-dealer accounts only: show the real password. The owner types their
+     * own password first (one confirmation lasts a few minutes), a daily cap stops bulk reading, the
+     * other owners get a notice, and every view is audited with who, when and from where.
+     */
     public function revealPartnerPassword(Request $r, User $user, PasswordAccess $access): JsonResponse
     {
-        abort_unless($access->canView($r->user(), $user), 403, __('portal.acct_password_owner_only'));
+        $owner = $r->user();
+        abort_unless($access->canView($owner, $user), 403, __('portal.acct_password_owner_only'));
+        if (! $this->passwordRevealConfirmed($r)) {
+            $r->validate(['current_password' => 'required|string|max:200']);
+            if (! Hash::check((string) $r->input('current_password'), (string) $owner->password)) {
+                throw ValidationException::withMessages(['current_password' => __('validation.current_password')]);
+            }
+            $r->session()->put('password_reveal_confirmed_at', now()->getTimestamp());
+        }
+        $dayKey = 'password-reveal-day|'.$owner->id;
+        $perDay = max(1, (int) config('madina.password_reveal.per_day', 60));
+        if (RateLimiter::tooManyAttempts($dayKey, $perDay)) {
+            Audit::record($owner->id, 'account.password_reveal_capped', (string) $user->id, ['ip' => $r->ip()]);
+            abort(429, __('owner_security.reveal_daily_cap', ['count' => $perDay]));
+        }
         $visible = $user->adminVisiblePassword();
         abort_if($visible === null, 404, __('portal.acct_password_self_changed'));
-        Audit::record($r->user()->id, 'account.password_revealed', (string) $user->id, [
+        RateLimiter::hit($dayKey, 86400);
+        Audit::record($owner->id, 'account.password_revealed', (string) $user->id, [
             'role' => $user->role,
             'dealer_code' => $user->dealer_code,
             'ip' => $r->ip(),
         ]);
+        $this->tellOtherOwnersAboutReveal($owner, $user);
 
         return response()->json([
             'data' => [
                 'managed_by' => $user->password_managed_by ?: User::PasswordManagedByAdmin,
                 'can_reveal' => true,
                 'owner_only' => false,
+                'never_shown' => false,
+                'reveal_needs_password' => false,
                 'password' => $visible,
             ],
         ]);
+    }
+
+    /** True while the owner's last password confirmation for reading passwords is still fresh. */
+    private function passwordRevealConfirmed(Request $r): bool
+    {
+        $at = (int) $r->session()->get('password_reveal_confirmed_at', 0);
+        $minutes = max(1, (int) config('madina.password_reveal.confirm_minutes', 5));
+
+        return $at > 0 && $at >= now()->subMinutes($minutes)->getTimestamp();
+    }
+
+    private function tellOtherOwnersAboutReveal(User $owner, User $target): void
+    {
+        $others = User::query()
+            ->whereIn('role', ['super_admin', 'md', 'chairman'])
+            ->where('status', 'active')
+            ->whereKeyNot($owner->id)
+            ->get(['id', 'locale']);
+        foreach ($others as $other) {
+            $locale = $other->preferredLocale();
+            Audit::notice(
+                $other->id,
+                __('owner_security.notice_password_revealed_title', [], $locale),
+                __('owner_security.notice_password_revealed_body', [
+                    'owner' => $owner->name,
+                    'account' => $target->name,
+                    'code' => $target->dealer_code ?: '#'.$target->id,
+                    'time' => now()->timezone('Asia/Dhaka')->format('d M Y, h:i A'),
+                ], $locale),
+            );
+        }
     }
 
     public function resetPartnerPassword(Request $r, User $user, AccountCreatedSms $sms, PasswordAccess $access, PasswordResetOwnerNotice $ownerNotice): RedirectResponse|JsonResponse
@@ -1102,7 +1162,7 @@ class CommandController extends Controller
 
         // Only owners may choose or see the new password. Other authorised staff can reset it, but
         // the new password goes only to the account holder by SMS, so staff cannot sign in as them.
-        $ownerActor = $access->canView($r->user(), $user);
+        $ownerActor = $access->mayChooseOnReset($r->user(), $user);
         // A reset nobody can read would lock the person out: without an owner the new password only goes by SMS.
         abort_unless($ownerActor || PhoneIdentity::normalize((string) $user->phone) !== null, 422, __('portal.acct_password_reset_needs_phone'));
         $custom = $ownerActor ? $r->input('password') : null;
@@ -1111,6 +1171,9 @@ class CommandController extends Controller
                 'password' => ['required', 'string', 'min:8', 'max:64'],
             ]);
             $plainPassword = trim($custom);
+            if (app(SignInGuard::class)->isTooEasy($plainPassword, $user)) {
+                throw ValidationException::withMessages(['password' => __('security.password_too_easy')]);
+            }
         } else {
             $plainPassword = 'Md'.Str::upper(Str::random(2)).random_int(100000, 999999).'!';
         }
