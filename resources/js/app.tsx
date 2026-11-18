@@ -3,13 +3,11 @@ import {createRoot} from 'react-dom/client';
 import {createInertiaApp} from '@inertiajs/react';
 import { applyColorScheme, resolveColorScheme } from './shared/theme';
 import { installBanglaDigitShaping } from './shared/banglaDigits';
-import { installCountUp } from './shared/countUp';
 import { installNavigationFeedback } from './shared/navigationFeedback';
 import { installPortalMotion } from './components/motion/portalMotion';
 
 applyColorScheme(resolveColorScheme());
 installBanglaDigitShaping();
-installCountUp();
 installNavigationFeedback();
 installPortalMotion();
 
