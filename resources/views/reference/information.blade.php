@@ -546,6 +546,14 @@
                 </div>
 
                 <div class="ref-field-group">
+                    <label for="partner-shop" class="ref-field-label"><span>{{ __('joining.shop_name_label') }}</span> <span class="ref-badge-optional">{{ __('site.optional') }}</span></label>
+                    <div class="ref-input-wrap">
+                        <i class="fa-solid fa-store ref-input-icon" aria-hidden="true"></i>
+                        <input id="partner-shop" type="text" name="shop_name" value="{{ old('shop_name') }}" maxlength="150" autocomplete="organization" class="ref-input-control">
+                    </div>
+                </div>
+
+                <div class="ref-field-group">
                     <label for="partner-nid" class="ref-field-label"><span>{{ __('joining.nid_label') }} <span class="ref-req">*</span></span></label>
                     <div class="ref-input-wrap">
                         <i class="fa-solid fa-id-card ref-input-icon" aria-hidden="true"></i>

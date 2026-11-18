@@ -50,6 +50,7 @@ final class PublicPartnerApplication
                     'upazila' => $data['upazila'] ?? null,
                     'union' => $data['union'] ?? null,
                     'nid' => $data['nid'] ?? null,
+                    'shop_name' => filled($data['shop_name'] ?? null) ? trim((string) $data['shop_name']) : null,
                     'division_place_id' => $data['division_place_id'] ?? null,
                     'district_place_id' => $data['district_place_id'] ?? null,
                     'upazila_place_id' => $data['upazila_place_id'] ?? null,
