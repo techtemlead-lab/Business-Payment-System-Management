@@ -34,6 +34,45 @@ final class PartnerIncomeBook
 
     public function __construct(private PartnerMoneyBook $book) {}
 
+    /** The report tabs on the dashboard: every income entry, then one table per head. */
+    public const ReportTabs = ['all', 'own', 'gen1', 'gen2', 'team_all', 'rank_bonus', 'royalty', 'area', 'salary', 'other'];
+
+    /**
+     * The dashboard report: the tab list, the chosen tab and its table (search, filters and dates as everywhere).
+     *
+     * @return array{tabs: list<array{key: string, label: string}>, tab: string, table: array<string, mixed>}
+     */
+    public function reportPage(Request $request, User $partner): array
+    {
+        $asked = (string) $request->query('rtab', 'all');
+        $tab = in_array($asked, self::ReportTabs, true) ? $asked : 'all';
+        // The dashboard report opens on every day, so a first look shows all the income, not just this month's.
+        $table = MoneyTable::make($request, $this->reportRows($partner, $tab), $this->spec(null));
+        $ownOrders = PartnerMoneyBook::ownOrderIds($partner, $table['rows']->getCollection()->pluck('order_id')->all());
+        $table['rows'] = $table['rows']->through(fn (object $row): array => [...$this->rowFor($row), 'order_is_own' => $row->order_id !== null && isset($ownOrders[(string) $row->order_id])]);
+
+        return [
+            'tabs' => array_map(fn (string $key): array => ['key' => $key, 'label' => (string) __('cr_partner.tab_'.$key)], self::ReportTabs),
+            'tab' => $tab,
+            'table' => $table,
+        ];
+    }
+
+    /** One report tab's rows as a query the date views can filter. */
+    private function reportRows(User $partner, string $tab): Builder
+    {
+        $rows = DB::query()->fromSub($this->classified((int) $partner->id), 'x');
+
+        return match ($tab) {
+            'all' => $rows,
+            'gen1' => $rows->where('x.category', 'direct_referral'),
+            'gen2' => $rows->where('x.category', 'd2d_gen2'),
+            'team_all' => $rows->whereIn('x.category', ['direct_referral', 'd2d_gen2', 'd2d_gen3']),
+            'other' => $rows->whereIn('x.part', ['bike', 'car', 'additional_rank', 'reward']),
+            default => $rows->where('x.part', $tab),
+        };
+    }
+
     /** @return list<string> */
     public static function parts(): array
     {
@@ -123,7 +162,7 @@ final class PartnerIncomeBook
         ];
     }
 
-    private function spec(): MoneyTableSpec
+    private function spec(?string $defaultPeriod = 'month'): MoneyTableSpec
     {
         return new MoneyTableSpec(
             dateColumn: 'x.occurred_at',
@@ -136,7 +175,7 @@ final class PartnerIncomeBook
             defaultSort: 'date',
             tieBreaker: 'x.id',
             sums: ['amount' => 'x.amount'],
-            defaultPeriod: 'month',
+            defaultPeriod: $defaultPeriod,
         );
     }
 

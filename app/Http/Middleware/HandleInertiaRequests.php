@@ -236,7 +236,8 @@ class HandleInertiaRequests extends Middleware
             'portalCatalog' => Inertia::once(fn () => $portalShell
                 ? PortalCatalog::inertiaPayload($portal)
                 : null)->as('portalCatalog:'.$portal),
-            'dashboardControls' => Inertia::once(fn () => DashboardManagement::get())->as('dashboardControls'),
+            // The partner product list is switched off for now (CR-01): `partner_catalog_off` hides every link to it.
+            'dashboardControls' => Inertia::once(fn () => [...DashboardManagement::get(), 'partner_catalog_off' => ! config('madina.partner_catalog_enabled')])->as('dashboardControls'),
             // Rate placeholders stay in the text here; the live rates follow as a deferred prop,
             // so no page has to read the commission rules just to send the manual.
         ];

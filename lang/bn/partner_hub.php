@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'money_title' => 'আমার টাকা',
+    'money_title' => 'ওয়ালেট',
     'tab_earnings' => 'আয়ের হিসাব',
     'tab_withdrawals' => 'টাকা তোলা',
     'tab_receipts' => 'টাকা পাওয়ার রসিদ',

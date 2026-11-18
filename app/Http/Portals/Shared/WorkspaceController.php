@@ -151,6 +151,10 @@ class WorkspaceController extends Controller
 
             return redirect('/');
         }
+        // CR-01: the partner product list is off (code kept; MADINA_PARTNER_CATALOG=true switches it back on).
+        if ($section === 'catalog' && ! $staffWorkspace && in_array($u->role, ['dealer', 'sub_dealer'], true) && ! config('madina.partner_catalog_enabled')) {
+            return redirect('/');
+        }
         PortalCatalog::assertSection($u, $catalogPortal, $section);
         $periodRule = match ($section) {
             'branch-performance' => 'nullable|in:today,month,last30,custom',
@@ -225,7 +229,11 @@ class WorkspaceController extends Controller
             $data['partner_hub'] = $partnerHub;
         }
 
-        return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role', 'channel', 'category', 'sub_category', 'unit', 'min_mrp', 'max_mrp', 'availability', 'sort', 'period', 'from', 'to', 'division', 'district', 'rank', 'no_order_days', 'branch_id', 'all_branches', 'product_id', 'movement'])]);
+        // The dashboard report is its own page prop, so a tab or a filter reloads only it (see MoneyTable's `prop`).
+        $extra = array_key_exists('income_report', $data) ? ['income_report' => $data['income_report']] : [];
+        unset($data['income_report']);
+
+        return Inertia::render(PortalCatalog::page($portal), [...$extra, 'section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role', 'channel', 'category', 'sub_category', 'unit', 'min_mrp', 'max_mrp', 'availability', 'sort', 'period', 'from', 'to', 'division', 'district', 'rank', 'no_order_days', 'branch_id', 'all_branches', 'product_id', 'movement'])]);
     }
 
     public function createAccount(Request $r): Response

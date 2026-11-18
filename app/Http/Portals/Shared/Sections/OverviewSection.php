@@ -3,6 +3,7 @@
 namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Accounts\PartnerDashboardHome;
+use App\Domain\Accounts\PartnerIncomeBook;
 use App\Domain\Accounts\PartnerMoneyBook;
 use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Inventory\BranchScope;
@@ -38,6 +39,8 @@ final class OverviewSection implements WorkspaceSection
         if (in_array($user->role, ['dealer', 'sub_dealer'], true) && ! $context->usingStaffWorkspace) {
             $props['partner_home'] = app(PartnerDashboardHome::class)->for($user);
             $props['money_cards'] = Inertia::defer(fn (): array => app(PartnerMoneyBook::class)->incomeCards($user));
+            // The report under the cards: "total report" and one table per head. It reloads alone when a tab or a filter changes.
+            $props['income_report'] = Inertia::defer(fn (): array => app(PartnerIncomeBook::class)->reportPage($context->request, $user));
         } elseif ($context->isStaff) {
             $staffProfile = is_array($user->profile) ? $user->profile : [];
             $props['admin_home'] = [

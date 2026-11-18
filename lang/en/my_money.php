@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'title' => 'My money',
+    'title' => 'Wallet',
     'usable' => 'You can use',
     'waiting' => 'Waiting',
     'asked' => 'Asked to withdraw',
