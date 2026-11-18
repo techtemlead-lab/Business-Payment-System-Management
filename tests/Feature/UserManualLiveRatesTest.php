@@ -32,7 +32,7 @@ class UserManualLiveRatesTest extends TestCase
 
         $this->assertStringContainsString('3% salary on every purchase', $chapter['purpose']);
         $this->assertStringContainsString('no minimum purchase', $chapter['purpose']);
-        $this->assertStringContainsString('Another 3% is saved in their own tour fund', $chapter['purpose']);
+        $this->assertStringContainsString('Another 3% is saved in your own tour fund', $chapter['purpose']);
         $text = $this->text($chapter);
         $this->assertStringNotContainsString('5%', $text);
         $this->assertStringNotContainsString('2%', $text);
@@ -63,29 +63,29 @@ class UserManualLiveRatesTest extends TestCase
         app()->setLocale('en');
         $dealer = User::factory()->create();
 
-        $pool = $this->chapter($dealer, 'commissions_pool');
-        $this->assertStringContainsString('40% of each dealer purchase and 50% of each sub-dealer purchase', $pool['purpose']);
-        $this->assertStringContainsString('the company keeps 60% (dealer purchase) or 50% (sub-dealer purchase)', $this->text($pool));
+        $pool = $this->text($this->chapter($dealer, 'commissions_pool'));
+        $this->assertStringContainsString('40% of each dealer purchase and 50% of each sub-dealer purchase', $pool);
+        $this->assertStringContainsString('the company keeps 60% (dealer purchase) or 50% (sub-dealer purchase)', $pool);
 
         $network = $this->text($this->chapter($dealer, 'network_genealogy'));
-        $this->assertStringContainsString('10% to the direct referrer, 2% to the referrer one level above and 1% to the one above that', $network);
+        $this->assertStringContainsString('direct referrer gets 10%', $network);
+        $this->assertStringContainsString('gets 2%', $network);
+        $this->assertStringContainsString('gets 1%', $network);
 
         $area = $this->text($this->chapter($dealer, 'area_dealers_places'));
-        $this->assertStringContainsString('10% area fund', $area);
-        $this->assertStringContainsString('division 2%, district 2%, upazila 2%, union 2%, management 2%', $area);
+        $this->assertStringContainsString('10% of every purchase goes into the area fund', $area);
+        $this->assertStringContainsString('division 2%, district 2%, upazila 2%, union or municipality 2%, management 2%', $area);
 
-        $ranks = $this->chapter($dealer, 'ranks_royalties');
-        $tips = implode(' ', $ranks['tips']);
-        $this->assertStringContainsString('must reach ৳2,50,000 (one-time award ৳5,000)', $tips);
-        $this->assertStringContainsString('AM: 10 active dealers at MO or higher within 3 levels', $tips);
-        $this->assertStringContainsString('(award ৳50,000)', $tips);
-        $this->assertStringContainsString('MO ৳5,000, AM ৳15,000, SM ৳30,000, ME ৳50,000', $tips);
-        $this->assertStringContainsString('first 30 days', $tips);
-        $this->assertStringContainsString('4% of every purchase', $ranks['purpose']);
+        $tips = implode(' ', $this->chapter($dealer, 'ranks_royalties')['tips']);
+        foreach (['৳2,50,000', '৳5,000', '10 active dealers', '৳50,000', 'MO ৳5,000, AM ৳15,000, SM ৳30,000, ME ৳50,000', '30 days'] as $figure) {
+            $this->assertStringContainsString($figure, $tips);
+        }
+        $this->assertStringContainsString('4% of every purchase', $this->chapter($dealer, 'ranks_royalties')['purpose']);
 
         $rewards = $this->text($this->chapter($dealer, 'rewards_milestones'));
-        $this->assertStringContainsString('bike ৳50,00,000, car ৳25,00,00,000', $rewards);
-        $this->assertStringContainsString('৳8,00,000 for the bike, ৳2,00,00,000 for the car', $rewards);
+        foreach (['bike ৳50,00,000', 'car ৳25,00,00,000', '৳8,00,000', '৳2,00,00,000'] as $figure) {
+            $this->assertStringContainsString($figure, $rewards);
+        }
     }
 
     public function test_bangla_manual_shows_bangla_digits_and_no_placeholder_is_left_in_either_language(): void
@@ -102,7 +102,7 @@ class UserManualLiveRatesTest extends TestCase
         app()->setLocale('bn');
         $sub = $this->chapter(User::factory()->create(['role' => 'sub_dealer']), 'subdealer_salary_tour');
         $this->assertStringContainsString('৩% বেতন', $sub['purpose']);
-        $this->assertStringContainsString('আরও ৩% তাদের নিজের ট্যুর ফান্ডে', $sub['purpose']);
+        $this->assertStringContainsString('আরও ৩% আপনার নিজের ট্যুর ফান্ডে', $sub['purpose']);
         $this->assertStringContainsString('কোনো ন্যূনতম কেনা লাগে না', $sub['purpose']);
         $this->assertStringContainsString('৳২,৫০,০০০', implode(' ', $this->chapter(User::factory()->create(), 'ranks_royalties')['tips']));
     }

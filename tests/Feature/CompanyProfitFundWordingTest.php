@@ -42,7 +42,7 @@ class CompanyProfitFundWordingTest extends TestCase
         $line = (string) __('manual.area_dealers_places_s5', [], $locale);
 
         $this->assertStringContainsString(mb_strtolower((string) __('funds.fund_company_profit', [], $locale)), mb_strtolower($line));
-        $this->assertStringContainsString($locale === 'en' ? 'source is recorded' : 'কোথা থেকে এসেছে তা লেখা থাকে', $line);
+        $this->assertStringContainsString($locale === 'en' ? 'The reason is written down' : 'কারণও লেখা থাকে', $line);
     }
 
     #[DataProvider('languages')]

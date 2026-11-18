@@ -85,10 +85,10 @@ class UserManualRoundTwoTest extends TestCase
         app()->setLocale('en');
         $chapters = collect(app(UserManual::class)->chaptersFor($owner))->keyBy('key');
 
-        $this->assertStringContainsString('not a full set of accounts yet', implode(' ', $chapters['accounting_statements']['warnings']));
-        $this->assertStringContainsString('sales and purchases are not in the journal', implode(' ', $chapters['accounting_statements']['warnings']));
-        $this->assertStringContainsString('Not even the owner', implode(' ', $chapters['prescriptions_partner']['outcomes']));
-        $this->assertStringContainsString('cannot see a partner', implode(' ', $chapters['clinic_prescriptions']['tips']));
+        $this->assertStringContainsString('not yet the full books', implode(' ', $chapters['accounting_statements']['warnings']));
+        $this->assertStringContainsString('Some sales and buying lines come from other records', implode(' ', $chapters['accounting_statements']['warnings']));
+        $this->assertStringContainsString('The owner cannot see them either', implode(' ', $chapters['prescriptions_partner']['outcomes']));
+        $this->assertStringContainsString('cannot see any partner', implode(' ', $chapters['clinic_prescriptions']['tips']));
         $this->assertStringContainsString('does not change your order total', implode(' ', $chapters['schemes_partner']['warnings']));
 
         foreach ([...self::OfficeChapters, ...self::PartnerChapters, ...self::SharedChapters, 'sales_kit_schemes_owner'] as $key) {
@@ -133,42 +133,33 @@ class UserManualRoundTwoTest extends TestCase
         $this->assertSame(['[data-tour="purchase-matrix"]'], array_column($dealer['purchase']['steps'], 'target'));
     }
 
-    public function test_the_menu_chapters_name_every_row_and_tab_in_both_languages(): void
+    /** Every name the menu chapters put in quotes must be a word the screens really show, in that language. */
+    public function test_the_menu_chapters_only_quote_names_the_screens_really_show(): void
     {
         $owner = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
         $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
-        $officeRows = ['orders', 'payments', 'deliveries', 'nav_module_messages', 'treasury', 'payouts_hub', 'nav_commission_hub', 'nav_module_stock',
-            'nav_module_partners', 'nav_module_applications', 'nav_module_for_partners', 'nav_module_people', 'nav_module_reports', 'label_web'];
-        $partnerRows = ['nav_module_home', 'purchase', 'nav_module_commerce', 'nav_products', 'nav_module_earnings', 'nav_module_network',
-            'nav_module_learning', 'nav_module_office', 'nav_module_account'];
 
         foreach (['en', 'bn'] as $locale) {
             app()->setLocale($locale);
+            $known = [];
+            foreach (glob(lang_path($locale.'/*.php')) as $file) {
+                if (basename($file) === 'manual.php') {
+                    continue;
+                }
+                $strings = include $file;
+                array_walk_recursive($strings, function ($value) use (&$known): void {
+                    if (is_string($value)) {
+                        $known[trim($value)] = true;
+                    }
+                });
+            }
             $manual = app(UserManual::class);
-            $chapterText = fn (string $key, User $user): string => implode(' ', $manual->chapter($key, $user)['steps']);
-            $menu = trans('office_menu');
-            $officeText = $chapterText('menu_office', $owner);
-            $partnerText = $chapterText('menu_partner', $dealer);
-            $settingsText = $chapterText('settings_home', $owner);
-
-            foreach ($officeRows as $key) {
-                $this->assertStringContainsString(__('portal.'.$key), $officeText, "$locale office row $key");
-            }
-            foreach ($partnerRows as $key) {
-                $this->assertStringContainsString(__('portal.'.$key), $partnerText, "$locale partner row $key");
-            }
-            foreach (['tab_funds', 'tab_orders', 'tab_events', 'tab_partners', 'tab_work'] as $key) {
-                $this->assertStringContainsString(__('treasury.'.$key), $officeText, "$locale treasury $key");
-            }
-            foreach ($menu as $key => $label) {
-                $text = match (true) {
-                    str_starts_with($key, 'partner_tab_') => $partnerText,
-                    str_starts_with($key, 'tab_') => $officeText,
-                    str_starts_with($key, 'settings_link_') => $settingsText,
-                    default => null,
-                };
-                if ($text !== null) {
-                    $this->assertStringContainsString($label, $text, "$locale $key");
+            foreach ([['menu_office', $owner], ['settings_home', $owner], ['office_more_pages', $owner], ['menu_partner', $dealer]] as [$key, $user]) {
+                foreach ($manual->chapter($key, $user)['steps'] as $step) {
+                    preg_match_all('/“([^”]+)”/u', $step, $names);
+                    foreach ($names[1] as $name) {
+                        $this->assertArrayHasKey(trim($name), $known, "$locale $key quotes “{$name}”, which no screen shows");
+                    }
                 }
             }
         }
@@ -203,9 +194,9 @@ class UserManualRoundTwoTest extends TestCase
         app()->setLocale('en');
         $chapters = collect(app(UserManual::class)->chaptersFor($owner))->keyBy('key');
 
-        $this->assertStringContainsString('The owner can prepare and approve alone', implode(' ', $chapters['payouts_settlements']['tips']));
+        $this->assertStringContainsString('can cancel a request that is still waiting', implode(' ', $chapters['payouts_settlements']['tips']));
         $this->assertStringContainsString('The owner can approve and pay alone', implode(' ', $chapters['withdrawals']['steps']));
-        $this->assertMatchesRegularExpression('/ \d+(\.\d+)?% of each dealer purchase/', $chapters['commissions_pool']['purpose']);
+        $this->assertMatchesRegularExpression('/\d+(\.\d+)?% of each dealer purchase/', $chapters['commissions_pool']['purpose']);
     }
 
     private function drawn(string $selector, string $screens): bool

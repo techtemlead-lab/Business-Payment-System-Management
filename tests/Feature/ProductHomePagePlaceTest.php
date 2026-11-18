@@ -47,7 +47,7 @@ class ProductHomePagePlaceTest extends TestCase
             'portal.featured_showcase', 'portal.featured_badge', 'portal.pm_save_featured', 'portal.pm_featured_save_hint',
             'portal.sce_featured_products_section', 'portal.sce_featured_products_section_hint', 'portal.sce_featured_mode_auto',
             'portal.sce_featured_mode_curated', 'portal.sce_catalog_featured_heading', 'portal.sce_catalog_featured_empty',
-            'stock_lots.filter_featured', 'manual.catalog_orders_t2', 'manual.inventory_branches_s9', 'manual.website_customization_s2',
+            'stock_lots.filter_featured', 'manual.catalog_orders_t2', 'manual.inventory_branches_s5', 'manual.website_customization_s2',
         ];
 
         foreach ($officeKeys as $key) {
@@ -74,10 +74,8 @@ class ProductHomePagePlaceTest extends TestCase
         foreach (['bn', 'en'] as $language) {
             $manual = require lang_path($language.'/manual.php');
 
-            $this->assertArrayHasKey('website_editor_s6', $manual);
-            $this->assertArrayHasKey('product_facts_s5', $manual);
-            $this->assertStringContainsString(__('portal.sce_home_order_save', [], $language), $manual['website_editor_s6']);
-            $this->assertStringContainsString(__('portal.pe_strength', [], $language), $manual['product_facts_s5']);
+            $this->assertStringContainsString(__('portal.sce_home_order_save', [], $language), $manual['website_editor_s8']);
+            $this->assertStringContainsString(__('portal.pe_strength', [], $language), $manual['product_facts_s9']);
         }
     }
 

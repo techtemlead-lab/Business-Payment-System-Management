@@ -65,7 +65,7 @@ class SignedInRoundWordingNavTest extends TestCase
     public function test_the_two_company_money_pages_have_different_names_everywhere(string $locale, string $moneyFlowName, string $fundBalancesName): void
     {
         $this->assertSame($locale === 'bn' ? 'ট্রেজারি' : 'Treasury', __('portal.treasury', [], $locale));
-        $this->assertStringContainsString((string) __('portal.treasury', [], $locale), (string) __('manual.menu_office_s3', [], $locale));
+        $this->assertStringContainsString((string) __('portal.treasury', [], $locale), (string) __('manual.menu_office_s2', [], $locale));
     }
 
     public function test_the_owner_pages_receive_the_new_names_in_bangla(): void
@@ -110,7 +110,7 @@ class SignedInRoundWordingNavTest extends TestCase
             $this->assertStringContainsString('subdealer', $chapter['steps'][0], $locale);
             $this->assertNotSame('', (string) $chapter['purpose'], $locale);
             $this->assertNotSame('', (string) $chapter['why'], $locale);
-            $this->assertCount(10, $chapter['steps'], $locale);
+            $this->assertCount(9, $chapter['steps'], $locale);
         }
     }
 
