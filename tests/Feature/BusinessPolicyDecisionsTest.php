@@ -90,6 +90,8 @@ class BusinessPolicyDecisionsTest extends TestCase
 
     public function test_owner_recovery_and_private_pages_use_the_owner_entry(): void
     {
+        // The office panels open in Bangla for a visitor who never chose a language; these checks read the English words.
+        $this->withCookie('locale', 'en');
         Notification::fake();
         $owner = User::factory()->staff()->create();
         $this->get('/owner/login')->assertOk()->assertSee('Owner log in')->assertHeader('Cache-Control', 'max-age=0, no-store, private');

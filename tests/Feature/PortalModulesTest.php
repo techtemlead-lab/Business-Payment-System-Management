@@ -101,6 +101,8 @@ class PortalModulesTest extends TestCase
 
     public function test_cross_portal_login_links_only_appear_on_owner_login(): void
     {
+        // The office panels open in Bangla for a visitor who never chose a language; these checks read the English words.
+        $this->withCookie('locale', 'en');
         $this->onPortal('sadmin')->get('/login')
             ->assertOk()
             ->assertSee('data-tour="owner-login-portals"', false)
