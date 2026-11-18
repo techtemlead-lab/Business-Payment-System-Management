@@ -9,20 +9,22 @@
 @if($showBismillah)
 <p class="ref-bismillah"@if(\App\Support\SiteChrome::isArabic($bismillahText)) lang="ar" dir="rtl"@endif><span>{{ $bismillahText }}</span></p>
 @endif
-{{-- The round logo sits at the left of the company name; the name stays centred on the page. --}}
+{{-- The round logo and the trade licence and trademark numbers sit together at the left; the name stays centred on the page. --}}
 <div class="ref-company-bar">
     <div class="ref-container ref-company-bar-inner">
-        <a href="{{ $site('/') }}" class="ref-bar-logo" aria-label="{{ __('site.brand_home') }}">
-            <img src="{{ \App\Support\SiteCustomization::logoUrl() }}" alt="{{ \App\Support\SiteCustomization::brandName() }}" width="68" height="68" decoding="async" fetchpriority="high">
-        </a>
+        <div class="ref-bar-brand">
+            <a href="{{ $site('/') }}" class="ref-bar-logo" aria-label="{{ __('site.brand_home') }}">
+                <img src="{{ \App\Support\SiteCustomization::logoUrl() }}" alt="{{ \App\Support\SiteCustomization::brandName() }}" width="68" height="68" decoding="async" fetchpriority="high">
+            </a>
+            <div class="ref-bar-legal">
+                <span>{{ __('site.top_bar_trade_licence') }}: <b>{{ \App\Support\LocalDigits::text(\App\Support\SiteFacts::tradeLicence()) }}</b></span>
+                <span>{{ __('site.top_bar_trademark') }}: <b>{{ \App\Support\SiteFacts::trademarkNumber() }}</b></span>
+            </div>
+        </div>
         <div class="ref-bar-name">
             <i class="fa-solid fa-seedling ref-bar-leaf is-left" aria-hidden="true"></i>
             <{{ $companyNameTag }} class="ref-bar-text">{{ $chrome('company_bar', $siteCustomization['top_bar_text'] ?? null) }}</{{ $companyNameTag }}>
             <i class="fa-solid fa-seedling ref-bar-leaf is-right" aria-hidden="true"></i>
-        </div>
-        <div class="ref-bar-legal">
-            <span>{{ __('site.top_bar_trade_licence') }}: <b>{{ \App\Support\LocalDigits::text(\App\Support\SiteFacts::tradeLicence()) }}</b></span>
-            <span>{{ __('site.top_bar_trademark') }}: <b>{{ \App\Support\SiteFacts::trademarkNumber() }}</b></span>
         </div>
     </div>
 </div>
