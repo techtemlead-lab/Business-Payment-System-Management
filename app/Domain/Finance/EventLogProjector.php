@@ -51,25 +51,43 @@ final class EventLogProjector
         return $inserted;
     }
 
-    /** Empties the log and fills it again. People reading the page keep seeing the old rows until it finishes. */
+    /**
+     * Empties the log and fills it again, one source at a time. Each source is its own short
+     * transaction (delete its rows, read its feeds again), so a large log is never deleted and
+     * refilled in a single long transaction. People reading the page keep seeing a source's old
+     * rows until that source's step commits. Rows of a source no feed produces any more are removed
+     * at the end.
+     */
     public function rebuild(): int
     {
-        return DB::transaction(function (): int {
-            DB::table('money_events')->delete();
-            DB::table('money_event_watermarks')->delete();
-            $inserted = 0;
-            $watermarks = [];
-            foreach ($this->feeds() as $feed) {
-                [$added, $newest] = $this->pass($feed, null, null);
-                $inserted += $added;
-                if ($newest !== null) {
-                    $watermarks[$feed['name']] = $newest->toIso8601ZuluString('microsecond');
+        $feeds = $this->feeds();
+        $bySource = [];
+        foreach ($feeds as $feed) {
+            $bySource[$feed['source']][] = $feed;
+        }
+        $inserted = 0;
+        foreach ($bySource as $source => $sourceFeeds) {
+            $inserted += DB::transaction(function () use ($source, $sourceFeeds): int {
+                DB::table('money_events')->where('source', $source)->delete();
+                DB::table('money_event_watermarks')->whereIn('feed', array_column($sourceFeeds, 'name'))->delete();
+                $added = 0;
+                $watermarks = [];
+                foreach ($sourceFeeds as $feed) {
+                    [$count, $newest] = $this->pass($feed, null, null);
+                    $added += $count;
+                    if ($newest !== null) {
+                        $watermarks[$feed['name']] = $newest->toIso8601ZuluString('microsecond');
+                    }
                 }
-            }
-            $this->saveWatermarks($watermarks);
+                $this->saveWatermarks($watermarks);
 
-            return $inserted;
-        });
+                return $added;
+            });
+        }
+        DB::table('money_events')->whereNotIn('source', array_keys($bySource))->delete();
+        DB::table('money_event_watermarks')->whereNotIn('feed', array_column($feeds, 'name'))->delete();
+
+        return $inserted;
     }
 
     /**

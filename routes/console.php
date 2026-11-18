@@ -117,3 +117,11 @@ if (! in_array(config('queue.default'), ['sync', 'null'], true)) {
 // The owner's error log keeps each problem for the days set on the Errors page (90 unless changed).
 Schedule::command('errors:prune')->dailyAt('04:40')->timezone('Asia/Dhaka')->withoutOverlapping(30)->onOneServer()
     ->onFailure(fn () => Log::warning('Scheduled clean-up of the old error log failed.'));
+
+// Old notices are messages, not records: read ones go after 180 days, unread after 400 (the ledger and audit log keep the money truth).
+Schedule::command('notices:prune')->dailyAt('04:50')->timezone('Asia/Dhaka')->withoutOverlapping(30)->onOneServer()
+    ->onFailure(fn () => Log::warning('Scheduled clean-up of old notices failed.'));
+
+// Month-start running totals of the journal keep the trial balance quick as the ledger grows; no figure changes.
+Schedule::command('finance:snapshot-opening-balances')->dailyAt('03:45')->timezone('Asia/Dhaka')->withoutOverlapping(60)->onOneServer()
+    ->onFailure(fn () => Log::warning('Scheduled journal opening-balance snapshot failed.'));

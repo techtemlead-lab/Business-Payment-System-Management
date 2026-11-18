@@ -18,6 +18,8 @@ use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Events\DiagnosingHealth;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
@@ -81,6 +83,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->guardQueries();
         // Nobody using the portal should be asked for "Y-m-d"; the date boxes are filled in as day/month/year.
         Validator::replacer('date_format', static fn (string $message, string $attribute, string $rule, array $parameters): string => str_replace(':format', match ($parameters[0] ?? '') {
             'Y-m-d' => __('portal.date_format_day_month_year'),
@@ -206,5 +209,31 @@ class AppServiceProvider extends ServiceProvider
                 Limit::perMinute(1200)->by('address|'.$request->ip()),
             ];
         });
+    }
+
+    /**
+     * Makes slow and one-row-at-a-time queries visible: a slow-query log in every environment, and a
+     * lazy-loading (N+1) guard outside production (see config/performance.php).
+     */
+    private function guardQueries(): void
+    {
+        $mode = (string) config('performance.lazy_loading', 'log');
+        if (! $this->app->isProduction() && $mode !== 'off') {
+            Model::preventLazyLoading();
+            if ($mode !== 'throw') {
+                Model::handleLazyLoadingViolationUsing(function (Model $model, string $relation): void {
+                    Log::warning('Lazy-loaded relationship (N+1): '.$model::class.'::'.$relation.' - eager load it.');
+                });
+            }
+        }
+
+        $thresholdMs = (int) config('performance.slow_query_ms', 500);
+        if ($thresholdMs > 0) {
+            DB::listen(function (QueryExecuted $query) use ($thresholdMs): void {
+                if ($query->time >= $thresholdMs) {
+                    Log::warning('Slow database query.', ['ms' => round($query->time, 1), 'sql' => Str::limit($query->sql, 1000), 'connection' => $query->connectionName]);
+                }
+            });
+        }
     }
 }
