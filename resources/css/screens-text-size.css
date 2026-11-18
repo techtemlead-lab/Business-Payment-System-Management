@@ -39,3 +39,13 @@ html[data-text-size="xlarge"] :is(.dealer-shell, .subdealer-shell) { zoom: 1.5; 
 /* A crore-sized amount wraps inside its box instead of being cut off at the edge. */
 :is(.dealer-shell, .subdealer-shell) :is(.ph-hero-stats dd, .ph-today-grid strong, .metric strong) { overflow-wrap: anywhere; }
 @media (max-width: 640px) { :is(.dealer-shell, .subdealer-shell) .ph-hero-stats { grid-template-columns: 1fr; } }
+/* Order totals: two to a row so a crore-sized amount fits on one line. */
+:is(.dealer-shell, .subdealer-shell) .order-totals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+/* File chooser with words in the page's language (FilePicker). The real input stays on the page, out of sight, so required and keyboard use still work. */
+.file-picker { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; position: relative; }
+.file-picker-input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; pointer-events: none; }
+.file-picker-name { color: var(--ds-text-muted, #455364); overflow-wrap: anywhere; }
+
+/* A form error must be noticed by someone who reads slowly: bold, dark red, with a bar beside it. */
+:is(.dealer-shell, .subdealer-shell) .field-error { display: block; margin-top: 6px; padding-left: 8px; border-left: 3px solid #b42318; color: #9b1c12; font-weight: 600; }

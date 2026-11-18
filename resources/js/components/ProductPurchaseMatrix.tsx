@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { money, type Row, Table, number, FormErrors } from './UI';
 import { useT } from '../shared/i18n/t';
+import { catalogWord } from '../shared/catalogWords';
+import FilePicker from './FilePicker';
 import { useReasonField } from '../shared/reasonFields';
 import { randomUuid } from '../shared/randomUuid';
 import RepeatOrderPanel, { repeatChangeNotes, type RepeatOption } from './dealertools/RepeatOrderPanel';
@@ -65,6 +67,8 @@ export default function ProductPurchaseMatrix({
     runningSchemes = [],
 }: Props) {
     const translate = useT();
+    const unitWord = (value: unknown) => catalogWord(translate, 'unit', value as string | null | undefined);
+    const categoryWord = (value: unknown) => catalogWord(translate, 'category', value as string | null | undefined);
     const { url, props: pageProps } = usePage<any>();
     const payOptions: PayOptions = pageProps.data?.pay_options ?? { account_available: '0', account_usable: false, account_block: 'off' };
     // Opened from "order with this money" on the withdraw form: /purchase?pay=account&budget=5000
@@ -187,7 +191,7 @@ export default function ProductPurchaseMatrix({
 
         const sizeText = activeProduct.size_label || activeProduct.strength;
         const strengthLabel = sizeText ? ` (${sizeText})` : '';
-        setAddedBanner(`${activeProduct.name}${strengthLabel} — ${number(qty)} ${activeProduct.unit || translate('portal', 'ppm_box_unit')} ${translate('portal', 'b2b_added_success')}`);
+        setAddedBanner(`${activeProduct.name}${strengthLabel} — ${number(qty)} ${unitWord(activeProduct.unit) || translate('portal', 'ppm_box_unit')} ${translate('portal', 'b2b_added_success')}`);
         setTimeout(() => setAddedBanner(null), 4000);
 
         // The box is ready for the next product at once.
@@ -256,12 +260,18 @@ export default function ProductPurchaseMatrix({
         };
     }, [cart]);
 
+    // Only the ways to pay that have a company account behind them are offered; paying at the office always is.
+    const payChannels = useMemo(
+        () => [...['Bank', 'bKash', 'Nagad', 'Rocket'].filter(x => collectionAccounts.some(account => account.channel === x)), OFFICE_CHANNEL],
+        [collectionAccounts],
+    );
+
     // Checkout form
     const f = useForm({
         items: [] as { product_id: number; quantity: number }[],
         reference: '',
         payment_account_id: '',
-        channel: openedWithAccount && payOptions.account_usable ? ACCOUNT_CHANNEL : 'Bank',
+        channel: openedWithAccount && payOptions.account_usable ? ACCOUNT_CHANNEL : payChannels[0],
         amount: '',
         use_account: false,
         note: '',
@@ -482,7 +492,7 @@ export default function ProductPurchaseMatrix({
                                                 ? <span className="ppm-strength">{card.sizes.map(size => size.size_label || size.strength).filter(Boolean).join(' · ') || translate('order_search', 'sizes_count', { count: String(card.sizes.length) })}</span>
                                                 : (product.size_label || product.strength) && <span className="ppm-strength">({product.size_label || product.strength})</span>}
                                             <div className="ops-meta">
-                                                {product.category} {product.sub_category ? `› ${product.sub_category}` : ''}
+                                                {categoryWord(product.category)} {product.sub_category ? `› ${product.sub_category}` : ''}
                                             </div>
                                         </div>
                                         <div className="ops-right">
@@ -556,7 +566,7 @@ export default function ProductPurchaseMatrix({
                                                 checked={String(v.id) === String(activeProduct.id)}
                                                 onChange={() => setActiveId(v.id)}
                                             />
-                                            <span className="ppm-size-label">{v.size_label || v.strength || v.unit || translate('portal', 'b2b_single_spec')}</span>
+                                            <span className="ppm-size-label">{v.size_label || v.strength || unitWord(v.unit) || translate('portal', 'b2b_single_spec')}</span>
                                             <span className="ppm-size-price">{money(vPrice)}{vDisc > 0 ? ` · ${translate('portal', 'pct_off', { pct: String(vDisc) })}` : ''}</span>
                                             {stockKnown(v) && <span className="ppm-size-stock">{translate('order_search', `stock_${state}`)}</span>}
                                         </label>
@@ -568,7 +578,7 @@ export default function ProductPurchaseMatrix({
                         <div className="ppm-qty-row">
                             <div className="ops-grow">
                                 <label className="ops-field-label" htmlFor="ppm-qty-input">
-                                    {translate('order_search', 'quantity_for')} {activeProduct?.unit ? `(${activeProduct.unit})` : ''}
+                                    {translate('order_search', 'quantity_for')} {activeProduct?.unit ? `(${unitWord(activeProduct.unit)})` : ''}
                                 </label>
                                 <input
                                     id="ppm-qty-input"
@@ -624,13 +634,13 @@ export default function ProductPurchaseMatrix({
                                 <div className="ppm-sel-name">
                                     {activeProduct.name} {(activeProduct.size_label || activeProduct.strength) ? `(${activeProduct.size_label || activeProduct.strength})` : ''}
                                     <span className="ppm-sel-sku">
-                                        {translate('portal', 'product_code_value', { sku: String(activeProduct.sku) })} · {activeProduct.category}{activeProduct.sub_category ? ` / ${activeProduct.sub_category}` : ''}
+                                        {translate('portal', 'product_code_value', { sku: String(activeProduct.sku) })} · {categoryWord(activeProduct.category)}{activeProduct.sub_category ? ` / ${activeProduct.sub_category}` : ''}
                                     </span>
                                 </div>
                                 {stockKnown(activeProduct) && (
                                     <span className={`hub-pill ${stockState(activeProduct) === 'in' ? 'tone-ok' : 'tone-danger'}`}>
                                         {stockState(activeProduct) === 'in'
-                                            ? translate('portal', 'ppm_stock_left', { qty: number(activeProduct.stock), unit: String(activeProduct.unit || translate('portal', 'ppm_unit_fallback')) })
+                                            ? translate('portal', 'ppm_stock_left', { qty: number(activeProduct.stock), unit: String(unitWord(activeProduct.unit) || translate('portal', 'ppm_unit_fallback')) })
                                             : translate('portal', 'ppm_stock_awaiting')}
                                     </span>
                                 )}
@@ -728,8 +738,8 @@ export default function ProductPurchaseMatrix({
                                                 </div>
                                                 <div className="cell-sub">
                                                     {(p.size_label || p.strength) ? <strong className="ppm-line-strength">{p.size_label || p.strength}</strong> : null}
-                                                    <span>{p.category}{p.sub_category ? ` · ${p.sub_category}` : ''}</span>
-                                                    <span className="ppm-line-unit">({p.unit || translate('portal', 'ppm_box_unit')})</span>
+                                                    <span>{categoryWord(p.category)}{p.sub_category ? ` · ${p.sub_category}` : ''}</span>
+                                                    <span className="ppm-line-unit">({unitWord(p.unit) || translate('portal', 'ppm_box_unit')})</span>
                                                 </div>
                                             </td>
                                             <td className="ppm-mrp ops-right" data-label={translate('portal', 'b2b_col_mrp')}>
@@ -855,7 +865,7 @@ export default function ProductPurchaseMatrix({
                                             f.setData('payment_account_id', '');
                                         }}
                                     >
-                                        {['Bank', 'bKash', 'Nagad', 'Rocket', OFFICE_CHANNEL].map(x => (
+                                        {payChannels.map(x => (
                                             <option key={x} value={x}>{translate('portal', `pay_channel_${x.toLowerCase()}`)}</option>
                                         ))}
                                         {payOptions.account_block !== 'off' && (
@@ -940,11 +950,10 @@ export default function ProductPurchaseMatrix({
 
                                 <label>
                                     {translate('portal', 'payment_proof_label')}
-                                    <input
-                                        type="file"
+                                    <FilePicker
                                         accept="image/jpeg,image/png,image/webp,application/pdf"
                                         required={fullPaymentRequired || f.data.reference.trim() !== ''}
-                                        onChange={e => f.setData('proof', e.target.files?.[0] ?? null)}
+                                        onPick={file => f.setData('proof', file)}
                                     />
                                     <small className="field-hint">{translate('portal', 'payment_proof_hint')}</small>
                                     {f.errors.proof && <span className="field-error" role="alert">{f.errors.proof}</span>}

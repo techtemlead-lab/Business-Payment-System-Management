@@ -26,6 +26,7 @@ import Figures, { type FigureItem } from './office/Figures';
 import PrerequisiteHelper from './PrerequisiteHelper';
 import { restartOnboardingTour } from './OnboardingTour';
 import { useT } from '../shared/i18n/t';
+import FilePicker from './FilePicker';
 import '../../css/partner-hub.css';
 
 export default function HelpSupportHub({ data }: { data: Row }) {
@@ -477,7 +478,7 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                             </label>
                             <label>
                                 {translate('portal', 'support_attachment_optional')}
-                                <input type="file" name="attachment" accept=".jpg,.jpeg,.png,.webp,.pdf" />
+                                <FilePicker name="attachment" accept=".jpg,.jpeg,.png,.webp,.pdf" />
                                 {errors.attachment && <span className="field-error">{errors.attachment}</span>}
                             </label>
                             <button className="button dark" disabled={processing}>{translate('portal', 'support_submit')}</button>
