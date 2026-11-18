@@ -87,5 +87,13 @@ return [
     'faq6_q' => 'What if I want to cancel or return an order?',
     'faq6_a' => 'Write to the office in chat or call. Tell them which order and why, and the office will take care of it for you.',
     'agr_thanks' => 'Thank you. You can now place orders.',
+    'repeat_more' => 'and :count more',
+    'repeat_total' => 'Total at today\'s prices',
+    'call_me_title' => 'The easy way: get help from the office',
+    'pay_at_office' => 'I will pay at the office and order',
+    'ask_call' => 'Ask the office to call me',
+    'call_me_message' => 'Please call me. I want to order or need help by phone.',
+    'call_me_sent' => 'The office has been told. They will call you.',
+    'call_me_failed' => 'Could not send. Try again or call the office.',
     'totals_note' => '“You ordered” is the price of every running and delivered order. “Delivered” is only the goods that reached you. “Still to pay” is the money not yet paid on your orders.',
 ];

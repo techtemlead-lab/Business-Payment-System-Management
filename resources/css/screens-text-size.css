@@ -65,3 +65,10 @@ html[data-text-size="xlarge"] :is(.dealer-shell, .subdealer-shell) { zoom: 1.5; 
 /* The agreement is one long page, not a small box with its own scroll, and the accept button stays in view. */
 :is(.dealer-shell, .subdealer-shell) .agr-text { max-height: none; overflow-y: visible; }
 :is(.dealer-shell, .subdealer-shell) .agr-accept { position: sticky; bottom: 0; z-index: 5; padding: 12px 0; background: var(--ds-bg, #f3f5f2); }
+
+/* Home: two big buttons for people who find the order form hard. */
+.ph-callme { margin: 16px 0; padding: 16px; border: 2px solid var(--ds-brand, #006a4e); border-radius: 16px; background: var(--ds-brand-soft, #e3f1eb); }
+.ph-callme h3 { margin: 0 0 12px; }
+.ph-callme-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.ph-callme-button { flex: 1 1 240px; justify-content: center; gap: 10px; min-height: 56px; font-size: 18px; font-weight: 700; }
+.ph-callme-note { margin: 12px 0 0; font-weight: 700; color: var(--ds-brand-text, #00694d); }
