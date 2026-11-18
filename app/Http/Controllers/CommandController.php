@@ -285,7 +285,7 @@ class CommandController extends Controller
                 'password' => $plainPassword,
                 'must_change_password' => true,
                 'password_managed_by' => User::PasswordManagedByAdmin,
-                'admin_password_cipher' => $role === 'super_admin' ? null : $plainPassword,
+                'admin_password_cipher' => in_array($role, User::RevealablePasswordRoles, true) ? $plainPassword : null,
             ]);
             $u->save();
             if ($branchId !== null) {
