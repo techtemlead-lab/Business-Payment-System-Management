@@ -1,7 +1,9 @@
 <?php
 
-// Client change request CR-14 (2026-11-19): the lean dealer and sub-dealer menu with one "আরও সুবিধা" page.
+// Client change request CR-14 (2026-11-19): the lean dealer and sub-dealer menu with one "অন্যান্য মডিউল" page.
 return [
+    // The page and its sidebar entry (portal.nav_module_more) are named this since the client's rename of 2026-11-19.
+    'more_title' => 'অন্যান্য মডিউল',
     'more_group_learn' => 'শিখুন ও জানুন',
     'more_group_grow' => 'বিক্রি বাড়ান',
     'more_group_office' => 'কোম্পানির সঙ্গে',

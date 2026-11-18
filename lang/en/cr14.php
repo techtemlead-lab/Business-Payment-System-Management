@@ -1,7 +1,9 @@
 <?php
 
-// Client change request CR-14 (2026-11-19): the lean dealer and sub-dealer menu with one More page.
+// Client change request CR-14 (2026-11-19): the lean dealer and sub-dealer menu with one Other modules page.
 return [
+    // The page and its sidebar entry (portal.nav_module_more) are named this since the client's rename of 2026-11-19.
+    'more_title' => 'Other modules',
     'more_group_learn' => 'Learn and find out',
     'more_group_grow' => 'Sell more',
     'more_group_office' => 'With the company',
