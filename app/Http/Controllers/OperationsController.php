@@ -16,6 +16,7 @@ use App\Domain\Finance\VehiclePools;
 use App\Domain\Finance\WithdrawalApprovalLimit;
 use App\Domain\Finance\WithdrawalSecurityWait;
 use App\Domain\Integrations\IntegrationSettings;
+use App\Domain\Payouts\PayoutLimits;
 use App\Domain\Staff\StaffPermissions;
 use App\Domain\Staff\TerritoryAccess;
 use App\Models\Product;
@@ -177,6 +178,7 @@ class OperationsController extends Controller
         if ($section === 'finance-settings') {
             $data['withdrawalSetting'] = app(FinanceSettings::class)->withdrawalMinimum();
             $data['withdrawalSecurityWait'] = [...app(WithdrawalSecurityWait::class)->settings(), 'default' => WithdrawalSecurityWait::DefaultHours, 'can_edit' => $actor->owner() && $actor->canAct('finance', 'edit')];
+            $data['payoutLimits'] = [...app(PayoutLimits::class)->settings(), 'can_edit' => $actor->owner() && $actor->canAct('finance', 'edit')];
             $data['autoApproval'] = app(FinanceSettings::class)->autoApproval();
             $data['kycBeforeFirstWithdrawal'] = [...app(FinanceSettings::class)->kycBeforeFirstWithdrawal(), 'can_edit' => $actor->role === 'super_admin'];
             $data['fullPaymentWhenOrdering'] = [...app(FinanceSettings::class)->fullPaymentWhenOrdering(), 'can_edit' => $actor->role === 'super_admin'];

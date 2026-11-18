@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Console\Commands\RestoreDrillApplicationBackup;
+use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Diagnostics\ErrorTrackingSettings;
 use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Integrations\SmsGatewayClient;
@@ -143,6 +144,10 @@ final class DeploymentReadiness
         }
         if ((int) config('madina.privacy.closed_record_retention_days', 0) < 1) {
             $warnings[] = 'privacy_retention_unconfigured';
+        }
+        // Owner decision D12: the payout tax rate stays the owner's setting; 0% is allowed but flagged until an accountant confirms it.
+        if ($checks['database'] && $this->payoutTaxRateIsZero()) {
+            $warnings[] = 'payout_tax_rate_zero';
         }
         if ($checks['database'] && ! $this->placeCodeCatalogReady()) {
             $warnings[] = 'place_code_catalog_incomplete';
@@ -375,6 +380,14 @@ final class DeploymentReadiness
      * Bangladesh onboarding needs the seeded administrative place registry
      * (8 divisions + 64 districts at minimum) before partner go-live.
      */
+    /** True while no tax is withheld from payouts (the rate is 0% or the rule is off). */
+    private function payoutTaxRateIsZero(): bool
+    {
+        $rules = app(CommissionPolicy::class)->snapshot()['rules'];
+
+        return CommissionPolicy::rate($rules, 'payout_tax_withholding')->decimal() === '0.00';
+    }
+
     private function placeCodeCatalogReady(): bool
     {
         try {

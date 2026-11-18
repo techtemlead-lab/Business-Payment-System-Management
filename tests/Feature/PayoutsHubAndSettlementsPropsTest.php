@@ -62,6 +62,10 @@ class PayoutsHubAndSettlementsPropsTest extends TestCase
                     'paid_count' => 2,
                     'paid_amount' => '400.00',
                     'paid_withheld_amount' => '20.00',
+                    'overdue_count' => 0,
+                    'overdue_amount' => '0.00',
+                    'on_hold_count' => 0,
+                    'receipt_due_count' => 0,
                 ]));
 
         $this->actingAs($owner)->onPortal('sadmin')->get('/payouts-hub?page=2')->assertOk()

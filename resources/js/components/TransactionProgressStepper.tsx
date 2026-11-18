@@ -234,7 +234,11 @@ export default function TransactionProgressStepper({
         } else if (hasOnlyRejectedClaims) {
             stage3State = 'warning';
             stage3Badge = t('stage_badge_claim_rejected', 'Claim Rejected');
-            stage3Desc = t('stage_desc_submit_valid_claim', 'Please submit valid payment slip');
+            // Cash at the office has no TrxID or screenshot; tell the partner to bring the cash again (MA-21).
+            const lastClaim = claims[claims.length - 1];
+            stage3Desc = String(lastClaim?.channel ?? '') === 'Office'
+                ? translate('payouts', 'cash_hint_rejected')
+                : t('stage_desc_submit_valid_claim', 'Please submit valid payment slip');
             stage3Icon = <AlertCircle size={16} />;
         } else if (['approved', 'partially_dispatched', 'dispatched', 'delivered', 'partly_delivered'].includes(status)) {
             if (orderPaid > 0) {

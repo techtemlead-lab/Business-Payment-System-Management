@@ -55,6 +55,7 @@ final class FinanceSection implements WorkspaceSection
                 'payment_claims.reason',
                 'payment_claims.created_at',
                 DB::raw('(payment_claims.proof_path IS NOT NULL) AS has_proof'),
+                'payment_claims.proof_looks_blank',
                 'orders.number',
                 'orders.total',
                 'orders.paid',
@@ -77,6 +78,8 @@ final class FinanceSection implements WorkspaceSection
             filters: [
                 new MoneyTableFilter('channel', (string) __('portal.col_channel'), 'payment_claims.channel', array_map(fn (string $channel): array => ['value' => $channel, 'label' => (string) __('portal.pay_channel_'.strtolower($channel))], self::ClaimChannels)),
                 new MoneyTableFilter('buyer_role', (string) __('treasury.filter_buyer_role'), 'users.role', self::partnerRoles()),
+                // Who confirmed which payments, so a wrongly confirmed cash payment can be traced (MA-17).
+                new MoneyTableFilter('checked_by', (string) __('payouts.filter_checked_by'), 'payment_claims.verified_by', self::checkers()),
             ],
             sorts: [
                 'created_at' => 'payment_claims.created_at',
@@ -90,6 +93,8 @@ final class FinanceSection implements WorkspaceSection
                 'checked_by' => 'checkers.name',
             ],
             defaultSort: 'created_at',
+            // Payments waiting for a check: oldest first, so nobody waits 17 days at the bottom of the list.
+            defaultDir: $status === 'pending' ? 'asc' : 'desc',
             tieBreaker: 'payment_claims.id',
             sums: ['amount' => 'payment_claims.amount'],
             defaultPeriod: null,
@@ -118,6 +123,18 @@ final class FinanceSection implements WorkspaceSection
             ],
             'payments_table' => MoneyTable::make($request, $oneStatus ? (clone $claims)->where('payment_claims.status', $status) : $claims, $spec),
         ];
+    }
+
+    /**
+     * Staff who have checked at least one payment, for the "checked by" filter.
+     *
+     * @return list<array{value: string, label: string}>
+     */
+    private static function checkers(): array
+    {
+        return DB::table('users')->whereIn('id', DB::table('payment_claims')->whereNotNull('verified_by')->select('verified_by'))
+            ->orderBy('name')->limit(200)->get(['id', 'name'])
+            ->map(fn (object $user): array => ['value' => (string) $user->id, 'label' => (string) $user->name])->all();
     }
 
     /** @return list<array{value: string, label: string}> */

@@ -101,6 +101,7 @@ $operations = function (): void {
     $completion = ModuleCompletionController::class;
     Route::post('/settings/withdrawal-minimum', [$completion, 'minimum']);
     Route::post('/settings/withdrawal-security-wait', [$completion, 'withdrawalSecurityWait']);
+    Route::post('/settings/payout-limits', [WithdrawalController::class, 'limits']);
     Route::post('/settings/auto-approval', [$completion, 'autoApproval']);
     Route::post('/settings/kyc-before-first-withdrawal', [$completion, 'kycBeforeFirstWithdrawal']);
     Route::post('/settings/full-payment-when-ordering', [$completion, 'fullPaymentWhenOrdering']);

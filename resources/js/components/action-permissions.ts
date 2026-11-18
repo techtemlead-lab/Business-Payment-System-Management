@@ -14,7 +14,7 @@ export function actionAllowed(url:string,matrix:Matrix|undefined,method='post'):
         if(part==='marketing/homepage-video')return any(['content','catalog'],'edit');
         if(part.startsWith('integrations/'))return any(['finance'],'edit');
         if(part==='payroll/prepare')return any(['payroll'],'create');
-        if(part==='payroll/contracts'||part==='settings/withdrawal-minimum'||part==='settings/withdrawal-security-wait')return any(['finance'],'edit');
+        if(part==='payroll/contracts'||part==='settings/withdrawal-minimum'||part==='settings/withdrawal-security-wait'||part==='settings/payout-limits')return any(['finance'],'edit');
         if(/\/(review|pay|verify|release|recover|reassign)$/.test(part))return any(['finance'],'approve');
         return any(['finance'],method==='patch'?'edit':'create');
     }

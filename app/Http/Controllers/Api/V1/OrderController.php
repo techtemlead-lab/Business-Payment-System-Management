@@ -89,7 +89,7 @@ class OrderController extends Controller
     public function verify(VerifyPaymentRequest $request, int $claim, OrderService $service): JsonResponse
     {
         $data = $request->validated();
-        $service->verify($request->user(), $claim, $request->boolean('approve'), ReasonFields::text($data['reason'] ?? null));
+        $service->verify($request->user(), $claim, $request->boolean('approve'), ReasonFields::text($data['reason'] ?? null), isset($data['cash_counted']) ? (string) $data['cash_counted'] : null);
 
         return response()->json(['data' => ['message' => __('portal.flash_payment_review')]]);
     }

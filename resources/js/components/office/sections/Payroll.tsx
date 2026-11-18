@@ -128,7 +128,8 @@ export default function Payroll({ tables, staff, paymentAccounts, hub }: Payroll
                             moneyColumn('gross', translate('office_staff', 'col_gross'), true),
                             moneyColumn('deduction', translate('office_staff', 'col_cut'), true),
                             moneyColumn('net', translate('office_staff', 'col_net'), true),
-                            { key: 'status', title: translate('office_staff', 'col_status'), render: (row: Row) => <Badge status={String(row.status)} /> },
+                            // The owner may finish a payroll alone (owner rule); say so instead of hiding it (F-verify-05).
+                            { key: 'status', title: translate('office_staff', 'col_status'), render: (row: Row) => <><Badge status={String(row.status)} />{row.approved_by != null && row.approved_by === row.prepared_by && <small className="cell-sub">{translate('payouts', 'payroll_owner_alone')}</small>}</> },
                         ]}
                     />
                     <Pagination page={register.page} />

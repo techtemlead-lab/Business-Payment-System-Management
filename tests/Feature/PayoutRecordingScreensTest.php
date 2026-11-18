@@ -4,11 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
+use Tests\Support\ReceiptImage;
 use Tests\TestCase;
 
 /**
@@ -47,9 +47,9 @@ class PayoutRecordingScreensTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page->where('withdrawal.payer_state', null));
 
         $this->actingAs($this->owner)->onPortal('sadmin')->post('/commands/withdrawals/'.$id.'/record-payment', [
-            'method' => 'bkash', 'wallet_number' => '01711000000', 'payment_reference' => 'BKASH-QA-1', 'payment_account_id' => $accountId,
+            'method' => 'bkash', 'wallet_number' => '01711000000', 'payment_reference' => 'BKASHQA001', 'payment_account_id' => $accountId,
             'paid_at' => now()->subHour()->format('Y-m-d H:i:s'), 'note' => 'Paid by bKash',
-            'receipt' => UploadedFile::fake()->image('bkash.png'),
+            'receipt' => ReceiptImage::make('bkash.png'),
         ])->assertSessionHasNoErrors();
         $this->assertDatabaseHas('withdrawals', ['id' => $id, 'status' => 'paid', 'payment_account_id' => $accountId, 'paid_by' => $this->owner->id]);
     }

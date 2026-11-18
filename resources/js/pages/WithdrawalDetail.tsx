@@ -1,5 +1,5 @@
 import React from 'react';
-import { Head, Link, useForm, usePage, usePoll } from '@inertiajs/react';
+import { Head, Link, router, useForm, usePage, usePoll } from '@inertiajs/react';
 import { backgroundRefreshHeaders } from '../shared/backgroundRefresh';
 import { Download, Upload, ShieldCheck, Check, Clock, Radio, XCircle, Banknote, Printer } from 'lucide-react';
 import Shell from '../components/Shell';
@@ -7,6 +7,8 @@ import { Row, Badge, ActionForm, money, date, FormErrors, label } from '../compo
 import { useT } from '../shared/i18n/t';
 import { useReasonField } from '../shared/reasonFields';
 import { channelName, methodForChannel, payoutMethods, type PayoutMethod } from '../shared/payoutMethods';
+import WithdrawalFacts, { AmountWords, type WithdrawalFactsData } from '../components/payouts/WithdrawalFacts';
+import ReceiptPicker from '../components/payouts/ReceiptPicker';
 
 function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row; events: Row[] }) {
     const translate = useT();
@@ -46,6 +48,8 @@ function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row;
         step2Desc = w.reason || t('wd_desc_rejected_reason', 'Payout request rejected');
     } else if (status === 'requested') {
         step2State = 'active';
+        // Not "Staff Approved" while nobody has approved it yet (MA-06).
+        step2Title = translate('payouts', 'stage_in_review');
         step2Badge = t('stage_badge_in_review', 'Under Review');
         step2Icon = <Radio size={16} className="pulsing-icon" />;
         step2Desc = t('wd_desc_review_in_progress', 'Finance verification in progress');
@@ -349,14 +353,15 @@ function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row;
     );
 }
 
-export default function WithdrawalDetail({ withdrawal: w, events = [], payoutReceipt = null }: { withdrawal: Row; events: Row[]; payoutReceipt?: Row | null }) {
+export default function WithdrawalDetail({ withdrawal: w, events = [], payoutReceipt = null, facts = null }: { withdrawal: Row; events: Row[]; payoutReceipt?: Row | null; facts?: WithdrawalFactsData | null }) {
     const translate = useT();
     const { auth, financeActive, staffActions, portalBase: base, paymentAccounts = [] } = usePage<any>().props;
     const isPartnerDesk = ['dealer', 'sub_dealer'].includes(auth?.user?.role) && auth?.user?.workspace_mode !== 'staff';
     const finance = financeActive && auth.capabilities.includes('finance') && (staffActions?.finance?.approve ?? true);
-    const form = useForm<{ payment_account_id: string; receipt: File | null; payment_reference: string; paid_at: string; note: string; method: PayoutMethod; bank_name: string; account_number: string; wallet_number: string; received_by: string }>({
-        payment_account_id: '', receipt: null, payment_reference: '', paid_at: '', note: '',
-        method: methodForChannel(String(w.channel ?? '')), bank_name: '', account_number: '', wallet_number: '', received_by: '',
+    const form = useForm<{ payment_account_id: string; receipt: File | null; receipt_later: boolean; payment_reference: string; paid_at: string; note: string; method: PayoutMethod; bank_name: string; account_number: string; wallet_number: string; received_by: string }>({
+        payment_account_id: '', receipt: null, receipt_later: false, payment_reference: '', paid_at: '', note: '',
+        // The number the partner asked to be paid to; the server refuses any other (F-verify-01).
+        method: methodForChannel(String(w.channel ?? '')), bank_name: '', account_number: String(w.destination_for_payment ?? ''), wallet_number: String(w.destination_for_payment ?? ''), received_by: '',
     });
     const isCash = form.data.method === 'cash';
     const paymentNote = useReasonField('money.withdrawal_settle');
@@ -380,7 +385,40 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                 </div>
                 <Badge status={w.status} />
             </div>
+            <AmountWords amount={w.amount} />
+            {w.on_hold && <div className="notice" role="status"><p>{translate('payouts', isPartnerDesk ? 'partner_on_hold' : 'on_hold_badge')}</p></div>}
+            {w.status === 'approved' && w.pay_by && <p className="muted">{isPartnerDesk ? translate('payouts', 'partner_pay_by', { date: date(w.pay_by) }) : translate('payouts', 'pay_by', { date: date(w.pay_by) })}{!isPartnerDesk && ` · ${w.payer_name ? translate('payouts', 'payer_named', { name: w.payer_name }) : translate('payouts', 'payer_none')}`}</p>}
+            {isPartnerDesk && w.can_cancel && (
+                <button type="button" className="button small" onClick={() => {
+                    if (window.confirm(translate('payouts', 'cancel_confirm'))) {
+                        router.post(`/commands/withdrawals/${w.id}/cancel`, {}, { preserveScroll: true });
+                    }
+                }}>{translate('payouts', 'cancel_request')}</button>
+            )}
             <WithdrawalProgressStepper withdrawal={w} events={events} />
+            {finance && facts && <section className="panel narrow-panel"><WithdrawalFacts facts={facts} channel={String(w.channel)} amount={w.amount} /></section>}
+            {finance && w.status === 'requested' && (
+                <section className="panel narrow-panel">
+                    <h2>{translate('portal', 'wd_review_title')}</h2>
+                    <ActionForm
+                        action={`/commands/withdrawals/${w.id}/review`}
+                        fields={[
+                            {
+                                name: 'decision',
+                                label: translate('portal', 'wd_decision'),
+                                required: true,
+                                options: [
+                                    ...(facts?.blocker || facts?.over_channel_limit ? [] : [{ value: 'approved', label: translate('portal', 'wd_approve') }]),
+                                    { value: 'rejected', label: translate('portal', 'wd_reject') },
+                                ],
+                            },
+                            ...((facts?.payers.length ?? 0) > 0 ? [{ name: 'payer_id', label: translate('payouts', 'payer_label'), options: (facts?.payers ?? []).map((payer) => ({ value: String(payer.id), label: payer.name })) }] : []),
+                            { name: 'reason', label: translate('portal', 'wd_review_reason'), type: 'textarea', required: true, place: 'money.withdrawal_review' },
+                        ]}
+                        submit={translate('portal', 'wd_record_review')}
+                    />
+                </section>
+            )}
             <section className="panel">
                 <h2>{translate('portal', 'wd_manual_title')}</h2>
                 <dl className="profile-grid">
@@ -404,7 +442,7 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                     </div>
                 ))}
             </section>
-            {finance && ['requested', 'approved'].includes(w.status) && (
+            {finance && w.status === 'approved' && (
                 <section className="panel narrow-panel">
                     <h2>{translate('portal', 'wd_review_title')}</h2>
                     <ActionForm
@@ -463,11 +501,14 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                         {isCash && <label>{translate('portal', 'pay_fld_received_by')}<input required maxLength={100} placeholder={translate('portal', 'pay_ph_received_by')} value={form.data.received_by} onChange={e => form.setData('received_by', e.target.value)} /></label>}
                         <label>{translate('portal', isCash ? 'pay_fld_reference_cash' : 'wd_payment_ref')}<input required={!isCash} maxLength={100} value={form.data.payment_reference} onChange={e => form.setData('payment_reference', e.target.value)} /></label>
                         <label>{translate('portal', 'wd_paid_at')}<input required type="datetime-local" value={form.data.paid_at} onChange={e => form.setData('paid_at', e.target.value)} /></label>
-                        <label>{translate('portal', isCash ? 'pay_fld_receipt_cash' : 'wd_upload_receipt')}<input required={!isCash} type="file" accept="application/pdf,image/jpeg,image/png" onChange={e => form.setData('receipt', e.target.files?.[0] ?? null)} /></label>
+                        <ReceiptPicker id="wd-receipt" label={translate('portal', isCash ? 'pay_fld_receipt_cash' : 'wd_upload_receipt')} required={!isCash && !form.data.receipt_later} file={form.data.receipt} onChange={file => form.setData('receipt', file)} />
+                        {!isCash && !form.data.receipt && <label className="hub-choice"><input type="checkbox" checked={form.data.receipt_later} onChange={e => form.setData('receipt_later', e.target.checked)} />{translate('payouts', 'receipt_later')}</label>}
+                        {form.data.receipt_later && <small className="hub-hint">{translate('payouts', 'receipt_later_hint')}</small>}
                         {paymentNote.shown && <label>{paymentNote.label(translate('portal', 'wd_payment_note'))}<textarea required={paymentNote.required} maxLength={1000} value={form.data.note} onChange={e => form.setData('note', e.target.value)} /></label>}
                         {form.progress && <progress max={100} value={form.progress.percentage} aria-label={translate('portal', 'wd_upload_progress')} />}
                         <FormErrors errors={form.errors}/>
-                        <button disabled={form.processing} className="button dark">
+                        {facts?.blocker && <p className="notice" role="alert"><b>{translate('payouts', 'blocked_title')}</b> {facts.blocker}</p>}
+                        <button disabled={form.processing || Boolean(facts?.blocker)} className="button dark">
                             <Upload size={17} />{form.processing ? translate('portal', 'wd_recording') : translate('portal', 'wd_record_payment')}
                         </button>
                     </form>

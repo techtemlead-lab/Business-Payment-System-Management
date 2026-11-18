@@ -7,7 +7,9 @@ use App\Domain\Finance\PendingPaymentChecks;
 use App\Domain\Inventory\BranchScope;
 use App\Domain\Inventory\SellableStock;
 use App\Domain\Inventory\StockLevels;
+use App\Domain\Payouts\PayoutLimits;
 use App\Domain\Support\PartnerChat;
+use App\Http\Portals\Shared\Sections\WithdrawalsSection;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
@@ -76,6 +78,14 @@ final class StaffDashboardSummary
                 'key' => 'withdrawals_to_review',
                 'count' => (int) $this->withdrawalsOf($branchScope)->where('withdrawals.status', 'requested')->count(),
                 'section' => 'payouts-hub',
+            ];
+            // Approved money nobody has sent yet, past the owner's due days (MA-06).
+            $queue[] = [
+                'key' => 'payouts_overdue',
+                'label' => (string) __('payouts.dash_payouts_overdue', ['days' => (string) app(PayoutLimits::class)->dueDays()]),
+                'count' => (int) $this->withdrawalsOf($branchScope)->whereRaw(WithdrawalsSection::followUpSql(app(PayoutLimits::class)->dueDays())." = 'overdue'")->count(),
+                'section' => 'payouts-hub',
+                'query' => ['follow_up' => 'overdue'],
             ];
             array_push($queue, ...$this->commissionTasks());
         }

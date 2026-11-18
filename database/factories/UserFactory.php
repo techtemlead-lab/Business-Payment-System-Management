@@ -34,6 +34,8 @@ class UserFactory extends Factory
             'remember_token' => Str::random(10),
             'role' => 'dealer',
             'status' => 'active',
+            // Partners are paid only with a National ID on file (owner decision D12), so made-up partners carry one.
+            'nid' => fn (array $attributes): ?string => in_array($attributes['role'] ?? 'dealer', ['dealer', 'sub_dealer'], true) ? fake()->unique()->numerify('19##############') : null,
             // Tests compare English wording unless they ask for Bangla; real accounts default to Bangla.
             'locale' => 'en',
         ];

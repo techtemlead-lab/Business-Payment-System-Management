@@ -7,6 +7,7 @@ use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Finance\EventLogProjector;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
+use App\Domain\Payouts\WithdrawalHolds;
 use App\Models\AreaDealerAssignment;
 use App\Models\PlaceCode;
 use App\Models\User;
@@ -324,6 +325,8 @@ final class PartnerAccountDeletion
      */
     private function closeAccount(User $actor, User $partner, string $reason, array $history): void
     {
+        // A closed account is not paid either (owner rule D4): its open withdrawals wait on hold.
+        app(WithdrawalHolds::class)->holdForPartner($actor, $partner->id, __('payouts.event_hold_closed'));
         $changes = [
             'status' => ['before' => $partner->status, 'after' => 'suspended'],
             'directory_visible' => ['before' => (bool) $partner->directory_visible, 'after' => false],

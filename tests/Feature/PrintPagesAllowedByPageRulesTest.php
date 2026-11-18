@@ -7,12 +7,12 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
+use Tests\Support\ReceiptImage;
 use Tests\TestCase;
 
 /**
@@ -137,11 +137,11 @@ class PrintPagesAllowedByPageRulesTest extends TestCase
         $id = (string) Str::uuid();
         DB::table('wallets')->updateOrInsert(['user_id' => $partner->id], ['available' => '0.00', 'held' => '500.00', 'created_at' => now(), 'updated_at' => now()]);
         DB::table('withdrawals')->insert(['id' => $id, 'user_id' => $partner->id, 'amount' => '500.00', 'withheld_amount' => '50.00', 'net_amount' => '450.00',
-            'status' => 'approved', 'channel' => 'Bank', 'destination' => encrypt('0123456789012'), 'idempotency_key' => (string) Str::uuid(),
+            'status' => 'approved', 'channel' => 'Nagad', 'destination' => encrypt('01811000000'), 'idempotency_key' => (string) Str::uuid(),
             'reviewed_by' => User::factory()->staff('finance')->create()->id, 'created_at' => now()->subDay(), 'updated_at' => now()]);
         $this->actingAs($payer)->post('/commands/withdrawals/'.$id.'/record-payment', [
-            'method' => 'nagad', 'wallet_number' => '01811000000', 'payment_reference' => 'NG-0001',
-            'paid_at' => now()->subHour()->format('Y-m-d H:i:s'), 'note' => 'Sent by Nagad', 'receipt' => UploadedFile::fake()->image('nagad.png'),
+            'method' => 'nagad', 'wallet_number' => '01811000000', 'payment_reference' => 'NG00000001',
+            'paid_at' => now()->subHour()->format('Y-m-d H:i:s'), 'note' => 'Sent by Nagad', 'receipt' => ReceiptImage::make('nagad.png'),
         ])->assertSessionHasNoErrors();
 
         return (int) DB::table('payout_receipts')->where('withdrawal_id', $id)->value('id');

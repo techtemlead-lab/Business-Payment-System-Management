@@ -485,7 +485,8 @@ class PartnerEventSmsTest extends TestCase
         $this->assertSame(
             __('sms.order_refunded', [
                 'number' => $order->number,
-                'amount' => '50.00',
+                // SMS amounts are written the one shared way (MA-18): Bangla digits, no ".00".
+                'amount' => '৫০',
                 'reason' => 'Returned half',
             ], 'bn'),
             $sent['message'] ?? null,
@@ -893,7 +894,7 @@ class PartnerEventSmsTest extends TestCase
         $this->assertSame(
             __('sms.commission_released', [
                 'category' => __('portal.report_cat_opening_hold', [], 'bn'),
-                'amount' => '50.00',
+                'amount' => '৫০',
             ], 'bn'),
             $sent[0]['message'] ?? null,
         );

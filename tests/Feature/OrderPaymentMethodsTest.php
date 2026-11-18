@@ -265,7 +265,7 @@ class OrderPaymentMethodsTest extends TestCase
             ->assertSessionHasErrors('status');
         $this->assertSame('submitted', $order->fresh()->status);
 
-        $this->actingAs($finance)->onPortal('manage')->post('/commands/claims/'.$claim->id.'/verify', ['approve' => '1', 'reason' => 'Rahim took the cash at the counter'])
+        $this->actingAs($finance)->onPortal('manage')->post('/commands/claims/'.$claim->id.'/verify', ['approve' => '1', 'reason' => 'Rahim took the cash at the counter', 'cash_counted' => '200.00'])
             ->assertSessionHasNoErrors();
 
         $this->assertSame('200.00', (string) $order->fresh()->paid);
@@ -302,7 +302,7 @@ class OrderPaymentMethodsTest extends TestCase
         $reviewer = User::factory()->staff('super_admin')->create();
         $this->order($dealer, $this->product(), 1, 'Office')->assertSessionHasNoErrors();
         $order = Order::where('user_id', $dealer->id)->sole();
-        app(OrderService::class)->verify($finance, (int) DB::table('payment_claims')->where('order_id', $order->id)->value('id'), true, 'Cash taken');
+        app(OrderService::class)->verify($finance, (int) DB::table('payment_claims')->where('order_id', $order->id)->value('id'), true, 'Cash taken', (string) DB::table('payment_claims')->where('order_id', $order->id)->value('amount'));
 
         $this->actingAs($reviewer)->onPortal('sadmin')->post('/commands/orders/'.$order->id.'/decision', ['status' => 'rejected', 'reason' => 'Out of stock'])
             ->assertSessionHasErrors(['status' => __('portal.err_order_paid_needs_refund')]);

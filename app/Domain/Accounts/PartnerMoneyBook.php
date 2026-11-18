@@ -192,7 +192,7 @@ final class PartnerMoneyBook
      * The partner's own requests that are not statement rows: waiting, approved, or refused in the
      * last 30 days. Once paid, a request is a statement row and leaves this list.
      *
-     * @return list<array{id: string, created_at: string, amount: string, status: string, reason: ?string}>
+     * @return list<array{id: string, created_at: string, amount: string, status: string, reason: ?string, on_hold: bool}>
      */
     public function withdrawalRequests(User $partner): array
     {
@@ -203,13 +203,14 @@ final class PartnerMoneyBook
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->limit(10)
-            ->get(['id', 'created_at', 'amount', 'status', 'reason'])
+            ->get(['id', 'created_at', 'amount', 'status', 'reason', 'on_hold_at'])
             ->map(fn (object $row): array => [
                 'id' => (string) $row->id,
                 'created_at' => CarbonImmutable::parse((string) $row->created_at, 'UTC')->toIso8601String(),
                 'amount' => FundCatalog::decimalOf(FundCatalog::centsOf($row->amount)),
                 'status' => (string) $row->status,
                 'reason' => $row->status === 'rejected' ? ReasonFields::shown($row->reason) : null,
+                'on_hold' => $row->on_hold_at !== null,
             ])
             ->all();
     }
