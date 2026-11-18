@@ -23,6 +23,29 @@ return [
             'onnx/model.onnx' => 'b69359ea66471e57f59099d2e84146091a0534d0d56aa2e33d6bc1ef5e92ccca',
         ],
     ],
+    // Writes the Bangla boxes from the English ones in the office browser (CR-06): AI4Bharat IndicTrans2,
+    // distilled 200M, English to Indian languages, INT8 ONNX export (MIT licence; about 310 MB). Text never
+    // leaves the office computer. `php artisan madina:install-bangla-model` puts the files on each server; until
+    // then the Bangla boxes are typed by hand as before. A new revision needs new checksums and a new
+    // browser cache name in resources/js/shared/banglaFill/banglaModel.ts.
+    'bangla_model' => [
+        'repository' => 'hari31416/indictrans2-en-indic-dist-200M-ONNX-int8',
+        'revision' => '1eaa43a3fb76f382f1b22c76e56f6ab4926ad68b',
+        'directory' => 'bangla-model/en-bn',
+        'files' => [
+            'config.json' => '1429519f3b36f8bab631ed632b328a3422c19c4225c825dcde27c545746f475e',
+            'generation_config.json' => '6c8b29ae72e680d5a2d9e849567f6f556d3f4e9bbd42434964a646f49b556972',
+            'tokenizer_config.json' => '283f76ffdd7e553ec7f108ad8eeb0124052db4bdadd924b3c291c591c8dd6625',
+            'tokenizer_meta.json' => '9f18574a040d815695f98ac53e7d8ca18ae38b90a339eb59301690fccfc62437',
+            'tokenizer_src.json' => 'ac1930c411028ba3a7929f35bc7f62d2e5e837ca24150b661de4f4606469eeca',
+            'tokenizer_tgt.json' => '51b05cd37636765e158146534d54452be558df32c6ab06ba4caeecdd0266a580',
+            'encoder_model.onnx' => '87c3d6c6fbc48d9d7081927f3bd59915d5443a06cb63460e0d3705bae74de5a9',
+            'encoder_model.onnx.data' => '71a4d119514411a3cb3f9d76d2d88d5c4eac7c8e907397d62d5b29e2468a0c16',
+            'decoder_model.onnx' => '58c0fafb7ba0f343acba8643a386fab08143d49ef24472cefaecc87080f44e75',
+            'decoder_with_past_model.onnx' => 'a2e9a87ff7563f5fc87fe8102188be37fb66771cf30970e649ca67be7f895497',
+            'decoder_shared.onnx.data' => '902314746ac629ae2ff584709c03eecdb0b3f7be4fb70ce0ff1bfbe66f14e574',
+        ],
+    ],
     'auto_release_matured' => env('MADINA_AUTO_RELEASE_MATURED', false),
     'auto_release_quota_holds' => env('MADINA_AUTO_RELEASE_QUOTA_HOLDS', false),
     'backups_enabled' => env('MADINA_BACKUPS_ENABLED', false),

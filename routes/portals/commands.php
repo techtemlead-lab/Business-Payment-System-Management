@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccountListExportController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BanglaModelController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\BranchPerformanceExportController;
 use App\Http\Controllers\ClinicRecordsController;
@@ -137,6 +138,7 @@ return function (string $portal): void {
     Route::get('/commands/identity/refer-preview', [IdentityLookupController::class, 'referPreview'])->middleware('throttle:60,1');
     Route::get('/commands/place-codes/children', [PlaceCodeController::class, 'children'])->middleware('throttle:60,1');
     Route::get('/commands/product-photo-model/cutout/{file}', ProductPhotoModelController::class)->where('file', '.*')->middleware('throttle:60,1');
+    Route::get('/commands/bangla-model/en-bn/{file}', BanglaModelController::class)->where('file', '[A-Za-z0-9_.]+')->middleware('throttle:60,1');
     Route::post('/commands/products', [ProductRegistryController::class, 'store']);
     Route::post('/commands/products/featured-order', [ProductRegistryController::class, 'featuredOrder']);
     Route::patch('/commands/products/{product}', [ProductRegistryController::class, 'update']);
