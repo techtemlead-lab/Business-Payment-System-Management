@@ -55,7 +55,7 @@ return [
     'nav_module_catalog' => 'Product list',
     'nav_module_stock' => 'Products & stock',
     'nav_module_orders' => 'Orders & delivery',
-    'nav_module_more' => 'More tools',
+    'nav_module_more' => 'Other modules',
     'nav_module_settings' => 'Settings',
     'nav_module_applications' => 'Applications',
     'nav_module_for_partners' => 'For partners',

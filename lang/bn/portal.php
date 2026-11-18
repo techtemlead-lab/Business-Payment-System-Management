@@ -56,7 +56,7 @@ return [
     'nav_module_stock' => 'পণ্য ও স্টক',
     'nav_module_orders' => 'অর্ডার ও ডেলিভারি',
     'nav_module_settings' => 'সেটিংস',
-    'nav_module_more' => 'আরও সুবিধা',
+    'nav_module_more' => 'অন্যান্য মডিউল',
     'nav_module_applications' => 'আবেদন',
     'nav_module_for_partners' => 'পার্টনারের জন্য',
     'nav_products' => 'পণ্য',

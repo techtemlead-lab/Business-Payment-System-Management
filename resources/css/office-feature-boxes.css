@@ -23,3 +23,7 @@
   .app-shell .feature-boxes ul,.app-shell .feature-boxes[data-columns="4"] ul{grid-template-columns:minmax(0,1fr);grid-auto-rows:auto}
   .app-shell .feature-box{min-height:0}
 }
+
+/* A box that opens the guide instead of a page: a button that looks and sits like the link boxes. */
+.app-shell .feature-boxes-guide{margin-top:var(--ds-s-8)}
+.app-shell button.feature-box{font:inherit;text-align:left;cursor:pointer;width:100%}
