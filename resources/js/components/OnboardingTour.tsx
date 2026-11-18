@@ -545,8 +545,8 @@ export default function OnboardingTour({
         switch (aud) {
             case 'owner':
                 return {
-                    badge: translate('portal', 'tour_welcome_owner_badge'),
-                    title: translate('portal', 'tour_welcome_owner_title'),
+                    badge: user?.role === 'md' || user?.role === 'chairman' ? translate('portal', `staff_role_${user.role}`) : translate('portal', 'tour_welcome_owner_badge'),
+                    title: user?.role === 'md' || user?.role === 'chairman' ? translate('office_shell', 'tour_welcome_role_title', { role: translate('portal', `staff_role_${user.role}`) }) : translate('portal', 'tour_welcome_owner_title'),
                     subtitle: translate('portal', 'tour_welcome_owner_sub'),
                     pillars: [
                         {
