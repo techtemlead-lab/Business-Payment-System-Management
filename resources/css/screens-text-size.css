@@ -1,0 +1,41 @@
+/*
+ * Dealers and sub-dealers: bigger, darker text and bigger buttons (AX-01).
+ * The whole partner screen is zoomed, so every size grows together. "Normal" lifts the
+ * 14 px body text to about 16 px; the switch in the top bar offers smaller and larger steps.
+ */
+:is(.dealer-shell, .subdealer-shell) {
+  --ds-text-muted: #455364;
+  --ds-text-faint: #4f5c6b;
+  zoom: 1.15;
+}
+html[data-text-size="small"] :is(.dealer-shell, .subdealer-shell) { zoom: 1; }
+html[data-text-size="large"] :is(.dealer-shell, .subdealer-shell) { zoom: 1.3; }
+html[data-text-size="xlarge"] :is(.dealer-shell, .subdealer-shell) { zoom: 1.5; }
+
+/* Fingers, not mouse pointers: every button and control is at least 44 px tall. */
+:is(.dealer-shell, .subdealer-shell) :is(.button, button.icon-button, a.icon-button, .language-switcher button, .text-size-switch button) {
+  min-height: 44px;
+}
+:is(.dealer-shell, .subdealer-shell) :is(.icon-button, .text-size-switch button) { min-width: 44px; }
+
+.text-size-switch { display: inline-flex; align-items: center; gap: 2px; padding: 0 4px; }
+.text-size-label { font-size: 13px; font-weight: 600; color: var(--ds-text-muted, #455364); padding-right: 4px; white-space: nowrap; }
+.text-size-switch button {
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid transparent; border-radius: 10px; background: transparent;
+  color: var(--ds-text, #0b1f33); font-weight: 700; line-height: 1; cursor: pointer;
+}
+.text-size-switch button.active { background: var(--ds-brand-soft, #e3f1eb); border-color: var(--ds-brand, #006a4e); color: var(--ds-brand-text, #00694d); }
+.text-size-switch button:focus-visible { outline: 3px solid var(--ds-brand, #006a4e); outline-offset: 2px; }
+.text-size-small { font-size: 12px; }
+.text-size-normal { font-size: 15px; }
+.text-size-large { font-size: 18px; }
+.text-size-xlarge { font-size: 22px; }
+/* On a phone the top bar is full: the size buttons live in the account menu instead. */
+@media (max-width: 760px) { .text-size-switch.in-header { display: none; } }
+.text-size-switch.in-menu { padding: 6px 10px; border-top: 1px solid var(--ds-line, #dfe5e0); }
+.text-size-switch.in-menu .text-size-label { display: inline; }
+
+/* A crore-sized amount wraps inside its box instead of being cut off at the edge. */
+:is(.dealer-shell, .subdealer-shell) :is(.ph-hero-stats dd, .ph-today-grid strong, .metric strong) { overflow-wrap: anywhere; }
+@media (max-width: 640px) { :is(.dealer-shell, .subdealer-shell) .ph-hero-stats { grid-template-columns: 1fr; } }
