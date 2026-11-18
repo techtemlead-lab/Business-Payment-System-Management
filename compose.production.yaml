@@ -4,7 +4,8 @@ x-application: &application
     context: .
     dockerfile: Dockerfile.production
     target: app
-  image: madina-application:release
+  # Tagged per release (MADINA_IMAGE_TAG=<sha>, set by infra/deploy); "release" always points at what runs.
+  image: madina-application:${MADINA_IMAGE_TAG:-release}
   env_file: .env.production
   environment:
     APP_ENV: production
@@ -36,6 +37,7 @@ services:
       context: .
       dockerfile: Dockerfile.production
       target: web
+    image: madina-web:${MADINA_IMAGE_TAG:-release}
     ports: ["127.0.0.1:8095:80"]
     depends_on: [app]
     restart: unless-stopped
