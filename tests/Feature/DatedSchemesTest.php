@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Orders\OrderService;
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\DatedScheme;
 use App\Models\Product;
 use App\Models\User;
@@ -29,6 +30,8 @@ class DatedSchemesTest extends TestCase
     {
         Carbon::setTestNow('2026-11-10 06:00:00');
         $owner = User::factory()->create(['role' => 'md', 'status' => 'active']);
+        // D11 (SA-07): the MD works on schemes once the Super Admin grants owner tools.
+        LeadershipAccess::save(User::factory()->staff('super_admin')->create(), ['md' => ['owner_tools']], LeadershipAccess::current()['version']);
         $dealer = User::factory()->dealer()->create();
         $product = Product::factory()->create(['active' => true, 'name' => 'Vitamin C']);
 
@@ -66,6 +69,10 @@ class DatedSchemesTest extends TestCase
 
         $this->actingAs($dealer)->onPortal('dealer')->post('/commands/schemes', $this->payload([$product->id]))->assertForbidden();
         $this->actingAs($staff)->onPortal('sadmin')->post('/commands/schemes', $this->payload([$product->id]))->assertForbidden();
+        // D11 (SA-07): an MD or Chairman without the owner-tools grant cannot post around the closed page.
+        foreach (['md', 'chairman'] as $role) {
+            $this->actingAs(User::factory()->staff($role)->create())->onPortal('sadmin')->post('/commands/schemes', $this->payload([$product->id]))->assertForbidden();
+        }
         $this->assertSame(0, DatedScheme::query()->count());
     }
 

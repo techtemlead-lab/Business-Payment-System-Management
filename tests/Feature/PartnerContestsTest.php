@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Orders\PartnerContests;
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\Order;
 use App\Models\PartnerContest;
 use App\Models\User;
@@ -28,6 +29,8 @@ class PartnerContestsTest extends TestCase
     public function test_owner_defines_a_contest_and_partners_see_it_change_live(): void
     {
         $owner = User::factory()->create(['role' => 'md', 'status' => 'active']);
+        // D11 (SA-07): the MD works on contests once the Super Admin grants owner tools.
+        LeadershipAccess::save(User::factory()->staff('super_admin')->create(), ['md' => ['owner_tools']], LeadershipAccess::current()['version']);
         $dealer = User::factory()->dealer()->create(['name' => 'Rahim']);
         $subDealer = User::factory()->subDealer()->create(['name' => 'Karim']);
         $this->order($dealer, 'approved', '300.00');
@@ -133,6 +136,12 @@ class PartnerContestsTest extends TestCase
         $this->actingAs($dealer)->onPortal('dealer')->delete('/commands/contests/'.$contest->id)->assertForbidden();
         $this->actingAs($staff)->onPortal('sadmin')->post('/commands/contests', $this->payload())->assertForbidden();
         $this->actingAs($staff)->onPortal('sadmin')->get('/contests')->assertForbidden();
+        // D11 (SA-07): an MD or Chairman without the owner-tools grant cannot post around the closed page.
+        foreach (['md', 'chairman'] as $role) {
+            $leader = User::factory()->staff($role)->create();
+            $this->actingAs($leader)->onPortal('sadmin')->post('/commands/contests', $this->payload())->assertForbidden();
+            $this->actingAs($leader)->onPortal('sadmin')->delete('/commands/contests/'.$contest->id)->assertForbidden();
+        }
         $this->assertSame(1, PartnerContest::query()->count());
 
         $this->actingAs($owner)->onPortal('sadmin')->post('/commands/contests', [...$this->payload(), 'ends_on' => '2026-10-31'])

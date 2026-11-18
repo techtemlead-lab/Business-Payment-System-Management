@@ -2,6 +2,7 @@
 
 namespace App\Domain\Orders;
 
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\PartnerContest;
 use App\Models\User;
 use App\Support\Audit;
@@ -29,9 +30,10 @@ final class PartnerContests
     /** An ended contest stays on the page this long, so its final standings can be read. */
     public const RecentDays = 30;
 
+    /** The owners, with the MD and Chairman only once the Super Admin grants owner tools (D11), as on the page. */
     public static function canManage(User $user): bool
     {
-        return $user->owner();
+        return LeadershipAccess::granted($user, 'owner_tools');
     }
 
     /** @return array{can_manage: bool, metrics: list<string>, contests: list<array<string, mixed>>} */
