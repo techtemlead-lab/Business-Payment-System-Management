@@ -109,3 +109,11 @@ dialog.portal-modal.portal-modal-wide{max-width:960px}
 
   :root dialog.portal-modal.portal-modal-drawer{width:100%;border-width:0}
 }
+
+/* A big money figure wraps and shrinks inside its tile instead of being cut at the edge. */
+.app-shell .metric{min-width:0}
+.app-shell .metric strong{overflow-wrap:anywhere;font-size:clamp(18px,3.2vw,28px)}
+.app-shell .metric-grid.three,.app-shell .metric-grid.four{grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr))}
+
+/* A box the person may not change reads as locked, not as something to type in. */
+.app-shell input:disabled,.app-shell select:disabled,.app-shell textarea:disabled{opacity:.6;cursor:not-allowed;background:var(--ds-surface-3)}
