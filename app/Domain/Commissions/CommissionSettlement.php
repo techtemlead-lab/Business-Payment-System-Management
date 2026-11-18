@@ -281,7 +281,7 @@ final class CommissionSettlement
                 $partner,
                 'commission.posted',
                 __('portal.notice_settle_title', [], $locale),
-                __('portal.notice_settle_body', ['amount' => $amount, 'kind' => __('portal.settle_kind_'.$kind, [], $locale), 'month' => $month], $locale),
+                __('portal.notice_settle_body', ['amount' => Money::display($amount, $locale), 'kind' => __('portal.settle_kind_'.$kind, [], $locale), 'month' => $month], $locale),
             );
         }
     }
@@ -890,7 +890,7 @@ final class CommissionSettlement
                 Audit::notice(
                     $fund->user_id,
                     __('portal.notice_commission_matured_title', [], $locale),
-                    __('portal.notice_commission_matured_body', ['amount' => $amountDecimal], $locale),
+                    __('portal.notice_commission_matured_body', ['amount' => Money::display($amountDecimal, $locale)], $locale),
                     'commission.posted',
                 );
                 $userId = (int) $fund->user_id;

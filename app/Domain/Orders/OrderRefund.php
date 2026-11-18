@@ -90,7 +90,7 @@ final class OrderRefund
                 Audit::notice(
                     $locked->user_id,
                     __('portal.notice_order_refunded_title', [], $locale),
-                    __('portal.notice_order_refunded_body', ['number' => $locked->number, 'amount' => Money::decimal($cents), 'reason' => ReasonFields::shown($reason, $locale)], $locale),
+                    __('portal.notice_order_refunded_body', ['number' => $locked->number, 'amount' => Money::display(Money::decimal($cents), $locale), 'reason' => ReasonFields::shown($reason, $locale)], $locale),
                 );
             }
 

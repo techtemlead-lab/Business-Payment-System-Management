@@ -123,7 +123,7 @@ class OrderService
                 __('portal.notice_admin_new_order_body', [
                     'name' => $user->name,
                     'code' => $user->dealer_code ?: '—',
-                    'amount' => Money::decimal($total),
+                    'amount' => Money::display(Money::decimal($total)),
                     'number' => $order->number,
                 ]),
                 $submittedBy?->id

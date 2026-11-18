@@ -266,7 +266,7 @@ final class ReserveService
                     Audit::notice(
                         (int) $row->user_id,
                         __('portal.notice_reserve_paid_title', [], $locale),
-                        __('portal.notice_reserve_paid_body', ['number' => $issued['number'], 'amount' => $row->amount], $locale),
+                        __('portal.notice_reserve_paid_body', ['number' => $issued['number'], 'amount' => Money::display($row->amount, $locale)], $locale),
                     );
                 }
             }, 3);
@@ -421,7 +421,7 @@ final class ReserveService
                 Audit::notice(
                     $partner->id,
                     __('portal.notice_area_held_too_long_title', [], $locale),
-                    __('portal.notice_area_held_too_long_body', ['months' => $months, 'amount' => Money::decimal($byPartner[$partner->id])], $locale),
+                    __('portal.notice_area_held_too_long_body', ['months' => $months, 'amount' => Money::display(Money::decimal($byPartner[$partner->id]), $locale)], $locale),
                 );
             }
 
@@ -464,7 +464,7 @@ final class ReserveService
             Audit::notice(
                 $partner->id,
                 __('portal.notice_area_target_missed_title', [], $locale),
-                __('portal.notice_area_target_missed_body', ['month' => $month, 'amount' => Money::decimal($missedByPartner[$partner->id])], $locale),
+                __('portal.notice_area_target_missed_body', ['month' => $month, 'amount' => Money::display(Money::decimal($missedByPartner[$partner->id]), $locale)], $locale),
             );
         }
     }
