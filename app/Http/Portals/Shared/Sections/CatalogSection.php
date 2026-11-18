@@ -99,10 +99,14 @@ final class CatalogSection implements WorkspaceSection
         $supportsProductExpiry = $context->section === 'inventory' && Schema::hasColumn('products', 'expires_on');
         // Sizes are worked out from this list only, so a size the viewer may not see cannot appear.
         $sizePositions = in_array($context->section, ['catalog', 'purchase'], true) ? ProductSizeGroups::positions($products) : [];
-        $props['products'] = $products->map(function ($p) use ($user, $context, $revealStock, $revealDealerPrice, $supportsProductExpiry, $stagesByProduct, $removalByProduct, $sizePositions) {
+        $groupMembers = $context->isStaff && $context->section === 'catalog' ? ProductSizeGroups::memberLabels($products) : [];
+        $props['products'] = $products->map(function ($p) use ($user, $context, $revealStock, $revealDealerPrice, $supportsProductExpiry, $stagesByProduct, $removalByProduct, $sizePositions, $groupMembers) {
             $base = [...$p->only(['id', 'sku', 'name', 'category', 'sub_category', 'strength', 'description', 'unit', 'mrp', 'active', 'featured', 'tone']), ...($context->isStaff ? ['is_stock_paused' => $p->is_stock_paused, 'stock_status' => $p->stockStatus()] : []), 'archived' => $p->isArchived(), ...$p->media(), 'image_fallback' => $p->image_path ? null : StockImage::forCategory($p->category, $p->name), ...($user->allows('cost_read') ? ['cost_price' => $p->cost_price] : [])];
             if (isset($sizePositions[$p->id])) {
                 $base += ['size_group_id' => (int) $p->product_group_id, 'size_label' => ProductSizeGroups::buttonLabel($p), 'size_position' => $sizePositions[$p->id]];
+            }
+            if (isset($groupMembers[$p->id])) {
+                $base['size_group_members'] = $groupMembers[$p->id];
             }
             if ($context->isStaff && $context->section === 'catalog') {
                 $facts = ProductFacts::forPublic($p);
