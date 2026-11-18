@@ -132,3 +132,45 @@ html[data-text-size="large"] .app-shell:is(.owner-shell,.company-shell){--ds-fs-
 .app-shell .office-find-order input{width:100%;min-height:44px}
 .app-shell .office-shortcuts .button{min-height:44px;display:inline-flex;align-items:center;justify-content:center}
 @media (max-width:600px){.app-shell .office-shortcuts .office-new-account{flex:1 1 100%}}
+
+/* CR-18: the add buttons at the top and the one tabbed table under the figures. */
+.app-shell .office-add-buttons{display:flex;flex-wrap:wrap;gap:var(--ds-s-3);order:-1;flex:1 1 100%}
+.app-shell .office-add-buttons .button{flex:1 1 220px;font-size:var(--ds-fs-md)}
+.app-shell .office-tabs{padding:var(--ds-s-4)}
+.app-shell .office-tabs-title{margin:0 0 var(--ds-s-3);font-size:var(--ds-fs-lg)}
+.app-shell .office-tabs-row{display:flex;gap:var(--ds-s-1);overflow-x:auto;border-bottom:2px solid var(--ds-line);scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+.app-shell .office-tab{flex:0 0 auto;min-height:44px;padding:0 var(--ds-s-4);border:0;border-bottom:3px solid transparent;margin-bottom:-2px;background:transparent;color:var(--ds-text);font:inherit;font-size:var(--ds-fs-base);font-weight:600;cursor:pointer;white-space:nowrap}
+.app-shell .office-tab:hover{background:var(--ds-surface-2,rgba(0,0,0,.04))}
+.app-shell .office-tab.is-active{border-bottom-color:var(--ds-brand);color:var(--ds-brand)}
+.app-shell .office-tab:focus-visible{outline:2px solid var(--ds-brand);outline-offset:-2px}
+.app-shell .office-tab-tools{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--ds-s-3);padding:var(--ds-s-3) 0}
+.app-shell .office-tab-search{display:flex;flex:1 1 260px;gap:var(--ds-s-2);max-width:480px}
+.app-shell .office-tab-search input{flex:1;min-width:0;min-height:44px}
+.app-shell .office-tab-search .button{min-height:44px}
+.app-shell .office-tab-all{white-space:nowrap}
+.app-shell .office-tab-scroll{overflow-x:auto}
+.app-shell .office-tab-table{width:100%;border-collapse:collapse;font-size:var(--ds-fs-base)}
+.app-shell .office-tab-table th{padding:var(--ds-s-2) var(--ds-s-3);text-align:left;font-size:var(--ds-fs-sm);color:var(--ds-muted,#5b6470);border-bottom:1px solid var(--ds-line);white-space:nowrap}
+.app-shell .office-tab-table td{padding:var(--ds-s-3);border-bottom:1px solid var(--ds-line);vertical-align:middle}
+.app-shell .office-tab-table .is-num{text-align:right;font-variant-numeric:tabular-nums}
+.app-shell .office-tab-body.is-busy{opacity:.55;transition:opacity .15s}
+.app-shell .office-tab-empty{padding:var(--ds-s-5) 0;text-align:center}
+.app-shell .office-tab-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--ds-s-3);padding-top:var(--ds-s-3);font-size:var(--ds-fs-sm)}
+.app-shell .office-tab-pages{display:inline-flex;align-items:center;gap:var(--ds-s-2)}
+.app-shell .office-tab-pages .button{min-height:40px}
+.app-shell .office-pay{font-weight:600}
+.app-shell .office-pay.is-paid{color:var(--ds-ok,#1a7f45)}
+.app-shell .office-pay.is-part{color:var(--ds-warn,#9a6100)}
+.app-shell .office-pay.is-unpaid{color:var(--ds-bad,#b42318)}
+.app-shell .office-tab-skeleton{display:grid;gap:var(--ds-s-2);padding:var(--ds-s-2) 0}
+.app-shell .office-tab-skeleton i{display:block;height:40px;border-radius:var(--ds-r-md,8px);background:linear-gradient(90deg,var(--ds-line) 25%,transparent 50%,var(--ds-line) 75%);background-size:200% 100%;animation:office-tab-pulse 1.3s linear infinite}
+@keyframes office-tab-pulse{to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.app-shell .office-tab-skeleton i{animation:none}}
+@media (max-width:700px){
+  .app-shell .office-tabs{padding:var(--ds-s-3)}
+  .app-shell .office-tab-table thead{position:absolute;left:-9999px}
+  .app-shell .office-tab-table,.app-shell .office-tab-table tbody,.app-shell .office-tab-table tr,.app-shell .office-tab-table td{display:block;width:100%}
+  .app-shell .office-tab-table tr{padding:var(--ds-s-2) 0;border-bottom:1px solid var(--ds-line)}
+  .app-shell .office-tab-table td{display:flex;justify-content:space-between;gap:var(--ds-s-3);padding:6px 0;border:0;text-align:right}
+  .app-shell .office-tab-table td::before{content:attr(data-label);color:var(--ds-muted,#5b6470);font-size:var(--ds-fs-sm);text-align:left}
+}

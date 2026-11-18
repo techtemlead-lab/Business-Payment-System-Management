@@ -13,6 +13,7 @@ import NextStepsCard from './dealertools/NextStepsCard';
 import { ProfilePhoto } from './ProfilePhoto';
 import Figures, { type FigureItem } from './office/Figures';
 import OfficePage from './office/OfficePage';
+import OfficeTabsTable from './office/OfficeTabsTable';
 import StartBooksCard from './office/StartBooksCard';
 import { Badge, Empty, date, humanize, money, type Row, number } from './UI';
 import { businessTodayIso, localizeDigits } from '../business-date';
@@ -449,13 +450,15 @@ function officeFigures(home: Row, base: string, caps: string[], translate: Retur
     return figures;
 }
 
-/** Two things the office does all day, one step from the dashboard: add a partner, and open an order by its number, phone or name. */
+/** What the office does all day, one step from the dashboard: add a dealer, add a product, and open an order by its number, phone or name. */
 function OfficeShortcuts({ base, caps }: { base: string; caps: string[] }) {
     const translate = useT();
     const [words, setWords] = useState('');
     const mayCreate = caps.includes('accounts');
     const mayFind = caps.includes('orders') || caps.includes('finance');
-    if (!mayCreate && !mayFind) {
+    // The same two rights the add-product page asks for.
+    const mayAddProduct = caps.includes('catalog') && caps.includes('pricing');
+    if (!mayCreate && !mayFind && !mayAddProduct) {
         return null;
     }
 
@@ -479,7 +482,12 @@ function OfficeShortcuts({ base, caps }: { base: string; caps: string[] }) {
                     <button type="submit" className="button dark">{translate('office_shell', 'find_order_button')}</button>
                 </form>
             )}
-            {mayCreate && <Link className="button dark office-new-account" href={`${base}/accounts/create`}>{translate('office_shell', 'new_account_button')}</Link>}
+            {(mayCreate || mayAddProduct) && (
+                <div className="office-add-buttons">
+                    {mayCreate && <Link className="button dark office-new-account" href={`${base}/accounts/create`}>{translate('cr18', 'btn_new_dealer')}</Link>}
+                    {mayAddProduct && <Link className="button office-new-product" href={`${base}/products/create`}>{translate('cr18', 'btn_new_product')}</Link>}
+                </div>
+            )}
         </section>
     );
 }
@@ -489,6 +497,7 @@ function AdminHome({ home }: { home: Row }) {
     const translate = useT();
     const figures = officeFigures(home, base, auth.capabilities ?? [], translate);
     const work: WorkItem[] = home.work_queue ?? [];
+    const tabs: string[] = home.tabs ?? [];
     const trend: TrendPoint[] = home.trend ?? [];
     const today = dayInWords(businessTodayIso(), { weekday: 'long', day: 'numeric', month: 'long' });
 
@@ -499,6 +508,7 @@ function AdminHome({ home }: { home: Row }) {
                 {/* The tour step talks about the numbers, so it is skipped for staff who get none here. */}
                 <OfficeShortcuts base={base} caps={auth.capabilities ?? []} />
                 {figures.length > 0 && <div data-tour="home-metrics"><Figures items={figures} /></div>}
+                {tabs.length > 0 && <OfficeTabsTable tabs={tabs} />}
                 {(work.length > 0 || trend.length > 0) && (
                     <section className="admin-home-insights">
                         {work.length > 0 && <WorkQueue items={work} base={base} />}
