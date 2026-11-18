@@ -9,7 +9,9 @@ use App\Models\PaymentClaim;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\AuditSubjectNames;
+use App\Support\Money;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -118,5 +120,50 @@ class PanelUxFixesTest extends TestCase
 
         $this->actingAs($owner)->onPortal('sadmin')->get('/operations/commission-holds')->assertOk()
             ->assertInertia(fn (Assert $page) => $page->where('tables', fn ($tables): bool => collect($tables)->pluck('key')->contains('held_allocations')));
+    }
+
+    public function test_the_order_list_groups_statuses_into_plain_choices(): void
+    {
+        $owner = User::factory()->staff()->create();
+        $dealer = User::factory()->dealer()->create();
+        $waiting = $this->order($dealer, 'submitted');
+        $held = $this->order($dealer, 'held');
+        $this->order($dealer, 'delivered');
+
+        $this->actingAs($owner)->onPortal('sadmin')->get('/orders?status=group_waiting')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('data.orders.data', fn ($rows): bool => collect($rows)->pluck('id')->sort()->values()->all() === collect([$waiting->id, $held->id])->sort()->values()->all()));
+    }
+
+    public function test_the_top_sellers_board_accepts_the_last_30_days_choice(): void
+    {
+        $owner = User::factory()->staff()->create();
+
+        $this->actingAs($owner)->onPortal('sadmin')->get('/top-sellers?period=last30')->assertOk();
+        $this->actingAs($owner)->onPortal('sadmin')->get('/top-sellers')->assertOk();
+    }
+
+    public function test_notices_older_than_thirty_days_are_marked_read_but_kept(): void
+    {
+        $user = User::factory()->staff()->create();
+        $old = DB::table('account_notices')->insertGetId(['user_id' => $user->id, 'title' => 'Old', 'body' => 'Old', 'created_at' => now()->subDays(40), 'updated_at' => now()->subDays(40)]);
+        $new = DB::table('account_notices')->insertGetId(['user_id' => $user->id, 'title' => 'New', 'body' => 'New', 'created_at' => now()->subDays(2), 'updated_at' => now()->subDays(2)]);
+
+        $this->artisan('notices:read-old')->assertSuccessful();
+
+        $this->assertNotNull(DB::table('account_notices')->where('id', $old)->value('read_at'));
+        $this->assertNull(DB::table('account_notices')->where('id', $new)->value('read_at'));
+    }
+
+    public function test_amounts_in_notices_use_lakh_grouping_and_the_readers_digits(): void
+    {
+        $this->assertSame('3,00,000.00', Money::display('300000.00', 'en'));
+        $this->assertSame('৩,০০,০০০.০০', Money::display('300000.00', 'bn'));
+    }
+
+    public function test_the_staff_and_owner_sign_in_pages_open_in_bangla_until_a_language_is_chosen(): void
+    {
+        $this->onPortal('sadmin')->get('/login')->assertOk()->assertSee('<html lang="bn"', false);
+        $this->onPortal('manage')->get('/login')->assertOk()->assertSee('<html lang="bn"', false);
+        $this->onPortal('sadmin')->withCookie('locale', 'en')->get('/login')->assertOk()->assertSee('<html lang="en"', false);
     }
 }
