@@ -21,8 +21,17 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
  */
 final class StockPrintPdf
 {
-    /** The longest side of a photo copy in the PDF, in pixels: sharp at 12 mm, a few kilobytes. */
-    private const ThumbnailPixels = 160;
+    /**
+     * The longest side of a photo copy in the PDF, in pixels: sharp when printed at about 34 mm
+     * (CR-00, the owner asked for pictures you can recognise), still only tens of kilobytes.
+     */
+    public const ThumbnailPixels = 400;
+
+    /** The box the photo is drawn in, in CSS pixels (about 34 mm); the photo keeps its shape inside it. */
+    public const DisplayPixels = 130;
+
+    /** JPEG quality of the copies: a little lower than usual keeps a 95-product list small enough to mail. */
+    private const JpegQuality = 75;
 
     /** Photos with more pixels than this are left out rather than risk running out of memory. */
     private const MaxPhotoPixels = 40_000_000;
@@ -84,8 +93,9 @@ final class StockPrintPdf
     }
 
     /**
-     * Swaps each product photo for a small copy. The photo is shown about 12 mm wide, and the
-     * full file would make a list of 95 products tens of megabytes, too big to send by mail.
+     * Swaps each product photo for a copy 400 px on its longest side, drawn about 34 mm wide so the
+     * product can be recognised; the full file would make a list of 95 products tens of megabytes,
+     * too big to send by mail.
      * The copies are listed in $created so the caller can delete them once the PDF is written.
      *
      * @param  list<array<string, mixed>>  $rows
@@ -100,9 +110,14 @@ final class StockPrintPdf
                 continue;
             }
             $target = $dir.'/stock-photo-'.Str::lower(Str::random(10)).'.jpg';
-            if ($this->thumbnail($source, $target)) {
+            $size = $this->thumbnail($source, $target);
+            if ($size !== null) {
                 $created[] = $target;
                 $rows[$index]['image'] = $target;
+                // Drawn inside the display box with its own shape, never squeezed into a square.
+                $scale = self::DisplayPixels / max($size[0], $size[1]);
+                $rows[$index]['image_width'] = max(1, (int) round($size[0] * $scale));
+                $rows[$index]['image_height'] = max(1, (int) round($size[1] * $scale));
             } else {
                 $rows[$index]['image'] = null;
             }
@@ -111,17 +126,21 @@ final class StockPrintPdf
         return $rows;
     }
 
-    /** A small white-backed JPEG of a photo; false when the file is not a readable picture. */
-    private function thumbnail(string $source, string $target): bool
+    /**
+     * A white-backed JPEG copy of a photo, at most ThumbnailPixels on its longest side.
+     *
+     * @return array{0: int, 1: int}|null the copy's width and height; null when the file is not a readable picture
+     */
+    private function thumbnail(string $source, string $target): ?array
     {
         $size = @getimagesize($source);
         if ($size === false || $size[0] < 1 || $size[1] < 1 || $size[0] * $size[1] > self::MaxPhotoPixels) {
-            return false;
+            return null;
         }
         $bytes = @file_get_contents($source);
         $photo = $bytes === false ? false : @imagecreatefromstring($bytes);
         if ($photo === false) {
-            return false;
+            return null;
         }
 
         $scale = min(1.0, self::ThumbnailPixels / max($size[0], $size[1]));
@@ -131,7 +150,7 @@ final class StockPrintPdf
         imagefill($canvas, 0, 0, (int) imagecolorallocate($canvas, 255, 255, 255));
         imagecopyresampled($canvas, $photo, 0, 0, 0, 0, $width, $height, $size[0], $size[1]);
 
-        return imagejpeg($canvas, $target, 82);
+        return imagejpeg($canvas, $target, self::JpegQuality) ? [$width, $height] : null;
     }
 
     /**
