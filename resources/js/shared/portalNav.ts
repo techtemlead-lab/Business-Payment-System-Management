@@ -233,10 +233,11 @@ const MENU_ROWS: Record<string, MenuRow> = Object.fromEntries(([
         'login-rules', 'reason-fields', 'service-integrations', 'courier-areas', 'data-imports', 'audit', 'privacy-requests', 'data-cleanup', 'errors',
     ] },
     { id: 'partner-orders', labelKey: 'nav_module_commerce', iconKey: 'orders', tabs: ['orders', 'deliveries'] },
-    { id: 'partner-team', labelKey: 'nav_module_network', iconKey: 'network', tabs: ['network', 'customers', 'ranks', 'top-sellers', 'contests'] },
-    { id: 'partner-learning', labelKey: 'nav_module_learning', iconKey: 'learning', tabs: ['training', 'events', 'sales-kit'] },
-    { id: 'partner-office', labelKey: 'nav_module_office', iconKey: 'messages', tabs: ['messages', 'partner-notices', 'share-feedback', 'help'] },
-    { id: 'partner-account', labelKey: 'nav_module_account', iconKey: 'profile', tabs: ['profile', 'security', 'agreement'] },
+    { id: 'partner-team', labelKey: 'nav_module_network', iconKey: 'network', tabs: ['network', 'customers', 'ranks'] },
+    { id: 'partner-office', labelKey: 'nav_module_office', iconKey: 'messages', tabs: ['messages', 'partner-notices', 'help'] },
+    { id: 'partner-account', labelKey: 'nav_module_account', iconKey: 'profile', tabs: ['profile', 'security'] },
+    // The partner's one entry for pages opened less often (CR-14); its boxes come from PartnerHubTabs::MoreGroups. Prescriptions never go here.
+    { id: 'partner-more', labelKey: 'nav_module_more', iconKey: 'more', home: 'more', tabs: ['training', 'events', 'sales-kit', 'top-sellers', 'contests', 'share-feedback', 'agreement'] },
 ] satisfies MenuRow[]).map((row) => [row.id, row]));
 
 /** A row item is "rowId@tab,tab": the row and the tabs open to this person, first one first. */
@@ -306,8 +307,8 @@ function rowItem(rowId: string, available: Set<string>): string | null {
     if (open.length === 0) {
         return null;
     }
-    // The More page keeps its own name even when only one page is open to this person.
-    return open.length === 1 && rowId !== 'office-more' ? open[0] : `${rowId}@${open.join(',')}`;
+    // A More page keeps its own name even when only one page is open to this person.
+    return open.length === 1 && MENU_ROWS[rowId].home !== 'more' ? open[0] : `${rowId}@${open.join(',')}`;
 }
 
 function rowMother(rowId: string, available: Set<string>): NavMother | null {
@@ -511,10 +512,11 @@ function partnerMothers(role: string, available: Set<string>): NavMother[] {
         role === 'sub_dealer' && rowItem('partner-team', teamAvailable) === 'customers'
             ? mother('partner-team', 'customer_book', ['customers'])
             : rowMother('partner-team', teamAvailable),
-        rowMother('partner-learning', available),
         rowMother('partner-office', available),
         rowMother('partner-account', available),
+        // Prescriptions always stay in the sidebar, in every panel (client, 2026-11-19); the More page never lists them.
         mother('clinic', 'prescriptions', pick(available, ['prescriptions'])),
+        rowMother('partner-more', available),
     ]);
 }
 

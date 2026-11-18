@@ -70,13 +70,13 @@ class MoreAndSettingsBoxesTest extends TestCase
         $this->assertNotContains('access-management', $keys);
     }
 
-    public function test_a_field_rep_sees_only_the_field_sales_box_and_partners_have_no_page(): void
+    public function test_a_field_rep_sees_only_the_field_sales_box_and_a_partner_sees_the_partner_page(): void
     {
         $sr = User::factory()->staff('sr')->create();
         $dealer = User::factory()->dealer()->create();
 
         $keys = collect(OfficeHubs::moreGroups($sr, 'manage', true))->flatMap(fn ($group) => collect($group['links'])->pluck('key'))->all();
         $this->assertSame(['field-sales'], $keys);
-        $this->actingAs($dealer)->onPortal('dealer')->get('/more')->assertForbidden();
+        $this->actingAs($dealer)->onPortal('dealer')->get('/more')->assertOk()->assertInertia(fn (Assert $page) => $page->where('section', 'more'));
     }
 }
