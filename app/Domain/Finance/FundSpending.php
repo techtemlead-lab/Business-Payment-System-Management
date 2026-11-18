@@ -5,6 +5,7 @@ namespace App\Domain\Finance;
 use App\Domain\Clinic\ClinicDispensing;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Security\SelfApproval;
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
@@ -35,10 +36,13 @@ final class FundSpending
 
     public function __construct(private CommissionWallet $wallets, private CompanyFunds $funds) {}
 
-    /** Owners and finance staff only; the owners' own fund is the owners' alone. */
+    /**
+     * Owners and finance staff only; the owners' own fund is the owners' alone. The MD and Chairman
+     * count as owners here once the Super Admin grants them Treasury (D11, SA-07).
+     */
     public static function canManage(User $user): bool
     {
-        return $user->status === 'active' && ($user->owner() || $user->allows('finance'));
+        return $user->status === 'active' && (LeadershipAccess::granted($user, 'treasury') || $user->allows('finance'));
     }
 
     /**
