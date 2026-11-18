@@ -61,6 +61,12 @@ test('stock states: paused wins over stock, zero stock is out', () => {
     assert.equal(cardStock({ key: 'x', sizes: [paused], first: paused }), 'paused');
 });
 
+test('a product sent without a stock figure, as to dealers, is orderable', () => {
+    const unknown = { id: 99, name: 'No figure', mrp: 100 };
+    assert.equal(stockState(unknown), 'in');
+    assert.equal(cardStock({ key: 'x', sizes: [unknown], first: unknown }), 'in');
+});
+
 test('the partner price is his price, else the printed price; a range spans the sizes', () => {
     assert.equal(partnerPrice(large), 170);
     assert.equal(partnerPrice(paused), 50);

@@ -20,19 +20,21 @@ class DealerRepeatOrderTest extends TestCase
         $this->withoutVite();
     }
 
-    public function test_repeat_order_uses_todays_price_and_stock(): void
+    public function test_repeat_order_uses_todays_price_and_never_reveals_stock(): void
     {
         $dealer = User::factory()->dealer()->create();
         $sameProduct = Product::factory()->create(['active' => true, 'dealer_price' => '100.00', 'stock' => 50]);
         $costlier = Product::factory()->create(['active' => true, 'dealer_price' => '150.00', 'stock' => 50]);
         $scarce = Product::factory()->create(['active' => true, 'dealer_price' => '10.00', 'stock' => 2]);
         $discontinued = Product::factory()->create(['active' => false, 'stock' => 50]);
+        $paused = Product::factory()->create(['active' => true, 'stock' => 50, 'is_stock_paused' => true]);
         $soldOut = Product::factory()->create(['active' => true, 'stock' => 0]);
         $order = $this->pastOrder($dealer, 'delivered', [
             [$sameProduct, 3, '100.00'],
             [$costlier, 2, '120.00'],
             [$scarce, 9, '10.00'],
             [$discontinued, 1, '40.00'],
+            [$paused, 1, '40.00'],
             [$soldOut, 1, '40.00'],
         ]);
 
@@ -42,18 +44,21 @@ class DealerRepeatOrderTest extends TestCase
                 ->component('portals/dealer/Dashboard')
                 ->has('data.repeat_orders', 1)
                 ->where('data.repeat_orders.0.order_id', $order->id)
-                ->has('data.repeat_orders.0.items', 3)
+                ->has('data.repeat_orders.0.items', 4)
                 ->where('data.repeat_orders.0.items.0.product.id', $sameProduct->id)
                 ->where('data.repeat_orders.0.items.0.quantity', 3)
                 ->where('data.repeat_orders.0.items.0.price_changed', false)
                 ->where('data.repeat_orders.0.items.1.product.price', '150.00')
                 ->where('data.repeat_orders.0.items.1.price_changed', true)
-                ->where('data.repeat_orders.0.items.2.quantity', 2)
-                ->where('data.repeat_orders.0.items.2.last_quantity', 9)
-                ->where('data.repeat_orders.0.items.2.quantity_reduced', true)
+                // The last quantity is offered as it was: stock must not change what the dealer sees.
+                ->where('data.repeat_orders.0.items.2.quantity', 9)
+                ->where('data.repeat_orders.0.items.3.product.id', $soldOut->id)
+                ->missing('data.repeat_orders.0.items.0.product.stock')
+                ->missing('data.repeat_orders.0.items.0.product.stock_status')
+                ->missing('data.repeat_orders.0.items.2.quantity_reduced')
                 ->where('data.repeat_orders.0.skipped', [
                     ['name' => $discontinued->name, 'reason' => 'not_sold'],
-                    ['name' => $soldOut->name, 'reason' => 'out_of_stock'],
+                    ['name' => $paused->name, 'reason' => 'not_sold'],
                 ]));
     }
 

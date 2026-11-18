@@ -13,8 +13,8 @@ use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
 /**
- * A partner's recent orders, ready to be put back in the cart: every line carries today's price
- * and today's stock, never the old ones. Nothing is saved here; the order still goes through the
+ * A partner's recent orders, ready to be put back in the cart: every line carries today's price,
+ * never the old one. Nothing is saved here; the order still goes through the
  * normal checkout, which prices it again on the server and asks for payment and proof.
  */
 final class RepeatOrderOptions
@@ -29,7 +29,7 @@ final class RepeatOrderOptions
      *   order_id: string,
      *   number: string,
      *   ordered_on: string,
-     *   items: list<array{product: array<string, mixed>, quantity: int, last_quantity: int, last_unit_price: string, price_changed: bool, quantity_reduced: bool}>,
+     *   items: list<array{product: array<string, mixed>, quantity: int, last_quantity: int, last_unit_price: string, price_changed: bool}>,
      *   skipped: list<array{name: string, reason: string}>
      * }>
      */
@@ -95,30 +95,28 @@ final class RepeatOrderOptions
     private function item(OrderLine $line, Product $product, int $unitPrice): array
     {
         $lastQuantity = (int) $line->quantity;
-        $sellable = $product->sellableStock();
-        $quantity = min($lastQuantity, $sellable);
 
+        // No stock figure or stock status is returned: a partner must not learn from this list
+        // whether a product is in stock. The company decides at fulfilment what can be sent.
         return [
             'product' => [
                 ...$product->only(['id', 'sku', 'name', 'category', 'sub_category', 'strength', 'unit', 'mrp']),
-                'stock' => $sellable,
                 'price' => Money::decimal($unitPrice),
-                'stock_status' => $product->stockStatus(),
                 'size_label' => $product->product_group_id !== null ? ProductSizeGroups::buttonLabel($product) : null,
             ],
-            'quantity' => $quantity,
+            'quantity' => $lastQuantity,
             'last_quantity' => $lastQuantity,
             'last_unit_price' => (string) $line->unit_price,
             'price_changed' => Money::cents((string) $line->unit_price) !== $unitPrice,
-            'quantity_reduced' => $quantity < $lastQuantity,
         ];
     }
 
     private function unavailableReason(?Product $product): ?string
     {
+        // A product whose ordering is paused cannot be ordered, so it is reported like one no longer sold
+        // rather than as out of stock.
         return match (true) {
-            $product === null, ! $product->active => 'not_sold',
-            $product->stockStatus() === 'out_of_stock' => 'out_of_stock',
+            $product === null, ! $product->active, (bool) $product->is_stock_paused => 'not_sold',
             default => null,
         };
     }

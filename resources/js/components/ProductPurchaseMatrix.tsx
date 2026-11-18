@@ -11,7 +11,7 @@ import { randomUuid } from '../shared/randomUuid';
 import RepeatOrderPanel, { repeatChangeNotes, type RepeatOption } from './dealertools/RepeatOrderPanel';
 import SchemeNotices, { type RunningScheme } from './dealertools/SchemeNotices';
 import { choiceName, oneCardPerGroup, sizesByGroup, type SizeCard } from '../shared/productSizes';
-import { cardStock, filterChoices, partnerPrice, priceRange, searchProducts, stockState } from '../shared/orderSearch';
+import { cardStock, filterChoices, partnerPrice, priceRange, searchProducts, stockKnown, stockState } from '../shared/orderSearch';
 
 interface Props {
     products: Row[];
@@ -198,7 +198,7 @@ export default function ProductPurchaseMatrix({
         searchRef.current?.focus();
     };
 
-    // One tap: the cart becomes this past order, at today's prices and stock.
+    // One tap: the cart becomes this past order, at today's prices.
     const [repeatNotes, setRepeatNotes] = useState<string[]>([]);
     const fillCartFromOrder = (option: RepeatOption) => {
         setCart(option.items.filter(item => item.quantity > 0).map(item => ({ product: item.product, quantity: item.quantity })));
@@ -491,9 +491,11 @@ export default function ProductPurchaseMatrix({
                                                     ? translate('order_search', 'price_range', { low: money(range.low), high: money(range.high) })
                                                     : money(range.low)}
                                             </div>
-                                            <span className={`hub-pill ${state === 'in' ? 'tone-ok' : 'tone-danger'}`}>
-                                                {translate('order_search', `stock_${state}`)}
-                                            </span>
+                                            {stockKnown(product) && (
+                                                <span className={`hub-pill ${state === 'in' ? 'tone-ok' : 'tone-danger'}`}>
+                                                    {translate('order_search', `stock_${state}`)}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                 );
@@ -556,7 +558,7 @@ export default function ProductPurchaseMatrix({
                                             />
                                             <span className="ppm-size-label">{v.size_label || v.strength || v.unit || translate('portal', 'b2b_single_spec')}</span>
                                             <span className="ppm-size-price">{money(vPrice)}{vDisc > 0 ? ` · ${translate('portal', 'pct_off', { pct: String(vDisc) })}` : ''}</span>
-                                            <span className="ppm-size-stock">{translate('order_search', `stock_${state}`)}</span>
+                                            {stockKnown(v) && <span className="ppm-size-stock">{translate('order_search', `stock_${state}`)}</span>}
                                         </label>
                                     );
                                 })}
@@ -625,11 +627,13 @@ export default function ProductPurchaseMatrix({
                                         {translate('portal', 'product_code_value', { sku: String(activeProduct.sku) })} · {activeProduct.category}{activeProduct.sub_category ? ` / ${activeProduct.sub_category}` : ''}
                                     </span>
                                 </div>
-                                <span className={`hub-pill ${stockState(activeProduct) === 'in' ? 'tone-ok' : 'tone-danger'}`}>
-                                    {stockState(activeProduct) === 'in'
-                                        ? translate('portal', 'ppm_stock_left', { qty: number(activeProduct.stock), unit: String(activeProduct.unit || translate('portal', 'ppm_unit_fallback')) })
-                                        : translate('portal', 'ppm_stock_awaiting')}
-                                </span>
+                                {stockKnown(activeProduct) && (
+                                    <span className={`hub-pill ${stockState(activeProduct) === 'in' ? 'tone-ok' : 'tone-danger'}`}>
+                                        {stockState(activeProduct) === 'in'
+                                            ? translate('portal', 'ppm_stock_left', { qty: number(activeProduct.stock), unit: String(activeProduct.unit || translate('portal', 'ppm_unit_fallback')) })
+                                            : translate('portal', 'ppm_stock_awaiting')}
+                                    </span>
+                                )}
                             </div>
 
                             <div className="ops-row is-wide is-wrap">

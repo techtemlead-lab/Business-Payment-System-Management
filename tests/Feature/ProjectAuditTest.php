@@ -27,40 +27,31 @@ class ProjectAuditTest extends TestCase
         $this->withoutVite();
     }
 
-    public function test_restock_notifies_active_partners_once_and_failed_or_replayed_movements_add_no_notices(): void
+    public function test_restock_does_not_notify_partners_and_failed_or_replayed_movements_add_no_notices(): void
     {
         $dealer = User::factory()->create();
-        $subDealer = User::factory()->create(['role' => 'sub_dealer']);
-        $banglaDealer = User::factory()->create(['locale' => 'bn']);
+        User::factory()->create(['role' => 'sub_dealer']);
+        User::factory()->create(['locale' => 'bn']);
         User::factory()->create(['status' => 'suspended']);
         $admin = User::factory()->create(['role' => 'super_admin']);
         $product = Product::factory()->create(['stock' => 0]);
         $data = ['product_id' => $product->id, 'quantity' => 5, 'reference' => (string) Str::uuid(), 'reason' => 'Supplier delivery'];
 
+        // Stock is for company staff only: a restock tells no dealer or sub-dealer anything.
         $this->actingAs($admin)->postJson('/api/v1/inventory/adjustments', $data)->assertOk();
-        $this->assertDatabaseHas('account_notices', ['user_id' => $dealer->id, 'title' => 'Product available']);
-        $this->assertDatabaseHas('account_notices', ['user_id' => $subDealer->id, 'title' => 'Product available']);
-        $this->assertDatabaseHas('account_notices', [
-            'user_id' => $banglaDealer->id,
-            'title' => __('portal.notice_product_available_title', [], 'bn'),
-            'body' => __('portal.notice_product_available_body', [
-                'name' => $product->name,
-                'sku' => $product->sku,
-            ], 'bn'),
-        ]);
-        $this->assertDatabaseCount('account_notices', 3);
+        $this->assertDatabaseCount('account_notices', 0);
 
         $this->postJson('/api/v1/inventory/adjustments', $data)->assertUnprocessable()->assertJsonValidationErrors('reference');
         $this->postJson('/api/v1/inventory/adjustments', [...$data, 'quantity' => -6, 'reference' => (string) Str::uuid()])
             ->assertUnprocessable()->assertJsonValidationErrors('quantity');
         $this->postJson('/api/v1/inventory/adjustments', [...$data, 'reference' => (string) Str::uuid()])->assertOk();
         $this->assertDatabaseHas('products', ['id' => $product->id, 'stock' => 10]);
-        $this->assertDatabaseCount('account_notices', 3);
+        $this->assertDatabaseCount('account_notices', 0);
         $this->actingAs($dealer)->get('/workspace/notifications')->assertOk()->assertInertia(fn (AssertableInertia $page) => $page
-            ->where('data.notices.total', 1)->where('data.notices.data.0.title', 'Product available'));
+            ->where('data.notices.total', 0));
     }
 
-    public function test_paused_or_archived_stock_is_not_advertised_and_resuming_available_stock_notifies_partners(): void
+    public function test_pausing_or_resuming_a_product_does_not_notify_partners(): void
     {
         $dealer = User::factory()->create();
         $admin = User::factory()->create(['role' => 'super_admin']);
@@ -70,26 +61,19 @@ class ProjectAuditTest extends TestCase
             $this->actingAs($admin)->postJson('/api/v1/inventory/adjustments', ['product_id' => $product->id, 'quantity' => 5,
                 'reference' => (string) Str::uuid(), 'reason' => 'Received counted stock'])->assertOk();
         }
-        $this->assertDatabaseCount('account_notices', 0);
         $this->post('/commands/products/'.$paused->id.'/toggle-stock')->assertRedirect();
-        $this->assertDatabaseHas('account_notices', ['user_id' => $dealer->id, 'title' => 'Product available']);
         $this->post('/commands/products/'.$paused->id.'/toggle-stock')->assertRedirect();
-        $this->assertDatabaseCount('account_notices', 2);
-        $this->assertDatabaseHas('account_notices', [
-            'user_id' => $dealer->id,
-            'title' => 'Product ordering paused',
-        ]);
+        $this->assertDatabaseMissing('account_notices', ['user_id' => $dealer->id]);
     }
 
-    public function test_new_product_with_opening_stock_appears_in_partner_notifications(): void
+    public function test_new_product_with_opening_stock_does_not_notify_partners(): void
     {
         $dealer = User::factory()->create();
         $admin = User::factory()->create(['role' => 'super_admin']);
         $this->actingAs($admin)->post('/commands/products', ['name' => 'New stocked product', 'sku' => 'AUDIT-STOCK',
             'category' => 'Care', 'unit' => 'pack', 'mrp' => '200.00', 'dealer_price' => '100.00',
             'initial_stock' => 4, 'reason' => 'Opening inventory approved'])->assertRedirect();
-        $this->assertDatabaseHas('account_notices', ['user_id' => $dealer->id, 'title' => __('portal.notice_product_available_title', [], 'en'),
-            'body' => __('portal.notice_product_available_body', ['name' => 'New stocked product', 'sku' => 'AUDIT-STOCK'], 'en')]);
+        $this->assertDatabaseMissing('account_notices', ['user_id' => $dealer->id]);
     }
 
     public function test_dispatch_warns_inventory_staff_when_stock_crosses_low_and_zero_thresholds(): void

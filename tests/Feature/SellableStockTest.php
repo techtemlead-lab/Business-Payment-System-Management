@@ -208,7 +208,7 @@ class SellableStockTest extends TestCase
         $this->assertSame('out_of_stock', $card['stock_status']);
     }
 
-    public function test_the_dealer_ordering_screen_counts_only_sellable_units(): void
+    public function test_the_dealer_ordering_screen_never_shows_whether_a_product_is_in_stock(): void
     {
         $dealer = User::factory()->dealer()->create(['status' => 'active']);
         $product = $this->product();
@@ -219,11 +219,13 @@ class SellableStockTest extends TestCase
         $this->actingAs($dealer)->onPortal('dealer')->get('/purchase')->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('data.products.0.id', $product->id)
-                ->where('data.products.0.stock', 6)
-                ->where('data.products.0.stock_status', 'in_stock'));
+                ->missing('data.products.0.stock')
+                ->missing('data.products.0.low_stock_at')
+                ->missing('data.products.0.stock_status')
+                ->missing('data.products.0.is_stock_paused'));
     }
 
-    public function test_the_dealer_api_catalogue_counts_only_sellable_units(): void
+    public function test_the_dealer_api_catalogue_never_shows_whether_a_product_is_in_stock(): void
     {
         $dealer = User::factory()->dealer()->create(['status' => 'active']);
         $product = $this->product();
@@ -231,11 +233,31 @@ class SellableStockTest extends TestCase
         $this->lot($product, 40, $this->onHold());
 
         $this->actingAs($dealer)->getJson('/api/v1/catalog')->assertOk()
-            ->assertJsonPath('data.0.stock', 6)
-            ->assertJsonPath('data.0.stock_status', 'in_stock');
+            ->assertJsonPath('data.0.id', $product->id)
+            ->assertJsonMissingPath('data.0.stock')
+            ->assertJsonMissingPath('data.0.low_stock_at')
+            ->assertJsonMissingPath('data.0.stock_status')
+            ->assertJsonMissingPath('data.0.is_stock_paused');
     }
 
-    public function test_a_repeat_order_is_cut_to_the_sellable_count(): void
+    public function test_a_dealer_cannot_filter_the_catalogue_by_stock(): void
+    {
+        $dealer = User::factory()->dealer()->create(['status' => 'active']);
+        $ready = $this->product(['name' => 'Ready Tonic']);
+        $this->lot($ready, 3);
+        $empty = $this->product(['name' => 'Empty Tonic']);
+
+        foreach (['in_stock', 'out_of_stock'] as $availability) {
+            $this->actingAs($dealer)->onPortal('dealer')->get('/catalog?availability='.$availability)->assertOk()
+                ->assertInertia(fn (Assert $page) => $page
+                    ->has('data.products', 2)
+                    ->missing('data.products.0.stock_status')
+                    ->missing('data.products.1.stock_status'));
+        }
+        $this->assertSame(0, $empty->sellableStock());
+    }
+
+    public function test_a_repeat_order_keeps_the_last_quantity_and_shows_no_stock(): void
     {
         $dealer = User::factory()->dealer()->create(['status' => 'active']);
         $product = $this->product(['dealer_price' => '100.00']);
@@ -246,9 +268,10 @@ class SellableStockTest extends TestCase
 
         $this->actingAs($dealer)->onPortal('dealer')->get('/purchase')->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('data.repeat_orders.0.items.0.quantity', 2)
-                ->where('data.repeat_orders.0.items.0.product.stock', 2)
-                ->where('data.repeat_orders.0.items.0.quantity_reduced', true));
+                ->where('data.repeat_orders.0.items.0.quantity', 9)
+                ->missing('data.repeat_orders.0.items.0.product.stock')
+                ->missing('data.repeat_orders.0.items.0.product.stock_status')
+                ->missing('data.repeat_orders.0.items.0.quantity_reduced'));
     }
 
     public function test_the_staff_catalog_filters_on_sellable_units_and_keeps_the_label_right(): void

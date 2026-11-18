@@ -9,7 +9,6 @@ export interface RepeatItem {
     last_quantity: number;
     last_unit_price: string;
     price_changed: boolean;
-    quantity_reduced: boolean;
 }
 
 export interface RepeatOption {
@@ -20,7 +19,7 @@ export interface RepeatOption {
     skipped: { name: string; reason: string }[];
 }
 
-/** Past orders the partner can put back in the cart with one tap, at today's prices and stock. */
+/** Past orders the partner can put back in the cart with one tap, at today's prices. */
 export default function RepeatOrderPanel({ orders, onFill }: { orders: RepeatOption[]; onFill: (option: RepeatOption) => void }) {
     const translate = useT();
     if (orders.length === 0) {
@@ -53,9 +52,6 @@ export function repeatChangeNotes(option: RepeatOption, translate: (group: strin
         const name = String(item.product.name ?? '');
         if (item.price_changed) {
             notes.push(translate('dealer_tools', 'repeat_price_changed', { name, price: money(item.product.price) }));
-        }
-        if (item.quantity_reduced) {
-            notes.push(translate('dealer_tools', 'repeat_reduced', { name, count: number(item.quantity) }));
         }
     });
     option.skipped.forEach((skip) => notes.push(translate('dealer_tools', `repeat_skip_${skip.reason}`, { name: skip.name })));
