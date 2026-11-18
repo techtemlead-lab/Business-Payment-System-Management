@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Security\OwnerConfirmation;
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -150,9 +151,12 @@ class OwnerConfirmationTest extends TestCase
 
     public function test_the_login_rules_page_shows_the_choice_and_other_pages_do_not_load_it(): void
     {
+        // D11: the MD opens Login rules only with the owner-tools grant from the Super Admin.
+        LeadershipAccess::save(User::factory()->staff('super_admin')->create(), ['md' => ['owner_tools']], LeadershipAccess::current()['version']);
         $this->actingAs($this->owner)->onPortal('sadmin')->get('/login-rules')
             ->assertInertia(fn ($page) => $page->where('securityControls.owner_confirmation.mode', 'password')->where('securityControls.owner_confirmation.method', 'password'));
-        $this->actingAs($this->owner)->onPortal('sadmin')->get('/orders')
+        // The home page (open to the MD under D11) does not load the setting.
+        $this->actingAs($this->owner)->onPortal('sadmin')->get('/')
             ->assertInertia(fn ($page) => $page->where('securityControls.owner_confirmation', null));
     }
 
