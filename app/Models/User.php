@@ -60,6 +60,10 @@ class User extends Authenticatable implements HasLocalePreference
             if ($user->exists && ($user->isDirty('password') || $user->isDirty('phone'))) {
                 $user->credentials_changed_at = now();
             }
+            // Choosing a password ends a "must change" state, unless the same save hands out a temporary one.
+            if ($user->exists && $user->isDirty('password') && ! $user->isDirty('must_change_password')) {
+                $user->must_change_password = false;
+            }
         });
     }
 
@@ -231,6 +235,7 @@ class User extends Authenticatable implements HasLocalePreference
             'linked_staff_permissions' => 'array',
             'staff_linked_at' => 'datetime',
             'can_prescribe' => 'boolean',
+            'must_change_password' => 'boolean',
         ];
     }
 

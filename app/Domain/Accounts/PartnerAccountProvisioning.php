@@ -48,7 +48,7 @@ final class PartnerAccountProvisioning
 
     /**
      * @param  array<string, mixed>  $input
-     * @return array{user: User, place_label: ?string, commission_consumers: array<string, mixed>, credentials_sent: bool, password_link_sent: bool}
+     * @return array{user: User, place_label: ?string, commission_consumers: array<string, mixed>, credentials_sent: bool, password_link_sent: bool, first_password: string}
      */
     public function create(User $actor, array $input): array
     {
@@ -211,6 +211,7 @@ final class PartnerAccountProvisioning
                     'directory_visible' => ! empty($input['directory_visible']),
                     'status' => in_array(($status = (string) ($input['status'] ?? 'active')), ['active', 'suspended'], true) ? $status : 'active',
                     'password' => $plainPassword,
+                    'must_change_password' => true,
                     'password_managed_by' => User::PasswordManagedByAdmin,
                     'admin_password_cipher' => $plainPassword,
                     'profile' => $profile,
@@ -251,6 +252,7 @@ final class PartnerAccountProvisioning
             'commission_consumers' => $this->commissionConsumers($sponsor, $managementReferral),
             'credentials_sent' => $credentialsSent,
             'password_link_sent' => $passwordLinkSent,
+            'first_password' => $plainPassword,
         ];
     }
 

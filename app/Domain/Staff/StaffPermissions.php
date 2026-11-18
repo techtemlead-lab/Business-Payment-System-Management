@@ -156,10 +156,10 @@ final class StaffPermissions
     }
 
     /** @param array<string, mixed> $permissions */
-    public function assign(User $actor, int $userId, array $permissions, string $version, string $reason, ?string $role = null): void
+    public function assign(User $actor, int $userId, array $permissions, string $version, string $reason, ?string $role = null, bool $confirmLeadership = false): void
     {
         $matrix = $this->validateMatrix($permissions);
-        DB::transaction(function () use ($actor, $userId, $matrix, $version, $reason, $role): void {
+        DB::transaction(function () use ($actor, $userId, $matrix, $version, $reason, $role, $confirmLeadership): void {
             CommissionWallet::lock();
             abort_unless($actor->fresh()->role === 'super_admin' && $actor->fresh()->status === 'active', 403);
             $user = User::whereKey($userId)->lockForUpdate()->firstOrFail();
@@ -173,10 +173,24 @@ final class StaffPermissions
             if ($role !== null && ! in_array($role, ['employee', ...array_keys(config('madina.roles')), ...$this->roleKeys()], true) || $role === 'super_admin') {
                 throw ValidationException::withMessages(['role' => __('portal.err_perm_staff_role')]);
             }
+            // Moving an owner (MD, Chairman) into a staff role, or a staff member into one, is a big step: it needs a clear "yes".
+            $leadership = ['md', 'chairman'];
+            $changesRole = $role !== null && $role !== $user->role;
+            $touchesLeadership = $changesRole && (in_array($user->role, $leadership, true) || in_array($role, $leadership, true));
+            if ($touchesLeadership && ! $confirmLeadership) {
+                throw ValidationException::withMessages(['role' => __('joining.err_leadership_confirm')]);
+            }
             $before = ['role' => $user->role, 'permissions' => $this->matrix($user)];
+            $profile = [...($user->profile ?? []), 'access_revision' => Str::uuid()->toString()];
+            if ($changesRole && in_array($role, $leadership, true)) {
+                // Putting someone back to MD or Chairman restores the role's own default, with no leftover rights.
+                unset($profile['action_permissions']);
+            } else {
+                $profile['action_permissions'] = $matrix;
+            }
             // The role is a guarded column, so a plain update() would silently keep the old one.
-            $user->forceFill(['role' => $role ?? $user->role, 'profile' => [...($user->profile ?? []), 'action_permissions' => $matrix, 'access_revision' => Str::uuid()->toString()]])->save();
-            Audit::record($actor->id, 'staff.actions_assigned', (string) $userId, ['before' => $before, 'after' => ['role' => $user->role, 'permissions' => $matrix], 'reason' => $reason]);
+            $user->forceFill(['role' => $role ?? $user->role, 'profile' => $profile])->save();
+            Audit::record($actor->id, 'staff.actions_assigned', (string) $userId, ['before' => $before, 'after' => ['role' => $user->role, 'permissions' => $this->matrix($user->fresh())], 'reason' => $reason]);
         }, 3);
     }
 

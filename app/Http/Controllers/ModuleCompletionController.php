@@ -91,8 +91,8 @@ class ModuleCompletionController extends Controller
     {
         abort_unless($request->user()->role === 'super_admin', 403);
         $data = $request->validate(['staff_id' => 'required|integer|exists:users,id', 'permissions' => 'present|array',
-            'version' => 'required|string|size:64', 'role' => 'nullable|string|max:60', 'reason' => ReasonFields::rule('staff.access_save', 1000, 5)]);
-        $permissions->assign($request->user(), (int) $data['staff_id'], $data['permissions'], $data['version'], ReasonFields::text($data['reason'] ?? null), $data['role'] ?? null);
+            'version' => 'required|string|size:64', 'role' => 'nullable|string|max:60', 'confirm_leadership' => 'sometimes|boolean', 'reason' => ReasonFields::rule('staff.access_save', 1000, 5)]);
+        $permissions->assign($request->user(), (int) $data['staff_id'], $data['permissions'], $data['version'], ReasonFields::text($data['reason'] ?? null), $data['role'] ?? null, $request->boolean('confirm_leadership'));
 
         return $this->done($request);
     }
