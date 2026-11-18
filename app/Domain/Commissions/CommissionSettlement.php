@@ -3,6 +3,7 @@
 namespace App\Domain\Commissions;
 
 use App\Domain\Accounts\PartnerBenefitControls;
+use App\Domain\Finance\MonthCloseStatus;
 use App\Domain\Finance\Percentage;
 use App\Domain\Geography\PlaceGeographyResolver;
 use App\Domain\Notifications\PartnerEventEmail;
@@ -237,6 +238,7 @@ final class CommissionSettlement
         if (! $replayed) {
             $this->notifySettlementCredits($result, $month, $kind);
         }
+        app(MonthCloseStatus::class)->clearFailure($kind, $month);
 
         return $result;
     }

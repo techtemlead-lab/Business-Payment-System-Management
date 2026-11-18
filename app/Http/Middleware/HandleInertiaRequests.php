@@ -230,6 +230,7 @@ class HandleInertiaRequests extends Middleware
                 'prescription_notepad' => Lang::get('prescription_notepad'),
                 'partner_form' => Lang::get('partner_form'),
                 'website_admin' => Lang::get('website_admin'),
+                'money_core' => Lang::get('money_core'),
                 'partner_hub' => Lang::get('partner_hub'),
                 'partner_profile' => Lang::get('partner_profile'),
                 'product_facts' => Lang::get('product_facts'),

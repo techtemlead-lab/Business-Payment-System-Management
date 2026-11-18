@@ -10,7 +10,7 @@ import SettingsForm, { settingsBack, type SettingsField } from './SettingsForm';
 const root = '/commands/operations';
 
 /** Owner and finance money rules: one column, one thin line between the forms, each with its own reason and Save. */
-export default function FinanceSettings({ withdrawalSetting, withdrawalSecurityWait, autoApproval, kycBeforeFirstWithdrawal, fullPaymentWhenOrdering }: Row) {
+export default function FinanceSettings({ withdrawalSetting, withdrawalSecurityWait, autoApproval, kycBeforeFirstWithdrawal, fullPaymentWhenOrdering, autoReleaseMatured }: Row) {
     const translate = useT();
     const { auth, financeActive, staffActions } = usePage<any>().props;
     const capabilities: string[] = auth.capabilities;
@@ -36,6 +36,16 @@ export default function FinanceSettings({ withdrawalSetting, withdrawalSecurityW
                     ownerOnly={translate('portal', 'fpo_owner_only')}
                     tour="full-payment-when-ordering"
                     place={'money.full_payment_when_ordering'}
+                />}
+                {autoReleaseMatured && <OwnerSwitchBlock
+                    setting={autoReleaseMatured}
+                    action={`${root}/settings/auto-release-matured`}
+                    title={translate('money_core', 'arm_title')}
+                    switchLabel={translate('money_core', 'arm_switch')}
+                    onLabel={translate('money_core', 'arm_on')}
+                    offLabel={translate('money_core', autoReleaseMatured.from_server_setting ? 'arm_off_server' : 'arm_off')}
+                    ownerOnly={translate('money_core', 'arm_owner_only')}
+                    place={'money.auto_release_matured'}
                 />}
                 {kycBeforeFirstWithdrawal && <OwnerSwitchBlock
                     setting={kycBeforeFirstWithdrawal}

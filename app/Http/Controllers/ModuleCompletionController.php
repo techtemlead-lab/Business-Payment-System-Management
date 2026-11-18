@@ -77,6 +77,20 @@ class ModuleCompletionController extends Controller
         return $this->done($request);
     }
 
+    /** Super Admin only: pay matured commission on its own every 15 minutes (MA-15). */
+    public function autoReleaseMatured(Request $request, FinanceSettings $settings): Response
+    {
+        abort_unless($request->user()->role === 'super_admin', 403);
+        $data = $request->validate([
+            'enabled' => 'required|boolean',
+            'version' => 'required|integer|min:0',
+            'reason' => ReasonFields::rule('money.auto_release_matured', 1000, 5),
+        ]);
+        $settings->saveAutoReleaseMatured($request->user(), (bool) $data['enabled'], (int) $data['version'], ReasonFields::text($data['reason'] ?? null));
+
+        return $this->done($request);
+    }
+
     public function role(Request $request, StaffPermissions $permissions): Response
     {
         abort_unless($request->user()->role === 'super_admin', 403);

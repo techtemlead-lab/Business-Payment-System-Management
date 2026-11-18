@@ -127,6 +127,7 @@ return [
     'place_money_auto_approval' => 'নিজে থেকে অনুমোদন চালু বা বন্ধ',
     'place_money_kyc_before_withdrawal' => 'প্রথম তোলার আগে কাগজপত্র লাগবে কি না',
     'place_money_full_payment_when_ordering' => 'অর্ডারের সময় পুরো টাকা লাগবে কি না',
+    'place_money_auto_release_matured' => 'পাকা কমিশন নিজে থেকে দেওয়া হবে কি না',
 
     'place_settings_place_code_remove' => 'এলাকার কোড মুছে ফেলা',
     'place_settings_integration_provider' => 'এসএমএস, ইমেইল বা কুরিয়ার সংযোগ বদল',

@@ -16,6 +16,7 @@ use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Content\CircularPublishNotifications;
 use App\Domain\Content\PublicTrustContent;
 use App\Domain\Content\TestimonialLabels;
+use App\Domain\Finance\MonthCloseStatus;
 use App\Domain\Finance\PolicyDraftService;
 use App\Domain\Finance\UnownedShareSweeps;
 use App\Domain\Geography\ManagementReferral;
@@ -49,6 +50,7 @@ use App\Models\SiteFeedback;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\DashboardManagement;
+use App\Support\LocalDigits;
 use App\Support\Money;
 use App\Support\PhoneIdentity;
 use App\Support\ReasonFields;
@@ -1206,7 +1208,7 @@ class CommandController extends Controller
         $result = $commissionService->settleMonthlySalaryPool($d['period_month'], $r->user()->id, $d['request_key']);
 
         if ($result['status'] === 'empty_pool') {
-            return back()->with('success', __('portal.flash_salary_pool_empty', ['period' => $d['period_month']]));
+            return back()->with('success', $this->alreadyClosedFlash($d['period_month'], 'salary') ?? __('portal.flash_salary_pool_empty', ['period' => $d['period_month']]));
         }
         $rolled = $result['total_rolled_to_reserve'] ?? '0.00';
         $toProfit = $result['total_to_company_profit'] ?? '0.00';
@@ -1230,7 +1232,7 @@ class CommandController extends Controller
         $result = $commissionService->settleRankRoyaltyPool($d['period_month'], $r->user()->id, $d['request_key']);
 
         if ($result['status'] === 'empty_pool') {
-            return back()->with('success', __('portal.flash_royalty_pool_empty', ['period' => $d['period_month']]));
+            return back()->with('success', $this->alreadyClosedFlash($d['period_month'], 'royalty') ?? __('portal.flash_royalty_pool_empty', ['period' => $d['period_month']]));
         }
 
         $rolled = $result['total_rolled_to_reserve'] ?? '0.00';
@@ -1242,6 +1244,21 @@ class CommandController extends Controller
             'period' => $d['period_month'],
             'amount' => $result['total_distributed'],
         ]).$extra);
+    }
+
+    /** "Already closed on 1 Feb" instead of "the fund is empty" when a month was closed before (MA-23). */
+    private function alreadyClosedFlash(string $month, string $kind): ?string
+    {
+        $closedAt = app(MonthCloseStatus::class)->closedAt($month, $kind);
+        if ($closedAt === null) {
+            return null;
+        }
+
+        return __('money_core.flash_already_closed', [
+            'kind' => __('money_core.mc_kind_'.$kind),
+            'month' => MonthCloseStatus::label($month),
+            'date' => LocalDigits::text(Carbon::parse($closedAt)->timezone('Asia/Dhaka')->locale(app()->getLocale())->translatedFormat('j F Y'), app()->getLocale()),
+        ]);
     }
 
     public function claimRankIncentive(Request $r, User $user, CommissionService $commissionService): RedirectResponse

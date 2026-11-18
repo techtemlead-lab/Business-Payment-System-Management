@@ -174,6 +174,7 @@ class OperationsController extends Controller
             $data['autoApproval'] = app(FinanceSettings::class)->autoApproval();
             $data['kycBeforeFirstWithdrawal'] = [...app(FinanceSettings::class)->kycBeforeFirstWithdrawal(), 'can_edit' => $actor->role === 'super_admin'];
             $data['fullPaymentWhenOrdering'] = [...app(FinanceSettings::class)->fullPaymentWhenOrdering(), 'can_edit' => $actor->role === 'super_admin'];
+            $data['autoReleaseMatured'] = [...app(FinanceSettings::class)->autoReleaseMatured(), 'can_edit' => $actor->role === 'super_admin'];
             $data['approvalLimit'] = [...app(WithdrawalApprovalLimit::class)->current(), 'default' => WithdrawalApprovalLimit::DefaultAmount, 'can_edit' => $actor->owner() && $actor->canAct('finance', 'edit')];
         }
         if ($section === 'access-management') {

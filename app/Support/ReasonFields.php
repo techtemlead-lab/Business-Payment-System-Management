@@ -127,6 +127,7 @@ final class ReasonFields
         'money.auto_approval' => 'money',
         'money.kyc_before_withdrawal' => 'money',
         'money.full_payment_when_ordering' => 'money',
+        'money.auto_release_matured' => 'money',
 
         'settings.place_code_remove' => 'settings',
         'settings.integration_provider' => 'settings',

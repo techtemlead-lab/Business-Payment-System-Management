@@ -127,6 +127,7 @@ return [
     'place_money_auto_approval' => 'Switching automatic approval on or off',
     'place_money_kyc_before_withdrawal' => 'Whether documents are needed before a first withdrawal',
     'place_money_full_payment_when_ordering' => 'Whether an order must be paid in full',
+    'place_money_auto_release_matured' => 'Whether matured commission is paid on its own',
 
     'place_settings_place_code_remove' => 'Deleting an area code',
     'place_settings_integration_provider' => 'Changing the SMS, email or courier connection',

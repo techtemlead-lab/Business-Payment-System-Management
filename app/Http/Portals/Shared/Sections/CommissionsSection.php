@@ -7,6 +7,7 @@ use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Commissions\CommissionSettlement;
+use App\Domain\Finance\MonthCloseStatus;
 use App\Domain\Finance\RewardFundCheck;
 use App\Domain\Orders\OrderListFilter;
 use App\Models\CommissionAllocation;
@@ -136,6 +137,7 @@ final class CommissionsSection implements WorkspaceSection
         $search = ListPage::query($request);
         $currentMonth = $request->input('period_month', now('Asia/Dhaka')->subMonthNoOverflow()->format('Y-m'));
         CommissionQualification::period($currentMonth);
+        $closeStatus = app(MonthCloseStatus::class);
         $salaryPoolAllocations = CommissionAllocation::whereIn('category', ['dealer_monthly_salary_pool', 'sub_dealer_salary'])->where('metadata->period_month', $currentMonth)
             ->where('status', 'pending')
             ->get();
@@ -218,6 +220,17 @@ final class CommissionsSection implements WorkspaceSection
             'maturing_count' => (int) ($maturing->total ?? 0),
             'maturing_amount' => (float) ($maturing->amount ?? 0),
             'settled_history' => $settledHistory,
+            // MA-01 / MA-23: which months still wait (and who closes them), which closed when, and failed closes.
+            'close_status' => [
+                'waiting' => $closeStatus->waitingMonths(),
+                'closed' => $closeStatus->closedMonths(),
+                'failures' => $closeStatus->failures(),
+                'month_options' => $closeStatus->monthOptions(),
+                'selected_closed' => [
+                    'salary' => $closeStatus->closedAt($currentMonth, 'salary'),
+                    'royalty' => $closeStatus->closedAt($currentMonth, 'royalty'),
+                ],
+            ],
         ];
 
         return $props;
