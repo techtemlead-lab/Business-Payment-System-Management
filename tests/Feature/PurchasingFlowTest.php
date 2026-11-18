@@ -428,7 +428,7 @@ class PurchasingFlowTest extends TestCase
         $this->assertDatabaseCount('suppliers', 1);
     }
 
-    public function test_view_only_inventory_staff_can_open_the_page_but_change_nothing(): void
+    public function test_view_only_inventory_staff_can_neither_open_the_page_nor_change_anything(): void
     {
         $viewer = User::factory()->staff('inventory')->create(['profile' => ['action_permissions' => [
             'inventory' => ['view' => true, 'create' => false, 'edit' => false, 'approve' => false],
@@ -436,8 +436,8 @@ class PurchasingFlowTest extends TestCase
         $product = Product::factory()->create(['stock' => 0]);
         $order = $this->sentOrder([$product->id => 2]);
 
-        $this->actingAs($viewer)->onPortal('manage')->get('/purchasing')->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('data.purchasing.can.create', false));
+        // F-verify-09: purchasing needs stock create or approve, not only view.
+        $this->actingAs($viewer)->onPortal('manage')->get('/purchasing')->assertForbidden();
         $this->receive($order, [$this->receiptRow($this->lineFor($order, $product), 1)], null, $viewer)->assertForbidden();
         $this->actingAs($viewer)->onPortal('manage')->post("/commands/purchasing/orders/{$order->id}/cancel", ['reason' => 'x'])->assertForbidden();
 
