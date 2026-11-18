@@ -84,3 +84,6 @@
   .app-shell .tsy-lines tfoot tr{display:flex;justify-content:space-between;gap:var(--ds-s-3);padding:var(--ds-s-3) var(--ds-s-4);border-top:2px solid var(--ds-line)}
 
 }
+
+.app-shell .tsy-group-title{margin:var(--ds-s-5) 0 var(--ds-s-3);font-size:var(--ds-fs-lg);font-weight:650}
+.app-shell [data-tour="treasury-panel"]>.button{margin-top:var(--ds-s-4)}
