@@ -3,13 +3,16 @@
 namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Inventory\BranchOperations;
+use App\Domain\Inventory\BranchScope;
 use App\Domain\Inventory\SellableStock;
 use App\Domain\Inventory\StockLotReports;
 use App\Domain\Inventory\StockMovementList;
 use App\Domain\Inventory\StockRegister;
+use App\Domain\Orders\OrderLines;
 use App\Models\BranchProductStock;
 use App\Models\Product;
 use App\Models\StockLot;
+use App\Models\StockTransfer;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -64,6 +67,7 @@ final class InventorySection implements WorkspaceSection
         // The movement log follows the same branch as the stock on hand above it.
         $branchScope = StockMovementList::scope($user, $request, $preferredBranch);
         $props['branch_scope'] = $branchScope->chip();
+        $props['open_transfers'] = $this->openTransfers($branchScope);
         $props['stock_view'] = $request->query('tab') === 'movements' ? 'movements' : 'stock';
         $props['stock_table'] = app(StockRegister::class)->stockTable($request, $branchScope, $user);
         $movements = app(StockMovementList::class);
@@ -74,6 +78,37 @@ final class InventorySection implements WorkspaceSection
         $props['movement_kinds'] = StockMovementList::Kinds;
 
         return $props;
+    }
+
+    /**
+     * Branch transfers that are asked for or on their way, for the "moving between branches"
+     * panel of the Stock page. The goods of a sent transfer are in no branch's stock until the
+     * receiving branch confirms them.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function openTransfers(BranchScope $scope): array
+    {
+        $query = StockTransfer::query()
+            ->with(['product:id,name,sku', 'sourceBranch:id,code,name', 'destinationBranch:id,code,name'])
+            ->whereIn('status', [StockTransfer::StatusRequested, StockTransfer::StatusInTransit])
+            ->orderByDesc('id')
+            ->limit(50);
+        if (! $scope->allBranches) {
+            $query->where(function ($transfers) use ($scope): void {
+                $transfers->whereIn('source_branch_id', $scope->branchIds)->orWhereIn('destination_branch_id', $scope->branchIds);
+            });
+        }
+
+        return $query->get()->map(fn (StockTransfer $transfer): array => [
+            'id' => $transfer->id,
+            'number' => $transfer->number,
+            'status' => $transfer->status,
+            'quantity' => (int) $transfer->quantity,
+            'product' => $transfer->product?->name,
+            'source' => $transfer->sourceBranch?->name,
+            'destination' => $transfer->destinationBranch?->name,
+        ])->all();
     }
 
     /**
@@ -164,9 +199,9 @@ final class InventorySection implements WorkspaceSection
         $booked = DB::table('order_lines as l')
             ->join('orders as o', 'o.id', '=', 'l.order_id')
             ->whereIn('o.status', ['approved', 'partially_dispatched'])
-            ->whereColumn('l.dispatched', '<', 'l.quantity')
+            ->whereRaw(OrderLines::unsentSql('l'))
             ->groupBy('l.product_id')
-            ->selectRaw('l.product_id, SUM(l.quantity - l.dispatched) AS units')
+            ->selectRaw('l.product_id, SUM('.OrderLines::unsentUnitsSql('l').') AS units')
             ->pluck('units', 'product_id');
 
         return collect($products)->map(function (mixed $product) use ($booked): array {
