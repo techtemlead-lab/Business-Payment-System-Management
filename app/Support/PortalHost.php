@@ -74,6 +74,21 @@ final class PortalHost
     }
 
     /**
+     * A path on the public website. Staff portals do not have /products or /dealers,
+     * so a menu on those hosts must leave the portal instead of opening a missing page.
+     */
+    public static function publicPath(string $path): string
+    {
+        $path = str_starts_with($path, '/') ? $path : '/'.$path;
+        $request = self::optionalRequest();
+        if (! $request instanceof Request || self::activePreviewPortal($request) === 'public') {
+            return $path;
+        }
+
+        return self::url('public', $path);
+    }
+
+    /**
      * Local and test builds can be opened on one loopback origin. Real portal
      * hostnames, including dealer.localhost, stay on their own host.
      */

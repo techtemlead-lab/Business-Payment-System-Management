@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Support\PortalHost;
 use App\Support\SiteCustomization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -88,6 +89,16 @@ class PublicSiteHeaderAndFooterTest extends TestCase
     public function test_the_footer_shows_the_company_name_beside_the_logo_before_the_social_links(): void
     {
         $this->get('/')->assertOk()->assertSeeInOrder(['ref-footer-brand', '<img', '<h3>', 'ref-socials'], false);
+    }
+
+    public function test_the_dealer_login_menu_opens_the_public_website(): void
+    {
+        $this->onPortal('dealer')->get('/login')->assertOk()
+            ->assertSee(PortalHost::url('public', '/products'), false)
+            ->assertSee(PortalHost::url('public', '/dealers'), false)
+            ->assertDontSee('href="/products"', false)
+            ->assertDontSee('href="/dealers"', false)
+            ->assertSee('data-office-portal="1"', false);
     }
 
     public function test_english_and_bangla_premium_fonts_are_loaded(): void
