@@ -8,7 +8,7 @@ import { money, type Row, Table, number, FormErrors, Modal } from './UI';
 import { useT } from '../shared/i18n/t';
 import { catalogWord } from '../shared/catalogWords';
 import FilePicker from './FilePicker';
-import { amountInWords as amountInLakhWords } from '../shared/amountWords';
+import { takaWords } from '../shared/takaText';
 import { useReasonField } from '../shared/reasonFields';
 import { randomUuid } from '../shared/randomUuid';
 import RepeatOrderPanel, { repeatChangeNotes, type RepeatOption } from './dealertools/RepeatOrderPanel';
@@ -912,7 +912,7 @@ export default function ProductPurchaseMatrix({
                                 <strong className="ppm-sum-value is-net">
                                     {money(cartSummary.totalPayable)}
                                 </strong>
-                                {amountInLakhWords(cartSummary.totalPayable, translate) !== '' && <small className="ppm-sum-words">{amountInLakhWords(cartSummary.totalPayable, translate)}</small>}
+                                {takaWords(cartSummary.totalPayable) !== null && <small className="ppm-sum-words">{takaWords(cartSummary.totalPayable)}</small>}
                             </div>
                         </div>
 
