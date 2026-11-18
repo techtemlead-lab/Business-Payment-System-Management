@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useForm } from '@inertiajs/react';
 import { FormErrors } from './UI';
+import { bilingualBoxFor } from '../shared/banglaFill/pair';
 import { useT } from '../shared/i18n/t';
 
 type Translate = ReturnType<typeof useT>;
@@ -78,8 +79,8 @@ export function LetterheadSettings({ settings, translate }: { settings: Letterhe
             {HEADER_FIELDS.map((field) => (
                 <label key={`${field}_${lang}`}>{translate('prescription_letterhead', `field_${field}`)}
                     {LONG_FIELDS.has(field)
-                        ? <textarea rows={2} maxLength={500} value={text(`${field}_${lang}`)} placeholder={placeholder(`${field}_${lang}`)} onChange={(e) => form.setData(`${field}_${lang}`, e.target.value)} />
-                        : <input maxLength={field === 'doctor_name' ? 120 : field === 'registration' ? 160 : 255} value={text(`${field}_${lang}`)} placeholder={placeholder(`${field}_${lang}`)} onChange={(e) => form.setData(`${field}_${lang}`, e.target.value)} />}
+                        ? <textarea {...bilingualBoxFor(field, lang, 'lh-')} rows={2} maxLength={500} value={text(`${field}_${lang}`)} placeholder={placeholder(`${field}_${lang}`)} onChange={(e) => form.setData(`${field}_${lang}`, e.target.value)} />
+                        : <input {...bilingualBoxFor(field, lang, 'lh-')} maxLength={field === 'doctor_name' ? 120 : field === 'registration' ? 160 : 255} value={text(`${field}_${lang}`)} placeholder={placeholder(`${field}_${lang}`)} onChange={(e) => form.setData(`${field}_${lang}`, e.target.value)} />}
                 </label>
             ))}
             <p className="muted lh-hint">{translate('prescription_letterhead', 'field_chamber_hint')}</p>
@@ -101,8 +102,8 @@ export function LetterheadSettings({ settings, translate }: { settings: Letterhe
                                     {FOOTER_FIELDS.map((field) => (
                                         <label key={`${field}_${lang}`}>{translate('prescription_letterhead', `field_${field}`)}
                                             {LONG_FIELDS.has(field)
-                                                ? <textarea rows={2} maxLength={500} value={text(`${field}_${lang}`)} placeholder={placeholder(`${field}_${lang}`)} onChange={(e) => form.setData(`${field}_${lang}`, e.target.value)} />
-                                                : <input maxLength={255} value={text(`${field}_${lang}`)} placeholder={placeholder(`${field}_${lang}`)} onChange={(e) => form.setData(`${field}_${lang}`, e.target.value)} />}
+                                                ? <textarea {...bilingualBoxFor(field, lang, 'lh-')} rows={2} maxLength={500} value={text(`${field}_${lang}`)} placeholder={placeholder(`${field}_${lang}`)} onChange={(e) => form.setData(`${field}_${lang}`, e.target.value)} />
+                                                : <input {...bilingualBoxFor(field, lang, 'lh-')} maxLength={255} value={text(`${field}_${lang}`)} placeholder={placeholder(`${field}_${lang}`)} onChange={(e) => form.setData(`${field}_${lang}`, e.target.value)} />}
                                         </label>
                                     ))}
                                 </div>

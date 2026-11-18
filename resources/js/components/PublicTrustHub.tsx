@@ -3,6 +3,7 @@ import { router, useForm, usePage } from '@inertiajs/react';
 import { Plus, Trash2 } from 'lucide-react';
 import { Empty, Modal, Table, number } from './UI';
 import OfficePage from './office/OfficePage';
+import { bilingualBox } from '../shared/banglaFill/pair';
 import { useT } from '../shared/i18n/t';
 
 type DocumentRow = { id: number; title: string; original_name: string; is_published: boolean };
@@ -154,9 +155,9 @@ function TextSections({ data, label }: HubProps) {
                     <label key={key}>
                         {caption}
                         {isLongField(field) ? (
-                            <textarea rows={field.endsWith('_body') ? 12 : 4} maxLength={field.endsWith('_body') ? 20000 : 2000} value={form.data.values[key] ?? ''} onChange={(event) => setValue(key, event.target.value)} />
+                            <textarea {...bilingualBox(key, 'trust-hub-')} rows={field.endsWith('_body') ? 12 : 4} maxLength={field.endsWith('_body') ? 20000 : 2000} value={form.data.values[key] ?? ''} onChange={(event) => setValue(key, event.target.value)} />
                         ) : (
-                            <input maxLength={2000} value={form.data.values[key] ?? ''} onChange={(event) => setValue(key, event.target.value)} />
+                            <input {...bilingualBox(key, 'trust-hub-')} maxLength={2000} value={form.data.values[key] ?? ''} onChange={(event) => setValue(key, event.target.value)} />
                         )}
                         {errors[`values.${key}`] && <small className="field-error">{errors[`values.${key}`]}</small>}
                     </label>
@@ -316,12 +317,12 @@ function ArticleForm({ article, label, onDone }: { article: ArticleRow | null; l
                     <React.Fragment key={suffix}>
                         <label>
                             {`${label('admin_article_title')} (${language})`}
-                            <input maxLength={200} value={form.data[titleKey]} onChange={(event) => form.setData(titleKey, event.target.value)} />
+                            <input {...bilingualBox(titleKey, 'trust-article-')} maxLength={200} value={form.data[titleKey]} onChange={(event) => form.setData(titleKey, event.target.value)} />
                             {errors[titleKey] && <small className="field-error">{errors[titleKey]}</small>}
                         </label>
                         <label>
                             {`${label('admin_article_body')} (${language})`}
-                            <textarea rows={8} maxLength={20000} value={form.data[bodyKey]} onChange={(event) => form.setData(bodyKey, event.target.value)} />
+                            <textarea {...bilingualBox(bodyKey, 'trust-article-')} rows={8} maxLength={20000} value={form.data[bodyKey]} onChange={(event) => form.setData(bodyKey, event.target.value)} />
                             {errors[bodyKey] && <small className="field-error">{errors[bodyKey]}</small>}
                         </label>
                     </React.Fragment>

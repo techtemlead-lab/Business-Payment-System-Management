@@ -117,7 +117,7 @@ final class OrderInvoice
         $order->loadMissing(['user', 'lines']);
         $buyer = $order->user;
         $profile = is_array($buyer?->profile) ? $buyer->profile : [];
-        $custom = SiteCustomization::all();
+        $custom = SiteCustomization::inVisitorLanguage(SiteCustomization::all());
 
         $logoPath = SiteCustomization::logoFilePath() ?? public_path('branding/madina-logo-latest.png');
         if (! is_file($logoPath)) {

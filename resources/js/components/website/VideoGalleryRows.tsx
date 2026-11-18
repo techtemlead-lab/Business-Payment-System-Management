@@ -1,5 +1,6 @@
 import React from 'react';
 import { Plus, Trash2 } from 'lucide-react';
+import { bilingualBox } from '../../shared/banglaFill/pair';
 import { useT } from '../../shared/i18n/t';
 import type { VideoGalleryItem } from './types';
 import type { WebsiteSectionProps } from './WebsiteLayout';
@@ -48,7 +49,7 @@ export function VideoGalleryRows({ form }: Pick<WebsiteSectionProps, 'form'>) {
                         {WORD_BOXES.map(({ box, label, language }) => (
                             <label key={box} className="ed-block">
                                 <span className="ed-label">{translate('portal', label, { language: translate('portal', language) })}</span>
-                                <input className="ed-input" maxLength={200} value={row[box] || ''} onChange={(event) => updateRow(index, box, event.target.value)} />
+                                <input {...bilingualBox(box, `video-${index}-`)} className="ed-input" maxLength={200} value={row[box] || ''} onChange={(event) => updateRow(index, box, event.target.value)} />
                             </label>
                         ))}
                     </div>

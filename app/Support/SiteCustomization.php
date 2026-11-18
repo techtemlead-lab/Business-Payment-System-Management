@@ -102,6 +102,49 @@ class SiteCustomization
     /** @var array<string, mixed>|null */
     private static ?array $englishSiteCopy = null;
 
+    /** @var list<string>|null */
+    private static ?array $banglaTwinKeys = null;
+
+    /**
+     * Website settings that are not words a visitor reads: links, pictures, switches, numbers, prices,
+     * contact facts, lists and legal identifiers. They get no Bangla box.
+     */
+    private const NotVisitorWords = '/(_url$|_link$|_image$|_icon$|(^|_)email$|_phone$|^contact_phone$|latitude|longitude|enabled$|_product_id$|_price$|_mrp$|_save$|_mode$|_items$|_limit$|^social_|whatsapp|^page_enabled_|logo|favicon|^og_image$|^nav_categories$|_phones$|_signer_\d+$|^trust_(tin|trade_licence|trademark|digital_business_id|joint_stock_registration|grievance_contact_(name|phone|email))$)/';
+
+    /**
+     * Factory text for the website editor and the public site, plus an empty Bangla box ("<key>_bn") for
+     * every website wording that had none (CR-06): staff type English and the Bangla box is filled for them,
+     * and Bangla visitors see it once it holds words.
+     *
+     * @return array<string, mixed>
+     */
+    public static function defaults(): array
+    {
+        return [...self::factoryDefaults(), ...array_fill_keys(array_map(fn (string $key): string => $key.'_bn', self::banglaTwinKeys()), '')];
+    }
+
+    /**
+     * Website wording that has its Bangla box generated: every visitor-facing text setting without a Bangla
+     * box of its own (the MD message, copyright line, empty-notice text and trust pages already have theirs).
+     *
+     * @return list<string>
+     */
+    public static function banglaTwinKeys(): array
+    {
+        if (self::$banglaTwinKeys !== null) {
+            return self::$banglaTwinKeys;
+        }
+        $factory = self::factoryDefaults();
+        $keys = [];
+        foreach ($factory as $key => $value) {
+            if (is_string($value) && ! str_ends_with($key, '_bn') && ! array_key_exists($key.'_bn', $factory) && preg_match(self::NotVisitorWords, $key) !== 1) {
+                $keys[] = $key;
+            }
+        }
+
+        return self::$banglaTwinKeys = $keys;
+    }
+
     /**
      * Factory text for the website editor and the public site.
      *
@@ -111,7 +154,7 @@ class SiteCustomization
      *
      * @return array<string, mixed>
      */
-    public static function defaults(): array
+    private static function factoryDefaults(): array
     {
         $copy = static fn (string $siteKey): string => self::englishSiteCopy($siteKey);
 
@@ -690,6 +733,28 @@ class SiteCustomization
         if (! filter_var($all['contact_email_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN)) {
             $all['contact_email'] = '';
             $all['footer_email'] = '';
+        }
+
+        return self::inVisitorLanguage($all);
+    }
+
+    /**
+     * Bangla visitors read the Bangla box of a website wording when it holds words (CR-06); an empty Bangla
+     * box changes nothing, so the built-in Bangla wording or the owner's English stays as before.
+     *
+     * @param  array<string, mixed>  $all
+     * @return array<string, mixed>
+     */
+    public static function inVisitorLanguage(array $all): array
+    {
+        if (app()->getLocale() !== 'bn') {
+            return $all;
+        }
+        foreach (self::banglaTwinKeys() as $key) {
+            $bangla = $all[$key.'_bn'] ?? null;
+            if (is_string($bangla) && trim($bangla) !== '') {
+                $all[$key] = trim($bangla);
+            }
         }
 
         return $all;

@@ -232,7 +232,7 @@ final class PrescriptionLetterhead
     {
         $registration = PrescriberRegistration::query()->where('user_id', $prescriber->id)->first(['registration_type', 'registration_number']);
         $owner = PrescriptionAccess::isOwnerDoctor($prescriber);
-        $custom = SiteCustomization::all();
+        $custom = SiteCustomization::inVisitorLanguage(SiteCustomization::all());
         $address = trim((string) ($custom['office_address'] ?? ''));
         $phone = trim((string) ($custom['contact_phone'] ?? ''));
         $out = [];

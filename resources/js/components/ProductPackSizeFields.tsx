@@ -1,3 +1,4 @@
+import { bilingualBox } from '../shared/banglaFill/pair';
 import { useT } from '../shared/i18n/t';
 import type { Row } from './UI';
 
@@ -23,11 +24,11 @@ export default function ProductPackSizeFields({ data, setField, canEdit }: {
             <div className="form-grid">
                 <label>
                     {translate('size_groups', 'pack_size_site_bn')}
-                    <input value={data.pack_size_bn ?? ''} maxLength={120} onChange={event => setField('pack_size_bn', event.target.value)} />
+                    <input {...bilingualBox('pack_size_bn', 'pe-')} value={data.pack_size_bn ?? ''} maxLength={120} onChange={event => setField('pack_size_bn', event.target.value)} />
                 </label>
                 <label>
                     {translate('size_groups', 'pack_size_site_en')}
-                    <input value={data.pack_size_en ?? ''} maxLength={120} onChange={event => setField('pack_size_en', event.target.value)} />
+                    <input {...bilingualBox('pack_size_en', 'pe-')} value={data.pack_size_en ?? ''} maxLength={120} onChange={event => setField('pack_size_en', event.target.value)} />
                 </label>
             </div>
             <small className="muted">{translate('size_groups', 'pack_size_site_hint')}</small>

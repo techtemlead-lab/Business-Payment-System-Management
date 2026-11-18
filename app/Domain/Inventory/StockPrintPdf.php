@@ -160,7 +160,7 @@ final class StockPrintPdf
      */
     public function company(): array
     {
-        $custom = SiteCustomization::all();
+        $custom = SiteCustomization::inVisitorLanguage(SiteCustomization::all());
         $defaults = SiteCustomization::defaults();
         $letterhead = static fn (string $key): string => filled($custom[$key] ?? null) ? (string) $custom[$key] : (string) ($defaults[$key] ?? '');
         $logoPath = SiteCustomization::logoFilePath();

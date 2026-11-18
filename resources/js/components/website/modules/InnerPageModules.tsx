@@ -3,6 +3,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { Field, MdPhotoField } from '../formFields';
 import { WebsiteGroup, WebsiteToolLink, type WebsiteSectionProps } from '../WebsiteLayout';
 import type { CustomizationData } from '../types';
+import { bilingualBox } from '../../../shared/banglaFill/pair';
 import { useT } from '../../../shared/i18n/t';
 import { AddressFields, PhoneAndEmailFields, SharedFactNote, SocialLinksFields } from './SharedFields';
 
@@ -343,6 +344,7 @@ export function FaqModule({ form, defaults, bnCopy, updateField }: WebsiteSectio
                                                     <label key={box.box} className="ed-label is-inline">
                                                         {boxLabel}
                                                         <Control
+                                                            {...bilingualBox(box.box, `faq-${idx}-`)}
                                                             {...(Control === 'textarea' ? { rows: 3 } : {})}
                                                             value={item[box.box] || ''}
                                                             placeholder={faqHint(idx, box, translate('portal', box.label))}
