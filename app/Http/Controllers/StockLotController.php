@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\StockLotDetails;
 use App\Domain\Inventory\StockLotHolds;
 use App\Domain\Inventory\StockLotReports;
@@ -62,7 +63,7 @@ class StockLotController extends Controller
     {
         $data = $request->validate([
             'product_id' => ['required', 'integer', 'exists:products,id'],
-            'quantity' => ['required', 'integer', 'min:1', 'max:100000'],
+            'quantity' => ['required', 'integer', 'min:1', 'max:'.BranchOperations::MaxUnitsPerEntry],
             'source_branch_id' => ['required', 'integer', 'exists:company_branches,id'],
             'destination_branch_id' => ['required', 'integer', 'exists:company_branches,id'],
             'note' => ReasonFields::rule('stock.transfer_note', 500),

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\PurchasingService;
 use App\Models\PurchaseOrder;
 use App\Models\Supplier;
@@ -47,8 +48,8 @@ class PurchasingController extends Controller
             'branch_id' => ['required', 'integer', 'exists:company_branches,id'],
             'notes' => ReasonFields::rule('stock.purchase_note', 2000),
             'lines' => ['required', 'array', 'min:1', 'max:200'],
-            'lines.*.product_id' => ['required', 'integer', 'distinct', Rule::exists('products', 'id')->where('active', true)],
-            'lines.*.quantity' => ['required', 'integer', 'min:1', 'max:100000'],
+            'lines.*.product_id' => ['required', 'integer', 'distinct', Rule::exists('products', 'id')->whereNull('archived_at')],
+            'lines.*.quantity' => ['required', 'integer', 'min:1', 'max:'.BranchOperations::MaxUnitsPerEntry],
         ], [
             'supplier_id.exists' => __('purchasing.err_supplier_archived'),
         ]);
@@ -79,7 +80,7 @@ class PurchasingController extends Controller
             'notes' => ReasonFields::rule('stock.purchase_receive_note', 2000),
             'lines' => ['required', 'array', 'min:1', 'max:200'],
             'lines.*.purchase_order_line_id' => ['required', 'integer'],
-            'lines.*.quantity' => ['required', 'integer', 'min:1', 'max:100000'],
+            'lines.*.quantity' => ['required', 'integer', 'min:1', 'max:'.BranchOperations::MaxUnitsPerEntry],
             'lines.*.batch_number' => ['nullable', 'string', 'max:60'],
             // The expiry date is filled in only when the office wants it; a date that is given must not have passed.
             'lines.*.expires_on' => ['nullable', 'date', 'after_or_equal:'.now('Asia/Dhaka')->toDateString()],
