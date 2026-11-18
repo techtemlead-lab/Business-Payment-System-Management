@@ -108,3 +108,7 @@ if (! in_array(config('queue.default'), ['sync', 'null'], true)) {
 // The owner's error log keeps each problem for the days set on the Errors page (90 unless changed).
 Schedule::command('errors:prune')->dailyAt('04:40')->timezone('Asia/Dhaka')->withoutOverlapping(30)->onOneServer()
     ->onFailure(fn () => Log::warning('Scheduled clean-up of the old error log failed.'));
+
+// A notice nobody opened for 30 days is marked read, so the bell count does not stay at "99+" for ever.
+Schedule::command('notices:read-old')->dailyAt('04:50')->timezone('Asia/Dhaka')->withoutOverlapping(30)->onOneServer()
+    ->onFailure(fn () => Log::warning('Scheduled marking of old notices as read failed.'));
