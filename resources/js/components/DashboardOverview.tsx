@@ -16,6 +16,7 @@ import OfficePage from './office/OfficePage';
 import { Badge, Empty, date, humanize, money, type Row, number } from './UI';
 import { businessTodayIso, localizeDigits } from '../business-date';
 import { useT } from '../shared/i18n/t';
+import CallMeCard from './CallMeCard';
 
 /** A progress bar row, or (kind "amount") a plain amount with no target, such as a sub-dealer's salary or tour fund. */
 type TargetRow = {
@@ -251,6 +252,8 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
             )}
 
             <QuickActions base={base} />
+
+            <CallMeCard />
 
             <IncomeCards cards={moneyCards} hrefFor={(type) => `${base}/my-money?type=${encodeURIComponent(type)}`} />
 
