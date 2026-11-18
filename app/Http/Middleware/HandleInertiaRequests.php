@@ -18,11 +18,11 @@ use App\Support\PortalCatalog;
 use App\Support\PortalHost;
 use App\Support\ReasonFields;
 use App\Support\SiteCustomization;
+use App\Support\TranslationBundle;
 use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Lang;
 use Inertia\Inertia;
 use Inertia\Middleware;
 
@@ -93,6 +93,12 @@ class HandleInertiaRequests extends Middleware
             'manualRuleValues' => Inertia::defer(fn () => ($u && $portalShell)
                 ? app(UserManual::class)->ruleValues()
                 : [], 'manual')->once()->as('manualRules:'.app()->getLocale()),
+            // The words are one cached file; the page only names it.
+            'translationsUrl' => TranslationBundle::url(app()->getLocale()),
+            // The manual is only needed when it is opened, so it loads after the page instead of with it.
+            'userManualChapters' => config('madina.inline_translations')
+                ? Inertia::once(fn () => ($u && $portalShell) ? app(UserManual::class)->withoutRuleValues()->chaptersFor($u) : [])->as('userManual:'.($u?->id ?? 'guest').':'.app()->getLocale())
+                : Inertia::defer(fn () => ($u && $portalShell) ? app(UserManual::class)->withoutRuleValues()->chaptersFor($u) : [], 'manual')->once()->as('userManual:'.($u?->id ?? 'guest').':'.app()->getLocale()),
             'navCategories' => fn () => in_array($portal, ['dealer', 'subdealer'], true)
                 ? SiteCustomization::getNavCategories()
                 : [],
@@ -219,68 +225,14 @@ class HandleInertiaRequests extends Middleware
         $portalShell = in_array($portal, ['dealer', 'subdealer', 'manage', 'sadmin'], true);
 
         return [
-            'translations' => Inertia::once(fn () => [
-                'portal' => Lang::get('portal'),
-                'auth' => Lang::get('auth_ui'),
-                'courier' => Lang::get('courier'),
-                'courier_more' => Lang::get('courier_more'),
-                'schemes_commission' => Lang::get('schemes_commission'),
-                'prescription' => Lang::get('prescription'),
-                'prescription_letterhead' => Lang::get('prescription_letterhead'),
-                'prescription_notepad' => Lang::get('prescription_notepad'),
-                'partner_form' => Lang::get('partner_form'),
-                'website_admin' => Lang::get('website_admin'),
-                'partner_hub' => Lang::get('partner_hub'),
-                'partner_profile' => Lang::get('partner_profile'),
-                'product_facts' => Lang::get('product_facts'),
-                'dealer_tools' => Lang::get('dealer_tools'),
-                'prescriber_public' => Lang::get('prescriber_public'),
-                'accounting' => Lang::get('accounting'),
-                'purchasing' => Lang::get('purchasing'),
-                'funds' => Lang::get('funds'),
-                'reward_settings' => Lang::get('reward_settings'),
-                'self_approval' => Lang::get('self_approval'),
-                'owner_security' => Lang::get('owner_security'),
-                'withdrawal_wait' => Lang::get('withdrawal_wait'),
-                'productivity' => Lang::get('productivity'),
-                'clinic_records' => Lang::get('clinic_records'),
-                'stock_lots' => Lang::get('stock_lots'),
-                'stock_print' => Lang::get('stock_print'),
-                'courier_areas' => Lang::get('courier_areas'),
-                'wave3_ops' => Lang::get('wave3_ops'),
-                'order_payment' => Lang::get('order_payment'),
-                'order_split' => Lang::get('order_split'),
-                'shipping_label' => Lang::get('shipping_label'),
-                'treasury' => Lang::get('treasury'),
-                'my_money' => Lang::get('my_money'),
-                'income' => Lang::get('income'),
-                'office_shell' => Lang::get('office_shell'),
-                'office_menu' => Lang::get('office_menu'),
-                'office_orders' => Lang::get('office_orders'),
-                'office_home' => Lang::get('office_home'),
-                'office_stock' => Lang::get('office_stock'),
-                'size_groups' => Lang::get('size_groups'),
-                'order_search' => Lang::get('order_search'),
-                'office_partners' => Lang::get('office_partners'),
-                'partner_file' => Lang::get('partner_file'),
-                'office_staff' => Lang::get('office_staff'),
-                'office_website' => Lang::get('office_website'),
-                'office_settings' => Lang::get('office_settings'),
-                'office_reports' => Lang::get('office_reports'),
-                'office_visitors' => Lang::get('office_visitors'),
-                'office_errors' => Lang::get('office_errors'),
-                'reason_fields' => Lang::get('reason_fields'),
-                'partner_ux' => Lang::get('partner_ux'),
-            ])->as('i18n:'.$locale),
+            // The words travel as one cacheable file (translationsUrl), not inside every first page. Tests read them inline.
+            'translations' => Inertia::once(fn () => config('madina.inline_translations') ? TranslationBundle::for($locale) : null)->as('i18n:'.$locale),
             'portalCatalog' => Inertia::once(fn () => $portalShell
                 ? PortalCatalog::inertiaPayload($portal)
                 : null)->as('portalCatalog:'.$portal),
             'dashboardControls' => Inertia::once(fn () => DashboardManagement::get())->as('dashboardControls'),
             // Rate placeholders stay in the text here; the live rates follow as a deferred prop,
             // so no page has to read the commission rules just to send the manual.
-            'userManualChapters' => Inertia::once(fn () => ($u && $portalShell)
-                ? app(UserManual::class)->withoutRuleValues()->chaptersFor($u)
-                : [])->as('userManual:'.($u?->id ?? 'guest').':'.$locale),
         ];
     }
 }
