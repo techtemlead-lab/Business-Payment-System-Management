@@ -453,7 +453,7 @@ return [
     'branch_perf_apply' => 'Show',
     'branch_perf_all_branches' => 'All branches',
     'branch_perf_orders' => 'Orders',
-    'branch_perf_order_value' => 'Order value',
+    'branch_perf_order_value' => 'Delivered order value',
     'branch_perf_income' => 'Money collected',
     'branch_perf_profit' => 'Est. profit',
     'branch_perf_outstanding' => 'Awaiting payment',

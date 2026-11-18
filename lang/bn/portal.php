@@ -453,7 +453,7 @@ return [
     'branch_perf_apply' => 'দেখুন',
     'branch_perf_all_branches' => 'সব ব্রাঞ্চ',
     'branch_perf_orders' => 'অর্ডার',
-    'branch_perf_order_value' => 'অর্ডার মূল্য',
+    'branch_perf_order_value' => 'ডেলিভারি হওয়া অর্ডারের মূল্য',
     'branch_perf_income' => 'আদায় করা টাকা',
     'branch_perf_profit' => 'আনুমানিক লাভ',
     'branch_perf_outstanding' => 'পরিশোধ বাকি',

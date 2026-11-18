@@ -3,6 +3,7 @@
 namespace App\Domain\Accounts;
 
 use App\Models\User;
+use App\Support\LocalDigits;
 use App\Support\Money;
 use App\Support\PdfFonts;
 use Carbon\CarbonImmutable;
@@ -29,7 +30,8 @@ final class PartnerIncomeStatementPdf
             throw ValidationException::withMessages(['part' => __('portal.ops_val_pdf_row_limit')]);
         }
         $t = fn (string $key, array $replace = []): string => __('income.'.$key, $replace);
-        $money = fn (string $value): string => (str_starts_with($value, '-') ? '-' : '').Money::grouped(ltrim($value, '-'));
+        // Lakh commas in the reader's digits (Bangla digits on a Bangla statement), the same as the full report.
+        $money = fn (string $value): string => LocalDigits::text((str_starts_with($value, '-') ? '-' : '').Money::grouped(ltrim($value, '-')));
         $partWord = PartnerIncomeBook::partWord($part);
         $sponsor = User::query()->find($partner->sponsor_id);
         $referredBy = $sponsor === null ? '—' : $sponsor->name.($sponsor->dealer_code ? ' ('.$sponsor->dealer_code.')' : '');
