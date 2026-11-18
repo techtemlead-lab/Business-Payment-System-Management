@@ -111,10 +111,10 @@ final class PayrollService
             abort_unless($actor->fresh()->allows('finance'), 403);
             $entry = DB::table('payroll_entries')->where('id', $id)->lockForUpdate()->first();
             abort_unless($entry, 404);
-            if ($entry->status !== 'draft' || $actor->id === $entry->staff_id) {
+            if ($entry->status !== 'draft' || (int) $actor->id === (int) $entry->staff_id) {
                 throw ValidationException::withMessages(['payroll' => __('portal.err_payroll_reviewer')]);
             }
-            $selfApproved = $actor->id === $entry->prepared_by;
+            $selfApproved = (int) $actor->id === (int) $entry->prepared_by;
             if ($selfApproved) {
                 app(SelfApproval::class)->finishOwnStep($actor, 'payroll', __('portal.err_payroll_reviewer'));
             }
@@ -142,10 +142,10 @@ final class PayrollService
                 abort_unless($actor->fresh()->allows('finance'), 403);
                 $entry = DB::table('payroll_entries')->where('id', $id)->lockForUpdate()->first();
                 abort_unless($entry, 404);
-                if ($entry->status !== 'approved' || $actor->id === $entry->staff_id) {
+                if ($entry->status !== 'approved' || (int) $actor->id === (int) $entry->staff_id) {
                     throw ValidationException::withMessages(['payroll' => __('portal.err_payroll_payer')]);
                 }
-                $selfApproved = $actor->id === $entry->approved_by;
+                $selfApproved = (int) $actor->id === (int) $entry->approved_by;
                 if ($selfApproved) {
                     app(SelfApproval::class)->finishOwnStep($actor, 'payroll', __('portal.err_payroll_payer'));
                 }

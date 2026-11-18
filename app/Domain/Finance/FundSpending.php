@@ -171,7 +171,7 @@ final class FundSpending
             if ($row->status !== 'requested') {
                 throw ValidationException::withMessages(['spend' => __('funds.err_already_reviewed')]);
             }
-            $selfApproved = $row->created_by === $actor->id;
+            $selfApproved = (int) $row->created_by === (int) $actor->id;
             if ($selfApproved) {
                 app(SelfApproval::class)->finishOwnStep($actor, 'spend', __('funds.err_own_spend'));
                 if ($row->receipt_path === null && $path !== null) {
