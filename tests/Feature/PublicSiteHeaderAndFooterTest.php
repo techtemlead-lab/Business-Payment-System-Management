@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\CompanyBranch;
 use App\Support\PortalHost;
 use App\Support\SiteCustomization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -107,6 +108,15 @@ class PublicSiteHeaderAndFooterTest extends TestCase
             ->assertSee(__('site.hero_caption_title'), false)
             ->assertSee(__('site.side_caption_products'), false)
             ->assertSee(__('site.side_caption_dealers'), false);
+    }
+
+    public function test_bangla_readers_see_the_pirganj_head_office_in_bangla(): void
+    {
+        app()->setLocale('bn');
+
+        $this->assertSame('প্রধান কার্যালয়, পীরগঞ্জ', CompanyBranch::shownName('Head Office - Pirganj', true));
+        $this->assertSame('প্রধান কার্যালয়, পীরগঞ্জ', CompanyBranch::shownName('Head Office · Pirganj'));
+        $this->assertSame('Rajshahi Hub', CompanyBranch::shownName('Rajshahi Hub'));
     }
 
     public function test_english_and_bangla_premium_fonts_are_loaded(): void

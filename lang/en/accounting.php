@@ -119,6 +119,7 @@ return [
     'import_channel' => 'Statement from',
     'import_source_reference' => 'Statement name or account',
     'import_file' => 'Statement file (CSV or Excel)',
+    'import_file_empty' => 'Choose a CSV or Excel file',
     'import_upload' => 'Upload statement',
     'import_history' => 'Earlier statements',
     'import_view' => 'Open',
