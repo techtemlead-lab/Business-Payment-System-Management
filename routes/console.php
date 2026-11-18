@@ -28,6 +28,10 @@ Schedule::command('treasury:project-events')->everyMinute()->withoutOverlapping(
 Schedule::command('finance:auto-approve')->hourly()->withoutOverlapping(120)->onOneServer()
     ->onFailure(fn () => Log::critical('Scheduled automatic payout approval failed.'));
 
+// New audit records join the hash chain within a minute (SA-04).
+Schedule::command('audit:seal')->everyMinute()->withoutOverlapping(10)->onOneServer()
+    ->onFailure(fn () => Log::critical('Sealing the audit trail failed.'));
+
 // Daily self-checks: the audit trail has not been edited, and the money books still balance
 // (journals balanced, wallets equal the ledger). A failure is logged as critical for the owner.
 Schedule::command('audit:verify-integrity')->dailyAt('03:00')->timezone('Asia/Dhaka')->withoutOverlapping(60)->onOneServer()
