@@ -48,10 +48,14 @@
 .pd-tab.is-on { background: var(--ds-brand, #006a4e); border-color: var(--ds-brand, #006a4e); color: var(--ds-on-brand, #fff); }
 .pd-tab:focus-visible { outline: 3px solid var(--ds-brand, #006a4e); outline-offset: 2px; }
 
-@container (max-width: 1099px) {
+/* Targets sit on the right from a normal office desktop (1366–1440 px screens leave ~1050–1150 px here). */
+@container (max-width: 1019px) {
   .pd-right { grid-column: 1 / -1; }
 }
-@container (min-width: 1100px) {
+@container (min-width: 1020px) {
+  .pd-grid { grid-template-columns: minmax(220px, 260px) minmax(0, 1fr) minmax(250px, 300px); }
+}
+@container (min-width: 1280px) {
   .pd-grid { grid-template-columns: minmax(250px, 290px) minmax(0, 1fr) minmax(280px, 340px); }
 }
 /* A phone: one column, profile first, then the money, then the targets, then the report. */
