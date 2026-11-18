@@ -25,6 +25,8 @@ export type StatementRow = {
     type_label: string;
     percent: string | number | null;
     order_id: string | null;
+    /** False when the order belongs to someone in the team, so there is no page to open. */
+    order_is_own?: boolean;
     order_number: string | null;
     from_name: string | null;
     withdrawal_id: string | null;

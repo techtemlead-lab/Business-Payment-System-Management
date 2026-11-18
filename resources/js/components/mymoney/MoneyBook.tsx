@@ -63,7 +63,7 @@ export default function MoneyBook({ table, actions, orderHref }: {
     ];
 
     const rowHref = (row: StatementRow): string | null => {
-        if (row.order_id) {
+        if (row.order_id && row.order_is_own !== false) {
             return orderHref ? orderHref(row.order_id) : `${base}/orders/${row.order_id}`;
         }
 

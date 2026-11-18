@@ -12,6 +12,8 @@ export type IncomeRow = {
     what: string;
     percent: string | null;
     order_id: string | null;
+    /** False when the order belongs to someone in the team, so there is no page to open. */
+    order_is_own?: boolean;
     order_number: string | null;
     from_name: string | null;
     status: 'waiting' | 'ready' | 'taken_back';
@@ -123,7 +125,7 @@ export default function IncomeByPart({ income, statementBase, orderHref, prop = 
                     prop={prop}
                     columns={columns}
                     searchPlaceholder={translate('income', 'search')}
-                    rowHref={(row) => (row.order_id && orderHref ? orderHref(row.order_id) : null)}
+                    rowHref={(row) => (row.order_id && row.order_is_own !== false && orderHref ?orderHref(row.order_id) : null)}
                     actions={(
                         <a className="button small" href={`${statementBase}/${chosen.key}/pdf?${statementQuery(income.table.state)}`} target="_blank" rel="noopener noreferrer">
                             <Download size={15} aria-hidden="true" /> {translate('income', 'download_pdf')}

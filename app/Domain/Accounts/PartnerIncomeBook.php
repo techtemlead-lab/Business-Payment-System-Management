@@ -95,7 +95,8 @@ final class PartnerIncomeBook
     public function table(Request $request, User $partner, string $part): array
     {
         $table = MoneyTable::make($request, $this->partRows($partner, $part), $this->spec());
-        $table['rows'] = $table['rows']->through(fn (object $row): array => $this->rowFor($row));
+        $ownOrders = PartnerMoneyBook::ownOrderIds($partner, $table['rows']->getCollection()->pluck('order_id')->all());
+        $table['rows'] = $table['rows']->through(fn (object $row): array => [...$this->rowFor($row), 'order_is_own' => $row->order_id !== null && isset($ownOrders[(string) $row->order_id])]);
 
         return $table;
     }
