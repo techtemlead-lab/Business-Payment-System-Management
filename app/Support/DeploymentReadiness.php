@@ -6,10 +6,12 @@ use App\Domain\Diagnostics\ErrorTrackingSettings;
 use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Integrations\SmsGatewayClient;
 use App\Domain\Security\SecuritySettings;
+use App\Logging\CreateAlertLogger;
 use App\Models\PlaceCode;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -20,6 +22,7 @@ final class DeploymentReadiness
      *   ready: bool,
      *   checks: array<string, bool>,
      *   warnings: list<string>,
+     *   explanations: array<string, string>,
      *   details: array<string, mixed>,
      *   preview_mode: bool,
      *   financial_posting: bool
@@ -222,6 +225,12 @@ final class DeploymentReadiness
             && ! Cache::has('operations:verified-backup')) {
             $warnings[] = 'verified_backup_missing';
         }
+        if (! CreateAlertLogger::configured()) {
+            $warnings[] = 'alerts_not_configured';
+        }
+        if (trim((string) config('madina.heartbeat_url')) === '') {
+            $warnings[] = 'heartbeat_not_configured';
+        }
 
         $details = [];
         if (in_array('partners_missing_place_codes', $warnings, true)) {
@@ -244,10 +253,31 @@ final class DeploymentReadiness
             'ready' => ! in_array(false, $checks, true),
             'checks' => $checks,
             'warnings' => $warnings,
+            'explanations' => $this->explanations($warnings),
             'details' => $details,
             'preview_mode' => (bool) config('madina.preview_mode'),
             'financial_posting' => (bool) config('madina.financial_activation'),
         ];
+    }
+
+    /**
+     * What each warning means and what to do, in the reader's language, for the owner's page and the command line.
+     *
+     * @param  list<string>  $warnings
+     * @return array<string, string>
+     */
+    public function explanations(array $warnings): array
+    {
+        $texts = [];
+        foreach ($warnings as $warning) {
+            $texts[$warning] = match (true) {
+                Lang::has('ops_ci.warn_'.$warning) => __('ops_ci.warn_'.$warning),
+                Lang::has('portal.ops_warn_'.$warning) => __('portal.ops_warn_'.$warning),
+                default => str_replace('_', ' ', $warning),
+            };
+        }
+
+        return $texts;
     }
 
     /**

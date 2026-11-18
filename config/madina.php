@@ -33,6 +33,22 @@ return [
     // app:backup-prune deletes local backups older than this, but always keeps the newest few.
     'backup_retention_days' => (int) env('MADINA_BACKUP_RETENTION_DAYS', 14),
     'backup_keep_minimum' => (int) env('MADINA_BACKUP_KEEP_MINIMUM', 7),
+    // Where serious problems are sent (OP-02). Off until a Telegram bot + chat or an email address is set.
+    // Make a bot with @BotFather, add it to the owner's or IT group, and put the group's chat id here.
+    'alerts' => [
+        'telegram_bot_token' => env('MADINA_ALERT_TELEGRAM_BOT_TOKEN'),
+        'telegram_chat_id' => env('MADINA_ALERT_TELEGRAM_CHAT_ID'),
+        // Comma-separated; needs a real mail provider (MAIL_MAILER other than "log").
+        'emails' => env('MADINA_ALERT_EMAILS'),
+        'level' => env('MADINA_ALERT_LEVEL', 'critical'),
+        // The same problem is sent again only after this many minutes.
+        'repeat_minutes' => (int) env('MADINA_ALERT_REPEAT_MINUTES', 60),
+    ],
+    // Dead-man switch: ops:heartbeat pings this address every 5 minutes while the scheduler, queue, database
+    // and disk are fine (e.g. a free healthchecks.io check). When the pings stop, that service alerts a person.
+    'heartbeat_url' => env('MADINA_HEARTBEAT_URL', ''),
+    // ops:heartbeat raises an alert when the disk holding uploads or backups is fuller than this.
+    'disk_alert_percent' => (int) env('MADINA_DISK_ALERT_PERCENT', 85),
     'trusted_proxies' => env('TRUSTED_PROXIES', ''),
     // After the permission check, let nginx send private product photos, videos and the photo model
     // (X-Accel-Redirect) so PHP workers are not held by slow downloads. Only for the production nginx image.

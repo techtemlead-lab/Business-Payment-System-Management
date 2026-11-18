@@ -13,6 +13,10 @@ Artisan::command('inspire', function () {
 Schedule::call(fn () => Cache::put('operations:scheduler-heartbeat', now()->utc()->toIso8601String(), now()->addMinutes(5)))
     ->name('operations-heartbeat')->everyMinute()->withoutOverlapping()->onOneServer();
 
+// Dead-man switch and self-checks (database, queue worker, disk, last night's backup). A problem is logged as
+// critical, which reaches a person once alerts are set; the outside check (MADINA_HEARTBEAT_URL) alerts if pings stop.
+Schedule::command('ops:heartbeat')->everyFiveMinutes()->withoutOverlapping(10)->onOneServer();
+
 Schedule::command('finance:release-matured')->everyFifteenMinutes()->withoutOverlapping(60)->onOneServer()
     ->onFailure(fn () => Log::critical('Scheduled commission maturity release failed.'));
 
