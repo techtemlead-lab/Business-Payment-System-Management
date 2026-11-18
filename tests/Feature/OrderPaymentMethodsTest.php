@@ -8,6 +8,7 @@ use App\Domain\Finance\AccountingStatements;
 use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Finance\ReportData;
 use App\Domain\Orders\OrderRefund;
+use App\Domain\Orders\OrderReturns;
 use App\Domain\Orders\OrderService;
 use App\Models\Order;
 use App\Models\Product;
@@ -343,6 +344,11 @@ class OrderPaymentMethodsTest extends TestCase
 
         $this->actingAs($finance)->onPortal('manage')->post('/commands/orders/'.$order->id.'/refund', ['amount' => '200.00', 'reason' => 'Partner changed their mind'])
             ->assertSessionHasNoErrors();
+        // A refund by anyone but the owner waits for a second person (MA-16).
+        $this->assertSame('300.00', $this->usable($dealer));
+        $request = (int) DB::table('order_return_requests')->where('order_id', $order->id)->value('id');
+        $this->actingAs(User::factory()->staff('finance')->create())->onPortal('manage')->post('/commands/order-returns/'.$request.'/confirm', ['reason' => 'Second check', 'confirmed' => '1'])
+            ->assertSessionHasNoErrors();
 
         $this->assertSame('cancelled', $order->fresh()->status);
         $this->assertSame('200.00', (string) $order->fresh()->paid);
@@ -359,7 +365,7 @@ class OrderPaymentMethodsTest extends TestCase
         $this->order($dealer, $this->product(), 2)->assertSessionHasNoErrors();
         $order = Order::where('user_id', $dealer->id)->sole();
 
-        app(OrderRefund::class)->refund($finance, $order, '150.00', 'Part of the goods are unavailable');
+        $this->refundWithSecondPerson($finance, $order, '150.00', 'Part of the goods are unavailable');
 
         $this->assertSame('450.00', $this->usable($dealer));
         $this->assertDatabaseHas('order_refunds', ['order_id' => $order->id, 'amount' => '150.00', 'to_account' => '150.00']);
@@ -374,7 +380,7 @@ class OrderPaymentMethodsTest extends TestCase
         $claim = DB::table('payment_claims')->insertGetId(['order_id' => $order->id, 'channel' => 'Bank', 'reference' => 'BANK-REF-1', 'amount' => '100.00', 'created_at' => now(), 'updated_at' => now()]);
         app(OrderService::class)->verify($finance, $claim, true, 'Matched');
 
-        app(OrderRefund::class)->refund($finance, $order->fresh(), '100.00', 'Dealer changed their mind');
+        $this->refundWithSecondPerson($finance, $order->fresh(), '100.00', 'Dealer changed their mind');
 
         $this->assertSame('500.00', $this->usable($dealer));
         $this->assertDatabaseHas('order_refunds', ['order_id' => $order->id, 'to_account' => '0.00']);
@@ -391,7 +397,7 @@ class OrderPaymentMethodsTest extends TestCase
         DB::table('commission_allocations')->insert(['order_id' => $old->id, 'user_id' => $dealer->id, 'category' => 'direct_referral', 'rate_percentage' => '5.00',
             'cash_basis' => '100.00', 'amount' => '0.00', 'status' => 'available', 'metadata' => json_encode(['unrecovered_deficit' => '30.00']), 'created_at' => now(), 'updated_at' => now()]);
 
-        app(OrderRefund::class)->refund($finance, $order, '200.00', 'Stock ran out');
+        $this->refundWithSecondPerson($finance, $order, '200.00', 'Stock ran out');
 
         $this->assertSame('170.00', $this->usable($dealer));
         $this->assertFalse(CommissionWallet::hasDebt($dealer->id));
@@ -526,7 +532,7 @@ class OrderPaymentMethodsTest extends TestCase
             ->assertSessionHasErrors('status');
         $this->assertSame('100.00', $this->usable($dealer));
 
-        app(OrderRefund::class)->refund($finance, $order->fresh(), '200.00', 'Out of stock');
+        $this->refundWithSecondPerson($finance, $order->fresh(), '200.00', 'Out of stock');
         $this->assertSame('250.00', $this->usable($dealer));
         $this->assertDatabaseHas('order_refunds', ['order_id' => $order->id, 'amount' => '200.00', 'to_account' => '150.00']);
         $this->assertBooksAgree();
@@ -621,7 +627,7 @@ class OrderPaymentMethodsTest extends TestCase
         $finance = User::factory()->staff('finance')->create();
         $this->order($dealer, $this->product(), 2)->assertSessionHasNoErrors();
         $order = Order::where('user_id', $dealer->id)->sole();
-        app(OrderRefund::class)->refund($finance, $order, '200.00', 'Stock ran out');
+        $this->refundWithSecondPerson($finance, $order, '200.00', 'Stock ran out');
 
         foreach (['bn', 'en'] as $locale) {
             app()->setLocale($locale);
@@ -738,5 +744,12 @@ class OrderPaymentMethodsTest extends TestCase
         $checks = app(FinancialReadiness::class)->checks();
         $this->assertArrayHasKey('account_order_money', $checks);
         $this->assertSame([], array_keys(array_filter($checks, fn (bool $passed): bool => ! $passed)));
+    }
+
+    /** Finance asks for the refund and a second finance person confirms it, as every non-owner refund needs (MA-16). */
+    private function refundWithSecondPerson(User $finance, Order $order, string $amount, string $reason): void
+    {
+        $request = app(OrderRefund::class)->refund($finance, $order, $amount, $reason);
+        app(OrderReturns::class)->confirm(User::factory()->staff('finance')->create(), $request['id'], 'Second check');
     }
 }
