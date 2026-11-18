@@ -97,8 +97,15 @@ function ImportLines({ statement, t }: { statement: Row; t: Translate }) {
 }
 
 function StatementCheck({ channels, history, statement, t }: Row & { t: Translate }) {
+    const translate = useT();
     const upload = useForm<{ channel: string; source_reference: string; file: File | null }>({ channel: channels[0], source_reference: '', file: null });
     const canWork = useCanWorkOnStatements();
+    const channelLabel = (channel: string) => {
+        const key = `pay_channel_${channel.toLowerCase()}`;
+        const text = translate('portal', key);
+
+        return text === key ? channel : text;
+    };
     return <>
         {canWork && <section className="panel">
             <h2>{t('import_title')}</h2>
@@ -108,10 +115,13 @@ function StatementCheck({ channels, history, statement, t }: Row & { t: Translat
                 upload.post('/commands/operations/accounting/statements', { forceFormData: true, preserveScroll: true });
             }}>
                 <label>{t('import_channel')}<select value={upload.data.channel} onChange={event => upload.setData('channel', event.target.value)}>
-                    {channels.map((channel: string) => <option key={channel} value={channel}>{channel}</option>)}
+                    {channels.map((channel: string) => <option key={channel} value={channel}>{channelLabel(channel)}</option>)}
                 </select></label>
                 <label>{t('import_source_reference')}<input required minLength={3} maxLength={150} value={upload.data.source_reference} onChange={event => upload.setData('source_reference', event.target.value)} /></label>
-                <label>{t('import_file')}<input required type="file" accept=".csv,.xlsx" onChange={event => upload.setData('file', event.target.files?.[0] ?? null)} /></label>
+                <label className="file-picker">{t('import_file')}
+                    <input required type="file" accept=".csv,.xlsx" onChange={event => upload.setData('file', event.target.files?.[0] ?? null)} />
+                    <span className="file-picker-face">{upload.data.file?.name ?? t('import_file_empty')}</span>
+                </label>
                 {upload.progress && <progress max={100} value={upload.progress.percentage} aria-label={t('import_file')} />}
                 {Object.keys(upload.errors).length > 0 && <p role="alert" className="error">{Object.values(upload.errors).join(' ')}</p>}
                 <button className="button dark" disabled={upload.processing}>{t('import_upload')}</button>

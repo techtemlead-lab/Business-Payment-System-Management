@@ -77,7 +77,7 @@
             <label>{{ $mode==='login'?__('auth_ui.email_or_phone'):__('auth_ui.email') }}<input type="{{ $mode==='login'?'text':'email' }}" name="email" required maxlength="254" autocomplete="username" value="{{ old('email',$email??'') }}" placeholder="{{ $mode==='login'?__('auth_ui.email_or_phone_placeholder'):__('auth_ui.email_placeholder') }}"></label>
             @if($mode!=='forgot')<label>{{ __('auth_ui.password') }}<input type="password" name="password" required maxlength="200" autocomplete="{{ $mode==='reset'?'new-password':'current-password' }}" @if($mode==='reset') minlength="8" @endif></label>@endif
             @if($mode==='reset')<label>{{ __('auth_ui.confirm_password') }}<input type="password" name="password_confirmation" required minlength="8" maxlength="200" autocomplete="new-password"></label><p class="muted">{{ __('auth_ui.password_rules') }}</p>@endif
-            @if($mode === 'login')
+            @if($mode === 'login' && config('madina.login_captcha.enabled'))
                 @include('partials.login-captcha')
             @endif
             <button class="button dark" type="submit">{{ $mode==='login'?__('auth_ui.sign_in'):($mode==='forgot'?__('auth_ui.send_reset'):__('auth_ui.reset_password')) }}</button>

@@ -4077,3 +4077,20 @@ html[data-theme="dark"] .ref-inner-main .ref-partner-information{background:var(
   transform:none;
   animation:none;
 }
+
+/* Bangla words over the factory artwork, which is drawn in English. */
+.ref-slide{position:relative}
+.ref-slide-caption{position:absolute;left:16px;bottom:16px;z-index:2;display:grid;gap:6px;max-width:min(420px,78%);padding:14px 16px;border-radius:12px;background:rgba(12,59,42,.9);color:#fff;pointer-events:none}
+.ref-slide-caption b{font-size:22px;line-height:1.35;font-weight:700}
+.ref-slide-caption span{font-size:16px;line-height:1.45}
+.locale-bn .ref-slide-caption b{font-size:24px}
+.ref-slide-caption.is-side{left:10px;right:10px;bottom:10px;max-width:none;padding:10px 12px}
+.ref-slide-caption.is-side b{font-size:16px}
+.locale-bn .ref-slide-caption.is-side b{font-size:18px}
+@media(max-width:1023px){
+  .ref-nav-home{min-width:44px;min-height:44px;padding:8px 14px}
+  .ref-footer-support a,.ref-footer-links a,.ref-footer-legal a{display:inline-flex;align-items:center;min-height:44px}
+  .ref-slide-caption{left:10px;right:10px;bottom:36px;max-width:none}
+  .ref-slide-caption b{font-size:18px}
+  .locale-bn .ref-slide-caption b{font-size:20px}
+}

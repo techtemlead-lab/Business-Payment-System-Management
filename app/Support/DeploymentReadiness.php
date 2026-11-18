@@ -113,6 +113,9 @@ final class DeploymentReadiness
         if (! $partnerOtp['stored_enabled']) {
             $warnings[] = 'sms_login_code_switched_off';
         }
+        if (! (bool) config('madina.login_captcha.enabled', false)) {
+            $warnings[] = 'login_picture_switched_off';
+        }
         if ($checks['database'] && $this->accountsMissingMobile()) {
             $warnings[] = 'accounts_missing_mobile';
         }

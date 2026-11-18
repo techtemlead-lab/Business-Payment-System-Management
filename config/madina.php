@@ -90,9 +90,15 @@ return [
     ],
     // Partner (dealer/sub-dealer) password login OTP default. Owner can override in Security;
     // MADINA_PREVIEW_MODE forces OTP off until SMS is live.
+    // There is no SMS gateway yet, so new installs keep the code off (password only).
     'login_otp' => [
-        'enabled' => env('MADINA_LOGIN_OTP', true),
+        'enabled' => env('MADINA_LOGIN_OTP', false),
         'ttl' => (int) env('MADINA_LOGIN_OTP_TTL', 300),
+    ],
+    // Picture on the sign-in form. Off until an owner turns it on: the letters are hard
+    // to read for older partners, and a wrong-password lockout still stops guessing.
+    'login_captcha' => [
+        'enabled' => env('MADINA_LOGIN_CAPTCHA', false),
     ],
     // Browser push services a subscription may point at (Chrome/Android/Samsung, Firefox,
     // Edge/Windows, Safari). Anything else is refused, so the server never posts to other hosts.

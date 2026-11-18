@@ -22,7 +22,7 @@
 @stack('head')
 @include('reference.partials.page-boot')
 </head>
-<body class="ref-home locale-{{ app()->getLocale() }} @yield('bodyClass')">
+<body class="ref-home locale-{{ app()->getLocale() }} @yield('bodyClass')"@if(\App\Support\PortalHost::activePreviewPortal() !== 'public') data-office-portal="1"@endif>
 @include('reference.header')
 @if(config('madina.preview_mode'))
 <aside class="ref-preview-banner" role="status"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>{{ __('site.preview_banner') }}</span></aside>

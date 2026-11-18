@@ -165,7 +165,7 @@ export default function BranchesHub({
                             title: translate('portal', 'col_branch'),
                             render: (r: BranchRow) => (
                                 <>
-                                    <b>{r.name}</b>
+                                    <b>{r.display_name || r.name}</b>
                                     <small className="cell-sub">{r.code}</small>
                                     {Number(active_branch_id) === Number(r.id) && (
                                         <span className="badge brh-active-badge">{translate('portal', 'branch_active_badge')}</span>

@@ -761,7 +761,7 @@ class SiteCustomization
             return null;
         }
 
-        return $url;
+        return PortalHost::publicPath($url);
     }
 
     /**

@@ -4,6 +4,7 @@ return [
     'close' => 'Close',
 
     'search_label' => 'Search',
+    'search_keys' => 'Ctrl K',
     'search_open' => 'Search orders, partners and products (Ctrl+K)',
     'search_placeholder' => 'Order number, name, code, phone or SKU',
     'search_hint' => 'Type at least 2 letters or numbers.',

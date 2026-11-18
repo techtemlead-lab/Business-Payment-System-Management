@@ -6,6 +6,7 @@ use App\Domain\Auth\LoginCaptcha;
 use App\Domain\Auth\LoginOtpChallenge;
 use App\Domain\Auth\TotpAuthenticator;
 use App\Models\User;
+use App\Support\DeploymentReadiness;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Log\Events\MessageLogged;
@@ -303,5 +304,28 @@ class LoginTwoStepTest extends TestCase
         $this->assertFalse(app(LoginOtpChallenge::class)->showsCodeOnScreen());
         $this->app['env'] = 'testing';
         $this->onPortal('dealer')->get('/login/otp')->assertOk()->assertDontSee($code);
+    }
+
+    public function test_password_alone_signs_in_when_the_picture_and_sms_code_are_off(): void
+    {
+        Config::set('madina.login_captcha.enabled', false);
+        Config::set('madina.login_otp.enabled', false);
+        $dealer = $this->dealer();
+
+        $this->onPortal('dealer')->get('/login')->assertOk()
+            ->assertDontSee('name="captcha"', false)
+            ->assertDontSee('/login/captcha', false);
+        $this->onPortal('dealer')->get('/login/captcha')->assertNotFound();
+
+        $this->onPortal('dealer')
+            ->post('/login', ['email' => $dealer->email, 'password' => 'SyntheticPassword123'])
+            ->assertRedirect('/');
+        $this->assertAuthenticatedAs($dealer);
+        $this->assertSame([], config('madina.sms.sent'));
+
+        $login = \DB::table('audit_events')->where('action', 'login')->where('actor_id', $dealer->id)->first();
+        $this->assertSame('off_by_owner', json_decode($login->metadata, true)['second_step']);
+        $this->assertContains('login_picture_switched_off', app(DeploymentReadiness::class)->inspect()['warnings']);
+        $this->assertContains('sms_login_code_switched_off', app(DeploymentReadiness::class)->inspect()['warnings']);
     }
 }

@@ -74,6 +74,7 @@ return [
     'card_in_stock' => 'হাতে আছে',
     'card_value' => 'স্টকের দাম',
     'card_low' => 'কম স্টক',
+    'card_out' => 'স্টক শেষ',
     'card_courier' => 'কুরিয়ারের কাছে',
     'col_in_stock' => 'হাতে আছে',
     'col_booked' => 'অর্ডারে বুক',

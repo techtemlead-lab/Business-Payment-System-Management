@@ -119,6 +119,7 @@ return [
     'import_channel' => 'স্টেটমেন্ট কোথাকার',
     'import_source_reference' => 'স্টেটমেন্টের নাম বা অ্যাকাউন্ট',
     'import_file' => 'স্টেটমেন্ট ফাইল (CSV বা এক্সেল)',
+    'import_file_empty' => 'CSV বা এক্সেল ফাইল বেছে নিন',
     'import_upload' => 'স্টেটমেন্ট আপলোড করুন',
     'import_history' => 'আগের স্টেটমেন্ট',
     'import_view' => 'খুলুন',

@@ -614,11 +614,17 @@ function initPageProgressNavigation() {
 
 const PORTAL_SUBDOMAINS = ['dealer', 'subdealer', 'manage', 'sadmin'];
 
+/** Staff portals reuse this script. 127.0.0.1 with the preview cookie is one of them too. */
+function onOfficePortal(): boolean {
+    return document.body.dataset.officePortal === '1'
+        || PORTAL_SUBDOMAINS.includes(window.location.hostname.split('.')[0] ?? '');
+}
+
 function prefetchLikelyNextPages() {
     // Portal hosts (dealer., manage., ...) reuse this script on their login page, but
     // /products and /dealers only exist on the public site. Prefetching them there makes
     // the server remember a missing page as the "after login" destination.
-    if (PORTAL_SUBDOMAINS.includes(window.location.hostname.split('.')[0] ?? '')) {
+    if (onOfficePortal()) {
         return;
     }
 
@@ -654,7 +660,7 @@ function prefetchLikelyNextPages() {
  */
 function reportPageSeen() {
     // The portal login pages reuse this script; only the public website is counted.
-    if (PORTAL_SUBDOMAINS.includes(window.location.hostname.split('.')[0] ?? '')) {
+    if (onOfficePortal()) {
         return;
     }
     const token = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content;
