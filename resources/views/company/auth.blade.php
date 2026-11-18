@@ -97,5 +97,6 @@
     </section>
     <p class="company-auth-footer">{{ \App\Support\SiteCustomization::brandName() }} · {{ $ownerPortal ? __('portal.owner_portal') : __('portal.company_portal') }}</p>
 </main>
+@include('partials.auth-ready')
 </body>
 </html>
