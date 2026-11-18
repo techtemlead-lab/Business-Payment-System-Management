@@ -94,7 +94,7 @@ final class OrderListFilter
     }
 
     /**
-     * Resolve a period keyword (today, week, month, last_month, year, day, custom)
+     * Resolve a period keyword (today, week, month, last30, last_month, year, day, custom)
      * into a UTC range using the business timezone (Asia/Dhaka).
      *
      * @return array{from: CarbonImmutable, until: CarbonImmutable}|null
@@ -111,6 +111,7 @@ final class OrderListFilter
         [$start, $end] = match (true) {
             $period === 'today' => [$now->startOfDay(), $now->endOfDay()],
             $period === 'week' => [$now->startOfWeek(CarbonInterface::SUNDAY), $now->endOfWeek(CarbonInterface::SATURDAY)],
+            $period === 'last30' => [$now->subDays(29)->startOfDay(), $now->endOfDay()],
             $period === 'month' => [$now->startOfMonth(), $now->endOfMonth()],
             $period === 'last_month' => [$now->subMonthNoOverflow()->startOfMonth(), $now->subMonthNoOverflow()->endOfMonth()],
             $period === 'year' => [$now->startOfYear(), $now->endOfYear()],

@@ -17,7 +17,7 @@ use stdClass;
  */
 final class MoneyTable
 {
-    private const Periods = ['today', 'week', 'month', 'year', 'day', 'custom'];
+    private const Periods = ['today', 'week', 'month', 'last30', 'year', 'day', 'custom'];
 
     private const LongestRangeInDays = 366;
 

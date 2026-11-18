@@ -69,7 +69,7 @@ function OfficeTopSellers({ board }: { board: TopSellersPayload }) {
     const entries = showsDivision ? board.divisional : board.national;
     const chosenDivision = board.division_id != null ? String(board.division_id) : '';
 
-    const period = address.searchParams.get('period') ?? '';
+    const period = address.searchParams.get('period') ?? (address.searchParams.has('month') ? '' : 'last30');
     const pickedFrom = address.searchParams.get('from') ?? '';
     const pickedTo = address.searchParams.get('to') ?? '';
 
@@ -151,7 +151,7 @@ function OfficeTopSellers({ board }: { board: TopSellersPayload }) {
                                     {index === 0 ? translate('portal', 'top_sellers_this_month') : businessMonth(month)}
                                 </button>
                             ))}
-                            {(['today', 'week', 'year'] as const).map((choice) => (
+                            {(['last30', 'today', 'week', 'year'] as const).map((choice) => (
                                 <button key={choice} type="button" className="mt-view" aria-pressed={period === choice} onClick={() => visit({ period: choice })}>
                                     {translate('portal', `orders_period_${choice}`)}
                                 </button>
