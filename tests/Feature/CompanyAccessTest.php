@@ -25,6 +25,8 @@ class CompanyAccessTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
+        // Office pages open in Bangla for someone who never chose; these checks read the English words.
+        $this->withCookie('locale', 'en');
     }
 
     public function test_company_entry_is_separate_and_guest_pages_are_private(): void
