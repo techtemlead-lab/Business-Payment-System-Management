@@ -17,4 +17,14 @@ return [
     'clear_selection' => 'Clear selection',
     'import_publish_done' => ':count products published.',
     'import_publish_skipped' => ':count products could not be published because the price or type is not right.',
+    // Stock count approval (F-verify-07)
+    'count_now' => 'In stock now',
+    'count_moved' => 'Stock changed after the count',
+    'count_err_moved' => 'Stock of :count products changed after they were counted. Check those lines and tick the box, or turn the count down and count again.',
+    'count_confirm_title' => 'Check before approving',
+    'count_confirm_totals' => 'Stock changes on :lines products: :added units more and :removed units fewer in all.',
+    'count_confirm_moved' => 'Stock of :count products changed after they were counted (marked yellow). Only the difference between the count and the figure at that time is posted.',
+    'count_moved_checked' => 'I have checked the lines that changed',
+    'count_confirm_yes' => 'Yes, change the stock',
+    'count_confirm_back' => 'Go back',
 ];

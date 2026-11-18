@@ -17,4 +17,14 @@ return [
     'clear_selection' => 'বাছাই বাদ দিন',
     'import_publish_done' => ':count টি পণ্য চালু হয়েছে।',
     'import_publish_skipped' => ':count টি পণ্য চালু করা যায়নি, কারণ দাম বা ধরন ঠিক নেই।',
+    // Stock count approval (F-verify-07)
+    'count_now' => 'এখন স্টকে',
+    'count_moved' => 'গণনার পরে স্টক বদলেছে',
+    'count_err_moved' => ':count টি পণ্যের স্টক গণনার পরে বদলেছে। লাইনগুলো দেখে টিক দিন, অথবা নামঞ্জুর করে আবার গুনুন।',
+    'count_confirm_title' => 'অনুমোদনের আগে দেখে নিন',
+    'count_confirm_totals' => ':lines টি পণ্যের স্টক বদলাবে: মোট :added টি বাড়বে, :removed টি কমবে।',
+    'count_confirm_moved' => ':count টি পণ্যের স্টক গণনার পরে বদলেছে (হলুদ দাগ দেওয়া)। শুধু গোনা আর তখনকার হিসাবের পার্থক্যই বসবে।',
+    'count_moved_checked' => 'বদলে যাওয়া লাইনগুলো আমি দেখেছি',
+    'count_confirm_yes' => 'হ্যাঁ, স্টক বদলান',
+    'count_confirm_back' => 'ফিরে যান',
 ];
