@@ -321,7 +321,7 @@ final class StockLotReports
         if ($batch === '') {
             return [];
         }
-        $custom = SiteCustomization::all();
+        $custom = SiteCustomization::inVisitorLanguage(SiteCustomization::all());
         $maker = filled($custom['invoice_manufacturer'] ?? null)
             ? (string) $custom['invoice_manufacturer']
             : (string) (SiteCustomization::defaults()['invoice_manufacturer'] ?? '');

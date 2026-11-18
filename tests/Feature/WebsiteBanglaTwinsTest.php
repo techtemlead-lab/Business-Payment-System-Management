@@ -77,6 +77,29 @@ class WebsiteBanglaTwinsTest extends TestCase
         $this->assertSame('About us', SiteCustomization::forPublicPages()['header_about_title']);
     }
 
+    public function test_printed_letterheads_use_the_bangla_company_wording_for_a_bangla_reader(): void
+    {
+        SiteCustomization::save([
+            'contact_company_title' => 'Madina Natural Health Care',
+            'contact_company_title_bn' => 'মদিনা ন্যাচারাল হেলথ কেয়ার',
+            'invoice_manufacturer' => 'Madina Herbal Lab',
+            'invoice_manufacturer_bn' => 'মদিনা হারবাল ল্যাব',
+        ]);
+        $sources = ['app/Domain/Orders/OrderInvoice.php', 'app/Domain/Payouts/PayoutReceipts.php', 'app/Domain/Orders/ShippingLabels.php', 'app/Domain/Inventory/StockPrintPdf.php', 'app/Domain/Inventory/StockLotReports.php', 'app/Domain/Clinic/PrescriptionLetterhead.php', 'app/Support/LetterheadContacts.php'];
+
+        app()->setLocale('bn');
+        $bangla = SiteCustomization::inVisitorLanguage(SiteCustomization::all());
+        app()->setLocale('en');
+        $english = SiteCustomization::inVisitorLanguage(SiteCustomization::all());
+
+        $this->assertSame('মদিনা ন্যাচারাল হেলথ কেয়ার', $bangla['contact_company_title']);
+        $this->assertSame('মদিনা হারবাল ল্যাব', $bangla['invoice_manufacturer']);
+        $this->assertSame('Madina Herbal Lab', $english['invoice_manufacturer']);
+        foreach ($sources as $source) {
+            $this->assertStringContainsString('SiteCustomization::inVisitorLanguage(SiteCustomization::all())', (string) file_get_contents(base_path($source)), $source.' must read the settings in the reader\'s language.');
+        }
+    }
+
     public function test_the_editor_saves_a_bangla_box_and_gets_each_wording_with_its_built_in_bangla_hint(): void
     {
         $editor = User::factory()->staff('editor')->create();

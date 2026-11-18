@@ -206,7 +206,7 @@ final class PayoutReceipts
     {
         $partner = User::query()->find($receipt->user_id);
         $payer = User::query()->find($receipt->paid_by);
-        $custom = SiteCustomization::all();
+        $custom = SiteCustomization::inVisitorLanguage(SiteCustomization::all());
         $paidAt = CarbonImmutable::parse((string) $receipt->paid_at, 'UTC')->timezone((string) config('madina.business_timezone', 'Asia/Dhaka'));
         $account = $receipt->account_number ? (string) decrypt($receipt->account_number) : null;
         $isPartnerCopy = $receipt->user_id !== null && (int) $actor->id === (int) $receipt->user_id;
