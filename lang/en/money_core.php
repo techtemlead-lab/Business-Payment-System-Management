@@ -71,4 +71,21 @@ return [
     'task_ready_to_pay' => 'Commission ready to pay',
     'task_held' => 'Commission held',
     'task_close_failed' => 'A month could not be closed',
+
+    // MA-03 partner, MA-11, MA-22
+    'held_heading' => 'Commission held for you',
+    'held_total' => 'Held in total right now',
+    'held_note' => 'This money is not in your balance yet.',
+    'held_line' => ':what, order :order',
+    'held_reason_inactive' => 'Held because your account is suspended. It is added to your money by itself when your account is active again.',
+    'held_reason_quota' => 'Your monthly area target was not met. It is released when the target is met; if it is still not met at month end it goes to company profit.',
+    'held_more' => ':count more held lines, see the My Money page',
+    'net_referrer_held' => 'Held for the referrer (not received yet)',
+    'net_you_held' => 'Held for you (not received yet)',
+    'salary_heading' => 'How your monthly salary was worked out',
+    'salary_paid' => ':month: your share is ৳:amount. The salary pool of your division was ৳:pool, shared equally by :sharers dealers.',
+    'salary_rule' => 'Rule: the salary is shared equally among everyone in your division who bought ৳:min or more this month.',
+    'salary_none_low' => ':month: no purchase of ৳:min or more this month, so no salary.',
+    'salary_none_other' => ':month: you got no salary this month. Please ask the office why.',
+    'sub_price_rule' => 'Sub-dealer price = dealer price × 1.25, rounded up to the whole taka.',
 ];

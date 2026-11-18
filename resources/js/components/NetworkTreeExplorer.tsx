@@ -29,6 +29,10 @@ interface DealerNode {
     sponsor_earned?: string | number;
     /** Dealer's own tree only: what the signed-in dealer earned from this member. */
     viewer_earned?: string | number;
+    /** Held back for the referrer (suspended account or area target not met): not received. */
+    sponsor_held?: string | number;
+    /** Held back for the signed-in dealer on this member's purchases: not received. */
+    viewer_held?: string | number;
     viewer_earned_by_type?: { category: string; amount: string }[];
     /** Everyone under this partner, from the server (right even when lower levels are not loaded). */
     team_size?: number;
@@ -290,10 +294,14 @@ export default function NetworkTreeExplorer({ dealers, treeStats = null, serverF
                         {dealer.sponsor_id && dealerMap[dealer.sponsor_id] && (
                             <div className="ops-row ops-meta ntx-card-meta">
                                 {showsViewerEarnings && dealer.sponsor_id === viewerId ? (
-                                    <span>{translate('portal','net_you_earned')}: <b className="tone-ok">{money(dealer.viewer_earned ?? 0)}</b></span>
+                                    <>
+                                        <span>{translate('portal','net_you_earned')}: <b className="tone-ok">{money(dealer.viewer_earned ?? 0)}</b></span>
+                                        {Number(dealer.viewer_held) > 0 && <><span>•</span><span>{translate('money_core','net_you_held')}: <b className="tone-warn">{money(dealer.viewer_held)}</b></span></>}
+                                    </>
                                 ) : (
                                     <>
                                         <span>{translate('portal','net_referrer_earned')}: <b className="tone-ok">{money(dealer.sponsor_earned ?? 0)}</b></span>
+                                        {Number(dealer.sponsor_held) > 0 && <><span>•</span><span>{translate('money_core','net_referrer_held')}: <b className="tone-warn">{money(dealer.sponsor_held)}</b></span></>}
                                         {showsViewerEarnings && (
                                             <><span>•</span><span>{translate('portal','net_you_earned')}: <b className="tone-ok">{money(dealer.viewer_earned ?? 0)}</b></span></>
                                         )}
@@ -637,8 +645,14 @@ export default function NetworkTreeExplorer({ dealers, treeStats = null, serverF
                                 {activeDealer.sponsor_id && dealerMap[activeDealer.sponsor_id] && activeDealer.sponsor_id !== viewerId && (
                                     <div><dt>{translate('portal','net_referrer_earned_from',{name: dealerMap[activeDealer.sponsor_id].name})}</dt><dd className="tone-ok">{money(activeDealer.sponsor_earned ?? 0)}</dd></div>
                                 )}
+                                {activeDealer.sponsor_id && dealerMap[activeDealer.sponsor_id] && activeDealer.sponsor_id !== viewerId && Number(activeDealer.sponsor_held) > 0 && (
+                                    <div><dt>{translate('money_core','net_referrer_held')}</dt><dd className="tone-warn">{money(activeDealer.sponsor_held)}</dd></div>
+                                )}
                                 {showsViewerEarnings && activeDealer.id !== viewerId && (
                                     <div><dt>{translate('portal','net_you_earned')}</dt><dd className="tone-ok">{money(activeDealer.viewer_earned ?? 0)}</dd></div>
+                                )}
+                                {showsViewerEarnings && activeDealer.id !== viewerId && Number(activeDealer.viewer_held) > 0 && (
+                                    <div><dt>{translate('money_core','net_you_held')}</dt><dd className="tone-warn">{money(activeDealer.viewer_held)}</dd></div>
                                 )}
                                 {showsViewerEarnings && (childrenMap[activeDealer.id] || []).length > 0 && (
                                     <div><dt>{translate('portal','net_team_you_earned')}</dt><dd className="tone-ok">{money(sumTeam(activeDealer.id, d => d.id === viewerId ? 0 : Number(d.viewer_earned) || 0))}</dd></div>

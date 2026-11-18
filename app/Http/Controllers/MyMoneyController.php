@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Accounts\PartnerMoneyBook;
+use App\Domain\Accounts\PartnerSalaryNotes;
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Finance\WithdrawalSecurityWait;
 use App\Domain\Payouts\PayoutReceipts;
@@ -32,6 +33,8 @@ class MyMoneyController extends Controller
             'table' => $book->table($request, $partner),
             'withdrawal_requests' => $book->withdrawalRequests($partner),
             'not_earned_area' => $book->notEarnedAreaCommission($partner),
+            'held_commission' => $book->heldCommission($partner),
+            'salary_notes' => app(PartnerSalaryNotes::class)->for($partner),
             'withdraw' => ['can' => ! $kycBlock, 'kyc_block' => $kycBlock, 'security_wait' => $opensAt === null ? null : $wait->reason($opensAt), 'minimum' => (string) $settings->withdrawalMinimum()['amount']],
             'reserve_receipts' => $receipts->reservePayoutsFor($partner),
             'certificates' => [

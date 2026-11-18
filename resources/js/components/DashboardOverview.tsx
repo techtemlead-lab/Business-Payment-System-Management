@@ -219,6 +219,20 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
                         <dt>{translate('portal', 'pending_withdrawal')}</dt>
                         <dd>{money(wallet.pending_withdrawal)}</dd>
                     </div>
+                    {Number(wallet.commission_held?.total ?? 0) > 0 && (
+                        <div className="ph-hero-waiting" data-testid="home-commission-held">
+                            <dt>{translate('money_core', 'held_heading')}</dt>
+                            <dd>{money(wallet.commission_held.total)}</dd>
+                            {(wallet.commission_held.lines ?? []).map((line: Row) => (
+                                <dd className="ph-hero-note" key={line.id}>
+                                    {money(line.amount)} · {translate('money_core', 'held_line', { what: line.what, order: line.order_number ?? '—' })} · {translate('money_core', `held_reason_${line.reason}`)}
+                                </dd>
+                            ))}
+                            {wallet.commission_held.count > (wallet.commission_held.lines ?? []).length && (
+                                <dd className="ph-hero-note"><Link href={`${base}/my-money`}>{translate('money_core', 'held_more', { count: number(wallet.commission_held.count - wallet.commission_held.lines.length) })}</Link></dd>
+                            )}
+                        </div>
+                    )}
                     <div className="ph-hero-waiting" data-testid="home-commission-waiting">
                         <dt>{translate('portal', 'ph_commission_waiting')}</dt>
                         <dd>{money(wallet.commission_waiting?.total)}</dd>
