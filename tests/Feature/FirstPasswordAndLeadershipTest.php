@@ -9,6 +9,7 @@ use App\Models\PlaceCode;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
@@ -37,14 +38,24 @@ class FirstPasswordAndLeadershipTest extends TestCase
         return ['role' => 'employee', 'name' => 'Rubel Mia', 'email' => 'rubel@example.test', 'phone' => '01712345678', 'permissions' => ['orders'], ...$over];
     }
 
+    /** The one-time first password, read from the success message (office passwords are never kept readable, SA-02). */
+    private function shownFirstPassword(): string
+    {
+        $message = (string) session('success');
+        $this->assertSame(1, preg_match('/Md[A-Z2-9]{8}\d{2}!/', $message, $match), $message);
+
+        return $match[0];
+    }
+
     public function test_a_new_staff_member_gets_a_first_password_shown_once_and_must_change_it(): void
     {
         $response = $this->actingAs($this->owner())->onPortal('sadmin')->post('/commands/accounts', $this->staffForm())->assertSessionHasNoErrors();
 
         $staff = User::query()->where('email', 'rubel@example.test')->sole();
         $this->assertTrue($staff->must_change_password);
-        $password = (string) $staff->adminVisiblePassword();
-        $this->assertNotSame('', $password);
+        $password = $this->shownFirstPassword();
+        $this->assertTrue(Hash::check($password, (string) $staff->password));
+        $this->assertNull($staff->adminVisiblePassword(), 'An office password is never kept readable.');
         $response->assertSessionHas('success', fn (string $message): bool => str_contains($message, $password) && str_contains($message, '01712345678'));
     }
 
@@ -52,7 +63,7 @@ class FirstPasswordAndLeadershipTest extends TestCase
     {
         $this->actingAs($this->owner())->onPortal('sadmin')->post('/commands/accounts', $this->staffForm());
         $staff = User::query()->where('email', 'rubel@example.test')->sole();
-        $old = (string) $staff->adminVisiblePassword();
+        $old = $this->shownFirstPassword();
 
         $this->actingAs($staff)->onPortal('manage')->get('/orders')->assertRedirect('/security');
         $this->actingAs($staff)->onPortal('manage')->get('/security')->assertOk();
