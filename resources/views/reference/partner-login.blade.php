@@ -5,6 +5,8 @@
 @vite(['resources/css/auth-motion.css','resources/js/auth-motion.ts'])
 @endpush
 @section('content')
+@php($choicePath = $choicePath ?? '/login')
+@php($forgotChoice = $choicePath === '/forgot-password')
 <main id="main" class="ref-container ref-auth-main">
     @include('partials.auth-motion-scene')
     <section class="ref-auth-card ref-partner-login-card">
@@ -13,14 +15,14 @@
                 <img src="{{ \App\Support\SiteCustomization::logoUrl() }}" alt="{{ \App\Support\SiteCustomization::brandName() }}" style="height:85px;width:85px;margin:0 auto;object-fit:contain;">
             </a>
         </div>
-        <h1>{{ __('site.partner_login_title') }}</h1>
-        <p class="ref-auth-subtitle">{{ __('site.partner_login_subtitle') }}</p>
+        <h1>{{ $forgotChoice ? __('security.forgot_choose_title') : __('site.partner_login_title') }}</h1>
+        <p class="ref-auth-subtitle">{{ $forgotChoice ? __('security.forgot_choose_subtitle') : __('site.partner_login_subtitle') }}</p>
         @if(\App\Support\PortalHost::sharedPreviewRoot())
             <p class="ref-auth-subtitle">{{ __('site.preview_portal_note') }}</p>
         @endif
         <div class="ref-partner-login-options" role="list">
             @if(\App\Support\PortalHost::sharedPreviewRoot())
-            <a class="ref-partner-login-option" role="listitem" href="{{ \App\Support\PortalHost::url('sadmin', '/login') }}">
+            <a class="ref-partner-login-option" role="listitem" href="{{ \App\Support\PortalHost::url('sadmin', $choicePath) }}">
                 <span class="ref-partner-login-icon" aria-hidden="true"><i class="fa-solid fa-user-shield"></i></span>
                 <span class="ref-partner-login-copy">
                     <b>{{ __('site.owner_login') }}</b>
@@ -29,7 +31,7 @@
                 <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
             </a>
             @endif
-            <a class="ref-partner-login-option" role="listitem" href="{{ \App\Support\PortalHost::url('dealer', '/login') }}">
+            <a class="ref-partner-login-option" role="listitem" href="{{ \App\Support\PortalHost::url('dealer', $choicePath) }}">
                 <span class="ref-partner-login-icon" aria-hidden="true"><i class="fa-solid fa-store"></i></span>
                 <span class="ref-partner-login-copy">
                     <b>{{ __('site.dealer_login') }}</b>
@@ -37,7 +39,7 @@
                 </span>
                 <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
             </a>
-            <a class="ref-partner-login-option" role="listitem" href="{{ \App\Support\PortalHost::url('subdealer', '/login') }}">
+            <a class="ref-partner-login-option" role="listitem" href="{{ \App\Support\PortalHost::url('subdealer', $choicePath) }}">
                 <span class="ref-partner-login-icon" aria-hidden="true"><i class="fa-solid fa-shop"></i></span>
                 <span class="ref-partner-login-copy">
                     <b>{{ __('site.subdealer_login') }}</b>
@@ -46,7 +48,7 @@
                 <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
             </a>
             @if(\App\Support\PortalHost::sharedPreviewRoot())
-            <a class="ref-partner-login-option" role="listitem" href="{{ \App\Support\PortalHost::url('manage', '/login') }}">
+            <a class="ref-partner-login-option" role="listitem" href="{{ \App\Support\PortalHost::url('manage', $choicePath) }}">
                 <span class="ref-partner-login-icon" aria-hidden="true"><i class="fa-solid fa-briefcase"></i></span>
                 <span class="ref-partner-login-copy">
                     <b>{{ __('site.staff_login') }}</b>

@@ -502,6 +502,12 @@ class PublicController extends Controller
         return view('reference.partner-login');
     }
 
+    /** PW-04: the public "forgot password" first asks dealer or sub-dealer, as the public sign-in page does. */
+    public function partnerForgotPassword(): View
+    {
+        return view('reference.partner-login', ['choicePath' => '/forgot-password']);
+    }
+
     public function feedbackForm(): View
     {
         return view('reference.feedback', [

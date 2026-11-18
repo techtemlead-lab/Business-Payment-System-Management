@@ -52,7 +52,7 @@ $away = function (string $portal, string $path): RedirectResponse {
 };
 Route::get('/login', [PublicController::class, 'partnerLogin']);
 Route::get('/partner-login', fn () => redirect('/login', 301));
-Route::get('/forgot-password', fn () => $away('dealer', '/forgot-password'));
+Route::get('/forgot-password', [PublicController::class, 'partnerForgotPassword']);
 Route::get('/reset-password/{token}', function (string $token) {
     $email = request()->query('email');
     $path = '/reset-password/'.$token.(is_string($email) && $email !== '' ? '?email='.urlencode($email) : '');
