@@ -1,4 +1,4 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { date, money } from '../UI';
 import { useT } from '../../shared/i18n/t';
 import type { WithdrawalRequest } from './types';
@@ -23,7 +23,16 @@ export default function WithdrawalRequests({ requests }: { requests: WithdrawalR
                             <strong>{money(request.amount)}</strong>
                             <span>{translate('my_money', `request_status_${request.status}`)}</span>
                             {request.reason && <small>{request.reason}</small>}
+                            {request.on_hold && <small>{translate('payouts', 'partner_on_hold')}</small>}
                         </Link>
+                        {/* Owner decision D4: a partner may take back a request nobody has approved yet. */}
+                        {request.status === 'requested' && (
+                            <button type="button" className="text-link" onClick={() => {
+                                if (window.confirm(translate('payouts', 'cancel_confirm'))) {
+                                    router.post(`/commands/withdrawals/${request.id}/cancel`, {}, { preserveScroll: true });
+                                }
+                            }}>{translate('payouts', 'cancel_request')}</button>
+                        )}
                     </li>
                 ))}
             </ul>

@@ -94,6 +94,8 @@ return function (string $portal): void {
 
     Route::post('/commands/orders', [CommandController::class, 'order'])->middleware('throttle:10,1');
     Route::post('/commands/withdrawals', [WithdrawalController::class, 'store'])->middleware('throttle:10,1');
+    Route::post('/commands/withdrawals/{id}/cancel', [WithdrawalController::class, 'cancel'])->whereUuid('id')->middleware('throttle:10,1');
+    Route::post('/commands/withdrawals/tax-number', [WithdrawalController::class, 'tin'])->middleware('throttle:10,1');
     Route::get('/exports/orders', [ReportController::class, 'export'])->middleware('throttle:15,1,data-exports');
     Route::get('/exports/genealogy', [ReportController::class, 'genealogy'])->middleware('throttle:15,1,data-exports');
     Route::get('/exports/accounts', AccountListExportController::class)->middleware('throttle:15,1,data-exports');
@@ -203,6 +205,9 @@ return function (string $portal): void {
     Route::post('/commands/testimonials', [CommandController::class, 'storeStaffTestimonial'])->middleware('throttle:30,1');
     Route::post('/commands/withdrawals/{id}/review', [WithdrawalController::class, 'review'])->whereUuid('id');
     Route::post('/commands/withdrawals/{id}/record-payment', [WithdrawalController::class, 'settle'])->whereUuid('id');
+    Route::get('/commands/withdrawals/{id}/facts', [WithdrawalController::class, 'facts'])->whereUuid('id')->middleware('throttle:60,1');
+    Route::post('/commands/withdrawals/{id}/payer', [WithdrawalController::class, 'payer'])->whereUuid('id');
+    Route::post('/commands/withdrawals/{id}/attach-receipt', [WithdrawalController::class, 'attachReceipt'])->whereUuid('id');
     Route::post('/commands/policies/{id}/publish', [CommandController::class, 'publishPolicy']);
     Route::post('/commands/commissions/rules', [CommandController::class, 'updateCommissionRules']);
     Route::post('/commands/commissions/settle-salary', [CommandController::class, 'settleSalaryPool']);

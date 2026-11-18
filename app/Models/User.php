@@ -15,7 +15,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use NotificationChannels\WebPush\HasPushSubscriptions;
 
-#[Hidden(['password', 'remember_token', 'nid', 'admin_password_cipher', 'totp_secret', 'totp_recovery_codes'])]
+#[Hidden(['password', 'remember_token', 'nid', 'tin', 'admin_password_cipher', 'totp_secret', 'totp_recovery_codes'])]
 class User extends Authenticatable implements HasLocalePreference
 {
     public const PasswordManagedByAdmin = 'admin';
@@ -38,6 +38,7 @@ class User extends Authenticatable implements HasLocalePreference
         'closed_at',
         'sponsor_id',
         'nid',
+        'tin',
         'dealer_code',
         'password_managed_by',
         'admin_password_cipher',
@@ -221,6 +222,7 @@ class User extends Authenticatable implements HasLocalePreference
             'password' => 'hashed',
             'profile' => 'array',
             'nid' => 'encrypted',
+            'tin' => 'encrypted',
             'admin_password_cipher' => 'encrypted',
             'totp_secret' => 'encrypted',
             'totp_recovery_codes' => 'encrypted:array',

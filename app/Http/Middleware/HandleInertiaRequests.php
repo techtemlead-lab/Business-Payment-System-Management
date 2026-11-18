@@ -242,6 +242,7 @@ class HandleInertiaRequests extends Middleware
                 'self_approval' => Lang::get('self_approval'),
                 'owner_security' => Lang::get('owner_security'),
                 'withdrawal_wait' => Lang::get('withdrawal_wait'),
+                'payouts' => Lang::get('payouts'),
                 'productivity' => Lang::get('productivity'),
                 'clinic_records' => Lang::get('clinic_records'),
                 'stock_lots' => Lang::get('stock_lots'),

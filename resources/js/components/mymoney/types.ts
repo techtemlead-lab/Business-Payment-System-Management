@@ -42,11 +42,12 @@ export type WithdrawalRequest = {
     amount: string;
     status: 'requested' | 'approved' | 'rejected';
     reason: string | null;
+    on_hold?: boolean;
 };
 
 export type NotEarnedArea = { month: string; amount: string };
 
-export type WithdrawInfo ={ can: boolean; kyc_block: boolean; security_wait: string | null; minimum: string };
+export type WithdrawInfo ={ can: boolean; kyc_block: boolean; nid_block?: boolean; security_wait: string | null; minimum: string; channel_limits?: Record<string, string | null>; tin_last4?: string | null };
 
 export type Certificates = { years: number[]; rank: boolean };
 

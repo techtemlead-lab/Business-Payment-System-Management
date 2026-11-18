@@ -4,6 +4,8 @@ namespace App\Domain\Orders;
 
 use App\Domain\Inventory\BranchScope;
 use App\Domain\Inventory\SellableStock;
+use App\Domain\Payouts\PayoutLimits;
+use App\Http\Portals\Shared\Sections\WithdrawalsSection;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
@@ -48,7 +50,7 @@ final class StaffDashboardSummary
     }
 
     /**
-     * @return list<array{key: string, count: int, section: string, query?: array<string, string>}>
+     * @return list<array{key: string, count: int, section: string, label?: string, query?: array<string, string>}>
      */
     private function workQueue(User $viewer, ?BranchScope $branchScope): array
     {
@@ -72,6 +74,14 @@ final class StaffDashboardSummary
                 'key' => 'withdrawals_to_review',
                 'count' => (int) $this->withdrawalsOf($branchScope)->where('withdrawals.status', 'requested')->count(),
                 'section' => 'payouts-hub',
+            ];
+            // Approved money nobody has sent yet, past the owner's due days (MA-06).
+            $queue[] = [
+                'key' => 'payouts_overdue',
+                'label' => (string) __('payouts.dash_payouts_overdue', ['days' => (string) app(PayoutLimits::class)->dueDays()]),
+                'count' => (int) $this->withdrawalsOf($branchScope)->whereRaw(WithdrawalsSection::followUpSql(app(PayoutLimits::class)->dueDays())." = 'overdue'")->count(),
+                'section' => 'payouts-hub',
+                'query' => ['follow_up' => 'overdue'],
             ];
         }
         $deliveryCounts = $this->deliveryCounts($viewer, $branchScope);

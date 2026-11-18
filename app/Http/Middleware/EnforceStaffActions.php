@@ -42,7 +42,7 @@ class EnforceStaffActions
                     'storeSiteFeedback',
                 ], true),
                 'OrderController' => in_array($method, ['index', 'show', 'store', 'claim'], true),
-                'WithdrawalController' => $method === 'store',
+                'WithdrawalController' => in_array($method, ['store', 'cancel', 'tin'], true),
                 'CommissionController' => in_array($method, ['earnings', 'network', 'networkOrders'], true),
                 'CatalogController' => $method === 'index',
                 'ReportController' => $method === 'export',
@@ -237,7 +237,7 @@ class EnforceStaffActions
             },
             'CommissionController' => [['finance'], $method === 'updatePolicy' ? 'edit' : 'approve'],
             'FinancialPreviewController' => [['finance'], 'view'],
-            'WithdrawalController' => [['finance'], 'approve'],
+            'WithdrawalController' => [['finance'], $method === 'limits' ? 'edit' : 'approve'],
             'InventoryController' => [['inventory'], 'create'],
             'StockLotController' => [['inventory'], $method === 'requestTransfer' ? 'create' : 'edit'],
             'OrderController' => match ($method) {

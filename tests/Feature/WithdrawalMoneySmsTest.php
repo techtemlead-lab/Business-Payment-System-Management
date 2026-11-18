@@ -100,7 +100,8 @@ class WithdrawalMoneySmsTest extends TestCase
             'user_id' => $owner->id,
             'amount' => '200.00',
             'status' => 'approved',
-            'channel' => 'bKash',
+            // Paid by "other", the method for Rocket requests: a payout goes only by the requested method.
+            'channel' => 'Rocket',
             'destination' => encrypt('01720000093'),
             'idempotency_key' => (string) Str::uuid(),
             'reviewed_by' => $reviewer->id,

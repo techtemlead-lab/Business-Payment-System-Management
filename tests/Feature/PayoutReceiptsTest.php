@@ -9,6 +9,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Tests\Support\ReceiptImage;
 use Tests\TestCase;
 
 /**
@@ -37,7 +38,7 @@ class PayoutReceiptsTest extends TestCase
         $this->actingAs($payer)->post('/commands/withdrawals/'.$id.'/record-payment', [...$base, 'method' => 'bank', 'payment_reference' => 'EFT-0001',
             'receipt' => UploadedFile::fake()->create('proof.pdf', 20, 'application/pdf')])->assertSessionHasErrors(['bank_name', 'account_number']);
         $this->actingAs($payer)->post('/commands/withdrawals/'.$id.'/record-payment', [...$base, 'method' => 'bkash', 'payment_reference' => 'BK-0001',
-            'receipt' => UploadedFile::fake()->image('bkash.png')])->assertSessionHasErrors('wallet_number');
+            'receipt' => ReceiptImage::make('bkash.png')])->assertSessionHasErrors('wallet_number');
         $this->actingAs($payer)->post('/commands/withdrawals/'.$id.'/record-payment', [...$base, 'method' => 'nagad', 'wallet_number' => '01711000000'])
             ->assertSessionHasErrors(['payment_reference', 'receipt']);
         $this->actingAs($payer)->post('/commands/withdrawals/'.$id.'/record-payment', [...$base, 'method' => 'cash'])->assertSessionHasErrors('received_by');
@@ -76,10 +77,10 @@ class PayoutReceiptsTest extends TestCase
         $this->assertDatabaseHas('account_notices', ['user_id' => $partner->id]);
 
         // The next receipt gets the next number.
-        $second = $this->approvedWithdrawal($partner, $reviewer);
+        $second = $this->approvedWithdrawal($partner, $reviewer, 'bKash', '01711000000');
         $this->actingAs($payer)->post('/commands/withdrawals/'.$second.'/record-payment', [
-            'method' => 'bkash', 'wallet_number' => '01711000000', 'payment_reference' => 'BK-77002',
-            'paid_at' => now()->subHour()->format('Y-m-d H:i:s'), 'note' => 'Sent by bKash', 'receipt' => UploadedFile::fake()->image('bkash.png'),
+            'method' => 'bkash', 'wallet_number' => '01711000000', 'payment_reference' => 'BK77002XYZ',
+            'paid_at' => now()->subHour()->format('Y-m-d H:i:s'), 'note' => 'Sent by bKash', 'receipt' => ReceiptImage::make('bkash.png'),
         ])->assertSessionHasNoErrors();
         $next = DB::table('payout_receipts')->where('withdrawal_id', $second)->value('id');
         $this->assertSame((int) $receipt->id + 1, (int) $next);
@@ -142,8 +143,8 @@ class PayoutReceiptsTest extends TestCase
     {
         [$partner, $reviewer, $payer] = $this->people();
         $other = User::factory()->subDealer()->create(['status' => 'active', 'dealer_code' => 'SUB-7002']);
-        $mine = $this->paidReceipt($partner, $reviewer, $payer, 'MINE-1');
-        $theirs = $this->paidReceipt($other, $reviewer, $payer, 'THEIRS-1');
+        $mine = $this->paidReceipt($partner, $reviewer, $payer, 'MINE00001');
+        $theirs = $this->paidReceipt($other, $reviewer, $payer, 'THEIRS0001');
 
         $this->actingAs($partner)->onPortal('dealer')->get('/payment-receipts')->assertRedirect('/my-money');
         $this->actingAs($partner)->onPortal('dealer')->get('/payment-receipts/'.$mine.'/print')->assertOk();
@@ -167,7 +168,8 @@ class PayoutReceiptsTest extends TestCase
         ];
     }
 
-    private function approvedWithdrawal(User $partner, User $reviewer): string
+    /** A payout goes only to the method and number the partner asked for, so the request carries them. */
+    private function approvedWithdrawal(User $partner, User $reviewer, string $channel = 'Bank', string $destination = '0123456789012'): string
     {
         $id = (string) Str::uuid();
         $wallet = DB::table('wallets')->where('user_id', $partner->id)->first();
@@ -177,7 +179,7 @@ class PayoutReceiptsTest extends TestCase
             DB::table('wallets')->insert(['user_id' => $partner->id, 'available' => '0.00', 'held' => '500.00', 'created_at' => now(), 'updated_at' => now()]);
         }
         DB::table('withdrawals')->insert(['id' => $id, 'user_id' => $partner->id, 'amount' => '500.00', 'withheld_amount' => '50.00', 'net_amount' => '450.00',
-            'status' => 'approved', 'channel' => 'Bank', 'destination' => encrypt('0123456789012'), 'idempotency_key' => (string) Str::uuid(),
+            'status' => 'approved', 'channel' => $channel, 'destination' => encrypt($destination), 'idempotency_key' => (string) Str::uuid(),
             'reviewed_by' => $reviewer->id, 'created_at' => now()->subDay(), 'updated_at' => now()]);
 
         return $id;
@@ -185,10 +187,10 @@ class PayoutReceiptsTest extends TestCase
 
     private function paidReceipt(User $partner, User $reviewer, User $payer, string $reference): int
     {
-        $id = $this->approvedWithdrawal($partner, $reviewer);
+        $id = $this->approvedWithdrawal($partner, $reviewer, 'Nagad', '01811000000');
         $this->actingAs($payer)->post('/commands/withdrawals/'.$id.'/record-payment', [
             'method' => 'nagad', 'wallet_number' => '01811000000', 'payment_reference' => $reference,
-            'paid_at' => now()->subHour()->format('Y-m-d H:i:s'), 'note' => 'Sent by Nagad', 'receipt' => UploadedFile::fake()->image('nagad.png'),
+            'paid_at' => now()->subHour()->format('Y-m-d H:i:s'), 'note' => 'Sent by Nagad', 'receipt' => ReceiptImage::make('nagad.png'),
         ])->assertSessionHasNoErrors();
 
         return (int) DB::table('payout_receipts')->where('withdrawal_id', $id)->value('id');

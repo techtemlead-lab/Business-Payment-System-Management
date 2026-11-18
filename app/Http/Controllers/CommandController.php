@@ -27,6 +27,7 @@ use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
 use App\Domain\Orders\OrderRefund;
 use App\Domain\Orders\OrderService;
+use App\Domain\Payouts\WithdrawalHolds;
 use App\Domain\Staff\PartnerStaffLink;
 use App\Domain\Staff\StaffPermissions;
 use App\Domain\Support\SupportTickets;
@@ -100,7 +101,7 @@ class CommandController extends Controller
     {
         $d = $r->validated();
         $claimRow = DB::table('payment_claims')->find($claim);
-        $s->verify($r->user(), $claim, $d['approve'], ReasonFields::text($d['reason'] ?? null));
+        $s->verify($r->user(), $claim, $d['approve'], ReasonFields::text($d['reason'] ?? null), isset($d['cash_counted']) ? (string) $d['cash_counted'] : null);
 
         return back(fallback: $claimRow ? '/orders/'.$claimRow->order_id : '/payments')->with('success', __('portal.flash_payment_review'));
     }
@@ -417,6 +418,12 @@ class CommandController extends Controller
             if (($d['status'] ?? '') === 'suspended') {
                 $locked->forceFill(['remember_token' => Str::random(60)])->save();
                 DB::table('sessions')->where('user_id', $user->id)->delete();
+            }
+            // Owner rule D4: a suspended partner is not paid, so their open withdrawals wait on hold until reactivation.
+            if ($isPartner && ($d['status'] ?? '') === 'suspended' && $previousStatus !== 'suspended') {
+                app(WithdrawalHolds::class)->holdForPartner($r->user(), $locked->id, ReasonFields::text($reason) !== '' ? __('payouts.event_hold_suspended').' '.ReasonFields::text($reason) : __('payouts.event_hold_suspended'));
+            } elseif ($isPartner && ($d['status'] ?? '') === 'active' && $previousStatus === 'suspended') {
+                app(WithdrawalHolds::class)->releaseForPartner($r->user(), $locked->id, __('payouts.event_hold_reactivated'));
             }
             Audit::record($r->user()->id, 'account.updated', (string) $user->id, ['fields' => array_keys($d), 'changes' => $tracedChanges, 'reason' => $reason]);
             if ($isPartner && array_key_exists('status', $d) && $previousStatus !== (string) $d['status']) {

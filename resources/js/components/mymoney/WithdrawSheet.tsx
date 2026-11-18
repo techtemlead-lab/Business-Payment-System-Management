@@ -33,6 +33,8 @@ export default function WithdrawSheet({ available, withdraw, onClose }: { availa
 
     const takeRefusal = withdraw.kyc_block
         ? translate('portal', 'wd_kyc_needed_body')
+        : withdraw.nid_block
+            ? translate('payouts', 'err_nid_first')
         : withdraw.security_wait
             ? withdraw.security_wait
             : !withdraw.can || !financeActive
@@ -82,15 +84,26 @@ export default function WithdrawSheet({ available, withdraw, onClose }: { availa
                     submit={translate('portal', 'request_withdrawal')}
                     fields={[
                         { name: 'amount', type: 'number', label: translate('portal', 'amount_minimum', { amount: String(withdraw.minimum) }), required: true },
-                        { name: 'channel', label: translate('portal', 'payment_method'), required: true, options: [
-                            { value: 'Bank', label: translate('portal', 'pay_channel_bank') },
-                            { value: 'bKash', label: translate('portal', 'pay_channel_bkash') },
-                            { value: 'Nagad', label: translate('portal', 'pay_channel_nagad') },
-                            { value: 'Rocket', label: translate('portal', 'pay_channel_rocket') },
-                        ] },
+                        // Each method shows its own most-per-withdrawal, so nobody asks bKash for ৳9 crore (MA-08).
+                        { name: 'channel', label: translate('portal', 'payment_method'), required: true, options: ['Bank', 'bKash', 'Nagad', 'Rocket'].map((channel) => {
+                            const limit = withdraw.channel_limits?.[channel];
+                            const name = translate('portal', `pay_channel_${channel.toLowerCase()}`);
+                            return { value: channel, label: limit ? `${name} · ${translate('payouts', 'withdraw_limit_hint', { limit: money(limit) })}` : name };
+                        }) },
                         { name: 'destination', label: translate('portal', 'account_or_wallet'), required: true },
                     ]}
                 />
+            )}
+
+            {step === 'take' && (
+                <details className="mm-tin">
+                    <summary>{translate('payouts', 'tin_title')}{withdraw.tin_last4 ? ` · ${translate('payouts', 'tin_saved', { last: withdraw.tin_last4 })}` : ''}</summary>
+                    <ActionForm
+                        action="/commands/withdrawals/tax-number"
+                        submit={translate('payouts', 'tin_save')}
+                        fields={[{ name: 'tin', label: translate('payouts', 'tin_hint'), required: false }]}
+                    />
+                </details>
             )}
 
             {step === 'order' && (

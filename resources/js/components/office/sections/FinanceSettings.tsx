@@ -10,7 +10,7 @@ import SettingsForm, { settingsBack, type SettingsField } from './SettingsForm';
 const root = '/commands/operations';
 
 /** Owner and finance money rules: one column, one thin line between the forms, each with its own reason and Save. */
-export default function FinanceSettings({ withdrawalSetting, withdrawalSecurityWait, autoApproval, kycBeforeFirstWithdrawal, fullPaymentWhenOrdering }: Row) {
+export default function FinanceSettings({ withdrawalSetting, withdrawalSecurityWait, autoApproval, kycBeforeFirstWithdrawal, fullPaymentWhenOrdering, payoutLimits }: Row) {
     const translate = useT();
     const { auth, financeActive, staffActions } = usePage<any>().props;
     const capabilities: string[] = auth.capabilities;
@@ -52,6 +52,13 @@ export default function FinanceSettings({ withdrawalSetting, withdrawalSecurityW
                         <h2>{translate('withdrawal_wait', 'wait_title')}</h2>
                         <p className="set-line">{translate('withdrawal_wait', 'wait_body', { hours: String(withdrawalSecurityWait.hours), default: String(withdrawalSecurityWait.default) })}</p>
                         {withdrawalSecurityWait.can_edit ? <WaitHoursForm setting={withdrawalSecurityWait} /> : <p className="aa-note">{translate('withdrawal_wait', 'wait_owner_only')}</p>}
+                    </section>
+                )}
+                {payoutLimits && (
+                    <section className="set-block" data-tour="payout-limits">
+                        <h2>{translate('payouts', 'limits_title')}</h2>
+                        <p className="set-line">{translate('payouts', 'limits_body')}</p>
+                        {payoutLimits.can_edit ? <PayoutLimitsForm setting={payoutLimits} /> : <p className="aa-note">{translate('payouts', 'limits_owner_only')}</p>}
                     </section>
                 )}
                 {withdrawalSetting && (
@@ -154,6 +161,38 @@ function ReasonAndSave({ place, value, errors, processing, onChange }: { place: 
             {Object.values(errors).map((error) => <span key={String(error)} className="field-error" role="alert">{String(error)}</span>)}
             <button className="button dark set-save" disabled={processing}>{processing ? translate('portal', 'saving') : translate('portal', 'save_changes')}</button>
         </>
+    );
+}
+
+/** Owner limits: most per withdrawal by each method (empty = none), office cash per order, and payout due days. */
+function PayoutLimitsForm({ setting }: { setting: Row }) {
+    const translate = useT();
+    const reason = useReasonField('money.withdrawal_minimum');
+    const channels = Object.keys(setting.per_channel ?? {});
+    const initial = () => ({ per_channel: Object.fromEntries(channels.map((channel) => [channel, setting.per_channel[channel] ?? ''])), office_cash: String(setting.office_cash), due_days: String(setting.due_days), version: setting.version, reason: '' });
+    const form = useForm<Row>(initial());
+    // After a save the page brings the new values and version; keep the boxes in step with them.
+    useEffect(() => { form.setData(initial()); }, [setting.version]);
+
+    return (
+        <form className="action-form" aria-label={translate('payouts', 'limits_save')} onSubmit={(event) => { event.preventDefault(); form.post(`${root}/settings/payout-limits`, { preserveScroll: true }); }}>
+            {channels.map((channel) => (
+                <label key={channel}>{translate('payouts', 'limit_channel', { channel: translate('portal', `pay_channel_${channel.toLowerCase()}`) })}
+                    <input type="text" inputMode="decimal" value={form.data.per_channel[channel] ?? ''} onChange={(event) => form.setData('per_channel', { ...form.data.per_channel, [channel]: event.target.value })} />
+                    {setting.per_channel[channel] && <small>{money(setting.per_channel[channel])}</small>}
+                </label>
+            ))}
+            <label>{translate('payouts', 'limit_office_cash')}
+                <input type="text" inputMode="decimal" required value={form.data.office_cash} onChange={(event) => form.setData('office_cash', event.target.value)} />
+                <small>{money(setting.office_cash)}</small>
+            </label>
+            <label>{translate('payouts', 'limit_due_days')}
+                <input type="number" min={1} max={60} step={1} required value={form.data.due_days} onChange={(event) => form.setData('due_days', event.target.value)} />
+            </label>
+            {reason.shown && <label>{reason.label(translate('portal', 'ops_fld_reason'))}<textarea rows={2} required={reason.required} value={form.data.reason} onChange={(event) => form.setData('reason', event.target.value)} /></label>}
+            {Object.values(form.errors).map((error) => <span key={String(error)} className="field-error" role="alert">{String(error)}</span>)}
+            <button className="button dark set-save" disabled={form.processing}>{form.processing ? translate('portal', 'saving') : translate('payouts', 'limits_save')}</button>
+        </form>
     );
 }
 
