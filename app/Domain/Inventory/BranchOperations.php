@@ -4,6 +4,7 @@ namespace App\Domain\Inventory;
 
 use App\Domain\Clinic\PrescriptionAccess;
 use App\Domain\Geography\PlaceTree;
+use App\Domain\Staff\LeadershipAccess;
 use App\Domain\Support\ChatRouting;
 use App\Models\BranchProductStock;
 use App\Models\BranchStaffAssignment;
@@ -70,7 +71,7 @@ final class BranchOperations
      */
     public function saveBranch(User $actor, array $data, ?CompanyBranch $branch = null): CompanyBranch
     {
-        abort_unless($actor->owner() || $actor->allows('inventory') || $actor->allows('accounts'), 403);
+        abort_unless($this->mayEditBranches($actor), 403);
 
         return DB::transaction(function () use ($actor, $data, $branch): CompanyBranch {
             $code = strtoupper(trim($data['code']));
@@ -163,7 +164,7 @@ final class BranchOperations
      */
     public function assignStaff(User $actor, CompanyBranch $branch, array $data): BranchStaffAssignment
     {
-        abort_unless($actor->owner() || $actor->allows('accounts') || $actor->allows('inventory'), 403);
+        abort_unless($this->mayEditBranches($actor), 403);
         $user = User::query()->whereKey($data['user_id'])->firstOrFail();
         abort_unless($user->staff() || $user->owner(), 422, __('portal.err_branch_staff_only'));
 
@@ -199,7 +200,7 @@ final class BranchOperations
 
     public function removeStaff(User $actor, CompanyBranch $branch, User $staff): void
     {
-        abort_unless($actor->owner() || $actor->allows('accounts') || $actor->allows('inventory'), 403);
+        abort_unless($this->mayEditBranches($actor), 403);
         DB::transaction(function () use ($actor, $branch, $staff): void {
             BranchStaffAssignment::query()
                 ->where('branch_id', $branch->id)
@@ -218,7 +219,7 @@ final class BranchOperations
 
     public function deleteBranch(User $actor, CompanyBranch $branch): void
     {
-        abort_unless($actor->owner() || $actor->allows('accounts') || $actor->allows('inventory'), 403);
+        abort_unless($this->mayEditBranches($actor), 403);
         if ($branch->is_head_office) {
             throw ValidationException::withMessages(['branch' => __('portal.err_branch_head_office')]);
         }
@@ -585,6 +586,15 @@ final class BranchOperations
     public function canManageAllBranches(User $actor): bool
     {
         return $actor->owner() || $actor->allows('accounts') || $actor->allows('inventory');
+    }
+
+    /**
+     * Adding, changing or closing a branch and its staff list. Branches are an owner tool, so the MD
+     * and Chairman need the Super Admin's grant (D11), as the Branches page itself does.
+     */
+    public function mayEditBranches(User $actor): bool
+    {
+        return LeadershipAccess::granted($actor, 'owner_tools') || $actor->allows('inventory') || $actor->allows('accounts');
     }
 
     /**
