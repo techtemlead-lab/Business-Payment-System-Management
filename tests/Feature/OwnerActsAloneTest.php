@@ -6,6 +6,7 @@ use App\Domain\Commissions\PolicyScheduling;
 use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Inventory\StockCountService;
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\BranchProductStock;
 use App\Models\CompanyBranch;
 use App\Models\Product;
@@ -102,6 +103,8 @@ class OwnerActsAloneTest extends TestCase
     public function test_the_md_still_needs_someone_else_for_a_spend_they_recorded(): void
     {
         $managingDirector = User::factory()->staff('md')->create();
+        // D11 (SA-07): the MD acts on Treasury only once the Super Admin grants it.
+        LeadershipAccess::save($this->owner, ['md' => ['treasury']], LeadershipAccess::current()['version']);
         $this->fundMoney();
         $spend = $this->actingAs($managingDirector)->postJson('/api/v1/operations/company-funds/spends', $this->spend())->assertOk()->json('data.id');
 
