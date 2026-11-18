@@ -57,7 +57,9 @@ class ViewOnlyOwnerControlsTest extends TestCase
     public function test_the_withdrawal_limit_form_is_offered_only_to_owners_who_can_save_it(): void
     {
         foreach (['md' => false, 'chairman' => false, 'super_admin' => true] as $role => $canEdit) {
-            $this->actingAs(User::factory()->staff($role)->create())->onPortal('sadmin')->get('/operations/finance-settings')->assertOk()
+            // D11 (SA-07): the MD and Chairman see finance pages only when given finance view rights.
+            $profile = $role === 'super_admin' ? [] : ['action_permissions' => ['finance' => ['view' => true, 'create' => false, 'edit' => false, 'approve' => false]]];
+            $this->actingAs(User::factory()->staff($role)->create(['profile' => $profile]))->onPortal('sadmin')->get('/operations/finance-settings')->assertOk()
                 ->assertInertia(fn (Assert $page) => $page->where('approvalLimit.can_edit', $canEdit));
         }
     }

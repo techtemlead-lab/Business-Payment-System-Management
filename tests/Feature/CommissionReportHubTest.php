@@ -234,12 +234,13 @@ class CommissionReportHubTest extends TestCase
         $this->office($person)->get('/commands/operations/reports?type=commissions&format=xlsx&from=2026-01-01&to=2026-01-31')->assertForbidden();
     }
 
-    public function test_field_sales_staff_see_only_their_two_files_in_the_file_list(): void
+    public function test_field_sales_staff_see_only_the_file_they_can_open_in_the_file_list(): void
     {
+        // SA-11: the payroll file is not offered to a sales rep, who may not open it.
         $this->office($this->staffWith(['field_sales', 'sr_orders']))->get('/operations/financial-reports')->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('reportTypes', ['orders', 'payroll'])
-                ->where('reportGroups', fn ($groups): bool => collect($groups)->pluck('key')->all() === ['orders', 'staff']));
+                ->where('reportTypes', ['orders'])
+                ->where('reportGroups', fn ($groups): bool => collect($groups)->pluck('key')->all() === ['orders']));
     }
 
     public function test_the_report_centre_stays_closed_to_people_it_was_closed_to(): void

@@ -48,8 +48,8 @@ class CompanyAccessTest extends TestCase
         $this->assertAuthenticatedAs($staff);
         $this->get('/company')->assertInertia(fn (Assert $p) => $p->where('portalBase', '')->where('portal', 'manage'));
         $this->get('/workspace/orders?q=TEST')->assertOk();
-        $this->onPortal('dealer')->get('/orders?q=TEST')->assertForbidden();
-        $this->post('/logout')->assertRedirect('/login');
+        // SA-10: an office session carried to the dealer host is ended, not just refused.
+        $this->onPortal('dealer')->get('/orders?q=TEST')->assertRedirect('/login');
         $this->assertGuest();
     }
 
