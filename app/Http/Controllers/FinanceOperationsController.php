@@ -173,7 +173,7 @@ class FinanceOperationsController extends Controller
         $data = $request->validate(['reason' => ReasonFields::rule('money.held_release', 1000, 5)]);
         $reserves->release($request->user(), $id, ReasonFields::text($data['reason'] ?? null));
 
-        return $this->done($request);
+        return $this->done($request, message: __('office_shell.hold_released'));
     }
 
     public function recover(Request $request, int $id, CommissionWallet $wallets): Response
@@ -428,11 +428,13 @@ class FinanceOperationsController extends Controller
     }
 
     /** @param array<string, mixed> $data */
-    private function done(Request $request, array $data = []): Response
+    private function done(Request $request, array $data = [], ?string $message = null): Response
     {
+        $message ??= __('portal.flash_finance_operation');
+
         return $request->expectsJson()
-            ? response()->json(['data' => $data, 'message' => __('portal.flash_finance_operation')])
-            : back()->with('success', __('portal.flash_finance_operation'));
+            ? response()->json(['data' => $data, 'message' => $message])
+            : back()->with('success', $message);
     }
 
     /**
