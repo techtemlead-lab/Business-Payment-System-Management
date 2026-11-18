@@ -568,7 +568,7 @@ final class ReserveService
      *
      * @return int Credited amount in cents
      */
-    private function creditHeldAllocation(CommissionAllocation $fund, ?int $actorId, string $reason): int
+    public function creditHeldAllocation(CommissionAllocation $fund, ?int $actorId, string $reason): int
     {
         if ($fund->status !== 'held') {
             throw ValidationException::withMessages(['hold' => __('portal.err_hold_not_held')]);

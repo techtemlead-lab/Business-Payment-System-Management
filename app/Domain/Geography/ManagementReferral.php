@@ -53,7 +53,9 @@ final class ManagementReferral
         return [
             'enabled' => (bool) ($stored['enabled'] ?? true),
             'auto_blank_reference' => (bool) ($stored['auto_blank_reference'] ?? true),
-            'route_referral_slices' => (bool) ($stored['route_referral_slices'] ?? true),
+            // Owner decision D1 (2026-11-18): a referral share with no upline is company profit unless
+            // the owner has ticked "send to the management fund" themselves.
+            'route_referral_slices' => (bool) ($stored['route_referral_slices'] ?? false),
             'version' => (int) ($row->version ?? 0),
             'place_code_id' => $place?->id,
             'place_code' => $place?->code,

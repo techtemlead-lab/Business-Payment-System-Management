@@ -526,8 +526,9 @@ final class CommissionSettlement
                 'place_code_id' => $fund->metadata['place_code_id'] ?? null,
                 'retained_by' => 'company_profit_unclaimed',
                 'reason_key' => $reasonKey ?? ($kind === 'salary' ? 'retained_reason_unclaimed_division_salary' : 'retained_reason_unclaimed_royalty'),
+                // A key with a dot names its own language file (money_core.*); a bare key lives in portal.
                 'reason' => $reasonKey !== null
-                    ? __('portal.'.$reasonKey)
+                    ? __(str_contains($reasonKey, '.') ? $reasonKey : 'portal.'.$reasonKey, ['place' => $fund->metadata['place_code'] ?? '—'])
                     : ($kind === 'salary'
                         ? __('portal.retained_reason_unclaimed_division_salary', ['division' => $division ?? __('portal.report_area_unknown')])
                         : __('portal.retained_reason_unclaimed_royalty')),

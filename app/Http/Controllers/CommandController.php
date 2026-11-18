@@ -17,6 +17,7 @@ use App\Domain\Content\CircularPublishNotifications;
 use App\Domain\Content\PublicTrustContent;
 use App\Domain\Content\TestimonialLabels;
 use App\Domain\Finance\PolicyDraftService;
+use App\Domain\Finance\UnownedShareSweeps;
 use App\Domain\Geography\ManagementReferral;
 use App\Domain\Geography\PlaceTree;
 use App\Domain\Inventory\BranchOperations;
@@ -426,6 +427,10 @@ class CommandController extends Controller
                     'reason' => $reason,
                     'user_id' => $locked->id,
                 ];
+                if ($statusChange['to'] === 'active') {
+                    // Owner decision D3: commission held while the partner was suspended is paid now.
+                    app(UnownedShareSweeps::class)->releaseHeldForActivePartners($locked->id, $r->user()->id);
+                }
             }
             if ($isPartner && array_key_exists('sponsor_id', $d)) {
                 $nextSponsorId = ! empty($d['sponsor_id']) ? (int) $d['sponsor_id'] : null;

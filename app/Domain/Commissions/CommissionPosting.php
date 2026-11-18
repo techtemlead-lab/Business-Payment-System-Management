@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 final class CommissionPosting
@@ -495,6 +496,13 @@ final class CommissionPosting
                     ->get()
                 : collect();
             $assignment = $assignments->count() === 1 ? $assignments->first() : null;
+            if ($assignments->count() > 1) {
+                // Two seats for one place should never exist. The share waits like a seat with
+                // nobody in it, and the owner is alerted so the duplicate seat can be closed.
+                Log::critical('Two active area seats hold one place code; the area share was not paid to either.', [
+                    'level' => $level, 'place_code_id' => $placeId, 'assignment_ids' => $assignments->pluck('id')->all(),
+                ]);
+            }
             $id = $assignment?->user_id;
             $status = $recipient($id);
             $quotaHold = false;
@@ -510,7 +518,7 @@ final class CommissionPosting
                     // No dealer holds this place code at this level (yet): the share is company
                     // profit at order time. A dealer seated later earns only on later orders.
                     'retained_by' => $id ? null : self::CompanyProfit,
-                    'reason_key' => $id ? null : 'retained_reason_profit_no_area_seat',
+                    'reason_key' => $id ? null : ($assignments->count() > 1 ? 'money_core.reason_two_area_seats' : 'retained_reason_profit_no_area_seat'),
                     'source_category' => 'area_'.$level,
                     'level' => $level,
                     'hold_reason' => $quotaHold ? 'quota' : null,

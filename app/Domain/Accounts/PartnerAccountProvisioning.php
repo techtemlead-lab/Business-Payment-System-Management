@@ -852,7 +852,7 @@ final class PartnerAccountProvisioning
             'id' => null,
             'name' => __('portal.acct_management_referrer'),
             'refer_code' => $settings['place_code'],
-            'fund' => 'management',
+            'fund' => $settings['route_referral_slices'] ? 'management' : 'company_profit',
         ];
     }
 
