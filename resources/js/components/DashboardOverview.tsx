@@ -17,6 +17,7 @@ import StartBooksCard from './office/StartBooksCard';
 import { Badge, Empty, date, humanize, money, type Row, number } from './UI';
 import { businessTodayIso, localizeDigits } from '../business-date';
 import { useT } from '../shared/i18n/t';
+import CallMeCard from './CallMeCard';
 
 /** A progress bar row, or (kind "amount") a plain amount with no target, such as a sub-dealer's salary or tour fund. */
 type TargetRow = {
@@ -44,11 +45,6 @@ function ReferralShare({ referral, role }: { referral: { code?: string; url?: st
     const encodedText = encodeURIComponent(shareText);
     const whatsappHref = `https://wa.me/?text=${encodedText}`;
     const facebookHref = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
-    // Messenger has no web share URL without a registered app id; the app link works on phones.
-    const messengerHref = `fb-messenger://share/?link=${encodedUrl}`;
-    const telegramHref = `https://t.me/share/url?url=${encodedUrl}&text=${encodeURIComponent(translate('portal', 'share_join_text', { code: String(referral.code) }))}`;
-    const linkedinHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
-    const xHref = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodeURIComponent(translate('portal', 'share_join_text', { code: String(referral.code) }))}`;
 
     const copyLink = async () => {
         try {
@@ -110,11 +106,6 @@ function ReferralShare({ referral, role }: { referral: { code?: string; url?: st
                         </button>
                         <a className="button small" href={whatsappHref} target="_blank" rel="noreferrer">{translate('portal', 'share_whatsapp')}</a>
                         <a className="button small" href={facebookHref} target="_blank" rel="noreferrer">{translate('portal', 'share_facebook')}</a>
-                        <a className="button small" href={messengerHref} target="_blank" rel="noreferrer">{translate('portal', 'share_messenger')}</a>
-                        <a className="button small" href={telegramHref} target="_blank" rel="noreferrer">{translate('portal', 'share_telegram')}</a>
-                        <a className="button small" href={linkedinHref} target="_blank" rel="noreferrer">{translate('portal', 'share_linkedin')}</a>
-                        <a className="button small" href={xHref} target="_blank" rel="noreferrer">{translate('portal', 'share_x')}</a>
-                        <a className="text-link" href={referral.url} target="_blank" rel="noreferrer">{translate('portal', 'open_join_page')}</a>
                     </div>
                 </div>
             </div>
@@ -130,7 +121,8 @@ function BalancePill({ amount }: { amount: unknown }) {
         if (!shown) {
             return;
         }
-        const timer = window.setTimeout(() => setShown(false), 6000);
+        // Long enough to read a crore-sized balance slowly.
+        const timer = window.setTimeout(() => setShown(false), 20000);
 
         return () => window.clearTimeout(timer);
     }, [shown]);
@@ -149,6 +141,9 @@ function BalancePill({ amount }: { amount: unknown }) {
         </button>
     );
 }
+
+/** The home screen shows the two most important targets; the rest are on the ranks page. */
+const HOME_TARGETS = 2;
 
 type QuickAction = { section: string; label: string; icon: React.ComponentType<{ size?: number }>; tone: string; wordGroup?: string };
 
@@ -191,7 +186,7 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
     const snapshot = home.snapshot ?? {};
     const wallet = home.wallet ?? {};
     const waitingAmounts: Row[] = wallet.commission_waiting?.amounts ?? [];
-    const location = [profile.district, profile.division].filter(Boolean).join(', ');
+    const sections: string[] = usePage<any>().props.portalCatalog?.sections ?? [];
 
     return (
         <div className="partner-home ph">
@@ -260,6 +255,8 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
 
             <QuickActions base={base} />
 
+            <CallMeCard />
+
             <IncomeCards cards={moneyCards} hrefFor={(type) => `${base}/my-money?type=${encodeURIComponent(type)}`} />
 
             <section className="ph-today" data-tour="home-metrics" aria-labelledby="ph-today-title">
@@ -293,7 +290,7 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
                         <PartnerProgressButton />
                     </div>
                     <div className="partner-home-target-list">
-                        {targets.map((target) => target.kind === 'amount' ? (
+                        {targets.slice(0, HOME_TARGETS).map((target) => target.kind === 'amount' ? (
                             <article key={target.key} className="partner-home-target-amount">
                                 <div className="partner-home-target-top">
                                     <b>
@@ -331,6 +328,9 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
                             </article>
                         ))}
                     </div>
+                    {targets.length > HOME_TARGETS && sections.includes('ranks') && (
+                        <Link href={`${base}/ranks`} className="text-link ph-targets-more">{translate('partner_ux', 'all_targets')} <ArrowUpRight size={15} /></Link>
+                    )}
                 </section>
             )}
 
@@ -371,23 +371,8 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
             )}
             <ReferralShare referral={home.referral ?? null} role={profile.role} />
 
-            <section className="ph-card ph-profile">
-                <div className="ph-card-head">
-                    <h3>{translate('portal', 'ph_my_account')}</h3>
-                    {profile.shop_name && <p>{profile.shop_name}</p>}
-                </div>
-                <dl>
-                    <div><dt>{translate('portal', 'label_mobile')}</dt><dd>{profile.phone || '—'}</dd></div>
-                    <div><dt>{translate('portal', 'label_email')}</dt><dd>{profile.email || '—'}</dd></div>
-                    <div><dt>{translate('portal', 'label_area_code')}</dt><dd>{profile.area_code || '—'}</dd></div>
-                    {location && <div><dt>{translate('portal', 'label_location')}</dt><dd>{location}</dd></div>}
-                </dl>
-                <div className="ph-profile-links">
-                    <Link href={`${base}/profile`} className="button small">{translate('portal', 'full_profile')}</Link>
-                    <a href={`${base}/id-card/pdf`} className="button small">{translate('portal', 'download_id_card')}</a>
-                    {profile.refer_code && <a href={`${base}/join-poster/pdf`} className="button small">{translate('portal', 'download_join_poster')}</a>}
-                </div>
-            </section>
+            {/* Name, code and place are already in the card at the top; the full profile is one tap away. */}
+            <p className="ph-profile-link"><Link href={`${base}/profile`} className="button small">{translate('portal', 'full_profile')}</Link></p>
         </div>
     );
 }

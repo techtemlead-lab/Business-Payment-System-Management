@@ -6,6 +6,9 @@ import {
 } from 'lucide-react';
 import { money, type Row, Table, number, FormErrors, Modal } from './UI';
 import { useT } from '../shared/i18n/t';
+import { catalogWord } from '../shared/catalogWords';
+import FilePicker from './FilePicker';
+import { amountInWords as amountInLakhWords } from '../shared/amountWords';
 import { useReasonField } from '../shared/reasonFields';
 import { randomUuid } from '../shared/randomUuid';
 import RepeatOrderPanel, { repeatChangeNotes, type RepeatOption } from './dealertools/RepeatOrderPanel';
@@ -69,6 +72,8 @@ export default function ProductPurchaseMatrix({
     runningSchemes = [],
 }: Props) {
     const translate = useT();
+    const unitWord = (value: unknown) => catalogWord(translate, 'unit', value as string | null | undefined);
+    const categoryWord = (value: unknown) => catalogWord(translate, 'category', value as string | null | undefined);
     const { url, props: pageProps } = usePage<any>();
     const payOptions: PayOptions = pageProps.data?.pay_options ?? { account_available: '0', account_usable: false, account_block: 'off' };
     const page = (key: string, replace?: Record<string, string | number>) => translate('purchase_page', key, replace);
@@ -80,6 +85,8 @@ export default function ProductPurchaseMatrix({
     };
     // Opened from "order with this money" on the withdraw form: /purchase?pay=account&budget=5000
     const openedWithAccount = useMemo(() => new URLSearchParams(url.split('?')[1] ?? '').get('pay') === 'account', [url]);
+    // /purchase?pay=office (the big "pay at the office" button on the home screen) starts with that method chosen.
+    const openedAtOffice = useMemo(() => new URLSearchParams(url.split('?')[1] ?? '').get('pay') === 'office', [url]);
     const budget = useMemo(() => {
         const planned = Number(new URLSearchParams(url.split('?')[1] ?? '').get('budget'));
         return openedWithAccount && Number.isFinite(planned) && planned > 0 ? planned : null;
@@ -200,7 +207,7 @@ export default function ProductPurchaseMatrix({
 
         const sizeText = activeProduct.size_label || activeProduct.strength;
         const strengthLabel = sizeText ? ` (${sizeText})` : '';
-        setAddedBanner(`${activeProduct.name}${strengthLabel} — ${number(qty)} ${activeProduct.unit || translate('portal', 'ppm_box_unit')} ${translate('portal', 'b2b_added_success')}`);
+        setAddedBanner(`${activeProduct.name}${strengthLabel} — ${number(qty)} ${unitWord(activeProduct.unit) || translate('portal', 'ppm_box_unit')} ${translate('portal', 'b2b_added_success')}`);
         setTimeout(() => setAddedBanner(null), 4000);
 
         // The box is ready for the next product at once.
@@ -273,12 +280,31 @@ export default function ProductPurchaseMatrix({
         };
     }, [cart]);
 
+    // Only the ways to pay that have a company account behind them are offered; paying at the office always is.
+    const payChannels = useMemo(
+        () => [...['Bank', 'bKash', 'Nagad', 'Rocket'].filter(x => collectionAccounts.some(account => account.channel === x)), OFFICE_CHANNEL],
+        [collectionAccounts],
+    );
+
+    // The account balance can change while this page stays open (a payment is verified, a withdrawal is paid):
+    // read it again whenever the person comes back to the page, and keep the cart as it is.
+    useEffect(() => {
+        const refresh = () => {
+            if (document.visibilityState === 'visible') {
+                router.reload({ only: ['data'], headers: { 'X-Background-Refresh': '1' } });
+            }
+        };
+        document.addEventListener('visibilitychange', refresh);
+
+        return () => document.removeEventListener('visibilitychange', refresh);
+    }, []);
+
     // Checkout form
     const f = useForm({
         items: [] as { product_id: number; quantity: number }[],
         reference: '',
         payment_account_id: '',
-        channel: openedWithAccount && payOptions.account_usable ? ACCOUNT_CHANNEL : 'Bank',
+        channel: openedWithAccount && payOptions.account_usable ? ACCOUNT_CHANNEL : openedAtOffice ? OFFICE_CHANNEL : payChannels[0],
         amount: '',
         use_account: false,
         note: '',
@@ -518,7 +544,7 @@ export default function ProductPurchaseMatrix({
                                                 ? <span className="ppm-strength">{card.sizes.map(size => size.size_label || size.strength).filter(Boolean).join(' · ') || translate('order_search', 'sizes_count', { count: String(card.sizes.length) })}</span>
                                                 : (product.size_label || product.strength) && <span className="ppm-strength">({product.size_label || product.strength})</span>}
                                             <div className="ops-meta">
-                                                {product.category} {product.sub_category ? `› ${product.sub_category}` : ''}
+                                                {categoryWord(product.category)} {product.sub_category ? `› ${product.sub_category}` : ''}
                                             </div>
                                         </div>
                                         <div className="ops-right">
@@ -553,10 +579,16 @@ export default function ProductPurchaseMatrix({
                         {availableCategories.map(category => (
                             <button key={category} type="button" className={`ppm-filter${filterCategory === category ? ' is-on' : ''}`} aria-pressed={filterCategory === category}
                                 onClick={() => { setFilterCategory(category); setFilterSub(''); setListOpen(true); searchRef.current?.focus(); }}>
-                                {category}
+                                {categoryWord(category)}
                             </button>
                         ))}
                     </div>
+                )}
+                {searchQuery.trim() !== '' && filterCategory !== '' && (
+                    <p className="field-hint" role="status">
+                        {translate('partner_ux', 'search_only_in', { category: categoryWord(filterCategory) })}{' '}
+                        <button type="button" className="text-link" onClick={() => { setFilterCategory(''); setFilterSub(''); }}>{translate('partner_ux', 'search_all')}</button>
+                    </p>
                 )}
                 {filterCategory !== '' && filterOptions.subCategories.length > 1 && (
                     <div className="ppm-filters is-sub" role="group" aria-label={translate('order_search', 'filter_sub_label')}>
@@ -592,7 +624,7 @@ export default function ProductPurchaseMatrix({
                                                 checked={String(v.id) === String(activeProduct.id)}
                                                 onChange={() => setActiveId(v.id)}
                                             />
-                                            <span className="ppm-size-label">{v.size_label || v.strength || v.unit || translate('portal', 'b2b_single_spec')}</span>
+                                            <span className="ppm-size-label">{v.size_label || v.strength || unitWord(v.unit) || translate('portal', 'b2b_single_spec')}</span>
                                             <span className="ppm-size-price">{money(vPrice)}{vDisc > 0 ? ` · ${translate('portal', 'pct_off', { pct: String(vDisc) })}` : ''}</span>
                                             {stockKnown(v) && <span className="ppm-size-stock">{translate('order_search', `stock_${state}`)}</span>}
                                         </label>
@@ -604,7 +636,7 @@ export default function ProductPurchaseMatrix({
                         <div className="ppm-qty-row">
                             <div className="ops-grow">
                                 <label className="ops-field-label" htmlFor="ppm-qty-input">
-                                    {translate('order_search', 'quantity_for')} {activeProduct?.unit ? `(${activeProduct.unit})` : ''}
+                                    {translate('order_search', 'quantity_for')} {activeProduct?.unit ? `(${unitWord(activeProduct.unit)})` : ''}
                                 </label>
                                 <input
                                     id="ppm-qty-input"
@@ -665,7 +697,7 @@ export default function ProductPurchaseMatrix({
                                 <div className="ppm-sel-name">
                                     {activeProduct.name} {(activeProduct.size_label || activeProduct.strength) ? `(${activeProduct.size_label || activeProduct.strength})` : ''}
                                     <span className="ppm-sel-sku">
-                                        {translate('portal', 'product_code_value', { sku: String(activeProduct.sku) })} · {activeProduct.category}{activeProduct.sub_category ? ` / ${activeProduct.sub_category}` : ''}
+                                        {translate('portal', 'product_code_value', { sku: String(activeProduct.sku) })} · {categoryWord(activeProduct.category)}{activeProduct.sub_category ? ` / ${activeProduct.sub_category}` : ''}
                                     </span>
                                 </div>
                                 {activeAvailable !== null && (
@@ -676,7 +708,7 @@ export default function ProductPurchaseMatrix({
                                 {stockKnown(activeProduct) && (
                                     <span className={`hub-pill ${stockState(activeProduct) === 'in' ? 'tone-ok' : 'tone-danger'}`}>
                                         {stockState(activeProduct) === 'in'
-                                            ? translate('portal', 'ppm_stock_left', { qty: number(activeProduct.stock), unit: String(activeProduct.unit || translate('portal', 'ppm_unit_fallback')) })
+                                            ? translate('portal', 'ppm_stock_left', { qty: number(activeProduct.stock), unit: String(unitWord(activeProduct.unit) || translate('portal', 'ppm_unit_fallback')) })
                                             : translate('portal', 'ppm_stock_awaiting')}
                                     </span>
                                 )}
@@ -774,8 +806,8 @@ export default function ProductPurchaseMatrix({
                                                 </div>
                                                 <div className="cell-sub">
                                                     {(p.size_label || p.strength) ? <strong className="ppm-line-strength">{p.size_label || p.strength}</strong> : null}
-                                                    <span>{p.category}{p.sub_category ? ` · ${p.sub_category}` : ''}</span>
-                                                    <span className="ppm-line-unit">({p.unit || translate('portal', 'ppm_box_unit')})</span>
+                                                    <span>{categoryWord(p.category)}{p.sub_category ? ` · ${p.sub_category}` : ''}</span>
+                                                    <span className="ppm-line-unit">({unitWord(p.unit) || translate('portal', 'ppm_box_unit')})</span>
                                                 </div>
                                                 {(() => {
                                                     const free = availableOf(p);
@@ -880,6 +912,7 @@ export default function ProductPurchaseMatrix({
                                 <strong className="ppm-sum-value is-net">
                                     {money(cartSummary.totalPayable)}
                                 </strong>
+                                {amountInLakhWords(cartSummary.totalPayable, translate) !== '' && <small className="ppm-sum-words">{amountInLakhWords(cartSummary.totalPayable, translate)}</small>}
                             </div>
                         </div>
 
@@ -906,7 +939,7 @@ export default function ProductPurchaseMatrix({
                                             f.setData('payment_account_id', '');
                                         }}
                                     >
-                                        {['Bank', 'bKash', 'Nagad', 'Rocket', OFFICE_CHANNEL].map(x => (
+                                        {payChannels.map(x => (
                                             <option key={x} value={x}>{translate('portal', `pay_channel_${x.toLowerCase()}`)}</option>
                                         ))}
                                         {payOptions.account_block !== 'off' && (
@@ -918,10 +951,13 @@ export default function ProductPurchaseMatrix({
                                     {payOptions.account_block === 'debt' && <small className="field-hint is-warn" role="status">{translate('order_payment', 'account_block_debt')}</small>}
                                 </label>
 
+                                {/* The space is kept while the choice is hidden or its lines change, so the form below does not jump. */}
+                                {payOptions.account_usable && accountBalance > 0 && !paysFromAccount && (
+                                    <div className="ppm-split-slot" style={{ minHeight: '8.5em' }}>
                                 {splitAvailable && (
                                     <div data-testid="split-pay">
                                         <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                                            <input type="checkbox" checked={f.data.use_account} onChange={e => f.setData('use_account', e.target.checked)} />
+                                            <input type="checkbox" checked={f.data.use_account} onChange={e => { f.setData('use_account', e.target.checked); router.reload({ only: ['data'], headers: { 'X-Background-Refresh': '1' } }); }} />
                                             {translate('order_split', 'toggle')}
                                         </label>
                                         <small className="field-hint">{translate('order_split', 'toggle_hint')}</small>
@@ -931,6 +967,8 @@ export default function ProductPurchaseMatrix({
                                             </p>
                                         )}
                                         {splitOn && paysAtOffice && <small className="field-hint">{translate('order_split', 'cash_note')}</small>}
+                                    </div>
+                                )}
                                     </div>
                                 )}
 
@@ -991,11 +1029,10 @@ export default function ProductPurchaseMatrix({
 
                                 <label>
                                     {translate('portal', 'payment_proof_label')}
-                                    <input
-                                        type="file"
+                                    <FilePicker
                                         accept="image/jpeg,image/png,image/webp,application/pdf"
                                         required={fullPaymentRequired || f.data.reference.trim() !== ''}
-                                        onChange={e => f.setData('proof', e.target.files?.[0] ?? null)}
+                                        onPick={file => f.setData('proof', file)}
                                     />
                                     <small className="field-hint">{translate('portal', 'payment_proof_hint')}</small>
                                     {f.errors.proof && <span className="field-error" role="alert">{f.errors.proof}</span>}

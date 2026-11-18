@@ -482,7 +482,10 @@ function partnerMothers(role: string, available: Set<string>): NavMother[] {
         rowMother('partner-orders', available),
         mother('products', 'nav_products', pick(available, ['catalog'])),
         mother('earnings', 'nav_module_earnings', pick(available, ['partner-money'])),
-        rowMother('partner-team', teamAvailable),
+        // A sub-dealer's team row only opens the customer list, so it carries that page's own name.
+        role === 'sub_dealer' && rowItem('partner-team', teamAvailable) === 'customers'
+            ? mother('partner-team', 'customer_book', ['customers'])
+            : rowMother('partner-team', teamAvailable),
         rowMother('partner-learning', available),
         rowMother('partner-office', available),
         rowMother('partner-account', available),

@@ -18,6 +18,11 @@
         document.documentElement.setAttribute('data-theme', scheme);
         document.documentElement.style.colorScheme = scheme;
         window.__MADINA_THEME_DOMAIN__ = cookieDomain;
+        // Text size chosen with the A buttons (dealers and sub-dealers); applied before paint so the page does not jump.
+        var size = localStorage.getItem('madina-text-size');
+        if (size === 'small' || size === 'normal' || size === 'large' || size === 'xlarge') {
+            document.documentElement.setAttribute('data-text-size', size);
+        }
     } catch (e) {}
 })();
 </script>

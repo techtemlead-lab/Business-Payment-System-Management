@@ -149,6 +149,7 @@ final class PartnerMoneyBook
             defaultPeriod: null,
         ));
         $typeChosen = isset($table['state']['filters']['type']);
+        $ownOrders = self::ownOrderIds($partner, $table['rows']->getCollection()->pluck('order_id')->all());
         $table['rows'] = $table['rows']->through(fn (object $row): array => [
             'id' => $row->id,
             'occurred_at' => CarbonImmutable::parse((string) $row->occurred_at, 'UTC')->toIso8601String(),
@@ -156,6 +157,8 @@ final class PartnerMoneyBook
             'type_label' => $this->rowWord($row),
             'percent' => $row->percent === null ? null : (string) $row->percent,
             'order_id' => $row->order_id,
+            // Only the partner's own orders open; an order of someone in the team stays closed to them.
+            'order_is_own' => $row->order_id !== null && isset($ownOrders[(string) $row->order_id]),
             'order_number' => $row->order_number,
             'from_name' => $row->from_name,
             'withdrawal_id' => $row->withdrawal_id,
@@ -166,6 +169,23 @@ final class PartnerMoneyBook
         ]);
 
         return $table;
+    }
+
+    /**
+     * Which of these orders the partner placed themselves, as a lookup by order id.
+     *
+     * @param  array<int, mixed>  $orderIds
+     * @return array<string, bool>
+     */
+    public static function ownOrderIds(User $partner, array $orderIds): array
+    {
+        $ids = array_values(array_unique(array_map('strval', array_filter($orderIds, fn ($id): bool => $id !== null))));
+        if ($ids === []) {
+            return [];
+        }
+
+        return DB::table('orders')->where('user_id', $partner->id)->whereIn('id', $ids)->pluck('id')
+            ->mapWithKeys(fn ($id): array => [(string) $id => true])->all();
     }
 
     /**

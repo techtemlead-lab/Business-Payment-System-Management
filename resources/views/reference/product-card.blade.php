@@ -15,7 +15,7 @@
     $priceWords = function (mixed $amount): string {
         $value = (float) str_replace(',', '', preg_replace('/[^\d.]/', '', (string) ($amount ?? '0')));
 
-        return \App\Support\LocalDigits::text(number_format($value, $value === floor($value) ? 0 : 2));
+        return \App\Support\LocalDigits::money($value, $value === floor($value) ? 0 : 2);
     };
     $displayMrp = $priceWords($item['mrp'] ?? '0');
     $isFeatured = !empty($item['featured']);

@@ -4,6 +4,11 @@ return [
     'app_domain' => env('APP_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST) ?: 'localhost'),
     'locales' => ['en', 'bn'],
     'default_locale' => env('APP_LOCALE', 'en'),
+    // The language for someone who has never chosen one (sign-in pages, the public site). Empty means
+    // "follow the browser". Bangla by default: most dealers read Bangla only.
+    // Send the translation words inside every page (tests, and any host that cannot serve /i18n files). Off: one cached file.
+    'inline_translations' => env('MADINA_INLINE_TRANSLATIONS', false),
+    'guest_locale' => env('MADINA_GUEST_LOCALE', 'bn'),
     'financial_activation' => env('MADINA_FINANCIAL_ACTIVATION', false),
     'preview_mode' => env('MADINA_PREVIEW_MODE', false),
     // Removes product photo backgrounds in the office browser. The files are too large for git:

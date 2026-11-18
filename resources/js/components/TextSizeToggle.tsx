@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useT } from '../shared/i18n/t';
-import { applyTextSize, persistTextSize, resolveTextSize, type TextSize } from '../shared/textSize';
+import { applyTextSize, panelTextSize, persistTextSize, resolveTextSize, type TextSize } from '../shared/textSize';
 
-/** A word-labelled switch between normal and larger writing, for the staff and owner panels. */
+/** A word-labelled switch between normal and larger writing, for the staff and owner panels (shared setting in shared/textSize). */
 export default function TextSizeToggle() {
     const translate = useT();
     const [size, setSize] = useState<TextSize>('normal');
 
     useEffect(() => {
-        const current = resolveTextSize();
+        const current = panelTextSize(resolveTextSize());
         applyTextSize(current);
         setSize(current);
     }, []);

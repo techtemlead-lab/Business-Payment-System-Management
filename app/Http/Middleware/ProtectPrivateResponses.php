@@ -28,7 +28,8 @@ class ProtectPrivateResponses
         // Keeps the page address on our own site, so back() returns to the page the person was on
         // even with two tabs open. Other sites get nothing, and each portal counts as its own origin.
         $response->headers->set('Referrer-Policy', 'same-origin');
-        if ($request->user() || $request->is('login', 'login/*', 'forgot-password', 'reset-password*', 'exports*') || in_array(PortalHost::current($request), ['dealer', 'subdealer', 'manage', 'sadmin'], true)) {
+        // The translation file holds only public words and is kept by the browser for a year.
+        if (! $request->is('i18n/*') && ($request->user() || $request->is('login', 'login/*', 'forgot-password', 'reset-password*', 'exports*') || in_array(PortalHost::current($request), ['dealer', 'subdealer', 'manage', 'sadmin'], true))) {
             $response->headers->set('Cache-Control', 'private, no-store, max-age=0');
         }
         // H4: tighten CSP beyond frame/base/object/form defaults.

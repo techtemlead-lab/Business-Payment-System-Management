@@ -121,7 +121,11 @@ final class NetworkSection implements WorkspaceSection
         $monthStart = CarbonImmutable::now($tz)->startOfMonth()->utc();
         $sixtyDaysAgo = CarbonImmutable::now($tz)->startOfDay()->subDays(60)->utc();
         $delivered = "'".implode("','", CommissionQualification::DeliveredStatuses)."'";
-        $bought = fn (string $since): string => "EXISTS (SELECT 1 FROM orders o WHERE o.user_id = u.id AND o.status IN ({$delivered}) AND o.created_at >= {$since})";
+        $month = CommissionQualification::currentMonth();
+        // "This month" for purchases is the month the goods were delivered (the commission batch month),
+        // the same month the salary target and the income list use, so every figure agrees with the money.
+        $boughtThisMonth = 'EXISTS (SELECT 1 FROM commission_batches b JOIN orders o ON o.id = b.order_id WHERE o.user_id = u.id AND b.period_month = ? AND b.no_commission = false)';
+        $bought60 = fn (string $since): string => "EXISTS (SELECT 1 FROM orders o WHERE o.user_id = u.id AND o.status IN ({$delivered}) AND o.created_at >= {$since})";
         $row = DB::table('referral_tree_paths as p')
             ->join('users as u', 'u.id', '=', 'p.descendant_id')
             ->where('p.ancestor_id', $user->id)
@@ -129,9 +133,9 @@ final class NetworkSection implements WorkspaceSection
             ->selectRaw('COUNT(*) AS members')
             ->selectRaw('COUNT(*) FILTER (WHERE p.depth = 1) AS direct')
             ->selectRaw('COUNT(*) FILTER (WHERE u.created_at >= ?) AS joined_this_month', [$monthStart])
-            ->selectRaw('COUNT(*) FILTER (WHERE '.$bought('?').') AS bought_this_month', [$monthStart])
-            ->selectRaw('COUNT(*) FILTER (WHERE u.created_at < ? AND NOT '.$bought('?').') AS quiet_60_days', [$sixtyDaysAgo, $sixtyDaysAgo])
-            ->selectRaw('COALESCE((SELECT SUM('.CommissionQualification::deliveredValueSql('o').") FROM orders o JOIN referral_tree_paths t ON t.descendant_id = o.user_id WHERE t.ancestor_id = ? AND t.depth > 0 AND o.status IN ({$delivered}) AND o.created_at >= ?), 0) AS team_sales_month", [$user->id, $monthStart])
+            ->selectRaw('COUNT(*) FILTER (WHERE '.$boughtThisMonth.') AS bought_this_month', [$month])
+            ->selectRaw('COUNT(*) FILTER (WHERE u.created_at < ? AND NOT '.$bought60('?').') AS quiet_60_days', [$sixtyDaysAgo, $sixtyDaysAgo])
+            ->selectRaw('COALESCE((SELECT SUM(b.cash_basis - b.refunded_amount) FROM commission_batches b JOIN orders o ON o.id = b.order_id JOIN referral_tree_paths t ON t.descendant_id = o.user_id WHERE t.ancestor_id = ? AND t.depth > 0 AND b.period_month = ? AND b.no_commission = false), 0) AS team_sales_month', [$user->id, $month])
             ->first();
 
         return [
@@ -281,11 +285,12 @@ final class NetworkSection implements WorkspaceSection
                     'sponsor_name' => $dealer->sponsor?->name,
                     'role' => $dealer->role,
                     'status' => $dealer->status,
-                    'rank' => $dealer->rank?->current_rank ?? ($dealer->role === 'sub_dealer' ? 'sub_dealer' : 'dealer'),
+                    // Ranks belong to dealers; a sub-dealer is always shown as a sub-dealer, never as a dealer.
+                    'rank' => $dealer->role === 'sub_dealer' ? 'sub_dealer' : ($dealer->rank?->current_rank ?? 'dealer'),
                     'lifetime_purchases' => (float) ($dealer->rank?->lifetime_purchase_total ?? 0),
                     'created_at' => $dealer->created_at?->toIso8601String(),
                     'sales_total' => Money::decimal($sales[$dealer->id]['total'] ?? 0),
-                    'sales_month' => Money::decimal($sales[$dealer->id]['month'] ?? 0),
+                    'sales_month' => Money::decimal($qualifying[$dealer->id] ?? 0),
                     'qualifying_volume_month' => Money::decimal($qualifying[$dealer->id] ?? 0),
                     'sponsor_earned' => Money::decimal($sponsorMoney['earned'][$dealer->id] ?? 0),
                     'sponsor_held' => Money::decimal($sponsorMoney['held'][$dealer->id] ?? 0),

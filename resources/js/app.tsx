@@ -3,13 +3,12 @@ import {createRoot} from 'react-dom/client';
 import {createInertiaApp} from '@inertiajs/react';
 import { applyColorScheme, resolveColorScheme } from './shared/theme';
 import { installBanglaDigitShaping } from './shared/banglaDigits';
-import { installCountUp } from './shared/countUp';
 import { installNavigationFeedback } from './shared/navigationFeedback';
 import { installPortalMotion } from './components/motion/portalMotion';
+import { initialTranslationsUrl, loadTranslations } from './shared/i18n/bundle';
 
 applyColorScheme(resolveColorScheme());
 installBanglaDigitShaping();
-installCountUp();
 installNavigationFeedback();
 installPortalMotion();
 
@@ -48,9 +47,16 @@ const panelTabName = (typeof document === 'undefined' ? null : document.querySel
 
 createInertiaApp({
     title: (title) => `${title} · ${panelTabName}`,
-    resolve: async (name) => (await pages[name]()).default,
+    // The words are fetched together with the first screen (the page asks the browser to start that download early), so nothing is drawn with raw keys.
+    resolve: async (name) => {
+        const url = initialTranslationsUrl();
+        const [page] = await Promise.all([pages[name](), url ? loadTranslations(url).catch(() => undefined) : undefined]);
+
+        return page.default;
+    },
     setup({el, App, props}) {
         createRoot(el).render(<App {...props} />);
+        document.getElementById('boot-skeleton')?.remove();
     },
     progress: {color: '#377b5a'},
 });

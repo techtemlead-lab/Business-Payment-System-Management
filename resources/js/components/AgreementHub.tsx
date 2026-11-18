@@ -107,6 +107,7 @@ function PartnerAgreementView({ agreement }: { agreement: PartnerAgreement }) {
                                 version: String(latest.version),
                                 date: acceptedLatest?.accepted_at ? dateTime(acceptedLatest.accepted_at) : '',
                             })}
+                            {' '}{translate('partner_ux', 'agr_thanks')}
                         </p>
                     ) : (
                         <form className="agr-accept" onSubmit={accept}>

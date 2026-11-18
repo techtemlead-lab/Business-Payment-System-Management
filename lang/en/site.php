@@ -454,7 +454,7 @@ Questions about these terms, partnership rules or the website:
     'partner_trust_badge_support' => 'Company Support',
     'partner_security_note' => 'Your application is kept private and is checked directly by Madina Natural Health Care management.',
     'partner_sponsor_hint' => 'If an authorized dealer or sub-dealer introduced you, provide their code.',
-    'partner_directory_notice' => 'Once approved as a dealer, your name and phone number will show on the public dealer list.',
+    'partner_directory_notice' => 'Once approved as a dealer, your name and area will show on the public dealer list. Your personal mobile number is not shown; people who want to reach you see the company dealer number.',
     'optional' => 'Optional',
 
     'offers' => 'Offers',
@@ -485,7 +485,7 @@ Questions about these terms, partnership rules or the website:
     'share_refer_description' => ':name (:code) invites you to join the :company partner network. Open the contact form to continue — the referrer code is already filled in.',
     'share_refer_eyebrow' => 'Partner invitation',
     'share_refer_code_label' => 'Code',
-    'share_refer_phone_label' => 'Contact number',
+    'share_refer_phone_label' => 'Company contact number',
     'share_refer_contact_cta' => 'Continue to contact form',
     'share_refer_apply_cta' => 'Apply for partnership',
     'share_product_partner_headline' => 'Shared by :name',

@@ -66,7 +66,7 @@
         <h1>{{ $item['name'] }}</h1>
 
         <div class="ref-detail-price">
-            <span class="ref-detail-mrp"><small>{{ __('site.mrp') }}</small> <b>৳ {{ \App\Support\LocalDigits::text(number_format((float) $item['mrp'], 2)) }}</b></span>
+            <span class="ref-detail-mrp"><small>{{ __('site.mrp') }}</small> <b>৳ {{ \App\Support\LocalDigits::money($item['mrp']) }}</b></span>
             <span class="ref-detail-stock {{ $inStock ? 'is-in' : 'is-out' }}"><span class="ref-sr-only">{{ __('site.availability') }}:</span> {{ $stockLabel }}</span>
         </div>
 
@@ -89,6 +89,9 @@
             <dt>{{ __('site.category') }}</dt><dd>{{ $item['category'] }}</dd>
             @if(!empty($item['unit']))
                 <dt>{{ __('site.unit') }}</dt><dd>{{ $item['unit'] }}</dd>
+            @endif
+            @if($facts['registration_number'] !== null)
+                <dt>{{ __('product_facts.registration_number') }}</dt><dd>{{ $facts['registration_number'] }}</dd>
             @endif
         </dl>
 
@@ -117,13 +120,6 @@
             <button type="button" data-share-url aria-label="{{ __('site.share_product') }}"><i class="fa-solid fa-share-nodes" aria-hidden="true"></i></button>
             <button type="button" data-copy-url aria-label="{{ __('site.copy_product_link') }}"><i class="fa-solid fa-link" aria-hidden="true"></i></button>
             <a href="https://wa.me/?text={{ $encodedText }}" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
-            <a href="https://www.facebook.com/dialog/send?link={{ $encodedUrl }}&app_id=0&redirect_uri={{ $encodedUrl }}" target="_blank" rel="noopener noreferrer" aria-label="{{ __('site.share_messenger') }}"><i class="fa-brands fa-facebook-messenger"></i></a>
-            <a href="https://www.facebook.com/sharer/sharer.php?u={{ $encodedUrl }}" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
-            <a href="https://twitter.com/intent/tweet?url={{ $encodedUrl }}&text={{ rawurlencode($shareText) }}" target="_blank" rel="noopener noreferrer" aria-label="X">{{-- Font Awesome 6.4.0 has no X glyph, so the logo is drawn inline --}}<svg class="ref-x-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true" focusable="false"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
-            <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ $encodedUrl }}" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
-            <a href="https://t.me/share/url?url={{ $encodedUrl }}&text={{ rawurlencode($shareText) }}" target="_blank" rel="noopener noreferrer" aria-label="Telegram"><i class="fa-brands fa-telegram"></i></a>
-            <a href="mailto:?subject={{ rawurlencode($item['name']) }}&body={{ $encodedText }}" aria-label="{{ __('site.share_email') }}"><i class="fa-solid fa-envelope"></i></a>
-            <a href="sms:?&body={{ $encodedText }}" aria-label="{{ __('site.share_sms') }}"><i class="fa-solid fa-comment-sms"></i></a>
         </div>
     </div>
 </section>
@@ -147,7 +143,6 @@
         __('product_facts.manufacturer') => $facts['manufacturer'],
         __('product_facts.group') => $facts['group'],
         __('product_facts.product_system') => $facts['product_system'],
-        __('product_facts.registration_number') => $facts['registration_number'],
         __('product_facts.pack_size') => $facts['pack_size'],
     ], fn (?string $value): bool => $value !== null);
     $firstTab = $hasDescriptionTab ? 'description' : ($qualityPoints !== [] ? 'quality' : ($usageSections !== [] ? 'usage' : 'specification'));
@@ -239,20 +234,7 @@
         <h2>{{ $chrome('product_tab_specification', $siteCustomization['product_tab_specification'] ?? null) }}</h2>
         <table>
             <tbody>
-                <tr>
-                    <th>{{ __('site.product_code_short') }}</th>
-                    <td>{{ $item['sku'] }}</td>
-                </tr>
-                <tr>
-                    <th>{{ __('site.category') }}</th>
-                    <td>{{ $item['category'] }}</td>
-                </tr>
-                @if(!empty($item['unit']))
-                <tr>
-                    <th>{{ __('site.unit') }}</th>
-                    <td>{{ $item['unit'] }}</td>
-                </tr>
-                @endif
+                {{-- Code, category, unit, price and registration number are shown once, in the block beside the picture. --}}
                 @if(!empty($item['strength']))
                 <tr>
                     <th>{{ __('site.pd_col_strength') }}</th>
@@ -265,10 +247,6 @@
                     <td>{{ $value }}</td>
                 </tr>
                 @endforeach
-                <tr>
-                    <th>{{ __('site.mrp') }}</th>
-                    <td>৳ {{ \App\Support\LocalDigits::text(number_format((float) $item['mrp'], 2)) }}</td>
-                </tr>
                 <tr>
                     <th>{{ __('site.pd_col_distributor') }}</th>
                     <td>{{ \App\Support\SiteChrome::text('contact_company_title', $siteCustomization['contact_company_title'] ?? null) }}</td>

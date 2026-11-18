@@ -417,7 +417,7 @@ function PatientsTab({ data, translate }: { data: PrescriptionsData; translate: 
             {(editing || adding) && (
                 <section className="panel">
                     <div className="panel-heading"><h2 className="ops-row is-inline"><UserPlus size={18} /> {translate('prescription', editing ? 'patient_edit' : 'patient_new')}</h2></div>
-                    <form className="action-form rx-form" onSubmit={submit}>
+                    <form className="action-form rx-form" onSubmit={submit} noValidate>
                         <PatientFields
                             value={form.data}
                             onChange={(patch) => form.setData({ ...form.data, ...patch })}

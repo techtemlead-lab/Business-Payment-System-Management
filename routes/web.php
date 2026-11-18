@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProductRegistryController;
 use App\Http\Controllers\SharedPreviewPortalController;
+use App\Http\Controllers\TranslationBundleController;
 use App\Support\PortalHost;
 use Illuminate\Support\Facades\Route;
 
@@ -33,6 +34,13 @@ if (PortalHost::allowsSharedPreview()) {
 
 foreach (['dealer', 'subdealer', 'manage', 'sadmin'] as $portal) {
     Route::domain($portal.'.'.$domain)->group(base_path('routes/portals/'.$portal.'.php'));
+}
+
+// The translation file is fetched from the host the page is on, so every host serves it.
+foreach (PortalHost::Portals as $portal) {
+    Route::domain(PortalHost::host($portal))->name('i18n.'.$portal.'.')
+        ->get('/i18n/{locale}/{version}.json', [TranslationBundleController::class, 'show'])
+        ->where(['locale' => '[a-z]{2}', 'version' => '[a-f0-9]{16}']);
 }
 
 require __DIR__.'/backend.php';

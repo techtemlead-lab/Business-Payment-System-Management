@@ -194,6 +194,9 @@
             font-weight: 600;
             text-align: center;
             display: inline-block;
+            max-width: 100%;
+            box-sizing: border-box;
+            overflow-wrap: anywhere;
             background: #f8fafc;
             border-radius: 3px;
         }
@@ -207,7 +210,7 @@
             margin-top: 10px;
         }
         table.items th {
-            font-size: 9.5px;
+            font-size: 11px;
             font-weight: 700;
             text-align: center;
             padding: 6px 4px;
@@ -220,7 +223,7 @@
         }
         table.items th.name, table.items td.name { text-align: left; }
         table.items td {
-            font-size: 10px;
+            font-size: 11.5px;
             padding: 5px 4px;
             border-bottom: 0.5px solid #cbd5e1;
             text-align: center;
@@ -235,7 +238,7 @@
             color: #0f172a;
         }
         table.items td.name .product-meta {
-            font-size: 9px;
+            font-size: 10px;
             color: #64748b;
             margin-top: 1px;
         }

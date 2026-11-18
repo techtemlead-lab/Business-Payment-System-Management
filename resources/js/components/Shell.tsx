@@ -17,6 +17,8 @@ import OnboardingTour from './OnboardingTour';
 import { useNativeFieldMessages } from '../shared/useNativeFieldMessages';
 import TextSizeToggle from './TextSizeToggle';
 import ThemeToggle from './ThemeToggle';
+import TextSizeSwitch from './TextSizeSwitch';
+import { firstNameOf } from '../shared/personName';
 import { t, useT, useTranslations } from '../shared/i18n/t';
 import {
     type NavMother,
@@ -183,6 +185,10 @@ export default function Shell({ section, children, action }: { section: string; 
     }, [page.url]);
 
     const sectionLabel = (item: string) => {
+        // The sub-dealer's contract carries the sub-dealer's name, not the dealer's.
+        if (item === 'agreement' && !staff && user.role === 'sub_dealer') {
+            return translate('partner_ux', 'agreement_subdealer');
+        }
         const key = labelKeyForNavItem(item, staff);
         return translate('portal', key);
     };
@@ -270,10 +276,14 @@ export default function Shell({ section, children, action }: { section: string; 
         [capabilities, ownerPortal, user.role, auth.chatAnswerer, auth.prescriber],
     );
 
-    const partnerAvailable = useMemo(
-        () => buildPartnerAvailable(user.role, dashboardControls, Boolean(auth.prescriber)),
-        [user.role, dashboardControls, auth.prescriber],
-    );
+    const emptyPartnerSections: string[] = page.props.emptyPartnerSections ?? [];
+    const partnerAvailable = useMemo(() => {
+        const available = buildPartnerAvailable(user.role, dashboardControls, Boolean(auth.prescriber));
+        // Pages with nothing in them yet stay out of the menu, except the one the person is already on.
+        emptyPartnerSections.filter((item) => item !== section).forEach((item) => available.delete(item));
+
+        return available;
+    }, [user.role, dashboardControls, auth.prescriber, emptyPartnerSections.join(','), section]);
 
     const navMothers = useMemo(
         () => buildNavMothers({ staff, role: user.role, staffAvailable, partnerAvailable }),
@@ -473,12 +483,15 @@ export default function Shell({ section, children, action }: { section: string; 
         : sectionLabel(headingItem);
     /** Each page has its own short subtitle; staff and partners get different wording. */
     const sectionHint = (item: string): string => {
+        if (item === 'agreement' && !staff && user.role === 'sub_dealer') {
+            return translate('partner_ux', 'agreement_hint_subdealer');
+        }
         const key = `${staff ? 'section_hint_' : 'section_hint_partner_'}${item.replaceAll('-', '_')}`;
         const localized = translate('portal', key);
         return localized !== key ? localized : translate('portal', 'section_hint');
     };
     const currentSectionHint = section === 'overview' || section === ''
-        ? translate('portal', 'welcome_back', { name: user.name.split(' ')[0], scope: translate('portal', staff ? 'business' : 'account') })
+        ? translate('portal', 'welcome_back', { name: firstNameOf(user.name), scope: translate('portal', staff ? 'business' : 'account') })
         : (section === 'catalog' && staff
             ? translate('portal', 'catalog_staff_hint')
             : sectionHint(headingItem));
@@ -577,8 +590,7 @@ export default function Shell({ section, children, action }: { section: string; 
                             <Menu size={19} />
                         </button>
                         <span>{hubLabel}</span>
-                        <span>/</span>
-                        <b>{currentSectionTitle}</b>
+                        {currentSectionTitle !== hubLabel && <><span>/</span><b>{currentSectionTitle}</b></>}
                     </div>
                     {!staff && <PartnerProductSearch />}
                     {staff && workspaceBranches?.branches?.length > 0 && (
@@ -586,28 +598,35 @@ export default function Shell({ section, children, action }: { section: string; 
                     )}
                     <div className="header-actions" data-tour="header-actions">
                         <GlobalSearchLauncher />
-                        <a
-                            href={`${page.props.publicBase || ''}/`}
-                            className="icon-button portal-website-link"
-                            aria-label={translate('portal', 'portal_visit_website')}
-                            title={translate('portal', 'portal_visit_website')}
-                            data-tooltip={translate('portal', 'portal_visit_website')}
-                        >
-                            <Globe size={19} />
-                        </a>
+                        {/* Partners get words, not a row of lone icons: website, night mode and the guide live in the account menu. */}
+                        {staff && (
+                            <a
+                                href={`${page.props.publicBase || ''}/`}
+                                className="icon-button portal-website-link"
+                                aria-label={translate('portal', 'portal_visit_website')}
+                                title={translate('portal', 'portal_visit_website')}
+                                data-tooltip={translate('portal', 'portal_visit_website')}
+                            >
+                                <Globe size={19} />
+                            </a>
+                        )}
+                        {/* One text-size setting (shared/textSize): staff get normal/larger, partners the four A steps. */}
                         {staff && <TextSizeToggle />}
-                        <ThemeToggle compact />
+                        {staff && <ThemeToggle compact />}
+                        {!staff && <TextSizeSwitch place="header" />}
                         <LanguageSwitcher compact />
-                        <button
-                            type="button"
-                            className="icon-button tour-guide-launcher"
-                            aria-label={translate('portal', 'tour_guide_launcher')}
-                            title={translate('portal', 'tour_guide_launcher')}
-                            data-tooltip={translate('portal', 'tour_guide_launcher')}
-                            onClick={() => setManualOpen(true)}
-                        >
-                            <Compass size={19} />
-                        </button>
+                        {staff && (
+                            <button
+                                type="button"
+                                className="icon-button tour-guide-launcher"
+                                aria-label={translate('portal', 'tour_guide_launcher')}
+                                title={translate('portal', 'tour_guide_launcher')}
+                                data-tooltip={translate('portal', 'tour_guide_launcher')}
+                                onClick={() => setManualOpen(true)}
+                            >
+                                <Compass size={19} />
+                            </button>
+                        )}
                         <NotificationBell base={base} unreadCount={unreadCount} />
                         <div className="profile-menu" ref={profileMenu}>
                             <button
@@ -634,6 +653,7 @@ export default function Shell({ section, children, action }: { section: string; 
                                     <div className="profile-menu-theme">
                                         <ThemeToggle />
                                     </div>
+                                    {!staff && <TextSizeSwitch place="menu" />}
                                     <Link href={base + '/profile'} role="menuitem" onClick={() => setProfileOpen(false)}>
                                         <UserRound size={16} />
                                         {translate('portal', 'view_profile')}
@@ -654,6 +674,12 @@ export default function Shell({ section, children, action }: { section: string; 
                                         <LifeBuoy size={16} />
                                         {translate('portal', 'help')}
                                     </Link>
+                                    {!staff && (
+                                        <button type="button" role="menuitem" onClick={() => { setProfileOpen(false); setManualOpen(true); }}>
+                                            <Compass size={16} />
+                                            {translate('portal', 'tour_guide_launcher')}
+                                        </button>
+                                    )}
                                     {staff && staffAvailable.has('my-payroll') && (
                                         <Link href={sectionHref(base, 'my-payroll')} role="menuitem" onClick={() => setProfileOpen(false)}>
                                             <Wallet size={16} />
