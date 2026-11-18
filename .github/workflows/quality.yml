@@ -54,7 +54,8 @@ jobs:
       - run: composer audit --locked
       - run: vendor/bin/pint --test
       - run: npm ci --ignore-scripts
-      - run: npm audit
+      # Same as `npm audit`, except the advisories listed in .github/scripts/npm-audit-gate.mjs (with an expiry date).
+      - run: node .github/scripts/npm-audit-gate.mjs
       - run: cp .env.example .env && php artisan key:generate --no-interaction
       # Static analysis (Larastan). Old findings sit in phpstan-baseline.neon; new code must pass.
       - run: composer analyse
