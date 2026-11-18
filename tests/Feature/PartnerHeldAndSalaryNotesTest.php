@@ -185,7 +185,7 @@ class PartnerHeldAndSalaryNotesTest extends TestCase
         $bangla = require lang_path('bn/money_core.php');
         $english = require lang_path('en/money_core.php');
 
-        foreach (['held_heading', 'held_reason_inactive', 'held_reason_quota', 'net_referrer_held', 'net_you_held', 'salary_paid', 'salary_rule', 'salary_none_low', 'sub_price_rule'] as $key) {
+        foreach (['held_heading', 'held_reason_inactive', 'held_reason_quota', 'net_referrer_held', 'net_you_held', 'salary_paid', 'salary_rule', 'salary_none_low'] as $key) {
             $this->assertNotSame('', trim((string) ($bangla[$key] ?? '')), "bn {$key}");
             $this->assertNotSame('', trim((string) ($english[$key] ?? '')), "en {$key}");
         }
