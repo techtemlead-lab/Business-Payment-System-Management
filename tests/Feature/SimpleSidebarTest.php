@@ -266,12 +266,12 @@ class SimpleSidebarTest extends TestCase
         $this->actingAs($dealer)->onPortal('dealer')->get('/settings')->assertRedirect('/');
     }
 
-    public function test_people_with_nothing_in_settings_go_to_their_home_and_keep_their_own_pages(): void
+    public function test_people_with_nothing_in_settings_get_a_clear_refusal_and_keep_their_own_pages(): void
     {
         foreach (['inventory', 'support', 'sr'] as $role) {
             $person = User::factory()->staff($role)->create();
             $this->assertFalse(OfficeHubs::hasSettingsToOpen($person, 'manage', true), $role);
-            $this->actingAs($person)->onPortal('manage')->get('/settings')->assertRedirect('/');
+            $this->actingAs($person)->onPortal('manage')->get('/settings')->assertForbidden();
             $this->actingAs($person)->onPortal('manage')->get('/')->assertOk();
             foreach (['/profile', '/security'] as $ownPage) {
                 $this->actingAs($person)->onPortal('manage')->get($ownPage)->assertOk();

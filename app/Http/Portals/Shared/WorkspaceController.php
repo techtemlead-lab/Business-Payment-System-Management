@@ -143,13 +143,15 @@ class WorkspaceController extends Controller
             $section = 'website';
         }
         if ($section === OfficeHubs::SettingsSection && ! OfficeHubs::hasSettingsToOpen($u, $catalogPortal, in_array($portal, ['manage', 'sadmin'], true))) {
+            abort_if($staff, 403);
+
             return redirect('/');
         }
         PortalCatalog::assertSection($u, $catalogPortal, $section);
         $periodRule = match ($section) {
             'branch-performance' => 'nullable|in:today,month,custom',
             'visitors' => 'nullable|in:'.implode(',', SiteVisitReport::Periods),
-            default => 'nullable|in:today,week,month,last_month,year,day,custom',
+            default => 'nullable|in:today,week,month,last30,last_month,year,day,custom',
         };
         $r->validate([
             'q' => 'nullable|string|max:100',
