@@ -498,9 +498,11 @@ final class CommissionSettlement
     {
         // A refund before the close already shrank the fund. Keep this row on the same footing,
         // so a later refund takes back only its fair share (CommissionReversal starts from original_amount).
+        // Two paisa amounts multiplied pass PHP's integer limit once a fund row is above about ৳3 crore,
+        // so the ratio is worked out in exact NUMERIC arithmetic, as CommissionReversal does.
         $fundNow = Money::cents($fund->amount);
         $originalAmount = $fundNow > 0
-            ? intdiv($amount * Money::cents($fund->original_amount ?? $fund->amount) + intdiv($fundNow, 2), $fundNow)
+            ? self::scaled($amount, Money::cents($fund->original_amount ?? $fund->amount), $fundNow)
             : $amount;
 
         return CommissionAllocation::query()->create([
@@ -531,6 +533,12 @@ final class CommissionSettlement
                         : __('portal.retained_reason_unclaimed_royalty')),
             ],
         ])->id;
+    }
+
+    /** $amount × $part ÷ $whole, rounded to the nearest paisa, with no 64-bit overflow at any order size. */
+    public static function scaled(int $amount, int $part, int $whole): int
+    {
+        return (int) DB::scalar('SELECT ROUND(CAST(? AS NUMERIC) * CAST(? AS NUMERIC) / CAST(? AS NUMERIC))', [$amount, $part, $whole]);
     }
 
     /**
