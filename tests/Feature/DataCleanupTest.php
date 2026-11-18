@@ -44,7 +44,7 @@ class DataCleanupTest extends TestCase
         DB::table('password_reset_tokens')->insert(['email' => $email, 'token' => 'hashed', 'created_at' => now()->subDays($daysAgo)]);
     }
 
-    public function test_only_owners_open_the_page_and_delete(): void
+    public function test_only_the_super_admin_opens_the_page_and_deletes(): void
     {
         $closed = $this->enquiry('closed', 90);
         $contentStaff = User::factory()->staff('employee')->create(['profile' => ['permissions' => config('madina.roles.super_admin')]]);
@@ -56,14 +56,16 @@ class DataCleanupTest extends TestCase
         $this->actingAs($dealer)->onPortal('dealer')->post('/commands/data-cleanup/delete', ['refs' => ['enq:'.$closed], 'confirm' => true])->assertForbidden();
         $this->assertDatabaseHas('enquiries', ['id' => $closed]);
 
-        foreach (['super_admin', 'md', 'chairman'] as $role) {
-            $this->actingAs(User::factory()->staff($role)->create())->onPortal('sadmin')->get('/data-cleanup')->assertOk();
+        $this->actingAs(User::factory()->staff('super_admin')->create())->onPortal('sadmin')->get('/data-cleanup')->assertOk();
+        // SA-07: deleting records stays with the Super Admin alone.
+        foreach (['md', 'chairman'] as $role) {
+            $this->actingAs(User::factory()->staff($role)->create())->onPortal('sadmin')->get('/data-cleanup')->assertForbidden();
         }
     }
 
     public function test_the_page_lists_only_the_three_kinds_with_age_and_kind_filters(): void
     {
-        $owner = User::factory()->staff('md')->create();
+        $owner = User::factory()->staff('super_admin')->create();
         $oldClosed = $this->enquiry('closed', 90);
         $this->enquiry('closed', 5);
         $this->enquiry('new', 90);
@@ -92,7 +94,7 @@ class DataCleanupTest extends TestCase
 
     public function test_bulk_delete_removes_only_chosen_safe_rows_and_records_counts(): void
     {
-        $owner = User::factory()->staff('md')->create();
+        $owner = User::factory()->staff('super_admin')->create();
         $closed = $this->enquiry('closed', 90);
         $open = $this->enquiry('in_progress', 90);
         $keptClosed = $this->enquiry('closed', 90);
@@ -137,7 +139,7 @@ class DataCleanupTest extends TestCase
             ['key' => $prefix.'login_otp:dealer:8', 'value' => 'x', 'expiration' => now()->addMinutes(5)->getTimestamp()],
             ['key' => $prefix.'some_other_cache', 'value' => 'x', 'expiration' => now()->subDays(40)->getTimestamp()],
         ]);
-        $owner = User::factory()->staff('md')->create();
+        $owner = User::factory()->staff('super_admin')->create();
 
         $this->actingAs($owner)->onPortal('sadmin')->get('/data-cleanup?older_than_days=30&kind=login_codes')
             ->assertOk()
