@@ -429,7 +429,7 @@ final class UserManual
             $this->ch('clinic_prescriptions', ['owner'], 7, 3, 2, 1, ['clinic', 'prescription', 'dispense', 'manufacturer', 'mrp', 'চেম্বার', 'প্রেসক্রিপশন', 'তহবিল', 'এমআরপি']),
             $this->ch('menu_office', ['staff', 'owner'], 8, 1, 1, 1, ['menu', 'moved', 'sidebar', 'new names', 'where', 'মেনু', 'নতুন নাম', 'কোথায়']),
             $this->ch('menu_partner', ['dealer', 'sub_dealer'], 8, 1, 1, 1, ['menu', 'moved', 'sidebar', 'where', 'new order', 'my money', 'wallet', 'ওয়ালেট', 'মেনু', 'আমার টাকা', 'কোথায়']),
-            $this->ch('settings_home', ['staff', 'owner'], 13, 1, 1, 1, ['settings', 'account rules', 'login rules', 'courier', 'excel', 'work log', 'সেটিংস', 'হিসাবের নিয়ম', 'লগইন', 'এক্সেল', 'কাজের রেকর্ড']),
+            $this->ch('settings_home', ['staff', 'owner'], 14, 1, 1, 1, ['settings', 'account rules', 'login rules', 'courier', 'excel', 'work log', 'সেটিংস', 'হিসাবের নিয়ম', 'লগইন', 'এক্সেল', 'কাজের রেকর্ড']),
             $this->ch('office_more_pages', ['staff', 'owner'], 10, 1, 1, 1, ['applications', 'training', 'meetings', 'agreement', 'roles', 'salary', 'আবেদন', 'প্রশিক্ষণ', 'মিটিং', 'চুক্তি', 'পদ', 'বেতন']),
             $this->ch('commission_tabs', ['staff', 'owner'], 5, 1, 1, 1, ['commission', 'tabs', 'rules', 'rates', 'calculator', 'special rate', 'কমিশন', 'ট্যাব', 'হার', 'ক্যালকুলেটর']),
             $this->ch('report_centre', ['staff', 'owner'], 3, 1, 1, 1, ['report', 'report centre', 'download', 'excel', 'রিপোর্ট', 'রিপোর্ট সেন্টার', 'ডাউনলোড']),
