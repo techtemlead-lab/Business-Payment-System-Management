@@ -76,6 +76,7 @@ final class StockRegister
                 'expired' => 'stock_row.expired',
                 'stock_value' => 'stock_row.stock_value',
                 'low_count' => "CASE WHEN stock_row.level = 'low' THEN 1 ELSE 0 END",
+                'out_count' => "CASE WHEN stock_row.level = 'out_of_stock' THEN 1 ELSE 0 END",
             ],
             defaultPeriod: null,
         ));
