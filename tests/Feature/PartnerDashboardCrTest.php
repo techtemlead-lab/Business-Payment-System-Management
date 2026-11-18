@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Domain\Accounts\PartnerAreaLine;
 use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Orders\OrderService;
+use App\Domain\Support\GuidePrerequisites;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ReferralTreePath;
@@ -123,5 +124,19 @@ class PartnerDashboardCrTest extends TestCase
 
         config(['madina.partner_catalog_enabled' => true]);
         $this->actingAs($dealer)->onPortal('dealer')->get('/catalog')->assertOk();
+    }
+
+    public function test_the_first_steps_list_leaves_out_the_product_list_while_it_is_off(): void
+    {
+        $dealer = $this->partner(null);
+
+        config(['madina.partner_catalog_enabled' => false]);
+        $steps = array_column(app(GuidePrerequisites::class)->forSection($dealer, 'orders')['checklist'], 'href');
+        $this->assertNotContains('/catalog', $steps);
+        $this->assertContains('/orders', $steps);
+
+        config(['madina.partner_catalog_enabled' => true]);
+        $steps = array_column(app(GuidePrerequisites::class)->forSection($dealer, 'orders')['checklist'], 'href');
+        $this->assertContains('/catalog', $steps);
     }
 }
