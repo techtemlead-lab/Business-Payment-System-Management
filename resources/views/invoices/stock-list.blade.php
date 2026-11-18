@@ -60,13 +60,13 @@
     <thead>
         <tr>
             <th style="width:4%">{{ __('stock_print.col_serial') }}</th>
-            <th style="width:7%">{{ __('stock_print.col_image') }}</th>
-            <th style="width:13%">{{ __('stock_print.col_product') }}</th>
+            <th style="width:13%">{{ __('stock_print.col_image') }}</th>
+            <th style="width:12%">{{ __('stock_print.col_product') }}</th>
             <th style="width:7%">{{ __('stock_print.col_pack') }}</th>
             <th style="width:8%">{{ __('stock_print.col_group') }}</th>
             <th style="width:8%">{{ __('stock_print.col_category') }}</th>
-            <th style="width:15%">{{ __('stock_print.col_efficacy') }}</th>
-            <th style="width:15%">{{ __('stock_print.col_usage') }}</th>
+            <th style="width:12%">{{ __('stock_print.col_efficacy') }}</th>
+            <th style="width:12%">{{ __('stock_print.col_usage') }}</th>
             <th style="width:8%">{{ __('stock_print.col_mrp') }}</th>
             <th style="width:8%">{{ __('stock_print.col_dealer_discount') }}</th>
             <th style="width:9%">{{ __('stock_print.col_sub_dealer_discount') }}</th>
@@ -78,7 +78,7 @@
                 <td class="mid">{{ $digits($row['serial']) }}</td>
                 <td class="mid">
                     @if (! empty($row['image']))
-                        <img src="{{ $row['image'] }}" alt="" width="52" height="52">
+                        <img src="{{ $row['image'] }}" alt="" width="{{ $row['image_width'] ?? \App\Domain\Inventory\StockPrintPdf::DisplayPixels }}" height="{{ $row['image_height'] ?? \App\Domain\Inventory\StockPrintPdf::DisplayPixels }}">
                     @else
                         —
                     @endif

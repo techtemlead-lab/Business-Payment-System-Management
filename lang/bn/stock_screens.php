@@ -27,4 +27,8 @@ return [
     'count_moved_checked' => 'বদলে যাওয়া লাইনগুলো আমি দেখেছি',
     'count_confirm_yes' => 'হ্যাঁ, স্টক বদলান',
     'count_confirm_back' => 'ফিরে যান',
+    // Form marks (CR-08 follow-up)
+    'mark_optional' => 'ঐচ্ছিক',
+    'mark_required' => 'অবশ্যই দিতে হবে',
+    'mark_legend' => 'তারকা চিহ্ন দেওয়া ঘরগুলো অবশ্যই পূরণ করতে হবে। "ঐচ্ছিক" লেখা ঘর খালি রাখা যায়।',
 ];

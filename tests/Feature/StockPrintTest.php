@@ -295,6 +295,36 @@ class StockPrintTest extends TestCase
         $this->assertSame([], glob(dirname($pdf).'/stock-photo-*.jpg') ?: [], 'The small copies are deleted once the PDF is written.');
     }
 
+    public function test_photos_are_printed_big_enough_to_recognise_and_keep_their_shape(): void
+    {
+        $html = view('invoices.stock-list', [
+            'company' => app(StockPrintPdf::class)->company(),
+            'rows' => [['serial' => 1, 'name' => 'Wide Box', 'pack_size' => null, 'category' => null, 'group' => null, 'mrp' => '10.00',
+                'dealer_discount' => null, 'sub_dealer_discount' => null, 'image' => '/tmp/wide.jpg', 'image_width' => 130, 'image_height' => 65,
+                'usage' => null, 'efficacy' => null]],
+        ])->render();
+
+        // CR-00: drawn about 34 mm wide (it was 52 px, about 14 mm), and a wide box stays wide.
+        $this->assertStringContainsString('src="/tmp/wide.jpg" alt="" width="130" height="65"', $html);
+        $this->assertSame(400, StockPrintPdf::ThumbnailPixels);
+        $this->assertGreaterThanOrEqual(2 * 52, StockPrintPdf::DisplayPixels);
+    }
+
+    public function test_a_list_with_photos_stays_small_enough_to_send_by_mail(): void
+    {
+        Storage::fake('local');
+        $photo = $this->noisyPhoto();
+        foreach (range(1, 5) as $n) {
+            Storage::disk('local')->put("product-media/images/photo-{$n}.jpg", $photo);
+            $this->stockOf($this->product(['name' => "Photo Product {$n}", 'image_path' => "product-media/images/photo-{$n}.jpg"]), $this->hub, 3, null);
+        }
+
+        $response = app(StockPrintPdf::class)->download(User::factory()->staff()->create());
+
+        // Five busy 1000 px photos: well under 100 KB each in the PDF, so 95 products stay a few megabytes.
+        $this->assertLessThan(5 * 100_000 + 150_000, filesize($response->getFile()->getPathname()));
+    }
+
     public function test_a_photo_that_cannot_be_read_is_left_out_and_the_pdf_still_prints(): void
     {
         Storage::fake('local');

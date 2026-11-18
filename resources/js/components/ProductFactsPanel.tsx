@@ -2,6 +2,7 @@ import {useState} from 'react';
 import {router, usePage} from '@inertiajs/react';
 import {FormErrors, type Row} from './UI';
 import {useT} from '../shared/i18n/t';
+import { OptionalTag } from './FieldMarks';
 
 export type ProductFactField = {name:string;max_length:number;multiline:boolean};
 export type ProductConcernOption = {id:number;name_bn:string;name_en:string};
@@ -73,9 +74,9 @@ export default function ProductFactsPanel({fields,concerns,groupSuggestions,data
  return <section className="panel">
   <h2>{translate('product_facts','panel_title')}</h2>
   <p className="muted">{translate('product_facts','panel_hint')}</p>
-  <label>{translate('product_facts','field_registration_number')}<input disabled={!canEdit} maxLength={120} value={data.registration_number??''} onChange={e=>setField('registration_number',e.target.value)}/><small className="muted">{translate('product_facts','hint_registration_number')}</small></label>
+  <label><span>{translate('product_facts','field_registration_number')}<OptionalTag/></span><input disabled={!canEdit} maxLength={120} value={data.registration_number??''} onChange={e=>setField('registration_number',e.target.value)}/><small className="muted">{translate('product_facts','hint_registration_number')}</small></label>
   {fields.map(field=><fieldset key={field.name} className="pe-fact-field" disabled={!canEdit}>
-   <legend>{translate('product_facts',`field_${field.name}`)}</legend>
+   <legend>{translate('product_facts',`field_${field.name}`)}<OptionalTag/></legend>
    {FIELD_HINTS[field.name]&&<small className="muted">{translate('product_facts',FIELD_HINTS[field.name])}</small>}
    <div className="form-grid">
     {(['bn','en'] as const).map(language=><label key={language}>{translate('product_facts',`column_${language}`)}{field.multiline

@@ -86,7 +86,9 @@
 
         <dl class="ref-facts ref-detail-facts">
             <dt>{{ __('site.product_code') }}</dt><dd>{{ $item['sku'] }}</dd>
-            <dt>{{ __('site.category') }}</dt><dd>{{ $item['category'] }}</dd>
+            @if(filled($item['category'] ?? null))
+                <dt>{{ __('site.category') }}</dt><dd>{{ $item['category'] }}</dd>
+            @endif
             @if(!empty($item['unit']))
                 <dt>{{ __('site.unit') }}</dt><dd>{{ $item['unit'] }}</dd>
             @endif

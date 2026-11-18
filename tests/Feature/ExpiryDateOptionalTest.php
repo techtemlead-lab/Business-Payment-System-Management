@@ -114,6 +114,32 @@ class ExpiryDateOptionalTest extends TestCase
         $this->actingAs($this->owner)->onPortal('sadmin')->get('/purchasing')->assertOk();
     }
 
+    public function test_stock_comes_in_with_neither_a_batch_number_nor_an_expiry_date(): void
+    {
+        // CR-08 follow-up: the stock-in form never forces a date (owner rule since PR 397), even with no batch number.
+        $product = Product::factory()->create(['stock' => 0, 'batch_number' => null, 'expires_on' => null]);
+
+        $this->actingAs($this->owner)->onPortal('sadmin')->post('/commands/stock', [
+            'product_id' => $product->id, 'branch_id' => $this->hub->id, 'kind' => BranchOperations::KindProductIn, 'quantity' => 4,
+            'reason' => 'supplier_receipt', 'reference' => (string) Str::uuid(),
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertNull(StockLot::query()->where('product_id', $product->id)->sole()->expires_on);
+        $this->assertSame(4, (int) $product->fresh()->stock);
+    }
+
+    public function test_goods_are_received_with_a_blank_expiry_box_and_no_batch_number(): void
+    {
+        // The receive form sends an empty box, not a missing one; both must be accepted.
+        $product = Product::factory()->create(['stock' => 0]);
+        $order = $this->sentOrder($product, 5);
+
+        $this->receive($order, $product, ['expires_on' => '', 'batch_number' => ''])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertNull(GoodsReceiptLine::query()->sole()->expires_on);
+        $this->assertSame(5, (int) $product->fresh()->stock);
+    }
+
     public function test_an_expiry_date_that_is_given_on_a_receipt_must_not_have_passed(): void
     {
         $product = Product::factory()->create(['stock' => 0]);
