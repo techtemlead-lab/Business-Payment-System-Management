@@ -166,6 +166,9 @@ class WorkspaceController extends Controller
         };
         $r->validate([
             'q' => 'nullable|string|max:100',
+            'tab' => 'nullable|string|max:20',
+            'tq' => 'nullable|string|max:100',
+            'tp' => 'nullable|integer|min:1|max:1000',
             'status' => 'nullable|string|max:40',
             'channel' => 'nullable|string|max:20',
             'buyer_role' => 'nullable|in:dealer,sub_dealer',
@@ -233,8 +236,9 @@ class WorkspaceController extends Controller
         }
 
         // The dashboard report is its own page prop, so a tab or a filter reloads only it (see MoneyTable's `prop`).
-        $extra = array_key_exists('income_report', $data) ? ['income_report' => $data['income_report']] : [];
-        unset($data['income_report']);
+        // The office dashboard's tab table (CR-18) is a page prop of its own for the same reason.
+        $extra = Arr::only($data, ['income_report', 'dash_tab']);
+        unset($data['income_report'], $data['dash_tab']);
 
         return Inertia::render(PortalCatalog::page($portal), [...$extra, 'section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role', 'channel', 'category', 'sub_category', 'unit', 'min_mrp', 'max_mrp', 'availability', 'sort', 'period', 'from', 'to', 'division', 'district', 'rank', 'no_order_days', 'branch_id', 'all_branches', 'product_id', 'movement'])]);
     }

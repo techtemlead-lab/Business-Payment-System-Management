@@ -7,6 +7,7 @@ use App\Domain\Accounts\PartnerIncomeBook;
 use App\Domain\Accounts\PartnerMoneyBook;
 use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Inventory\BranchScope;
+use App\Domain\Orders\OfficeDashboardTabs;
 use App\Domain\Orders\OrderOverviewTotals;
 use App\Domain\Orders\StaffDashboardSummary;
 use App\Models\User;
@@ -64,8 +65,11 @@ final class OverviewSection implements WorkspaceSection
                 ],
                 // MA-14: the one step that starts the books, for the owner, until it is done.
                 'start_books' => $user->role === 'super_admin' && ! app(FinancialReadiness::class)->booksStarted(),
+                'tabs' => OfficeDashboardTabs::visibleTo($user),
                 ...app(StaffDashboardSummary::class)->for($user, $context->branchScope),
             ];
+            // CR-18: the table under the buttons. Its rows come after the page shows, and again alone when a tab, a search or a page changes.
+            $props['dash_tab'] = Inertia::defer(fn (): ?array => app(OfficeDashboardTabs::class)->forRequest($user, $context->request, $context->branchScope), 'dash_tab');
         }
 
         return $props;
