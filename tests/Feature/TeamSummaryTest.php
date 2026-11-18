@@ -8,6 +8,7 @@ use App\Models\ReferralTreePath;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -23,9 +24,13 @@ class TeamSummaryTest extends TestCase
         return $user;
     }
 
+    /**
+     * A delivered order with the commission batch delivery writes for that month: the team's
+     * "this month" figures follow the delivery month, the same month the salary target uses.
+     */
     private function delivered(User $buyer, string $total, $createdAt): void
     {
-        Order::create([
+        $order = Order::create([
             'number' => 'ORD-TEAM-'.Str::random(6),
             'user_id' => $buyer->id,
             'status' => 'delivered',
@@ -38,7 +43,22 @@ class TeamSummaryTest extends TestCase
             'paid' => $total,
             'idempotency_key' => (string) Str::uuid(),
             'payload_hash' => hash('sha256', Str::random()),
-        ])->forceFill(['created_at' => $createdAt])->save();
+        ]);
+        $order->forceFill(['created_at' => $createdAt])->save();
+        DB::table('commission_batches')->insert([
+            'order_id' => $order->id,
+            'account_type' => 'dealer',
+            'period_month' => $createdAt->copy()->setTimezone(config('madina.business_timezone'))->format('Y-m'),
+            'cash_basis' => $total,
+            'mrp_basis' => $total,
+            'company_share' => $total,
+            'total_allocated' => '0.00',
+            'unallocated' => '0.00',
+            'refunded_amount' => '0.00',
+            'policy' => '{}',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     public function test_dealer_sees_team_size_new_joiners_buyers_and_quiet_members(): void

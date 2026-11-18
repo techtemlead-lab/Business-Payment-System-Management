@@ -48,6 +48,8 @@ class ReferralTreeEarningsTest extends TestCase
 
     public function test_a_dealer_sees_what_each_member_bought_and_what_they_earned_from_them(): void
     {
+        $this->deliveredThisMonth();
+
         $this->actingAs($this->root)->onPortal('dealer')->get('/network')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page->where('data.dealers', function ($dealers): bool {
@@ -90,6 +92,8 @@ class ReferralTreeEarningsTest extends TestCase
 
     public function test_staff_see_what_each_referrer_earned_without_a_personal_earning_column(): void
     {
+        $this->deliveredThisMonth();
+
         $this->actingAs(User::factory()->staff()->create())->onPortal('sadmin')->get('/network-tree')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page->where('data.dealers', function ($dealers): bool {
@@ -124,13 +128,25 @@ class ReferralTreeEarningsTest extends TestCase
 
                 $this->assertSame('900.00', $grandchild['qualifying_volume_month'], 'Refunds come off the salary volume.');
                 $this->assertSame(Money::decimal($expected[$this->grandchild->id]), $grandchild['qualifying_volume_month']);
-                $this->assertSame('1000.00', $grandchild['sales_month']);
+                // One definition for every team figure: this month's purchases are the salary volume.
+                $this->assertSame('900.00', $grandchild['sales_month']);
                 $this->assertSame('300.00', $child['qualifying_volume_month'], 'Counted in the month it was delivered.');
+                $this->assertSame('300.00', $child['sales_month'], 'Ordered last month, delivered this month.');
                 $this->assertSame(Money::decimal($expected[$this->child->id]), $child['qualifying_volume_month']);
                 $this->assertSame('0.00', $nodes[$this->root->id]['qualifying_volume_month']);
 
                 return true;
             }));
+    }
+
+    /**
+     * The grandchild's delivered order gets its commission batch for this month, as delivery does.
+     * This month's purchases are counted by delivery month (the salary volume), not by order date.
+     */
+    private function deliveredThisMonth(): void
+    {
+        $order = Order::query()->where('user_id', $this->grandchild->id)->where('status', 'delivered')->firstOrFail();
+        $this->batch($order, CommissionQualification::currentMonth(), '1000.00', '0.00');
     }
 
     private function batch(Order $order, string $month, string $cash, string $refunded): void
