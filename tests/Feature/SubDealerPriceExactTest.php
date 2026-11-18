@@ -18,7 +18,7 @@ class SubDealerPriceExactTest extends TestCase
         $owner = User::factory()->create(['role' => 'super_admin']);
 
         $this->actingAs($owner)->patch('/commands/products/'.$product->id, [
-            'version' => (string) $product->registry_version, 'mrp' => '90.00', 'reason' => 'Set the price list',
+            'version' => (string) $product->fresh()->registry_version, 'mrp' => '90.00', 'reason' => 'Set the price list',
         ])->assertSessionHasNoErrors();
 
         $this->assertSame('67.50', $product->fresh()->sub_dealer_price);
@@ -30,7 +30,7 @@ class SubDealerPriceExactTest extends TestCase
         $owner = User::factory()->create(['role' => 'super_admin']);
 
         $this->actingAs($owner)->patch('/commands/products/'.$product->id, [
-            'version' => (string) $product->registry_version, 'sub_dealer_price' => '66.00', 'reason' => 'Special price',
+            'version' => (string) $product->fresh()->registry_version, 'sub_dealer_price' => '66.00', 'reason' => 'Special price',
         ])->assertSessionHasNoErrors();
 
         $this->assertSame('66.00', $product->fresh()->sub_dealer_price);
