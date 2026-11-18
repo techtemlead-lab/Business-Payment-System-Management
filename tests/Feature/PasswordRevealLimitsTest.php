@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\User;
 use App\Support\PasswordVault;
 use Illuminate\Contracts\Encryption\DecryptException;
@@ -38,21 +39,33 @@ class PasswordRevealLimitsTest extends TestCase
             ->postJson('/commands/accounts/'.$target->id.'/reveal-password', $payload);
     }
 
-    public function test_the_owner_types_their_own_password_once_before_a_partner_password_is_shown(): void
+    public function test_the_md_types_their_own_password_once_before_a_partner_password_is_shown(): void
+    {
+        // D11: the MD reads partner passwords only with the accounts grant from the Super Admin.
+        LeadershipAccess::save($this->owner(), ['md' => ['accounts']], LeadershipAccess::current()['version']);
+        $md = $this->owner('md');
+        $partner = $this->partner();
+
+        $this->reveal($md, $partner)->assertUnprocessable()->assertJsonValidationErrors('current_password');
+        $this->reveal($md, $partner, ['current_password' => 'wrong-one'])->assertUnprocessable()->assertJsonValidationErrors('current_password');
+        $this->assertDatabaseMissing('audit_events', ['action' => 'account.password_revealed']);
+
+        $this->reveal($md, $partner, ['current_password' => 'password'])->assertOk()->assertJsonPath('data.password', 'PartnerPass77');
+        // Within the next few minutes no password is asked again.
+        $this->reveal($md, $partner)->assertOk()->assertJsonPath('data.password', 'PartnerPass77');
+
+        $this->travel(6)->minutes();
+        $this->reveal($md, $partner)->assertUnprocessable();
+    }
+
+    public function test_the_owner_is_never_asked_to_confirm_but_every_view_is_still_recorded(): void
     {
         $owner = $this->owner();
         $partner = $this->partner();
 
-        $this->reveal($owner, $partner)->assertUnprocessable()->assertJsonValidationErrors('current_password');
-        $this->reveal($owner, $partner, ['current_password' => 'wrong-one'])->assertUnprocessable()->assertJsonValidationErrors('current_password');
-        $this->assertDatabaseMissing('audit_events', ['action' => 'account.password_revealed']);
-
-        $this->reveal($owner, $partner, ['current_password' => 'password'])->assertOk()->assertJsonPath('data.password', 'PartnerPass77');
-        // Within the next few minutes no password is asked again.
+        // CR-10: the one owner is never stopped by a confirmation step.
         $this->reveal($owner, $partner)->assertOk()->assertJsonPath('data.password', 'PartnerPass77');
-
-        $this->travel(6)->minutes();
-        $this->reveal($owner, $partner)->assertUnprocessable();
+        $this->assertDatabaseHas('audit_events', ['action' => 'account.password_revealed', 'actor_id' => $owner->id]);
     }
 
     public function test_reading_passwords_stops_at_the_daily_cap(): void

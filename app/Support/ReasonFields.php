@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Domain\Security\OwnerExemption;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -165,7 +166,7 @@ final class ReasonFields
      */
     public static function neverForced(?User $person): bool
     {
-        return $person !== null && $person->role === 'super_admin';
+        return OwnerExemption::applies($person);
     }
 
     /**

@@ -400,10 +400,10 @@ function TrainingForm({ data, item, onDone }: { data: StaffData; item: TrainingI
         <form className="action-form training-form" onSubmit={submit}>
             <FormErrors errors={form.errors} besideFields={['title_bn', 'title_en', 'summary', 'body', 'video_url', 'video_file', 'pdf']} />
             <label>{translate('portal', 'training_field_title_bn')}
-                <input type="text" lang="bn" required maxLength={200} value={form.data.title_bn} onChange={(e) => form.setData('title_bn', e.target.value)} />{error('title_bn')}
+                <input type="text" lang="bn" data-bangla-from="training-title-en" data-bangla-kind="text" required maxLength={200} value={form.data.title_bn} onChange={(e) => form.setData('title_bn', e.target.value)} />{error('title_bn')}
             </label>
             <label>{translate('portal', 'training_field_title_en')}
-                <input type="text" lang="en" required maxLength={200} value={form.data.title_en} onChange={(e) => form.setData('title_en', e.target.value)} />{error('title_en')}
+                <input id="training-title-en" type="text" lang="en" required maxLength={200} value={form.data.title_en} onChange={(e) => form.setData('title_en', e.target.value)} />{error('title_en')}
             </label>
             <label>{translate('portal', 'training_field_summary')}
                 <textarea rows={2} maxLength={500} value={form.data.summary} onChange={(e) => form.setData('summary', e.target.value)} />{error('summary')}

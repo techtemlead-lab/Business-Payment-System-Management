@@ -4,7 +4,7 @@ return [
     'title' => 'My income',
     'open' => 'See income part by part',
     'intro' => 'Every income is its own part. Pick a part to see how much came on which day, and download a separate statement for that part.',
-    'back' => 'Back to My money',
+    'back' => 'Back to Wallet',
     'admin_heading' => 'Income part by part',
     'tab_money' => 'Money statement',
     'parts_label' => 'Income parts',

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Security\OwnerConfirmation;
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +21,8 @@ class OwnerConfirmationTest extends TestCase
         parent::setUp();
         $this->withoutVite();
         config(['madina.preview_mode' => false, 'madina.sms.driver' => 'array', 'madina.sms.sent' => []]);
-        $this->owner = User::factory()->staff('super_admin')->create(['password' => 'OwnerPassword12345', 'phone' => '01712345678']);
+        // The Super Admin is never asked (CR-10, OwnerNeverBlockedTest); the confirmation still applies to the MD and Chairman.
+        $this->owner = User::factory()->staff('md')->create(['password' => 'OwnerPassword12345', 'phone' => '01712345678']);
     }
 
     public function test_the_password_is_asked_unless_the_owner_chooses_otherwise(): void
@@ -85,7 +87,8 @@ class OwnerConfirmationTest extends TestCase
     {
         Http::preventStrayRequests();
         config(['madina.sms.driver' => 'log']);
-        $this->actingAs($this->owner)->onPortal('sadmin')->post('/commands/operations/integrations/providers', [
+        // The Super Admin sets up the SMS service; the confirmation under test is the MD's.
+        $this->actingAs(User::factory()->staff('super_admin')->create())->onPortal('sadmin')->post('/commands/operations/integrations/providers', [
             'group' => 'sms', 'provider' => 'greenweb', 'version' => 0, 'enabled' => true,
             'base_url' => 'https://api.bdbulksms.net/api.php', 'balance_url' => 'https://api.bdbulksms.net/g_api.php',
             'api_key' => 'greenweb-test-token-7f3a9', 'reason' => 'Greenweb is the SMS service the owner chose.',
@@ -148,9 +151,12 @@ class OwnerConfirmationTest extends TestCase
 
     public function test_the_login_rules_page_shows_the_choice_and_other_pages_do_not_load_it(): void
     {
+        // D11: the MD opens Login rules only with the owner-tools grant from the Super Admin.
+        LeadershipAccess::save(User::factory()->staff('super_admin')->create(), ['md' => ['owner_tools']], LeadershipAccess::current()['version']);
         $this->actingAs($this->owner)->onPortal('sadmin')->get('/login-rules')
             ->assertInertia(fn ($page) => $page->where('securityControls.owner_confirmation.mode', 'password')->where('securityControls.owner_confirmation.method', 'password'));
-        $this->actingAs($this->owner)->onPortal('sadmin')->get('/orders')
+        // The home page (open to the MD under D11) does not load the setting.
+        $this->actingAs($this->owner)->onPortal('sadmin')->get('/')
             ->assertInertia(fn ($page) => $page->where('securityControls.owner_confirmation', null));
     }
 

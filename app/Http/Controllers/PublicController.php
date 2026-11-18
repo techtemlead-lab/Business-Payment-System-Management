@@ -622,6 +622,7 @@ class PublicController extends Controller
                 'date_of_birth' => ['required', 'date_format:Y-m-d', PartnerAge::rule()],
                 'role' => ['required', Rule::in(['dealer', 'sub_dealer'])],
                 'nid' => ['nullable', 'regex:/^\d{10}$|^\d{13}$|^\d{17}$/'],
+                'shop_name' => 'nullable|string|max:150',
                 'division' => 'nullable|string|max:80',
                 'district' => 'nullable|string|max:80',
                 'upazila' => 'nullable|string|max:150',

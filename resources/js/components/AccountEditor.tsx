@@ -115,7 +115,8 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
             event.preventDefault();
             form.transform((data) => {
                 const profile = { ...data.profile };
-                if (isSubDealer && profile.shop_name) {
+                // One shop name for dealers and sub-dealers; the older pharmacy field just follows it.
+                if (isPartner) {
                     profile.pharmacy = profile.shop_name;
                 }
                 return { ...data, profile };
@@ -125,7 +126,7 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
             <p className="muted">{translate('portal', 'acct_edit_notice')}</p>
             <div className="form-grid">
                 <label>{translate('portal', 'acct_full_name')}
-                    <input required value={form.data.name} onChange={event => form.setData('name', event.target.value)} />
+                    <input id="ace-name-en" required value={form.data.name} onChange={event => form.setData('name', event.target.value)} />
                 </label>
                 {isPartner && <label>{translate('portal', 'acct_dealer_code_unique')}
                     <input required value={form.data.dealer_code} onChange={event => form.setData('dealer_code', event.target.value.toUpperCase())} />
@@ -162,10 +163,7 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                     </label>
                 </>}
                 {profileFields.map(field => {
-                    if (field === 'shop_name' && !isSubDealer) {
-                        return null;
-                    }
-                    if (field === 'pharmacy' && isSubDealer) {
+                    if (field === 'pharmacy' && isPartner) {
                         return null;
                     }
                     if (isPartner && ['upazila', 'union', 'area_code'].includes(field)) {
@@ -173,7 +171,7 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                         return <label key={field}>{fieldLabel}<input readOnly maxLength={150} value={form.data.profile[field]} /></label>;
                     }
                     const fieldLabel = field === 'shop_name' ? translate('portal', 'acct_shop_name_plain') : field === 'pharmacy' ? translate('portal', 'acct_pharmacy') : profileFieldLabelKeys[field] ? translate('portal', profileFieldLabelKeys[field]) : label(field, translate);
-                    return <label key={field}>{fieldLabel}<input maxLength={150} value={form.data.profile[field]} onChange={event => form.setData('profile', { ...form.data.profile, [field]: event.target.value })} /></label>;
+                    return <label key={field}>{fieldLabel}<input maxLength={150} {...(field === 'name_bn' ? { 'data-bangla-from': 'ace-name-en', 'data-bangla-kind': 'name' } : {})} value={form.data.profile[field]} onChange={event => form.setData('profile', { ...form.data.profile, [field]: event.target.value })} /></label>;
                 })}
                 <label>{translate('portal', 'col_status')}<select value={form.data.status} onChange={event => form.setData('status', event.target.value)}><option value="active">{translate('portal', 'status_active')}</option><option value="suspended">{translate('portal', 'status_suspended')}</option></select>{isPartner && form.data.status === 'suspended' && account.status !== 'suspended' && <small className="notice" role="status">{translate('payouts', 'suspend_hold_note')}</small>}</label>
                 {(account.role === 'dealer' || account.role === 'sub_dealer') && <label>{translate('portal', 'acct_directory_visibility')}<select value={form.data.directory_visible} onChange={event => form.setData('directory_visible', event.target.value)}><option value="0">{translate('portal', 'acct_private')}</option><option value="1">{translate('portal', 'acct_publish_contact')}</option></select></label>}

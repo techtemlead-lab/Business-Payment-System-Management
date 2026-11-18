@@ -274,11 +274,11 @@ function EventForm({ data, event, onDone }: { data: StaffData; event: PartnerEve
         <form className="action-form events-form" onSubmit={submit}>
             <FormErrors errors={form.errors} besideFields={['title_bn', 'title_en', 'date', 'start_time', 'end_time', 'place', 'online_url', 'divisions', 'notes']} />
             <label>{translate('portal', 'events_field_title_bn')}
-                <input type="text" lang="bn" required maxLength={200} value={form.data.title_bn} onChange={(e) => form.setData('title_bn', e.target.value)} />{error('title_bn')}
+                <input type="text" lang="bn" data-bangla-from="event-title-en" data-bangla-kind="text" required maxLength={200} value={form.data.title_bn} onChange={(e) => form.setData('title_bn', e.target.value)} />{error('title_bn')}
                 {smsTitleNotBangla && !form.errors.title_bn && <span className="field-error" role="alert" lang="bn">{data.sms_compose.error}</span>}
             </label>
             <label>{translate('portal', 'events_field_title_en')}
-                <input type="text" lang="en" required maxLength={200} value={form.data.title_en} onChange={(e) => form.setData('title_en', e.target.value)} />{error('title_en')}
+                <input id="event-title-en" type="text" lang="en" required maxLength={200} value={form.data.title_en} onChange={(e) => form.setData('title_en', e.target.value)} />{error('title_en')}
             </label>
             <div className="training-form-row">
                 <label>{translate('portal', 'events_field_date')}

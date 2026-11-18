@@ -85,6 +85,8 @@ final class PartnerDashboardHome
                 'commission_month' => Money::decimal($commissionMonth),
                 'commission_today' => Money::decimal($commissionToday),
             ],
+            'card' => $this->card($user, $profile),
+            'totals' => $this->totals($user),
             'targets' => $this->targets($user, $rules, $month),
             'referral' => $user->refer_code ? [
                 'code' => $user->refer_code,
@@ -96,6 +98,58 @@ final class PartnerDashboardHome
             'wallet' => [...$this->walletSummary($user), 'commission_waiting' => $this->earnings->waitingCommission($user), 'commission_held' => $this->moneyBook->heldCommission($user, 3)],
             // Shows a small "happy birthday" card; read from the profile already loaded, no query.
             'is_birthday' => BirthdayGreetings::isBirthdayToday($user),
+        ];
+    }
+
+    /**
+     * The profile card on the left of the dashboard: who the partner is, where, when they joined, and how many people they brought.
+     *
+     * @param  array<string, mixed>  $profile
+     * @return array<string, mixed>
+     */
+    private function card(User $user, array $profile): array
+    {
+        $tz = (string) config('madina.business_timezone', config('app.timezone'));
+        $counts = DB::table('referral_tree_paths AS p')
+            ->join('users AS u', 'u.id', '=', 'p.descendant_id')
+            ->where('p.ancestor_id', $user->id)
+            ->selectRaw('COUNT(*) FILTER (WHERE p.depth = 1) AS direct, COUNT(*) FILTER (WHERE p.depth = 1 AND u.status = ?) AS gen1, COUNT(*) FILTER (WHERE p.depth = 2) AS gen2', ['active'])
+            ->first();
+
+        return [
+            'name' => $user->name,
+            'type' => $user->role,
+            'photo_url' => $profile['photo_url'] ?? $profile['avatar_url'] ?? null,
+            'initial' => mb_strtoupper(mb_substr((string) $user->name, 0, 1)),
+            'area' => app(PartnerAreaLine::class)->for($user),
+            'phone' => $user->phone,
+            'email' => $user->email,
+            'joined_on' => $user->created_at?->timezone($tz)->format('d/m/Y'),
+            // The shop name belongs to sub-dealers only; a dealer's card never shows one.
+            'shop_name' => $user->role === 'sub_dealer'
+                ? ($profile['shop_name'] ?? $profile['pharmacy'] ?? $profile['pharmacy_name'] ?? null)
+                : null,
+            'direct' => (int) ($counts->direct ?? 0),
+            'gen1' => (int) ($counts->gen1 ?? 0),
+            'gen2' => (int) ($counts->gen2 ?? 0),
+        ];
+    }
+
+    /**
+     * The three figures at the top of the middle column. "Withdrawn" is every taka that left the wallet:
+     * paid out as cash and used to pay for orders.
+     *
+     * @return array{income: string, withdrawn: string, balance: string}
+     */
+    private function totals(User $user): array
+    {
+        $summary = $this->moneyBook->summary($user);
+        $out = Money::cents($summary['lifetime']['withdrawn']) + Money::cents($summary['lifetime']['spent']);
+
+        return [
+            'income' => $summary['lifetime']['earned'],
+            'withdrawn' => Money::decimal($out),
+            'balance' => $summary['available'],
         ];
     }
 

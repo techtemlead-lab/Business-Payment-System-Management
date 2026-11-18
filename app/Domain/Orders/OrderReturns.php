@@ -8,6 +8,7 @@ use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Finance\CompanyFunds;
 use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\StockLots;
+use App\Domain\Security\OwnerExemption;
 use App\Models\CompanyBranch;
 use App\Models\Order;
 use App\Models\User;
@@ -100,10 +101,10 @@ final class OrderReturns
         return $actor->status === 'active' && ($actor->allows('order_review') || OrderRefund::canRefund($actor));
     }
 
-    /** Only the owner's own account carries money out alone; anyone else needs a second person. */
+    /** Only the owner's own account carries money out alone (CR-10); anyone else needs a second person. */
     public static function actsAlone(User $actor): bool
     {
-        return $actor->role === 'super_admin' && $actor->status === 'active';
+        return OwnerExemption::applies($actor);
     }
 
     /**

@@ -2,6 +2,7 @@ import {useState} from 'react';
 import {router, usePage} from '@inertiajs/react';
 import {FormErrors, type Row} from './UI';
 import {useT} from '../shared/i18n/t';
+import { OptionalTag } from './FieldMarks';
 
 export type ProductFactField = {name:string;max_length:number;multiline:boolean};
 export type ProductConcernOption = {id:number;name_bn:string;name_en:string};
@@ -50,8 +51,8 @@ function ConcernTagManager({concerns,canManage}:{concerns:ProductConcernOption[]
  return <div>
   {concerns.length>0&&<ul className="pe-concern-list">{concerns.map(concern=><li key={concern.id}><span>{concern.name_bn} · {concern.name_en}</span><span className="ed-row is-tight"><button type="button" className="text-link" onClick={()=>edit(concern)}>{translate('product_facts','concern_edit')}</button><button type="button" className="text-link" onClick={()=>remove(concern)}>{translate('product_facts','concern_delete')}</button></span></li>)}</ul>}
   <div className="form-grid">
-   <label>{translate('product_facts','concern_name_bn')}<input maxLength={80} value={nameBn} onChange={e=>setNameBn(e.target.value)}/></label>
-   <label>{translate('product_facts','concern_name_en')}<input maxLength={80} value={nameEn} onChange={e=>setNameEn(e.target.value)}/></label>
+   <label>{translate('product_facts','concern_name_bn')}<input data-bangla-from="pfp-concern-name-en" data-bangla-kind="text" maxLength={80} value={nameBn} onChange={e=>setNameBn(e.target.value)}/></label>
+   <label>{translate('product_facts','concern_name_en')}<input id="pfp-concern-name-en" maxLength={80} value={nameEn} onChange={e=>setNameEn(e.target.value)}/></label>
   </div>
   <FormErrors errors={concernErrors}/>
   <div className="ed-row"><button type="button" className="button small" disabled={processing||!nameBn.trim()||!nameEn.trim()} onClick={save}>{editingId?translate('product_facts','concern_save'):translate('product_facts','concern_add')}</button>{editingId&&<button type="button" className="text-link" onClick={clear}>{translate('product_facts','concern_cancel')}</button>}</div>
@@ -73,14 +74,18 @@ export default function ProductFactsPanel({fields,concerns,groupSuggestions,data
  return <section className="panel">
   <h2>{translate('product_facts','panel_title')}</h2>
   <p className="muted">{translate('product_facts','panel_hint')}</p>
-  <label>{translate('product_facts','field_registration_number')}<input disabled={!canEdit} maxLength={120} value={data.registration_number??''} onChange={e=>setField('registration_number',e.target.value)}/><small className="muted">{translate('product_facts','hint_registration_number')}</small></label>
+  <label><span>{translate('product_facts','field_registration_number')}<OptionalTag/></span><input disabled={!canEdit} maxLength={120} value={data.registration_number??''} onChange={e=>setField('registration_number',e.target.value)}/><small className="muted">{translate('product_facts','hint_registration_number')}</small></label>
   {fields.map(field=><fieldset key={field.name} className="pe-fact-field" disabled={!canEdit}>
-   <legend>{translate('product_facts',`field_${field.name}`)}</legend>
+   <legend>{translate('product_facts',`field_${field.name}`)}<OptionalTag/></legend>
    {FIELD_HINTS[field.name]&&<small className="muted">{translate('product_facts',FIELD_HINTS[field.name])}</small>}
    <div className="form-grid">
-    {(['bn','en'] as const).map(language=><label key={language}>{translate('product_facts',`column_${language}`)}{field.multiline
-     ?<textarea rows={3} maxLength={field.max_length} value={data[`${field.name}_${language}`]??''} onChange={e=>setField(`${field.name}_${language}`,e.target.value)}/>
-     :<input maxLength={field.max_length} list={field.name==='group'?`product-group-${language}`:undefined} value={data[`${field.name}_${language}`]??''} onChange={e=>setField(`${field.name}_${language}`,e.target.value)}/>}</label>)}
+    {(['bn','en'] as const).map(language=>{
+     // English first: the Bangla box fills itself from the English one when left empty (CR-06).
+     const pair=language==='en'?{id:`pfp-${field.name}-en`}:{'data-bangla-from':`pfp-${field.name}-en`,'data-bangla-kind':'text'};
+     return <label key={language}>{translate('product_facts',`column_${language}`)}{field.multiline
+     ?<textarea {...pair} rows={3} maxLength={field.max_length} value={data[`${field.name}_${language}`]??''} onChange={e=>setField(`${field.name}_${language}`,e.target.value)}/>
+     :<input {...pair} maxLength={field.max_length} list={field.name==='group'?`product-group-${language}`:undefined} value={data[`${field.name}_${language}`]??''} onChange={e=>setField(`${field.name}_${language}`,e.target.value)}/>}</label>;
+    })}
    </div>
   </fieldset>)}
   {((['bn','en'] as const).map(language=><datalist key={language} id={`product-group-${language}`}>{(groupSuggestions?.[language]??[]).map(name=><option key={name} value={name}/>)}</datalist>))}

@@ -167,7 +167,7 @@ class PortalModulesTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('translations.portal.nav_module_commerce', 'My orders')
-                ->where('translations.portal.nav_module_earnings', 'My money')
+                ->where('translations.portal.nav_module_earnings', 'Wallet')
                 ->where('translations.portal.nav_module_fulfillment', 'Orders and delivery')
                 ->where('translations.portal.nav_module_system', 'System')
                 ->where('translations.portal.search_menu', 'Search menu')
@@ -179,7 +179,7 @@ class PortalModulesTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('translations.portal.nav_module_commerce', 'আমার অর্ডার')
-                ->where('translations.portal.nav_module_earnings', 'আমার টাকা')
+                ->where('translations.portal.nav_module_earnings', 'ওয়ালেট')
                 ->where('translations.portal.nav_module_fulfillment', 'অর্ডার ও ডেলিভারি')
                 ->where('translations.portal.nav_module_system', 'সিস্টেম')
                 ->where('translations.portal.search_menu', 'মেনু খুঁজুন')
@@ -210,7 +210,7 @@ class PortalModulesTest extends TestCase
                 ->component('portals/subdealer/Dashboard')
                 ->where('locale', 'bn')
                 ->where('translations.portal.log_out', 'লগআউট')
-                ->where('translations.portal.nav_module_earnings', 'আমার টাকা')
+                ->where('translations.portal.nav_module_earnings', 'ওয়ালেট')
                 ->where('translations.portal.change_password', 'পাসওয়ার্ড পরিবর্তন'));
     }
 }

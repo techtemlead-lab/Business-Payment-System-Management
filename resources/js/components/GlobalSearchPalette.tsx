@@ -18,7 +18,8 @@ const MINIMUM_LENGTH = 2;
 const TYPING_PAUSE_MS = 250;
 
 export default function GlobalSearchPalette({ onClose }: { onClose: () => void }) {
-    const { portalBase } = usePage<any>().props;
+    const { portalBase, dashboardControls } = usePage<any>().props;
+    const partnerCatalogOff = dashboardControls?.partner_catalog_off === true && ['dealer', 'subdealer'].includes(String(usePage<any>().props.portal));
     const base = String(portalBase ?? '');
     const translate = useT();
     const input = useRef<HTMLInputElement>(null);
@@ -102,7 +103,8 @@ export default function GlobalSearchPalette({ onClose }: { onClose: () => void }
                     key: `product-${product.id}`,
                     title: product.name,
                     detail: [product.sku, product.category].filter(Boolean).join(' · '),
-                    href: `${base}/catalog?${new URLSearchParams({ q: product.sku }).toString()}`,
+                    // A partner has no product list page now (CR-01); the order page has the same search.
+                    href: partnerCatalogOff ? `${base}/purchase` : `${base}/catalog?${new URLSearchParams({ q: product.sku }).toString()}`,
                 })),
             },
         ].filter((group) => group.hits.length > 0);

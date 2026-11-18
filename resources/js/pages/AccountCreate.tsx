@@ -297,9 +297,9 @@ export default function AccountCreate({
         }
     };
 
-    /** Checks the place code once it is typed: the code the person will get comes from this. */
-    const previewPlace = async (force = false) => {
-        const code = form.data.place_code.trim();
+    /** Checks the place code once it is typed or picked: the code the person will get comes from this. */
+    const previewPlace = async (force = false, picked?: string) => {
+        const code = (picked ?? form.data.place_code).trim();
         if (!code) {
             if (force) {
                 setPlaceError(translate('portal', isSubDealer ? 'acct_val_place_sub' : 'acct_val_place_dealer'));
@@ -349,6 +349,34 @@ export default function AccountCreate({
         form.clearErrors('place_code');
     };
 
+    /**
+     * Picking a place from the lists fills the place code and checks it at once, so nobody has to
+     * type a code (a hand-typed wrong union sent area money to the wrong place). A sub-dealer's
+     * code is a union, so it is filled only when the union is picked; a dealer takes the
+     * deepest place picked.
+     */
+    const pickPlace = (picked: { division?: string; district?: string; upazila?: string; union?: string }) => {
+        const division = place_divisions.find((item) => String(item.id) === picked.division);
+        const district = districts.find((item) => String(item.id) === picked.district);
+        const upazila = upazilas.find((item) => String(item.id) === picked.upazila);
+        const union = unions.find((item) => String(item.id) === picked.union);
+        const deepest = isSubDealer ? union : (union ?? upazila ?? district ?? division);
+        const code = deepest?.code ?? '';
+        changePlaceCode(code);
+        if (code) {
+            void previewPlace(true, code);
+        }
+    };
+
+    /** A code typed by someone who knows it replaces whatever was picked from the lists. */
+    const typePlaceCode = (typed: string) => {
+        setDivisionId('');
+        setDistrictId('');
+        setUpazilaId('');
+        setUnionId('');
+        changePlaceCode(typed);
+    };
+
     useEffect(() => {
         if (!isPartner) {
             return undefined;
@@ -386,6 +414,8 @@ export default function AccountCreate({
         return () => window.clearTimeout(handle);
     }, [form.data.reference_code, form.data.dealer_code, isPartner]);
 
+    // Details nobody needs to open an account; kept in one folded block at the end.
+    const MORE_BOXES = ['occupation', 'village', 'post_office', 'extra_contact', 'latitude', 'longitude'];
     const sections: Section[] = useMemo(() => {
         const finishKyc = isPartner ? [...kycBoxes] : [];
         const typeSection: Section[] = singlePartnerRole ? [] : [{ key: 'type', title: translate('portal', 'acct_step_type'), hint: translate('portal', 'acct_step_type_hint'), required: [], boxes: ['role'] }];
@@ -400,12 +430,11 @@ export default function AccountCreate({
         const identityNumber = form.data.identity_type === 'nid' ? 'nid' : 'birth_certificate_number';
         return [
             ...typeSection,
-            { key: 'identity', title: translate('portal', 'acct_step_identity'), hint: translate('portal', 'acct_step_identity_hint'), required: [identityNumber, 'date_of_birth', 'name', 'name_bn', 'father_name', 'mother_name'], boxes: ['identity_type', identityNumber, 'date_of_birth', 'name', 'name_bn', 'father_name', 'mother_name', 'occupation'] },
-            { key: 'address', title: translate('portal', 'acct_step_address'), hint: translate('portal', 'acct_step_address_hint'), required: [], boxes: ['village', 'post_office', 'latitude', 'longitude'] },
+            { key: 'identity', title: translate('portal', 'acct_step_identity'), hint: translate('portal', 'acct_step_identity_hint'), required: [identityNumber, 'date_of_birth', 'name', 'name_bn', 'father_name', 'mother_name'], boxes: ['identity_type', identityNumber, 'date_of_birth', 'name', 'name_bn', 'father_name', 'mother_name'] },
             { key: 'place', title: translate('portal', 'acct_step_area'), hint: translate('portal', isSubDealer ? 'acct_area_hint_sub' : 'acct_area_hint_dealer'), required: ['place_code'], boxes: ['place_code', 'dealer_code'] },
             { key: 'refer', title: translate('portal', 'acct_step_refer'), required: [], boxes: ['reference_code'] },
-            { key: 'contact', title: translate('portal', 'acct_step_contact'), hint: translate('portal', 'acct_step_contact_hint'), required: ['phone', 'email', ...(isSubDealer ? ['shop_name'] : [])], boxes: ['phone', 'email', 'extra_contact', 'shop_name', 'pharmacy'] },
-            { key: 'last', title: translate('portal', 'acct_section_last'), required: accountReason.required ? ['reason'] : [], boxes: [...(accountReason.shown ? ['reason'] : []), 'directory_visible', ...finishKyc] },
+            { key: 'contact', title: translate('portal', 'acct_step_contact'), hint: translate('portal', 'acct_step_contact_hint'), required: ['phone', 'email'], boxes: ['phone', 'email', 'shop_name'] },
+            { key: 'last', title: translate('portal', 'acct_section_last'), required: accountReason.required ? ['reason'] : [], boxes: [...(accountReason.shown ? ['reason'] : []), 'directory_visible', ...MORE_BOXES, ...finishKyc] },
         ];
     }, [isPartner, isSubDealer, hasPermissionChoice, singlePartnerRole, form.data.identity_type, translate, accountReason.required, accountReason.shown]);
 
@@ -474,8 +503,8 @@ export default function AccountCreate({
             phone: data.phone,
             email: data.email,
             extra_contact: data.extra_contact,
-            pharmacy: data.role === 'sub_dealer' ? (data.shop_name || data.pharmacy) : data.pharmacy,
-            shop_name: data.role === 'sub_dealer' ? data.shop_name : '',
+            pharmacy: data.shop_name,
+            shop_name: data.shop_name,
             directory_visible: data.directory_visible,
             status: data.status,
             reason: accountReason.shown ? data.reason : '',
@@ -651,6 +680,9 @@ export default function AccountCreate({
                                 </div>
                                 {!canEnterNid && <p className="acf-note">{translate('portal', 'acct_nid_needs_permission')}</p>}
                                 <div className="acf-grid">
+                                    {/* English and Bangla name side by side: one pair, easy to fill the Bangla from the English. */}
+                                    <Box text={translate('portal', 'acct_name_en')} error={errorOf('name')}><input id="acf-name-en" data-name-field="en" autoComplete="off" value={form.data.name} onChange={(e) => setBox('name', e.target.value)} /></Box>
+                                    <Box text={translate('portal', 'acct_name_bn')} error={errorOf('name_bn')}><input id="acf-name-bn" data-name-field="bn" data-bangla-from="acf-name-en" data-bangla-kind="name" autoComplete="off" value={form.data.name_bn} onChange={(e) => setBox('name_bn', e.target.value)} /></Box>
                                     {form.data.identity_type === 'birth_certificate' ? (
                                         <Box text={translate('portal', 'acct_birth_cert_number')} error={errorOf('birth_certificate_number')}>
                                             <input inputMode="numeric" autoComplete="off" value={form.data.birth_certificate_number} onChange={(e) => setBox('birth_certificate_number', e.target.value)} />
@@ -671,21 +703,19 @@ export default function AccountCreate({
                                             {bdrisMessage && <span className="muted ops-fs-sm">{bdrisMessage}</span>}
                                         </div>
                                     )}
-                                    <Box text={translate('portal', 'acct_name_en')} error={errorOf('name')}><input autoComplete="off" value={form.data.name} onChange={(e) => setBox('name', e.target.value)} /></Box>
-                                    <Box text={translate('portal', 'acct_name_bn')} error={errorOf('name_bn')}><input autoComplete="off" value={form.data.name_bn} onChange={(e) => setBox('name_bn', e.target.value)} /></Box>
                                     <Box text={translate('portal', 'acct_father_name')} error={errorOf('father_name')}><input autoComplete="off" value={form.data.father_name} onChange={(e) => setBox('father_name', e.target.value)} /></Box>
                                     <Box text={translate('portal', 'acct_mother_name')} error={errorOf('mother_name')}><input autoComplete="off" value={form.data.mother_name} onChange={(e) => setBox('mother_name', e.target.value)} /></Box>
-                                    <Box text={translate('portal', 'acct_occupation')} error={errorOf('occupation')}><input autoComplete="off" value={form.data.occupation} onChange={(e) => setBox('occupation', e.target.value)} /></Box>
                                 </div>
                             </section>
 
-                            <section className="panel acf-section" id="acf-address">
-                                {heading('address', sectionFor('address'))}
+                            <section className="panel acf-section" id="acf-place">
+                                {heading('place', sectionFor('place'))}
+                                <p className="acf-note">{translate('joining', 'place_pick_hint')}</p>
                                 <div className="acf-grid">
                                     <Box text={translate('portal', 'acct_division')}>
                                         <SearchSelect
                                             value={divisionId}
-                                            onChange={(value) => { setDivisionId(value); setDistrictId(''); setUpazilaId(''); setUnionId(''); }}
+                                            onChange={(value) => { setDivisionId(value); setDistrictId(''); setUpazilaId(''); setUnionId(''); pickPlace({ division: value }); }}
                                             emptyLabel={translate('portal', 'acct_select_division')}
                                             options={place_divisions.map((item) => ({ value: String(item.id), label: `${item.code} — ${item.name}` }))}
                                         />
@@ -693,7 +723,7 @@ export default function AccountCreate({
                                     <Box text={translate('portal', 'acct_district')}>
                                         <SearchSelect
                                             value={districtId}
-                                            onChange={(value) => { setDistrictId(value); setUpazilaId(''); setUnionId(''); }}
+                                            onChange={(value) => { setDistrictId(value); setUpazilaId(''); setUnionId(''); pickPlace({ division: divisionId, district: value }); }}
                                             disabled={!divisionId}
                                             emptyLabel={translate('portal', 'acct_select_district')}
                                             options={districts.map((item) => ({ value: String(item.id), label: `${item.code} — ${item.name}` }))}
@@ -702,7 +732,7 @@ export default function AccountCreate({
                                     <Box text={translate('portal', 'acct_upazila')}>
                                         <SearchSelect
                                             value={upazilaId}
-                                            onChange={(value) => { setUpazilaId(value); setUnionId(''); }}
+                                            onChange={(value) => { setUpazilaId(value); setUnionId(''); pickPlace({ division: divisionId, district: districtId, upazila: value }); }}
                                             disabled={!districtId}
                                             emptyLabel={translate('portal', 'acct_select_upazila')}
                                             options={upazilas.map((item) => ({ value: String(item.id), label: `${item.code} — ${item.name}` }))}
@@ -711,43 +741,20 @@ export default function AccountCreate({
                                     <Box text={translate('portal', 'acct_union')}>
                                         <SearchSelect
                                             value={unionId}
-                                            onChange={(value) => setUnionId(value)}
+                                            onChange={(value) => { setUnionId(value); pickPlace({ division: divisionId, district: districtId, upazila: upazilaId, union: value }); }}
                                             disabled={!upazilaId}
                                             emptyLabel={translate('portal', 'acct_select_union')}
                                             options={unions.map((item) => ({ value: String(item.id), label: `${item.code} — ${item.name}` }))}
                                         />
                                     </Box>
-                                    <Box text={translate('portal', 'acct_village')} error={errorOf('village')}><input autoComplete="off" value={form.data.village} onChange={(e) => setBox('village', e.target.value)} /></Box>
-                                    <Box text={translate('portal', 'acct_post_office')} error={errorOf('post_office')}><input autoComplete="off" value={form.data.post_office} onChange={(e) => setBox('post_office', e.target.value)} /></Box>
-                                </div>
-                                <details className="acf-more" open={Boolean(errorOf('latitude') || errorOf('longitude')) || undefined}>
-                                    <summary>{translate('portal', 'acct_more_address')}</summary>
-                                    <div className="acf-grid">
-                                        <Box text={translate('portal', 'acct_search_places')} wide>
-                                            <input autoComplete="off" value={addressSearch} onChange={(e) => setAddressSearch(e.target.value)} placeholder={translate('portal', 'acct_filter_places')} />
-                                        </Box>
-                                        <Box text={translate('portal', 'acct_latitude')} error={errorOf('latitude')}>
-                                            <input type="number" step="any" min="-90" max="90" value={form.data.latitude} onChange={(e) => setBox('latitude', e.target.value)} placeholder={translate('portal', 'acct_latitude_ph')} />
-                                        </Box>
-                                        <Box text={translate('portal', 'acct_longitude')} error={errorOf('longitude')}>
-                                            <input type="number" step="any" min="-180" max="180" value={form.data.longitude} onChange={(e) => setBox('longitude', e.target.value)} placeholder={translate('portal', 'acct_longitude_ph')} />
-                                        </Box>
-                                    </div>
-                                    <p className="acf-note">{translate('portal', 'acct_gps_hint')}</p>
-                                </details>
-                            </section>
-
-                            <section className="panel acf-section" id="acf-place">
-                                {heading('place', sectionFor('place'))}
-                                <div className="acf-grid">
-                                    <Box text={translate('portal', isSubDealer ? 'acct_union_code' : 'acct_place_code')} error={errorOf('place_code') || placeError}>
+                                    <Box text={translate('portal', isSubDealer ? 'acct_union_code' : 'acct_place_code')} error={errorOf('place_code') || placeError} hint={translate('joining', 'place_code_hint')}>
                                         <div className="acf-with-button">
                                             <input
                                                 data-place-code=""
                                                 autoComplete="off"
                                                 aria-invalid={Boolean(errorOf('place_code') || placeError)}
                                                 value={form.data.place_code}
-                                                onChange={(e) => changePlaceCode(e.target.value)}
+                                                onChange={(e) => typePlaceCode(e.target.value)}
                                                 onBlur={() => void previewPlace()}
                                                 placeholder={translate('portal', isSubDealer ? 'acct_union_code_ph' : 'acct_place_code_ph')}
                                             />
@@ -828,18 +835,9 @@ export default function AccountCreate({
                                     <Box text={translate('portal', 'acct_email')} error={errorOf('email')}>
                                         <input type="email" inputMode="email" autoComplete="off" value={form.data.email} onChange={(e) => setBox('email', e.target.value)} />
                                     </Box>
-                                    <Box text={translate('portal', 'acct_extra_contact')} error={errorOf('extra_contact')}>
-                                        <input autoComplete="off" value={form.data.extra_contact} onChange={(e) => setBox('extra_contact', e.target.value)} />
+                                    <Box text={translate('joining', 'shop_name_label')} error={errorOf('shop_name')} hint={translate('joining', 'shop_name_hint')}>
+                                        <input id="acf-shop-name" name="shop_name" autoComplete="off" value={form.data.shop_name} onChange={(e) => setBox('shop_name', e.target.value)} placeholder={translate('portal', 'acct_shop_placeholder')} />
                                     </Box>
-                                    {isSubDealer ? (
-                                        <Box text={translate('portal', 'acct_shop_name')} error={errorOf('shop_name')}>
-                                            <input autoComplete="off" value={form.data.shop_name} onChange={(e) => setBox('shop_name', e.target.value)} placeholder={translate('portal', 'acct_shop_placeholder')} />
-                                        </Box>
-                                    ) : (
-                                        <Box text={translate('portal', 'acct_pharmacy')} error={errorOf('pharmacy')}>
-                                            <input autoComplete="off" value={form.data.pharmacy} onChange={(e) => setBox('pharmacy', e.target.value)} />
-                                        </Box>
-                                    )}
                                 </div>
                             </section>
                         </>
@@ -870,6 +868,21 @@ export default function AccountCreate({
                                 </Box>
                             )}
                         </div>
+                        {isPartner && (
+                            <details className="acf-more" open={MORE_BOXES.some((box) => errorOf(box)) || undefined}>
+                                <summary>{translate('joining', 'more_details')}</summary>
+                                <p className="acf-note">{translate('joining', 'more_details_hint')}</p>
+                                <div className="acf-grid">
+                                    <Box text={translate('portal', 'acct_occupation')} error={errorOf('occupation')}><input autoComplete="off" value={form.data.occupation} onChange={(e) => setBox('occupation', e.target.value)} /></Box>
+                                    <Box text={translate('portal', 'acct_extra_contact')} error={errorOf('extra_contact')}><input autoComplete="off" value={form.data.extra_contact} onChange={(e) => setBox('extra_contact', e.target.value)} /></Box>
+                                    <Box text={translate('portal', 'acct_village')} error={errorOf('village')}><input autoComplete="off" value={form.data.village} onChange={(e) => setBox('village', e.target.value)} /></Box>
+                                    <Box text={translate('portal', 'acct_post_office')} error={errorOf('post_office')}><input autoComplete="off" value={form.data.post_office} onChange={(e) => setBox('post_office', e.target.value)} /></Box>
+                                    <Box text={translate('portal', 'acct_latitude')} error={errorOf('latitude')}><input type="number" step="any" min="-90" max="90" value={form.data.latitude} onChange={(e) => setBox('latitude', e.target.value)} placeholder={translate('portal', 'acct_latitude_ph')} /></Box>
+                                    <Box text={translate('portal', 'acct_longitude')} error={errorOf('longitude')}><input type="number" step="any" min="-180" max="180" value={form.data.longitude} onChange={(e) => setBox('longitude', e.target.value)} placeholder={translate('portal', 'acct_longitude_ph')} /></Box>
+                                </div>
+                                <p className="acf-note">{translate('portal', 'acct_gps_hint')}</p>
+                            </details>
+                        )}
                         {isPartner && (
                             <details className="acf-more" open={papersOpen || kycBoxes.some((box) => errorOf(box)) || undefined} onToggle={(e) => setPapersOpen(e.currentTarget.open)}>
                                 <summary>{translate('portal', 'optional_media_title')}{kycBoxes.some((box) => form.data[box]) ? ` · ${localizeDigits(String(kycBoxes.filter((box) => form.data[box]).length))}` : ''}</summary>

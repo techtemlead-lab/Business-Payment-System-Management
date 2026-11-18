@@ -21,6 +21,7 @@ use App\Domain\Orders\BackOrders;
 use App\Domain\Orders\CourierOptions;
 use App\Domain\Orders\MixedOutcomeDecisions;
 use App\Domain\Orders\OrderInvoice;
+use App\Domain\Orders\OrderListFilter;
 use App\Domain\Orders\OrderPaymentPrompt;
 use App\Domain\Orders\OrderRefund;
 use App\Domain\Orders\OrderReturns;
@@ -150,6 +151,10 @@ class WorkspaceController extends Controller
 
             return redirect('/');
         }
+        // CR-01: the partner product list is off (code kept; MADINA_PARTNER_CATALOG=true switches it back on).
+        if ($section === 'catalog' && ! $staffWorkspace && in_array($u->role, ['dealer', 'sub_dealer'], true) && ! config('madina.partner_catalog_enabled')) {
+            return redirect('/');
+        }
         PortalCatalog::assertSection($u, $catalogPortal, $section);
         $periodRule = match ($section) {
             'branch-performance' => 'nullable|in:today,month,last30,custom',
@@ -224,7 +229,11 @@ class WorkspaceController extends Controller
             $data['partner_hub'] = $partnerHub;
         }
 
-        return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role', 'channel', 'category', 'sub_category', 'unit', 'min_mrp', 'max_mrp', 'availability', 'sort', 'period', 'from', 'to', 'division', 'district', 'rank', 'no_order_days', 'branch_id', 'all_branches', 'product_id', 'movement'])]);
+        // The dashboard report is its own page prop, so a tab or a filter reloads only it (see MoneyTable's `prop`).
+        $extra = array_key_exists('income_report', $data) ? ['income_report' => $data['income_report']] : [];
+        unset($data['income_report']);
+
+        return Inertia::render(PortalCatalog::page($portal), [...$extra, 'section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role', 'channel', 'category', 'sub_category', 'unit', 'min_mrp', 'max_mrp', 'availability', 'sort', 'period', 'from', 'to', 'division', 'district', 'rank', 'no_order_days', 'branch_id', 'all_branches', 'product_id', 'movement'])]);
     }
 
     public function createAccount(Request $r): Response
@@ -337,6 +346,25 @@ class WorkspaceController extends Controller
             'Content-Type' => 'image/svg+xml; charset=UTF-8',
             'Cache-Control' => 'private, max-age=300',
         ]);
+    }
+
+    /**
+     * The dashboard's "find an order" box: an order number, a phone number or a name. One match opens
+     * that order at once; anything else opens the order list with the same words in its search box.
+     */
+    public function findOrder(Request $r): RedirectResponse
+    {
+        $u = $r->user();
+        abort_unless($u->allows('orders') || $u->allows('finance'), 403);
+        $words = trim($r->validate(['q' => 'required|string|max:100'])['q']);
+        $visible = Order::query();
+        app(BranchOperations::class)->scopeFor($u, $r)->restrictOrders($visible);
+        $matches = app(OrderListFilter::class)->apply($visible, $r->duplicate(['q' => $words]), 'orders', true)->limit(2)->pluck('orders.id');
+        if ($matches->count() === 1) {
+            return redirect('/orders/'.$matches->first());
+        }
+
+        return redirect('/orders?'.http_build_query(['q' => $words]));
     }
 
     public function show(Request $r, Order $order): Response

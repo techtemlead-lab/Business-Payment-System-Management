@@ -8,6 +8,7 @@ import { useProductPhotoFit } from '../shared/productPhotoFit';
 import ProductPhotoCutout from './ProductPhotoCutout';
 import SearchSelect from './SearchSelect';
 import ProductPhotoFitNote from './ProductPhotoFitNote';
+import { FieldMarksLegend, OptionalTag, RequiredMark } from './FieldMarks';
 
 type CatalogSubcategory = { id: number; name: string; is_active?: boolean };
 type CatalogCategory = { id: number; name: string; is_active?: boolean; subcategories?: CatalogSubcategory[] };
@@ -350,7 +351,7 @@ export default function ProductCreateModal({
         disabled = false,
     ) => (
         <label className="pcm-field">
-            <span>{label}</span>
+            <span>{label}<RequiredMark /></span>
             <SearchSelect
                 value={value}
                 disabled={disabled}
@@ -390,14 +391,15 @@ export default function ProductCreateModal({
 
                     <section>
                         <h3>{translate('portal', 'pcm_section_details')}</h3>
+                        <FieldMarksLegend />
                         <div className="pcm-grid">
                             <label className="pcm-field pcm-span">
-                                <span>{translate('portal', 'pcm_title_label')}</span>
+                                <span>{translate('portal', 'pcm_title_label')}<RequiredMark /></span>
                                 <input required value={name} placeholder={translate('portal', 'pcm_title_ph')} onChange={(event) => setName(event.target.value)} />
                             </label>
                             <label className="pcm-field">
                                 <span className="pcm-label-row">
-                                    {translate('portal', 'pcm_sku')}
+                                    <span>{translate('portal', 'pcm_sku')}<RequiredMark /></span>
                                     <button type="button" className="pcm-text" onClick={() => setSku(suggestSku())}>
                                         {translate('portal', 'pcm_auto')}
                                     </button>
@@ -409,21 +411,21 @@ export default function ProductCreateModal({
                                 <input value={strength} placeholder={translate('portal', 'pcm_strength_ph')} onChange={(event) => setStrength(event.target.value)} />
                             </label>
                             <label className="pcm-field">
-                                <span>{translate('product_facts', 'field_manufacturer')} ({translate('product_facts', 'column_bn')})</span>
-                                <input value={manufacturerBn} maxLength={200} onChange={(event) => setManufacturerBn(event.target.value)} />
+                                <span>{translate('product_facts', 'field_manufacturer')} ({translate('product_facts', 'column_bn')})<OptionalTag /></span>
+                                <input data-bangla-from="pcm-manufacturer-en" data-bangla-kind="text" value={manufacturerBn} maxLength={200} onChange={(event) => setManufacturerBn(event.target.value)} />
                             </label>
                             <label className="pcm-field">
-                                <span>{translate('product_facts', 'field_manufacturer')} ({translate('product_facts', 'column_en')})</span>
-                                <input value={manufacturerEn} maxLength={200} onChange={(event) => setManufacturerEn(event.target.value)} />
+                                <span>{translate('product_facts', 'field_manufacturer')} ({translate('product_facts', 'column_en')})<OptionalTag /></span>
+                                <input id="pcm-manufacturer-en" value={manufacturerEn} maxLength={200} onChange={(event) => setManufacturerEn(event.target.value)} />
                             </label>
                             <label className="pcm-field">
-                                <span>{translate('product_facts', 'field_group')} ({translate('product_facts', 'column_bn')})</span>
-                                <input value={groupBn} maxLength={120} list="pcm-group-bn" onChange={(event) => setGroupBn(event.target.value)} />
+                                <span>{translate('product_facts', 'field_group')} ({translate('product_facts', 'column_bn')})<OptionalTag /></span>
+                                <input data-bangla-from="pcm-group-en-box" data-bangla-kind="text" value={groupBn} maxLength={120} list="pcm-group-bn" onChange={(event) => setGroupBn(event.target.value)} />
                                 <datalist id="pcm-group-bn">{(groupSuggestions?.bn ?? []).map((item) => <option key={item} value={item} />)}</datalist>
                             </label>
                             <label className="pcm-field">
-                                <span>{translate('product_facts', 'field_group')} ({translate('product_facts', 'column_en')})</span>
-                                <input value={groupEn} maxLength={120} list="pcm-group-en" onChange={(event) => setGroupEn(event.target.value)} />
+                                <span>{translate('product_facts', 'field_group')} ({translate('product_facts', 'column_en')})<OptionalTag /></span>
+                                <input id="pcm-group-en-box" value={groupEn} maxLength={120} list="pcm-group-en" onChange={(event) => setGroupEn(event.target.value)} />
                                 <datalist id="pcm-group-en">{(groupSuggestions?.en ?? []).map((item) => <option key={item} value={item} />)}</datalist>
                             </label>
                             {choice('category', translate('portal', 'pcm_category'), categoryId, activeCategories, (value) => {
@@ -463,20 +465,20 @@ export default function ProductCreateModal({
                                 <textarea rows={3} value={description} placeholder={translate('portal', 'pcm_description_ph')} onChange={(event) => setDescription(event.target.value)} />
                             </label>
                             <label className="pcm-field pcm-span">
-                                <span>{translate('product_facts', 'field_efficacy')} ({translate('product_facts', 'column_bn')})</span>
-                                <textarea rows={3} maxLength={2000} value={efficacyBn} onChange={(event) => setEfficacyBn(event.target.value)} />
+                                <span>{translate('product_facts', 'field_efficacy')} ({translate('product_facts', 'column_bn')})<OptionalTag /></span>
+                                <textarea data-bangla-from="pcm-efficacy-en" data-bangla-kind="text" rows={3} maxLength={2000} value={efficacyBn} onChange={(event) => setEfficacyBn(event.target.value)} />
                             </label>
                             <label className="pcm-field pcm-span">
-                                <span>{translate('product_facts', 'field_efficacy')} ({translate('product_facts', 'column_en')})</span>
-                                <textarea rows={3} maxLength={2000} value={efficacyEn} onChange={(event) => setEfficacyEn(event.target.value)} />
+                                <span>{translate('product_facts', 'field_efficacy')} ({translate('product_facts', 'column_en')})<OptionalTag /></span>
+                                <textarea id="pcm-efficacy-en" rows={3} maxLength={2000} value={efficacyEn} onChange={(event) => setEfficacyEn(event.target.value)} />
                             </label>
                             <label className="pcm-field pcm-span">
                                 <span>{translate('product_facts', 'field_warnings')} ({translate('product_facts', 'column_bn')})</span>
-                                <textarea rows={3} maxLength={2000} value={warningsBn} onChange={(event) => setWarningsBn(event.target.value)} />
+                                <textarea data-bangla-from="pcm-warnings-en" data-bangla-kind="text" rows={3} maxLength={2000} value={warningsBn} onChange={(event) => setWarningsBn(event.target.value)} />
                             </label>
                             <label className="pcm-field pcm-span">
                                 <span>{translate('product_facts', 'field_warnings')} ({translate('product_facts', 'column_en')})</span>
-                                <textarea rows={3} maxLength={2000} value={warningsEn} onChange={(event) => setWarningsEn(event.target.value)} />
+                                <textarea id="pcm-warnings-en" rows={3} maxLength={2000} value={warningsEn} onChange={(event) => setWarningsEn(event.target.value)} />
                             </label>
                         </div>
                     </section>
@@ -485,7 +487,7 @@ export default function ProductCreateModal({
                         <h3>{translate('portal', 'pcm_section_pricing')}</h3>
                         <div className="pcm-price">
                             <label className="pcm-field pcm-price-mrp">
-                                <span>{translate('portal', 'pcm_mrp')}</span>
+                                <span>{translate('portal', 'pcm_mrp')}<RequiredMark /></span>
                                 <input type="number" min="0.01" step="0.01" required value={mrp} onChange={(event) => changeMrp(event.target.value)} />
                             </label>
                             <div className="pcm-price-line">
@@ -497,7 +499,7 @@ export default function ProductCreateModal({
                                     }} />
                                 </label>
                                 <label className="pcm-field">
-                                    <span>{translate('portal', 'pcm_dealer_price')}</span>
+                                    <span>{translate('portal', 'pcm_dealer_price')}<RequiredMark /></span>
                                     <input type="number" min="0.01" step="0.01" required value={dealerPrice} onChange={(event) => {
                                         setDealerPrice(event.target.value);
                                         setDealerPct(percentFromPrice(mrp, event.target.value));
@@ -513,7 +515,7 @@ export default function ProductCreateModal({
                                     }} />
                                 </label>
                                 <label className="pcm-field">
-                                    <span>{translate('portal', 'pcm_subdealer_price')}</span>
+                                    <span>{translate('portal', 'pcm_subdealer_price')}<RequiredMark /></span>
                                     <input type="number" min="0.01" step="0.01" required value={subDealerPrice} onChange={(event) => {
                                         setSubDealerPrice(event.target.value);
                                         setSubDealerPct(percentFromPrice(mrp, event.target.value));
