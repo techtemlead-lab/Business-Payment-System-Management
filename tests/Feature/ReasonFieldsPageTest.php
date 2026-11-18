@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\User;
 use App\Support\OfficeHubs;
 use App\Support\ReasonFields;
@@ -23,6 +24,8 @@ class ReasonFieldsPageTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
+        // D11 (SA-07): the MD and Chairman open owner pages such as this one once the Super Admin grants them.
+        LeadershipAccess::save(User::factory()->staff('super_admin')->create(), ['md' => ['owner_tools'], 'chairman' => ['owner_tools']], 0);
     }
 
     /**

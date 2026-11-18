@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Accounts\PasswordAccess;
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -215,6 +216,8 @@ class PartnerAdminPasswordTest extends TestCase
 
     public function test_md_can_reset_and_view_staff_but_not_the_super_admin_md_or_chairman(): void
     {
+        // D11 (SA-07): the MD acts on accounts once the Super Admin grants the accounts area.
+        LeadershipAccess::save(User::factory()->staff('super_admin')->create(), ['md' => ['accounts']], 0);
         $md = User::factory()->staff('md')->create(['profile' => ['action_permissions' => ['accounts' => ['view' => true, 'create' => true, 'edit' => true]]]]);
         $employee = User::factory()->staff('finance')->create([
             'phone' => '01712345222',
@@ -243,6 +246,8 @@ class PartnerAdminPasswordTest extends TestCase
 
     public function test_md_and_chairman_without_accounts_permission_can_reset_and_see_dealer_passwords(): void
     {
+        // D11 (SA-07): the owner decision of 2026-11-17 applies once the Super Admin grants the accounts area.
+        LeadershipAccess::save(User::factory()->staff('super_admin')->create(), ['md' => ['accounts'], 'chairman' => ['accounts']], 0);
         $dealer = User::factory()->dealer()->create([
             'phone' => '01712345333',
             'password_managed_by' => User::PasswordManagedByAdmin,
