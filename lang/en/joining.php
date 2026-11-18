@@ -129,4 +129,9 @@ return [
     'drawer_partner_code' => 'Partner code (use this to sign in)',
     'flash_partner_code' => 'Partner code: :code (the full code is what works for sign-in and as a referrer).',
     'drawer_sponsor_rules' => 'Rule: commission follows the referrer chain only (who brought whom). The referrer may be any active dealer or sub-dealer. The warnings above are only a notice; the office may still approve.',
+    // Simpler new account
+    'shop_name_label' => 'Shop name',
+    'shop_name_hint' => 'Optional. Can be changed later at any time.',
+    'more_details' => 'More details (optional)',
+    'more_details_hint' => 'Occupation, village, post office, extra phone and map position — not needed to open the account.',
 ];
