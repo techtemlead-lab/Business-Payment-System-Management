@@ -268,10 +268,14 @@ export default function Shell({ section, children, action }: { section: string; 
         [capabilities, ownerPortal, user.role, auth.chatAnswerer, auth.prescriber],
     );
 
-    const partnerAvailable = useMemo(
-        () => buildPartnerAvailable(user.role, dashboardControls, Boolean(auth.prescriber)),
-        [user.role, dashboardControls, auth.prescriber],
-    );
+    const emptyPartnerSections: string[] = page.props.emptyPartnerSections ?? [];
+    const partnerAvailable = useMemo(() => {
+        const available = buildPartnerAvailable(user.role, dashboardControls, Boolean(auth.prescriber));
+        // Pages with nothing in them yet stay out of the menu, except the one the person is already on.
+        emptyPartnerSections.filter((item) => item !== section).forEach((item) => available.delete(item));
+
+        return available;
+    }, [user.role, dashboardControls, auth.prescriber, emptyPartnerSections.join(','), section]);
 
     const navMothers = useMemo(
         () => buildNavMothers({ staff, role: user.role, staffAvailable, partnerAvailable }),

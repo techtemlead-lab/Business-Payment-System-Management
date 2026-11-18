@@ -11,6 +11,7 @@ use App\Domain\Security\SecuritySettings;
 use App\Domain\Staff\StaffPermissions;
 use App\Domain\Support\ChatRouting;
 use App\Domain\Support\PartnerChat;
+use App\Domain\Support\PartnerEmptySections;
 use App\Domain\Support\TourGuide;
 use App\Domain\Support\UserManual;
 use App\Support\DashboardManagement;
@@ -96,6 +97,8 @@ class HandleInertiaRequests extends Middleware
             'manualRuleValues' => Inertia::defer(fn () => ($u && $portalShell)
                 ? app(UserManual::class)->ruleValues()
                 : [], 'manual')->once()->as('manualRules:'.app()->getLocale()),
+            // Partner menu pages with nothing to show yet; the menu hides them until there is content.
+            'emptyPartnerSections' => fn () => $u ? app(PartnerEmptySections::class)->for($u) : [],
             // The words are one cached file; the page only names it.
             'translationsUrl' => TranslationBundle::url(app()->getLocale()),
             // The manual is only needed when it is opened, so it loads after the page instead of with it.
