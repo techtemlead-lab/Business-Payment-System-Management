@@ -57,7 +57,7 @@ class ManualDuplicateKeysTest extends TestCase
 
     public function test_the_benefits_fund_purpose_keeps_the_wording_for_a_one_owner_company(): void
     {
-        $this->assertStringStartsWith('Owner accounts need', (string) __('manual.owner_benefits_fund_purpose', [], 'en'));
+        $this->assertStringContainsString('owners\' own money', (string) __('manual.owner_benefits_fund_purpose', [], 'en'));
         $this->assertStringContainsString('মালিক পক্ষের', (string) __('manual.owner_benefits_fund_purpose', [], 'bn'));
     }
 }

@@ -233,6 +233,12 @@ class SimpleSidebarTest extends TestCase
 
                 continue;
             }
+            if ($rowId === 'office-more') {
+                $groups = (new ReflectionClassConstant(OfficeHubs::class, 'MoreGroups'))->getValue();
+                $this->assertSame(array_keys(array_merge(...array_values($groups))), $sections);
+
+                continue;
+            }
             $this->assertSame(array_keys($hubs[$rowId]['tabs']), $sections, $rowId);
         }
     }

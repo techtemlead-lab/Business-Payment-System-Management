@@ -45,7 +45,10 @@ final class GuidePrerequisites
             ];
         }
 
-        $path = self::PartnerPath;
+        // CR-01: while the partner product list is off, its step is not in the first-steps list either.
+        $path = config('madina.partner_catalog_enabled')
+            ? self::PartnerPath
+            : array_values(array_diff(self::PartnerPath, ['catalog']));
 
         if (! in_array($section, $path, true)) {
             $section = 'overview';

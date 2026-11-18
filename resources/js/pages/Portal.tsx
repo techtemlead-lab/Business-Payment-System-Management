@@ -77,6 +77,7 @@ const Inventory=React.lazy(()=>import('../components/office/sections/Inventory')
 const Accounts=React.lazy(()=>import('../components/office/sections/Accounts'));
 const PartnerFrame=React.lazy(()=>import('../components/office/sections/PartnerFrame'));
 const SettingsHome=React.lazy(()=>import('../components/office/SettingsHome'));
+const MoreHome=React.lazy(()=>import('../components/office/MoreHome'));
 /** These pages draw their own tab strip through OfficePage, so the page must not print a second one. */
 const DRAWS_OWN_TABS=['accounts','sub-dealers','partnerships','sub-dealer-applications','network-tree','area-dealers','ranks','employees','content','website','customization','public-trust','enquiries','feedback','agreement','training','events','sales-kit','schemes','contests','dashboards','data-cleanup','errors','identity-review','privacy-requests','login-rules','visitors','reason-fields','overview','support-admin','partner-messages','top-sellers','branch-performance','partner-scorecard','purchasing'];
 /**
@@ -99,6 +100,7 @@ export default function Portal({section,data:d,filters}:{section:string,data:Row
  {d.hub&&!DRAWS_OWN_TABS.includes(section)&&<OfficeHubTabs hub={d.hub}/>}
  {d.partner_hub&&<PartnerHubNav hub={d.partner_hub}/>}
  {section==='settings'&&<SettingsHome groups={d.settings_groups??[]}/>}
+ {section==='more'&&<MoreHome groups={d.more_groups??[]}/>}
  {section==='overview'&&<DashboardOverview data={d} orders={<OrderTable page={d.orders}/>}/>}
  {staff&&['orders','deliveries'].includes(section)&&d.no_branch_assigned&&<p className="notice" role="status">{translate('portal','orders_no_branch')}</p>}
  {['orders','deliveries','reports'].includes(section)&&<Orders {...sectionProps}/>}

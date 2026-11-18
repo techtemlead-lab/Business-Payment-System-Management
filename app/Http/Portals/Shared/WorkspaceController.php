@@ -155,6 +155,9 @@ class WorkspaceController extends Controller
         if ($section === 'catalog' && ! $staffWorkspace && in_array($u->role, ['dealer', 'sub_dealer'], true) && ! config('madina.partner_catalog_enabled')) {
             return redirect('/');
         }
+        if ($section === OfficeHubs::MoreSection) {
+            abort_unless($staff && OfficeHubs::hasMoreToOpen($u, $catalogPortal, in_array($portal, ['manage', 'sadmin'], true)), 403);
+        }
         PortalCatalog::assertSection($u, $catalogPortal, $section);
         $periodRule = match ($section) {
             'branch-performance' => 'nullable|in:today,month,last30,custom',

@@ -48,10 +48,28 @@
 .pd-tab.is-on { background: var(--ds-brand, #006a4e); border-color: var(--ds-brand, #006a4e); color: var(--ds-on-brand, #fff); }
 .pd-tab:focus-visible { outline: 3px solid var(--ds-brand, #006a4e); outline-offset: 2px; }
 
-@container (max-width: 1099px) {
+/*
+ * Targets sit on the right from a normal office desktop. Partner screens are zoomed (1.15 by default, AX-01),
+ * so a 1366–1440 px screen leaves only ~880–970 CSS px here: the side columns are narrower until there is room.
+ */
+@container (max-width: 879px) {
   .pd-right { grid-column: 1 / -1; }
 }
+@container (min-width: 880px) and (max-width: 1099px) {
+  .pd-grid { grid-template-columns: minmax(200px, 240px) minmax(0, 1fr) minmax(220px, 270px); gap: 14px; }
+  .pd-card { padding: 14px; }
+  /* The three totals as a list: name on the left, amount on the right, so big amounts never wrap. */
+  .pd-totals { grid-template-columns: 1fr; gap: 0; }
+  .pd-totals div { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--ds-line-soft, #ecf0ed); }
+  .pd-totals div:last-child { border-bottom: 0; }
+  .pd-totals .is-balance { padding: 10px 12px; }
+  .pd-totals strong { margin-top: 0; font-size: 1.1rem; white-space: nowrap; }
+  .pd-head-list { grid-template-columns: 1fr; }
+}
 @container (min-width: 1100px) {
+  .pd-grid { grid-template-columns: minmax(230px, 270px) minmax(0, 1fr) minmax(250px, 310px); }
+}
+@container (min-width: 1280px) {
   .pd-grid { grid-template-columns: minmax(250px, 290px) minmax(0, 1fr) minmax(280px, 340px); }
 }
 /* A phone: one column, profile first, then the money, then the targets, then the report. */

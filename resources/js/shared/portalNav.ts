@@ -58,7 +58,7 @@ export const SECTION_LABEL_KEYS: Record<string, string> = {
     'finance-settings': 'finance_settings',
     accounting: 'accounting',
     'access-management': 'access_management', 'video-marketing': 'video_marketing',
-    'stock-lots': 'stock_lots', 'partner-scorecard': 'partner_scorecard',
+    'stock-lots': 'stock_lots', 'partner-scorecard': 'partner_scorecard', more: 'nav_module_more',
     overview: 'overview', orders: 'orders', order: 'order_details', purchase: 'purchase', catalog: 'catalog', accounts: 'accounts',
     inventory: 'inventory', deliveries: 'deliveries', payments: 'payments', network: 'network',
     policies: 'policies', reports: 'reports',
@@ -222,6 +222,12 @@ const MENU_ROWS: Record<string, MenuRow> = Object.fromEntries(([
     { id: 'office-staff', labelKey: 'nav_module_people', iconKey: 'people', tabs: ['employees', 'payroll', 'staff-operations', 'field-sales', 'access-management'] },
     { id: 'office-reports', labelKey: 'nav_module_reports', iconKey: 'reports', tabs: ['top-sellers', 'partner-scorecard', 'branch-performance', 'financial-reports'] },
     { id: 'office-website', labelKey: 'label_web', iconKey: 'website', tabs: ['website', 'content', 'public-trust', 'video-marketing', 'feedback', 'visitors'] },
+    // The sidebar's one entry for pages that are set once or opened rarely (CR-12); its boxes come from OfficeHubs::MoreGroups.
+    { id: 'office-more', labelKey: 'nav_module_more', iconKey: 'more', home: 'more', tabs: [
+        'schemes', 'contests', 'sales-kit', 'training', 'events', 'agreement',
+        'employees', 'payroll', 'staff-operations', 'field-sales', 'access-management',
+        'website', 'content', 'public-trust', 'video-marketing', 'feedback', 'visitors',
+    ] },
     { id: 'office-settings', labelKey: 'nav_module_settings', iconKey: 'settings', home: 'settings', tabs: [
         'finance-settings', 'payment-accounts', 'financial-readiness', 'place-codes', 'dashboards', 'identity-review',
         'login-rules', 'reason-fields', 'service-integrations', 'courier-areas', 'data-imports', 'audit', 'privacy-requests', 'data-cleanup', 'errors',
@@ -300,7 +306,8 @@ function rowItem(rowId: string, available: Set<string>): string | null {
     if (open.length === 0) {
         return null;
     }
-    return open.length === 1 ? open[0] : `${rowId}@${open.join(',')}`;
+    // The More page keeps its own name even when only one page is open to this person.
+    return open.length === 1 && rowId !== 'office-more' ? open[0] : `${rowId}@${open.join(',')}`;
 }
 
 function rowMother(rowId: string, available: Set<string>): NavMother | null {
@@ -457,6 +464,7 @@ function partnerAvailableBeforeSwitches(role: string, dashboardControls?: Record
 
 /** The office menu: one list of rows in four blocks, with a thin line between blocks. */
 function staffMothers(available: Set<string>): NavMother[] {
+    // The most used pages first. Pages that are set once or opened rarely live on the "More tools" page (CR-12).
     const blocks: Array<Array<NavMother | null>> = [
         [
             mother('overview', 'nav_module_overview', pick(available, ['overview'])),
@@ -476,13 +484,12 @@ function staffMothers(available: Set<string>): NavMother[] {
             rowMother('office-stock', available),
             rowMother('office-partners', available),
             rowMother('office-applications', available),
-            rowMother('office-for-partners', available),
+            rowMother('office-reports', available),
+            // Prescriptions stay in the sidebar (client, 2026-11-19), not on the More tools page.
             mother('clinic', 'prescriptions', pick(available, ['prescriptions'])),
         ],
         [
-            rowMother('office-staff', available),
-            rowMother('office-reports', available),
-            rowMother('office-website', available),
+            rowMother('office-more', available),
             rowMother('office-settings', available),
         ],
     ];
@@ -532,13 +539,13 @@ export function buildNavMothers(input: {
 
 /** The sidebar row a page sits in, or the page itself when it is a row of its own. */
 function rowItemOf(item: string, available: Set<string>): string {
-    const row = Object.values(MENU_ROWS).find((entry) => entry.id.startsWith('office-') && entry.tabs.includes(item));
+    const row = Object.values(MENU_ROWS).find((entry) => entry.id.startsWith('office-') && entry.id !== 'office-more' && entry.tabs.includes(item));
     return row ? (rowItem(row.id, available) ?? item) : item;
 }
 
 /** Phone bottom bar for office staff: home, then up to three of the pages this person can really open, under their row's name. */
 export function staffBottomLinks(available: Set<string>): string[] {
-    const daily = pick(available, ['orders', 'stock', 'payouts-hub', 'partner-messages', 'website', 'accounts', 'field-sales']);
+    const daily = pick(available, ['orders', 'stock', 'payouts-hub', 'partner-messages', 'accounts', 'field-sales']);
 
     return [...pick(available, ['overview']), ...daily.slice(0, 3).map((item) => rowItemOf(item, available))];
 }

@@ -21,6 +21,9 @@ final class OfficeHubSection implements WorkspaceSection
         if ($context->section === OfficeHubs::SettingsSection) {
             return ['settings_groups' => OfficeHubs::settingsGroups($context->user, $context->catalogPortal, $onOfficeHost)];
         }
+        if ($context->section === OfficeHubs::MoreSection) {
+            return ['more_groups' => OfficeHubs::moreGroups($context->user, $context->catalogPortal, $onOfficeHost)];
+        }
         $hub = OfficeHubs::forSection($context->user, $context->catalogPortal, $onOfficeHost, $context->section);
 
         return $hub === null ? [] : ['hub' => $hub];

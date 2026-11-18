@@ -6,7 +6,7 @@ import {
     Coins, BadgeCheck, BookOpen, MessageSquare, SlidersHorizontal, MapPin, Award,
     Trophy, TrendingUp, Percent, Store, Landmark, UserCheck, AlertTriangle,
     Briefcase, Hash, FileBarChart2, ChevronDown, UserRound, LifeBuoy, ArrowLeftRight, BarChart3, Compass, Search,
-    Layers, ArrowDownToLine, ArrowUpFromLine, ScrollText, GraduationCap, CalendarDays, ReceiptText, Phone, Globe, Stethoscope, type LucideIcon
+    Layers, ArrowDownToLine, ArrowUpFromLine, ScrollText, GraduationCap, CalendarDays, ReceiptText, Phone, Globe, Stethoscope, LayoutGrid, type LucideIcon
 } from 'lucide-react';
 import { Flash, label } from './UI';
 import { DealerBottomNav, PartnerProductSearch } from './PortalHeader';
@@ -125,7 +125,7 @@ function BranchWorkspaceSelect({ branches }: { branches: { view?: string; can_vi
 }
 
 const icons: Record<string, LucideIcon> = {
-    'field-sales': MapPin, 'staff-operations': UserCheck, payroll: Coins, 'my-payroll': Wallet,
+    more: LayoutGrid, 'field-sales': MapPin, 'staff-operations': UserCheck, payroll: Coins, 'my-payroll': Wallet,
     'payment-accounts': Landmark, 'policy-schedules': Percent, 'reserve-payouts': Award,
     'data-imports': FileText, 'service-integrations': Settings, 'commission-holds': ShieldCheck, 'financial-readiness': BookOpen, 'financial-reports': FileText,
     overview: LayoutDashboard, orders: ShoppingBag, purchase: ShoppingCart, catalog: Package, 'catalog-products': Package,

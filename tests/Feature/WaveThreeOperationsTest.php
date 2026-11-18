@@ -149,7 +149,7 @@ class WaveThreeOperationsTest extends TestCase
             $this->assertNotSame($english, $bangla);
             $this->assertStringNotContainsStringIgnoringCase('second person', $english, $key);
         }
-        foreach (['payouts_settlements_t1', 'withdrawals_s5'] as $key) {
+        foreach (['payouts_settlements_t1', 'withdrawals_s7'] as $key) {
             $this->assertStringContainsString('owner', __('manual.'.$key, [], 'en'));
             $this->assertStringContainsString('মালিক', __('manual.'.$key, [], 'bn'));
         }
