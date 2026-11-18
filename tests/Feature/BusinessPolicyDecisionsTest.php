@@ -101,7 +101,8 @@ class BusinessPolicyDecisionsTest extends TestCase
     public function test_owner_titles_do_not_automatically_grant_financial_write_permissions(): void
     {
         $owner = User::factory()->create(['role' => 'md']);
-        $this->actingAs($owner)->get('/company/operations/financial-reports')->assertRedirect('/treasury/orders');
+        // D11 (SA-07): the MD sees payroll only until the Super Admin grants more.
+        $this->actingAs($owner)->get('/company/operations/financial-reports')->assertForbidden();
         $this->postJson('/api/v1/finance/settlements', ['kind' => 'salary', 'period_month' => '2026-08'])->assertForbidden();
         $this->patchJson('/api/v1/finance/policy', ['rules' => ['own_dealer_cashback' => ['percentage' => '4.00']]])->assertForbidden();
         $this->assertDatabaseCount('commission_policy_revisions', 0);

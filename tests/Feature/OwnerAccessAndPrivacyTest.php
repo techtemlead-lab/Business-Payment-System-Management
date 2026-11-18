@@ -101,7 +101,7 @@ class OwnerAccessAndPrivacyTest extends TestCase
         $this->assertSame('MNHC1001', $raw['place_code']);
         $this->assertSame('Karim Pharmacy', $raw['shop_name']);
 
-        $profile = $partner->fresh()->profile;
+        $profile = (array) $partner->fresh()->profile;
         $this->assertSame('1980-05-04', $profile['date_of_birth']);
         $this->assertSame('Rahima Begum', $profile['mother_name']);
         $this->assertSame(1, User::query()->whereKey($partner->id)->whereNotNull('profile->date_of_birth')->count());
