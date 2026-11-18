@@ -269,6 +269,7 @@ export default function StockOnHand({ table, canToggle, showBranch }: {
                     { key: 'in_stock', label: t('card_in_stock'), value: units('in_stock'), text: true },
                     { key: 'value', label: t('card_value'), value: String(sums.stock_value ?? '0') },
                     { key: 'low', label: t('card_low'), value: units('low_count'), text: true, ...filterCard('level', 'low') },
+                    { key: 'out', label: t('card_out'), value: units('out_count'), text: true, ...filterCard('level', 'out_of_stock') },
                     { key: 'courier', label: t('card_courier'), value: units('with_courier'), text: true, ...filterCard('stage', 'with_courier') },
                 ]}
             />

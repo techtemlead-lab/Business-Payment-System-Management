@@ -45,7 +45,7 @@ export default function GlobalSearchLauncher() {
             >
                 <Search size={15} aria-hidden="true" />
                 <span className="global-search-trigger-label">{translate('productivity', 'search_label')}</span>
-                <kbd>Ctrl K</kbd>
+                <kbd>{translate('productivity', 'search_keys')}</kbd>
             </button>
             {open && (
                 <Suspense fallback={null}>

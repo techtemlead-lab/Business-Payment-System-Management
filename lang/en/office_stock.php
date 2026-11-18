@@ -74,6 +74,7 @@ return [
     'card_in_stock' => 'In stock',
     'card_value' => 'Stock value',
     'card_low' => 'Low stock',
+    'card_out' => 'Out of stock',
     'card_courier' => 'With courier',
     'col_in_stock' => 'In stock',
     'col_booked' => 'On orders',

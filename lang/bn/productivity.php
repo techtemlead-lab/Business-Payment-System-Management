@@ -4,6 +4,7 @@ return [
     'close' => 'বন্ধ করুন',
 
     'search_label' => 'খুঁজুন',
+    'search_keys' => 'কন্ট্রোল K',
     'search_open' => 'অর্ডার, পার্টনার আর পণ্য খুঁজুন (Ctrl+K)',
     'search_placeholder' => 'অর্ডার নম্বর, নাম, কোড, ফোন বা SKU',
     'search_hint' => 'অন্তত ২টি অক্ষর বা সংখ্যা লিখুন।',

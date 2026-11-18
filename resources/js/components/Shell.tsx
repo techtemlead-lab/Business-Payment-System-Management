@@ -32,7 +32,7 @@ import {
     staffBottomLinks,
 } from '../shared/portalNav';
 
-function BranchWorkspaceSelect({ branches }: { branches: { view?: string; can_view_all?: boolean; active_branch_id?: number | string | null; branches: Array<{ id: number | string; name: string }> } }) {
+function BranchWorkspaceSelect({ branches }: { branches: { view?: string; can_view_all?: boolean; active_branch_id?: number | string | null; branches: Array<{ id: number | string; name: string; display_name?: string }> } }) {
     const translate = useT();
     const root = useRef<HTMLDivElement>(null);
     const [open, setOpen] = useState(false);
@@ -41,7 +41,9 @@ function BranchWorkspaceSelect({ branches }: { branches: { view?: string; can_vi
     const selectedId = pendingId ?? serverId;
     const selectedName = selectedId === 'all'
         ? translate('portal', 'branch_view_all')
-        : (branches.branches.find((branch) => String(branch.id) === selectedId)?.name ?? translate('portal', 'branch_select'));
+        : (branches.branches.find((branch) => String(branch.id) === selectedId)?.display_name
+            || branches.branches.find((branch) => String(branch.id) === selectedId)?.name
+            || translate('portal', 'branch_select'));
 
     useEffect(() => {
         setPendingId(null);
@@ -109,7 +111,7 @@ function BranchWorkspaceSelect({ branches }: { branches: { view?: string; can_vi
                     {branches.branches.map((branch) => (
                         <li key={branch.id}>
                             <button type="button" role="option" aria-selected={selectedId === String(branch.id)} onClick={() => choose(String(branch.id))}>
-                                {branch.name}
+                                {branch.display_name || branch.name}
                             </button>
                         </li>
                     ))}

@@ -1,5 +1,6 @@
 @php
     $chrome = fn (string $key, ?string $custom = null): string => \App\Support\SiteChrome::text($key, $custom);
+    $site = fn (string $path): string => \App\Support\PortalHost::publicPath($path);
     $bismillahText = $chrome('home_bismillah_text', $siteCustomization['home_bismillah_text'] ?? null);
     $showBismillah = filter_var($siteCustomization['home_bismillah_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN);
     $companyNameTag = request()->is('/') ? 'h1' : 'div';
@@ -11,7 +12,7 @@
 {{-- The round logo sits at the left of the company name; the name stays centred on the page. --}}
 <div class="ref-company-bar">
     <div class="ref-container ref-company-bar-inner">
-        <a href="/" class="ref-bar-logo" aria-label="{{ __('site.brand_home') }}">
+        <a href="{{ $site('/') }}" class="ref-bar-logo" aria-label="{{ __('site.brand_home') }}">
             <img src="{{ \App\Support\SiteCustomization::logoUrl() }}" alt="{{ \App\Support\SiteCustomization::brandName() }}" width="68" height="68" decoding="async" fetchpriority="high">
         </a>
         <div class="ref-bar-name">
@@ -33,11 +34,11 @@
             <span class="ref-burger" aria-hidden="true"><span></span><span></span><span></span></span>
         </button>
 
-        <a href="/" class="ref-nav-home"@if(request()->is('/')) aria-current="page"@endif><i class="fa-solid fa-house" aria-hidden="true"></i><b>{{ $chrome('home', $siteCustomization['header_home_title'] ?? null) }}</b></a>
+        <a href="{{ $site('/') }}" class="ref-nav-home"@if(request()->is('/')) aria-current="page"@endif><i class="fa-solid fa-house" aria-hidden="true"></i><b>{{ $chrome('home', $siteCustomization['header_home_title'] ?? null) }}</b></a>
 
         @if($publicPageEnabled['products'] ?? true)
         <!-- Desktop Search Form -->
-        <form method="get" action="/products" class="ref-search">
+        <form method="get" action="{{ $site('/products') }}" class="ref-search">
             <label class="ref-sr-only" for="site-search">{{ __('site.search_label') }}</label>
             <input id="site-search" name="q" placeholder="{{ $chrome('search_placeholder', $siteCustomization['search_placeholder'] ?? null) }}" autocomplete="off">
             <button aria-label="{{ __('site.search_label') }}"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></button>
@@ -52,13 +53,13 @@
         <!-- Desktop Header Links -->
         <div class="ref-header-links">
             @if($publicPageEnabled['about'] ?? true)
-            <a href="/about"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><b>{{ $chrome('about', $siteCustomization['header_about_title'] ?? null) }}</b></a>
+            <a href="{{ $site('/about') }}"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><b>{{ $chrome('about', $siteCustomization['header_about_title'] ?? null) }}</b></a>
             @endif
             @if($publicPageEnabled['contact'] ?? true)
-            <a href="/contact"><i class="fa-solid fa-headset" aria-hidden="true"></i><b>{{ $chrome('contact', $siteCustomization['header_contact_title'] ?? null) }}</b></a>
+            <a href="{{ $site('/contact') }}"><i class="fa-solid fa-headset" aria-hidden="true"></i><b>{{ $chrome('contact', $siteCustomization['header_contact_title'] ?? null) }}</b></a>
             @endif
             @if($publicPageEnabled['dealers'] ?? true)
-            <a href="/dealers"><i class="fa-solid fa-layer-group" aria-hidden="true"></i><b>{{ $chrome('network', $siteCustomization['header_network_title'] ?? null) }}</b></a>
+            <a href="{{ $site('/dealers') }}"><i class="fa-solid fa-layer-group" aria-hidden="true"></i><b>{{ $chrome('network', $siteCustomization['header_network_title'] ?? null) }}</b></a>
             @endif
             @auth
             <a href="{{ \App\Support\PortalHost::homeUrl(auth()->user()) }}" class="ref-header-account"><i class="fa-solid fa-user-check" aria-hidden="true"></i><b>{{ auth()->user()->name }}</b></a>
@@ -81,7 +82,7 @@
                 <button type="submit" name="locale" value="bn" class="{{ app()->getLocale() === 'bn' ? 'is-active' : '' }}" aria-pressed="{{ app()->getLocale() === 'bn' ? 'true' : 'false' }}">বাংলা</button>
             </form>
             @if($publicPageEnabled['products'] ?? true)
-            <a href="/products" class="ref-shop"><i class="fa-solid fa-leaf" aria-hidden="true"></i><b>{{ $chrome('products', $siteCustomization['header_catalog_title'] ?? null) }}</b></a>
+            <a href="{{ $site('/products') }}" class="ref-shop"><i class="fa-solid fa-leaf" aria-hidden="true"></i><b>{{ $chrome('products', $siteCustomization['header_catalog_title'] ?? null) }}</b></a>
             @endif
         </div>
     </div>
@@ -101,7 +102,7 @@
                 <span class="ref-mobile-search-close-glyph" aria-hidden="true"></span>
             </button>
         </div>
-        <form method="get" action="/products" class="ref-mobile-search-form" autocomplete="off" id="refMobileSearchForm">
+        <form method="get" action="{{ $site('/products') }}" class="ref-mobile-search-form" autocomplete="off" id="refMobileSearchForm">
             <div class="ref-mobile-search-input-wrap">
                 <span class="ref-mobile-search-leading" aria-hidden="true">
                     <svg viewBox="0 0 24 24" width="18" height="18" focusable="false"><path fill="currentColor" d="M10.5 3a7.5 7.5 0 0 1 5.9 12.1l3.8 3.7-1.4 1.4-3.7-3.8A7.5 7.5 0 1 1 10.5 3Zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11Z"/></svg>
@@ -130,12 +131,12 @@
             <div class="ref-mobile-search-results" id="refMobileSearchResults" hidden>
                 <p class="ref-mobile-search-section-label" id="refMobileSearchResultsLabel">{{ __('site.search_results') }}</p>
                 <ul class="ref-mobile-search-list" id="refMobileSearchList" role="listbox" aria-labelledby="refMobileSearchResultsLabel"></ul>
-                <a class="ref-mobile-search-view-all" id="refMobileSearchViewAll" href="/products">{{ __('site.search_view_all') }}</a>
+                <a class="ref-mobile-search-view-all" id="refMobileSearchViewAll" href="{{ $site('/products') }}">{{ __('site.search_view_all') }}</a>
             </div>
 
             <div class="ref-mobile-search-empty" id="refMobileSearchEmpty" hidden>
                 <p>{{ __('site.search_no_matches') }}</p>
-                <a href="/products" class="ref-mobile-search-browse">{{ __('site.search_browse_all') }}</a>
+                <a href="{{ $site('/products') }}" class="ref-mobile-search-browse">{{ __('site.search_browse_all') }}</a>
             </div>
         </div>
     </div>
@@ -145,7 +146,7 @@
 <div id="refMobileMenuOverlay" class="ref-mobile-menu-overlay" aria-hidden="true"></div>
 <aside id="refMobileDrawer" class="ref-mobile-drawer" aria-hidden="true" aria-label="{{ __('site.mobile_nav_drawer') }}">
     <div class="ref-mobile-drawer-header">
-        <a href="/" class="ref-mobile-drawer-logo">
+        <a href="{{ $site('/') }}" class="ref-mobile-drawer-logo">
             <img src="{{ \App\Support\SiteCustomization::whiteLogoUrl() }}" alt="{{ \App\Support\SiteCustomization::brandName() }}" class="ref-mobile-drawer-logo-img" width="92" height="92" decoding="async">
         </a>
         <button type="button" class="ref-mobile-drawer-close" id="refMobileDrawerClose" aria-label="{{ __('site.close_menu') }}">
@@ -156,14 +157,14 @@
         <div class="ref-mobile-drawer-group">
             <div class="ref-mobile-drawer-group-title">{{ __('site.navigation') }}</div>
             <ul class="ref-mobile-drawer-nav-list">
-                <li><a href="/"><i class="fa-solid fa-house"></i> {{ $chrome('home', $siteCustomization['header_home_title'] ?? null) }}</a></li>
-                @if($publicPageEnabled['products'] ?? true)<li><a href="/products"><i class="fa-solid fa-leaf"></i> {{ $chrome('products', $siteCustomization['header_catalog_title'] ?? null) }}</a></li>@endif
-                @if($publicPageEnabled['dealers'] ?? true)<li><a href="/dealers"><i class="fa-solid fa-layer-group"></i> {{ $chrome('network', $siteCustomization['header_network_title'] ?? null) }}</a></li>@endif
-                @if($publicPageEnabled['about'] ?? true)<li><a href="/about"><i class="fa-solid fa-circle-info"></i> {{ $chrome('about', $siteCustomization['header_about_title'] ?? null) }}</a></li>@endif
-                @if($publicPageEnabled['services'] ?? true)<li><a href="/services"><i class="fa-solid fa-hand-holding-heart"></i> {{ $chrome('services', $siteCustomization['header_services_title'] ?? null) }}</a></li>@endif
-                @if($publicPageEnabled['partnership'] ?? true)<li><a href="/partnership"><i class="fa-solid fa-handshake"></i> {{ $chrome('become_a_partner', $siteCustomization['header_partner_title'] ?? null) }}</a></li>@endif
-                @if($publicPageEnabled['contact'] ?? true)<li><a href="/contact"><i class="fa-solid fa-headset"></i> {{ $chrome('contact', $siteCustomization['header_contact_title'] ?? null) }}</a></li>@endif
-                @if($publicPageEnabled['faq'] ?? true)<li><a href="/faq"><i class="fa-solid fa-circle-question"></i> {{ $chrome('faq', $siteCustomization['header_faq_title'] ?? null) }}</a></li>@endif
+                <li><a href="{{ $site('/') }}"><i class="fa-solid fa-house"></i> {{ $chrome('home', $siteCustomization['header_home_title'] ?? null) }}</a></li>
+                @if($publicPageEnabled['products'] ?? true)<li><a href="{{ $site('/products') }}"><i class="fa-solid fa-leaf"></i> {{ $chrome('products', $siteCustomization['header_catalog_title'] ?? null) }}</a></li>@endif
+                @if($publicPageEnabled['dealers'] ?? true)<li><a href="{{ $site('/dealers') }}"><i class="fa-solid fa-layer-group"></i> {{ $chrome('network', $siteCustomization['header_network_title'] ?? null) }}</a></li>@endif
+                @if($publicPageEnabled['about'] ?? true)<li><a href="{{ $site('/about') }}"><i class="fa-solid fa-circle-info"></i> {{ $chrome('about', $siteCustomization['header_about_title'] ?? null) }}</a></li>@endif
+                @if($publicPageEnabled['services'] ?? true)<li><a href="{{ $site('/services') }}"><i class="fa-solid fa-hand-holding-heart"></i> {{ $chrome('services', $siteCustomization['header_services_title'] ?? null) }}</a></li>@endif
+                @if($publicPageEnabled['partnership'] ?? true)<li><a href="{{ $site('/partnership') }}"><i class="fa-solid fa-handshake"></i> {{ $chrome('become_a_partner', $siteCustomization['header_partner_title'] ?? null) }}</a></li>@endif
+                @if($publicPageEnabled['contact'] ?? true)<li><a href="{{ $site('/contact') }}"><i class="fa-solid fa-headset"></i> {{ $chrome('contact', $siteCustomization['header_contact_title'] ?? null) }}</a></li>@endif
+                @if($publicPageEnabled['faq'] ?? true)<li><a href="{{ $site('/faq') }}"><i class="fa-solid fa-circle-question"></i> {{ $chrome('faq', $siteCustomization['header_faq_title'] ?? null) }}</a></li>@endif
             </ul>
         </div>
         <div class="ref-mobile-drawer-group">

@@ -1,5 +1,6 @@
 @php
     $chrome = fn (string $key, ?string $custom = null): string => \App\Support\SiteChrome::text($key, $custom);
+    $site = fn (string $path): string => \App\Support\PortalHost::publicPath($path);
     $secondPhone = \App\Support\SiteCustomization::secondPhone();
     $companyEmail = trim((string) ($siteCustomization['contact_email'] ?? ''));
     $mainPhone = \App\Support\SiteCustomization::internationalDisplay((string) ($siteCustomization['contact_phone'] ?? ''));
@@ -46,15 +47,15 @@
             @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_link_about_url'] ?? '/about'))
             <a href="{{ $href }}">{{ $chrome('about', $siteCustomization['footer_link_about'] ?? null) }}</a>
             @endif
-            @if($publicPageEnabled['products'] ?? true)<a href="/products">{{ $chrome('our_products') }}</a>@endif
+            @if($publicPageEnabled['products'] ?? true)<a href="{{ $site('/products') }}">{{ $chrome('our_products') }}</a>@endif
             @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_link_services_url'] ?? '/services'))
             <a href="{{ $href }}">{{ $chrome('our_services', $siteCustomization['footer_link_services'] ?? null) }}</a>
             @endif
             @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_link_quality_url'] ?? '/quality'))
             <a href="{{ $href }}">{{ $chrome('quality_promise', $siteCustomization['footer_link_quality'] ?? null) }}</a>
             @endif
-            @if($publicPageEnabled['dealers'] ?? true)<a href="/dealers">{{ $chrome('network') }}</a>@endif
-            @if($publicPageEnabled['prescribers'] ?? true)<a href="/prescribers">{{ $chrome('prescribers_title', $siteCustomization['prescribers_title'] ?? null) }}</a>@endif
+            @if($publicPageEnabled['dealers'] ?? true)<a href="{{ $site('/dealers') }}">{{ $chrome('network') }}</a>@endif
+            @if($publicPageEnabled['prescribers'] ?? true)<a href="{{ $site('/prescribers') }}">{{ $chrome('prescribers_title', $siteCustomization['prescribers_title'] ?? null) }}</a>@endif
             @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_link_partnership_url'] ?? '/partnership'))
             <a href="{{ $href }}">{{ $chrome('become_a_partner', $siteCustomization['footer_link_partnership'] ?? null) }}</a>
             @endif
@@ -66,7 +67,7 @@
             @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_link_faq_url'] ?? '/faq'))
             <a href="{{ $href }}">{{ $chrome('faq', $siteCustomization['footer_link_faq'] ?? null) }}</a>
             @endif
-            <a href="/notice">{{ $chrome('company_notice', $siteCustomization['footer_link_notice'] ?? null) }}</a>
+            <a href="{{ $site('/notice') }}">{{ $chrome('company_notice', $siteCustomization['footer_link_notice'] ?? null) }}</a>
             @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_link_dealer_apply_url'] ?? '/partnership'))
             <a href="{{ $href }}">{{ $chrome('apply_for_dealership', $siteCustomization['footer_link_dealer_apply'] ?? null) }}</a>
             @endif
@@ -76,7 +77,7 @@
     <section>
         <h2>{{ $chrome('footer_stay_connected', $siteCustomization['footer_stay_connected_heading'] ?? null) }}</h2>
         <div class="ref-footer-brand">
-            <a href="/" aria-label="{{ __('site.brand_home') }}"><img src="{{ \App\Support\SiteCustomization::logoUrl() }}" alt="{{ \App\Support\SiteCustomization::brandName() }}" width="56" height="56" decoding="async" loading="lazy"></a>
+            <a href="{{ $site('/') }}" aria-label="{{ __('site.brand_home') }}"><img src="{{ \App\Support\SiteCustomization::logoUrl() }}" alt="{{ \App\Support\SiteCustomization::brandName() }}" width="56" height="56" decoding="async" loading="lazy"></a>
             <h3>{{ \App\Support\SiteCustomization::brandName() }}</h3>
         </div>
         <p>{{ $chrome('footer_about_desc', $siteCustomization['footer_about_desc'] ?? null) }}</p>
@@ -133,55 +134,55 @@
 @endif
 <nav class="ref-mobile-nav" aria-label="{{ __('site.mobile_navigation') }}">
     @if($publicPageEnabled['products'] ?? true)
-    <a href="/products" class="ref-mobile-nav-item">
+    <a href="{{ $site('/products') }}" class="ref-mobile-nav-item">
         <i class="fa-solid fa-store" aria-hidden="true"></i>
         <span>{{ $chrome('products', $siteCustomization['mobile_nav_products'] ?? null) }}</span>
     </a>
     @elseif($publicPageEnabled['services'] ?? true)
-    <a href="/services" class="ref-mobile-nav-item">
+    <a href="{{ $site('/services') }}" class="ref-mobile-nav-item">
         <i class="fa-solid fa-hand-holding-heart" aria-hidden="true"></i>
         <span>{{ __('site.services') }}</span>
     </a>
     @elseif($publicPageEnabled['about'] ?? true)
-    <a href="/about" class="ref-mobile-nav-item">
+    <a href="{{ $site('/about') }}" class="ref-mobile-nav-item">
         <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
         <span>{{ $chrome('about', $siteCustomization['mobile_nav_about'] ?? null) }}</span>
     </a>
     @endif
     @if($publicPageEnabled['dealers'] ?? true)
-    <a href="/dealers" class="ref-mobile-nav-item">
+    <a href="{{ $site('/dealers') }}" class="ref-mobile-nav-item">
         <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
         <span>{{ $chrome('dealers', $siteCustomization['mobile_nav_dealers'] ?? null) }}</span>
     </a>
     @elseif($publicPageEnabled['partnership'] ?? true)
-    <a href="/partnership" class="ref-mobile-nav-item">
+    <a href="{{ $site('/partnership') }}" class="ref-mobile-nav-item">
         <i class="fa-solid fa-handshake" aria-hidden="true"></i>
         <span>{{ __('site.partner') }}</span>
     </a>
     @elseif($publicPageEnabled['contact'] ?? true)
-    <a href="/contact" class="ref-mobile-nav-item">
+    <a href="{{ $site('/contact') }}" class="ref-mobile-nav-item">
         <i class="fa-solid fa-headset" aria-hidden="true"></i>
         <span>{{ __('site.contact') }}</span>
     </a>
     @endif
-    <a href="/" class="ref-mobile-home" aria-label="{{ __('site.home') }}">
+    <a href="{{ $site('/') }}" class="ref-mobile-home" aria-label="{{ __('site.home') }}">
         <span class="ref-mobile-home-icon">
             <img src="{{ \App\Support\SiteCustomization::logoUrl() }}" alt="" width="40" height="40" decoding="async">
         </span>
         <span class="ref-mobile-home-label">{{ $chrome('home', $siteCustomization['header_home_title'] ?? null) }}</span>
     </a>
     @if($publicPageEnabled['about'] ?? true)
-    <a href="/about" class="ref-mobile-nav-item">
+    <a href="{{ $site('/about') }}" class="ref-mobile-nav-item">
         <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
         <span>{{ $chrome('about', $siteCustomization['mobile_nav_about'] ?? null) }}</span>
     </a>
     @elseif($publicPageEnabled['faq'] ?? true)
-    <a href="/faq" class="ref-mobile-nav-item">
+    <a href="{{ $site('/faq') }}" class="ref-mobile-nav-item">
         <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
         <span>{{ __('site.faq') }}</span>
     </a>
     @elseif($publicPageEnabled['contact'] ?? true)
-    <a href="/contact" class="ref-mobile-nav-item">
+    <a href="{{ $site('/contact') }}" class="ref-mobile-nav-item">
         <i class="fa-solid fa-headset" aria-hidden="true"></i>
         <span>{{ __('site.contact') }}</span>
     </a>
@@ -218,7 +219,7 @@
         'product_image' => __('site.product_image'),
     ];
 @endphp
-<script type="application/json" id="ref-site-ui">{!! json_encode($refSiteUi, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) !!}</script>
+<script type="application/json" id="ref-site-ui" @if($cspNonce = request()?->attributes?->get('csp_nonce')) nonce="{{ $cspNonce }}" @endif>{!! json_encode($refSiteUi, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) !!}</script>
 <!-- Global Quick View Modal Dialog -->
 <dialog class="ref-quickview-dialog" id="refQuickViewDialog" aria-labelledby="qvTitle">
     <div class="ref-qv-modal-inner">
@@ -240,11 +241,11 @@
                 <p class="ref-qv-desc" id="qvDescription"></p>
                 <div class="ref-qv-actions">
                     @if($publicPageEnabled['dealers'] ?? true)
-                    <a href="/dealers" class="ref-primary-button">{{ __('site.find_a_dealer') }}</a>
+                    <a href="{{ $site('/dealers') }}" class="ref-primary-button">{{ __('site.find_a_dealer') }}</a>
                     @elseif($publicPageEnabled['contact'] ?? true)
-                    <a href="/contact" class="ref-primary-button">{{ __('site.contact_us') }}</a>
+                    <a href="{{ $site('/contact') }}" class="ref-primary-button">{{ __('site.contact_us') }}</a>
                     @endif
-                    <a href="{{ ($publicPageEnabled['products'] ?? true) ? '/products' : '/' }}" class="ref-secondary-button ref-qv-view-details" id="qvViewDetails">
+                    <a href="{{ $site(($publicPageEnabled['products'] ?? true) ? '/products' : '/') }}" class="ref-secondary-button ref-qv-view-details" id="qvViewDetails">
                         {{ __('site.view_full_details') }} <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
                     </a>
                 </div>

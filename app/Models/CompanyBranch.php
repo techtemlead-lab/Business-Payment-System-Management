@@ -60,8 +60,27 @@ class CompanyBranch extends Model
     }
 
     /**
+     * The Pirganj head office is stored in English. Bangla screens say that name in Bangla.
+     * Any other branch keeps the name the owner typed.
+     */
+    public static function shownName(string $name, bool $headOffice = false): string
+    {
+        if (app()->getLocale() !== 'bn') {
+            return $name;
+        }
+        $plain = mb_strtolower(trim((string) preg_replace('/[·•\-]+/u', ' ', $name)));
+        $plain = trim((string) preg_replace('/\s+/u', ' ', $plain));
+        $isHeadOffice = $headOffice || str_starts_with($plain, 'head office');
+        if ($isHeadOffice && ($plain === 'head office' || str_contains($plain, 'pirganj'))) {
+            return __('portal.branch_head_office_pirganj');
+        }
+
+        return $name;
+    }
+
+    /**
      * @return array{
-     *   id:int,code:string,name:string,division:?string,district:?string,upazila:?string,
+     *   id:int,code:string,name:string,display_name:string,division:?string,district:?string,upazila:?string,
      *   address:?string,phone:?string,is_active:bool,is_delivery_point:bool,is_stock_hub:bool,
      *   latitude:?string,longitude:?string,place_code_id:?int,place_code:?string,is_head_office:bool
      * }
@@ -72,6 +91,7 @@ class CompanyBranch extends Model
             'id' => $this->id,
             'code' => $this->code,
             'name' => $this->name,
+            'display_name' => self::shownName($this->name, (bool) $this->is_head_office),
             'division' => $this->division,
             'district' => $this->district,
             'upazila' => $this->upazila,
