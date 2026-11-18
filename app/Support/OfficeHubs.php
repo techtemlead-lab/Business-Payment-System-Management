@@ -146,9 +146,6 @@ final class OfficeHubs
             'website' => '/website', 'content' => '/content', 'public-trust' => '/public-trust',
             'video-marketing' => '/operations/video-marketing', 'feedback' => '/feedback', 'visitors' => '/visitors',
         ],
-        'clinic' => [
-            'prescriptions' => '/prescriptions',
-        ],
     ];
 
     /** Filters of the old order table that the order list understands too. */
@@ -275,7 +272,7 @@ final class OfficeHubs
                     $name = str_replace('-', '_', $section);
                     $open[] = [
                         'key' => $section,
-                        'label' => $section === 'prescriptions' ? (string) __('portal.prescriptions') : (string) __('office_menu.tab_'.$name),
+                        'label' => (string) __('office_menu.tab_'.$name),
                         'description' => (string) __('office_menu.more_desc_'.$name),
                         'href' => $href,
                     ];

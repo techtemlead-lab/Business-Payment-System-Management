@@ -226,7 +226,7 @@ const MENU_ROWS: Record<string, MenuRow> = Object.fromEntries(([
     { id: 'office-more', labelKey: 'nav_module_more', iconKey: 'more', home: 'more', tabs: [
         'schemes', 'contests', 'sales-kit', 'training', 'events', 'agreement',
         'employees', 'payroll', 'staff-operations', 'field-sales', 'access-management',
-        'website', 'content', 'public-trust', 'video-marketing', 'feedback', 'visitors', 'prescriptions',
+        'website', 'content', 'public-trust', 'video-marketing', 'feedback', 'visitors',
     ] },
     { id: 'office-settings', labelKey: 'nav_module_settings', iconKey: 'settings', home: 'settings', tabs: [
         'finance-settings', 'payment-accounts', 'financial-readiness', 'place-codes', 'dashboards', 'identity-review',
@@ -485,6 +485,8 @@ function staffMothers(available: Set<string>): NavMother[] {
             rowMother('office-partners', available),
             rowMother('office-applications', available),
             rowMother('office-reports', available),
+            // Prescriptions stay in the sidebar (client, 2026-11-19), not on the More tools page.
+            mother('clinic', 'prescriptions', pick(available, ['prescriptions'])),
         ],
         [
             rowMother('office-more', available),

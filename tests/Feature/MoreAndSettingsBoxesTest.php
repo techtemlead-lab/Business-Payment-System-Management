@@ -47,6 +47,17 @@ class MoreAndSettingsBoxesTest extends TestCase
                 }));
     }
 
+    public function test_prescriptions_stay_in_the_sidebar_and_not_on_the_more_page(): void
+    {
+        $owner = User::factory()->staff()->create();
+
+        $keys = collect(OfficeHubs::moreGroups($owner, 'sadmin', true))->flatMap(fn ($group) => collect($group['links'])->pluck('key'))->all();
+        $this->assertNotContains('prescriptions', $keys);
+
+        $menu = (string) file_get_contents(resource_path('js/shared/portalNav.ts'));
+        $this->assertMatchesRegularExpression("/function staffMothers[\s\S]*?mother\('clinic', 'prescriptions'/", $menu);
+    }
+
     public function test_a_box_shows_only_if_the_person_may_open_the_page(): void
     {
         $editor = User::factory()->staff('editor')->create();
