@@ -21,8 +21,15 @@ final class ErrorPageLocale
         $saved = $request->hasSession() ? $request->user()?->locale : null;
         $locale = is_string($saved) && in_array($saved, $supported, true) ? $saved : self::cookieLocale($request, $supported);
         if ($locale === null) {
+            // Someone who never chose gets the company's guest language (Bangla), the same as SetLocale,
+            // so a partner host's "page not found" is not English for a Bangla reader (CR-14).
+            $guest = config('madina.guest_locale');
             $preferred = $request->getPreferredLanguage($supported);
-            $locale = is_string($preferred) && in_array($preferred, $supported, true) ? $preferred : null;
+            $locale = match (true) {
+                is_string($guest) && in_array($guest, $supported, true) => $guest,
+                is_string($preferred) && in_array($preferred, $supported, true) => $preferred,
+                default => null,
+            };
         }
         if ($locale !== null) {
             app()->setLocale($locale);
