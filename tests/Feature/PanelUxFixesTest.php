@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Finance\TreasuryWork;
+use App\Domain\Inventory\BranchPerformance;
 use App\Domain\Orders\OrderListFilter;
 use App\Models\Order;
 use App\Models\PaymentClaim;
@@ -165,5 +166,32 @@ class PanelUxFixesTest extends TestCase
         $this->onPortal('sadmin')->get('/login')->assertOk()->assertSee('<html lang="bn"', false);
         $this->onPortal('manage')->get('/login')->assertOk()->assertSee('<html lang="bn"', false);
         $this->onPortal('sadmin')->withCookie('locale', 'en')->get('/login')->assertOk()->assertSee('<html lang="en"', false);
+    }
+
+    public function test_the_branch_report_opens_on_the_last_thirty_days(): void
+    {
+        $this->travelTo('2027-04-02 12:00:00');
+        $owner = User::factory()->staff()->create();
+
+        $period = app(BranchPerformance::class)->summary($owner, [])['period'];
+
+        $this->assertSame('last30', $period['period']);
+        $this->assertSame('2027-03-04', $period['from']);
+        $this->assertSame('2027-04-02', $period['to']);
+    }
+
+    public function test_the_branch_excel_names_its_two_money_columns_differently(): void
+    {
+        $owner = User::factory()->staff()->create();
+
+        $file = $this->actingAs($owner)->onPortal('sadmin')->get('/exports/branch-performance')->assertOk()->baseResponse->getFile()->getPathname();
+        $zip = new \ZipArchive;
+        $this->assertTrue($zip->open($file));
+        $strings = (string) $zip->getFromName('xl/sharedStrings.xml').(string) $zip->getFromName('xl/worksheets/sheet1.xml');
+        $zip->close();
+
+        $this->assertSame(1, substr_count($strings, '>'.__('office_shell.branch_perf_delivered_value').'<'));
+        $this->assertSame(1, substr_count($strings, '>'.__('office_shell.branch_perf_ordered_total').'<'));
+        $this->assertNotSame(__('office_shell.branch_perf_delivered_value'), __('office_shell.branch_perf_ordered_total'));
     }
 }

@@ -29,6 +29,8 @@ return [
     'rates_off' => 'off',
     'rates_change' => 'Change the rates',
     'rates_see_boxes' => 'See the boxes',
+    'branch_perf_delivered_value' => 'Value of goods delivered',
+    'branch_perf_ordered_total' => 'Order total',
     'more' => 'More',
     'download_files' => 'Download',
     'select_rows' => 'Select',

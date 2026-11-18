@@ -23,7 +23,7 @@ class BranchPerformanceExportController extends Controller
         abort_unless($user->staff() || $user->usingStaffWorkspace(), 403);
         abort_unless($user->allows('reports'), 403);
         $filters = $request->validate([
-            'period' => 'nullable|in:today,month,custom',
+            'period' => 'nullable|in:today,month,last30,custom',
             'from' => 'nullable|date_format:Y-m-d',
             'to' => 'nullable|date_format:Y-m-d|after_or_equal:from',
             'branch_id' => 'nullable|integer|min:1',
@@ -36,11 +36,11 @@ class BranchPerformanceExportController extends Controller
             ['key' => 'branch', 'label' => $label('col_branch')],
             ['key' => 'status', 'label' => $label('col_status')],
             ['key' => 'date', 'label' => $label('col_date')],
-            ['key' => 'delivered_value', 'label' => $label('branch_perf_order_value'), 'type' => 'money', 'total' => true],
+            ['key' => 'delivered_value', 'label' => __('office_shell.branch_perf_delivered_value'), 'type' => 'money', 'total' => true],
             ['key' => 'delivered_paid', 'label' => $label('branch_perf_income'), 'type' => 'money', 'total' => true],
             ['key' => 'outstanding', 'label' => $label('branch_perf_outstanding'), 'type' => 'money', 'total' => true],
             ['key' => 'estimated_profit', 'label' => $label('branch_perf_profit'), 'type' => 'money', 'total' => true],
-            ['key' => 'total', 'label' => $label('report_col_ordered'), 'type' => 'money'],
+            ['key' => 'total', 'label' => __('office_shell.branch_perf_ordered_total'), 'type' => 'money'],
         ];
         Audit::record($user->id, 'report.exported', 'branch-performance', ['from' => $period['from'], 'to' => $period['to'], 'branch_id' => $branchId]);
         $branchName = match (true) {

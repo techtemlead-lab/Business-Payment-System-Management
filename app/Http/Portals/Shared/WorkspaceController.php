@@ -149,7 +149,7 @@ class WorkspaceController extends Controller
         }
         PortalCatalog::assertSection($u, $catalogPortal, $section);
         $periodRule = match ($section) {
-            'branch-performance' => 'nullable|in:today,month,custom',
+            'branch-performance' => 'nullable|in:today,month,last30,custom',
             'visitors' => 'nullable|in:'.implode(',', SiteVisitReport::Periods),
             default => 'nullable|in:today,week,month,last30,last_month,year,day,custom',
         };

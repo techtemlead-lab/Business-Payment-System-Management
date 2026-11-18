@@ -29,6 +29,8 @@ return [
     'rates_off' => 'বন্ধ',
     'rates_change' => 'হার বদলান',
     'rates_see_boxes' => 'ঘরগুলো দেখুন',
+    'branch_perf_delivered_value' => 'ডেলিভারি হওয়া মালের মূল্য',
+    'branch_perf_ordered_total' => 'অর্ডারের মোট দাম',
     'more' => 'আরও',
     'download_files' => 'ফাইল নামান',
     'select_rows' => 'বাছাই করুন',
