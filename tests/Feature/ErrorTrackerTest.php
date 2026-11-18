@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Domain\Diagnostics\ErrorTracker;
 use App\Domain\Diagnostics\ErrorTrackingSettings;
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\User;
 use App\Support\DeploymentReadiness;
 use Illuminate\Console\Scheduling\Schedule;
@@ -24,6 +25,8 @@ class ErrorTrackerTest extends TestCase
         parent::setUp();
         $this->withoutVite();
         Cache::flush();
+        // D11 (SA-07): the MD and Chairman open owner pages such as this one once the Super Admin grants them.
+        LeadershipAccess::save(User::factory()->staff('super_admin')->create(), ['md' => ['owner_tools'], 'chairman' => ['owner_tools']], 0);
     }
 
     private function tracker(): ErrorTracker

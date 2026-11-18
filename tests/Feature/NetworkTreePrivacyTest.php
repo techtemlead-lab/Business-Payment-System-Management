@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Pricing\ProductPricing;
+use App\Domain\Staff\LeadershipAccess;
 use App\Http\Portals\Shared\Sections\NetworkSection;
 use App\Http\Portals\Shared\Sections\SectionContext;
 use App\Models\Order;
@@ -90,10 +91,15 @@ class NetworkTreePrivacyTest extends TestCase
                 }));
     }
 
-    public function test_the_md_and_the_chairman_receive_the_full_partner_tree_too(): void
+    public function test_the_md_and_the_chairman_receive_the_full_partner_tree_once_granted(): void
     {
+        $superAdmin = User::factory()->staff('super_admin')->create();
         foreach (['md', 'chairman'] as $role) {
-            $this->actingAs(User::factory()->staff($role)->create())->onPortal('sadmin')->get('/network-tree')
+            $leader = User::factory()->staff($role)->create();
+            // D11 (SA-07): payroll only until the Super Admin grants the partner accounts area.
+            $this->actingAs($leader)->onPortal('sadmin')->get('/network-tree')->assertForbidden();
+            LeadershipAccess::save($superAdmin, [$role => ['accounts']], LeadershipAccess::current()['version']);
+            $this->actingAs($leader)->onPortal('sadmin')->get('/network-tree')
                 ->assertOk()
                 ->assertInertia(fn (Assert $page) => $page->where('data.dealers_total', 4));
         }

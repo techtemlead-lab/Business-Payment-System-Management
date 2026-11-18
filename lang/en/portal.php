@@ -5650,6 +5650,7 @@ return [
     'kyc_wd_owner_only' => 'Only the Super Admin can change this.',
     'ops_warn_sms_login_code_switched_off' => 'The SMS sign-in code is switched off. Before going live, turn on SMS and every feature that was switched off for testing.',
     'ops_warn_login_picture_switched_off' => 'The sign-in picture is off, so a password alone opens the account. Wrong-password lockout still applies. Turn the picture on again before a public launch if you want that extra check.',
+    'ops_warn_password_vault_key_missing' => 'Readable partner passwords are still locked with the main app key (APP_KEY). Set a separate PASSWORD_VAULT_KEY, keep it out of the backups, then run php artisan madina:password-vault-rekey.',
     'branch_head_office_pirganj' => 'Head Office, Pirganj',
     'ops_warn_accounts_missing_mobile' => 'Some active accounts have no valid mobile number, so they cannot get a sign-in code. Add a number to each one.',
     'order_val_company_only_seller' => 'Orders always go to the company. You cannot choose a dealer, sub-dealer or branch as the seller.',

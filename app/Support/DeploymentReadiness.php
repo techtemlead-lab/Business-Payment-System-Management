@@ -125,6 +125,9 @@ final class DeploymentReadiness
         if (! (bool) config('madina.login_captcha.enabled', false)) {
             $warnings[] = 'login_picture_switched_off';
         }
+        if (! app(PasswordVault::class)->configured()) {
+            $warnings[] = 'password_vault_key_missing';
+        }
         if ($checks['database'] && $this->accountsMissingMobile()) {
             $warnings[] = 'accounts_missing_mobile';
         }

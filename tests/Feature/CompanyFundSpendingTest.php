@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Finance\CompanyFunds;
 use App\Domain\Orders\OrderService;
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
@@ -39,6 +40,13 @@ class CompanyFundSpendingTest extends TestCase
         $this->order = $this->postedOrder();
     }
 
+    /** D11 (SA-07): the MD and Chairman act on Treasury once the Super Admin grants it. */
+    private function grantTreasuryToLeadership(): void
+    {
+        $superAdmin = User::query()->where('role', 'super_admin')->first() ?? User::factory()->staff('super_admin')->create();
+        LeadershipAccess::save($superAdmin, ['md' => ['treasury'], 'chairman' => ['treasury']], LeadershipAccess::current()['version']);
+    }
+
     public function test_only_someone_who_may_approve_is_offered_the_decision(): void
     {
         [$maker, $checker] = $this->financeStaff();
@@ -55,6 +63,8 @@ class CompanyFundSpendingTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page->where($firstRow.'can_review', true)->where($firstRow.'waits_for_owner', false));
         $this->actingAs($maker)->onPortal('manage')->get('/treasury/work')->assertOk()
             ->assertInertia(fn (Assert $page) => $page->where($firstRow.'can_review', false)->where($firstRow.'can_cancel', true)->where($firstRow.'waits_for_owner', false));
+        // D11 (SA-07): the MD sees Treasury once the Super Admin grants it.
+        $this->grantTreasuryToLeadership();
         $this->actingAs(User::factory()->staff('md')->create())->onPortal('sadmin')->get('/treasury/work')->assertOk()
             ->assertInertia(fn (Assert $page) => $page->where($firstRow.'can_review', true));
     }
@@ -141,6 +151,7 @@ class CompanyFundSpendingTest extends TestCase
     public function test_an_owner_without_finance_edit_rights_can_record_and_approve(): void
     {
         $this->fundRow('company_profit_fund', '500.00');
+        $this->grantTreasuryToLeadership();
         $chairman = User::factory()->staff('chairman')->create();
         $managingDirector = User::factory()->staff('md')->create();
 
@@ -252,6 +263,7 @@ class CompanyFundSpendingTest extends TestCase
         [$maker] = $this->financeStaff();
 
         $this->spend($maker, ['fund' => 'benefits'])->assertForbidden();
+        $this->grantTreasuryToLeadership();
         $this->spend(User::factory()->staff('chairman')->create(), ['fund' => 'benefits'])->assertUnprocessable()->assertJsonValidationErrors('amount');
     }
 

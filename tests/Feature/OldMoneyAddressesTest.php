@@ -125,7 +125,8 @@ class OldMoneyAddressesTest extends TestCase
             $this->actingAs(User::factory()->staff($role)->create())->onPortal('manage')->get('/withdrawals')->assertStatus(301)->assertRedirect('/');
         }
         $this->actingAs($this->staffWith(['reports']))->onPortal('manage')->get('/withdrawals')->assertRedirect('/treasury/orders');
-        $this->actingAs(User::factory()->staff('md')->create())->onPortal('sadmin')->get('/withdrawals')->assertRedirect('/payouts-hub');
+        // D11 (SA-07): an MD with payroll only has no money page to go to, so the old link goes home.
+        $this->actingAs(User::factory()->staff('md')->create())->onPortal('sadmin')->get('/withdrawals')->assertRedirect('/');
     }
 
     public function test_an_old_statement_link_never_ends_in_a_refusal(): void

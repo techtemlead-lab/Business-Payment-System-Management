@@ -5,12 +5,29 @@ import { settingsBack } from './SettingsForm';
 import { OwnerConfirmationNote, ownerConfirmFields, type OwnerConfirmationControl } from '../OwnerConfirmation';
 
 /** Owners' sign-in switches. The look is new; the two forms post the same fields to the same addresses as before. */
-export default function LoginRules({ otp, passwordResetNotice, oneAccountPerIdentity, ownerConfirmation }: { otp: Row; passwordResetNotice?: Row | null; oneAccountPerIdentity?: Row | null; ownerConfirmation?: OwnerConfirmationControl | null }) {
+type LeadershipAccessControl = { md: string[]; chairman: string[]; version: number };
+
+const LEADERSHIP_AREAS = ['accounts', 'treasury', 'owner_tools'] as const;
+
+export default function LoginRules({ otp, passwordResetNotice, oneAccountPerIdentity, ownerConfirmation, teamPhones, leadershipAccess }: { otp: Row; passwordResetNotice?: Row | null; oneAccountPerIdentity?: Row | null; ownerConfirmation?: OwnerConfirmationControl | null; teamPhones?: Row | null; leadershipAccess?: LeadershipAccessControl | null }) {
     const translate = useT();
     const confirmFields = ownerConfirmFields(ownerConfirmation, translate);
     const smsDown = ownerConfirmation ? !ownerConfirmation.sms_works : true;
     const noticeEnabled = (passwordResetNotice?.enabled ?? true) ? '1' : '0';
     const oneAccountEnabled = (oneAccountPerIdentity?.enabled ?? false) ? '1' : '0';
+    const teamPhonesEnabled = (teamPhones?.enabled ?? true) ? '1' : '0';
+    const leadershipDefaults: Record<string, string> = { version: String(leadershipAccess?.version ?? 0) };
+    const leadershipFields = (['md', 'chairman'] as const).flatMap((role) => LEADERSHIP_AREAS.map((area) => {
+        const value = (leadershipAccess?.[role] ?? []).includes(area) ? '1' : '0';
+        leadershipDefaults[`${role}_${area}`] = value;
+        return {
+            name: `${role}_${area}`,
+            label: `${translate('owner_security', `leadership_${role}`)}: ${translate('owner_security', `leadership_area_${area}`)}`,
+            options: [{ value: '1', label: translate('owner_security', 'leadership_yes') }, { value: '0', label: translate('owner_security', 'leadership_no') }],
+            required: true,
+            value,
+        };
+    }));
 
     return (
         <OfficePage title={translate('portal', 'login_rules')} back={settingsBack(translate)}>
@@ -69,6 +86,31 @@ export default function LoginRules({ otp, passwordResetNotice, oneAccountPerIden
                         submit={translate('portal', 'one_account_per_identity_save')}
                     />
                 </section>
+                <section className="set-block" data-tour="team-phones">
+                    <h2>{translate('owner_security', 'team_phones_title')}</h2>
+                    <p className="set-line">{translate('owner_security', 'team_phones_intro')}</p>
+                    <ActionForm
+                        action="/commands/owner/team-phones"
+                        defaults={{ enabled: teamPhonesEnabled, version: String(teamPhones?.version ?? 0) }}
+                        fields={[
+                            { name: 'enabled', label: translate('owner_security', 'team_phones_label'), options: [{ value: '1', label: translate('owner_security', 'team_phones_on') }, { value: '0', label: translate('owner_security', 'team_phones_off') }], required: true, value: teamPhonesEnabled },
+                            ...confirmFields,
+                        ]}
+                        submit={translate('owner_security', 'team_phones_save')}
+                    />
+                </section>
+                {leadershipAccess && (
+                    <section className="set-block" data-tour="leadership-access">
+                        <h2>{translate('owner_security', 'leadership_title')}</h2>
+                        <p className="set-line">{translate('owner_security', 'leadership_intro')}</p>
+                        <ActionForm
+                            action="/commands/owner/leadership-access"
+                            defaults={leadershipDefaults}
+                            fields={[...leadershipFields, ...confirmFields]}
+                            submit={translate('owner_security', 'leadership_save')}
+                        />
+                    </section>
+                )}
             </div>
         </OfficePage>
     );

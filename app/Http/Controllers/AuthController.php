@@ -6,13 +6,16 @@ use App\Domain\Accounts\AccountPhoneRules;
 use App\Domain\Accounts\PartnerProfileLock;
 use App\Domain\Auth\LoginCaptcha;
 use App\Domain\Auth\LoginOtpChallenge;
+use App\Domain\Auth\SignInGuard;
 use App\Domain\Auth\TotpAuthenticator;
 use App\Domain\Security\OwnerConfirmation;
 use App\Domain\Security\SecuritySettings;
+use App\Domain\Staff\LeadershipAccess;
 use App\Http\Middleware\RequireAuthenticatorSetup;
 use App\Models\PlaceCode;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\LetterheadContacts;
 use App\Support\PhoneIdentity;
 use App\Support\PortalHost;
 use Illuminate\Contracts\View\View;
@@ -186,7 +189,7 @@ class AuthController extends Controller
         }
         $code = trim($data['code']);
         $secret = (string) $user->totp_secret;
-        if ($totp->verify($secret, $code)) {
+        if ($totp->verifyOnce($user, $secret, $code)) {
             RateLimiter::clear($attemptKey);
 
             return $this->completeLogin($r, $user, $this->totpMethod($r));
@@ -224,16 +227,18 @@ class AuthController extends Controller
 
     private function captchaEnabled(): bool
     {
-        return (bool) config('madina.login_captcha.enabled', false);
+        return app(SignInGuard::class)->captchaRequired(request());
     }
 
     private function authenticate(Request $r, string $portal): Response
     {
+        $guard = app(SignInGuard::class);
+        $captchaNeeded = $guard->captchaRequired($r);
         $rules = [
             'email' => 'required|string|max:254',
             'password' => 'required|string|max:200',
         ];
-        if ($this->captchaEnabled()) {
+        if ($captchaNeeded) {
             $rules['captcha'] = 'required|string|max:20';
         }
         $data = $r->validate($rules, [], ['email' => __(match ($portal) {
@@ -242,48 +247,49 @@ class AuthController extends Controller
             default => 'auth_ui.email_or_phone',
         }), 'captcha' => __('auth_ui.captcha_label')]);
         $identity = trim($data['email']);
-        $isEmail = filter_var($identity, FILTER_VALIDATE_EMAIL) !== false;
-        $phone = $isEmail ? null : PhoneIdentity::normalize($identity);
-        $rateLimiterIdentity = $isEmail ? Str::lower($identity) : ($phone ?? Str::upper($identity));
-        $key = $rateLimiterIdentity.'|'.$r->ip();
+        // The counters are keyed on the account found, so typing the same code or phone another way
+        // ("MNHC 1001", "1001", "+880…") never starts a fresh count.
+        $candidate = $this->findSignInAccount($identity);
+        $key = $guard->accountAddressKey($candidate, $identity, $r);
         // A second, account-wide limit stops password guessing spread over many IP addresses.
-        $accountKey = 'login-account|'.$rateLimiterIdentity;
-        if (RateLimiter::tooManyAttempts($key, 5) || RateLimiter::tooManyAttempts($accountKey, 20)) {
-            $seconds = max(RateLimiter::availableIn($key), RateLimiter::tooManyAttempts($accountKey, 20) ? RateLimiter::availableIn($accountKey) : 0);
+        $accountKey = $guard->accountKey($candidate, $identity);
+        $addressLocked = RateLimiter::tooManyAttempts($key, SignInGuard::AccountTriesPerAddress);
+        $accountLocked = RateLimiter::tooManyAttempts($accountKey, SignInGuard::AccountTriesPerHour);
+        if ($addressLocked || $accountLocked) {
+            $seconds = max($addressLocked ? RateLimiter::availableIn($key) : 0, $accountLocked ? RateLimiter::availableIn($accountKey) : 0);
             $this->recordFailedLogin($r, $portal, 'locked', null, $identity);
             throw ValidationException::withMessages([
                 'email' => __('portal.flash_too_many_attempts_seconds', ['seconds' => $seconds]),
             ]);
         }
         // The captcha is checked before the password, so a wrong picture answer says nothing about the password.
-        if ($this->captchaEnabled()) {
+        if ($captchaNeeded) {
             $captchaResult = app(LoginCaptcha::class)->check($r, $data['captcha'] ?? null);
             if ($captchaResult !== 'ok') {
                 RateLimiter::hit($key, 60);
                 RateLimiter::hit($accountKey, 3600);
+                $guard->recordAddressFailure($r);
                 $this->recordFailedLogin($r, $portal, 'captcha_'.$captchaResult, null, $identity);
                 throw ValidationException::withMessages([
                     'captcha' => $captchaResult === 'wrong' ? __('auth_ui.captcha_wrong') : __('auth_ui.captcha_expired'),
                 ]);
             }
         }
-        $query = User::where('status', 'active');
-        if ($isEmail) {
-            $query->whereRaw('LOWER(email) = ?', [Str::lower($identity)]);
-        } elseif ($phone) {
-            $query->whereNotNull('phone')->whereRaw("phone ~ '^[0-9[:space:]()+.-]+$'")->whereRaw('('.PhoneIdentity::SQL.') = ?', [$phone]);
-        } else {
-            // Partner ID-card / dealer codes (e.g. MNHC1001, MNHC100001-000001). Cards printed
-            // before the hyphen was dropped (MNHC-100001-000001) still sign in.
-            $query->whereNotNull('dealer_code')->whereIn(DB::raw('UPPER(dealer_code)'), PlaceCode::serialForms($identity));
-        }
-        // Shared phone contacts must never select an arbitrary account. Email
-        // remains available if more than one active identity matches a phone.
-        $matches = $query->limit(2)->get();
-        $candidate = $matches->count() === 1 ? $matches->first() : null;
-        if (! $candidate || PortalHost::forUser($candidate) !== $portal || ! Auth::validate(['email' => $candidate->email, 'password' => $data['password'], 'status' => 'active'])) {
+        $rightPortal = $candidate !== null && PortalHost::forUser($candidate) === $portal;
+        // Always run one password check, even when no account matched, so the answer time says nothing.
+        $passwordOk = $guard->passwordMatches($rightPortal ? $candidate : null, $data['password']);
+        if (! $passwordOk || $candidate?->status !== 'active') {
             RateLimiter::hit($key, 60);
             RateLimiter::hit($accountKey, 3600);
+            $guard->recordAddressFailure($r);
+            if ($passwordOk && $candidate?->status === 'suspended') {
+                // Only someone who knows the password learns the account is suspended.
+                $this->recordFailedLogin($r, $portal, 'suspended', $candidate, $identity);
+                $phone = $this->officePhone();
+                throw ValidationException::withMessages(['email' => $phone !== ''
+                    ? __('security.login_suspended', ['phone' => $phone])
+                    : __('security.login_suspended_no_phone')]);
+            }
             $this->recordFailedLogin($r, $portal, 'bad_credentials', $candidate, $identity);
             throw ValidationException::withMessages(['email' => __('portal.flash_bad_credentials')]);
         }
@@ -323,6 +329,64 @@ class AuthController extends Controller
         }
 
         return $this->afterSecondFactor($r, $candidate, $portal, $security->previewMode() ? 'off_trial_mode' : 'off_by_owner', $security);
+    }
+
+    /**
+     * The one account a sign-in name points at: email, phone number or partner code. Active
+     * accounts are looked up first; a suspended one is only found when no active account
+     * matches, so a phone shared with a suspended account still signs in the active one.
+     * More than one match returns nothing (a shared phone must never pick an account at random).
+     */
+    private function findSignInAccount(string $identity): ?User
+    {
+        $isEmail = filter_var($identity, FILTER_VALIDATE_EMAIL) !== false;
+        $phone = $isEmail ? null : PhoneIdentity::normalize($identity);
+        foreach (['active', 'suspended'] as $status) {
+            $query = User::query()->where('status', $status);
+            if ($isEmail) {
+                $query->whereRaw('LOWER(email) = ?', [Str::lower($identity)]);
+            } elseif ($phone) {
+                $query->whereNotNull('phone')->whereRaw("phone ~ '^[0-9[:space:]()+.-]+$'")->whereRaw('('.PhoneIdentity::SQL.') = ?', [$phone]);
+            } else {
+                // Partner ID-card / dealer codes (e.g. MNHC1001, MNHC100001-000001). Cards printed
+                // before the hyphen was dropped (MNHC-100001-000001) still sign in.
+                $query->whereNotNull('dealer_code')->whereIn(DB::raw('UPPER(dealer_code)'), PlaceCode::serialForms($identity));
+            }
+            $matches = $query->limit(2)->get();
+            if ($matches->count() === 1) {
+                return $matches->first();
+            }
+            if ($matches->count() > 1) {
+                return null;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * A new password may not be one of the most-used PINs or the person's own phone number or
+     * partner code. Digits-only passwords stay allowed (owner rule); there is no other strength rule.
+     *
+     * @throws ValidationException
+     */
+    private function refuseTooEasyPassword(string $password, ?User $account): void
+    {
+        if (app(SignInGuard::class)->isTooEasy($password, $account)) {
+            throw ValidationException::withMessages(['password' => __('security.password_too_easy')]);
+        }
+    }
+
+    /** The office mobile number from the website settings, for messages that say "call the office". */
+    private function officePhone(): string
+    {
+        try {
+            $lines = LetterheadContacts::lines();
+        } catch (\Throwable) {
+            return '';
+        }
+
+        return trim($lines['mobile'] !== '' ? $lines['mobile'] : $lines['whatsapp']);
     }
 
     /**
@@ -405,6 +469,8 @@ class AuthController extends Controller
         Auth::login($candidate);
         $r->session()->regenerate();
         $r->session()->put('session_fingerprint', hash('sha256', (string) $r->userAgent()));
+        // SA-10: the session belongs to this portal, and an office session has a fixed end (BindSessionFingerprint).
+        $r->session()->put(['session_portal' => PortalHost::current($r), 'session_started_at' => now()->getTimestamp()]);
         $this->persistLoginLocale($r);
         Audit::record($r->user()->id, 'login', 'account', [
             'portal' => PortalHost::current($r),
@@ -412,6 +478,11 @@ class AuthController extends Controller
             'ip' => $r->ip(),
         ]);
         $intended = $r->session()->pull('url.intended');
+        // PP-10: partners always start on their home page; an old or shared link must not drop an older
+        // partner on a page they did not expect. Office staff still go back to the page they asked for.
+        if (in_array($candidate->role, ['dealer', 'sub_dealer'], true)) {
+            return redirect('/');
+        }
         $path = is_string($intended) ? parse_url($intended, PHP_URL_PATH) : null;
         if (is_string($intended) && is_string($path) && $path !== '/login' && ! str_starts_with($path, '/login/') && parse_url($intended, PHP_URL_HOST) === $r->getHost() && $this->routeExists($intended)) {
             return redirect($intended);
@@ -473,6 +544,8 @@ class AuthController extends Controller
     {
         $data = $r->validate(['token' => 'required|string', 'email' => 'required|email', 'password' => ['required', 'confirmed', PasswordRule::min(8)]]);
         $status = Password::reset($data, function (User $u, string $password) {
+            // Refused inside the callback, after the link is checked, so the link stays usable for a better try.
+            $this->refuseTooEasyPassword($password, $u);
             $u->forceFill([
                 'password' => Hash::make($password),
                 'remember_token' => Str::random(60),
@@ -632,6 +705,7 @@ class AuthController extends Controller
     public function password(Request $r): Response
     {
         $data = $r->validate(['current_password' => 'required|current_password', 'password' => ['required', 'confirmed', PasswordRule::min(8)]]);
+        $this->refuseTooEasyPassword($data['password'], $r->user());
         $r->user()->forceFill([
             'password' => $data['password'],
             'remember_token' => Str::random(60),
@@ -724,6 +798,43 @@ class AuthController extends Controller
         return back()->with('success', __('portal.flash_one_account_per_identity_updated'));
     }
 
+    /** LC-07 (D13): whether dealers see the full numbers of members they added directly. */
+    public function teamPhones(Request $request, SecuritySettings $security, OwnerConfirmation $confirmation): Response
+    {
+        $owner = $request->user();
+        abort_unless($owner instanceof User && LeadershipAccess::granted($owner, 'owner_tools'), 403);
+        $confirmation->require($request, $owner);
+        $data = $request->validate([
+            'enabled' => 'required|in:0,1',
+            'version' => 'required|integer|min:0',
+        ]);
+        $security->saveTeamPhones($owner, $data['enabled'] === '1', (int) $data['version']);
+
+        return back()->with('success', __('owner_security.flash_team_phones_saved'));
+    }
+
+    /** SA-07 (D11): the Super Admin chooses which owner areas the MD and the Chairman may open. */
+    public function leadershipAccess(Request $request, OwnerConfirmation $confirmation): Response
+    {
+        $owner = $request->user();
+        abort_unless($owner instanceof User && $owner->role === 'super_admin', 403);
+        $confirmation->require($request, $owner);
+        $rules = ['version' => 'required|integer|min:0'];
+        foreach (LeadershipAccess::Roles as $role) {
+            foreach (LeadershipAccess::Areas as $area) {
+                $rules[$role.'_'.$area] = 'required|in:0,1';
+            }
+        }
+        $data = $request->validate($rules);
+        $byRole = [];
+        foreach (LeadershipAccess::Roles as $role) {
+            $byRole[$role] = array_values(array_filter(LeadershipAccess::Areas, fn (string $area): bool => $data[$role.'_'.$area] === '1'));
+        }
+        LeadershipAccess::save($owner, $byRole, (int) $data['version']);
+
+        return back()->with('success', __('owner_security.flash_leadership_saved'));
+    }
+
     public function beginTotp(Request $request, TotpAuthenticator $totp, SecuritySettings $security): Response
     {
         $user = $request->user();
@@ -764,11 +875,30 @@ class AuthController extends Controller
         ])->save();
         $request->session()->forget('totp_setup_secret');
         Audit::record($user->id, 'security.totp_enabled', 'account');
+        $this->tellAboutNewAuthenticator($user);
 
         return back()->with([
             'success' => __('portal.flash_totp_enabled'),
             'totp_recovery_codes' => $recovery,
         ]);
+    }
+
+    /**
+     * SA-10: whoever holds a password could enrol their own authenticator at the first set-up step.
+     * The account holder and the Super Admin are told at once, so a stranger's set-up is noticed.
+     */
+    private function tellAboutNewAuthenticator(User $user): void
+    {
+        $time = now()->timezone('Asia/Dhaka')->format('d M Y, h:i A');
+        $recipients = User::query()->where('role', 'super_admin')->where('status', 'active')->pluck('id')->push($user->id)->unique();
+        foreach (User::query()->whereKey($recipients->all())->get(['id', 'locale']) as $recipient) {
+            $locale = $recipient->preferredLocale();
+            Audit::notice(
+                $recipient->id,
+                __('security.notice_totp_enrolled_title', [], $locale),
+                __('security.notice_totp_enrolled_body', ['name' => $user->name, 'time' => $time], $locale),
+            );
+        }
     }
 
     public function disableTotp(Request $request, SecuritySettings $security): Response
@@ -783,7 +913,7 @@ class AuthController extends Controller
             $code = trim((string) ($data['code'] ?? ''));
             abort_unless($code !== '', 422);
             $totp = app(TotpAuthenticator::class);
-            if (! $totp->verify((string) $user->totp_secret, $code)) {
+            if (! $totp->verifyOnce($user, (string) $user->totp_secret, $code)) {
                 throw ValidationException::withMessages(['code' => __('portal.err_totp_invalid')]);
             }
         }

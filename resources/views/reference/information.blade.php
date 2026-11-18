@@ -610,6 +610,8 @@
         {{-- Submit Button & Trust Guarantee Note --}}
         <div class="ref-partner-submit-area">
             <p class="ref-field-hint">{{ __('site.partner_directory_notice') }}</p>
+            {{-- LC-05: what is kept and why, in plain words, before the person sends their details. --}}
+            <p class="ref-field-hint">{{ __('security.application_consent') }} <a href="/privacy">{{ __('security.privacy_notice_link') }}</a></p>
             <button type="submit" class="ref-partner-submit-btn">
                 <span>{{ __('site.submit_application') }}</span>
                 <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>

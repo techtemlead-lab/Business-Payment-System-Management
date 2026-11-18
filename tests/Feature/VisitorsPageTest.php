@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Domain\Audience\SiteVisitCounter;
 use App\Domain\Audience\SiteVisitSettings;
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\Product;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -25,6 +26,8 @@ class VisitorsPageTest extends TestCase
         parent::setUp();
         $this->withoutVite();
         $this->travelTo(CarbonImmutable::parse(self::Now, 'Asia/Dhaka'));
+        // D11 (SA-07): the MD and Chairman open owner pages such as this one once the Super Admin grants them.
+        LeadershipAccess::save(User::factory()->staff('super_admin')->create(), ['md' => ['owner_tools'], 'chairman' => ['owner_tools']], 0);
     }
 
     /** One page opened by a visitor at a Dhaka time, counted the way the public site counts it. */

@@ -14,7 +14,10 @@ x-application: &application
     DB_HOST: db
     DB_PORT: "5432"
     DB_DATABASE: madina
-    DB_USERNAME: madina
+    # SA-04: once madina:db-app-role has run, set DB_APP_USERNAME=madina_app in the stack .env;
+    # migrations then run with --database=pgsql_migrate as the owner.
+    DB_USERNAME: ${DB_APP_USERNAME:-madina}
+    DB_MIGRATE_USERNAME: madina
     DB_QUEUE_RETRY_AFTER: "2100"
     MADINA_BACKUP_PATH: /var/backups/madina
     # The web image below has the internal /_protected/ location, so nginx sends private media after the app allows it.

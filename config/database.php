@@ -102,6 +102,27 @@ return [
             'connect_timeout' => env('DB_CONNECT_TIMEOUT', 5),
         ],
 
+        // The table owner, used only for migrations and for setting up the app's own login
+        // (php artisan migrate --database=pgsql_migrate). The website itself signs in with a
+        // limited role that cannot change the table layout or rewrite the audit trail (SA-04).
+        // Until DB_MIGRATE_USERNAME is set it is the same login as the website.
+        'pgsql_migrate' => [
+            'driver' => 'pgsql',
+            'url' => env('DB_MIGRATE_URL'),
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', '5432'),
+            'database' => env('DB_DATABASE', 'laravel'),
+            'username' => env('DB_MIGRATE_USERNAME', env('DB_USERNAME', 'root')),
+            'password' => env('DB_MIGRATE_PASSWORD', env('DB_PASSWORD', '')),
+            'charset' => env('DB_CHARSET', 'utf8'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'public',
+            'timezone' => 'UTC',
+            'sslmode' => env('DB_SSLMODE', 'prefer'),
+            'connect_timeout' => env('DB_CONNECT_TIMEOUT', 5),
+        ],
+
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'url' => env('DB_URL'),
@@ -129,6 +150,11 @@ return [
     | the migrations on disk haven't actually been run on the database.
     |
     */
+
+    // Password for the website's limited database login (php artisan madina:db-app-role).
+    'app_role' => [
+        'password' => env('DB_APP_PASSWORD'),
+    ],
 
     'migrations' => [
         'table' => 'migrations',

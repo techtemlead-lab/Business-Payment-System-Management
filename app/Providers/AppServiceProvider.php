@@ -3,15 +3,17 @@
 namespace App\Providers;
 
 use App\Database\Connectors\PostgresConnector;
+use App\Domain\Auth\SignInGuard;
 use App\Domain\Integrations\SmtpMailConfig;
 use App\Domain\Notifications\WebPushNotices;
 use App\Domain\Pricing\CurrentProductPricing;
 use App\Domain\Pricing\ProductPricing;
+use App\Domain\Staff\LeadershipAccess;
 use App\Http\Middleware\ThrottleEachAction;
 use App\Listeners\NoticeNewStaffDevice;
 use App\Models\User;
 use App\Support\LocalDigits;
-use App\Support\PhoneIdentity;
+use App\Support\PasswordVault;
 use App\Support\PortalHost;
 use App\Support\SiteCustomization;
 use Illuminate\Auth\Events\Login;
@@ -76,6 +78,8 @@ class AppServiceProvider extends ServiceProvider
         // Fail unreachable Postgres hosts quickly instead of blocking php artisan serve
         // (single-threaded) until max_execution_time, which freezes every device viewport.
         $this->app->bind('db.connector.pgsql', PostgresConnector::class);
+        $this->app->singleton(PasswordVault::class);
+        $this->app->scoped(LeadershipAccess::class);
     }
 
     /**
@@ -183,14 +187,35 @@ class AppServiceProvider extends ServiceProvider
     private function configureSignInLimits(): void
     {
         RateLimiter::for('sign-in', function (Request $request): array {
-            $typed = trim((string) $request->input('email'));
-            $identity = PhoneIdentity::normalize($typed) ?? Str::lower($typed);
+            // Every spelling of one code or phone ("MNHC 1001", "1001", "+880…") shares one counter.
+            $identity = app(SignInGuard::class)->normalizedIdentity((string) $request->input('email'));
 
             return [
                 Limit::perMinute(30)->by('account|'.$identity),
                 Limit::perMinute(600)->by('address|'.$request->ip()),
             ];
         });
+        // Forgot / reset password: counted per account, so many partners on one office or mobile
+        // connection never lock each other out. The address limit is only a backstop. When a limit
+        // is reached the form says how many minutes to wait instead of showing an error page.
+        foreach (['password-forgot' => [3, 10], 'password-reset' => [5, 20]] as $name => [$perMinute, $perHour]) {
+            RateLimiter::for($name, function (Request $request) use ($perMinute, $perHour): array {
+                $account = 'account|'.Str::lower(trim((string) $request->input('email')));
+                $wait = function (Request $request, array $headers) {
+                    $minutes = max(1, (int) ceil(((int) ($headers['Retry-After'] ?? 60)) / 60));
+
+                    return back()
+                        ->withInput($request->only('email'))
+                        ->withErrors(['email' => __('security.reset_wait_minutes', ['minutes' => $minutes])]);
+                };
+
+                return [
+                    Limit::perMinute($perMinute)->by($account.'|minute')->response($wait),
+                    Limit::perHour($perHour)->by($account.'|hour')->response($wait),
+                    Limit::perMinute(120)->by('address|'.$request->ip())->response($wait),
+                ];
+            });
+        }
         RateLimiter::for('sign-in-code', function (Request $request): array {
             $session = $request->hasSession() ? $request->session() : null;
             $account = $session?->get('pending_login_id') ?? $session?->get('pending_totp_id');

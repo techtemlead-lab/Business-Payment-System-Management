@@ -97,13 +97,13 @@ class PhoneLoginTest extends TestCase
 
     public function test_phone_format_changes_do_not_bypass_attempt_limit(): void
     {
-        User::factory()->create(['role' => 'dealer', 'phone' => '01000000005', 'password' => 'SyntheticPassword123']);
+        $dealer = User::factory()->create(['role' => 'dealer', 'phone' => '01000000005', 'password' => 'SyntheticPassword123']);
         foreach (['01000000005', '+8801000000005', '008801000000005', '010 0000 0005', '+880 (10) 0000-0005'] as $phone) {
             $this->post('/login', ['email' => $phone, 'password' => 'WrongPassword123'])->assertSessionHasErrors('email');
         }
 
-        // Different phone spellings must share one app-level limiter key.
-        $this->assertTrue(RateLimiter::tooManyAttempts('8801000000005|127.0.0.1', 5));
+        // Different phone spellings must share one app-level limiter key: the matched account.
+        $this->assertTrue(RateLimiter::tooManyAttempts('login-account|u'.$dealer->id.'|127.0.0.1', 5));
 
         // Route throttle:5,1 may answer 429 before the controller session error path.
         $response = $this->post('/login', ['email' => '01000000005', 'password' => 'SyntheticPassword123']);

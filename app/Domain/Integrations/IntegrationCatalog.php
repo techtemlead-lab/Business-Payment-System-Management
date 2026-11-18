@@ -67,7 +67,7 @@ final class IntegrationCatalog
                     'bulk_sms_bd' => [
                         'label' => __('portal.si_provider_bulk_sms_bd'),
                         'fields' => ['enabled', 'base_url', 'api_key', 'sender_id', 'balance_url'],
-                        'defaults' => ['enabled' => false, 'base_url' => 'http://bulksmsbd.net/api/smsapi', 'api_key' => '', 'sender_id' => '', 'balance_url' => 'http://bulksmsbd.net/api/getBalanceApi'],
+                        'defaults' => ['enabled' => false, 'base_url' => 'https://bulksmsbd.net/api/smsapi', 'api_key' => '', 'sender_id' => '', 'balance_url' => 'https://bulksmsbd.net/api/getBalanceApi'],
                     ],
                     'custom' => [
                         'label' => __('portal.si_provider_custom_sms'),

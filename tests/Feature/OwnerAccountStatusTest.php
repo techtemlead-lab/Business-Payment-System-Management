@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -41,6 +42,8 @@ class OwnerAccountStatusTest extends TestCase
 
     public function test_the_list_is_empty_for_the_md_and_the_chairman(): void
     {
+        // D11 (SA-07): the staff list opens for them only once the Super Admin grants the accounts area.
+        LeadershipAccess::save($this->superAdmin, ['md' => ['accounts'], 'chairman' => ['accounts']], 0);
         foreach (['md', 'chairman'] as $role) {
             $this->actingAs(User::factory()->staff($role)->create())->onPortal('sadmin')->get('/employees')
                 ->assertInertia(fn (Assert $page) => $page->where('data.owner_accounts', []));

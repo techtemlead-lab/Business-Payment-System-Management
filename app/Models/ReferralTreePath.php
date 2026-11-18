@@ -108,7 +108,7 @@ class ReferralTreePath extends Model
                         ['ancestor_id', 'descendant_id'], ['depth', 'updated_at']);
                 }
             }
-            $user->update(['sponsor_id' => $newSponsorId]);
+            $user->forceFill(['sponsor_id' => $newSponsorId])->save();
         }, 3);
     }
 

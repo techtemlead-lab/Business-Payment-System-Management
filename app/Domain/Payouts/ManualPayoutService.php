@@ -157,7 +157,7 @@ class ManualPayoutService
             if ($w->status !== 'requested' && ! ($w->status === 'approved' && $decision === 'rejected')) {
                 throw ValidationException::withMessages(['withdrawal' => __('portal.err_wd_already_reviewed')]);
             }
-            if ($actor->id === $w->user_id) {
+            if ((int) $actor->id === (int) $w->user_id) {
                 throw ValidationException::withMessages(['withdrawal' => __('portal.err_wd_self_review')]);
             }
             if ($decision === 'approved') {
@@ -312,10 +312,10 @@ class ManualPayoutService
                 if (CommissionWallet::hasDebt($w->user_id)) {
                     throw ValidationException::withMessages(['withdrawal' => __('portal.err_wd_clawback_before_pay')]);
                 }
-                if ($actor->id === $w->user_id) {
+                if ((int) $actor->id === (int) $w->user_id) {
                     throw ValidationException::withMessages(['withdrawal' => __('portal.err_wd_payer_separation')]);
                 }
-                $selfApproved = $actor->id === $w->reviewed_by;
+                $selfApproved = (int) $actor->id === (int) $w->reviewed_by;
                 if ($selfApproved) {
                     app(SelfApproval::class)->finishOwnStep($actor, 'withdrawal', __('portal.err_wd_payer_separation'));
                 }

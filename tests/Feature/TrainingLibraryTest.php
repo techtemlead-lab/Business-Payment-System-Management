@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Content\TrainingVideoLink;
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\TrainingItem;
 use App\Models\User;
 use Database\Seeders\TrainingItemSeeder;
@@ -93,6 +94,8 @@ class TrainingLibraryTest extends TestCase
     public function test_owner_without_content_permission_can_still_manage_training(): void
     {
         $managingDirector = User::factory()->staff('md')->create();
+        // D11 (SA-07): owner pages open for the MD once the Super Admin grants them.
+        LeadershipAccess::save(User::factory()->staff('super_admin')->create(), ['md' => ['owner_tools']], LeadershipAccess::current()['version']);
 
         $this->actingAs($managingDirector)->onPortal('sadmin')->get('/training')->assertOk();
         $this->actingAs($managingDirector)->onPortal('sadmin')->post('/commands/training', [

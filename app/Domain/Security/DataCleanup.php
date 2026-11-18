@@ -38,7 +38,8 @@ final class DataCleanup
 
     public static function canUse(User $user): bool
     {
-        return $user->status === 'active' && $user->owner();
+        // Deleting records stays with the Super Admin alone (SA-07); the MD and Chairman never see it.
+        return $user->status === 'active' && $user->role === 'super_admin';
     }
 
     /**

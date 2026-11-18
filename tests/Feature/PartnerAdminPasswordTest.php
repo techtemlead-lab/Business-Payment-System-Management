@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Accounts\PasswordAccess;
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -53,7 +54,7 @@ class PartnerAdminPasswordTest extends TestCase
             ->assertJsonPath('data.password', null);
 
         $this->actingAs($admin)->onPortal('sadmin')
-            ->postJson('/commands/accounts/'.$partner->id.'/reveal-password')
+            ->postJson('/commands/accounts/'.$partner->id.'/reveal-password', ['current_password' => 'password'])
             ->assertOk()
             ->assertJsonPath('data.password', $partner->adminVisiblePassword());
     }
@@ -79,7 +80,7 @@ class PartnerAdminPasswordTest extends TestCase
         $this->assertTrue(Hash::check('PartnerOwnedPass1', $partner->password));
 
         $this->actingAs($admin)->onPortal('sadmin')
-            ->postJson('/commands/accounts/'.$partner->id.'/reveal-password')
+            ->postJson('/commands/accounts/'.$partner->id.'/reveal-password', ['current_password' => 'password'])
             ->assertOk()
             ->assertJsonPath('data.can_reveal', true)
             ->assertJsonPath('data.password', 'PartnerOwnedPass1');
@@ -169,7 +170,7 @@ class PartnerAdminPasswordTest extends TestCase
 
         // Pressing "Show password" does, with who and from where.
         $this->actingAs($owner)->onPortal('sadmin')
-            ->postJson('/commands/accounts/'.$partner->id.'/reveal-password')
+            ->postJson('/commands/accounts/'.$partner->id.'/reveal-password', ['current_password' => 'password'])
             ->assertOk()
             ->assertJsonPath('data.password', 'TempPassword123!');
 
@@ -215,6 +216,8 @@ class PartnerAdminPasswordTest extends TestCase
 
     public function test_md_can_reset_and_view_staff_but_not_the_super_admin_md_or_chairman(): void
     {
+        // D11 (SA-07): the MD acts on accounts once the Super Admin grants the accounts area.
+        LeadershipAccess::save(User::factory()->staff('super_admin')->create(), ['md' => ['accounts']], 0);
         $md = User::factory()->staff('md')->create(['profile' => ['action_permissions' => ['accounts' => ['view' => true, 'create' => true, 'edit' => true]]]]);
         $employee = User::factory()->staff('finance')->create([
             'phone' => '01712345222',
@@ -226,7 +229,9 @@ class PartnerAdminPasswordTest extends TestCase
 
         $access = app(PasswordAccess::class);
         $this->assertTrue($access->canReset($md, $employee));
-        $this->assertTrue($access->canView($md, $employee));
+        // Office passwords are never readable (owner decision, 2026-11-17); an owner may only reset them.
+        $this->assertFalse($access->canView($md, $employee));
+        $this->assertTrue($access->mayChooseOnReset($md, $employee));
         $this->assertFalse($access->canReset($md, $chairman));
         $this->assertFalse($access->canView($md, $chairman));
         $this->assertFalse($access->canReset($md, $superAdmin));
@@ -241,6 +246,8 @@ class PartnerAdminPasswordTest extends TestCase
 
     public function test_md_and_chairman_without_accounts_permission_can_reset_and_see_dealer_passwords(): void
     {
+        // D11 (SA-07): the owner decision of 2026-11-17 applies once the Super Admin grants the accounts area.
+        LeadershipAccess::save(User::factory()->staff('super_admin')->create(), ['md' => ['accounts'], 'chairman' => ['accounts']], 0);
         $dealer = User::factory()->dealer()->create([
             'phone' => '01712345333',
             'password_managed_by' => User::PasswordManagedByAdmin,
@@ -263,7 +270,7 @@ class PartnerAdminPasswordTest extends TestCase
                 ->assertOk()
                 ->assertJsonPath('data.can_reveal', true);
             $this->actingAs($owner)->onPortal('sadmin')
-                ->postJson('/commands/accounts/'.$subDealer->id.'/reveal-password')
+                ->postJson('/commands/accounts/'.$subDealer->id.'/reveal-password', ['current_password' => 'password'])
                 ->assertOk()
                 ->assertJsonPath('data.password', 'SubDealerPass1!');
             $this->actingAs($owner)->onPortal('sadmin')
@@ -285,7 +292,8 @@ class PartnerAdminPasswordTest extends TestCase
         $this->assertFalse($access->canView($md, $superAdmin));
         $this->assertFalse($access->canView($chairman, $superAdmin));
         $this->assertFalse($access->canView($chairman, $chairman));
-        $this->assertTrue($access->canView($superAdmin, $md));
+        $this->assertFalse($access->canView($superAdmin, $md));
+        $this->assertTrue($access->mayChooseOnReset($superAdmin, $md));
 
         $this->actingAs($md)->onPortal('sadmin')
             ->postJson('/commands/accounts/'.$chairman->id.'/reveal-password')
@@ -321,12 +329,15 @@ class PartnerAdminPasswordTest extends TestCase
             'admin_password_cipher' => 'StaffInitialPass1!',
         ]);
 
-        // Superadmin CAN view staff password
+        // Nobody reads a staff password back, not even the Super Admin (owner decision, 2026-11-17).
         $this->actingAs($admin)->onPortal('sadmin')
-            ->postJson('/commands/accounts/'.$employee->id.'/reveal-password')
+            ->postJson('/commands/accounts/'.$employee->id.'/reveal-password', ['current_password' => 'password'])
+            ->assertForbidden();
+        $this->actingAs($admin)->onPortal('sadmin')
+            ->getJson('/commands/accounts/'.$employee->id.'/password-status')
             ->assertOk()
-            ->assertJsonPath('data.can_reveal', true)
-            ->assertJsonPath('data.password', 'StaffInitialPass1!');
+            ->assertJsonPath('data.can_reveal', false)
+            ->assertJsonPath('data.never_shown', true);
 
         // Superadmin CAN reset staff password
         $this->actingAs($admin)->onPortal('sadmin')
@@ -336,8 +347,9 @@ class PartnerAdminPasswordTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.password', 'NewStaffPass888!');
 
+        // The owner sees the new password once, but no readable copy is kept for a staff account.
         $employee->refresh();
-        $this->assertSame('NewStaffPass888!', $employee->adminVisiblePassword());
+        $this->assertNull($employee->adminVisiblePassword());
 
         // Regular staff without super_admin is forbidden
         $regularStaff = User::factory()->staff('editor')->create();

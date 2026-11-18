@@ -110,10 +110,10 @@ final class ReserveService
             if ($decision === 'approved' && $row->program === 'tour') {
                 throw ValidationException::withMessages(['reserve' => __('funds.err_tour_company_only')]);
             }
-            if ($row->status !== 'requested' || $actor->id === $row->user_id) {
+            if ($row->status !== 'requested' || (int) $actor->id === (int) $row->user_id) {
                 throw ValidationException::withMessages(['reserve' => __('portal.err_reserve_reviewer')]);
             }
-            $selfApproved = $actor->id === $row->created_by;
+            $selfApproved = (int) $actor->id === (int) $row->created_by;
             if ($selfApproved) {
                 app(SelfApproval::class)->finishOwnStep($actor, 'reserve', __('portal.err_reserve_reviewer'));
             }
@@ -236,7 +236,7 @@ final class ReserveService
                 if ($row->program !== 'marketing' || $row->status !== 'approved') {
                     throw ValidationException::withMessages(['reserve' => __('portal.err_reserve_payer')]);
                 }
-                $selfApproved = $row->approved_by === $actor->id;
+                $selfApproved = (int) $row->approved_by === (int) $actor->id;
                 if ($selfApproved) {
                     app(SelfApproval::class)->finishOwnStep($actor, 'reserve', __('portal.err_reserve_payer'));
                 }

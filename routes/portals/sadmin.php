@@ -33,8 +33,8 @@ Route::middleware('guest')->group(function (): void {
     Route::post('/login/2fa', [AuthController::class, 'verifyTotp'])->middleware('throttle:sign-in-code');
     Route::post('/login/otp', [AuthController::class, 'verifyOtp'])->middleware('throttle:sign-in-code');
     Route::post('/login/otp/resend', [AuthController::class, 'resendOtp'])->middleware('throttle:sign-in-code');
-    Route::post('/forgot-password', [AuthController::class, 'forgot'])->middleware('throttle:3,1');
-    Route::post('/reset-password', [AuthController::class, 'reset'])->middleware('throttle:5,1');
+    Route::post('/forgot-password', [AuthController::class, 'forgot'])->middleware('throttle:password-forgot');
+    Route::post('/reset-password', [AuthController::class, 'reset'])->middleware('throttle:password-reset');
 });
 
 Route::middleware(['auth', 'active', 'portal:sadmin', 'authenticator'])->group(function () use ($registerCommands): void {

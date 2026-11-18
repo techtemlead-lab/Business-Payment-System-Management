@@ -85,6 +85,8 @@ return function (string $portal): void {
     Route::post('/commands/owner/confirmation-code', [AuthController::class, 'ownerConfirmationCode'])->middleware('throttle:5,1');
     Route::post('/commands/owner/password-reset-notice', [AuthController::class, 'passwordResetNotice'])->middleware('throttle:5,1');
     Route::post('/commands/owner/one-account-per-identity', [AuthController::class, 'oneAccountPerIdentity'])->middleware('throttle:5,1');
+    Route::post('/commands/owner/team-phones', [AuthController::class, 'teamPhones'])->middleware('throttle:5,1');
+    Route::post('/commands/owner/leadership-access', [AuthController::class, 'leadershipAccess'])->middleware('throttle:5,1');
     Route::post('/commands/owner/site-visit-counting', [SiteVisitSettingsController::class, 'update'])->middleware('throttle:10,1');
     Route::post('/commands/owner/error-tracking', [ErrorTrackingController::class, 'settings'])->middleware('throttle:10,1');
     Route::post('/commands/errors/{errorReport}/fixed', [ErrorTrackingController::class, 'fixed'])->whereNumber('errorReport')->middleware('throttle:60,1');
@@ -138,7 +140,7 @@ return function (string $portal): void {
     Route::post('/commands/accounts/{user}/invite', [CommandController::class, 'invite'])->middleware('throttle:3,1');
     Route::get('/commands/accounts/{user}/password-status', [CommandController::class, 'partnerPasswordStatus'])->middleware('throttle:60,1');
     Route::post('/commands/accounts/{user}/reset-password', [CommandController::class, 'resetPartnerPassword'])->middleware('throttle:10,1');
-    Route::post('/commands/accounts/{user}/reveal-password', [CommandController::class, 'revealPartnerPassword'])->middleware('throttle:20,1,password-reveal');
+    Route::post('/commands/accounts/{user}/reveal-password', [CommandController::class, 'revealPartnerPassword'])->middleware('throttle:5,1,password-reveal');
     Route::get('/commands/accounts/{user}/kyc-documents', [CommandController::class, 'kycDocuments'])->middleware('throttle:60,1');
     Route::post('/commands/accounts/{user}/kyc-documents', [CommandController::class, 'storeKycDocument'])->middleware('throttle:20,1');
     Route::get('/commands/accounts/{user}/kyc-documents/{document}', [CommandController::class, 'downloadKycDocument'])->middleware('throttle:60,1');

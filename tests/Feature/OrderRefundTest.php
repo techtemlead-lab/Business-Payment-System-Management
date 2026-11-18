@@ -46,7 +46,7 @@ class OrderRefundTest extends TestCase
     public function test_owner_can_refund_a_paid_order_that_was_not_sent_and_it_is_recorded_and_audited(): void
     {
         $order = $this->paidOrder();
-        // Only the owner's own account carries a refund out alone (MA-16).
+        // D11 (SA-07): the MD opens orders only with rights the Super Admin gives; the Super Admin refunds here.
         $owner = User::factory()->staff('super_admin')->create(['name' => 'Managing Director']);
 
         $this->actingAs($owner)->onPortal('sadmin')->post('/commands/orders/'.$order->id.'/refund', $this->payload('100.00', 'Stock ran out'))
