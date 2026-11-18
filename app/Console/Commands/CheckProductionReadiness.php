@@ -28,15 +28,15 @@ class CheckProductionReadiness extends Command
                 .' | release of matured commission '.(config('madina.auto_release_matured') ? 'ON' : 'OFF (MADINA_AUTO_RELEASE_MATURED)')
                 .' | area quota hold release '.(config('madina.auto_release_quota_holds') ? 'ON' : 'OFF (MADINA_AUTO_RELEASE_QUOTA_HOLDS)')
                 .($result['preview_mode'] ? ' | PREVIEW MODE' : ''));
-            $warnings = $result['warnings'] ?? [];
+            $warnings = $result['warnings'];
             if ($warnings !== []) {
                 $this->newLine();
                 $this->warn('Go-live warnings ('.count($warnings).'; they do not block readiness, but resolve each before real money):');
-                foreach (array_values($warnings) as $number => $warning) {
+                foreach ($warnings as $number => $warning) {
                     $this->line(sprintf('%2d. [%s] %s', $number + 1, $warning, $result['explanations'][$warning] ?? str_replace('_', ' ', (string) $warning)));
                 }
             }
-            $details = $result['details'] ?? [];
+            $details = $result['details'];
             $missingPartners = $details['partners_missing_place_codes'] ?? null;
             if (is_array($missingPartners) && $missingPartners !== []) {
                 $this->newLine();
