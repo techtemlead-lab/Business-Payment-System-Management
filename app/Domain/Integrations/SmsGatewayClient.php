@@ -171,7 +171,7 @@ final class SmsGatewayClient
         if ($url === '' || $apiKey === '' || $userName === '') {
             return null;
         }
-        $response = Http::connectTimeout(3)->timeout(12)->acceptJson()->asJson()->post($url, [
+        $response = Http::withoutRedirecting()->connectTimeout(3)->timeout(12)->acceptJson()->asJson()->post($url, [
             'userName' => $userName,
             'apiKey' => $apiKey,
         ]);
@@ -198,7 +198,7 @@ final class SmsGatewayClient
         if ($url === '' || $apiKey === '') {
             return null;
         }
-        $response = Http::connectTimeout(3)->timeout(12)->acceptJson()->get($url, ['api_key' => $apiKey]);
+        $response = Http::withoutRedirecting()->connectTimeout(3)->timeout(12)->acceptJson()->get($url, ['api_key' => $apiKey]);
         $json = $response->json();
         if (! $response->successful() || ! is_array($json) || ! $this->alphaAccepted($json)) {
             return null;
@@ -220,7 +220,7 @@ final class SmsGatewayClient
         if ($url === '') {
             return null;
         }
-        $response = Http::connectTimeout(3)->timeout(12)->get($url, [
+        $response = Http::withoutRedirecting()->connectTimeout(3)->timeout(12)->get($url, [
             'token' => $config['api_key'],
             'balance' => '',
         ]);
@@ -239,7 +239,7 @@ final class SmsGatewayClient
         if ($url === '') {
             return null;
         }
-        $response = Http::connectTimeout(3)->timeout(12)->acceptJson()->asJson()->post($url, [
+        $response = Http::withoutRedirecting()->connectTimeout(3)->timeout(12)->acceptJson()->asJson()->post($url, [
             'api_token' => $config['api_key'],
             'sid' => $config['sender_id'] ?: $config['api_secret'],
         ]);
@@ -255,8 +255,8 @@ final class SmsGatewayClient
     /** @param  array<string, mixed>  $config */
     private function balanceBulkSmsBd(array $config): ?string
     {
-        $url = trim((string) ($config['balance_url'] ?? 'http://bulksmsbd.net/api/getBalanceApi'));
-        $response = Http::connectTimeout(3)->timeout(12)->get($url, [
+        $url = trim((string) ($config['balance_url'] ?? 'https://bulksmsbd.net/api/getBalanceApi'));
+        $response = Http::withoutRedirecting()->connectTimeout(3)->timeout(12)->get($url, [
             'api_key' => $config['api_key'],
         ]);
         if (! $response->successful()) {
@@ -281,7 +281,7 @@ final class SmsGatewayClient
         if ($url === '') {
             return null;
         }
-        $response = Http::connectTimeout(3)->timeout(12)->acceptJson()->withToken((string) $config['api_key'])->get($url);
+        $response = Http::withoutRedirecting()->connectTimeout(3)->timeout(12)->acceptJson()->withToken((string) $config['api_key'])->get($url);
         if (! $response->successful()) {
             return null;
         }
@@ -305,7 +305,7 @@ final class SmsGatewayClient
         if ($base === '' || $token === '') {
             return false;
         }
-        $response = Http::connectTimeout(3)->timeout(15)->asForm()->post($base, [
+        $response = Http::withoutRedirecting()->connectTimeout(3)->timeout(15)->asForm()->post($base, [
             'token' => $token,
             'to' => preg_replace('/^88(?=01)/', '', $phone),
             'message' => $message,
@@ -339,7 +339,7 @@ final class SmsGatewayClient
             return false;
         }
         $number = $this->internationalPhone($phone);
-        $response = Http::connectTimeout(3)->timeout(15)->acceptJson()->asJson()->post($base, [
+        $response = Http::withoutRedirecting()->connectTimeout(3)->timeout(15)->acceptJson()->asJson()->post($base, [
             'apiKey' => $apiKey,
             'userName' => $userName,
             'campaignName' => 'null',
@@ -379,7 +379,7 @@ final class SmsGatewayClient
         if (filled($config['sender_id'] ?? null)) {
             $payload['sender_id'] = (string) $config['sender_id'];
         }
-        $response = Http::connectTimeout(3)->timeout(15)->acceptJson()->asForm()->post($base, $payload);
+        $response = Http::withoutRedirecting()->connectTimeout(3)->timeout(15)->acceptJson()->asForm()->post($base, $payload);
         $json = $response->json();
         if ($response->successful() && is_array($json) && $this->alphaAccepted($json)) {
             return true;
@@ -419,7 +419,7 @@ final class SmsGatewayClient
     /** @param  array<string, mixed>  $config */
     private function sendSslWireless(array $config, string $phone, string $message): bool
     {
-        $response = Http::timeout(15)->acceptJson()->asJson()->post(rtrim((string) $config['base_url'], '/'), [
+        $response = Http::withoutRedirecting()->timeout(15)->acceptJson()->asJson()->post(rtrim((string) $config['base_url'], '/'), [
             'api_token' => $config['api_key'],
             'sid' => $config['sender_id'] ?: $config['api_secret'],
             'msisdn' => $phone,
@@ -433,7 +433,7 @@ final class SmsGatewayClient
     /** @param  array<string, mixed>  $config */
     private function sendBulkSmsBd(array $config, string $phone, string $message): bool
     {
-        $response = Http::timeout(15)->get(rtrim((string) $config['base_url'], '/'), [
+        $response = Http::withoutRedirecting()->timeout(15)->get(rtrim((string) $config['base_url'], '/'), [
             'api_key' => $config['api_key'],
             'type' => 'text',
             'number' => $phone,
@@ -451,7 +451,7 @@ final class SmsGatewayClient
         if ($base === '') {
             return false;
         }
-        $response = Http::timeout(15)->acceptJson()->withToken((string) $config['api_key'])->post($base, [
+        $response = Http::withoutRedirecting()->timeout(15)->acceptJson()->withToken((string) $config['api_key'])->post($base, [
             'to' => $phone,
             'message' => $message,
             'sender_id' => $config['sender_id'] ?? null,

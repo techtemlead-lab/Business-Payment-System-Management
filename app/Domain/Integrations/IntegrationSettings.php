@@ -159,6 +159,17 @@ final class IntegrationSettings
                 }
                 $next[$field] = is_string($value) ? trim($value) : $value;
             }
+            app(IntegrationUrlPolicy::class)->assertAllowed($group, $catalog['defaults'], $next);
+            // A new address never inherits the saved passwords and keys: they must be typed again,
+            // so changing only the address cannot send the stored secrets to another server.
+            if ($this->hostOf($current['base_url'] ?? '') !== $this->hostOf($next['base_url'] ?? '')) {
+                foreach (IntegrationCatalog::SecretFields as $secret) {
+                    $typed = $input[$secret] ?? null;
+                    if (in_array($secret, $catalog['fields'], true) && ($typed === null || $typed === '' || $typed === '••••••••')) {
+                        $next[$secret] = '';
+                    }
+                }
+            }
 
             if ($next['enabled']) {
                 if ($group === 'maps' && blank($next['api_key'] ?? null) && blank($next['map_embed_url'] ?? null)) {
@@ -205,6 +216,13 @@ final class IntegrationSettings
                 'reason' => $reason,
             ]);
         }, 3);
+    }
+
+    private function hostOf(mixed $url): string
+    {
+        $host = parse_url(trim((string) $url), PHP_URL_HOST);
+
+        return is_string($host) ? strtolower(rtrim($host, '.')) : '';
     }
 
     /**

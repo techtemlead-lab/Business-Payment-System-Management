@@ -83,7 +83,7 @@ final class PaymentGatewayClient
     private function bkashLookup(array $config, string $reference, string $expectedAmount): array
     {
         $base = rtrim((string) $config['base_url'], '/');
-        $token = Http::timeout(15)->withBasicAuth((string) $config['username'], (string) $config['password'])
+        $token = Http::withoutRedirecting()->timeout(15)->withBasicAuth((string) $config['username'], (string) $config['password'])
             ->withHeaders(['Content-Type' => 'application/json', 'username' => (string) $config['username'], 'password' => (string) $config['password']])
             ->post($base.'/tokenized/checkout/token/grant', [
                 'app_key' => $config['app_key'],
@@ -92,7 +92,7 @@ final class PaymentGatewayClient
         if (! is_string($token) || $token === '') {
             return ['checked' => true, 'matched' => false, 'provider' => 'bkash', 'message' => __('portal.si_pay_token_failed', ['provider' => 'bKash']), 'amount' => null, 'raw' => null];
         }
-        $response = Http::timeout(15)->withHeaders([
+        $response = Http::withoutRedirecting()->timeout(15)->withHeaders([
             'Authorization' => $token,
             'X-APP-Key' => (string) $config['app_key'],
             'Content-Type' => 'application/json',
@@ -107,7 +107,7 @@ final class PaymentGatewayClient
     /** @param  array<string, mixed>  $config */
     private function nagadLookup(array $config, string $reference, string $expectedAmount): array
     {
-        $response = Http::timeout(15)->withHeaders([
+        $response = Http::withoutRedirecting()->timeout(15)->withHeaders([
             'X-KM-Api-Key' => (string) $config['app_key'],
             'X-KM-IP-V4' => request()->ip() ?? '127.0.0.1',
         ])->get(rtrim((string) $config['base_url'], '/').'/api/dfs/payment/status/'.$reference);
@@ -120,7 +120,7 @@ final class PaymentGatewayClient
     /** @param  array<string, mixed>  $config */
     private function sslLookup(array $config, string $reference, string $expectedAmount): array
     {
-        $response = Http::timeout(15)->asForm()->post(rtrim((string) $config['base_url'], '/').'/validator/api/merchantTransIDvalidationAPI.php', [
+        $response = Http::withoutRedirecting()->timeout(15)->asForm()->post(rtrim((string) $config['base_url'], '/').'/validator/api/merchantTransIDvalidationAPI.php', [
             'tran_id' => $reference,
             'store_id' => $config['store_id'],
             'store_passwd' => $config['store_password'],
@@ -140,7 +140,7 @@ final class PaymentGatewayClient
         if ($base === '') {
             return ['checked' => true, 'matched' => false, 'provider' => 'rocket', 'message' => __('portal.si_pay_empty_url', ['provider' => 'Rocket']), 'amount' => null, 'raw' => null];
         }
-        $response = Http::timeout(15)->withToken((string) $config['api_key'])->get($base.'/transactions/'.$reference, [
+        $response = Http::withoutRedirecting()->timeout(15)->withToken((string) $config['api_key'])->get($base.'/transactions/'.$reference, [
             'secret' => $config['api_secret'],
         ]);
         $payload = $response->json();
