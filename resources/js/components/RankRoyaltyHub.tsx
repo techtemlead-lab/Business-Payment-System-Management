@@ -169,13 +169,16 @@ export default function RankRoyaltyHub({ ranks: rankList, stats, policy, filters
             )}
             {/* Top Stat Summary Grid */}
             <div className="hub-grid is-narrow">
-                <div className="metric">
-                    <span>{translate('portal','rank_stat_dealers')}</span>
-                    <strong>
-                        {number(stats.dealer_count || (paged ? paged.total : ranks.length))}
-                    </strong>
-                    <small>{translate('portal','rank_stat_dealers_hint')}</small>
-                </div>
+                {/* A partner's own list is one row (themselves), so "total active dealers 1" would mislead; only the office sees the company-wide count. */}
+                {(paged || ranks.length !== 1) && (
+                    <div className="metric">
+                        <span>{translate('portal','rank_stat_dealers')}</span>
+                        <strong>
+                            {number(stats.dealer_count || (paged ? paged.total : ranks.length))}
+                        </strong>
+                        <small>{translate('portal','rank_stat_dealers_hint')}</small>
+                    </div>
+                )}
 
                 <div className="metric tone-ok">
                     <span>{translate('portal','rank_stat_mo')}</span>
