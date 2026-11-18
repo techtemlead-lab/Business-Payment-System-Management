@@ -75,7 +75,7 @@ class PlaceBaseLinkTest extends TestCase
             ->assertSessionHasNoErrors();
 
         $this->division->refresh();
-        $this->assertSame('MNHC-102', $this->division->code);
+        $this->assertSame('MNHC102', $this->division->code);
         $this->assertSame('Rangpur', $this->division->name);
         $this->assertSame($this->district->id, $this->division->base_place_id);
     }
@@ -91,11 +91,11 @@ class PlaceBaseLinkTest extends TestCase
 
     public function test_saved_base_that_was_later_turned_off_does_not_block_a_save(): void
     {
-        $this->district->update(['code' => 'MNHC-301', 'is_active' => false]);
+        $this->district->update(['code' => 'MNHC301', 'is_active' => false]);
 
         $this->saveEditForm($this->division, ['code' => '102'])->assertSessionHasNoErrors();
 
-        $this->assertSame('MNHC-102', $this->division->fresh()->code);
+        $this->assertSame('MNHC102', $this->division->fresh()->code);
         $this->assertSame($this->district->id, $this->division->fresh()->base_place_id);
     }
 
@@ -125,15 +125,15 @@ class PlaceBaseLinkTest extends TestCase
 
     public function test_each_other_reason_for_refusing_a_new_base_is_stated(): void
     {
-        $turnedOff = PlaceCode::factory()->district($this->division)->create(['code' => 'MNHC-302', 'name' => 'Kurigram', 'is_active' => false]);
-        $otherDivision = PlaceCode::factory()->division($this->management)->create(['code' => 'MNHC-103', 'name' => 'Sylhet']);
-        $elsewhere = PlaceCode::factory()->district($otherDivision)->create(['code' => 'MNHC-303', 'name' => 'Sunamganj']);
+        $turnedOff = PlaceCode::factory()->district($this->division)->create(['code' => 'MNHC302', 'name' => 'Kurigram', 'is_active' => false]);
+        $otherDivision = PlaceCode::factory()->division($this->management)->create(['code' => 'MNHC103', 'name' => 'Sylhet']);
+        $elsewhere = PlaceCode::factory()->district($otherDivision)->create(['code' => 'MNHC303', 'name' => 'Sunamganj']);
 
         $this->saveEditForm($this->division, ['base_place_id' => $turnedOff->id])
-            ->assertSessionHasErrors(['base_place_id' => 'Kurigram (MNHC-302) is not active. Mark that place Active first, then choose it as the base place.']);
+            ->assertSessionHasErrors(['base_place_id' => 'Kurigram (MNHC302) is not active. Mark that place Active first, then choose it as the base place.']);
 
         $this->saveEditForm($this->division, ['base_place_id' => $elsewhere->id])
-            ->assertSessionHasErrors(['base_place_id' => 'Sunamganj (MNHC-303) is not directly under this place. Choose a place one level below this one.']);
+            ->assertSessionHasErrors(['base_place_id' => 'Sunamganj (MNHC303) is not directly under this place. Choose a place one level below this one.']);
 
         $this->saveEditForm($this->division, ['base_place_id' => $this->upazila->id])
             ->assertSessionHasErrors(['base_place_id' => 'Rangpur Sadar (Upazila) is not directly under this place. Choose a place one level below this one.']);
@@ -153,7 +153,7 @@ class PlaceBaseLinkTest extends TestCase
 
     public function test_taking_away_a_code_still_blanks_the_place(): void
     {
-        $this->division->update(['code' => 'MNHC-102']);
+        $this->division->update(['code' => 'MNHC102']);
 
         $this->saveEditForm($this->division, ['code' => ''])->assertSessionHasNoErrors();
 
@@ -189,14 +189,14 @@ class PlaceBaseLinkTest extends TestCase
 
     public function test_edit_form_lists_a_base_with_a_code_without_any_note(): void
     {
-        $this->district->update(['code' => 'MNHC-301']);
+        $this->district->update(['code' => 'MNHC301']);
 
         $this->actingAs($this->owner)->onPortal('sadmin')->get('/place-codes?level=division')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('data.places.data.0.base_options', [[
                     'id' => $this->district->id,
-                    'code' => 'MNHC-301',
+                    'code' => 'MNHC301',
                     'name' => 'Rangpur Zila',
                     'level' => PlaceCode::LevelDistrict,
                 ]]));
@@ -213,19 +213,19 @@ class PlaceBaseLinkTest extends TestCase
 
         $geography = app(PlaceGeographyResolver::class)->expandFromAnchor($this->division->fresh());
 
-        $this->assertSame('MNHC-102', $geography['codes']['division']);
-        $this->assertSame('MNHC-301', $geography['codes']['district']);
-        $this->assertSame('MNHC-401', $geography['codes']['upazila']);
-        $this->assertSame('MNHC-501', $geography['codes']['union']);
+        $this->assertSame('MNHC102', $geography['codes']['division']);
+        $this->assertSame('MNHC301', $geography['codes']['district']);
+        $this->assertSame('MNHC401', $geography['codes']['upazila']);
+        $this->assertSame('MNHC501', $geography['codes']['union']);
     }
 
     public function test_geography_skips_a_base_place_with_no_code(): void
     {
-        $this->division->update(['code' => 'MNHC-102']);
+        $this->division->update(['code' => 'MNHC102']);
 
         $geography = app(PlaceGeographyResolver::class)->expandFromAnchor($this->division->fresh());
 
-        $this->assertSame('MNHC-102', $geography['codes']['division']);
+        $this->assertSame('MNHC102', $geography['codes']['division']);
         $this->assertSame($this->division->id, $geography['place_ids']['division']);
         foreach (['district', 'upazila', 'union'] as $level) {
             $this->assertNull($geography[$level], $level);
@@ -236,21 +236,21 @@ class PlaceBaseLinkTest extends TestCase
 
     public function test_geography_carries_on_to_a_coded_place_below_one_with_no_code(): void
     {
-        $this->division->update(['code' => 'MNHC-102']);
-        $this->upazila->update(['code' => 'MNHC-401']);
+        $this->division->update(['code' => 'MNHC102']);
+        $this->upazila->update(['code' => 'MNHC401']);
 
         $geography = app(PlaceGeographyResolver::class)->expandFromAnchor($this->division->fresh());
 
         $this->assertNull($geography['place_ids']['district']);
-        $this->assertSame('MNHC-401', $geography['codes']['upazila']);
+        $this->assertSame('MNHC401', $geography['codes']['upazila']);
         $this->assertSame($this->upazila->id, $geography['place_ids']['upazila']);
         $this->assertNull($geography['place_ids']['union']);
     }
 
     public function test_one_buyer_and_many_buyers_get_the_same_geography_past_a_base_with_no_code(): void
     {
-        $this->division->update(['code' => 'MNHC-102']);
-        $this->upazila->update(['code' => 'MNHC-401']);
+        $this->division->update(['code' => 'MNHC102']);
+        $this->upazila->update(['code' => 'MNHC401']);
         $buyer = User::factory()->dealer()->create(['profile' => ['place_code_id' => $this->division->id]]);
         $resolver = app(PlaceGeographyResolver::class);
 

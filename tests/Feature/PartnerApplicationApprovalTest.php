@@ -28,7 +28,7 @@ class PartnerApplicationApprovalTest extends TestCase
         $division = PlaceCode::factory()->division()->create();
         $district = PlaceCode::factory()->district($division)->create();
         $upazila = PlaceCode::factory()->upazila($district)->create();
-        $this->union = PlaceCode::factory()->union($upazila)->create(['code' => 'MNHC-100111']);
+        $this->union = PlaceCode::factory()->union($upazila)->create(['code' => 'MNHC100111']);
     }
 
     /** @param  array<string, string>  $details */
@@ -69,8 +69,8 @@ class PartnerApplicationApprovalTest extends TestCase
             ->assertSessionHas('success', __('portal.flash_application_approved'));
 
         $dealer = User::query()->where('role', 'dealer')->sole();
-        $this->assertSame('MNHC-100111', $dealer->dealer_code);
-        $this->assertSame('MNHC-100111', $dealer->refer_code);
+        $this->assertSame('MNHC100111', $dealer->dealer_code);
+        $this->assertSame('MNHC100111', $dealer->refer_code);
         $this->assertTrue(AreaDealerAssignment::query()
             ->where('user_id', $dealer->id)
             ->where('place_code_id', $this->union->id)
@@ -84,12 +84,12 @@ class PartnerApplicationApprovalTest extends TestCase
         $this->decide($this->apply('sub_dealer'), [])->assertSessionHasNoErrors();
 
         $this->assertSame(
-            ['MNHC-100111-000001', 'MNHC-100111-000002'],
+            ['MNHC100111-000001', 'MNHC100111-000002'],
             User::query()->where('role', 'sub_dealer')->orderBy('id')->pluck('refer_code')->all(),
         );
         $this->assertSame(0, AreaDealerAssignment::query()->count());
         $this->assertSame(
-            'MNHC-100111',
+            'MNHC100111',
             data_get(User::query()->where('role', 'sub_dealer')->first()->profile, 'union_place_code'),
         );
     }
@@ -106,11 +106,11 @@ class PartnerApplicationApprovalTest extends TestCase
 
     public function test_a_reference_code_typed_without_the_prefix_finds_the_dealer(): void
     {
-        $sponsor = User::factory()->dealer()->create(['status' => 'active', 'dealer_code' => 'MNHC-777', 'refer_code' => 'MNHC-777']);
+        $sponsor = User::factory()->dealer()->create(['status' => 'active', 'dealer_code' => 'MNHC777', 'refer_code' => 'MNHC777']);
 
         $this->decide($this->apply('dealer', ['sponsor_code' => '777']), [])->assertSessionHasNoErrors();
 
-        $this->assertSame($sponsor->id, User::query()->where('dealer_code', 'MNHC-100111')->sole()->sponsor_id);
+        $this->assertSame($sponsor->id, User::query()->where('dealer_code', 'MNHC100111')->sole()->sponsor_id);
     }
 
     public function test_the_reviewer_can_clear_a_reference_code_nobody_holds(): void
@@ -120,7 +120,7 @@ class PartnerApplicationApprovalTest extends TestCase
         $this->decide($id, [])->assertSessionHasErrors(['sponsor_code' => __('portal.err_staff_sponsor_code')]);
         $this->decide($id, ['sponsor_code' => null])->assertSessionHasNoErrors();
 
-        $this->assertNull(User::query()->where('dealer_code', 'MNHC-100111')->sole()->sponsor_id);
+        $this->assertNull(User::query()->where('dealer_code', 'MNHC100111')->sole()->sponsor_id);
     }
 
     public function test_a_rejection_says_the_application_was_rejected(): void
@@ -185,7 +185,7 @@ class PartnerApplicationApprovalTest extends TestCase
     {
         $this->decide($this->apply('dealer'), [])->assertSessionHasNoErrors();
 
-        $dealer = User::query()->where('dealer_code', 'MNHC-100111')->sole();
+        $dealer = User::query()->where('dealer_code', 'MNHC100111')->sole();
         $this->assertNull($dealer->phone_share_approved_by);
         $this->assertNull($dealer->phone_share_reason);
     }
@@ -194,7 +194,7 @@ class PartnerApplicationApprovalTest extends TestCase
     {
         $this->decide($this->apply('dealer', ['name' => 'Listed Dealer']), ['directory_visible' => '1'])->assertSessionHasNoErrors();
 
-        $this->assertTrue(User::query()->where('dealer_code', 'MNHC-100111')->sole()->directory_visible);
+        $this->assertTrue(User::query()->where('dealer_code', 'MNHC100111')->sole()->directory_visible);
         $this->onPortal('public')->get('/dealers')->assertOk()->assertSee('Listed Dealer');
     }
 
@@ -202,7 +202,7 @@ class PartnerApplicationApprovalTest extends TestCase
     {
         $this->decide($this->apply('dealer', ['name' => 'Private Dealer']), ['directory_visible' => '0'])->assertSessionHasNoErrors();
 
-        $this->assertFalse(User::query()->where('dealer_code', 'MNHC-100111')->sole()->directory_visible);
+        $this->assertFalse(User::query()->where('dealer_code', 'MNHC100111')->sole()->directory_visible);
         $this->onPortal('public')->get('/dealers')->assertOk()->assertDontSee('Private Dealer');
     }
 
@@ -218,9 +218,9 @@ class PartnerApplicationApprovalTest extends TestCase
 
     public function test_the_review_list_shows_the_reference_code_the_applicant_typed(): void
     {
-        $this->apply('dealer', ['sponsor_code' => 'MNHC-555']);
+        $this->apply('dealer', ['sponsor_code' => 'MNHC555']);
 
         $this->actingAs($this->reviewer)->onPortal('sadmin')->get('/partnerships')
-            ->assertInertia(fn (Assert $page) => $page->where('data.applications.data.0.sponsor_code', 'MNHC-555'));
+            ->assertInertia(fn (Assert $page) => $page->where('data.applications.data.0.sponsor_code', 'MNHC555'));
     }
 }

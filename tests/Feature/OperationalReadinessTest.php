@@ -212,7 +212,7 @@ class OperationalReadinessTest extends TestCase
             'name' => 'Missing Place Partner',
             'profile' => null,
         ]);
-        $dhaka = PlaceCode::findByCode('MNHC-101');
+        $dhaka = PlaceCode::findByCode('MNHC101');
         $this->assertNotNull($dhaka);
         User::factory()->dealer()->create([
             'status' => 'active',
@@ -241,7 +241,7 @@ class OperationalReadinessTest extends TestCase
             'mail.mailers.smtp.host' => 'smtp.sendgrid.net',
         ]);
         $this->seed(BangladeshPlaceCodeSeeder::class);
-        $dhaka = PlaceCode::findByCode('MNHC-101');
+        $dhaka = PlaceCode::findByCode('MNHC101');
         $this->assertNotNull($dhaka);
         $dealer = User::factory()->create([
             'role' => 'dealer',
@@ -361,8 +361,8 @@ class OperationalReadinessTest extends TestCase
             'mail.mailers.smtp.host' => 'smtp.sendgrid.net',
         ]);
         $this->seed(BangladeshPlaceCodeSeeder::class);
-        $dhaka = PlaceCode::findByCode('MNHC-101');
-        $rangpur = PlaceCode::findByCode('MNHC-102');
+        $dhaka = PlaceCode::findByCode('MNHC101');
+        $rangpur = PlaceCode::findByCode('MNHC102');
         $this->assertNotNull($dhaka);
         $this->assertNotNull($rangpur);
         $seated = User::factory()->create([

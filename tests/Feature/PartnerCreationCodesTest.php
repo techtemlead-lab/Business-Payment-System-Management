@@ -14,7 +14,7 @@ use Tests\TestCase;
 
 /**
  * Owners type place and dealer codes by hand, usually as bare digits. The new-partner
- * form and the server must treat "57481252" and "MNHC-57481252" as the same code.
+ * form and the server must treat "57481252" and "MNHC57481252" as the same code.
  */
 class PartnerCreationCodesTest extends TestCase
 {
@@ -38,18 +38,18 @@ class PartnerCreationCodesTest extends TestCase
         $this->submit($this->partnerForm())->assertRedirect('/accounts')->assertSessionHas('success');
 
         $dealer = User::query()->where('email', 'partner@example.com')->firstOrFail();
-        $this->assertSame('MNHC-57481252', $dealer->dealer_code);
-        $this->assertSame('MNHC-57481252', $dealer->refer_code);
+        $this->assertSame('MNHC57481252', $dealer->dealer_code);
+        $this->assertSame('MNHC57481252', $dealer->refer_code);
         $this->assertNull($dealer->sponsor_id);
     }
 
     #[DataProvider('dealerCodeSpellings')]
     public function test_a_sub_dealer_can_name_its_dealer_with_or_without_the_prefix(string $typedReference): void
     {
-        $dealer = $this->activeDealer('MNHC-57481252', 'MNHC-57481252');
+        $dealer = $this->activeDealer('MNHC57481252', 'MNHC57481252');
 
         $this->actingAs($this->owner)->onPortal('sadmin')
-            ->getJson('/commands/identity/refer-preview?reference_code='.$typedReference.'&refer_code=MNHC-100001-000001')
+            ->getJson('/commands/identity/refer-preview?reference_code='.$typedReference.'&refer_code=MNHC100001-000001')
             ->assertOk()
             ->assertJsonPath('data.warnings', [])
             ->assertJsonPath('data.consumers.direct_referral.id', $dealer->id);
@@ -57,9 +57,9 @@ class PartnerCreationCodesTest extends TestCase
         $this->submit($this->partnerForm([
             'role' => 'sub_dealer',
             'place_code' => '100001',
-            'dealer_code' => 'MNHC-100001-000001',
+            'dealer_code' => 'MNHC100001-000001',
             'reference_code' => $typedReference,
-            'refer_code' => 'MNHC-100001-000001',
+            'refer_code' => 'MNHC100001-000001',
             'shop_name' => 'Rafiq Medical Hall',
         ]))->assertRedirect('/sub-dealers')->assertSessionHas('success');
 
@@ -71,15 +71,15 @@ class PartnerCreationCodesTest extends TestCase
     /** @return array<string, array{0: string}> */
     public static function dealerCodeSpellings(): array
     {
-        return ['with the prefix' => ['MNHC-57481252'], 'bare digits' => ['57481252'], 'small letters' => ['mnhc-57481252']];
+        return ['with the prefix' => ['MNHC57481252'], 'bare digits' => ['57481252'], 'small letters' => ['mnhc-57481252']];
     }
 
     public function test_the_preview_accepts_a_dealer_code_when_the_refer_code_is_different(): void
     {
-        $dealer = $this->activeDealer('MNHC-501', 'REF-SPONSOR');
+        $dealer = $this->activeDealer('MNHC501', 'REF-SPONSOR');
 
         $this->actingAs($this->owner)->onPortal('sadmin')
-            ->getJson('/commands/identity/refer-preview?reference_code=MNHC-501&refer_code=MNHC-100001-000001')
+            ->getJson('/commands/identity/refer-preview?reference_code=MNHC501&refer_code=MNHC100001-000001')
             ->assertOk()
             ->assertJsonPath('data.warnings', [])
             ->assertJsonPath('data.consumers.direct_referral.id', $dealer->id);
@@ -88,17 +88,17 @@ class PartnerCreationCodesTest extends TestCase
     public function test_the_preview_still_warns_about_a_reference_nobody_holds(): void
     {
         $this->actingAs($this->owner)->onPortal('sadmin')
-            ->getJson('/commands/identity/refer-preview?reference_code=57481252&refer_code=MNHC-100001-000001')
+            ->getJson('/commands/identity/refer-preview?reference_code=57481252&refer_code=MNHC100001-000001')
             ->assertOk()
             ->assertJsonPath('data.warnings', [__('portal.acct_val_reference_missing')]);
     }
 
     public function test_a_partner_cannot_be_their_own_reference_with_or_without_the_prefix(): void
     {
-        $this->activeDealer('MNHC-57481252', 'MNHC-57481252');
+        $this->activeDealer('MNHC57481252', 'MNHC57481252');
 
         $this->actingAs($this->owner)->onPortal('sadmin')
-            ->getJson('/commands/identity/refer-preview?reference_code=57481252&refer_code=MNHC-57481252')
+            ->getJson('/commands/identity/refer-preview?reference_code=57481252&refer_code=MNHC57481252')
             ->assertOk()
             ->assertJsonPath('data.warnings.0', __('portal.acct_val_reference_same_as_refer'));
 
@@ -111,7 +111,7 @@ class PartnerCreationCodesTest extends TestCase
 
     public function test_a_refer_code_in_use_is_caught_with_or_without_the_prefix(): void
     {
-        $this->activeDealer('MNHC-57481252', 'MNHC-57481252');
+        $this->activeDealer('MNHC57481252', 'MNHC57481252');
 
         $this->actingAs($this->owner)->onPortal('sadmin')
             ->getJson('/commands/identity/refer-preview?reference_code=&refer_code=57481252')
@@ -143,7 +143,7 @@ class PartnerCreationCodesTest extends TestCase
     {
         $this->submit($this->partnerForm())->assertSessionHas('success', __('portal.acct_partner_created_sent', [
             'role' => __('portal.acct_role_dealer'),
-            'code' => 'MNHC-57481252',
+            'code' => 'MNHC57481252',
             'phone' => '01712345678',
             'email' => 'partner@example.com',
         ]));
@@ -155,7 +155,7 @@ class PartnerCreationCodesTest extends TestCase
 
         $this->submit($this->partnerForm())->assertRedirect('/accounts')->assertSessionHas('success', __('portal.acct_partner_created_not_sent', [
             'role' => __('portal.acct_role_dealer'),
-            'code' => 'MNHC-57481252',
+            'code' => 'MNHC57481252',
             'phone' => '01712345678',
             'email' => 'partner@example.com',
         ]));
@@ -195,7 +195,7 @@ class PartnerCreationCodesTest extends TestCase
             'mother_name' => 'Rahima Begum',
             'place_code' => '57481252',
             'dealer_code' => '57481252',
-            'reference_code' => 'MNHC-100',
+            'reference_code' => 'MNHC100',
             'refer_code' => '57481252',
             'phone' => '01712345678',
             'email' => 'partner@example.com',
@@ -208,13 +208,13 @@ class PartnerCreationCodesTest extends TestCase
 
     private function seedPlaces(): void
     {
-        $management = $this->place('management', 'MNHC-100', 'Management', null);
-        $division = $this->place('division', 'MNHC-101', 'Dhaka', $management->id);
-        $district = $this->place('district', 'MNHC-200', 'Dhaka', $division->id);
+        $management = $this->place('management', 'MNHC100', 'Management', null);
+        $division = $this->place('division', 'MNHC101', 'Dhaka', $management->id);
+        $district = $this->place('district', 'MNHC200', 'Dhaka', $division->id);
         $management->forceFill(['base_place_id' => $division->id])->save();
         $division->forceFill(['base_place_id' => $district->id])->save();
-        $this->place('union', 'MNHC-57481252', 'Bilaspur', $this->place('upazila', 'MNHC-1002', 'Dohar', $district->id)->id);
-        $this->place('union', 'MNHC-100001', 'Amta', $this->place('upazila', 'MNHC-1001', 'Dhamrai', $district->id)->id);
+        $this->place('union', 'MNHC57481252', 'Bilaspur', $this->place('upazila', 'MNHC1002', 'Dohar', $district->id)->id);
+        $this->place('union', 'MNHC100001', 'Amta', $this->place('upazila', 'MNHC1001', 'Dhamrai', $district->id)->id);
         DB::table('business_settings')->updateOrInsert(['key' => 'management_referral'], [
             'value' => json_encode(['enabled' => true, 'auto_blank_reference' => true, 'route_referral_slices' => true, 'place_code_id' => $management->id], JSON_THROW_ON_ERROR),
             'version' => 1,

@@ -39,7 +39,7 @@ class OneAccountPerIdentitySwitchTest extends TestCase
             'name_bn' => 'ডিলার',
             'father_name' => 'Father',
             'mother_name' => 'Mother',
-            'place_code' => 'MNHC-102',
+            'place_code' => 'MNHC102',
             'phone' => '01711112222',
             'email' => 'shared-number-dealer@example.com',
             'reason' => 'Switch test',

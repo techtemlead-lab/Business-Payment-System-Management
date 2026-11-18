@@ -35,7 +35,7 @@ class PartnerAccountOnboardingTest extends TestCase
                 ->where('roles', ['dealer'])
                 ->where('default_identity_type', 'birth_certificate')
                 ->has('place_divisions', 8)
-                ->where('place_divisions.0.code', 'MNHC-101'));
+                ->where('place_divisions.0.code', 'MNHC101'));
 
         $this->actingAs($admin)->onPortal('sadmin')->get('/accounts/create?intent=sub_dealer')
             ->assertOk()
@@ -96,7 +96,7 @@ class PartnerAccountOnboardingTest extends TestCase
             'refer_code' => 'REF-SPONSOR',
             'dealer_code' => 'D-SPONSOR',
         ]);
-        $rangpur = PlaceCode::query()->where('code', 'MNHC-102')->firstOrFail();
+        $rangpur = PlaceCode::query()->where('code', 'MNHC102')->firstOrFail();
 
         $this->actingAs($admin)->onPortal('sadmin')->post('/commands/accounts', [
             'role' => 'dealer',
@@ -108,7 +108,7 @@ class PartnerAccountOnboardingTest extends TestCase
             'father_name' => 'Abdur Rahman',
             'mother_name' => 'Rahima Begum',
             'occupation' => 'Pharmacy',
-            'place_code' => 'MNHC-102',
+            'place_code' => 'MNHC102',
             'reference_code' => 'REF-SPONSOR',
             'phone' => '01712345678',
             'email' => 'rafiq-place@example.com',
@@ -117,8 +117,8 @@ class PartnerAccountOnboardingTest extends TestCase
 
         $user = User::query()->where('email', 'rafiq-place@example.com')->firstOrFail();
         $this->assertSame('dealer', $user->role);
-        $this->assertSame('MNHC-102', $user->dealer_code);
-        $this->assertSame('MNHC-102', $user->refer_code);
+        $this->assertSame('MNHC102', $user->dealer_code);
+        $this->assertSame('MNHC102', $user->refer_code);
         $this->assertSame($sponsor->id, $user->sponsor_id);
         $this->assertSame('01712345678', $user->phone);
         $this->assertSame('birth_certificate', $user->profile['identity_type']);
@@ -145,7 +145,7 @@ class PartnerAccountOnboardingTest extends TestCase
             'name_bn' => 'কাস্টম',
             'father_name' => 'Father',
             'mother_name' => 'Mother',
-            'place_code' => 'MNHC-101',
+            'place_code' => 'MNHC101',
             'refer_code' => 'REF-CUSTOM-01',
             'phone' => '01710000999',
             'email' => 'custom-refer@example.com',
@@ -153,18 +153,18 @@ class PartnerAccountOnboardingTest extends TestCase
         ])->assertRedirect('/accounts');
 
         $user = User::query()->where('email', 'custom-refer@example.com')->firstOrFail();
-        $this->assertSame('MNHC-101', $user->dealer_code);
-        $this->assertSame('MNHC-101', $user->refer_code);
+        $this->assertSame('MNHC101', $user->dealer_code);
+        $this->assertSame('MNHC101', $user->refer_code);
     }
 
     public function test_sub_dealer_defaults_refer_code_to_auto_dealer_code(): void
     {
         $admin = User::factory()->create(['role' => 'super_admin']);
         $management = PlaceCode::query()->where('level', PlaceCode::LevelManagement)->first();
-        $division = PlaceCode::query()->where('code', 'MNHC-102')->firstOrFail();
-        $district = PlaceCode::factory()->district($division)->create(['code' => 'MNHC-311', 'name' => 'Refer Dist']);
-        $upazila = PlaceCode::factory()->upazila($district)->create(['code' => 'MNHC-411', 'name' => 'Refer Upazila']);
-        PlaceCode::factory()->union($upazila)->create(['code' => 'MNHC-457490', 'name' => 'Refer Union']);
+        $division = PlaceCode::query()->where('code', 'MNHC102')->firstOrFail();
+        $district = PlaceCode::factory()->district($division)->create(['code' => 'MNHC311', 'name' => 'Refer Dist']);
+        $upazila = PlaceCode::factory()->upazila($district)->create(['code' => 'MNHC411', 'name' => 'Refer Upazila']);
+        PlaceCode::factory()->union($upazila)->create(['code' => 'MNHC457490', 'name' => 'Refer Union']);
         $this->assertNotNull($management);
 
         $this->actingAs($admin)->onPortal('sadmin')->post('/commands/accounts', [
@@ -176,15 +176,15 @@ class PartnerAccountOnboardingTest extends TestCase
             'name_bn' => 'সাব ডিফল্ট',
             'father_name' => 'Father',
             'mother_name' => 'Mother',
-            'place_code' => 'MNHC-457490',
+            'place_code' => 'MNHC457490',
             'phone' => '01819990001',
             'email' => 'sub-default-refer@example.com',
             'reason' => 'Refer code should match auto sub-dealer code',
         ])->assertRedirect('/sub-dealers');
 
         $user = User::query()->where('email', 'sub-default-refer@example.com')->firstOrFail();
-        $this->assertSame('MNHC-457490-000001', $user->dealer_code);
-        $this->assertSame('MNHC-457490-000001', $user->refer_code);
+        $this->assertSame('MNHC457490-000001', $user->dealer_code);
+        $this->assertSame('MNHC457490-000001', $user->refer_code);
     }
 
     public function test_second_dealer_cannot_take_same_area_code(): void
@@ -199,7 +199,7 @@ class PartnerAccountOnboardingTest extends TestCase
             'name_bn' => 'প্রথম',
             'father_name' => 'Father',
             'mother_name' => 'Mother',
-            'place_code' => 'MNHC-101',
+            'place_code' => 'MNHC101',
             'refer_code' => 'REF-FIRST',
             'phone' => '01710000001',
             'email' => 'first@example.com',
@@ -215,7 +215,7 @@ class PartnerAccountOnboardingTest extends TestCase
             'name_bn' => 'দ্বিতীয়',
             'father_name' => 'Father',
             'mother_name' => 'Mother',
-            'place_code' => 'MNHC-101',
+            'place_code' => 'MNHC101',
             'refer_code' => 'REF-SECOND',
             'phone' => '01710000002',
             'email' => 'second@example.com',
@@ -226,11 +226,11 @@ class PartnerAccountOnboardingTest extends TestCase
     public function test_sub_dealer_gets_autogenerated_union_serial_without_seat_limit(): void
     {
         $admin = User::factory()->create(['role' => 'super_admin']);
-        $management = PlaceCode::query()->where('code', 'MNHC-100')->firstOrFail();
-        $division = PlaceCode::query()->where('code', 'MNHC-102')->firstOrFail();
-        $district = PlaceCode::factory()->district($division)->create(['code' => 'MNHC-301', 'name' => 'Rangpur']);
-        $upazila = PlaceCode::factory()->upazila($district)->create(['code' => 'MNHC-401', 'name' => 'Sadar']);
-        $union = PlaceCode::factory()->union($upazila)->create(['code' => 'MNHC-457482', 'name' => 'Rangpur City Corporation']);
+        $management = PlaceCode::query()->where('code', 'MNHC100')->firstOrFail();
+        $division = PlaceCode::query()->where('code', 'MNHC102')->firstOrFail();
+        $district = PlaceCode::factory()->district($division)->create(['code' => 'MNHC301', 'name' => 'Rangpur']);
+        $upazila = PlaceCode::factory()->upazila($district)->create(['code' => 'MNHC401', 'name' => 'Sadar']);
+        $union = PlaceCode::factory()->union($upazila)->create(['code' => 'MNHC457482', 'name' => 'Rangpur City Corporation']);
         $this->assertNotNull($management);
 
         $this->actingAs($admin)->onPortal('sadmin')->post('/commands/accounts', [
@@ -242,7 +242,7 @@ class PartnerAccountOnboardingTest extends TestCase
             'name_bn' => 'সাব এক',
             'father_name' => 'Father',
             'mother_name' => 'Mother',
-            'place_code' => 'MNHC-457482',
+            'place_code' => 'MNHC457482',
             'refer_code' => 'REF-SUB1',
             'phone' => '01810000001',
             'email' => 'sub1@example.com',
@@ -250,7 +250,7 @@ class PartnerAccountOnboardingTest extends TestCase
         ])->assertRedirect('/sub-dealers');
 
         $first = User::query()->where('email', 'sub1@example.com')->firstOrFail();
-        $this->assertSame('MNHC-457482-000001', $first->dealer_code);
+        $this->assertSame('MNHC457482-000001', $first->dealer_code);
 
         $this->actingAs($admin)->onPortal('sadmin')->post('/commands/accounts', [
             'role' => 'sub_dealer',
@@ -261,7 +261,7 @@ class PartnerAccountOnboardingTest extends TestCase
             'name_bn' => 'সাব দুই',
             'father_name' => 'Father',
             'mother_name' => 'Mother',
-            'place_code' => 'MNHC-457482',
+            'place_code' => 'MNHC457482',
             'refer_code' => 'REF-SUB2',
             'phone' => '01810000002',
             'email' => 'sub2@example.com',
@@ -269,7 +269,7 @@ class PartnerAccountOnboardingTest extends TestCase
         ])->assertRedirect('/sub-dealers');
 
         $second = User::query()->where('email', 'sub2@example.com')->firstOrFail();
-        $this->assertSame('MNHC-457482-000002', $second->dealer_code);
+        $this->assertSame('MNHC457482-000002', $second->dealer_code);
         $this->assertSame($union->code, $second->profile['union_place_code']);
     }
 
@@ -304,7 +304,7 @@ class PartnerAccountOnboardingTest extends TestCase
             'name_bn' => 'ক্লোন',
             'father_name' => 'Father',
             'mother_name' => 'Mother',
-            'place_code' => 'MNHC-103',
+            'place_code' => 'MNHC103',
             'dealer_code' => 'REF-TAKEN',
             'phone' => '01910000001',
             'email' => 'clone@example.com',
@@ -315,28 +315,28 @@ class PartnerAccountOnboardingTest extends TestCase
     public function test_place_preview_shows_label_and_commission_path(): void
     {
         $admin = User::factory()->create(['role' => 'super_admin']);
-        $division = PlaceCode::query()->where('code', 'MNHC-102')->firstOrFail();
-        $district = PlaceCode::factory()->district($division)->create(['code' => 'MNHC-301', 'name' => 'Rangpur']);
-        $upazila = PlaceCode::factory()->upazila($district)->create(['code' => 'MNHC-401', 'name' => 'Sadar']);
-        $union = PlaceCode::factory()->union($upazila)->create(['code' => 'MNHC-501', 'name' => 'City Corp']);
+        $division = PlaceCode::query()->where('code', 'MNHC102')->firstOrFail();
+        $district = PlaceCode::factory()->district($division)->create(['code' => 'MNHC301', 'name' => 'Rangpur']);
+        $upazila = PlaceCode::factory()->upazila($district)->create(['code' => 'MNHC401', 'name' => 'Sadar']);
+        $union = PlaceCode::factory()->union($upazila)->create(['code' => 'MNHC501', 'name' => 'City Corp']);
         $division->update(['base_place_id' => $district->id]);
         $district->update(['base_place_id' => $upazila->id]);
         $upazila->update(['base_place_id' => $union->id]);
 
         $this->actingAs($admin)->onPortal('sadmin')->getJson('/commands/identity/place-preview?place_code=102&role=dealer')
             ->assertOk()
-            ->assertJsonPath('data.label', 'MNHC-102-Division-Rangpur')
+            ->assertJsonPath('data.label', 'MNHC102-Division-Rangpur')
             ->assertJsonPath('data.commission_places.0.level', 'management')
-            ->assertJsonPath('data.commission_places.1.code', 'MNHC-102')
-            ->assertJsonPath('data.commission_places.4.code', 'MNHC-501')
+            ->assertJsonPath('data.commission_places.1.code', 'MNHC102')
+            ->assertJsonPath('data.commission_places.4.code', 'MNHC501')
             ->assertJsonPath('data.available', true);
     }
 
     public function test_account_update_rebinds_dealer_place_code_and_moves_area_assignment(): void
     {
         $admin = User::factory()->create(['role' => 'super_admin']);
-        $from = PlaceCode::query()->where('code', 'MNHC-101')->firstOrFail();
-        $to = PlaceCode::query()->where('code', 'MNHC-102')->firstOrFail();
+        $from = PlaceCode::query()->where('code', 'MNHC101')->firstOrFail();
+        $to = PlaceCode::query()->where('code', 'MNHC102')->firstOrFail();
 
         $this->actingAs($admin)->onPortal('sadmin')->post('/commands/accounts', [
             'role' => 'dealer',
@@ -381,8 +381,8 @@ class PartnerAccountOnboardingTest extends TestCase
     public function test_dealer_can_move_back_to_a_place_code_after_leaving_it(): void
     {
         $admin = User::factory()->create(['role' => 'super_admin']);
-        $from = PlaceCode::query()->where('code', 'MNHC-101')->firstOrFail();
-        $to = PlaceCode::query()->where('code', 'MNHC-102')->firstOrFail();
+        $from = PlaceCode::query()->where('code', 'MNHC101')->firstOrFail();
+        $to = PlaceCode::query()->where('code', 'MNHC102')->firstOrFail();
 
         $this->actingAs($admin)->onPortal('sadmin')->post('/commands/accounts', [
             'role' => 'dealer',
@@ -446,7 +446,7 @@ class PartnerAccountOnboardingTest extends TestCase
             'name_bn' => 'অধিকারী',
             'father_name' => 'Father',
             'mother_name' => 'Mother',
-            'place_code' => 'MNHC-101',
+            'place_code' => 'MNHC101',
             'refer_code' => 'REF-SEAT',
             'phone' => '01710000021',
             'email' => 'seat@example.com',
@@ -462,7 +462,7 @@ class PartnerAccountOnboardingTest extends TestCase
             'name_bn' => 'অন্য',
             'father_name' => 'Father',
             'mother_name' => 'Mother',
-            'place_code' => 'MNHC-102',
+            'place_code' => 'MNHC102',
             'refer_code' => 'REF-OTHER',
             'phone' => '01710000022',
             'email' => 'other-seat@example.com',
@@ -472,10 +472,10 @@ class PartnerAccountOnboardingTest extends TestCase
         $other = User::query()->where('email', 'other-seat@example.com')->firstOrFail();
         $this->actingAs($admin)->onPortal('sadmin')->from('/accounts')->patch('/commands/accounts/'.$other->id, [
             'name' => 'Other Dealer',
-            'place_code' => 'MNHC-101',
+            'place_code' => 'MNHC101',
             'reason' => 'Attempt to steal Dhaka seat',
         ])->assertRedirect('/accounts')->assertSessionHasErrors('place_code');
 
-        $this->assertTrue(AreaDealerAssignment::query()->where('user_id', $other->id)->where('place_code_id', PlaceCode::query()->where('code', 'MNHC-102')->value('id'))->where('is_active', true)->exists());
+        $this->assertTrue(AreaDealerAssignment::query()->where('user_id', $other->id)->where('place_code_id', PlaceCode::query()->where('code', 'MNHC102')->value('id'))->where('is_active', true)->exists());
     }
 }

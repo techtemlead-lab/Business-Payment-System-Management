@@ -89,7 +89,7 @@ function PlaceCodeInput({ value, onChange, placeholder }: { value: string; onCha
 
     return (
         <span className="pc-code-prefix">
-            <span>MNHC-</span>
+            <span>MNHC</span>
             <input
                 value={suffix}
                 inputMode="numeric"
@@ -370,7 +370,7 @@ export default function PlaceCodesHub({
                         list_no: ((places.current_page ?? 1) - 1) * (places.per_page ?? places.data.length) + index + 1,
                     }))}
                     columns={[
-                        { key: 'code', title: translate('portal', 'pc_col_code'), render: (r) => <b className="ops-tabular">{displayPlace(r.code) === '—' ? 'MNHC-' : displayPlace(r.code)}</b> },
+                        { key: 'code', title: translate('portal', 'pc_col_code'), render: (r) => <b className="ops-tabular">{displayPlace(r.code) === '—' ? 'MNHC' : displayPlace(r.code)}</b> },
                         { key: 'name', title: translate('portal', 'pc_col_name'), render: (r) => `${r.list_no}. ${displayPlace(r.name)}` },
                         {
                             key: 'parent_name',

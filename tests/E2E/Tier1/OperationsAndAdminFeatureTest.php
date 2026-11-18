@@ -48,7 +48,7 @@ class OperationsAndAdminFeatureTest extends E2ETestCase
             'name_bn' => 'পরীক্ষা ডিলার',
             'father_name' => 'Father',
             'mother_name' => 'Mother',
-            'place_code' => 'MNHC-102',
+            'place_code' => 'MNHC102',
         ];
     }
 
@@ -102,7 +102,7 @@ class OperationsAndAdminFeatureTest extends E2ETestCase
     {
         $admin = $this->createStaff('super_admin');
         $this->seedClassicPlaceCodes();
-        $this->createDealer(['dealer_code' => 'MNHC-102']);
+        $this->createDealer(['dealer_code' => 'MNHC102']);
 
         $response = $this->actingAs($admin)->onPortal('sadmin')->post('/commands/accounts', [
             ...$this->placeOnboarding(),

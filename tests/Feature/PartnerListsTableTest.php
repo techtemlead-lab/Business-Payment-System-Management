@@ -85,12 +85,12 @@ class PartnerListsTableTest extends TestCase
     {
         $owner = User::factory()->staff()->create();
         $sponsor = User::factory()->dealer()->create(['name' => 'Sponsor Dealer', 'dealer_code' => 'SP-1', 'status' => 'active']);
-        $dealer = User::factory()->dealer()->create(['name' => 'Rahim', 'status' => 'active', 'sponsor_id' => $sponsor->id, 'phone' => '01712345678', 'profile' => ['shop_name' => 'Rahim Store', 'place_code' => 'MNHC-200', 'date_of_birth' => '1990-01-01']]);
+        $dealer = User::factory()->dealer()->create(['name' => 'Rahim', 'status' => 'active', 'sponsor_id' => $sponsor->id, 'phone' => '01712345678', 'profile' => ['shop_name' => 'Rahim Store', 'place_code' => 'MNHC200', 'date_of_birth' => '1990-01-01']]);
 
         $row = collect($this->data($owner, '/accounts?q=Rahim')['accounts']['data'])->firstWhere('id', $dealer->id);
 
         $this->assertSame('Rahim Store', $row['profile']['shop_name']);
-        $this->assertSame('MNHC-200', $row['profile']['place_code']);
+        $this->assertSame('MNHC200', $row['profile']['place_code']);
         $this->assertArrayNotHasKey('date_of_birth', $row['profile'], 'Identity details stay out of the page, as before.');
         $this->assertSame('Sponsor Dealer', $row['sponsor']['name']);
         $this->assertSame('01712345678', $row['phone']);
@@ -171,13 +171,13 @@ class PartnerListsTableTest extends TestCase
     public function test_application_rows_keep_every_field_the_review_panel_reads(): void
     {
         $owner = User::factory()->staff()->create();
-        $this->application('Karim Traders', 'public', 'pending', ['division' => 'Dhaka', 'district' => 'Gazipur', 'upazila' => 'Sadar', 'place_code' => 'MNHC-100001', 'sponsor_code' => 'SP-1', 'message' => 'Please check']);
+        $this->application('Karim Traders', 'public', 'pending', ['division' => 'Dhaka', 'district' => 'Gazipur', 'upazila' => 'Sadar', 'place_code' => 'MNHC100001', 'sponsor_code' => 'SP-1', 'message' => 'Please check']);
 
         $row = $this->data($owner, '/partnerships')['applications']['data'][0];
 
         $this->assertSame('Karim Traders', $row['name']);
         $this->assertSame('01712345678', $row['phone']);
-        $this->assertSame('MNHC-100001', $row['place_code']);
+        $this->assertSame('MNHC100001', $row['place_code']);
         $this->assertSame('SP-1', $row['sponsor_code']);
         $this->assertSame('Please check', $row['message']);
         $this->assertSame('public', $row['source']);

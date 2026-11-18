@@ -34,13 +34,13 @@ class ManagementReferralTest extends TestCase
         $this->actingAs($admin)->onPortal('sadmin')->post('/commands/accounts', $this->dealerPayload([
             'email' => 'blank-refer@example.com',
             'phone' => '01712000001',
-            'place_code' => 'MNHC-102',
+            'place_code' => 'MNHC102',
         ]))->assertRedirect('/accounts');
 
         $user = User::query()->where('email', 'blank-refer@example.com')->firstOrFail();
         $this->assertNull($user->sponsor_id);
         $this->assertSame('management', $user->profile['referred_by'] ?? null);
-        $this->assertSame('MNHC-100', $user->profile['management_refer_code'] ?? null);
+        $this->assertSame('MNHC100', $user->profile['management_refer_code'] ?? null);
     }
 
     public function test_management_code_refers_sub_dealer(): void
@@ -61,7 +61,7 @@ class ManagementReferralTest extends TestCase
         $this->assertSame('sub_dealer', $user->role);
         $this->assertNull($user->sponsor_id);
         $this->assertSame('management', $user->profile['referred_by'] ?? null);
-        $this->assertSame('MNHC-100', $user->profile['management_refer_code'] ?? null);
+        $this->assertSame('MNHC100', $user->profile['management_refer_code'] ?? null);
     }
 
     public function test_unknown_reference_is_rejected(): void
@@ -71,7 +71,7 @@ class ManagementReferralTest extends TestCase
         $this->actingAs($admin)->onPortal('sadmin')->from('/accounts/create')->post('/commands/accounts', $this->dealerPayload([
             'email' => 'missing-refer@example.com',
             'phone' => '01712000003',
-            'place_code' => 'MNHC-103',
+            'place_code' => 'MNHC103',
             'reference_code' => 'NO-SUCH-CODE',
         ]))->assertRedirect('/accounts/create')->assertSessionHasErrors('reference_code');
 
@@ -85,8 +85,8 @@ class ManagementReferralTest extends TestCase
         $this->actingAs($admin)->onPortal('sadmin')->from('/accounts/create')->post('/commands/accounts', $this->dealerPayload([
             'email' => 'copied-mgmt@example.com',
             'phone' => '01712000004',
-            'place_code' => 'MNHC-104',
-            'dealer_code' => 'MNHC-100',
+            'place_code' => 'MNHC104',
+            'dealer_code' => 'MNHC100',
         ]))->assertRedirect('/accounts/create')->assertSessionHasErrors('dealer_code');
     }
 
@@ -94,7 +94,7 @@ class ManagementReferralTest extends TestCase
     {
         $owner = User::factory()->create(['role' => 'super_admin']);
         $editor = User::factory()->staff('editor')->create();
-        $management = PlaceCode::query()->where('code', 'MNHC-100')->firstOrFail();
+        $management = PlaceCode::query()->where('code', 'MNHC100')->firstOrFail();
 
         $this->post('/commands/place-codes/management-referral', [
             'enabled' => 1,
@@ -131,14 +131,14 @@ class ManagementReferralTest extends TestCase
             'version' => 1,
         ])->assertOk()
             ->assertJsonPath('data.route_referral_slices', false)
-            ->assertJsonPath('data.place_code', 'MNHC-100');
+            ->assertJsonPath('data.place_code', 'MNHC100');
     }
 
     public function test_stale_or_non_management_place_is_rejected(): void
     {
         $owner = User::factory()->create(['role' => 'super_admin']);
-        $management = PlaceCode::query()->where('code', 'MNHC-100')->firstOrFail();
-        $division = PlaceCode::query()->where('code', 'MNHC-101')->firstOrFail();
+        $management = PlaceCode::query()->where('code', 'MNHC100')->firstOrFail();
+        $division = PlaceCode::query()->where('code', 'MNHC101')->firstOrFail();
         $payload = [
             'enabled' => 1,
             'auto_blank_reference' => 1,
@@ -172,7 +172,7 @@ class ManagementReferralTest extends TestCase
         $this->actingAs($owner)->onPortal('sadmin')->get('/place-codes?level=management')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('data.management_referral.place_code', 'MNHC-100')
+                ->where('data.management_referral.place_code', 'MNHC100')
                 ->where('data.management_referral.enabled', true)
                 ->where('data.management_referral.can_manage', true)
                 ->where('data.management_referral.fund', ManagementReferral::FundRetainedBy));
@@ -180,7 +180,7 @@ class ManagementReferralTest extends TestCase
         $this->actingAs($owner)->onPortal('sadmin')->get('/accounts/create')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('management_referral.place_code', 'MNHC-100')
+                ->where('management_referral.place_code', 'MNHC100')
                 ->where('management_referral.auto_blank_reference', true));
     }
 
@@ -192,11 +192,11 @@ class ManagementReferralTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.warnings', [])
             ->assertJsonPath('data.consumers.direct_referral.fund', 'management')
-            ->assertJsonPath('data.consumers.direct_referral.refer_code', 'MNHC-100')
+            ->assertJsonPath('data.consumers.direct_referral.refer_code', 'MNHC100')
             ->assertJsonPath('data.consumers.d2d_gen2.fund', 'management')
             ->assertJsonPath('data.consumers.d2d_gen3.fund', 'management');
 
-        $this->actingAs($admin)->onPortal('sadmin')->getJson('/commands/identity/refer-preview?reference_code=MNHC-100')
+        $this->actingAs($admin)->onPortal('sadmin')->getJson('/commands/identity/refer-preview?reference_code=MNHC100')
             ->assertOk()
             ->assertJsonPath('data.warnings', [])
             ->assertJsonPath('data.consumers.management_fund', true);
@@ -214,7 +214,7 @@ class ManagementReferralTest extends TestCase
         $this->actingAs($admin)->onPortal('sadmin')->post('/commands/accounts', $this->dealerPayload([
             'email' => 'fund-buyer@example.com',
             'phone' => '01712000011',
-            'place_code' => 'MNHC-105',
+            'place_code' => 'MNHC105',
         ]))->assertRedirect('/accounts');
         $buyer = User::query()->where('email', 'fund-buyer@example.com')->firstOrFail();
         $order = $this->deliveredOrder($buyer);
@@ -277,7 +277,7 @@ class ManagementReferralTest extends TestCase
         $this->seed(CommissionRuleSeeder::class);
         $this->enableFinancialPosting();
         $owner = User::factory()->create(['role' => 'super_admin']);
-        $management = PlaceCode::query()->where('code', 'MNHC-100')->firstOrFail();
+        $management = PlaceCode::query()->where('code', 'MNHC100')->firstOrFail();
         $this->actingAs($owner)->onPortal('sadmin')->post('/commands/place-codes/management-referral', [
             'enabled' => 1,
             'auto_blank_reference' => 1,
@@ -309,13 +309,13 @@ class ManagementReferralTest extends TestCase
         $this->actingAs($admin)->onPortal('sadmin')->post('/commands/accounts', $this->dealerPayload([
             'email' => 'switch-refer@example.com',
             'phone' => '01712000021',
-            'place_code' => 'MNHC-106',
+            'place_code' => 'MNHC106',
         ]))->assertRedirect('/accounts');
         $this->actingAs($admin)->onPortal('sadmin')->post('/commands/accounts', $this->dealerPayload([
             'email' => 'personal-sponsor@example.com',
             'phone' => '01712000022',
-            'place_code' => 'MNHC-107',
-            'reference_code' => 'MNHC-106',
+            'place_code' => 'MNHC107',
+            'reference_code' => 'MNHC106',
         ]))->assertRedirect('/accounts');
 
         $managed = User::query()->where('email', 'switch-refer@example.com')->firstOrFail();
@@ -360,10 +360,10 @@ class ManagementReferralTest extends TestCase
 
     private function unionCode(): string
     {
-        $division = PlaceCode::query()->where('code', 'MNHC-102')->firstOrFail();
-        $district = PlaceCode::factory()->district($division)->create(['code' => 'MNHC-351', 'name' => 'Fund District']);
-        $upazila = PlaceCode::factory()->upazila($district)->create(['code' => 'MNHC-451', 'name' => 'Fund Upazila']);
-        $union = PlaceCode::factory()->union($upazila)->create(['code' => 'MNHC-551', 'name' => 'Fund Union']);
+        $division = PlaceCode::query()->where('code', 'MNHC102')->firstOrFail();
+        $district = PlaceCode::factory()->district($division)->create(['code' => 'MNHC351', 'name' => 'Fund District']);
+        $upazila = PlaceCode::factory()->upazila($district)->create(['code' => 'MNHC451', 'name' => 'Fund Upazila']);
+        $union = PlaceCode::factory()->union($upazila)->create(['code' => 'MNHC551', 'name' => 'Fund Union']);
 
         return (string) $union->code;
     }

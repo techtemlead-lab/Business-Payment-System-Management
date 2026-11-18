@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\RateLimiter;
@@ -59,12 +58,17 @@ class PhoneLoginTest extends TestCase
         }
     }
 
-    public function test_normalized_phone_uniqueness_blocks_ambiguous_accounts_and_email_still_works(): void
+    /**
+     * One number for one account is an owner switch (off by default, see
+     * OneAccountPerIdentitySwitchTest): the database no longer refuses a second account on the
+     * same number, the application does while the switch is on.
+     */
+    public function test_the_database_no_longer_refuses_a_second_account_on_the_same_normalized_number(): void
     {
-        $u = User::factory()->create(['role' => 'dealer', 'phone' => '01000000003', 'email' => 'phone-fallback@example.test', 'password' => 'SyntheticPassword123']);
-
-        $this->expectException(UniqueConstraintViolationException::class);
+        User::factory()->create(['role' => 'dealer', 'phone' => '01000000003', 'email' => 'phone-fallback@example.test', 'password' => 'SyntheticPassword123']);
         User::factory()->create(['role' => 'dealer', 'phone' => '+8801000000003']);
+
+        $this->assertSame(2, User::query()->where('role', 'dealer')->whereIn('phone', ['01000000003', '+8801000000003'])->count());
     }
 
     public function test_invalid_phone_is_rejected_and_email_still_works(): void

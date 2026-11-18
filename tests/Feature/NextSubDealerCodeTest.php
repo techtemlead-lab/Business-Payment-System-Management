@@ -17,17 +17,17 @@ class NextSubDealerCodeTest extends TestCase
 
     public function test_a_code_in_another_shape_does_not_restart_the_serial(): void
     {
-        User::factory()->subDealer()->create(['dealer_code' => 'MNHC-100001-000001']);
-        User::factory()->subDealer()->create(['dealer_code' => 'MNHC-100001-OLD7']);
+        User::factory()->subDealer()->create(['dealer_code' => 'MNHC100001-000001']);
+        User::factory()->subDealer()->create(['dealer_code' => 'MNHC100001-OLD7']);
 
-        $this->assertSame('MNHC-100001-000002', app(PartnerAccountProvisioning::class)->nextSubDealerCode('MNHC-100001'));
+        $this->assertSame('MNHC100001-000002', app(PartnerAccountProvisioning::class)->nextSubDealerCode('MNHC100001'));
     }
 
     public function test_the_serial_continues_from_the_highest_regular_code(): void
     {
-        User::factory()->subDealer()->create(['dealer_code' => 'MNHC-100001-000009']);
-        User::factory()->subDealer()->create(['dealer_code' => 'MNHC-100001-000010']);
+        User::factory()->subDealer()->create(['dealer_code' => 'MNHC100001-000009']);
+        User::factory()->subDealer()->create(['dealer_code' => 'MNHC100001-000010']);
 
-        $this->assertSame('MNHC-100001-000011', app(PartnerAccountProvisioning::class)->nextSubDealerCode('MNHC-100001'));
+        $this->assertSame('MNHC100001-000011', app(PartnerAccountProvisioning::class)->nextSubDealerCode('MNHC100001'));
     }
 }

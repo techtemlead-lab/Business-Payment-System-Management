@@ -16,7 +16,7 @@ class PlaceCatalogRestorerTest extends TestCase
     {
         $kept = PlaceCode::query()->create([
             'level' => PlaceCode::LevelDistrict,
-            'code' => 'MNHC-202',
+            'code' => 'MNHC202',
             'name' => 'Gazipur',
             'parent_id' => null,
             'sort_order' => 2,
@@ -31,7 +31,7 @@ class PlaceCatalogRestorerTest extends TestCase
         $division = PlaceCode::query()->findOrFail($kept->parent_id);
         $management = PlaceCode::query()->findOrFail($division->parent_id);
         $dhaka = PlaceCode::query()->where('level', PlaceCode::LevelDistrict)->where('name', 'Dhaka')->firstOrFail();
-        $this->assertSame('MNHC-202', $kept->code);
+        $this->assertSame('MNHC202', $kept->code);
         $this->assertSame($kept->id, $branch->fresh()->place_code_id);
         $this->assertSame(PlaceCode::LevelDivision, $division->level);
         $this->assertSame('Dhaka', $division->name);

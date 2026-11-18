@@ -21,7 +21,7 @@ const SKIP = 'input, textarea, option:not([value]), code, pre, kbd, samp, script
 
 /**
  * Shows the numbers in one piece of text in Bangla digits. A number written against Latin
- * letters is part of a code or a stored name ("MNHC-100", "Ajmer Lobon 30 Tablets"), so it is
+ * letters is part of a code or a stored name ("MNHC100", "Ajmer Lobon 30 Tablets"), so it is
  * left alone. English text is untouched.
  */
 function shapeWords(text: string): string {

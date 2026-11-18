@@ -24,8 +24,8 @@ class PartnerDashboardHomeTest extends TestCase
             'status' => 'active',
             'phone' => '01712345678',
             'email' => 'dealer.home@example.test',
-            'dealer_code' => 'MNHC-101',
-            'profile' => ['place_code' => 'MNHC-101', 'area_code' => 'MNHC-101'],
+            'dealer_code' => 'MNHC101',
+            'profile' => ['place_code' => 'MNHC101', 'area_code' => 'MNHC101'],
         ]);
         ReferralTreePath::attachUser($dealer->id, null);
 
@@ -38,7 +38,7 @@ class PartnerDashboardHomeTest extends TestCase
                 ->has('data.partner_home.profile')
                 ->where('data.partner_home.profile.name', $dealer->name)
                 ->where('data.partner_home.profile.phone', '01712345678')
-                ->where('data.partner_home.profile.area_code', 'MNHC-101')
+                ->where('data.partner_home.profile.area_code', 'MNHC101')
                 ->has('data.partner_home.snapshot')
                 ->missing('data.partner_home.chart')
                 ->where('data.partner_home.wallet.available', '0.00')
@@ -57,7 +57,7 @@ class PartnerDashboardHomeTest extends TestCase
             'phone' => '01812345678',
             'profile' => [
                 'shop_name' => 'Green Care Pharmacy',
-                'place_code' => 'MNHC-501-000001',
+                'place_code' => 'MNHC501-000001',
             ],
         ]);
         ReferralTreePath::attachUser($sub->id, null);
@@ -65,7 +65,7 @@ class PartnerDashboardHomeTest extends TestCase
         $home = app(PartnerDashboardHome::class)->for($sub);
 
         $this->assertSame('Green Care Pharmacy', $home['profile']['shop_name']);
-        $this->assertSame('MNHC-501-000001', $home['profile']['area_code']);
+        $this->assertSame('MNHC501-000001', $home['profile']['area_code']);
         $this->assertSame(['sub_dealer_salary', 'tour_fund', 'bike_incentive'], array_column($home['targets'], 'key'));
     }
 

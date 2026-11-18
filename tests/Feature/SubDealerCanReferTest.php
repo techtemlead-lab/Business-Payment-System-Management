@@ -44,8 +44,8 @@ class SubDealerCanReferTest extends TestCase
         $this->owner = User::factory()->staff()->create();
         $this->subDealer = User::factory()->subDealer()->create([
             'status' => 'active',
-            'dealer_code' => 'MNHC-100001-000009',
-            'refer_code' => 'MNHC-100001-000009',
+            'dealer_code' => 'MNHC100001-000009',
+            'refer_code' => 'MNHC100001-000009',
         ]);
         ReferralTreePath::attachUser($this->subDealer->id, null);
     }
@@ -54,7 +54,7 @@ class SubDealerCanReferTest extends TestCase
     {
         $partners = app(PartnerAccountProvisioning::class);
 
-        $this->assertSame($this->subDealer->id, $partners->findSponsor('MNHC-100001-000009')?->id);
+        $this->assertSame($this->subDealer->id, $partners->findSponsor('MNHC100001-000009')?->id);
         $this->assertSame($this->subDealer->id, $partners->findSponsor('100001-000009')?->id);
     }
 
@@ -62,12 +62,12 @@ class SubDealerCanReferTest extends TestCase
     {
         $this->subDealer->forceFill(['status' => 'suspended'])->save();
 
-        $this->assertNull(app(PartnerAccountProvisioning::class)->findSponsor('MNHC-100001-000009'));
+        $this->assertNull(app(PartnerAccountProvisioning::class)->findSponsor('MNHC100001-000009'));
     }
 
     public function test_an_application_with_a_sub_dealers_code_is_approved_under_them(): void
     {
-        app(StaffOperations::class)->review($this->owner, $this->application(), 'approved', 'Checked the application', 'MNHC-102');
+        app(StaffOperations::class)->review($this->owner, $this->application(), 'approved', 'Checked the application', 'MNHC102');
 
         $applicant = User::query()->where('email', 'applicant@example.test')->firstOrFail();
         $this->assertSame($this->subDealer->id, $applicant->sponsor_id);
@@ -85,8 +85,8 @@ class SubDealerCanReferTest extends TestCase
             'name_bn' => 'নতুন ডিলার',
             'father_name' => 'Father',
             'mother_name' => 'Mother',
-            'place_code' => 'MNHC-102',
-            'reference_code' => 'MNHC-100001-000009',
+            'place_code' => 'MNHC102',
+            'reference_code' => 'MNHC100001-000009',
             'phone' => '01710000031',
             'email' => 'new-dealer@example.test',
             'reason' => 'Referred by a sub-dealer',
@@ -115,7 +115,7 @@ class SubDealerCanReferTest extends TestCase
         Storage::fake('local');
         $imports = app(OpeningBalanceImport::class);
         $id = $imports->preview($this->owner, 'partners', $this->workbook([
-            ['D-101', 'Imported dealer', 'imported@example.test', '01700000001', 'dealer', 'MNHC-100001-000009', 'MNHC-102'],
+            ['D-101', 'Imported dealer', 'imported@example.test', '01700000001', 'dealer', 'MNHC100001-000009', 'MNHC102'],
         ]), 'Approved partner register');
         $this->assertDatabaseHas('data_import_batches', ['id' => $id, 'status' => 'preview']);
 
@@ -188,7 +188,7 @@ class SubDealerCanReferTest extends TestCase
                 'role' => 'dealer',
                 'division' => 'Dhaka',
                 'district' => 'Dhaka',
-                'sponsor_code' => 'MNHC-100001-000009',
+                'sponsor_code' => 'MNHC100001-000009',
             ], JSON_THROW_ON_ERROR),
             'status' => 'pending',
             'source' => 'public',

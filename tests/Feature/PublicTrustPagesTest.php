@@ -76,7 +76,7 @@ class PublicTrustPagesTest extends TestCase
 
     public function test_verify_page_shows_only_the_allowed_facts_for_a_valid_dealer(): void
     {
-        $place = PlaceCode::factory()->create(['code' => 'MNHC-7701', 'name' => 'Pirganj']);
+        $place = PlaceCode::factory()->create(['code' => 'MNHC7701', 'name' => 'Pirganj']);
         $dealer = $this->dealerAt($place, ['name' => 'Rahim Traders', 'dealer_code' => 'MD-1001', 'email' => 'rahim@example.test']);
 
         $response = $this->publicGet('/verify-dealer?code='.strtolower((string) $dealer->dealer_code));
@@ -85,7 +85,7 @@ class PublicTrustPagesTest extends TestCase
             ->assertSee(__('public_trust.verify_valid'))
             ->assertSee('Rahim Traders')
             ->assertSee(__('public_trust.verify_type_dealer'))
-            ->assertSee('Pirganj (MNHC-7701)')
+            ->assertSee('Pirganj (MNHC7701)')
             ->assertSee(__('public_trust.verify_status_active'))
             ->assertDontSee('01712345678')
             ->assertDontSee('rahim@example.test')

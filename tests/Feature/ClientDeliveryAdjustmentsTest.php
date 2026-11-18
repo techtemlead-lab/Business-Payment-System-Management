@@ -15,14 +15,14 @@ class ClientDeliveryAdjustmentsTest extends TestCase
 
     public function test_place_codes_normalize_to_mnhc_brand_prefix(): void
     {
-        $this->assertSame('MNHC-100', PlaceCode::normalizeCode('100'));
-        $this->assertSame('MNHC-100', PlaceCode::normalizeCode('mnhc-100'));
-        $this->assertSame('MNHC-501-000001', PlaceCode::brandSerial('501-000001'));
+        $this->assertSame('MNHC100', PlaceCode::normalizeCode('100'));
+        $this->assertSame('MNHC100', PlaceCode::normalizeCode('mnhc-100'));
+        $this->assertSame('MNHC501-000001', PlaceCode::brandSerial('501-000001'));
 
         $management = PlaceCode::factory()->management('100')->create();
-        $this->assertSame('MNHC-100', $management->code);
+        $this->assertSame('MNHC100', $management->code);
         $this->assertSame($management->id, PlaceCode::findByCode('100')?->id);
-        $this->assertSame($management->id, PlaceCode::findByCode('MNHC-100')?->id);
+        $this->assertSame($management->id, PlaceCode::findByCode('MNHC100')?->id);
     }
 
     public function test_place_preview_includes_management_share_and_area_pool_rates(): void
@@ -40,14 +40,14 @@ class ClientDeliveryAdjustmentsTest extends TestCase
         $this->actingAs($admin)->onPortal('sadmin')
             ->getJson('/commands/identity/place-preview?place_code=102&role=dealer')
             ->assertOk()
-            ->assertJsonPath('data.label', 'MNHC-102-Division-Rangpur')
+            ->assertJsonPath('data.label', 'MNHC102-Division-Rangpur')
             ->assertJsonPath('data.area_pool_rate', '10.00')
             ->assertJsonPath('data.management_rate', '2.00')
             ->assertJsonPath('data.commission_places.0.level', 'management')
-            ->assertJsonPath('data.commission_places.0.code', 'MNHC-100')
+            ->assertJsonPath('data.commission_places.0.code', 'MNHC100')
             ->assertJsonPath('data.commission_places.0.rate', '2.00')
-            ->assertJsonPath('data.commission_places.1.code', 'MNHC-102')
-            ->assertJsonPath('data.commission_places.4.code', 'MNHC-501');
+            ->assertJsonPath('data.commission_places.1.code', 'MNHC102')
+            ->assertJsonPath('data.commission_places.4.code', 'MNHC501');
     }
 
     public function test_mo_target_default_is_two_point_five_lakh(): void
@@ -85,6 +85,6 @@ class ClientDeliveryAdjustmentsTest extends TestCase
 
         $this->assertSame('Madina Care Corner', $created['user']->profile['shop_name'] ?? null);
         $this->assertSame('Madina Care Corner', $created['user']->profile['pharmacy'] ?? null);
-        $this->assertStringStartsWith('MNHC-401-', (string) $created['user']->dealer_code);
+        $this->assertStringStartsWith('MNHC401-', (string) $created['user']->dealer_code);
     }
 }
