@@ -259,6 +259,21 @@ class PurchasingFlowTest extends TestCase
         $this->assertDatabaseHas('audit_events', ['action' => 'purchase_order.sent', 'subject' => (string) $order->id]);
     }
 
+    public function test_an_order_may_list_a_draft_product_but_not_an_archived_one(): void
+    {
+        $supplier = Supplier::factory()->create(['created_by' => $this->storekeeper->id]);
+        $draft = Product::factory()->create(['active' => false, 'archived_at' => null]);
+        $archived = Product::factory()->create(['active' => false, 'archived_at' => now()]);
+
+        $this->actingAs($this->storekeeper)->onPortal('manage')->get('/purchasing')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('data.purchasing.products', fn ($products) => collect($products)->pluck('id')->contains($draft->id) && ! collect($products)->pluck('id')->contains($archived->id)));
+        $this->post('/commands/purchasing/orders', ['supplier_id' => $supplier->id, 'branch_id' => $this->branch->id, 'lines' => [['product_id' => $archived->id, 'quantity' => 3]]])
+            ->assertSessionHasErrors('lines.0.product_id');
+        $this->post('/commands/purchasing/orders', ['supplier_id' => $supplier->id, 'branch_id' => $this->branch->id, 'lines' => [['product_id' => $draft->id, 'quantity' => 3]]])
+            ->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('purchase_orders', 1);
+    }
+
     public function test_an_order_cannot_list_the_same_product_twice(): void
     {
         $supplier = Supplier::factory()->create(['created_by' => $this->storekeeper->id]);

@@ -166,12 +166,12 @@ final class StockCountService
      * A second person signs off, or the owner signs off a count they took part in. Each
      * variance is posted as a stock adjustment; if any one cannot be posted, nothing is.
      */
-    public function approve(User $actor, StockCountSession $session, ?string $note = null): StockCountSession
+    public function approve(User $actor, StockCountSession $session, ?string $note = null, bool $movedChecked = false): StockCountSession
     {
         $this->assertMay($actor, 'approve');
         $branch = $this->branches->resolveWritableBranch($actor, (int) $session->branch_id);
 
-        return DB::transaction(function () use ($actor, $session, $note, $branch): StockCountSession {
+        return DB::transaction(function () use ($actor, $session, $note, $branch, $movedChecked): StockCountSession {
             $locked = $this->lockSession($session);
             if ($locked->status === StockCountSession::StatusApproved) {
                 return $locked;
@@ -188,6 +188,11 @@ final class StockCountService
                 ->lockForUpdate()
                 ->get();
             $selfApproved = $this->assertMayDecide($actor, $locked, $lines);
+            // Stock that moved after a line was counted is left alone, but the approver must have looked (F-verify-07).
+            $moved = $this->approvalCheck($locked)['totals']['moved_lines'];
+            if ($moved > 0 && ! $movedChecked) {
+                throw ValidationException::withMessages(['moved' => __('stock_screens.count_err_moved', ['count' => $moved])]);
+            }
 
             $posted = [];
             foreach ($lines as $line) {
@@ -225,6 +230,33 @@ final class StockCountService
 
             return $locked;
         });
+    }
+
+    /**
+     * What approving would do, for the confirm step: each counted line's stock now beside the
+     * figure it was counted against, lines whose stock moved since, and the totals.
+     *
+     * @return array{lines: array<int, array{now: int, moved: bool}>, totals: array{lines_changing: int, units_added: int, units_removed: int, moved_lines: int}}
+     */
+    public function approvalCheck(StockCountSession $session): array
+    {
+        $counted = StockCountLine::query()->where('stock_count_session_id', $session->id)->whereNotNull('counted_quantity')->get();
+        $now = DB::table('branch_product_stocks')->where('branch_id', $session->branch_id)
+            ->whereIn('product_id', $counted->pluck('product_id'))->pluck('quantity', 'product_id');
+        $lines = [];
+        $totals = ['lines_changing' => 0, 'units_added' => 0, 'units_removed' => 0, 'moved_lines' => 0];
+        foreach ($counted as $line) {
+            $current = (int) ($now[$line->product_id] ?? 0);
+            $moved = $current !== (int) $line->expected_quantity;
+            $lines[(int) $line->id] = ['now' => $current, 'moved' => $moved];
+            $variance = (int) $line->variance();
+            $totals['lines_changing'] += $variance !== 0 ? 1 : 0;
+            $totals['units_added'] += max(0, $variance);
+            $totals['units_removed'] += max(0, -$variance);
+            $totals['moved_lines'] += $moved ? 1 : 0;
+        }
+
+        return ['lines' => $lines, 'totals' => $totals];
     }
 
     public function reject(User $actor, StockCountSession $session, string $note): StockCountSession

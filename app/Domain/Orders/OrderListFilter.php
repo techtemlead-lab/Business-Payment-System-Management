@@ -87,7 +87,7 @@ final class OrderListFilter
         } elseif ($section === 'deliveries') {
             // "Sent" is every order with all its goods out, so asking for it must not need goods left to send.
             $query->whereIn('status', self::AwaitingDispatch)
-                ->when($chosenStatus !== 'dispatched', fn (Builder $orders) => $orders->whereHas('lines', fn (Builder $lines) => $lines->whereColumn('dispatched', '<', 'quantity')));
+                ->when($chosenStatus !== 'dispatched', fn (Builder $orders) => $orders->whereHas('lines', fn (Builder $lines) => $lines->whereRaw(OrderLines::unsentSql())));
         }
 
         return $query;

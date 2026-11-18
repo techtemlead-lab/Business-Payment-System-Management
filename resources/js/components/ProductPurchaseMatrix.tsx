@@ -1,16 +1,17 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { useForm, usePage, Link } from '@inertiajs/react';
+import { router, useForm, usePage, Link } from '@inertiajs/react';
 import {
     Trash2, ShoppingBag, ArrowRight, CheckCircle2, RotateCcw,
     AlertCircle, Sparkles, Package, Info, Search, X
 } from 'lucide-react';
-import { money, type Row, Table, number, FormErrors } from './UI';
+import { money, type Row, Table, number, FormErrors, Modal } from './UI';
 import { useT } from '../shared/i18n/t';
 import { useReasonField } from '../shared/reasonFields';
 import { randomUuid } from '../shared/randomUuid';
 import RepeatOrderPanel, { repeatChangeNotes, type RepeatOption } from './dealertools/RepeatOrderPanel';
 import SchemeNotices, { type RunningScheme } from './dealertools/SchemeNotices';
 import { choiceName, oneCardPerGroup, sizesByGroup, type SizeCard } from '../shared/productSizes';
+import { amountInWords } from '../shared/orderAmountWords';
 import { cardStock, filterChoices, partnerPrice, priceRange, searchProducts, stockKnown, stockState } from '../shared/orderSearch';
 
 interface Props {
@@ -31,6 +32,9 @@ interface Props {
 
 /** The most the server accepts on one order line. */
 const MAX_ORDER_QUANTITY = 10000;
+
+/** From this total (taka) the confirm step adds a plain "check the amount" reminder. */
+const BIG_ORDER_TAKA = 1000000;
 
 /** Most products listed under the search box at once. */
 const RESULT_LIMIT = 30;
@@ -67,6 +71,13 @@ export default function ProductPurchaseMatrix({
     const translate = useT();
     const { url, props: pageProps } = usePage<any>();
     const payOptions: PayOptions = pageProps.data?.pay_options ?? { account_available: '0', account_usable: false, account_block: 'off' };
+    const page = (key: string, replace?: Record<string, string | number>) => translate('purchase_page', key, replace);
+    // Units free to promise now (stock minus what approved orders already hold), by product id; a warning only, never a block.
+    const availableMap: Record<string, number> = pageProps.data?.available_now ?? {};
+    const availableOf = (product: Row | null | undefined): number | null => {
+        const known = product ? availableMap[String(product.id)] : undefined;
+        return known === undefined || known === null ? null : Number(known);
+    };
     // Opened from "order with this money" on the withdraw form: /purchase?pay=account&budget=5000
     const openedWithAccount = useMemo(() => new URLSearchParams(url.split('?')[1] ?? '').get('pay') === 'account', [url]);
     const budget = useMemo(() => {
@@ -136,11 +147,13 @@ export default function ProductPurchaseMatrix({
         }, 0);
     };
 
-    // Opened with ?product_id=: that product is ready for quantity.
+    // Opened with ?product_id=: that product is ready for quantity. Once only: a refresh of the figures must not pick it again.
+    const initialApplied = useRef(false);
     useEffect(() => {
-        if (!initialProductId) return;
+        if (!initialProductId || initialApplied.current) return;
         const found = products.find(p => String(p.id) === String(initialProductId));
         if (found) {
+            initialApplied.current = true;
             const card = oneCardPerGroup([found], sizeGroups)[0];
             setPickedKey(card.key);
             setActiveId(found.id);
@@ -228,6 +241,10 @@ export default function ProductPurchaseMatrix({
     const unitSavings = hasDiscount ? mrp - unitPrice : 0;
     const discountPct = hasDiscount ? Math.round((unitSavings / mrp) * 100) : 0;
     const currentLineTotal = unitPrice * (Math.max(1, Number(quantity) || 1));
+    // Back-order warning for the picked product: what is already in the cart plus what is typed, against what is free now.
+    const activeAvailable = availableOf(activeProduct);
+    const activeWanted = (cart.find(item => item.product.id === activeProduct?.id)?.quantity ?? 0) + Math.max(1, Number(quantity) || 1);
+    const activeOver = activeAvailable === null ? 0 : Math.max(0, activeWanted - activeAvailable);
 
     // Cart totals
     const cartSummary = useMemo(() => {
@@ -304,9 +321,23 @@ export default function ProductPurchaseMatrix({
         return retryKey.current.key;
     };
 
-    const submitOrder = (e: React.FormEvent) => {
+    // The confirm step: refresh the account figure first, so the split shown is the one the server will use.
+    const [confirm, setConfirm] = useState<null | { before: number; status: 'checking' | 'ready' | 'failed' }>(null);
+    const askToConfirm = (e: React.FormEvent) => {
         e.preventDefault();
         if (cart.length === 0) return;
+        setConfirm({ before: accountBalance, status: 'checking' });
+        let refreshed = false;
+        router.reload({
+            only: ['data'],
+            onSuccess: () => { refreshed = true; },
+            onFinish: () => setConfirm(current => current ? { ...current, status: refreshed ? 'ready' : 'failed' } : current),
+        });
+    };
+
+    const sendOrder = () => {
+        if (cart.length === 0) return;
+        setConfirm(null);
 
         const order = {
             items: cart.map(item => ({
@@ -434,6 +465,11 @@ export default function ProductPurchaseMatrix({
                                 setSearchQuery(e.target.value);
                                 setListOpen(true);
                                 setHighlight(0);
+                                // Typing searches every product: a chip clicked earlier must not narrow it without being seen.
+                                if (e.target.value.trim() !== '' && filterCategory !== '') {
+                                    setFilterCategory('');
+                                    setFilterSub('');
+                                }
                             }}
                             onKeyDown={onSearchKeyDown}
                         />
@@ -595,6 +631,11 @@ export default function ProductPurchaseMatrix({
                         {stockState(activeProduct) !== 'in' && (
                             <p className="field-hint is-warn" role="status">{translate('order_search', `blocked_${stockState(activeProduct)}`)}</p>
                         )}
+                        {activeOver > 0 && activeAvailable !== null && (
+                            <p className="field-hint is-warn" role="status" data-testid="back-order-warning">
+                                {page('over_warning', { qty: number(activeWanted), available: number(activeAvailable), extra: number(activeOver) })}
+                            </p>
+                        )}
                         <div className="ops-row is-wrap is-tight">
                             <span className="ops-meta ops-semibold">{translate('portal', 'b2b_quick_qty')}:</span>
                             {[5, 10, 20, 50, 100].map(chip => (
@@ -627,6 +668,11 @@ export default function ProductPurchaseMatrix({
                                         {translate('portal', 'product_code_value', { sku: String(activeProduct.sku) })} · {activeProduct.category}{activeProduct.sub_category ? ` / ${activeProduct.sub_category}` : ''}
                                     </span>
                                 </div>
+                                {activeAvailable !== null && (
+                                    <span className={`hub-pill ${activeAvailable > 0 ? 'tone-ok' : 'tone-danger'}`} data-testid="available-now">
+                                        {activeAvailable > 0 ? page('available_now', { qty: number(activeAvailable) }) : page('available_none')}
+                                    </span>
+                                )}
                                 {stockKnown(activeProduct) && (
                                     <span className={`hub-pill ${stockState(activeProduct) === 'in' ? 'tone-ok' : 'tone-danger'}`}>
                                         {stockState(activeProduct) === 'in'
@@ -731,6 +777,11 @@ export default function ProductPurchaseMatrix({
                                                     <span>{p.category}{p.sub_category ? ` · ${p.sub_category}` : ''}</span>
                                                     <span className="ppm-line-unit">({p.unit || translate('portal', 'ppm_box_unit')})</span>
                                                 </div>
+                                                {(() => {
+                                                    const free = availableOf(p);
+                                                    const extra = free === null ? 0 : Math.max(0, item.quantity - free);
+                                                    return extra > 0 ? <div className="field-hint is-warn" role="status">{page('over_line', { extra: number(extra) })}</div> : null;
+                                                })()}
                                             </td>
                                             <td className="ppm-mrp ops-right" data-label={translate('portal', 'b2b_col_mrp')}>
                                                 {money(itemMrp)}
@@ -833,7 +884,7 @@ export default function ProductPurchaseMatrix({
                         </div>
 
                         {/* Payment & Submission */}
-                        <form onSubmit={submitOrder} className="action-form">
+                        <form onSubmit={askToConfirm} className="action-form">
                             <h4 className="ppm-pay-title">
                                 {translate('portal', 'ppm_confirm_title')}
                             </h4>
@@ -1024,6 +1075,70 @@ export default function ProductPurchaseMatrix({
                     </div>
                 )}
             </section>
+
+            {confirm && (() => {
+                const checking = confirm.status === 'checking';
+                const failed = confirm.status === 'failed';
+                const backOrders = cart
+                    .map(item => ({ item, free: availableOf(item.product) }))
+                    .filter((entry): entry is { item: CartItem; free: number } => entry.free !== null && entry.item.quantity > entry.free);
+                const balanceMoved = paisa(confirm.before) !== paisa(accountBalance);
+                const methodLabel = translate('portal', `pay_channel_${f.data.channel.toLowerCase()}`);
+                const sendBlocked = checking || failed || (paysFromAccount && accountIsShort);
+                return (
+                    <Modal
+                        title={page('confirm_title')}
+                        onClose={() => setConfirm(null)}
+                        footer={(
+                            <>
+                                <button type="button" className="button" onClick={() => setConfirm(null)}>{page('confirm_back')}</button>
+                                <button type="button" className="button dark" data-testid="confirm-send" disabled={sendBlocked || f.processing} onClick={sendOrder}>
+                                    {page('confirm_send')} <ArrowRight size={17} />
+                                </button>
+                            </>
+                        )}
+                    >
+                        <div className="ppm-confirm" data-testid="order-confirm">
+                            {checking && <p role="status">{page('confirm_checking')}</p>}
+                            {failed && <p className="field-error" role="alert">{page('confirm_refresh_failed')}</p>}
+                            <div className="ppm-summary">
+                                <div className="ppm-sum-net">
+                                    <small className="ppm-sum-label is-ok ops-bold">{page('confirm_total_label')}</small>
+                                    <strong className="ppm-sum-value is-net" data-testid="confirm-total">{money(cartSummary.totalPayable)}</strong>
+                                    <span className="ops-semibold" data-testid="confirm-words">{page('confirm_in_words')}: {amountInWords(cartSummary.totalPayable)}</span>
+                                </div>
+                                <div>
+                                    <small className="ppm-sum-label">{page('confirm_items', { items: String(cartSummary.itemsCount), qty: String(cartSummary.totalQty) })}</small>
+                                    <strong className="ppm-sum-value">{page('confirm_method')}: {methodLabel}</strong>
+                                </div>
+                            </div>
+                            {cartSummary.totalPayable >= BIG_ORDER_TAKA && <p className="notice warning" role="note" data-testid="confirm-big-note">{page('confirm_big_note')}</p>}
+                            {!checking && !failed && (paysFromAccount || splitOn) && (
+                                <div data-testid="confirm-account">
+                                    <p>{page('confirm_account_balance', { balance: money(accountBalance) })}</p>
+                                    {balanceMoved && <p className="field-hint is-warn" role="status">{page('confirm_account_changed', { before: money(confirm.before), now: money(accountBalance) })}</p>}
+                                    {splitOn && <p>{page('confirm_account_split', { balance: money(accountBalance), rest: money(splitRest) })}</p>}
+                                    {paysFromAccount && !accountIsShort && <p>{page('confirm_account_full', { amount: money(cartSummary.totalPayable), after: money(Math.max(0, accountAfter)) })}</p>}
+                                    {paysFromAccount && accountIsShort && <p className="field-error" role="alert">{page('confirm_account_short')}</p>}
+                                </div>
+                            )}
+                            {!checking && !failed && backOrders.length > 0 && (
+                                <div className="notice warning" role="status" data-testid="confirm-back-orders">
+                                    <p><b>{page('over_confirm_title')}</b></p>
+                                    <ul>
+                                        {backOrders.map(({ item, free }) => (
+                                            <li key={item.product.id}>
+                                                {page('over_confirm_row', { name: String(item.product.name), qty: number(item.quantity), available: number(free), extra: number(item.quantity - free) })}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    <p>{page('over_confirm_hint')}</p>
+                                </div>
+                            )}
+                        </div>
+                    </Modal>
+                );
+            })()}
         </div>
     );
 }

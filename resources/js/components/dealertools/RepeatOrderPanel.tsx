@@ -15,11 +15,17 @@ export interface RepeatOption {
     order_id: string;
     number: string;
     ordered_on: string;
+    /** What the order cost then, and the names of the products on it. */
+    total?: string;
+    names?: string[];
     items: RepeatItem[];
     skipped: { name: string; reason: string }[];
 }
 
 /** Past orders the partner can put back in the cart with one tap, at today's prices. */
+/** Most product names written on a card; the rest become "n more". */
+const NAMES_SHOWN = 2;
+
 export default function RepeatOrderPanel({ orders, onFill }: { orders: RepeatOption[]; onFill: (option: RepeatOption) => void }) {
     const translate = useT();
     if (orders.length === 0) {
@@ -35,6 +41,13 @@ export default function RepeatOrderPanel({ orders, onFill }: { orders: RepeatOpt
                         <span>{translate('dealer_tools', index === 0 ? 'repeat_last' : 'repeat_past')} · {date(option.ordered_on)}</span>
                         <strong>{option.number}</strong>
                         <small>{translate('dealer_tools', 'repeat_items', { count: number(option.items.length) })}</small>
+                        {(option.names?.length ?? 0) > 0 && (
+                            <small data-testid="repeat-products">
+                                {option.names!.slice(0, NAMES_SHOWN).join(', ')}
+                                {option.names!.length > NAMES_SHOWN && ` ${translate('purchase_page', 'reorder_more', { count: number(option.names!.length - NAMES_SHOWN) })}`}
+                            </small>
+                        )}
+                        {option.total !== undefined && <small data-testid="repeat-total"><b>{translate('purchase_page', 'reorder_total', { amount: money(option.total) })}</b></small>}
                         {option.items.some(item => item.quantity > 0)
                             ? <button type="button" className="button small dark" onClick={() => onFill(option)}><RotateCcw size={15} /> {translate('dealer_tools', 'repeat_fill')}</button>
                             : <small>{translate('dealer_tools', 'repeat_nothing')}</small>}

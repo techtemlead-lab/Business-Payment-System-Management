@@ -12,6 +12,8 @@ use App\Jobs\ApplyDataImport;
 use App\Models\AreaDealerAssignment;
 use App\Models\Order;
 use App\Models\PlaceCode;
+use App\Models\ProductCategory;
+use App\Models\ProductSubcategory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -89,6 +91,26 @@ class DataImportTest extends TestCase
         app(OpeningBalanceImport::class)->apply($admin, $id, 'Checked prices and opening inventory');
         $this->assertDatabaseHas('products', ['sku' => 'OLD-101', 'stock' => 8, 'active' => false]);
         $this->assertDatabaseHas('stock_movements', ['kind' => 'opening_import', 'quantity' => 8, 'actor_id' => $admin->id]);
+    }
+
+    public function test_imported_category_text_is_linked_to_the_shops_own_categories_by_name(): void
+    {
+        Storage::fake('local');
+        $admin = User::factory()->staff()->create();
+        $category = ProductCategory::factory()->create(['name' => 'Herbal Care']);
+        $subcategory = ProductSubcategory::factory()->create(['product_category_id' => $category->id, 'name' => 'Joint Pain']);
+        $before = ProductCategory::query()->count();
+        $id = app(OpeningBalanceImport::class)->preview($admin, 'products', $this->workbook('products', [
+            ['LINK-1', 'By category', '  herbal   CARE ', 'pack', '200', '100', '120', '60', '0', '10'],
+            ['LINK-2', 'By sub-category', 'joint pain', 'pack', '200', '100', '120', '60', '0', '10'],
+            ['LINK-3', 'Unknown', 'Mystery Group', 'pack', '200', '100', '120', '60', '0', '10'],
+        ]), 'Approved product register');
+        app(OpeningBalanceImport::class)->apply($admin, $id, 'Checked prices and opening inventory');
+
+        $this->assertDatabaseHas('products', ['sku' => 'LINK-1', 'category' => 'Herbal Care', 'product_subcategory_id' => null]);
+        $this->assertDatabaseHas('products', ['sku' => 'LINK-2', 'category' => 'Herbal Care', 'sub_category' => 'Joint Pain', 'product_subcategory_id' => $subcategory->id]);
+        $this->assertDatabaseHas('products', ['sku' => 'LINK-3', 'category' => 'Mystery Group', 'product_subcategory_id' => null]);
+        $this->assertSame($before, ProductCategory::query()->count(), 'The import creates no category by itself.');
     }
 
     public function test_imported_stock_is_on_a_branch_at_once(): void

@@ -25,8 +25,14 @@ class DecideOrderRequest extends FormRequest
         return $result;
     }
 
+    /**
+     * A plain approve needs no typed reason (OS-08): the payment and stock checks are the record.
+     * Holding or rejecting still follows the owner's reason setting.
+     *
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
-        return ['status' => 'required|in:approved,held,rejected', 'reason' => ReasonFields::rule('order.decision', 1000), 'referral_replacement_1' => 'nullable|integer|exists:users,id', 'referral_replacement_2' => 'nullable|integer|exists:users,id', 'referral_replacement_3' => 'nullable|integer|exists:users,id'];
+        return ['status' => 'required|in:approved,held,rejected', 'reason' => $this->input('status') === 'approved' ? ['nullable', 'string', 'max:1000'] : ReasonFields::rule('order.decision', 1000), 'referral_replacement_1' => 'nullable|integer|exists:users,id', 'referral_replacement_2' => 'nullable|integer|exists:users,id', 'referral_replacement_3' => 'nullable|integer|exists:users,id'];
     }
 }

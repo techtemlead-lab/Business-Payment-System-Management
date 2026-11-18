@@ -89,6 +89,8 @@ interface StepDescriptor {
     statusBadge: string;
     state: StepState;
     timestamp?: string;
+    /** What the date means, so it matches the history below (OS-09). */
+    timeLabel?: 'sent' | 'verified';
     description?: string;
     icon: React.ReactNode;
 }
@@ -255,7 +257,9 @@ export default function TransactionProgressStepper({
             title: t('stage_payment', 'Payment Verification'),
             statusBadge: stage3Badge,
             state: stage3State,
-            timestamp: latestClaim?.created_at,
+            // A checked payment shows the day it was checked, as the history does; otherwise the day it was sent.
+            timestamp: hasVerifiedClaim ? (eventTimes['payment.verified'] || eventTimes['payment.account_paid'] || latestClaim?.created_at) : latestClaim?.created_at,
+            timeLabel: hasVerifiedClaim ? 'verified' : 'sent',
             description: stage3Desc,
             icon: stage3Icon,
         };
@@ -606,7 +610,7 @@ export default function TransactionProgressStepper({
                         {step.description && <p className="step-desc">{step.description}</p>}
                         {step.timestamp && (
                             <div className="step-time">
-                                <span>{date(step.timestamp)}</span>
+                                <span>{step.timeLabel ? translate('orders_stock', `step_date_${step.timeLabel}`, { date: date(step.timestamp) }) : date(step.timestamp)}</span>
                             </div>
                         )}
                     </article>

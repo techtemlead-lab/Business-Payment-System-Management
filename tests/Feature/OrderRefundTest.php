@@ -46,7 +46,8 @@ class OrderRefundTest extends TestCase
     public function test_owner_can_refund_a_paid_order_that_was_not_sent_and_it_is_recorded_and_audited(): void
     {
         $order = $this->paidOrder();
-        $owner = User::factory()->staff('md')->create(['name' => 'Managing Director']);
+        // Only the owner's own account carries a refund out alone (MA-16).
+        $owner = User::factory()->staff('super_admin')->create(['name' => 'Managing Director']);
 
         $this->actingAs($owner)->onPortal('sadmin')->post('/commands/orders/'.$order->id.'/refund', $this->payload('100.00', 'Stock ran out'))
             ->assertRedirect()->assertSessionHasNoErrors();
@@ -61,22 +62,29 @@ class OrderRefundTest extends TestCase
         $this->actingAs($owner)->onPortal('sadmin')->get('/orders/'.$order->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('OrderDetail')
             ->where('canRefund', false)
+            ->where('returns.refunds.0.amount', '100.00')
             ->where('refund.amount', '100.00')
             ->where('refund.reason', 'Stock ran out')
             ->where('refund.refunded_by', 'Managing Director'));
     }
 
-    public function test_finance_staff_can_refund_part_of_the_payment_and_sees_the_refund_action(): void
+    public function test_finance_staff_refund_waits_for_a_second_person_before_money_moves(): void
     {
         $order = $this->paidOrder();
         $finance = User::factory()->staff('finance')->create();
+        $second = User::factory()->staff('finance')->create();
 
         $this->actingAs($finance)->onPortal('manage')->get('/orders/'.$order->id)->assertOk()
             ->assertInertia(fn (Assert $page) => $page->where('canRefund', true)->where('refund', null));
         $this->actingAs($finance)->onPortal('manage')->post('/commands/orders/'.$order->id.'/refund', $this->payload('40.00', 'Dealer asked to change the order'))
             ->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('order_refunds', 0);
+        $request = (int) DB::table('order_return_requests')->where('order_id', $order->id)->value('id');
 
-        $this->assertDatabaseHas('order_refunds', ['order_id' => $order->id, 'amount' => '40.00', 'refunded_by' => $finance->id]);
+        $this->actingAs($second)->onPortal('manage')->post('/commands/order-returns/'.$request.'/confirm', ['reason' => 'Checked the bank slip', 'confirmed' => '1'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('order_refunds', ['order_id' => $order->id, 'amount' => '40.00', 'refunded_by' => $finance->id, 'approved_by' => $second->id]);
     }
 
     public function test_only_paid_orders_that_were_not_sent_or_delivered_can_be_refunded(): void
@@ -93,16 +101,18 @@ class OrderRefundTest extends TestCase
         $paid = $this->paidOrder();
 
         $this->actingAs($finance)->onPortal('manage');
-        $this->post('/commands/orders/'.$unpaid->id.'/refund', $this->payload('100.00'))->assertSessionHasErrors('refund');
+        $this->post('/commands/orders/'.$unpaid->id.'/refund', $this->payload('100.00'))->assertSessionHasErrors('refund_amount');
+        // Goods that were sent and not brought back are the partner's: no money goes back for them here.
         foreach ([$dispatched, $delivered, $rejected] as $order) {
-            $this->post('/commands/orders/'.$order->id.'/refund', $this->payload())->assertSessionHasErrors('refund');
+            $this->post('/commands/orders/'.$order->id.'/refund', $this->payload())->assertSessionHasErrors();
         }
-        $this->post('/commands/orders/'.$paid->id.'/refund', $this->payload('100.01'))->assertSessionHasErrors('amount');
+        $this->post('/commands/orders/'.$paid->id.'/refund', $this->payload('100.01'))->assertSessionHasErrors('refund_amount');
         $this->post('/commands/orders/'.$paid->id.'/refund', $this->payload('0'))->assertSessionHasErrors('amount');
         $this->reasonFields(['order.refund' => 'required']);
         $this->post('/commands/orders/'.$paid->id.'/refund', ['amount' => '50.00', 'reason' => ''])->assertSessionHasErrors('reason');
 
         $this->assertDatabaseCount('order_refunds', 0);
+        $this->assertDatabaseCount('order_return_requests', 0);
         $this->assertSame('delivered', $delivered->fresh()->status);
     }
 
@@ -111,8 +121,13 @@ class OrderRefundTest extends TestCase
         $order = $this->paidOrder();
         $finance = User::factory()->staff('finance')->create();
 
+        $owner = User::factory()->staff('super_admin')->create();
+
         $this->actingAs($finance)->onPortal('manage')->post('/commands/orders/'.$order->id.'/refund', $this->payload())->assertSessionHasNoErrors();
-        $this->actingAs($finance)->onPortal('manage')->post('/commands/orders/'.$order->id.'/refund', $this->payload())->assertSessionHasErrors('refund');
+        $this->actingAs($finance)->onPortal('manage')->post('/commands/orders/'.$order->id.'/refund', $this->payload())->assertSessionHasErrors('request');
+        $request = (int) DB::table('order_return_requests')->where('order_id', $order->id)->value('id');
+        $this->actingAs($owner)->onPortal('sadmin')->post('/commands/order-returns/'.$request.'/confirm', ['reason' => 'Confirmed', 'confirmed' => '1'])->assertSessionHasNoErrors();
+        $this->actingAs($owner)->onPortal('sadmin')->post('/commands/orders/'.$order->id.'/refund', $this->payload())->assertSessionHasErrors('refund_amount');
 
         $this->assertDatabaseCount('order_refunds', 1);
         $this->assertSame(1, DB::table('audit_events')->where('action', 'order.refunded')->count());
@@ -121,15 +136,15 @@ class OrderRefundTest extends TestCase
     public function test_a_refund_with_no_reason_is_saved_blank_and_the_dealer_is_told_none_was_written(): void
     {
         $order = $this->paidOrder();
-        $finance = User::factory()->staff('finance')->create();
+        $finance = User::factory()->staff('super_admin')->create();
         $this->reasonFields(['order.refund' => 'optional']);
 
-        $this->actingAs($finance)->onPortal('manage')->post('/commands/orders/'.$order->id.'/refund', ['amount' => '100.00'])->assertSessionHasNoErrors();
+        $this->actingAs($finance)->onPortal('sadmin')->post('/commands/orders/'.$order->id.'/refund', ['amount' => '100.00'])->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('order_refunds', ['order_id' => $order->id, 'reason' => '']);
         $this->assertSame('cancelled', $order->fresh()->status);
         $locale = User::find($order->user_id)->preferredLocale();
-        $body = DB::table('account_notices')->where('user_id', $order->user_id)->where('title', __('portal.notice_order_refunded_title', [], $locale))->value('body');
+        $body = DB::table('account_notices')->where('user_id', $order->user_id)->where('title', __('orders_stock.notice_done_title', ['number' => $order->number], $locale))->value('body');
         $this->assertStringContainsString(__('reason_fields.not_written', [], $locale), (string) $body);
     }
 
@@ -141,13 +156,13 @@ class OrderRefundTest extends TestCase
         app(CommissionService::class)->processOrder($order->fresh());
         $order->update(['status' => 'approved']);
         $this->assertDatabaseHas('wallets', ['user_id' => $order->user_id, 'available' => '5.00']);
-        $owner = User::factory()->staff('chairman')->create();
+        $owner = User::factory()->staff('super_admin')->create();
 
         $this->actingAs($owner)->onPortal('sadmin')->post('/commands/orders/'.$order->id.'/refund', $this->payload('100.00', 'Goods damaged in store'))
             ->assertSessionHasNoErrors();
 
-        $refundId = DB::table('order_refunds')->where('order_id', $order->id)->value('id');
-        $this->assertDatabaseHas('commission_refunds', ['order_id' => $order->id, 'reference' => 'order-refund:'.$refundId, 'amount' => '100.00']);
+        $requestId = DB::table('order_refunds')->where('order_id', $order->id)->value('request_id');
+        $this->assertDatabaseHas('commission_refunds', ['order_id' => $order->id, 'reference' => 'order-return:'.$requestId, 'amount' => '100.00']);
         $this->assertDatabaseHas('commission_batches', ['order_id' => $order->id, 'refunded_amount' => '100.00']);
         $this->assertSame(0, DB::table('commission_allocations')->where('order_id', $order->id)->whereNotNull('user_id')->where('amount', '>', 0)->count());
         $this->assertDatabaseHas('wallets', ['user_id' => $order->user_id, 'available' => '0.00']);
@@ -159,6 +174,8 @@ class OrderRefundTest extends TestCase
         $order = $this->paidOrder();
         $finance = User::factory()->staff('finance')->create(['name' => 'Finance Officer']);
         $this->actingAs($finance)->onPortal('manage')->post('/commands/orders/'.$order->id.'/refund', $this->payload('75.50', 'Duplicate order'))->assertSessionHasNoErrors();
+        $request = (int) DB::table('order_return_requests')->where('order_id', $order->id)->value('id');
+        $this->actingAs(User::factory()->staff('finance')->create())->onPortal('manage')->post('/commands/order-returns/'.$request.'/confirm', ['reason' => 'Second check', 'confirmed' => '1'])->assertSessionHasNoErrors();
         $today = now('Asia/Dhaka')->toDateString();
 
         $response = $this->actingAs($finance)->onPortal('manage')->get('/commands/operations/reports?type=order-refunds&format=xlsx&from='.$today.'&to='.$today)->assertOk();

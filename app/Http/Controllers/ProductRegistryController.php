@@ -175,6 +175,44 @@ class ProductRegistryController extends Controller
     }
 
     /**
+     * Puts the chosen draft products on sale in one go, for products that arrived from an import.
+     * A draft with no usable price or unit is left as it is, because dealers could not order it.
+     */
+    public function bulkPublish(Request $r): RedirectResponse
+    {
+        abort_unless($r->user()->allows('catalog'), 403);
+        $data = $r->validate([
+            'product_ids' => ['required', 'array', 'min:1', 'max:500'],
+            'product_ids.*' => ['integer', 'distinct'],
+        ]);
+        [$published, $skipped] = DB::transaction(function () use ($r, $data): array {
+            $drafts = Product::query()->whereIn('id', $data['product_ids'])->where('active', false)->whereNull('archived_at')->orderBy('id')->lockForUpdate()->get();
+            $published = [];
+            $skipped = 0;
+            foreach ($drafts as $draft) {
+                $mrp = (float) $draft->mrp;
+                $dealer = (float) $draft->dealer_price;
+                if ($mrp <= 0 || $dealer <= 0 || $dealer > $mrp || trim((string) $draft->unit) === '' || trim((string) $draft->name) === '') {
+                    $skipped++;
+
+                    continue;
+                }
+                $draft->update(['active' => true, 'registry_version' => $draft->registry_version + 1]);
+                $published[] = $draft->id;
+            }
+            if ($published !== []) {
+                Audit::record($r->user()->id, 'product.bulk_published', 'catalog', ['product_ids' => $published]);
+            }
+
+            return [count($published), $skipped];
+        }, 3);
+        SiteCustomization::forgetCache();
+
+        return back()->with('success', __('stock_screens.import_publish_done', ['count' => $published])
+            .($skipped > 0 ? ' '.__('stock_screens.import_publish_skipped', ['count' => $skipped]) : ''));
+    }
+
+    /**
      * Saves the home page list: the products named here, in this order, and no others.
      */
     public function featuredOrder(Request $r): RedirectResponse
@@ -254,7 +292,7 @@ class ProductRegistryController extends Controller
             'expires_on' => $catalog && Schema::hasColumn('products', 'expires_on') ? 'sometimes|nullable|date' : 'prohibited',
             'batch_number' => $catalog ? 'sometimes|nullable|string|max:60' : 'prohibited',
             'redirect_to' => 'nullable|string|max:50',
-            'initial_stock' => $inventory ? 'nullable|integer|min:0|max:100000' : 'nullable|integer|in:0'];
+            'initial_stock' => $inventory ? 'nullable|integer|min:0|max:'.BranchOperations::MaxUnitsPerEntry : 'nullable|integer|in:0'];
         $rules += ProductFacts::validationRules($catalog);
         $d = $r->validate($rules);
         $d['reason'] = ReasonFields::text($d['reason'] ?? null);

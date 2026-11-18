@@ -53,6 +53,8 @@ final class AccountingStatements
         'opening_collection_clearing' => self::Asset,
         'manual_payout_clearing' => self::Asset,
         'wallet_order_clearing' => self::Asset,
+        // Cash paid for an order that was refunded into the partner's account instead of by hand.
+        'order_refund_account_clearing' => self::Asset,
         'opening_receivables' => self::Asset,
         'commission_clawback_receivable' => self::Asset,
         'company_reserve_clawback_receivable' => self::Asset,

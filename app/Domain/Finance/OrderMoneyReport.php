@@ -36,7 +36,7 @@ final class OrderMoneyReport
     public function table(Request $request, ?BranchScope $scope): array
     {
         $paid = self::paidSql();
-        $orders = DB::table('orders as o')->join('users as u', 'u.id', '=', 'o.user_id')->leftJoin('order_refunds as f', 'f.order_id', '=', 'o.id')
+        $orders = DB::table('orders as o')->join('users as u', 'u.id', '=', 'o.user_id')->leftJoinSub(self::refundTotals(), 'f', 'f.order_id', '=', 'o.id')
             ->whereRaw(DeliveredMoney::countedSql('o'))->where('o.is_opening_balance', false)->where('o.paid', '>', 0)
             ->selectRaw('o.id::text AS id, o.number, o.created_at, '.self::listStatusSql().' AS status, u.name AS partner_name, u.dealer_code AS partner_code, u.role AS partner_role, '.self::mrpSql()." AS mrp_total, {$paid} AS paid, (SELECT r.channel FROM receipts r WHERE r.order_id = o.id ORDER BY r.amount DESC, r.id LIMIT 1) AS method");
         $scope?->restrictOrders($orders, 'o.fulfillment_branch_id');
@@ -94,6 +94,15 @@ final class OrderMoneyReport
         return 'CASE WHEN '.self::partOnlySql().' THEN LEAST('.self::deliveredPartSql('l.unit_price').", {$cash}) ELSE {$cash} END";
     }
 
+    /**
+     * Refunds added up per order, with the same column names as one order_refunds row. An order
+     * can be refunded more than once (a cancel, then a return), so readers join this, never the table.
+     */
+    public static function refundTotals(): Builder
+    {
+        return DB::table('order_refunds')->groupBy('order_id')->selectRaw('order_id, SUM(amount) AS amount, SUM(to_account) AS to_account');
+    }
+
     /** How much of a refund went back to the partner's own account, on alias `f`. */
     public static function refundToAccountSql(): string
     {
@@ -118,7 +127,7 @@ final class OrderMoneyReport
     /** Orders that count as delivered goods, on aliases `o` and `f`. */
     public static function deliveredOrders(): Builder
     {
-        return DB::table('orders as o')->leftJoin('order_refunds as f', 'f.order_id', '=', 'o.id')
+        return DB::table('orders as o')->leftJoinSub(self::refundTotals(), 'f', 'f.order_id', '=', 'o.id')
             ->whereRaw(DeliveredMoney::countedSql('o'))->where('o.is_opening_balance', false);
     }
 
@@ -126,7 +135,7 @@ final class OrderMoneyReport
     public function detail(Order $order, bool $showOwnerFunds): array
     {
         $batch = DB::table('commission_batches')->where('order_id', $order->id)->first();
-        $figures = DB::table('orders as o')->leftJoin('order_refunds as f', 'f.order_id', '=', 'o.id')->where('o.id', $order->id)
+        $figures = DB::table('orders as o')->leftJoinSub(self::refundTotals(), 'f', 'f.order_id', '=', 'o.id')->where('o.id', $order->id)
             ->selectRaw(self::mrpSql().' AS mrp_total, '.self::paidSql().' AS paid, '.self::deliveredPartSql('l.unit_price').' AS delivered_cash')->first();
         $rows = DB::table('commission_allocations as funds')->where('funds.order_id', $order->id)
             ->where('funds.category', '!=', 'company_commission_benefits_fund')

@@ -83,12 +83,12 @@ function NewOrderForm({ data, onDone }: { data: PurchasingData; onDone: () => vo
                             value={line.product_id}
                             onChange={(value) => setLine(index, 'product_id', value)}
                             emptyLabel={translate('portal', 'select_placeholder')}
-                            options={data.products.map((product) => ({ value: String(product.id), label: `${product.sku} · ${product.name}` }))}
+                            options={data.products.map((product) => ({ value: String(product.id), label: `${product.sku} · ${product.name}${product.active ? "" : ` (${translate("stock_screens", "draft_tag")})`}` }))}
                         />
                     </label>
                     <label style={{ flex: '0 1 8rem' }}>
                         {text('quantity')}
-                        <input type="number" min={1} max={100000} required value={line.quantity} onChange={(event) => setLine(index, 'quantity', event.target.value)} />
+                        <input type="number" min={1} max={1000000} required value={line.quantity} onChange={(event) => setLine(index, 'quantity', event.target.value)} />
                     </label>
                     {form.data.lines.length > 1 && (
                         <button
