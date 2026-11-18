@@ -2,6 +2,7 @@
 
 namespace App\Domain\Orders;
 
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\DatedScheme;
 use App\Models\Product;
 use App\Models\User;
@@ -23,9 +24,10 @@ final class DatedSchemes
     /** What the offer is. Once an order has got free goods from a scheme, these stay as they were. */
     private const FixedOnceUsed = ['starts_on', 'product_ids', 'min_quantity', 'benefit_type', 'free_product_id', 'free_quantity'];
 
+    /** The owners, with the MD and Chairman only once the Super Admin grants owner tools (D11), as on the page. */
     public static function canManage(User $user): bool
     {
-        return $user->owner();
+        return LeadershipAccess::granted($user, 'owner_tools');
     }
 
     /** @return array{schemes: list<array<string, mixed>>, benefit_types: list<string>, products: list<array{id: int, name: string, active: bool}>} */

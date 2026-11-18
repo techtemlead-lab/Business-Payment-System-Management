@@ -54,12 +54,13 @@ class SmallSignedInFixesTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page->where('data.partner_home.profile.refer_code', 'MNHC-JOIN-1'));
     }
 
-    public function test_both_join_poster_buttons_are_hidden_without_a_refer_code(): void
+    public function test_the_join_poster_button_is_hidden_without_a_refer_code(): void
     {
         $dashboard = (string) file_get_contents(resource_path('js/components/DashboardOverview.tsx'));
         $portal = PortalSource::text();
 
-        $this->assertStringContainsString('{profile.refer_code && <a href={`${base}/join-poster/pdf`}', $dashboard);
+        // The simpler partner home dropped the repeated account card; the poster button is on the profile only.
+        $this->assertStringNotContainsString('join-poster/pdf', $dashboard);
         $this->assertStringContainsString('includes(u.role)&&d.profile?.refer_code&&<a className="button small" href={`${base}/join-poster/pdf`}', $portal);
     }
 }

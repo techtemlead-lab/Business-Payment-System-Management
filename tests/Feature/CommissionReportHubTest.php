@@ -234,13 +234,16 @@ class CommissionReportHubTest extends TestCase
         $this->office($person)->get('/commands/operations/reports?type=commissions&format=xlsx&from=2026-01-01&to=2026-01-31')->assertForbidden();
     }
 
-    public function test_field_sales_staff_see_only_the_file_they_can_open_in_the_file_list(): void
+    public function test_field_sales_staff_see_only_their_two_files_in_the_file_list(): void
     {
-        // SA-11: the payroll file is not offered to a sales rep, who may not open it.
-        $this->office($this->staffWith(['field_sales', 'sr_orders']))->get('/operations/financial-reports')->assertOk()
+        $salesRep = $this->staffWith(['field_sales', 'sr_orders']);
+
+        $this->office($salesRep)->get('/operations/financial-reports')->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('reportTypes', ['orders'])
-                ->where('reportGroups', fn ($groups): bool => collect($groups)->pluck('key')->all() === ['orders']));
+                ->where('reportTypes', ['orders', 'payroll'])
+                ->where('reportGroups', fn ($groups): bool => collect($groups)->pluck('key')->all() === ['orders', 'staff']));
+        // The payroll file is a real offer: it opens with the sales rep's own salary slips.
+        $this->office($salesRep)->get('/commands/operations/reports?type=payroll&format=xlsx&from=2026-01-01&to=2026-01-31')->assertOk();
     }
 
     public function test_the_report_centre_stays_closed_to_people_it_was_closed_to(): void

@@ -4,6 +4,7 @@ namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\BranchPerformance;
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\BranchStaffAssignment;
 use App\Models\CompanyBranch;
 use App\Models\User;
@@ -86,7 +87,7 @@ final class BranchesSection implements WorkspaceSection
             ->orderBy('id')
             ->first()
             ?->summary();
-        $props['can_edit_branches'] = $user->owner() || $user->canAct('inventory', 'edit') || $user->canAct('accounts', 'edit');
+        $props['can_edit_branches'] = LeadershipAccess::granted($user, 'owner_tools') || $user->canAct('inventory', 'edit') || $user->canAct('accounts', 'edit');
         $props['active_branch_id'] = $user->active_branch_id;
         $props['delivery_points'] = $branchOps->deliveryPoints();
         $customRoleNames = DB::table('staff_roles')->pluck('name', 'key');

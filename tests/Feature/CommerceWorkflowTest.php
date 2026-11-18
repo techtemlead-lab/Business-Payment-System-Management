@@ -51,7 +51,8 @@ class CommerceWorkflowTest extends TestCase
         }
 
         $this->onPortal('public')->get('/join/REF-SMOKE-01')
-            ->assertRedirect('/contact?referred_by=REF-SMOKE-01&topic=partnership_enquiry#enquiry');
+            // An unknown code still opens the application form, the code in the referrer box for the office to check.
+            ->assertRedirect('/partnership?sponsor_code=REF-SMOKE-01#partner-apply');
     }
 
     public function test_authenticated_dealer_and_staff_module_surfaces_load(): void

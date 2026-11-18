@@ -2,6 +2,7 @@
 
 namespace App\Domain\Content;
 
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\SalesKitItem;
 use App\Models\User;
 use App\Support\Audit;
@@ -33,9 +34,10 @@ final class SalesKit
         return Storage::disk(TrainingLibrary::diskName());
     }
 
+    /** The owners, with the MD and Chairman only once the Super Admin grants owner tools (D11), as on the page. */
     public static function canManage(User $user): bool
     {
-        return $user->owner();
+        return LeadershipAccess::granted($user, 'owner_tools');
     }
 
     public static function canView(User $user): bool

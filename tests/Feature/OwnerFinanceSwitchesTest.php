@@ -71,7 +71,9 @@ class OwnerFinanceSwitchesTest extends TestCase
     #[DataProvider('owners')]
     public function test_md_and_chairman_see_where_the_rules_stand_with_no_controls(string $role): void
     {
-        $owner = User::factory()->staff($role)->create();
+        // D11 (SA-07): payroll only by default, so the page stays closed until finance view is given.
+        $this->actingAs(User::factory()->staff($role)->create())->onPortal('sadmin')->get('/operations/finance-settings')->assertForbidden();
+        $owner = User::factory()->staff($role)->create(['profile' => ['action_permissions' => ['finance' => ['view' => true, 'create' => false, 'edit' => false, 'approve' => false]]]]);
 
         $this->actingAs($owner)->onPortal('sadmin')->get('/operations/finance-settings')
             ->assertOk()

@@ -68,6 +68,8 @@ class TooManySignInTriesTest extends TestCase
     #[DataProvider('portals')]
     public function test_the_sixth_try_is_refused_even_with_the_right_password(string $portal, string $role): void
     {
+        // The office panels open in Bangla for a visitor who never chose a language; these checks read the English words.
+        $this->withCookie('locale', 'en');
         $account = $this->account($role);
         $this->useUpTheTries($portal, $account->email);
 

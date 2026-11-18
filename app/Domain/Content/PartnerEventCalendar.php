@@ -3,6 +3,7 @@
 namespace App\Domain\Content;
 
 use App\Domain\Notifications\SmsText;
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\PartnerEvent;
 use App\Models\PlaceCode;
 use App\Models\User;
@@ -28,10 +29,10 @@ final class PartnerEventCalendar
 
     public function __construct(private PartnerEventNotifications $notifications) {}
 
-    /** Office staff with the content permission and the owners manage the calendar. */
+    /** Office staff with the content permission and the owners manage the calendar; the MD and Chairman need the owner-tools grant (D11). */
     public function canManage(User $user): bool
     {
-        return $user->status === 'active' && ($user->owner() || $user->allows('content'));
+        return $user->status === 'active' && (LeadershipAccess::granted($user, 'owner_tools') || $user->allows('content'));
     }
 
     /** A Dhaka date ("2026-11-10") and clock time ("09:30") as a UTC moment. */

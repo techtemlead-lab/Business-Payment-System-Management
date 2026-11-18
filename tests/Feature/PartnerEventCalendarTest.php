@@ -297,7 +297,13 @@ class PartnerEventCalendarTest extends TestCase
         $this->assertSame(0, DB::table('account_notices')->count());
 
         $chairman = User::factory()->staff('chairman')->create();
-        // D11 (SA-07): the Chairman manages events once the Super Admin grants the owner pages.
+        // D11 (SA-07): without the grant the MD and Chairman cannot post around the closed page.
+        foreach ([$chairman, User::factory()->staff('md')->create()] as $leader) {
+            $this->actingAs($leader)->onPortal('sadmin')->post('/commands/events', $this->eventForm())->assertForbidden();
+            $this->actingAs($leader)->onPortal('sadmin')->post('/commands/events/'.$event->id.'/publish')->assertForbidden();
+        }
+        $this->assertSame('draft', $event->fresh()->status);
+        // The Chairman manages events once the Super Admin grants the owner pages.
         LeadershipAccess::save(User::factory()->staff('super_admin')->create(), ['chairman' => ['owner_tools']], 0);
         $this->actingAs($chairman)->onPortal('sadmin')->get('/events')
             ->assertOk()

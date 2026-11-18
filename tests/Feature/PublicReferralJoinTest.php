@@ -36,7 +36,8 @@ class PublicReferralJoinTest extends TestCase
             ->assertSee('REF-PARTNER-01', false)
             ->assertSee('og:title', false)
             ->assertSee('og:image', false)
-            ->assertSee('/contact?referred_by=REF-PARTNER-01', false)
+            // A referral link opens the application form with the code filled in.
+            ->assertSee('/partnership?sponsor_code=REF-PARTNER-01#partner-apply', false)
             ->assertSee('+8801730532966', false)
             ->assertDontSee((string) $dealer->phone, false);
     }
@@ -183,8 +184,10 @@ class PublicReferralJoinTest extends TestCase
             ->assertSee('property="og:type" content="product"', false)
             ->assertSee('OG Face Wash', false)
             ->assertSee('property="og:url" content="'.PortalHost::url('public', '/products/'.$product->id).'"', false)
-            ->assertSee('facebook.com/dialog/send', false)
-            ->assertSee('sms:?&body=', false)
-            ->assertSee('mailto:?subject=', false);
+            // Three share controls: the phone's own share sheet, copy the link, and WhatsApp.
+            ->assertSee('data-share-url', false)
+            ->assertSee('data-copy-url', false)
+            ->assertSee('https://wa.me/?text=', false)
+            ->assertDontSee('facebook.com/dialog/send', false);
     }
 }

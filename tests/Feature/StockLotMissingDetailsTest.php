@@ -194,7 +194,8 @@ class StockLotMissingDetailsTest extends TestCase
         $line = StockCountLine::query()->where('stock_count_session_id', $session->id)->where('product_id', $product->id)->firstOrFail();
         $this->actingAs($this->counter)->onPortal('manage')->post("/commands/stock-counts/{$session->id}/lines", ['lines' => [['line_id' => $line->id, 'counted_quantity' => 9]]])->assertSessionHasNoErrors();
         $this->actingAs($this->counter)->onPortal('manage')->post("/commands/stock-counts/{$session->id}/submit")->assertSessionHasNoErrors();
-        $this->actingAs($this->approver)->onPortal('manage')->post("/commands/stock-counts/{$session->id}/approve")->assertSessionHasNoErrors();
+        // The approver confirms the totals before stock changes (F-verify-07).
+        $this->actingAs($this->approver)->onPortal('manage')->post("/commands/stock-counts/{$session->id}/approve", ['confirmed' => '1'])->assertSessionHasNoErrors();
 
         return StockLot::query()->where('product_id', $product->id)->where('reference', $line->fresh()->stock_reference)->firstOrFail();
     }

@@ -62,6 +62,8 @@ class SharedPreviewPortalTest extends TestCase
     #[DataProvider('portalSignIns')]
     public function test_shared_preview_sign_in_opens_the_selected_portal(string $portal, string $role, string $heading): void
     {
+        // The office panels open in Bangla for a visitor who never chose a language; these checks read the English words.
+        $this->withCookie('locale', 'en');
         $user = $this->portalUser($role);
 
         $this->preview('GET', '/preview-portal/'.$portal)
@@ -124,6 +126,8 @@ class SharedPreviewPortalTest extends TestCase
 
     public function test_portal_cookie_does_not_change_a_real_portal_host(): void
     {
+        // The office panels open in Bangla for a visitor who never chose a language; these checks read the English words.
+        $this->withCookie('locale', 'en');
         $this->onPortal('sadmin')
             ->withUnencryptedCookie(PortalHost::PreviewCookie, 'dealer')
             ->get('/login')

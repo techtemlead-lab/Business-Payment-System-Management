@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useForm } from '@inertiajs/react';
 import { Row, money, number, date, FormErrors } from './UI';
 import { useT } from '../shared/i18n/t';
+import { useReasonField } from '../shared/reasonFields';
 import { amountInWords } from '../shared/orderAmountWords';
 
 type ReturnLine = { line_id: number; name: string; is_free: boolean; unit_price: string; can_cancel: number; can_return: number; closed: number; returned: number };
@@ -94,6 +95,8 @@ function MoneyFields({ data, form, kind, maxCents }: { data: ReturnsData; form: 
 /** Staff approve a partner's request, or start a cancel, return or refund themselves. */
 function StaffForm({ order, data, request }: { order: Row; data: ReturnsData; request?: ReturnsData['open'] }) {
     const translate = useT();
+    // The office note follows the owner's switch for refunds (compulsory, optional or off), as the server checks it.
+    const note = useReasonField('order.refund');
     const startable = order.status === 'partially_dispatched' ? 'cancel' : data.lines.some(line => line.can_return > 0) ? 'return' : data.lines.some(line => line.can_cancel > 0) ? 'cancel' : 'refund';
     const [kind, setKind] = useState<string>(request?.kind ?? startable);
     const requestUnits = Object.fromEntries((request?.lines ?? []).map(line => [line.line_id, line.quantity]));
@@ -126,7 +129,7 @@ function StaffForm({ order, data, request }: { order: Row; data: ReturnsData; re
         {kind === 'cancel' && data.whole_order_only && <p className="muted">{translate('orders_stock', 'whole_order_only')}</p>}
         {kind !== 'refund' && !fixedUnits && <LineInputs lines={data.lines} field={kind === 'cancel' ? 'can_cancel' : 'can_return'} units={units} onChange={next => { setUnits(next); setConfirming(false); }} />}
         {data.can_refund ? <MoneyFields data={data} form={form} kind={kind} maxCents={maxCents} /> : null}
-        <label>{translate('orders_stock', 'note_label')}<textarea maxLength={1000} value={form.data.reason} onChange={event => form.setData('reason', event.target.value)} /></label>
+        {note.shown && <label>{note.label(translate('orders_stock', 'note_label'))}<textarea maxLength={1000} required={note.required} value={form.data.reason} onChange={event => form.setData('reason', event.target.value)} /></label>}
         <FormErrors errors={form.errors} />
         {confirming
             ? <ConfirmBox orderNumber={String(order.number)} amount={amount} method={form.data.refund_method} unitCount={unitCount} kind={kind}
@@ -150,6 +153,7 @@ function RejectForm({ requestId }: { requestId: number }) {
 
 function SecondApproval({ order, request }: { order: Row; request: NonNullable<ReturnsData['open']> }) {
     const translate = useT();
+    const note = useReasonField('order.refund');
     const [confirming, setConfirming] = useState(false);
     const form = useForm({ reason: '', confirmed: '1' });
     const amount = cents(request.refund_amount ?? '0');
@@ -157,7 +161,7 @@ function SecondApproval({ order, request }: { order: Row; request: NonNullable<R
 
     return <form className="action-form" onSubmit={event => { event.preventDefault(); setConfirming(true); }}>
         <h3>{translate('orders_stock', 'confirm_second_title')}</h3>
-        <label>{translate('orders_stock', 'note_label')}<textarea maxLength={1000} value={form.data.reason} onChange={event => form.setData('reason', event.target.value)} /></label>
+        {note.shown && <label>{note.label(translate('orders_stock', 'note_label'))}<textarea maxLength={1000} required={note.required} value={form.data.reason} onChange={event => form.setData('reason', event.target.value)} /></label>}
         <FormErrors errors={form.errors} />
         {confirming
             ? <ConfirmBox orderNumber={String(order.number)} amount={amount} method={String(request.refund_method ?? 'cash')} unitCount={unitCount} kind={request.kind}
