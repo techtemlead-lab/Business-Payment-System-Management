@@ -654,7 +654,7 @@ export default function AccountCreate({
                                 <div className="acf-grid">
                                     {/* English and Bangla name side by side: one pair, easy to fill the Bangla from the English. */}
                                     <Box text={translate('portal', 'acct_name_en')} error={errorOf('name')}><input id="acf-name-en" data-name-field="en" autoComplete="off" value={form.data.name} onChange={(e) => setBox('name', e.target.value)} /></Box>
-                                    <Box text={translate('portal', 'acct_name_bn')} error={errorOf('name_bn')}><input id="acf-name-bn" data-name-field="bn" autoComplete="off" value={form.data.name_bn} onChange={(e) => setBox('name_bn', e.target.value)} /></Box>
+                                    <Box text={translate('portal', 'acct_name_bn')} error={errorOf('name_bn')}><input id="acf-name-bn" data-name-field="bn" data-bangla-from="acf-name-en" data-bangla-kind="name" autoComplete="off" value={form.data.name_bn} onChange={(e) => setBox('name_bn', e.target.value)} /></Box>
                                     {form.data.identity_type === 'birth_certificate' ? (
                                         <Box text={translate('portal', 'acct_birth_cert_number')} error={errorOf('birth_certificate_number')}>
                                             <input inputMode="numeric" autoComplete="off" value={form.data.birth_certificate_number} onChange={(e) => setBox('birth_certificate_number', e.target.value)} />

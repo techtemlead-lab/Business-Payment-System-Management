@@ -123,8 +123,8 @@ function HeadForm({ head, onClose }: { head: ExpenseHead | null; onClose: () => 
     return (
         <Modal title={translate('funds', head ? 'heads_edit' : 'heads_add')} onClose={onClose}>
             <form className="action-form" onSubmit={submit}>
-                <label>{translate('funds', 'col_name_bn')}<input required maxLength={120} value={form.data.name_bn} onChange={(event) => form.setData('name_bn', event.target.value)} /></label>
-                <label>{translate('funds', 'col_name_en')}<input required maxLength={120} value={form.data.name_en} onChange={(event) => form.setData('name_en', event.target.value)} /></label>
+                <label>{translate('funds', 'col_name_bn')}<input data-bangla-from="treasury-head-name-en" data-bangla-kind="text" required maxLength={120} value={form.data.name_bn} onChange={(event) => form.setData('name_bn', event.target.value)} /></label>
+                <label>{translate('funds', 'col_name_en')}<input id="treasury-head-name-en" required maxLength={120} value={form.data.name_en} onChange={(event) => form.setData('name_en', event.target.value)} /></label>
                 <label className="ops-row is-inline"><input type="checkbox" checked={Boolean(form.data.for_tours)} onChange={(event) => form.setData('for_tours', event.target.checked)} /> {translate('funds', 'for_tours')}</label>
                 <p className="muted">{translate('funds', 'for_tours_hint')}</p>
                 <FormErrors errors={form.errors} />

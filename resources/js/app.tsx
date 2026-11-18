@@ -3,12 +3,15 @@ import {createRoot} from 'react-dom/client';
 import {createInertiaApp} from '@inertiajs/react';
 import { applyColorScheme, resolveColorScheme } from './shared/theme';
 import { installBanglaDigitShaping } from './shared/banglaDigits';
+import { installBanglaAutofill } from './shared/banglaFill/autofill';
 import { installNavigationFeedback } from './shared/navigationFeedback';
 import { installPortalMotion } from './components/motion/portalMotion';
 import { initialTranslationsUrl, loadTranslations } from './shared/i18n/bundle';
 
 applyColorScheme(resolveColorScheme());
 installBanglaDigitShaping();
+// English-first forms: an empty Bangla box is filled from its English twin (CR-06); the model loads only when used.
+installBanglaAutofill();
 installNavigationFeedback();
 installPortalMotion();
 
