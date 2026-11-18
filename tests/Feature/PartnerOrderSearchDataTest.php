@@ -10,7 +10,8 @@ use Tests\TestCase;
 
 /**
  * The order screen searches one list of everything the partner may order, so the server must send
- * the whole range with this partner's price and the stock state, and nothing the partner may not see.
+ * the whole range with this partner's price, and nothing the partner may not see: the cost price and,
+ * by the owner's rule (PR 426), any stock figure or stock state.
  */
 class PartnerOrderSearchDataTest extends TestCase
 {
@@ -22,7 +23,7 @@ class PartnerOrderSearchDataTest extends TestCase
         $this->withoutVite();
     }
 
-    public function test_dealer_gets_every_active_product_with_his_own_price_and_stock_state(): void
+    public function test_dealer_gets_every_active_product_with_his_own_price_and_no_stock_facts(): void
     {
         $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
         Product::factory()->create(['name' => 'In Stock Tonic', 'category' => 'Tonic', 'dealer_price' => '140.00', 'mrp' => '200.00', 'stock' => 12]);
@@ -42,10 +43,11 @@ class PartnerOrderSearchDataTest extends TestCase
                         && ! $byName->has('Hidden Old Product')
                         && (float) $byName['In Stock Tonic']['price'] === 140.0
                         && (float) $byName['In Stock Tonic']['mrp'] === 200.0
-                        && (int) $byName['In Stock Tonic']['stock'] === 12
-                        && $byName['Paused Oil']['is_stock_paused'] === true
-                        && (int) $byName['Empty Syrup']['stock'] === 0
-                        && ! array_key_exists('cost_price', $byName['In Stock Tonic']);
+                        && ! array_key_exists('cost_price', $byName['In Stock Tonic'])
+                        && $byName->every(fn (array $product): bool => ! array_key_exists('stock', $product)
+                            && ! array_key_exists('low_stock_at', $product)
+                            && ! array_key_exists('stock_status', $product)
+                            && ! array_key_exists('is_stock_paused', $product));
                 }));
     }
 
