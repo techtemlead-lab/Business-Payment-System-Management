@@ -9,7 +9,7 @@ return [
     'err_integration_host' => 'এই সেবার জন্য শুধু তাদের নিজের ঠিকানা চলবে (:hosts)। অন্য সার্ভারের ঠিকানা দেওয়া যাবে না।',
     'err_integration_unreachable' => 'এই ঠিকানার সার্ভার খুঁজে পাওয়া গেল না। বানান দেখে আবার লিখুন।',
     'err_integration_private' => 'এই ঠিকানা অফিস বা সার্ভারের ভেতরের নেটওয়ার্কে যায়। ইন্টারনেটের সাধারণ ঠিকানা দিন।',
-    'err_map_embed_url' => 'ম্যাপের ঘরে শুধু গুগল ম্যাপের "Embed a map" ঠিকানা দেওয়া যায় (https://www.google.com/maps/embed… দিয়ে শুরু)।',
+    'err_map_embed_url' => 'ম্যাপের ঘরে শুধু গুগল ম্যাপের https ঠিকানা দেওয়া যায় (যেমন https://www.google.com/maps/embed… অথবা https://maps.google.com/maps…)।',
     'session_wrong_portal' => 'এই সাইন-ইন অন্য পোর্টালের, তাই এখানে চলবে না। এই পাতার নিজের লগইন দিয়ে ঢুকুন।',
     'session_too_old' => 'নিরাপত্তার জন্য অফিসের সাইন-ইন :hours ঘণ্টা পর নিজে থেকে শেষ হয়। আবার লগইন করুন।',
     'notice_totp_enrolled_title' => 'নতুন অথেনটিকেটর অ্যাপ যুক্ত হয়েছে',

@@ -9,7 +9,7 @@ return [
     'err_integration_host' => 'This service only accepts its own address (:hosts). Another server cannot be used.',
     'err_integration_unreachable' => 'No server was found at this address. Check the spelling and try again.',
     'err_integration_private' => 'This address leads into an internal office or server network. Use a normal internet address.',
-    'err_map_embed_url' => 'The map box only accepts a Google Maps "Embed a map" address (starting with https://www.google.com/maps/embed).',
+    'err_map_embed_url' => 'The map box only accepts a Google Maps https address (such as https://www.google.com/maps/embed… or https://maps.google.com/maps…).',
     'session_wrong_portal' => 'This sign-in belongs to another portal, so it does not work here. Sign in with this page\'s own login.',
     'session_too_old' => 'For safety, an office sign-in ends by itself after :hours hours. Please sign in again.',
     'notice_totp_enrolled_title' => 'A new authenticator app was added',

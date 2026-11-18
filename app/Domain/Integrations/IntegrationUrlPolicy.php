@@ -13,7 +13,7 @@ use Illuminate\Validation\ValidationException;
  *   or payment password to their own server.
  * - A provider without a default address (custom SMS gateway, birth-registration service, Rocket)
  *   may point at any public host, never at an internal, private or link-local address.
- * - The map box only accepts Google's own embed address.
+ * - The map box only accepts an https address on Google's own map hosts.
  *
  * The HTTP clients also refuse redirects, so an allowed host cannot bounce a request elsewhere.
  */
@@ -21,7 +21,8 @@ final class IntegrationUrlPolicy
 {
     public const UrlFields = ['base_url', 'balance_url'];
 
-    public const MapEmbedPrefix = 'https://www.google.com/maps/embed';
+    /** Google's own map hosts; the box takes an https address on one of them whose path starts with /maps. */
+    public const MapHosts = ['www.google.com', 'maps.google.com', 'google.com'];
 
     /** Second-level labels under which a company's own domain is three labels long (pathao.com vs redx.com.bd). */
     private const ShortSuffixes = ['com', 'net', 'org', 'gov', 'edu', 'co', 'ac'];
@@ -53,10 +54,21 @@ final class IntegrationUrlPolicy
         }
         if ($group === 'maps') {
             $embed = trim((string) ($values['map_embed_url'] ?? ''));
-            if ($embed !== '' && ! str_starts_with($embed, self::MapEmbedPrefix)) {
+            if ($embed !== '' && ! $this->isGoogleMap($embed)) {
                 throw ValidationException::withMessages(['map_embed_url' => __('security.err_map_embed_url')]);
             }
         }
+    }
+
+    private function isGoogleMap(string $url): bool
+    {
+        $parts = parse_url($url);
+
+        return is_array($parts)
+            && strtolower((string) ($parts['scheme'] ?? '')) === 'https'
+            && ! isset($parts['user']) && ! isset($parts['pass']) && ! isset($parts['port'])
+            && in_array(strtolower((string) ($parts['host'] ?? '')), self::MapHosts, true)
+            && str_starts_with((string) ($parts['path'] ?? ''), '/maps');
     }
 
     /**
