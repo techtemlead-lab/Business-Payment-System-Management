@@ -314,7 +314,8 @@ class CommandController extends Controller
     {
         abort_unless($r->user()->role === 'super_admin' && $r->user()->status === 'active', 403);
         abort_unless(in_array($user->role, ['md', 'chairman'], true), 404);
-        $profile = is_array($user->profile) ? $user->profile : [];
+        /** @var array<string, mixed> $profile */
+        $profile = $user->getAttribute('profile') ?? [];
         unset($profile['action_permissions'], $profile['permissions']);
         $user->forceFill(['profile' => [...$profile, 'access_revision' => Str::uuid()->toString()]])->save();
         Audit::record($r->user()->id, 'staff.leadership_rights_reset', (string) $user->id, ['role' => $user->role]);

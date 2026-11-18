@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Staff\StaffPermissions;
+use App\Domain\Support\ChatRouting;
 use App\Models\CompanyBranch;
 use App\Models\PlaceCode;
 use App\Models\User;
@@ -172,5 +173,28 @@ class FirstPasswordAndLeadershipTest extends TestCase
         $this->assertTrue($partner->must_change_password);
         $response->assertSessionHas('success', fn (string $message): bool => str_contains($message, (string) $partner->adminVisiblePassword()));
         $this->actingAs($partner)->onPortal('subdealer')->get('/')->assertRedirect('/security');
+    }
+
+    public function test_a_custom_role_shows_its_saved_name_in_the_staff_list_and_the_access_search(): void
+    {
+        $owner = $this->owner();
+        DB::table('staff_roles')->insert(['key' => 'custom_1atnc0onzuiu', 'name' => 'Verify Support Desk Only', 'permissions' => json_encode(['support_desk' => ['view' => true]]), 'version' => 1, 'updated_by' => $owner->id, 'created_at' => now(), 'updated_at' => now()]);
+        User::factory()->create(['role' => 'custom_1atnc0onzuiu', 'status' => 'active', 'name' => 'Desk Person']);
+
+        $this->actingAs($owner)->onPortal('sadmin')->get('/employees')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('data.employees.data.0.role_name', 'Verify Support Desk Only')
+                ->where('data.staff_role_options', fn ($options): bool => collect($options)->contains(fn ($option): bool => $option['label'] === 'Verify Support Desk Only')));
+    }
+
+    public function test_the_chat_answerer_list_shows_the_saved_name_of_a_custom_role(): void
+    {
+        $owner = $this->owner();
+        DB::table('staff_roles')->insert(['key' => 'custom_1atnc0onzuiu', 'name' => 'Verify Support Desk Only', 'permissions' => json_encode([]), 'version' => 1, 'updated_by' => $owner->id, 'created_at' => now(), 'updated_at' => now()]);
+        User::factory()->create(['role' => 'custom_1atnc0onzuiu', 'status' => 'active', 'name' => 'Desk Person']);
+
+        $rows = app(ChatRouting::class)->ownerPanel();
+
+        $this->assertSame('Verify Support Desk Only', collect($rows['staff'])->firstWhere('name', 'Desk Person')['role_name']);
     }
 }

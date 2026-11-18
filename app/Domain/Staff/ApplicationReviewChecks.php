@@ -69,7 +69,7 @@ final class ApplicationReviewChecks
         if (is_numeric($payload['upazila_place_id'] ?? null)) {
             $seat = AreaDealerAssignment::query()->where('is_active', true)->where('place_code_id', (int) $payload['upazila_place_id'])->with('user:id,name,dealer_code')->first();
             if ($seat?->user) {
-                $areaHolder = ['name' => (string) $seat->user->name, 'code' => (string) $seat->user->dealer_code];
+                $areaHolder = ['name' => (string) $seat->user->getAttribute('name'), 'code' => (string) $seat->user->getAttribute('dealer_code')];
             }
         }
 
@@ -77,7 +77,8 @@ final class ApplicationReviewChecks
         if (filled($payload['sponsor_code'] ?? null)) {
             $found = app(PartnerAccountProvisioning::class)->findSponsor((string) $payload['sponsor_code']);
             if ($found) {
-                $profile = is_array($found->profile) ? $found->profile : [];
+                /** @var array<string, mixed> $profile */
+                $profile = $found->getAttribute('profile') ?? [];
                 $sponsor = ['name' => (string) $found->name, 'role' => (string) $found->role, 'upazila' => $profile['upazila'] ?? null];
             }
         }
