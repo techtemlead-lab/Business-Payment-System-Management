@@ -82,5 +82,6 @@ return [
     'settings_link_audit' => 'Work log',
     'settings_link_privacy_requests' => 'Data requests',
     'settings_link_data_cleanup' => 'Clear old data',
+    'settings_link_errors' => 'Site problems',
     'settings_empty' => 'There are no settings here for you.',
 ];
