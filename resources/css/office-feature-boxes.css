@@ -1,0 +1,25 @@
+/* Boxes for the Settings page and the More page: name, one line, whole box is the link. */
+.app-shell .feature-boxes{display:flex;flex-direction:column;gap:var(--ds-s-8)}
+.app-shell .feature-boxes section{min-width:0}
+.app-shell .feature-boxes h2{margin:0 0 var(--ds-s-3);font-size:var(--ds-fs-lg);font-weight:650;color:var(--ds-text)}
+.app-shell .feature-boxes ul{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:1fr;gap:var(--ds-s-4);margin:0;padding:0;list-style:none}
+.app-shell .feature-boxes[data-columns="4"] ul{grid-template-columns:repeat(4,minmax(0,1fr))}
+.app-shell .feature-boxes li{display:flex;min-width:0}
+.app-shell .feature-box{display:flex;flex:1;flex-direction:column;gap:var(--ds-s-2);min-height:112px;padding:var(--ds-s-4) var(--ds-s-5);background:var(--ds-surface);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);color:var(--ds-text);text-decoration:none;transition:border-color .15s,box-shadow .15s}
+.app-shell .feature-box:hover{border-color:var(--ds-brand);box-shadow:var(--ds-shadow-xs)}
+.app-shell .feature-box:focus-visible{outline:2px solid var(--ds-brand);outline-offset:2px}
+.app-shell .feature-box-title{display:flex;align-items:center;justify-content:space-between;gap:var(--ds-s-3);font-size:var(--ds-fs-md);font-weight:650;overflow-wrap:anywhere}
+.app-shell .feature-box-title svg{flex:0 0 auto;color:var(--ds-text-faint)}
+.app-shell .feature-box:hover .feature-box-title svg{color:var(--ds-brand-text)}
+.app-shell .feature-box-text{font-size:var(--ds-fs-sm);line-height:1.5;color:var(--ds-text-muted);overflow-wrap:anywhere}
+
+@media (max-width:1279px){
+  .app-shell .feature-boxes[data-columns="4"] ul{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:1023px){
+  .app-shell .feature-boxes ul,.app-shell .feature-boxes[data-columns="4"] ul{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:599px){
+  .app-shell .feature-boxes ul,.app-shell .feature-boxes[data-columns="4"] ul{grid-template-columns:minmax(0,1fr);grid-auto-rows:auto}
+  .app-shell .feature-box{min-height:0}
+}

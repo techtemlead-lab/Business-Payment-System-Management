@@ -125,6 +125,32 @@ final class OfficeHubs
         ],
     ];
 
+    /** The sidebar's one entry for pages that are set once or opened rarely. */
+    public const MoreSection = 'more';
+
+    /**
+     * The pages on the More page, in groups. A box shows only if this person may open the page.
+     *
+     * @var array<string, array<string, string>>
+     */
+    private const MoreGroups = [
+        'partners' => [
+            'schemes' => '/schemes', 'contests' => '/contests', 'sales-kit' => '/sales-kit',
+            'training' => '/training', 'events' => '/events', 'agreement' => '/agreement',
+        ],
+        'people' => [
+            'employees' => '/employees', 'payroll' => '/operations/payroll', 'staff-operations' => '/operations/staff-operations',
+            'field-sales' => '/operations/field-sales', 'access-management' => '/operations/access-management',
+        ],
+        'website' => [
+            'website' => '/website', 'content' => '/content', 'public-trust' => '/public-trust',
+            'video-marketing' => '/operations/video-marketing', 'feedback' => '/feedback', 'visitors' => '/visitors',
+        ],
+        'clinic' => [
+            'prescriptions' => '/prescriptions',
+        ],
+    ];
+
     /** Filters of the old order table that the order list understands too. */
     private const OrderListFilters = ['q', 'status', 'period', 'from', 'to', 'buyer_role', 'branch_id', 'all_branches', 'page'];
 
@@ -214,7 +240,7 @@ final class OfficeHubs
     /**
      * The Settings page's links for the pages this person can open, without empty groups.
      *
-     * @return list<array{key: string, label: string, links: list<array{key: string, label: string, href: string}>}>
+     * @return list<array{key: string, label: string, links: list<array{key: string, label: string, description: string, href: string}>}>
      */
     public static function settingsGroups(User $user, string $portal, bool $onOfficeHost): array
     {
@@ -223,7 +249,7 @@ final class OfficeHubs
             $open = [];
             foreach ($links as $section => $href) {
                 if (self::mayOpen($user, $portal, $onOfficeHost, $section, $href)) {
-                    $open[] = ['key' => $section, 'label' => (string) __('office_menu.settings_link_'.str_replace('-', '_', $section)), 'href' => $href];
+                    $open[] = ['key' => $section, 'label' => (string) __('office_menu.settings_link_'.str_replace('-', '_', $section)), 'description' => (string) __('office_menu.settings_desc_'.str_replace('-', '_', $section)), 'href' => $href];
                 }
             }
             if ($open !== []) {
@@ -232,6 +258,40 @@ final class OfficeHubs
         }
 
         return $groups;
+    }
+
+    /**
+     * The More page's boxes for the pages this person can open, without empty groups.
+     *
+     * @return list<array{key: string, label: string, links: list<array{key: string, label: string, description: string, href: string}>}>
+     */
+    public static function moreGroups(User $user, string $portal, bool $onOfficeHost): array
+    {
+        $groups = [];
+        foreach (self::MoreGroups as $key => $links) {
+            $open = [];
+            foreach ($links as $section => $href) {
+                if (self::mayOpen($user, $portal, $onOfficeHost, $section, $href)) {
+                    $name = str_replace('-', '_', $section);
+                    $open[] = [
+                        'key' => $section,
+                        'label' => $section === 'prescriptions' ? (string) __('portal.prescriptions') : (string) __('office_menu.tab_'.$name),
+                        'description' => (string) __('office_menu.more_desc_'.$name),
+                        'href' => $href,
+                    ];
+                }
+            }
+            if ($open !== []) {
+                $groups[] = ['key' => $key, 'label' => (string) __('office_menu.more_group_'.$key), 'links' => $open];
+            }
+        }
+
+        return $groups;
+    }
+
+    public static function hasMoreToOpen(User $user, string $portal, bool $onOfficeHost): bool
+    {
+        return self::moreGroups($user, $portal, $onOfficeHost) !== [];
     }
 
     /** False when no Settings link is open to this person, so the Settings page has nothing for them. */
