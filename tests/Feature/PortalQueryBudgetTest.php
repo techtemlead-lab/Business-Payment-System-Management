@@ -92,7 +92,9 @@ class PortalQueryBudgetTest extends TestCase
             ->has('data.guide_prerequisites.checklist'));
         // 40: one read for the owner's monthly target overrides. 41: one read for commission held for the partner (MA-03).
         // 42: one read for which menu pages still have no content (training, meetings, sales kit, contests).
-        $this->assertQueriesAtMost(42, $queries, 'dealer dashboard');
+        // 43-49: the new dashboard (CR-02): the profile card's referral counts, and the three totals and income by
+        // head (wallet, withdrawals paid, income by type, balance used on orders, refunds back to it, waiting money).
+        $this->assertQueriesAtMost(49, $queries, 'dealer dashboard');
 
         foreach (range(1, 8) as $index) {
             $this->line($this->order($dealer, $index % 2 === 0 ? 'delivered' : 'submitted', total: '20.00'), $product, quantity: 1, dispatched: 0);
