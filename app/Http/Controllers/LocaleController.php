@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Middleware\SetLocale;
 use App\Support\PortalHost;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -17,7 +18,7 @@ class LocaleController extends Controller
             'return_url' => ['nullable', 'string', 'max:2000'],
         ]);
         $request->session()->put('locale', $data['locale']);
-        cookie()->queue(cookie('locale', $data['locale'], 60 * 24 * 365, '/'));
+        cookie()->queue(SetLocale::cookieFor($data['locale']));
         if ($request->user()) {
             $request->user()->forceFill(['locale' => $data['locale']])->save();
         }
