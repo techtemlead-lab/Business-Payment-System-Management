@@ -13,6 +13,7 @@ use App\Support\ProductVideo;
 use App\Support\SiteCustomization;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Lang;
 
 /**
  * Published content: policy drafts, partner circulars, public pages and website settings.
@@ -119,6 +120,10 @@ final class ContentSection implements WorkspaceSection
                 ],
                 range(1, count(SiteCustomization::defaults()['faq_items'])),
             ),
+            // Every website wording with a generated Bangla box (CR-06), with its built-in Bangla as the hint.
+            'twins' => collect(SiteCustomization::banglaTwinKeys())
+                ->mapWithKeys(fn (string $key): array => [$key => Lang::has('site.'.$key, 'bn', false) ? (string) __('site.'.$key, [], 'bn') : ''])
+                ->all(),
         ];
         $enabled = SiteCustomization::enabledPagesMap();
         $props = [...$props, ...ProductVideo::managementData()];

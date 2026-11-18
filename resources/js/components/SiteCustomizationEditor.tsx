@@ -5,6 +5,7 @@ import OfficePage from './office/OfficePage';
 import { useT } from '../shared/i18n/t';
 import { notify } from '../shared/notify';
 import { buildCustomizationFormData } from './website/initialCustomization';
+import { BanglaTwinContext, createBanglaTwinStore, savedBanglaTwins } from './website/banglaTwins';
 import { WebsiteModule, type HomepageVideoSetting, type TrustEditorData, type WebsitePage, type WebsiteProduct, type WebsiteSectionProps } from './website/WebsiteLayout';
 import type { CustomizationData, MdMessageBanglaCopy, Slide } from './website/types';
 import WebsiteFieldSearch, { jumpTo } from './website/WebsiteFieldSearch';
@@ -41,7 +42,8 @@ export default function SiteCustomizationEditor({
     const hub = usePage<any>().props.data?.hub ?? null;
     const pageRef = useRef<HTMLDivElement>(null);
     const form = useForm<{ customization: CustomizationData }>({
-        customization: { ...buildCustomizationFormData(customization, defaults), ...(trustEditor?.values ?? {}) },
+        // The saved Bangla boxes of website wordings (CR-06) start with what is stored.
+        customization: { ...buildCustomizationFormData(customization, defaults), ...savedBanglaTwins(customization, bnCopy.twins), ...(trustEditor?.values ?? {}) },
     });
     const resetForm = useForm({});
     const [activeModule, setActiveModule] = useState<string>('company');
@@ -106,6 +108,12 @@ export default function SiteCustomizationEditor({
             [field]: value,
         });
     }, []);
+    const twinStore = useMemo(() => createBanglaTwinStore(
+        bnCopy.twins ?? {},
+        (key) => String((latestForm.current.data.customization as Record<string, unknown>)[key] ?? ''),
+        (key, value) => updateField(key as keyof CustomizationData, value),
+    ), [bnCopy.twins, updateField]);
+    useEffect(() => twinStore.changed(), [form.data.customization, twinStore]);
 
     const updateSlide = (index: number, key: keyof Slide, value: string) => {
         const slides = [...(form.data.customization.slides || [])];
@@ -131,6 +139,7 @@ export default function SiteCustomizationEditor({
     const moduleTitle = (id: string): string => translate('website_admin', `module_${id}`);
 
     return (
+        <BanglaTwinContext.Provider value={twinStore}>
         <OfficePage
             title={hub?.label ?? translate('website_admin', 'heading')}
             hub={hub}
@@ -240,5 +249,6 @@ export default function SiteCustomizationEditor({
             </div>
         </div>
         </OfficePage>
+        </BanglaTwinContext.Provider>
     );
 }

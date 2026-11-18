@@ -57,6 +57,13 @@ final class SiteChrome
     /** The words for this visitor, before any {phone}-style word is filled in. */
     public static function plain(string $key, ?string $custom = null): string
     {
+        // The owner's own Bangla box for this wording, when filled, is what Bangla visitors read (CR-06).
+        if (app()->getLocale() === 'bn' && in_array($key, SiteCustomization::banglaTwinKeys(), true)) {
+            $bangla = trim((string) (SiteCustomization::all()[$key.'_bn'] ?? ''));
+            if ($bangla !== '') {
+                return $bangla;
+            }
+        }
         $translated = (string) __('site.'.$key);
         $custom = $custom !== null ? trim((string) $custom) : '';
 
