@@ -79,11 +79,12 @@ final class StaffDashboardSummary
                 'count' => (int) $this->withdrawalsOf($branchScope)->where('withdrawals.status', 'requested')->count(),
                 'section' => 'payouts-hub',
             ];
-            // Approved money nobody has sent yet, past the owner's due days (MA-06).
+            // Approved money nobody has sent yet, past the owner's due days (MA-06). The setting is read once.
+            $dueDays = app(PayoutLimits::class)->dueDays();
             $queue[] = [
                 'key' => 'payouts_overdue',
-                'label' => (string) __('payouts.dash_payouts_overdue', ['days' => (string) app(PayoutLimits::class)->dueDays()]),
-                'count' => (int) $this->withdrawalsOf($branchScope)->whereRaw(WithdrawalsSection::followUpSql(app(PayoutLimits::class)->dueDays())." = 'overdue'")->count(),
+                'label' => (string) __('payouts.dash_payouts_overdue', ['days' => (string) $dueDays]),
+                'count' => (int) $this->withdrawalsOf($branchScope)->whereRaw(WithdrawalsSection::followUpSql($dueDays)." = 'overdue'")->count(),
                 'section' => 'payouts-hub',
                 'query' => ['follow_up' => 'overdue'],
             ];

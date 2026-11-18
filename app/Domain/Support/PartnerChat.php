@@ -204,14 +204,18 @@ final class PartnerChat
      */
     public function unanswered(User $viewer): array
     {
-        $query = PartnerConversation::query()
+        // Both figures in one read: the office dashboard keeps a fixed query budget.
+        $row = PartnerConversation::query()
             ->join('users', 'users.id', '=', 'partner_conversations.partner_id')
             ->tap(fn ($rows) => app(ChatRouting::class)->constrainToViewer($rows, $viewer))
-            ->whereNotNull('partner_conversations.awaiting_since');
-        $oldest = (clone $query)->min('partner_conversations.awaiting_since');
+            ->whereNotNull('partner_conversations.awaiting_since')
+            ->toBase()
+            ->selectRaw('COUNT(*) AS waiting, MIN(partner_conversations.awaiting_since) AS oldest')
+            ->first();
+        $oldest = $row?->oldest;
 
         return [
-            'count' => (int) $query->count(),
+            'count' => (int) ($row->waiting ?? 0),
             'oldest_days' => $oldest ? (int) floor(CarbonImmutable::parse($oldest)->diffInDays(now(), true)) : null,
         ];
     }
