@@ -12,14 +12,60 @@ use Illuminate\Validation\ValidationException;
 
 final class CommissionWallet
 {
-    /** Serialize financial mutations across order, settlement and payout transactions. */
+    /** Advisory key of the money lock (one global key, taken exclusive or shared). */
+    private const MoneyLockKey = 81416001;
+
+    /** Advisory key a backup takes exclusive; every money change holds it shared. */
+    private const BackupLockKey = 81416004;
+
+    /** First half of the two-part advisory key that locks one partner's money. */
+    private const PartnerLockSpace = 81416010;
+
+    /**
+     * The whole-company money lock, exclusive: nothing else that touches money runs until this
+     * transaction ends. For changes to the rules themselves (policy, settings, opening balances,
+     * the referral tree, fund spending against a fund's balance). Everyday money moves use
+     * lockShared() plus lockPartners() instead, so they do not queue behind each other (PQ-01).
+     */
     public static function lock(): void
+    {
+        self::requireTransaction();
+        DB::select('SELECT pg_advisory_xact_lock_shared(?)', [self::BackupLockKey]);
+        DB::select('SELECT pg_advisory_xact_lock(?)', [self::MoneyLockKey]);
+    }
+
+    /**
+     * The money lock, shared: any number of everyday money moves run side by side, and all of them
+     * wait while someone holds lock(). Rows they both change are kept apart by row locks and by
+     * lockPartners(). Safe to call when this transaction already holds lock().
+     */
+    public static function lockShared(): void
+    {
+        self::requireTransaction();
+        DB::select('SELECT pg_advisory_xact_lock_shared(?)', [self::BackupLockKey]);
+        DB::select('SELECT pg_advisory_xact_lock_shared(?)', [self::MoneyLockKey]);
+    }
+
+    /**
+     * lockShared() plus one exclusive lock per partner, always taken in id order so two moves for
+     * the same partners queue instead of deadlocking. Use for every change to a partner's wallet,
+     * debts, withdrawals or rank counts.
+     */
+    public static function lockPartners(int ...$userIds): void
+    {
+        self::lockShared();
+        $userIds = array_values(array_unique(array_filter($userIds, fn (int $id): bool => $id > 0)));
+        sort($userIds);
+        foreach ($userIds as $userId) {
+            DB::select('SELECT pg_advisory_xact_lock(?, ?)', [self::PartnerLockSpace, $userId]);
+        }
+    }
+
+    private static function requireTransaction(): void
     {
         if (DB::transactionLevel() === 0) {
             throw new \LogicException('Financial mutations require a transaction.');
         }
-        DB::select('SELECT pg_advisory_xact_lock_shared(?)', [81416004]);
-        DB::select('SELECT pg_advisory_xact_lock(?)', [81416001]);
     }
 
     public static function requireActive(): void
@@ -49,7 +95,7 @@ final class CommissionWallet
     /** Credit an already journalled earning; recover outstanding clawbacks before making it spendable. */
     public function credit(int $userId, int $amount, bool $held = false): void
     {
-        self::lock();
+        self::lockPartners($userId);
         DB::table('wallets')->insertOrIgnore(['user_id' => $userId, 'created_at' => now(), 'updated_at' => now()]);
         $wallet = DB::table('wallets')->where('user_id', $userId)->lockForUpdate()->first();
         $recovery = 0;
@@ -105,7 +151,7 @@ final class CommissionWallet
     /** @return array{recovered: int, unrecovered: int} */
     public function debit(int $userId, int $amount, bool $held = false): array
     {
-        self::lock();
+        self::lockPartners($userId);
         $wallet = DB::table('wallets')->where('user_id', $userId)->lockForUpdate()->first();
         $balance = $wallet ? Money::cents($held ? $wallet->commission_held : $wallet->available) : 0;
         $recovered = min($balance, $amount);
@@ -123,7 +169,7 @@ final class CommissionWallet
     /** @param list<array{account: string, user_id: ?int, debit: int, credit: int}> $lines */
     public function journal(string $eventKey, string $description, array $lines): void
     {
-        self::lock();
+        self::lockShared();
         if (array_sum(array_column($lines, 'debit')) !== array_sum(array_column($lines, 'credit'))) {
             throw new \LogicException('Unbalanced financial journal.');
         }

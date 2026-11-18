@@ -55,7 +55,7 @@ final class UnownedShareSweeps
         }
 
         return DB::transaction(function () use ($actorId): array {
-            CommissionWallet::lock();
+            CommissionWallet::lockShared();
             $rows = CommissionAllocation::query()
                 ->whereNull('user_id')
                 ->whereIn('category', self::ReferralCategories)
@@ -96,7 +96,7 @@ final class UnownedShareSweeps
             return ['released_count' => 0, 'total_amount' => '0.00'];
         }
         $run = function () use ($partnerId, $actorId): array {
-            CommissionWallet::lock();
+            CommissionWallet::lockShared();
             $rows = CommissionAllocation::query()
                 ->where('status', 'held')
                 ->whereNotNull('user_id')
@@ -104,6 +104,7 @@ final class UnownedShareSweeps
                 ->whereIn('user_id', User::query()->where('status', 'active')->whereIn('role', ['dealer', 'sub_dealer'])->select('id'))
                 ->where(fn ($query) => $query->whereNull('metadata->hold_reason')->orWhere('metadata->hold_reason', '!=', 'quota'))
                 ->orderBy('id')->lockForUpdate()->get();
+            CommissionWallet::lockPartners(...$rows->pluck('user_id')->map(fn ($id): int => (int) $id)->all());
             $reserves = app(ReserveService::class);
             $count = 0;
             $total = 0;
@@ -133,7 +134,7 @@ final class UnownedShareSweeps
         $cutoff = now()->subMonthsNoOverflow(self::ClosedAccountMonths);
 
         return DB::transaction(function () use ($actorId, $cutoff): array {
-            CommissionWallet::lock();
+            CommissionWallet::lockShared();
             $rows = CommissionAllocation::query()
                 ->where('status', 'held')
                 ->whereIn('user_id', User::query()->where('status', '!=', 'active')->whereNotNull('closed_at')->where('closed_at', '<=', $cutoff)->select('id'))
