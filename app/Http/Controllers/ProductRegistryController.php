@@ -277,6 +277,11 @@ class ProductRegistryController extends Controller
             $d['sub_dealer_price'] = Money::decimal(Percentage::from(Money::decimal(10000 - $rate->basisPoints))->of(Money::cents($mrp), 'half_up'));
         }
 
+        // No sub-dealer price anywhere yet: it is exactly 75% of MRP to the paisa (never rounded up to a whole taka).
+        if ($mrp && ! $this->priceGiven($d, 'sub_dealer_price') && ! isset($d['sub_dealer_discount_pct']) && $product?->sub_dealer_price === null) {
+            $d['sub_dealer_price'] = Money::decimal(Percentage::from('75.00')->of(Money::cents($mrp), 'half_up'));
+        }
+
         $retail = Money::cents($mrp);
         if ($dealer !== null && (array_key_exists('dealer_price', $d) || array_key_exists('mrp', $d) || array_key_exists('dealer_discount_pct', $d))) {
             $dealerCents = Money::cents($dealer);
