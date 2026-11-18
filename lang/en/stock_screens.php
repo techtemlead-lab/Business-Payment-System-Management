@@ -27,4 +27,8 @@ return [
     'count_moved_checked' => 'I have checked the lines that changed',
     'count_confirm_yes' => 'Yes, change the stock',
     'count_confirm_back' => 'Go back',
+    // Form marks (CR-08 follow-up)
+    'mark_optional' => 'optional',
+    'mark_required' => 'must be filled in',
+    'mark_legend' => 'Boxes with a star must be filled in. Boxes marked "optional" can be left empty.',
 ];

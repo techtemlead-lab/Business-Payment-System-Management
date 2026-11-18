@@ -73,4 +73,17 @@ class OptionalProductFieldsTest extends TestCase
         $this->withCookie('locale', 'en')->get('/products/'.$product->id)->assertOk()
             ->assertDontSee('<dt>'.__('site.category').'</dt>', false);
     }
+
+    public function test_the_form_marks_for_optional_and_required_boxes_exist_in_both_languages(): void
+    {
+        foreach (['mark_optional', 'mark_required', 'mark_legend'] as $key) {
+            $bangla = __('stock_screens.'.$key, [], 'bn');
+            $english = __('stock_screens.'.$key, [], 'en');
+            $this->assertNotSame('stock_screens.'.$key, $bangla);
+            $this->assertNotSame('stock_screens.'.$key, $english);
+            $this->assertNotSame($english, $bangla, $key.' is written in Bangla, not copied from English.');
+        }
+        $this->assertSame('ঐচ্ছিক', __('stock_screens.mark_optional', [], 'bn'));
+        $this->assertStringContainsString('ঐচ্ছিক', __('portal.pe_expires_on', [], 'bn'));
+    }
 }
