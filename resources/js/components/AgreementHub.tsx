@@ -81,7 +81,8 @@ function PartnerAgreementView({ agreement }: { agreement: PartnerAgreement }) {
 
     const accept = (event: FormEvent) => {
         event.preventDefault();
-        form.post('/commands/agreement/accept', { preserveScroll: true });
+        // Accepting opens the dashboard: start it at the top. Keep the place only when the form shows an error.
+        form.post('/commands/agreement/accept', { preserveScroll: (page) => Object.keys(page.props.errors ?? {}).length > 0 });
     };
 
     return (
