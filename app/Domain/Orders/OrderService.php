@@ -437,7 +437,7 @@ class OrderService
             if ($bookCourier) {
                 DB::afterCommit(fn () => BookShipmentCourier::dispatch($shipmentId));
             }
-            $remaining = $locked->lines()->whereColumn('dispatched', '<', 'quantity')->exists();
+            $remaining = $locked->lines()->whereRaw(OrderLines::unsentSql())->exists();
             $locked->update([
                 'status' => $remaining ? 'partially_dispatched' : 'dispatched',
                 'fulfillment_branch_id' => $fulfillmentBranch->id,
@@ -469,6 +469,7 @@ class OrderService
     {
         abort_unless($actor->allows('inventory'), 403);
         $this->assertNotOwnOrder($actor, $order);
+        abort_unless($this->branches->mayOpenOrder($actor, $order), 403);
         DB::transaction(function () use ($actor, $order, $shipmentId, $reason): void {
             CommissionWallet::lock();
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
@@ -483,9 +484,9 @@ class OrderService
                 throw ValidationException::withMessages(['shipment' => __('courier.returned_cannot_confirm')]);
             }
             DB::table('shipments')->where('id', $shipmentId)->update(['status' => 'delivered', 'delivered_at' => now(), 'delivered_by' => $actor->id, 'updated_at' => now(), ...ShipmentTracking::confirmedDelivered($shipment)]);
-            $remaining = $locked->lines()->whereColumn('dispatched', '<', 'quantity')->exists();
+            $remaining = $locked->lines()->whereRaw(OrderLines::unsentSql())->exists();
             $openShipment = DB::table('shipments')->where('order_id', $locked->id)->where('status', '!=', 'delivered')->exists();
-            if (! $remaining && ! $openShipment) {
+            if (! $remaining && ! $openShipment && ! $locked->lines()->where('closed', '>', 0)->exists()) {
                 $locked->update(['status' => 'delivered']);
                 $this->commissions->process($locked, $actor->id);
             }
@@ -504,7 +505,8 @@ class OrderService
      * A parcel the courier returned is physically back at the branch. The shipped quantity
      * goes back into that branch's stock exactly once. The order closes when nothing else is
      * left on it; when goods are still to send and nothing is out or delivered, it goes back to
-     * approved so the rest can be sent. No commission is posted; any money is returned by hand.
+     * approved so the rest can be sent. No commission is posted here; the money for the goods that
+     * came back is given back through the order's refund step ({@see OrderReturns}).
      */
     public function receiveReturnedParcel(User $actor, Order $order, int $shipmentId, ?string $note): void
     {
@@ -544,7 +546,7 @@ class OrderService
                 ]);
             }
             DB::table('shipments')->where('id', $shipment->id)->update(['status' => 'returned', 'updated_at' => now()]);
-            $unsent = $locked->lines()->whereColumn('dispatched', '<', 'quantity')->exists();
+            $unsent = $locked->lines()->whereRaw(OrderLines::unsentSql())->exists();
             $otherParcels = DB::table('shipments')->where('order_id', $locked->id)->where('status', '!=', 'returned')->exists();
             $orderClosed = ! $unsent && ! $otherParcels;
             $nothingOut = $unsent && ! $otherParcels;
@@ -695,14 +697,14 @@ class OrderService
 
             return;
         }
-        $lines = OrderLine::query()->where('order_id', $locked->id)->whereColumn('dispatched', '<', 'quantity')->orderBy('id')->get();
+        $lines = OrderLine::query()->where('order_id', $locked->id)->whereRaw(OrderLines::unsentSql())->orderBy('id')->get();
         if ($lines->isEmpty()) {
             return;
         }
         $products = Product::whereIn('id', $lines->pluck('product_id'))->orderBy('id')->lockForUpdate()->get()->keyBy('id');
         $items = [];
         foreach ($lines as $line) {
-            $left = (int) $line->getAttribute('quantity') - (int) $line->getAttribute('dispatched');
+            $left = (int) $line->getAttribute('quantity') - (int) $line->getAttribute('dispatched') - (int) $line->getAttribute('closed');
             $product = $products->get((int) $line->getAttribute('product_id'));
             if (! $product instanceof Product || $this->stockLots->usableQuantity($this->branches->ensureBranchStock($branch, $product), $product) < $left) {
                 $this->autoShipSkipped($actor, $locked, (string) $provider, 'stock');
@@ -728,7 +730,7 @@ class OrderService
         ]);
         $this->stockLots->linkShipment($shipmentLines, $shipmentId);
         DB::afterCommit(fn () => BookShipmentCourier::dispatch($shipmentId));
-        $remaining = $locked->lines()->whereColumn('dispatched', '<', 'quantity')->exists();
+        $remaining = $locked->lines()->whereRaw(OrderLines::unsentSql())->exists();
         $locked->update(['status' => $remaining ? 'partially_dispatched' : 'dispatched', 'fulfillment_branch_id' => $branch->id]);
         $this->event($locked, $actor, 'order.dispatched', [
             'shipment_id' => $shipmentId,
@@ -781,8 +783,13 @@ class OrderService
             $product = $products[$line->product_id];
             $quantity = (int) $item['quantity'];
             $branchStock = $this->branches->ensureBranchStock($branch, $product);
-            if ($quantity > $line->quantity - $line->dispatched || $quantity > $branchStock->quantity) {
-                throw ValidationException::withMessages(['shipment' => __('portal.err_shipment_qty', ['product' => $product->name])]);
+            if ($quantity > $line->quantity - $line->dispatched - $line->closed || $quantity > $branchStock->quantity) {
+                throw ValidationException::withMessages(['shipment' => __('orders_stock.err_shipment_qty', [
+                    'product' => $product->name,
+                    'left' => LocalDigits::text((string) max(0, $line->quantity - $line->dispatched - $line->closed)),
+                    'stock' => LocalDigits::text((string) $branchStock->quantity),
+                    'branch' => $branch->name,
+                ])]);
             }
             $previousStock = $product->stock;
             $wasAvailable = $this->stockNotifications->isAvailable($product);
@@ -825,7 +832,7 @@ class OrderService
         $this->assertNotOwnOrder($actor, $order);
         DB::transaction(function () use ($actor, $order, $eta, $note): void {
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
-            if (! in_array($locked->status, self::SupplyDateStatuses, true) || ! $locked->lines()->whereColumn('dispatched', '<', 'quantity')->exists()) {
+            if (! in_array($locked->status, self::SupplyDateStatuses, true) || ! $locked->lines()->whereRaw(OrderLines::unsentSql())->exists()) {
                 throw ValidationException::withMessages(['supply_eta' => __('portal.err_supply_eta_nothing_left')]);
             }
             $note = $note !== null && trim($note) !== '' ? trim($note) : null;

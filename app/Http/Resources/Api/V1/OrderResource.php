@@ -20,7 +20,8 @@ class OrderResource extends JsonResource
             'lines' => $this->whenLoaded('lines', fn () => $this->lines->map(fn ($line) => [
                 'id' => $line->id, 'product_id' => $line->product_id, 'name' => $line->name, 'sku' => $line->sku,
                 'quantity' => (int) $line->quantity, 'dispatched' => (int) $line->dispatched,
-                'remaining' => (int) $line->quantity - (int) $line->dispatched,
+                'closed' => (int) $line->closed, 'returned' => (int) $line->returned,
+                'remaining' => max(0, (int) $line->quantity - (int) $line->dispatched - (int) $line->closed),
                 'mrp' => Money::decimal(Money::cents((string) $line->mrp)),
                 'unit_price' => Money::decimal(Money::cents((string) $line->unit_price)),
                 'total' => Money::decimal(Money::cents((string) $line->total)),

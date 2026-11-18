@@ -91,9 +91,9 @@ class CommandController extends Controller
     public function refund(RefundOrderRequest $r, Order $order, OrderRefund $refunds): RedirectResponse
     {
         $d = $r->validated();
-        $refunds->refund($r->user(), $order, (string) $d['amount'], ReasonFields::text($d['reason'] ?? null));
+        $result = $refunds->refund($r->user(), $order, (string) $d['amount'], ReasonFields::text($d['reason'] ?? null));
 
-        return back(fallback: '/orders/'.$order->id)->with('success', __('portal.flash_order_refunded'));
+        return back(fallback: '/orders/'.$order->id)->with('success', __($result['done'] ? 'portal.flash_order_refunded' : 'orders_stock.flash_waiting_second'));
     }
 
     public function verify(VerifyPaymentRequest $r, int $claim, OrderService $s): RedirectResponse

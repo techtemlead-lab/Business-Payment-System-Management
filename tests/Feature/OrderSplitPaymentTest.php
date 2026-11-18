@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Orders\OrderRefund;
+use App\Domain\Orders\OrderReturns;
 use App\Domain\Orders\OrderService;
 use App\Models\Order;
 use App\Models\Product;
@@ -191,7 +192,10 @@ class OrderSplitPaymentTest extends TestCase
         $order = Order::where('user_id', $dealer->id)->sole();
         app(OrderService::class)->verify($finance, (int) DB::table('payment_claims')->where('order_id', $order->id)->where('channel', 'Office')->value('id'), true, 'Cash taken');
 
-        app(OrderRefund::class)->refund($finance, $order->fresh(), '200.00', 'Partner changed their mind');
+        $request = app(OrderRefund::class)->refund($finance, $order->fresh(), '200.00', 'Partner changed their mind');
+        // A refund by anyone but the owner waits for a second person (MA-16).
+        $this->assertSame('0.00', $this->usable($dealer));
+        app(OrderReturns::class)->confirm(User::factory()->staff('finance')->create(), $request['id'], 'Second check');
 
         $this->assertSame('150.00', $this->usable($dealer));
         $this->assertDatabaseHas('order_refunds', ['order_id' => $order->id, 'amount' => '200.00', 'to_account' => '150.00']);
