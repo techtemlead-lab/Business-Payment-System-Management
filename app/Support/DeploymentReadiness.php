@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Console\Commands\RestoreDrillApplicationBackup;
 use App\Domain\Diagnostics\ErrorTrackingSettings;
 use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Integrations\SmsGatewayClient;
@@ -9,6 +10,7 @@ use App\Domain\Security\SecuritySettings;
 use App\Logging\CreateAlertLogger;
 use App\Models\PlaceCode;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Lang;
@@ -17,6 +19,9 @@ use Illuminate\Support\Str;
 
 final class DeploymentReadiness
 {
+    /** Written beside the backups by infra/ops/host-backup.sh after each successful copy to remote storage. */
+    public const OffsiteCopyRecord = 'offsite-copy-last.json';
+
     /**
      * @return array{
      *   ready: bool,
@@ -225,6 +230,12 @@ final class DeploymentReadiness
             && ! Cache::has('operations:verified-backup')) {
             $warnings[] = 'verified_backup_missing';
         }
+        if (config('madina.backups_enabled') && ! $this->offsiteCopyConfigured()) {
+            $warnings[] = 'offsite_backup_not_configured';
+        }
+        if (config('madina.backups_enabled') && ! $this->restoreDrillRecent()) {
+            $warnings[] = 'restore_drill_overdue';
+        }
         if (! CreateAlertLogger::configured()) {
             $warnings[] = 'alerts_not_configured';
         }
@@ -258,6 +269,55 @@ final class DeploymentReadiness
             'preview_mode' => (bool) config('madina.preview_mode'),
             'financial_posting' => (bool) config('madina.financial_activation'),
         ];
+    }
+
+    /**
+     * An off-site copy exists when the app copies each backup to a second disk, or when the host script
+     * (infra/ops/host-backup.sh) has reported a successful copy to remote storage in the last two days.
+     */
+    private function offsiteCopyConfigured(): bool
+    {
+        if (trim((string) config('madina.backup_offsite_disk')) !== '') {
+            return true;
+        }
+        $record = $this->backupDiskRecord(self::OffsiteCopyRecord);
+
+        return ($record['passed'] ?? false) === true && $this->recordedWithin($record, 2);
+    }
+
+    /** A restore drill (app:backup-restore-drill or infra/ops/restore-drill.sh) passed in the last 35 days. */
+    private function restoreDrillRecent(): bool
+    {
+        $record = $this->backupDiskRecord(RestoreDrillApplicationBackup::RecordFile);
+
+        return ($record['passed'] ?? false) === true && $this->recordedWithin($record, 35);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function backupDiskRecord(string $file): array
+    {
+        try {
+            $disk = Storage::disk((string) config('madina.backup_disk'));
+            $decoded = $disk->exists($file) ? json_decode((string) $disk->get($file), true) : null;
+        } catch (\Throwable) {
+            return [];
+        }
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    /**
+     * @param  array<string, mixed>  $record
+     */
+    private function recordedWithin(array $record, int $days): bool
+    {
+        try {
+            return CarbonImmutable::parse((string) ($record['ran_at'] ?? ''))->greaterThan(now()->subDays($days));
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     /**

@@ -33,6 +33,8 @@ return [
     // app:backup-prune deletes local backups older than this, but always keeps the newest few.
     'backup_retention_days' => (int) env('MADINA_BACKUP_RETENTION_DAYS', 14),
     'backup_keep_minimum' => (int) env('MADINA_BACKUP_KEEP_MINIMUM', 7),
+    // Run app:backup-restore-drill on the 2nd of every month at 05:00 Dhaka (needs CREATEDB for the app's DB user).
+    'restore_drill_monthly' => (bool) env('MADINA_RESTORE_DRILL_MONTHLY', false),
     // Where serious problems are sent (OP-02). Off until a Telegram bot + chat or an email address is set.
     // Make a bot with @BotFather, add it to the owner's or IT group, and put the group's chat id here.
     'alerts' => [

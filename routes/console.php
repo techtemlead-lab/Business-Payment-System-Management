@@ -42,6 +42,11 @@ Schedule::command('finance:readiness')->dailyAt('03:15')->timezone('Asia/Dhaka')
 if (config('madina.backups_enabled')) {
     Schedule::command('app:backup')->dailyAt('02:00')->timezone('Asia/Dhaka')->withoutOverlapping(120)->onOneServer()
         ->onFailure(fn () => Log::critical('Scheduled application backup failed. Review backup status before handover.'));
+    // Monthly proof that last night's backup really comes back (scratch database, live only read). Needs a
+    // database user that may create databases, so it is switched on separately after a first manual drill.
+    if (config('madina.restore_drill_monthly')) {
+        Schedule::command('app:backup-restore-drill')->monthlyOn(2, '05:00')->timezone('Asia/Dhaka')->withoutOverlapping(120)->onOneServer();
+    }
     // Old local backups are deleted so the disk does not fill up; the newest few are always kept.
     Schedule::command('app:backup-prune')->dailyAt('04:00')->timezone('Asia/Dhaka')->withoutOverlapping(30)->onOneServer()
         ->onFailure(fn () => Log::critical('Scheduled backup clean-up failed. Check free disk space on the backup volume.'));
