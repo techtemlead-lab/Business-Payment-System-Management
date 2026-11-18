@@ -4886,7 +4886,7 @@ return [
     'rpt_col_division' => 'Division',
     'rpt_col_partner_count' => 'Partners',
     'rpt_col_days_outstanding' => 'Days waiting',
-    'col_delivered' => 'Delivered',
+    'col_delivered' => 'Sent',
     'days_count' => ':n days',
     'col_delivered_hint' => 'Quantity sent out of quantity ordered',
     'col_checked_by' => 'Checked by',

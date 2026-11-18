@@ -38,6 +38,40 @@ function CancelSubmittedCount({ sessionId }: { sessionId: number }) {
     );
 }
 
+/** Approving changes stock, so the approver first sees the totals and any line whose stock moved since it was counted (F-verify-07). */
+function ApproveCount({ session }: { session: Row }) {
+    const text = useText();
+    const translate = useT();
+    const noteField = useReasonField('stock.count_approve');
+    const [confirming, setConfirming] = useState(false);
+    const form = useForm({ note: '', moved_checked: false, confirmed: '1' });
+    const totals = (session.approval_totals ?? { lines_changing: 0, units_added: 0, units_removed: 0, moved_lines: 0 }) as Row;
+    const moved = Number(totals.moved_lines) > 0;
+    const words = (key: string, replace?: Record<string, string>) => translate('stock_screens', key, replace);
+
+    return (
+        <form className="action-form" onSubmit={(event) => { event.preventDefault(); setConfirming(true); }}>
+            {noteField.shown && <label>{noteField.label(text('count_note'))}<textarea rows={2} maxLength={1000} required={noteField.required} value={form.data.note} onChange={(event) => form.setData('note', event.target.value)} /></label>}
+            <FormErrors errors={form.errors} />
+            {confirming ? (
+                <div className="notice" role="alertdialog" aria-labelledby={`count-confirm-${session.id}`} data-testid="count-confirm">
+                    <b id={`count-confirm-${session.id}`}>{words('count_confirm_title')}</b>
+                    <p>{words('count_confirm_totals', { lines: number(totals.lines_changing), added: number(totals.units_added), removed: number(totals.units_removed) })}</p>
+                    {moved && <>
+                        <p>{words('count_confirm_moved', { count: number(totals.moved_lines) })}</p>
+                        <label className="inline-choice"><input type="checkbox" checked={form.data.moved_checked} onChange={(event) => form.setData('moved_checked', event.target.checked)} /> {words('count_moved_checked')}</label>
+                    </>}
+                    <div className="ops-row is-wrap">
+                        <button type="button" className="button dark" disabled={form.processing || (moved && !form.data.moved_checked)}
+                            onClick={() => form.post(`/commands/stock-counts/${session.id}/approve`, { preserveScroll: true, onFinish: () => setConfirming(false) })}>{words('count_confirm_yes')}</button>
+                        <button type="button" className="button" onClick={() => setConfirming(false)}>{words('count_confirm_back')}</button>
+                    </div>
+                </div>
+            ) : <button className="button dark" disabled={form.processing}>{text('count_approve')}</button>}
+        </form>
+    );
+}
+
 function StartCount({ branches }: { branches: Row[] }) {
     const text = useText();
     const translate = useT();
@@ -108,6 +142,9 @@ function CountSheet({ session, can }: { session: Row; can: StockCountData['can']
                 columns={[
                     { key: 'product', title: text('product'), render: (line: Row) => <>{line.name}<small className="cell-sub">{line.sku}</small></> },
                     { key: 'expected', title: text('count_system_quantity'), align: 'right', render: (line: Row) => number(line.expected) },
+                    ...(session.status === 'submitted' ? [{ key: 'now', title: translate('stock_screens', 'count_now'), align: 'right' as const, render: (line: Row) => line.now === null ? '—' : line.moved
+                        ? <span className="field-hint is-warn" title={translate('stock_screens', 'count_moved')}><b>{number(line.now)}</b> · {translate('stock_screens', 'count_moved')}</span>
+                        : number(line.now) }] : []),
                     {
                         key: 'counted',
                         title: text('count_counted_quantity'),
@@ -162,11 +199,7 @@ function CountSheet({ session, can }: { session: Row; can: StockCountData['can']
             )}
             {session.status === 'submitted' && (session.can_decide ? (
                 <div className="ops-row is-wrap">
-                    <ActionForm
-                        action={`/commands/stock-counts/${session.id}/approve`}
-                        fields={[{ name: 'note', label: text('count_note'), type: 'textarea', place: 'stock.count_approve' }]}
-                        submit={text('count_approve')}
-                    />
+                    <ApproveCount session={session} />
                     <ActionForm
                         action={`/commands/stock-counts/${session.id}/reject`}
                         fields={[{ name: 'note', label: text('count_reject_note'), type: 'textarea', required: true, place: 'stock.count_reject' }]}

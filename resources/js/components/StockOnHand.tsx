@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from './MoneyTable';
 import Figures from './office/Figures';
-import { Modal, date, money, number, type Row } from './UI';
+import { ActionForm, Modal, Table, date, money, number, type Row } from './UI';
 import { useAddressVisit } from './MoneyTableFilters';
 import { useT } from '../shared/i18n/t';
 import { localizeDigits } from '../business-date';
@@ -163,16 +163,21 @@ function StockDrawer({ row, lots, companyStock, canToggle, onClose }: {
     );
 }
 
-export default function StockOnHand({ table, canToggle, showBranch }: {
+export default function StockOnHand({ table, canToggle, showBranch, branches = [], transfers = [] }: {
     table: StockTableData;
     canToggle: boolean;
     showBranch: boolean;
+    branches?: Row[];
+    transfers?: Row[];
 }) {
     const translate = useT();
     const t = (key: string, replace?: Record<string, string | number>) => translate('office_stock', key, replace);
     const visit = useAddressVisit('data');
     const { props: pageProps } = usePage<any>();
     const [openRowKey, setOpenRowKey] = useState<string | null>(null);
+    const [movingRow, setMovingRow] = useState<StockRow | null>(null);
+    const screen = (key: string, replace?: Record<string, string | number>) => translate('stock_screens', key, replace);
+    const hubOptions = branches.filter((branch) => branch.is_stock_hub && branch.is_active).map((branch) => ({ value: String(branch.id), label: `${branch.name} · ${branch.code}` }));
     const sums = table.totals.sums ?? {};
     const units = (key: string) => number(Number(sums[key] ?? 0));
     const active = table.state.filters;
@@ -255,6 +260,14 @@ export default function StockOnHand({ table, canToggle, showBranch }: {
             ),
         },
         { key: 'stock_value', title: t('card_value'), sortKey: 'stock_value', money: true, total: 'stock_value', phone: 'hide' },
+        {
+            key: 'move',
+            title: '',
+            phone: 'sub',
+            render: (row) => (row.branch_id != null && row.in_stock > 0 && hubOptions.length > 1
+                ? <button type="button" className="button small" onClick={() => setMovingRow(row)}>{screen('move_button')}</button>
+                : null),
+        },
         { key: 'status', title: translate('portal', 'col_status'), phone: 'sub', render: (row) => <StatusBadge row={row} /> },
     ];
 
@@ -273,6 +286,26 @@ export default function StockOnHand({ table, canToggle, showBranch }: {
                     { key: 'courier', label: t('card_courier'), value: units('with_courier'), text: true, ...filterCard('stage', 'with_courier') },
                 ]}
             />
+            {transfers.length > 0 && (
+                <section className="panel">
+                    <div className="panel-heading"><h2>{screen('moving_title')}</h2><span>{screen('moving_hint')}</span></div>
+                    <Table rows={transfers} tools={false} columns={[
+                        { key: 'number', title: translate('stock_lots', 'col_number') },
+                        { key: 'product', title: translate('stock_lots', 'col_product') },
+                        { key: 'source', title: translate('stock_lots', 'col_from') },
+                        { key: 'destination', title: translate('stock_lots', 'col_to') },
+                        { key: 'quantity', title: translate('stock_lots', 'col_quantity'), align: 'right', render: (row: Row) => number(row.quantity) },
+                        { key: 'status', title: translate('stock_lots', 'col_status'), render: (row: Row) => <span className="badge">{translate('stock_lots', `status_${row.status}`)}</span> },
+                        { key: 'action', title: translate('stock_lots', 'col_action'), render: (row: Row) => (
+                            <div className="ops-row is-wrap">
+                                {row.status === 'requested' && <ActionForm action={`/commands/stock-transfers/${row.id}/send`} fields={[]} submit={translate('stock_lots', 'transfer_send')} />}
+                                {row.status === 'requested' && <ActionForm action={`/commands/stock-transfers/${row.id}/cancel`} fields={[]} submit={translate('stock_lots', 'transfer_cancel')} />}
+                                {row.status === 'in_transit' && <ActionForm action={`/commands/stock-transfers/${row.id}/receive`} fields={[]} submit={translate('stock_lots', 'transfer_receive')} />}
+                            </div>
+                        ) },
+                    ]} />
+                </section>
+            )}
             <div className="sf-table">
                 <MoneyTable
                     data={table}
@@ -283,6 +316,24 @@ export default function StockOnHand({ table, canToggle, showBranch }: {
                     onRowOpen={openRow}
                 />
             </div>
+            {movingRow && (
+                <Modal title={screen('move_title', { name: movingRow.register_name || movingRow.name })} onClose={() => setMovingRow(null)}>
+                    <p className="field-hint">{screen('move_hint')}</p>
+                    <ActionForm
+                        action="/commands/stock-transfers"
+                        submit={screen('move_submit')}
+                        onDone={() => setMovingRow(null)}
+                        defaults={{ product_id: String(movingRow.id), source_branch_id: String(movingRow.branch_id), destination_branch_id: '', quantity: '' }}
+                        fields={[
+                            { name: 'product_id', label: translate('stock_lots', 'col_product'), required: true, options: [{ value: String(movingRow.id), label: movingRow.register_name || movingRow.name }] },
+                            { name: 'source_branch_id', label: translate('stock_lots', 'col_from'), required: true, options: hubOptions },
+                            { name: 'destination_branch_id', label: translate('stock_lots', 'col_to'), required: true, search: true, options: hubOptions.filter((option) => option.value !== String(movingRow.branch_id)) },
+                            { name: 'quantity', label: translate('stock_lots', 'col_quantity'), type: 'number', required: true, hint: screen('move_quantity_hint', { count: number(movingRow.in_stock) }) },
+                            { name: 'note', label: translate('stock_lots', 'transfer_note'), place: 'stock.transfer_note' },
+                        ]}
+                    />
+                </Modal>
+            )}
             {openedRow && (
                 <StockDrawer
                     row={openedRow}

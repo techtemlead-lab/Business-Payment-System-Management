@@ -29,6 +29,8 @@ final class RepeatOrderOptions
      *   order_id: string,
      *   number: string,
      *   ordered_on: string,
+     *   total: string,
+     *   names: list<string>,
      *   items: list<array{product: array<string, mixed>, quantity: int, last_quantity: int, last_unit_price: string, price_changed: bool}>,
      *   skipped: list<array{name: string, reason: string}>
      * }>
@@ -44,7 +46,7 @@ final class RepeatOrderOptions
             ->orderByDesc('id')
             ->limit(self::RecentOrders)
             ->with('lines:id,order_id,product_id,name,quantity,unit_price,is_free')
-            ->get(['id', 'number', 'created_at']);
+            ->get(['id', 'number', 'created_at', 'total']);
         if ($orders->isEmpty()) {
             return [];
         }
@@ -86,6 +88,8 @@ final class RepeatOrderOptions
             'order_id' => (string) $order->id,
             'number' => (string) $order->number,
             'ordered_on' => $order->created_at?->toDateString() ?? '',
+            'total' => Money::decimal(Money::cents((string) $order->total)),
+            'names' => $order->chargedLines()->pluck('name')->map(fn (mixed $name): string => (string) $name)->values()->all(),
             'items' => $items,
             'skipped' => $skipped,
         ];

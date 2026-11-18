@@ -92,8 +92,10 @@ final class StockCountsSection implements WorkspaceSection
     private function selectedRow(StockCountSession $session, User $user, StockCountService $service): array
     {
         $counted = $session->lines->whereNotNull('counted_quantity');
+        $check = $session->status === StockCountSession::StatusSubmitted ? $service->approvalCheck($session) : null;
 
         return $this->sessionRow($session) + [
+            'approval_totals' => $check['totals'] ?? null,
             'can_decide' => $session->status === StockCountSession::StatusSubmitted && $service->canDecide($user, $session, $counted),
             'lines' => $session->lines->sortBy('id')->map(fn (StockCountLine $line): array => [
                 'id' => $line->id,
@@ -102,6 +104,8 @@ final class StockCountsSection implements WorkspaceSection
                 'expected' => $line->expected_quantity,
                 'counted' => $line->counted_quantity,
                 'variance' => $line->variance(),
+                'now' => $check['lines'][(int) $line->id]['now'] ?? null,
+                'moved' => $check['lines'][(int) $line->id]['moved'] ?? false,
             ])->values(),
         ];
     }

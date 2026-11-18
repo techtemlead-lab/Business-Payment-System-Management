@@ -6,6 +6,7 @@ use App\Domain\Inventory\StockStages;
 use App\Domain\Orders\CourierBoard;
 use App\Domain\Orders\CourierOptions;
 use App\Domain\Orders\DeliveredMoney;
+use App\Domain\Orders\OrderLines;
 use App\Domain\Orders\OrderListFilter;
 use App\Domain\Orders\OverdueDeliveries;
 use App\Domain\Orders\ShipmentTracking;
@@ -90,7 +91,7 @@ final class OrdersSection implements WorkspaceSection
         $listQuery->with($orderWith)
             ->selectRaw(DeliveredMoney::valueSql().' AS delivered_value, '.DeliveredMoney::paidSql().' AS delivered_paid, '.OrderListFilter::cameBackSql().' AS came_back, '.OrderListFilter::returnedUnitsSql().' AS returned_units');
         if ($usesSharedTable) {
-            $listQuery->selectRaw('(SELECT order_refunds.amount FROM order_refunds WHERE order_refunds.order_id = orders.id LIMIT 1) AS refunded_amount');
+            $listQuery->selectRaw('(SELECT SUM(order_refunds.amount) FROM order_refunds WHERE order_refunds.order_id = orders.id) AS refunded_amount');
         }
         [$sort, $direction, $sorts] = $this->chosenSort($request);
         if ($usesSharedTable) {
@@ -338,7 +339,7 @@ final class OrdersSection implements WorkspaceSection
     {
         $today = now('Asia/Dhaka')->toDateString();
         $ids = (clone $filteredOrders)->toBase()->reorder()->select('orders.id');
-        $units = (int) DB::table('order_lines')->whereIn('order_id', $ids)->sum(DB::raw('GREATEST(quantity - dispatched, 0)'));
+        $units = (int) DB::table('order_lines')->whereIn('order_id', $ids)->sum(DB::raw(OrderLines::unsentUnitsSql()));
         $row = (clone $filteredOrders)->toBase()->reorder()
             ->selectRaw("COUNT(*) AS orders, COALESCE(MAX(DATE '{$today}' - DATE(orders.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Dhaka')), 0) AS oldest_days")
             ->first();

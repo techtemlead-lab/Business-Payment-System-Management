@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useForm, usePage } from '@inertiajs/react';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { Camera, Eye, Plus, Save } from 'lucide-react';
 import { FeaturedProductsManager } from './website/FeaturedProductsManager';
 import { type FeaturedOrderProduct } from './website/FeaturedOrderList';
@@ -78,6 +78,7 @@ export default function ProductManagementHub({
     const draftCount = Number(pageProps.data?.draft_count ?? 0);
     const visit = useAddressVisit(null);
     const [drawerProductId, setDrawerProductId] = useState<number | string | null>(null);
+    const [pickedForPublish, setPickedForPublish] = useState<number[]>([]);
     const canStock=auth.capabilities.includes('inventory')&&(staffActions?.inventory?.edit??true);
     const canEditCatalog=auth.capabilities.includes('catalog')&&(staffActions?.catalog?.edit??true);
     const canEditMarketing=canEditCatalog||(auth.capabilities.includes('content')&&(staffActions?.content?.edit??true));
@@ -164,7 +165,21 @@ export default function ProductManagementHub({
         ? <img className="os-product-photo" src={product.image_url || product.image_fallback?.url} alt="" loading="lazy" />
         : <span className="os-product-photo" aria-hidden="true" />);
 
+    const canPublishDrafts = showsDrafts && canEditCatalog;
     const columns: MoneyColumn<Row>[] = [
+        ...(canPublishDrafts ? [{
+            key: 'pick',
+            title: '',
+            phone: 'sub' as const,
+            render: (product: Row) => (
+                <input
+                    type="checkbox"
+                    aria-label={`${translate('stock_screens', 'import_publish_pick')}: ${product.name}`}
+                    checked={pickedForPublish.includes(Number(product.id))}
+                    onChange={(event) => setPickedForPublish((current) => event.target.checked ? [...current, Number(product.id)] : current.filter((id) => id !== Number(product.id)))}
+                />
+            ),
+        }] : []),
         {
             key: 'name',
             title: translate('portal', 'col_product'),
@@ -285,6 +300,27 @@ export default function ProductManagementHub({
                     )}
                 </div>
             </div>
+
+            {activeTab === 'products' && canPublishDrafts && products.length > 0 && (
+                <div className="ops-card is-soft ops-mb-5">
+                    <div className="ops-row is-between is-wrap is-loose">
+                        <p className="hub-sub">{translate('stock_screens', 'import_publish_hint')}</p>
+                        <div className="ops-row is-wrap">
+                            <button type="button" className="button small" onClick={() => setPickedForPublish(pickedForPublish.length === products.length ? [] : products.map((product) => Number(product.id)))}>
+                                {pickedForPublish.length === products.length ? translate('stock_screens', 'clear_selection') : translate('stock_screens', 'select_all_shown')}
+                            </button>
+                            <button
+                                type="button"
+                                className="button small dark"
+                                disabled={pickedForPublish.length === 0}
+                                onClick={() => router.post('/commands/products/bulk-publish', { product_ids: pickedForPublish }, { preserveScroll: true, onSuccess: () => setPickedForPublish([]) })}
+                            >
+                                {translate('stock_screens', 'import_publish_selected')}{pickedForPublish.length > 0 ? ` (${number(pickedForPublish.length)})` : ''}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {activeTab === 'products' && (
                 <div className="sf-table">

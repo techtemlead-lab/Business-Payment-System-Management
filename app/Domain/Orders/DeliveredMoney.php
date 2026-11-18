@@ -37,9 +37,18 @@ final class DeliveredMoney
     /** SQL for the money value of the goods delivered on one order. */
     public static function valueSql(string $orders = 'orders'): string
     {
-        return "CASE WHEN {$orders}.status = 'delivered' THEN {$orders}.total"
-            ." WHEN {$orders}.status = '".MixedOutcomeDecisions::PartlyDelivered."' OR ".self::stillGoingOutSql($orders).' THEN '.self::partlyDeliveredSql($orders)
+        // Goods the partner gave back after delivery no longer count.
+        $returned = self::returnedValueSql($orders);
+
+        return "CASE WHEN {$orders}.status = 'delivered' THEN {$orders}.total - {$returned}"
+            ." WHEN {$orders}.status = '".MixedOutcomeDecisions::PartlyDelivered."' OR ".self::stillGoingOutSql($orders).' THEN '.self::partlyDeliveredSql($orders)." - {$returned}"
             .' ELSE 0 END';
+    }
+
+    /** SQL for the value of delivered goods the partner gave back. */
+    private static function returnedValueSql(string $orders): string
+    {
+        return "COALESCE((SELECT SUM(back.returned * back.unit_price) FROM order_lines AS back WHERE back.order_id = {$orders}.id AND back.returned > 0 AND back.is_free IS NOT TRUE), 0)";
     }
 
     /** SQL for how much of the paid money is for delivered goods. */
@@ -51,15 +60,15 @@ final class DeliveredMoney
     /** SQL for the units of one order line that were delivered. */
     public static function lineQuantitySql(string $orders = 'o', string $lines = 'l'): string
     {
-        return "CASE WHEN {$orders}.status = 'delivered' THEN {$lines}.quantity ELSE COALESCE((SELECT SUM((item.value->>'quantity')::int)"
+        return "(CASE WHEN {$orders}.status = 'delivered' THEN {$lines}.quantity ELSE COALESCE((SELECT SUM((item.value->>'quantity')::int)"
             .' FROM shipments AS parcel CROSS JOIN LATERAL json_array_elements(parcel.lines) AS item(value)'
-            ." WHERE parcel.order_id = {$orders}.id AND parcel.status = 'delivered' AND (item.value->>'line_id')::bigint = {$lines}.id), 0) END";
+            ." WHERE parcel.order_id = {$orders}.id AND parcel.status = 'delivered' AND (item.value->>'line_id')::bigint = {$lines}.id), 0) END - {$lines}.returned)";
     }
 
     /** SQL for the money value of the units of one order line that were delivered. */
     public static function lineValueSql(string $orders = 'o', string $lines = 'l'): string
     {
-        return "CASE WHEN {$orders}.status = 'delivered' THEN {$lines}.total ELSE {$lines}.unit_price * ".self::lineQuantitySql($orders, $lines).' END';
+        return "CASE WHEN {$orders}.status = 'delivered' THEN {$lines}.total - {$lines}.returned * {$lines}.unit_price ELSE {$lines}.unit_price * ".self::lineQuantitySql($orders, $lines).' END';
     }
 
     /** The money value of the goods delivered on one order, as a decimal string. */

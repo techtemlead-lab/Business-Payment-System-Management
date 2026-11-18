@@ -26,6 +26,9 @@ final class BranchOperations
 
     public const KindProductOut = 'product_out';
 
+    /** Most units one stock entry, transfer or purchase line may move (owner decision D14, 2026-11-18). */
+    public const MaxUnitsPerEntry = 1000000;
+
     public const SessionView = 'branch_view';
 
     /** @var list<string> */
@@ -357,6 +360,20 @@ final class BranchOperations
     }
 
     /**
+     * Goods a partner gave back after delivery go into the branch the approved return names.
+     * The approval itself was the check (two people for money), so the person carrying it out
+     * does not need to work at that branch or hold the stock right.
+     *
+     * @param  array<string, mixed>  $data  as for adjustStock, without branch_id
+     */
+    public function receiveOrderReturn(User $actor, CompanyBranch $branch, array $data): Product
+    {
+        abort_unless($branch->is_active && $branch->is_stock_hub, 422, __('portal.err_branch_not_stock_hub'));
+
+        return $this->applyStockAdjustment($actor, [...$data, 'kind' => self::KindProductIn], $branch);
+    }
+
+    /**
      * @param  array{
      *   product_id:int,
      *   quantity:int,
@@ -369,9 +386,9 @@ final class BranchOperations
      *   batch_number?:string|null
      * }  $data
      */
-    private function applyStockAdjustment(User $actor, array $data): Product
+    private function applyStockAdjustment(User $actor, array $data, ?CompanyBranch $branch = null): Product
     {
-        $branch = $this->resolveWritableBranch($actor, isset($data['branch_id']) ? (int) $data['branch_id'] : null);
+        $branch ??= $this->resolveWritableBranch($actor, isset($data['branch_id']) ? (int) $data['branch_id'] : null);
 
         return DB::transaction(function () use ($actor, $data, $branch): Product {
             if (DB::table('stock_movements')->where('reference', $data['reference'])->exists()) {
@@ -383,7 +400,7 @@ final class BranchOperations
 
             [$quantity, $kind, $reason] = $this->resolveMovementDirection($data, $actor);
             $next = (int) $stock->quantity + $quantity;
-            if ($quantity === 0 || abs($quantity) > 100000 || $next < 0 || $next > 2147483647) {
+            if ($quantity === 0 || abs($quantity) > self::MaxUnitsPerEntry || $next < 0 || $next > 2147483647) {
                 throw ValidationException::withMessages(['quantity' => __('portal.err_stock_nonnegative')]);
             }
 

@@ -9,6 +9,7 @@ use App\Domain\Catalog\ProductPageAccess;
 use App\Domain\Catalog\ProductRemoval;
 use App\Domain\Catalog\ProductSizeGroups;
 use App\Domain\Finance\FinanceSettings;
+use App\Domain\Inventory\AvailableNow;
 use App\Domain\Inventory\StockRegister;
 use App\Domain\Orders\AccountOrderPayment;
 use App\Domain\Orders\CourierOptions;
@@ -211,6 +212,8 @@ final class CatalogSection implements WorkspaceSection
             $props['pay_options'] = app(AccountOrderPayment::class)->options($user);
             // The dealer picks one of the couriers the owner switched on, or lets the company decide.
             $props['courier_choices'] = app(CourierOptions::class)->choices();
+            // Units free to promise now, in a prop of its own so the product rows never carry a stock figure.
+            $props['available_now'] = AvailableNow::forProducts($products);
         }
 
         return $props;

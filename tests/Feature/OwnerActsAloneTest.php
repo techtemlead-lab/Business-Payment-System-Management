@@ -140,7 +140,7 @@ class OwnerActsAloneTest extends TestCase
 
         $this->actingAs($this->owner)->onPortal('sadmin')->get('/stock-counts')
             ->assertOk()->assertInertia(fn (Assert $page) => $page->where('data.stock_counts.selected.id', $session->id)->where('data.stock_counts.selected.can_decide', true));
-        $this->actingAs($this->owner)->post("/commands/stock-counts/{$session->id}/approve")->assertSessionHasNoErrors();
+        $this->actingAs($this->owner)->post("/commands/stock-counts/{$session->id}/approve", ['confirmed' => '1'])->assertSessionHasNoErrors();
 
         $this->assertSame(StockCountSession::StatusApproved, $session->fresh()->status);
         $this->assertDoneAlone('stock_count.approved', (string) $session->id);
@@ -153,7 +153,7 @@ class OwnerActsAloneTest extends TestCase
 
         $this->actingAs($counter)->onPortal('manage')->get('/stock-counts')
             ->assertOk()->assertInertia(fn (Assert $page) => $page->where('data.stock_counts.selected.can_decide', false));
-        $this->actingAs($counter)->post("/commands/stock-counts/{$session->id}/approve")
+        $this->actingAs($counter)->post("/commands/stock-counts/{$session->id}/approve", ['confirmed' => '1'])
             ->assertSessionHasErrors(['count' => __('purchasing.err_second_person')]);
         $this->assertSame(StockCountSession::StatusSubmitted, $session->fresh()->status);
     }

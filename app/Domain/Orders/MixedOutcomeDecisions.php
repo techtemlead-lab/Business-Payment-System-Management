@@ -192,9 +192,12 @@ final class MixedOutcomeDecisions
         return DB::table('orders')
             ->whereNotIn('orders.status', ['cancelled', 'rejected', 'delivered'])
             ->whereExists($parcel('delivered'))
-            ->whereExists($parcel('returned'))
+            // Part of the goods came back by courier, or the rest of a back order was closed.
+            ->where(fn (QueryBuilder $query) => $query->whereExists($parcel('returned'))
+                ->orWhereExists(fn (QueryBuilder $lines) => $lines->selectRaw('1')->from('order_lines')
+                    ->whereColumn('order_lines.order_id', 'orders.id')->where('order_lines.closed', '>', 0)))
             ->whereNotExists($parcel('dispatched'))
             ->whereNotExists(fn (QueryBuilder $query) => $query->selectRaw('1')->from('order_lines')
-                ->whereColumn('order_lines.order_id', 'orders.id')->whereColumn('order_lines.dispatched', '<', 'order_lines.quantity'));
+                ->whereColumn('order_lines.order_id', 'orders.id')->whereRaw(OrderLines::unsentSql('order_lines')));
     }
 }

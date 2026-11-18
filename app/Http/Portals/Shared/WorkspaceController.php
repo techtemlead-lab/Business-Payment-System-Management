@@ -17,11 +17,14 @@ use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\BranchScope;
 use App\Domain\Inventory\StockMovementList;
 use App\Domain\Orders\AccountOrderPayment;
+use App\Domain\Orders\BackOrders;
 use App\Domain\Orders\CourierOptions;
 use App\Domain\Orders\MixedOutcomeDecisions;
 use App\Domain\Orders\OrderInvoice;
 use App\Domain\Orders\OrderPaymentPrompt;
 use App\Domain\Orders\OrderRefund;
+use App\Domain\Orders\OrderReturns;
+use App\Domain\Orders\OrderWatchers;
 use App\Domain\Orders\ShipmentTracking;
 use App\Domain\Orders\UplineReplacementOptions;
 use App\Domain\Pricing\ProductPricing;
@@ -70,7 +73,6 @@ use App\Models\Order;
 use App\Models\PlaceCode;
 use App\Models\User;
 use App\Support\JoinQr;
-use App\Support\Money;
 use App\Support\OfficeHubs;
 use App\Support\PartnerHubTabs;
 use App\Support\PortalCatalog;
@@ -350,6 +352,10 @@ class WorkspaceController extends Controller
 
         return Inertia::render('OrderDetail', ['replacementSlots' => $replacementSlots, 'replacementCandidates' => $replacementCandidates, 'order' => $order->load(['lines', 'user:id,name,dealer_code']),
             'commissionOutcome' => app(MixedOutcomeDecisions::class)->outcomeFor($order, $u),
+            'returns' => app(OrderReturns::class)->pageData($order, $u),
+            'handledBy' => app(OrderWatchers::class)->seen($order, $u),
+            'backOrder' => app(BackOrders::class)->forOrder($order, $u),
+            'stockByBranch' => $u->staff() ? app(BackOrders::class)->stockByBranch($order) : [],
             'outstanding' => $order->outstanding(),
             'paymentPrompt' => app(OrderPaymentPrompt::class)->for($order, $claims),
             'fullPaymentRequired' => app(FinanceSettings::class)->fullPaymentWhenOrdering()['enabled'],
@@ -357,11 +363,11 @@ class WorkspaceController extends Controller
             'events' => $this->orderHistory($order, showCourierDetails: (int) $order->user_id !== (int) $u->id),
             'shipments' => $this->shipmentsWithTracking($order, showBookingErrors: (int) $order->user_id !== (int) $u->id),
             'courierChoices' => $u->allows('inventory') || $u->allows('order_review') ? app(CourierOptions::class)->enabled() : [],
-            'refund' => DB::table('order_refunds as f')->join('users as staff', 'staff.id', '=', 'f.refunded_by')->where('f.order_id', $order->id)
+            'refund' => DB::table('order_refunds as f')->join('users as staff', 'staff.id', '=', 'f.refunded_by')->where('f.order_id', $order->id)->latest('f.created_at')
                 ->first(['f.amount', 'f.to_account', 'f.reason', 'f.created_at', 'staff.name as refunded_by']),
             'payOptions' => (int) $u->id === (int) $order->user_id && ! $u->staff() && ! $order->is_opening_balance ? app(AccountOrderPayment::class)->options($u) : null,
             'canRefund' => OrderRefund::canRefund($u) && (int) $u->id !== (int) $order->user_id
-                && in_array($order->status, OrderRefund::RefundableStatuses, true) && Money::cents($order->paid) > 0]);
+                && app(OrderReturns::class)->paidLeftCents($order) > 0]);
     }
 
     /**
@@ -372,7 +378,21 @@ class WorkspaceController extends Controller
      */
     private function orderHistory(Order $order, bool $showCourierDetails): Collection
     {
-        $events = DB::table('order_events')->where('order_id', $order->id)->orderBy('id')->get(['id', 'action', 'metadata', 'created_at']);
+        // Who did each step (OS-09). Staff see the person; the partner sees his own name or "Office".
+        $events = DB::table('order_events as e')->leftJoin('users as actor', 'actor.id', '=', 'e.actor_id')->where('e.order_id', $order->id)->orderBy('e.id')
+            ->get(['e.id', 'e.action', 'e.metadata', 'e.created_at', 'e.actor_id', 'actor.name as actor_name', 'actor.role as actor_role']);
+        $events->each(function (\stdClass $event) use ($order, $showCourierDetails): void {
+            $isPartner = $event->actor_id !== null && (int) $event->actor_id === (int) $order->user_id;
+            $event->actor_name = match (true) {
+                $event->actor_id === null => null,
+                $showCourierDetails || $isPartner => $event->actor_name,
+                default => __('orders_stock.history_office'),
+            };
+            unset($event->actor_role);
+            if (! $showCourierDetails) {
+                unset($event->actor_id);
+            }
+        });
         if ($showCourierDetails) {
             return $events;
         }

@@ -76,9 +76,9 @@ final class PartnerMoneyList
     {
         $toAccount = OrderMoneyReport::refundToAccountSql();
 
-        $perOrder = DB::table('receipts as r')->join('orders as o', 'o.id', '=', 'r.order_id')->leftJoin('order_refunds as f', 'f.order_id', '=', 'o.id')
+        $perOrder = DB::table('receipts as r')->join('orders as o', 'o.id', '=', 'r.order_id')->leftJoinSub(OrderMoneyReport::refundTotals(), 'f', 'f.order_id', '=', 'o.id')
             ->where('r.channel', 'Account')->when($range, fn (Builder $rows) => $rows->whereBetween('r.created_at', [$range['from'], $range['until']]))
-            ->groupBy('o.user_id', 'o.id', 'f.id')
+            ->groupBy('o.user_id', 'o.id', 'f.to_account')
             ->selectRaw("o.user_id, SUM(r.amount) - {$toAccount} AS total");
 
         return DB::query()->fromSub($perOrder, 'per_order')->groupBy('user_id')->selectRaw('user_id, SUM(total) AS total');

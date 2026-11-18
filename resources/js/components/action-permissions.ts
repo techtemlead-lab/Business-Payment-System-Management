@@ -30,6 +30,9 @@ export function actionAllowed(url:string,matrix:Matrix|undefined,method='post'):
     if(/\/decision$/.test(path))return any(['order_review'],'approve');
     // Owners may refund without a staff matrix entry; the order page only shows this form when the server says canRefund.
     if(/^\/commands\/orders\/[^/]+\/refund$/.test(path))return true;
+    // Cancels, returns and refunds: the order page shows these only when the server allows them; the server checks again.
+    if(/^\/commands\/orders\/[^/]+\/returns\/start$/.test(path)||/^\/commands\/order-returns\/\d+\/(approve|reject)$/.test(path))return any(['order_review','finance'],'approve');
+    if(/^\/commands\/order-returns\/\d+\/confirm$/.test(path))return any(['finance'],'approve');
     if(/\/dispatch$|\/delivered$/.test(path))return any(['inventory'],'edit');
     // Courier parcels: change courier, try a refused booking again, mark picked up.
     if(/^\/commands\/orders\/[^/]+\/(courier|mixed-outcome-decision|shipments\/\d+\/(courier-retry|picked-up|received-back|manual-update))$/.test(path))return any(['inventory','order_review'],'edit');

@@ -32,6 +32,7 @@ final class TranslationBundle
         'partner_file' => 'partner_file', 'office_staff' => 'office_staff', 'office_website' => 'office_website',
         'office_settings' => 'office_settings', 'office_reports' => 'office_reports', 'office_visitors' => 'office_visitors',
         'office_errors' => 'office_errors', 'reason_fields' => 'reason_fields', 'partner_ux' => 'partner_ux',
+        'orders_stock' => 'orders_stock', 'stock_screens' => 'stock_screens', 'purchase_page' => 'purchase_page',
     ];
 
     /** @var array<string, string> */

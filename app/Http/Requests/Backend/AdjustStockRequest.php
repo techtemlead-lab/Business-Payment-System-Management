@@ -24,8 +24,8 @@ class AdjustStockRequest extends FormRequest
             'product_id' => ['required', 'integer', 'exists:products,id'],
             'kind' => ['nullable', 'string', Rule::in([BranchOperations::KindProductIn, BranchOperations::KindProductOut])],
             'quantity' => $usesDirectionalKind
-                ? ['required', 'integer', 'min:1', 'max:100000']
-                : ['required', 'integer', 'not_in:0', 'min:-100000', 'max:100000'],
+                ? ['required', 'integer', 'min:1', 'max:'.BranchOperations::MaxUnitsPerEntry]
+                : ['required', 'integer', 'not_in:0', 'min:-'.BranchOperations::MaxUnitsPerEntry, 'max:'.BranchOperations::MaxUnitsPerEntry],
             'reason_code' => [
                 'nullable',
                 'string',

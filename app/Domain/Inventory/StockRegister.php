@@ -2,6 +2,7 @@
 
 namespace App\Domain\Inventory;
 
+use App\Domain\Orders\OrderLines;
 use App\Domain\Orders\OrderListFilter;
 use App\Models\CompanyBranch;
 use App\Models\Product;
@@ -84,6 +85,11 @@ final class StockRegister
         /** @var LengthAwarePaginator<int, object> $page */
         $page = $table['rows'];
         $page->through(fn (object $row): array => $this->rowForScreen($row, $matchedExpiry, $showsCost, $showsDealerPrice));
+        if ($active === [] && $table['totals']['sums'] !== null && MoneyTable::range($request, null) === null) {
+            // The low and out tiles are the count the staff dashboard shows, not a count of branch rows.
+            $levels = StockLevels::counts($scope);
+            $table['totals']['sums'] = [...$table['totals']['sums'], 'low_count' => (string) $levels['low'], 'out_count' => (string) $levels['out']];
+        }
 
         return $table;
     }
@@ -150,9 +156,9 @@ final class StockRegister
         $booked = DB::table('order_lines as booked_line')
             ->join('orders as booked_order', 'booked_order.id', '=', 'booked_line.order_id')
             ->whereIn('booked_order.status', ['approved', 'partially_dispatched'])
-            ->whereColumn('booked_line.dispatched', '<', 'booked_line.quantity')
+            ->whereRaw(OrderLines::unsentSql('booked_line'))
             ->groupBy('booked_line.product_id')
-            ->selectRaw('booked_line.product_id, SUM(booked_line.quantity - booked_line.dispatched) AS units');
+            ->selectRaw('booked_line.product_id, SUM('.OrderLines::unsentUnitsSql('booked_line').') AS units');
         $rowExpiry = 'CASE WHEN stage.next_expiry IS NOT NULL THEN stage.next_expiry WHEN stage.unlotted > 0 THEN products.expires_on ELSE NULL END';
         $rowBatch = 'CASE WHEN stage.next_batch IS NOT NULL THEN stage.next_batch WHEN stage.unlotted > 0 THEN products.batch_number ELSE NULL END';
         // The Product page speaks of what can be sold today, the Stock page of what a branch holds.

@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Api\V1;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionService;
+use App\Domain\Inventory\BranchOperations;
+use App\Domain\Orders\OrderRefund;
+use App\Domain\Orders\OrderReturns;
 use App\Http\Controllers\Controller;
 use App\Models\CommissionAllocation;
 use App\Models\Order;
@@ -67,9 +70,12 @@ class CommissionController extends Controller
 
     public function refund(Request $request, Order $order, CommissionService $service): JsonResponse
     {
-        abort_unless($request->user()->allows('finance'), 403);
+        abort_unless(OrderRefund::canRefund($request->user()), 403);
+        abort_unless(app(BranchOperations::class)->mayOpenOrder($request->user(), $order), 403);
         $data = $request->validate(['refund_amount' => ['required', 'regex:/^\d{1,8}(\.\d{1,2})?$/D'],
             'reference' => 'required|string|'.TransactionReference::MinRule.'|max:100', 'reason' => ReasonFields::rule('order.refund', 1000, 5), 'request_key' => 'required|uuid'], TransactionReference::messages('reference'));
+
+        app(OrderReturns::class)->assertCommissionRefundKeepsFundsPositive($order, Money::cents($data['refund_amount']));
 
         return response()->json(['data' => $service->reverseOrderPartial($order, $data['refund_amount'], ReasonFields::text($data['reason'] ?? null), $data['reference'], $request->user()->id, $data['request_key']), 'records_commission_adjustment_only' => true]);
     }
