@@ -432,18 +432,18 @@ export default function ProductCreateModal({
                             })}
                             {choice('subcategory', translate('portal', 'pcm_subcategory'), subcategoryId, subcategories, setSubcategoryId, !categoryId)}
                             {choice('unit', translate('portal', 'pcm_unit'), unitId, activeUnits, setUnitId)}
-                            <label className="pcm-field pcm-span">
+                            <div className="pcm-field pcm-span">
                                 <span>{translate('portal', 'pcm_image')}</span>
                                 <span className="pcm-image">
                                     <span className="pcm-thumb">
                                         {imagePreview ? <img src={imagePreview} alt={translate('portal', 'pcm_preview')} /> : <Upload size={18} />}
                                     </span>
                                     <span>
-                                        <input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => photoFit.choose(event.target.files?.[0] ?? null)} />
+                                        <input ref={photoInput} type="file" aria-label={translate('portal', 'pcm_image')} accept="image/jpeg,image/png,image/webp" onChange={(event) => photoFit.choose(event.target.files?.[0] ?? null)} />
                                         <small>{translate('portal', 'pcm_image_hint')}</small>
                                     </span>
                                 </span>
-                            </label>
+                            </div>
                             <div className="pcm-span">
                                 <ProductPhotoFitNote status={photoFit.status} />
                                 <ProductPhotoCutout
