@@ -55,6 +55,7 @@ class AuthController extends Controller
     {
         $portal = PortalHost::current($r);
         abort_unless(is_string($portal) && $portal !== 'public', 404);
+        abort_unless($this->captchaEnabled(), 404);
         abort_unless(function_exists('imagecreatetruecolor'), 503);
 
         return response($captcha->png($captcha->issue($r)), 200, [
@@ -220,13 +221,21 @@ class AuthController extends Controller
         return (is_string($method) ? $method : 'none').'+totp';
     }
 
+    private function captchaEnabled(): bool
+    {
+        return (bool) config('madina.login_captcha.enabled', false);
+    }
+
     private function authenticate(Request $r, string $portal): Response
     {
-        $data = $r->validate([
+        $rules = [
             'email' => 'required|string|max:254',
             'password' => 'required|string|max:200',
-            'captcha' => 'required|string|max:20',
-        ], [], ['email' => __(match ($portal) {
+        ];
+        if ($this->captchaEnabled()) {
+            $rules['captcha'] = 'required|string|max:20';
+        }
+        $data = $r->validate($rules, [], ['email' => __(match ($portal) {
             'subdealer' => 'auth_ui.email_phone_or_subdealer_code',
             'dealer' => 'auth_ui.email_phone_or_dealer_code',
             default => 'auth_ui.email_or_phone',
@@ -246,14 +255,16 @@ class AuthController extends Controller
             ]);
         }
         // The captcha is checked before the password, so a wrong picture answer says nothing about the password.
-        $captchaResult = app(LoginCaptcha::class)->check($r, $data['captcha']);
-        if ($captchaResult !== 'ok') {
-            RateLimiter::hit($key, 60);
-            RateLimiter::hit($accountKey, 3600);
-            $this->recordFailedLogin($r, $portal, 'captcha_'.$captchaResult, null, $identity);
-            throw ValidationException::withMessages([
-                'captcha' => $captchaResult === 'wrong' ? __('auth_ui.captcha_wrong') : __('auth_ui.captcha_expired'),
-            ]);
+        if ($this->captchaEnabled()) {
+            $captchaResult = app(LoginCaptcha::class)->check($r, $data['captcha'] ?? null);
+            if ($captchaResult !== 'ok') {
+                RateLimiter::hit($key, 60);
+                RateLimiter::hit($accountKey, 3600);
+                $this->recordFailedLogin($r, $portal, 'captcha_'.$captchaResult, null, $identity);
+                throw ValidationException::withMessages([
+                    'captcha' => $captchaResult === 'wrong' ? __('auth_ui.captcha_wrong') : __('auth_ui.captcha_expired'),
+                ]);
+            }
         }
         $query = User::where('status', 'active');
         if ($isEmail) {

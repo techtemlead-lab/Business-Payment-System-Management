@@ -131,6 +131,9 @@ abstract class TestCase extends BaseTestCase
     private function solveLoginCaptcha(string $method, string $uri, array $parameters): array
     {
         $path = parse_url($uri, PHP_URL_PATH);
+        if (! (bool) config('madina.login_captcha.enabled', false)) {
+            return $parameters;
+        }
         if (strtoupper($method) !== 'POST' || ! is_string($path) || ! preg_match('#/login$#', $path) || array_key_exists('captcha', $parameters)) {
             return $parameters;
         }

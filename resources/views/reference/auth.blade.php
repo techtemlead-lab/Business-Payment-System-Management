@@ -82,7 +82,7 @@
                     <input id="account-password-confirmation" type="password" name="password_confirmation" minlength="8" maxlength="200" required autocomplete="new-password">
                     <p class="ref-form-hint">{{ __('auth_ui.password_rules') }}</p>
                 @endif
-                @if($mode === 'login')
+                @if($mode === 'login' && config('madina.login_captcha.enabled'))
                     @include('partials.login-captcha')
                 @endif
                 <button class="ref-auth-submit" type="submit">{{ $mode === 'login' ? __('auth_ui.sign_in') : ($mode === 'forgot' ? __('auth_ui.send_reset') : __('auth_ui.reset_password')) }}</button>
