@@ -26,7 +26,7 @@
     </div>
 
     {{-- With no reviews yet the form stays folded, so the page does not open on an empty box. --}}
-    <details class="ref-review-fold" @if($reviews->isNotEmpty() || $errors->any() || old('name')) open @endif>
+    <details class="ref-review-fold" @if(! empty($reviews) || $errors->any() || old("name")) open @endif>
     <summary class="ref-product-review-form-title">{{ __('product_facts.review_form_title') }}</summary>
     <p>{{ __('product_facts.review_form_hint') }}</p>
     <form method="post" action="{{ route('products.reviews.store', $item['id'], false) }}" class="ref-feedback-form">
