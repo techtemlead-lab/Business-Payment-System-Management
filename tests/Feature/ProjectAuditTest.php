@@ -110,7 +110,8 @@ class ProjectAuditTest extends TestCase
         $this->get('/products/'.$product->id.'/image')->assertNotFound();
         $this->get('/company')->assertOk()->assertInertia(fn (AssertableInertia $page) => $page->missing('data.products'));
 
-        $employee->update(['profile' => ['permissions' => ['pricing']]]);
+        // SA-10: profile is not mass-assignable, so the test sets it the way the office code does.
+        $employee->forceFill(['profile' => ['permissions' => ['pricing']]])->save();
         $this->get('/company/products/'.$product->id)->assertOk()->assertInertia(fn (AssertableInertia $page) => $page
             ->where('product.id', $product->id)->missing('product.cost_price'));
         $this->get('/products/'.$product->id.'/image')->assertOk();
