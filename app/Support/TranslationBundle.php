@@ -31,7 +31,7 @@ final class TranslationBundle
         'size_groups' => 'size_groups', 'order_search' => 'order_search', 'office_partners' => 'office_partners',
         'partner_file' => 'partner_file', 'office_staff' => 'office_staff', 'office_website' => 'office_website',
         'office_settings' => 'office_settings', 'office_reports' => 'office_reports', 'office_visitors' => 'office_visitors',
-        'office_errors' => 'office_errors', 'reason_fields' => 'reason_fields', 'partner_ux' => 'partner_ux',
+        'office_errors' => 'office_errors', 'reason_fields' => 'reason_fields', 'partner_ux' => 'partner_ux', 'cr_partner' => 'cr_partner',
     ];
 
     /** @var array<string, string> */

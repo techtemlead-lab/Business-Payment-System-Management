@@ -1,0 +1,79 @@
+/*
+ * Partner dashboard (CR-02): profile card on the left, money in the middle, targets on the right,
+ * the income report underneath. One column on a phone, in the order a person reads it.
+ */
+.pd-wrap { container-type: inline-size; }
+/* Narrow by default (the targets go under the money); three columns only when the page really has the room. */
+.pd-grid { display: grid; grid-template-columns: minmax(240px, 290px) minmax(0, 1fr); gap: 16px; align-items: start; margin: 16px 0; }
+.pd-card { background: var(--ds-surface, #fff); border: 1px solid var(--ds-line, #dfe5e0); border-radius: 18px; padding: 18px; box-shadow: 0 1px 2px rgba(11, 31, 51, .04); }
+
+.pd-profile { text-align: center; }
+.pd-photo { display: flex; justify-content: center; margin-bottom: 12px; }
+.pd-photo .avatar.large, .pd-photo .partner-home-avatar { width: 128px; height: 128px; font-size: 48px; border-radius: 50%; object-fit: cover; }
+.pd-photo img { width: 128px; height: 128px; border-radius: 50%; object-fit: cover; }
+.pd-name { margin: 0; font-size: 1.35rem; line-height: 1.3; overflow-wrap: anywhere; }
+.pd-type { margin: 6px auto 0; display: inline-block; padding: 4px 14px; border-radius: 999px; background: var(--ds-brand-soft, #e3f1eb); color: var(--ds-brand-text, #00694d); font-weight: 700; }
+.pd-shop { margin: 10px 0 0; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 600; overflow-wrap: anywhere; }
+.pd-lines { margin: 16px 0 0; text-align: left; display: grid; gap: 10px; }
+.pd-line { display: grid; grid-template-columns: 22px 1fr; column-gap: 8px; align-items: start; }
+.pd-line-icon { grid-row: 1 / span 2; color: var(--ds-brand-text, #00694d); padding-top: 2px; }
+.pd-line dt { font-size: .8rem; color: var(--ds-text-muted, #455364); margin: 0; }
+.pd-line dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.pd-counts { margin: 16px 0 0; padding-top: 14px; border-top: 1px solid var(--ds-line, #dfe5e0); display: grid; gap: 8px; text-align: left; }
+.pd-counts div { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.pd-counts dt { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--ds-text-2, #334155); }
+.pd-counts dd { margin: 0; font-weight: 800; font-size: 1.15rem; }
+
+.pd-middle { display: grid; gap: 16px; min-width: 0; }
+.pd-totals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.pd-totals div { min-width: 0; }
+.pd-totals span { display: block; font-size: .85rem; color: var(--ds-text-muted, #455364); font-weight: 600; }
+.pd-totals strong { display: block; margin-top: 4px; font-size: 1.25rem; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.pd-totals .is-balance { padding: 10px 12px; border-radius: 12px; background: var(--ds-brand-soft, #e3f1eb); }
+.pd-totals .is-balance strong { color: var(--ds-brand-text, #00694d); }
+.pd-heads-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.pd-heads h3, .pd-report h3 { margin: 0 0 10px; }
+.pd-heads-top h3 { margin: 0; }
+.pd-head-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; }
+.pd-head-list li { display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--ds-surface-2, #f7f9f7); border: 1px solid var(--ds-line-soft, #ecf0ed); }
+.pd-head-list li span { min-width: 0; overflow-wrap: anywhere; }
+.pd-head-list li strong { white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+.pd-right { min-width: 0; }
+.pd-right .ph-targets { margin: 0; }
+
+.pd-report { margin: 0 0 16px; }
+.pd-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 14px; }
+.pd-tab { border: 1px solid var(--ds-line, #dfe5e0); background: var(--ds-surface, #fff); color: var(--ds-text-2, #334155); padding: 8px 14px; border-radius: 999px; font-weight: 600; cursor: pointer; min-height: 40px; }
+.pd-tab.is-on { background: var(--ds-brand, #006a4e); border-color: var(--ds-brand, #006a4e); color: var(--ds-on-brand, #fff); }
+.pd-tab:focus-visible { outline: 3px solid var(--ds-brand, #006a4e); outline-offset: 2px; }
+
+@container (max-width: 1099px) {
+  .pd-right { grid-column: 1 / -1; }
+}
+@container (min-width: 1100px) {
+  .pd-grid { grid-template-columns: minmax(250px, 290px) minmax(0, 1fr) minmax(280px, 340px); }
+}
+/* A phone: one column, profile first, then the money, then the targets, then the report. */
+@container (max-width: 719px) {
+  .pd-grid { grid-template-columns: 1fr; gap: 12px; }
+  .pd-card { padding: 14px; border-radius: 16px; }
+  .pd-totals { grid-template-columns: 1fr; }
+  .pd-totals div { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--ds-line-soft, #ecf0ed); }
+  .pd-totals div:last-child { border-bottom: 0; }
+  .pd-totals .is-balance { padding: 12px; }
+  .pd-head-list { grid-template-columns: 1fr; }
+  .pd-tabs { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; -webkit-overflow-scrolling: touch; }
+  .pd-tab { flex: none; }
+  .pd-profile { display: grid; grid-template-columns: 96px 1fr; column-gap: 14px; text-align: left; align-items: center; }
+  .pd-photo { grid-row: 1 / span 3; margin: 0; }
+  .pd-photo .avatar.large, .pd-photo .partner-home-avatar, .pd-photo img { width: 96px; height: 96px; font-size: 36px; }
+  .pd-type { justify-self: start; }
+  .pd-shop { justify-content: flex-start; }
+  .pd-lines, .pd-counts { grid-column: 1 / -1; }
+}
+
+/* The invite card must never push the page wider than the screen. */
+.app-shell .partner-home-referral, .app-shell .partner-home-referral-body, .app-shell .partner-home-referral-body > *, .app-shell .partner-home-referral-meta { min-width: 0; max-width: 100%; }
+.app-shell .partner-home-referral-url { white-space: normal; word-break: break-all; }
+.pd-totals strong { font-size: clamp(1rem, 2.1cqw, 1.3rem); }

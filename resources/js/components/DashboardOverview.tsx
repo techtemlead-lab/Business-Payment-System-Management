@@ -17,6 +17,7 @@ import { Badge, Empty, date, humanize, money, type Row, number } from './UI';
 import { businessTodayIso, localizeDigits } from '../business-date';
 import { useT } from '../shared/i18n/t';
 import CallMeCard from './CallMeCard';
+import { DashboardGrid, IncomeReport } from './PartnerDashboard';
 
 /** A progress bar row, or (kind "amount") a plain amount with no target, such as a sub-dealer's salary or tour fund. */
 type TargetRow = {
@@ -44,11 +45,6 @@ function ReferralShare({ referral, role }: { referral: { code?: string; url?: st
     const encodedText = encodeURIComponent(shareText);
     const whatsappHref = `https://wa.me/?text=${encodedText}`;
     const facebookHref = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
-    // Messenger has no web share URL without a registered app id; the app link works on phones.
-    const messengerHref = `fb-messenger://share/?link=${encodedUrl}`;
-    const telegramHref = `https://t.me/share/url?url=${encodedUrl}&text=${encodeURIComponent(translate('portal', 'share_join_text', { code: String(referral.code) }))}`;
-    const linkedinHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
-    const xHref = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodeURIComponent(translate('portal', 'share_join_text', { code: String(referral.code) }))}`;
 
     const copyLink = async () => {
         try {
@@ -110,14 +106,6 @@ function ReferralShare({ referral, role }: { referral: { code?: string; url?: st
                         </button>
                         <a className="button small" href={whatsappHref} target="_blank" rel="noreferrer">{translate('portal', 'share_whatsapp')}</a>
                         <a className="button small" href={facebookHref} target="_blank" rel="noreferrer">{translate('portal', 'share_facebook')}</a>
-=====END
-=====A
-    // Messenger has no web share URL without a registered app id; the app link works on phones.
-    const messengerHref = `fb-messenger://share/?link=${encodedUrl}`;
-    const telegramHref = `https://t.me/share/url?url=${encodedUrl}&text=${encodeURIComponent(translate('portal', 'share_join_text', { code: String(referral.code) }))}`;
-    const linkedinHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
-    const xHref = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodeURIComponent(translate('portal', 'share_join_text', { code: String(referral.code) }))}`;
-=====B
                     </div>
                 </div>
             </div>
@@ -173,7 +161,8 @@ const QUICK_ACTIONS: QuickAction[] = [
 function QuickActions({ base }: { base: string }) {
     const translate = useT();
     const sections: string[] = usePage<any>().props.portalCatalog?.sections ?? [];
-    const actions = QUICK_ACTIONS.filter((action) => sections.includes(action.section)).slice(0, 8);
+    const catalogOff = usePage<any>().props.dashboardControls?.partner_catalog_off === true;
+    const actions = QUICK_ACTIONS.filter((action) => sections.includes(action.section) && !(catalogOff && action.section === 'catalog')).slice(0, 8);
     if (actions.length === 0) {
         return null;
     }
@@ -202,45 +191,6 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
 
     return (
         <div className="partner-home ph">
-            <section className="ph-hero" data-tour="home-profile">
-                <div className="ph-hero-top">
-                    <ProfilePhoto src={profile.photo_url} initial={profile.initial || '?'} />
-                    <div className="ph-hero-who">
-                        <p>{translate('portal', 'ph_greeting')}</p>
-                        <h2>{profile.name}</h2>
-                        <span className="ph-chip">
-                            {profile.dealer_code || '—'}
-                            <i aria-hidden="true" />
-                            {labelRole(String(profile.role || ''), translate)}
-                        </span>
-                    </div>
-                    <Badge status={profile.status || 'active'} />
-                </div>
-                <BalancePill amount={wallet.available} />
-                <dl className="ph-hero-stats">
-                    <div>
-                        <dt>{translate('portal', 'ph_commission_month')}</dt>
-                        <dd>{money(snapshot.commission_month)}</dd>
-                    </div>
-                    <div>
-                        <dt>{translate('portal', 'pending_withdrawal')}</dt>
-                        <dd>{money(wallet.pending_withdrawal)}</dd>
-                    </div>
-                    <div className="ph-hero-waiting" data-testid="home-commission-waiting">
-                        <dt>{translate('portal', 'ph_commission_waiting')}</dt>
-                        <dd>{money(wallet.commission_waiting?.total)}</dd>
-                        {waitingAmounts.slice(0, 3).map((item) => (
-                            <dd className="ph-hero-note" key={item.ready_on ?? 'no-date'}>
-                                {money(item.amount)} · {item.ready_on ? translate('portal', 'commission_waiting_until', { date: date(item.ready_on) }) : translate('portal', 'commission_waiting_no_date')}
-                            </dd>
-                        ))}
-                        {waitingAmounts.length > 3 && (
-                            <dd className="ph-hero-note"><Link href={`${base}/my-money`}>{translate('portal', 'commission_waiting_more', { count: number(waitingAmounts.length - 3) })}</Link></dd>
-                        )}
-                    </div>
-                </dl>
-            </section>
-
             {home.is_birthday === true && (
                 <section className="ph-birthday" role="status" data-tour="home-birthday">
                     <span className="ph-birthday-icon" aria-hidden="true">🎂</span>
@@ -251,34 +201,10 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
                 </section>
             )}
 
-            <QuickActions base={base} />
-
+            {/* The sidebar already lists every page, so the home keeps only the big easy-way buttons above the dashboard. */}
             <CallMeCard />
 
-            <IncomeCards cards={moneyCards} hrefFor={(type) => `${base}/my-money?type=${encodeURIComponent(type)}`} />
-
-            <section className="ph-today" data-tour="home-metrics" aria-labelledby="ph-today-title">
-                <h3 id="ph-today-title">{translate('portal', 'today_activity')}</h3>
-                <div className="ph-today-grid">
-                    <div>
-                        <span>{translate('portal', 'today_purchase')}</span>
-                        <strong>{money(snapshot.own_sales_today)}</strong>
-                    </div>
-                    <div>
-                        <span>{translate('portal', 'today_commission')}</span>
-                        <strong>{money(snapshot.commission_today)}</strong>
-                    </div>
-                    <div>
-                        <span>{translate('portal', 'team_sales')}</span>
-                        <strong>{money(snapshot.team_sales_today)}</strong>
-                    </div>
-                </div>
-            </section>
-
-            <PartnerAlertsCard alerts={tools?.alerts ?? []} inactivePartners={tools?.inactive_partners ?? []} />
-            <NextStepsCard steps={tools?.next_steps ?? []} />
-
-            {targets.length > 0 && (
+            <DashboardGrid home={home} moneyCards={moneyCards} targetsPanel={targets.length > 0 ? (
                 <section className="ph-card ph-targets" data-tour="home-targets">
                     <div className="ph-card-head ph-targets-head">
                         <div>
@@ -330,7 +256,30 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
                         <Link href={`${base}/ranks`} className="text-link ph-targets-more">{translate('partner_ux', 'all_targets')} <ArrowUpRight size={15} /></Link>
                     )}
                 </section>
-            )}
+            ) : null} />
+
+            <IncomeReport />
+
+            <section className="ph-today" data-tour="home-metrics" aria-labelledby="ph-today-title">
+                <h3 id="ph-today-title">{translate('portal', 'today_activity')}</h3>
+                <div className="ph-today-grid">
+                    <div>
+                        <span>{translate('portal', 'today_purchase')}</span>
+                        <strong>{money(snapshot.own_sales_today)}</strong>
+                    </div>
+                    <div>
+                        <span>{translate('portal', 'today_commission')}</span>
+                        <strong>{money(snapshot.commission_today)}</strong>
+                    </div>
+                    <div>
+                        <span>{translate('portal', 'team_sales')}</span>
+                        <strong>{money(snapshot.team_sales_today)}</strong>
+                    </div>
+                </div>
+            </section>
+
+            <PartnerAlertsCard alerts={tools?.alerts ?? []} inactivePartners={tools?.inactive_partners ?? []} />
+            <NextStepsCard steps={tools?.next_steps ?? []} />
 
             <section className="panel table-panel dense-panel" data-tour="recent-orders">
                 <div className="panel-heading">
