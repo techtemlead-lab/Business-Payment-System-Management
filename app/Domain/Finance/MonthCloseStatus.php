@@ -27,25 +27,87 @@ final class MonthCloseStatus
     ];
 
     /**
+     * Everything the Settlements page needs about month closes, read in one query.
+     *
+     * @return array{waiting: list<array{month: string, label: string, kind: string, amount: string, automatic: bool}>, closed: list<array{month: string, label: string, kind: string, closed_at: string, paid: string, to_company: string}>, failures: list<array<string, string>>, month_options: list<array{value: string, label: string}>, selected_closed: array<string, ?string>}
+     */
+    public function forPage(string $selectedMonth): array
+    {
+        $rows = $this->monthRows();
+
+        return [
+            'waiting' => $this->waitingFrom($rows),
+            'closed' => $this->closedFrom($rows),
+            'failures' => $this->failures(),
+            'month_options' => $this->monthOptions(),
+            'selected_closed' => [
+                'salary' => $this->closedAtFrom($rows, $selectedMonth, 'salary'),
+                'royalty' => $this->closedAtFrom($rows, $selectedMonth, 'royalty'),
+            ],
+        ];
+    }
+
+    /**
      * Ended months that still hold unpaid salary or royalty money, oldest first.
      *
      * @return list<array{month: string, label: string, kind: string, amount: string, automatic: bool}>
      */
     public function waitingMonths(): array
     {
+        return $this->waitingFrom($this->monthRows());
+    }
+
+    /**
+     * When a month's salary or royalty was closed, newest first.
+     *
+     * @return list<array{month: string, label: string, kind: string, closed_at: string, paid: string, to_company: string}>
+     */
+    public function closedMonths(int $limit = 6): array
+    {
+        return $this->closedFrom($this->monthRows(), $limit);
+    }
+
+    /** When the month's close for this kind happened, or null when it has not. */
+    public function closedAt(string $month, string $kind): ?string
+    {
+        return $this->closedAtFrom($this->monthRows(), $month, $kind);
+    }
+
+    /**
+     * Salary and royalty fund totals per kind, status and month: pending rows by their month,
+     * closed rows by the month they closed for.
+     *
+     * @return list<object{kind: string, status: string, month: ?string, total: string, closed_at: ?string, paid: string, to_company: string}>
+     */
+    private function monthRows(): array
+    {
+        $kindSql = "CASE WHEN category = 'rank_royalty_pool' THEN 'royalty' ELSE 'salary' END";
+
+        return DB::table('commission_allocations')
+            ->whereIn('category', array_merge(...array_values(self::KindCategories)))
+            ->whereIn('status', ['pending', 'settled'])
+            ->groupByRaw("{$kindSql}, status, CASE WHEN status = 'settled' THEN metadata->>'settled_period' ELSE metadata->>'period_month' END")
+            ->selectRaw("{$kindSql} AS kind, status, CASE WHEN status = 'settled' THEN metadata->>'settled_period' ELSE metadata->>'period_month' END AS month, "
+                ."SUM(amount) AS total, MAX(metadata->>'settled_at') AS closed_at, "
+                ."SUM(COALESCE((metadata->>'distributed')::numeric, 0)) AS paid, SUM(COALESCE((metadata->>'reserved')::numeric, 0)) AS to_company")
+            ->get()->all();
+    }
+
+    /**
+     * @param  list<object>  $rows
+     * @return list<array{month: string, label: string, kind: string, amount: string, automatic: bool}>
+     */
+    private function waitingFrom(array $rows): array
+    {
         $current = CommissionQualification::currentMonth();
         $oldestAutomatic = CarbonImmutable::createFromFormat('!Y-m', $current)->subMonthsNoOverflow(AutoApprovePayouts::AutomaticMonthsBack)->format('Y-m');
         $months = [];
-        foreach (self::KindCategories as $kind => $categories) {
-            $rows = DB::table('commission_allocations')->whereIn('category', $categories)->where('status', 'pending')
-                ->groupByRaw("metadata->>'period_month'")->selectRaw("metadata->>'period_month' AS month, SUM(amount) AS total")->get();
-            foreach ($rows as $row) {
-                if (! is_string($row->month) || $row->month >= $current) {
-                    continue;
-                }
-                $months[] = ['month' => $row->month, 'label' => self::label($row->month), 'kind' => $kind,
-                    'amount' => Money::decimal(Money::cents((string) $row->total)), 'automatic' => $row->month >= $oldestAutomatic];
+        foreach ($rows as $row) {
+            if ($row->status !== 'pending' || ! is_string($row->month) || $row->month >= $current) {
+                continue;
             }
+            $months[] = ['month' => $row->month, 'label' => self::label($row->month), 'kind' => (string) $row->kind,
+                'amount' => Money::decimal(Money::cents((string) $row->total)), 'automatic' => $row->month >= $oldestAutomatic];
         }
         usort($months, fn (array $first, array $second): int => [$first['month'], $first['kind']] <=> [$second['month'], $second['kind']]);
 
@@ -53,37 +115,34 @@ final class MonthCloseStatus
     }
 
     /**
-     * When a month's salary or royalty was closed, newest first; null closed_by means the hourly job did it.
-     *
+     * @param  list<object>  $rows
      * @return list<array{month: string, label: string, kind: string, closed_at: string, paid: string, to_company: string}>
      */
-    public function closedMonths(int $limit = 6): array
+    private function closedFrom(array $rows, int $limit = 6): array
     {
         $closed = [];
-        foreach (self::KindCategories as $kind => $categories) {
-            $rows = DB::table('commission_allocations')->whereIn('category', $categories)->where('status', 'settled')
-                ->whereNotNull('metadata->settled_period')
-                ->groupByRaw("metadata->>'settled_period'")
-                ->selectRaw("metadata->>'settled_period' AS month, MAX(metadata->>'settled_at') AS closed_at, "
-                    ."SUM(COALESCE((metadata->>'distributed')::numeric, 0)) AS paid, SUM(COALESCE((metadata->>'reserved')::numeric, 0)) AS to_company")
-                ->orderByDesc('month')->limit($limit)->get();
-            foreach ($rows as $row) {
-                $closed[] = ['month' => (string) $row->month, 'label' => self::label((string) $row->month), 'kind' => $kind,
-                    'closed_at' => (string) $row->closed_at, 'paid' => (string) $row->paid, 'to_company' => (string) $row->to_company];
+        foreach ($rows as $row) {
+            if ($row->status !== 'settled' || ! is_string($row->month)) {
+                continue;
             }
+            $closed[] = ['month' => $row->month, 'label' => self::label($row->month), 'kind' => (string) $row->kind,
+                'closed_at' => (string) $row->closed_at, 'paid' => (string) $row->paid, 'to_company' => (string) $row->to_company];
         }
         usort($closed, fn (array $first, array $second): int => [$second['month'], $first['kind']] <=> [$first['month'], $second['kind']]);
 
-        return $closed;
+        return array_slice($closed, 0, $limit * count(self::KindCategories));
     }
 
-    /** When the month's close for this kind happened, or null when it has not. */
-    public function closedAt(string $month, string $kind): ?string
+    /** @param  list<object>  $rows */
+    private function closedAtFrom(array $rows, string $month, string $kind): ?string
     {
-        $value = DB::table('commission_allocations')->whereIn('category', self::KindCategories[$kind] ?? [])->where('status', 'settled')
-            ->where('metadata->settled_period', $month)->selectRaw("MAX(metadata->>'settled_at') AS closed_at")->value('closed_at');
+        foreach ($rows as $row) {
+            if ($row->status === 'settled' && $row->kind === $kind && $row->month === $month && is_string($row->closed_at)) {
+                return $row->closed_at;
+            }
+        }
 
-        return is_string($value) ? $value : null;
+        return null;
     }
 
     /**

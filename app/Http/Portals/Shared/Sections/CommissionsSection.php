@@ -221,16 +221,7 @@ final class CommissionsSection implements WorkspaceSection
             'maturing_amount' => (float) ($maturing->amount ?? 0),
             'settled_history' => $settledHistory,
             // MA-01 / MA-23: which months still wait (and who closes them), which closed when, and failed closes.
-            'close_status' => [
-                'waiting' => $closeStatus->waitingMonths(),
-                'closed' => $closeStatus->closedMonths(),
-                'failures' => $closeStatus->failures(),
-                'month_options' => $closeStatus->monthOptions(),
-                'selected_closed' => [
-                    'salary' => $closeStatus->closedAt($currentMonth, 'salary'),
-                    'royalty' => $closeStatus->closedAt($currentMonth, 'royalty'),
-                ],
-            ],
+            'close_status' => $closeStatus->forPage($currentMonth),
         ];
 
         return $props;
