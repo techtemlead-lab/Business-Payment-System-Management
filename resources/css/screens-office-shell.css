@@ -124,3 +124,11 @@ html[data-text-size="large"] .app-shell:is(.owner-shell,.company-shell){--ds-fs-
 .text-size-toggle{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 10px;border:1px solid var(--ds-line);border-radius:var(--ds-r-pill);background:var(--ds-surface);color:var(--ds-text);font-size:var(--ds-fs-sm);font-weight:600;cursor:pointer}
 .text-size-toggle:focus-visible{outline:2px solid var(--ds-brand);outline-offset:2px}
 @media (max-width:1023px){.text-size-toggle .text-size-label{display:none}}
+
+/* The office's two daily actions at the top of the dashboard. */
+.app-shell .office-shortcuts{display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--ds-s-3);padding:var(--ds-s-4);background:var(--ds-surface);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg)}
+.app-shell .office-find-order{display:flex;flex:1 1 320px;align-items:flex-end;gap:var(--ds-s-2);min-width:0}
+.app-shell .office-find-order label{display:flex;flex:1;flex-direction:column;gap:4px;min-width:0;font-size:var(--ds-fs-sm);font-weight:600}
+.app-shell .office-find-order input{width:100%;min-height:44px}
+.app-shell .office-shortcuts .button{min-height:44px;display:inline-flex;align-items:center;justify-content:center}
+@media (max-width:600px){.app-shell .office-shortcuts .office-new-account{flex:1 1 100%}}

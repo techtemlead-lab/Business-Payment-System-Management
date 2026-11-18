@@ -19,6 +19,11 @@ class DashboardController
         return $this->workspace->index($request, $pricing, $section);
     }
 
+    public function findOrder(Request $request): RedirectResponse
+    {
+        return $this->workspace->findOrder($request);
+    }
+
     public function show(Request $request, Order $order): Response
     {
         return $this->workspace->show($request, $order);

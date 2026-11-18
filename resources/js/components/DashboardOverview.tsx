@@ -1,4 +1,4 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
 import {
     ArrowUpRight, ChevronRight, ShoppingBag, Package, Truck, Wallet, Users, Settings,
@@ -495,6 +495,41 @@ function officeFigures(home: Row, base: string, caps: string[], translate: Retur
     return figures;
 }
 
+/** Two things the office does all day, one step from the dashboard: add a partner, and open an order by its number, phone or name. */
+function OfficeShortcuts({ base, caps }: { base: string; caps: string[] }) {
+    const translate = useT();
+    const [words, setWords] = useState('');
+    const mayCreate = caps.includes('accounts');
+    const mayFind = caps.includes('orders') || caps.includes('finance');
+    if (!mayCreate && !mayFind) {
+        return null;
+    }
+
+    return (
+        <section className="office-shortcuts" aria-label={translate('office_shell', 'shortcuts_title')} data-tour="office-shortcuts">
+            {mayFind && (
+                <form
+                    className="office-find-order"
+                    role="search"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        if (words.trim() !== '') {
+                            router.get(`${base}/orders/find`, { q: words.trim() });
+                        }
+                    }}
+                >
+                    <label>
+                        <span>{translate('office_shell', 'find_order_label')}</span>
+                        <input type="search" value={words} maxLength={100} onChange={(event) => setWords(event.target.value)} placeholder={translate('office_shell', 'find_order_placeholder')} />
+                    </label>
+                    <button type="submit" className="button dark">{translate('office_shell', 'find_order_button')}</button>
+                </form>
+            )}
+            {mayCreate && <Link className="button dark office-new-account" href={`${base}/accounts/create`}>{translate('office_shell', 'new_account_button')}</Link>}
+        </section>
+    );
+}
+
 function AdminHome({ home }: { home: Row }) {
     const { auth, portalBase: base } = usePage<any>().props;
     const translate = useT();
@@ -507,6 +542,7 @@ function AdminHome({ home }: { home: Row }) {
         <OfficePage title={translate('portal', 'overview')} action={<span className="office-home-date">{today}</span>}>
             <div className="office-home">
                 {/* The tour step talks about the numbers, so it is skipped for staff who get none here. */}
+                <OfficeShortcuts base={base} caps={auth.capabilities ?? []} />
                 {figures.length > 0 && <div data-tour="home-metrics"><Figures items={figures} /></div>}
                 {(work.length > 0 || trend.length > 0) && (
                     <section className="admin-home-insights">

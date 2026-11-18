@@ -55,6 +55,7 @@ Route::middleware(['auth', 'active', 'portal:sadmin', 'authenticator'])->group(f
     Route::get('/accounts/{partner}/team-orders/xlsx', [TeamOrdersController::class, 'downloadFor'])->whereNumber('partner')->middleware('throttle:10,1');
     Route::get('/products/create', [ProductRegistryController::class, 'edit']);
     Route::get('/products/{product}', [ProductRegistryController::class, 'edit']);
+    Route::get('/orders/find', [DashboardController::class, 'findOrder'])->middleware('throttle:60,1');
     Route::get('/orders/{order}', [DashboardController::class, 'show']);
     Route::get('/orders/{order}/invoice', [DashboardController::class, 'orderInvoice'])->middleware('throttle:20,1');
     Route::get('/orders/{order}/invoice/print', [DashboardController::class, 'orderInvoicePrint'])->middleware('throttle:20,1');
