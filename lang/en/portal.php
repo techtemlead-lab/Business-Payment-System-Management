@@ -327,7 +327,6 @@ return [
     'view_timeline' => 'View history',
     'profile_locked_notice' => 'Company staff look after your profile. Contact the company to correct anything. Your ID numbers stay private.',
     'profile_locked_support_cta' => 'Open Help & Support',
-    'profile_owner_edit_notice' => 'This is your own account. Change your name, email and phone here. The change is saved at once, and nobody else has to approve it.',
     'owner_profile_edit_title' => 'Update my details',
     'profile_photo_upload' => 'Upload profile photo',
     'owner_profile_edit_submit' => 'Save profile changes',
