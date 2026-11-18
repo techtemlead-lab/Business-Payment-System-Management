@@ -44,9 +44,9 @@ final class PayoutReceiptCheck
     private const MethodForChannel = ['Bank' => 'bank', 'bKash' => 'bkash', 'Nagad' => 'nagad', 'Rocket' => 'other'];
 
     /**
-     * Money goes where the partner asked (F-verify-01): the same method as the request, and the wallet
-     * or account typed must be the partner's own number. Cash handed over at the office is not checked
-     * here (the receiver's name is recorded instead).
+     * Money goes where the partner asked (F-verify-01): bank, bKash or Nagad must be the method of the
+     * request, and the wallet or account typed must be the partner's own number. Cash handed over at
+     * the office is not checked here (the receiver's name is recorded instead).
      *
      * @param  array{method: string, wallet_number?: ?string, account_number?: ?string}  $payout
      *
@@ -59,7 +59,8 @@ final class PayoutReceiptCheck
             return;
         }
         $expected = self::MethodForChannel[$channel] ?? null;
-        if ($expected !== null && $method !== $expected) {
+        // "Other" (a company transfer such as EFT) may carry any request; a typed account number is still compared.
+        if ($expected !== null && $method !== 'other' && $method !== $expected) {
             throw ValidationException::withMessages(['method' => __('payouts.err_method_differs', ['channel' => __('portal.pay_channel_'.strtolower($channel))])]);
         }
         $field = in_array($method, ['bkash', 'nagad'], true) ? 'wallet_number' : 'account_number';
