@@ -783,10 +783,11 @@ class OrderService
             $product = $products[$line->product_id];
             $quantity = (int) $item['quantity'];
             $branchStock = $this->branches->ensureBranchStock($branch, $product);
-            if ($quantity > $line->quantity - $line->dispatched - $line->closed || $quantity > $branchStock->quantity) {
+            $left = max(0, (int) $line->getAttribute('quantity') - (int) $line->getAttribute('dispatched') - (int) $line->getAttribute('closed'));
+            if ($quantity > $left || $quantity > $branchStock->quantity) {
                 throw ValidationException::withMessages(['shipment' => __('orders_stock.err_shipment_qty', [
                     'product' => $product->name,
-                    'left' => LocalDigits::text((string) max(0, $line->quantity - $line->dispatched - $line->closed)),
+                    'left' => LocalDigits::text((string) $left),
                     'stock' => LocalDigits::text((string) $branchStock->quantity),
                     'branch' => $branch->name,
                 ])]);

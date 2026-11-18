@@ -10,12 +10,12 @@ use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\StockLots;
 use App\Models\CompanyBranch;
 use App\Models\Order;
-use App\Models\OrderLine;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\LocalDigits;
 use App\Support\Money;
 use App\Support\ReasonFields;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -290,7 +290,7 @@ final class OrderReturns
             ->where('r.order_id', $order->id)->whereIn('r.status', self::OpenStatuses)
             ->first(['r.id', 'r.kind', 'r.status', 'r.lines', 'r.reason', 'r.refund_amount', 'r.refund_method', 'r.first_approved_by', 'r.first_approval_note', 'r.created_at', 'first.name as first_approved_name']);
         $parcels = $this->parcelUnits($order);
-        $lines = $order->lines->map(fn (OrderLine $line): array => [
+        $lines = $order->lines->map(fn (Model $line): array => [
             'line_id' => (int) $line->getKey(),
             'name' => (string) $line->getAttribute('name'),
             'is_free' => (bool) $line->getAttribute('is_free'),
@@ -322,7 +322,8 @@ final class OrderReturns
             'partner_can_cancel' => $isPartner && $open === null && in_array($order->status, ['submitted', 'held', 'approved'], true)
                 && ! DB::table('shipments')->where('order_id', $order->id)->exists() && collect($lines)->sum('can_cancel') > 0,
             'partner_can_return' => $isPartner && $open === null && in_array($order->status, self::ReturnStatuses, true) && collect($lines)->sum('can_return') > 0,
-            'staff_can_start' => $staff && $open === null && ! $order->is_opening_balance,
+            'staff_can_start' => $staff && $open === null && ! $order->is_opening_balance
+                && ($this->paidLeftCents($order) > 0 || collect($lines)->sum('can_cancel') > 0 || collect($lines)->sum('can_return') > 0),
             'can_refund' => $staff && OrderRefund::canRefund($viewer),
             'acts_alone' => self::actsAlone($viewer),
             'whole_order_only' => in_array($order->status, self::WholeOrderOnly, true),
@@ -352,7 +353,7 @@ final class OrderReturns
         $firstApprover = $request->first_approved_by !== null ? (int) $request->first_approved_by : (int) $actor->id;
         $goodsCents = $this->chargedValueCents($order, $units);
         $order->loadMissing('lines');
-        $lines = $order->lines->keyBy(fn (OrderLine $line): int => (int) $line->getKey());
+        $lines = $order->lines->keyBy(fn (Model $line): int => (int) $line->getKey());
 
         // Goods.
         foreach ($units as $lineId => $quantity) {
@@ -450,7 +451,7 @@ final class OrderReturns
     private function settleStatus(User $actor, Order $order): void
     {
         $order->load('lines');
-        $unsent = $order->lines->contains(fn (OrderLine $line): bool => $this->unsentOf($line) > 0);
+        $unsent = $order->lines->contains(fn (Model $line): bool => $this->unsentOf($line) > 0);
         if ($unsent) {
             return;
         }
@@ -537,7 +538,7 @@ final class OrderReturns
         if (! $byStaff && $kind === self::KindCancel && DB::table('shipments')->where('order_id', $order->id)->exists()) {
             throw ValidationException::withMessages(['kind' => __('orders_stock.err_partner_cancel_shipped')]);
         }
-        $orderLines = $order->lines->keyBy(fn (OrderLine $line): int => (int) $line->getKey());
+        $orderLines = $order->lines->keyBy(fn (Model $line): int => (int) $line->getKey());
         $parcels = $kind === self::KindReturn ? $this->parcelUnits($order) : null;
         $units = [];
         foreach ($lines as $row) {
@@ -694,13 +695,13 @@ final class OrderReturns
         return DB::table('commission_batches')->where('order_id', $order->id)->exists();
     }
 
-    private function unsentOf(OrderLine $line): int
+    private function unsentOf(Model $line): int
     {
         return max(0, (int) $line->getAttribute('quantity') - (int) $line->getAttribute('dispatched') - (int) $line->getAttribute('closed'));
     }
 
     /** @param array{delivered?: array<int, int>} $parcels */
-    private function returnableOf(OrderLine $line, array $parcels): int
+    private function returnableOf(Model $line, array $parcels): int
     {
         return max(0, ($parcels['delivered'][(int) $line->getKey()] ?? 0) - (int) $line->getAttribute('returned'));
     }
@@ -745,7 +746,7 @@ final class OrderReturns
     {
         $order->loadMissing('lines');
 
-        return $order->lines->map(fn (OrderLine $line): array => ['line_id' => (int) $line->getKey(), 'quantity' => $this->unsentOf($line)])->values()->all();
+        return $order->lines->map(fn (Model $line): array => ['line_id' => (int) $line->getKey(), 'quantity' => $this->unsentOf($line)])->values()->all();
     }
 
     private function returnBranch(Order $order, ?int $branchId): CompanyBranch

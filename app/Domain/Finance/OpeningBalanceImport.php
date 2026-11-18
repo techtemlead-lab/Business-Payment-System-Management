@@ -354,7 +354,7 @@ final class OpeningBalanceImport
         if ($subcategories->count() === 1 && $subcategories->first()->category !== null) {
             $subcategory = $subcategories->first();
 
-            return ['category' => $subcategory->category->name, 'sub_category' => $subcategory->name, 'product_subcategory_id' => $subcategory->id];
+            return ['category' => (string) $subcategory->category->getAttribute('name'), 'sub_category' => $subcategory->name, 'product_subcategory_id' => $subcategory->id];
         }
 
         return [];

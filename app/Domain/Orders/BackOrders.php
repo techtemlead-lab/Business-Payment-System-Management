@@ -38,7 +38,8 @@ final class BackOrders
         if ($since === null) {
             return null;
         }
-        $days = (int) $since->startOfDay()->diffInDays(CarbonImmutable::now('Asia/Dhaka')->startOfDay());
+        // Never below zero: a payment dated later than today (clock or data mistake) counts as today.
+        $days = max(0, (int) $since->startOfDay()->diffInDays(CarbonImmutable::now('Asia/Dhaka')->startOfDay()));
         $staff = $viewer->staff() && (int) $viewer->id !== (int) $order->user_id;
 
         return [
