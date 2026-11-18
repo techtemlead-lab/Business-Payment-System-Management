@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Catalog\HomePageOrder;
 use App\Domain\Catalog\ProductFacts;
 use App\Domain\Catalog\ProductPageAccess;
+use App\Domain\Catalog\ProductPhotoThumbnail;
 use App\Domain\Catalog\ProductRemoval;
 use App\Domain\Catalog\ProductSizeGroups;
 use App\Domain\Finance\Percentage;
@@ -476,10 +477,22 @@ class ProductRegistryController extends Controller
             : __('portal.flash_product_created'));
     }
 
-    public function image(Request $r, Product $product): BinaryFileResponse
+    public function image(Request $r, Product $product, ProductPhotoThumbnail $thumbnails): BinaryFileResponse
     {
         $this->mediaAccess($r, $product);
         abort_unless($product->image_path && Storage::disk('local')->exists($product->image_path), 404);
+
+        // A list asks for the card-sized copy. The address carries the photo version, so a browser may keep
+        // the copy for good; a hidden (archived) product is only shown to staff and is never kept by a shared cache.
+        $width = (int) $r->query('w', 0);
+        if ($width > 0) {
+            $copy = $thumbnails->path($product->id, $product->image_path, (string) $product->registry_version, $width);
+            if ($copy !== null) {
+                $cache = $product->active ? 'public, max-age=31536000, immutable' : 'private, no-cache';
+
+                return response()->file(Storage::disk('local')->path($copy), ['Cache-Control' => $cache, 'X-Content-Type-Options' => 'nosniff']);
+            }
+        }
 
         return response()->file(Storage::disk('local')->path($product->image_path), ['Cache-Control' => 'no-cache', 'X-Content-Type-Options' => 'nosniff']);
     }

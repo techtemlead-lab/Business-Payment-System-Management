@@ -421,6 +421,8 @@ class ProductSizeGroupsTest extends TestCase
 
                 return $rows[$small->id]['size_label'] === '100 ml'
                     && $rows[$small->id]['manufacturer'] === 'Beximco'
+                    && $rows[$small->id]['size_group_members'] === ['100 ml', '300 ml']
+                    && ! isset($rows[$plain->id]['size_group_members'])
                     && $rows[$plain->id]['manufacturer'] === null
                     && ! isset($rows[$plain->id]['size_label']);
             }));

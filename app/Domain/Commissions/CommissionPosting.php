@@ -519,7 +519,9 @@ final class CommissionPosting
                     'place_code_id' => $placeId,
                 ]);
         }
-        $add('area_management', 'area_dealer_pool', null, 'pending', (string) $rules['area_dealer_pool']['parameters']['management_share_pct'], $areaRemaining,
+        // The management share comes out of the Area pool, so it stops when the pool is off.
+        $managementRate = $areaPool > 0 ? (string) $rules['area_dealer_pool']['parameters']['management_share_pct'] : '0.00';
+        $add('area_management', 'area_dealer_pool', null, 'pending', $managementRate, $areaRemaining,
             ['account_type' => $type, 'retained_by' => ManagementReferral::FundRetainedBy, 'management_fund' => true]);
         foreach (['dealer_monthly_salary' => 'dealer_monthly_salary_pool', 'rank_royalty' => 'rank_royalty_pool',
             'rank_incentive' => 'rank_incentive_pool', 'company_marketing' => 'company_marketing_fund', 'car_bike_incentive' => 'car_bike_incentive_fund'] as $key => $category) {

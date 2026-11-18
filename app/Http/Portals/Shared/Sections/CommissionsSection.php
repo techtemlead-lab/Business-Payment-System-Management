@@ -2,6 +2,7 @@
 
 namespace App\Http\Portals\Shared\Sections;
 
+use App\Domain\Accounts\PartnerWalletStatement;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionService;
@@ -245,7 +246,7 @@ final class CommissionsSection implements WorkspaceSection
             return [
                 'id' => $entry->id,
                 'created_at' => $entry->created_at,
-                'description' => $entry->description,
+                'description' => app(PartnerWalletStatement::class)->describe((string) $entry->event_key, $entry->description !== null ? (string) $entry->description : null),
                 'event_word' => (string) __('portal.st_event_'.$word),
                 'order_number' => $orderId !== null ? ($numbers[$orderId] ?? null) : null,
             ];

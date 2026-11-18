@@ -3,7 +3,7 @@
     $catSlug = $item['category_slug'] ?? \Illuminate\Support\Str::slug($catName);
     $hasCustomImage = !empty($item['image_path']);
     $stockImage = $hasCustomImage ? null : \App\Support\StockImage::forCategory($catName, $item['name'] ?? null);
-    $imageSrc = $hasCustomImage ? $item['image_path'] : $stockImage['url'];
+    $imageSrc = $hasCustomImage ? \App\Domain\Catalog\ProductPhotoThumbnail::address($item['image_path']) : $stockImage['url'];
     $stockStatus = $item['stock_status'] ?? 'out_of_stock';
     $inStock = $stockStatus !== 'out_of_stock';
     $stockWords = fn (string $status): string => $status === 'out_of_stock'
@@ -72,7 +72,7 @@
                         data-name="{{ $size['name'] }}"
                         data-url="{{ $size['url'] }}"
                         data-mrp="{{ $priceWords($size['mrp']) }}"
-                        data-image="{{ $sizeHasImage ? $size['image_path'] : $sizeStockImage['url'] }}"
+                        data-image="{{ $sizeHasImage ? \App\Domain\Catalog\ProductPhotoThumbnail::address($size['image_path']) : $sizeStockImage['url'] }}"
                         data-image-is-stock="{{ $sizeHasImage ? '0' : '1' }}"
                         data-image-alt="{{ $sizeHasImage ? $size['name'] : $sizeStockImage['alt'] }}"
                         data-image-note="{{ $sizeHasImage ? '' : $sizeStockImage['caption'] }}"

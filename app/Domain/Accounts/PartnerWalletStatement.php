@@ -4,6 +4,7 @@ namespace App\Domain\Accounts;
 
 use App\Models\User;
 use App\Support\Money;
+use App\Support\StoredPhrase;
 use Carbon\CarbonImmutable;
 use Generator;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -252,6 +253,14 @@ final class PartnerWalletStatement
     }
 
     /**
+     * The words of one journal line in the reader's language.
+     */
+    public function describe(string $eventKey, ?string $description): string
+    {
+        return $this->wording((object) ['event_key' => $eventKey, 'description' => $description]);
+    }
+
+    /**
      * The words of a ledger line in the reader's language. A journal row keeps the sentence
      * in the language it was written in, so a known event is worded again from its key.
      * Typed words (a refund reason, an import reference) stay as typed, and a line that
@@ -266,12 +275,13 @@ final class PartnerWalletStatement
         foreach (self::Sentences as $start => $sentence) {
             if (str_starts_with($eventKey, $start)) {
                 $values = $this->sentenceValues($sentence, $stored);
+                $words = $values === null ? $stored : (string) __($this->sentenceKey($sentence), $this->valuesInReaderLanguage($eventKey, $values));
 
-                return $values === null ? $stored : (string) __($this->sentenceKey($sentence), $this->valuesInReaderLanguage($eventKey, $values));
+                return StoredPhrase::readable($words);
             }
         }
 
-        return $stored;
+        return StoredPhrase::readable($stored);
     }
 
     /** Sentences without a group of their own live in the portal language file. */

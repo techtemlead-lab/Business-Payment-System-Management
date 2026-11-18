@@ -82,6 +82,9 @@ final class PortalCatalog
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && in_array($section, ['accounts', 'sub-dealers', 'employees'], true)) {
             // Owners (Super Admin, MD, Chairman) open the account lists to reset or see passwords.
             abort_unless($user->owner() || $user->allows('accounts'), 403);
+        } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'network-tree') {
+            // Owners (Super Admin, MD, Chairman) see every dealer's tree, not only staff who manage accounts.
+            abort_unless($user->owner() || $user->allows('accounts'), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'enquiries') {
             abort_unless($user->allows('content') || $user->allows('accounts') || $user->allows('support_desk'), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'support-admin') {

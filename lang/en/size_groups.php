@@ -31,4 +31,5 @@ return [
     'err_size_repeated' => 'Two sizes cannot both say :size. Change one pack size first.',
     'package_size' => 'Package size',
     'search_several' => ':count package sizes',
+    'list_group' => 'Group: :sizes',
 ];

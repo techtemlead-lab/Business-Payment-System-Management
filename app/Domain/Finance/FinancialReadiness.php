@@ -43,6 +43,33 @@ final class FinancialReadiness
             'due_adjustments' => ! DB::table('orders as o')->whereRaw("o.due_credit <> COALESCE((SELECT SUM(CASE WHEN a.kind='credit' THEN a.amount ELSE -a.amount END) FROM due_adjustments a WHERE a.order_id=o.id AND a.status='approved'),0) OR o.due_credit < 0 OR o.paid+o.due_credit > o.total")->exists(),
             // Orders paid from a partner's account, less what went back there, must equal what is still set aside for them.
             'account_order_money' => (bool) DB::selectOne("SELECT COALESCE((SELECT SUM(amount) FROM receipts WHERE channel='Account'),0) - COALESCE((SELECT SUM(to_account) FROM order_refunds),0) = COALESCE((SELECT SUM(credit-debit) FROM journal_lines WHERE account='wallet_order_clearing'),0) AS agrees")->agrees,
+            // A month-end payout credits the wallet and keeps its own payout row. Reward awards
+            // use the same payout table but a different journal, so they stay out of this sum.
+            // A later refund debits the wallet on its own journal line and leaves the original
+            // payout amount as it was.
+            'settlement_wallets' => (bool) DB::selectOne(<<<'SQL'
+                SELECT NOT EXISTS (
+                    SELECT 1
+                    FROM (
+                        SELECT user_id, SUM(signed_amount) AS signed_amount
+                        FROM (
+                            SELECT j.user_id, (j.credit - j.debit) AS signed_amount
+                            FROM journal_lines j
+                            INNER JOIN journal_entries e ON e.id = j.entry_id
+                            WHERE j.account = 'wallet_liability'
+                              AND j.user_id IS NOT NULL
+                              AND e.event_key LIKE 'commissions.settlement.%'
+                            UNION ALL
+                            SELECT p.user_id, -p.amount AS signed_amount
+                            FROM commission_settlement_payouts p
+                            WHERE p.user_id IS NOT NULL
+                              AND p.kind NOT LIKE 'award_%'
+                        ) sides
+                        GROUP BY user_id
+                        HAVING SUM(signed_amount) <> 0
+                    ) mismatches
+                ) AS agrees
+                SQL)->agrees,
         ];
     }
 

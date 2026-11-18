@@ -31,4 +31,5 @@ return [
     'err_size_repeated' => 'দুটি সাইজে একই :size লেখা থাকতে পারে না। আগে একটির প্যাক সাইজ বদলান।',
     'package_size' => 'প্যাকেজ সাইজ',
     'search_several' => ':count প্যাকেজ সাইজ',
+    'list_group' => 'গ্রুপ: :sizes',
 ];

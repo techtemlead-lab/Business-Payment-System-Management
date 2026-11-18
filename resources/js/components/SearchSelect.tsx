@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Check, ChevronDown, Search } from 'lucide-react';
 import { useT } from '../shared/i18n/t';
 import { matchesSearch } from '../shared/search-match';
+import { menuHome } from '../shared/searchSelectHome';
 
 export type SearchOption = {
     value: string;
@@ -241,8 +242,8 @@ export default function SearchSelect({
 
     const shownLabel = chosen?.label ?? (value !== '' ? selectedLabel : undefined) ?? emptyLabel ?? placeholder ?? translate('portal', 'select_placeholder');
     const isBlank = chosen === null && (value === '' || selectedLabel === undefined);
-    // The list is lifted out of any dialog. A dialog uses transform and overflow, which
-    // would hide a menu that stays inside it, so Add product could not pick a category.
+    // The list is a popover, so a dialog's transform and overflow cannot hide it; it still sits inside
+    // the open dialog (see menuHome) so the dialog's own lock does not block it.
     const menu = open ? (
         <div
             ref={panel}
@@ -333,7 +334,7 @@ export default function SearchSelect({
                     onFocus={() => trigger.current?.focus()}
                 />
             )}
-            {menu && typeof document !== 'undefined' ? createPortal(menu, document.body) : null}
+            {menu && typeof document !== 'undefined' ? createPortal(menu, menuHome(trigger.current, document.body)) : null}
         </span>
     );
 }

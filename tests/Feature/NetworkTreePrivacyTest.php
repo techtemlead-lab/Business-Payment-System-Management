@@ -90,6 +90,20 @@ class NetworkTreePrivacyTest extends TestCase
                 }));
     }
 
+    public function test_the_md_and_the_chairman_receive_the_full_partner_tree_too(): void
+    {
+        foreach (['md', 'chairman'] as $role) {
+            $this->actingAs(User::factory()->staff($role)->create())->onPortal('sadmin')->get('/network-tree')
+                ->assertOk()
+                ->assertInertia(fn (Assert $page) => $page->where('data.dealers_total', 4));
+        }
+    }
+
+    public function test_other_staff_without_account_rights_cannot_open_the_partner_tree(): void
+    {
+        $this->actingAs(User::factory()->staff('inventory')->create())->onPortal('sadmin')->get('/network-tree')->assertForbidden();
+    }
+
     private function partnerContext(User $partner, string $section): SectionContext
     {
         return new SectionContext(
