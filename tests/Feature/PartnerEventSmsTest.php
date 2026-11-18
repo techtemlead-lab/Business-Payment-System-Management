@@ -124,6 +124,7 @@ class PartnerEventSmsTest extends TestCase
         $this->assertSame(
             __('sms.partnership_application_received', [
                 'role' => __('portal.acct_role_dealer', [], 'bn'),
+                'number' => DB::table('dealer_applications')->where('email', 'partnership.sms@example.test')->value('application_number'),
             ], 'bn'),
             $sent[0]['message'] ?? null,
         );
@@ -1060,7 +1061,7 @@ class PartnerEventSmsTest extends TestCase
         $this->assertDatabaseMissing('users', ['email' => 'reject.sms@example.test']);
     }
 
-    public function test_an_applicant_rejected_with_no_reason_is_told_none_was_written(): void
+    public function test_a_rejection_with_no_reason_is_refused_because_the_applicant_reads_it(): void
     {
         Config::set('madina.sms.driver', 'array');
         Config::set('madina.sms.sent', []);
@@ -1083,16 +1084,9 @@ class PartnerEventSmsTest extends TestCase
         $reviewer = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
         $this->actingAs($reviewer)->onPortal('sadmin')
             ->post('/commands/operations/staff/applications/'.$id.'/review', ['decision' => 'rejected'])
-            ->assertRedirect()
-            ->assertSessionHasNoErrors();
+            ->assertSessionHasErrors(['reason' => __('joining.err_reason_required')]);
 
-        $this->assertDatabaseHas('dealer_applications', ['id' => $id, 'status' => 'rejected', 'reason' => '']);
-        $this->assertSame(
-            __('sms.partnership_application_rejected', [
-                'role' => __('portal.acct_role_sub_dealer', [], 'bn'),
-                'reason' => __('reason_fields.not_written', [], 'bn'),
-            ], 'bn'),
-            config('madina.sms.sent')[0]['message'] ?? null,
-        );
+        $this->assertDatabaseHas('dealer_applications', ['id' => $id, 'status' => 'pending']);
+        $this->assertSame([], config('madina.sms.sent'));
     }
 }

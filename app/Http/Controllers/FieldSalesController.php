@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Accounts\FirstPassword;
 use App\Domain\Accounts\PartnerAge;
 use App\Domain\Orders\OrderPaymentPrompt;
 use App\Domain\Orders\OrderService;
@@ -10,6 +11,7 @@ use App\Domain\Staff\TerritoryAccess;
 use App\Http\Requests\Backend\StoreOrderRequest;
 use App\Http\Resources\Api\V1\OrderResource;
 use App\Models\Order;
+use App\Models\User;
 use App\Support\ReasonFields;
 use App\Support\TransactionReference;
 use Illuminate\Http\JsonResponse;
@@ -55,17 +57,32 @@ class FieldSalesController extends Controller
 
     public function reviewApplication(Request $request, string $id, StaffOperations $operations): Response
     {
-        $data = $request->validate(['decision' => 'required|in:approved,rejected', 'reason' => ReasonFields::rule('partner.application_review', 1000, 5),
+        $data = $request->validate(['decision' => 'required|in:approved,rejected,correction', 'reason' => ReasonFields::rule('partner.application_review', 1000, 5),
             'place_code' => 'nullable|string|max:32', 'sponsor_code' => 'nullable|string|max:40',
+            'role' => 'nullable|in:dealer,sub_dealer', 'area_dealer' => 'sometimes|boolean', 'accept_place_mismatch' => 'sometimes|boolean',
             'directory_visible' => 'sometimes|boolean']);
         $corrections = $request->has('sponsor_code') ? ['sponsor_code' => $data['sponsor_code'] ?? null] : [];
-        $choices = ['directory_visible' => $request->boolean('directory_visible')];
-        $operations->review($request->user(), $id, $data['decision'], ReasonFields::text($data['reason'] ?? null), $data['place_code'] ?? null, $corrections, $choices);
+        if ($request->filled('role')) {
+            $corrections['role'] = $data['role'];
+        }
+        $choices = ['directory_visible' => $request->boolean('directory_visible'), 'accept_place_mismatch' => $request->boolean('accept_place_mismatch')];
+        if ($request->has('area_dealer')) {
+            $choices['area_dealer'] = $request->boolean('area_dealer');
+        }
+        $firstPassword = $operations->review($request->user(), $id, $data['decision'], ReasonFields::text($data['reason'] ?? null), $data['place_code'] ?? null, $corrections, $choices);
         if ($request->expectsJson()) {
             return response()->json(['data' => []]);
         }
+        $message = $data['decision'] === 'correction' ? __('joining.flash_application_correction') : __('portal.flash_application_'.$data['decision']);
+        if ($firstPassword !== null) {
+            // Shown once to the staff member, who gives it to the new partner; email is only an extra path.
+            $partner = User::query()->whereKey(DB::table('dealer_applications')->where('id', $id)->value('user_id'))->first();
+            if ($partner) {
+                $message .= ' '.__('joining.flash_partner_code', ['code' => (string) $partner->dealer_code]).' '.FirstPassword::notice($partner, $firstPassword);
+            }
+        }
 
-        return back()->with('success', __('portal.flash_application_'.$data['decision']));
+        return back()->with('success', $message);
     }
 
     public function order(Request $request, TerritoryAccess $territories, OrderService $orders): Response

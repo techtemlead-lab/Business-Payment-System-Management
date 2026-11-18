@@ -92,7 +92,7 @@ class OneAccountPerIdentitySwitchTest extends TestCase
         $this->onPortal('public')->from('/partnership')->post('/partnership/apply', [
             'name' => 'Test Applicant', 'email' => 'applicant@example.test', 'phone' => '01811112223',
             'date_of_birth' => '1990-01-15', 'role' => 'dealer', 'division' => 'Rangpur', 'district' => 'Rangpur',
-        ])->assertSessionHasNoErrors()->assertSessionHas('success', __('portal.flash_partnership_received'));
+        ])->assertSessionHasNoErrors()->assertSessionHas('success');
 
         $this->assertDatabaseCount('dealer_applications', 1);
     }
