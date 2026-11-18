@@ -143,6 +143,9 @@ class WorkspaceController extends Controller
             $section = 'website';
         }
         if ($section === OfficeHubs::SettingsSection && ! OfficeHubs::hasSettingsToOpen($u, $catalogPortal, in_array($portal, ['manage', 'sadmin'], true))) {
+            // SA-11: office staff are told plainly the page is not theirs; partners, who have no such page, go home.
+            abort_if(in_array($portal, ['manage', 'sadmin'], true), 403);
+
             return redirect('/');
         }
         PortalCatalog::assertSection($u, $catalogPortal, $section);

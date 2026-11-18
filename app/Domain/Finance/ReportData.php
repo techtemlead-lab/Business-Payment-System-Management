@@ -78,7 +78,8 @@ final class ReportData
     public function availableTo(User $actor): array
     {
         if (! $actor->allows('finance') && ! $actor->allows('reports')) {
-            return ['orders', 'payroll'];
+            // SA-11: offer the payroll file only to someone who may open it (a sales rep may not).
+            return $actor->allows('payroll') ? ['orders', 'payroll'] : ['orders'];
         }
 
         return array_values(array_filter(self::Types, fn (string $type): bool => $this->mayRead($actor, $type)));
