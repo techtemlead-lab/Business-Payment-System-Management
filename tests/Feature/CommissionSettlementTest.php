@@ -527,5 +527,7 @@ class CommissionSettlementTest extends TestCase
         $this->assertDatabaseHas('wallets', ['user_id' => $buyer->id, 'available' => '0.00', 'held' => '0.00']);
         $this->assertFalse(CommissionWallet::hasDebt($buyer->id));
         $this->assertDatabaseHas('withdrawals', ['id' => $withdrawal, 'status' => 'rejected']);
+        // MA-26: the partner is told that the returned money paid off the refund debt.
+        $this->assertDatabaseHas('account_notices', ['user_id' => $buyer->id, 'title' => __('money_core.notice_debt_recovered_title', [], $buyer->fresh()->preferredLocale())]);
     }
 }

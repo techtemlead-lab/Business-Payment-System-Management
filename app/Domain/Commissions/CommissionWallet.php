@@ -4,6 +4,7 @@ namespace App\Domain\Commissions;
 
 use App\Models\CommissionAllocation;
 use App\Models\User;
+use App\Support\Audit;
 use App\Support\Money;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -145,6 +146,16 @@ final class CommissionWallet
                 ['account' => 'wallet_liability', 'user_id' => $userId, 'debit' => $recovery, 'credit' => 0],
                 ['account' => 'commission_clawback_receivable', 'user_id' => $userId, 'debit' => 0, 'credit' => $recovery],
             ]);
+            // MA-26: money coming back (a rejected withdrawal, a release, a month close) that first pays
+            // off what the partner owed from a refund is no longer silent.
+            Audit::notice(
+                $userId,
+                __('money_core.notice_debt_recovered_title', [], $locale),
+                __('money_core.notice_debt_recovered_body', [
+                    'amount' => Money::grouped(Money::decimal($recovery)),
+                    'credited' => Money::grouped(Money::decimal($amount - $recovery)),
+                ], $locale),
+            );
         }
     }
 

@@ -18,6 +18,10 @@ return [
     'arm_off_server' => 'Off (from the server setting): paid only when someone presses "Pay now" on the Settlements page. Turn it on here and save, and this setting is followed instead.',
     'arm_owner_only' => 'Only the owner can change this.',
 
+    // MA-26: smaller money cases.
+    'notice_debt_recovered_title' => 'Money you owed from a refund was taken',
+    'notice_debt_recovered_body' => 'You owed the company money from an earlier refund. ৳:amount of the money coming to you paid that off; the other ৳:credited was added to your money.',
+
     // MA-01 and MA-23: month close status on the Settlements page.
     'mc_failed_title' => 'A month could not be closed',
     'mc_failed_line' => ':kind for :month did not close on its own (:error). It is tried again every hour; you can also close it below.',

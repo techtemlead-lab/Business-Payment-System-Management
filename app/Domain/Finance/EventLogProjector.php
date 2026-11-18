@@ -111,8 +111,18 @@ final class EventLogProjector
         if ($limit !== null) {
             $query->orderBy($feed['time'])->limit($limit);
         }
-        $inserted = DB::table('money_events')->insertOrIgnoreUsing(self::Columns, $query);
-        $read = DB::query()->fromSub($query, 'q')->selectRaw('MAX(occurred_at) AS newest, COUNT(*) AS seen')->first();
+        // The copy and the watermark read must see the same rows (MA-26 m10): otherwise a row that
+        // commits between them moves the watermark past a row that was never copied.
+        $copy = function (bool $ownTransaction) use ($query): array {
+            if ($ownTransaction) {
+                DB::statement('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
+            }
+            $inserted = DB::table('money_events')->insertOrIgnoreUsing(self::Columns, $query);
+            $read = DB::query()->fromSub($query, 'q')->selectRaw('MAX(occurred_at) AS newest, COUNT(*) AS seen')->first();
+
+            return [$inserted, $read];
+        };
+        [$inserted, $read] = DB::transactionLevel() === 0 ? DB::transaction(fn (): array => $copy(true)) : $copy(false);
 
         return [$inserted, $read?->newest === null ? null : CarbonImmutable::parse((string) $read->newest)->utc(), (int) ($read->seen ?? 0)];
     }
