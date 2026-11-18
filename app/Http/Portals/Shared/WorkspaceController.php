@@ -21,6 +21,7 @@ use App\Domain\Orders\BackOrders;
 use App\Domain\Orders\CourierOptions;
 use App\Domain\Orders\MixedOutcomeDecisions;
 use App\Domain\Orders\OrderInvoice;
+use App\Domain\Orders\OrderListFilter;
 use App\Domain\Orders\OrderPaymentPrompt;
 use App\Domain\Orders\OrderRefund;
 use App\Domain\Orders\OrderReturns;
@@ -337,6 +338,25 @@ class WorkspaceController extends Controller
             'Content-Type' => 'image/svg+xml; charset=UTF-8',
             'Cache-Control' => 'private, max-age=300',
         ]);
+    }
+
+    /**
+     * The dashboard's "find an order" box: an order number, a phone number or a name. One match opens
+     * that order at once; anything else opens the order list with the same words in its search box.
+     */
+    public function findOrder(Request $r): RedirectResponse
+    {
+        $u = $r->user();
+        abort_unless($u->allows('orders') || $u->allows('finance'), 403);
+        $words = trim($r->validate(['q' => 'required|string|max:100'])['q']);
+        $visible = Order::query();
+        app(BranchOperations::class)->scopeFor($u, $r)->restrictOrders($visible);
+        $matches = app(OrderListFilter::class)->apply($visible, $r->duplicate(['q' => $words]), 'orders', true)->limit(2)->pluck('orders.id');
+        if ($matches->count() === 1) {
+            return redirect('/orders/'.$matches->first());
+        }
+
+        return redirect('/orders?'.http_build_query(['q' => $words]));
     }
 
     public function show(Request $r, Order $order): Response
