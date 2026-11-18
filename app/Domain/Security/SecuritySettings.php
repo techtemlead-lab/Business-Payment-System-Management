@@ -2,6 +2,7 @@
 
 namespace App\Domain\Security;
 
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\ReasonFields;
@@ -22,6 +23,8 @@ final class SecuritySettings
     public const PasswordResetNoticeKey = 'password_reset_owner_notice';
 
     public const OneAccountPerIdentityKey = 'one_account_per_identity';
+
+    public const TeamPhonesKey = 'partner_team_phones';
 
     /** @var array<string, object>|null */
     private ?array $settingRows = null;
@@ -143,6 +146,54 @@ final class SecuritySettings
         }, 3);
     }
 
+    /**
+     * Whether a dealer sees the full phone numbers of the members they referred directly (LC-07,
+     * owner decision D13). On by default, as before; when off, every team member's number shows
+     * only its last four digits. A partner's own number and their upline's number are not affected.
+     *
+     * @return array{enabled: bool, version: int}
+     */
+    public function teamPhones(): array
+    {
+        $row = $this->settingRow(self::TeamPhonesKey);
+
+        return [
+            'enabled' => $row ? (bool) (json_decode($row->value, true, 512, JSON_THROW_ON_ERROR)['enabled'] ?? true) : true,
+            'version' => (int) ($row->version ?? 0),
+        ];
+    }
+
+    public function teamPhonesVisible(): bool
+    {
+        return $this->teamPhones()['enabled'];
+    }
+
+    public function saveTeamPhones(User $actor, bool $enabled, int $version): void
+    {
+        DB::transaction(function () use ($actor, $enabled, $version): void {
+            abort_unless(LeadershipAccess::granted($actor->fresh(), 'owner_tools'), 403);
+            $this->settingRows = null;
+            $before = $this->teamPhones();
+            if ($version !== $before['version']) {
+                throw ValidationException::withMessages(['version' => __('portal.err_security_setting_stale')]);
+            }
+            $existing = DB::table('business_settings')->where('key', self::TeamPhonesKey)->first();
+            $after = ['enabled' => $enabled];
+            DB::table('business_settings')->updateOrInsert(['key' => self::TeamPhonesKey], [
+                'value' => json_encode($after, JSON_THROW_ON_ERROR),
+                'version' => $version + 1,
+                'updated_by' => $actor->id,
+                'created_at' => $existing->created_at ?? now(),
+                'updated_at' => now(),
+            ]);
+            Audit::record($actor->id, 'security.team_phones_changed', self::TeamPhonesKey, [
+                'before' => ['enabled' => $before['enabled']],
+                'after' => $after,
+            ]);
+            $this->settingRows = null;
+        }, 3);
+    }
+
     public function totpChallengesEnabled(): bool
     {
         return ! $this->previewMode() && (bool) config('madina.totp.enabled', true);
@@ -223,6 +274,8 @@ final class SecuritySettings
      *   partner_login_otp: array{enabled: bool, version: int, preview_forced_off: bool, config_default: bool},
      *   password_reset_notice: array{enabled: bool, version: int},
      *   one_account_per_identity: array{enabled: bool, version: int},
+     *   team_phones: array{enabled: bool, version: int},
+     *   leadership_access: array{md: list<string>, chairman: list<string>, version: int}|null,
      *   owner_confirmation: array{mode: string, version: int, method: string, sms_works: bool, has_phone: bool, code_fell_back: bool}|null,
      *   totp: array{challenges_enabled: bool, confirmed: bool, preview_forced_off: bool, required: bool},
      *   admin_ip_allowlist_active: bool,
@@ -238,6 +291,9 @@ final class SecuritySettings
             'partner_login_otp' => $otp,
             'password_reset_notice' => $this->passwordResetNotice(),
             'one_account_per_identity' => $this->oneAccountPerIdentity(),
+            'team_phones' => $this->teamPhones(),
+            // Only the Super Admin sets what the MD and Chairman may open (SA-07).
+            'leadership_access' => $user->role === 'super_admin' && request()->is('login-rules') ? LeadershipAccess::current() : null,
             // Only the two pages that show it ask for it, so no other page pays for the extra query.
             'owner_confirmation' => $user->owner() && request()->is('login-rules', 'profile') ? app(OwnerConfirmation::class)->payload($user) : null,
             'totp' => [
@@ -277,7 +333,7 @@ final class SecuritySettings
     private function settingRow(string $key): ?object
     {
         $this->settingRows ??= DB::table('business_settings')
-            ->whereIn('key', [self::PartnerLoginOtpKey, self::PasswordResetNoticeKey, self::OneAccountPerIdentityKey, ReasonFields::SettingsKey])
+            ->whereIn('key', [self::PartnerLoginOtpKey, self::PasswordResetNoticeKey, self::OneAccountPerIdentityKey, self::TeamPhonesKey, ReasonFields::SettingsKey])
             ->get()
             ->keyBy('key')
             ->all();

@@ -4,6 +4,8 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Casts\PasswordVaultEncrypted;
+use App\Casts\ProtectedProfile;
+use App\Domain\Staff\LeadershipAccess;
 use App\Domain\Staff\PartnerStaffLink;
 use App\Domain\Staff\StaffPermissions;
 use App\Support\PortalHost;
@@ -177,6 +179,8 @@ class User extends Authenticatable implements HasLocalePreference
             'has_linked_staff' => $this->hasLinkedStaffAccess(),
             'workspace_mode' => $this->usingStaffWorkspace() ? 'staff' : 'partner',
             'permissions' => $this->capabilities(),
+            // Owner areas the MD or Chairman may open (SA-07); empty for staff and partners.
+            'owner_areas' => LeadershipAccess::areasFor($this),
             'active_branch' => $this->activeBranch?->summary(),
         ];
     }
@@ -226,7 +230,8 @@ class User extends Authenticatable implements HasLocalePreference
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'profile' => 'array',
+            // Date of birth, parents names, village, post office and birth-certificate number are encrypted inside (LC-05).
+            'profile' => ProtectedProfile::class,
             'nid' => 'encrypted',
             'admin_password_cipher' => PasswordVaultEncrypted::class,
             'totp_secret' => 'encrypted',

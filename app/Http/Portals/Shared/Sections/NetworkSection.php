@@ -3,6 +3,7 @@
 namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Commissions\CommissionQualification;
+use App\Domain\Security\SecuritySettings;
 use App\Models\Order;
 use App\Models\ReferralTreePath;
 use App\Models\User;
@@ -95,11 +96,12 @@ final class NetworkSection implements WorkspaceSection
         $members = (clone $query)->orderBy('depth')->orderBy('users.id')->limit(self::DownlineLimit + 1)
             ->get(['users.id', 'users.name', 'users.dealer_code', 'users.phone', 'users.sponsor_id', 'depth', 'users.created_at']);
         $truncated = $members->count() > self::DownlineLimit;
+        $directInFull = app(SecuritySettings::class)->teamPhonesVisible();
 
         return [
             // Full numbers only for directly referred members; the rest show the last four digits.
-            'members' => $members->take(self::DownlineLimit)->map(function (object $member) use ($user): object {
-                $member->phone = PhoneIdentity::forDownlineViewer($member->phone, (int) $member->id, $member->sponsor_id !== null ? (int) $member->sponsor_id : null, (int) $user->id);
+            'members' => $members->take(self::DownlineLimit)->map(function (object $member) use ($user, $directInFull): object {
+                $member->phone = PhoneIdentity::forDownlineViewer($member->phone, (int) $member->id, $member->sponsor_id !== null ? (int) $member->sponsor_id : null, (int) $user->id, $directInFull);
 
                 return $member;
             })->values(),
@@ -257,15 +259,16 @@ final class NetworkSection implements WorkspaceSection
         $qualifying = app(CommissionQualification::class)->monthlyVolumesFor($ids, CommissionQualification::currentMonth());
         $sponsorEarned = $this->sponsorEarnedByPartner($ids);
         $viewerEarned = $viewer ? $this->viewerEarnedByPartner($viewer, $ids) : [];
+        $directInFull = app(SecuritySettings::class)->teamPhonesVisible();
 
         return $partners
-            ->map(function (User $dealer) use ($maskPhone, $sales, $qualifying, $sponsorEarned, $viewerEarned, $viewer): array {
+            ->map(function (User $dealer) use ($maskPhone, $sales, $qualifying, $sponsorEarned, $viewerEarned, $viewer, $directInFull): array {
                 $phone = (string) ($dealer->phone ?? '');
                 if ($maskPhone) {
                     $phone = PhoneIdentity::masked($phone);
                 } elseif ($viewer) {
                     // A dealer sees full numbers only for members they referred directly.
-                    $phone = PhoneIdentity::forDownlineViewer($phone, (int) $dealer->id, $dealer->sponsor_id !== null ? (int) $dealer->sponsor_id : null, (int) $viewer->id);
+                    $phone = PhoneIdentity::forDownlineViewer($phone, (int) $dealer->id, $dealer->sponsor_id !== null ? (int) $dealer->sponsor_id : null, (int) $viewer->id, $directInFull);
                 }
 
                 return [

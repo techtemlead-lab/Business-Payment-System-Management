@@ -10,6 +10,7 @@ use App\Domain\Auth\SignInGuard;
 use App\Domain\Auth\TotpAuthenticator;
 use App\Domain\Security\OwnerConfirmation;
 use App\Domain\Security\SecuritySettings;
+use App\Domain\Staff\LeadershipAccess;
 use App\Http\Middleware\RequireAuthenticatorSetup;
 use App\Models\PlaceCode;
 use App\Models\User;
@@ -188,7 +189,7 @@ class AuthController extends Controller
         }
         $code = trim($data['code']);
         $secret = (string) $user->totp_secret;
-        if ($totp->verify($secret, $code)) {
+        if ($totp->verifyOnce($user, $secret, $code)) {
             RateLimiter::clear($attemptKey);
 
             return $this->completeLogin($r, $user, $this->totpMethod($r));
@@ -468,6 +469,8 @@ class AuthController extends Controller
         Auth::login($candidate);
         $r->session()->regenerate();
         $r->session()->put('session_fingerprint', hash('sha256', (string) $r->userAgent()));
+        // SA-10: the session belongs to this portal, and an office session has a fixed end (BindSessionFingerprint).
+        $r->session()->put(['session_portal' => PortalHost::current($r), 'session_started_at' => now()->getTimestamp()]);
         $this->persistLoginLocale($r);
         Audit::record($r->user()->id, 'login', 'account', [
             'portal' => PortalHost::current($r),
@@ -790,6 +793,43 @@ class AuthController extends Controller
         return back()->with('success', __('portal.flash_one_account_per_identity_updated'));
     }
 
+    /** LC-07 (D13): whether dealers see the full numbers of members they added directly. */
+    public function teamPhones(Request $request, SecuritySettings $security, OwnerConfirmation $confirmation): Response
+    {
+        $owner = $request->user();
+        abort_unless($owner instanceof User && LeadershipAccess::granted($owner, 'owner_tools'), 403);
+        $confirmation->require($request, $owner);
+        $data = $request->validate([
+            'enabled' => 'required|in:0,1',
+            'version' => 'required|integer|min:0',
+        ]);
+        $security->saveTeamPhones($owner, $data['enabled'] === '1', (int) $data['version']);
+
+        return back()->with('success', __('owner_security.flash_team_phones_saved'));
+    }
+
+    /** SA-07 (D11): the Super Admin chooses which owner areas the MD and the Chairman may open. */
+    public function leadershipAccess(Request $request, OwnerConfirmation $confirmation): Response
+    {
+        $owner = $request->user();
+        abort_unless($owner instanceof User && $owner->role === 'super_admin', 403);
+        $confirmation->require($request, $owner);
+        $rules = ['version' => 'required|integer|min:0'];
+        foreach (LeadershipAccess::Roles as $role) {
+            foreach (LeadershipAccess::Areas as $area) {
+                $rules[$role.'_'.$area] = 'required|in:0,1';
+            }
+        }
+        $data = $request->validate($rules);
+        $byRole = [];
+        foreach (LeadershipAccess::Roles as $role) {
+            $byRole[$role] = array_values(array_filter(LeadershipAccess::Areas, fn (string $area): bool => $data[$role.'_'.$area] === '1'));
+        }
+        LeadershipAccess::save($owner, $byRole, (int) $data['version']);
+
+        return back()->with('success', __('owner_security.flash_leadership_saved'));
+    }
+
     public function beginTotp(Request $request, TotpAuthenticator $totp, SecuritySettings $security): Response
     {
         $user = $request->user();
@@ -830,11 +870,30 @@ class AuthController extends Controller
         ])->save();
         $request->session()->forget('totp_setup_secret');
         Audit::record($user->id, 'security.totp_enabled', 'account');
+        $this->tellAboutNewAuthenticator($user);
 
         return back()->with([
             'success' => __('portal.flash_totp_enabled'),
             'totp_recovery_codes' => $recovery,
         ]);
+    }
+
+    /**
+     * SA-10: whoever holds a password could enrol their own authenticator at the first set-up step.
+     * The account holder and the Super Admin are told at once, so a stranger's set-up is noticed.
+     */
+    private function tellAboutNewAuthenticator(User $user): void
+    {
+        $time = now()->timezone('Asia/Dhaka')->format('d M Y, h:i A');
+        $recipients = User::query()->where('role', 'super_admin')->where('status', 'active')->pluck('id')->push($user->id)->unique();
+        foreach (User::query()->whereKey($recipients->all())->get(['id', 'locale']) as $recipient) {
+            $locale = $recipient->preferredLocale();
+            Audit::notice(
+                $recipient->id,
+                __('security.notice_totp_enrolled_title', [], $locale),
+                __('security.notice_totp_enrolled_body', ['name' => $user->name, 'time' => $time], $locale),
+            );
+        }
     }
 
     public function disableTotp(Request $request, SecuritySettings $security): Response
@@ -849,7 +908,7 @@ class AuthController extends Controller
             $code = trim((string) ($data['code'] ?? ''));
             abort_unless($code !== '', 422);
             $totp = app(TotpAuthenticator::class);
-            if (! $totp->verify((string) $user->totp_secret, $code)) {
+            if (! $totp->verifyOnce($user, (string) $user->totp_secret, $code)) {
                 throw ValidationException::withMessages(['code' => __('portal.err_totp_invalid')]);
             }
         }

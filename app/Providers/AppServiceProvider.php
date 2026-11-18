@@ -8,6 +8,7 @@ use App\Domain\Integrations\SmtpMailConfig;
 use App\Domain\Notifications\WebPushNotices;
 use App\Domain\Pricing\CurrentProductPricing;
 use App\Domain\Pricing\ProductPricing;
+use App\Domain\Staff\LeadershipAccess;
 use App\Http\Middleware\ThrottleEachAction;
 use App\Listeners\NoticeNewStaffDevice;
 use App\Models\User;
@@ -53,6 +54,7 @@ class AppServiceProvider extends ServiceProvider
         // (single-threaded) until max_execution_time, which freezes every device viewport.
         $this->app->bind('db.connector.pgsql', PostgresConnector::class);
         $this->app->singleton(PasswordVault::class);
+        $this->app->scoped(LeadershipAccess::class);
     }
 
     /**

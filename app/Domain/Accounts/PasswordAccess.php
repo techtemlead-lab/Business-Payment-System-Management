@@ -2,6 +2,7 @@
 
 namespace App\Domain\Accounts;
 
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\User;
 
 /**
@@ -29,10 +30,10 @@ final class PasswordAccess
             return $actor->role === 'super_admin';
         }
         if ($target->staff()) {
-            return $actor->owner() || $actor->allows('staff_admin');
+            return LeadershipAccess::granted($actor, 'accounts') || $actor->allows('staff_admin');
         }
         if (in_array($target->role, ['dealer', 'sub_dealer'], true)) {
-            return $actor->owner() || $actor->allows('accounts');
+            return LeadershipAccess::granted($actor, 'accounts') || $actor->allows('accounts');
         }
 
         return false;
@@ -40,7 +41,7 @@ final class PasswordAccess
 
     public function canView(User $actor, User $target): bool
     {
-        return $actor->owner()
+        return LeadershipAccess::granted($actor, 'accounts')
             && in_array($target->role, User::RevealablePasswordRoles, true)
             && $this->canReset($actor, $target);
     }
@@ -48,6 +49,6 @@ final class PasswordAccess
     /** May choose the new password on a reset and see it once. */
     public function mayChooseOnReset(User $actor, User $target): bool
     {
-        return $actor->owner() && $this->canReset($actor, $target);
+        return LeadershipAccess::granted($actor, 'accounts') && $this->canReset($actor, $target);
     }
 }

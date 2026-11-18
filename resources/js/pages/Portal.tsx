@@ -141,7 +141,7 @@ export default function Portal({section,data:d,filters}:{section:string,data:Row
  {section==='network'&&<Network {...sectionProps}/>}
  {section==='profile'&&<Profile {...sectionProps}/>}
  {section==='security'&&<Security {...sectionProps}/>}
- {section==='login-rules'&&['super_admin','md','chairman'].includes(u.role)&&<LoginRules otp={securityControls?.partner_login_otp||{}} passwordResetNotice={securityControls?.password_reset_notice} oneAccountPerIdentity={securityControls?.one_account_per_identity} ownerConfirmation={securityControls?.owner_confirmation}/>}
+ {section==='login-rules'&&['super_admin','md','chairman'].includes(u.role)&&<LoginRules otp={securityControls?.partner_login_otp||{}} passwordResetNotice={securityControls?.password_reset_notice} oneAccountPerIdentity={securityControls?.one_account_per_identity} ownerConfirmation={securityControls?.owner_confirmation} teamPhones={securityControls?.team_phones} leadershipAccess={securityControls?.leadership_access}/>}
  {section==='visitors'&&d.visitors&&<Visitors report={d.visitors} hub={d.hub}/>}
  {section==='errors'&&d.errors&&<ErrorsPage data={d.errors}/>}
  {section==='reason-fields'&&d.reason_fields&&<ReasonFields settings={d.reason_fields}/>}
