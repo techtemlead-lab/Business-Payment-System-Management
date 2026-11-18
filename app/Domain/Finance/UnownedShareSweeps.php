@@ -102,7 +102,9 @@ final class UnownedShareSweeps
                 ->whereNotNull('user_id')
                 ->when($partnerId !== null, fn ($query) => $query->where('user_id', $partnerId))
                 ->whereIn('user_id', User::query()->where('status', 'active')->whereIn('role', ['dealer', 'sub_dealer'])->select('id'))
-                ->where(fn ($query) => $query->whereNull('metadata->hold_reason')->orWhere('metadata->hold_reason', '!=', 'quota'))
+                // Only shares held because the partner was inactive; an area share held for its month target keeps
+                // that rule, and creditHeldAllocation() still checks an area share's target before paying it.
+                ->whereRaw("COALESCE(metadata->>'hold_reason', '') <> 'quota'")
                 ->orderBy('id')->lockForUpdate()->get();
             CommissionWallet::lockPartners(...$rows->pluck('user_id')->map(fn ($id): int => (int) $id)->all());
             $reserves = app(ReserveService::class);
