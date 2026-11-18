@@ -105,6 +105,7 @@ export default function CommissionStudio({ rules: initialRules, limits }: { rule
                         <div className="cs-guard-value">
                             {totalPercentage.toFixed(2)}% <span>/ {capLabel(dealerCap)} {translate('portal','cs_dealer_pool')} · {translate('portal','cs_sub_dealer')} {subDealerPercentage.toFixed(2)}% / {capLabel(subDealerCap)}</span>
                         </div>
+                        {!canEdit && <p className="notice" role="note">{translate('office_shell','view_only_note')}</p>}
                         {canEdit && (
                             <div className="hub-sub">
                                 {isOverAllocated
