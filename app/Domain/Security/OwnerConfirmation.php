@@ -70,9 +70,18 @@ final class OwnerConfirmation
         return $this->methodFor($owner, $this->current()['mode']);
     }
 
-    /** @return 'none'|'password'|'code' */
+    /**
+     * The Super Admin is never stopped by this step (CR-10); the chosen mode still applies to the
+     * MD and Chairman.
+     *
+     * @return 'none'|'password'|'code'
+     */
     private function methodFor(User $owner, string $mode): string
     {
+        if (OwnerExemption::applies($owner)) {
+            return 'none';
+        }
+
         return match ($mode) {
             self::ModeOff => 'none',
             self::ModeSms => $this->smsWorks($owner) && ! Cache::has($this->failureKey($owner)) ? 'code' : 'password',

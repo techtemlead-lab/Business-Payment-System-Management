@@ -21,19 +21,13 @@ final class SelfApproval
     public const MinimumReasonLength = 5;
 
     /**
-     * The accounts nobody ranks above. The MD and Chairman keep their present rights until
-     * the owner decides otherwise.
+     * Whether this person is the owner, who finishes their own steps without a second person.
+     * Re-read so a role or status changed a moment ago counts. The MD and Chairman keep their
+     * present rights until the owner decides otherwise ({@see OwnerExemption}).
      */
-    private const OwnerRoles = ['super_admin'];
-
-    /** Whether this person is the owner, who finishes their own steps without a second person. */
     public function ownerFinishesAlone(User $actor): bool
     {
-        $current = $actor->fresh();
-
-        return $current !== null
-            && $current->status === 'active'
-            && in_array($current->role, self::OwnerRoles, true);
+        return OwnerExemption::applies($actor->fresh());
     }
 
     /**
