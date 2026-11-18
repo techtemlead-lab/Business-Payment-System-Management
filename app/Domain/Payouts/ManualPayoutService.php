@@ -153,7 +153,7 @@ class ManualPayoutService
             // Partner row first, then the withdrawal: the same order as suspending a partner.
             $partner = $this->lockPartnerOf($id);
             $w = DB::table('withdrawals')->where('id', $id)->lockForUpdate()->first();
-            abort_unless($w, 404);
+            abort_unless($w !== null, 404);
             if ($w->status !== 'requested' && ! ($w->status === 'approved' && $decision === 'rejected')) {
                 throw ValidationException::withMessages(['withdrawal' => __('portal.err_wd_already_reviewed')]);
             }
@@ -238,7 +238,7 @@ class ManualPayoutService
         abort_unless($actor->allows('finance'), 403);
         DB::transaction(function () use ($actor, $id, $payerId): void {
             $w = DB::table('withdrawals')->where('id', $id)->lockForUpdate()->first();
-            abort_unless($w, 404);
+            abort_unless($w !== null, 404);
             if ($w->status !== 'approved') {
                 throw ValidationException::withMessages(['payer_id' => __('portal.err_wd_not_approved')]);
             }
@@ -303,7 +303,7 @@ class ManualPayoutService
                 CommissionWallet::lock();
                 $partner = $this->lockPartnerOf($id);
                 $w = DB::table('withdrawals')->where('id', $id)->lockForUpdate()->first();
-                abort_unless($w, 404);
+                abort_unless($w !== null, 404);
                 if ($w->status !== 'approved') {
                     throw ValidationException::withMessages(['withdrawal' => __('portal.err_wd_not_approved')]);
                 }
@@ -380,7 +380,7 @@ class ManualPayoutService
         try {
             DB::transaction(function () use ($actor, $id, $receipt, $path): void {
                 $w = DB::table('withdrawals')->where('id', $id)->lockForUpdate()->first();
-                abort_unless($w, 404);
+                abort_unless($w !== null, 404);
                 if ($w->status !== 'paid' || ! $w->receipt_due) {
                     throw ValidationException::withMessages(['receipt' => __('payouts.err_receipt_not_due')]);
                 }
@@ -426,7 +426,7 @@ class ManualPayoutService
     {
         abort_unless($viewer->allows('finance'), 403);
         $w = DB::table('withdrawals')->where('id', $id)->first();
-        abort_unless($w, 404);
+        abort_unless($w !== null, 404);
         $partner = User::findOrFail($w->user_id);
         $wallet = DB::table('wallets')->where('user_id', $w->user_id)->first();
         $others = DB::table('withdrawals')->where('user_id', $w->user_id)->where('id', '<>', $id)->whereIn('status', WithdrawalHolds::OpenStatuses)
