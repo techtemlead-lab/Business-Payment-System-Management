@@ -29,6 +29,7 @@ use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
 use App\Domain\Orders\OrderRefund;
 use App\Domain\Orders\OrderService;
+use App\Domain\Security\OwnerExemption;
 use App\Domain\Staff\PartnerStaffLink;
 use App\Domain\Staff\StaffPermissions;
 use App\Domain\Support\SupportTickets;
@@ -296,7 +297,13 @@ class CommandController extends Controller
     {
         $this->permit($r, 'accounts');
         abort_if($user->staff() && $r->user()->role !== 'super_admin', 403);
-        abort_if($r->user()->id === $user->id, 422, __('portal.cmd_val_self_suspend'));
+        // CR-10: the owner may edit their own account here like any other; staff use their own
+        // profile page. Nobody may suspend themselves, which would shut the only owner out.
+        $editingSelf = $r->user()->id === $user->id;
+        abort_if($editingSelf && ! OwnerExemption::applies($r->user()), 422, __('portal.cmd_val_self_suspend'));
+        if ($editingSelf && $r->input('status', $user->status) !== 'active') {
+            throw ValidationException::withMessages(['status' => __('portal.cmd_val_self_suspend')]);
+        }
         if ($r->exists('nid')) {
             $this->permit($r, 'identity_write');
         }

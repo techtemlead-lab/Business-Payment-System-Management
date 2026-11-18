@@ -49,7 +49,8 @@ class OwnerContactTest extends TestCase
 
     public function test_email_change_rejects_wrong_password_and_duplicate_email_without_mutation(): void
     {
-        $owner = User::factory()->staff()->create(['password' => 'OwnerPassword12345']);
+        // The password is asked of the MD and Chairman; the Super Admin is never asked (CR-10).
+        $owner = User::factory()->staff('md')->create(['password' => 'OwnerPassword12345']);
         $other = User::factory()->create();
         $this->actingAs($owner)->post('/commands/owner/contact', ['email' => 'new-owner@example.com', 'current_password' => 'WrongPassword123'])
             ->assertSessionHasErrors('current_password');

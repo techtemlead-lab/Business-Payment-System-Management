@@ -20,7 +20,8 @@ class OwnerConfirmationTest extends TestCase
         parent::setUp();
         $this->withoutVite();
         config(['madina.preview_mode' => false, 'madina.sms.driver' => 'array', 'madina.sms.sent' => []]);
-        $this->owner = User::factory()->staff('super_admin')->create(['password' => 'OwnerPassword12345', 'phone' => '01712345678']);
+        // The Super Admin is never asked (CR-10, OwnerNeverBlockedTest); the confirmation still applies to the MD and Chairman.
+        $this->owner = User::factory()->staff('md')->create(['password' => 'OwnerPassword12345', 'phone' => '01712345678']);
     }
 
     public function test_the_password_is_asked_unless_the_owner_chooses_otherwise(): void
@@ -85,7 +86,8 @@ class OwnerConfirmationTest extends TestCase
     {
         Http::preventStrayRequests();
         config(['madina.sms.driver' => 'log']);
-        $this->actingAs($this->owner)->onPortal('sadmin')->post('/commands/operations/integrations/providers', [
+        // The Super Admin sets up the SMS service; the confirmation under test is the MD's.
+        $this->actingAs(User::factory()->staff('super_admin')->create())->onPortal('sadmin')->post('/commands/operations/integrations/providers', [
             'group' => 'sms', 'provider' => 'greenweb', 'version' => 0, 'enabled' => true,
             'base_url' => 'https://api.bdbulksms.net/api.php', 'balance_url' => 'https://api.bdbulksms.net/g_api.php',
             'api_key' => 'greenweb-test-token-7f3a9', 'reason' => 'Greenweb is the SMS service the owner chose.',
