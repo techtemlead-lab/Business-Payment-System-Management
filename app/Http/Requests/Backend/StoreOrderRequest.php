@@ -56,7 +56,7 @@ class StoreOrderRequest extends FormRequest
             // "Use my account balance first": the balance pays part, the chosen method pays the rest.
             'use_account' => ['nullable', 'boolean', 'prohibited_if:channel,Account'],
             'channel' => ($paidWithOrder ? 'required' : 'nullable|required_with:reference').'|in:bKash,Nagad,Rocket,Bank,Office,Account',
-            'amount' => [...$this->paymentDetailRules($paidWithOrder), 'required_with:reference', 'regex:/^\d{1,9}(\.\d{1,2})?$/D'],
+            'amount' => [...$this->paymentDetailRules($paidWithOrder), 'required_with:reference', 'regex:/^\d{1,12}(\.\d{1,2})?$/D'],
             'proof' => [...$this->paymentDetailRules($paidWithOrder), 'required_with:reference', ...explode('|', PaymentProof::Rules)],
             ...array_fill_keys(self::SellerFields, 'prohibited'),
         ];

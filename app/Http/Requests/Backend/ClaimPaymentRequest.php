@@ -31,7 +31,7 @@ class ClaimPaymentRequest extends FormRequest
             'payment_account_id' => 'nullable|prohibited_if:channel,Office|integer|exists:payment_accounts,id',
             'channel' => 'required|in:bKash,Nagad,Rocket,Bank,Office',
             'reference' => [...$typedDetail, 'string', TransactionReference::MinRule, 'max:100'],
-            'amount' => [...$typedDetail, 'regex:/^\d{1,9}(\.\d{1,2})?$/D'],
+            'amount' => [...$typedDetail, 'regex:/^\d{1,12}(\.\d{1,2})?$/D'],
             // No payment gateway yet, so finance needs a screenshot of the transfer to check it.
             'proof' => [...$typedDetail, ...explode('|', PaymentProof::Rules)],
         ];

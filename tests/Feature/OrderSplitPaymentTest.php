@@ -89,7 +89,7 @@ class OrderSplitPaymentTest extends TestCase
 
         $this->actingAs($reviewer)->onPortal('sadmin')->post('/commands/orders/'.$order->id.'/decision', ['status' => 'approved', 'reason' => 'Looks fine'])->assertSessionHasErrors('status');
 
-        $this->actingAs($finance)->onPortal('manage')->post('/commands/claims/'.$claim->id.'/verify', ['approve' => '1', 'reason' => 'Cash received at the counter'])->assertSessionHasNoErrors();
+        $this->actingAs($finance)->onPortal('manage')->post('/commands/claims/'.$claim->id.'/verify', ['approve' => '1', 'reason' => 'Cash received at the counter', 'cash_counted' => '80.00'])->assertSessionHasNoErrors();
         $this->assertDatabaseHas('receipts', ['order_id' => $order->id, 'channel' => 'Office', 'reference' => 'OFC-'.$order->number, 'amount' => '80.00']);
         $this->actingAs($reviewer)->onPortal('sadmin')->post('/commands/orders/'.$order->id.'/decision', ['status' => 'approved', 'reason' => 'Cash confirmed'])->assertSessionHasNoErrors();
         $this->assertSame('approved', $order->fresh()->status);
@@ -189,7 +189,7 @@ class OrderSplitPaymentTest extends TestCase
         $finance = User::factory()->staff('finance')->create();
         $this->splitOrder($dealer, 2, 'Office')->assertSessionHasNoErrors();
         $order = Order::where('user_id', $dealer->id)->sole();
-        app(OrderService::class)->verify($finance, (int) DB::table('payment_claims')->where('order_id', $order->id)->where('channel', 'Office')->value('id'), true, 'Cash taken');
+        app(OrderService::class)->verify($finance, (int) DB::table('payment_claims')->where('order_id', $order->id)->where('channel', 'Office')->value('id'), true, 'Cash taken', (string) DB::table('payment_claims')->where('order_id', $order->id)->where('channel', 'Office')->value('amount'));
 
         app(OrderRefund::class)->refund($finance, $order->fresh(), '200.00', 'Partner changed their mind');
 
