@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { useForm, usePage, Link } from '@inertiajs/react';
+import { useForm, usePage, Link, router } from '@inertiajs/react';
 import {
     Trash2, ShoppingBag, ArrowRight, CheckCircle2, RotateCcw,
     AlertCircle, Sparkles, Package, Info, Search, X
@@ -74,6 +74,8 @@ export default function ProductPurchaseMatrix({
     const payOptions: PayOptions = pageProps.data?.pay_options ?? { account_available: '0', account_usable: false, account_block: 'off' };
     // Opened from "order with this money" on the withdraw form: /purchase?pay=account&budget=5000
     const openedWithAccount = useMemo(() => new URLSearchParams(url.split('?')[1] ?? '').get('pay') === 'account', [url]);
+    // /purchase?pay=office (the big "pay at the office" button on the home screen) starts with that method chosen.
+    const openedAtOffice = useMemo(() => new URLSearchParams(url.split('?')[1] ?? '').get('pay') === 'office', [url]);
     const budget = useMemo(() => {
         const planned = Number(new URLSearchParams(url.split('?')[1] ?? '').get('budget'));
         return openedWithAccount && Number.isFinite(planned) && planned > 0 ? planned : null;
@@ -267,6 +269,19 @@ export default function ProductPurchaseMatrix({
         [collectionAccounts],
     );
 
+    // The account balance can change while this page stays open (a payment is verified, a withdrawal is paid):
+    // read it again whenever the person comes back to the page, and keep the cart as it is.
+    useEffect(() => {
+        const refresh = () => {
+            if (document.visibilityState === 'visible') {
+                router.reload({ only: ['data'], headers: { 'X-Background-Refresh': '1' } });
+            }
+        };
+        document.addEventListener('visibilitychange', refresh);
+
+        return () => document.removeEventListener('visibilitychange', refresh);
+    }, []);
+
     const [bigOrderAsked, setBigOrderAsked] = useState(false);
     const [bigOrderOk, setBigOrderOk] = useState(false);
     // A changed cart is a new order: ask again.
@@ -280,7 +295,7 @@ export default function ProductPurchaseMatrix({
         items: [] as { product_id: number; quantity: number }[],
         reference: '',
         payment_account_id: '',
-        channel: openedWithAccount && payOptions.account_usable ? ACCOUNT_CHANNEL : payChannels[0],
+        channel: openedWithAccount && payOptions.account_usable ? ACCOUNT_CHANNEL : openedAtOffice ? OFFICE_CHANNEL : payChannels[0],
         amount: '',
         use_account: false,
         note: '',
@@ -898,10 +913,13 @@ export default function ProductPurchaseMatrix({
                                     {payOptions.account_block === 'debt' && <small className="field-hint is-warn" role="status">{translate('order_payment', 'account_block_debt')}</small>}
                                 </label>
 
+                                {/* The space is kept while the choice is hidden or its lines change, so the form below does not jump. */}
+                                {payOptions.account_usable && accountBalance > 0 && !paysFromAccount && (
+                                    <div className="ppm-split-slot" style={{ minHeight: '8.5em' }}>
                                 {splitAvailable && (
                                     <div data-testid="split-pay">
                                         <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                                            <input type="checkbox" checked={f.data.use_account} onChange={e => f.setData('use_account', e.target.checked)} />
+                                            <input type="checkbox" checked={f.data.use_account} onChange={e => { f.setData('use_account', e.target.checked); router.reload({ only: ['data'], headers: { 'X-Background-Refresh': '1' } }); }} />
                                             {translate('order_split', 'toggle')}
                                         </label>
                                         <small className="field-hint">{translate('order_split', 'toggle_hint')}</small>
@@ -911,6 +929,8 @@ export default function ProductPurchaseMatrix({
                                             </p>
                                         )}
                                         {splitOn && paysAtOffice && <small className="field-hint">{translate('order_split', 'cash_note')}</small>}
+                                    </div>
+                                )}
                                     </div>
                                 )}
 

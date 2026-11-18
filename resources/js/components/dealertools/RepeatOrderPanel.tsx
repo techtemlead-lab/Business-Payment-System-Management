@@ -33,8 +33,9 @@ export default function RepeatOrderPanel({ orders, onFill }: { orders: RepeatOpt
                 {orders.map((option, index) => (
                     <div key={option.order_id} className="metric">
                         <span>{translate('dealer_tools', index === 0 ? 'repeat_last' : 'repeat_past')} · {date(option.ordered_on)}</span>
-                        <strong>{option.number}</strong>
-                        <small>{translate('dealer_tools', 'repeat_items', { count: number(option.items.length) })}</small>
+                        <strong>{option.items.slice(0, 2).map(item => String(item.product.name ?? '')).join(', ')}{option.items.length > 2 ? ` ${translate('partner_ux', 'repeat_more', { count: number(option.items.length - 2) })}` : ''}</strong>
+                        <small>{translate('partner_ux', 'repeat_total')}: {money(option.items.reduce((sum, item) => sum + Number(item.product.price ?? 0) * item.quantity, 0))}</small>
+                        <small>{translate('dealer_tools', 'repeat_items', { count: number(option.items.length) })} · {option.number}</small>
                         {option.items.some(item => item.quantity > 0)
                             ? <button type="button" className="button small dark" onClick={() => onFill(option)}><RotateCcw size={15} /> {translate('dealer_tools', 'repeat_fill')}</button>
                             : <small>{translate('dealer_tools', 'repeat_nothing')}</small>}
