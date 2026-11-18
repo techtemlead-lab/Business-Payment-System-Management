@@ -38,6 +38,7 @@ const pages: Record<string, () => Promise<{default: React.ComponentType<any>}>> 
     TreasuryPartners: () => import('./pages/TreasuryPartners'),
     TreasuryPartner: () => import('./pages/TreasuryPartner'),
     TreasuryWork: () => import('./pages/TreasuryWork'),
+    TreasuryProfit: () => import('./pages/TreasuryProfit'),
     MyMoney: () => import('./pages/MyMoney'),
     MyIncome: () => import('./pages/MyIncome'),
 };
