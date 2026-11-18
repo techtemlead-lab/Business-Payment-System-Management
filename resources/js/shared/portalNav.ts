@@ -338,8 +338,8 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     if (capabilities.includes('accounts')) {
         ['dashboards', 'employees', 'place-codes', 'accounts', 'partnerships', 'sub-dealer-applications', 'network-tree', 'area-dealers', 'ranks', 'sub-dealers', 'enquiries'].forEach((item) => items.add(item));
     }
-    // Owners open the account lists to reset or see passwords (PortalCatalog::assertSection).
-    if (['super_admin', 'md', 'chairman'].includes(role)) ['accounts', 'sub-dealers', 'employees'].forEach((item) => items.add(item));
+    // Owners open the account lists to reset or see passwords, and the full partner tree (PortalCatalog::assertSection).
+    if (['super_admin', 'md', 'chairman'].includes(role)) ['accounts', 'sub-dealers', 'employees', 'network-tree'].forEach((item) => items.add(item));
     if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('data-cleanup');
     if (ownerPortal && OWNER_ROLES.includes(role)) items.add('errors');
     if (ownerPortal && OWNER_ROLES.includes(role)) items.add('login-rules');
