@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Finance\CompanyFunds;
 use App\Domain\Finance\FinancialReadiness;
+use App\Domain\Finance\TreasuryFunds;
 use App\Domain\Finance\UnownedShareSweeps;
 use App\Domain\Geography\ManagementReferral;
 use App\Domain\Orders\OrderService;
@@ -16,6 +17,7 @@ use App\Models\Product;
 use App\Models\User;
 use Database\Seeders\CommissionRuleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -71,6 +73,18 @@ class UnownedShareSweepsTest extends TestCase
         $this->assertDatabaseMissing('commission_allocations', ['order_id' => $order->id, 'category' => 'direct_referral', 'status' => 'pending']);
         // 10% + 2% + 1% of ৳10,000 with no upline at any level, plus 4 × 2% area shares with no area dealer.
         $this->assertEquals(2100.0, $this->companyProfitIn());
+    }
+
+    public function test_treasury_company_profit_lines_say_why_the_money_is_there(): void
+    {
+        $this->purchase(User::factory()->dealer()->create(['status' => 'active']));
+        $funds = app(TreasuryFunds::class);
+
+        foreach (['en' => 'No referrer', 'bn' => 'রেফারার নেই'] as $locale => $words) {
+            app()->setLocale($locale);
+            $rows = collect($funds->moneyIn(Request::create('/x', 'GET', ['period' => '']), 'company_profit')['rows']->items());
+            $this->assertNotNull($rows->first(fn (array $row): bool => str_contains((string) $row['reason'], $words)), $locale);
+        }
     }
 
     public function test_old_management_fund_referral_rows_move_once_to_company_profit(): void
