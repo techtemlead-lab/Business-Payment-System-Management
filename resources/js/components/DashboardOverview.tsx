@@ -44,11 +44,6 @@ function ReferralShare({ referral, role }: { referral: { code?: string; url?: st
     const encodedText = encodeURIComponent(shareText);
     const whatsappHref = `https://wa.me/?text=${encodedText}`;
     const facebookHref = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
-    // Messenger has no web share URL without a registered app id; the app link works on phones.
-    const messengerHref = `fb-messenger://share/?link=${encodedUrl}`;
-    const telegramHref = `https://t.me/share/url?url=${encodedUrl}&text=${encodeURIComponent(translate('portal', 'share_join_text', { code: String(referral.code) }))}`;
-    const linkedinHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
-    const xHref = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodeURIComponent(translate('portal', 'share_join_text', { code: String(referral.code) }))}`;
 
     const copyLink = async () => {
         try {
@@ -110,14 +105,6 @@ function ReferralShare({ referral, role }: { referral: { code?: string; url?: st
                         </button>
                         <a className="button small" href={whatsappHref} target="_blank" rel="noreferrer">{translate('portal', 'share_whatsapp')}</a>
                         <a className="button small" href={facebookHref} target="_blank" rel="noreferrer">{translate('portal', 'share_facebook')}</a>
-=====END
-=====A
-    // Messenger has no web share URL without a registered app id; the app link works on phones.
-    const messengerHref = `fb-messenger://share/?link=${encodedUrl}`;
-    const telegramHref = `https://t.me/share/url?url=${encodedUrl}&text=${encodeURIComponent(translate('portal', 'share_join_text', { code: String(referral.code) }))}`;
-    const linkedinHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
-    const xHref = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodeURIComponent(translate('portal', 'share_join_text', { code: String(referral.code) }))}`;
-=====B
                     </div>
                 </div>
             </div>
