@@ -278,7 +278,7 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                                             <Info size={22} className="callout-icon" />
                                         </div>
                                         <div className="callout-body">
-                                            <h4>{translate('portal', 'help_manual_purpose')}</h4>
+                                            <h4 role="heading" aria-level={3}>{translate('portal', 'help_manual_purpose')}</h4>
                                             <p>{active.purpose}</p>
                                         </div>
                                     </section>
@@ -291,7 +291,7 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                                             <Compass size={22} className="callout-icon" />
                                         </div>
                                         <div className="callout-body">
-                                            <h4>{translate('portal', 'help_manual_why')}</h4>
+                                            <h4 role="heading" aria-level={3}>{translate('portal', 'help_manual_why')}</h4>
                                             <p>{active.why}</p>
                                         </div>
                                     </section>
@@ -326,7 +326,7 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                                             <CheckCircle2 size={22} className="callout-icon" />
                                         </div>
                                         <div className="callout-body">
-                                            <h4>{translate('portal', 'help_manual_outcomes')}</h4>
+                                            <h4 role="heading" aria-level={3}>{translate('portal', 'help_manual_outcomes')}</h4>
                                             <ul className="help-check-list">
                                                 {active.outcomes.map((outcome: string, index: number) => (
                                                     <li key={`${active.key}-out-${index}`}>
@@ -346,7 +346,7 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                                             <FileText size={22} className="callout-icon" />
                                         </div>
                                         <div className="callout-body">
-                                            <h4>{translate('portal', 'help_manual_rules')}</h4>
+                                            <h4 role="heading" aria-level={3}>{translate('portal', 'help_manual_rules')}</h4>
                                             <ul className="help-rules-list">
                                                 {active.rules.map((rule: string, index: number) => (
                                                     <li key={`${active.key}-rule-${index}`}>{rule}</li>
@@ -363,7 +363,7 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                                             <Lightbulb size={22} className="callout-icon" />
                                         </div>
                                         <div className="callout-body">
-                                            <h4>{translate('portal', 'help_manual_tips')}</h4>
+                                            <h4 role="heading" aria-level={3}>{translate('portal', 'help_manual_tips')}</h4>
                                             <ul className="help-tips-list">
                                                 {active.tips.map((tip: string, index: number) => (
                                                     <li key={`${active.key}-tip-${index}`}>{tip}</li>
@@ -380,7 +380,7 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                                             <AlertTriangle size={22} className="callout-icon" />
                                         </div>
                                         <div className="callout-body">
-                                            <h4>{translate('portal', 'help_manual_warnings')}</h4>
+                                            <h4 role="heading" aria-level={3}>{translate('portal', 'help_manual_warnings')}</h4>
                                             <ul className="help-warnings-list">
                                                 {active.warnings.map((warning: string, index: number) => (
                                                     <li key={`${active.key}-warn-${index}`}>{warning}</li>
