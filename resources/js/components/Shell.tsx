@@ -15,6 +15,7 @@ import NotificationBell from './NotificationBell';
 import GlobalSearchLauncher from './GlobalSearchLauncher';
 import OnboardingTour from './OnboardingTour';
 import { useNativeFieldMessages } from '../shared/useNativeFieldMessages';
+import TextSizeToggle from './TextSizeToggle';
 import ThemeToggle from './ThemeToggle';
 import { t, useT, useTranslations } from '../shared/i18n/t';
 import {
@@ -594,6 +595,7 @@ export default function Shell({ section, children, action }: { section: string; 
                         >
                             <Globe size={19} />
                         </a>
+                        {staff && <TextSizeToggle />}
                         <ThemeToggle compact />
                         <LanguageSwitcher compact />
                         <button

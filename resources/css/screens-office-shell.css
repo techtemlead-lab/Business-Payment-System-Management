@@ -117,3 +117,10 @@ dialog.portal-modal.portal-modal-wide{max-width:960px}
 
 /* A box the person may not change reads as locked, not as something to type in. */
 .app-shell input:disabled,.app-shell select:disabled,.app-shell textarea:disabled{opacity:.6;cursor:not-allowed;background:var(--ds-surface-3)}
+
+/* Staff and owner panels write at 16 px by default (13-14 px was too small for readers over 45); the switch makes it larger still. */
+.app-shell:is(.owner-shell,.company-shell){--ds-fs-2xs:13px;--ds-fs-xs:14px;--ds-fs-sm:15px;--ds-fs-base:16px;--ds-fs-md:17px;--ds-fs-lg:19px}
+html[data-text-size="large"] .app-shell:is(.owner-shell,.company-shell){--ds-fs-2xs:15px;--ds-fs-xs:16px;--ds-fs-sm:17px;--ds-fs-base:18px;--ds-fs-md:19px;--ds-fs-lg:21px;--ds-fs-xl:23px;--ds-fs-2xl:26px;--ds-fs-3xl:32px}
+.text-size-toggle{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 10px;border:1px solid var(--ds-line);border-radius:var(--ds-r-pill);background:var(--ds-surface);color:var(--ds-text);font-size:var(--ds-fs-sm);font-weight:600;cursor:pointer}
+.text-size-toggle:focus-visible{outline:2px solid var(--ds-brand);outline-offset:2px}
+@media (max-width:1023px){.text-size-toggle .text-size-label{display:none}}
