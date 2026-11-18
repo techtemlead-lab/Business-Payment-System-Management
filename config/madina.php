@@ -4,6 +4,11 @@ return [
     'app_domain' => env('APP_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST) ?: 'localhost'),
     'locales' => ['en', 'bn'],
     'default_locale' => env('APP_LOCALE', 'en'),
+    // The language for someone who has never chosen one (sign-in pages, the public site). Empty means
+    // "follow the browser". Bangla by default: most dealers read Bangla only.
+    // Send the translation words inside every page (tests, and any host that cannot serve /i18n files). Off: one cached file.
+    'inline_translations' => env('MADINA_INLINE_TRANSLATIONS', false),
+    'guest_locale' => env('MADINA_GUEST_LOCALE', 'bn'),
     'financial_activation' => env('MADINA_FINANCIAL_ACTIVATION', false),
     'preview_mode' => env('MADINA_PREVIEW_MODE', false),
     // Removes product photo backgrounds in the office browser. The files are too large for git:
@@ -33,7 +38,28 @@ return [
     // app:backup-prune deletes local backups older than this, but always keeps the newest few.
     'backup_retention_days' => (int) env('MADINA_BACKUP_RETENTION_DAYS', 14),
     'backup_keep_minimum' => (int) env('MADINA_BACKUP_KEEP_MINIMUM', 7),
+    // Run app:backup-restore-drill on the 2nd of every month at 05:00 Dhaka (needs CREATEDB for the app's DB user).
+    'restore_drill_monthly' => (bool) env('MADINA_RESTORE_DRILL_MONTHLY', false),
+    // Where serious problems are sent (OP-02). Off until a Telegram bot + chat or an email address is set.
+    // Make a bot with @BotFather, add it to the owner's or IT group, and put the group's chat id here.
+    'alerts' => [
+        'telegram_bot_token' => env('MADINA_ALERT_TELEGRAM_BOT_TOKEN'),
+        'telegram_chat_id' => env('MADINA_ALERT_TELEGRAM_CHAT_ID'),
+        // Comma-separated; needs a real mail provider (MAIL_MAILER other than "log").
+        'emails' => env('MADINA_ALERT_EMAILS'),
+        'level' => env('MADINA_ALERT_LEVEL', 'critical'),
+        // The same problem is sent again only after this many minutes.
+        'repeat_minutes' => (int) env('MADINA_ALERT_REPEAT_MINUTES', 60),
+    ],
+    // Dead-man switch: ops:heartbeat pings this address every 5 minutes while the scheduler, queue, database
+    // and disk are fine (e.g. a free healthchecks.io check). When the pings stop, that service alerts a person.
+    'heartbeat_url' => env('MADINA_HEARTBEAT_URL', ''),
+    // ops:heartbeat raises an alert when the disk holding uploads or backups is fuller than this.
+    'disk_alert_percent' => (int) env('MADINA_DISK_ALERT_PERCENT', 85),
     'trusted_proxies' => env('TRUSTED_PROXIES', ''),
+    // After the permission check, let nginx send private product photos, videos and the photo model
+    // (X-Accel-Redirect) so PHP workers are not held by slow downloads. Only for the production nginx image.
+    'nginx_protected_files' => (bool) env('MADINA_NGINX_PROTECTED_FILES', false),
     // Prefer /public/build over Vite HMR. Stale public/hot points CSS/JS at :5173, which CSP
     // blocks on port-forwarded Cloud Agent browsers and blanks public pages.
     'force_built_assets' => (bool) env('MADINA_FORCE_BUILT_ASSETS', false),
@@ -65,6 +91,9 @@ return [
 
     'business_timezone' => 'Asia/Dhaka',
     'withdrawal_minimum' => '200.00',
+
+    // Partners must accept the agreement before using the portal unless the owner switched that off. Tests turn the default off.
+    'agreement_required_default' => (bool) env('MADINA_AGREEMENT_REQUIRED_DEFAULT', true),
     // Owner decision: nobody orders without paying the whole order first. This is only the starting
     // value; the owner switches it on or off in Finance settings ("Full payment required when ordering").
     'full_payment_when_ordering' => env('MADINA_FULL_PAYMENT_WHEN_ORDERING', true),
@@ -95,18 +124,33 @@ return [
         'enabled' => env('MADINA_LOGIN_OTP', false),
         'ttl' => (int) env('MADINA_LOGIN_OTP_TTL', 300),
     ],
-    // Picture on the sign-in form. Off until an owner turns it on: the letters are hard
-    // to read for older partners, and a wrong-password lockout still stops guessing.
+    // Picture on the sign-in form for everyone. Off until an owner turns it on: the letters are
+    // hard to read for older partners. It switches on by itself for one internet address after
+    // many wrong sign-ins from it (see SignInGuard).
     'login_captcha' => [
         'enabled' => env('MADINA_LOGIN_CAPTCHA', false),
+    ],
+    // Separate key for the readable copy of dealer and sub-dealer passwords (see PasswordVault).
+    // Keep it out of the backup set: set the key directly, or point at a file outside .env.
+    'password_vault' => [
+        'key' => env('PASSWORD_VAULT_KEY'),
+        'key_file' => env('PASSWORD_VAULT_KEY_FILE'),
+    ],
+    // An office sign-in (manage, sadmin) ends after this many hours however active it is (SA-10).
+    'office_session_hours' => (int) env('MADINA_OFFICE_SESSION_HOURS', 12),
+    // Owner reading a dealer's password: how long one password confirmation lasts, and a daily cap.
+    'password_reveal' => [
+        'confirm_minutes' => (int) env('MADINA_PASSWORD_REVEAL_CONFIRM_MINUTES', 5),
+        'per_day' => (int) env('MADINA_PASSWORD_REVEAL_PER_DAY', 60),
     ],
     // Browser push services a subscription may point at (Chrome/Android/Samsung, Firefox,
     // Edge/Windows, Safari). Anything else is refused, so the server never posts to other hosts.
     'web_push_hosts' => ['fcm.googleapis.com', 'android.googleapis.com', 'push.services.mozilla.com', 'notify.windows.com', 'push.apple.com'],
     'roles' => [
         'super_admin' => ['pricing', 'cost_read', 'accounts', 'catalog', 'inventory', 'orders', 'order_review', 'finance', 'content', 'reports', 'audit', 'identity_write', 'staff_admin', 'field_sales', 'sr_orders', 'sr_onboarding', 'payroll', 'partner_chat', 'prescriber_verify', 'support_desk'],
-        'md' => ['orders', 'finance', 'reports', 'audit', 'payroll'],
-        'chairman' => ['orders', 'finance', 'reports', 'audit', 'payroll'],
+        // D11 (SA-07): the MD and Chairman see payroll only (view and download) until the Super Admin grants more.
+        'md' => ['payroll'],
+        'chairman' => ['payroll'],
         'sr' => ['field_sales', 'sr_orders', 'sr_onboarding'],
         'account_manager' => ['accounts', 'orders', 'order_review'],
         'inventory' => ['inventory', 'orders'],

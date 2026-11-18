@@ -46,7 +46,8 @@ class DealerCodeLoginTest extends TestCase
             'password' => 'SyntheticPassword123',
             'phone' => null,
         ]);
-        $key = 'MNHC2002|127.0.0.1';
+        // The counter is the matched account, however the code is typed.
+        $key = 'login-account|u'.$dealer->id.'|127.0.0.1';
         RateLimiter::clear($key);
         for ($i = 0; $i < 5; $i++) {
             RateLimiter::hit($key, 60);

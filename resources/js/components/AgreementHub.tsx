@@ -73,7 +73,7 @@ function AgreementText({ version, initialLanguage }: { version: AgreementVersion
 
 function PartnerAgreementView({ agreement }: { agreement: PartnerAgreement }) {
     const translate = useT();
-    const { locale, portalBase: base = '' } = usePage<any>().props;
+    const { locale, portalBase: base = '', auth } = usePage<any>().props;
     const latest = agreement.latest;
     const form = useForm({ version_id: latest?.id ?? 0 });
     const acceptedLatest = latest ? agreement.accepted_versions.find((entry) => entry.version === latest.version) : undefined;
@@ -93,7 +93,7 @@ function PartnerAgreementView({ agreement }: { agreement: PartnerAgreement }) {
             )}
             <div className="panel-heading">
                 <div>
-                    <h2>{translate('portal', 'agreement')}</h2>
+                    <h2>{auth?.user?.role === 'sub_dealer' ? translate('joining', 'agreement_title_sub') : translate('portal', 'agreement')}</h2>
                     <p className="muted">{translate('portal', 'agr_partner_hint')}</p>
                 </div>
             </div>
@@ -107,6 +107,7 @@ function PartnerAgreementView({ agreement }: { agreement: PartnerAgreement }) {
                                 version: String(latest.version),
                                 date: acceptedLatest?.accepted_at ? dateTime(acceptedLatest.accepted_at) : '',
                             })}
+                            {' '}{translate('partner_ux', 'agr_thanks')}
                         </p>
                     ) : (
                         <form className="agr-accept" onSubmit={accept}>

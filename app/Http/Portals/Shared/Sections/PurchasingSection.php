@@ -53,7 +53,7 @@ final class PurchasingSection implements WorkspaceSection
                 ->through(fn (PurchaseOrder $order): array => $this->orderRow($order, $showCost)),
             'suppliers' => Supplier::query()->whereNull('archived_at')->orderBy('name')->get(['id', 'name', 'contact', 'notes']),
             'archived_suppliers' => Supplier::query()->whereNotNull('archived_at')->orderBy('name')->get(['id', 'name', 'contact', 'notes', 'archived_at']),
-            'products' => Product::query()->where('active', true)->orderBy('name')->get(['id', 'sku', 'name']),
+            'products' => Product::query()->whereNull('archived_at')->orderBy('name')->get(['id', 'sku', 'name', 'active']),
             'branches' => $visibleBranches
                 ->filter(fn (CompanyBranch $branch): bool => (bool) $branch->is_active && (bool) $branch->is_stock_hub)
                 ->map(fn (CompanyBranch $branch): array => ['id' => $branch->id, 'code' => $branch->code, 'name' => $branch->name])

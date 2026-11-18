@@ -68,21 +68,22 @@
                 @if($mode !== 'forgot')
                     <div class="ref-password-label">
                         <label for="account-password">{{ __('auth_ui.password') }}</label>
-                        @if($mode === 'login')
-                            <a href="/forgot-password">{{ __('auth_ui.forgot_password_link') }}</a>
-                        @endif
                     </div>
                     <div class="ref-password-field">
                         <input id="account-password" type="password" name="password" required @if($mode === 'reset') minlength="8" autocomplete="new-password" @else autocomplete="current-password" @endif maxlength="200" placeholder="{{ __('auth_ui.password_placeholder') }}">
                         <button type="button" data-toggle-password="account-password" aria-label="{{ __('auth_ui.show_password') }}" aria-pressed="false"><i class="fa-regular fa-eye" aria-hidden="true"></i></button>
                     </div>
+                    @if($mode === 'login')
+                        {{-- After the password box, so Tab goes email, password, then this link. --}}
+                        <a class="ref-forgot-link" href="/forgot-password" style="display:block;text-align:right;margin-top:8px;font-weight:600">{{ __('auth_ui.forgot_password_link') }}</a>
+                    @endif
                 @endif
                 @if($mode === 'reset')
                     <label for="account-password-confirmation">{{ __('auth_ui.confirm_password') }}</label>
                     <input id="account-password-confirmation" type="password" name="password_confirmation" minlength="8" maxlength="200" required autocomplete="new-password">
                     <p class="ref-form-hint">{{ __('auth_ui.password_rules') }}</p>
                 @endif
-                @if($mode === 'login' && config('madina.login_captcha.enabled'))
+                @if($mode === 'login' && app(\App\Domain\Auth\SignInGuard::class)->captchaRequired(request()))
                     @include('partials.login-captcha')
                 @endif
                 <button class="ref-auth-submit" type="submit">{{ $mode === 'login' ? __('auth_ui.sign_in') : ($mode === 'forgot' ? __('auth_ui.send_reset') : __('auth_ui.reset_password')) }}</button>
@@ -112,4 +113,5 @@
         </div>
     </section>
 </main>
+@include('partials.auth-ready')
 @endsection

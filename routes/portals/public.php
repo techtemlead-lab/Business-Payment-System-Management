@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\PartnerApplicationStatusController;
 use App\Http\Controllers\PartnerProductEnquiryController;
 use App\Http\Controllers\ProductReviewController;
 use App\Http\Controllers\PublicBatchCheckController;
@@ -27,6 +28,10 @@ Route::get('/outlets', function () {
     return redirect('/dealers', 301);
 });
 Route::post('/partnership/apply', [PublicController::class, 'apply'])->middleware('throttle:5,1');
+Route::get('/partnership/places', [PartnerApplicationStatusController::class, 'places'])->middleware('throttle:120,1');
+Route::get('/partnership/status', [PartnerApplicationStatusController::class, 'form'])->middleware('throttle:60,1');
+Route::post('/partnership/status', [PartnerApplicationStatusController::class, 'lookup'])->middleware('throttle:10,1');
+Route::post('/partnership/status/resubmit', [PartnerApplicationStatusController::class, 'resubmit'])->middleware('throttle:5,1');
 Route::get('/join/{code}', [PublicController::class, 'join'])
     ->where('code', '[A-Za-z0-9._-]{2,40}')
     ->middleware('throttle:60,1');
@@ -52,7 +57,7 @@ $away = function (string $portal, string $path): RedirectResponse {
 };
 Route::get('/login', [PublicController::class, 'partnerLogin']);
 Route::get('/partner-login', fn () => redirect('/login', 301));
-Route::get('/forgot-password', fn () => $away('dealer', '/forgot-password'));
+Route::get('/forgot-password', [PublicController::class, 'partnerForgotPassword']);
 Route::get('/reset-password/{token}', function (string $token) {
     $email = request()->query('email');
     $path = '/reset-password/'.$token.(is_string($email) && $email !== '' ? '?email='.urlencode($email) : '');

@@ -7,6 +7,7 @@ use App\Domain\Accounts\PartnerAge;
 use App\Domain\Accounts\PartnerFormerCodes;
 use App\Domain\Audience\PartnerProductEnquiries;
 use App\Domain\Audience\PublicPartnerApplication;
+use App\Domain\Audience\PublicPartnerPlaces;
 use App\Domain\Catalog\ProductFacts;
 use App\Domain\Catalog\ProductSizeGroups;
 use App\Domain\Content\TestimonialLabels;
@@ -502,6 +503,12 @@ class PublicController extends Controller
         return view('reference.partner-login');
     }
 
+    /** PW-04: the public "forgot password" first asks dealer or sub-dealer, as the public sign-in page does. */
+    public function partnerForgotPassword(): View
+    {
+        return view('reference.partner-login', ['choicePath' => '/forgot-password']);
+    }
+
     public function feedbackForm(): View
     {
         return view('reference.feedback', [
@@ -569,8 +576,8 @@ class PublicController extends Controller
             ->first() ?? app(PartnerFormerCodes::class)->activeHolder($forms);
 
         if (! $partner) {
-            // Unknown code still opens the company contact form with the code prefilled.
-            return redirect('/contact?referred_by='.rawurlencode($normalized).'&topic=partnership_enquiry#enquiry');
+            // An unknown code still opens the application form, with the code in the referrer box for the office to check.
+            return redirect('/partnership?sponsor_code='.rawurlencode($normalized).'#partner-apply');
         }
 
         $social = SocialShareMeta::referral($partner);
@@ -604,15 +611,24 @@ class PublicController extends Controller
         abort_unless(SiteCustomization::isPageEnabled('partnership'), 404);
         $result = '/partnership#partner-apply-status';
         try {
+            // The form sends day, month and year as three lists; they become one date before it is checked.
+            if (! $request->filled('date_of_birth') && $request->filled('dob_year')) {
+                $request->merge(['date_of_birth' => sprintf('%04d-%02d-%02d', (int) $request->input('dob_year'), (int) $request->input('dob_month'), (int) $request->input('dob_day'))]);
+            }
             $data = $request->validate([
                 'name' => 'required|string|max:150',
                 'email' => 'required|email|max:254',
                 'phone' => 'required|string|max:30',
                 'date_of_birth' => ['required', 'date_format:Y-m-d', PartnerAge::rule()],
                 'role' => ['required', Rule::in(['dealer', 'sub_dealer'])],
+                'nid' => ['nullable', 'regex:/^\d{10}$|^\d{13}$|^\d{17}$/'],
                 'division' => 'nullable|string|max:80',
                 'district' => 'nullable|string|max:80',
                 'upazila' => 'nullable|string|max:150',
+                'division_place_id' => 'nullable|integer',
+                'district_place_id' => 'nullable|integer',
+                'upazila_place_id' => 'nullable|integer',
+                'union_place_id' => 'nullable|integer',
                 'sponsor_code' => 'nullable|string|max:40',
                 'message' => 'nullable|string|max:2000',
                 'website' => 'nullable|max:0',
@@ -625,13 +641,21 @@ class PublicController extends Controller
             if (! empty($data['sponsor_code'])) {
                 $data['sponsor_code'] = strtoupper(trim((string) $data['sponsor_code']));
             }
+            $data['nid'] = isset($data['nid']) ? preg_replace('/\D+/', '', (string) $data['nid']) : null;
+            if (filled($data['division_place_id'] ?? null)) {
+                $data = [...$data, ...app(PublicPartnerPlaces::class)->resolve($data)];
+            }
             $data = $this->withReferrerPlace($data);
-            $applications->submit($data);
+            $applicationId = $applications->submit($data);
         } catch (ValidationException $exception) {
             throw $exception->redirectTo($result);
         }
 
-        return redirect($result)->with('success', __('portal.flash_partnership_received'));
+        $number = PublicPartnerApplication::numberFor($applicationId);
+
+        return redirect($result)
+            ->with('success', __('joining.flash_received', ['number' => $number]))
+            ->with('application_number', $number);
     }
 
     /**

@@ -3,6 +3,9 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Casts\PasswordVaultEncrypted;
+use App\Casts\ProtectedProfile;
+use App\Domain\Staff\LeadershipAccess;
 use App\Domain\Staff\PartnerStaffLink;
 use App\Domain\Staff\StaffPermissions;
 use App\Support\PortalHost;
@@ -13,9 +16,10 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
 use NotificationChannels\WebPush\HasPushSubscriptions;
 
-#[Hidden(['password', 'remember_token', 'nid', 'admin_password_cipher', 'totp_secret', 'totp_recovery_codes'])]
+#[Hidden(['password', 'remember_token', 'nid', 'tin', 'admin_password_cipher', 'totp_secret', 'totp_recovery_codes'])]
 class User extends Authenticatable implements HasLocalePreference
 {
     public const PasswordManagedByAdmin = 'admin';
@@ -25,40 +29,49 @@ class User extends Authenticatable implements HasLocalePreference
     /** The language a new account starts in; the person can change it at any time. */
     public const DefaultLocale = 'bn';
 
+    /** Accounts whose password an owner may read back (see PasswordAccess). */
+    public const RevealablePasswordRoles = ['dealer', 'sub_dealer'];
+
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasPushSubscriptions, Notifiable;
 
-    protected $guarded = [
-        'id',
-        'password',
-        'remember_token',
-        'email_verified_at',
-        'role',
-        'status',
-        'closed_at',
-        'sponsor_id',
-        'nid',
-        'dealer_code',
-        'password_managed_by',
-        'admin_password_cipher',
-        'totp_secret',
-        'totp_confirmed_at',
-        'totp_recovery_codes',
-        'phone_share_approved_by',
-        'phone_share_reason',
-        'can_prescribe',
-        'credentials_changed_at',
+    /**
+     * Only plain contact fields may be mass-assigned. Everything that grants rights or money
+     * (role, status, profile with its permissions, linked staff role and permissions, branch,
+     * sponsor, codes, password fields) is set on purpose with forceFill(), so a future
+     * update($request->validated()) can never raise someone's access.
+     *
+     * @var list<string>
+     */
+    protected $fillable = [
+        'name',
+        'email',
+        'phone',
+        'locale',
+        'division',
+        'district',
     ];
 
     /**
      * Remembers when a saved account's phone number or password changed, because a withdrawal
      * waits a short while after either (see WithdrawalSecurityWait). A new account has no change yet.
+     * A new password also cancels any password-reset link still waiting in the mail, so an old
+     * link cannot undo the change.
      */
     protected static function booted(): void
     {
         static::saving(function (self $user): void {
             if ($user->exists && ($user->isDirty('password') || $user->isDirty('phone'))) {
                 $user->credentials_changed_at = now();
+            }
+            // Choosing a password ends a "must change" state, unless the same save hands out a temporary one.
+            if ($user->exists && $user->isDirty('password') && ! $user->isDirty('must_change_password')) {
+                $user->must_change_password = false;
+            }
+        });
+        static::saved(function (self $user): void {
+            if ($user->wasChanged('password') && filled($user->email)) {
+                DB::table('password_reset_tokens')->where('email', $user->email)->delete();
             }
         });
     }
@@ -170,6 +183,8 @@ class User extends Authenticatable implements HasLocalePreference
             'has_linked_staff' => $this->hasLinkedStaffAccess(),
             'workspace_mode' => $this->usingStaffWorkspace() ? 'staff' : 'partner',
             'permissions' => $this->capabilities(),
+            // Owner areas the MD or Chairman may open (SA-07); empty for staff and partners.
+            'owner_areas' => LeadershipAccess::areasFor($this),
             'active_branch' => $this->activeBranch?->summary(),
         ];
     }
@@ -219,9 +234,11 @@ class User extends Authenticatable implements HasLocalePreference
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'profile' => 'array',
+            // Date of birth, parents names, village, post office and birth-certificate number are encrypted inside (LC-05).
+            'profile' => ProtectedProfile::class,
             'nid' => 'encrypted',
-            'admin_password_cipher' => 'encrypted',
+            'tin' => 'encrypted',
+            'admin_password_cipher' => PasswordVaultEncrypted::class,
             'totp_secret' => 'encrypted',
             'totp_recovery_codes' => 'encrypted:array',
             'totp_confirmed_at' => 'datetime',
@@ -231,6 +248,7 @@ class User extends Authenticatable implements HasLocalePreference
             'linked_staff_permissions' => 'array',
             'staff_linked_at' => 'datetime',
             'can_prescribe' => 'boolean',
+            'must_change_password' => 'boolean',
         ];
     }
 
@@ -261,12 +279,13 @@ class User extends Authenticatable implements HasLocalePreference
     }
 
     /**
-     * The encrypted copy owners may reveal. Nobody can reveal a Super Admin
-     * password, so none is kept for that account.
+     * The encrypted copy owners may reveal: dealer and sub-dealer passwords only (owner decision,
+     * 2026-11-17). Staff, MD, Chairman and Super Admin passwords are never kept readable, so nobody
+     * can sign in as another office member and pass a second-person check in their name.
      */
     public function recoverablePasswordCopy(string $plainPassword): ?string
     {
-        return $this->role === 'super_admin' ? null : $plainPassword;
+        return in_array($this->role, self::RevealablePasswordRoles, true) ? $plainPassword : null;
     }
 
     public function markPasswordSelfManaged(): void

@@ -118,6 +118,20 @@ final class IntegrationSettings
     }
 
     /**
+     * Called by the owner's fresh start, which has already checked who may do it: the start mode
+     * then reads "from zero" without a second step. Runs inside that start's transaction.
+     */
+    public function markFreshStart(User $actor, string $reason): void
+    {
+        $before = $this->startupMode();
+        if ($before['mode'] === 'fresh') {
+            return;
+        }
+        $this->persist(self::StartupKey, ['mode' => 'fresh'], $before['version'], $actor->id);
+        Audit::record($actor->id, 'finance.startup_mode_changed', self::StartupKey, ['before' => $before['mode'], 'after' => 'fresh', 'reason' => $reason]);
+    }
+
+    /**
      * @param  array<string, mixed>  $input
      */
     public function saveProvider(User $actor, string $group, string $provider, array $input, int $version, string $reason): void
@@ -158,6 +172,17 @@ final class IntegrationSettings
                     continue;
                 }
                 $next[$field] = is_string($value) ? trim($value) : $value;
+            }
+            app(IntegrationUrlPolicy::class)->assertAllowed($group, $catalog['defaults'], $next);
+            // A new address never inherits the saved passwords and keys: they must be typed again,
+            // so changing only the address cannot send the stored secrets to another server.
+            if ($this->hostOf($current['base_url'] ?? '') !== $this->hostOf($next['base_url'] ?? '')) {
+                foreach (IntegrationCatalog::SecretFields as $secret) {
+                    $typed = $input[$secret] ?? null;
+                    if (in_array($secret, $catalog['fields'], true) && ($typed === null || $typed === '' || $typed === '••••••••')) {
+                        $next[$secret] = '';
+                    }
+                }
             }
 
             if ($next['enabled']) {
@@ -205,6 +230,13 @@ final class IntegrationSettings
                 'reason' => $reason,
             ]);
         }, 3);
+    }
+
+    private function hostOf(mixed $url): string
+    {
+        $host = parse_url(trim((string) $url), PHP_URL_HOST);
+
+        return is_string($host) ? strtolower(rtrim($host, '.')) : '';
     }
 
     /**

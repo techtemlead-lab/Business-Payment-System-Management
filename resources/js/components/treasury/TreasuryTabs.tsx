@@ -2,7 +2,7 @@ import { usePage } from '@inertiajs/react';
 import { useT } from '../../shared/i18n/t';
 import type { OfficeHub } from '../OfficeHubTabs';
 
-type Viewer = { finance: boolean; reports: boolean };
+type Viewer = { finance: boolean; reports: boolean; owner: boolean };
 type Place = { key: string; href: string; label: string; open: (viewer: Viewer) => boolean };
 
 const PLACES: Place[] = [
@@ -11,6 +11,7 @@ const PLACES: Place[] = [
     { key: 'events', href: '/treasury/events', label: 'tab_events', open: (viewer) => viewer.finance },
     { key: 'partners', href: '/treasury/partners', label: 'tab_partners', open: (viewer) => viewer.finance },
     { key: 'work', href: '/treasury/work', label: 'tab_work', open: (viewer) => viewer.finance },
+    { key: 'profit', href: '/treasury/profit', label: 'dl_profit_loss', open: (viewer) => viewer.owner },
 ];
 
 const OWNER_ROLES = ['super_admin', 'md', 'chairman'];
@@ -20,13 +21,12 @@ export function useTreasuryViewer(): Viewer {
     const { auth } = usePage<any>().props;
     const capabilities: string[] = auth?.capabilities ?? [];
 
-    return {
-        finance: OWNER_ROLES.includes(String(auth?.user?.role ?? '')) || capabilities.includes('finance'),
-        reports: capabilities.includes('reports'),
-    };
+    const owner = OWNER_ROLES.includes(String(auth?.user?.role ?? ''));
+
+    return { finance: owner || capabilities.includes('finance'), reports: capabilities.includes('reports'), owner };
 }
 
-/** The five places inside Treasury. A place the viewer may not open is not offered. */
+/** The places inside Treasury. A place the viewer may not open is not offered. */
 export function useTreasuryHub(): OfficeHub {
     const translate = useT();
     const page = usePage<any>();

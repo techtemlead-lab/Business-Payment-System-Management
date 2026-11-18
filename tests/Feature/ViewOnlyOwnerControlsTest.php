@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Finance\ReportData;
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -23,8 +24,14 @@ class ViewOnlyOwnerControlsTest extends TestCase
         $this->withoutVite();
     }
 
-    public function test_the_salary_tile_opens_for_md_and_chairman_too(): void
+    public function test_the_salary_tile_opens_for_md_and_chairman_once_given_treasury(): void
     {
+        // D11 (SA-07): by default the MD and Chairman see payroll only; their menu opens payroll itself, not Treasury.
+        foreach (['md', 'chairman'] as $role) {
+            $this->actingAs(User::factory()->staff($role)->create())->onPortal('sadmin')->get('/treasury/work')->assertForbidden();
+        }
+        LeadershipAccess::save(User::factory()->staff('super_admin')->create(), ['md' => ['treasury'], 'chairman' => ['treasury']], LeadershipAccess::current()['version']);
+
         foreach (['md', 'chairman', 'super_admin'] as $role) {
             $this->actingAs(User::factory()->staff($role)->create())->onPortal('sadmin')->get('/treasury/work')->assertOk()
                 ->assertInertia(fn (Assert $page) => $page->where('tiles', fn ($tiles): bool => collect($tiles)->contains('key', 'payroll')));
@@ -39,6 +46,7 @@ class ViewOnlyOwnerControlsTest extends TestCase
 
             $this->actingAs($viewer)->onPortal('sadmin')->get('/operations/payroll')->assertOk();
             $this->assertNotNull(app(ReportData::class)->query($viewer, 'payroll', '2026-11-01', '2026-11-30')['query']);
+            $this->actingAs($viewer)->onPortal('sadmin')->get('/commands/operations/reports?type=payroll&format=xlsx&from=2026-11-01&to=2026-11-30')->assertOk();
             $this->actingAs($viewer)->onPortal('sadmin')->postJson('/commands/operations/payroll/prepare', ['period_month' => '2026-09'])->assertForbidden();
             $this->actingAs($viewer)->onPortal('sadmin')->postJson('/commands/operations/payroll/'.$entry.'/review', ['decision' => 'approved', 'reason' => 'Trying to approve it'])->assertForbidden();
             $this->actingAs($viewer)->onPortal('sadmin')->postJson('/commands/operations/payroll/'.$entry.'/pay', ['reason' => 'Trying to pay it'])->assertForbidden();
@@ -57,7 +65,9 @@ class ViewOnlyOwnerControlsTest extends TestCase
     public function test_the_withdrawal_limit_form_is_offered_only_to_owners_who_can_save_it(): void
     {
         foreach (['md' => false, 'chairman' => false, 'super_admin' => true] as $role => $canEdit) {
-            $this->actingAs(User::factory()->staff($role)->create())->onPortal('sadmin')->get('/operations/finance-settings')->assertOk()
+            // D11 (SA-07): the MD and Chairman see finance pages only when given finance view rights.
+            $profile = $role === 'super_admin' ? [] : ['action_permissions' => ['finance' => ['view' => true, 'create' => false, 'edit' => false, 'approve' => false]]];
+            $this->actingAs(User::factory()->staff($role)->create(['profile' => $profile]))->onPortal('sadmin')->get('/operations/finance-settings')->assertOk()
                 ->assertInertia(fn (Assert $page) => $page->where('approvalLimit.can_edit', $canEdit));
         }
     }

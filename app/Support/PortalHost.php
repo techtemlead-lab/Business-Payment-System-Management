@@ -26,6 +26,20 @@ final class PortalHost
         return $domain !== '' ? $domain : 'localhost';
     }
 
+    /**
+     * The cookie domain that covers the public site and every portal host (".example.com"), or
+     * null on a bare host or an IP address where a shared domain cannot be set.
+     */
+    public static function sharedCookieDomain(): ?string
+    {
+        $domain = strtolower(self::domain());
+        if (! str_contains($domain, '.') || filter_var($domain, FILTER_VALIDATE_IP) !== false) {
+            return null;
+        }
+
+        return '.'.$domain;
+    }
+
     public static function host(string $portal): string
     {
         $domain = self::domain();

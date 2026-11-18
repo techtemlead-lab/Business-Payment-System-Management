@@ -6,8 +6,10 @@ use App\Models\PartnerConversation;
 use App\Models\PartnerMessage;
 use App\Models\User;
 use App\Support\Audit;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -84,7 +86,13 @@ final class PartnerChat
             $conversation->forceFill(['partner_unread' => 0])->save();
         }
 
-        return ['conversation_id' => $conversation->id, 'messages' => $this->messages($conversation, false)];
+        return [
+            'conversation_id' => $conversation->id,
+            'messages' => $this->messages($conversation, false),
+            // The office has opened the chat since the partner's last message.
+            'seen_by_office' => $conversation->last_sender_side === PartnerMessage::SidePartner && (int) $conversation->office_unread === 0,
+            'reply_hours' => $this->usualReplyHours(),
+        ];
     }
 
     /**
@@ -166,6 +174,52 @@ final class PartnerChat
         ];
     }
 
+    /**
+     * How long the office usually takes to answer, in whole hours (at least 1), from the last 50 replies; null when there is
+     * too little to say. Shown to partners so a wait does not feel like silence.
+     */
+    public function usualReplyHours(): ?int
+    {
+        return Cache::remember('partner_chat.usual_reply_hours', 600, function (): ?int {
+            $rows = DB::select("SELECT EXTRACT(EPOCH FROM (o.created_at - (
+                    SELECT MIN(p.created_at) FROM partner_messages p
+                    WHERE p.conversation_id = o.conversation_id AND p.sender_side = 'partner'
+                      AND p.id > COALESCE((SELECT MAX(x.id) FROM partner_messages x WHERE x.conversation_id = o.conversation_id AND x.sender_side = 'office' AND x.id < o.id), 0)
+                      AND p.id < o.id
+                ))) AS seconds
+                FROM partner_messages o WHERE o.sender_side = 'office' ORDER BY o.id DESC LIMIT 50");
+            $hours = collect($rows)->pluck('seconds')->filter(fn ($seconds) => $seconds !== null && $seconds >= 0)->map(fn ($seconds) => (float) $seconds / 3600)->sort()->values();
+            if ($hours->count() < 5) {
+                return null;
+            }
+
+            return max(1, (int) ceil($hours->get(intdiv($hours->count(), 2))));
+        });
+    }
+
+    /**
+     * Partner messages nobody has answered: how many chats wait and how many days the oldest has waited.
+     *
+     * @return array{count: int, oldest_days: int|null}
+     */
+    public function unanswered(User $viewer): array
+    {
+        // Both figures in one read: the office dashboard keeps a fixed query budget.
+        $row = PartnerConversation::query()
+            ->join('users', 'users.id', '=', 'partner_conversations.partner_id')
+            ->tap(fn ($rows) => app(ChatRouting::class)->constrainToViewer($rows, $viewer))
+            ->whereNotNull('partner_conversations.awaiting_since')
+            ->toBase()
+            ->selectRaw('COUNT(*) AS waiting, MIN(partner_conversations.awaiting_since) AS oldest')
+            ->first();
+        $oldest = $row?->oldest;
+
+        return [
+            'count' => (int) ($row->waiting ?? 0),
+            'oldest_days' => $oldest ? (int) floor(CarbonImmutable::parse($oldest)->diffInDays(now(), true)) : null,
+        ];
+    }
+
     public function partnerUnread(User $partner): int
     {
         return (int) PartnerConversation::query()->where('partner_id', $partner->id)->value('partner_unread');
@@ -227,6 +281,8 @@ final class PartnerChat
                 'partner_unread' => $side === PartnerMessage::SideOffice ? $locked->partner_unread + 1 : 0,
                 // An office reply means the office has read the partner's messages.
                 'office_unread' => $side === PartnerMessage::SidePartner ? $locked->office_unread + 1 : 0,
+                // The clock of the oldest unanswered partner message starts at the first one and stops at the office's reply.
+                'awaiting_since' => $side === PartnerMessage::SidePartner ? ($locked->awaiting_since ?? $message->created_at) : null,
             ])->save();
             if ($side === PartnerMessage::SideOffice) {
                 Audit::record($sender->id, 'partner_chat.replied', (string) $locked->partner_id, []);

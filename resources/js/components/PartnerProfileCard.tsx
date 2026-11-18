@@ -45,6 +45,10 @@ export default function PartnerProfileCard({card}:{card:Row}){
   {!card.locked&&<><h3>{p('lock_form_title')}</h3>
    <ActionForm action="/commands/profile/details" fields={[{name:'shop_name',label:p('lock_form_shop'),value:card.shop_name||''},{name:'village',label:p('lock_form_village'),value:address.village||''}]} submit={p('lock_form_save')}/></>}
 
+  <h3>{translate('joining','change_title')}</h3>
+  <p className="muted">{translate('joining','change_hint')}</p>
+  <ActionForm action="/commands/profile/change-request" fields={[{name:'phone',label:translate('joining','change_field_phone'),value:''},{name:'union',label:translate('joining','change_field_union'),value:''},{name:'village',label:translate('joining','change_field_village'),value:''},{name:'note',label:translate('joining','change_note'),type:'textarea',required:true,value:''}]} submit={translate('joining','change_send')}/>
+
   <h3>{p('refs_title')}</h3>
   <dl className="profile-grid">
    <div><dt>{p('refs_direct')}</dt><dd>{number(refs.direct??0)}</dd></div>

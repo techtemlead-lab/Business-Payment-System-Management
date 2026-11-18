@@ -65,7 +65,8 @@ class PortalQueryBudgetTest extends TestCase
             ->where('data.admin_home.snapshot.partner_accounts', 2)
             ->where('data.admin_home.snapshot.purchases', '200.00')
             ->where('data.admin_home.snapshot.dues', '150.00'));
-        $this->assertQueriesAtMost(33, $queries, 'owner dashboard');
+        // 34: approved payouts past the due days (MA-06). 35: the payout due-days setting. 36: one read for unanswered partner chats (JA-08).
+        $this->assertQueriesAtMost(36, $queries, 'owner dashboard');
         $this->assertSame(1, $this->matching($queries, 'filter (where status in'), 'Order count, pending, today and money totals should come from one aggregate query.');
 
         foreach (range(1, 10) as $index) {
@@ -89,8 +90,9 @@ class PortalQueryBudgetTest extends TestCase
             ->where('data.stats.supply', 1)
             ->has('data.partner_home')
             ->has('data.guide_prerequisites.checklist'));
-        // 40: one read for the owner's monthly target overrides.
-        $this->assertQueriesAtMost(40, $queries, 'dealer dashboard');
+        // 40: one read for the owner's monthly target overrides. 41: one read for commission held for the partner (MA-03).
+        // 42: one read for which menu pages still have no content (training, meetings, sales kit, contests).
+        $this->assertQueriesAtMost(42, $queries, 'dealer dashboard');
 
         foreach (range(1, 8) as $index) {
             $this->line($this->order($dealer, $index % 2 === 0 ? 'delivered' : 'submitted', total: '20.00'), $product, quantity: 1, dispatched: 0);
@@ -144,7 +146,8 @@ class PortalQueryBudgetTest extends TestCase
         $response->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('data.supports_product_expiry', true)
             ->where('data.products', fn ($products) => collect($products)->firstWhere('id', $expiring->id)['expires_on'] === '2027-03-31'));
-        $this->assertQueriesAtMost(27, $queries, 'inventory');
+        // 28-29: transfers between branches still open, and that table's column list (OS-05).
+        $this->assertQueriesAtMost(29, $queries, 'inventory');
 
         Product::factory()->count(12)->create(['active' => true]);
         [, $moreQueries] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/inventory'));

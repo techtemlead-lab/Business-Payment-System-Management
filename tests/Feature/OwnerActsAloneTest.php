@@ -6,6 +6,7 @@ use App\Domain\Commissions\PolicyScheduling;
 use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Inventory\StockCountService;
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\BranchProductStock;
 use App\Models\CompanyBranch;
 use App\Models\Product;
@@ -102,6 +103,8 @@ class OwnerActsAloneTest extends TestCase
     public function test_the_md_still_needs_someone_else_for_a_spend_they_recorded(): void
     {
         $managingDirector = User::factory()->staff('md')->create();
+        // D11 (SA-07): the MD acts on Treasury only once the Super Admin grants it.
+        LeadershipAccess::save($this->owner, ['md' => ['treasury']], LeadershipAccess::current()['version']);
         $this->fundMoney();
         $spend = $this->actingAs($managingDirector)->postJson('/api/v1/operations/company-funds/spends', $this->spend())->assertOk()->json('data.id');
 
@@ -140,7 +143,7 @@ class OwnerActsAloneTest extends TestCase
 
         $this->actingAs($this->owner)->onPortal('sadmin')->get('/stock-counts')
             ->assertOk()->assertInertia(fn (Assert $page) => $page->where('data.stock_counts.selected.id', $session->id)->where('data.stock_counts.selected.can_decide', true));
-        $this->actingAs($this->owner)->post("/commands/stock-counts/{$session->id}/approve")->assertSessionHasNoErrors();
+        $this->actingAs($this->owner)->post("/commands/stock-counts/{$session->id}/approve", ['confirmed' => '1'])->assertSessionHasNoErrors();
 
         $this->assertSame(StockCountSession::StatusApproved, $session->fresh()->status);
         $this->assertDoneAlone('stock_count.approved', (string) $session->id);
@@ -153,7 +156,7 @@ class OwnerActsAloneTest extends TestCase
 
         $this->actingAs($counter)->onPortal('manage')->get('/stock-counts')
             ->assertOk()->assertInertia(fn (Assert $page) => $page->where('data.stock_counts.selected.can_decide', false));
-        $this->actingAs($counter)->post("/commands/stock-counts/{$session->id}/approve")
+        $this->actingAs($counter)->post("/commands/stock-counts/{$session->id}/approve", ['confirmed' => '1'])
             ->assertSessionHasErrors(['count' => __('purchasing.err_second_person')]);
         $this->assertSame(StockCountSession::StatusSubmitted, $session->fresh()->status);
     }

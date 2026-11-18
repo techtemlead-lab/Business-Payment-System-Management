@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Content\TrainingVideoLink;
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\TrainingItem;
 use App\Models\User;
 use Database\Seeders\TrainingItemSeeder;
@@ -93,16 +94,17 @@ class TrainingLibraryTest extends TestCase
     public function test_owner_without_content_permission_can_still_manage_training(): void
     {
         $managingDirector = User::factory()->staff('md')->create();
+        $article = ['title_bn' => 'নিয়ম', 'title_en' => 'Rules', 'type' => 'article', 'topic' => 'rules', 'audience' => 'all', 'body' => 'Never sell above MRP.'];
+        // D11 (SA-07): without the Super Admin's grant the MD and Chairman cannot post around the closed page.
+        foreach (['md', 'chairman'] as $role) {
+            $this->actingAs(User::factory()->staff($role)->create())->onPortal('sadmin')->post('/commands/training', $article)->assertForbidden();
+        }
+        $this->assertDatabaseMissing('training_items', ['title_en' => 'Rules']);
+        // Owner pages open for the MD once the Super Admin grants them.
+        LeadershipAccess::save(User::factory()->staff('super_admin')->create(), ['md' => ['owner_tools']], LeadershipAccess::current()['version']);
 
         $this->actingAs($managingDirector)->onPortal('sadmin')->get('/training')->assertOk();
-        $this->actingAs($managingDirector)->onPortal('sadmin')->post('/commands/training', [
-            'title_bn' => 'নিয়ম',
-            'title_en' => 'Rules',
-            'type' => 'article',
-            'topic' => 'rules',
-            'audience' => 'all',
-            'body' => 'Never sell above MRP.',
-        ])->assertRedirect()->assertSessionHasNoErrors();
+        $this->actingAs($managingDirector)->onPortal('sadmin')->post('/commands/training', $article)->assertRedirect()->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('training_items', ['title_en' => 'Rules', 'created_by' => $managingDirector->id]);
     }
@@ -211,7 +213,7 @@ class TrainingLibraryTest extends TestCase
                 ->assertSessionHasErrors('video_url');
         }
         $this->actingAs($editor)->onPortal('manage')->post('/commands/training', $base)->assertSessionHasErrors('video_url');
-        $this->assertDatabaseCount('training_items', 0);
+        $this->assertDatabaseMissing('training_items', ['title_en' => 'Rules']);
 
         $this->actingAs($editor)->onPortal('manage')->post('/commands/training', [...$base, 'video_url' => 'https://fb.watch/abc123/'])
             ->assertSessionHasNoErrors();
@@ -230,7 +232,7 @@ class TrainingLibraryTest extends TestCase
             ->assertSessionHasErrors('pdf');
         $this->actingAs($editor)->onPortal('manage')->post('/commands/training', [...$base, 'pdf' => UploadedFile::fake()->create('huge.pdf', 20481, 'application/pdf')])
             ->assertSessionHasErrors('pdf');
-        $this->assertDatabaseCount('training_items', 0);
+        $this->assertDatabaseMissing('training_items', ['title_en' => 'Rules']);
 
         $this->actingAs($editor)->onPortal('manage')->post('/commands/training', [...$base, 'pdf' => $this->realUpload('Product guide.pdf', self::PdfBytes)])
             ->assertSessionHasNoErrors();
@@ -289,7 +291,7 @@ class TrainingLibraryTest extends TestCase
             ->assertSessionHasErrors('video_file');
         $this->actingAs($editor)->onPortal('manage')->post('/commands/training', [...$base, 'video_file' => UploadedFile::fake()->create('long.mp4', 5 * 1024 + 1, 'video/mp4')])
             ->assertSessionHasErrors('video_file');
-        $this->assertDatabaseCount('training_items', 0);
+        $this->assertDatabaseMissing('training_items', ['title_en' => 'Rules']);
 
         $this->actingAs($editor)->onPortal('manage')->post('/commands/training', [...$base, 'video_file' => $this->realUpload('Product intro.mp4', self::Mp4Bytes)])
             ->assertSessionHasNoErrors();
@@ -342,6 +344,7 @@ class TrainingLibraryTest extends TestCase
         Storage::fake('training');
         config(['madina.training.disk' => 'training']);
         $owner = User::factory()->staff('md')->create();
+        LeadershipAccess::save(User::factory()->staff('super_admin')->create(), ['md' => ['owner_tools']], LeadershipAccess::current()['version']);
 
         $this->actingAs($owner)->onPortal('sadmin')->post('/commands/training', [
             'title_bn' => 'ভিডিও', 'title_en' => 'Video', 'type' => 'video', 'topic' => 'selling', 'audience' => 'all',

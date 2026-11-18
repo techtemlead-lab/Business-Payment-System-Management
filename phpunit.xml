@@ -30,6 +30,11 @@
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array" force="true"/>
         <env name="MADINA_PREVIEW_MODE" value="false" force="true"/>
+        <env name="MADINA_AGREEMENT_REQUIRED_DEFAULT" value="false" force="true"/>
+        <!-- Tests read the translation words from the page props; TranslationBundleTest checks the real cached file. -->
+        <env name="MADINA_INLINE_TRANSLATIONS" value="true" force="true"/>
+        <!-- Older tests expect the browser's language to decide for a visitor who never chose; GuestLanguageTest turns the Bangla default on. -->
+        <env name="MADINA_GUEST_LOCALE" value="" force="true"/>
         <!-- Real installs keep SMS and the sign-in picture off until a gateway exists. Tests keep both on unless a test turns them off. -->
         <env name="MADINA_LOGIN_OTP" value="true" force="true"/>
         <env name="MADINA_LOGIN_CAPTCHA" value="true" force="true"/>

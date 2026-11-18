@@ -2,6 +2,8 @@
 
 namespace App\Domain\Notifications;
 
+use App\Support\TakaText;
+
 /**
  * The language rule for every SMS the app sends. Greenweb suspends accounts that
  * send non-OTP SMS in English or Banglish and asks for OTP in Bangla too, so the
@@ -13,12 +15,18 @@ final class SmsText
     public const Locale = 'bn';
 
     /**
-     * The Bangla text of an SMS template.
+     * The Bangla text of an SMS template. A plain `amount` ("12000000.00") is written the one shared
+     * way (MA-18): Bangla digits with lakh/crore grouping, no ".00", and words from one lakh up, so
+     * "৳:amount" reads "৳১,২০,০০,০০০ (১ কোটি ২০ লাখ টাকা)". Templates put the ৳ sign themselves.
      *
      * @param  array<string, mixed>  $replace
      */
     public static function make(string $key, array $replace = []): string
     {
+        if (isset($replace['amount']) && preg_match('/^\d{1,16}(?:\.\d{1,2})?$/D', (string) $replace['amount']) === 1) {
+            $replace['amount'] = TakaText::afterSign((string) $replace['amount'], self::Locale);
+        }
+
         return (string) __($key, $replace, self::Locale);
     }
 

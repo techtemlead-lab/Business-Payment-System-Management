@@ -22,6 +22,23 @@ final class LocalDigits
             : $text;
     }
 
+    /**
+     * An amount with lakh and crore grouping (2,50,000.00), the way the portals show it, in the
+     * page's digits. Whole amounts can drop the ".00" with $decimals = 0.
+     */
+    public static function money(string|int|float|null $value, int $decimals = 2, ?string $locale = null): string
+    {
+        $number = number_format((float) ($value ?? 0), $decimals, '.', '');
+        [$whole, $fraction] = array_pad(explode('.', $number, 2), 2, '');
+        $negative = str_starts_with($whole, '-');
+        $whole = ltrim($whole, '-');
+        if (strlen($whole) > 3) {
+            $whole = preg_replace('/\B(?=(\d{2})+(?!\d))/', ',', substr($whole, 0, -3)).','.substr($whole, -3);
+        }
+
+        return self::text((($negative ? '-' : '').$whole).($fraction !== '' ? '.'.$fraction : ''), $locale);
+    }
+
     /** The same text with Bangla digits turned into 0–9, for numbers typed on a Bangla keyboard. */
     public static function latin(string $value): string
     {

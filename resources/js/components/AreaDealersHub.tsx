@@ -3,11 +3,15 @@ import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { MapPin, Search, Filter, Building2, Compass } from 'lucide-react';
 import { FormErrors, Modal, money, number, Table, Pagination, type Row } from './UI';
 import { actionAllowed } from './action-permissions';
-import { useT } from '../shared/i18n/t';
+import { t, useT } from '../shared/i18n/t';
 import SearchSelect from './SearchSelect';
 
 interface AreaAssignment {
     id: number | string;
+    /** The stored seat behind this row; empty when the row is only the dealer's own place with no seat saved. */
+    assignment_id?: number | null;
+    /** This month's area share held for this seat's holder because the target is not met (e.g. "15000.00"). */
+    held_amount?: string;
     user_id: number;
     level: 'division' | 'district' | 'upazila' | 'union';
     zone_name: string;
@@ -59,6 +63,8 @@ interface AreaDealersHubProps {
     areaFilters?: { division?: string; level?: string; q?: string };
     /** The area dealer fund percentage from the commission rules. */
     areaPoolRate?: string;
+    /** Seat texts sent by the server, with the amounts left as :name for this page to fill. */
+    areaText?: Record<string, string>;
     divisions: string[];
     dealers_list: DealerOption[];
     place_codes?: PlaceCodeOption[];
@@ -91,8 +97,34 @@ function FindAndPick({ title, options, value, onChange, disabled, error }: {
     );
 }
 
+/** Changes only the monthly target of one seat. The server checks the amount again. */
+function EditAreaTargetDialog({ seat, text, onClose }: { seat: AreaAssignment; text: Record<string, string>; onClose: () => void }) {
+    const translate = useT();
+    const title = t({ seat: text }, 'seat', 'area_seat_edit');
+    const form = useForm({ monthly_quota: String(seat.monthly_quota) });
+
+    return (
+        <Modal title={title} onClose={onClose}>
+            <form className="action-form" aria-label={title} onSubmit={(event) => { event.preventDefault(); form.post(`/commands/area-dealers/${seat.assignment_id}`, { preserveScroll: true, onSuccess: onClose }); }}>
+                <div className="ops-bold">{seat.zone_name}</div>
+                <label>
+                    {translate('office_partners', 'area_assign_quota')}
+                    <input type="number" min={0} step="0.01" required autoFocus value={form.data.monthly_quota} onFocus={(event) => event.target.select()} onChange={(event) => form.setData('monthly_quota', event.target.value)} />
+                    <span className="ops-meta">{t({ seat: text }, 'seat', 'area_seat_target_hint', { amount: money(form.data.monthly_quota, { symbol: false }) })}</span>
+                    {form.errors.monthly_quota && <span className="field-error" role="alert">{form.errors.monthly_quota}</span>}
+                </label>
+                <FormErrors errors={form.errors} besideFields={['monthly_quota']} />
+                <div className="ops-row is-end is-loose">
+                    <button type="button" className="button" disabled={form.processing} onClick={onClose}>{translate('portal', 'emp_cancel')}</button>
+                    <button className="button dark" disabled={form.processing}>{form.processing ? translate('portal', 'saving') : t({ seat: text }, 'seat', 'area_seat_save')}</button>
+                </div>
+            </form>
+        </Modal>
+    );
+}
+
 /** Gives an active dealer one free place. The server repeats every check, including one dealer per place. */
-function AddAreaDealerDialog({ dealers, places, onClose }: { dealers: DealerOption[]; places: PlaceCodeOption[]; onClose: () => void }) {
+function AddAreaDealerDialog({ dealers, places, text, onClose }: { dealers: DealerOption[]; places: PlaceCodeOption[]; text: Record<string, string>; onClose: () => void }) {
     const translate = useT();
     const title = translate('office_partners', 'area_assign');
     const form = useForm({ user_id: '', level: '', place_code_id: '', monthly_quota: '' });
@@ -129,7 +161,8 @@ function AddAreaDealerDialog({ dealers, places, onClose }: { dealers: DealerOpti
                 />
                 <label>
                     {translate('office_partners', 'area_assign_quota')}
-                    <input type="number" min={0} step="0.01" required value={form.data.monthly_quota} onChange={(event) => form.setData('monthly_quota', event.target.value)} />
+                    <input type="number" min={0} step="0.01" required value={form.data.monthly_quota} onFocus={(event) => event.target.select()} onChange={(event) => form.setData('monthly_quota', event.target.value)} />
+                    {form.data.monthly_quota !== '' && <span className="ops-meta">{t({ seat: text }, 'seat', 'area_seat_target_hint', { amount: money(form.data.monthly_quota, { symbol: false }) })}</span>}
                     {form.errors.monthly_quota && <span className="field-error" role="alert">{form.errors.monthly_quota}</span>}
                 </label>
                 <FormErrors errors={form.errors} besideFields={['user_id', 'level', 'place_code_id', 'monthly_quota']} />
@@ -142,12 +175,20 @@ function AddAreaDealerDialog({ dealers, places, onClose }: { dealers: DealerOpti
     );
 }
 
-export default function AreaDealersHub({ assignments: page, summary, areaFilters = {}, areaPoolRate, divisions, dealers_list, place_codes = [] }: AreaDealersHubProps) {
+export default function AreaDealersHub({ assignments: page, summary, areaFilters = {}, areaPoolRate, areaText = {}, divisions, dealers_list, place_codes = [] }: AreaDealersHubProps) {
     const translate = useT();
     const { url } = usePage();
     const { staffActions } = usePage<any>().props;
     const [assigning, setAssigning] = useState(false);
+    const [editing, setEditing] = useState<AreaAssignment | null>(null);
     const canAssign = actionAllowed('/commands/area-dealers', staffActions);
+    const seatText = (key: string, replace: Record<string, string> = {}) => t({ seat: areaText }, 'seat', key, replace);
+    const closeSeat = (seat: AreaAssignment) => {
+        if (!window.confirm(seatText('area_seat_close_confirm', { zone: seat.zone_name }))) {
+            return;
+        }
+        router.delete(`/commands/area-dealers/${seat.assignment_id}`, { preserveScroll: true });
+    };
     // The table is one server page (25 rows); the division cards and totals come from the server over every dealer.
     const assignments: AreaAssignment[] = page?.data ?? [];
     const selectedDivision = areaFilters.division || 'all';
@@ -164,14 +205,14 @@ export default function AreaDealersHub({ assignments: page, summary, areaFilters
     const setSelectedLevel = (level: string) => reload({ level });
 
     const divisionStats = useMemo(() => {
-        const stats: Record<string, { count: number; totalQuota: number }> = {};
-        divisions.forEach(d => { stats[d] = { count: 0, totalQuota: 0 }; });
-        (summary?.divisions ?? []).forEach(row => { stats[row.division] = { count: row.count, totalQuota: Number(row.total_quota) || 0 }; });
+        const stats: Record<string, { count: number; totalQuota: string }> = {};
+        divisions.forEach(d => { stats[d] = { count: 0, totalQuota: '0.00' }; });
+        (summary?.divisions ?? []).forEach(row => { stats[row.division] = { count: row.count, totalQuota: row.total_quota }; });
         return stats;
     }, [summary, divisions]);
 
     const totalCount = summary?.total ?? page?.total ?? 0;
-    const totalActiveQuota = Number(summary?.total_quota ?? 0);
+    const totalActiveQuota = summary?.total_quota ?? '0.00';
     const levelLabel = (level: string) => translate('portal', levelMeta[level]?.labelKey ?? 'area_lvl_district');
 
     return (
@@ -221,7 +262,7 @@ export default function AreaDealersHub({ assignments: page, summary, areaFilters
                         {translate('portal', 'area_all_divisions', { count: String(totalCount) })}
                     </button>
                     {divisions.map(div => {
-                        const st = divisionStats[div] || { count: 0, totalQuota: 0 };
+                        const st = divisionStats[div] || { count: 0, totalQuota: '0.00' };
                         const isSelected = selectedDivision === div;
                         return (
                             <button
@@ -356,9 +397,14 @@ export default function AreaDealersHub({ assignments: page, summary, areaFilters
                             sortable: true,
                             sortValue: (a: AreaAssignment) => Number(a.monthly_quota) || 0,
                             render: (a: AreaAssignment) => (
-                                <b className="adh-quota">
-                                    {money(a.monthly_quota)}
-                                </b>
+                                <div>
+                                    <b className="adh-quota">
+                                        {money(a.monthly_quota)}
+                                    </b>
+                                    {Number(a.held_amount ?? 0) > 0 && (
+                                        <div className="ops-meta tone-warn">{seatText('area_seat_held_quota', { amount: money(a.held_amount, { symbol: false }) })}</div>
+                                    )}
+                                </div>
                             ),
                         },
                         {
@@ -371,12 +417,23 @@ export default function AreaDealersHub({ assignments: page, summary, areaFilters
                                 </span>
                             ),
                         },
+                        ...(canAssign ? [{
+                            key: 'seat_actions',
+                            title: '',
+                            render: (a: AreaAssignment) => a.assignment_id ? (
+                                <div className="ops-row is-snug is-wrap">
+                                    <button type="button" className="button small" onClick={() => setEditing(a)}>{seatText('area_seat_edit')}</button>
+                                    <button type="button" className="button small" onClick={() => closeSeat(a)}>{seatText('area_seat_close')}</button>
+                                </div>
+                            ) : null,
+                        }] : []),
                     ]}
                 />
                 <Pagination page={page ?? undefined} />
             </div>
 
-            {assigning && <AddAreaDealerDialog dealers={dealers_list} places={place_codes} onClose={() => setAssigning(false)} />}
+            {assigning && <AddAreaDealerDialog dealers={dealers_list} places={place_codes} text={areaText} onClose={() => setAssigning(false)} />}
+            {editing && <EditAreaTargetDialog seat={editing} text={areaText} onClose={() => setEditing(null)} />}
         </div>
     );
 }

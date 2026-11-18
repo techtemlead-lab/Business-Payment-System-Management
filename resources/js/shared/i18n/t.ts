@@ -2,10 +2,12 @@ import { useCallback } from 'react';
 import { usePage } from '@inertiajs/react';
 import { localizeDigits } from '../../business-date';
 
-type Dict = Record<string, Record<string, string>>;
+import { useBundle, type Dict } from './bundle';
 
 export function useTranslations(): Dict {
-    return (usePage<any>().props.translations ?? {}) as Dict;
+    const props = usePage<any>().props;
+
+    return useBundle(props.translations as Dict | null | undefined, props.translationsUrl as string | null | undefined);
 }
 
 /** A count, amount or percent with nothing else in it, e.g. "120", "4.00", "1,250", "60.00%". */

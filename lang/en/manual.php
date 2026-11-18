@@ -1358,6 +1358,7 @@ return [
     'settings_home_s11' => 'Work log: who changed what, and when.',
     'settings_home_s12' => 'Data requests: requests from people about their own data.',
     'settings_home_s13' => 'Clear old data: old login codes, SMS records and closed enquiries. Orders, payments, accounts, commissions and the work log can never be deleted here.',
+    'settings_home_s14' => 'Site problems: times the site hit a problem while people were using it, so you can tell the people who look after the site. Each kind of problem is listed once. Mark it fixed when it is solved.',
     'settings_home_o1' => 'You know what each settings page does before you open it.',
     'settings_home_t1' => 'A link that is not on your page is not broken. It is not part of your work.',
     'settings_home_w1' => 'A change here reaches every partner at once. Be sure before you save.',

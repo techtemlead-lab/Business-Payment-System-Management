@@ -6,6 +6,7 @@ use App\Domain\Content\SalesKit;
 use App\Domain\Content\TrainingLibrary;
 use App\Domain\Orders\OrderService;
 use App\Domain\Orders\PartnerContests;
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\DatedScheme;
 use App\Models\Order;
 use App\Models\PartnerContest;
@@ -41,6 +42,8 @@ class EditSchemesContestsKitTest extends TestCase
         Storage::fake(TrainingLibrary::diskName());
         Carbon::setTestNow('2026-11-10 06:00:00');
         $this->owner = User::factory()->create(['role' => 'md', 'status' => 'active', 'locale' => 'en']);
+        // D11 (SA-07): schemes, contests and the sales kit are owner tools; the MD works on them once granted.
+        LeadershipAccess::save(User::factory()->staff('super_admin')->create(), ['md' => ['owner_tools']], LeadershipAccess::current()['version']);
     }
 
     protected function tearDown(): void

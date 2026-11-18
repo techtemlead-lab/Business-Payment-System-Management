@@ -8,7 +8,7 @@ return [
     'tab_heads' => 'খরচের খাত',
     'tab_report' => 'খরচের রিপোর্ট',
     'fund_company_profit' => 'কোম্পানির লাভের ফান্ড',
-    'fund_management' => 'ম্যানেজমেন্ট ফান্ড (২%)',
+    'fund_management' => 'ম্যানেজমেন্ট ফান্ড',
     'fund_marketing' => 'মার্কেটিং ফান্ড',
     'fund_tour' => 'সাব-ডিলার ট্যুর ফান্ড',
     'fund_geographic_reserve' => 'পুরনো এলাকা রিজার্ভ',

@@ -22,6 +22,10 @@ final class TopSellersSection implements WorkspaceSection
         $board = app(TopSellersBoard::class);
 
         if ($context->isStaff) {
+            // Opening the board with nothing chosen shows the last 30 days, so it is never empty just after a month starts.
+            if (! $request->query->has('period') && ! $request->filled('month')) {
+                $request->query->set('period', 'last30');
+            }
             $division = $request->filled('division') ? mb_substr($request->string('division')->toString(), 0, 100) : null;
 
             return ['top_sellers' => $board->forStaff($month, $division, $context->branchScope, MoneyTable::range($request, null))];

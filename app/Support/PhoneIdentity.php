@@ -53,12 +53,13 @@ final class PhoneIdentity
     /**
      * The phone a dealer may see for someone in their own downline (owner decision): the full
      * number for members they referred directly (sponsor_id = viewer) and for themselves, and
-     * only the last four digits for everyone deeper.
+     * only the last four digits for everyone deeper. When the owner switches team numbers off (LC-07),
+     * $directMembersInFull is false and only the viewer's own number stays whole.
      */
-    public static function forDownlineViewer(?string $phone, int $memberId, ?int $memberSponsorId, int $viewerId): string
+    public static function forDownlineViewer(?string $phone, int $memberId, ?int $memberSponsorId, int $viewerId, bool $directMembersInFull = true): string
     {
         $phone = (string) ($phone ?? '');
-        if ($memberId === $viewerId || ($memberSponsorId !== null && $memberSponsorId === $viewerId)) {
+        if ($memberId === $viewerId || ($directMembersInFull && $memberSponsorId !== null && $memberSponsorId === $viewerId)) {
             return $phone;
         }
 

@@ -78,6 +78,8 @@ final class ReportData
     public function availableTo(User $actor): array
     {
         if (! $actor->allows('finance') && ! $actor->allows('reports')) {
+            // Everyone may download the payroll file: it holds only their own salary slips unless they
+            // have the Payroll permission, which opens the whole file (the MD and Chairman by default).
             return ['orders', 'payroll'];
         }
 
@@ -171,7 +173,9 @@ final class ReportData
         }
         $query->where($date, '>=', CarbonImmutable::parse($from, 'Asia/Dhaka')->startOfDay()->utc())
             ->where($date, '<', CarbonImmutable::parse($to, 'Asia/Dhaka')->addDay()->startOfDay()->utc());
-        if (! $company) {
+        // The Payroll permission opens every slip; the MD and Chairman hold it without Reports (D11).
+        $wholePayroll = $type === 'payroll' && $actor->allows('payroll');
+        if (! $company && ! $wholePayroll) {
             if ($sales && $type === 'orders') {
                 $query->whereIn($owner, app(TerritoryAccess::class)->partners($actor)->select('users.id'));
             } else {

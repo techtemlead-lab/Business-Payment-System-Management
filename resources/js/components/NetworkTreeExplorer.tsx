@@ -29,6 +29,10 @@ interface DealerNode {
     sponsor_earned?: string | number;
     /** Dealer's own tree only: what the signed-in dealer earned from this member. */
     viewer_earned?: string | number;
+    /** Held back for the referrer (suspended account or area target not met): not received. */
+    sponsor_held?: string | number;
+    /** Held back for the signed-in dealer on this member's purchases: not received. */
+    viewer_held?: string | number;
     viewer_earned_by_type?: { category: string; amount: string }[];
     /** Everyone under this partner, from the server (right even when lower levels are not loaded). */
     team_size?: number;
@@ -202,14 +206,17 @@ export default function NetworkTreeExplorer({ dealers, treeStats = null, serverF
             const ranks = treeStats.ranks ?? {};
             return { total: treeStats.total, moCount: ranks.mo ?? 0, amCount: ranks.am ?? 0, smCount: ranks.sm ?? 0, meCount: ranks.me ?? 0, totalVolume: Number(treeStats.sales_total) || 0 };
         }
-        const total = dealers.length;
-        const moCount = dealers.filter(d => d.rank === 'mo').length;
-        const amCount = dealers.filter(d => d.rank === 'am').length;
-        const smCount = dealers.filter(d => d.rank === 'sm').length;
-        const meCount = dealers.filter(d => d.rank === 'me').length;
-        const totalVolume = dealers.reduce((acc, d) => acc + salesOf(d), 0);
+        // A dealer's own page counts the people under them, not themselves, so the figure
+        // always agrees with the member count shown above it.
+        const counted = isDealerPortal && viewerId !== null ? dealers.filter(d => d.id !== viewerId) : dealers;
+        const total = counted.length;
+        const moCount = counted.filter(d => d.rank === 'mo').length;
+        const amCount = counted.filter(d => d.rank === 'am').length;
+        const smCount = counted.filter(d => d.rank === 'sm').length;
+        const meCount = counted.filter(d => d.rank === 'me').length;
+        const totalVolume = counted.reduce((acc, d) => acc + salesOf(d), 0);
         return { total, moCount, amCount, smCount, meCount, totalVolume };
-    }, [dealers, treeStats]);
+    }, [dealers, treeStats, isDealerPortal, viewerId]);
 
     // Recursive calculation of total downline size; the server count wins when it is sent.
     const getDownlineCount = (id: number): number => {
@@ -284,16 +291,18 @@ export default function NetworkTreeExplorer({ dealers, treeStats = null, serverF
                             <span>{translate('portal','net_purchases')}: <b className="tone-brand">{money(salesOf(dealer))}</b></span>
                             <span>•</span>
                             <span>{translate('portal','net_sales_month')}: <b>{money(dealer.sales_month ?? 0)}</b></span>
-                            <span>•</span>
-                            <span title={translate('portal','net_qualifying_volume_hint')}>{translate('portal','net_qualifying_volume_month')}: <b>{money(dealer.qualifying_volume_month ?? 0)}</b></span>
                         </div>
                         {dealer.sponsor_id && dealerMap[dealer.sponsor_id] && (
                             <div className="ops-row ops-meta ntx-card-meta">
                                 {showsViewerEarnings && dealer.sponsor_id === viewerId ? (
-                                    <span>{translate('portal','net_you_earned')}: <b className="tone-ok">{money(dealer.viewer_earned ?? 0)}</b></span>
+                                    <>
+                                        <span>{translate('portal','net_you_earned')}: <b className="tone-ok">{money(dealer.viewer_earned ?? 0)}</b></span>
+                                        {Number(dealer.viewer_held) > 0 && <><span>•</span><span>{translate('money_core','net_you_held')}: <b className="tone-warn">{money(dealer.viewer_held)}</b></span></>}
+                                    </>
                                 ) : (
                                     <>
                                         <span>{translate('portal','net_referrer_earned')}: <b className="tone-ok">{money(dealer.sponsor_earned ?? 0)}</b></span>
+                                        {Number(dealer.sponsor_held) > 0 && <><span>•</span><span>{translate('money_core','net_referrer_held')}: <b className="tone-warn">{money(dealer.sponsor_held)}</b></span></>}
                                         {showsViewerEarnings && (
                                             <><span>•</span><span>{translate('portal','net_you_earned')}: <b className="tone-ok">{money(dealer.viewer_earned ?? 0)}</b></span></>
                                         )}
@@ -329,15 +338,17 @@ export default function NetworkTreeExplorer({ dealers, treeStats = null, serverF
             <JargonHint terms={['mo', 'am', 'sm', 'me']} />
             {/* Top Stat Summary Cards */}
             <div className="hub-grid">
-                <div className="hub-tile">
-                    <div className="hub-label ops-row">
-                        <Users size={16} /> {translate('portal','net_kpi_total')}
+                {!isDealerPortal && (
+                    <div className="hub-tile">
+                        <div className="hub-label ops-row">
+                            <Users size={16} /> {translate('portal','net_kpi_total')}
+                        </div>
+                        <div className="ops-figure ops-mt-1">
+                            {number(stats.total)}
+                        </div>
+                        <div className="hub-hint">{translate('portal','net_enrolled')}</div>
                     </div>
-                    <div className="ops-figure ops-mt-1">
-                        {number(stats.total)}
-                    </div>
-                    <div className="hub-hint">{translate('portal','net_enrolled')}</div>
-                </div>
+                )}
 
                 <div className="hub-tile is-accent tone-ok">
                     <div className="hub-label ops-row">
@@ -386,6 +397,7 @@ export default function NetworkTreeExplorer({ dealers, treeStats = null, serverF
                     <div className="ops-row is-snug">
                         <Filter size={15} className="ops-muted" />
                         <select
+                            aria-label={translate('portal','net_all_ranks')}
                             value={rankFilter}
                             onChange={e => setRankFilter(e.target.value)}
                         >
@@ -632,13 +644,18 @@ export default function NetworkTreeExplorer({ dealers, treeStats = null, serverF
                             <div className="hub-label ops-mb-2">{translate('portal','net_money_summary')}</div>
                             <dl className="ntx-money">
                                 <div><dt>{translate('portal','net_sales_month')}</dt><dd>{money(activeDealer.sales_month ?? 0)}</dd></div>
-                                <div><dt>{translate('portal','net_qualifying_volume_month')}<small className="cell-sub">{translate('portal','net_qualifying_volume_hint')}</small></dt><dd>{money(activeDealer.qualifying_volume_month ?? 0)}</dd></div>
                                 <div><dt>{translate('portal','net_team_purchases')}</dt><dd>{money(sumTeam(activeDealer.id, d => salesOf(d)))}</dd></div>
                                 {activeDealer.sponsor_id && dealerMap[activeDealer.sponsor_id] && activeDealer.sponsor_id !== viewerId && (
                                     <div><dt>{translate('portal','net_referrer_earned_from',{name: dealerMap[activeDealer.sponsor_id].name})}</dt><dd className="tone-ok">{money(activeDealer.sponsor_earned ?? 0)}</dd></div>
                                 )}
+                                {activeDealer.sponsor_id && dealerMap[activeDealer.sponsor_id] && activeDealer.sponsor_id !== viewerId && Number(activeDealer.sponsor_held) > 0 && (
+                                    <div><dt>{translate('money_core','net_referrer_held')}</dt><dd className="tone-warn">{money(activeDealer.sponsor_held)}</dd></div>
+                                )}
                                 {showsViewerEarnings && activeDealer.id !== viewerId && (
                                     <div><dt>{translate('portal','net_you_earned')}</dt><dd className="tone-ok">{money(activeDealer.viewer_earned ?? 0)}</dd></div>
+                                )}
+                                {showsViewerEarnings && activeDealer.id !== viewerId && Number(activeDealer.viewer_held) > 0 && (
+                                    <div><dt>{translate('money_core','net_you_held')}</dt><dd className="tone-warn">{money(activeDealer.viewer_held)}</dd></div>
                                 )}
                                 {showsViewerEarnings && (childrenMap[activeDealer.id] || []).length > 0 && (
                                     <div><dt>{translate('portal','net_team_you_earned')}</dt><dd className="tone-ok">{money(sumTeam(activeDealer.id, d => d.id === viewerId ? 0 : Number(d.viewer_earned) || 0))}</dd></div>

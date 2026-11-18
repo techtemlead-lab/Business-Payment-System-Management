@@ -4,7 +4,6 @@
 
 @section('content')
 @php
-    $contactUrl = '/contact?referred_by='.rawurlencode($code).'&topic=partnership_enquiry#enquiry';
     $partnershipUrl = '/partnership?sponsor_code='.rawurlencode($code).'#partner-apply';
     $photo = $social['partner']['photo'] ?? null;
 @endphp
@@ -26,11 +25,10 @@
     </div>
     <p style="margin-top:18px;">{{ $social['description'] ?? '' }}</p>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;">
-        <a class="ref-primary-button" href="{{ $contactUrl }}">{{ __('site.share_refer_contact_cta') }}</a>
         @if($publicPageEnabled['partnership'] ?? true)
-            <a class="ref-primary-button" style="background:#0f766e;" href="{{ $partnershipUrl }}">{{ __('site.share_refer_apply_cta') }}</a>
+            <a class="ref-primary-button" href="{{ $partnershipUrl }}">{{ __('site.share_refer_apply_cta') }}</a>
         @endif
     </div>
 </section>
-<meta http-equiv="refresh" content="8;url={{ $contactUrl }}">
+@if($publicPageEnabled['partnership'] ?? true)<meta http-equiv="refresh" content="3;url={{ $partnershipUrl }}">@endif
 @endsection

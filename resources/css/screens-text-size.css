@@ -1,0 +1,74 @@
+/*
+ * Dealers and sub-dealers: bigger, darker text and bigger buttons (AX-01).
+ * The whole partner screen is zoomed, so every size grows together. "Normal" lifts the
+ * 14 px body text to about 16 px; the switch in the top bar offers smaller and larger steps.
+ */
+:is(.dealer-shell, .subdealer-shell) {
+  --ds-text-muted: #455364;
+  --ds-text-faint: #4f5c6b;
+  zoom: 1.15;
+}
+html[data-text-size="small"] :is(.dealer-shell, .subdealer-shell) { zoom: 1; }
+html[data-text-size="large"] :is(.dealer-shell, .subdealer-shell) { zoom: 1.3; }
+html[data-text-size="xlarge"] :is(.dealer-shell, .subdealer-shell) { zoom: 1.5; }
+
+/* Fingers, not mouse pointers: every button and control is at least 44 px tall. */
+:is(.dealer-shell, .subdealer-shell) :is(.button, button.icon-button, a.icon-button, .language-switcher button, .text-size-switch button) {
+  min-height: 44px;
+}
+:is(.dealer-shell, .subdealer-shell) :is(.icon-button, .text-size-switch button) { min-width: 44px; }
+
+.text-size-switch { display: inline-flex; align-items: center; gap: 2px; padding: 0 4px; }
+.text-size-switch .text-size-label { font-size: 13px; font-weight: 600; color: var(--ds-text-muted, #455364); padding-right: 4px; white-space: nowrap; }
+.text-size-switch button {
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid transparent; border-radius: 10px; background: transparent;
+  color: var(--ds-text, #0b1f33); font-weight: 700; line-height: 1; cursor: pointer;
+}
+.text-size-switch button.active { background: var(--ds-brand-soft, #e3f1eb); border-color: var(--ds-brand, #006a4e); color: var(--ds-brand-text, #00694d); }
+.text-size-switch button:focus-visible { outline: 3px solid var(--ds-brand, #006a4e); outline-offset: 2px; }
+.text-size-small { font-size: 12px; }
+.text-size-normal { font-size: 15px; }
+.text-size-large { font-size: 18px; }
+.text-size-xlarge { font-size: 22px; }
+/* On a phone the top bar is full: the size buttons live in the account menu instead. */
+@media (max-width: 760px) { .text-size-switch.in-header { display: none; } }
+.text-size-switch.in-menu { padding: 6px 10px; border-top: 1px solid var(--ds-line, #dfe5e0); }
+.text-size-switch.in-menu .text-size-label { display: inline; }
+
+/* A crore-sized amount wraps inside its box instead of being cut off at the edge. */
+:is(.dealer-shell, .subdealer-shell) :is(.ph-hero-stats dd, .ph-today-grid strong, .metric strong) { overflow-wrap: anywhere; }
+@media (max-width: 640px) { :is(.dealer-shell, .subdealer-shell) .ph-hero-stats { grid-template-columns: 1fr; } }
+/* Order totals: two to a row so a crore-sized amount fits on one line. */
+:is(.dealer-shell, .subdealer-shell) .order-totals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+/* File chooser with words in the page's language (FilePicker). The real input stays on the page, out of sight, so required and keyboard use still work. */
+.file-picker { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; position: relative; }
+.file-picker-input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; pointer-events: none; }
+.file-picker-name { color: var(--ds-text-muted, #455364); overflow-wrap: anywhere; }
+
+/* A form error must be noticed by someone who reads slowly: bold, dark red, with a bar beside it. */
+:is(.dealer-shell, .subdealer-shell) .field-error { display: block; margin-top: 6px; padding-left: 8px; border-left: 3px solid #b42318; color: #9b1c12; font-weight: 600; }
+
+/* Help: the six common questions, each opens on tap. */
+.help-quick-list details { border: 1px solid var(--ds-line, #dfe5e0); border-radius: 12px; padding: 4px 14px; margin: 8px 0; background: var(--ds-surface, #fff); }
+.help-quick-list summary { font-weight: 700; cursor: pointer; min-height: 44px; display: flex; align-items: center; }
+.help-quick-list p { margin: 0 0 12px; }
+.ppm-sum-words { display: block; color: var(--ds-text-muted, #455364); font-weight: 600; overflow-wrap: anywhere; }
+.ppm-big-order { border-left: 4px solid #b45309; }
+
+/* A wide table scrolls inside its own box; the page itself never scrolls sideways on a phone. */
+:is(.dealer-shell, .subdealer-shell) .table-scroll { overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; }
+:is(.dealer-shell, .subdealer-shell) .workspace-main { min-width: 0; }
+:is(.dealer-shell, .subdealer-shell) :is(.partner-home-referral-poster b, .partner-home-referral-code strong, .partner-home-referral-url, .profile-grid dd) { overflow-wrap: anywhere; word-break: break-word; }
+
+/* The agreement is one long page, not a small box with its own scroll, and the accept button stays in view. */
+:is(.dealer-shell, .subdealer-shell) .agr-text { max-height: none; overflow-y: visible; }
+:is(.dealer-shell, .subdealer-shell) .agr-accept { position: sticky; bottom: 0; z-index: 5; padding: 12px 0; background: var(--ds-bg, #f3f5f2); }
+
+/* Home: two big buttons for people who find the order form hard. */
+.ph-callme { margin: 16px 0; padding: 16px; border: 2px solid var(--ds-brand, #006a4e); border-radius: 16px; background: var(--ds-brand-soft, #e3f1eb); }
+.ph-callme h3 { margin: 0 0 12px; }
+.ph-callme-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.ph-callme-button { flex: 1 1 240px; justify-content: center; gap: 10px; min-height: 56px; font-size: 18px; font-weight: 700; }
+.ph-callme-note { margin: 12px 0 0; font-weight: 700; color: var(--ds-brand-text, #00694d); }

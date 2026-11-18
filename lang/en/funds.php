@@ -8,7 +8,7 @@ return [
     'tab_heads' => 'Expense heads',
     'tab_report' => 'Spending report',
     'fund_company_profit' => 'Company profit fund',
-    'fund_management' => 'Management fund (2%)',
+    'fund_management' => 'Management fund',
     'fund_marketing' => 'Marketing fund',
     'fund_tour' => 'Sub-dealer tour fund',
     'fund_geographic_reserve' => 'Old area reserve',

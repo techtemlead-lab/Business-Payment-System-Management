@@ -23,6 +23,6 @@ class StaffCreatedMessageTest extends TestCase
             'permissions' => ['orders'],
             'reason' => 'Adding a new warehouse staff member for this test.',
         ])->assertRedirect('/employees')
-            ->assertSessionHas('success', fn (string $message): bool => ! str_contains($message, 'Rahima Staff') && ! str_contains($message, 'Code:'));
+            ->assertSessionHas('success', fn (string $message): bool => ! str_contains($message, 'Code: Rahima') && ! str_contains($message, 'Code:'));
     }
 }

@@ -13,9 +13,11 @@ import NextStepsCard from './dealertools/NextStepsCard';
 import { ProfilePhoto } from './ProfilePhoto';
 import Figures, { type FigureItem } from './office/Figures';
 import OfficePage from './office/OfficePage';
+import StartBooksCard from './office/StartBooksCard';
 import { Badge, Empty, date, humanize, money, type Row, number } from './UI';
 import { businessTodayIso, localizeDigits } from '../business-date';
 import { useT } from '../shared/i18n/t';
+import CallMeCard from './CallMeCard';
 
 /** A progress bar row, or (kind "amount") a plain amount with no target, such as a sub-dealer's salary or tour fund. */
 type TargetRow = {
@@ -43,11 +45,6 @@ function ReferralShare({ referral, role }: { referral: { code?: string; url?: st
     const encodedText = encodeURIComponent(shareText);
     const whatsappHref = `https://wa.me/?text=${encodedText}`;
     const facebookHref = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
-    // Messenger has no web share URL without a registered app id; the app link works on phones.
-    const messengerHref = `fb-messenger://share/?link=${encodedUrl}`;
-    const telegramHref = `https://t.me/share/url?url=${encodedUrl}&text=${encodeURIComponent(translate('portal', 'share_join_text', { code: String(referral.code) }))}`;
-    const linkedinHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
-    const xHref = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodeURIComponent(translate('portal', 'share_join_text', { code: String(referral.code) }))}`;
 
     const copyLink = async () => {
         try {
@@ -109,11 +106,6 @@ function ReferralShare({ referral, role }: { referral: { code?: string; url?: st
                         </button>
                         <a className="button small" href={whatsappHref} target="_blank" rel="noreferrer">{translate('portal', 'share_whatsapp')}</a>
                         <a className="button small" href={facebookHref} target="_blank" rel="noreferrer">{translate('portal', 'share_facebook')}</a>
-                        <a className="button small" href={messengerHref} target="_blank" rel="noreferrer">{translate('portal', 'share_messenger')}</a>
-                        <a className="button small" href={telegramHref} target="_blank" rel="noreferrer">{translate('portal', 'share_telegram')}</a>
-                        <a className="button small" href={linkedinHref} target="_blank" rel="noreferrer">{translate('portal', 'share_linkedin')}</a>
-                        <a className="button small" href={xHref} target="_blank" rel="noreferrer">{translate('portal', 'share_x')}</a>
-                        <a className="text-link" href={referral.url} target="_blank" rel="noreferrer">{translate('portal', 'open_join_page')}</a>
                     </div>
                 </div>
             </div>
@@ -129,7 +121,8 @@ function BalancePill({ amount }: { amount: unknown }) {
         if (!shown) {
             return;
         }
-        const timer = window.setTimeout(() => setShown(false), 6000);
+        // Long enough to read a crore-sized balance slowly.
+        const timer = window.setTimeout(() => setShown(false), 20000);
 
         return () => window.clearTimeout(timer);
     }, [shown]);
@@ -148,6 +141,9 @@ function BalancePill({ amount }: { amount: unknown }) {
         </button>
     );
 }
+
+/** The home screen shows the two most important targets; the rest are on the ranks page. */
+const HOME_TARGETS = 2;
 
 type QuickAction = { section: string; label: string; icon: React.ComponentType<{ size?: number }>; tone: string; wordGroup?: string };
 
@@ -190,7 +186,7 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
     const snapshot = home.snapshot ?? {};
     const wallet = home.wallet ?? {};
     const waitingAmounts: Row[] = wallet.commission_waiting?.amounts ?? [];
-    const location = [profile.district, profile.division].filter(Boolean).join(', ');
+    const sections: string[] = usePage<any>().props.portalCatalog?.sections ?? [];
 
     return (
         <div className="partner-home ph">
@@ -218,6 +214,20 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
                         <dt>{translate('portal', 'pending_withdrawal')}</dt>
                         <dd>{money(wallet.pending_withdrawal)}</dd>
                     </div>
+                    {Number(wallet.commission_held?.total ?? 0) > 0 && (
+                        <div className="ph-hero-waiting" data-testid="home-commission-held">
+                            <dt>{translate('money_core', 'held_heading')}</dt>
+                            <dd>{money(wallet.commission_held.total)}</dd>
+                            {(wallet.commission_held.lines ?? []).map((line: Row) => (
+                                <dd className="ph-hero-note" key={line.id}>
+                                    {money(line.amount)} · {translate('money_core', 'held_line', { what: line.what, order: line.order_number ?? '—' })} · {translate('money_core', `held_reason_${line.reason}`)}
+                                </dd>
+                            ))}
+                            {wallet.commission_held.count > (wallet.commission_held.lines ?? []).length && (
+                                <dd className="ph-hero-note"><Link href={`${base}/my-money`}>{translate('money_core', 'held_more', { count: number(wallet.commission_held.count - wallet.commission_held.lines.length) })}</Link></dd>
+                            )}
+                        </div>
+                    )}
                     <div className="ph-hero-waiting" data-testid="home-commission-waiting">
                         <dt>{translate('portal', 'ph_commission_waiting')}</dt>
                         <dd>{money(wallet.commission_waiting?.total)}</dd>
@@ -244,6 +254,8 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
             )}
 
             <QuickActions base={base} />
+
+            <CallMeCard />
 
             <IncomeCards cards={moneyCards} hrefFor={(type) => `${base}/my-money?type=${encodeURIComponent(type)}`} />
 
@@ -278,7 +290,7 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
                         <PartnerProgressButton />
                     </div>
                     <div className="partner-home-target-list">
-                        {targets.map((target) => target.kind === 'amount' ? (
+                        {targets.slice(0, HOME_TARGETS).map((target) => target.kind === 'amount' ? (
                             <article key={target.key} className="partner-home-target-amount">
                                 <div className="partner-home-target-top">
                                     <b>
@@ -316,6 +328,9 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
                             </article>
                         ))}
                     </div>
+                    {targets.length > HOME_TARGETS && sections.includes('ranks') && (
+                        <Link href={`${base}/ranks`} className="text-link ph-targets-more">{translate('partner_ux', 'all_targets')} <ArrowUpRight size={15} /></Link>
+                    )}
                 </section>
             )}
 
@@ -356,28 +371,13 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
             )}
             <ReferralShare referral={home.referral ?? null} role={profile.role} />
 
-            <section className="ph-card ph-profile">
-                <div className="ph-card-head">
-                    <h3>{translate('portal', 'ph_my_account')}</h3>
-                    {profile.shop_name && <p>{profile.shop_name}</p>}
-                </div>
-                <dl>
-                    <div><dt>{translate('portal', 'label_mobile')}</dt><dd>{profile.phone || '—'}</dd></div>
-                    <div><dt>{translate('portal', 'label_email')}</dt><dd>{profile.email || '—'}</dd></div>
-                    <div><dt>{translate('portal', 'label_area_code')}</dt><dd>{profile.area_code || '—'}</dd></div>
-                    {location && <div><dt>{translate('portal', 'label_location')}</dt><dd>{location}</dd></div>}
-                </dl>
-                <div className="ph-profile-links">
-                    <Link href={`${base}/profile`} className="button small">{translate('portal', 'full_profile')}</Link>
-                    <a href={`${base}/id-card/pdf`} className="button small">{translate('portal', 'download_id_card')}</a>
-                    {profile.refer_code && <a href={`${base}/join-poster/pdf`} className="button small">{translate('portal', 'download_join_poster')}</a>}
-                </div>
-            </section>
+            {/* Name, code and place are already in the card at the top; the full profile is one tap away. */}
+            <p className="ph-profile-link"><Link href={`${base}/profile`} className="button small">{translate('portal', 'full_profile')}</Link></p>
         </div>
     );
 }
 
-type WorkItem = { key: string; count: number; section: string; query?: Record<string, string> };
+type WorkItem = { key: string; count: number; section: string; query?: Record<string, string>; label?: string; amount?: string; alert?: boolean; oldest_days?: number | null };
 type TrendPoint = { date: string; orders: number; value: string };
 
 /** A business day (YYYY-MM-DD) in the page's language, whatever clock the browser is on. */
@@ -387,28 +387,46 @@ function dayInWords(iso: string, format: Intl.DateTimeFormatOptions): string {
     return new Date(year, month - 1, day).toLocaleDateString(document.documentElement.lang === 'bn' ? 'bn-BD' : 'en-GB', format);
 }
 
+/** The few things that need doing first. Only the busiest one is highlighted, so the list does not turn red all at once; the rest wait under a button. */
 function WorkQueue({ items, base }: { items: WorkItem[]; base: string }) {
     const translate = useT();
+    // A failed month close is an alarm: it always comes first and is never folded away.
+    const busy = items.filter((item) => item.count > 0).sort((a, b) => Number(b.alert === true) - Number(a.alert === true) || b.count - a.count);
+    const top = busy.slice(0, 3);
+    const rest = [...busy.slice(3), ...items.filter((item) => item.count <= 0)];
+
+    const row = (item: WorkItem, first: boolean) => {
+        const query = item.query ? `?${new URLSearchParams(item.query).toString()}` : '';
+        const state = item.count <= 0 ? 'is-clear' : item.alert ? 'has-work is-alert' : first ? 'has-work is-top' : 'has-work';
+
+        return (
+            <li key={item.key} className={state}>
+                <Link href={`${base}/${item.section}${query}`}>
+                    <strong>{number(item.count)}</strong>
+                    <span>
+                        {item.key === 'chats_unanswered' ? translate('joining', 'dash_chats_unanswered') : (item.label ?? translate('portal', `dash_work_${item.key}`))}
+                        {item.amount != null && <> · {money(item.amount)}</>}
+                        {item.key === 'chats_unanswered' && item.count > 0 && item.oldest_days != null && <small className="cell-sub">{translate('joining', 'dash_chats_oldest', { days: number(item.oldest_days) })}</small>}
+                    </span>
+                    <ChevronRight size={16} aria-hidden="true" />
+                </Link>
+            </li>
+        );
+    };
 
     return (
         <section className="panel admin-work-queue" data-tour="admin-work-queue" aria-label={translate('portal', 'dash_work_title')}>
             <div className="panel-heading">
                 <h2>{translate('portal', 'dash_work_title')}</h2>
             </div>
-            <ul>
-                {items.map((item) => {
-                    const query = item.query ? `?${new URLSearchParams(item.query).toString()}` : '';
-                    return (
-                        <li key={item.key} className={item.count > 0 ? 'has-work' : 'is-clear'}>
-                            <Link href={`${base}/${item.section}${query}`}>
-                                <strong>{number(item.count)}</strong>
-                                <span>{translate('portal', `dash_work_${item.key}`)}</span>
-                                <ChevronRight size={16} aria-hidden="true" />
-                            </Link>
-                        </li>
-                    );
-                })}
-            </ul>
+            {top.length === 0 && <p className="muted">{translate('office_home', 'nothing_waiting')}</p>}
+            <ul>{top.map((item, index) => row(item, index === 0))}</ul>
+            {rest.length > 0 && (
+                <details className="admin-work-more">
+                    <summary>{translate('office_home', 'work_more', { count: number(rest.length) })}</summary>
+                    <ul>{rest.map((item) => row(item, false))}</ul>
+                </details>
+            )}
         </section>
     );
 }
@@ -494,6 +512,7 @@ function AdminHome({ home }: { home: Row }) {
     return (
         <OfficePage title={translate('portal', 'overview')} action={<span className="office-home-date">{today}</span>}>
             <div className="office-home">
+                {home.start_books && <StartBooksCard />}
                 {/* The tour step talks about the numbers, so it is skipped for staff who get none here. */}
                 {figures.length > 0 && <div data-tour="home-metrics"><Figures items={figures} /></div>}
                 {(work.length > 0 || trend.length > 0) && (
@@ -502,7 +521,7 @@ function AdminHome({ home }: { home: Row }) {
                         {trend.length > 0 && <SalesTrend points={trend} month={home.month ?? null} />}
                     </section>
                 )}
-                {figures.length === 0 && work.length === 0 && trend.length === 0 && <Empty line={translate('office_home', 'nothing_waiting')} />}
+                {figures.length === 0 && work.length === 0 && trend.length === 0 && !home.start_books && <Empty line={translate('office_home', 'nothing_waiting')} />}
             </div>
         </OfficePage>
     );

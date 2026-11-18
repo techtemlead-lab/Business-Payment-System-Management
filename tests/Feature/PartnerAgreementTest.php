@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Accounts\PartnerAgreement;
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\PartnerAgreementAcceptance;
 use App\Models\PartnerAgreementVersion;
 use App\Models\User;
@@ -142,6 +143,8 @@ class PartnerAgreementTest extends TestCase
     public function test_owner_publishes_a_new_version_and_the_old_one_stays(): void
     {
         $owner = User::factory()->staff('md')->create();
+        // D11 (SA-07): the MD edits the agreement once the Super Admin grants the owner pages.
+        LeadershipAccess::save(User::factory()->staff('super_admin')->create(), ['md' => ['owner_tools']], 0);
         $first = PartnerAgreementVersion::query()->sole();
 
         $this->actingAs($owner)->onPortal('sadmin')

@@ -6,6 +6,7 @@ use App\Domain\Inventory\StockStages;
 use App\Domain\Orders\CourierBoard;
 use App\Domain\Orders\CourierOptions;
 use App\Domain\Orders\DeliveredMoney;
+use App\Domain\Orders\OrderLines;
 use App\Domain\Orders\OrderListFilter;
 use App\Domain\Orders\OverdueDeliveries;
 use App\Domain\Orders\ShipmentTracking;
@@ -90,7 +91,7 @@ final class OrdersSection implements WorkspaceSection
         $listQuery->with($orderWith)
             ->selectRaw(DeliveredMoney::valueSql().' AS delivered_value, '.DeliveredMoney::paidSql().' AS delivered_paid, '.OrderListFilter::cameBackSql().' AS came_back, '.OrderListFilter::returnedUnitsSql().' AS returned_units');
         if ($usesSharedTable) {
-            $listQuery->selectRaw('(SELECT order_refunds.amount FROM order_refunds WHERE order_refunds.order_id = orders.id LIMIT 1) AS refunded_amount');
+            $listQuery->selectRaw('(SELECT SUM(order_refunds.amount) FROM order_refunds WHERE order_refunds.order_id = orders.id) AS refunded_amount');
         }
         [$sort, $direction, $sorts] = $this->chosenSort($request);
         if ($usesSharedTable) {
@@ -113,7 +114,7 @@ final class OrdersSection implements WorkspaceSection
             $props['order_totals'] = $this->listTotals($filteredOrders);
             if ($context->isStaff) {
                 $totals = $props['order_totals'];
-                $props['orders_table'] = $this->tableFacts($request, $sorts, $sort, $direction, ['count' => $totals['orders'], 'capped' => false, 'sums' => Arr::except($totals, 'orders')], ['buyer_role', 'branch_id']);
+                $props['orders_table'] = $this->tableFacts($request, $sorts, $sort, $direction, ['count' => $totals['orders'], 'capped' => false, 'sums' => Arr::except($totals, ['orders', 'ordered'])], ['buyer_role', 'branch_id']);
             }
         }
         if ($context->section === 'deliveries') {
@@ -308,14 +309,15 @@ final class OrdersSection implements WorkspaceSection
      * count delivered goods only; a partly delivered order counts its delivered part. Rejected and
      * cancelled orders count as orders but add nothing to any money figure.
      *
-     * @return array{orders: int, value: string, paid: string, to_pay: string}
+     * @return array{orders: int, value: string, paid: string, to_pay: string, ordered: string}
      */
     private function listTotals(Builder $filteredOrders): array
     {
         $row = (clone $filteredOrders)->toBase()->reorder()
             ->selectRaw('COUNT(*) AS orders, COALESCE(SUM('.DeliveredMoney::valueSql().'), 0) AS value, '
                 .'COALESCE(SUM('.DeliveredMoney::paidSql().'), 0) AS paid, '
-                .'COALESCE(SUM('.self::ToPaySql.'), 0) AS to_pay')
+                .'COALESCE(SUM('.self::ToPaySql.'), 0) AS to_pay, '
+                ."COALESCE(SUM(CASE WHEN orders.status NOT IN ('rejected', 'cancelled') THEN orders.total ELSE 0 END), 0) AS ordered")
             ->first();
 
         return [
@@ -323,6 +325,8 @@ final class OrdersSection implements WorkspaceSection
             'value' => Money::decimal(Money::cents((string) $row->value)),
             'paid' => Money::decimal(Money::cents((string) $row->paid)),
             'to_pay' => Money::decimal(Money::cents((string) $row->to_pay)),
+            // What was ordered (not cancelled or refused), shown beside what has been delivered so neither reads as zero.
+            'ordered' => Money::decimal(Money::cents((string) $row->ordered)),
         ];
     }
 
@@ -335,7 +339,7 @@ final class OrdersSection implements WorkspaceSection
     {
         $today = now('Asia/Dhaka')->toDateString();
         $ids = (clone $filteredOrders)->toBase()->reorder()->select('orders.id');
-        $units = (int) DB::table('order_lines')->whereIn('order_id', $ids)->sum(DB::raw('GREATEST(quantity - dispatched, 0)'));
+        $units = (int) DB::table('order_lines')->whereIn('order_id', $ids)->sum(DB::raw(OrderLines::unsentUnitsSql()));
         $row = (clone $filteredOrders)->toBase()->reorder()
             ->selectRaw("COUNT(*) AS orders, COALESCE(MAX(DATE '{$today}' - DATE(orders.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Dhaka')), 0) AS oldest_days")
             ->first();

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Content\TrainingLibrary;
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\SalesKitItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -73,10 +74,19 @@ class SalesKitTest extends TestCase
         $this->assertDatabaseHas('audit_events', ['action' => 'sales_kit.removed']);
     }
 
-    public function test_the_md_can_add_to_the_kit_like_any_owner(): void
+    public function test_the_md_and_chairman_add_to_the_kit_only_once_given_owner_tools(): void
     {
         $md = User::factory()->create(['role' => 'md', 'status' => 'active']);
+        $chairman = User::factory()->create(['role' => 'chairman', 'status' => 'active']);
+        $upload = fn (): array => ['title' => 'X', 'kind' => 'poster', 'language' => 'en', 'file' => UploadedFile::fake()->create('x.pdf', 10, 'application/pdf')];
 
+        // D11 (SA-07): without the Super Admin's owner-tools grant the command is refused, like the page.
+        $this->actingAs($md)->onPortal('sadmin')->post('/commands/sales-kit', $upload())->assertForbidden();
+        $this->actingAs($chairman)->onPortal('sadmin')->post('/commands/sales-kit', $upload())->assertForbidden();
+        $this->assertSame(0, SalesKitItem::query()->count());
+
+        LeadershipAccess::save(User::factory()->staff('super_admin')->create(), ['md' => ['owner_tools']], LeadershipAccess::current()['version']);
+        $this->actingAs($chairman)->onPortal('sadmin')->post('/commands/sales-kit', $upload())->assertForbidden();
         $this->actingAs($md)->onPortal('sadmin')->post('/commands/sales-kit', [
             'title' => 'Price list', 'kind' => 'price_list', 'language' => 'en',
             'file' => UploadedFile::fake()->create('prices.pdf', 10, 'application/pdf'),

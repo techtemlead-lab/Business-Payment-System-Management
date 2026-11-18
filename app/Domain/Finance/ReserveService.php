@@ -110,10 +110,10 @@ final class ReserveService
             if ($decision === 'approved' && $row->program === 'tour') {
                 throw ValidationException::withMessages(['reserve' => __('funds.err_tour_company_only')]);
             }
-            if ($row->status !== 'requested' || $actor->id === $row->user_id) {
+            if ($row->status !== 'requested' || (int) $actor->id === (int) $row->user_id) {
                 throw ValidationException::withMessages(['reserve' => __('portal.err_reserve_reviewer')]);
             }
-            $selfApproved = $actor->id === $row->created_by;
+            $selfApproved = (int) $actor->id === (int) $row->created_by;
             if ($selfApproved) {
                 app(SelfApproval::class)->finishOwnStep($actor, 'reserve', __('portal.err_reserve_reviewer'));
             }
@@ -130,7 +130,8 @@ final class ReserveService
                 }
                 $remaining = Money::cents($row->amount);
                 foreach ($this->funds($row->program, $row->user_id) as $fund) {
-                    $amount = min($remaining, $this->remaining($fund));
+                    $inPool = in_array($row->program, VehiclePools::Programs, true);
+                    $amount = min($remaining, $inPool ? app(VehiclePools::class)->remainingFor($fund, $row->program) : $this->remaining($fund));
                     if ($amount <= 0) {
                         continue;
                     }
@@ -149,7 +150,9 @@ final class ReserveService
                     }
                 }
                 if ($remaining > 0) {
-                    throw ValidationException::withMessages(['amount' => __('portal.err_reserve_insufficient')]);
+                    throw ValidationException::withMessages(['amount' => in_array($row->program, VehiclePools::Programs, true)
+                        ? __('money_core.vehicle_pool_short', ['program' => __('portal.prc_reserve_program_'.$row->program)])
+                        : __('portal.err_reserve_insufficient')]);
                 }
                 if ($row->program !== 'marketing') {
                     $amount = Money::cents($row->amount);
@@ -233,7 +236,7 @@ final class ReserveService
                 if ($row->program !== 'marketing' || $row->status !== 'approved') {
                     throw ValidationException::withMessages(['reserve' => __('portal.err_reserve_payer')]);
                 }
-                $selfApproved = $row->approved_by === $actor->id;
+                $selfApproved = (int) $row->approved_by === (int) $actor->id;
                 if ($selfApproved) {
                     app(SelfApproval::class)->finishOwnStep($actor, 'reserve', __('portal.err_reserve_payer'));
                 }
@@ -266,7 +269,7 @@ final class ReserveService
                     Audit::notice(
                         (int) $row->user_id,
                         __('portal.notice_reserve_paid_title', [], $locale),
-                        __('portal.notice_reserve_paid_body', ['number' => $issued['number'], 'amount' => $row->amount], $locale),
+                        __('portal.notice_reserve_paid_body', ['number' => $issued['number'], 'amount' => Money::display($row->amount, $locale)], $locale),
                     );
                 }
             }, 3);
@@ -335,7 +338,7 @@ final class ReserveService
         }
 
         return DB::transaction(function () use ($month, $actorId): array {
-            CommissionWallet::lock();
+            CommissionWallet::lockShared();
             $funds = CommissionAllocation::query()
                 ->where('status', 'held')
                 ->where('category', 'like', 'area_%')
@@ -392,7 +395,7 @@ final class ReserveService
         $newestMonth = CarbonImmutable::createFromFormat('!Y-m', CommissionQualification::currentMonth())->subMonthsNoOverflow($months)->format('Y-m');
 
         return DB::transaction(function () use ($months, $newestMonth, $actorId): array {
-            CommissionWallet::lock();
+            CommissionWallet::lockShared();
             $funds = CommissionAllocation::query()
                 ->where('status', 'held')
                 ->where('category', 'like', 'area_%')
@@ -421,7 +424,7 @@ final class ReserveService
                 Audit::notice(
                     $partner->id,
                     __('portal.notice_area_held_too_long_title', [], $locale),
-                    __('portal.notice_area_held_too_long_body', ['months' => $months, 'amount' => Money::decimal($byPartner[$partner->id])], $locale),
+                    __('portal.notice_area_held_too_long_body', ['months' => $months, 'amount' => Money::display(Money::decimal($byPartner[$partner->id]), $locale)], $locale),
                 );
             }
 
@@ -464,7 +467,7 @@ final class ReserveService
             Audit::notice(
                 $partner->id,
                 __('portal.notice_area_target_missed_title', [], $locale),
-                __('portal.notice_area_target_missed_body', ['month' => $month, 'amount' => Money::decimal($missedByPartner[$partner->id])], $locale),
+                __('portal.notice_area_target_missed_body', ['month' => $month, 'amount' => Money::display(Money::decimal($missedByPartner[$partner->id]), $locale)], $locale),
             );
         }
     }
@@ -485,7 +488,7 @@ final class ReserveService
         }
 
         return DB::transaction(function () use ($month, $actorId): array {
-            CommissionWallet::lock();
+            CommissionWallet::lockShared();
             $funds = CommissionAllocation::query()->where('category', 'additional_rank_pool')->where('status', 'pending')
                 ->where('metadata->period_month', $month)->orderBy('id')->lockForUpdate()->get();
             $settlement = app(CommissionSettlement::class);
@@ -515,7 +518,7 @@ final class ReserveService
         CommissionWallet::requireActive();
 
         return DB::transaction(function () use ($actorId): array {
-            CommissionWallet::lock();
+            CommissionWallet::lockShared();
             $funds = CommissionAllocation::query()
                 ->where('status', 'held')
                 ->where('category', 'like', 'area_%')
@@ -568,7 +571,7 @@ final class ReserveService
      *
      * @return int Credited amount in cents
      */
-    private function creditHeldAllocation(CommissionAllocation $fund, ?int $actorId, string $reason): int
+    public function creditHeldAllocation(CommissionAllocation $fund, ?int $actorId, string $reason): int
     {
         if ($fund->status !== 'held') {
             throw ValidationException::withMessages(['hold' => __('portal.err_hold_not_held')]);
@@ -670,6 +673,8 @@ final class ReserveService
     private function funds(string $program, ?int $userId): Collection
     {
         return CommissionAllocation::where('category', self::Programs[$program])->when($program === 'tour', fn ($q) => $q->where('user_id', $userId))
+            // A bike prize draws only on bike rows, a car prize only on car rows; rows from before the split count half for each.
+            ->when(in_array($program, VehiclePools::Programs, true), fn ($q) => $q->whereRaw("(metadata->>'vehicle_pool' IS NULL OR metadata->>'vehicle_pool' = ?)", [$program]))
             ->where('status', '!=', self::ClosedFundStatus)->where('amount', '>', 0)->orderBy('id')->lockForUpdate()->get();
     }
 

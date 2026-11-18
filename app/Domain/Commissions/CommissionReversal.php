@@ -247,6 +247,8 @@ final class CommissionReversal
         $stillOwed = $taken->sum(fn (object $row): int => Money::cents((string) $row->unrecovered));
         CommissionPosting::addNoCommissionRow($order, $cash, $original, $amount, $accountType, $reason, $actorId, [
             'source_allocation_id' => $sourceRowId,
+            // CompanyFunds keeps what partners still owe on this refund out of the spendable profit until it is recovered.
+            'refund_id' => $refundId,
             'taken_back' => Money::decimal($recovered),
             'still_owed' => Money::decimal($stillOwed),
         ]);

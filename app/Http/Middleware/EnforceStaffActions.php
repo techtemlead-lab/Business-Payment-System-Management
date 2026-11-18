@@ -42,15 +42,17 @@ class EnforceStaffActions
                     'storeSiteFeedback',
                 ], true),
                 'OrderController' => in_array($method, ['index', 'show', 'store', 'claim'], true),
-                'WithdrawalController' => $method === 'store',
+                'WithdrawalController' => in_array($method, ['store', 'cancel', 'tin'], true),
                 'CommissionController' => in_array($method, ['earnings', 'network', 'networkOrders'], true),
                 'CatalogController' => $method === 'index',
                 'ReportController' => $method === 'export',
                 'FinanceOperationsController' => in_array($method, ['accounts', 'export', 'receipt'], true),
                 'PartnerAgreementController' => $method === 'accept',
                 // A partner whose profile the office left open fixes his own shop name and village; the controller checks the lock.
-                'PartnerProfileController' => $method === 'details',
+                'PartnerProfileController' => in_array($method, ['details', 'changeRequest'], true),
                 'PartnerChatController' => $method === 'send',
+                // A partner asks to cancel or return his own order, or takes the request back; OrderReturns checks the order is his.
+                'OrderReturnController' => in_array($method, ['ask', 'withdraw', 'received'], true),
                 'TrainingController' => $method === 'submitQuiz',
                 // Verified prescribers only; PrescriptionAccess checks again.
                 'PrescriptionController' => in_array($method, ['storePatient', 'updatePatient', 'store'], true),
@@ -148,6 +150,10 @@ class EnforceStaffActions
             // Only owners may grant no-condition benefits; the controller refuses everyone else.
             return $next($request);
         }
+        if ($controller === 'OrderReturnController' && in_array($method, ['start', 'approve', 'confirm', 'reject'], true) && $actor->owner()) {
+            // Owners handle cancels, returns and refunds; OrderReturns checks again (only the Super Admin acts alone).
+            return $next($request);
+        }
         if ($controller === 'CommandController' && $method === 'refund' && $actor->owner()) {
             // The owners decided they may refund a paid order themselves; OrderRefund checks again.
             return $next($request);
@@ -196,7 +202,7 @@ class EnforceStaffActions
             $required = [];
             if ($method === 'toggleStock') {
                 $this->authorize($actor, ['inventory', 'catalog'], 'edit');
-            } elseif (in_array($method, ['destroy', 'restore', 'featuredOrder'], true)) {
+            } elseif (in_array($method, ['destroy', 'restore', 'featuredOrder', 'bulkPublish'], true)) {
                 $this->authorize($actor, ['catalog'], 'edit');
             } else {
                 foreach (['catalog' => ['name', 'sku', 'category', 'sub_category', 'strength', 'description', 'unit', 'active', 'featured', 'home_page_place', 'image', 'image_original', 'restore_original_image', 'remove_image', 'video_source', 'youtube_url', 'vimeo_url', 'external_video_url', 'video', 'product_category_id', 'product_subcategory_id', 'product_unit_id', 'expires_on', 'batch_number', ...ProductFacts::requestFields()],
@@ -237,7 +243,7 @@ class EnforceStaffActions
             },
             'CommissionController' => [['finance'], $method === 'updatePolicy' ? 'edit' : 'approve'],
             'FinancialPreviewController' => [['finance'], 'view'],
-            'WithdrawalController' => [['finance'], 'approve'],
+            'WithdrawalController' => [['finance'], $method === 'limits' ? 'edit' : 'approve'],
             'InventoryController' => [['inventory'], 'create'],
             'StockLotController' => [['inventory'], $method === 'requestTransfer' ? 'create' : 'edit'],
             'OrderController' => match ($method) {
@@ -256,10 +262,16 @@ class EnforceStaffActions
                 'customization', 'uploadCategoryIcon' => [['content', 'catalog'], 'edit'],
                 'policy' => [['finance'], 'create'], 'publishPolicy' => [['finance'], 'approve'], 'updateCommissionRules' => [['finance'], 'edit'],
                 'settleSalaryPool', 'settleRankRoyaltyPool', 'claimRankIncentive', 'releaseMaturedCommissions', 'financialGate' => [['finance'], 'approve'],
-                'assignAreaDealer', 'removeAreaDealer' => [['accounts'], 'edit'], 'simulateCommissions' => [['finance'], 'view'],
+                'assignAreaDealer', 'updateAreaDealer', 'removeAreaDealer' => [['accounts'], 'edit'], 'simulateCommissions' => [['finance'], 'view'],
                 'order', 'claim' => [['orders', 'sr_orders'], 'create'],
                 'supportTicket', 'supportTicketReply' => [['accounts', 'content', 'support_desk'], 'edit'],
                 'linkStaffRole', 'unlinkStaffRole' => [['accounts'], 'edit'],
+                default => null,
+            },
+            // Cancels, returns and refunds: the desk or finance start, approve and turn down; only finance confirms as the second person.
+            'OrderReturnController' => match ($method) {
+                'start', 'approve', 'reject' => [['order_review', 'finance'], 'approve'],
+                'confirm' => [['finance'], 'approve'],
                 default => null,
             },
             // Courier parcels: change courier, try a refused booking again, mark picked up.

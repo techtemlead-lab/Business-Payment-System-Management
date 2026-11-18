@@ -7,4 +7,5 @@ return [
     'trend_title' => 'Sales: last 14 days',
     'month_line' => 'Delivered this month :value · Orders: :orders',
     'nothing_waiting' => 'Nothing is waiting for you here. Open your work from the menu.',
+    'work_more' => 'See the other tasks (:count)',
 ];

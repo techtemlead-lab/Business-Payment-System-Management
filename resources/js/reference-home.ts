@@ -280,7 +280,8 @@ function formatMobileSearchPrice(value: unknown): string {
     const amount = Number(value);
     if (!Number.isFinite(amount)) return '';
     try {
-        return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'BDT', maximumFractionDigits: 0 }).format(amount);
+        // Lakh and crore grouping (2,50,000), as the portals write it.
+        return `৳ ${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(amount)}`;
     } catch {
         return `৳ ${amount}`;
     }

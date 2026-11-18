@@ -3,21 +3,25 @@
 namespace App\Providers;
 
 use App\Database\Connectors\PostgresConnector;
+use App\Domain\Auth\SignInGuard;
 use App\Domain\Integrations\SmtpMailConfig;
 use App\Domain\Notifications\WebPushNotices;
 use App\Domain\Pricing\CurrentProductPricing;
 use App\Domain\Pricing\ProductPricing;
+use App\Domain\Staff\LeadershipAccess;
 use App\Http\Middleware\ThrottleEachAction;
 use App\Listeners\NoticeNewStaffDevice;
 use App\Models\User;
 use App\Support\LocalDigits;
-use App\Support\PhoneIdentity;
+use App\Support\PasswordVault;
 use App\Support\PortalHost;
 use App\Support\SiteCustomization;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Events\DiagnosingHealth;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
@@ -31,6 +35,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\View;
@@ -42,6 +47,28 @@ use Illuminate\Validation\Validator as LaravelValidator;
 class AppServiceProvider extends ServiceProvider
 {
     /**
+     * Route parameters that always name a record by its number. RouteRecordNumbersTest checks that every
+     * record looked up from an address is on this list, so a new route cannot forget it.
+     *
+     * @var list<string>
+     */
+    public const NumberedRouteRecords = [
+        'appointment', 'article', 'attachment', 'branch', 'consultation', 'datedScheme', 'dietTemplate', 'message',
+        'partner', 'partnerContest', 'partnerEvent', 'patient', 'placeCode', 'prescription', 'privacyRequest',
+        'product', 'productCategory', 'productConcern', 'productSubcategory', 'productUnit', 'purchaseOrder',
+        'salesKitItem', 'stockCountSession', 'stockLot', 'stockTransfer', 'supplier', 'template', 'trainingItem', 'user',
+    ];
+
+    /**
+     * Route parameters that name a record by its UUID (orders).
+     *
+     * @var list<string>
+     */
+    public const UuidRouteRecords = ['order'];
+
+    public const UuidPattern = '[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}';
+
+    /**
      * Register any application services.
      */
     public function register(): void
@@ -51,6 +78,8 @@ class AppServiceProvider extends ServiceProvider
         // Fail unreachable Postgres hosts quickly instead of blocking php artisan serve
         // (single-threaded) until max_execution_time, which freezes every device viewport.
         $this->app->bind('db.connector.pgsql', PostgresConnector::class);
+        $this->app->singleton(PasswordVault::class);
+        $this->app->scoped(LeadershipAccess::class);
     }
 
     /**
@@ -58,6 +87,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->guardQueries();
         // Nobody using the portal should be asked for "Y-m-d"; the date boxes are filled in as day/month/year.
         Validator::replacer('date_format', static fn (string $message, string $attribute, string $rule, array $parameters): string => str_replace(':format', match ($parameters[0] ?? '') {
             'Y-m-d' => __('portal.date_format_day_month_year'),
@@ -76,6 +106,10 @@ class AppServiceProvider extends ServiceProvider
 
             return __('portal.err_file_too_large', ['field' => $validator->getDisplayableAttribute($attribute), 'size' => $size]);
         });
+        // Records are found by their number. Without this, a scanner asking for /products/madinanhc.com reaches
+        // the database with text where a number belongs, and the visitor gets a server error instead of "not found".
+        Route::patterns(array_fill_keys(self::NumberedRouteRecords, '[0-9]+') + array_fill_keys(self::UuidRouteRecords, self::UuidPattern));
+
         $trustedProxies = trim((string) config('madina.trusted_proxies'));
         if ($trustedProxies === '*') {
             TrustProxies::at('*');
@@ -153,14 +187,35 @@ class AppServiceProvider extends ServiceProvider
     private function configureSignInLimits(): void
     {
         RateLimiter::for('sign-in', function (Request $request): array {
-            $typed = trim((string) $request->input('email'));
-            $identity = PhoneIdentity::normalize($typed) ?? Str::lower($typed);
+            // Every spelling of one code or phone ("MNHC 1001", "1001", "+880…") shares one counter.
+            $identity = app(SignInGuard::class)->normalizedIdentity((string) $request->input('email'));
 
             return [
                 Limit::perMinute(30)->by('account|'.$identity),
                 Limit::perMinute(600)->by('address|'.$request->ip()),
             ];
         });
+        // Forgot / reset password: counted per account, so many partners on one office or mobile
+        // connection never lock each other out. The address limit is only a backstop. When a limit
+        // is reached the form says how many minutes to wait instead of showing an error page.
+        foreach (['password-forgot' => [3, 10], 'password-reset' => [5, 20]] as $name => [$perMinute, $perHour]) {
+            RateLimiter::for($name, function (Request $request) use ($perMinute, $perHour): array {
+                $account = 'account|'.Str::lower(trim((string) $request->input('email')));
+                $wait = function (Request $request, array $headers) {
+                    $minutes = max(1, (int) ceil(((int) ($headers['Retry-After'] ?? 60)) / 60));
+
+                    return back()
+                        ->withInput($request->only('email'))
+                        ->withErrors(['email' => __('security.reset_wait_minutes', ['minutes' => $minutes])]);
+                };
+
+                return [
+                    Limit::perMinute($perMinute)->by($account.'|minute')->response($wait),
+                    Limit::perHour($perHour)->by($account.'|hour')->response($wait),
+                    Limit::perMinute(120)->by('address|'.$request->ip())->response($wait),
+                ];
+            });
+        }
         RateLimiter::for('sign-in-code', function (Request $request): array {
             $session = $request->hasSession() ? $request->session() : null;
             $account = $session?->get('pending_login_id') ?? $session?->get('pending_totp_id');
@@ -179,5 +234,31 @@ class AppServiceProvider extends ServiceProvider
                 Limit::perMinute(1200)->by('address|'.$request->ip()),
             ];
         });
+    }
+
+    /**
+     * Makes slow and one-row-at-a-time queries visible: a slow-query log in every environment, and a
+     * lazy-loading (N+1) guard outside production (see config/performance.php).
+     */
+    private function guardQueries(): void
+    {
+        $mode = (string) config('performance.lazy_loading', 'log');
+        if (! $this->app->isProduction() && $mode !== 'off') {
+            Model::preventLazyLoading();
+            if ($mode !== 'throw') {
+                Model::handleLazyLoadingViolationUsing(function (Model $model, string $relation): void {
+                    Log::warning('Lazy-loaded relationship (N+1): '.$model::class.'::'.$relation.' - eager load it.');
+                });
+            }
+        }
+
+        $thresholdMs = (int) config('performance.slow_query_ms', 500);
+        if ($thresholdMs > 0) {
+            DB::listen(function (QueryExecuted $query) use ($thresholdMs): void {
+                if ($query->time >= $thresholdMs) {
+                    Log::warning('Slow database query.', ['ms' => round($query->time, 1), 'sql' => Str::limit($query->sql, 1000), 'connection' => $query->connectionName]);
+                }
+            });
+        }
     }
 }

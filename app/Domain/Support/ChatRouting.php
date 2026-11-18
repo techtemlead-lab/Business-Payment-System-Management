@@ -179,10 +179,13 @@ final class ChatRouting
             ->get(['branch_staff_assignments.user_id', 'company_branches.name'])
             ->groupBy('user_id')
             ->map(fn ($rows): array => $rows->pluck('name')->all());
+        $roleNames = DB::table('staff_roles')->pluck('name', 'key');
         $rows = $staff->map(fn (User $user): array => [
             'id' => $user->id,
             'name' => $user->name,
             'role' => $user->role,
+            // A custom role shows its saved name, not its stored key.
+            'role_name' => $roleNames[$user->role] ?? null,
             'branches' => $branches->get($user->id, []),
             'scope' => $setting['answerers'][$user->id] ?? null,
         ])->values();

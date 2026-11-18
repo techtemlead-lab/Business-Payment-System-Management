@@ -2,24 +2,33 @@
 
 namespace App\Support;
 
+use App\Console\Commands\RestoreDrillApplicationBackup;
+use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Diagnostics\ErrorTrackingSettings;
 use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Integrations\SmsGatewayClient;
 use App\Domain\Security\SecuritySettings;
+use App\Logging\CreateAlertLogger;
 use App\Models\PlaceCode;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 final class DeploymentReadiness
 {
+    /** Written beside the backups by infra/ops/host-backup.sh after each successful copy to remote storage. */
+    public const OffsiteCopyRecord = 'offsite-copy-last.json';
+
     /**
      * @return array{
      *   ready: bool,
      *   checks: array<string, bool>,
      *   warnings: list<string>,
+     *   explanations: array<string, string>,
      *   details: array<string, mixed>,
      *   preview_mode: bool,
      *   financial_posting: bool
@@ -116,6 +125,9 @@ final class DeploymentReadiness
         if (! (bool) config('madina.login_captcha.enabled', false)) {
             $warnings[] = 'login_picture_switched_off';
         }
+        if (! app(PasswordVault::class)->configured()) {
+            $warnings[] = 'password_vault_key_missing';
+        }
         if ($checks['database'] && $this->accountsMissingMobile()) {
             $warnings[] = 'accounts_missing_mobile';
         }
@@ -135,6 +147,10 @@ final class DeploymentReadiness
         }
         if ((int) config('madina.privacy.closed_record_retention_days', 0) < 1) {
             $warnings[] = 'privacy_retention_unconfigured';
+        }
+        // Owner decision D12: the payout tax rate stays the owner's setting; 0% is allowed but flagged until an accountant confirms it.
+        if ($checks['database'] && $this->payoutTaxRateIsZero()) {
+            $warnings[] = 'payout_tax_rate_zero';
         }
         if ($checks['database'] && ! $this->placeCodeCatalogReady()) {
             $warnings[] = 'place_code_catalog_incomplete';
@@ -222,6 +238,18 @@ final class DeploymentReadiness
             && ! Cache::has('operations:verified-backup')) {
             $warnings[] = 'verified_backup_missing';
         }
+        if (config('madina.backups_enabled') && ! $this->offsiteCopyConfigured()) {
+            $warnings[] = 'offsite_backup_not_configured';
+        }
+        if (config('madina.backups_enabled') && ! $this->restoreDrillRecent()) {
+            $warnings[] = 'restore_drill_overdue';
+        }
+        if (! CreateAlertLogger::configured()) {
+            $warnings[] = 'alerts_not_configured';
+        }
+        if (trim((string) config('madina.heartbeat_url')) === '') {
+            $warnings[] = 'heartbeat_not_configured';
+        }
 
         $details = [];
         if (in_array('partners_missing_place_codes', $warnings, true)) {
@@ -244,10 +272,80 @@ final class DeploymentReadiness
             'ready' => ! in_array(false, $checks, true),
             'checks' => $checks,
             'warnings' => $warnings,
+            'explanations' => $this->explanations($warnings),
             'details' => $details,
             'preview_mode' => (bool) config('madina.preview_mode'),
             'financial_posting' => (bool) config('madina.financial_activation'),
         ];
+    }
+
+    /**
+     * An off-site copy exists when the app copies each backup to a second disk, or when the host script
+     * (infra/ops/host-backup.sh) has reported a successful copy to remote storage in the last two days.
+     */
+    private function offsiteCopyConfigured(): bool
+    {
+        if (trim((string) config('madina.backup_offsite_disk')) !== '') {
+            return true;
+        }
+        $record = $this->backupDiskRecord(self::OffsiteCopyRecord);
+
+        return ($record['passed'] ?? false) === true && $this->recordedWithin($record, 2);
+    }
+
+    /** A restore drill (app:backup-restore-drill or infra/ops/restore-drill.sh) passed in the last 35 days. */
+    private function restoreDrillRecent(): bool
+    {
+        $record = $this->backupDiskRecord(RestoreDrillApplicationBackup::RecordFile);
+
+        return ($record['passed'] ?? false) === true && $this->recordedWithin($record, 35);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function backupDiskRecord(string $file): array
+    {
+        try {
+            $disk = Storage::disk((string) config('madina.backup_disk'));
+            $decoded = $disk->exists($file) ? json_decode((string) $disk->get($file), true) : null;
+        } catch (\Throwable) {
+            return [];
+        }
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    /**
+     * @param  array<string, mixed>  $record
+     */
+    private function recordedWithin(array $record, int $days): bool
+    {
+        try {
+            return CarbonImmutable::parse((string) ($record['ran_at'] ?? ''))->greaterThan(now()->subDays($days));
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
+     * What each warning means and what to do, in the reader's language, for the owner's page and the command line.
+     *
+     * @param  list<string>  $warnings
+     * @return array<string, string>
+     */
+    public function explanations(array $warnings): array
+    {
+        $texts = [];
+        foreach ($warnings as $warning) {
+            $texts[$warning] = match (true) {
+                Lang::has('ops_ci.warn_'.$warning) => __('ops_ci.warn_'.$warning),
+                Lang::has('portal.ops_warn_'.$warning) => __('portal.ops_warn_'.$warning),
+                default => str_replace('_', ' ', $warning),
+            };
+        }
+
+        return $texts;
     }
 
     /**
@@ -285,6 +383,14 @@ final class DeploymentReadiness
      * Bangladesh onboarding needs the seeded administrative place registry
      * (8 divisions + 64 districts at minimum) before partner go-live.
      */
+    /** True while no tax is withheld from payouts (the rate is 0% or the rule is off). */
+    private function payoutTaxRateIsZero(): bool
+    {
+        $rules = app(CommissionPolicy::class)->snapshot()['rules'];
+
+        return CommissionPolicy::rate($rules, 'payout_tax_withholding')->decimal() === '0.00';
+    }
+
     private function placeCodeCatalogReady(): bool
     {
         try {

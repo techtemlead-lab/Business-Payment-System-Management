@@ -7,29 +7,36 @@ use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
 use App\Domain\Payouts\ManualPayoutService;
+use App\Domain\Payouts\PayoutLimits;
 use App\Domain\Payouts\PayoutReceipts;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\LocalDigits;
 use App\Support\ReasonFields;
 use App\Support\TransactionReference;
 use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class WithdrawalController extends Controller
 {
+    /** Amounts as typed: up to the size of the money column (12 digits of taka), with paisa. */
+    public const AmountPattern = '/^\d{1,12}(\.\d{1,2})?$/D';
+
     public function store(Request $r, ManualPayoutService $service): JsonResponse|RedirectResponse
     {
         abort_unless(in_array($r->user()->role, ['dealer', 'sub_dealer'], true), 403);
         CommissionWallet::requireActive();
-        $data = $r->validate(['amount' => ['required', 'regex:/^\d{1,8}(\.\d{1,2})?$/D'], 'channel' => 'required|in:'.implode(',', PaymentAccounts::channels()),
-            'destination' => 'required|string|min:6|max:200', 'idempotency_key' => 'required|uuid']);
+        $data = $r->validate(['amount' => ['required', 'regex:'.self::AmountPattern], 'channel' => 'required|in:'.implode(',', PaymentAccounts::channels()),
+            'destination' => 'required|string|min:6|max:200', 'idempotency_key' => 'required|uuid'], ['amount.regex' => __('payouts.err_amount_digits')]);
         ['id' => $id, 'created' => $created] = $service->submit($r->user(), $data);
         // A replayed request (same idempotency key) already sent its SMS the first time.
         if ($created) {
@@ -50,29 +57,60 @@ class WithdrawalController extends Controller
         return redirect('/withdrawals/'.$id)->with('success', __('portal.flash_withdrawal_requested'));
     }
 
-    public function show(Request $r, string $id): Response
+    public function show(Request $r, string $id, ManualPayoutService $service): Response
     {
         $w = DB::table('withdrawals')->where('id', $id)->first();
-        abort_unless($w && ($w->user_id === $r->user()->id || $r->user()->allows('finance')), 404);
+        $finance = $r->user()->allows('finance');
+        abort_unless($w && ($w->user_id === $r->user()->id || $finance), 404);
         $destination = decrypt($w->destination);
-        if ($r->user()->allows('finance')) {
+        if ($finance) {
             Audit::record($r->user()->id, 'withdrawal.destination_viewed', $id);
         }
 
-        return Inertia::render('WithdrawalDetail', ['withdrawal' => collect((array) $w)->except(['receipt_path', 'receipt_sha256', 'destination', 'idempotency_key'])->all() + ['destination_masked' => str_repeat('•', max(0, strlen($destination) - 4)).substr($destination, -4), 'destination_for_payment' => $r->user()->allows('finance') ? $destination : null, 'has_receipt' => (bool) $w->receipt_path, 'payer_state' => $r->user()->allows('finance') ? app(ManualPayoutService::class)->payerState($w, $r->user()) : null],
-            'paymentAccounts' => $r->user()->allows('finance') ? app(PaymentAccounts::class)->listing($r->user()) : [],
+        return Inertia::render('WithdrawalDetail', ['withdrawal' => collect((array) $w)->except(['receipt_path', 'receipt_sha256', 'destination', 'idempotency_key'])->all() + ['destination_masked' => str_repeat('•', max(0, strlen($destination) - 4)).substr($destination, -4), 'destination_for_payment' => $finance ? $destination : null, 'has_receipt' => (bool) $w->receipt_path, 'payer_state' => $finance ? $service->payerState($w, $r->user()) : null, ...$this->timing($w)],
+            'paymentAccounts' => $finance ? app(PaymentAccounts::class)->listing($r->user()) : [],
             'payoutReceipt' => app(PayoutReceipts::class)->forWithdrawal($id),
+            'facts' => $finance && in_array($w->status, ['requested', 'approved'], true) ? $service->reviewFacts($r->user(), $id) : null,
             'events' => DB::table('withdrawal_events')->join('users', 'users.id', '=', 'actor_id')->where('withdrawal_id', $id)->orderBy('withdrawal_events.id')->get(['event', 'note', 'withdrawal_events.created_at', 'users.name'])]);
+    }
+
+    /** The facts finance checks in the review and payment boxes on the payouts desk (MA-07). */
+    public function facts(Request $r, string $id, ManualPayoutService $service): JsonResponse
+    {
+        abort_unless($r->user()->allows('finance'), 403);
+
+        return response()->json(['data' => $service->reviewFacts($r->user(), $id)]);
     }
 
     public function review(Request $r, string $id, ManualPayoutService $s): RedirectResponse
     {
         abort_unless($r->user()->allows('finance'), 403);
-        $d = $r->validate(['decision' => 'required|in:approved,rejected', 'reason' => ReasonFields::rule('money.withdrawal_review', 1000)]);
-        $s->review($r->user(), $id, $d['decision'], ReasonFields::text($d['reason'] ?? null));
+        $d = $r->validate(['decision' => 'required|in:approved,rejected', 'reason' => ReasonFields::rule('money.withdrawal_review', 1000), 'payer_id' => 'nullable|integer']);
+        $s->review($r->user(), $id, $d['decision'], ReasonFields::text($d['reason'] ?? null), isset($d['payer_id']) ? (int) $d['payer_id'] : null);
         $this->notifyPartnerWithdrawal($id, $d['decision']);
 
         return back()->with('success', __('portal.flash_withdrawal_review'));
+    }
+
+    /** The partner takes back their own withdrawal while nobody has approved it yet. */
+    public function cancel(Request $r, string $id, ManualPayoutService $s): JsonResponse|RedirectResponse
+    {
+        $s->cancel($r->user(), $id);
+        if ($r->expectsJson()) {
+            return response()->json(['data' => ['id' => $id, 'status' => 'cancelled']]);
+        }
+
+        return back()->with('success', __('payouts.flash_cancelled'));
+    }
+
+    /** Names who pays an approved withdrawal; "take it over" sends the viewer's own id. */
+    public function payer(Request $r, string $id, ManualPayoutService $s): RedirectResponse
+    {
+        abort_unless($r->user()->allows('finance'), 403);
+        $d = $r->validate(['payer_id' => 'required|integer']);
+        $s->assignPayer($r->user(), $id, (int) $d['payer_id']);
+
+        return back()->with('success', __('payouts.flash_payer_named'));
     }
 
     public function settle(Request $r, string $id, ManualPayoutService $s): RedirectResponse
@@ -80,16 +118,79 @@ class WithdrawalController extends Controller
         abort_unless($r->user()->allows('finance'), 403);
         TransactionReference::tidy($r, 'payment_reference');
         // Owner decision: every manual payout records how it was paid, and a numbered receipt is issued.
-        $d = $r->validate([...PayoutReceipts::rules(), 'payment_account_id' => 'nullable|integer|exists:payment_accounts,id', 'receipt' => 'nullable|required_unless:method,cash|file|mimes:pdf,jpg,jpeg,png|max:5120', 'paid_at' => ['required', 'date', function ($attribute, $value, $fail) {
-            if (Carbon::parse($value, 'Asia/Dhaka')->isFuture()) {
-                $fail(__('portal.err_wd_paid_at_future'));
-            }
-        }], 'note' => ReasonFields::rule('money.withdrawal_settle', 1000)], TransactionReference::messages('payment_reference'));
+        // The proof may follow later ("paid, receipt later") so a payer without the file at hand is not stopped.
+        $d = $r->validate([...PayoutReceipts::rules(), 'payment_account_id' => 'nullable|integer|exists:payment_accounts,id', 'receipt_later' => 'sometimes|boolean',
+            'receipt' => ['nullable', Rule::requiredIf(fn (): bool => $r->input('method') !== 'cash' && ! $r->boolean('receipt_later')), 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'], 'paid_at' => ['required', 'date', function ($attribute, $value, $fail) {
+                if (Carbon::parse($value, 'Asia/Dhaka')->isFuture()) {
+                    $fail(__('portal.err_wd_paid_at_future'));
+                }
+            }], 'note' => ReasonFields::rule('money.withdrawal_settle', 1000)], TransactionReference::messages('payment_reference'));
         $reference = isset($d['payment_reference']) ? strtoupper(trim($d['payment_reference'])) : null;
-        $number = $s->settle($r->user(), $id, $d, $r->file('receipt'), $reference, Carbon::parse($d['paid_at'], 'Asia/Dhaka')->utc()->toDateTimeString(), ReasonFields::text($d['note'] ?? null), isset($d['payment_account_id']) ? (int) $d['payment_account_id'] : null);
+        $number = $s->settle($r->user(), $id, $d, $r->file('receipt'), $reference, Carbon::parse($d['paid_at'], 'Asia/Dhaka')->utc()->toDateTimeString(), ReasonFields::text($d['note'] ?? null), isset($d['payment_account_id']) ? (int) $d['payment_account_id'] : null, $r->boolean('receipt_later'));
         $this->notifyPartnerWithdrawal($id, 'paid');
 
         return back()->with('success', __('portal.flash_withdrawal_paid_receipt', ['number' => $number]));
+    }
+
+    /** Attaches the transfer proof to a payout recorded as "paid, receipt later". */
+    public function attachReceipt(Request $r, string $id, ManualPayoutService $s): RedirectResponse
+    {
+        abort_unless($r->user()->allows('finance'), 403);
+        $d = $r->validate(['receipt' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120']);
+        $s->attachReceipt($r->user(), $id, $d['receipt']);
+
+        return back()->with('success', __('payouts.flash_receipt_attached'));
+    }
+
+    /** A partner saves their tax number (e-TIN, 12 digits) for the payout tax register (D12). */
+    public function tin(Request $r): RedirectResponse
+    {
+        abort_unless(in_array($r->user()->role, ['dealer', 'sub_dealer'], true), 403);
+        $r->merge(['tin' => preg_replace('/\D+/', '', LocalDigits::latin((string) $r->input('tin')))]);
+        $d = $r->validate(['tin' => ['nullable', 'regex:/^\d{12}$/D']], ['tin.regex' => __('payouts.err_tin_format')]);
+        $user = User::findOrFail($r->user()->id);
+        $user->forceFill(['tin' => ($d['tin'] ?? '') === '' ? null : $d['tin']])->save();
+        Audit::record($user->id, 'account.tin_saved', (string) $user->id, ['has_tin' => $user->tin !== null]);
+
+        return back()->with('success', __('payouts.flash_tin_saved'));
+    }
+
+    /** Owners only: per-method withdrawal limits, the office cash limit and the payout due days. */
+    public function limits(Request $r, PayoutLimits $limits): JsonResponse|RedirectResponse
+    {
+        $amount = ['nullable', 'regex:'.self::AmountPattern];
+        $d = $r->validate([
+            'per_channel' => 'array',
+            ...array_fill_keys(array_map(fn (string $channel): string => 'per_channel.'.$channel, PaymentAccounts::channels()), $amount),
+            'office_cash' => ['required', 'regex:'.self::AmountPattern],
+            'due_days' => 'required|integer|min:1|max:'.PayoutLimits::MaximumDueDays,
+            'version' => 'required|integer|min:0',
+            'reason' => ReasonFields::rule('money.withdrawal_minimum', 1000, 5),
+        ], ['*.regex' => __('payouts.err_amount_digits'), 'per_channel.*.regex' => __('payouts.err_amount_digits')]);
+        $limits->save($r->user(), ['per_channel' => $d['per_channel'] ?? [], 'office_cash' => $d['office_cash'], 'due_days' => (int) $d['due_days']], (int) $d['version'], ReasonFields::text($d['reason'] ?? null));
+
+        return $r->expectsJson() ? response()->json(['data' => $limits->settings()]) : back()->with('success', __('portal.flash_changes_recorded'));
+    }
+
+    /**
+     * How long the request has waited, who pays it and by when (MA-06).
+     *
+     * @return array<string, mixed>
+     */
+    private function timing(object $w): array
+    {
+        $dueDays = app(PayoutLimits::class)->dueDays();
+        $approved = $w->approved_at ? CarbonImmutable::parse($w->approved_at) : null;
+        $since = $w->status === 'approved' && $approved ? $approved : CarbonImmutable::parse($w->created_at);
+
+        return [
+            'waiting_days' => in_array($w->status, ['requested', 'approved'], true) ? (int) $since->diffInDays(now()) : null,
+            'pay_by' => $w->status === 'approved' && $approved ? $approved->addDays($dueDays)->toIso8601String() : null,
+            'overdue' => $w->status === 'approved' && $approved !== null && $approved->addDays($dueDays)->isPast(),
+            'payer_name' => $w->payer_id ? User::whereKey($w->payer_id)->value('name') : null,
+            'on_hold' => $w->on_hold_at !== null,
+            'can_cancel' => $w->status === 'requested',
+        ];
     }
 
     private function notifyPartnerWithdrawal(string $id, string $event): void

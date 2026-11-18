@@ -39,8 +39,9 @@ class StockCountController extends Controller
 
     public function approve(Request $request, StockCountSession $stockCountSession, StockCountService $counts): RedirectResponse
     {
-        $data = $request->validate(['note' => ReasonFields::rule('stock.count_approve', 1000)]);
-        $counts->approve($request->user(), $stockCountSession, $data['note'] ?? null);
+        // The page shows the totals and any line whose stock moved, and asks the approver to confirm (F-verify-07).
+        $data = $request->validate(['note' => ReasonFields::rule('stock.count_approve', 1000), 'confirmed' => ['accepted'], 'moved_checked' => ['nullable', 'boolean']]);
+        $counts->approve($request->user(), $stockCountSession, $data['note'] ?? null, (bool) ($data['moved_checked'] ?? false));
 
         return back()->with('success', __('purchasing.flash_count_approved'));
     }

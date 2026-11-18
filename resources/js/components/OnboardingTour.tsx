@@ -97,6 +97,24 @@ function audienceLabel(audience: string | undefined, translate: (ns: string, key
 
 const autostartKey = 'madina_tour_autostart';
 const dismissedKey = (userId: unknown) => `madina_tour_dismissed_${userId || 'guest'}`;
+/** The welcome card is shown once per person on a device, never again on later pages. */
+const welcomedKey = (userId: unknown) => `madina_tour_welcomed_${userId || 'guest'}`;
+
+function readOnce(key: string): boolean {
+    try {
+        return window.localStorage.getItem(key) !== null;
+    } catch {
+        return false;
+    }
+}
+
+function markOnce(key: string): void {
+    try {
+        window.localStorage.setItem(key, '1');
+    } catch {
+        // Storage blocked: the card then follows the session flag only.
+    }
+}
 
 function readSession(key: string): string | null {
     try {
@@ -324,7 +342,9 @@ export default function OnboardingTour({
 
             return () => window.clearTimeout(timer);
         }
-        if (isFirstTime && !readSession(dismissedKey(user?.id))) {
+        // Only on the dashboard, and only once: on any other page it would cover the screen and swallow clicks.
+        if (isFirstTime && onDashboard(portalBase) && !readSession(dismissedKey(user?.id)) && !readOnce(welcomedKey(user?.id))) {
+            markOnce(welcomedKey(user?.id));
             setWelcomeOpen(true);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -545,8 +565,8 @@ export default function OnboardingTour({
         switch (aud) {
             case 'owner':
                 return {
-                    badge: translate('portal', 'tour_welcome_owner_badge'),
-                    title: translate('portal', 'tour_welcome_owner_title'),
+                    badge: user?.role === 'md' || user?.role === 'chairman' ? translate('portal', `staff_role_${user.role}`) : translate('portal', 'tour_welcome_owner_badge'),
+                    title: user?.role === 'md' || user?.role === 'chairman' ? translate('office_shell', 'tour_welcome_role_title', { role: translate('portal', `staff_role_${user.role}`) }) : translate('portal', 'tour_welcome_owner_title'),
                     subtitle: translate('portal', 'tour_welcome_owner_sub'),
                     pillars: [
                         {

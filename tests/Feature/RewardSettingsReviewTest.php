@@ -112,14 +112,15 @@ class RewardSettingsReviewTest extends TestCase
         $check = app(RewardFundCheck::class)->check();
 
         $this->assertSame('5000000.00', $check['bike']['target']);
-        $this->assertSame('2.00', $check['bike']['rate']);
-        $this->assertSame('100000.00', $check['bike']['fund_at_target']);
+        // The 2% reserve is split: 1% for the bike pool and 1% for the car pool.
+        $this->assertSame('1.00', $check['bike']['rate']);
+        $this->assertSame('50000.00', $check['bike']['fund_at_target']);
         $this->assertSame('300000.00', $check['bike']['award']);
         $this->assertSame(RewardFundCheck::Short, $check['bike']['status']);
-        $this->assertSame('200000.00', $check['bike']['shortfall']);
-        $this->assertSame('15000000.00', $check['bike']['break_even_sales']);
+        $this->assertSame('250000.00', $check['bike']['shortfall']);
+        $this->assertSame('30000000.00', $check['bike']['break_even_sales']);
         $this->assertSame('250000000.00', $check['car']['target']);
-        $this->assertSame('5000000.00', $check['car']['fund_at_target']);
+        $this->assertSame('2500000.00', $check['car']['fund_at_target']);
         $this->assertNull($check['car']['award']);
         $this->assertSame(RewardFundCheck::NotSet, $check['car']['status']);
         $this->assertNull($check['car']['shortfall']);
@@ -128,13 +129,13 @@ class RewardSettingsReviewTest extends TestCase
     public function test_the_fund_check_follows_the_settings_and_says_when_the_fund_covers(): void
     {
         $this->actingAs($this->owner);
-        app(CommissionPolicy::class)->update($this->owner, ['car_bike_incentive' => ['parameters' => ['bike_award_amount' => '100000.00', 'car_award_amount' => '6000000.00']]]);
+        app(CommissionPolicy::class)->update($this->owner, ['car_bike_incentive' => ['parameters' => ['bike_award_amount' => '50000.00', 'car_award_amount' => '6000000.00']]]);
 
         $check = app(RewardFundCheck::class)->check();
 
         $this->assertSame(RewardFundCheck::Covers, $check['bike']['status']);
         $this->assertSame(RewardFundCheck::Short, $check['car']['status']);
-        $this->assertSame('1000000.00', $check['car']['shortfall']);
+        $this->assertSame('3500000.00', $check['car']['shortfall']);
     }
 
     public function test_the_commission_page_shows_the_fund_check(): void
@@ -142,7 +143,7 @@ class RewardSettingsReviewTest extends TestCase
         $this->actingAs($this->owner)->onPortal('sadmin')->get('/commissions')->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('data.reward_fund_check.bike.status', 'short')
-                ->where('data.reward_fund_check.bike.shortfall', '200000.00')
+                ->where('data.reward_fund_check.bike.shortfall', '250000.00')
                 ->where('data.reward_fund_check.car.status', 'not_set'));
     }
 

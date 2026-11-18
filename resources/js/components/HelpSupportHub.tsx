@@ -26,6 +26,7 @@ import Figures, { type FigureItem } from './office/Figures';
 import PrerequisiteHelper from './PrerequisiteHelper';
 import { restartOnboardingTour } from './OnboardingTour';
 import { useT } from '../shared/i18n/t';
+import FilePicker from './FilePicker';
 import '../../css/partner-hub.css';
 
 export default function HelpSupportHub({ data }: { data: Row }) {
@@ -44,6 +45,8 @@ export default function HelpSupportHub({ data }: { data: Row }) {
     const [activeKey, setActiveKey] = useState<string>(String(sections[0]?.key || ''));
     const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
     const [feedbackSent, setFeedbackSent] = useState<string | null>(null);
+    // Partners start with the six common questions; the long guide opens on request or when they searched.
+    const [fullGuide, setFullGuide] = useState<boolean>(!isPartner || String(data.manual_query || '') !== '');
 
     // Filter sections based on query and selected category
     const filtered = useMemo(() => {
@@ -100,8 +103,25 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                 </section>
             )}
 
-            {/* Enterprise Documentation Panel */}
-            <section className="panel help-manual-enterprise-panel" data-tour="help-manual">
+            {isPartner && (
+                <section className="panel help-quick" data-testid="help-quick">
+                    <h2>{translate('partner_ux', 'faq_title')}</h2>
+                    <div className="help-quick-list">
+                        {[1, 2, 3, 4, 5, 6].map((number) => (
+                            <details key={number}>
+                                <summary>{translate('partner_ux', `faq${number}_q`)}</summary>
+                                <p>{translate('partner_ux', `faq${number}_a`)}</p>
+                            </details>
+                        ))}
+                    </div>
+                    {!fullGuide && (
+                        <button type="button" className="button" onClick={() => setFullGuide(true)}>{translate('partner_ux', 'faq_full_guide')}</button>
+                    )}
+                </section>
+            )}
+
+            {/* Enterprise Documentation Panel: for partners it opens from the button above, after the six common questions. */}
+            {(!isPartner || fullGuide) && <section className="panel help-manual-enterprise-panel" data-tour="help-manual">
                 <div className="panel-heading">
                     <div>
                         <div className="help-manual-brand-tag">
@@ -258,7 +278,7 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                                             <Info size={22} className="callout-icon" />
                                         </div>
                                         <div className="callout-body">
-                                            <h4>{translate('portal', 'help_manual_purpose')}</h4>
+                                            <h4 role="heading" aria-level={3}>{translate('portal', 'help_manual_purpose')}</h4>
                                             <p>{active.purpose}</p>
                                         </div>
                                     </section>
@@ -271,7 +291,7 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                                             <Compass size={22} className="callout-icon" />
                                         </div>
                                         <div className="callout-body">
-                                            <h4>{translate('portal', 'help_manual_why')}</h4>
+                                            <h4 role="heading" aria-level={3}>{translate('portal', 'help_manual_why')}</h4>
                                             <p>{active.why}</p>
                                         </div>
                                     </section>
@@ -306,7 +326,7 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                                             <CheckCircle2 size={22} className="callout-icon" />
                                         </div>
                                         <div className="callout-body">
-                                            <h4>{translate('portal', 'help_manual_outcomes')}</h4>
+                                            <h4 role="heading" aria-level={3}>{translate('portal', 'help_manual_outcomes')}</h4>
                                             <ul className="help-check-list">
                                                 {active.outcomes.map((outcome: string, index: number) => (
                                                     <li key={`${active.key}-out-${index}`}>
@@ -326,7 +346,7 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                                             <FileText size={22} className="callout-icon" />
                                         </div>
                                         <div className="callout-body">
-                                            <h4>{translate('portal', 'help_manual_rules')}</h4>
+                                            <h4 role="heading" aria-level={3}>{translate('portal', 'help_manual_rules')}</h4>
                                             <ul className="help-rules-list">
                                                 {active.rules.map((rule: string, index: number) => (
                                                     <li key={`${active.key}-rule-${index}`}>{rule}</li>
@@ -343,7 +363,7 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                                             <Lightbulb size={22} className="callout-icon" />
                                         </div>
                                         <div className="callout-body">
-                                            <h4>{translate('portal', 'help_manual_tips')}</h4>
+                                            <h4 role="heading" aria-level={3}>{translate('portal', 'help_manual_tips')}</h4>
                                             <ul className="help-tips-list">
                                                 {active.tips.map((tip: string, index: number) => (
                                                     <li key={`${active.key}-tip-${index}`}>{tip}</li>
@@ -360,7 +380,7 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                                             <AlertTriangle size={22} className="callout-icon" />
                                         </div>
                                         <div className="callout-body">
-                                            <h4>{translate('portal', 'help_manual_warnings')}</h4>
+                                            <h4 role="heading" aria-level={3}>{translate('portal', 'help_manual_warnings')}</h4>
                                             <ul className="help-warnings-list">
                                                 {active.warnings.map((warning: string, index: number) => (
                                                     <li key={`${active.key}-warn-${index}`}>{warning}</li>
@@ -441,7 +461,7 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                         )}
                     </article>
                 </div>
-            </section>
+            </section>}
 
             {/* Support Ticket Submission Panel */}
             <section className="panel" id="support-request" data-tour="help-support">
@@ -477,7 +497,7 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                             </label>
                             <label>
                                 {translate('portal', 'support_attachment_optional')}
-                                <input type="file" name="attachment" accept=".jpg,.jpeg,.png,.webp,.pdf" />
+                                <FilePicker name="attachment" accept=".jpg,.jpeg,.png,.webp,.pdf" />
                                 {errors.attachment && <span className="field-error">{errors.attachment}</span>}
                             </label>
                             <button className="button dark" disabled={processing}>{translate('portal', 'support_submit')}</button>

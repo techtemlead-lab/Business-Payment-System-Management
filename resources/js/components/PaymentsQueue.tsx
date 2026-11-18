@@ -7,9 +7,21 @@ import { orderDue } from './office/portalShared';
 import { useT } from '../shared/i18n/t';
 
 /** Payments waiting to be checked, on the shared table. Reviewing opens the same box as before. */
-export default function PaymentsQueue({ data, onReview, actions }: { data: MoneyTableData<Row>; onReview: (row: Row) => void; actions?: React.ReactNode }) {
+export default function PaymentsQueue({ data, onReview, actions, picked, onPick }: { data: MoneyTableData<Row>; onReview: (row: Row) => void; actions?: React.ReactNode; picked?: number[]; onPick?: (row: Row, on: boolean) => void }) {
     const translate = useT();
+    // Cash taken at the office can be confirmed together; every other payment is checked one by one.
+    const pickColumn: MoneyColumn<Row>[] = onPick
+        ? [{
+            key: 'pick',
+            title: '',
+            phone: 'hide',
+            render: (row) => (row.status === 'pending' && row.channel === 'Office'
+                ? <input type="checkbox" aria-label={translate('office_shell', 'pick_payment')} checked={(picked ?? []).includes(Number(row.id))} onClick={(event) => event.stopPropagation()} onChange={(event) => onPick(row, event.target.checked)} />
+                : null),
+        }]
+        : [];
     const columns: MoneyColumn<Row>[] = [
+        ...pickColumn,
         { key: 'created_at', title: translate('portal', 'col_date'), sortKey: 'created_at', phone: 'sub', render: (row) => dateTime(row.created_at) },
         {
             key: 'order',

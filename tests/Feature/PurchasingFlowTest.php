@@ -259,6 +259,21 @@ class PurchasingFlowTest extends TestCase
         $this->assertDatabaseHas('audit_events', ['action' => 'purchase_order.sent', 'subject' => (string) $order->id]);
     }
 
+    public function test_an_order_may_list_a_draft_product_but_not_an_archived_one(): void
+    {
+        $supplier = Supplier::factory()->create(['created_by' => $this->storekeeper->id]);
+        $draft = Product::factory()->create(['active' => false, 'archived_at' => null]);
+        $archived = Product::factory()->create(['active' => false, 'archived_at' => now()]);
+
+        $this->actingAs($this->storekeeper)->onPortal('manage')->get('/purchasing')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('data.purchasing.products', fn ($products) => collect($products)->pluck('id')->contains($draft->id) && ! collect($products)->pluck('id')->contains($archived->id)));
+        $this->post('/commands/purchasing/orders', ['supplier_id' => $supplier->id, 'branch_id' => $this->branch->id, 'lines' => [['product_id' => $archived->id, 'quantity' => 3]]])
+            ->assertSessionHasErrors('lines.0.product_id');
+        $this->post('/commands/purchasing/orders', ['supplier_id' => $supplier->id, 'branch_id' => $this->branch->id, 'lines' => [['product_id' => $draft->id, 'quantity' => 3]]])
+            ->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('purchase_orders', 1);
+    }
+
     public function test_an_order_cannot_list_the_same_product_twice(): void
     {
         $supplier = Supplier::factory()->create(['created_by' => $this->storekeeper->id]);
@@ -413,7 +428,7 @@ class PurchasingFlowTest extends TestCase
         $this->assertDatabaseCount('suppliers', 1);
     }
 
-    public function test_view_only_inventory_staff_can_open_the_page_but_change_nothing(): void
+    public function test_view_only_inventory_staff_can_neither_open_the_page_nor_change_anything(): void
     {
         $viewer = User::factory()->staff('inventory')->create(['profile' => ['action_permissions' => [
             'inventory' => ['view' => true, 'create' => false, 'edit' => false, 'approve' => false],
@@ -421,8 +436,8 @@ class PurchasingFlowTest extends TestCase
         $product = Product::factory()->create(['stock' => 0]);
         $order = $this->sentOrder([$product->id => 2]);
 
-        $this->actingAs($viewer)->onPortal('manage')->get('/purchasing')->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('data.purchasing.can.create', false));
+        // F-verify-09: purchasing needs stock create or approve, not only view.
+        $this->actingAs($viewer)->onPortal('manage')->get('/purchasing')->assertForbidden();
         $this->receive($order, [$this->receiptRow($this->lineFor($order, $product), 1)], null, $viewer)->assertForbidden();
         $this->actingAs($viewer)->onPortal('manage')->post("/commands/purchasing/orders/{$order->id}/cancel", ['reason' => 'x'])->assertForbidden();
 

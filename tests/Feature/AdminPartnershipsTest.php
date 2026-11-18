@@ -143,8 +143,9 @@ class AdminPartnershipsTest extends TestCase
             ->assertSee('autocomplete="name"', false)
             ->assertSee('autocomplete="email"', false)
             ->assertSee('autocomplete="tel"', false)
-            ->assertSee('autocomplete="address-level1"', false)
-            ->assertSee('autocomplete="address-level2"', false)
-            ->assertSee('autocomplete="address-level3"', false);
+            ->assertSee('name="division_place_id"', false)
+            ->assertSee('name="district_place_id"', false)
+            ->assertSee('name="upazila_place_id"', false)
+            ->assertSee('name="union_place_id"', false);
     }
 }

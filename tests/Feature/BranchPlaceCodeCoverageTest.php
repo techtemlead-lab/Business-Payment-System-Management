@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Inventory\BranchScope;
+use App\Domain\Staff\LeadershipAccess;
 use App\Domain\Support\ChatRouting;
 use App\Models\CompanyBranch;
 use App\Models\PlaceCode;
@@ -212,10 +213,15 @@ class BranchPlaceCodeCoverageTest extends TestCase
     }
 
     #[DataProvider('seniorOfficerRoles')]
-    public function test_managing_director_and_chairman_can_edit_a_branch(string $role): void
+    public function test_managing_director_and_chairman_can_edit_a_branch_once_given_owner_tools(string $role): void
     {
         $officer = User::factory()->staff($role)->create();
         $headOffice = CompanyBranch::query()->where('is_head_office', true)->firstOrFail();
+        // D11 (SA-07): branches are an owner tool; the MD and Chairman open them only with the Super Admin's grant.
+        $this->actingAs($officer)->onPortal('sadmin')->get('/branches')->assertForbidden();
+        $this->actingAs($officer)->onPortal('sadmin');
+        $this->headOfficeEdit($headOffice, $this->upazila->code)->assertForbidden();
+        LeadershipAccess::save(User::factory()->staff('super_admin')->create(), [$role => ['owner_tools']], LeadershipAccess::current()['version']);
 
         $this->actingAs($officer)->onPortal('sadmin')->get('/branches')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('data.can_edit_branches', true));

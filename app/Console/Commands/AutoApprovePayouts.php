@@ -5,7 +5,9 @@ namespace App\Console\Commands;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Finance\FinanceSettings;
+use App\Domain\Finance\MonthCloseStatus;
 use App\Domain\Finance\ReserveService;
+use App\Domain\Finance\UnownedShareSweeps;
 use App\Models\DealerRank;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -54,7 +56,7 @@ class AutoApprovePayouts extends Command
 
                     continue;
                 }
-                $summary[$kind.':'.$month] = $this->attempt(fn () => $kind === 'salary'
+                $summary[$kind.':'.$month] = $this->closeMonth($kind, $month, fn () => $kind === 'salary'
                     ? $commissions->settleMonthlySalaryPool($month)['status']
                     : $commissions->settleRankRoyaltyPool($month)['status']);
             }
@@ -64,17 +66,23 @@ class AutoApprovePayouts extends Command
         // its month has ended. Every ended month is checked, so a late run cannot leave it held.
         $reserves = app(ReserveService::class);
         foreach ($reserves->closedMonthsWithHeldAreaShares() as $month) {
-            $summary['area_quota_close:'.$month] = $this->attempt(fn () => $reserves->forfeitUnmetQuotaHolds($month)['status']);
+            $summary['area_quota_close:'.$month] = $this->closeMonth('area_quota', $month, fn () => $reserves->forfeitUnmetQuotaHolds($month)['status']);
         }
 
         // Owner decision: a share still held after the owner's limit of months (setting, 3 by default, 0 = never) goes to the company fund too.
         $summary['area_held_too_long'] = $this->attempt(fn () => $reserves->forfeitStaleAreaHolds()['status']);
 
+        // Owner decision D3: commission held for a partner who is active again is paid; a closed
+        // account's holds go to company profit after 3 months.
+        $sweeps = app(UnownedShareSweeps::class);
+        $summary['held_for_active_partners'] = $this->attempt(fn () => 'released '.$sweeps->releaseHeldForActivePartners()['released_count']);
+        $summary['closed_account_holds'] = $this->attempt(fn () => $sweeps->closedAccountHoldsToCompanyProfit()['status']);
+
         // Month close for the sub-dealer additional-rank fund (last month, plus one for a missed run).
         $current = CarbonImmutable::createFromFormat('!Y-m', CommissionQualification::currentMonth());
         foreach ([2, 1] as $back) {
             $month = $current->subMonthsNoOverflow($back)->format('Y-m');
-            $summary['additional_rank_close:'.$month] = $this->attempt(fn () => $reserves->closeAdditionalRankFund($month)['status']);
+            $summary['additional_rank_close:'.$month] = $this->closeMonth('additional_rank', $month, fn () => $reserves->closeAdditionalRankFund($month)['status']);
         }
 
         if ($settings->isAutoApproved('rank_incentive')) {
@@ -160,6 +168,23 @@ class AutoApprovePayouts extends Command
             ->pluck('user_id')
             ->map(fn ($id): int => (int) $id)
             ->all();
+    }
+
+    /**
+     * A month close that fails is shown on the Settlements page until a later run or a person closes
+     * it (MA-01), so a crash never again fails silently every hour.
+     */
+    private function closeMonth(string $kind, string $month, callable $close): string
+    {
+        $outcome = $this->attempt($close);
+        $status = app(MonthCloseStatus::class);
+        if (str_starts_with($outcome, 'failed: ')) {
+            $status->recordFailure($kind, $month, substr($outcome, strlen('failed: ')));
+        } else {
+            $status->clearFailure($kind, $month);
+        }
+
+        return $outcome;
     }
 
     /** One failed payout must not stop the others; the next run tries again. */

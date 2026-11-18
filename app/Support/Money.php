@@ -46,6 +46,12 @@ final class Money
         return $whole.'.'.$fraction;
     }
 
+    /** An amount written for a reader: lakh grouping, and Bangla digits when the language is Bangla. */
+    public static function display(string|int $value, ?string $locale = null): string
+    {
+        return LocalDigits::text(self::grouped($value), $locale);
+    }
+
     /** @deprecated Use SalaryCalculator; the monthly purchase tiers were replaced by a flat 3%. */
     public static function salaryTier(int $purchases): int
     {

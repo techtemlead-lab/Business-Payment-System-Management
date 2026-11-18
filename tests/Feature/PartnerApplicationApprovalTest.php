@@ -66,7 +66,7 @@ class PartnerApplicationApprovalTest extends TestCase
         $id = $this->apply('dealer');
 
         $this->decide($id, [])->assertRedirect('/partnerships')
-            ->assertSessionHas('success', __('portal.flash_application_approved'));
+            ->assertSessionHas('success', fn (string $message): bool => str_starts_with($message, __('portal.flash_application_approved')));
 
         $dealer = User::query()->where('role', 'dealer')->sole();
         $this->assertSame('MNHC100111', $dealer->dealer_code);

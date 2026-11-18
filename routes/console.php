@@ -13,6 +13,10 @@ Artisan::command('inspire', function () {
 Schedule::call(fn () => Cache::put('operations:scheduler-heartbeat', now()->utc()->toIso8601String(), now()->addMinutes(5)))
     ->name('operations-heartbeat')->everyMinute()->withoutOverlapping()->onOneServer();
 
+// Dead-man switch and self-checks (database, queue worker, disk, last night's backup). A problem is logged as
+// critical, which reaches a person once alerts are set; the outside check (MADINA_HEARTBEAT_URL) alerts if pings stop.
+Schedule::command('ops:heartbeat')->everyFiveMinutes()->withoutOverlapping(10)->onOneServer();
+
 Schedule::command('finance:release-matured')->everyFifteenMinutes()->withoutOverlapping(60)->onOneServer()
     ->onFailure(fn () => Log::critical('Scheduled commission maturity release failed.'));
 
@@ -28,16 +32,25 @@ Schedule::command('treasury:project-events')->everyMinute()->withoutOverlapping(
 Schedule::command('finance:auto-approve')->hourly()->withoutOverlapping(120)->onOneServer()
     ->onFailure(fn () => Log::critical('Scheduled automatic payout approval failed.'));
 
+// New audit records join the hash chain within a minute (SA-04).
+Schedule::command('audit:seal')->everyMinute()->withoutOverlapping(10)->onOneServer()
+    ->onFailure(fn () => Log::critical('Sealing the audit trail failed.'));
+
 // Daily self-checks: the audit trail has not been edited, and the money books still balance
 // (journals balanced, wallets equal the ledger). A failure is logged as critical for the owner.
 Schedule::command('audit:verify-integrity')->dailyAt('03:00')->timezone('Asia/Dhaka')->withoutOverlapping(60)->onOneServer()
     ->onFailure(fn () => Log::critical('Daily audit-trail integrity check failed. Someone may have changed audit records.'));
 Schedule::command('finance:readiness')->dailyAt('03:15')->timezone('Asia/Dhaka')->withoutOverlapping(60)->onOneServer()
-    ->onFailure(fn () => Log::critical('Daily money reconciliation failed. The ledger and wallets no longer match.'));
+    ->onFailure(fn () => Log::critical('Daily money reconciliation failed. Read the "Money check failed." log line for the names of the checks that failed, or run php artisan finance:readiness.'));
 
 if (config('madina.backups_enabled')) {
     Schedule::command('app:backup')->dailyAt('02:00')->timezone('Asia/Dhaka')->withoutOverlapping(120)->onOneServer()
         ->onFailure(fn () => Log::critical('Scheduled application backup failed. Review backup status before handover.'));
+    // Monthly proof that last night's backup really comes back (scratch database, live only read). Needs a
+    // database user that may create databases, so it is switched on separately after a first manual drill.
+    if (config('madina.restore_drill_monthly')) {
+        Schedule::command('app:backup-restore-drill')->monthlyOn(2, '05:00')->timezone('Asia/Dhaka')->withoutOverlapping(120)->onOneServer();
+    }
     // Old local backups are deleted so the disk does not fill up; the newest few are always kept.
     Schedule::command('app:backup-prune')->dailyAt('04:00')->timezone('Asia/Dhaka')->withoutOverlapping(30)->onOneServer()
         ->onFailure(fn () => Log::critical('Scheduled backup clean-up failed. Check free disk space on the backup volume.'));
@@ -108,3 +121,15 @@ if (! in_array(config('queue.default'), ['sync', 'null'], true)) {
 // The owner's error log keeps each problem for the days set on the Errors page (90 unless changed).
 Schedule::command('errors:prune')->dailyAt('04:40')->timezone('Asia/Dhaka')->withoutOverlapping(30)->onOneServer()
     ->onFailure(fn () => Log::warning('Scheduled clean-up of the old error log failed.'));
+
+// Old notices are messages, not records: read ones go after 180 days, unread after 400 (the ledger and audit log keep the money truth).
+Schedule::command('notices:prune')->dailyAt('04:50')->timezone('Asia/Dhaka')->withoutOverlapping(30)->onOneServer()
+    ->onFailure(fn () => Log::warning('Scheduled clean-up of old notices failed.'));
+
+// Month-start running totals of the journal keep the trial balance quick as the ledger grows; no figure changes.
+Schedule::command('finance:snapshot-opening-balances')->dailyAt('03:45')->timezone('Asia/Dhaka')->withoutOverlapping(60)->onOneServer()
+    ->onFailure(fn () => Log::warning('Scheduled journal opening-balance snapshot failed.'));
+
+// A notice nobody opened for 30 days is marked read, so the bell count does not stay at "99+" for ever.
+Schedule::command('notices:read-old')->dailyAt('04:50')->timezone('Asia/Dhaka')->withoutOverlapping(30)->onOneServer()
+    ->onFailure(fn () => Log::warning('Scheduled marking of old notices as read failed.'));

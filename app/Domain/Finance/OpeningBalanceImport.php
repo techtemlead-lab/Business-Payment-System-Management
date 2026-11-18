@@ -15,6 +15,8 @@ use App\Models\CompanyBranch;
 use App\Models\DealerRank;
 use App\Models\PlaceCode;
 use App\Models\Product;
+use App\Models\ProductCategory;
+use App\Models\ProductSubcategory;
 use App\Models\ReferralTreePath;
 use App\Models\User;
 use App\Support\Audit;
@@ -92,7 +94,7 @@ final class OpeningBalanceImport
             $selfApproved = false;
             if ($batch->type === 'opening_balances') {
                 $this->assertOpeningAllowed();
-                if ($batch->created_by === $actor->id) {
+                if ((int) $batch->created_by === (int) $actor->id) {
                     app(SelfApproval::class)->finishOwnStep($actor, 'import', __('portal.err_import_separate_reviewer'));
                     $selfApproved = true;
                 }
@@ -124,7 +126,7 @@ final class OpeningBalanceImport
             $selfApproved = false;
             if ($batch->type === 'opening_balances') {
                 $this->assertOpeningAllowed();
-                if ($batch->created_by === $actor->id) {
+                if ((int) $batch->created_by === (int) $actor->id) {
                     app(SelfApproval::class)->finishOwnStep($actor, 'import', __('portal.err_import_separate_reviewer'));
                     $selfApproved = true;
                 }
@@ -319,7 +321,7 @@ final class OpeningBalanceImport
     /** @param array<string, string> $data */
     private function createProduct(User $actor, array $data, string $batchId): void
     {
-        $product = Product::create([...$data, 'active' => false]);
+        $product = Product::create([...$data, ...$this->catalogLinks((string) ($data['category'] ?? '')), 'active' => false]);
         if ((int) $data['stock'] > 0) {
             $headOffice = CompanyBranch::query()->orderByRaw('COALESCE(is_head_office, false) DESC')->orderBy('id')->first();
             if ($headOffice !== null) {
@@ -328,6 +330,34 @@ final class OpeningBalanceImport
             DB::table('stock_movements')->insert(['product_id' => $product->id, 'branch_id' => $headOffice?->id, 'quantity' => $data['stock'], 'kind' => 'opening_import',
                 'reference' => $batchId.'.'.$product->id, 'reason' => __('portal.stock_reason_opening_import'), 'actor_id' => $actor->id, 'created_at' => now(), 'updated_at' => now()]);
         }
+    }
+
+    /**
+     * Links the category typed in the sheet to the shop's own list, by name and ignoring capitals
+     * and extra spaces, so an imported product sits under the same category as one made by hand.
+     * A name that matches a sub-category is saved under that sub-category. Nothing is created: a
+     * name the shop does not have stays as typed, for staff to fix on the product page.
+     *
+     * @return array<string, mixed>
+     */
+    private function catalogLinks(string $typed): array
+    {
+        $name = mb_strtolower(trim((string) preg_replace('/\s+/u', ' ', $typed)));
+        if ($name === '') {
+            return [];
+        }
+        $category = ProductCategory::query()->whereRaw('LOWER(TRIM(name)) = ?', [$name])->first();
+        if ($category !== null) {
+            return ['category' => $category->name];
+        }
+        $subcategories = ProductSubcategory::query()->with('category')->whereRaw('LOWER(TRIM(name)) = ?', [$name])->get();
+        if ($subcategories->count() === 1 && $subcategories->first()->category !== null) {
+            $subcategory = $subcategories->first();
+
+            return ['category' => (string) $subcategory->category->getAttribute('name'), 'sub_category' => $subcategory->name, 'product_subcategory_id' => $subcategory->id];
+        }
+
+        return [];
     }
 
     /** @param array<string, string> $data */

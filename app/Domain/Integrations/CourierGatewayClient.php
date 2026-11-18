@@ -54,14 +54,14 @@ final class CourierGatewayClient
 
         try {
             $response = match ($provider) {
-                'steadfast' => Http::timeout(15)->withHeaders([
+                'steadfast' => Http::withoutRedirecting()->timeout(15)->withHeaders([
                     'Api-Key' => (string) $config['api_key'],
                     'Secret-Key' => (string) $config['api_secret'],
                 ])->get($base.'/status_by_trackingcode/'.$tracking),
-                'pathao' => Http::timeout(15)->withToken($this->pathaoToken($config))->get($base.'/aladdin/api/v1/orders/'.$tracking.'/info'),
-                'redx' => Http::timeout(15)->withHeaders($this->redxAuth($config))->get($base.'/v1.0.0-beta/parcel/track/'.$tracking),
-                'ecourier' => Http::timeout(15)->acceptJson()->withHeaders($this->ecourierAuth($config))->post($base.'/track', ['ecr' => $tracking]),
-                'paperfly' => Http::timeout(15)->acceptJson()->withBasicAuth((string) $config['username'], (string) $config['password'])
+                'pathao' => Http::withoutRedirecting()->timeout(15)->withToken($this->pathaoToken($config))->get($base.'/aladdin/api/v1/orders/'.$tracking.'/info'),
+                'redx' => Http::withoutRedirecting()->timeout(15)->withHeaders($this->redxAuth($config))->get($base.'/v1.0.0-beta/parcel/track/'.$tracking),
+                'ecourier' => Http::withoutRedirecting()->timeout(15)->acceptJson()->withHeaders($this->ecourierAuth($config))->post($base.'/track', ['ecr' => $tracking]),
+                'paperfly' => Http::withoutRedirecting()->timeout(15)->acceptJson()->withBasicAuth((string) $config['username'], (string) $config['password'])
                     ->withHeaders(['paperflykey' => (string) $config['api_key']])->post($base.'/API-Order-Tracking', ['ReferenceNumber' => $tracking]),
                 default => throw new \InvalidArgumentException('This courier has no tracking connection.'),
             };
@@ -97,7 +97,7 @@ final class CourierGatewayClient
             'pathao.city' => $this->pathaoLookup($config, $base.'/aladdin/api/v1/city-list'),
             'pathao.zone' => $this->pathaoLookup($config, $base.'/aladdin/api/v1/cities/'.rawurlencode((string) $parentId).'/zone-list'),
             'pathao.area' => $this->pathaoLookup($config, $base.'/aladdin/api/v1/zones/'.rawurlencode((string) $parentId).'/area-list'),
-            'redx.area' => Http::timeout(30)->acceptJson()->withHeaders($this->redxAuth($config))->get($base.'/v1.0.0-beta/areas'),
+            'redx.area' => Http::withoutRedirecting()->timeout(30)->acceptJson()->withHeaders($this->redxAuth($config))->get($base.'/v1.0.0-beta/areas'),
             default => throw new \InvalidArgumentException('This courier has no such list.'),
         };
         $rows = $response->json($provider === 'redx' ? 'areas' : 'data.data');
@@ -150,7 +150,7 @@ final class CourierGatewayClient
     /** @param  array<string, mixed>  $config @param  array<string, mixed>  $shipment */
     private function pathaoCreate(array $config, array $shipment): array
     {
-        $response = Http::timeout(20)->acceptJson()->withToken($this->pathaoToken($config))->post(rtrim((string) $config['base_url'], '/').'/aladdin/api/v1/orders', [
+        $response = Http::withoutRedirecting()->timeout(20)->acceptJson()->withToken($this->pathaoToken($config))->post(rtrim((string) $config['base_url'], '/').'/aladdin/api/v1/orders', [
             'store_id' => $config['store_id'] ?: null,
             'merchant_order_id' => $shipment['invoice'] ?? null,
             'recipient_name' => $shipment['recipient_name'] ?? __('portal.si_courier_default_recipient'),
@@ -179,7 +179,7 @@ final class CourierGatewayClient
     /** @param  array<string, mixed>  $config @param  array<string, mixed>  $shipment */
     private function steadfastCreate(array $config, array $shipment): array
     {
-        $response = Http::timeout(20)->acceptJson()->withHeaders([
+        $response = Http::withoutRedirecting()->timeout(20)->acceptJson()->withHeaders([
             'Api-Key' => (string) $config['api_key'],
             'Secret-Key' => (string) $config['api_secret'],
             'Content-Type' => 'application/json',
@@ -201,7 +201,7 @@ final class CourierGatewayClient
     /** @param  array<string, mixed>  $config @param  array<string, mixed>  $shipment */
     private function redxCreate(array $config, array $shipment): array
     {
-        $response = Http::timeout(20)->acceptJson()->withHeaders($this->redxAuth($config))->post(rtrim((string) $config['base_url'], '/').'/v1.0.0-beta/parcel', [
+        $response = Http::withoutRedirecting()->timeout(20)->acceptJson()->withHeaders($this->redxAuth($config))->post(rtrim((string) $config['base_url'], '/').'/v1.0.0-beta/parcel', [
             'customer_name' => $shipment['recipient_name'] ?? __('portal.si_courier_default_recipient'),
             'customer_phone' => $shipment['recipient_phone'] ?? '',
             'delivery_area' => $shipment['courier_area']['area_name'] ?? $shipment['recipient_address'] ?? '',
@@ -221,7 +221,7 @@ final class CourierGatewayClient
     /** @param  array<string, mixed>  $config @param  array<string, mixed>  $shipment */
     private function paperflyCreate(array $config, array $shipment): array
     {
-        $response = Http::timeout(20)->acceptJson()->withBasicAuth((string) $config['username'], (string) $config['password'])
+        $response = Http::withoutRedirecting()->timeout(20)->acceptJson()->withBasicAuth((string) $config['username'], (string) $config['password'])
             ->withHeaders(['paperflykey' => (string) $config['api_key']])
             ->post(rtrim((string) $config['base_url'], '/').'/merchant/api/service/new_order_v2.php', [
                 'merchantOrderReference' => $shipment['invoice'] ?? uniqid('ORD-', true),
@@ -246,7 +246,7 @@ final class CourierGatewayClient
         if (blank($config['package_code'] ?? null)) {
             return ['success' => false, 'tracking' => null, 'consignment_id' => null, 'provider' => 'ecourier', 'message' => __('courier_areas.needs_package_code'), 'raw' => null];
         }
-        $response = Http::timeout(20)->acceptJson()->withHeaders($this->ecourierAuth($config))->post(rtrim((string) $config['base_url'], '/').'/order-place', [
+        $response = Http::withoutRedirecting()->timeout(20)->acceptJson()->withHeaders($this->ecourierAuth($config))->post(rtrim((string) $config['base_url'], '/').'/order-place', [
             'recipient_name' => $shipment['recipient_name'] ?? __('portal.si_courier_default_recipient'),
             'recipient_mobile' => $shipment['recipient_phone'] ?? '',
             'recipient_city' => Str::limit((string) ($shipment['recipient_city'] ?? ''), 40, ''),
@@ -271,7 +271,7 @@ final class CourierGatewayClient
     /** @param  array<string, mixed>  $config */
     private function pathaoLookup(array $config, string $url): Response
     {
-        return Http::timeout(15)->acceptJson()->withToken($this->pathaoToken($config))->get($url);
+        return Http::withoutRedirecting()->timeout(15)->acceptJson()->withToken($this->pathaoToken($config))->get($url);
     }
 
     /**
@@ -312,7 +312,7 @@ final class CourierGatewayClient
         if (is_string($cached)) {
             return decrypt($cached);
         }
-        $response = Http::timeout(15)->acceptJson()->post($base.'/aladdin/api/v1/issue-token', [
+        $response = Http::withoutRedirecting()->timeout(15)->acceptJson()->post($base.'/aladdin/api/v1/issue-token', [
             'client_id' => (string) $config['api_key'],
             'client_secret' => (string) $config['api_secret'],
             'username' => (string) $config['username'],

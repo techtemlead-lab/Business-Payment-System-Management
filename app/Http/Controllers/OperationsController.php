@@ -12,9 +12,11 @@ use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Finance\ReportData;
 use App\Domain\Finance\ReserveService;
 use App\Domain\Finance\TreasuryAccess;
+use App\Domain\Finance\VehiclePools;
 use App\Domain\Finance\WithdrawalApprovalLimit;
 use App\Domain\Finance\WithdrawalSecurityWait;
 use App\Domain\Integrations\IntegrationSettings;
+use App\Domain\Payouts\PayoutLimits;
 use App\Domain\Staff\StaffPermissions;
 use App\Domain\Staff\TerritoryAccess;
 use App\Models\Product;
@@ -52,7 +54,7 @@ class OperationsController extends Controller
         'policy_schedules' => ['search' => ['u.name', 'proposer.name', 's.reason', 's.scope'], 'status' => 's.status', 'statuses' => ['draft', 'approved', 'rejected', 'cancelled']],
         'reserve_requests' => ['search' => ['u.name', 'r.payee_name', 'r.program', 'r.payment_reference', 'r.reason'], 'status' => 'r.status', 'statuses' => ['requested', 'approved', 'credited', 'rejected', 'paid', 'cancelled']],
         'clawback_recoveries' => ['search' => ['payment_reference'], 'status' => null, 'statuses' => []],
-        'held_allocations' => ['search' => ['u.name', 'a.category', 'a.order_id'], 'status' => null, 'statuses' => []],
+        'held_allocations' => ['search' => ['u.name', 'a.category', 'o.number'], 'status' => null, 'statuses' => []],
         'opening_holds' => ['search' => ['u.name', 'e.reference'], 'status' => null, 'statuses' => []],
         'opening_reviews' => ['search' => ['fingerprint', 'source_reference'], 'status' => null, 'statuses' => []],
     ];
@@ -153,10 +155,15 @@ class OperationsController extends Controller
                 $total = $remaining[$category] ?? 0;
                 $data['summary'][$program.'_uncommitted_reserve'] = ($total < 0 ? '-' : '').Money::decimal(abs($total));
             }
+            // The bike and car prizes each have their own pool; the line above is both added together.
+            foreach (app(VehiclePools::class)->balances() as $pool => $balance) {
+                $data['summary'][$pool.'_uncommitted_reserve'] = ($balance < 0 ? '-' : '').Money::decimal(abs($balance));
+            }
         }
         if ($section === 'commission-holds') {
-            $tables['held_allocations'] = DB::table('commission_allocations as a')->join('users as u', 'u.id', '=', 'a.user_id')->where('a.status', 'held')
-                ->select(['a.id', 'u.name', 'u.status as partner_status', 'a.order_id', 'a.category', 'a.amount', 'a.metadata'])->orderBy('a.id');
+            // Partner, order number, kind, amount and how long it has been held. Ids and raw metadata stay out of the list.
+            $tables['held_allocations'] = DB::table('commission_allocations as a')->join('users as u', 'u.id', '=', 'a.user_id')->leftJoin('orders as o', 'o.id', '=', 'a.order_id')->where('a.status', 'held')
+                ->select(['a.id', 'u.name', 'u.status as partner_status', 'o.number', 'a.category', 'a.amount', 'a.created_at'])->orderBy('a.created_at')->orderBy('a.id');
         }
         if ($section === 'commission-holds') {
             $tables['opening_holds'] = DB::table('opening_balance_entries as e')->join('users as u', 'u.id', '=', 'e.user_id')
@@ -171,9 +178,11 @@ class OperationsController extends Controller
         if ($section === 'finance-settings') {
             $data['withdrawalSetting'] = app(FinanceSettings::class)->withdrawalMinimum();
             $data['withdrawalSecurityWait'] = [...app(WithdrawalSecurityWait::class)->settings(), 'default' => WithdrawalSecurityWait::DefaultHours, 'can_edit' => $actor->owner() && $actor->canAct('finance', 'edit')];
+            $data['payoutLimits'] = [...app(PayoutLimits::class)->settings(), 'can_edit' => $actor->owner() && $actor->canAct('finance', 'edit')];
             $data['autoApproval'] = app(FinanceSettings::class)->autoApproval();
             $data['kycBeforeFirstWithdrawal'] = [...app(FinanceSettings::class)->kycBeforeFirstWithdrawal(), 'can_edit' => $actor->role === 'super_admin'];
             $data['fullPaymentWhenOrdering'] = [...app(FinanceSettings::class)->fullPaymentWhenOrdering(), 'can_edit' => $actor->role === 'super_admin'];
+            $data['autoReleaseMatured'] = [...app(FinanceSettings::class)->autoReleaseMatured(), 'can_edit' => $actor->role === 'super_admin'];
             $data['approvalLimit'] = [...app(WithdrawalApprovalLimit::class)->current(), 'default' => WithdrawalApprovalLimit::DefaultAmount, 'can_edit' => $actor->owner() && $actor->canAct('finance', 'edit')];
         }
         if ($section === 'access-management') {
@@ -182,7 +191,7 @@ class OperationsController extends Controller
             $data['permissionModules'] = $permissions->modules();
             $data['rolePresets'] = collect(['employee' => [], ...config('madina.roles')])->map(fn ($capabilities, $key) => ['key' => $key, 'name' => __('portal.staff_role_'.$key),
                 'permissions' => $permissions->presetMatrix($key)])->values()->all();
-            $data['staffAccess'] = $staff->where('role', '!=', 'super_admin')->map(fn ($user) => ['id' => $user->id, 'name' => $user->name, 'role' => $user->role,
+            $data['staffAccess'] = $staff->whereNotIn('role', ['super_admin', 'md', 'chairman'])->map(fn ($user) => ['id' => $user->id, 'name' => $user->name, 'role' => $user->role,
                 'version' => $permissions->version($user), 'permissions' => $permissions->matrix($user)])->values()->all();
             $data['customRoles'] = DB::table('staff_roles')->orderBy('name')->get()->map(fn ($role) => ['key' => $role->key, 'name' => $role->name,
                 'version' => $role->version, 'permissions' => json_decode($role->permissions, true, 512, JSON_THROW_ON_ERROR)])->all();

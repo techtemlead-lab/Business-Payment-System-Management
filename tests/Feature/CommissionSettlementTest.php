@@ -293,6 +293,30 @@ class CommissionSettlementTest extends TestCase
         $this->assertSame('9.99', $result['total_to_company_profit']);
     }
 
+    /**
+     * MA-01: a fund row above about ৳3.04 crore made the month close multiply two paisa amounts past
+     * PHP's integer limit, so every royalty and salary close failed. A ৳100 crore order must close.
+     */
+    public function test_a_hundred_crore_order_closes_royalty_and_salary_into_company_profit(): void
+    {
+        $order = $this->purchase(User::factory()->create(), '1000000000.00', '2000000000.00');
+        $this->travelTo(now()->setDate(2026, 10, 1));
+
+        $royalty = app(CommissionService::class)->settleRankRoyaltyPool('2026-09');
+        $salary = app(CommissionService::class)->settleMonthlySalaryPool('2026-09');
+
+        // The ৳100 crore buyer is an MO for the month; the three empty rank tiers (৳3 crore) go to company profit.
+        $this->assertSame('settled', $royalty['status']);
+        $this->assertSame('10000000.00', $royalty['total_distributed']);
+        $this->assertSame('30000000.00', $royalty['total_to_company_profit']);
+        $this->assertSame('20000000.00', $salary['total_pool']);
+        $this->assertSame(Money::cents('20000000.00'), Money::cents($salary['total_distributed']) + Money::cents($salary['total_to_company_profit']));
+        $this->assertDatabaseHas('commission_allocations', ['order_id' => $order->id, 'category' => 'company_profit_fund',
+            'amount' => '30000000.00', 'original_amount' => '30000000.00', 'status' => 'reserved']);
+        $this->assertDatabaseMissing('commission_allocations', ['order_id' => $order->id, 'category' => 'rank_royalty_pool', 'status' => 'pending']);
+        $this->assertTrue(app(FinancialReadiness::class)->inspect()['checks']['allocation_totals']);
+    }
+
     public function test_rank_incentives_require_real_reserve_funding_and_cannot_be_claimed_twice(): void
     {
         $leader = User::factory()->create();
@@ -503,5 +527,7 @@ class CommissionSettlementTest extends TestCase
         $this->assertDatabaseHas('wallets', ['user_id' => $buyer->id, 'available' => '0.00', 'held' => '0.00']);
         $this->assertFalse(CommissionWallet::hasDebt($buyer->id));
         $this->assertDatabaseHas('withdrawals', ['id' => $withdrawal, 'status' => 'rejected']);
+        // MA-26: the partner is told that the returned money paid off the refund debt.
+        $this->assertDatabaseHas('account_notices', ['user_id' => $buyer->id, 'title' => __('money_core.notice_debt_recovered_title', [], $buyer->fresh()->preferredLocale())]);
     }
 }

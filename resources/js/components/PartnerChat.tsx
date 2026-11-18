@@ -134,12 +134,14 @@ export function PartnerMessages({ chat }: { chat: Row }) {
                 </div>
             </header>
             <Thread messages={chat?.messages ?? []} mine="partner" officeName={officeName} />
+            {chat?.seen_by_office && <p className="field-hint chat-seen">✓ {translate('joining', 'chat_seen_by_office')}</p>}
+            {chat?.reply_hours && <p className="field-hint chat-reply-hint">{translate('joining', 'chat_reply_hours', { hours: chat.reply_hours })}</p>}
             <Composer action="/commands/messages" />
         </section>
     );
 }
 
-type RoutingStaff = { id: number; name: string; role: string; branches: string[]; scope: 'branch' | 'company' | null };
+type RoutingStaff = { id: number; name: string; role: string; role_name?: string | null; branches: string[]; scope: 'branch' | 'company' | null };
 
 type ChatRouting = { staff: RoutingStaff[]; answerers: RoutingStaff[]; version: number };
 
@@ -180,7 +182,7 @@ function ChatRoutingDrawer({ routing, onClose }: { routing: ChatRouting; onClose
                         <label key={row.id}>
                             <span>
                                 <b>{row.name}</b>
-                                <small className="cell-sub">{[label(String(row.role), translate), row.branches.length > 0 ? row.branches.join(', ') : translate('portal', 'chat_route_no_branch')].join(' · ')}</small>
+                                <small className="cell-sub">{[row.role_name || label(String(row.role), translate), row.branches.length > 0 ? row.branches.join(', ') : translate('portal', 'chat_route_no_branch')].join(' · ')}</small>
                             </span>
                             <select value={scopes[row.id] ?? ''} onChange={(event) => setScopes((current) => ({ ...current, [row.id]: event.target.value }))}>
                                 <option value="">{translate('portal', 'chat_route_scope_none')}</option>

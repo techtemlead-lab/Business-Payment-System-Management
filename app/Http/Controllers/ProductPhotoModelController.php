@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\ProtectedFileResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 class ProductPhotoModelController extends Controller
 {
@@ -12,7 +13,7 @@ class ProductPhotoModelController extends Controller
      * Hands the background-removal model to office staff who can edit the catalog.
      * It stays behind sign-in because each download is over 100 MB.
      */
-    public function __invoke(Request $request, string $file): BinaryFileResponse
+    public function __invoke(Request $request, string $file): Response
     {
         abort_unless($request->user()?->staff() && $request->user()->allows('catalog'), 403);
         /** @var array{directory: string, files: array<string, string>, full_precision_files?: array<string, string>} $model */
@@ -22,7 +23,7 @@ class ProductPhotoModelController extends Controller
         $path = $model['directory'].'/'.$file;
         abort_unless(Storage::disk('local')->exists($path), 404);
 
-        return response()->file(Storage::disk('local')->path($path), [
+        return ProtectedFileResponse::make($path, [
             'Content-Type' => 'application/octet-stream',
             'X-Content-Type-Options' => 'nosniff',
         ]);

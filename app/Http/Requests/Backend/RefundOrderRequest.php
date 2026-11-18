@@ -18,6 +18,6 @@ class RefundOrderRequest extends FormRequest
     /** @return array<string, mixed> */
     public function rules(): array
     {
-        return ['amount' => ['required', 'regex:/^\d{1,12}(\.\d{1,2})?$/D'], 'reason' => ReasonFields::rule('order.refund', 1000, 3)];
+        return ['amount' => ['required', 'regex:/^\d{1,12}(\.\d{1,2})?$/D', 'not_regex:/^0+(\.0+)?$/'], 'reason' => ReasonFields::rule('order.refund', 1000, 3)];
     }
 }

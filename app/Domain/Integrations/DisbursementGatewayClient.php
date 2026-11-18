@@ -94,7 +94,7 @@ final class DisbursementGatewayClient
         $baseUrl = rtrim((string) ($config['base_url'] ?? 'https://b2b.pay.bka.sh/v1'), '/');
 
         // B2B intra-account transfer call
-        $response = Http::timeout(20)->withHeaders([
+        $response = Http::withoutRedirecting()->timeout(20)->withHeaders([
             'Authorization' => 'Bearer '.($config['token'] ?? ''),
             'X-KM-IP-V4' => request()->ip() ?? '127.0.0.1',
         ])->post($baseUrl.'/b2b/transfer', [
@@ -130,7 +130,7 @@ final class DisbursementGatewayClient
     {
         $baseUrl = rtrim((string) ($config['base_url'] ?? 'https://api.mynagad.com/api/dfs'), '/');
 
-        $response = Http::timeout(20)->post($baseUrl.'/payout/disburse', [
+        $response = Http::withoutRedirecting()->timeout(20)->post($baseUrl.'/payout/disburse', [
             'order_id' => $withdrawalId,
             'msisdn' => $destination,
             'amount' => $amount,

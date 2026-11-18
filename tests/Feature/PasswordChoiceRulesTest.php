@@ -30,11 +30,11 @@ class PasswordChoiceRulesTest extends TestCase
 
         $this->actingAs($partner)->onPortal('dealer')->from('/security')->post('/security/password', [
             'current_password' => self::OldPassword,
-            'password' => '12345678',
-            'password_confirmation' => '12345678',
+            'password' => '40719352',
+            'password_confirmation' => '40719352',
         ])->assertSessionHasNoErrors();
 
-        $this->assertTrue(Hash::check('12345678', (string) $partner->fresh()->password));
+        $this->assertTrue(Hash::check('40719352', (string) $partner->fresh()->password));
     }
 
     public function test_a_staff_member_can_change_to_eight_small_letters(): void
@@ -71,11 +71,11 @@ class PasswordChoiceRulesTest extends TestCase
         $this->onPortal('dealer')->post('/reset-password', [
             'token' => $token,
             'email' => $partner->email,
-            'password' => '87654321',
-            'password_confirmation' => '87654321',
+            'password' => '58302716',
+            'password_confirmation' => '58302716',
         ])->assertRedirect();
 
-        $this->assertTrue(Hash::check('87654321', (string) $partner->fresh()->password));
+        $this->assertTrue(Hash::check('58302716', (string) $partner->fresh()->password));
     }
 
     public function test_the_old_cookie_of_the_same_browser_stops_working_after_a_password_change(): void

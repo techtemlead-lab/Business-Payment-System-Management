@@ -31,6 +31,10 @@ type CapabilityContext = {
     chatAnswerer?: boolean;
     /** Verified prescriber (partner or office account) or the owner-doctor: shows the Prescriptions menu. */
     prescriber?: boolean;
+    /** May enter or approve stock (not only view it): opens purchasing and stock counts (F-verify-09). */
+    stockWorker?: boolean;
+    /** Owner areas the Super Admin granted to the MD or Chairman (SA-07); the Super Admin has them all. */
+    ownerAreas?: string[];
     dashboardControls?: Record<string, unknown> | null;
 };
 
@@ -54,6 +58,7 @@ export const SECTION_LABEL_KEYS: Record<string, string> = {
     'finance-settings': 'finance_settings',
     accounting: 'accounting',
     'access-management': 'access_management', 'video-marketing': 'video_marketing',
+    'stock-lots': 'stock_lots', 'partner-scorecard': 'partner_scorecard',
     overview: 'overview', orders: 'orders', order: 'order_details', purchase: 'purchase', catalog: 'catalog', accounts: 'accounts',
     inventory: 'inventory', deliveries: 'deliveries', payments: 'payments', network: 'network',
     policies: 'policies', reports: 'reports',
@@ -306,7 +311,9 @@ function rowMother(rowId: string, available: Set<string>): NavMother | null {
 export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     const { capabilities, role, ownerPortal, chatAnswerer, prescriber } = ctx;
     const items = new Set<string>(['overview', 'profile', 'security', 'notifications', 'help']);
-    if (capabilities.includes('accounts') || ownerPortal) {
+    // The MD and Chairman see payroll only unless the Super Admin granted an area (D11, LeadershipAccess).
+    const owns = (area: string): boolean => role === 'super_admin' || (['md', 'chairman'].includes(role) && (ctx.ownerAreas ?? []).includes(area));
+    if (capabilities.includes('accounts') || (ownerPortal && owns('owner_tools'))) {
         items.add('support-admin');
         items.add('agreement');
     }
@@ -325,7 +332,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
         ['payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'finance-settings', 'identity-review',
             'commissions', 'policies', 'settlements', 'simulator', 'payouts-hub', 'payments'].forEach((item) => items.add(item));
     }
-    const opensTreasury = capabilities.includes('finance') || OWNER_ROLES.includes(role);
+    const opensTreasury = capabilities.includes('finance') || owns('treasury');
     if (opensTreasury) items.add('treasury');
     if (opensTreasury || capabilities.includes('reports')) items.add('treasury-orders');
     else if (capabilities.includes('field_sales')) items.add('financial-reports');
@@ -339,36 +346,38 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
         ['dashboards', 'employees', 'place-codes', 'accounts', 'partnerships', 'sub-dealer-applications', 'network-tree', 'area-dealers', 'ranks', 'sub-dealers', 'enquiries'].forEach((item) => items.add(item));
     }
     // Owners open the account lists to reset or see passwords, and the full partner tree (PortalCatalog::assertSection).
-    if (['super_admin', 'md', 'chairman'].includes(role)) ['accounts', 'sub-dealers', 'employees', 'network-tree'].forEach((item) => items.add(item));
-    if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('data-cleanup');
-    if (ownerPortal && OWNER_ROLES.includes(role)) items.add('errors');
-    if (ownerPortal && OWNER_ROLES.includes(role)) items.add('login-rules');
+    if (owns('accounts')) ['accounts', 'sub-dealers', 'employees', 'network-tree'].forEach((item) => items.add(item));
+    if (ownerPortal && role === 'super_admin') items.add('data-cleanup');
+    if (ownerPortal && owns('owner_tools')) items.add('errors');
+    if (ownerPortal && owns('owner_tools')) items.add('login-rules');
     // The website visitor count is for owners only (PortalCatalog::assertSection).
-    if (ownerPortal && OWNER_ROLES.includes(role)) items.add('visitors');
+    if (ownerPortal && owns('owner_tools')) items.add('visitors');
     // Which reason and note boxes are asked is for owners only (PortalCatalog::assertSection).
-    if (ownerPortal && OWNER_ROLES.includes(role)) items.add('reason-fields');
-    if (ownerPortal && OWNER_ROLES.includes(role)) items.add('courier-areas');
-    if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('sales-kit');
-    if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('schemes');
-    if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('contests');
-    if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('privacy-requests');
+    if (ownerPortal && owns('owner_tools')) items.add('reason-fields');
+    if (ownerPortal && owns('owner_tools')) items.add('courier-areas');
+    if (ownerPortal && owns('owner_tools')) items.add('sales-kit');
+    if (ownerPortal && owns('owner_tools')) items.add('schemes');
+    if (ownerPortal && owns('owner_tools')) items.add('contests');
+    if (ownerPortal && owns('owner_tools')) items.add('privacy-requests');
     if (prescriber) items.add('prescriptions');
     if (capabilities.some((cap) => ['catalog', 'pricing', 'inventory', 'orders', 'finance'].includes(cap))) items.add('catalog');
     if (capabilities.includes('inventory')) {
         items.add('inventory');
         items.add('stock-lots');
         items.add('branches');
-        items.add('purchasing');
-        items.add('stock-counts');
+        if (ctx.stockWorker || role === 'super_admin') {
+            items.add('purchasing');
+            items.add('stock-counts');
+        }
     }
-    if ((capabilities.includes('accounts') || OWNER_ROLES.includes(role)) && !items.has('branches')) items.add('branches');
-    if (capabilities.some((cap) => ['reports', 'finance', 'inventory'].includes(cap)) || ['super_admin', 'md', 'chairman'].includes(role)) {
+    if ((capabilities.includes('accounts') || owns('owner_tools')) && !items.has('branches')) items.add('branches');
+    if (capabilities.some((cap) => ['reports', 'finance', 'inventory'].includes(cap)) || owns('owner_tools')) {
         items.add('branch-performance');
     }
     if (capabilities.includes('content')) {
         ['website', 'content', 'public-trust', 'enquiries', 'feedback'].forEach((item) => items.add(item));
     }
-    if (capabilities.includes('content') || ownerPortal) {
+    if (capabilities.includes('content') || (ownerPortal && owns('owner_tools'))) {
         items.add('training');
         items.add('events');
     }
@@ -449,6 +458,8 @@ function staffMothers(available: Set<string>): NavMother[] {
         [
             mother('finance', 'treasury', pick(available, available.has('treasury') ? ['treasury'] : ['treasury-orders'])),
             mother('payouts', 'payouts_hub', pick(available, ['payouts-hub'])),
+            // MA-15: month close and the "pay matured commission now" button were in no menu.
+            mother('settlements', 'settlements', pick(available, ['settlements'])),
             mother('commissions', 'nav_commission_hub', pick(available, ['commissions'])),
         ],
         [
@@ -479,7 +490,10 @@ function partnerMothers(role: string, available: Set<string>): NavMother[] {
         rowMother('partner-orders', available),
         mother('products', 'nav_products', pick(available, ['catalog'])),
         mother('earnings', 'nav_module_earnings', pick(available, ['partner-money'])),
-        rowMother('partner-team', teamAvailable),
+        // A sub-dealer's team row only opens the customer list, so it carries that page's own name.
+        role === 'sub_dealer' && rowItem('partner-team', teamAvailable) === 'customers'
+            ? mother('partner-team', 'customer_book', ['customers'])
+            : rowMother('partner-team', teamAvailable),
         rowMother('partner-learning', available),
         rowMother('partner-office', available),
         rowMother('partner-account', available),

@@ -12,6 +12,8 @@ use App\Domain\Inventory\StockLots;
 use App\Domain\Inventory\StockNotifications;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
+use App\Domain\Payouts\PayoutLimits;
+use App\Domain\Payouts\PayoutReceiptCheck;
 use App\Domain\Pricing\ProductPricing;
 use App\Domain\Staff\TerritoryAccess;
 use App\Jobs\BookShipmentCourier;
@@ -26,6 +28,7 @@ use App\Support\DashboardManagement;
 use App\Support\LocalDigits;
 use App\Support\Money;
 use App\Support\ReasonFields;
+use App\Support\TakaText;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\UploadedFile;
@@ -103,6 +106,7 @@ class OrderService
             }
             if ($channel === self::OfficeChannel) {
                 $data = [...$data, 'reference' => $this->officeReference($order), 'amount' => Money::decimal($total - $accountPart)];
+                app(PayoutLimits::class)->refuseOverOfficeCash($total - $accountPart, 'channel');
             }
             $claimedWithOrder = ! $paidWholly && ! empty($data['reference']);
             if ($claimedWithOrder) {
@@ -123,7 +127,7 @@ class OrderService
                 __('portal.notice_admin_new_order_body', [
                     'name' => $user->name,
                     'code' => $user->dealer_code ?: '—',
-                    'amount' => Money::decimal($total),
+                    'amount' => Money::display(Money::decimal($total)),
                     'number' => $order->number,
                 ]),
                 $submittedBy?->id
@@ -165,6 +169,7 @@ class OrderService
             }
             if (($data['channel'] ?? null) === self::OfficeChannel) {
                 $data = [...$data, 'reference' => $this->officeReference($locked), 'amount' => $locked->outstanding()];
+                app(PayoutLimits::class)->refuseOverOfficeCash(Money::cents($locked->outstanding()), 'channel');
                 $id = $this->insertClaim($locked, $data);
                 $this->event($locked, $actor, 'payment.claimed', ['claim_id' => $id]);
                 $this->officeCashNotices($actor, $locked, (string) $data['amount']);
@@ -300,22 +305,38 @@ class OrderService
         }, 3);
     }
 
-    public function verify(User $actor, int $claimId, bool $approve, string $reason): void
+    /**
+     * Confirms or rejects a partner's payment. Cash brought to the office is confirmed only with the
+     * amount the clerk counted, and it must be the whole payment (MA-17).
+     */
+    public function verify(User $actor, int $claimId, bool $approve, string $reason, ?string $cashCounted = null): void
     {
         abort_unless($actor->allows('finance'), 403);
         // The gateway can take up to 30 seconds. Ask it before taking the money lock so a
         // slow provider does not stall every other order, payout and settlement.
         $checked = $approve ? $this->gatewayLookupBeforeLock($claimId) : null;
         try {
-            DB::transaction(function () use ($actor, $claimId, $approve, $reason, $checked): void {
+            DB::transaction(function () use ($actor, $claimId, $approve, $reason, $checked, $cashCounted): void {
                 CommissionWallet::lock();
                 $initial = DB::table('payment_claims')->find($claimId);
                 abort_unless($initial, 404);
                 $order = Order::whereKey($initial->order_id)->lockForUpdate()->firstOrFail();
+                // A branch's staff check only their own branch's payments (SA-09).
+                abort_unless($this->branches->mayOpenOrder($actor, $order), 403);
                 $this->assertNotOwnOrder($actor, $order);
                 $claim = DB::table('payment_claims')->where('id', $claimId)->lockForUpdate()->first();
                 if ($claim->status !== 'pending') {
                     throw ValidationException::withMessages(['payment' => __('portal.err_payment_already_reviewed')]);
+                }
+                if ($approve && $claim->channel === self::OfficeChannel) {
+                    if ($cashCounted === null || trim($cashCounted) === '') {
+                        throw ValidationException::withMessages(['cash_counted' => __('payouts.err_cash_count_needed')]);
+                    }
+                    if (Money::cents($cashCounted) !== Money::cents((string) $claim->amount)) {
+                        throw ValidationException::withMessages(['cash_counted' => __('payouts.err_cash_count_mismatch', [
+                            'counted' => TakaText::amount($cashCounted), 'amount' => TakaText::amount((string) $claim->amount),
+                        ])]);
+                    }
                 }
                 if ($approve) {
                     if (in_array($order->status, ['rejected', 'cancelled'], true)) {
@@ -355,6 +376,7 @@ class OrderService
                 $this->event($order, $actor, $approve ? 'payment.verified' : 'payment.rejected', [
                     'claim_id' => $claimId, 'reason' => $reason, 'channel' => $claim->channel, 'reference' => $claim->reference,
                     'amount' => $claim->amount, 'order_paid_after' => $order->paid, 'order_total' => $order->total,
+                    ...($approve && $claim->channel === self::OfficeChannel ? ['cash_counted' => $cashCounted] : []),
                 ]);
                 $partner = User::find($order->user_id);
                 $locale = $partner?->preferredLocale() ?? app()->getLocale();
@@ -437,7 +459,7 @@ class OrderService
             if ($bookCourier) {
                 DB::afterCommit(fn () => BookShipmentCourier::dispatch($shipmentId));
             }
-            $remaining = $locked->lines()->whereColumn('dispatched', '<', 'quantity')->exists();
+            $remaining = $locked->lines()->whereRaw(OrderLines::unsentSql())->exists();
             $locked->update([
                 'status' => $remaining ? 'partially_dispatched' : 'dispatched',
                 'fulfillment_branch_id' => $fulfillmentBranch->id,
@@ -469,6 +491,7 @@ class OrderService
     {
         abort_unless($actor->allows('inventory'), 403);
         $this->assertNotOwnOrder($actor, $order);
+        abort_unless($this->branches->mayOpenOrder($actor, $order), 403);
         DB::transaction(function () use ($actor, $order, $shipmentId, $reason): void {
             CommissionWallet::lock();
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
@@ -483,9 +506,9 @@ class OrderService
                 throw ValidationException::withMessages(['shipment' => __('courier.returned_cannot_confirm')]);
             }
             DB::table('shipments')->where('id', $shipmentId)->update(['status' => 'delivered', 'delivered_at' => now(), 'delivered_by' => $actor->id, 'updated_at' => now(), ...ShipmentTracking::confirmedDelivered($shipment)]);
-            $remaining = $locked->lines()->whereColumn('dispatched', '<', 'quantity')->exists();
+            $remaining = $locked->lines()->whereRaw(OrderLines::unsentSql())->exists();
             $openShipment = DB::table('shipments')->where('order_id', $locked->id)->where('status', '!=', 'delivered')->exists();
-            if (! $remaining && ! $openShipment) {
+            if (! $remaining && ! $openShipment && ! $locked->lines()->where('closed', '>', 0)->exists()) {
                 $locked->update(['status' => 'delivered']);
                 $this->commissions->process($locked, $actor->id);
             }
@@ -504,7 +527,8 @@ class OrderService
      * A parcel the courier returned is physically back at the branch. The shipped quantity
      * goes back into that branch's stock exactly once. The order closes when nothing else is
      * left on it; when goods are still to send and nothing is out or delivered, it goes back to
-     * approved so the rest can be sent. No commission is posted; any money is returned by hand.
+     * approved so the rest can be sent. No commission is posted here; the money for the goods that
+     * came back is given back through the order's refund step ({@see OrderReturns}).
      */
     public function receiveReturnedParcel(User $actor, Order $order, int $shipmentId, ?string $note): void
     {
@@ -544,7 +568,7 @@ class OrderService
                 ]);
             }
             DB::table('shipments')->where('id', $shipment->id)->update(['status' => 'returned', 'updated_at' => now()]);
-            $unsent = $locked->lines()->whereColumn('dispatched', '<', 'quantity')->exists();
+            $unsent = $locked->lines()->whereRaw(OrderLines::unsentSql())->exists();
             $otherParcels = DB::table('shipments')->where('order_id', $locked->id)->where('status', '!=', 'returned')->exists();
             $orderClosed = ! $unsent && ! $otherParcels;
             $nothingOut = $unsent && ! $otherParcels;
@@ -695,14 +719,14 @@ class OrderService
 
             return;
         }
-        $lines = OrderLine::query()->where('order_id', $locked->id)->whereColumn('dispatched', '<', 'quantity')->orderBy('id')->get();
+        $lines = OrderLine::query()->where('order_id', $locked->id)->whereRaw(OrderLines::unsentSql())->orderBy('id')->get();
         if ($lines->isEmpty()) {
             return;
         }
         $products = Product::whereIn('id', $lines->pluck('product_id'))->orderBy('id')->lockForUpdate()->get()->keyBy('id');
         $items = [];
         foreach ($lines as $line) {
-            $left = (int) $line->getAttribute('quantity') - (int) $line->getAttribute('dispatched');
+            $left = (int) $line->getAttribute('quantity') - (int) $line->getAttribute('dispatched') - (int) $line->getAttribute('closed');
             $product = $products->get((int) $line->getAttribute('product_id'));
             if (! $product instanceof Product || $this->stockLots->usableQuantity($this->branches->ensureBranchStock($branch, $product), $product) < $left) {
                 $this->autoShipSkipped($actor, $locked, (string) $provider, 'stock');
@@ -728,7 +752,7 @@ class OrderService
         ]);
         $this->stockLots->linkShipment($shipmentLines, $shipmentId);
         DB::afterCommit(fn () => BookShipmentCourier::dispatch($shipmentId));
-        $remaining = $locked->lines()->whereColumn('dispatched', '<', 'quantity')->exists();
+        $remaining = $locked->lines()->whereRaw(OrderLines::unsentSql())->exists();
         $locked->update(['status' => $remaining ? 'partially_dispatched' : 'dispatched', 'fulfillment_branch_id' => $branch->id]);
         $this->event($locked, $actor, 'order.dispatched', [
             'shipment_id' => $shipmentId,
@@ -781,8 +805,14 @@ class OrderService
             $product = $products[$line->product_id];
             $quantity = (int) $item['quantity'];
             $branchStock = $this->branches->ensureBranchStock($branch, $product);
-            if ($quantity > $line->quantity - $line->dispatched || $quantity > $branchStock->quantity) {
-                throw ValidationException::withMessages(['shipment' => __('portal.err_shipment_qty', ['product' => $product->name])]);
+            $left = max(0, (int) $line->getAttribute('quantity') - (int) $line->getAttribute('dispatched') - (int) $line->getAttribute('closed'));
+            if ($quantity > $left || $quantity > $branchStock->quantity) {
+                throw ValidationException::withMessages(['shipment' => __('orders_stock.err_shipment_qty', [
+                    'product' => $product->name,
+                    'left' => LocalDigits::text((string) $left),
+                    'stock' => LocalDigits::text((string) $branchStock->quantity),
+                    'branch' => $branch->name,
+                ])]);
             }
             $previousStock = $product->stock;
             $wasAvailable = $this->stockNotifications->isAvailable($product);
@@ -825,7 +855,7 @@ class OrderService
         $this->assertNotOwnOrder($actor, $order);
         DB::transaction(function () use ($actor, $order, $eta, $note): void {
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
-            if (! in_array($locked->status, self::SupplyDateStatuses, true) || ! $locked->lines()->whereColumn('dispatched', '<', 'quantity')->exists()) {
+            if (! in_array($locked->status, self::SupplyDateStatuses, true) || ! $locked->lines()->whereRaw(OrderLines::unsentSql())->exists()) {
                 throw ValidationException::withMessages(['supply_eta' => __('portal.err_supply_eta_nothing_left')]);
             }
             $note = $note !== null && trim($note) !== '' ? trim($note) : null;
@@ -882,10 +912,16 @@ class OrderService
         return [$part, false];
     }
 
-    /** The reference the server gives a By Office payment; the partner types nothing. */
+    /**
+     * The reference the server gives a By Office payment; the partner types nothing. A second try on
+     * the same order (after a rejected one) gets its own number, "OFC-<order>-2", so two payment rows
+     * never share a reference (MA-21).
+     */
     private function officeReference(Order $order): string
     {
-        return 'OFC-'.$order->number;
+        $earlier = DB::table('payment_claims')->where('order_id', $order->id)->where('channel', self::OfficeChannel)->count();
+
+        return 'OFC-'.$order->number.($earlier > 0 ? '-'.($earlier + 1) : '');
     }
 
     /** By Office: tell the partner to bring the cash, and tell the office to expect it. */
@@ -894,14 +930,14 @@ class OrderService
         $locale = $partner->preferredLocale();
         $this->partnerNotice($partner->id, 'order_payment.notice_office_title', 'order_payment.notice_office_body', [
             'number' => $order->number,
-            'amount' => LocalDigits::text(Money::grouped($amount), $locale),
+            'amount' => TakaText::afterSign($amount, $locale),
         ]);
         Audit::notifyAdminsAndStaff(
             ['finance', 'orders'],
             __('order_payment.notice_admin_office_title', ['number' => $order->number]),
             __('order_payment.notice_admin_office_body', [
                 'name' => $partner->name,
-                'amount' => LocalDigits::text(Money::grouped($amount)),
+                'amount' => TakaText::afterSign($amount),
                 'number' => $order->number,
             ]),
         );
@@ -913,7 +949,7 @@ class OrderService
         $locale = User::find($userId)?->preferredLocale() ?? app()->getLocale();
         $this->partnerNotice($userId, 'portal.notice_payment_claimed_title', 'portal.notice_payment_claimed_body', [
             'number' => $number,
-            'amount' => LocalDigits::text(Money::grouped($amount), $locale),
+            'amount' => TakaText::afterSign($amount, $locale),
             'channel' => __('portal.pay_channel_'.Str::lower($channel), [], $locale),
         ]);
     }
@@ -998,6 +1034,10 @@ class OrderService
 
         // Proof of payment (screenshot or PDF) — required by the request rules for new claims.
         $proof = ($data['proof'] ?? null) instanceof UploadedFile ? app(PaymentProof::class)->store($data['proof']) : null;
+        // A blank or tiny picture is kept but flagged for the checker (F-verify-02).
+        if ($proof !== null) {
+            $proof['proof_looks_blank'] = PayoutReceiptCheck::imageProblem($data['proof']) !== null;
+        }
         DB::afterRollBack(fn () => app(PaymentProof::class)->discard($proof));
 
         try {

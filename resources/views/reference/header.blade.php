@@ -7,10 +7,12 @@
 @endphp
 <a class="ref-skip" href="#main">{{ __('site.skip_to_content') }}</a>
 @if($showBismillah)
+<div role="region" aria-label="{{ \App\Support\SiteCustomization::brandName() }}">
 <p class="ref-bismillah"@if(\App\Support\SiteChrome::isArabic($bismillahText)) lang="ar" dir="rtl"@endif><span>{{ $bismillahText }}</span></p>
+</div>
 @endif
 {{-- The round logo and the trade licence and trademark numbers sit together at the left; the name stays centred on the page. --}}
-<div class="ref-company-bar">
+<div class="ref-company-bar" role="region" aria-label="{{ \App\Support\SiteCustomization::brandName() }}">
     <div class="ref-container ref-company-bar-inner">
         <div class="ref-bar-brand">
             <a href="{{ $site('/') }}" class="ref-bar-logo" aria-label="{{ __('site.brand_home') }}">
@@ -62,6 +64,9 @@
             @endif
             @if($publicPageEnabled['dealers'] ?? true)
             <a href="{{ $site('/dealers') }}"><i class="fa-solid fa-layer-group" aria-hidden="true"></i><b>{{ $chrome('network', $siteCustomization['header_network_title'] ?? null) }}</b></a>
+            @endif
+            @if($publicPageEnabled['partnership'] ?? true)
+            <a href="{{ $site('/partnership') }}"><i class="fa-solid fa-handshake" aria-hidden="true"></i><b>{{ $chrome('become_a_partner', $siteCustomization['header_partner_title'] ?? null) }}</b></a>
             @endif
             @auth
             <a href="{{ \App\Support\PortalHost::homeUrl(auth()->user()) }}" class="ref-header-account"><i class="fa-solid fa-user-check" aria-hidden="true"></i><b>{{ auth()->user()->name }}</b></a>

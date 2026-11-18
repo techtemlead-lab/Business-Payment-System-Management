@@ -34,6 +34,9 @@ type ErrorsData = {
 const PORTALS = ['public', 'dealer', 'subdealer', 'manage', 'sadmin'];
 
 /** Owner only: problems the site hit while running, one line for each kind, with a detail view and the log's own switch. */
+/** The place in the code without the server's folders, so a screen never shows where the site is installed. */
+const shortPath = (path: string): string => String(path).replace(/\\/g, '/').replace(/^.*?\/(app|vendor|routes|resources|bootstrap|database)\//, '$1/');
+
 export default function Errors({ data }: { data: ErrorsData }) {
     const translate = useT();
     const t = (key: string, replace?: Record<string, string>) => translate('office_errors', key, replace);
@@ -66,8 +69,8 @@ export default function Errors({ data }: { data: ErrorsData }) {
                 <section className="panel" aria-label={t('d_title')}>
                     <h2>{t('d_title')}</h2>
                     <dl className="detail-list">
-                        <dt>{t('d_message')}</dt><dd><b>{detail.exception_class}</b><br />{detail.message || t('d_none')}</dd>
-                        <dt>{t('d_file')}</dt><dd><code>{detail.file}:{detail.line}</code></dd>
+                        <dt>{t('d_message')}</dt><dd><b>{detail.exception_class.split('\\').pop()}</b><br />{detail.message || t('d_none')}</dd>
+                        <dt>{t('d_file')}</dt><dd><code>{shortPath(detail.file)}:{detail.line}</code></dd>
                         <dt>{t('d_portal')}</dt><dd>{portalName(detail.portal)}</dd>
                         <dt>{t('d_route')}</dt><dd>{detail.route_name ?? t('d_none')}</dd>
                         <dt>{t('d_status')}</dt><dd>{detail.http_status}</dd>

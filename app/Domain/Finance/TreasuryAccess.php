@@ -2,6 +2,7 @@
 
 namespace App\Domain\Finance;
 
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\User;
 
 /**
@@ -17,12 +18,12 @@ final class TreasuryAccess
 
     public static function mayOpenOrders(User $user): bool
     {
-        return $user->status === 'active' && ($user->owner() || $user->allows('finance') || $user->allows('reports'));
+        return $user->status === 'active' && (LeadershipAccess::granted($user, 'treasury') || $user->allows('finance') || $user->allows('reports'));
     }
 
     public static function mayOpenPartners(User $user): bool
     {
-        return $user->status === 'active' && ($user->owner() || $user->allows('finance'));
+        return $user->status === 'active' && (LeadershipAccess::granted($user, 'treasury') || $user->allows('finance'));
     }
 
     /** One partner's statement: also open to account managers, as the old statement page was. */
@@ -33,12 +34,18 @@ final class TreasuryAccess
 
     public static function mayOpenEvents(User $user): bool
     {
-        return $user->status === 'active' && ($user->owner() || $user->allows('finance'));
+        return $user->status === 'active' && (LeadershipAccess::granted($user, 'treasury') || $user->allows('finance'));
+    }
+
+    /** The profit and loss shows the owners' share, so it is for an owner on the owner panel only. */
+    public static function mayOpenProfit(User $user, string $portal): bool
+    {
+        return $user->status === 'active' && self::showsOwnerFunds($user, $portal);
     }
 
     /** The owners' fund exists only for an owner on the owner panel. */
     public static function showsOwnerFunds(User $user, string $portal): bool
     {
-        return $user->owner() && $portal === 'sadmin';
+        return LeadershipAccess::granted($user, 'treasury') && $portal === 'sadmin';
     }
 }

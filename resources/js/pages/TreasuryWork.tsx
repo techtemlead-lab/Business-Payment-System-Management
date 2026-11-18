@@ -1,6 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { ChevronRight } from 'lucide-react';
-import { number } from '../components/UI';
+import { money, number } from '../components/UI';
 import type { MoneyTableData } from '../components/MoneyTable';
 import TreasuryPage from '../components/treasury/TreasuryPage';
 import SpendApprovals, { type SpendApproval } from '../components/treasury/SpendApprovals';
@@ -8,7 +8,7 @@ import { BudgetsTable, HeadsTable, type HeadBudget } from '../components/treasur
 import type { ExpenseHead } from '../components/treasury/FundSpendForm';
 import { useT } from '../shared/i18n/t';
 
-type WorkTile = { key: string; label: string; href: string; count: number };
+type WorkTile = { key: string; label: string; href: string; count: number; amount?: string | null; alert?: boolean };
 type WorkTab = 'waiting' | 'heads' | 'budgets';
 
 const SWITCHES: { key: WorkTab; href: string; word: string }[] = [
@@ -42,8 +42,9 @@ export default function TreasuryWork({ tab, tiles, approvals_table: approvals, h
                 <>
                     <nav className="tsy-work" aria-label={translate('treasury', 'work_waiting')}>
                         {tiles.map((tile) => (
-                            <Link key={tile.key} href={tile.href} className="tsy-work-row">
+                            <Link key={tile.key} href={tile.href} className={tile.alert ? 'tsy-work-row is-alert' : 'tsy-work-row'}>
                                 <span>{tile.label}</span>
+                                {tile.amount != null && <em>{money(tile.amount)}</em>}
                                 {tile.count > 0 && <b>{number(tile.count)}</b>}
                                 <ChevronRight size={16} aria-hidden="true" />
                             </Link>

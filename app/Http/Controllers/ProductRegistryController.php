@@ -22,6 +22,7 @@ use App\Support\Audit;
 use App\Support\CatalogCms;
 use App\Support\Money;
 use App\Support\ProductVideo;
+use App\Support\ProtectedFileResponse;
 use App\Support\ReasonFields;
 use App\Support\SiteCustomization;
 use App\Support\YouTubeVideo;
@@ -35,7 +36,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class ProductRegistryController extends Controller
 {
@@ -174,6 +175,44 @@ class ProductRegistryController extends Controller
     }
 
     /**
+     * Puts the chosen draft products on sale in one go, for products that arrived from an import.
+     * A draft with no usable price or unit is left as it is, because dealers could not order it.
+     */
+    public function bulkPublish(Request $r): RedirectResponse
+    {
+        abort_unless($r->user()->allows('catalog'), 403);
+        $data = $r->validate([
+            'product_ids' => ['required', 'array', 'min:1', 'max:500'],
+            'product_ids.*' => ['integer', 'distinct'],
+        ]);
+        [$published, $skipped] = DB::transaction(function () use ($r, $data): array {
+            $drafts = Product::query()->whereIn('id', $data['product_ids'])->where('active', false)->whereNull('archived_at')->orderBy('id')->lockForUpdate()->get();
+            $published = [];
+            $skipped = 0;
+            foreach ($drafts as $draft) {
+                $mrp = (float) $draft->mrp;
+                $dealer = (float) $draft->dealer_price;
+                if ($mrp <= 0 || $dealer <= 0 || $dealer > $mrp || trim((string) $draft->unit) === '' || trim((string) $draft->name) === '') {
+                    $skipped++;
+
+                    continue;
+                }
+                $draft->update(['active' => true, 'registry_version' => $draft->registry_version + 1]);
+                $published[] = $draft->id;
+            }
+            if ($published !== []) {
+                Audit::record($r->user()->id, 'product.bulk_published', 'catalog', ['product_ids' => $published]);
+            }
+
+            return [count($published), $skipped];
+        }, 3);
+        SiteCustomization::forgetCache();
+
+        return back()->with('success', __('stock_screens.import_publish_done', ['count' => $published])
+            .($skipped > 0 ? ' '.__('stock_screens.import_publish_skipped', ['count' => $skipped]) : ''));
+    }
+
+    /**
      * Saves the home page list: the products named here, in this order, and no others.
      */
     public function featuredOrder(Request $r): RedirectResponse
@@ -253,7 +292,7 @@ class ProductRegistryController extends Controller
             'expires_on' => $catalog && Schema::hasColumn('products', 'expires_on') ? 'sometimes|nullable|date' : 'prohibited',
             'batch_number' => $catalog ? 'sometimes|nullable|string|max:60' : 'prohibited',
             'redirect_to' => 'nullable|string|max:50',
-            'initial_stock' => $inventory ? 'nullable|integer|min:0|max:100000' : 'nullable|integer|in:0'];
+            'initial_stock' => $inventory ? 'nullable|integer|min:0|max:'.BranchOperations::MaxUnitsPerEntry : 'nullable|integer|in:0'];
         $rules += ProductFacts::validationRules($catalog);
         $d = $r->validate($rules);
         $d['reason'] = ReasonFields::text($d['reason'] ?? null);
@@ -275,6 +314,11 @@ class ProductRegistryController extends Controller
         if (! $this->priceGiven($d, 'sub_dealer_price') && isset($d['sub_dealer_discount_pct']) && $mrp) {
             $rate = Percentage::from((string) $d['sub_dealer_discount_pct']);
             $d['sub_dealer_price'] = Money::decimal(Percentage::from(Money::decimal(10000 - $rate->basisPoints))->of(Money::cents($mrp), 'half_up'));
+        }
+
+        // No sub-dealer price anywhere yet: it is exactly 75% of MRP to the paisa (never rounded up to a whole taka).
+        if ($mrp && ! $this->priceGiven($d, 'sub_dealer_price') && ! isset($d['sub_dealer_discount_pct']) && $product?->sub_dealer_price === null) {
+            $d['sub_dealer_price'] = Money::decimal(Percentage::from('75.00')->of(Money::cents($mrp), 'half_up'));
         }
 
         $retail = Money::cents($mrp);
@@ -477,7 +521,7 @@ class ProductRegistryController extends Controller
             : __('portal.flash_product_created'));
     }
 
-    public function image(Request $r, Product $product, ProductPhotoThumbnail $thumbnails): BinaryFileResponse
+    public function image(Request $r, Product $product, ProductPhotoThumbnail $thumbnails): HttpResponse
     {
         $this->mediaAccess($r, $product);
         abort_unless($product->image_path && Storage::disk('local')->exists($product->image_path), 404);
@@ -490,19 +534,19 @@ class ProductRegistryController extends Controller
             if ($copy !== null) {
                 $cache = $product->active ? 'public, max-age=31536000, immutable' : 'private, no-cache';
 
-                return response()->file(Storage::disk('local')->path($copy), ['Cache-Control' => $cache, 'X-Content-Type-Options' => 'nosniff']);
+                return ProtectedFileResponse::make($copy, ['Cache-Control' => $cache, 'X-Content-Type-Options' => 'nosniff']);
             }
         }
 
-        return response()->file(Storage::disk('local')->path($product->image_path), ['Cache-Control' => 'no-cache', 'X-Content-Type-Options' => 'nosniff']);
+        return ProtectedFileResponse::make($product->image_path, ['Cache-Control' => 'no-cache', 'X-Content-Type-Options' => 'nosniff']);
     }
 
-    public function video(Request $r, Product $product): BinaryFileResponse
+    public function video(Request $r, Product $product): HttpResponse
     {
         $this->mediaAccess($r, $product);
         abort_unless($product->video_source === 'upload' && $product->video_path && Storage::disk('local')->exists($product->video_path), 404);
 
-        return response()->file(Storage::disk('local')->path($product->video_path), ['Content-Type' => $product->video_mime, 'Cache-Control' => 'no-cache', 'X-Content-Type-Options' => 'nosniff']);
+        return ProtectedFileResponse::make($product->video_path, ['Content-Type' => $product->video_mime, 'Cache-Control' => 'no-cache', 'X-Content-Type-Options' => 'nosniff']);
     }
 
     private function mediaAccess(Request $r, Product $p): void

@@ -38,7 +38,7 @@ class NewPartnerPasswordDeliveryTest extends TestCase
 
     public function test_no_link_is_sent_when_the_sms_goes_out(): void
     {
-        $this->createPartner()->assertSessionHas('success', __('portal.acct_partner_created_sent', $this->flashValues()));
+        $this->createPartner()->assertSessionHas('success', fn (string $message): bool => str_starts_with($message, __('portal.acct_partner_created_sent', $this->flashValues())));
 
         Notification::assertNothingSent();
     }
@@ -49,7 +49,7 @@ class NewPartnerPasswordDeliveryTest extends TestCase
         Http::fake([self::MimUrl => Http::response(['statusCode' => '401', 'status' => 'Failed', 'responseResult' => 'Bad key'])]);
 
         $this->createPartner()->assertRedirect('/accounts')
-            ->assertSessionHas('success', __('portal.acct_partner_created_not_sent', $this->flashValues()));
+            ->assertSessionHas('success', fn (string $message): bool => str_starts_with($message, __('portal.acct_partner_created_not_sent', $this->flashValues())));
 
         Notification::assertSentTo(User::where('email', 'partner@example.com')->firstOrFail(), ResetPassword::class);
     }

@@ -84,6 +84,12 @@
   .mt-dates label{flex:1 1 130px;min-width:0}
   .app-shell .mt-dates .date-input-wrapper{width:100%}
 
+
+  dialog.portal-modal:has(.mt-sheet){top:auto!important;bottom:0!important;left:0!important;transform:none!important;width:100%;max-width:100%;border-width:1px 0 0;border-radius:var(--ds-r-xl) var(--ds-r-xl) 0 0}
+}
+
+/* Up to a small laptop the pinned status and action columns would sit on top of the money column, so a row becomes a card as it does on a phone. */
+@media (max-width:1023px){
   .mt-table-wrap{display:none}
   .mt-cards{display:block;overflow:hidden;border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);background:var(--ds-surface)}
   .mt-card{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border-bottom:1px solid var(--ds-line-soft)}
@@ -109,6 +115,4 @@
   .mt-card-total{display:grid;gap:4px;background:var(--ds-surface-2)}
   .mt-card-total-line{display:flex;justify-content:space-between;gap:12px;color:var(--ds-text-2);font-size:var(--ds-fs-sm)}
   .mt-card-total-line b{color:var(--ds-text);font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
-
-  dialog.portal-modal:has(.mt-sheet){top:auto!important;bottom:0!important;left:0!important;transform:none!important;width:100%;max-width:100%;border-width:1px 0 0;border-radius:var(--ds-r-xl) var(--ds-r-xl) 0 0}
 }

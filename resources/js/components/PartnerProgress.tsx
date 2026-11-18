@@ -21,7 +21,7 @@ type Rank = {
     award: { rank: string; amount: string | null; status: 'paid' | 'waiting' | 'off' } | null;
     keep: (Bar & { rank: string; status: string; royalty_on: boolean; grace_days: number }) | null;
 };
-type Reward = Bar & { type: 'bike' | 'car'; status: 'off' | 'in_progress' | 'reached' | 'given'; line_cap: string; team_sales: string; lines: number };
+type Reward = Bar & { type: 'bike' | 'car'; status: 'off' | 'in_progress' | 'reached' | 'given'; line_cap: string; award: string | null; team_sales: string; lines: number };
 type Tour = {
     status: 'off' | 'saving';
     rate: string;
@@ -203,6 +203,9 @@ function RankSection({ rank, period }: { rank: Rank; period: Period }) {
     );
 }
 
+/** An order line this big shows how the per-line cap works: only the cap counts toward the target. */
+const CAP_EXAMPLE_ORDER = '1000000000';
+
 function RewardsSection({ rewards, isSubDealer }: { rewards: Reward[]; isSubDealer: boolean }) {
     const translate = useT();
 
@@ -222,7 +225,23 @@ function RewardsSection({ rewards, isSubDealer }: { rewards: Reward[]; isSubDeal
                             <StatusLine ok={null}>{translate('portal', 'pp_switched_off')}</StatusLine>
                         ) : (
                             <>
+                                <ul className="pp-checklist">
+                                    <li className="is-ok">
+                                        <span>{translate('money_core', 'pr_prize')}</span>
+                                        <em>{reward.award === null ? translate('money_core', 'pr_prize_unset') : money(reward.award)}</em>
+                                    </li>
+                                    <li className="is-ok">
+                                        <span>{translate('money_core', 'pr_target')}</span>
+                                        <em>{money(reward.target)}</em>
+                                    </li>
+                                    <li className="is-ok">
+                                        <span>{translate('money_core', 'pr_deadline')}</span>
+                                        <em>{translate('money_core', 'pr_deadline_none')}</em>
+                                    </li>
+                                </ul>
                                 <p className="pp-how">{translate('portal', 'pp_reward_how', { cap: money(reward.line_cap) })}</p>
+                                <p className="pp-how">{translate('money_core', 'pr_cap_example', { example: money(CAP_EXAMPLE_ORDER), cap: money(reward.line_cap) })}</p>
+                                <p className="pp-how">{translate('money_core', 'pr_claim')}</p>
                                 <ProgressBar bar={reward} label={label} tone={reward.status === 'in_progress' ? 'brand' : 'ok'} />
                                 <small className="pp-note">{translate('portal', 'pp_reward_team_total', { amount: money(reward.team_sales), lines: number(reward.lines) })}</small>
                                 {reward.status === 'reached' && <StatusLine ok>{translate('portal', 'pp_reward_reached')}</StatusLine>}

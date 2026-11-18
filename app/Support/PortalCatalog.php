@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Domain\Clinic\PrescriptionAccess;
+use App\Domain\Staff\LeadershipAccess;
 use App\Domain\Support\PartnerChat;
 use App\Models\User;
 
@@ -66,42 +67,50 @@ final class PortalCatalog
             // Off for every partner until the owner verifies their registration; the owner-doctor always has it.
             abort_unless(PrescriptionAccess::canPrescribe($user), 403, (string) __('prescription.err_not_enabled'));
         }
-        if ($section === 'data-cleanup' || $section === 'login-rules' || $section === 'privacy-requests' || $section === 'visitors' || $section === 'reason-fields' || $section === 'errors') {
-            // Owner-only pages on the owner panel: the manual data clean-up, the login switches, data requests,
-            // the website visitor count and the reason box switches.
-            abort_unless($portal === 'sadmin' && $user->owner(), 403);
+        if ($section === 'data-cleanup') {
+            // Deleting records: the Super Admin alone (SA-07).
+            abort_unless($portal === 'sadmin' && $user->role === 'super_admin', 403);
+        }
+        if ($section === 'login-rules' || $section === 'privacy-requests' || $section === 'visitors' || $section === 'reason-fields' || $section === 'errors') {
+            // Owner-only pages on the owner panel: the login switches, data requests, the website visitor
+            // count and the reason box switches. The MD and Chairman need the Super Admin's grant (D11).
+            abort_unless($portal === 'sadmin' && LeadershipAccess::granted($user, 'owner_tools'), 403);
         }
         if ($portal === 'sadmin' && in_array($section, ['sales-kit', 'schemes', 'contests'], true)) {
             // Owner-managed partner tools: staff on the owner panel do not edit these.
-            abort_unless($user->owner(), 403);
+            abort_unless(LeadershipAccess::granted($user, 'owner_tools'), 403);
         }
         if (in_array($portal, ['manage', 'sadmin'], true) && $section === 'agreement') {
             // Owners edit the agreement; staff who manage accounts see who accepted it.
             // A dealer working in the staff desk still reads their own agreement there.
-            abort_unless($user->owner() || $user->allows('accounts') || in_array($user->role, ['dealer', 'sub_dealer'], true), 403);
+            abort_unless(LeadershipAccess::granted($user, 'owner_tools') || $user->allows('accounts') || in_array($user->role, ['dealer', 'sub_dealer'], true), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && in_array($section, ['accounts', 'sub-dealers', 'employees'], true)) {
-            // Owners (Super Admin, MD, Chairman) open the account lists to reset or see passwords.
-            abort_unless($user->owner() || $user->allows('accounts'), 403);
+            // Owners open the account lists to reset or see passwords; the MD and Chairman need the grant (D11).
+            abort_unless(LeadershipAccess::granted($user, 'accounts') || $user->allows('accounts'), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'network-tree') {
-            // Owners (Super Admin, MD, Chairman) see every dealer's tree, not only staff who manage accounts.
-            abort_unless($user->owner() || $user->allows('accounts'), 403);
+            // Owners see every dealer's tree, not only staff who manage accounts (MD and Chairman: with the grant).
+            abort_unless(LeadershipAccess::granted($user, 'accounts') || $user->allows('accounts'), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'enquiries') {
             abort_unless($user->allows('content') || $user->allows('accounts') || $user->allows('support_desk'), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'support-admin') {
-            abort_unless($user->owner() || $user->allows('accounts') || $user->allows('support_desk'), 403);
+            abort_unless(LeadershipAccess::granted($user, 'owner_tools') || $user->allows('accounts') || $user->allows('support_desk'), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'feedback') {
             // Reviews go on the public website, so only website (content) staff check them.
             abort_unless($user->allows('content'), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'catalog') {
             abort_unless($user->allows('catalog') || $user->allows('pricing') || $user->allows('inventory') || $user->allows('orders') || $user->allows('finance'), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'branches') {
-            abort_unless($user->allows('inventory') || $user->allows('accounts') || $user->owner(), 403);
+            abort_unless($user->allows('inventory') || $user->allows('accounts') || LeadershipAccess::granted($user, 'owner_tools'), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'branch-performance') {
-            abort_unless($user->owner() || $user->allows('reports') || $user->allows('finance') || $user->allows('inventory'), 403);
+            abort_unless(LeadershipAccess::granted($user, 'owner_tools') || $user->allows('reports') || $user->allows('finance') || $user->allows('inventory'), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && in_array($section, ['orders', 'deliveries'], true)) {
             abort_unless($user->allows('orders') || $user->allows('finance'), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && in_array($section, ['training', 'events'], true)) {
-            abort_unless($user->owner() || $user->allows('content'), 403);
+            abort_unless(LeadershipAccess::granted($user, 'owner_tools') || $user->allows('content'), 403);
+        } elseif (in_array($portal, ['manage', 'sadmin'], true) && in_array($section, ['purchasing', 'stock-counts'], true)) {
+            // F-verify-09: buying from suppliers and counting stock are working pages, not reports: they need the
+            // right to enter or approve stock, not only to look at stock movement.
+            abort_unless($user->canAct('inventory', 'create') || $user->canAct('inventory', 'approve'), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'partner-messages') {
             abort_unless(PartnerChat::canAnswer($user), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'reports') {

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { router, useForm } from '@inertiajs/react';
 import { Link } from '@inertiajs/react';
 import { Building2, MapPin, Plus, Store, Truck, Users } from 'lucide-react';
-import { Badge, Modal, Table, Pagination, label, money, type Row } from './UI';
+import { Badge, Modal, Table, Pagination, label, money, number, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
 import { useReasonField } from '../shared/reasonFields';
 import { toLatin } from '../shared/countUp';
@@ -13,7 +13,7 @@ interface BranchStaff {
     name?: string | null;
     email?: string | null;
     phone?: string | null;
-    duty: string;
+    duty: string | null;
     is_primary: boolean;
 }
 
@@ -202,8 +202,8 @@ export default function BranchesHub({
                             title: translate('portal', 'branch_stock_summary'),
                             render: (r: BranchRow) => (
                                 <b>{translate('portal', 'branch_stock_units', {
-                                    units: String(r.stock_units ?? 0),
-                                    skus: String(r.stock_skus ?? 0),
+                                    units: number(r.stock_units ?? 0),
+                                    skus: number(r.stock_skus ?? 0),
                                 })}</b>
                             ),
                         },
@@ -340,11 +340,11 @@ export default function BranchesHub({
                                 rows={editRow.staff || []}
                                 columns={[
                                     { key: 'name', title: translate('portal', 'col_name'), render: (s: BranchStaff) => <><b>{s.name}</b><small className="cell-sub">{s.phone || s.email}</small></> },
-                                    { key: 'duty', title: translate('portal', 'branch_duty') },
+                                    { key: 'duty', title: translate('portal', 'branch_duty'), render: (s: BranchStaff) => s.duty ?? '—' },
                                     {
                                         key: 'action',
                                         title: '',
-                                        render: (s: BranchStaff) => (
+                                        render: (s: BranchStaff) => (s.duty === null ? null : (
                                             <button
                                                 type="button"
                                                 className="button small"
@@ -352,7 +352,7 @@ export default function BranchesHub({
                                             >
                                                 {translate('portal', 'branch_remove_staff')}
                                             </button>
-                                        ),
+                                        )),
                                     },
                                 ]}
                             />

@@ -12,6 +12,7 @@ use App\Http\Controllers\DataCleanupController;
 use App\Http\Controllers\DatedSchemeController;
 use App\Http\Controllers\ErrorTrackingController;
 use App\Http\Controllers\IdentityLookupController;
+use App\Http\Controllers\OrderReturnController;
 use App\Http\Controllers\PartnerAccountDeletionController;
 use App\Http\Controllers\PartnerAgreementController;
 use App\Http\Controllers\PartnerChatController;
@@ -76,6 +77,7 @@ return function (string $portal): void {
     Route::post('/commands/chat-answerers', [PartnerChatController::class, 'answerers'])->middleware('throttle:10,1');
     Route::post('/commands/owner/contact', [AuthController::class, 'ownerContact'])->middleware('throttle:5,1');
     Route::post('/commands/profile/details', [PartnerProfileController::class, 'details'])->middleware('throttle:10,1');
+    Route::post('/commands/profile/change-request', [PartnerProfileController::class, 'changeRequest'])->middleware('throttle:5,1');
     Route::post('/commands/accounts/{user}/profile-lock', [PartnerProfileController::class, 'lock'])->middleware('throttle:20,1');
     Route::post('/commands/profile/photo', [AuthController::class, 'profilePhoto'])->middleware('throttle:10,1');
     Route::post('/commands/owner/partner-login-otp', [AuthController::class, 'partnerLoginOtp'])->middleware('throttle:5,1');
@@ -83,6 +85,8 @@ return function (string $portal): void {
     Route::post('/commands/owner/confirmation-code', [AuthController::class, 'ownerConfirmationCode'])->middleware('throttle:5,1');
     Route::post('/commands/owner/password-reset-notice', [AuthController::class, 'passwordResetNotice'])->middleware('throttle:5,1');
     Route::post('/commands/owner/one-account-per-identity', [AuthController::class, 'oneAccountPerIdentity'])->middleware('throttle:5,1');
+    Route::post('/commands/owner/team-phones', [AuthController::class, 'teamPhones'])->middleware('throttle:5,1');
+    Route::post('/commands/owner/leadership-access', [AuthController::class, 'leadershipAccess'])->middleware('throttle:5,1');
     Route::post('/commands/owner/site-visit-counting', [SiteVisitSettingsController::class, 'update'])->middleware('throttle:10,1');
     Route::post('/commands/owner/error-tracking', [ErrorTrackingController::class, 'settings'])->middleware('throttle:10,1');
     Route::post('/commands/errors/{errorReport}/fixed', [ErrorTrackingController::class, 'fixed'])->whereNumber('errorReport')->middleware('throttle:60,1');
@@ -94,6 +98,8 @@ return function (string $portal): void {
 
     Route::post('/commands/orders', [CommandController::class, 'order'])->middleware('throttle:10,1');
     Route::post('/commands/withdrawals', [WithdrawalController::class, 'store'])->middleware('throttle:10,1');
+    Route::post('/commands/withdrawals/{id}/cancel', [WithdrawalController::class, 'cancel'])->whereUuid('id')->middleware('throttle:10,1');
+    Route::post('/commands/withdrawals/tax-number', [WithdrawalController::class, 'tin'])->middleware('throttle:10,1');
     Route::get('/exports/orders', [ReportController::class, 'export'])->middleware('throttle:15,1,data-exports');
     Route::get('/exports/genealogy', [ReportController::class, 'genealogy'])->middleware('throttle:15,1,data-exports');
     Route::get('/exports/accounts', AccountListExportController::class)->middleware('throttle:15,1,data-exports');
@@ -116,7 +122,15 @@ return function (string $portal): void {
     Route::post('/commands/orders/{order}/mixed-outcome-decision', [CourierShipmentController::class, 'mixedOutcomeDecision'])->middleware('throttle:20,1');
     Route::post('/commands/claims/{claim}/verify', [CommandController::class, 'verify']);
     Route::post('/commands/orders/{order}/refund', [CommandController::class, 'refund'])->middleware('throttle:10,1');
+    Route::post('/commands/orders/{order}/returns', [OrderReturnController::class, 'ask'])->middleware('throttle:10,1');
+    Route::post('/commands/orders/{order}/received', [OrderReturnController::class, 'received'])->middleware('throttle:10,1');
+    Route::post('/commands/orders/{order}/returns/start', [OrderReturnController::class, 'start'])->middleware('throttle:10,1');
+    Route::post('/commands/order-returns/{returnRequest}/approve', [OrderReturnController::class, 'approve'])->whereNumber('returnRequest')->middleware('throttle:10,1');
+    Route::post('/commands/order-returns/{returnRequest}/confirm', [OrderReturnController::class, 'confirm'])->whereNumber('returnRequest')->middleware('throttle:10,1');
+    Route::post('/commands/order-returns/{returnRequest}/reject', [OrderReturnController::class, 'reject'])->whereNumber('returnRequest')->middleware('throttle:10,1');
+    Route::post('/commands/order-returns/{returnRequest}/withdraw', [OrderReturnController::class, 'withdraw'])->whereNumber('returnRequest')->middleware('throttle:10,1');
     Route::post('/commands/accounts', [CommandController::class, 'account']);
+    Route::post('/commands/accounts/{user}/leadership-reset', [CommandController::class, 'leadershipResetRights'])->middleware('throttle:10,1');
     Route::patch('/commands/accounts/{user}', [CommandController::class, 'accountUpdate']);
     Route::delete('/commands/accounts/{user}', [PartnerAccountDeletionController::class, 'destroy'])->middleware('throttle:10,1');
     Route::get('/commands/accounts/{user}/deletion-check', [PartnerAccountDeletionController::class, 'show'])->middleware('throttle:60,1');
@@ -126,7 +140,7 @@ return function (string $portal): void {
     Route::post('/commands/accounts/{user}/invite', [CommandController::class, 'invite'])->middleware('throttle:3,1');
     Route::get('/commands/accounts/{user}/password-status', [CommandController::class, 'partnerPasswordStatus'])->middleware('throttle:60,1');
     Route::post('/commands/accounts/{user}/reset-password', [CommandController::class, 'resetPartnerPassword'])->middleware('throttle:10,1');
-    Route::post('/commands/accounts/{user}/reveal-password', [CommandController::class, 'revealPartnerPassword'])->middleware('throttle:20,1,password-reveal');
+    Route::post('/commands/accounts/{user}/reveal-password', [CommandController::class, 'revealPartnerPassword'])->middleware('throttle:5,1,password-reveal');
     Route::get('/commands/accounts/{user}/kyc-documents', [CommandController::class, 'kycDocuments'])->middleware('throttle:60,1');
     Route::post('/commands/accounts/{user}/kyc-documents', [CommandController::class, 'storeKycDocument'])->middleware('throttle:20,1');
     Route::get('/commands/accounts/{user}/kyc-documents/{document}', [CommandController::class, 'downloadKycDocument'])->middleware('throttle:60,1');
@@ -137,6 +151,7 @@ return function (string $portal): void {
     Route::get('/commands/product-photo-model/cutout/{file}', ProductPhotoModelController::class)->where('file', '.*')->middleware('throttle:60,1');
     Route::post('/commands/products', [ProductRegistryController::class, 'store']);
     Route::post('/commands/products/featured-order', [ProductRegistryController::class, 'featuredOrder']);
+    Route::post('/commands/products/bulk-publish', [ProductRegistryController::class, 'bulkPublish']);
     Route::patch('/commands/products/{product}', [ProductRegistryController::class, 'update']);
     Route::delete('/commands/products/{product}', [ProductRegistryController::class, 'destroy']);
     Route::post('/commands/products/{product}/restore', [ProductRegistryController::class, 'restore']);
@@ -203,6 +218,9 @@ return function (string $portal): void {
     Route::post('/commands/testimonials', [CommandController::class, 'storeStaffTestimonial'])->middleware('throttle:30,1');
     Route::post('/commands/withdrawals/{id}/review', [WithdrawalController::class, 'review'])->whereUuid('id');
     Route::post('/commands/withdrawals/{id}/record-payment', [WithdrawalController::class, 'settle'])->whereUuid('id');
+    Route::get('/commands/withdrawals/{id}/facts', [WithdrawalController::class, 'facts'])->whereUuid('id')->middleware('throttle:60,1');
+    Route::post('/commands/withdrawals/{id}/payer', [WithdrawalController::class, 'payer'])->whereUuid('id');
+    Route::post('/commands/withdrawals/{id}/attach-receipt', [WithdrawalController::class, 'attachReceipt'])->whereUuid('id');
     Route::post('/commands/policies/{id}/publish', [CommandController::class, 'publishPolicy']);
     Route::post('/commands/commissions/rules', [CommandController::class, 'updateCommissionRules']);
     Route::post('/commands/commissions/settle-salary', [CommandController::class, 'settleSalaryPool']);
@@ -211,6 +229,7 @@ return function (string $portal): void {
     Route::post('/commands/commissions/release-matured', [CommandController::class, 'releaseMaturedCommissions']);
     Route::post('/commands/commissions/simulate', [CommandController::class, 'simulateCommissions']);
     Route::post('/commands/area-dealers', [CommandController::class, 'assignAreaDealer']);
+    Route::post('/commands/area-dealers/{id}', [CommandController::class, 'updateAreaDealer'])->whereNumber('id');
     Route::delete('/commands/area-dealers/{id}', [CommandController::class, 'removeAreaDealer']);
 
     Route::post('/commands/support-tickets', [CommandController::class, 'supportTicket'])->middleware('throttle:10,1');

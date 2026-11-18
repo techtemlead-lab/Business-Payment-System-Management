@@ -4,7 +4,8 @@ x-application: &application
     context: .
     dockerfile: Dockerfile.production
     target: app
-  image: madina-application:release
+  # Tagged per release (MADINA_IMAGE_TAG=<sha>, set by infra/deploy); "release" always points at what runs.
+  image: madina-application:${MADINA_IMAGE_TAG:-release}
   env_file: .env.production
   environment:
     APP_ENV: production
@@ -13,9 +14,14 @@ x-application: &application
     DB_HOST: db
     DB_PORT: "5432"
     DB_DATABASE: madina
-    DB_USERNAME: madina
+    # SA-04: once madina:db-app-role has run, set DB_APP_USERNAME=madina_app in the stack .env;
+    # migrations then run with --database=pgsql_migrate as the owner.
+    DB_USERNAME: ${DB_APP_USERNAME:-madina}
+    DB_MIGRATE_USERNAME: madina
     DB_QUEUE_RETRY_AFTER: "2100"
     MADINA_BACKUP_PATH: /var/backups/madina
+    # The web image below has the internal /_protected/ location, so nginx sends private media after the app allows it.
+    MADINA_NGINX_PROTECTED_FILES: "true"
   volumes:
     - application-storage:/var/www/html/storage
     - private-backups:/var/backups/madina
@@ -34,6 +40,7 @@ services:
       context: .
       dockerfile: Dockerfile.production
       target: web
+    image: madina-web:${MADINA_IMAGE_TAG:-release}
     ports: ["127.0.0.1:8095:80"]
     depends_on: [app]
     restart: unless-stopped
@@ -50,7 +57,7 @@ services:
       retries: 3
   queue:
     <<: *application
-    command: ["php", "-d", "max_execution_time=0", "artisan", "queue:work", "--queue=imports,default", "--sleep=3", "--tries=1", "--timeout=1800", "--max-time=3600"]
+    command: ["php", "-d", "max_execution_time=0", "artisan", "queue:work", "--queue=imports,default", "--sleep=3", "--tries=3", "--backoff=60", "--timeout=1800", "--max-time=3600"]
     # A deploy waits for a running import to finish (up to its 30-minute timeout) instead of killing it.
     stop_grace_period: 31m
   scheduler:

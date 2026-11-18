@@ -4,6 +4,7 @@ namespace App\Domain\Inventory;
 
 use App\Domain\Clinic\PrescriptionAccess;
 use App\Domain\Geography\PlaceTree;
+use App\Domain\Staff\LeadershipAccess;
 use App\Domain\Support\ChatRouting;
 use App\Models\BranchProductStock;
 use App\Models\BranchStaffAssignment;
@@ -25,6 +26,9 @@ final class BranchOperations
     public const KindProductIn = 'product_in';
 
     public const KindProductOut = 'product_out';
+
+    /** Most units one stock entry, transfer or purchase line may move (owner decision D14, 2026-11-18). */
+    public const MaxUnitsPerEntry = 1000000;
 
     public const SessionView = 'branch_view';
 
@@ -67,7 +71,7 @@ final class BranchOperations
      */
     public function saveBranch(User $actor, array $data, ?CompanyBranch $branch = null): CompanyBranch
     {
-        abort_unless($actor->owner() || $actor->allows('inventory') || $actor->allows('accounts'), 403);
+        abort_unless($this->mayEditBranches($actor), 403);
 
         return DB::transaction(function () use ($actor, $data, $branch): CompanyBranch {
             $code = strtoupper(trim($data['code']));
@@ -160,7 +164,7 @@ final class BranchOperations
      */
     public function assignStaff(User $actor, CompanyBranch $branch, array $data): BranchStaffAssignment
     {
-        abort_unless($actor->owner() || $actor->allows('accounts') || $actor->allows('inventory'), 403);
+        abort_unless($this->mayEditBranches($actor), 403);
         $user = User::query()->whereKey($data['user_id'])->firstOrFail();
         abort_unless($user->staff() || $user->owner(), 422, __('portal.err_branch_staff_only'));
 
@@ -196,7 +200,7 @@ final class BranchOperations
 
     public function removeStaff(User $actor, CompanyBranch $branch, User $staff): void
     {
-        abort_unless($actor->owner() || $actor->allows('accounts') || $actor->allows('inventory'), 403);
+        abort_unless($this->mayEditBranches($actor), 403);
         DB::transaction(function () use ($actor, $branch, $staff): void {
             BranchStaffAssignment::query()
                 ->where('branch_id', $branch->id)
@@ -215,7 +219,7 @@ final class BranchOperations
 
     public function deleteBranch(User $actor, CompanyBranch $branch): void
     {
-        abort_unless($actor->owner() || $actor->allows('accounts') || $actor->allows('inventory'), 403);
+        abort_unless($this->mayEditBranches($actor), 403);
         if ($branch->is_head_office) {
             throw ValidationException::withMessages(['branch' => __('portal.err_branch_head_office')]);
         }
@@ -357,6 +361,20 @@ final class BranchOperations
     }
 
     /**
+     * Goods a partner gave back after delivery go into the branch the approved return names.
+     * The approval itself was the check (two people for money), so the person carrying it out
+     * does not need to work at that branch or hold the stock right.
+     *
+     * @param  array<string, mixed>  $data  as for adjustStock, without branch_id
+     */
+    public function receiveOrderReturn(User $actor, CompanyBranch $branch, array $data): Product
+    {
+        abort_unless($branch->is_active && $branch->is_stock_hub, 422, __('portal.err_branch_not_stock_hub'));
+
+        return $this->applyStockAdjustment($actor, [...$data, 'kind' => self::KindProductIn], $branch);
+    }
+
+    /**
      * @param  array{
      *   product_id:int,
      *   quantity:int,
@@ -369,9 +387,9 @@ final class BranchOperations
      *   batch_number?:string|null
      * }  $data
      */
-    private function applyStockAdjustment(User $actor, array $data): Product
+    private function applyStockAdjustment(User $actor, array $data, ?CompanyBranch $branch = null): Product
     {
-        $branch = $this->resolveWritableBranch($actor, isset($data['branch_id']) ? (int) $data['branch_id'] : null);
+        $branch ??= $this->resolveWritableBranch($actor, isset($data['branch_id']) ? (int) $data['branch_id'] : null);
 
         return DB::transaction(function () use ($actor, $data, $branch): Product {
             if (DB::table('stock_movements')->where('reference', $data['reference'])->exists()) {
@@ -383,7 +401,7 @@ final class BranchOperations
 
             [$quantity, $kind, $reason] = $this->resolveMovementDirection($data, $actor);
             $next = (int) $stock->quantity + $quantity;
-            if ($quantity === 0 || abs($quantity) > 100000 || $next < 0 || $next > 2147483647) {
+            if ($quantity === 0 || abs($quantity) > self::MaxUnitsPerEntry || $next < 0 || $next > 2147483647) {
                 throw ValidationException::withMessages(['quantity' => __('portal.err_stock_nonnegative')]);
             }
 
@@ -568,6 +586,15 @@ final class BranchOperations
     public function canManageAllBranches(User $actor): bool
     {
         return $actor->owner() || $actor->allows('accounts') || $actor->allows('inventory');
+    }
+
+    /**
+     * Adding, changing or closing a branch and its staff list. Branches are an owner tool, so the MD
+     * and Chairman need the Super Admin's grant (D11), as the Branches page itself does.
+     */
+    public function mayEditBranches(User $actor): bool
+    {
+        return LeadershipAccess::granted($actor, 'owner_tools') || $actor->allows('inventory') || $actor->allows('accounts');
     }
 
     /**

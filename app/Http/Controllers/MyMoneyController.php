@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Accounts\PartnerMoneyBook;
+use App\Domain\Accounts\PartnerSalaryNotes;
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Finance\WithdrawalSecurityWait;
+use App\Domain\Payouts\ManualPayoutService;
+use App\Domain\Payouts\PayoutLimits;
 use App\Domain\Payouts\PayoutReceipts;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +25,7 @@ class MyMoneyController extends Controller
         $partner = $request->user();
         abort_unless(in_array($partner->role, ['dealer', 'sub_dealer'], true), 403);
         $kycBlock = $settings->needsKycBeforeWithdrawal($partner);
+        $nidBlock = app(ManualPayoutService::class)->needsNidBeforeFirstWithdrawal($partner);
         $wait = app(WithdrawalSecurityWait::class);
         $opensAt = $wait->opensAt($partner);
 
@@ -32,7 +36,11 @@ class MyMoneyController extends Controller
             'table' => $book->table($request, $partner),
             'withdrawal_requests' => $book->withdrawalRequests($partner),
             'not_earned_area' => $book->notEarnedAreaCommission($partner),
-            'withdraw' => ['can' => ! $kycBlock, 'kyc_block' => $kycBlock, 'security_wait' => $opensAt === null ? null : $wait->reason($opensAt), 'minimum' => (string) $settings->withdrawalMinimum()['amount']],
+            'held_commission' => $book->heldCommission($partner),
+            'salary_notes' => app(PartnerSalaryNotes::class)->for($partner),
+            'withdraw' => ['can' => ! $kycBlock && ! $nidBlock, 'kyc_block' => $kycBlock, 'nid_block' => $nidBlock, 'security_wait' => $opensAt === null ? null : $wait->reason($opensAt), 'minimum' => (string) $settings->withdrawalMinimum()['amount'],
+                'channel_limits' => app(PayoutLimits::class)->settings()['per_channel'],
+                'tin_last4' => trim((string) $partner->tin) === '' ? null : substr((string) $partner->tin, -4)],
             'reserve_receipts' => $receipts->reservePayoutsFor($partner),
             'certificates' => [
                 'years' => range((int) now('Asia/Dhaka')->format('Y'), max(2024, (int) ($partner->created_at?->timezone('Asia/Dhaka')->format('Y') ?? 2024))),

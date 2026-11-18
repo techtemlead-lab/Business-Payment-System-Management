@@ -100,7 +100,7 @@ export default function PartnerProfile({ sheet, month, targets, canSetTargets, c
                     [t('f_dob'), identity.date_of_birth ? date(identity.date_of_birth) : null],
                     [t('f_joined'), identity.joined ? date(identity.joined) : null],
                     [t('f_closed'), identity.closed_at ? date(identity.closed_at) : null],
-                    [t('f_language'), identity.locale],
+                    [t('f_language'), identity.locale === 'bn' ? translate('portal', 'bangla') : identity.locale === 'en' ? translate('portal', 'english') : identity.locale],
                 ]} />
 
                 <section className="panel">
@@ -133,7 +133,8 @@ export default function PartnerProfile({ sheet, month, targets, canSetTargets, c
 
                 <Facts title={t('sec_place')} lines={[
                     [t('f_place_code'), place.place_code],
-                    [t('f_area_code'), place.area_code],
+                    // The same code twice under two names only confuses; show the second one when it differs.
+                    ...(place.area_code && place.area_code !== place.place_code ? [[t('f_area_code'), place.area_code] as [string, React.ReactNode]] : []),
                     [t('f_union_place_code'), place.union_place_code],
                 ]} />
 

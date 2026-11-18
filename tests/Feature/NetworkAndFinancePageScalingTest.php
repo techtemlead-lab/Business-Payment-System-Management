@@ -6,6 +6,7 @@ use App\Domain\Accounts\PartnerDashboardHome;
 use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Commissions\CommissionReversal;
 use App\Domain\Finance\ReserveService;
+use App\Domain\Finance\VehiclePools;
 use App\Domain\Orders\OrderService;
 use App\Domain\Pricing\ProductPricing;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -206,6 +207,11 @@ class NetworkAndFinancePageScalingTest extends TestCase
         $summary = $this->actingAs($finance)->onPortal('manage')
             ->withHeaders(['X-Inertia' => 'true', 'X-Inertia-Version' => $this->inertiaVersion()])
             ->get('/operations/reserve-payouts')->assertOk()->json('props.summary');
+        // The bike and car pools are also shown on their own (MA-10); together they are the one car and bike line.
+        $pools = app(VehiclePools::class)->balances();
+        $expected['bike_uncommitted_reserve'] = Money::decimal($pools['bike']);
+        $expected['car_uncommitted_reserve'] = Money::decimal($pools['car']);
+        $this->assertSame(Money::cents($expected['car_bike_uncommitted_reserve']), $pools['bike'] + $pools['car']);
         $this->assertSame($expected, $summary);
         $this->assertSame(__('portal.ops_chk_car_bike_uncommitted_reserve'), 'Car and bike fund not yet promised');
     }

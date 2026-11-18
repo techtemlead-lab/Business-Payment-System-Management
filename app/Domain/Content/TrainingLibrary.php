@@ -2,6 +2,7 @@
 
 namespace App\Domain\Content;
 
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\TrainingCompletion;
 use App\Models\TrainingItem;
 use App\Models\User;
@@ -55,10 +56,10 @@ final class TrainingLibrary
         return max(1, (int) config('madina.training.pdf_max_mb', 20));
     }
 
-    /** Office staff with the content permission and the owners manage the library. */
+    /** Office staff with the content permission and the owners manage the library; the MD and Chairman need the owner-tools grant (D11). */
     public function canManage(User $user): bool
     {
-        return $user->status === 'active' && ($user->owner() || $user->allows('content'));
+        return $user->status === 'active' && (LeadershipAccess::granted($user, 'owner_tools') || $user->allows('content'));
     }
 
     /** Managers open any PDF; other staff open published ones; partners only published ones meant for them. */

@@ -92,10 +92,11 @@ class StockCountFlowTest extends TestCase
             ->post("/commands/stock-counts/{$session->id}/submit");
     }
 
-    private function approve(StockCountSession $session, ?User $actor = null): TestResponse
+    /** @param array<string, mixed> $extra */
+    private function approve(StockCountSession $session, ?User $actor = null, array $extra = []): TestResponse
     {
         return $this->actingAs($actor ?? $this->approver)->onPortal('manage')
-            ->post("/commands/stock-counts/{$session->id}/approve");
+            ->post("/commands/stock-counts/{$session->id}/approve", ['confirmed' => '1', ...$extra]);
     }
 
     private function branchStock(Product $product, ?CompanyBranch $branch = null): int
@@ -164,7 +165,7 @@ class StockCountFlowTest extends TestCase
         }
         $this->assertSame(10, $this->branchStock($product));
 
-        $this->actingAs($owner)->onPortal('sadmin')->post("/commands/stock-counts/{$session->id}/approve")
+        $this->actingAs($owner)->onPortal('sadmin')->post("/commands/stock-counts/{$session->id}/approve", ['confirmed' => '1'])
             ->assertSessionHasNoErrors();
 
         $this->assertSame(8, $this->branchStock($product));
@@ -186,10 +187,29 @@ class StockCountFlowTest extends TestCase
             'reference' => (string) Str::uuid(),
         ]);
 
-        $this->approve($session)->assertSessionHasNoErrors();
+        // The approver is shown the line moved and must say they checked it (F-verify-07).
+        $this->actingAs($this->approver)->onPortal('manage')->get('/stock-counts?session='.$session->id)->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('data.stock_counts.selected.approval_totals.moved_lines', 1)
+                ->where('data.stock_counts.selected.approval_totals.units_removed', 2)
+                ->where('data.stock_counts.selected.lines.0.now', 15)->where('data.stock_counts.selected.lines.0.moved', true));
+        $this->approve($session)->assertSessionHasErrors('moved');
+        $this->assertSame(15, $this->branchStock($product));
+        $this->approve($session, null, ['moved_checked' => '1'])->assertSessionHasNoErrors();
 
         $this->assertSame(13, $this->branchStock($product));
         $this->assertSame(13, $product->fresh()->stock);
+    }
+
+    public function test_approving_needs_the_confirm_step(): void
+    {
+        $product = $this->productHolding(10);
+        $session = $this->startCount();
+        $this->enterCounts($session, [$product->id => 9])->assertSessionHasNoErrors();
+        $this->submit($session)->assertSessionHasNoErrors();
+
+        $this->actingAs($this->approver)->onPortal('manage')->post("/commands/stock-counts/{$session->id}/approve")->assertSessionHasErrors('confirmed');
+
+        $this->assertSame(10, $this->branchStock($product));
     }
 
     public function test_lines_nobody_counted_are_left_alone(): void
@@ -248,7 +268,7 @@ class StockCountFlowTest extends TestCase
         $this->submit($session)->assertSessionHasNoErrors();
         $this->productStockChangesTo($tooShort, 3);
 
-        $this->approve($session)->assertSessionHasErrors('quantity');
+        $this->approve($session, null, ['moved_checked' => '1'])->assertSessionHasErrors('quantity');
 
         $this->assertSame(StockCountSession::StatusSubmitted, $session->fresh()->status);
         $this->assertSame(10, $this->branchStock($fine));

@@ -3,6 +3,7 @@
 namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Commissions\CommissionQualification;
+use App\Domain\Security\SecuritySettings;
 use App\Models\Order;
 use App\Models\ReferralTreePath;
 use App\Models\User;
@@ -19,8 +20,8 @@ use Illuminate\Support\Facades\DB;
  */
 final class NetworkSection implements WorkspaceSection
 {
-    /** Commission statuses that count as money earned, held or already paid; reversals are left out. */
-    private const EarnedStatuses = ['pending', 'available', 'maturing', 'held', 'reserved', 'settled', 'partially_settled'];
+    /** Commission statuses that count as money earned or already paid; reversals are left out. Held money is shown apart: it was not received. */
+    private const EarnedStatuses = ['pending', 'available', 'maturing', 'reserved', 'settled', 'partially_settled'];
 
     /** The most downline members or partner nodes sent to one page; the CSV export lists everyone. */
     private const DownlineLimit = 2500;
@@ -95,11 +96,12 @@ final class NetworkSection implements WorkspaceSection
         $members = (clone $query)->orderBy('depth')->orderBy('users.id')->limit(self::DownlineLimit + 1)
             ->get(['users.id', 'users.name', 'users.dealer_code', 'users.phone', 'users.sponsor_id', 'depth', 'users.created_at']);
         $truncated = $members->count() > self::DownlineLimit;
+        $directInFull = app(SecuritySettings::class)->teamPhonesVisible();
 
         return [
             // Full numbers only for directly referred members; the rest show the last four digits.
-            'members' => $members->take(self::DownlineLimit)->map(function (object $member) use ($user): object {
-                $member->phone = PhoneIdentity::forDownlineViewer($member->phone, (int) $member->id, $member->sponsor_id !== null ? (int) $member->sponsor_id : null, (int) $user->id);
+            'members' => $members->take(self::DownlineLimit)->map(function (object $member) use ($user, $directInFull): object {
+                $member->phone = PhoneIdentity::forDownlineViewer($member->phone, (int) $member->id, $member->sponsor_id !== null ? (int) $member->sponsor_id : null, (int) $user->id, $directInFull);
 
                 return $member;
             })->values(),
@@ -121,7 +123,11 @@ final class NetworkSection implements WorkspaceSection
         $monthStart = CarbonImmutable::now($tz)->startOfMonth()->utc();
         $sixtyDaysAgo = CarbonImmutable::now($tz)->startOfDay()->subDays(60)->utc();
         $delivered = "'".implode("','", CommissionQualification::DeliveredStatuses)."'";
-        $bought = fn (string $since): string => "EXISTS (SELECT 1 FROM orders o WHERE o.user_id = u.id AND o.status IN ({$delivered}) AND o.created_at >= {$since})";
+        $month = CommissionQualification::currentMonth();
+        // "This month" for purchases is the month the goods were delivered (the commission batch month),
+        // the same month the salary target and the income list use, so every figure agrees with the money.
+        $boughtThisMonth = 'EXISTS (SELECT 1 FROM commission_batches b JOIN orders o ON o.id = b.order_id WHERE o.user_id = u.id AND b.period_month = ? AND b.no_commission = false)';
+        $bought60 = fn (string $since): string => "EXISTS (SELECT 1 FROM orders o WHERE o.user_id = u.id AND o.status IN ({$delivered}) AND o.created_at >= {$since})";
         $row = DB::table('referral_tree_paths as p')
             ->join('users as u', 'u.id', '=', 'p.descendant_id')
             ->where('p.ancestor_id', $user->id)
@@ -129,9 +135,9 @@ final class NetworkSection implements WorkspaceSection
             ->selectRaw('COUNT(*) AS members')
             ->selectRaw('COUNT(*) FILTER (WHERE p.depth = 1) AS direct')
             ->selectRaw('COUNT(*) FILTER (WHERE u.created_at >= ?) AS joined_this_month', [$monthStart])
-            ->selectRaw('COUNT(*) FILTER (WHERE '.$bought('?').') AS bought_this_month', [$monthStart])
-            ->selectRaw('COUNT(*) FILTER (WHERE u.created_at < ? AND NOT '.$bought('?').') AS quiet_60_days', [$sixtyDaysAgo, $sixtyDaysAgo])
-            ->selectRaw('COALESCE((SELECT SUM('.CommissionQualification::deliveredValueSql('o').") FROM orders o JOIN referral_tree_paths t ON t.descendant_id = o.user_id WHERE t.ancestor_id = ? AND t.depth > 0 AND o.status IN ({$delivered}) AND o.created_at >= ?), 0) AS team_sales_month", [$user->id, $monthStart])
+            ->selectRaw('COUNT(*) FILTER (WHERE '.$boughtThisMonth.') AS bought_this_month', [$month])
+            ->selectRaw('COUNT(*) FILTER (WHERE u.created_at < ? AND NOT '.$bought60('?').') AS quiet_60_days', [$sixtyDaysAgo, $sixtyDaysAgo])
+            ->selectRaw('COALESCE((SELECT SUM(b.cash_basis - b.refunded_amount) FROM commission_batches b JOIN orders o ON o.id = b.order_id JOIN referral_tree_paths t ON t.descendant_id = o.user_id WHERE t.ancestor_id = ? AND t.depth > 0 AND b.period_month = ? AND b.no_commission = false), 0) AS team_sales_month', [$user->id, $month])
             ->first();
 
         return [
@@ -248,6 +254,7 @@ final class NetworkSection implements WorkspaceSection
      */
     private function networkDealerNodes(Builder $query, bool $maskPhone, ?User $viewer = null): array
     {
+        /** @var \Illuminate\Database\Eloquent\Collection<int, User> $partners */
         $partners = $query
             ->with(['rank', 'sponsor:id,name,dealer_code'])
             ->get(['id', 'name', 'dealer_code', 'phone', 'district', 'division', 'sponsor_id', 'role', 'status', 'created_at']);
@@ -255,17 +262,19 @@ final class NetworkSection implements WorkspaceSection
         $sales = $this->salesByPartner($ids);
         // The same figure the monthly salary target is checked against: delivered, paid purchases after refunds.
         $qualifying = app(CommissionQualification::class)->monthlyVolumesFor($ids, CommissionQualification::currentMonth());
-        $sponsorEarned = $this->sponsorEarnedByPartner($ids);
-        $viewerEarned = $viewer ? $this->viewerEarnedByPartner($viewer, $ids) : [];
+        $sponsorMoney = $this->sponsorMoneyByPartner($ids);
+        $viewerMoney = $viewer ? $this->viewerMoneyByPartner($viewer, $ids) : ['earned' => [], 'held' => []];
+        $viewerEarned = $viewerMoney['earned'];
+        $directInFull = app(SecuritySettings::class)->teamPhonesVisible();
 
         return $partners
-            ->map(function (User $dealer) use ($maskPhone, $sales, $qualifying, $sponsorEarned, $viewerEarned, $viewer): array {
+            ->map(function (User $dealer) use ($maskPhone, $sales, $qualifying, $sponsorMoney, $viewerMoney, $viewerEarned, $viewer, $directInFull): array {
                 $phone = (string) ($dealer->phone ?? '');
                 if ($maskPhone) {
                     $phone = PhoneIdentity::masked($phone);
                 } elseif ($viewer) {
                     // A dealer sees full numbers only for members they referred directly.
-                    $phone = PhoneIdentity::forDownlineViewer($phone, (int) $dealer->id, $dealer->sponsor_id !== null ? (int) $dealer->sponsor_id : null, (int) $viewer->id);
+                    $phone = PhoneIdentity::forDownlineViewer($phone, (int) $dealer->id, $dealer->sponsor_id !== null ? (int) $dealer->sponsor_id : null, (int) $viewer->id, $directInFull);
                 }
 
                 return [
@@ -279,15 +288,18 @@ final class NetworkSection implements WorkspaceSection
                     'sponsor_name' => $dealer->sponsor?->name,
                     'role' => $dealer->role,
                     'status' => $dealer->status,
-                    'rank' => $dealer->rank?->current_rank ?? ($dealer->role === 'sub_dealer' ? 'sub_dealer' : 'dealer'),
+                    // Ranks belong to dealers; a sub-dealer is always shown as a sub-dealer, never as a dealer.
+                    'rank' => $dealer->role === 'sub_dealer' ? 'sub_dealer' : ($dealer->rank?->current_rank ?? 'dealer'),
                     'lifetime_purchases' => (float) ($dealer->rank?->lifetime_purchase_total ?? 0),
                     'created_at' => $dealer->created_at?->toIso8601String(),
                     'sales_total' => Money::decimal($sales[$dealer->id]['total'] ?? 0),
-                    'sales_month' => Money::decimal($sales[$dealer->id]['month'] ?? 0),
+                    'sales_month' => Money::decimal($qualifying[$dealer->id] ?? 0),
                     'qualifying_volume_month' => Money::decimal($qualifying[$dealer->id] ?? 0),
-                    'sponsor_earned' => Money::decimal($sponsorEarned[$dealer->id] ?? 0),
+                    'sponsor_earned' => Money::decimal($sponsorMoney['earned'][$dealer->id] ?? 0),
+                    'sponsor_held' => Money::decimal($sponsorMoney['held'][$dealer->id] ?? 0),
                     ...($viewer ? [
                         'viewer_earned' => Money::decimal(array_sum($viewerEarned[$dealer->id] ?? [])),
+                        'viewer_held' => Money::decimal($viewerMoney['held'][$dealer->id] ?? 0),
                         'viewer_earned_by_type' => collect($viewerEarned[$dealer->id] ?? [])
                             ->map(fn (int $cents, string $category): array => ['category' => $category, 'amount' => Money::decimal($cents)])
                             ->values()
@@ -333,55 +345,68 @@ final class NetworkSection implements WorkspaceSection
     }
 
     /**
-     * What each partner's direct referrer has earned from that partner's purchases, in cents.
+     * What each partner's direct referrer has received from that partner's purchases, and what is
+     * held back for the referrer (suspended account or area target not met), in cents.
      *
      * @param  list<int>  $ids
-     * @return array<int, int>
+     * @return array{earned: array<int, int>, held: array<int, int>}
      */
-    private function sponsorEarnedByPartner(array $ids): array
+    private function sponsorMoneyByPartner(array $ids): array
     {
+        $money = ['earned' => [], 'held' => []];
         if ($ids === []) {
-            return [];
+            return $money;
         }
-
-        return DB::table('commission_allocations')
+        $earnedList = "'".implode("','", self::EarnedStatuses)."'";
+        DB::table('commission_allocations')
             ->join('orders', 'orders.id', '=', 'commission_allocations.order_id')
             ->join('users AS buyers', 'buyers.id', '=', 'orders.user_id')
             ->whereIn('orders.user_id', $ids)
             ->whereColumn('commission_allocations.user_id', 'buyers.sponsor_id')
-            ->whereIn('commission_allocations.status', self::EarnedStatuses)
+            ->whereIn('commission_allocations.status', [...self::EarnedStatuses, 'held'])
             ->groupBy('orders.user_id')
-            ->selectRaw('orders.user_id AS buyer_id, COALESCE(SUM(commission_allocations.amount), 0) AS earned')
+            ->selectRaw("orders.user_id AS buyer_id, COALESCE(SUM(commission_allocations.amount) FILTER (WHERE commission_allocations.status IN ({$earnedList})), 0) AS earned, COALESCE(SUM(commission_allocations.amount) FILTER (WHERE commission_allocations.status = 'held'), 0) AS held")
             ->get()
-            ->mapWithKeys(fn (object $row): array => [(int) $row->buyer_id => Money::cents((string) $row->earned)])
-            ->all();
+            ->each(function (object $row) use (&$money): void {
+                $money['earned'][(int) $row->buyer_id] = Money::cents((string) $row->earned);
+                $money['held'][(int) $row->buyer_id] = Money::cents((string) $row->held);
+            });
+
+        return $money;
     }
 
     /**
-     * What the viewer has earned from each partner's purchases, split by commission type, in cents.
+     * What the viewer has received from each partner's purchases, split by commission type, and what
+     * is held back for the viewer, in cents.
      *
      * @param  list<int>  $ids
-     * @return array<int, array<string, int>>
+     * @return array{earned: array<int, array<string, int>>, held: array<int, int>}
      */
-    private function viewerEarnedByPartner(User $viewer, array $ids): array
+    private function viewerMoneyByPartner(User $viewer, array $ids): array
     {
+        $money = ['earned' => [], 'held' => []];
         if ($ids === []) {
-            return [];
+            return $money;
         }
-        $earned = [];
         DB::table('commission_allocations')
             ->join('orders', 'orders.id', '=', 'commission_allocations.order_id')
             ->whereIn('orders.user_id', $ids)
             ->where('commission_allocations.user_id', $viewer->id)
-            ->whereIn('commission_allocations.status', self::EarnedStatuses)
-            ->groupBy('orders.user_id', 'commission_allocations.category')
+            ->whereIn('commission_allocations.status', [...self::EarnedStatuses, 'held'])
+            ->groupBy('orders.user_id', 'commission_allocations.category', 'commission_allocations.status')
             ->orderBy('commission_allocations.category')
-            ->selectRaw('orders.user_id AS buyer_id, commission_allocations.category, COALESCE(SUM(commission_allocations.amount), 0) AS earned')
+            ->selectRaw('orders.user_id AS buyer_id, commission_allocations.category, commission_allocations.status, COALESCE(SUM(commission_allocations.amount), 0) AS earned')
             ->get()
-            ->each(function (object $row) use (&$earned): void {
-                $earned[(int) $row->buyer_id][(string) $row->category] = Money::cents((string) $row->earned);
+            ->each(function (object $row) use (&$money): void {
+                $cents = Money::cents((string) $row->earned);
+                if ($row->status === 'held') {
+                    $money['held'][(int) $row->buyer_id] = ($money['held'][(int) $row->buyer_id] ?? 0) + $cents;
+
+                    return;
+                }
+                $money['earned'][(int) $row->buyer_id][(string) $row->category] = ($money['earned'][(int) $row->buyer_id][(string) $row->category] ?? 0) + $cents;
             });
 
-        return $earned;
+        return $money;
     }
 }

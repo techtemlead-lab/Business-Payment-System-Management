@@ -2,8 +2,14 @@
 
 namespace App\Domain\Orders;
 
+use App\Domain\Finance\MoneyTaskFigures;
+use App\Domain\Finance\PendingPaymentChecks;
 use App\Domain\Inventory\BranchScope;
 use App\Domain\Inventory\SellableStock;
+use App\Domain\Inventory\StockLevels;
+use App\Domain\Payouts\PayoutLimits;
+use App\Domain\Support\PartnerChat;
+use App\Http\Portals\Shared\Sections\WithdrawalsSection;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
@@ -25,7 +31,7 @@ final class StaffDashboardSummary
     /**
      * @param  BranchScope|null  $branchScope  The branch the top-bar switcher picked; null counts every branch.
      * @return array{
-     *     work_queue: list<array{key: string, count: int, section: string, query?: array<string, string>}>,
+     *     work_queue: list<array{key: string, count: int, section: string, query?: array<string, string>, label?: string, amount?: string, alert?: bool}>,
      *     trend: list<array{date: string, orders: int, value: string}>,
      *     month: array{sales: string, delivered_today: string, orders: int}|null
      * }
@@ -48,7 +54,7 @@ final class StaffDashboardSummary
     }
 
     /**
-     * @return list<array{key: string, count: int, section: string, query?: array<string, string>}>
+     * @return list<array{key: string, count: int, section: string, query?: array<string, string>, label?: string, amount?: string, alert?: bool, oldest_days?: int|null}>
      */
     private function workQueue(User $viewer, ?BranchScope $branchScope): array
     {
@@ -65,7 +71,7 @@ final class StaffDashboardSummary
         if ($viewer->allows('finance')) {
             $queue[] = [
                 'key' => 'payments_to_check',
-                'count' => (int) $this->onScopedOrders(DB::table('payment_claims'), $branchScope)->where('status', 'pending')->count(),
+                'count' => $this->onScopedOrders(PendingPaymentChecks::query(), $branchScope)->count(),
                 'section' => 'payments',
             ];
             $queue[] = [
@@ -73,6 +79,16 @@ final class StaffDashboardSummary
                 'count' => (int) $this->withdrawalsOf($branchScope)->where('withdrawals.status', 'requested')->count(),
                 'section' => 'payouts-hub',
             ];
+            // Approved money nobody has sent yet, past the owner's due days (MA-06). The setting is read once.
+            $dueDays = app(PayoutLimits::class)->dueDays();
+            $queue[] = [
+                'key' => 'payouts_overdue',
+                'label' => (string) __('payouts.dash_payouts_overdue', ['days' => (string) $dueDays]),
+                'count' => (int) $this->withdrawalsOf($branchScope)->whereRaw(WithdrawalsSection::followUpSql($dueDays)." = 'overdue'")->count(),
+                'section' => 'payouts-hub',
+                'query' => ['follow_up' => 'overdue'],
+            ];
+            array_push($queue, ...$this->commissionTasks());
         }
         $deliveryCounts = $this->deliveryCounts($viewer, $branchScope);
         if ($viewer->allows('inventory')) {
@@ -90,11 +106,29 @@ final class StaffDashboardSummary
                 'query' => ['status' => OverdueDeliveries::Filter],
             ];
         }
+        if ($viewer->allows('inventory') || $viewer->allows('order_review')) {
+            // Paid back orders near or past the e-commerce delivery and refund limit (OS-02, LC-04).
+            $queue[] = [
+                'key' => 'back_orders_late',
+                'label' => __('orders_stock.dashboard_back_orders_hint', ['days' => BackOrders::WarnFromDays]),
+                'count' => app(BackOrders::class)->lateCount($this->orders($branchScope)->toBase()),
+                'section' => 'deliveries',
+            ];
+        }
         if ($viewer->allows('inventory')) {
             $queue[] = [
                 'key' => 'low_stock_products',
-                'count' => $this->lowStockProducts($branchScope)->count(),
+                'count' => array_sum(StockLevels::counts($branchScope)),
                 'section' => 'inventory',
+            ];
+        }
+        if (PartnerChat::canAnswer($viewer)) {
+            $waiting = app(PartnerChat::class)->unanswered($viewer);
+            $queue[] = [
+                'key' => 'chats_unanswered',
+                'count' => $waiting['count'],
+                'oldest_days' => $waiting['oldest_days'],
+                'section' => 'partner-messages',
             ];
         }
         if ($viewer->allows('accounts')) {
@@ -106,6 +140,32 @@ final class StaffDashboardSummary
         }
 
         return $queue;
+    }
+
+    /**
+     * MA-15, MA-03: commission ready to pay, commission held and a failed month close. They show
+     * only while there is something to do, and name themselves so they need no word list entry.
+     *
+     * @return list<array{key: string, count: int, section: string, label: string, amount?: string, alert?: bool}>
+     */
+    private function commissionTasks(): array
+    {
+        $figures = app(MoneyTaskFigures::class);
+        $ready = $figures->readyToPay();
+        $held = $figures->held();
+        $failedCloses = $figures->failedCloses();
+        $tasks = [];
+        if ($ready['count'] > 0) {
+            $tasks[] = ['key' => 'commission_ready_to_pay', 'count' => $ready['count'], 'section' => 'settlements', 'label' => (string) __('money_core.task_ready_to_pay'), 'amount' => $ready['amount']];
+        }
+        if ($held['count'] > 0) {
+            $tasks[] = ['key' => 'commission_held', 'count' => $held['count'], 'section' => 'operations/commission-holds', 'label' => (string) __('money_core.task_held'), 'amount' => $held['amount']];
+        }
+        if ($failedCloses > 0) {
+            $tasks[] = ['key' => 'month_close_failed', 'count' => $failedCloses, 'section' => 'settlements', 'label' => (string) __('money_core.task_close_failed'), 'alert' => true];
+        }
+
+        return $tasks;
     }
 
     /**
@@ -148,7 +208,7 @@ final class StaffDashboardSummary
         $row = $this->orders($branchScope)->toBase()
             ->whereIn('status', OrderListFilter::AwaitingDispatch)
             ->selectRaw(
-                "COUNT(*) FILTER (WHERE orders.status IN ({$awaiting}) AND EXISTS (SELECT 1 FROM order_lines WHERE order_lines.order_id = orders.id AND order_lines.dispatched < order_lines.quantity)) AS to_dispatch, "
+                "COUNT(*) FILTER (WHERE orders.status IN ({$awaiting}) AND EXISTS (SELECT 1 FROM order_lines WHERE order_lines.order_id = orders.id AND ".OrderLines::unsentSql('order_lines').')) AS to_dispatch, '
                 .'COUNT(*) FILTER (WHERE '.OverdueDeliveries::conditionSql().') AS overdue',
                 OverdueDeliveries::bindings(),
             )

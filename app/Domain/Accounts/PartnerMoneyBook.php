@@ -149,6 +149,7 @@ final class PartnerMoneyBook
             defaultPeriod: null,
         ));
         $typeChosen = isset($table['state']['filters']['type']);
+        $ownOrders = self::ownOrderIds($partner, $table['rows']->getCollection()->pluck('order_id')->all());
         $table['rows'] = $table['rows']->through(fn (object $row): array => [
             'id' => $row->id,
             'occurred_at' => CarbonImmutable::parse((string) $row->occurred_at, 'UTC')->toIso8601String(),
@@ -156,6 +157,8 @@ final class PartnerMoneyBook
             'type_label' => $this->rowWord($row),
             'percent' => $row->percent === null ? null : (string) $row->percent,
             'order_id' => $row->order_id,
+            // Only the partner's own orders open; an order of someone in the team stays closed to them.
+            'order_is_own' => $row->order_id !== null && isset($ownOrders[(string) $row->order_id]),
             'order_number' => $row->order_number,
             'from_name' => $row->from_name,
             'withdrawal_id' => $row->withdrawal_id,
@@ -169,10 +172,27 @@ final class PartnerMoneyBook
     }
 
     /**
+     * Which of these orders the partner placed themselves, as a lookup by order id.
+     *
+     * @param  array<int, mixed>  $orderIds
+     * @return array<string, bool>
+     */
+    public static function ownOrderIds(User $partner, array $orderIds): array
+    {
+        $ids = array_values(array_unique(array_map('strval', array_filter($orderIds, fn ($id): bool => $id !== null))));
+        if ($ids === []) {
+            return [];
+        }
+
+        return DB::table('orders')->where('user_id', $partner->id)->whereIn('id', $ids)->pluck('id')
+            ->mapWithKeys(fn ($id): array => [(string) $id => true])->all();
+    }
+
+    /**
      * The partner's own requests that are not statement rows: waiting, approved, or refused in the
      * last 30 days. Once paid, a request is a statement row and leaves this list.
      *
-     * @return list<array{id: string, created_at: string, amount: string, status: string, reason: ?string}>
+     * @return list<array{id: string, created_at: string, amount: string, status: string, reason: ?string, on_hold: bool}>
      */
     public function withdrawalRequests(User $partner): array
     {
@@ -183,13 +203,14 @@ final class PartnerMoneyBook
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->limit(10)
-            ->get(['id', 'created_at', 'amount', 'status', 'reason'])
+            ->get(['id', 'created_at', 'amount', 'status', 'reason', 'on_hold_at'])
             ->map(fn (object $row): array => [
                 'id' => (string) $row->id,
                 'created_at' => CarbonImmutable::parse((string) $row->created_at, 'UTC')->toIso8601String(),
                 'amount' => FundCatalog::decimalOf(FundCatalog::centsOf($row->amount)),
                 'status' => (string) $row->status,
                 'reason' => $row->status === 'rejected' ? ReasonFields::shown($row->reason) : null,
+                'on_hold' => $row->on_hold_at !== null,
             ])
             ->all();
     }
@@ -213,6 +234,39 @@ final class PartnerMoneyBook
             ->get()
             ->map(fn (object $row): array => ['month' => (string) $row->month, 'amount' => FundCatalog::decimalOf(FundCatalog::centsOf($row->amount))])
             ->all();
+    }
+
+    /**
+     * Commission held back for this partner: nothing is in the wallet yet. Each line says what it is,
+     * which order it came from and why it is held: the account is suspended (paid by itself when the
+     * account is active again) or the area target was not met (released when met, else company profit
+     * at month end).
+     *
+     * @return array{total: string, count: int, lines: list<array{id: int, amount: string, what: string, order_id: string, order_number: string|null, reason: string}>}
+     */
+    public function heldCommission(User $partner, int $limit = 20): array
+    {
+        // One query: the window totals cover every held row, the LIMIT only the lines shown.
+        $rows = DB::table('commission_allocations as a')->where('a.user_id', $partner->id)->where('a.status', 'held')->where('a.amount', '>', 0)
+            ->leftJoin('orders as o', 'o.id', '=', 'a.order_id')
+            ->orderByDesc('a.id')
+            ->limit($limit)
+            ->selectRaw("a.id, a.amount, a.category, o.id::text AS order_id, o.number AS order_number, COALESCE(a.metadata->>'hold_reason', 'inactive') AS reason, SUM(a.amount) OVER () AS held_total, COUNT(*) OVER () AS held_count")
+            ->get();
+        $first = $rows->isEmpty() ? null : $rows->first();
+        $totals = (object) ['total' => $first === null ? '0' : $first->held_total, 'count' => $first === null ? 0 : $first->held_count];
+        $lines = $rows
+            ->map(fn (object $row): array => [
+                'id' => (int) $row->id,
+                'amount' => FundCatalog::decimalOf(FundCatalog::centsOf($row->amount)),
+                'what' => FundCatalog::typeLabel((string) $row->category),
+                'order_id' => (string) $row->order_id,
+                'order_number' => $row->order_number !== null ? (string) $row->order_number : null,
+                'reason' => $row->reason === 'quota' ? 'quota' : 'inactive',
+            ])
+            ->all();
+
+        return ['total' => FundCatalog::decimalOf(FundCatalog::centsOf($totals->total)), 'count' => (int) $totals->count, 'lines' => $lines];
     }
 
     /** @return list<object> */

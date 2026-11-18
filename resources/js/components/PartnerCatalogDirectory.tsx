@@ -3,6 +3,7 @@ import { Link, usePage } from '@inertiajs/react';
 import { Package, Search, ShoppingBag, ArrowRight, CheckCircle2, AlertTriangle, LayoutGrid, List } from 'lucide-react';
 import { money, Table, type TableColumn, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
+import { catalogWord } from '../shared/catalogWords';
 import LuxuryProductCard from './LuxuryProductCard';
 import { oneCardPerGroup, sizesByGroup, type SizeCard } from '../shared/productSizes';
 
@@ -136,7 +137,7 @@ export default function PartnerCatalogDirectory({ products = [], categories = []
                                 onClick={() => setSelectedCat(cat)}
                                 className={`pcd-chip${active ? ' is-active' : ''}`}
                             >
-                                {cat} ({count})
+                                {catalogWord(translate, 'category', cat)} ({count})
                             </button>
                         );
                     })}
@@ -238,7 +239,7 @@ export default function PartnerCatalogDirectory({ products = [], categories = []
                                 sortValue: (p: Row) => p.category || '',
                                 render: (p: Row) => (
                                     <div>
-                                        <div className="ops-semibold ops-text-2">{p.category}</div>
+                                        <div className="ops-semibold ops-text-2">{catalogWord(translate, 'category', p.category)}</div>
                                         {p.sub_category && (
                                             <div className="ops-meta">{p.sub_category}</div>
                                         )}
@@ -250,7 +251,7 @@ export default function PartnerCatalogDirectory({ products = [], categories = []
                                 title: translate('portal', 'pcd_col_pack'),
                                 sortable: true,
                                 sortValue: (p: Row) => p.unit || '',
-                                render: (p: Row) => <span>{p.unit || 'Pack'}</span>,
+                                render: (p: Row) => <span>{catalogWord(translate, 'unit', p.unit || 'Pack')}</span>,
                             },
                             {
                                 key: 'mrp',

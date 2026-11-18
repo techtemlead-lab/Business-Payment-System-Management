@@ -88,7 +88,7 @@ final class TreasuryFunds
             'percent_of' => $row->percent_of,
             'mrp_total' => $row->mrp_total === null ? null : (string) $row->mrp_total,
             'paid' => $row->paid === null ? null : (string) $row->paid,
-            'reason' => $row->reason_key === ReserveService::AreaTargetMissedReason ? (string) __('portal.'.$row->reason_key) : $row->reason,
+            'reason' => $this->reasonOf($row),
         ]);
 
         return $table;
@@ -200,6 +200,20 @@ final class TreasuryFunds
             ->map(fn (string $category): array => ['value' => $category, 'label' => FundCatalog::typeLabel($category)])->values()->all())];
     }
 
+    /**
+     * Why money came in, in the reader's language. Moves to company profit (no referrer, no area
+     * dealer, missed target, closed account) and area money still waiting for its month to end say so.
+     */
+    private function reasonOf(object $row): ?string
+    {
+        $key = $row->reason_key;
+        if (is_string($key) && ($key === ReserveService::AreaTargetMissedReason || str_starts_with($key, 'money_core.') || str_starts_with($key, 'retained_reason_profit_'))) {
+            return (string) __(str_contains($key, '.') ? $key : 'portal.'.$key, ['place' => $row->place_code ?? '—']);
+        }
+
+        return $row->reason;
+    }
+
     private function inTypeLabel(object $row): string
     {
         if ($row->category === 'company_share') {
@@ -231,7 +245,7 @@ final class TreasuryFunds
             ->leftJoin('commission_batches as b', 'b.order_id', '=', 'funds.order_id')
             ->where('funds.status', '!=', 'reversed')->where('funds.amount', '>', 0)
             ->whereRaw('('.FundCatalog::rowFundSql().') = ?', [$fund])
-            ->selectRaw("funds.id::text AS id, funds.created_at, o.id AS order_id, o.number AS order_number, u.name AS partner_name, u.dealer_code AS partner_code, u.role AS partner_role, funds.amount, funds.category, funds.rate_percentage AS percent, 'paid' AS percent_of, b.mrp_basis AS mrp_total, b.cash_basis AS paid, CASE WHEN funds.category = '".CompanyFunds::NoCommissionCategory."' THEN funds.metadata->>'reason' END AS reason, funds.metadata->>'reason_key' AS reason_key");
+            ->selectRaw("funds.id::text AS id, funds.created_at, o.id AS order_id, o.number AS order_number, u.name AS partner_name, u.dealer_code AS partner_code, u.role AS partner_role, funds.amount, funds.category, funds.rate_percentage AS percent, 'paid' AS percent_of, b.mrp_basis AS mrp_total, b.cash_basis AS paid, CASE WHEN funds.category = '".CompanyFunds::NoCommissionCategory."' THEN funds.metadata->>'reason' END AS reason, funds.metadata->>'reason_key' AS reason_key, funds.metadata->>'place_code' AS place_code");
     }
 
     /** The company share and the owners' share of each order, scaled down by what was refunded. */

@@ -78,15 +78,11 @@
 @if($page==='contact')
 @php
     $enquiryTopics = [
-        'contact_topic_dealer' => $chrome('contact_topic_dealer'),
-        'contact_topic_partnership' => $chrome('contact_topic_partnership'),
         'contact_topic_product' => $chrome('contact_topic_product'),
         'contact_topic_support' => $chrome('contact_topic_support'),
         'contact_topic_complaint' => $chrome('contact_topic_complaint'),
     ];
     $enquiryTopicValues = [
-        'contact_topic_dealer' => 'dealer_enquiry',
-        'contact_topic_partnership' => 'partnership_enquiry',
         'contact_topic_product' => 'product_enquiry',
         'contact_topic_support' => 'support',
         'contact_topic_complaint' => 'complaint',
@@ -97,6 +93,9 @@
     'lead' => $chrome('contact_company_desc', $siteCustomization['contact_company_desc'] ?? null),
     'icon' => 'fa-headset',
 ])
+@if($publicPageEnabled['partnership'] ?? true)
+<p class="ref-field-hint" style="margin:0 0 12px;"><i class="fa-solid fa-handshake" aria-hidden="true"></i> {{ __('joining.contact_partner_hint') }} <a href="/partnership#partner-apply"><b>{{ __('site.become_a_partner') }}</b></a></p>
+@endif
 <div class="ref-contact-grid">
     <section class="ref-content-card">
         <h2>{{ $chrome('contact_company_title', $siteCustomization['contact_company_title'] ?? null) }}</h2>
@@ -376,9 +375,13 @@
 
     <div id="partner-apply-status" class="ref-form-status">
     @if(session('success'))
-        <div class="ref-alert ref-success ref-flash-success" role="status">
+        <div class="ref-alert ref-success ref-flash-success" role="status" style="font-size:1.15rem;line-height:1.7;padding:18px;border:2px solid #047857;background:#ecfdf5;color:#064e3b;">
             <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
             <span>{{ session('success') }}</span>
+            @if(session('application_number'))
+                <p style="margin:10px 0 0;font-size:1.4rem;font-weight:700;">{{ __('joining.status_number') }}: {{ session('application_number') }}</p>
+                <p style="margin:6px 0 0;"><a href="/partnership/status" class="ref-primary-button">{{ __('joining.status_link') }}</a></p>
+            @endif
         </div>
     @endif
     @if($errors->any())
@@ -396,7 +399,7 @@
     @endif
     </div>
 
-    <form method="post" action="/partnership/apply" class="ref-partner-apply-form">
+    <form method="post" action="/partnership/apply" class="ref-partner-apply-form" novalidate id="partner-apply-form">
         @csrf
         <input type="text" name="website" value="" tabindex="-1" autocomplete="off" aria-hidden="true" class="ref-honeypot" style="position:absolute;left:-9999px;height:0;width:0;opacity:0;">
 
@@ -422,7 +425,7 @@
                 </label>
                 <div class="ref-input-wrap">
                     <i class="fa-solid fa-id-badge ref-input-icon" aria-hidden="true"></i>
-                    <input id="partner-sponsor" type="text" name="sponsor_code" value="{{ $typedSponsor }}" maxlength="40" autocomplete="off" placeholder="e.g. D-1042" class="ref-input-control">
+                    <input id="partner-sponsor" type="text" name="sponsor_code" value="{{ $typedSponsor }}" maxlength="40" autocomplete="off" placeholder="{{ __('joining.referrer_placeholder') }}" class="ref-input-control">
                 </div>
                 @if($typedSponsorUser)
                     <small class="ref-field-hint"><b>{{ __('partner_profile.form_referrer_found', ['name' => $typedSponsorUser->name]) }}</b></small>
@@ -444,13 +447,12 @@
                 <legend class="ref-sr-only">{{ __('site.partnership_type') }}</legend>
                 <div class="ref-role-selector">
                     <label class="ref-role-card">
-                        <input type="radio" name="role" value="dealer" @checked(old('role') === 'dealer') required class="ref-role-radio">
+                        <input type="radio" name="role" value="dealer" @checked(old('role', request('role')) === 'dealer') required class="ref-role-radio">
                         <div class="ref-role-box">
                             <div class="ref-role-head">
                                 <div class="ref-role-icon"><i class="fa-solid fa-store" aria-hidden="true"></i></div>
                                 <div class="ref-role-meta">
                                     <span class="ref-role-name">{{ __('site.role_dealer') }}</span>
-                                    <span class="ref-role-tag dealer">{{ __('site.partner_dealer_badge') }}</span>
                                 </div>
                                 <div class="ref-role-check"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
                             </div>
@@ -459,7 +461,7 @@
                     </label>
 
                     <label class="ref-role-card">
-                        <input type="radio" name="role" value="sub_dealer" @checked(old('role', 'sub_dealer') === 'sub_dealer') required class="ref-role-radio">
+                        <input type="radio" name="role" value="sub_dealer" @checked(old('role', request('role')) === 'sub_dealer') required class="ref-role-radio">
                         <div class="ref-role-box">
                             <div class="ref-role-head">
                                 <div class="ref-role-icon"><i class="fa-solid fa-shop" aria-hidden="true"></i></div>
@@ -474,6 +476,7 @@
                     </label>
                 </div>
             </fieldset>
+            <p id="partner-role-summary" class="ref-field-hint" role="status" aria-live="polite" data-dealer="{{ __('joining.applying_as', ['type' => __('site.role_dealer')]) }}" data-sub="{{ __('joining.applying_as', ['type' => __('site.role_sub_dealer')]) }}" data-none="{{ __('joining.choose_type') }}"></p>
         </div>
 
         {{-- Section 2: Personal & Contact Information --}}
@@ -516,16 +519,41 @@
                     </div>
                 </div>
 
+                @php
+                    $birthParts = array_pad(explode('-', (string) old('date_of_birth', '')), 3, '');
+                    $birthYear = (int) old('dob_year', $birthParts[0]);
+                    $birthMonth = (int) old('dob_month', $birthParts[1]);
+                    $birthDay = (int) old('dob_day', $birthParts[2]);
+                    $dobMax = (int) now()->year - \App\Domain\Accounts\PartnerAge::MinimumYears;
+                @endphp
                 <div class="ref-field-group">
-                    <label for="partner-dob" class="ref-field-label">
-                        <span>{{ __('site.partner_date_of_birth') }} <span class="ref-req">*</span></span>
-                    </label>
-                    <div class="ref-input-wrap">
-                        <i class="fa-solid fa-cake-candles ref-input-icon" aria-hidden="true"></i>
-                        <input id="partner-dob" type="date" name="date_of_birth" value="{{ old('date_of_birth') }}" required max="{{ \App\Domain\Accounts\PartnerAge::latestAllowedBirthDate() }}" autocomplete="bday" class="ref-input-control">
+                    <span class="ref-field-label"><span>{{ __('site.partner_date_of_birth') }} <span class="ref-req">*</span></span></span>
+                    <div style="display:flex;gap:8px;">
+                        <select name="dob_day" aria-label="{{ __('joining.dob_day') }}" class="ref-input-control">
+                            <option value="">{{ __('joining.dob_day') }}</option>
+                            @for($d = 1; $d <= 31; $d++)<option value="{{ $d }}" @selected($birthDay === $d)>{{ $d }}</option>@endfor
+                        </select>
+                        <select name="dob_month" aria-label="{{ __('joining.dob_month') }}" class="ref-input-control">
+                            <option value="">{{ __('joining.dob_month') }}</option>
+                            @for($m = 1; $m <= 12; $m++)<option value="{{ $m }}" @selected($birthMonth === $m)>{{ __('joining.month_'.$m) }}</option>@endfor
+                        </select>
+                        <select name="dob_year" aria-label="{{ __('joining.dob_year') }}" class="ref-input-control">
+                            <option value="">{{ __('joining.dob_year') }}</option>
+                            @for($y = $dobMax; $y >= $dobMax - 82; $y--)<option value="{{ $y }}" @selected($birthYear === $y)>{{ $y }}</option>@endfor
+                        </select>
                     </div>
                     <small class="ref-field-hint">{{ __('site.partner_date_of_birth_hint') }}</small>
-                </div>            </div>
+                </div>
+
+                <div class="ref-field-group">
+                    <label for="partner-nid" class="ref-field-label"><span>{{ __('joining.nid_label') }} <span class="ref-req">*</span></span></label>
+                    <div class="ref-input-wrap">
+                        <i class="fa-solid fa-id-card ref-input-icon" aria-hidden="true"></i>
+                        <input id="partner-nid" type="text" inputmode="numeric" name="nid" value="{{ old('nid') }}" maxlength="17" autocomplete="off" class="ref-input-control">
+                    </div>
+                    <small class="ref-field-hint">{{ __('joining.nid_hint') }}</small>
+                </div>
+            </div>
         </div>
 
         {{-- Section 3: Proposed Business Territory --}}
@@ -537,58 +565,28 @@
                 </div>
             </div>
 
-            <div class="ref-form-grid ref-grid-3">
+            <p class="ref-field-hint">{{ __('joining.place_hint') }}</p>
+            <div class="ref-form-grid ref-grid-2" id="partner-places" data-url="/partnership/places" data-choose="{{ __('joining.choose_place') }}" data-held="{{ __('joining.upazila_has_dealer') }}" data-old-division="{{ old('division_place_id') }}" data-old-district="{{ old('district_place_id') }}" data-old-upazila="{{ old('upazila_place_id') }}" data-old-union="{{ old('union_place_id') }}">
                 <div class="ref-field-group">
-                    <label for="partner-division" class="ref-field-label">
-                        <span>{{ __('site.division') }}</span>
-                    </label>
-                    <div class="ref-input-wrap">
-                        <i class="fa-solid fa-map ref-input-icon" aria-hidden="true"></i>
-                        <input id="partner-division" type="text" name="division" list="bd-division-list" value="{{ old('division') }}" maxlength="80" autocomplete="address-level1" placeholder="{{ __('site.division') }}" class="ref-input-control">
-                        <datalist id="bd-division-list">
-                            <option value="Dhaka">
-                            <option value="Chattogram">
-                            <option value="Rajshahi">
-                            <option value="Khulna">
-                            <option value="Barishal">
-                            <option value="Sylhet">
-                            <option value="Rangpur">
-                            <option value="Mymensingh">
-                            <option value="ঢাকা">
-                            <option value="চট্টগ্রাম">
-                            <option value="রাজশাহী">
-                            <option value="খুলনা">
-                            <option value="বরিশাল">
-                            <option value="সিলেট">
-                            <option value="রংপুর">
-                            <option value="ময়মনসিংহ">
-                        </datalist>
-                    </div>
+                    <label for="partner-division" class="ref-field-label"><span>{{ __('site.division') }} <span class="ref-req">*</span></span></label>
+                    <select id="partner-division" name="division_place_id" class="ref-input-control"><option value="">{{ __('joining.choose_place') }}</option></select>
                 </div>
-
                 <div class="ref-field-group">
-                    <label for="partner-district" class="ref-field-label">
-                        <span>{{ __('site.district') }}</span>
-                    </label>
-                    <div class="ref-input-wrap">
-                        <i class="fa-solid fa-city ref-input-icon" aria-hidden="true"></i>
-                        <input id="partner-district" type="text" name="district" value="{{ old('district') }}" maxlength="80" autocomplete="address-level2" placeholder="{{ __('site.district') }}" class="ref-input-control">
-                    </div>
+                    <label for="partner-district" class="ref-field-label"><span>{{ __('site.district') }} <span class="ref-req">*</span></span></label>
+                    <select id="partner-district" name="district_place_id" class="ref-input-control"><option value="">{{ __('joining.choose_place') }}</option></select>
                 </div>
-
                 <div class="ref-field-group">
-                    <label for="partner-upazila" class="ref-field-label">
-                        <span>{{ __('site.upazila_optional') }}</span>
-                        <span class="ref-badge-optional">{{ __('site.optional') }}</span>
-                    </label>
-                    <div class="ref-input-wrap">
-                        <i class="fa-solid fa-location-dot ref-input-icon" aria-hidden="true"></i>
-                        <input id="partner-upazila" type="text" name="upazila" value="{{ old('upazila') }}" maxlength="150" autocomplete="address-level3" placeholder="{{ __('site.upazila_optional') }}" class="ref-input-control">
-                    </div>
+                    <label for="partner-upazila" class="ref-field-label"><span>{{ __('joining.upazila') }}</span></label>
+                    <select id="partner-upazila" name="upazila_place_id" class="ref-input-control"><option value="">{{ __('joining.choose_place') }}</option></select>
+                </div>
+                <div class="ref-field-group">
+                    <label for="partner-union" class="ref-field-label"><span>{{ __('joining.union') }}</span></label>
+                    <select id="partner-union" name="union_place_id" class="ref-input-control"><option value="">{{ __('joining.choose_place') }}</option></select>
                 </div>
             </div>
+            <p id="partner-upazila-note" class="ref-field-hint" role="status" aria-live="polite"></p>
+            <small class="ref-field-hint">{{ __('joining.place_missing_hint') }}</small>
         </div>
-
         {{-- Section 4: Experience / Additional Notes --}}
         <div class="ref-form-section" style="border-bottom:0;padding-bottom:0;margin-bottom:0;">
             <div class="ref-section-header">
@@ -612,6 +610,8 @@
         {{-- Submit Button & Trust Guarantee Note --}}
         <div class="ref-partner-submit-area">
             <p class="ref-field-hint">{{ __('site.partner_directory_notice') }}</p>
+            {{-- LC-05: what is kept and why, in plain words, before the person sends their details. --}}
+            <p class="ref-field-hint">{{ __('security.application_consent') }} <a href="/privacy">{{ __('security.privacy_notice_link') }}</a></p>
             <button type="submit" class="ref-partner-submit-btn">
                 <span>{{ __('site.submit_application') }}</span>
                 <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
@@ -622,6 +622,67 @@
             </div>
         </div>
     </form>
+    <script @if($cspNonce = request()?->attributes?->get('csp_nonce')) nonce="{{ $cspNonce }}" @endif>
+    (function () {
+        var form = document.getElementById('partner-apply-form');
+        if (!form) { return; }
+        // The chosen type is remembered and shown again before sending, so no late script can change it unseen.
+        var summary = document.getElementById('partner-role-summary');
+        var chosen = (form.querySelector('input[name="role"]:checked') || {}).value || '';
+        function showRole() {
+            summary.textContent = chosen === 'dealer' ? summary.dataset.dealer : (chosen === 'sub_dealer' ? summary.dataset.sub : summary.dataset.none);
+        }
+        form.querySelectorAll('input[name="role"]').forEach(function (radio) {
+            radio.addEventListener('change', function () { chosen = radio.value; showRole(); });
+        });
+        form.addEventListener('submit', function () {
+            if (chosen) {
+                var radio = form.querySelector('input[name="role"][value="' + chosen + '"]');
+                if (radio) { radio.checked = true; }
+            }
+        });
+        showRole();
+
+        var box = document.getElementById('partner-places');
+        var note = document.getElementById('partner-upazila-note');
+        var levels = ['division', 'district', 'upazila', 'union'];
+        var selects = {};
+        levels.forEach(function (level) { selects[level] = document.getElementById('partner-' + level); });
+        function fill(level, parent, selected) {
+            var select = selects[level];
+            select.innerHTML = '<option value="">' + box.dataset.choose + '</option>';
+            if (level !== 'division' && !parent) { return Promise.resolve(); }
+            var url = box.dataset.url + '?level=' + level + (parent ? '&parent_id=' + parent : '');
+            return fetch(url, { headers: { Accept: 'application/json' } }).then(function (r) { return r.json(); }).then(function (json) {
+                (json.data || []).forEach(function (place) {
+                    var option = document.createElement('option');
+                    option.value = place.id;
+                    option.textContent = place.name;
+                    option.dataset.held = place.held ? '1' : '';
+                    if (String(place.id) === String(selected)) { option.selected = true; }
+                    select.appendChild(option);
+                });
+            });
+        }
+        function clearBelow(level) {
+            var i = levels.indexOf(level) + 1;
+            for (; i < levels.length; i++) { selects[levels[i]].innerHTML = '<option value="">' + box.dataset.choose + '</option>'; }
+            note.textContent = '';
+        }
+        selects.division.addEventListener('change', function () { clearBelow('division'); fill('district', selects.division.value); });
+        selects.district.addEventListener('change', function () { clearBelow('district'); fill('upazila', selects.district.value); });
+        selects.upazila.addEventListener('change', function () {
+            clearBelow('upazila');
+            var option = selects.upazila.selectedOptions[0];
+            note.textContent = option && option.dataset.held ? box.dataset.held : '';
+            fill('union', selects.upazila.value);
+        });
+        fill('division', null, box.dataset.oldDivision)
+            .then(function () { return fill('district', box.dataset.oldDivision, box.dataset.oldDistrict); })
+            .then(function () { return fill('upazila', box.dataset.oldDistrict, box.dataset.oldUpazila); })
+            .then(function () { return fill('union', box.dataset.oldUpazila, box.dataset.oldUnion); });
+    })();
+    </script>
 </section>
 @endif
 

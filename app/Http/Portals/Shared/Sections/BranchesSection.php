@@ -4,6 +4,7 @@ namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\BranchPerformance;
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\BranchStaffAssignment;
 use App\Models\CompanyBranch;
 use App\Models\User;
@@ -50,8 +51,11 @@ final class BranchesSection implements WorkspaceSection
             ->whereIn('branch_id', $branchIds)
             ->get()
             ->groupBy('branch_id');
+        // Staff whose working branch is set on their account count too, even with no duty assignment row.
+        $workingHere = User::query()->staffAccounts()->whereIn('active_branch_id', $branchIds)->whereNotIn('role', ['super_admin', 'md', 'chairman'])
+            ->get(['id', 'name', 'email', 'phone', 'active_branch_id'])->groupBy('active_branch_id');
         $partnerCounts = $branchOps->partnerCountsByBranch();
-        $props['branches'] = $branches->through(function (CompanyBranch $branch) use ($staffByBranch, $partnerCounts) {
+        $props['branches'] = $branches->through(function (CompanyBranch $branch) use ($staffByBranch, $workingHere, $partnerCounts) {
             $summary = $branch->summary();
             $summary['partners_count'] = $partnerCounts[$branch->id] ?? 0;
             $summary['staff'] = ($staffByBranch[$branch->id] ?? collect())->map(fn (BranchStaffAssignment $row) => [
@@ -62,6 +66,12 @@ final class BranchesSection implements WorkspaceSection
                 'duty' => $row->duty,
                 'is_primary' => $row->is_primary,
             ])->values()->all();
+            $listed = array_column($summary['staff'], 'user_id');
+            foreach ($workingHere[$branch->id] ?? [] as $person) {
+                if (! in_array($person->id, $listed, true)) {
+                    $summary['staff'][] = ['user_id' => $person->id, 'name' => $person->name, 'email' => $person->email, 'phone' => $person->phone, 'duty' => null, 'is_primary' => false];
+                }
+            }
             $summary['stock_skus'] = (int) ($branch->stock_skus ?? 0);
             $summary['stock_units'] = (int) ($branch->stock_units ?? 0);
             $summary['stock_value'] = number_format((float) ($branch->stock_value ?? 0), 2, '.', '');
@@ -77,7 +87,7 @@ final class BranchesSection implements WorkspaceSection
             ->orderBy('id')
             ->first()
             ?->summary();
-        $props['can_edit_branches'] = $user->owner() || $user->canAct('inventory', 'edit') || $user->canAct('accounts', 'edit');
+        $props['can_edit_branches'] = LeadershipAccess::granted($user, 'owner_tools') || $user->canAct('inventory', 'edit') || $user->canAct('accounts', 'edit');
         $props['active_branch_id'] = $user->active_branch_id;
         $props['delivery_points'] = $branchOps->deliveryPoints();
         $customRoleNames = DB::table('staff_roles')->pluck('name', 'key');

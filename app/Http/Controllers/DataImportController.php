@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Finance\ImportWorkbook;
 use App\Domain\Finance\OpeningBalanceImport;
 use App\Domain\Integrations\IntegrationSettings;
@@ -53,7 +54,8 @@ class DataImportController extends Controller
             'openingLocked' => $imports->openingLocked(),
             'canApproveOwnOpening' => $batch !== null && $batch->type === 'opening_balances' && $batch->created_by === $actor->id && app(SelfApproval::class)->ownerFinishesAlone($actor),
             'templateBase' => '/commands/operations/imports/templates/',
-            'startup' => app(IntegrationSettings::class)->startupMode()];
+            'startup' => app(IntegrationSettings::class)->startupMode(),
+            'ownerCanStart' => $actor->role === 'super_admin' && ! app(FinancialReadiness::class)->booksStarted()];
 
         return $request->expectsJson() ? response()->json(['data' => $data]) : Inertia::render('DataImports', $data)->toResponse($request);
     }

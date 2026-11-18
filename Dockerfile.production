@@ -28,6 +28,7 @@ RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoload
     && chown -R www-data:www-data storage bootstrap/cache /var/backups/madina public/branding/site-photos public/branding/category-icons
 COPY --from=frontend --chown=www-data:www-data /build/public/build ./public/build
 COPY infra/php.production.ini /usr/local/etc/php/conf.d/production.ini
+COPY infra/php-fpm.production.conf /usr/local/etc/php-fpm.d/zz-madina.conf
 RUN chmod +x infra/production-entrypoint.sh
 USER www-data
 ENTRYPOINT ["/var/www/html/infra/production-entrypoint.sh"]

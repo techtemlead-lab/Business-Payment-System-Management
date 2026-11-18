@@ -7,8 +7,10 @@ import { useT } from '../shared/i18n/t';
 import { useReasonFields } from '../shared/reasonFields';
 import { useEscape } from '../shared/useEscape';
 import { channelName, methodForChannel, payoutMethods, type PayoutMethod } from '../shared/payoutMethods';
+import WithdrawalFacts, { AmountWords, useWithdrawalFacts } from './payouts/WithdrawalFacts';
+import ReceiptPicker from './payouts/ReceiptPicker';
 
-type WithdrawalStatus = 'requested' | 'approved' | 'paid' | 'rejected';
+type WithdrawalStatus = 'requested' | 'approved' | 'paid' | 'rejected' | 'cancelled';
 
 interface WithdrawalRecord {
     id: string;
@@ -33,6 +35,14 @@ interface WithdrawalRecord {
     payout_receipt_id?: number | null;
     payout_receipt_number?: string | null;
     payout_method?: string | null;
+    on_hold?: boolean;
+    partner_status?: string | null;
+    approved_at?: string | null;
+    payer_id?: number | null;
+    payer_name?: string | null;
+    receipt_due?: boolean;
+    waiting_days?: number | null;
+    overdue?: boolean;
 }
 
 /** Totals over every request that matches the search, not only the visible page. */
@@ -44,6 +54,10 @@ interface PayoutTotals {
     paid_count: number;
     paid_amount: string | number;
     paid_withheld_amount: string | number;
+    overdue_count?: number;
+    overdue_amount?: string | number;
+    on_hold_count?: number;
+    receipt_due_count?: number;
 }
 
 interface PayoutsHubProps {
@@ -71,10 +85,17 @@ function PayoutsTable({ data, rowActions }: { data: MoneyTableData<WithdrawalRec
         { key: 'channel', title: translate('portal', 'pay_col_method'), sortKey: 'method', phone: 'sub', render: (w) => channelName(w.channel, translate) },
         { key: 'destination', title: translate('portal', 'wd_destination'), phone: 'hide', render: (w) => w.destination_masked || '—' },
         { key: 'payment_reference', title: translate('portal', 'col_reference'), sortKey: 'reference', phone: 'hide', render: (w) => <>{w.payment_reference || '—'}{w.paid_at && <small className="cell-sub">{date(w.paid_at)}</small>}</> },
-        { key: 'amount', title: translate('portal', 'pay_col_gross'), sortKey: 'amount', money: true, total: 'amount', phone: 'amount', render: (w) => <b>{money(w.amount)}</b> },
+        { key: 'amount', title: translate('portal', 'pay_col_gross'), sortKey: 'amount', money: true, total: 'amount', phone: 'amount', render: (w) => <><b>{money(w.amount)}</b><AmountWords amount={w.amount} /></> },
         { key: 'withheld_amount', title: translate('portal', 'pay_col_withholding'), sortKey: 'withheld', money: true, phone: 'hide', render: (w) => money(w.withheld_amount ?? 0) },
         { key: 'net_amount', title: translate('portal', 'pay_col_net'), sortKey: 'net', money: true, phone: 'hide', render: (w) => money(w.net_amount ?? w.amount) },
-        { key: 'status', title: translate('portal', 'pay_col_status'), sortKey: 'status', phone: 'sub', render: (w) => <span className={`badge hub-capital ${w.status}`}>{translate('portal', `pay_status_${w.status}`)}</span> },
+        { key: 'status', title: translate('portal', 'pay_col_status'), sortKey: 'status', phone: 'sub', render: (w) => <>
+            <span className={`badge hub-capital ${w.status}`}>{w.status === 'cancelled' ? translate('payouts', 'status_cancelled') : translate('portal', `pay_status_${w.status}`)}</span>
+            {w.on_hold && <span className="badge rejected">{translate('payouts', 'on_hold_badge')}</span>}
+            {w.overdue && <span className="badge rejected">{translate('payouts', 'overdue_badge')}</span>}
+            {w.receipt_due && <span className="badge requested">{translate('payouts', 'receipt_due_badge')}</span>}
+            {w.waiting_days != null && <small className="cell-sub">{w.waiting_days > 0 ? translate('payouts', 'waiting_days', { days: String(w.waiting_days) }) : translate('payouts', 'waiting_today')}</small>}
+            {w.status === 'approved' && <small className="cell-sub">{w.payer_name ? translate('payouts', 'payer_named', { name: w.payer_name }) : translate('payouts', 'payer_none')}</small>}
+        </> },
         { key: 'actions', title: translate('portal', 'pay_col_actions'), phone: 'sub', render: rowActions },
     ];
 
@@ -83,7 +104,8 @@ function PayoutsTable({ data, rowActions }: { data: MoneyTableData<WithdrawalRec
 
 export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: PayoutsHubProps) {
     const translate = useT();
-    const { portalBase, data: pageData, staffActions } = usePage<any>().props;
+    const { portalBase, data: pageData, staffActions, auth } = usePage<any>().props;
+    const myId = Number(auth?.user?.id ?? 0);
     // Checking and paying a withdrawal needs finance approval on the server; everyone else just reads the list.
     const canProcess = staffActions?.finance?.approve ?? true;
     const summary: PayoutTotals = totals ?? pageData?.payout_totals ?? emptyTotals;
@@ -113,6 +135,20 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
     const [receivedBy, setReceivedBy] = useState('');
     const [paymentAccountId, setPaymentAccountId] = useState('');
     const isCash = payoutMethod === 'cash';
+    const [payerId, setPayerId] = useState('');
+    const [receiptLater, setReceiptLater] = useState(false);
+    const [attachRecord, setAttachRecord] = useState<WithdrawalRecord | null>(null);
+    const [attachFile, setAttachFile] = useState<File | null>(null);
+    useEscape(attachRecord !== null, () => setAttachRecord(null));
+    const review = useWithdrawalFacts(reviewModalRecord?.id ?? null);
+    const settle = useWithdrawalFacts(settleModalRecord?.id ?? null);
+    // The number the partner asked to be paid to fills the form; the server refuses any other (F-verify-01).
+    React.useEffect(() => {
+        if (!settle.facts) return;
+        setWalletNumber((current) => current || settle.facts!.destination);
+        setAccountNumber((current) => current || settle.facts!.destination);
+    }, [settle.facts]);
+    const reviewBlocked =reviewDecision === 'approved' && Boolean(review.facts?.blocker || review.facts?.over_channel_limit);
     const payoutAccounts: Array<{ id: number; label: string; channel: string; is_active: boolean; pays_out: boolean }> = (pageData?.payment_accounts ?? []).filter((account: { is_active: boolean; pays_out: boolean }) => account.is_active && account.pays_out);
 
     const handleOpenReview = (record: WithdrawalRecord) => {
@@ -120,6 +156,7 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
         setReviewModalRecord(record);
         setReviewDecision('approved');
         setReviewReason('');
+        setPayerId('');
     };
 
     const handleSubmitReview = (e: React.FormEvent) => {
@@ -128,9 +165,9 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
         setProcessingReview(true);
         router.post(`/commands/withdrawals/${reviewModalRecord.id}/review`, {
             decision: reviewDecision,
-            reason: reviewReason || (reviewDecision === 'approved'
-                ? translate('portal', 'pay_reason_approved')
-                : translate('portal', 'pay_reason_rejected'))
+            // No ready-made note: a note saying "NID and wallet verified" must come from the person who checked (MA-07).
+            reason: reviewReason,
+            ...(reviewDecision === 'approved' && payerId ? { payer_id: payerId } : {}),
         }, {
             onSuccess: () => setReviewModalRecord(null),
             onError: (errors) => setModalErrors(errors),
@@ -145,6 +182,7 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
         setPaidAt(new Date().toLocaleString('sv-SE',{timeZone:'Asia/Dhaka'}).slice(0,16).replace(' ','T'));
         setSettleNote('');
         setReceiptFile(null);
+        setReceiptLater(false);
         setPayoutMethod(methodForChannel(record.channel));
         setBankName('');
         setAccountNumber('');
@@ -155,10 +193,11 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
 
     const handleSubmitSettle = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!settleModalRecord || (!isCash && !receiptFile)) return;
+        if (!settleModalRecord || (!isCash && !receiptFile && !receiptLater)) return;
 
         const formData = new FormData();
         if (receiptFile) formData.append('receipt', receiptFile);
+        if (!isCash && !receiptFile && receiptLater) formData.append('receipt_later', '1');
         formData.append('method', payoutMethod);
         if (!isCash && paymentAccountId) formData.append('payment_account_id', paymentAccountId);
         formData.append('payment_reference', paymentReference);
@@ -179,8 +218,33 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
         });
     };
 
+    const handleAttach = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!attachRecord || !attachFile) return;
+        const formData = new FormData();
+        formData.append('receipt', attachFile);
+        router.post(`/commands/withdrawals/${attachRecord.id}/attach-receipt`, formData, {
+            onSuccess: () => setAttachRecord(null),
+            onError: (errors) => setModalErrors(errors),
+        });
+    };
+
+    const takeOver = (w: WithdrawalRecord) => router.post(`/commands/withdrawals/${w.id}/payer`, { payer_id: myId }, { preserveScroll: true });
+
     const rowActions = (w: WithdrawalRecord) => (
         <div className="hub-row is-end">
+            {w.status === 'approved' && canProcess && w.payer_id !== myId && w.payer_state !== 'second_person' && (
+                <button type="button" onClick={() => takeOver(w)} className="button small">
+                    {translate('payouts', 'payer_take')}
+                </button>
+            )}
+
+            {w.status === 'paid' && w.receipt_due && canProcess && (
+                <button type="button" onClick={() => { setModalErrors({}); setAttachFile(null); setAttachRecord(w); }} className="button small dark">
+                    {translate('payouts', 'attach_receipt')}
+                </button>
+            )}
+
             {w.status === 'requested' && canProcess && (
                 <button
                     type="button"
@@ -286,6 +350,13 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                     </small>
                 </div>
 
+                <a className={`metric ${(summary.overdue_count ?? 0) > 0 ? 'tone-danger' : ''}`} href="?follow_up=overdue">
+                    <span>{translate('payouts', 'kpi_overdue')}</span>
+                    <strong>{money(summary.overdue_amount ?? 0)}</strong>
+                    <small>{translate('payouts', 'kpi_overdue_hint', { count: String(summary.overdue_count ?? 0), days: String(pageData?.payout_due_days ?? 3) })}</small>
+                    <small>{translate('payouts', 'kpi_followups', { hold: String(summary.on_hold_count ?? 0), receipt: String(summary.receipt_due_count ?? 0) })}</small>
+                </a>
+
                 <div className="metric">
                     <span>{translate('portal', 'pay_kpi_withheld')}</span>
                     <strong>
@@ -335,6 +406,8 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                             </div>
                         </div>
 
+                        <WithdrawalFacts facts={review.facts} failed={review.failed} channel={reviewModalRecord.channel} amount={reviewModalRecord.amount} />
+
                         <form onSubmit={handleSubmitReview}>
                             <div className="hub-field">
                                 <label>
@@ -364,6 +437,16 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                                 </div>
                             </div>
 
+                            {reviewDecision === 'approved' && (review.facts?.payers.length ?? 0) > 0 && (
+                                <div className="hub-field">
+                                    <label htmlFor="payout-payer">{translate('payouts', 'payer_label')}</label>
+                                    <select id="payout-payer" required value={payerId} onChange={(e) => setPayerId(e.target.value)}>
+                                        <option value="">{translate('payouts', 'payer_choose')}</option>
+                                        {review.facts?.payers.map((payer) => <option key={payer.id} value={payer.id}>{payer.name}</option>)}
+                                    </select>
+                                </div>
+                            )}
+
                             {reviewNote.shown && <div className="hub-field is-last">
                                 <label>
                                     {reviewNote.label(translate('portal', 'pay_verify_note'))}
@@ -389,7 +472,7 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                                 </button>
                                 <button
                                     type="submit"
-                                    disabled={processingReview}
+                                    disabled={processingReview || reviewBlocked || (reviewDecision === 'approved' && !review.facts && !review.failed)}
                                     className={`button ${reviewDecision === 'approved' ? 'dark' : 'danger'}`}
                                 >
                                     {processingReview ? translate('portal', 'pay_submitting') : (reviewDecision === 'approved' ? translate('portal', 'pay_confirm_approval') : translate('portal', 'pay_confirm_rejection'))}
@@ -411,11 +494,22 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                             {translate('portal', 'pay_settle_meta', { name: settleModalRecord.user_name, channel: channelName(settleModalRecord.channel, translate), amount: money(settleModalRecord.net_amount ?? settleModalRecord.amount) })}
                         </p>
 
+                        <AmountWords amount={settleModalRecord.net_amount ?? settleModalRecord.amount} />
+
                         <div className="portal-notice portal-notice-info">
                             <span><b>{translate('portal', 'pay_sod')}</b> {translate('portal', 'pay_sod_body')}</span>
                         </div>
 
-                        <form onSubmit={handleSubmitSettle}>
+                        {settle.facts?.blocker && <div className="notice" role="alert"><p><b>{translate('payouts', 'blocked_title')}</b> {settle.facts.blocker}</p></div>}
+                        {settle.facts && <p className="hub-hint">{translate('payouts', 'fact_destination')}: <b>{settle.facts.destination}</b></p>}
+
+                        <form onSubmit={handleSubmitSettle} onPaste={(e) => {
+                            const pasted = Array.from(e.clipboardData.files).find((item) => ['image/png', 'image/jpeg', 'application/pdf'].includes(item.type));
+                            if (pasted && !isCash) {
+                                e.preventDefault();
+                                setReceiptFile(new File([pasted], `receipt-${Date.now()}.${pasted.type === 'application/pdf' ? 'pdf' : pasted.type === 'image/png' ? 'png' : 'jpg'}`, { type: pasted.type }));
+                            }
+                        }}>
                             <div className="hub-field">
                                 <label htmlFor="payout-method">
                                     {translate('portal', 'pay_fld_method')}
@@ -491,17 +585,23 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                                 />
                             </div>
 
-                            <div className="hub-field">
-                                <label>
-                                    {translate('portal', isCash ? 'pay_fld_receipt_cash' : 'pay_fld_receipt')}
-                                </label>
-                                <input
-                                    type="file"
-                                    required={!isCash}
-                                    accept=".pdf,.jpg,.jpeg,.png"
-                                    onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
-                                />
-                            </div>
+                            <ReceiptPicker
+                                id="payout-receipt"
+                                label={translate('portal', isCash ? 'pay_fld_receipt_cash' : 'pay_fld_receipt')}
+                                required={!isCash && !receiptLater}
+                                file={receiptFile}
+                                onChange={setReceiptFile}
+                            />
+
+                            {!isCash && !receiptFile && (
+                                <div className="hub-field">
+                                    <label className="hub-choice">
+                                        <input type="checkbox" checked={receiptLater} onChange={(e) => setReceiptLater(e.target.checked)} />
+                                        {translate('payouts', 'receipt_later')}
+                                    </label>
+                                    {receiptLater && <small className="hub-hint">{translate('payouts', 'receipt_later_hint')}</small>}
+                                </div>
+                            )}
 
                             {paymentNote.shown && <div className="hub-field is-last">
                                 <label>
@@ -529,11 +629,29 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                                 </button>
                                 <button
                                     type="submit"
-                                    disabled={processingSettle}
+                                    disabled={processingSettle || Boolean(settle.facts?.blocker)}
                                     className="button dark"
                                 >
                                     {processingSettle ? translate('portal', 'pay_recording') : translate('portal', 'pay_record_ledger')}
                                 </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Receipt for a payout recorded as "money sent, receipt later" */}
+            {attachRecord && (
+                <div className="hub-overlay">
+                    <div className="hub-dialog" role="dialog" aria-modal="true">
+                        <h3 className="hub-title is-lg">{translate('payouts', 'attach_receipt')}</h3>
+                        <p className="hub-sub is-lead">{attachRecord.user_name} · {money(attachRecord.net_amount ?? attachRecord.amount)} · {attachRecord.payment_reference}</p>
+                        <form onSubmit={handleAttach}>
+                            <ReceiptPicker id="attach-receipt" label={translate('portal', 'pay_fld_receipt')} required file={attachFile} onChange={setAttachFile} />
+                            <FormErrors errors={modalErrors} />
+                            <div className="hub-row is-end">
+                                <button type="button" onClick={() => setAttachRecord(null)} className="button">{translate('portal', 'pay_cancel')}</button>
+                                <button type="submit" disabled={!attachFile} className="button dark">{translate('payouts', 'attach_save')}</button>
                             </div>
                         </form>
                     </div>

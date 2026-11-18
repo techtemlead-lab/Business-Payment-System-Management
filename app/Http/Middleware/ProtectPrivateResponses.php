@@ -28,7 +28,8 @@ class ProtectPrivateResponses
         // Keeps the page address on our own site, so back() returns to the page the person was on
         // even with two tabs open. Other sites get nothing, and each portal counts as its own origin.
         $response->headers->set('Referrer-Policy', 'same-origin');
-        if ($request->user() || $request->is('login', 'login/*', 'forgot-password', 'reset-password*', 'exports*') || in_array(PortalHost::current($request), ['dealer', 'subdealer', 'manage', 'sadmin'], true)) {
+        // The translation file holds only public words and is kept by the browser for a year.
+        if (! $request->is('i18n/*') && ($request->user() || $request->is('login', 'login/*', 'forgot-password', 'reset-password*', 'exports*') || in_array(PortalHost::current($request), ['dealer', 'subdealer', 'manage', 'sadmin'], true))) {
             $response->headers->set('Cache-Control', 'private, no-store, max-age=0');
         }
         // H4: tighten CSP beyond frame/base/object/form defaults.
@@ -66,7 +67,8 @@ class ProtectPrivateResponses
             "default-src 'self'{$previewSource}{$domainHosts}; base-uri 'self'; object-src 'none'; "
             ."frame-ancestors 'self'{$domainHosts}; form-action {$formAction}; "
             ."frame-src 'self'{$domainHosts} https://maps.google.com https://www.google.com https://maps.googleapis.com{$videoFrames}; "
-            ."script-src 'self' 'nonce-{$nonce}' 'unsafe-inline'{$officeTools}{$domainHosts}{$viteDev}; "
+            // No 'unsafe-inline' for scripts (SA-10): every inline script carries the nonce. Styles keep it, as React sets inline styles.
+            ."script-src 'self' 'nonce-{$nonce}'{$officeTools}{$domainHosts}{$viteDev}; "
             ."style-src 'self' 'unsafe-inline' https://fonts.bunny.net{$domainHosts}{$viteDev}; "
             ."img-src 'self' data: blob:{$domainHosts}{$viteDev}; "
             ."font-src 'self' data: https://fonts.bunny.net{$fontFiles}{$domainHosts}{$viteDev}; "

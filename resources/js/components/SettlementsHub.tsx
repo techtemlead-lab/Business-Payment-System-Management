@@ -64,6 +64,18 @@ interface SettlementState {
         description: string;
         created_at: string;
     }>;
+    /** Which months still wait, which closed when, and automatic closes that failed (MA-01, MA-23). */
+    close_status?: CloseStatus;
+}
+
+type CloseKind = 'salary' | 'royalty' | 'area_quota' | 'additional_rank';
+
+interface CloseStatus {
+    waiting: Array<{ month: string; label: string; kind: CloseKind; amount: string; automatic: boolean }>;
+    closed: Array<{ month: string; label: string; kind: CloseKind; closed_at: string; paid: string; to_company: string }>;
+    failures: Array<{ month: string; label: string; kind: CloseKind; error: string; failed_at: string }>;
+    month_options: Array<{ value: string; label: string }>;
+    selected_closed: Partial<Record<CloseKind, string | null>>;
 }
 
 /** A closed row holding one detail table. Stays open when a search or a later page needs it visible. */
@@ -119,6 +131,23 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
         confirmation?.run();
     };
 
+    const pickMonth = (month: string) => {
+        setSelectedMonth(month);
+        router.get('/settlements', { period_month: month }, { preserveScroll: true });
+    };
+
+    const closeMonth = (month: string, kind: CloseKind, label: string) => {
+        const salary = kind === 'salary';
+        confirmThen(translate('portal', salary ? 'st_confirm_salary' : 'st_confirm_rank', { month: label }), () => {
+            (salary ? setProcessingSalary : setProcessingRank)(true);
+            router.post(salary ? '/commands/commissions/settle-salary' : '/commands/commissions/settle-rank-royalty', { period_month: month, request_key: randomUuid() }, {
+                preserveScroll: true,
+                onFinish: () => (salary ? setProcessingSalary : setProcessingRank)(false),
+            });
+        });
+    };
+    const kindWord = (kind: CloseKind) => translate('money_core', `mc_kind_${kind}`);
+
     const handleSettleSalary = () => {
         confirmThen(translate('portal', 'st_confirm_salary', { month: selectedMonth }), () => {
             setProcessingSalary(true);
@@ -170,11 +199,13 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                 <div className="hub-row">
                     <label className="hub-inline-field">
                         {translate('portal', 'st_period')}
-                        <input
-                            type="month"
-                            value={selectedMonth}
-                            onChange={e => {setSelectedMonth(e.target.value);router.get('/settlements',{period_month:e.target.value},{preserveScroll:true});}}
-                        />
+                        {state.close_status ? (
+                            <select value={selectedMonth} onChange={e => pickMonth(e.target.value)}>
+                                {state.close_status.month_options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                            </select>
+                        ) : (
+                            <input type="month" value={selectedMonth} onChange={e => pickMonth(e.target.value)} />
+                        )}
                     </label>
                     <ServerListSearch
                         query={state.search ?? ''}
@@ -184,6 +215,8 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                     />
                 </div>
             </div>
+
+            {state.close_status && <MonthCloseStatusPanel status={state.close_status} kindWord={kindWord} canApprove={canApprove && Boolean(financeActive)} busy={processingSalary || processingRank} onClose={closeMonth} />}
 
             {/* The month at a glance, before any detail */}
             <section className="panel" aria-labelledby="st-summary-title">
@@ -559,5 +592,79 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                 </Modal>
             )}
         </div>
+    );
+}
+
+/**
+ * Month close at a glance (MA-01, MA-23): an automatic close that failed, every ended month still
+ * waiting (with a button for the older ones only a person may close), and when each month closed.
+ */
+function MonthCloseStatusPanel({ status, kindWord, canApprove, busy, onClose }: {
+    status: CloseStatus;
+    kindWord: (kind: CloseKind) => string;
+    canApprove: boolean;
+    busy: boolean;
+    onClose: (month: string, kind: CloseKind, label: string) => void;
+}) {
+    const translate = useT();
+    const closable = (kind: CloseKind) => kind === 'salary' || kind === 'royalty';
+
+    return (
+        <section className="panel" aria-labelledby="st-close-status-title">
+            {status.failures.length > 0 && (
+                <div className="hub-note tone-danger" role="alert">
+                    <b>{translate('money_core', 'mc_failed_title')}</b>
+                    {status.failures.map(failure => (
+                        <p key={`${failure.kind}:${failure.month}`}>
+                            {translate('money_core', 'mc_failed_line', { kind: kindWord(failure.kind), month: failure.label, error: failure.error })}
+                        </p>
+                    ))}
+                </div>
+            )}
+            <div className="panel-heading">
+                <div>
+                    <h2 id="st-close-status-title">{translate('money_core', 'mc_waiting_title')}</h2>
+                </div>
+            </div>
+            {status.waiting.length === 0 ? (
+                <p className="hub-hint">{translate('money_core', 'mc_none_waiting')}</p>
+            ) : (
+                <div className="hub-ledger">
+                    {status.waiting.map(row => (
+                        <div className="hub-ledger-row" key={`${row.kind}:${row.month}`}>
+                            <span>
+                                <b>{row.label}</b> · {kindWord(row.kind)} · {money(row.amount)}
+                                <br />
+                                <small className={row.automatic ? 'tone-info' : 'tone-warn'}>
+                                    {translate('money_core', row.automatic ? 'mc_waiting_auto' : 'mc_waiting_person')}
+                                </small>
+                            </span>
+                            {canApprove && closable(row.kind) && (
+                                <button type="button" className="button small dark" disabled={busy} onClick={() => onClose(row.month, row.kind, row.label)}>
+                                    <Play size={15} />
+                                    {translate('money_core', 'mc_close_button')}
+                                </button>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
+            {status.closed.length > 0 && (
+                <DetailRow title={translate('money_core', 'mc_closed_title')} count={status.closed.length} open={false}>
+                    {status.closed.map(row => (
+                        <p className="hub-hint" key={`${row.kind}:${row.month}`}>
+                            <CheckCircle2 size={14} className="tone-ok" />{' '}
+                            {translate('money_core', 'mc_closed_line', {
+                                kind: kindWord(row.kind),
+                                month: row.label,
+                                date: date(row.closed_at),
+                                paid: money(row.paid, { symbol: false }),
+                                company: money(row.to_company, { symbol: false }),
+                            })}
+                        </p>
+                    ))}
+                </DetailRow>
+            )}
+        </section>
     );
 }

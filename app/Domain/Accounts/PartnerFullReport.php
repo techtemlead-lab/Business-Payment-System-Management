@@ -176,7 +176,10 @@ final class PartnerFullReport
 
         $none = $t('pdf_none');
         // Amounts and counts follow the reader's language; codes such as DL-1001 stay as they are.
-        $localize = static fn (string $value): string => preg_match('/^[\d.,]+$/', $value) === 1 ? LocalDigits::text($value, $locale) : $value;
+        // A taka amount (digits with two decimals) gets lakh and crore commas, like the statement and the portal; counts stay plain.
+        $localize = static fn (string $value): string => preg_match('/^\d+\.\d{2}$/', $value) === 1
+            ? LocalDigits::text(Money::grouped($value), $locale)
+            : (preg_match('/^[\d.,]+$/', $value) === 1 ? LocalDigits::text($value, $locale) : $value);
         $rows = static function (array $items, callable $cells) use ($none, $localize): string {
             if ($items === []) {
                 return '<tr><td colspan="6">'.e($none).'</td></tr>';

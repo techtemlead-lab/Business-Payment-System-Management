@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Security\SecuritySettings;
+use App\Domain\Staff\LeadershipAccess;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -67,8 +68,10 @@ class PasswordResetOwnerNoticeTest extends TestCase
 
     public function test_an_owner_resetting_a_password_sends_no_notice(): void
     {
-        User::factory()->staff('super_admin')->create();
+        $superAdmin = User::factory()->staff('super_admin')->create();
         $md = User::factory()->staff('md')->create();
+        // D11 (SA-07): the MD resets partner passwords once the Super Admin grants the accounts area.
+        LeadershipAccess::save($superAdmin, ['md' => ['accounts']], 0);
         $dealer = User::factory()->dealer()->create(['phone' => '01712345666']);
 
         $this->actingAs($md)->onPortal('sadmin')

@@ -24,8 +24,8 @@ Route::middleware('guest')->group(function (): void {
     Route::post('/login/otp', [AuthController::class, 'verifyOtp'])->middleware('throttle:sign-in-code');
     Route::post('/login/otp/resend', [AuthController::class, 'resendOtp'])->middleware('throttle:sign-in-code');
     Route::get('/login/captcha', [AuthController::class, 'captcha'])->middleware('throttle:sign-in-page');
-    Route::post('/forgot-password', [AuthController::class, 'forgot'])->middleware('throttle:3,1');
-    Route::post('/reset-password', [AuthController::class, 'reset'])->middleware('throttle:5,1');
+    Route::post('/forgot-password', [AuthController::class, 'forgot'])->middleware('throttle:password-forgot');
+    Route::post('/reset-password', [AuthController::class, 'reset'])->middleware('throttle:password-reset');
 });
 
 Route::middleware(['auth', 'active', 'portal:dealer', 'agreement'])->group(function () use ($registerCommands): void {

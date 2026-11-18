@@ -49,7 +49,8 @@ class WithdrawalMoneySmsTest extends TestCase
         $this->assertSame('withdrawal.approved', $sent[0]['event'] ?? null);
         $this->assertSame('01720000091', $sent[0]['phone'] ?? null);
         $this->assertStringContainsString('অনুমোদিত', $sent[0]['message'] ?? '');
-        $this->assertStringContainsString('200.00', $sent[0]['message'] ?? '');
+        // One amount format everywhere (MA-18): Bangla digits, no ".00" on whole taka.
+        $this->assertStringContainsString('৳২০০ ', $sent[0]['message'] ?? '');
     }
 
     public function test_review_rejection_sends_partner_sms_and_releases_hold(): void
@@ -99,7 +100,8 @@ class WithdrawalMoneySmsTest extends TestCase
             'user_id' => $owner->id,
             'amount' => '200.00',
             'status' => 'approved',
-            'channel' => 'bKash',
+            // Paid by "other", the method for Rocket requests: a payout goes only by the requested method.
+            'channel' => 'Rocket',
             'destination' => encrypt('01720000093'),
             'idempotency_key' => (string) Str::uuid(),
             'reviewed_by' => $reviewer->id,

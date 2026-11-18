@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Accounts\AccountPhoneRules;
+use App\Domain\Accounts\FirstPassword;
 use App\Domain\Accounts\PartnerAccountProvisioning;
 use App\Domain\Accounts\PartnerAge;
 use App\Domain\Accounts\PartnerBenefitControls;
@@ -10,13 +11,16 @@ use App\Domain\Accounts\PartnerCreateMedia;
 use App\Domain\Accounts\PartnerKycDocuments;
 use App\Domain\Accounts\PasswordAccess;
 use App\Domain\Accounts\PasswordResetOwnerNotice;
+use App\Domain\Auth\SignInGuard;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Content\CircularPublishNotifications;
 use App\Domain\Content\PublicTrustContent;
 use App\Domain\Content\TestimonialLabels;
+use App\Domain\Finance\MonthCloseStatus;
 use App\Domain\Finance\PolicyDraftService;
+use App\Domain\Finance\UnownedShareSweeps;
 use App\Domain\Geography\ManagementReferral;
 use App\Domain\Geography\PlaceTree;
 use App\Domain\Inventory\BranchOperations;
@@ -27,6 +31,7 @@ use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
 use App\Domain\Orders\OrderRefund;
 use App\Domain\Orders\OrderService;
+use App\Domain\Payouts\WithdrawalHolds;
 use App\Domain\Staff\PartnerStaffLink;
 use App\Domain\Staff\StaffPermissions;
 use App\Domain\Support\SupportTickets;
@@ -40,6 +45,7 @@ use App\Http\Requests\Backend\RefundOrderRequest;
 use App\Http\Requests\Backend\StoreOrderRequest;
 use App\Http\Requests\Backend\VerifyPaymentRequest;
 use App\Models\AreaDealerAssignment;
+use App\Models\CompanyBranch;
 use App\Models\Order;
 use App\Models\PlaceCode;
 use App\Models\Product;
@@ -48,6 +54,7 @@ use App\Models\SiteFeedback;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\DashboardManagement;
+use App\Support\LocalDigits;
 use App\Support\Money;
 use App\Support\PhoneIdentity;
 use App\Support\ReasonFields;
@@ -59,7 +66,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -91,16 +100,16 @@ class CommandController extends Controller
     public function refund(RefundOrderRequest $r, Order $order, OrderRefund $refunds): RedirectResponse
     {
         $d = $r->validated();
-        $refunds->refund($r->user(), $order, (string) $d['amount'], ReasonFields::text($d['reason'] ?? null));
+        $result = $refunds->refund($r->user(), $order, (string) $d['amount'], ReasonFields::text($d['reason'] ?? null));
 
-        return back(fallback: '/orders/'.$order->id)->with('success', __('portal.flash_order_refunded'));
+        return back(fallback: '/orders/'.$order->id)->with('success', __($result['done'] ? 'portal.flash_order_refunded' : 'orders_stock.flash_waiting_second'));
     }
 
     public function verify(VerifyPaymentRequest $r, int $claim, OrderService $s): RedirectResponse
     {
         $d = $r->validated();
         $claimRow = DB::table('payment_claims')->find($claim);
-        $s->verify($r->user(), $claim, $d['approve'], ReasonFields::text($d['reason'] ?? null));
+        $s->verify($r->user(), $claim, $d['approve'], ReasonFields::text($d['reason'] ?? null), isset($d['cash_counted']) ? (string) $d['cash_counted'] : null);
 
         return back(fallback: $claimRow ? '/orders/'.$claimRow->order_id : '/payments')->with('success', __('portal.flash_payment_review'));
     }
@@ -197,7 +206,7 @@ class CommandController extends Controller
                 'code' => $created['user']->dealer_code,
                 'phone' => $created['user']->phone,
                 'email' => $created['user']->email,
-            ]).($otherBranch === null ? '' : ' '.__('portal.acct_partner_went_to_branch', ['branch' => $otherBranch->name]))));
+            ]).($otherBranch === null ? '' : ' '.__('portal.acct_partner_went_to_branch', ['branch' => $otherBranch->name])).' '.FirstPassword::notice($created['user'], $created['first_password'])));
         }
 
         $d = $r->validate([
@@ -214,6 +223,8 @@ class CommandController extends Controller
             'status' => 'sometimes|in:active,suspended',
             'sponsor_id' => 'nullable|integer|exists:users,id',
             'nid' => 'nullable|string|max:30',
+            'branch_id' => 'nullable|integer|exists:company_branches,id',
+            'confirm_leadership' => 'sometimes|boolean',
             'reason' => ReasonFields::rule('staff.account_create', 1000),
             'permissions' => [Rule::prohibitedIf($r->user()->role !== 'super_admin' || ! in_array($r->input('role'), ['employee', 'sr'], true)), 'nullable', 'array'],
             'permissions.*' => ['string', Rule::in(config($r->input('role') === 'sr' ? 'madina.roles.sr' : 'madina.roles.super_admin'))],
@@ -229,6 +240,15 @@ class CommandController extends Controller
             'profile.shop_name' => 'nullable|string|max:150',
             'profile.area_code' => 'nullable|string|max:80',
         ]);
+        // Owners (MD, Chairman) are created here too, but only with an explicit "yes"; a Super Admin is never created in the panel.
+        if ($d['role'] === 'super_admin') {
+            throw ValidationException::withMessages(['role' => __('joining.err_no_super_admin')]);
+        }
+        if (in_array($d['role'], ['md', 'chairman'], true) && ! $r->boolean('confirm_leadership')) {
+            throw ValidationException::withMessages(['confirm_leadership' => __('joining.err_leadership_confirm')]);
+        }
+        $branchId = $d['branch_id'] ?? null;
+        unset($d['branch_id'], $d['confirm_leadership']);
         $profileKeys = ['name_bn', 'father_name', 'mother_name', 'village', 'post_office', 'upazila', 'union', 'pharmacy', 'shop_name', 'area_code'];
         $rootProfile = $r->validate([...array_fill_keys($profileKeys, 'nullable|string|max:150'), 'area_code' => 'nullable|string|max:80']);
         $profileData = $d['profile'] ?? [];
@@ -252,21 +272,25 @@ class CommandController extends Controller
         if (! empty($d['sponsor_id'])) {
             abort_unless(User::whereKey($d['sponsor_id'])->whereIn('role', PartnerAccountProvisioning::SponsorRoles)->where('status', 'active')->exists(), 422, __('portal.cmd_val_sponsor_active_dealer'));
         }
-        $u = DB::transaction(function () use ($r, $d) {
+        $plainPassword = FirstPassword::make();
+        $u = DB::transaction(function () use ($r, $d, $plainPassword, $branchId) {
             CommissionWallet::lock();
             $role = $d['role'];
             $dealerCode = $d['dealer_code'] ?? null;
             $reason = $d['reason'] ?? __('portal.audit_account_created_staff');
             unset($d['reason']);
-            $plainPassword = 'Md'.Str::upper(Str::random(2)).random_int(100000, 999999).'!';
             $u = (new User)->forceFill([
                 ...$d,
                 'dealer_code' => $dealerCode,
                 'password' => $plainPassword,
+                'must_change_password' => true,
                 'password_managed_by' => User::PasswordManagedByAdmin,
-                'admin_password_cipher' => $plainPassword,
+                'admin_password_cipher' => in_array($role, User::RevealablePasswordRoles, true) ? $plainPassword : null,
             ]);
             $u->save();
+            if ($branchId !== null) {
+                app(BranchOperations::class)->assignStaff($r->user(), CompanyBranch::query()->findOrFail($branchId), ['user_id' => $u->id, 'is_primary' => true]);
+            }
             DB::table('wallets')->insert(['user_id' => $u->id, 'created_at' => now(), 'updated_at' => now()]);
             ReferralTreePath::attachUser($u->id, $u->sponsor_id);
             Audit::record($r->user()->id, 'account.created', (string) $u->id, [
@@ -284,9 +308,26 @@ class CommandController extends Controller
             ? __('portal.acct_type_employee')
             : __('portal.acct_type_partner');
 
-        return redirect($redirectUrl)->with('success', $u->dealer_code !== null
+        $created = $u->dealer_code !== null
             ? __('portal.acct_created_flash', ['type' => $accountTypeLabel, 'code' => $u->dealer_code])
-            : __('portal.acct_created_flash_no_code', ['type' => $accountTypeLabel]));
+            : __('portal.acct_created_flash_no_code', ['type' => $accountTypeLabel]);
+
+        // The first password is shown once, here, to the person who made the account.
+        return redirect($redirectUrl)->with('success', $created.' '.FirstPassword::notice($u, $plainPassword));
+    }
+
+    /** The Super Admin puts an MD or Chairman back to the role's own default rights, with nothing extra left behind. */
+    public function leadershipResetRights(Request $r, User $user): RedirectResponse
+    {
+        abort_unless($r->user()->role === 'super_admin' && $r->user()->status === 'active', 403);
+        abort_unless(in_array($user->role, ['md', 'chairman'], true), 404);
+        /** @var array<string, mixed> $profile */
+        $profile = $user->getAttribute('profile') ?? [];
+        unset($profile['action_permissions'], $profile['permissions']);
+        $user->forceFill(['profile' => [...$profile, 'access_revision' => Str::uuid()->toString()]])->save();
+        Audit::record($r->user()->id, 'staff.leadership_rights_reset', (string) $user->id, ['role' => $user->role]);
+
+        return back()->with('success', __('joining.flash_leadership_reset', ['name' => $user->name]));
     }
 
     public function accountUpdate(Request $r, User $user, PartnerAccountProvisioning $partners): RedirectResponse
@@ -418,6 +459,12 @@ class CommandController extends Controller
                 $locked->forceFill(['remember_token' => Str::random(60)])->save();
                 DB::table('sessions')->where('user_id', $user->id)->delete();
             }
+            // Owner rule D4: a suspended partner is not paid, so their open withdrawals wait on hold until reactivation.
+            if ($isPartner && ($d['status'] ?? '') === 'suspended' && $previousStatus !== 'suspended') {
+                app(WithdrawalHolds::class)->holdForPartner($r->user(), $locked->id, ReasonFields::text($reason) !== '' ? __('payouts.event_hold_suspended').' '.ReasonFields::text($reason) : __('payouts.event_hold_suspended'));
+            } elseif ($isPartner && ($d['status'] ?? '') === 'active' && $previousStatus === 'suspended') {
+                app(WithdrawalHolds::class)->releaseForPartner($r->user(), $locked->id, __('payouts.event_hold_reactivated'));
+            }
             Audit::record($r->user()->id, 'account.updated', (string) $user->id, ['fields' => array_keys($d), 'changes' => $tracedChanges, 'reason' => $reason]);
             if ($isPartner && array_key_exists('status', $d) && $previousStatus !== (string) $d['status']) {
                 $statusChange = [
@@ -426,6 +473,10 @@ class CommandController extends Controller
                     'reason' => $reason,
                     'user_id' => $locked->id,
                 ];
+                if ($statusChange['to'] === 'active') {
+                    // Owner decision D3: commission held while the partner was suspended is paid now.
+                    app(UnownedShareSweeps::class)->releaseHeldForActivePartners($locked->id, $r->user()->id);
+                }
             }
             if ($isPartner && array_key_exists('sponsor_id', $d)) {
                 $nextSponsorId = ! empty($d['sponsor_id']) ? (int) $d['sponsor_id'] : null;
@@ -1062,37 +1113,94 @@ class CommandController extends Controller
     public function partnerPasswordStatus(Request $r, User $user, PasswordAccess $access): JsonResponse
     {
         abort_unless($access->canReset($r->user(), $user), 403);
+        $mayChoose = $access->mayChooseOnReset($r->user(), $user);
 
         return response()->json([
             'data' => [
                 'managed_by' => $user->password_managed_by ?: User::PasswordManagedByAdmin,
                 'can_reveal' => $access->canView($r->user(), $user) && $user->adminVisiblePassword() !== null,
-                'owner_only' => ! $access->canView($r->user(), $user),
+                'owner_only' => ! $mayChoose,
+                // Office passwords (staff, MD, Chairman) are never kept readable; an owner can only reset them.
+                'never_shown' => $mayChoose && ! $access->canView($r->user(), $user),
+                'reveal_needs_password' => ! $this->passwordRevealConfirmed($r),
                 'password' => null,
             ],
         ]);
     }
 
-    /** Owners only: show the real password. Every view is audited with who, when and from where. */
+    /**
+     * Owners only, dealer and sub-dealer accounts only: show the real password. The owner types their
+     * own password first (one confirmation lasts a few minutes), a daily cap stops bulk reading, the
+     * other owners get a notice, and every view is audited with who, when and from where.
+     */
     public function revealPartnerPassword(Request $r, User $user, PasswordAccess $access): JsonResponse
     {
-        abort_unless($access->canView($r->user(), $user), 403, __('portal.acct_password_owner_only'));
+        $owner = $r->user();
+        abort_unless($access->canView($owner, $user), 403, __('portal.acct_password_owner_only'));
+        if (! $this->passwordRevealConfirmed($r)) {
+            $r->validate(['current_password' => 'required|string|max:200']);
+            if (! Hash::check((string) $r->input('current_password'), (string) $owner->password)) {
+                throw ValidationException::withMessages(['current_password' => __('validation.current_password')]);
+            }
+            $r->session()->put('password_reveal_confirmed_at', now()->getTimestamp());
+        }
+        $dayKey = 'password-reveal-day|'.$owner->id;
+        $perDay = max(1, (int) config('madina.password_reveal.per_day', 60));
+        if (RateLimiter::tooManyAttempts($dayKey, $perDay)) {
+            Audit::record($owner->id, 'account.password_reveal_capped', (string) $user->id, ['ip' => $r->ip()]);
+            abort(429, __('owner_security.reveal_daily_cap', ['count' => $perDay]));
+        }
         $visible = $user->adminVisiblePassword();
         abort_if($visible === null, 404, __('portal.acct_password_self_changed'));
-        Audit::record($r->user()->id, 'account.password_revealed', (string) $user->id, [
+        RateLimiter::hit($dayKey, 86400);
+        Audit::record($owner->id, 'account.password_revealed', (string) $user->id, [
             'role' => $user->role,
             'dealer_code' => $user->dealer_code,
             'ip' => $r->ip(),
         ]);
+        $this->tellOtherOwnersAboutReveal($owner, $user);
 
         return response()->json([
             'data' => [
                 'managed_by' => $user->password_managed_by ?: User::PasswordManagedByAdmin,
                 'can_reveal' => true,
                 'owner_only' => false,
+                'never_shown' => false,
+                'reveal_needs_password' => false,
                 'password' => $visible,
             ],
         ]);
+    }
+
+    /** True while the owner's last password confirmation for reading passwords is still fresh. */
+    private function passwordRevealConfirmed(Request $r): bool
+    {
+        $at = (int) $r->session()->get('password_reveal_confirmed_at', 0);
+        $minutes = max(1, (int) config('madina.password_reveal.confirm_minutes', 5));
+
+        return $at > 0 && $at >= now()->subMinutes($minutes)->getTimestamp();
+    }
+
+    private function tellOtherOwnersAboutReveal(User $owner, User $target): void
+    {
+        $others = User::query()
+            ->whereIn('role', ['super_admin', 'md', 'chairman'])
+            ->where('status', 'active')
+            ->whereKeyNot($owner->id)
+            ->get(['id', 'locale']);
+        foreach ($others as $other) {
+            $locale = $other->preferredLocale();
+            Audit::notice(
+                $other->id,
+                __('owner_security.notice_password_revealed_title', [], $locale),
+                __('owner_security.notice_password_revealed_body', [
+                    'owner' => $owner->name,
+                    'account' => $target->name,
+                    'code' => $target->dealer_code ?: '#'.$target->id,
+                    'time' => now()->timezone('Asia/Dhaka')->format('d M Y, h:i A'),
+                ], $locale),
+            );
+        }
     }
 
     public function resetPartnerPassword(Request $r, User $user, AccountCreatedSms $sms, PasswordAccess $access, PasswordResetOwnerNotice $ownerNotice): RedirectResponse|JsonResponse
@@ -1102,7 +1210,7 @@ class CommandController extends Controller
 
         // Only owners may choose or see the new password. Other authorised staff can reset it, but
         // the new password goes only to the account holder by SMS, so staff cannot sign in as them.
-        $ownerActor = $access->canView($r->user(), $user);
+        $ownerActor = $access->mayChooseOnReset($r->user(), $user);
         // A reset nobody can read would lock the person out: without an owner the new password only goes by SMS.
         abort_unless($ownerActor || PhoneIdentity::normalize((string) $user->phone) !== null, 422, __('portal.acct_password_reset_needs_phone'));
         $custom = $ownerActor ? $r->input('password') : null;
@@ -1111,6 +1219,9 @@ class CommandController extends Controller
                 'password' => ['required', 'string', 'min:8', 'max:64'],
             ]);
             $plainPassword = trim($custom);
+            if (app(SignInGuard::class)->isTooEasy($plainPassword, $user)) {
+                throw ValidationException::withMessages(['password' => __('security.password_too_easy')]);
+            }
         } else {
             $plainPassword = 'Md'.Str::upper(Str::random(2)).random_int(100000, 999999).'!';
         }
@@ -1201,7 +1312,7 @@ class CommandController extends Controller
         $result = $commissionService->settleMonthlySalaryPool($d['period_month'], $r->user()->id, $d['request_key']);
 
         if ($result['status'] === 'empty_pool') {
-            return back()->with('success', __('portal.flash_salary_pool_empty', ['period' => $d['period_month']]));
+            return back()->with('success', $this->alreadyClosedFlash($d['period_month'], 'salary') ?? __('portal.flash_salary_pool_empty', ['period' => $d['period_month']]));
         }
         $rolled = $result['total_rolled_to_reserve'] ?? '0.00';
         $toProfit = $result['total_to_company_profit'] ?? '0.00';
@@ -1225,7 +1336,7 @@ class CommandController extends Controller
         $result = $commissionService->settleRankRoyaltyPool($d['period_month'], $r->user()->id, $d['request_key']);
 
         if ($result['status'] === 'empty_pool') {
-            return back()->with('success', __('portal.flash_royalty_pool_empty', ['period' => $d['period_month']]));
+            return back()->with('success', $this->alreadyClosedFlash($d['period_month'], 'royalty') ?? __('portal.flash_royalty_pool_empty', ['period' => $d['period_month']]));
         }
 
         $rolled = $result['total_rolled_to_reserve'] ?? '0.00';
@@ -1237,6 +1348,21 @@ class CommandController extends Controller
             'period' => $d['period_month'],
             'amount' => $result['total_distributed'],
         ]).$extra);
+    }
+
+    /** "Already closed on 1 Feb" instead of "the fund is empty" when a month was closed before (MA-23). */
+    private function alreadyClosedFlash(string $month, string $kind): ?string
+    {
+        $closedAt = app(MonthCloseStatus::class)->closedAt($month, $kind);
+        if ($closedAt === null) {
+            return null;
+        }
+
+        return __('money_core.flash_already_closed', [
+            'kind' => __('money_core.mc_kind_'.$kind),
+            'month' => MonthCloseStatus::label($month),
+            'date' => LocalDigits::text(Carbon::parse($closedAt)->timezone('Asia/Dhaka')->locale(app()->getLocale())->translatedFormat('j F Y'), app()->getLocale()),
+        ]);
     }
 
     public function claimRankIncentive(Request $r, User $user, CommissionService $commissionService): RedirectResponse
@@ -1293,9 +1419,10 @@ class CommandController extends Controller
             // An area seat is always a place code; names are filled in from it, never typed.
             'place_code_id' => 'bail|required|integer|exists:place_codes,id',
             'zone_name' => 'nullable|string|max:128',
-            'monthly_quota' => 'required|numeric|min:0|max:99999999999|decimal:0,2',
+            'monthly_quota' => self::areaQuotaRules(),
         ], [
             'place_code_id.required' => __('portal.place_code_required'),
+            ...self::areaQuotaMessages(),
         ]);
 
         $place = PlaceCode::query()
@@ -1369,12 +1496,67 @@ class CommandController extends Controller
         return back()->with('success', __('portal.flash_area_dealer_assigned', ['zone' => $d['zone_name']]));
     }
 
+    /** @return list<string> */
+    private static function areaQuotaRules(): array
+    {
+        return ['required', 'numeric', 'min:0', 'max:'.AreaDealerAssignment::MaxMonthlyQuota, 'decimal:0,2'];
+    }
+
+    /** @return array<string, string> */
+    private static function areaQuotaMessages(): array
+    {
+        return [
+            'monthly_quota.required' => __('money_core.area_quota_required'),
+            'monthly_quota.numeric' => __('money_core.area_quota_numeric'),
+            'monthly_quota.min' => __('money_core.area_quota_min'),
+            'monthly_quota.max' => __('money_core.area_quota_max', ['max' => Money::grouped(AreaDealerAssignment::MaxMonthlyQuota)]),
+            'monthly_quota.decimal' => __('money_core.area_quota_decimal'),
+        ];
+    }
+
+    /** Changes only the monthly target of a live seat; the seat holder and place stay as they are. */
+    public function updateAreaDealer(Request $r, int $id): RedirectResponse
+    {
+        $this->permit($r, 'accounts');
+        $d = $r->validate(['monthly_quota' => self::areaQuotaRules()], self::areaQuotaMessages());
+
+        $before = '';
+        $assignment = DB::transaction(function () use ($id, $d, &$before): AreaDealerAssignment {
+            CommissionWallet::lock();
+            $seat = AreaDealerAssignment::query()->whereKey($id)->where('is_active', true)->lockForUpdate()->firstOrFail();
+            $before = (string) $seat->monthly_quota;
+            $seat->update(['monthly_quota' => $d['monthly_quota']]);
+
+            return $seat;
+        }, 3);
+        $after = Money::decimal(Money::cents((string) $assignment->monthly_quota));
+        Audit::record($r->user()->id, 'area_dealer.updated', (string) $assignment->user_id, [
+            'level' => $assignment->level,
+            'zone' => $assignment->zone_name,
+            'place_code_id' => $assignment->place_code_id,
+            'monthly_quota_before' => $before,
+            'monthly_quota_after' => $after,
+        ]);
+        $dealer = User::find($assignment->user_id);
+        if ($dealer) {
+            $locale = $dealer->preferredLocale();
+            Audit::notice(
+                $dealer->id,
+                __('money_core.notice_area_target_changed_title', [], $locale),
+                __('money_core.notice_area_target_changed_body', ['zone' => $assignment->zone_name, 'quota' => $after], $locale),
+            );
+        }
+
+        return back()->with('success', __('money_core.flash_area_target_changed', ['zone' => $assignment->zone_name, 'quota' => $after]));
+    }
+
+    /** Closes a seat. The row and every commission that points at it stay, so no money history is lost. */
     public function removeAreaDealer(Request $r, int $id): RedirectResponse
     {
         $this->permit($r, 'accounts');
-        $assignment = AreaDealerAssignment::findOrFail($id);
+        $assignment = AreaDealerAssignment::query()->where('is_active', true)->findOrFail($id);
         $assignment->update(['is_active' => false, 'territory_key' => null]);
-        Audit::record($r->user()->id, 'area_dealer.removed', (string) $assignment->user_id, ['level' => $assignment->level, 'zone' => $assignment->zone_name]);
+        Audit::record($r->user()->id, 'area_dealer.removed', (string) $assignment->user_id, ['level' => $assignment->level, 'zone' => $assignment->zone_name, 'place_code_id' => $assignment->place_code_id, 'monthly_quota' => (string) $assignment->monthly_quota]);
         $dealer = User::find($assignment->user_id);
         if ($dealer) {
             $locale = $dealer->preferredLocale();

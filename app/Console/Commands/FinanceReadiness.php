@@ -45,10 +45,16 @@ class FinanceReadiness extends Command
                 return self::SUCCESS;
             }
         }
-        $snapshot = $readiness->inspect();
+        $snapshot = $readiness->inspectWithoutLock();
         $this->line(json_encode($snapshot, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
         $this->warnIfEventLogIsMissingRows($projector);
+        if ($snapshot['internally_reconciled']) {
+            return self::SUCCESS;
+        }
+        $failed = FinancialReadiness::failedNames($snapshot['checks']);
+        $this->error(__('money_core.readiness_failed', ['checks' => implode(', ', $failed)]));
+        Log::critical('Money check failed.', ['failed_checks' => $failed]);
 
-        return $snapshot['internally_reconciled'] ? self::SUCCESS : self::FAILURE;
+        return self::FAILURE;
     }
 }

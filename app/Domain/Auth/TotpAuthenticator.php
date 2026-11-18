@@ -3,6 +3,7 @@
 namespace App\Domain\Auth;
 
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -38,23 +39,43 @@ final class TotpAuthenticator
 
     public function verify(string $secret, string $code, ?int $timestamp = null): bool
     {
+        return $this->matchingSlot($secret, $code, $timestamp) !== null;
+    }
+
+    /**
+     * Like verify(), but each code works only once for this account (SA-10): a code seen over
+     * someone's shoulder or replayed from a captured request cannot be used again while it is
+     * still inside its time window.
+     */
+    public function verifyOnce(User $user, string $secret, string $code, ?int $timestamp = null): bool
+    {
+        $slot = $this->matchingSlot($secret, $code, $timestamp);
+        if ($slot === null) {
+            return false;
+        }
+
+        return Cache::add('totp-used|'.$user->id.'|'.$slot, true, self::Period * (2 * self::Window + 2));
+    }
+
+    private function matchingSlot(string $secret, string $code, ?int $timestamp = null): ?int
+    {
         $code = preg_replace('/\s+/', '', trim($code)) ?? '';
         if (! preg_match('/^\d{6}$/', $code)) {
-            return false;
+            return null;
         }
         $timestamp ??= time();
         $binarySecret = $this->base32Decode($secret);
         if ($binarySecret === '') {
-            return false;
+            return null;
         }
         for ($offset = -self::Window; $offset <= self::Window; $offset++) {
             $slot = intdiv($timestamp, self::Period) + $offset;
             if (hash_equals($this->hotp($binarySecret, $slot), $code)) {
-                return true;
+                return $slot;
             }
         }
 
-        return false;
+        return null;
     }
 
     public function assertValid(string $secret, string $code): void
