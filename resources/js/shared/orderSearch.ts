@@ -9,8 +9,17 @@ export function stockState(product: Row): StockState {
     if (product.is_stock_paused) {
         return 'paused';
     }
+    // A partner is never sent the stock figure, so a product without one is simply orderable.
+    if (!stockKnown(product)) {
+        return 'in';
+    }
 
-    return Number(product.stock ?? 0) > 0 ? 'in' : 'out';
+    return Number(product.stock) > 0 ? 'in' : 'out';
+}
+
+/** Whether the page was given a stock figure at all: only company staff with stock access are. */
+export function stockKnown(product: Row): boolean {
+    return product.stock !== undefined && product.stock !== null;
 }
 
 /** What the partner pays for one unit: his price, else the printed price. */

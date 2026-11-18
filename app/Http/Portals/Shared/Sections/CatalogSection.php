@@ -54,13 +54,14 @@ final class CatalogSection implements WorkspaceSection
             ->when($context->section === 'catalog' && $request->filled('max_mrp'), fn ($q) => $q->where('mrp', '<=', $request->input('max_mrp')))
             ->when($context->section === 'catalog' && $request->string('availability')->toString() === 'published', fn ($q) => $q->where('active', true))
             ->when($context->section === 'catalog' && $request->string('availability')->toString() === 'draft', fn ($q) => $q->where('active', false)->whereNull('archived_at'))
-            ->when($context->section === 'catalog' && $request->string('availability')->toString() === 'in_stock', fn ($q) => $q->whereSellable()->where(fn ($stock) => $stock->where('is_stock_paused', false)->orWhereNull('is_stock_paused')))
-            ->when($context->section === 'catalog' && $request->string('availability')->toString() === 'out_of_stock', fn ($q) => $q->where(fn ($stock) => $stock->whereNotSellable()->orWhere('is_stock_paused', true)))
+            // Whether a product is in stock is for company staff only; a partner must not be able to filter by it.
+            ->when($context->isStaff && $context->section === 'catalog' && $request->string('availability')->toString() === 'in_stock', fn ($q) => $q->whereSellable()->where(fn ($stock) => $stock->where('is_stock_paused', false)->orWhereNull('is_stock_paused')))
+            ->when($context->isStaff && $context->section === 'catalog' && $request->string('availability')->toString() === 'out_of_stock', fn ($q) => $q->where(fn ($stock) => $stock->whereNotSellable()->orWhere('is_stock_paused', true)))
             ->when($context->section === 'catalog', fn ($q) => $this->sortCatalog($q, $request), fn ($q) => $q->orderBy('name'))
             // Package sizes of one product share a name, and without a last sort key the database
             // may return them in any order, and a staff page can repeat or skip one between pages.
             ->orderBy('products.id');
-        $revealStock = ! $context->isStaff || $user->allows('inventory');
+        $revealStock = $context->isStaff && $user->allows('inventory');
         $stagesByProduct = [];
         $removalByProduct = [];
         if ($context->isStaff && $context->section === 'catalog') {
@@ -99,7 +100,7 @@ final class CatalogSection implements WorkspaceSection
         // Sizes are worked out from this list only, so a size the viewer may not see cannot appear.
         $sizePositions = in_array($context->section, ['catalog', 'purchase'], true) ? ProductSizeGroups::positions($products) : [];
         $props['products'] = $products->map(function ($p) use ($user, $context, $revealStock, $revealDealerPrice, $supportsProductExpiry, $stagesByProduct, $removalByProduct, $sizePositions) {
-            $base = [...$p->only(['id', 'sku', 'name', 'category', 'sub_category', 'strength', 'description', 'unit', 'mrp', 'active', 'featured', 'tone', 'is_stock_paused']), 'archived' => $p->isArchived(), 'stock_status' => $p->stockStatus(), ...$p->media(), 'image_fallback' => $p->image_path ? null : StockImage::forCategory($p->category, $p->name), ...($user->allows('cost_read') ? ['cost_price' => $p->cost_price] : [])];
+            $base = [...$p->only(['id', 'sku', 'name', 'category', 'sub_category', 'strength', 'description', 'unit', 'mrp', 'active', 'featured', 'tone']), ...($context->isStaff ? ['is_stock_paused' => $p->is_stock_paused, 'stock_status' => $p->stockStatus()] : []), 'archived' => $p->isArchived(), ...$p->media(), 'image_fallback' => $p->image_path ? null : StockImage::forCategory($p->category, $p->name), ...($user->allows('cost_read') ? ['cost_price' => $p->cost_price] : [])];
             if (isset($sizePositions[$p->id])) {
                 $base += ['size_group_id' => (int) $p->product_group_id, 'size_label' => ProductSizeGroups::buttonLabel($p), 'size_position' => $sizePositions[$p->id]];
             }

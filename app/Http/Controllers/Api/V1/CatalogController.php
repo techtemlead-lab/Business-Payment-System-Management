@@ -20,7 +20,8 @@ class CatalogController extends Controller
         $products = Product::query()->withSellableStock()->where('active', true)
             ->when(! empty($data['q']), fn ($q) => $q->where('name', 'like', '%'.$data['q'].'%'))
             ->orderBy('name')->orderBy('id')->paginate($data['per_page'] ?? 12)->withQueryString();
-        $revealStock = ! $user->staff() || $user->allows('inventory');
+        // Dealers and sub-dealers must not learn whether a product is in stock; only company staff see it.
+        $revealStock = $user->staff() && $user->allows('inventory');
         $products->through(function (Product $product) use ($user, $pricing, $revealStock): array {
             $price = null;
             if (! $user->staff()) {
@@ -31,8 +32,9 @@ class CatalogController extends Controller
                 }
             }
             $base = [
-                ...$product->only(['id', 'sku', 'name', 'category', 'description', 'unit', 'mrp', 'is_stock_paused']),
-                ...$product->media(), 'stock_status' => $product->stockStatus(), 'price' => $price, 'currency' => 'BDT',
+                ...$product->only(['id', 'sku', 'name', 'category', 'description', 'unit', 'mrp']),
+                ...($user->staff() ? ['is_stock_paused' => $product->is_stock_paused, 'stock_status' => $product->stockStatus()] : []),
+                ...$product->media(), 'price' => $price, 'currency' => 'BDT',
                 ...($user->allows('cost_read') ? ['cost_price' => $product->cost_price] : []),
             ];
             if ($revealStock) {

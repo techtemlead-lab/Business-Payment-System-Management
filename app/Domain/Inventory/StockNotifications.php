@@ -2,19 +2,16 @@
 
 namespace App\Domain\Inventory;
 
-use App\Domain\Notifications\WebPushNotices;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\Audit;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 final class StockNotifications
 {
     /**
-     * Whether partners can order this product right now: ordering is not paused and some units
-     * can really be sent. Ask before changing the stock and hand the answer to recordChange(),
-     * so partners are only told a product is back when it can be ordered.
+     * Whether this product can be ordered and sent right now: ordering is not paused and some
+     * units can really be sent. Callers ask before changing the stock and hand the answer to recordChange().
      */
     public function isAvailable(Product $product): bool
     {
@@ -26,56 +23,8 @@ final class StockNotifications
         if (! $product->active) {
             return;
         }
-        $isAvailable = $this->isAvailable($product);
-        if (! $wasAvailable && $isAvailable) {
-            User::where('status', 'active')->whereIn('role', ['dealer', 'sub_dealer'])->select(['id', 'locale'])
-                ->chunkById(500, function (Collection $users) use ($product): void {
-                    $timestamp = now();
-                    $rows = $users->map(function (User $user) use ($product, $timestamp): array {
-                        $locale = $user->preferredLocale();
-                        $replace = ['name' => $product->name, 'sku' => $product->sku];
-
-                        return [
-                            'user_id' => $user->id,
-                            'title' => __('portal.notice_product_available_title', [], $locale),
-                            'body' => __('portal.notice_product_available_body', $replace, $locale),
-                            'created_at' => $timestamp,
-                            'updated_at' => $timestamp,
-                        ];
-                    })->all();
-                    DB::table('account_notices')->insert($rows);
-                    app(WebPushNotices::class)->send($rows);
-                });
-        }
-        if ($wasAvailable && ! $isAvailable) {
-            User::where('status', 'active')->whereIn('role', ['dealer', 'sub_dealer'])->select(['id', 'locale'])
-                ->chunkById(500, function (Collection $users) use ($product): void {
-                    $timestamp = now();
-                    $paused = (bool) $product->is_stock_paused;
-                    $rows = $users->map(function (User $user) use ($product, $timestamp, $paused): array {
-                        $locale = $user->preferredLocale();
-                        $replace = ['name' => $product->name, 'sku' => $product->sku];
-
-                        return [
-                            'user_id' => $user->id,
-                            'title' => __(
-                                $paused ? 'portal.notice_product_ordering_paused_title' : 'portal.notice_product_unavailable_title',
-                                [],
-                                $locale,
-                            ),
-                            'body' => __(
-                                $paused ? 'portal.notice_product_ordering_paused_body' : 'portal.notice_product_unavailable_body',
-                                $replace,
-                                $locale,
-                            ),
-                            'created_at' => $timestamp,
-                            'updated_at' => $timestamp,
-                        ];
-                    })->all();
-                    DB::table('account_notices')->insert($rows);
-                    app(WebPushNotices::class)->send($rows);
-                });
-        }
+        // Dealers and sub-dealers are deliberately not told when a product runs out, comes back or is
+        // paused: stock is for company staff only. $wasAvailable is kept so callers need not change.
         if (($previousStock > $product->low_stock_at && $product->stock <= $product->low_stock_at)
             || ($previousStock > 0 && $product->stock === 0)) {
             User::where('status', 'active')->whereNotIn('role', ['dealer', 'sub_dealer'])->chunkById(500, function (Collection $users) use ($product): void {

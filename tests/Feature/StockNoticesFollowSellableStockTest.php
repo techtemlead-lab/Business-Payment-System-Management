@@ -5,8 +5,6 @@ namespace Tests\Feature;
 use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\StockLotHolds;
 use App\Domain\Inventory\StockService;
-use App\Domain\Inventory\StockTransfers;
-use App\Domain\Orders\OrderService;
 use App\Domain\Orders\StaffDashboardSummary;
 use App\Models\BranchProductStock;
 use App\Models\CompanyBranch;
@@ -21,9 +19,9 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 /**
- * Partners are told a product is back, or gone, by what can really be sold: units on hold, past
- * their date or at a branch that does not send orders do not count. The staff low-stock list
- * counts the same way, because it exists to warn the staff before dealers run out.
+ * Dealers and sub-dealers are never told that a product ran out, came back or was paused: stock is
+ * for company staff only. The staff low-stock list counts what can really be sold, because it
+ * exists to warn the staff before dealers run out.
  */
 class StockNoticesFollowSellableStockTest extends TestCase
 {
@@ -44,128 +42,42 @@ class StockNoticesFollowSellableStockTest extends TestCase
         $this->dealer = User::factory()->dealer()->create(['status' => 'active', 'locale' => 'en']);
     }
 
-    public function test_partners_are_told_when_sellable_units_arrive_beside_units_on_hold(): void
+    public function test_partners_are_not_told_when_sellable_units_arrive(): void
     {
         $product = $this->product();
         $this->lot($product, 8, $this->onHold());
 
         $this->receive($product->refresh(), 5);
 
-        $this->assertSame(['Product available'], $this->partnerNotices());
-    }
-
-    public function test_partners_are_not_told_a_product_is_back_when_returned_units_go_into_a_held_batch(): void
-    {
-        $product = $this->product();
-        $emptyHeldLot = $this->lot($product, 0, ['received_quantity' => 5, ...$this->onHold()]);
-
-        app(StockService::class)->adjust($this->owner, ['product_id' => $product->id, 'branch_id' => $this->headOffice->id, 'quantity' => 5, 'reason' => 'Parcel came back', 'reference' => (string) Str::uuid(),
-            'return_lots' => [['lot_id' => $emptyHeldLot->id, 'quantity' => 5]]]);
-
-        $this->assertSame(5, (int) $product->refresh()->stock);
-        $this->assertSame(0, $product->sellableStock());
+        $this->assertSame(5, $product->refresh()->sellableStock());
         $this->assertSame([], $this->partnerNotices());
     }
 
-    public function test_partners_are_told_a_product_is_gone_when_only_units_on_hold_are_left(): void
-    {
-        $product = $this->product();
-        $this->lot($product, 5);
-        $this->lot($product, 8, $this->onHold());
-
-        app(StockService::class)->adjust($this->owner, ['product_id' => $product->id, 'branch_id' => $this->headOffice->id, 'quantity' => -5, 'reason' => 'Counted short', 'reference' => (string) Str::uuid()]);
-
-        $this->assertSame(8, (int) $product->refresh()->stock);
-        $this->assertSame(['Product unavailable'], $this->partnerNotices());
-    }
-
-    public function test_sending_the_last_sellable_units_tells_partners_the_product_is_gone(): void
-    {
-        $product = $this->product(['dealer_price' => '100.00']);
-        $this->lot($product, 3);
-        $this->lot($product, 8, $this->onHold());
-        $service = app(OrderService::class);
-        $order = $service->create($this->dealer, ['items' => [['product_id' => $product->id, 'quantity' => 3]], 'idempotency_key' => (string) Str::uuid()]);
-        DB::table('orders')->where('id', $order->id)->update(['paid' => $order->total]);
-        $service->decision($this->owner, $order->fresh(), 'approved', 'Paid in full');
-
-        $this->actingAs($this->owner)->postJson('/api/v1/orders/'.$order->id.'/dispatch', ['courier' => 'Test courier', 'tracking' => 'SELL-1',
-            'idempotency_key' => (string) Str::uuid(), 'items' => [['line_id' => $order->lines()->first()->id, 'quantity' => 3]]])->assertOk();
-
-        $this->assertSame(['Product unavailable'], $this->partnerNotices());
-    }
-
-    public function test_holding_and_releasing_the_last_sellable_units_tells_partners_each_time(): void
+    public function test_partners_are_not_told_when_the_last_sellable_units_are_held_and_released(): void
     {
         $product = $this->product();
         $lot = $this->lot($product, 6);
         $holds = app(StockLotHolds::class);
 
         $holds->hold($this->owner, $lot, 'Quality check');
-        $this->assertSame(['Product unavailable'], $this->partnerNotices());
+        $this->assertSame(0, $product->refresh()->sellableStock());
+        $this->assertSame([], $this->partnerNotices());
 
         $holds->release($this->owner, $lot, 'Passed the check');
-        $this->assertSame(['Product unavailable', 'Product available'], $this->partnerNotices());
-    }
-
-    public function test_a_hold_that_leaves_other_units_to_sell_says_nothing(): void
-    {
-        $product = $this->product();
-        $lot = $this->lot($product, 6);
-        $this->lot($product, 4);
-        $holds = app(StockLotHolds::class);
-
-        $holds->hold($this->owner, $lot, 'Quality check');
-        $holds->release($this->owner, $lot, 'Passed the check');
-
+        $this->assertSame(6, $product->refresh()->sellableStock());
         $this->assertSame([], $this->partnerNotices());
     }
 
-    public function test_releasing_a_lot_of_a_paused_product_says_nothing(): void
-    {
-        $product = $this->product(['is_stock_paused' => true]);
-        $lot = $this->lot($product, 6, $this->onHold());
-
-        app(StockLotHolds::class)->release($this->owner, $lot, 'Passed the check');
-
-        $this->assertSame([], $this->partnerNotices());
-    }
-
-    public function test_writing_off_a_held_lot_does_not_tell_partners_twice(): void
-    {
-        $product = $this->product();
-        $lot = $this->lot($product, 6, $this->onHold());
-
-        app(StockLotHolds::class)->writeOff($this->owner, $lot, 'Damaged in storage');
-
-        $this->assertSame(0, (int) $product->refresh()->stock);
-        $this->assertSame([], $this->partnerNotices());
-    }
-
-    public function test_stock_on_the_road_cannot_be_sold_so_partners_hear_when_it_leaves_and_when_it_arrives(): void
+    public function test_partners_are_not_told_when_ordering_is_paused_or_resumed(): void
     {
         $product = $this->product();
         $this->lot($product, 6);
-        $this->lot($product, 8, $this->onHold());
-        $rajshahi = CompanyBranch::factory()->create(['code' => 'RAJ-01']);
-        $transfers = app(StockTransfers::class);
-        $transfer = $transfers->request($this->owner, ['product_id' => $product->id, 'quantity' => 6, 'source_branch_id' => $this->headOffice->id, 'destination_branch_id' => $rajshahi->id]);
-
-        $transfers->send($this->owner, $transfer);
-        $this->assertSame(8, (int) $product->refresh()->stock);
-        $this->assertSame(['Product unavailable'], $this->partnerNotices());
-
-        $transfers->receive($this->owner, $transfer->refresh());
-        $this->assertSame(['Product unavailable', 'Product available'], $this->partnerNotices());
-    }
-
-    public function test_resuming_a_product_with_only_units_on_hold_does_not_announce_it(): void
-    {
-        $product = $this->product(['is_stock_paused' => true]);
-        $this->lot($product, 6, $this->onHold());
 
         $this->actingAs($this->owner)->post('/commands/products/'.$product->id.'/toggle-stock')->assertRedirect();
+        $this->assertTrue($product->refresh()->is_stock_paused);
+        $this->assertSame([], $this->partnerNotices());
 
+        $this->post('/commands/products/'.$product->id.'/toggle-stock')->assertRedirect();
         $this->assertFalse($product->refresh()->is_stock_paused);
         $this->assertSame([], $this->partnerNotices());
     }
@@ -270,7 +182,7 @@ class StockNoticesFollowSellableStockTest extends TestCase
      */
     private function partnerNotices(): array
     {
-        return DB::table('account_notices')->where('user_id', $this->dealer->id)->whereIn('title', ['Product available', 'Product unavailable'])->orderBy('id')->pluck('title')->all();
+        return DB::table('account_notices')->where('user_id', $this->dealer->id)->whereIn('title', ['Product available', 'Product unavailable', 'Product ordering paused'])->orderBy('id')->pluck('title')->all();
     }
 
     private function viewAllBranches(): TestResponse

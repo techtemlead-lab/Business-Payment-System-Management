@@ -238,7 +238,6 @@ export default function LuxuryProductCard({
                                     <ShoppingBag size={14} />
                                     <span>{translate('portal', 'b2b_order_item_btn') || 'Order Now'}</span>
                                 </Link>
-                                <span className="luxury-status-caption">{stockCaption}</span>
                             </div>
                         </>
                     ) : (

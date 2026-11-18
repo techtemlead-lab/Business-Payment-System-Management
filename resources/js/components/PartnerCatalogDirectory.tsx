@@ -286,21 +286,6 @@ export default function PartnerCatalogDirectory({ products = [], categories = []
                                 },
                             },
                             {
-                                key: 'stock',
-                                title: translate('portal', 'pcd_col_stock'),
-                                sortable: true,
-                                align: 'center',
-                                sortValue: (p: Row) => Number(p.stock || 0),
-                                render: (p: Row) => {
-                                    const inStock = p.stock > 0 && !p.is_stock_paused;
-                                    return (
-                                        <span className={`hub-pill ${inStock ? 'tone-ok' : 'tone-danger'}`}>
-                                            {inStock ? `${p.stock} Units` : 'Stock Awaiting'}
-                                        </span>
-                                    );
-                                },
-                            },
-                            {
                                 key: 'action',
                                 title: translate('portal', 'pcd_col_action'),
                                 align: 'center',
