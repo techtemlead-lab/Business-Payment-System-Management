@@ -98,6 +98,14 @@ class PartnerPortalFiguresTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page->where('data.dealers', fn ($nodes): bool => collect($nodes)->firstWhere('id', $subDealer->id)['rank'] === 'sub_dealer'));
     }
 
+    public function test_the_progress_address_opened_in_a_browser_goes_to_the_dashboard_instead_of_showing_json(): void
+    {
+        $dealer = $this->partner(null);
+
+        $this->actingAs($dealer)->onPortal('dealer')->withHeaders(['Accept' => 'text/html'])->get('/my-progress')->assertRedirect('/');
+        $this->actingAs($dealer)->onPortal('dealer')->getJson('/my-progress')->assertOk()->assertJsonStructure(['data']);
+    }
+
     public function test_an_income_row_for_a_team_order_does_not_open_an_order_page(): void
     {
         $dealer = $this->partner(null);

@@ -49,3 +49,15 @@ html[data-text-size="xlarge"] :is(.dealer-shell, .subdealer-shell) { zoom: 1.5; 
 
 /* A form error must be noticed by someone who reads slowly: bold, dark red, with a bar beside it. */
 :is(.dealer-shell, .subdealer-shell) .field-error { display: block; margin-top: 6px; padding-left: 8px; border-left: 3px solid #b42318; color: #9b1c12; font-weight: 600; }
+
+/* Help: the six common questions, each opens on tap. */
+.help-quick-list details { border: 1px solid var(--ds-line, #dfe5e0); border-radius: 12px; padding: 4px 14px; margin: 8px 0; background: var(--ds-surface, #fff); }
+.help-quick-list summary { font-weight: 700; cursor: pointer; min-height: 44px; display: flex; align-items: center; }
+.help-quick-list p { margin: 0 0 12px; }
+.ppm-sum-words { display: block; color: var(--ds-text-muted, #455364); font-weight: 600; overflow-wrap: anywhere; }
+.ppm-big-order { border-left: 4px solid #b45309; }
+
+/* A wide table scrolls inside its own box; the page itself never scrolls sideways on a phone. */
+:is(.dealer-shell, .subdealer-shell) .table-scroll { overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; }
+:is(.dealer-shell, .subdealer-shell) .workspace-main { min-width: 0; }
+:is(.dealer-shell, .subdealer-shell) :is(.partner-home-referral-poster b, .partner-home-referral-code strong, .partner-home-referral-url, .profile-grid dd) { overflow-wrap: anywhere; word-break: break-word; }
