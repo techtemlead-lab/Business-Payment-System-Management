@@ -61,3 +61,7 @@ html[data-text-size="xlarge"] :is(.dealer-shell, .subdealer-shell) { zoom: 1.5; 
 :is(.dealer-shell, .subdealer-shell) .table-scroll { overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; }
 :is(.dealer-shell, .subdealer-shell) .workspace-main { min-width: 0; }
 :is(.dealer-shell, .subdealer-shell) :is(.partner-home-referral-poster b, .partner-home-referral-code strong, .partner-home-referral-url, .profile-grid dd) { overflow-wrap: anywhere; word-break: break-word; }
+
+/* The agreement is one long page, not a small box with its own scroll, and the accept button stays in view. */
+:is(.dealer-shell, .subdealer-shell) .agr-text { max-height: none; overflow-y: visible; }
+:is(.dealer-shell, .subdealer-shell) .agr-accept { position: sticky; bottom: 0; z-index: 5; padding: 12px 0; background: var(--ds-bg, #f3f5f2); }

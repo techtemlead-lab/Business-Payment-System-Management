@@ -86,5 +86,6 @@ return [
     'faq5_a' => 'On the sign-in page press “Forgot password?”. If that does not work, call the office on the number below.',
     'faq6_q' => 'What if I want to cancel or return an order?',
     'faq6_a' => 'Write to the office in chat or call. Tell them which order and why, and the office will take care of it for you.',
+    'agr_thanks' => 'Thank you. You can now place orders.',
     'totals_note' => '“You ordered” is the price of every running and delivered order. “Delivered” is only the goods that reached you. “Still to pay” is the money not yet paid on your orders.',
 ];
