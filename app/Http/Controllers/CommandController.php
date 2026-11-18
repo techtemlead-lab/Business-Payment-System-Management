@@ -1182,6 +1182,11 @@ class CommandController extends Controller
     /** True while the owner's last password confirmation for reading passwords is still fresh. */
     private function passwordRevealConfirmed(Request $r): bool
     {
+        // CR-10: the owner is never asked to confirm again; the MD and Chairman (when granted) still are.
+        // The daily cap, the notice to the other owners and the audit line still apply to everyone.
+        if (OwnerExemption::applies($r->user())) {
+            return true;
+        }
         $at = (int) $r->session()->get('password_reveal_confirmed_at', 0);
         $minutes = max(1, (int) config('madina.password_reveal.confirm_minutes', 5));
 
