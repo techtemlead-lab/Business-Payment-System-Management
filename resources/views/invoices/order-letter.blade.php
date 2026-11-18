@@ -149,33 +149,33 @@
         /* Invoice Sheet Layout */
         .header { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
         .header td { vertical-align: middle; }
-        .logo-cell { width: 70px; text-align: center; vertical-align: middle; }
+        .logo-cell { width: 130px; text-align: center; vertical-align: middle; }
         .logo-cell img {
-            width: 64px;
-            height: 64px;
-            max-width: 64px;
-            max-height: 64px;
+            width: 120px;
+            height: 120px;
+            max-width: 120px;
+            max-height: 120px;
             object-fit: contain;
             display: inline-block;
         }
         .brand-block { text-align: center; }
         .brand-name {
-            font-size: 21px;
+            font-size: 28px;
             font-weight: 700;
             color: #006837;
             letter-spacing: .02em;
             margin: 0;
         }
-        .brand-address { font-size: 11px; color: #334155; margin: 2px 0 0; }
-        .brand-phone { font-size: 11px; color: #334155; margin: 1px 0 0; font-weight: 500; }
+        .brand-address { font-size: 15px; color: #334155; margin: 2px 0 0; }
+        .brand-phone { font-size: 14px; color: #334155; margin: 1px 0 0; font-weight: 500; }
         .marketed { text-align: center; margin: 6px 0 4px; }
-        .marketed .by { color: #1e40af; font-weight: 700; font-size: 12px; }
-        .marketed .phones { color: #334155; font-size: 11px; }
+        .marketed .by { color: #1e40af; font-weight: 700; font-size: 15px; }
+        .marketed .phones { color: #334155; font-size: 14px; }
 
         .invoice-title { text-align: center; margin: 8px 0 10px; }
         .invoice-title span {
             display: inline-block;
-            font-size: 18px;
+            font-size: 22px;
             font-weight: 700;
             color: #006837;
             border-bottom: 2px solid #006837;
@@ -186,11 +186,11 @@
 
         .meta-row { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
         .meta-row td { vertical-align: top; }
-        .invoice-no { font-size: 12px; font-weight: 700; padding-top: 4px; color: #0f172a; }
+        .invoice-no { font-size: 16px; font-weight: 700; padding-top: 4px; color: #0f172a; }
         .referred {
             border: 1px solid #94a3b8;
             padding: 4px 10px;
-            font-size: 10.5px;
+            font-size: 14px;
             font-weight: 600;
             text-align: center;
             display: inline-block;
@@ -198,18 +198,7 @@
             border-radius: 3px;
         }
 
-        .dealer-box {
-            border: 1.5px solid #1e3a8a;
-            padding: 8px 10px;
-            width: 65%;
-            background: #fbfcfe;
-            border-radius: 4px;
-        }
-        .dealer-box table { width: 100%; border-collapse: collapse; }
-        .dealer-box td { padding: 1.5px 0; font-size: 10.5px; vertical-align: top; }
-        .dealer-box .k { width: 32%; font-weight: 600; color: #1e293b; }
-        .dealer-box .v { color: #0f172a; }
-        .date-cell { text-align: right; padding-top: 6px; font-size: 11.5px; font-weight: 700; color: #0f172a; }
+        .date-cell { text-align: right; padding-top: 6px; font-size: 15px; font-weight: 700; color: #0f172a; }
 
         /* Items Table */
         table.items {
@@ -368,7 +357,7 @@
         <tr>
             <td class="logo-cell">
                 @if (! empty($company['logo_path']))
-                    <img src="{{ $company['logo_path'] }}" alt="Logo" width="64" height="64">
+                    <img src="{{ $company['logo_path'] }}" alt="Logo" width="120" height="120">
                 @endif
             </td>
             <td class="brand-block">
@@ -378,11 +367,14 @@
                     <div class="brand-name">{{ $company['name'] }}</div>
                 @endif
                 <div class="brand-address">{{ $company['address'] }}</div>
-                <div class="brand-phone">{{ __('portal.inv_mobile_short') }}: {{ $company['phones'] }}</div>
             </td>
             <td class="logo-cell"></td>
         </tr>
     </table>
+
+    <div style="text-align:center;margin-top:2px">
+        @include('partials.letterhead-contacts', ['company' => $company, 'size' => '14.5px'])
+    </div>
 
     @if (! empty($company['marketed_by']))
         <div class="marketed">
@@ -411,16 +403,19 @@
     <table class="meta-row">
         <tr>
             <td>
-                <div class="dealer-box">
-                    <table>
-                        <tr><td class="k">{{ __('portal.inv_name') }} :</td><td class="v">{{ $buyer['name'] }}</td></tr>
-                        <tr><td class="k">{{ __('portal.inv_dealer_code') }} :</td><td class="v">{{ $buyer['code'] ?: '—' }}</td></tr>
-                        <tr><td class="k">{{ __('portal.inv_designation') }} :</td><td class="v">{{ $buyer['designation'] }}</td></tr>
-                        <tr><td class="k">{{ __('portal.inv_area') }} :</td><td class="v">{{ $buyer['area'] }}</td></tr>
-                        <tr><td class="k">{{ __('portal.inv_mobile') }} :</td><td class="v">{{ $buyer['phone'] ?: '—' }}</td></tr>
-                        <tr><td class="k">{{ __('portal.inv_booking_address') }} :</td><td class="v">{{ $buyer['booking_address'] }}</td></tr>
+                {{-- Written with inline styles: the PDF maker does not apply the stylesheet to a box inside a table cell. --}}
+                <table class="dealer-box" style="width:68%;border:1.5px solid #1e3a8a;background:#fbfcfe;border-collapse:collapse">
+                    <tr><td style="padding:8px 10px">
+                    <table style="width:100%;border-collapse:collapse">
+                        <tr><td colspan="2" style="font-size:17px;font-weight:700;color:#1e3a8a;padding:0 0 4px;border-bottom:1px solid #94a3b8">{{ $buyer['designation'] }}</td></tr>
+                        <tr><td style="width:30%;font-size:14px;font-weight:600;color:#1e293b;padding:2px 0;vertical-align:top">{{ __('portal.inv_name') }} :</td><td style="font-size:14px;color:#0f172a;padding:2px 0;vertical-align:top">{{ $buyer['name'] }}</td></tr>
+                        <tr><td style="width:30%;font-size:14px;font-weight:600;color:#1e293b;padding:2px 0;vertical-align:top">{{ __('portal.inv_dealer_code') }} :</td><td style="font-size:14px;color:#0f172a;padding:2px 0;vertical-align:top">{{ $buyer['code'] ?: '—' }}</td></tr>
+                        <tr><td style="width:30%;font-size:14px;font-weight:600;color:#1e293b;padding:2px 0;vertical-align:top">{{ __('portal.inv_area') }} :</td><td style="font-size:14px;color:#0f172a;padding:2px 0;vertical-align:top">{{ $buyer['area'] }}</td></tr>
+                        <tr><td style="width:30%;font-size:14px;font-weight:600;color:#1e293b;padding:2px 0;vertical-align:top">{{ __('portal.inv_mobile') }} :</td><td style="font-size:14px;color:#0f172a;padding:2px 0;vertical-align:top">{{ $buyer['phone'] ?: '—' }}</td></tr>
+                        <tr><td style="width:30%;font-size:14px;font-weight:600;color:#1e293b;padding:2px 0;vertical-align:top">{{ __('portal.inv_booking_address') }} :</td><td style="font-size:14px;color:#0f172a;padding:2px 0;vertical-align:top">{{ $buyer['booking_address'] }}</td></tr>
                     </table>
-                </div>
+                    </td></tr>
+                </table>
             </td>
             <td class="date-cell">{{ __('portal.inv_date') }} : {{ $order['date'] }}</td>
         </tr>

@@ -34,7 +34,7 @@ class PartnerAdminPasswordTest extends TestCase
             'name_bn' => 'মোঃ রিভিল',
             'father_name' => 'Father',
             'mother_name' => 'Mother',
-            'place_code' => 'MNHC-102',
+            'place_code' => 'MNHC102',
             'refer_code' => 'REF-REVEAL',
             'phone' => '01712345001',
             'email' => 'reveal@example.com',

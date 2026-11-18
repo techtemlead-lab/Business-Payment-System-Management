@@ -73,8 +73,8 @@ class PartnerScorecardTest extends TestCase
     public function test_search_finds_a_partner_by_name_or_code_on_the_page(): void
     {
         $finance = User::factory()->staff('finance')->create();
-        User::factory()->dealer()->create(['name' => 'Rahim', 'dealer_code' => 'MNHC-1001']);
-        User::factory()->dealer()->create(['name' => 'Karim', 'dealer_code' => 'MNHC-2002']);
+        User::factory()->dealer()->create(['name' => 'Rahim', 'dealer_code' => 'MNHC1001']);
+        User::factory()->dealer()->create(['name' => 'Karim', 'dealer_code' => 'MNHC2002']);
 
         foreach (['rahim' => 'Rahim', '2002' => 'Karim'] as $words => $name) {
             $this->actingAs($finance)->onPortal('manage')->get('/partner-scorecard?q='.$words)

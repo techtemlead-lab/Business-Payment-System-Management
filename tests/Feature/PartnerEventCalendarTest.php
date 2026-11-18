@@ -60,8 +60,8 @@ class PartnerEventCalendarTest extends TestCase
     public function test_publishing_notifies_only_active_partners_in_the_chosen_divisions(): void
     {
         $this->seedClassicPlaceCodes();
-        $dhaka = PlaceCode::query()->where('code', 'MNHC-101')->firstOrFail();
-        $rangpur = PlaceCode::query()->where('code', 'MNHC-102')->firstOrFail();
+        $dhaka = PlaceCode::query()->where('code', 'MNHC101')->firstOrFail();
+        $rangpur = PlaceCode::query()->where('code', 'MNHC102')->firstOrFail();
         $editor = User::factory()->staff('editor')->create();
         // Partners are in a division by their place code (a district inside Dhaka counts too).
         $dhakaDealer = User::factory()->dealer()->inPlace(PlaceCode::factory()->district($dhaka)->create())->create(['locale' => 'en', 'phone' => '01711000001']);

@@ -134,8 +134,8 @@ class BranchPerformanceReportTest extends TestCase
         $owner = User::factory()->staff('super_admin')->create();
         $hub = CompanyBranch::query()->where('code', 'HO-PIRGANJ')->firstOrFail();
         $product = Product::factory()->create(['cost_price' => '50.00']);
-        $rahim = User::factory()->dealer()->create(['name' => 'Rahim Uddin', 'dealer_code' => 'MNHC-1001']);
-        $karim = User::factory()->dealer()->create(['name' => 'Karim Ali', 'dealer_code' => 'MNHC-2002']);
+        $rahim = User::factory()->dealer()->create(['name' => 'Rahim Uddin', 'dealer_code' => 'MNHC1001']);
+        $karim = User::factory()->dealer()->create(['name' => 'Karim Ali', 'dealer_code' => 'MNHC2002']);
         $this->createFulfilledOrder($rahim, $product, $hub->id, '400.00', '300.00');
         $this->createFulfilledOrder($karim, $product, $hub->id, '700.00', '700.00');
         // Approved but not delivered: found by the search, worth nothing in the money columns.
@@ -155,7 +155,7 @@ class BranchPerformanceReportTest extends TestCase
                 ->where('data.performance.totals.order_count', 3)
                 ->where('data.performance.totals.order_value', '1100.00'));
 
-        foreach (['MNHC-2002', $karimNumber] as $words) {
+        foreach (['MNHC2002', $karimNumber] as $words) {
             $this->actingAs($owner)->onPortal('sadmin')
                 ->get('/branch-performance?period=month&all_branches=1&tab=orders&q='.$words)
                 ->assertOk()

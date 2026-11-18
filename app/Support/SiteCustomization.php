@@ -756,6 +756,11 @@ class SiteCustomization
         if ($url === '' || $url === '#') {
             return null;
         }
+        // A link to a spot on the same page ("#partner-apply") stays as written; turned into
+        // "/#partner-apply" it would send the visitor to the home page instead.
+        if (str_starts_with($url, '#')) {
+            return $url;
+        }
         $page = self::pageFromPath($url);
         if ($page !== null && $page !== 'home' && ! self::isPageEnabled($page)) {
             return null;

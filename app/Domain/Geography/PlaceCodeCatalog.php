@@ -69,8 +69,11 @@ final class PlaceCodeCatalog
                 $query !== null && $query !== '' && in_array($level, self::SearchableLevels, true),
                 function ($builder) use ($query): void {
                     $term = '%'.mb_strtolower(trim($query)).'%';
-                    $builder->where(function ($inner) use ($term): void {
+                    // A code typed the older way (MNHC-101) still finds the place saved as MNHC101.
+                    $codeTerm = '%'.mb_strtolower(PlaceCode::normalizeCode($query) ?? trim($query)).'%';
+                    $builder->where(function ($inner) use ($term, $codeTerm): void {
                         $inner->whereRaw('LOWER(COALESCE(code, \'\')) LIKE ?', [$term])
+                            ->orWhereRaw('LOWER(COALESCE(code, \'\')) LIKE ?', [$codeTerm])
                             ->orWhereRaw('LOWER(name) LIKE ?', [$term])
                             ->orWhereHas('parent', fn ($parent) => $parent->whereRaw('LOWER(name) LIKE ?', [$term])
                                 ->orWhereRaw('LOWER(COALESCE(code, \'\')) LIKE ?', [$term]));
@@ -190,12 +193,11 @@ final class PlaceCodeCatalog
     /** @return Builder<User> Accounts whose saved place is this place. */
     private function usersOn(PlaceCode $place): Builder
     {
-        $normalized = PlaceCode::normalizeCode($place->code) ?? $place->code;
-        $legacy = substr((string) $normalized, strlen(PlaceCode::BrandPrefix) + 1);
+        $forms = PlaceCode::storedCodeForms($place->code) ?: [(string) $place->code];
 
-        return User::query()->where(function ($query) use ($place, $normalized, $legacy): void {
+        return User::query()->where(function ($query) use ($place, $forms): void {
             $query->whereRaw("COALESCE(profile->>'place_code_id', '') = ?", [(string) $place->id])
-                ->orWhereRaw("COALESCE(profile->>'place_code', '') IN (?, ?)", [$normalized, $legacy]);
+                ->orWhereIn(DB::raw("COALESCE(profile->>'place_code', '')"), $forms);
         });
     }
 
@@ -235,9 +237,8 @@ final class PlaceCodeCatalog
         }
 
         if ($code !== null) {
-            $legacy = substr($code, strlen(PlaceCode::BrandPrefix) + 1);
             $taken = PlaceCode::query()
-                ->whereIn('code', [$code, $legacy])
+                ->whereIn('code', PlaceCode::storedCodeForms($code))
                 ->when($existing, fn ($q) => $q->where('id', '!=', $existing->id))
                 ->first();
             if ($taken) {

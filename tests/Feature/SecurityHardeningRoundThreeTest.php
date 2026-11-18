@@ -42,7 +42,7 @@ class SecurityHardeningRoundThreeTest extends TestCase
     public function test_changing_a_partner_phone_warns_the_old_number(): void
     {
         $manager = User::factory()->staff('account_manager')->create();
-        $partner = User::factory()->dealer()->create(['status' => 'active', 'phone' => '01712345678', 'dealer_code' => 'MNHC-7001']);
+        $partner = User::factory()->dealer()->create(['status' => 'active', 'phone' => '01712345678', 'dealer_code' => 'MNHC7001']);
 
         $this->actingAs($manager)->onPortal('manage')
             ->patch('/commands/accounts/'.$partner->id, ['phone' => '01898765432', 'reason' => 'Dealer asked for a new number'])
@@ -51,7 +51,7 @@ class SecurityHardeningRoundThreeTest extends TestCase
         $sent = collect(config('madina.sms.sent'))->firstWhere('event', 'account.phone_changed');
         $this->assertNotNull($sent);
         $this->assertSame('01712345678', $sent['phone']);
-        $this->assertStringContainsString('MNHC-7001', $sent['message']);
+        $this->assertStringContainsString('MNHC7001', $sent['message']);
     }
 
     public function test_featured_category_links_cannot_run_script(): void

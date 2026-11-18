@@ -24,9 +24,9 @@ class PartnersAddedAtSameMomentTest extends TestCase
 
     public function test_a_second_dealer_on_the_place_is_refused_in_plain_words(): void
     {
-        $this->rivalSavesFirst(['role' => 'dealer', 'dealer_code' => 'MNHC-102', 'refer_code' => 'MNHC-102']);
+        $this->rivalSavesFirst(['role' => 'dealer', 'dealer_code' => 'MNHC102', 'refer_code' => 'MNHC102']);
 
-        $this->addPartner(['place_code' => 'MNHC-102', 'email' => 'second@example.test', 'phone' => '01712000101'])
+        $this->addPartner(['place_code' => 'MNHC102', 'email' => 'second@example.test', 'phone' => '01712000101'])
             ->assertSessionHasErrors(['place_code' => Lang::get('portal.acct_val_place_taken')]);
 
         $this->assertDatabaseMissing('users', ['email' => 'second@example.test']);
@@ -47,7 +47,7 @@ class PartnersAddedAtSameMomentTest extends TestCase
     {
         $this->rivalSavesFirst(['role' => 'dealer', 'email' => 'same-moment@example.test', 'dealer_code' => 'D-RIVAL', 'refer_code' => 'D-RIVAL']);
 
-        $this->addPartner(['place_code' => 'MNHC-102', 'email' => 'same-moment@example.test', 'phone' => '01712000103'])
+        $this->addPartner(['place_code' => 'MNHC102', 'email' => 'same-moment@example.test', 'phone' => '01712000103'])
             ->assertSessionHasErrors(['email' => Lang::get('portal.acct_val_email_taken')]);
     }
 
@@ -89,10 +89,10 @@ class PartnersAddedAtSameMomentTest extends TestCase
 
     private function unionCode(): string
     {
-        $division = PlaceCode::query()->where('code', 'MNHC-102')->firstOrFail();
-        $district = PlaceCode::factory()->district($division)->create(['code' => 'MNHC-371', 'name' => 'Race District']);
-        $upazila = PlaceCode::factory()->upazila($district)->create(['code' => 'MNHC-471', 'name' => 'Race Upazila']);
+        $division = PlaceCode::query()->where('code', 'MNHC102')->firstOrFail();
+        $district = PlaceCode::factory()->district($division)->create(['code' => 'MNHC371', 'name' => 'Race District']);
+        $upazila = PlaceCode::factory()->upazila($district)->create(['code' => 'MNHC471', 'name' => 'Race Upazila']);
 
-        return (string) PlaceCode::factory()->union($upazila)->create(['code' => 'MNHC-571', 'name' => 'Race Union'])->code;
+        return (string) PlaceCode::factory()->union($upazila)->create(['code' => 'MNHC571', 'name' => 'Race Union'])->code;
     }
 }

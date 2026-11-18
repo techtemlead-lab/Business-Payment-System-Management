@@ -97,7 +97,7 @@ class PartnerNoticesAndProfileTest extends TestCase
             'profile' => [
                 'name_bn' => 'ডিলার',
                 'shop_name' => 'Madina Care Point',
-                'place_code' => 'MNHC-101',
+                'place_code' => 'MNHC101',
                 'identity_type' => 'birth_certificate',
                 'birth_certificate_number' => '19901234567890123',
                 'date_of_birth' => '1990-01-15',
