@@ -54,7 +54,7 @@ services:
       retries: 3
   queue:
     <<: *application
-    command: ["php", "-d", "max_execution_time=0", "artisan", "queue:work", "--queue=imports,default", "--sleep=3", "--tries=1", "--timeout=1800", "--max-time=3600"]
+    command: ["php", "-d", "max_execution_time=0", "artisan", "queue:work", "--queue=imports,default", "--sleep=3", "--tries=3", "--backoff=60", "--timeout=1800", "--max-time=3600"]
     # A deploy waits for a running import to finish (up to its 30-minute timeout) instead of killing it.
     stop_grace_period: 31m
   scheduler:

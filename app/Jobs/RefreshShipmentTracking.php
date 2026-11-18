@@ -14,7 +14,11 @@ class RefreshShipmentTracking implements ShouldQueue
 {
     use Queueable;
 
-    public int $tries = 1;
+    /** Asking again only reads the courier's answer, so a dropped connection is simply tried again. */
+    public int $tries = 3;
+
+    /** @var list<int> seconds before the second and third try */
+    public array $backoff = [60, 300];
 
     public int $timeout = 30;
 
