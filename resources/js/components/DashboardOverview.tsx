@@ -377,7 +377,7 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
     );
 }
 
-type WorkItem = { key: string; count: number; section: string; query?: Record<string, string> };
+type WorkItem = { key: string; count: number; section: string; query?: Record<string, string>; label?: string };
 type TrendPoint = { date: string; orders: number; value: string };
 
 /** A business day (YYYY-MM-DD) in the page's language, whatever clock the browser is on. */
@@ -402,7 +402,7 @@ function WorkQueue({ items, base }: { items: WorkItem[]; base: string }) {
                         <li key={item.key} className={item.count > 0 ? 'has-work' : 'is-clear'}>
                             <Link href={`${base}/${item.section}${query}`}>
                                 <strong>{number(item.count)}</strong>
-                                <span>{translate('portal', `dash_work_${item.key}`)}</span>
+                                <span>{item.label ?? translate('portal', `dash_work_${item.key}`)}</span>
                                 <ChevronRight size={16} aria-hidden="true" />
                             </Link>
                         </li>

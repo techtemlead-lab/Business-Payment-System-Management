@@ -4,6 +4,7 @@ namespace App\Domain\Orders;
 
 use App\Domain\Inventory\BranchScope;
 use App\Domain\Inventory\SellableStock;
+use App\Domain\Inventory\StockLevels;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
@@ -90,10 +91,19 @@ final class StaffDashboardSummary
                 'query' => ['status' => OverdueDeliveries::Filter],
             ];
         }
+        if ($viewer->allows('inventory') || $viewer->allows('order_review')) {
+            // Paid back orders near or past the e-commerce delivery and refund limit (OS-02, LC-04).
+            $queue[] = [
+                'key' => 'back_orders_late',
+                'label' => __('orders_stock.dashboard_back_orders_hint', ['days' => BackOrders::WarnFromDays]),
+                'count' => app(BackOrders::class)->lateCount($this->orders($branchScope)->toBase()),
+                'section' => 'deliveries',
+            ];
+        }
         if ($viewer->allows('inventory')) {
             $queue[] = [
                 'key' => 'low_stock_products',
-                'count' => $this->lowStockProducts($branchScope)->count(),
+                'count' => array_sum(StockLevels::counts($branchScope)),
                 'section' => 'inventory',
             ];
         }
@@ -148,7 +158,7 @@ final class StaffDashboardSummary
         $row = $this->orders($branchScope)->toBase()
             ->whereIn('status', OrderListFilter::AwaitingDispatch)
             ->selectRaw(
-                "COUNT(*) FILTER (WHERE orders.status IN ({$awaiting}) AND EXISTS (SELECT 1 FROM order_lines WHERE order_lines.order_id = orders.id AND order_lines.dispatched < order_lines.quantity)) AS to_dispatch, "
+                "COUNT(*) FILTER (WHERE orders.status IN ({$awaiting}) AND EXISTS (SELECT 1 FROM order_lines WHERE order_lines.order_id = orders.id AND ".OrderLines::unsentSql('order_lines').')) AS to_dispatch, '
                 .'COUNT(*) FILTER (WHERE '.OverdueDeliveries::conditionSql().') AS overdue',
                 OverdueDeliveries::bindings(),
             )
