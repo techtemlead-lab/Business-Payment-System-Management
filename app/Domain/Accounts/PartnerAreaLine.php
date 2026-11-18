@@ -13,7 +13,7 @@ final class PartnerAreaLine
 {
     public function for(User $user): string
     {
-        $profile = is_array($user->profile) ? $user->profile : [];
+        $profile = PartnerProfileLock::profileOf($user);
 
         return self::format([
             'union' => $profile['union'] ?? null,
