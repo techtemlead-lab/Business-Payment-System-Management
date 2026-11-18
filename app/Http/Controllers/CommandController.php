@@ -52,6 +52,7 @@ use App\Support\Money;
 use App\Support\PhoneIdentity;
 use App\Support\ReasonFields;
 use App\Support\SiteCustomization;
+use App\Support\StoredPhrase;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -892,8 +893,8 @@ class CommandController extends Controller
             ->get(['id', 'title', 'body', 'read_at', 'created_at'])
             ->map(fn (object $notice): array => [
                 'id' => (int) $notice->id,
-                'title' => (string) $notice->title,
-                'body' => Str::limit((string) $notice->body, 280),
+                'title' => StoredPhrase::readable((string) $notice->title),
+                'body' => Str::limit(StoredPhrase::readable((string) $notice->body), 280),
                 'read_at' => $notice->read_at !== null ? Carbon::parse($notice->read_at)->toIso8601String() : null,
                 'created_at' => $notice->created_at !== null ? Carbon::parse($notice->created_at)->toIso8601String() : null,
             ])
