@@ -338,7 +338,7 @@ final class ReserveService
         }
 
         return DB::transaction(function () use ($month, $actorId): array {
-            CommissionWallet::lock();
+            CommissionWallet::lockShared();
             $funds = CommissionAllocation::query()
                 ->where('status', 'held')
                 ->where('category', 'like', 'area_%')
@@ -395,7 +395,7 @@ final class ReserveService
         $newestMonth = CarbonImmutable::createFromFormat('!Y-m', CommissionQualification::currentMonth())->subMonthsNoOverflow($months)->format('Y-m');
 
         return DB::transaction(function () use ($months, $newestMonth, $actorId): array {
-            CommissionWallet::lock();
+            CommissionWallet::lockShared();
             $funds = CommissionAllocation::query()
                 ->where('status', 'held')
                 ->where('category', 'like', 'area_%')
@@ -488,7 +488,7 @@ final class ReserveService
         }
 
         return DB::transaction(function () use ($month, $actorId): array {
-            CommissionWallet::lock();
+            CommissionWallet::lockShared();
             $funds = CommissionAllocation::query()->where('category', 'additional_rank_pool')->where('status', 'pending')
                 ->where('metadata->period_month', $month)->orderBy('id')->lockForUpdate()->get();
             $settlement = app(CommissionSettlement::class);
@@ -518,7 +518,7 @@ final class ReserveService
         CommissionWallet::requireActive();
 
         return DB::transaction(function () use ($actorId): array {
-            CommissionWallet::lock();
+            CommissionWallet::lockShared();
             $funds = CommissionAllocation::query()
                 ->where('status', 'held')
                 ->where('category', 'like', 'area_%')
