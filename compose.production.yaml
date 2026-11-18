@@ -16,6 +16,8 @@ x-application: &application
     DB_USERNAME: madina
     DB_QUEUE_RETRY_AFTER: "2100"
     MADINA_BACKUP_PATH: /var/backups/madina
+    # The web image below has the internal /_protected/ location, so nginx sends private media after the app allows it.
+    MADINA_NGINX_PROTECTED_FILES: "true"
   volumes:
     - application-storage:/var/www/html/storage
     - private-backups:/var/backups/madina

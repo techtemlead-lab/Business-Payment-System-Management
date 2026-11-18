@@ -34,6 +34,9 @@ return [
     'backup_retention_days' => (int) env('MADINA_BACKUP_RETENTION_DAYS', 14),
     'backup_keep_minimum' => (int) env('MADINA_BACKUP_KEEP_MINIMUM', 7),
     'trusted_proxies' => env('TRUSTED_PROXIES', ''),
+    // After the permission check, let nginx send private product photos, videos and the photo model
+    // (X-Accel-Redirect) so PHP workers are not held by slow downloads. Only for the production nginx image.
+    'nginx_protected_files' => (bool) env('MADINA_NGINX_PROTECTED_FILES', false),
     // Prefer /public/build over Vite HMR. Stale public/hot points CSS/JS at :5173, which CSP
     // blocks on port-forwarded Cloud Agent browsers and blanks public pages.
     'force_built_assets' => (bool) env('MADINA_FORCE_BUILT_ASSETS', false),
