@@ -297,9 +297,9 @@ export default function AccountCreate({
         }
     };
 
-    /** Checks the place code once it is typed: the code the person will get comes from this. */
-    const previewPlace = async (force = false) => {
-        const code = form.data.place_code.trim();
+    /** Checks the place code once it is typed or picked: the code the person will get comes from this. */
+    const previewPlace = async (force = false, picked?: string) => {
+        const code = (picked ?? form.data.place_code).trim();
         if (!code) {
             if (force) {
                 setPlaceError(translate('portal', isSubDealer ? 'acct_val_place_sub' : 'acct_val_place_dealer'));
@@ -347,6 +347,34 @@ export default function AccountCreate({
         setPlaceError('');
         form.setData((prev) => ({ ...prev, place_code: placeCode, dealer_code: !isSubDealer && dealerCodeTouched ? prev.dealer_code : '' }));
         form.clearErrors('place_code');
+    };
+
+    /**
+     * Picking a place from the lists fills the place code and checks it at once, so nobody has to
+     * type a code (a hand-typed wrong union sent area money to the wrong place). A sub-dealer's
+     * code is a union, so it is filled only when the union is picked; a dealer takes the
+     * deepest place picked.
+     */
+    const pickPlace = (picked: { division?: string; district?: string; upazila?: string; union?: string }) => {
+        const division = place_divisions.find((item) => String(item.id) === picked.division);
+        const district = districts.find((item) => String(item.id) === picked.district);
+        const upazila = upazilas.find((item) => String(item.id) === picked.upazila);
+        const union = unions.find((item) => String(item.id) === picked.union);
+        const deepest = isSubDealer ? union : (union ?? upazila ?? district ?? division);
+        const code = deepest?.code ?? '';
+        changePlaceCode(code);
+        if (code) {
+            void previewPlace(true, code);
+        }
+    };
+
+    /** A code typed by someone who knows it replaces whatever was picked from the lists. */
+    const typePlaceCode = (typed: string) => {
+        setDivisionId('');
+        setDistrictId('');
+        setUpazilaId('');
+        setUnionId('');
+        changePlaceCode(typed);
     };
 
     useEffect(() => {
@@ -682,15 +710,51 @@ export default function AccountCreate({
 
                             <section className="panel acf-section" id="acf-place">
                                 {heading('place', sectionFor('place'))}
+                                <p className="acf-note">{translate('joining', 'place_pick_hint')}</p>
                                 <div className="acf-grid">
-                                    <Box text={translate('portal', isSubDealer ? 'acct_union_code' : 'acct_place_code')} error={errorOf('place_code') || placeError}>
+                                    <Box text={translate('portal', 'acct_division')}>
+                                        <SearchSelect
+                                            value={divisionId}
+                                            onChange={(value) => { setDivisionId(value); setDistrictId(''); setUpazilaId(''); setUnionId(''); pickPlace({ division: value }); }}
+                                            emptyLabel={translate('portal', 'acct_select_division')}
+                                            options={place_divisions.map((item) => ({ value: String(item.id), label: `${item.code} — ${item.name}` }))}
+                                        />
+                                    </Box>
+                                    <Box text={translate('portal', 'acct_district')}>
+                                        <SearchSelect
+                                            value={districtId}
+                                            onChange={(value) => { setDistrictId(value); setUpazilaId(''); setUnionId(''); pickPlace({ division: divisionId, district: value }); }}
+                                            disabled={!divisionId}
+                                            emptyLabel={translate('portal', 'acct_select_district')}
+                                            options={districts.map((item) => ({ value: String(item.id), label: `${item.code} — ${item.name}` }))}
+                                        />
+                                    </Box>
+                                    <Box text={translate('portal', 'acct_upazila')}>
+                                        <SearchSelect
+                                            value={upazilaId}
+                                            onChange={(value) => { setUpazilaId(value); setUnionId(''); pickPlace({ division: divisionId, district: districtId, upazila: value }); }}
+                                            disabled={!districtId}
+                                            emptyLabel={translate('portal', 'acct_select_upazila')}
+                                            options={upazilas.map((item) => ({ value: String(item.id), label: `${item.code} — ${item.name}` }))}
+                                        />
+                                    </Box>
+                                    <Box text={translate('portal', 'acct_union')}>
+                                        <SearchSelect
+                                            value={unionId}
+                                            onChange={(value) => { setUnionId(value); pickPlace({ division: divisionId, district: districtId, upazila: upazilaId, union: value }); }}
+                                            disabled={!upazilaId}
+                                            emptyLabel={translate('portal', 'acct_select_union')}
+                                            options={unions.map((item) => ({ value: String(item.id), label: `${item.code} — ${item.name}` }))}
+                                        />
+                                    </Box>
+                                    <Box text={translate('portal', isSubDealer ? 'acct_union_code' : 'acct_place_code')} error={errorOf('place_code') || placeError} hint={translate('joining', 'place_code_hint')}>
                                         <div className="acf-with-button">
                                             <input
                                                 data-place-code=""
                                                 autoComplete="off"
                                                 aria-invalid={Boolean(errorOf('place_code') || placeError)}
                                                 value={form.data.place_code}
-                                                onChange={(e) => changePlaceCode(e.target.value)}
+                                                onChange={(e) => typePlaceCode(e.target.value)}
                                                 onBlur={() => void previewPlace()}
                                                 placeholder={translate('portal', isSubDealer ? 'acct_union_code_ph' : 'acct_place_code_ph')}
                                             />
