@@ -34,6 +34,10 @@ return [
     'mc_kind_additional_rank' => 'সাব-ডিলার র‍্যাংক ফান্ডের মাস শেষ',
     'mc_month_label' => 'মাস',
     'flash_already_closed' => ':month-এর :kind আগেই :date তারিখে বন্ধ হয়েছে। দেওয়ার মতো আর কিছু বাকি নেই।',
+
+    // MA-19
+    'readiness_failed' => 'টাকার হিসাব মেলেনি। এই যাচাইগুলো পাস করেনি: :checks',
+
     // MA-13
     'area_quota_required' => 'মাসের লক্ষ্যের টাকা লিখুন।',
     'area_quota_numeric' => 'মাসের লক্ষ্য শুধু সংখ্যায় লিখুন।',

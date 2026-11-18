@@ -33,7 +33,7 @@ Schedule::command('finance:auto-approve')->hourly()->withoutOverlapping(120)->on
 Schedule::command('audit:verify-integrity')->dailyAt('03:00')->timezone('Asia/Dhaka')->withoutOverlapping(60)->onOneServer()
     ->onFailure(fn () => Log::critical('Daily audit-trail integrity check failed. Someone may have changed audit records.'));
 Schedule::command('finance:readiness')->dailyAt('03:15')->timezone('Asia/Dhaka')->withoutOverlapping(60)->onOneServer()
-    ->onFailure(fn () => Log::critical('Daily money reconciliation failed. The ledger and wallets no longer match.'));
+    ->onFailure(fn () => Log::critical('Daily money reconciliation failed. Read the "Money check failed." log line for the names of the checks that failed, or run php artisan finance:readiness.'));
 
 if (config('madina.backups_enabled')) {
     Schedule::command('app:backup')->dailyAt('02:00')->timezone('Asia/Dhaka')->withoutOverlapping(120)->onOneServer()

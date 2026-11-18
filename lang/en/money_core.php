@@ -34,6 +34,10 @@ return [
     'mc_kind_additional_rank' => 'Sub-dealer rank fund month end',
     'mc_month_label' => 'Month',
     'flash_already_closed' => ':kind for :month was already closed on :date. Nothing was left to pay.',
+
+    // MA-19
+    'readiness_failed' => 'Money check failed. These checks did not pass: :checks',
+
     // MA-13
     'area_quota_required' => 'Enter the monthly target amount.',
     'area_quota_numeric' => 'Write the monthly target as a number only.',
