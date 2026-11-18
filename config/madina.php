@@ -65,6 +65,9 @@ return [
 
     'business_timezone' => 'Asia/Dhaka',
     'withdrawal_minimum' => '200.00',
+
+    // Partners must accept the agreement before using the portal unless the owner switched that off. Tests turn the default off.
+    'agreement_required_default' => (bool) env('MADINA_AGREEMENT_REQUIRED_DEFAULT', true),
     // Owner decision: nobody orders without paying the whole order first. This is only the starting
     // value; the owner switches it on or off in Finance settings ("Full payment required when ordering").
     'full_payment_when_ordering' => env('MADINA_FULL_PAYMENT_WHEN_ORDERING', true),

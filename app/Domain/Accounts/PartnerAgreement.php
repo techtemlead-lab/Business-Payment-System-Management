@@ -16,7 +16,7 @@ use Illuminate\Validation\ValidationException;
  *
  * The owner publishes versions (each one kept for good) and decides with one
  * switch whether partners must accept the latest version before they can use
- * their portal. The switch is off until the owner turns it on.
+ * their portal. The switch is on until the owner turns it off.
  */
 final class PartnerAgreement
 {
@@ -54,7 +54,8 @@ final class PartnerAgreement
         $setting = is_string($row?->setting ?? null) ? json_decode($row->setting, true, 512, JSON_THROW_ON_ERROR) : [];
 
         return [
-            'required' => (bool) ($setting['required'] ?? false),
+            // On unless the owner switched it off: a partner agrees before the first order, not after.
+            'required' => (bool) ($setting['required'] ?? (bool) config('madina.agreement_required_default', true)),
             'version_id' => isset($row->version_id) ? (int) $row->version_id : null,
             'version' => isset($row->version) ? (int) $row->version : null,
             'accepted' => (bool) ($row->accepted ?? false),
@@ -75,7 +76,7 @@ final class PartnerAgreement
     }
 
     /**
-     * The owner switch "Partners must accept the agreement". Off by default.
+     * The owner switch "Partners must accept the agreement". On by default.
      *
      * @return array{required: bool, version: int}
      */
@@ -84,7 +85,7 @@ final class PartnerAgreement
         $row = DB::table('business_settings')->where('key', self::SettingKey)->first();
         $stored = $row ? json_decode($row->value, true, 512, JSON_THROW_ON_ERROR) : [];
 
-        return ['required' => (bool) ($stored['required'] ?? false), 'version' => (int) ($row->version ?? 0)];
+        return ['required' => (bool) ($stored['required'] ?? (bool) config('madina.agreement_required_default', true)), 'version' => (int) ($row->version ?? 0)];
     }
 
     public function saveSetting(User $actor, bool $required, int $version): void

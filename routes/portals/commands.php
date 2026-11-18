@@ -76,6 +76,7 @@ return function (string $portal): void {
     Route::post('/commands/chat-answerers', [PartnerChatController::class, 'answerers'])->middleware('throttle:10,1');
     Route::post('/commands/owner/contact', [AuthController::class, 'ownerContact'])->middleware('throttle:5,1');
     Route::post('/commands/profile/details', [PartnerProfileController::class, 'details'])->middleware('throttle:10,1');
+    Route::post('/commands/profile/change-request', [PartnerProfileController::class, 'changeRequest'])->middleware('throttle:5,1');
     Route::post('/commands/accounts/{user}/profile-lock', [PartnerProfileController::class, 'lock'])->middleware('throttle:20,1');
     Route::post('/commands/profile/photo', [AuthController::class, 'profilePhoto'])->middleware('throttle:10,1');
     Route::post('/commands/owner/partner-login-otp', [AuthController::class, 'partnerLoginOtp'])->middleware('throttle:5,1');
@@ -117,6 +118,7 @@ return function (string $portal): void {
     Route::post('/commands/claims/{claim}/verify', [CommandController::class, 'verify']);
     Route::post('/commands/orders/{order}/refund', [CommandController::class, 'refund'])->middleware('throttle:10,1');
     Route::post('/commands/accounts', [CommandController::class, 'account']);
+    Route::post('/commands/accounts/{user}/leadership-reset', [CommandController::class, 'leadershipResetRights'])->middleware('throttle:10,1');
     Route::patch('/commands/accounts/{user}', [CommandController::class, 'accountUpdate']);
     Route::delete('/commands/accounts/{user}', [PartnerAccountDeletionController::class, 'destroy'])->middleware('throttle:10,1');
     Route::get('/commands/accounts/{user}/deletion-check', [PartnerAccountDeletionController::class, 'show'])->middleware('throttle:60,1');

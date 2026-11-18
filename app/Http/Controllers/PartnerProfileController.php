@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Accounts\AccountPhoneRules;
 use App\Domain\Accounts\PartnerProfileLock;
 use App\Models\User;
 use App\Support\Audit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 /**
  * The partner profile lock: the office locks or opens a profile, and a partner whose profile is
@@ -26,6 +28,44 @@ class PartnerProfileController extends Controller
         $lock->set($request->user(), $user, (bool) $data['locked'], (string) ($data['reason'] ?? ''));
 
         return back()->with('success', __($data['locked'] ? 'partner_profile.flash_locked' : 'partner_profile.flash_unlocked', ['name' => $user->name]));
+    }
+
+    /**
+     * Partner: ask the office to change a locked detail (phone, union, address). The office gets the old and the new
+     * values side by side and makes the change itself, so a profile can stay locked and still be corrected.
+     */
+    public function changeRequest(Request $request, AccountPhoneRules $phones): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User && in_array($user->role, ['dealer', 'sub_dealer'], true), 403);
+        $data = $request->validate([
+            'phone' => 'nullable|string|max:30',
+            'union' => 'nullable|string|max:150',
+            'village' => 'nullable|string|max:150',
+            'note' => 'required|string|max:1000',
+        ]);
+        $profile = PartnerProfileLock::profileOf($user);
+        $old = ['phone' => $user->phone, 'union' => $profile['union'] ?? null, 'village' => $profile['village'] ?? null];
+        $new = [];
+        foreach (['phone', 'union', 'village'] as $field) {
+            $value = trim((string) ($data[$field] ?? ''));
+            if ($value === '' || $value === (string) ($old[$field] ?? '')) {
+                continue;
+            }
+            $new[$field] = $field === 'phone' ? $phones->normalize($value) : $value;
+        }
+        if ($new === []) {
+            throw ValidationException::withMessages(['note' => __('joining.err_change_nothing')]);
+        }
+        Audit::record($user->id, 'profile.change_requested', (string) $user->id, ['old' => $old, 'new' => $new, 'note' => $data['note']]);
+        $lines = collect($new)->map(fn (string $value, string $field): string => __('joining.change_field_'.$field).': '.((string) ($old[$field] ?? '—') ?: '—').' → '.$value)->implode('; ');
+        Audit::notifyAdminsAndStaff(
+            ['accounts'],
+            fn (string $locale): string => __('joining.change_notice_title', ['name' => $user->name], $locale),
+            fn (string $locale): string => __('joining.change_notice_body', ['code' => (string) $user->dealer_code, 'lines' => $lines, 'note' => (string) $data['note']], $locale),
+        );
+
+        return back()->with('success', __('joining.change_sent'));
     }
 
     /** Partner: change his own shop name and village, only while the office has left his profile open. */
