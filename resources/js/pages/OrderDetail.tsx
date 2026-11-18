@@ -4,6 +4,7 @@ import { backgroundRefreshHeaders } from '../shared/backgroundRefresh';
 import Shell from '../components/Shell';
 import { Row, Table, Badge, money, number, date, dateTime, label, ActionForm, DateInput, FormErrors } from '../components/UI';
 import OrderReturnsPanel, { ReturnsData } from '../components/OrderReturnsPanel';
+import OrderNumber from '../components/OrderNumber';
 import { actionAllowed } from '../components/action-permissions';
 import { useT } from '../shared/i18n/t';
 import { useReasonField } from '../shared/reasonFields';
@@ -170,7 +171,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
     return <Shell section="order">
         <Head title={order.number} />
         <Link className="text-link" href={backUrl??base+'/orders'}>{translate('portal', 'all_orders')}</Link>
-        <div className="order-title"><div><h2>{order.number}</h2><p>{order.user.name} · {order.user.dealer_code} · {date(order.created_at)}</p></div><div className="ops-row is-wrap ops-relative" data-tour="invoice-actions">
+        <div className="order-title"><div><h2><OrderNumber number={String(order.number)} /></h2><p>{order.user.name} · {order.user.dealer_code} · {date(order.created_at)}</p></div><div className="ops-row is-wrap ops-relative" data-tour="invoice-actions">
             <a className="button small dark" href={pdfUrl}>{translate('portal','download_invoice')}</a>
             <a className="button small" href={printUrl} target="_blank" rel="noopener noreferrer">{translate('portal','print_invoice')}</a>
             {capabilities.includes('inventory') && (staffActions?.inventory?.edit??true) && auth.user.id !== order.user_id && ['approved', 'partially_dispatched', 'dispatched'].includes(order.status) && <a className="button small" data-testid="shipping-label-link" href={`/orders/${order.id}/shipping-label`} target="_blank" rel="noopener noreferrer">{translate('shipping_label','print_label')}</a>}
