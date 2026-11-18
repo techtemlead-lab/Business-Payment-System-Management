@@ -31,6 +31,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\View;
@@ -41,6 +42,28 @@ use Illuminate\Validation\Validator as LaravelValidator;
 
 class AppServiceProvider extends ServiceProvider
 {
+    /**
+     * Route parameters that always name a record by its number. RouteRecordNumbersTest checks that every
+     * record looked up from an address is on this list, so a new route cannot forget it.
+     *
+     * @var list<string>
+     */
+    public const NumberedRouteRecords = [
+        'appointment', 'article', 'attachment', 'branch', 'consultation', 'datedScheme', 'dietTemplate', 'message',
+        'partner', 'partnerContest', 'partnerEvent', 'patient', 'placeCode', 'prescription', 'privacyRequest',
+        'product', 'productCategory', 'productConcern', 'productSubcategory', 'productUnit', 'purchaseOrder',
+        'salesKitItem', 'stockCountSession', 'stockLot', 'stockTransfer', 'supplier', 'template', 'trainingItem', 'user',
+    ];
+
+    /**
+     * Route parameters that name a record by its UUID (orders).
+     *
+     * @var list<string>
+     */
+    public const UuidRouteRecords = ['order'];
+
+    public const UuidPattern = '[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}';
+
     /**
      * Register any application services.
      */
@@ -76,6 +99,10 @@ class AppServiceProvider extends ServiceProvider
 
             return __('portal.err_file_too_large', ['field' => $validator->getDisplayableAttribute($attribute), 'size' => $size]);
         });
+        // Records are found by their number. Without this, a scanner asking for /products/madinanhc.com reaches
+        // the database with text where a number belongs, and the visitor gets a server error instead of "not found".
+        Route::patterns(array_fill_keys(self::NumberedRouteRecords, '[0-9]+') + array_fill_keys(self::UuidRouteRecords, self::UuidPattern));
+
         $trustedProxies = trim((string) config('madina.trusted_proxies'));
         if ($trustedProxies === '*') {
             TrustProxies::at('*');

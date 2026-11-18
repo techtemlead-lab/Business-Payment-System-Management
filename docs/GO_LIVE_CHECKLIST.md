@@ -10,15 +10,18 @@ Use this before enabling financial posting on a production deployment. Keep `MAD
 - [ ] Strong `APP_KEY` present — `app:readiness` must not warn `app_key_missing_or_weak`
 - [ ] Behind TLS termination, set `TRUSTED_PROXIES` to the load-balancer/proxy CIDRs — `app:readiness` must not warn `trusted_proxies_not_configured`
 - [ ] PostgreSQL is dedicated (not shared with another app); backups scheduled and restore-tested — `MADINA_BACKUPS_ENABLED` + strong `MADINA_BACKUP_PASSWORD`; `app:readiness` must not warn `backups_not_configured` or `verified_backup_missing`
-- [ ] Queue worker running: `php artisan queue:work --queue=imports,default --sleep=3 --tries=1 --timeout=1800` — durable driver (not `sync`/`null`); `app:readiness` must not warn `queue_driver_is_sync` or `queue_worker_heartbeat_missing`
+- [ ] Queue worker running: `php artisan queue:work --queue=imports,default --sleep=3 --tries=3 --backoff=60 --timeout=1800` (jobs that book a courier, send a paid SMS or import data keep their own single try) — durable driver (not `sync`/`null`); `app:readiness` must not warn `queue_driver_is_sync` or `queue_worker_heartbeat_missing`
 - [ ] Scheduler running: `php artisan schedule:work` (or cron equivalent); `app:readiness` must not warn `scheduler_heartbeat_missing`
 - [ ] `php artisan app:readiness` reports PASS for migrations, DB timezone UTC, cache, private storage, preview posting disabled
 - [ ] `composer audit --locked` and `npm audit` reviewed; known issues accepted or remediated (local hardening verification: both reported 0 vulnerabilities)
 - [ ] Frontend built: `npm ci --ignore-scripts && npm run build`
-- [ ] Off-site backup copy configured: `MADINA_BACKUP_OFFSITE_DISK=backups-offsite` with `MADINA_BACKUP_OFFSITE_PATH` on a volume from another machine; one backup restored on a separate database (restore drill in `docs/RUNBOOK.md`)
+- [ ] Off-site backup copy configured: `infra/ops/host-backup.sh` nightly with `RCLONE_REMOTE` set (or `MADINA_BACKUP_OFFSITE_DISK` on a mounted volume from another machine) — `app:readiness` must not warn `offsite_backup_not_configured`
+- [ ] One backup restored and checked: `php artisan app:backup-restore-drill` and/or `infra/ops/restore-drill.sh`; write down the minutes it took — `app:readiness` must not warn `restore_drill_overdue`
+- [ ] Deploys only through `infra/deploy/deploy.sh <sha>`, which refuses unless main's whole test suite passed for that commit (RUNBOOK section 1)
 - [ ] `TRUSTED_PROXIES` lists the real proxy network and is **not** `*`
 - [ ] `example.com` replaced with the real domain in `infra/nginx.production.conf`
-- [ ] Critical alerts reach a person: `,slack` added to `LOG_STACK` with `LOG_SLACK_WEBHOOK_URL`, or the hosting log service alerts on `CRITICAL`; send a test alert
+- [ ] Critical alerts reach a person: `MADINA_ALERT_TELEGRAM_BOT_TOKEN` + `MADINA_ALERT_TELEGRAM_CHAT_ID` (or `MADINA_ALERT_EMAILS` with a real mail provider), then `php artisan ops:alert-test` arrives — `app:readiness` must not warn `alerts_not_configured`
+- [ ] Dead-man check: a 5-minute check at healthchecks.io (or similar) in `MADINA_HEARTBEAT_URL`, and an outside uptime monitor on `https://<domain>/up` — `app:readiness` must not warn `heartbeat_not_configured`
 - [ ] Error tracking on: create a free account at [sentry.io](https://sentry.io), add a **Laravel** project, copy its DSN and paste it as `SENTRY_LARAVEL_DSN` on the live server (keep `SENTRY_TRACES_SAMPLE_RATE=0`). Personal data is never sent. `app:readiness` must not warn `error_tracking_not_configured`
 - [ ] Two-factor login (TOTP) enabled for every owner and finance account
 - [ ] Every staff role reviewed: only the Super Admin changes Service integrations; only owners change auto-approval
@@ -78,6 +81,7 @@ Use this before enabling financial posting on a production deployment. Keep `MAD
 - [ ] Document how to flip `MADINA_FINANCIAL_ACTIVATION=false` and drain queues (steps below kept with the runbook)
 - [ ] Keep a known-good DB dump taken immediately before activation (`php artisan app:backup` with a strong `MADINA_BACKUP_PASSWORD`, then `php artisan app:backup-verify`)
 - [ ] Owner contact for dual-control emergency freeze is listed offline
+- [ ] A code rollback was rehearsed once: `server-rollback.sh <previous sha>` (RUNBOOK "Rolling back"), and a second operator can run it with their own SSH key
 
 ### Emergency freeze (financial posting)
 

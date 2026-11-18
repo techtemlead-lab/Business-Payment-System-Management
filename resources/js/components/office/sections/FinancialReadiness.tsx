@@ -154,7 +154,7 @@ function GoLiveWarnings({ status }: { status: Row }) {
     return (
         <section className="set-sheet is-wide">
             <h2 className="set-title">{translate('office_settings', 'go_live_warnings')}</h2>
-            <ul className="opr-warnings">{warnings.map((warning) => <li key={warning}>{translate('portal', `ops_warn_${warning}`)}</li>)}</ul>
+            <ul className="opr-warnings">{warnings.map((warning) => <li key={warning}>{status.explanations?.[warning] ?? translate('portal', `ops_warn_${warning}`)}</li>)}</ul>
             {missing.map(({ kind, rows }) => (
                 <div key={kind} className="ops-mt-3">
                     <strong>{translate('portal', `ops_missing_place_${kind}`)}</strong>

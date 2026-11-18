@@ -13,6 +13,10 @@ Artisan::command('inspire', function () {
 Schedule::call(fn () => Cache::put('operations:scheduler-heartbeat', now()->utc()->toIso8601String(), now()->addMinutes(5)))
     ->name('operations-heartbeat')->everyMinute()->withoutOverlapping()->onOneServer();
 
+// Dead-man switch and self-checks (database, queue worker, disk, last night's backup). A problem is logged as
+// critical, which reaches a person once alerts are set; the outside check (MADINA_HEARTBEAT_URL) alerts if pings stop.
+Schedule::command('ops:heartbeat')->everyFiveMinutes()->withoutOverlapping(10)->onOneServer();
+
 Schedule::command('finance:release-matured')->everyFifteenMinutes()->withoutOverlapping(60)->onOneServer()
     ->onFailure(fn () => Log::critical('Scheduled commission maturity release failed.'));
 
@@ -38,6 +42,11 @@ Schedule::command('finance:readiness')->dailyAt('03:15')->timezone('Asia/Dhaka')
 if (config('madina.backups_enabled')) {
     Schedule::command('app:backup')->dailyAt('02:00')->timezone('Asia/Dhaka')->withoutOverlapping(120)->onOneServer()
         ->onFailure(fn () => Log::critical('Scheduled application backup failed. Review backup status before handover.'));
+    // Monthly proof that last night's backup really comes back (scratch database, live only read). Needs a
+    // database user that may create databases, so it is switched on separately after a first manual drill.
+    if (config('madina.restore_drill_monthly')) {
+        Schedule::command('app:backup-restore-drill')->monthlyOn(2, '05:00')->timezone('Asia/Dhaka')->withoutOverlapping(120)->onOneServer();
+    }
     // Old local backups are deleted so the disk does not fill up; the newest few are always kept.
     Schedule::command('app:backup-prune')->dailyAt('04:00')->timezone('Asia/Dhaka')->withoutOverlapping(30)->onOneServer()
         ->onFailure(fn () => Log::critical('Scheduled backup clean-up failed. Check free disk space on the backup volume.'));

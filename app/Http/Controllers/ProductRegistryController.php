@@ -22,6 +22,7 @@ use App\Support\Audit;
 use App\Support\CatalogCms;
 use App\Support\Money;
 use App\Support\ProductVideo;
+use App\Support\ProtectedFileResponse;
 use App\Support\ReasonFields;
 use App\Support\SiteCustomization;
 use App\Support\YouTubeVideo;
@@ -35,7 +36,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class ProductRegistryController extends Controller
 {
@@ -477,7 +478,7 @@ class ProductRegistryController extends Controller
             : __('portal.flash_product_created'));
     }
 
-    public function image(Request $r, Product $product, ProductPhotoThumbnail $thumbnails): BinaryFileResponse
+    public function image(Request $r, Product $product, ProductPhotoThumbnail $thumbnails): HttpResponse
     {
         $this->mediaAccess($r, $product);
         abort_unless($product->image_path && Storage::disk('local')->exists($product->image_path), 404);
@@ -490,19 +491,19 @@ class ProductRegistryController extends Controller
             if ($copy !== null) {
                 $cache = $product->active ? 'public, max-age=31536000, immutable' : 'private, no-cache';
 
-                return response()->file(Storage::disk('local')->path($copy), ['Cache-Control' => $cache, 'X-Content-Type-Options' => 'nosniff']);
+                return ProtectedFileResponse::make($copy, ['Cache-Control' => $cache, 'X-Content-Type-Options' => 'nosniff']);
             }
         }
 
-        return response()->file(Storage::disk('local')->path($product->image_path), ['Cache-Control' => 'no-cache', 'X-Content-Type-Options' => 'nosniff']);
+        return ProtectedFileResponse::make($product->image_path, ['Cache-Control' => 'no-cache', 'X-Content-Type-Options' => 'nosniff']);
     }
 
-    public function video(Request $r, Product $product): BinaryFileResponse
+    public function video(Request $r, Product $product): HttpResponse
     {
         $this->mediaAccess($r, $product);
         abort_unless($product->video_source === 'upload' && $product->video_path && Storage::disk('local')->exists($product->video_path), 404);
 
-        return response()->file(Storage::disk('local')->path($product->video_path), ['Content-Type' => $product->video_mime, 'Cache-Control' => 'no-cache', 'X-Content-Type-Options' => 'nosniff']);
+        return ProtectedFileResponse::make($product->video_path, ['Content-Type' => $product->video_mime, 'Cache-Control' => 'no-cache', 'X-Content-Type-Options' => 'nosniff']);
     }
 
     private function mediaAccess(Request $r, Product $p): void

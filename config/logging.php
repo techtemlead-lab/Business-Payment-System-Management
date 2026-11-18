@@ -1,5 +1,6 @@
 <?php
 
+use App\Logging\CreateAlertLogger;
 use App\Logging\MaskPhoneNumbers;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
@@ -55,8 +56,19 @@ return [
 
         'stack' => [
             'driver' => 'stack',
-            'channels' => explode(',', (string) env('LOG_STACK', 'single')),
+            // "alerts" joins on its own once a Telegram chat or an alert email is set (MADINA_ALERT_*), so
+            // every critical line (failed backup, month close, payout run or job) reaches a person.
+            'channels' => array_values(array_unique(array_filter([
+                ...explode(',', (string) env('LOG_STACK', 'single')),
+                (filled(env('MADINA_ALERT_TELEGRAM_BOT_TOKEN')) && filled(env('MADINA_ALERT_TELEGRAM_CHAT_ID'))) || filled(env('MADINA_ALERT_EMAILS')) ? 'alerts' : null,
+            ]))),
             'ignore_exceptions' => false,
+        ],
+
+        'alerts' => [
+            'driver' => 'custom',
+            'via' => CreateAlertLogger::class,
+            'tap' => [MaskPhoneNumbers::class],
         ],
 
         'single' => [
