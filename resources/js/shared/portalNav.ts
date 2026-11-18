@@ -380,6 +380,16 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
 }
 
 export function buildPartnerAvailable(role: string, dashboardControls?: Record<string, unknown> | null, prescriber = false): Set<string> {
+    const items = partnerAvailableBeforeSwitches(role, dashboardControls, prescriber);
+    // The partner product list is switched off by the server (CR-01); ordering stays.
+    if ((dashboardControls || {}).partner_catalog_off === true) {
+        items.delete('catalog');
+    }
+
+    return items;
+}
+
+function partnerAvailableBeforeSwitches(role: string, dashboardControls?: Record<string, unknown> | null, prescriber = false): Set<string> {
     const controls = dashboardControls || {};
     if (role === 'dealer') {
         const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'catalog', 'network', 'ranks', 'top-sellers', 'my-money', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help', 'messages', 'training', 'events']);

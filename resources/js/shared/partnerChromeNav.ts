@@ -13,6 +13,10 @@ export function partnerChromeEnabled(
     item: PartnerChromeItem,
 ): boolean {
     const c = controls || {};
+    // The partner product list is switched off by the server (CR-01).
+    if (item === 'catalog' && c.partner_catalog_off === true) {
+        return false;
+    }
     if (role === 'dealer') {
         return matchDealer(c, item);
     }
