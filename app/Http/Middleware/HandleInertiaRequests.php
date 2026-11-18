@@ -270,6 +270,7 @@ class HandleInertiaRequests extends Middleware
                 'office_visitors' => Lang::get('office_visitors'),
                 'office_errors' => Lang::get('office_errors'),
                 'reason_fields' => Lang::get('reason_fields'),
+                'partner_ux' => Lang::get('partner_ux'),
             ])->as('i18n:'.$locale),
             'portalCatalog' => Inertia::once(fn () => $portalShell
                 ? PortalCatalog::inertiaPayload($portal)

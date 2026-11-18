@@ -26,8 +26,15 @@ function DeliverySummary({summary}:{summary:Row}){
  ]}/>;
 }
 /** Grand totals for every order the filters match, shown above the list (the footer only adds up one page). */
-function OrderTotals({totals}:{totals:Row}){
+function OrderTotals({totals,staff}:{totals:Row,staff:boolean}){
  const translate=useT();
+ // A partner sees what they ordered and what has arrived side by side, so one never reads as zero beside the other.
+ if(!staff)return <><div className="metric-grid four order-totals" aria-label={translate('portal','order_totals_title')}>
+  <div className="metric"><span>{translate('portal','order_totals_orders')}</span><strong>{number(totals.orders)}</strong></div>
+  <div className="metric"><span>{translate('partner_ux','totals_ordered')}</span><strong>{money(totals.ordered)}</strong></div>
+  <div className="metric"><span>{translate('partner_ux','totals_delivered')}</span><strong>{money(totals.value)}</strong></div>
+  <div className="metric"><span>{translate('portal','order_totals_to_pay')}</span><strong>{money(totals.to_pay)}</strong></div>
+ </div><p className="muted" data-testid="order-totals-note">{translate('partner_ux','totals_note')}</p></>;
  return <><div className="metric-grid four order-totals" aria-label={translate('portal','order_totals_title')}>
   <div className="metric"><span>{translate('portal','order_totals_orders')}</span><strong>{number(totals.orders)}</strong></div>
   <div className="metric"><span>{translate('portal','order_totals_value')}</span><strong>{money(totals.value)}</strong></div>
@@ -47,6 +54,6 @@ export default function Orders(props:PortalSectionProps){
  if(section==='deliveries'&&d.courier_board){return null;}
  const ordersEmpty=section==='deliveries'?{title:translate('portal','empty_deliveries_title'),body:translate('portal','empty_deliveries_body')}:{title:translate('portal','empty_orders_title'),body:translate('portal','empty_orders_body')};
  return <>
- {['orders','deliveries','reports'].includes(section)&&<section className="panel table-panel" data-tour="orders-table">{section==='orders'&&d.order_status_counts&&<StatusTabs counts={d.order_status_counts} filters={filters} section="orders" statuses={orderStatuses}/>}{section==='deliveries'&&d.delivery_summary&&<DeliverySummary summary={d.delivery_summary}/>}{section==='orders'&&d.order_totals&&<OrderTotals totals={d.order_totals}/>}<Filter section={section} filters={filters} actions={<>{staff&&section!=='reports'&&<SavedFilterMenu listKey={section} section={section} filters={filters}/>}{staff&&(caps.includes('reports')||caps.includes('finance'))&&<Link className="button small" href="/operations/financial-reports">{translate('portal','excel_pdf_reports')}</Link>}{(!staff||caps.includes('reports')||caps.includes('orders')||caps.includes('finance'))&&<a className="button small" data-tour="invoice-actions" href={ordersExportHref(section,filters)}><Download size={15}/>{staff?translate('portal','export_csv'):translate('partner_hub','export_excel')}</a>}</>}/><OrderTable page={d.orders} empty={ordersEmpty.title} emptyBody={ordersEmpty.body} searchable={false} report overdue={section==='deliveries'&&filters.status==='overdue_delivery'} listKey={staff&&section!=='reports'?section:undefined}/></section>}
+ {['orders','deliveries','reports'].includes(section)&&<section className="panel table-panel" data-tour="orders-table">{section==='orders'&&d.order_status_counts&&<StatusTabs counts={d.order_status_counts} filters={filters} section="orders" statuses={orderStatuses}/>}{section==='deliveries'&&d.delivery_summary&&<DeliverySummary summary={d.delivery_summary}/>}{section==='orders'&&d.order_totals&&<OrderTotals totals={d.order_totals} staff={staff}/>}<Filter section={section} filters={filters} actions={<>{staff&&section!=='reports'&&<SavedFilterMenu listKey={section} section={section} filters={filters}/>}{staff&&(caps.includes('reports')||caps.includes('finance'))&&<Link className="button small" href="/operations/financial-reports">{translate('portal','excel_pdf_reports')}</Link>}{(!staff||caps.includes('reports')||caps.includes('orders')||caps.includes('finance'))&&<a className="button small" data-tour="invoice-actions" href={ordersExportHref(section,filters)}><Download size={15}/>{staff?translate('portal','export_csv'):translate('partner_hub','export_excel')}</a>}</>}/><OrderTable page={d.orders} empty={ordersEmpty.title} emptyBody={ordersEmpty.body} searchable={false} report overdue={section==='deliveries'&&filters.status==='overdue_delivery'} listKey={staff&&section!=='reports'?section:undefined}/></section>}
  </>;
 }

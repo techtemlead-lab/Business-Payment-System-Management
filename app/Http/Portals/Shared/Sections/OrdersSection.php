@@ -113,7 +113,7 @@ final class OrdersSection implements WorkspaceSection
             $props['order_totals'] = $this->listTotals($filteredOrders);
             if ($context->isStaff) {
                 $totals = $props['order_totals'];
-                $props['orders_table'] = $this->tableFacts($request, $sorts, $sort, $direction, ['count' => $totals['orders'], 'capped' => false, 'sums' => Arr::except($totals, 'orders')], ['buyer_role', 'branch_id']);
+                $props['orders_table'] = $this->tableFacts($request, $sorts, $sort, $direction, ['count' => $totals['orders'], 'capped' => false, 'sums' => Arr::except($totals, ['orders', 'ordered'])], ['buyer_role', 'branch_id']);
             }
         }
         if ($context->section === 'deliveries') {
@@ -308,14 +308,15 @@ final class OrdersSection implements WorkspaceSection
      * count delivered goods only; a partly delivered order counts its delivered part. Rejected and
      * cancelled orders count as orders but add nothing to any money figure.
      *
-     * @return array{orders: int, value: string, paid: string, to_pay: string}
+     * @return array{orders: int, value: string, paid: string, to_pay: string, ordered: string}
      */
     private function listTotals(Builder $filteredOrders): array
     {
         $row = (clone $filteredOrders)->toBase()->reorder()
             ->selectRaw('COUNT(*) AS orders, COALESCE(SUM('.DeliveredMoney::valueSql().'), 0) AS value, '
                 .'COALESCE(SUM('.DeliveredMoney::paidSql().'), 0) AS paid, '
-                .'COALESCE(SUM('.self::ToPaySql.'), 0) AS to_pay')
+                .'COALESCE(SUM('.self::ToPaySql.'), 0) AS to_pay, '
+                ."COALESCE(SUM(CASE WHEN orders.status NOT IN ('rejected', 'cancelled') THEN orders.total ELSE 0 END), 0) AS ordered")
             ->first();
 
         return [
@@ -323,6 +324,8 @@ final class OrdersSection implements WorkspaceSection
             'value' => Money::decimal(Money::cents((string) $row->value)),
             'paid' => Money::decimal(Money::cents((string) $row->paid)),
             'to_pay' => Money::decimal(Money::cents((string) $row->to_pay)),
+            // What was ordered (not cancelled or refused), shown beside what has been delivered so neither reads as zero.
+            'ordered' => Money::decimal(Money::cents((string) $row->ordered)),
         ];
     }
 
