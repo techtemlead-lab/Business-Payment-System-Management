@@ -389,6 +389,7 @@ export default function NetworkTreeExplorer({ dealers, treeStats = null, serverF
                     <div className="ops-row is-snug">
                         <Filter size={15} className="ops-muted" />
                         <select
+                            aria-label={translate('portal','net_all_ranks')}
                             value={rankFilter}
                             onChange={e => setRankFilter(e.target.value)}
                         >

@@ -983,8 +983,9 @@ export function Modal({title,onClose,children,variant='dialog',badge,footer}:{ti
  onCloseRef.current=onClose;
  useEffect(()=>{
   const dialog=ref.current;
-  dialog?.showModal();
+  // Remember who had focus before the dialog opens (showModal moves it), so closing returns there instead of to the page top.
   const previous=document.activeElement as HTMLElement|null;
+  dialog?.showModal();
   dialog?.querySelector<HTMLElement>('button, [href], input, select, textarea')?.focus();
   return ()=>{dialog?.close();previous?.focus?.()};
  },[]);

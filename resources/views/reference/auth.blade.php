@@ -68,14 +68,15 @@
                 @if($mode !== 'forgot')
                     <div class="ref-password-label">
                         <label for="account-password">{{ __('auth_ui.password') }}</label>
-                        @if($mode === 'login')
-                            <a href="/forgot-password">{{ __('auth_ui.forgot_password_link') }}</a>
-                        @endif
                     </div>
                     <div class="ref-password-field">
                         <input id="account-password" type="password" name="password" required @if($mode === 'reset') minlength="8" autocomplete="new-password" @else autocomplete="current-password" @endif maxlength="200" placeholder="{{ __('auth_ui.password_placeholder') }}">
                         <button type="button" data-toggle-password="account-password" aria-label="{{ __('auth_ui.show_password') }}" aria-pressed="false"><i class="fa-regular fa-eye" aria-hidden="true"></i></button>
                     </div>
+                    @if($mode === 'login')
+                        {{-- After the password box, so Tab goes email, password, then this link. --}}
+                        <a class="ref-forgot-link" href="/forgot-password" style="display:block;text-align:right;margin-top:8px;font-weight:600">{{ __('auth_ui.forgot_password_link') }}</a>
+                    @endif
                 @endif
                 @if($mode === 'reset')
                     <label for="account-password-confirmation">{{ __('auth_ui.confirm_password') }}</label>
