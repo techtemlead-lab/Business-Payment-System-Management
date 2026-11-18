@@ -88,7 +88,7 @@ final class FinanceSettings
 
         return [
             'enabled' => (bool) ($stored['enabled'] ?? filter_var(config('madina.auto_release_matured'), FILTER_VALIDATE_BOOLEAN)),
-            'version' => $row?->version ?? 0,
+            'version' => $row->version ?? 0,
             'from_server_setting' => ! array_key_exists('enabled', $stored),
         ];
     }
@@ -107,7 +107,7 @@ final class FinanceSettings
             $stored = DB::table('business_settings')->where('key', 'auto_release_matured')->first();
             DB::table('business_settings')->updateOrInsert(['key' => 'auto_release_matured'], [
                 'value' => json_encode($after, JSON_THROW_ON_ERROR), 'version' => $version + 1,
-                'updated_by' => $actor->id, 'created_at' => $stored?->created_at ?? now(), 'updated_at' => now(),
+                'updated_by' => $actor->id, 'created_at' => $stored->created_at ?? now(), 'updated_at' => now(),
             ]);
             Audit::record($actor->id, 'finance.auto_release_matured_changed', 'auto_release_matured', [
                 'before' => ['enabled' => $before['enabled']], 'after' => $after, 'reason' => $reason,

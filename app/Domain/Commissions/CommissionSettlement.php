@@ -110,10 +110,15 @@ final class CommissionSettlement
                 $tiers[$code]['reserve_cents'] = ($tiers[$code]['reserve_cents'] ?? 0) + $tier['reserve_cents'];
             }
             foreach ($chunk['divisions'] as $key => $division) {
-                $divisionSummary[$key]['name'] = $division['name'];
-                $divisionSummary[$key]['pool_cents'] = ($divisionSummary[$key]['pool_cents'] ?? 0) + ($division['pool_cents'] ?? 0);
-                $divisionSummary[$key]['qualifiers'] = max($divisionSummary[$key]['qualifiers'] ?? 0, $division['qualifiers'] ?? 0);
-                $divisionSummary[$key]['to_company_profit_cents'] = ($divisionSummary[$key]['to_company_profit_cents'] ?? 0) + ($division['to_company_profit_cents'] ?? 0);
+                // A chunk names only the parts it saw for a division; the missing parts are zero.
+                $division += ['pool_cents' => 0, 'qualifiers' => 0, 'to_company_profit_cents' => 0];
+                $sofar = $divisionSummary[$key] ?? ['pool_cents' => 0, 'qualifiers' => 0, 'to_company_profit_cents' => 0];
+                $divisionSummary[$key] = [
+                    'name' => $division['name'],
+                    'pool_cents' => $sofar['pool_cents'] + $division['pool_cents'],
+                    'qualifiers' => max($sofar['qualifiers'], $division['qualifiers']),
+                    'to_company_profit_cents' => $sofar['to_company_profit_cents'] + $division['to_company_profit_cents'],
+                ];
             }
         }
         if ($total === 0) {
@@ -152,9 +157,9 @@ final class CommissionSettlement
         foreach ($divisionSummary as $row) {
             $divisions[] = [
                 'division' => $row['name'],
-                'pool' => Money::decimal($row['pool_cents'] ?? 0),
-                'qualifiers' => (int) ($row['qualifiers'] ?? 0),
-                'to_company_profit' => Money::decimal($row['to_company_profit_cents'] ?? 0),
+                'pool' => Money::decimal((int) $row['pool_cents']),
+                'qualifiers' => (int) $row['qualifiers'],
+                'to_company_profit' => Money::decimal((int) $row['to_company_profit_cents']),
             ];
         }
         $totalPaid = array_sum($distributed);
