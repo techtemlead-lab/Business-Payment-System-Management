@@ -87,5 +87,4 @@ return [
     'salary_rule' => 'Rule: the salary is shared equally among everyone in your division who bought ৳:min or more this month.',
     'salary_none_low' => ':month: no purchase of ৳:min or more this month, so no salary.',
     'salary_none_other' => ':month: you got no salary this month. Please ask the office why.',
-    'sub_price_rule' => 'Sub-dealer price = dealer price × 1.25, rounded up to the whole taka.',
 ];

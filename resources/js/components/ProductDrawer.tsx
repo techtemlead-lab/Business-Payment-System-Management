@@ -85,7 +85,6 @@ export default function ProductDrawer({ product, canStock, canEditCatalog, canOp
                         {Number(product.on_hold ?? 0) > 0 && <Fact label={t('stock_on_hold')}>{number(product.on_hold)}</Fact>}
                         {Number(product.with_courier ?? 0) > 0 && <Fact label={t('stock_with_courier')}>{number(product.with_courier)}</Fact>}
                     </dl>
-                    {product.sub_dealer_price !== undefined && <p className="ops-meta">{translate('money_core', 'sub_price_rule')}</p>}
                     {isArchived && <p className="os-remove-line is-strong">{t('archived_line')}</p>}
                     {line && canRemove && <p className="os-remove-line">{line}</p>}
                 </div>
