@@ -8,6 +8,7 @@ import { money, type Row, Table, number, FormErrors } from './UI';
 import { useT } from '../shared/i18n/t';
 import { catalogWord } from '../shared/catalogWords';
 import FilePicker from './FilePicker';
+import { amountInWords, BIG_ORDER_TAKA } from '../shared/amountWords';
 import { useReasonField } from '../shared/reasonFields';
 import { randomUuid } from '../shared/randomUuid';
 import RepeatOrderPanel, { repeatChangeNotes, type RepeatOption } from './dealertools/RepeatOrderPanel';
@@ -266,6 +267,14 @@ export default function ProductPurchaseMatrix({
         [collectionAccounts],
     );
 
+    const [bigOrderAsked, setBigOrderAsked] = useState(false);
+    const [bigOrderOk, setBigOrderOk] = useState(false);
+    // A changed cart is a new order: ask again.
+    useEffect(() => {
+        setBigOrderAsked(false);
+        setBigOrderOk(false);
+    }, [cartSummary.totalPayable]);
+
     // Checkout form
     const f = useForm({
         items: [] as { product_id: number; quantity: number }[],
@@ -317,6 +326,11 @@ export default function ProductPurchaseMatrix({
     const submitOrder = (e: React.FormEvent) => {
         e.preventDefault();
         if (cart.length === 0) return;
+        // A crore-sized order is a mistake of one extra zero away: say the amount in words and ask once.
+        if (cartSummary.totalPayable >= BIG_ORDER_TAKA && !bigOrderOk) {
+            setBigOrderAsked(true);
+            return;
+        }
 
         const order = {
             items: cart.map(item => ({
@@ -527,10 +541,16 @@ export default function ProductPurchaseMatrix({
                         {availableCategories.map(category => (
                             <button key={category} type="button" className={`ppm-filter${filterCategory === category ? ' is-on' : ''}`} aria-pressed={filterCategory === category}
                                 onClick={() => { setFilterCategory(category); setFilterSub(''); setListOpen(true); searchRef.current?.focus(); }}>
-                                {category}
+                                {categoryWord(category)}
                             </button>
                         ))}
                     </div>
+                )}
+                {searchQuery.trim() !== '' && filterCategory !== '' && (
+                    <p className="field-hint" role="status">
+                        {translate('partner_ux', 'search_only_in', { category: categoryWord(filterCategory) })}{' '}
+                        <button type="button" className="text-link" onClick={() => { setFilterCategory(''); setFilterSub(''); }}>{translate('partner_ux', 'search_all')}</button>
+                    </p>
                 )}
                 {filterCategory !== '' && filterOptions.subCategories.length > 1 && (
                     <div className="ppm-filters is-sub" role="group" aria-label={translate('order_search', 'filter_sub_label')}>
@@ -839,6 +859,7 @@ export default function ProductPurchaseMatrix({
                                 <strong className="ppm-sum-value is-net">
                                     {money(cartSummary.totalPayable)}
                                 </strong>
+                                {amountInWords(cartSummary.totalPayable, translate) !== '' && <small className="ppm-sum-words">{amountInWords(cartSummary.totalPayable, translate)}</small>}
                             </div>
                         </div>
 
@@ -1013,6 +1034,18 @@ export default function ProductPurchaseMatrix({
                             {/* FormErrors also keeps the page-top message quiet, so errors are not shown twice. */}
                             <FormErrors errors={f.errors} className="error ppm-error" besideFields={['payment_account_id', 'proof', 'courier_choice']} />
 
+                            {bigOrderAsked && !bigOrderOk && (
+                                <div className="notice ppm-big-order" role="alertdialog" aria-labelledby="ppm-big-order-title">
+                                    <div>
+                                        <p id="ppm-big-order-title"><b>{translate('partner_ux', 'big_order_title')}</b></p>
+                                        <p>{translate('partner_ux', 'big_order_body', { words: amountInWords(cartSummary.totalPayable, translate), amount: money(cartSummary.totalPayable) })}</p>
+                                        <div className="ops-row is-wrap">
+                                            <button type="button" className="button dark" onClick={() => { setBigOrderOk(true); requestAnimationFrame(() => (document.querySelector('.ppm-submit') as HTMLButtonElement | null)?.click()); }}>{translate('partner_ux', 'big_order_yes')}</button>
+                                            <button type="button" className="button" onClick={() => setBigOrderAsked(false)}>{translate('partner_ux', 'big_order_back')}</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                             <div className="ops-row is-end ops-mt-3">
                                 <button
                                     type="submit"
