@@ -45,7 +45,7 @@ function PermissionForm({modules,entry,mode,roles}:{modules:string[];entry:Row;m
         {mode==='role'?<div className="form-grid"><label>{translate('portal', 'sa_role_name')}<input required maxLength={100} value={form.data.name} onChange={e=>form.setData('name',e.target.value)}/></label></div>:<label>{translate('portal', 'sa_staff_role')}<select value={form.data.role} disabled={entry.role==='sr'} onChange={e=>{
             const role=e.target.value;form.setData('role',role);
             const preset=roles.find(item=>item.key===role);if(preset)form.setData('permissions',preset.permissions);
-        }}>{[...new Set(staffRoles as string[])].filter(role=>role!=='super_admin').map(role=><option value={role} key={role}>{roles.find(item=>item.key===role)?.name??label(role, translate)}</option>)}</select></label>}
+        }}>{[...new Set(staffRoles as string[])].filter(role=>!['super_admin','md','chairman'].includes(role)).map(role=><option value={role} key={role}>{roles.find(item=>item.key===role)?.name??label(role, translate)}</option>)}</select></label>}
         <Matrix modules={visible} value={form.data.permissions} change={value=>form.setData('permissions',value)}/>
         {saveReason.shown&&<label>{saveReason.label(translate('portal', 'sa_reason'))}<textarea required={saveReason.required} minLength={saveReason.required?5:undefined} maxLength={1000} value={form.data.reason} onChange={e=>form.setData('reason',e.target.value)}/></label>}
         <FormErrors errors={form.errors}/>

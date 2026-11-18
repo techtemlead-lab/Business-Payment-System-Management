@@ -3,8 +3,10 @@
 namespace App\Domain\Staff;
 
 use App\Domain\Accounts\AccountPhoneRules;
+use App\Domain\Accounts\FirstPassword;
 use App\Domain\Accounts\PartnerAccountProvisioning;
 use App\Domain\Accounts\PartnerAge;
+use App\Domain\Audience\PublicPartnerApplication;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Geography\ManagementReferral;
@@ -112,7 +114,7 @@ final class StaffOperations
             }
             $id = (string) Str::uuid();
             $payload = [...$data, 'locale' => $data['locale'] ?? app()->getLocale()];
-            DB::table('dealer_applications')->insert(['id' => $id, 'submitted_by' => $actor->id, 'email' => mb_strtolower(trim($data['email'])),
+            DB::table('dealer_applications')->insert(['id' => $id, 'application_number' => PublicPartnerApplication::numberFor($id), 'submitted_by' => $actor->id, 'email' => mb_strtolower(trim($data['email'])),
                 'data' => json_encode($payload, JSON_THROW_ON_ERROR), 'status' => 'pending', 'source' => 'staff',
                 'created_at' => now(), 'updated_at' => now()]);
             Audit::record($actor->id, 'dealer_application.submitted', $id);
@@ -157,13 +159,15 @@ final class StaffOperations
      * Records the decision on an application. An approved application becomes the same kind of
      * account the Add dealer form makes: its code comes from the place and a dealer holds that place.
      *
-     * @param  array{sponsor_code?: string|null}  $corrections  What the reviewer corrected from the application
-     * @param  array{directory_visible?: bool}  $choices  What the reviewer decided while approving
+     * @param  array{sponsor_code?: string|null, role?: string|null}  $corrections  What the reviewer corrected from the application
+     * @param  array{directory_visible?: bool, area_dealer?: bool, accept_place_mismatch?: bool}  $choices  What the reviewer decided while approving
+     * @return string|null The temporary first password of a newly approved partner, to be shown once; null otherwise
      */
-    public function review(User $actor, string $id, string $decision, string $reason, ?string $placeCode = null, array $corrections = [], array $choices = []): void
+    public function review(User $actor, string $id, string $decision, string $reason, ?string $placeCode = null, array $corrections = [], array $choices = []): ?string
     {
         abort_unless($actor->allows('accounts'), 403);
-        DB::transaction(function () use ($actor, $id, $decision, $reason, $placeCode, $corrections, $choices): void {
+        $firstPassword = null;
+        DB::transaction(function () use ($actor, $id, $decision, $reason, $placeCode, $corrections, $choices, &$firstPassword): void {
             CommissionWallet::lock();
             abort_unless($actor->fresh()->allows('accounts'), 403);
             $application = DB::table('dealer_applications')->where('id', $id)->lockForUpdate()->first();
@@ -173,9 +177,20 @@ final class StaffOperations
             if ($application->status !== 'pending' || ($sentByActor && ! app(SelfApproval::class)->ownerFinishesAlone($actor))) {
                 throw ValidationException::withMessages(['application' => __('portal.err_staff_app_reviewer')]);
             }
+            // Rejecting or sending back always tells the applicant why; they see it on the status page.
+            if ($decision !== 'approved' && trim($reason) === '') {
+                throw ValidationException::withMessages(['reason' => __('joining.err_reason_required')]);
+            }
             $userId = null;
             $payload = json_decode($application->data, true, flags: JSON_THROW_ON_ERROR);
             if ($decision === 'approved') {
+                // The reviewer may change the type the applicant picked (a form that filed a dealer as a sub-dealer).
+                if (array_key_exists('role', $corrections) && blank($corrections['role'])) {
+                    unset($corrections['role']);
+                }
+                if (isset($corrections['role']) && ! in_array($corrections['role'], ['dealer', 'sub_dealer'], true)) {
+                    throw ValidationException::withMessages(['role' => __('portal.acct_val_role')]);
+                }
                 $data = [...$payload, ...$corrections];
                 $partners = app(PartnerAccountProvisioning::class);
                 if (User::whereRaw('LOWER(email) = ?', [mb_strtolower($data['email'])])->exists()) {
@@ -187,12 +202,14 @@ final class StaffOperations
                     throw ValidationException::withMessages(['date_of_birth' => __('portal.acct_val_dob_under_age', ['years' => PartnerAge::MinimumYears])]);
                 }
                 // A partner is only created on a place code: the reviewer's, else the application's.
-                $place = $this->applicationPlace(filled($placeCode) ? $placeCode : ($payload['place_code'] ?? $payload['area_code'] ?? null), (string) $payload['role']);
+                $place = $this->applicationPlace(filled($placeCode) ? $placeCode : ($payload['place_code'] ?? $payload['area_code'] ?? null), (string) $data['role']);
+                $this->assertPlaceMatchesApplication($place, $payload, (bool) ($choices['accept_place_mismatch'] ?? false));
                 $data = [...$data, ...$this->placeFields($place)];
                 $isSubDealer = $data['role'] === 'sub_dealer';
                 $partnerCode = $partners->codeForPlace($actor, $place, (string) $data['role']);
                 // A sponsor code the reviewer corrected wins over the sponsor picked on the application.
                 $sponsorId = filled($corrections['sponsor_code'] ?? null) ? null : ($data['sponsor_id'] ?? null);
+                $firstPassword = FirstPassword::make();
                 if (empty($sponsorId) && ! empty($data['sponsor_code'])) {
                     $sponsorId = $partners->findSponsor((string) $data['sponsor_code'])?->id;
                     if (! $sponsorId) {
@@ -204,7 +221,8 @@ final class StaffOperations
                 }
                 $user = (new User)->forceFill(['name' => $data['name'], 'email' => $application->email, 'phone' => $data['phone'],
                     'directory_visible' => (bool) ($choices['directory_visible'] ?? false),
-                    'role' => $data['role'], 'status' => 'active', 'password' => Str::random(48),
+                    'role' => $data['role'], 'status' => 'active', 'password' => $firstPassword, 'must_change_password' => true,
+                    'password_managed_by' => User::PasswordManagedByAdmin, 'admin_password_cipher' => $firstPassword,
                     'dealer_code' => $partnerCode, 'refer_code' => $partnerCode, 'sponsor_id' => $sponsorId,
                     'division' => $data['division'], 'district' => $data['district'],
                     'profile' => ['upazila' => $data['upazila'], 'union' => $data['union'], 'area_code' => $isSubDealer ? $partnerCode : $data['place_code'],
@@ -212,11 +230,15 @@ final class StaffOperations
                         'union_place_code' => $isSubDealer ? $data['place_code'] : null,
                         'application_source' => $application->source ?? 'staff', 'application_message' => $data['message'] ?? null,
                         ...(filled($data['date_of_birth'] ?? null) ? ['date_of_birth' => $data['date_of_birth']] : [])]]);
+                if (filled($data['nid'] ?? null)) {
+                    $user->nid = (string) $data['nid'];
+                }
                 $user->save();
                 ReferralTreePath::attachUser($user->id, $user->sponsor_id);
                 DealerRank::firstOrCreate(['user_id' => $user->id]);
                 DB::table('wallets')->insert(['user_id' => $user->id, 'created_at' => now(), 'updated_at' => now()]);
-                if (! $isSubDealer) {
+                // Being an area dealer is its own choice: it earns the area share of the place, so it is never a side effect.
+                if (! $isSubDealer && ($choices['area_dealer'] ?? true)) {
                     $partners->seatDealer($user, $place);
                 }
                 app(ManagementReferral::class)->stamp($user);
@@ -224,7 +246,8 @@ final class StaffOperations
                 DB::afterCommit(fn () => Password::sendResetLink(['email' => $user->email]));
             }
             DB::table('dealer_applications')->where('id', $id)->update(['status' => $decision, 'reviewed_by' => $actor->id,
-                'user_id' => $userId, 'reason' => $reason, 'updated_at' => now()]);
+                'user_id' => $userId, 'reason' => $reason, 'updated_at' => now(),
+                'correction_note' => $decision === 'correction' ? $reason : null]);
             if ($application->submitted_by !== null) {
                 $submitter = User::find((int) $application->submitted_by);
                 $locale = $submitter?->preferredLocale() ?? app()->getLocale();
@@ -242,10 +265,30 @@ final class StaffOperations
             $applicantLocale = is_string($payload['locale'] ?? null) && in_array($payload['locale'], $supported, true)
                 ? $payload['locale']
                 : app()->getLocale();
-            DB::afterCommit(function () use ($decision, $reason, $userId, $applicantPhone, $applicantRole, $applicantLocale): void {
-                $this->notifyApplicantDecision($decision, $reason, $userId, $applicantPhone, $applicantRole, $applicantLocale);
+            $number = (string) ($application->application_number ?? '');
+            DB::afterCommit(function () use ($decision, $reason, $userId, $applicantPhone, $applicantRole, $applicantLocale, $number): void {
+                $this->notifyApplicantDecision($decision, $reason, $userId, $applicantPhone, $applicantRole, $applicantLocale, $number);
             });
         }, 3);
+
+        return $firstPassword;
+    }
+
+    /**
+     * The place the reviewer picked must be inside the place the applicant named. A wrong union sends
+     * area money to the wrong place, so a mismatch needs the reviewer's explicit "yes, this is right".
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function assertPlaceMatchesApplication(PlaceCode $place, array $payload, bool $accepted): void
+    {
+        $named = $payload['upazila_place_id'] ?? $payload['district_place_id'] ?? null;
+        if ($accepted || ! is_numeric($named)) {
+            return;
+        }
+        if (! app(PlaceTree::class)->isInside((int) $place->id, [(int) $named])) {
+            throw ValidationException::withMessages(['place_code' => __('joining.err_place_outside_application')]);
+        }
     }
 
     private function notifyApplicantDecision(
@@ -255,6 +298,7 @@ final class StaffOperations
         string $phone,
         string $role,
         string $locale,
+        string $number = '',
     ): void {
         $partner = $userId !== null ? User::find($userId) : null;
         $locale = $partner?->preferredLocale() ?? $locale;
@@ -271,6 +315,15 @@ final class StaffOperations
             );
         }
         if ($phone === '') {
+            return;
+        }
+        if ($decision === 'correction') {
+            app(PartnerEventSms::class)->sendToPhone(
+                $phone,
+                'partnership.application_correction',
+                SmsText::make('joining.sms_correction', ['number' => $number, 'reason' => ReasonFields::shown($reason, SmsText::Locale)]),
+            );
+
             return;
         }
         $smsRoleLabel = SmsText::make($role === 'sub_dealer' ? 'portal.acct_role_sub_dealer' : 'portal.acct_role_dealer');

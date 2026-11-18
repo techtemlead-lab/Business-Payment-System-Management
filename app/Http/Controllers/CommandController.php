@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Accounts\AccountPhoneRules;
+use App\Domain\Accounts\FirstPassword;
 use App\Domain\Accounts\PartnerAccountProvisioning;
 use App\Domain\Accounts\PartnerAge;
 use App\Domain\Accounts\PartnerBenefitControls;
@@ -42,6 +43,7 @@ use App\Http\Requests\Backend\RefundOrderRequest;
 use App\Http\Requests\Backend\StoreOrderRequest;
 use App\Http\Requests\Backend\VerifyPaymentRequest;
 use App\Models\AreaDealerAssignment;
+use App\Models\CompanyBranch;
 use App\Models\Order;
 use App\Models\PlaceCode;
 use App\Models\Product;
@@ -200,7 +202,7 @@ class CommandController extends Controller
                 'code' => $created['user']->dealer_code,
                 'phone' => $created['user']->phone,
                 'email' => $created['user']->email,
-            ]).($otherBranch === null ? '' : ' '.__('portal.acct_partner_went_to_branch', ['branch' => $otherBranch->name]))));
+            ]).($otherBranch === null ? '' : ' '.__('portal.acct_partner_went_to_branch', ['branch' => $otherBranch->name])).' '.FirstPassword::notice($created['user'], $created['first_password'])));
         }
 
         $d = $r->validate([
@@ -217,6 +219,8 @@ class CommandController extends Controller
             'status' => 'sometimes|in:active,suspended',
             'sponsor_id' => 'nullable|integer|exists:users,id',
             'nid' => 'nullable|string|max:30',
+            'branch_id' => 'nullable|integer|exists:company_branches,id',
+            'confirm_leadership' => 'sometimes|boolean',
             'reason' => ReasonFields::rule('staff.account_create', 1000),
             'permissions' => [Rule::prohibitedIf($r->user()->role !== 'super_admin' || ! in_array($r->input('role'), ['employee', 'sr'], true)), 'nullable', 'array'],
             'permissions.*' => ['string', Rule::in(config($r->input('role') === 'sr' ? 'madina.roles.sr' : 'madina.roles.super_admin'))],
@@ -232,6 +236,15 @@ class CommandController extends Controller
             'profile.shop_name' => 'nullable|string|max:150',
             'profile.area_code' => 'nullable|string|max:80',
         ]);
+        // Owners (MD, Chairman) are created here too, but only with an explicit "yes"; a Super Admin is never created in the panel.
+        if ($d['role'] === 'super_admin') {
+            throw ValidationException::withMessages(['role' => __('joining.err_no_super_admin')]);
+        }
+        if (in_array($d['role'], ['md', 'chairman'], true) && ! $r->boolean('confirm_leadership')) {
+            throw ValidationException::withMessages(['confirm_leadership' => __('joining.err_leadership_confirm')]);
+        }
+        $branchId = $d['branch_id'] ?? null;
+        unset($d['branch_id'], $d['confirm_leadership']);
         $profileKeys = ['name_bn', 'father_name', 'mother_name', 'village', 'post_office', 'upazila', 'union', 'pharmacy', 'shop_name', 'area_code'];
         $rootProfile = $r->validate([...array_fill_keys($profileKeys, 'nullable|string|max:150'), 'area_code' => 'nullable|string|max:80']);
         $profileData = $d['profile'] ?? [];
@@ -255,21 +268,25 @@ class CommandController extends Controller
         if (! empty($d['sponsor_id'])) {
             abort_unless(User::whereKey($d['sponsor_id'])->whereIn('role', PartnerAccountProvisioning::SponsorRoles)->where('status', 'active')->exists(), 422, __('portal.cmd_val_sponsor_active_dealer'));
         }
-        $u = DB::transaction(function () use ($r, $d) {
+        $plainPassword = FirstPassword::make();
+        $u = DB::transaction(function () use ($r, $d, $plainPassword, $branchId) {
             CommissionWallet::lock();
             $role = $d['role'];
             $dealerCode = $d['dealer_code'] ?? null;
             $reason = $d['reason'] ?? __('portal.audit_account_created_staff');
             unset($d['reason']);
-            $plainPassword = 'Md'.Str::upper(Str::random(2)).random_int(100000, 999999).'!';
             $u = (new User)->forceFill([
                 ...$d,
                 'dealer_code' => $dealerCode,
                 'password' => $plainPassword,
+                'must_change_password' => true,
                 'password_managed_by' => User::PasswordManagedByAdmin,
-                'admin_password_cipher' => $plainPassword,
+                'admin_password_cipher' => $role === 'super_admin' ? null : $plainPassword,
             ]);
             $u->save();
+            if ($branchId !== null) {
+                app(BranchOperations::class)->assignStaff($r->user(), CompanyBranch::query()->findOrFail($branchId), ['user_id' => $u->id, 'is_primary' => true]);
+            }
             DB::table('wallets')->insert(['user_id' => $u->id, 'created_at' => now(), 'updated_at' => now()]);
             ReferralTreePath::attachUser($u->id, $u->sponsor_id);
             Audit::record($r->user()->id, 'account.created', (string) $u->id, [
@@ -287,9 +304,26 @@ class CommandController extends Controller
             ? __('portal.acct_type_employee')
             : __('portal.acct_type_partner');
 
-        return redirect($redirectUrl)->with('success', $u->dealer_code !== null
+        $created = $u->dealer_code !== null
             ? __('portal.acct_created_flash', ['type' => $accountTypeLabel, 'code' => $u->dealer_code])
-            : __('portal.acct_created_flash_no_code', ['type' => $accountTypeLabel]));
+            : __('portal.acct_created_flash_no_code', ['type' => $accountTypeLabel]);
+
+        // The first password is shown once, here, to the person who made the account.
+        return redirect($redirectUrl)->with('success', $created.' '.FirstPassword::notice($u, $plainPassword));
+    }
+
+    /** The Super Admin puts an MD or Chairman back to the role's own default rights, with nothing extra left behind. */
+    public function leadershipResetRights(Request $r, User $user): RedirectResponse
+    {
+        abort_unless($r->user()->role === 'super_admin' && $r->user()->status === 'active', 403);
+        abort_unless(in_array($user->role, ['md', 'chairman'], true), 404);
+        /** @var array<string, mixed> $profile */
+        $profile = $user->getAttribute('profile') ?? [];
+        unset($profile['action_permissions'], $profile['permissions']);
+        $user->forceFill(['profile' => [...$profile, 'access_revision' => Str::uuid()->toString()]])->save();
+        Audit::record($r->user()->id, 'staff.leadership_rights_reset', (string) $user->id, ['role' => $user->role]);
+
+        return back()->with('success', __('joining.flash_leadership_reset', ['name' => $user->name]));
     }
 
     public function accountUpdate(Request $r, User $user, PartnerAccountProvisioning $partners): RedirectResponse

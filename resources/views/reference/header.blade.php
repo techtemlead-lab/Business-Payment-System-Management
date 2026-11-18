@@ -63,6 +63,9 @@
             @if($publicPageEnabled['dealers'] ?? true)
             <a href="{{ $site('/dealers') }}"><i class="fa-solid fa-layer-group" aria-hidden="true"></i><b>{{ $chrome('network', $siteCustomization['header_network_title'] ?? null) }}</b></a>
             @endif
+            @if($publicPageEnabled['partnership'] ?? true)
+            <a href="{{ $site('/partnership') }}"><i class="fa-solid fa-handshake" aria-hidden="true"></i><b>{{ $chrome('become_a_partner', $siteCustomization['header_partner_title'] ?? null) }}</b></a>
+            @endif
             @auth
             <a href="{{ \App\Support\PortalHost::homeUrl(auth()->user()) }}" class="ref-header-account"><i class="fa-solid fa-user-check" aria-hidden="true"></i><b>{{ auth()->user()->name }}</b></a>
             <form method="POST" action="/logout" class="ref-logout-form"><input type="hidden" name="_token" value="{{ csrf_token() }}"><button type="submit" class="ref-header-logout-btn" title="{{ __('site.log_out') }}" aria-label="{{ __('site.log_out') }}"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i><b>{{ __('site.log_out') }}</b></button></form>

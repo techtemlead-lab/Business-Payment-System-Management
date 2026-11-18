@@ -40,7 +40,7 @@ final class EmployeesSection implements WorkspaceSection
 
             return [
                 ...$employee->toArray(),
-                'role_name' => $customRoleNames[$employee->role] ?? null,
+                'role_name' => $customRoleNames[$employee->role] ?? $this->builtInRoleName($employee->role),
                 'effective_permissions' => $employee->capabilities(),
                 'branch_name' => $employee->activeBranch?->name,
             ];
@@ -48,6 +48,8 @@ final class EmployeesSection implements WorkspaceSection
         $props['employees'] = [...$rows->toArray(), 'table' => Arr::except($table, ['rows'])];
         $staffQuery = $this->officeStaff();
         $this->onScopedBranches($staffQuery, $context->branchScope);
+        $props['staff_role_options'] = $this->roleOptions($customRoleNames);
+        $props['staff_branches'] = CompanyBranch::query()->orderBy('name')->get(['id', 'name'])->map(fn (CompanyBranch $branch): array => ['id' => $branch->id, 'name' => (string) $branch->name])->all();
         $props['employee_stats'] = [
             'total' => (clone $staffQuery)->count(),
             'active' => (clone $staffQuery)->where('status', 'active')->count(),
@@ -89,6 +91,39 @@ final class EmployeesSection implements WorkspaceSection
         );
 
         return $props;
+    }
+
+    private function builtInRoleName(string $role): ?string
+    {
+        if ($role === 'employee' || ! array_key_exists($role, config('madina.roles'))) {
+            return null;
+        }
+        $word = 'portal.staff_role_'.$role;
+        $name = (string) __($word);
+
+        return $name === $word ? null : $name;
+    }
+
+    /**
+     * The roles a new staff account can be given. Owners (MD, Chairman) are listed apart and need an extra "yes".
+     *
+     * @param  array<string, string>  $customRoleNames
+     * @return list<array{value: string, label: string, leadership: bool}>
+     */
+    private function roleOptions(array $customRoleNames): array
+    {
+        $options = [['value' => 'employee', 'label' => (string) __('office_staff.role_employee'), 'leadership' => false]];
+        foreach (array_diff(array_keys(config('madina.roles')), ['super_admin', 'md', 'chairman']) as $role) {
+            $options[] = ['value' => (string) $role, 'label' => $this->builtInRoleName((string) $role) ?? (string) $role, 'leadership' => false];
+        }
+        foreach ($customRoleNames as $key => $name) {
+            $options[] = ['value' => (string) $key, 'label' => $name, 'leadership' => false];
+        }
+        foreach (['md', 'chairman'] as $role) {
+            $options[] = ['value' => $role, 'label' => $this->builtInRoleName($role) ?? $role, 'leadership' => true];
+        }
+
+        return $options;
     }
 
     /**

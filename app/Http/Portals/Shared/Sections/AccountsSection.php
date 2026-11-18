@@ -4,6 +4,7 @@ namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Accounts\PartnerAccountList;
 use App\Domain\Inventory\BranchScope;
+use App\Domain\Staff\ApplicationReviewChecks;
 use App\Models\User;
 use App\Support\DashboardManagement;
 use App\Support\MoneyTable;
@@ -18,7 +19,7 @@ use Illuminate\Support\Facades\DB;
 final class AccountsSection implements WorkspaceSection
 {
     /** Statuses the application list can be filtered by. */
-    public const ApplicationStatuses = ['pending', 'approved', 'rejected'];
+    public const ApplicationStatuses = ['pending', 'correction', 'approved', 'rejected'];
 
     /** Where an application can come from: the website form, or an office worker. */
     public const ApplicationSources = ['public', 'staff'];
@@ -130,14 +131,14 @@ final class AccountsSection implements WorkspaceSection
         $table = MoneyTable::make(
             $request,
             DB::table('dealer_applications')
-                ->select(['id', 'email', 'data', 'submitted_by', 'status', 'user_id', 'reason', 'source', 'created_at', 'reviewed_by'])
+                ->select(['id', 'application_number', 'email', 'data', 'submitted_by', 'status', 'user_id', 'reason', 'correction_note', 'source', 'created_at', 'reviewed_by'])
                 ->whereRaw("coalesce(data->>'role', 'dealer') = ?", [$role]),
             new MoneyTableSpec(
                 dateColumn: 'created_at',
                 search: ['email', "data->>'name'", "data->>'phone'", "data->>'district'"],
                 filters: [
                     new MoneyTableFilter('status', __('portal.col_status'), 'status', array_map(
-                        fn (string $status): array => ['value' => $status, 'label' => __('portal.status_'.$status)],
+                        fn (string $status): array => ['value' => $status, 'label' => $status === 'correction' ? __('joining.status_correction') : __('portal.status_'.$status)],
                         self::ApplicationStatuses,
                     )),
                     new MoneyTableFilter('source', __('portal.partnership_source'), "coalesce(source, 'staff')", array_map(
@@ -159,14 +160,23 @@ final class AccountsSection implements WorkspaceSection
                 perPage: 20,
             ),
         );
-        $applications = $table['rows']->through(function (object $row): array {
+        $mayReadIdentity = (bool) $request->user()?->allows('identity_write');
+        $checks = app(ApplicationReviewChecks::class);
+        // The real code of an approved partner (a sub-dealer's ends in a serial), not just the place code the office typed.
+        $partnerCodes = User::query()->whereIn('id', $table['rows']->getCollection()->pluck('user_id')->filter()->all())->pluck('dealer_code', 'id');
+        $applications = $table['rows']->through(function (object $row) use ($mayReadIdentity, $checks, $partnerCodes): array {
             $payload = json_decode((string) ($row->data ?? '{}'), true);
             if (! is_array($payload)) {
                 $payload = [];
             }
 
+            // Only applications still waiting need the checks; a decided one is shown as it was.
+            $review = $row->status === 'pending' ? $checks->for((string) $row->id, (string) $row->email, $payload) : null;
+
             return [
                 'id' => $row->id,
+                'application_number' => $row->application_number,
+                'partner_code' => $row->user_id ? ($partnerCodes[$row->user_id] ?? null) : null,
                 'email' => $row->email,
                 'name' => $payload['name'] ?? '—',
                 'phone' => $payload['phone'] ?? null,
@@ -174,7 +184,16 @@ final class AccountsSection implements WorkspaceSection
                 'division' => $payload['division'] ?? null,
                 'district' => $payload['district'] ?? null,
                 'upazila' => $payload['upazila'] ?? null,
+                'union' => $payload['union'] ?? null,
                 'place_code' => $payload['place_code'] ?? null,
+                'division_place_id' => $payload['division_place_id'] ?? null,
+                'district_place_id' => $payload['district_place_id'] ?? null,
+                'upazila_place_id' => $payload['upazila_place_id'] ?? null,
+                'union_place_id' => $payload['union_place_id'] ?? null,
+                'date_of_birth' => $payload['date_of_birth'] ?? null,
+                'nid' => $mayReadIdentity ? ($payload['nid'] ?? null) : (filled($payload['nid'] ?? null) ? '••••'.substr((string) $payload['nid'], -3) : null),
+                'review' => $review,
+                'correction_note' => $row->correction_note,
                 'sponsor_code' => $payload['sponsor_code'] ?? null,
                 'message' => $payload['message'] ?? null,
                 'status' => $row->status,
@@ -188,6 +207,7 @@ final class AccountsSection implements WorkspaceSection
         $counts = DB::table('dealer_applications')
             ->selectRaw('count(*) as total')
             ->selectRaw("count(*) filter (where status = 'pending') as pending")
+            ->selectRaw("count(*) filter (where status = 'correction') as correction")
             ->selectRaw("count(*) filter (where status = 'approved') as approved")
             ->selectRaw("count(*) filter (where status = 'rejected') as rejected")
             ->whereRaw("coalesce(data->>'role', 'dealer') = ?", [$role])
@@ -199,6 +219,7 @@ final class AccountsSection implements WorkspaceSection
             'application_counts' => [
                 'total' => (int) ($counts->total ?? 0),
                 'pending' => (int) ($counts->pending ?? 0),
+                'correction' => (int) ($counts->correction ?? 0),
                 'approved' => (int) ($counts->approved ?? 0),
                 'rejected' => (int) ($counts->rejected ?? 0),
             ],

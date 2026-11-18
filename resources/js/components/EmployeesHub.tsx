@@ -30,7 +30,15 @@ export interface EmployeeHubProps {
     };
     filters?: Row;
     ownerAccounts?: OwnerAccount[];
+    roleOptions?: RoleOption[];
+    branches?: { id: number; name: string }[];
     hub?: OfficeHub | null;
+}
+
+export interface RoleOption {
+    value: string;
+    label: string;
+    leadership: boolean;
 }
 
 type StaffView = 'staff' | 'prescribers' | 'owners';
@@ -109,11 +117,13 @@ function PermissionPicker({ available, selected, onChange, adding, onlyKeys }: {
     );
 }
 
-function AddStaffDialog({ available, onClose }: { available: PermissionDefinition[]; onClose: () => void }) {
+function AddStaffDialog({ available, roleOptions, branches, onClose }: { available: PermissionDefinition[]; roleOptions: RoleOption[]; branches: { id: number; name: string }[]; onClose: () => void }) {
     const translate = useT();
     const addReason = useReasonField('staff.account_create');
     const form = useForm({
         role: 'employee',
+        branch_id: '',
+        confirm_leadership: false,
         name: '',
         email: '',
         phone: '',
@@ -122,14 +132,44 @@ function AddStaffDialog({ available, onClose }: { available: PermissionDefinitio
         permissions: ['orders', 'inventory'] as string[],
     });
 
+    const chosenRole = roleOptions.find((option) => option.value === form.data.role);
+    const takesPermissionBoxes = ['employee', 'sr'].includes(form.data.role);
+
     const submit = (event: React.FormEvent) => {
         event.preventDefault();
+        // Only an Employee or SR has permission boxes; every other role brings its own rights.
+        form.transform((data) => {
+            const { permissions, branch_id: branchId, ...rest } = data;
+
+            return { ...rest, ...(branchId === '' ? {} : { branch_id: branchId }), ...(takesPermissionBoxes ? { permissions } : {}) } as typeof data;
+        });
         form.post('/commands/accounts', { onSuccess: onClose });
     };
 
     return (
         <Modal title={translate('office_staff', 'add_staff')} onClose={onClose} variant="wide">
             <form onSubmit={submit} className="action-form">
+                {roleOptions.length > 0 && (
+                    <label>
+                        {translate('joining', 'staff_role')}
+                        <select value={form.data.role} onChange={(event) => form.setData('role', event.target.value)}>
+                            {roleOptions.filter((option) => !option.leadership).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                        </select>
+                        <small className="field-hint">{translate('joining', 'staff_role_hint')}</small>
+                        {form.errors.role && <span className="field-error">{form.errors.role}</span>}
+                    </label>
+                )}
+                {branches.length > 0 && (
+                    <label>
+                        {translate('joining', 'staff_branch')}
+                        <select value={form.data.branch_id} onChange={(event) => form.setData('branch_id', event.target.value)}>
+                            <option value="">{translate('joining', 'staff_branch_none')}</option>
+                            {branches.map((branch) => <option key={branch.id} value={String(branch.id)}>{branch.name}</option>)}
+                        </select>
+                        {form.errors.branch_id && <span className="field-error">{form.errors.branch_id}</span>}
+                    </label>
+                )}
+                <p className="field-hint">{translate('joining', 'staff_first_password_hint')}</p>
                 <label>
                     {translate('office_staff', 'field_full_name')}
                     <input required placeholder={translate('portal', 'emp_ph_full_name')} value={form.data.name} onChange={(event) => form.setData('name', event.target.value)} />
@@ -152,7 +192,9 @@ function AddStaffDialog({ available, onClose }: { available: PermissionDefinitio
                         <option value="suspended">{translate('portal', 'emp_opt_suspended_draft')}</option>
                     </select>
                 </label>
-                <PermissionPicker available={available} selected={form.data.permissions} onChange={(keys) => form.setData('permissions', keys)} adding />
+                {takesPermissionBoxes
+                    ? <PermissionPicker available={available} selected={form.data.permissions} onChange={(keys) => form.setData('permissions', keys)} adding />
+                    : <p className="muted">{translate('joining', 'staff_role_brings_rights', { role: chosenRole?.label ?? form.data.role })}</p>}
                 {addReason.shown && (
                     <label>
                         {addReason.label(translate('office_staff', 'field_reason_add'))}
@@ -285,7 +327,7 @@ function StaffDrawer({ employee, available, canManageStaff, onEdit, onClose }: {
     );
 }
 
-export default function EmployeesHub({ employees, availablePermissions, stats, ownerAccounts, hub }: EmployeeHubProps) {
+export default function EmployeesHub({ employees, availablePermissions, stats, ownerAccounts, roleOptions = [], branches = [], hub }: EmployeeHubProps) {
     const translate = useT();
     const { auth } = usePage<any>().props;
     const { url } = usePage();
@@ -364,7 +406,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, o
                     onEdit={() => { setOpenedId(null); setEditing(opened); }}
                 />
             )}
-            {adding && <AddStaffDialog available={availablePermissions} onClose={() => setAdding(false)} />}
+            {adding && <AddStaffDialog available={availablePermissions} roleOptions={roleOptions} branches={branches} onClose={() => setAdding(false)} />}
             {editing && <EditStaffDialog employee={editing} available={availablePermissions} canResetPassword={canResetPasswordOf(editing)} onClose={() => setEditing(null)} />}
         </OfficePage>
     );

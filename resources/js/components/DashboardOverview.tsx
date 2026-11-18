@@ -392,7 +392,7 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
     );
 }
 
-type WorkItem = { key: string; count: number; section: string; query?: Record<string, string>; label?: string; amount?: string; alert?: boolean };
+type WorkItem = { key: string; count: number; section: string; query?: Record<string, string>; label?: string; amount?: string; alert?: boolean; oldest_days?: number | null };
 type TrendPoint = { date: string; orders: number; value: string };
 
 /** A business day (YYYY-MM-DD) in the page's language, whatever clock the browser is on. */
@@ -417,7 +417,7 @@ function WorkQueue({ items, base }: { items: WorkItem[]; base: string }) {
                         <li key={item.key} className={item.alert ? 'has-work is-alert' : item.count > 0 ? 'has-work' : 'is-clear'}>
                             <Link href={`${base}/${item.section}${query}`}>
                                 <strong>{number(item.count)}</strong>
-                                <span>{item.label ?? translate('portal', `dash_work_${item.key}`)}{item.amount != null && <> · {money(item.amount)}</>}</span>
+                                <span>{item.key === 'chats_unanswered' ? translate('joining', 'dash_chats_unanswered') : (item.label ?? translate('portal', `dash_work_${item.key}`))}{item.amount != null && <> · {money(item.amount)}</>}{item.key === 'chats_unanswered' && item.count > 0 && item.oldest_days != null && <small className="cell-sub">{translate('joining', 'dash_chats_oldest', { days: number(item.oldest_days) })}</small>}</span>
                                 <ChevronRight size={16} aria-hidden="true" />
                             </Link>
                         </li>

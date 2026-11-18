@@ -5,6 +5,7 @@ namespace App\Domain\Orders;
 use App\Domain\Finance\MoneyTaskFigures;
 use App\Domain\Inventory\BranchScope;
 use App\Domain\Inventory\SellableStock;
+use App\Domain\Support\PartnerChat;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
@@ -49,7 +50,7 @@ final class StaffDashboardSummary
     }
 
     /**
-     * @return list<array{key: string, count: int, section: string, query?: array<string, string>, label?: string, amount?: string, alert?: bool}>
+     * @return list<array{key: string, count: int, section: string, query?: array<string, string>, label?: string, amount?: string, alert?: bool, oldest_days?: int|null}>
      */
     private function workQueue(User $viewer, ?BranchScope $branchScope): array
     {
@@ -97,6 +98,15 @@ final class StaffDashboardSummary
                 'key' => 'low_stock_products',
                 'count' => $this->lowStockProducts($branchScope)->count(),
                 'section' => 'inventory',
+            ];
+        }
+        if (PartnerChat::canAnswer($viewer)) {
+            $waiting = app(PartnerChat::class)->unanswered($viewer);
+            $queue[] = [
+                'key' => 'chats_unanswered',
+                'count' => $waiting['count'],
+                'oldest_days' => $waiting['oldest_days'],
+                'section' => 'partner-messages',
             ];
         }
         if ($viewer->allows('accounts')) {

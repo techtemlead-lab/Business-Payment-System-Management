@@ -49,7 +49,7 @@ class EnforceStaffActions
                 'FinanceOperationsController' => in_array($method, ['accounts', 'export', 'receipt'], true),
                 'PartnerAgreementController' => $method === 'accept',
                 // A partner whose profile the office left open fixes his own shop name and village; the controller checks the lock.
-                'PartnerProfileController' => $method === 'details',
+                'PartnerProfileController' => in_array($method, ['details', 'changeRequest'], true),
                 'PartnerChatController' => $method === 'send',
                 'TrainingController' => $method === 'submitQuiz',
                 // Verified prescribers only; PrescriptionAccess checks again.
