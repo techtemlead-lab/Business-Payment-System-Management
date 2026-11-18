@@ -1,6 +1,6 @@
 {{-- Sign-in forms wait for the page to finish loading, so words typed too early are not lost when it redraws. --}}
 <p class="auth-wait" data-auth-wait role="status" style="display:none;text-align:center;margin:8px 0 0;font-size:14px">{{ __('office_shell.page_loading') }}</p>
-<script>
+<script @if($cspNonce = request()?->attributes?->get('csp_nonce')) nonce="{{ $cspNonce }}" @endif>
 (function () {
     var forms = document.querySelectorAll('.company-auth-card form, .ref-auth-card form');
     var notes = document.querySelectorAll('[data-auth-wait]');
