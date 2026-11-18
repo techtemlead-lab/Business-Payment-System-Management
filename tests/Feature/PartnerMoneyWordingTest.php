@@ -47,7 +47,8 @@ class PartnerMoneyWordingTest extends TestCase
             ->where('title', __('portal.notice_payment_claimed_title', [], 'bn'))
             ->value('body');
 
-        $this->assertSame($order->number.': বিকাশ দিয়ে ৳১২,৫০০.০০ যাচাইয়ের অপেক্ষায়।', $body);
+        // One taka format everywhere: lakh grouping, Bangla digits, no ".00" on whole taka.
+        $this->assertSame($order->number.': বিকাশ দিয়ে ৳১২,৫০০ যাচাইয়ের অপেক্ষায়।', $body);
     }
 
     public function test_full_amount_refusal_is_written_in_bangla_digits(): void
