@@ -31,10 +31,7 @@ class BindSessionFingerprint
         $bound = $request->session()->get('session_fingerprint');
         if (! is_string($bound) || $bound === '') {
             $request->session()->put('session_fingerprint', $current);
-
-            return $next($request);
-        }
-        if (! hash_equals($bound, $current)) {
+        } elseif (! hash_equals($bound, $current)) {
             return $this->endSession($request, __('portal.err_session_fingerprint_mismatch'));
         }
 

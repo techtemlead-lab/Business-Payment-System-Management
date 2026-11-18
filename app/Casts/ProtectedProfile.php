@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Crypt;
  * (plain text) are still read and are encrypted the next time the profile is saved, or by the
  * migration that came with this change.
  *
- * @implements CastsAttributes<array<string, mixed>|null, array<string, mixed>|null>
+ * @implements CastsAttributes<array<string, mixed>|null, mixed>
  */
 final class ProtectedProfile implements CastsAttributes
 {

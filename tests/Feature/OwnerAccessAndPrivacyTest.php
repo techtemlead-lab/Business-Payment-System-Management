@@ -121,9 +121,10 @@ class OwnerAccessAndPrivacyTest extends TestCase
 
     public function test_a_session_from_one_portal_is_refused_on_another(): void
     {
-        $dealer = User::factory()->dealer()->create();
+        // An office account whose session was opened on the owner panel, replayed on the staff panel.
+        $staff = User::factory()->staff('finance')->create();
 
-        $this->actingAs($dealer)->withSession(['session_portal' => 'dealer'])
+        $this->actingAs($staff)->withSession(['session_portal' => 'sadmin'])
             ->onPortal('manage')->get('/')->assertRedirect('/login');
         $this->assertGuest();
     }
@@ -141,9 +142,9 @@ class OwnerAccessAndPrivacyTest extends TestCase
 
     public function test_the_public_forgot_password_page_asks_dealer_or_sub_dealer_first(): void
     {
-        $this->get('/forgot-password')->assertOk()
-            ->assertSee(__('security.forgot_choose_title'))
-            ->assertSee('/forgot-password', false);
+        $page = $this->onPortal('public')->get('/forgot-password')->assertOk()->assertSee('/forgot-password', false)->getContent();
+        // The public site starts in Bangla; either language shows the chooser title.
+        $this->assertTrue(str_contains((string) $page, __('security.forgot_choose_title', [], 'bn')) || str_contains((string) $page, __('security.forgot_choose_title', [], 'en')));
     }
 
     private function codeAt(TotpAuthenticator $totp, string $secret, int $time): string

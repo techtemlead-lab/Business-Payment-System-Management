@@ -154,7 +154,7 @@ final class IntegrationUrlPolicy
             }
         }
 
-        return array_values(array_merge($v4, $v6));
+        return array_merge($v4, $v6);
     }
 
     private function registrableDomain(string $host): string
