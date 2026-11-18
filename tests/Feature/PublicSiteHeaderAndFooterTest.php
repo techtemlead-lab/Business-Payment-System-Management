@@ -101,6 +101,14 @@ class PublicSiteHeaderAndFooterTest extends TestCase
             ->assertSee('data-office-portal="1"', false);
     }
 
+    public function test_bangla_home_writes_bangla_over_the_english_banners(): void
+    {
+        $this->withCookie('locale', 'bn')->get('/')->assertOk()
+            ->assertSee(__('site.hero_caption_title'), false)
+            ->assertSee(__('site.side_caption_products'), false)
+            ->assertSee(__('site.side_caption_dealers'), false);
+    }
+
     public function test_english_and_bangla_premium_fonts_are_loaded(): void
     {
         $this->get('/')->assertOk()

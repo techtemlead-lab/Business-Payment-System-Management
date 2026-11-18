@@ -25,6 +25,9 @@
                 @php $slideHref = \App\Support\SiteCustomization::publicHref($slide['link'] ?: '/products') ?? '#'; @endphp
                 <a href="{{ $slideHref }}" class="ref-slide {{ $loop->first ? 'is-active' : '' }}" aria-hidden="{{ $loop->first ? 'false' : 'true' }}" @if($slideHref === '#') tabindex="-1" aria-disabled="true" @endif>
                     <img src="{{ ($slide['image'] ?: '/branding/madina-hero-banner-1.jpg') . '?v=20261015' }}" alt="{{ $slideAlt('hero_slide'.($idx + 1).'_alt', $slide['alt'] ?? null, 'Promotion ' . ($idx + 1)) }}" @if($loop->first) fetchpriority="high" @else loading="lazy" @endif>
+                    @if(app()->getLocale() === 'bn' && str_contains((string) ($slide['image'] ?: '/branding/madina-hero-banner-1.jpg'), 'madina-hero-banner'))
+                    <span class="ref-slide-caption"><b>{{ __('site.hero_caption_title') }}</b><span>{{ __('site.hero_caption_text') }}</span></span>
+                    @endif
                 </a>
                 @endforeach
             </div>
@@ -43,6 +46,9 @@
                     @php $slideHref = \App\Support\SiteCustomization::publicHref($slide['link'] ?: '/products') ?? '#'; @endphp
                     <a href="{{ $slideHref }}" class="ref-slide {{ $loop->first ? 'is-active' : '' }}" aria-hidden="{{ $loop->first ? 'false' : 'true' }}" @if($slideHref === '#') tabindex="-1" aria-disabled="true" @endif>
                         <img src="{{ ($slide['image'] ?: '/branding/madina-side-banner-1.jpg') . '?v=20261015' }}" alt="{{ $slideAlt('side_banner_1_slide'.($idx + 1).'_alt', $slide['alt'] ?? null, 'Madina Premium Natural Care') }}" @if($loop->first) fetchpriority="high" @else loading="lazy" @endif>
+                        @if(app()->getLocale() === 'bn' && str_contains((string) ($slide['image'] ?: '/branding/madina-side-banner-1.jpg'), 'madina-side-banner-1'))
+                        <span class="ref-slide-caption is-side"><b>{{ __('site.side_caption_products') }}</b></span>
+                        @endif
                     </a>
                     @endforeach
                 </div>
@@ -60,6 +66,9 @@
                     @php $slideHref = \App\Support\SiteCustomization::publicHref($slide['link'] ?: '/dealers') ?? '#'; @endphp
                     <a href="{{ $slideHref }}" class="ref-slide {{ $loop->first ? 'is-active' : '' }}" aria-hidden="{{ $loop->first ? 'false' : 'true' }}" @if($slideHref === '#') tabindex="-1" aria-disabled="true" @endif>
                         <img src="{{ ($slide['image'] ?: '/branding/madina-side-banner-2.jpg') . '?v=20261015' }}" alt="{{ $slideAlt('side_banner_2_slide'.($idx + 1).'_alt', $slide['alt'] ?? null, 'Madina Authorized Dealer Network') }}" @if($loop->first) fetchpriority="high" @else loading="lazy" @endif>
+                        @if(app()->getLocale() === 'bn' && str_contains((string) ($slide['image'] ?: '/branding/madina-side-banner-2.jpg'), 'madina-side-banner-2'))
+                        <span class="ref-slide-caption is-side"><b>{{ __('site.side_caption_dealers') }}</b></span>
+                        @endif
                     </a>
                     @endforeach
                 </div>
