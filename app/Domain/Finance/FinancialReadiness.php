@@ -5,6 +5,7 @@ namespace App\Domain\Finance;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Commissions\RetainedFundLedger;
+use App\Domain\Integrations\IntegrationSettings;
 use App\Domain\Security\SelfApproval;
 use App\Models\User;
 use App\Support\Audit;
@@ -275,9 +276,17 @@ final class FinancialReadiness
                 'expected_totals' => json_encode($snapshot['totals'], JSON_THROW_ON_ERROR), 'source_reference' => 'Fresh start', 'evidence_path' => '', 'evidence_hash' => '',
                 'fresh_start' => true, 'created_by' => $actor->id, 'verified_by' => $actor->id, 'verified_at' => now(), 'created_at' => now(), 'updated_at' => now()]);
             Audit::record($actor->id, 'opening_balances.fresh_start', (string) $id, ['reason' => $reason, 'totals' => $snapshot['totals'], 'self_approved' => true]);
+            // The starting-balance page shows the same choice, so keep it saying the books began from zero.
+            app(IntegrationSettings::class)->markFreshStart($actor, $reason);
 
             return $id;
         }, 3);
+    }
+
+    /** True once any opening check, or the owner's fresh start, has opened the money gate. */
+    public function booksStarted(): bool
+    {
+        return DB::table('financial_verifications')->whereNotNull('verified_at')->exists();
     }
 
     /** True while the only confirmation on record is the owner's fresh start. */

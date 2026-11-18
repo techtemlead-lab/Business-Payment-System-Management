@@ -118,6 +118,20 @@ final class IntegrationSettings
     }
 
     /**
+     * Called by the owner's fresh start, which has already checked who may do it: the start mode
+     * then reads "from zero" without a second step. Runs inside that start's transaction.
+     */
+    public function markFreshStart(User $actor, string $reason): void
+    {
+        $before = $this->startupMode();
+        if ($before['mode'] === 'fresh') {
+            return;
+        }
+        $this->persist(self::StartupKey, ['mode' => 'fresh'], $before['version'], $actor->id);
+        Audit::record($actor->id, 'finance.startup_mode_changed', self::StartupKey, ['before' => $before['mode'], 'after' => 'fresh', 'reason' => $reason]);
+    }
+
+    /**
      * @param  array<string, mixed>  $input
      */
     public function saveProvider(User $actor, string $group, string $provider, array $input, int $version, string $reason): void

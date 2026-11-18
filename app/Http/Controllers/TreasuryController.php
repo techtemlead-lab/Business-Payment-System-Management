@@ -40,7 +40,7 @@ class TreasuryController extends Controller
     {
         abort_unless(TreasuryAccess::mayOpenFunds($request->user()), 403);
 
-        return Inertia::render('TreasuryFunds', [...$this->shared($request), 'cards' => $funds->cards($this->showsOwnerFunds($request)), 'partner_totals' => $funds->partnerTotals()]);
+        return Inertia::render('TreasuryFunds', [...$this->shared($request), 'cards' => $funds->cards($this->showsOwnerFunds($request)), 'partner_totals' => $funds->partnerTotals(), 'waiting_for_delivery' => OrderMoneyReport::receivedWaitingForDelivery()]);
     }
 
     public function fund(Request $request, string $fund, TreasuryFunds $funds, RewardLeaderList $leaders): Response

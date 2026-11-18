@@ -100,6 +100,21 @@ final class OrderMoneyReport
         return once(fn (): bool => Schema::hasColumn('order_refunds', 'to_account')) ? 'COALESCE(f.to_account, 0)' : '0';
     }
 
+    /**
+     * MA-24: money received on verified payments for orders whose goods have not arrived, the part
+     * the delivered-money rule does not count yet. Orders that were cancelled, rejected or finished
+     * are left out, and so is money already refunded.
+     */
+    public static function receivedWaitingForDelivery(): string
+    {
+        $total = DB::table('orders as o')->leftJoin('order_refunds as f', 'f.order_id', '=', 'o.id')
+            ->where('o.is_opening_balance', false)->where('o.paid', '>', 0)
+            ->whereNotIn('o.status', ['cancelled', 'rejected', 'delivered', self::PartlyDelivered])
+            ->selectRaw('COALESCE(SUM(GREATEST(o.paid - COALESCE(f.amount, 0) - '.DeliveredMoney::paidSql('o').', 0)), 0) AS total')->value('total');
+
+        return Money::decimal(Money::cents((string) $total));
+    }
+
     /** Orders that count as delivered goods, on aliases `o` and `f`. */
     public static function deliveredOrders(): Builder
     {

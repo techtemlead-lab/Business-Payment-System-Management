@@ -57,4 +57,18 @@ return [
     'area_seat_close_confirm' => 'Close the seat for :zone? Past records and money stay exactly as they are; only new commission will stop coming to this seat.',
     'area_seat_save' => 'Save',
     'area_seat_held_quota' => 'This month the target was not met, so ৳:amount is held. It is released by itself once the target is met; if it is still not met at month end, it goes to company profit.',
+
+    // MA-14, MA-24, money tasks
+    'start_books_title' => 'Start the books',
+    'start_books_body' => 'Your money records have not started yet, so partners cannot earn commission. If there are no old balances to bring in, press the button and the books start from zero. Old paper records can still be added later.',
+    'start_books_confirm' => 'I confirm there are no old balances to bring in.',
+    'start_books_button' => 'Start the books from zero',
+    'start_books_reason' => 'Starting the books from zero, from the owner home page',
+    'start_books_pointer' => 'To start from zero, use the "Start the books" step on the owner home page. Choosing it here does not change anything.',
+    'start_books_pointer_link' => 'Go to the owner home page',
+    'waiting_for_delivery_title' => 'Received, waiting for delivery',
+    'waiting_for_delivery_note' => 'Money received on verified payments for orders that are not delivered yet. It moves into the funds when the goods are delivered.',
+    'task_ready_to_pay' => 'Commission ready to pay',
+    'task_held' => 'Commission held',
+    'task_close_failed' => 'A month could not be closed',
 ];

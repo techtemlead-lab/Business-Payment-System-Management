@@ -4,6 +4,7 @@ namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Accounts\PartnerDashboardHome;
 use App\Domain\Accounts\PartnerMoneyBook;
+use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Inventory\BranchScope;
 use App\Domain\Orders\OrderOverviewTotals;
 use App\Domain\Orders\StaffDashboardSummary;
@@ -58,6 +59,8 @@ final class OverviewSection implements WorkspaceSection
                     'purchases' => $props['stats']['purchases'],
                     'dues' => $props['stats']['dues'],
                 ],
+                // MA-14: the one step that starts the books, for the owner, until it is done.
+                'start_books' => $user->role === 'super_admin' && ! app(FinancialReadiness::class)->booksStarted(),
                 ...app(StaffDashboardSummary::class)->for($user, $context->branchScope),
             ];
         }
