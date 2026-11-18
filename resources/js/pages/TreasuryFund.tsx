@@ -5,7 +5,7 @@ import MoneyTable, { type MoneyColumn, type MoneyTableData } from '../components
 import TreasuryPage from '../components/treasury/TreasuryPage';
 import { FundFigures, type FundCardData } from '../components/treasury/FundCard';
 import FundSpendForm, { type FundSpendOptions } from '../components/treasury/FundSpendForm';
-import RewardLeaders, { type RewardAward, type RewardLeaderFigures, type RewardLeaderRow } from '../components/treasury/RewardLeaders';
+import RewardLeaders, { VehiclePoolsPanel, type RewardAward, type RewardLeaderFigures, type RewardLeaderRow } from '../components/treasury/RewardLeaders';
 import { joined, percentText } from '../components/treasury/format';
 import { useT } from '../shared/i18n/t';
 
@@ -104,6 +104,7 @@ export default function TreasuryFund({ card, view, table, spend, leaders }: { ca
             action={spend && card.spendable ? <button type="button" className="button dark" onClick={() => setSpending(true)}>{translate('treasury', 'spend')}</button> : undefined}
         >
             <FundFigures card={card} />
+            {leaders && <VehiclePoolsPanel pools={leaders.pools} />}
             <div className="office-switch" role="group" aria-label={card.name} ref={viewSwitch}>
                 {views.map((option) => (
                     <Link key={option.key} href={option.key === 'in' ? path : `${path}?view=${option.key}`} preserveScroll className={option.key === view ? 'is-active' : undefined} aria-current={option.key === view ? 'true' : undefined}>

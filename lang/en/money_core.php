@@ -87,4 +87,21 @@ return [
     'salary_rule' => 'Rule: the salary is shared equally among everyone in your division who bought ৳:min or more this month.',
     'salary_none_low' => ':month: no purchase of ৳:min or more this month, so no salary.',
     'salary_none_other' => ':month: you got no salary this month. Please ask the office why.',
+
+    // MA-10: bike and car prizes have a pool each.
+    'vehicle_pool_short' => 'The :program pool does not hold enough. Bike and car money are kept apart, so the other pool cannot be used.',
+    'vp_title' => 'Bike and car pools are separate',
+    'vp_intro' => 'Bike prizes are paid only from the bike pool and car prizes only from the car pool. Money saved from orders before the split counts half for bikes and half for cars.',
+    'vp_balance' => 'In the pool now',
+    'vp_award' => 'One prize pays',
+    'vp_payable' => 'Prizes that can be paid now',
+    'vp_not_set' => 'Not set',
+    'cs_param_bike_pool_share_pct' => 'Bike pool share (%) — the rest goes to the car pool',
+    'pr_prize' => 'Prize',
+    'pr_prize_unset' => 'The amount is not decided yet',
+    'pr_target' => 'Target (your team\'s total purchases)',
+    'pr_deadline' => 'Deadline',
+    'pr_deadline_none' => 'None; counted from the start',
+    'pr_cap_example' => 'Example: if one of your direct lines buys ৳:example, only up to ৳:cap of it counts toward the target. So one big order in one line cannot reach the target alone.',
+    'pr_claim' => 'How to get it: no separate application is needed. When the target is reached the office will contact you, and once the office approves, the prize money is added to your wallet.',
 ];

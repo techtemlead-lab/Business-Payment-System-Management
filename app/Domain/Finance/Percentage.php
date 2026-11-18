@@ -23,6 +23,15 @@ final readonly class Percentage
         return new self($points);
     }
 
+    public static function fromBasisPoints(int $basisPoints): self
+    {
+        if ($basisPoints < 0 || $basisPoints > 10000) {
+            throw new InvalidArgumentException('A percentage must be between 0% and 100%.');
+        }
+
+        return new self($basisPoints);
+    }
+
     public function decimal(): string
     {
         return intdiv($this->basisPoints, 100).'.'.str_pad((string) ($this->basisPoints % 100), 2, '0', STR_PAD_LEFT);

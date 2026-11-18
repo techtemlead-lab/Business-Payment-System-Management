@@ -532,8 +532,12 @@ final class CommissionPosting
         $add('area_management', 'area_dealer_pool', null, 'pending', $managementRate, $areaRemaining,
             ['account_type' => $type, 'retained_by' => ManagementReferral::FundRetainedBy, 'management_fund' => true]);
         foreach (['dealer_monthly_salary' => 'dealer_monthly_salary_pool', 'rank_royalty' => 'rank_royalty_pool',
-            'rank_incentive' => 'rank_incentive_pool', 'company_marketing' => 'company_marketing_fund', 'car_bike_incentive' => 'car_bike_incentive_fund'] as $key => $category) {
+            'rank_incentive' => 'rank_incentive_pool', 'company_marketing' => 'company_marketing_fund'] as $key => $category) {
             $add($category, $key);
+        }
+        // Bike and car prizes each have their own pool, tagged on the row so one never spends the other's money.
+        foreach (CommissionPolicy::vehiclePoolRates($rules) as $pool => $poolRate) {
+            $add('car_bike_incentive_fund', 'car_bike_incentive', null, 'pending', $poolRate->decimal(), null, ['vehicle_pool' => $pool]);
         }
         if ($type === 'sub_dealer') {
             $add('additional_rank_pool', 'additional_rank');

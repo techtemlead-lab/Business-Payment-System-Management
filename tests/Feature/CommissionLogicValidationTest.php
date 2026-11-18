@@ -496,9 +496,10 @@ class CommissionLogicValidationTest extends TestCase
         $allocationsAgain = $service->processOrder($order);
 
         // Recognition creates exactly one set of allocations after delivery.
-        $this->assertEquals(14, CommissionAllocation::where('order_id', $order->id)->count());
+        $this->assertEquals(15, CommissionAllocation::where('order_id', $order->id)->count());
         $service->processOrder($order);
-        $this->assertEquals(14, CommissionAllocation::where('order_id', $order->id)->count());
+        // 15 rows: the car and bike reserve is posted as two rows, one for the bike pool and one for the car pool (MA-10).
+        $this->assertEquals(15, CommissionAllocation::where('order_id', $order->id)->count());
 
         // Now Car & Bike milestone progress is refreshed and reflects ৳50,000!
         $progress = DB::table('reward_milestone_progress')

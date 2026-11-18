@@ -30,13 +30,29 @@ final class CommissionPolicy
 
     private const HeldMonthsLimit = 120;
 
+    /**
+     * The bike and car prizes have a pool each. The reserve rate is split by the bike share (default half,
+     * so the usual 2% is 1% bike and 1% car); the car pool gets the rest, so the two always add up to the rule's rate.
+     *
+     * @param  array<string, array<string, mixed>>  $rules
+     * @return array{bike: Percentage, car: Percentage}
+     */
+    public static function vehiclePoolRates(array $rules): array
+    {
+        $total = self::rate($rules, 'car_bike_incentive')->basisPoints;
+        $share = Percentage::from((string) ($rules['car_bike_incentive']['parameters']['bike_pool_share_pct'] ?? '50.00'))->basisPoints;
+        $bike = intdiv($total * $share + 5000, 10000);
+
+        return ['bike' => Percentage::fromBasisPoints($bike), 'car' => Percentage::fromBasisPoints($total - $bike)];
+    }
+
     /** @return array<string, array<string, mixed>> */
     public static function defaults(): array
     {
         $definitions = [
             'own_dealer_cashback' => ['cashback', 'Own purchase cashback', '5.00', []],
             'direct_referral' => ['referral', 'Direct referral', '10.00', []],
-            'd2d_multitier' => ['d2d', 'Dealer-to-dealer referral', '3.00', ['gen2_pct' => '2.00', 'gen3_pct' => '1.00', 'dynamic_compression' => false]],
+            'd2d_multitier' => ['d2d', 'Team share (2nd + 3rd generation)', '3.00', ['gen2_pct' => '2.00', 'gen3_pct' => '1.00', 'dynamic_compression' => false]],
             'area_dealer_pool' => ['area', 'Area dealer pool', '10.00', ['management_share_pct' => '2.00', 'division_share_pct' => '2.00', 'district_share_pct' => '2.00', 'upazila_share_pct' => '2.00', 'union_share_pct' => '2.00',
                 'division_monthly_quota' => '50000.00', 'district_monthly_quota' => '40000.00', 'upazila_monthly_quota' => '20000.00', 'union_monthly_quota' => '10000.00',
                 'held_share_months' => 3]],

@@ -71,7 +71,8 @@ class StatusLabelTranslationTest extends TestCase
                 if (is_array($value) || $parameter === 'dynamic_compression') {
                     continue;
                 }
-                $this->assertPlainLabel('portal.cs_param_'.$parameter);
+                // The bike pool share is worded in the money_core file.
+                $this->assertPlainLabel($parameter === 'bike_pool_share_pct' ? 'money_core.cs_param_'.$parameter : 'portal.cs_param_'.$parameter);
             }
         }
         foreach (ImportWorkbook::Columns as $type => $columns) {
