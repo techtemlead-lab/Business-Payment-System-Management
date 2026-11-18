@@ -73,7 +73,7 @@ final class ShippingLabels
             'receiver_id' => $order->user_id,
             'shipment_id' => $shipment?->id,
         ]);
-        $company = SiteCustomization::all();
+        $company = SiteCustomization::inVisitorLanguage(SiteCustomization::all());
         $consignment = trim((string) ($shipment->tracking ?? ''));
         $receiver = $order->user instanceof User ? $order->user : null;
         $branch = $order->fulfillmentBranch instanceof CompanyBranch ? $order->fulfillmentBranch : null;

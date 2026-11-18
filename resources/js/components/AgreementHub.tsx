@@ -3,6 +3,7 @@ import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { ArrowUpRight, CheckCircle2, Languages, LifeBuoy, ScrollText, Search } from 'lucide-react';
 import { Badge, Empty, FormErrors, Modal, Pagination, Table, dateTime, label, type Row } from './UI';
 import OfficePage from './office/OfficePage';
+import { bilingualBox } from '../shared/banglaFill/pair';
 import { useT } from '../shared/i18n/t';
 
 type Language = 'bn' | 'en';
@@ -238,12 +239,12 @@ function PublishForm({ latest, onDone }: { latest: AgreementVersion | null; onDo
             <p className="field-hint">{translate('portal', 'agr_edit_hint')}</p>
             <label lang="bn">
                 {translate('portal', 'agr_body_bn')}
-                <textarea rows={16} value={form.data.body_bn} required onChange={(event) => form.setData('body_bn', event.target.value)} />
+                <textarea {...bilingualBox('body_bn', 'agreement-')} rows={16} value={form.data.body_bn} required onChange={(event) => form.setData('body_bn', event.target.value)} />
                 {form.errors.body_bn && <span className="field-error" role="alert">{form.errors.body_bn}</span>}
             </label>
             <label lang="en">
                 {translate('portal', 'agr_body_en')}
-                <textarea rows={16} value={form.data.body_en} required onChange={(event) => form.setData('body_en', event.target.value)} />
+                <textarea {...bilingualBox('body_en', 'agreement-')} rows={16} value={form.data.body_en} required onChange={(event) => form.setData('body_en', event.target.value)} />
                 {form.errors.body_en && <span className="field-error" role="alert">{form.errors.body_en}</span>}
             </label>
             <button type="submit" className="button dark" disabled={form.processing}>

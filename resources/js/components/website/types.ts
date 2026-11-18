@@ -483,4 +483,6 @@ export type MdMessageBanglaCopy = {
     md_message_title?: string;
     md_message_company?: string;
     md_message_body?: string;
+    /** Website wording key → its built-in Bangla, for every wording that has a generated Bangla box (CR-06). */
+    twins?: Record<string, string>;
 };

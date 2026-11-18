@@ -22,7 +22,7 @@ final class LetterheadContacts
      */
     public static function lines(): array
     {
-        $custom = SiteCustomization::all();
+        $custom = SiteCustomization::inVisitorLanguage(SiteCustomization::all());
         $defaults = SiteCustomization::defaults();
         $setting = static fn (string $key): string => filled($custom[$key] ?? null) ? (string) $custom[$key] : (string) ($defaults[$key] ?? '');
         $phones = self::phones($setting('contact_phone'), SiteCustomization::secondPhone(), $setting('social_whatsapp'));

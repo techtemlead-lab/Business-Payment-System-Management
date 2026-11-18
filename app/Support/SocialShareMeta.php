@@ -26,7 +26,7 @@ final class SocialShareMeta
      */
     public static function homepage(): array
     {
-        $custom = SiteCustomization::all();
+        $custom = SiteCustomization::inVisitorLanguage(SiteCustomization::all());
         $customImage = trim((string) ($custom['og_image'] ?? ''));
         $usingDefault = $customImage === '';
         $image = self::absoluteUrl($usingDefault ? self::DefaultShareImage : $customImage, $usingDefault);
