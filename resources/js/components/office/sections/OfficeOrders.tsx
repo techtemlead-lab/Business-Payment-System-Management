@@ -274,13 +274,27 @@ export default function OfficeOrders({ data }: { data: Row }) {
         return `${base}/orders${query ? `?${query}` : ''}`;
     };
 
-    const everyStatus = [...orderStatuses, ...Object.keys(counts).filter((status) => !orderStatuses.includes(status))];
+    // Five plain choices instead of eleven statuses; an address that names one status still works.
+    const groups = [
+        { key: 'group_waiting', members: ['submitted', 'held'] },
+        { key: 'group_ship', members: ['approved', 'partially_dispatched'] },
+        { key: 'dispatched', members: ['dispatched'] },
+        { key: 'group_done', members: ['delivered', 'partly_delivered'] },
+        { key: 'group_closed', members: ['returned', 'rejected', 'cancelled'] },
+    ];
+    const lone = activeStatus !== '' && !groups.some((group) => group.key === activeStatus) ? [{ key: activeStatus, members: [activeStatus] }] : [];
     const statusTabs = {
         home: 'orders',
         label: translate('portal', 'col_status'),
         tabs: [
             { key: 'all', label: translate('portal', 'orders_tab_all'), href: statusHref(''), active: activeStatus === '', count: Object.values(counts).reduce((sum, count) => sum + Number(count || 0), 0) },
-            ...everyStatus.map((status) => ({ key: status, label: label(status, translate), href: statusHref(status), active: activeStatus === status, count: Number(counts[status] ?? 0) })),
+            ...[...groups, ...lone].map((group) => ({
+                key: group.key,
+                label: group.key === 'dispatched' || lone.includes(group as never) ? label(group.key, translate) : translate('office_orders', group.key),
+                href: statusHref(group.key),
+                active: activeStatus === group.key,
+                count: group.members.reduce((sum, status) => sum + Number(counts[status] ?? 0), 0),
+            })),
         ],
     };
 
