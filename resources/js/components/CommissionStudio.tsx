@@ -110,6 +110,7 @@ export default function CommissionStudio({ rules: initialRules, limits }: { rule
                         <div className="cs-guard-value">
                             {totalPercentage.toFixed(2)}% <span>/ {capLabel(dealerCap)} {translate('portal','cs_dealer_pool')} · {translate('portal','cs_sub_dealer')} {subDealerPercentage.toFixed(2)}% / {capLabel(subDealerCap)}</span>
                         </div>
+                        {!canEdit && <p className="notice" role="note">{translate('office_shell','view_only_note')}</p>}
                         {canEdit && (
                             <div className="hub-sub">
                                 {isOverAllocated
@@ -155,6 +156,25 @@ export default function CommissionStudio({ rules: initialRules, limits }: { rule
                 </div>
             </div>
 
+            {/* One plain table of who gets what; the boxes to change the rates are behind the button below. */}
+            <div className="panel table-panel cs-summary">
+                <div className="table-wrap">
+                    <table className="mt-table">
+                        <thead><tr><th>{translate('office_shell', 'rates_col_who')}</th><th>{translate('office_shell', 'rates_col_kind')}</th><th className="is-right">{translate('portal', 'cs_allocated_pct')}</th></tr></thead>
+                        <tbody>
+                            {Object.values(rules).map((r) => (
+                                <tr key={r.rule_key}>
+                                    <td>{((r: RuleRecord) => { const localized = translate('portal', `rule_name_${r.rule_key}`); return localized !== `rule_name_${r.rule_key}` ? localized : r.name; })(r)}</td>
+                                    <td>{label(String(r.category ?? ''), translate)}</td>
+                                    <td className="is-right">{(Number(r.percentage) || 0).toFixed(2)}%{r.is_active ? '' : ` · ${translate('office_shell', 'rates_off')}`}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <details className="cs-edit">
+                <summary className="button">{translate('office_shell', canEdit ? 'rates_change' : 'rates_see_boxes')}</summary>
             <div className="hub-grid is-xwide">
                 {Object.values(rules).length === 0 && (
                     <div className="hub-empty hub-span-all">
@@ -217,6 +237,7 @@ export default function CommissionStudio({ rules: initialRules, limits }: { rule
                     );
                 })}
             </div>
+            </details>
             <RewardFundCheckPanel check={pageData?.reward_fund_check} />
         </div>
     );

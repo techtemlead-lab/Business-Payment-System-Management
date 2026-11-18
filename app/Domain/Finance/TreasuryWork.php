@@ -65,7 +65,7 @@ final class TreasuryWork
         $finance = $viewer->owner() || $viewer->allows('finance');
         $tiles = [];
         if ($finance) {
-            $tiles[] = $this->tile('payments', '/payments', (int) DB::table('payment_claims')->where('status', 'pending')->count());
+            $tiles[] = $this->tile('payments', '/payments', PendingPaymentChecks::query()->count());
             $tiles[] = $this->tile('payouts', '/payouts-hub', (int) DB::table('withdrawals')->where('status', 'requested')->count());
             $tiles[] = $this->tile('settlements', '/settlements', 0);
             $tiles = [...$tiles, ...$this->commissionTiles()];

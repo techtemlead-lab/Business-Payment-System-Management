@@ -14,6 +14,9 @@ export interface DateInputProps extends Omit<React.InputHTMLAttributes<HTMLInput
     placeholder?: string;
 }
 
+/** Bangla digits typed on a Bangla keyboard read the same as 0-9. */
+const latinDigits = (value: string): string => value.replace(/[০-৯]/g, (digit) => String('০১২৩৪৫৬৭৮৯'.indexOf(digit)));
+
 export default function DateInput({
     value,
     defaultValue,
@@ -69,7 +72,7 @@ export default function DateInput({
         }
 
         // Check if user has entered a valid DD/MM/YYYY or DD-MM-YYYY date
-        const cleaned = raw.trim();
+        const cleaned = latinDigits(raw.trim());
         const dmyMatch = cleaned.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
         if (dmyMatch) {
             const d = parseInt(dmyMatch[1], 10);
@@ -83,7 +86,7 @@ export default function DateInput({
     };
 
     const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-        const raw = displayVal.trim();
+        const raw = latinDigits(displayVal.trim());
         if (!raw) return;
 
         const dmyMatch = raw.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);

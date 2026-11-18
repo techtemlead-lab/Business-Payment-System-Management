@@ -402,28 +402,46 @@ function dayInWords(iso: string, format: Intl.DateTimeFormatOptions): string {
     return new Date(year, month - 1, day).toLocaleDateString(document.documentElement.lang === 'bn' ? 'bn-BD' : 'en-GB', format);
 }
 
+/** The few things that need doing first. Only the busiest one is highlighted, so the list does not turn red all at once; the rest wait under a button. */
 function WorkQueue({ items, base }: { items: WorkItem[]; base: string }) {
     const translate = useT();
+    // A failed month close is an alarm: it always comes first and is never folded away.
+    const busy = items.filter((item) => item.count > 0).sort((a, b) => Number(b.alert === true) - Number(a.alert === true) || b.count - a.count);
+    const top = busy.slice(0, 3);
+    const rest = [...busy.slice(3), ...items.filter((item) => item.count <= 0)];
+
+    const row = (item: WorkItem, first: boolean) => {
+        const query = item.query ? `?${new URLSearchParams(item.query).toString()}` : '';
+        const state = item.count <= 0 ? 'is-clear' : item.alert ? 'has-work is-alert' : first ? 'has-work is-top' : 'has-work';
+
+        return (
+            <li key={item.key} className={state}>
+                <Link href={`${base}/${item.section}${query}`}>
+                    <strong>{number(item.count)}</strong>
+                    <span>
+                        {item.key === 'chats_unanswered' ? translate('joining', 'dash_chats_unanswered') : (item.label ?? translate('portal', `dash_work_${item.key}`))}
+                        {item.amount != null && <> · {money(item.amount)}</>}
+                        {item.key === 'chats_unanswered' && item.count > 0 && item.oldest_days != null && <small className="cell-sub">{translate('joining', 'dash_chats_oldest', { days: number(item.oldest_days) })}</small>}
+                    </span>
+                    <ChevronRight size={16} aria-hidden="true" />
+                </Link>
+            </li>
+        );
+    };
 
     return (
         <section className="panel admin-work-queue" data-tour="admin-work-queue" aria-label={translate('portal', 'dash_work_title')}>
             <div className="panel-heading">
                 <h2>{translate('portal', 'dash_work_title')}</h2>
             </div>
-            <ul>
-                {items.map((item) => {
-                    const query = item.query ? `?${new URLSearchParams(item.query).toString()}` : '';
-                    return (
-                        <li key={item.key} className={item.alert ? 'has-work is-alert' : item.count > 0 ? 'has-work' : 'is-clear'}>
-                            <Link href={`${base}/${item.section}${query}`}>
-                                <strong>{number(item.count)}</strong>
-                                <span>{item.key === 'chats_unanswered' ? translate('joining', 'dash_chats_unanswered') : (item.label ?? translate('portal', `dash_work_${item.key}`))}{item.amount != null && <> · {money(item.amount)}</>}{item.key === 'chats_unanswered' && item.count > 0 && item.oldest_days != null && <small className="cell-sub">{translate('joining', 'dash_chats_oldest', { days: number(item.oldest_days) })}</small>}</span>
-                                <ChevronRight size={16} aria-hidden="true" />
-                            </Link>
-                        </li>
-                    );
-                })}
-            </ul>
+            {top.length === 0 && <p className="muted">{translate('office_home', 'nothing_waiting')}</p>}
+            <ul>{top.map((item, index) => row(item, index === 0))}</ul>
+            {rest.length > 0 && (
+                <details className="admin-work-more">
+                    <summary>{translate('office_home', 'work_more', { count: number(rest.length) })}</summary>
+                    <ul>{rest.map((item) => row(item, false))}</ul>
+                </details>
+            )}
         </section>
     );
 }

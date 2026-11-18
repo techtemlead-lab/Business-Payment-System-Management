@@ -125,3 +125,7 @@ Schedule::command('notices:prune')->dailyAt('04:50')->timezone('Asia/Dhaka')->wi
 // Month-start running totals of the journal keep the trial balance quick as the ledger grows; no figure changes.
 Schedule::command('finance:snapshot-opening-balances')->dailyAt('03:45')->timezone('Asia/Dhaka')->withoutOverlapping(60)->onOneServer()
     ->onFailure(fn () => Log::warning('Scheduled journal opening-balance snapshot failed.'));
+
+// A notice nobody opened for 30 days is marked read, so the bell count does not stay at "99+" for ever.
+Schedule::command('notices:read-old')->dailyAt('04:50')->timezone('Asia/Dhaka')->withoutOverlapping(30)->onOneServer()
+    ->onFailure(fn () => Log::warning('Scheduled marking of old notices as read failed.'));

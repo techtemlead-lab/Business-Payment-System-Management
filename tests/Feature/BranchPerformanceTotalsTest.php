@@ -106,7 +106,8 @@ class BranchPerformanceTotalsTest extends TestCase
         $this->assertCount(32, $rows, 'Header, 30 orders and the totals row. The rejected order is left out, as on screen.');
         $this->assertSame(__('portal.branch_perf_outstanding'), $rows[0][7]);
         $this->assertSame([2000.0, 2000.0, 500.0, 800.0], array_map('floatval', array_slice($rows[31], 5, 4)), 'The file adds up to what the screen shows.');
-        $this->assertSame(__('portal.report_col_ordered'), $rows[0][9]);
+        $this->assertSame(__('office_shell.branch_perf_delivered_value'), $rows[0][5]);
+        $this->assertSame(__('office_shell.branch_perf_ordered_total'), $rows[0][9]);
 
         $branchRows = $this->rows($this->actingAs($finance)->onPortal('manage')->get('/exports/branch-performance?period=month&branch_id='.$this->dhaka->id)->assertOk());
         $this->assertCount(22, $branchRows);

@@ -16,6 +16,8 @@ export type MoneyColumn<T> = {
     align?: 'left' | 'right';
     /** Key in totals.sums shown under this column. */
     total?: string;
+    /** A few words under the total when it counts fewer rows than the column above it shows (e.g. delivered goods only). */
+    totalNote?: string;
     /** Where the column goes when a row becomes a card on a phone. */
     phone?: 'title' | 'sub' | 'amount' | 'hide';
     /** Name the value on a phone card, for a bare number that would mean nothing alone. */
@@ -455,7 +457,7 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
                                     {selecting && <td />}
                                     {columns.map((column, index) => (
                                         <td key={column.key} className={cellClass(column)}>
-                                            {index === 0 ? totalLabel : (column.total !== undefined && sums?.[column.total] !== undefined ? money(sums[column.total]) : null)}
+                                            {index === 0 ? totalLabel : (column.total !== undefined && sums?.[column.total] !== undefined ? <>{money(sums[column.total])}{column.totalNote && <small className="cell-sub">{column.totalNote}</small>}</> : null)}
                                         </td>
                                     ))}
                                     {hasOpenColumn && <td className="table-pin-action" />}
@@ -486,7 +488,7 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
                             {totalColumns.map((column) => (
                                 <div key={column.key} className="mt-card-total-line">
                                     <span>{column.title}</span>
-                                    <b>{money(sums?.[column.total as string])}</b>
+                                    <b>{money(sums?.[column.total as string])}{column.totalNote && <small className="cell-sub">{column.totalNote}</small>}</b>
                                 </div>
                             ))}
                         </li>

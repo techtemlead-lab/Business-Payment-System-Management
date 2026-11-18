@@ -82,5 +82,6 @@ return [
     'settings_link_audit' => 'কাজের রেকর্ড',
     'settings_link_privacy_requests' => 'তথ্যের অনুরোধ',
     'settings_link_data_cleanup' => 'পুরোনো তথ্য মুছুন',
+    'settings_link_errors' => 'সাইটের সমস্যার তালিকা',
     'settings_empty' => 'আপনার জন্য এখানে কোনো সেটিং নেই।',
 ];

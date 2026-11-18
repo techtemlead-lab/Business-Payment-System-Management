@@ -75,6 +75,7 @@ const VIEW_WORDS: { value: string; word: string }[] = [
     { value: 'today', word: 'orders_period_today' },
     { value: 'week', word: 'orders_period_week' },
     { value: 'month', word: 'orders_period_month' },
+    { value: 'last30', word: 'orders_period_last30' },
     { value: 'year', word: 'orders_period_year' },
     { value: 'day', word: 'mt_view_day' },
     { value: 'custom', word: 'mt_view_range' },
@@ -248,7 +249,7 @@ export default function BranchPerformanceHub({ performance, branch_options = [] 
     };
 
     const chooseView = (view: string, dates?: ReportDates) => {
-        if (view === 'today' || view === 'month') {
+        if (view === 'today' || view === 'month' || view === 'last30') {
             visit({ period: view });
 
             return;

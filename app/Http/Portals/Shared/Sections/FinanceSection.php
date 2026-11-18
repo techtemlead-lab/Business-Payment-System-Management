@@ -3,6 +3,7 @@
 namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Inventory\BranchScope;
+use App\Support\AuditSubjectNames;
 use App\Support\LocalDigits;
 use App\Support\Money;
 use App\Support\MoneyTable;
@@ -148,7 +149,7 @@ final class FinanceSection implements WorkspaceSection
         }
         $locale = app()->getLocale();
 
-        return ['work_log_table' => MoneyTable::make($request, $events, new MoneyTableSpec(
+        $table = MoneyTable::make($request, $events, new MoneyTableSpec(
             dateColumn: 'audit_events.created_at',
             search: [],
             filters: [new MoneyTableFilter('action', (string) __('portal.audit_action'), 'audit_events.action', DB::table('audit_events')->distinct()->pluck('action')
@@ -158,7 +159,16 @@ final class FinanceSection implements WorkspaceSection
             defaultSort: 'created_at',
             tieBreaker: 'audit_events.id',
             defaultPeriod: null,
-        ))];
+        ));
+        // Ids and codes stored as the subject are shown as an order number or a name.
+        $readable = AuditSubjectNames::for(collect($table['rows']->items())->pluck('subject')->filter()->map(strval(...))->all());
+        $table['rows']->through(function (object $row) use ($readable): object {
+            $row->subject = $readable[(string) $row->subject] ?? $row->subject;
+
+            return $row;
+        });
+
+        return ['work_log_table' => $table];
     }
 
     /**

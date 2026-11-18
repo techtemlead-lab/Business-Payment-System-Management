@@ -54,6 +54,7 @@ export const SECTION_LABEL_KEYS: Record<string, string> = {
     'finance-settings': 'finance_settings',
     accounting: 'accounting',
     'access-management': 'access_management', 'video-marketing': 'video_marketing',
+    'stock-lots': 'stock_lots', 'partner-scorecard': 'partner_scorecard',
     overview: 'overview', orders: 'orders', order: 'order_details', purchase: 'purchase', catalog: 'catalog', accounts: 'accounts',
     inventory: 'inventory', deliveries: 'deliveries', payments: 'payments', network: 'network',
     policies: 'policies', reports: 'reports',
@@ -340,7 +341,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     }
     // Owners open the account lists to reset or see passwords, and the full partner tree (PortalCatalog::assertSection).
     if (['super_admin', 'md', 'chairman'].includes(role)) ['accounts', 'sub-dealers', 'employees', 'network-tree'].forEach((item) => items.add(item));
-    if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('data-cleanup');
+    if (ownerPortal && role === 'super_admin') items.add('data-cleanup');
     if (ownerPortal && OWNER_ROLES.includes(role)) items.add('errors');
     if (ownerPortal && OWNER_ROLES.includes(role)) items.add('login-rules');
     // The website visitor count is for owners only (PortalCatalog::assertSection).
@@ -348,10 +349,10 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     // Which reason and note boxes are asked is for owners only (PortalCatalog::assertSection).
     if (ownerPortal && OWNER_ROLES.includes(role)) items.add('reason-fields');
     if (ownerPortal && OWNER_ROLES.includes(role)) items.add('courier-areas');
-    if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('sales-kit');
-    if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('schemes');
-    if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('contests');
-    if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('privacy-requests');
+    if (ownerPortal && role === 'super_admin') items.add('sales-kit');
+    if (ownerPortal && role === 'super_admin') items.add('schemes');
+    if (ownerPortal && role === 'super_admin') items.add('contests');
+    if (ownerPortal && role === 'super_admin') items.add('privacy-requests');
     if (prescriber) items.add('prescriptions');
     if (capabilities.some((cap) => ['catalog', 'pricing', 'inventory', 'orders', 'finance'].includes(cap))) items.add('catalog');
     if (capabilities.includes('inventory')) {

@@ -53,7 +53,7 @@ class OperationsController extends Controller
         'policy_schedules' => ['search' => ['u.name', 'proposer.name', 's.reason', 's.scope'], 'status' => 's.status', 'statuses' => ['draft', 'approved', 'rejected', 'cancelled']],
         'reserve_requests' => ['search' => ['u.name', 'r.payee_name', 'r.program', 'r.payment_reference', 'r.reason'], 'status' => 'r.status', 'statuses' => ['requested', 'approved', 'credited', 'rejected', 'paid', 'cancelled']],
         'clawback_recoveries' => ['search' => ['payment_reference'], 'status' => null, 'statuses' => []],
-        'held_allocations' => ['search' => ['u.name', 'a.category', 'a.order_id'], 'status' => null, 'statuses' => []],
+        'held_allocations' => ['search' => ['u.name', 'a.category', 'o.number'], 'status' => null, 'statuses' => []],
         'opening_holds' => ['search' => ['u.name', 'e.reference'], 'status' => null, 'statuses' => []],
         'opening_reviews' => ['search' => ['fingerprint', 'source_reference'], 'status' => null, 'statuses' => []],
     ];
@@ -160,8 +160,9 @@ class OperationsController extends Controller
             }
         }
         if ($section === 'commission-holds') {
-            $tables['held_allocations'] = DB::table('commission_allocations as a')->join('users as u', 'u.id', '=', 'a.user_id')->where('a.status', 'held')
-                ->select(['a.id', 'u.name', 'u.status as partner_status', 'a.order_id', 'a.category', 'a.amount', 'a.metadata'])->orderBy('a.id');
+            // Partner, order number, kind, amount and how long it has been held. Ids and raw metadata stay out of the list.
+            $tables['held_allocations'] = DB::table('commission_allocations as a')->join('users as u', 'u.id', '=', 'a.user_id')->leftJoin('orders as o', 'o.id', '=', 'a.order_id')->where('a.status', 'held')
+                ->select(['a.id', 'u.name', 'u.status as partner_status', 'o.number', 'a.category', 'a.amount', 'a.created_at'])->orderBy('a.created_at')->orderBy('a.id');
         }
         if ($section === 'commission-holds') {
             $tables['opening_holds'] = DB::table('opening_balance_entries as e')->join('users as u', 'u.id', '=', 'e.user_id')

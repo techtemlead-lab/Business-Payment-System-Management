@@ -72,6 +72,7 @@ export default function IdentityReviewHub() {
                 <button type="button" aria-pressed={status === 'cleared'} onClick={() => choose('cleared')}>{translate('productivity', 'review_tab_cleared')}</button>
             </div>
             {error && <p className="field-error" role="alert">{error}</p>}
+            {!listing && !error && <p className="set-line" role="status">{translate('office_shell', 'loading_list')}</p>}
             {listing && listing.rows.length === 0 && <p className="set-line">{translate('productivity', 'review_empty')}</p>}
             {listing && listing.rows.length > 0 && (
                 <section className="panel table-panel">

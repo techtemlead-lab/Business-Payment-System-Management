@@ -17,6 +17,14 @@ final class OrderListFilter
     public const DatedSections = ['orders', 'deliveries', 'reports'];
 
     /** Order states that still have goods waiting to be sent. */
+    /** The order list's three plain choices (waiting for a decision / to ship / finished) and the rest, each a set of statuses. */
+    public const StatusGroups = [
+        'group_waiting' => ['submitted', 'held'],
+        'group_ship' => ['approved', 'partially_dispatched'],
+        'group_done' => ['delivered', 'partly_delivered'],
+        'group_closed' => ['returned', 'rejected', 'cancelled'],
+    ];
+
     public const AwaitingDispatch = ['approved', 'partially_dispatched', 'dispatched'];
 
     /** Order states that count as a confirmed sale. */
@@ -58,6 +66,9 @@ final class OrderListFilter
         if ($chosenStatus !== '' && ! $overdueDeliveries) {
             if ($chosenStatus === self::CameBack) {
                 $query->whereRaw(self::cameBackSql());
+            } elseif (isset(self::StatusGroups[$chosenStatus])) {
+                $query->whereIn('status', self::StatusGroups[$chosenStatus])
+                    ->when(in_array('approved', self::StatusGroups[$chosenStatus], true), fn (Builder $orders) => $orders->whereRaw('NOT '.self::cameBackSql()));
             } else {
                 $query->where('status', $chosenStatus)
                     ->when($chosenStatus === 'cancelled' || ($chosenStatus === 'approved' && $section !== 'deliveries'), fn (Builder $orders) => $orders->whereRaw('NOT '.self::cameBackSql()));
@@ -94,7 +105,7 @@ final class OrderListFilter
     }
 
     /**
-     * Resolve a period keyword (today, week, month, last_month, year, day, custom)
+     * Resolve a period keyword (today, week, month, last30, last_month, year, day, custom)
      * into a UTC range using the business timezone (Asia/Dhaka).
      *
      * @return array{from: CarbonImmutable, until: CarbonImmutable}|null
@@ -111,6 +122,7 @@ final class OrderListFilter
         [$start, $end] = match (true) {
             $period === 'today' => [$now->startOfDay(), $now->endOfDay()],
             $period === 'week' => [$now->startOfWeek(CarbonInterface::SUNDAY), $now->endOfWeek(CarbonInterface::SATURDAY)],
+            $period === 'last30' => [$now->subDays(29)->startOfDay(), $now->endOfDay()],
             $period === 'month' => [$now->startOfMonth(), $now->endOfMonth()],
             $period === 'last_month' => [$now->subMonthNoOverflow()->startOfMonth(), $now->subMonthNoOverflow()->endOfMonth()],
             $period === 'year' => [$now->startOfYear(), $now->endOfYear()],

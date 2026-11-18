@@ -30,12 +30,17 @@ final class BranchPerformance
     {
         $timezone = (string) config('madina.business_timezone', config('app.timezone', 'Asia/Dhaka'));
         $now = CarbonImmutable::now($timezone);
-        $period = in_array($period, ['today', 'month', 'custom'], true) ? $period : 'month';
+        $period = in_array($period, ['today', 'month', 'last30', 'custom'], true) ? $period : 'last30';
 
         if ($period === 'today') {
             $start = $now->startOfDay();
             $end = $now->endOfDay();
             $label = 'today';
+        } elseif ($period === 'last30') {
+            // Opening the report never lands on an empty month: the last 30 days, today included.
+            $start = $now->subDays(29)->startOfDay();
+            $end = $now->endOfDay();
+            $label = 'last30';
         } elseif ($period === 'custom' && is_string($from) && is_string($to) && $from !== '' && $to !== '') {
             $start = CarbonImmutable::parse($from, $timezone)->startOfDay();
             $end = CarbonImmutable::parse($to, $timezone)->endOfDay();

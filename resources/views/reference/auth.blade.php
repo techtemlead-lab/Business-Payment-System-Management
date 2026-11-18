@@ -112,4 +112,5 @@
         </div>
     </section>
 </main>
+@include('partials.auth-ready')
 @endsection

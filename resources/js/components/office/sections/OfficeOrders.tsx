@@ -66,8 +66,11 @@ export function parcelStepLabel(parcel: Row, translate: TranslateFn): string {
     return translate('courier', `status_${parcel.courier_status ?? 'waiting_pickup'}`);
 }
 
+/** The order number opens the whole order in one click; the rest of the row still opens the quick view. */
 export function OrderNumberCell({ row }: { row: Row }) {
-    return <b>{row.number}</b>;
+    const { portalBase: base } = usePage<any>().props;
+
+    return <Link className="record-link" href={`${base}/orders/${row.id}`} onClick={(event) => event.stopPropagation()}><b>{row.number}</b></Link>;
 }
 
 export function OrderPartnerCell({ row }: { row: Row }) {
@@ -102,6 +105,7 @@ export function orderListColumns(translate: TranslateFn, { overdue = false }: { 
             sortKey: 'total',
             money: true,
             total: 'value',
+            totalNote: translate('office_orders', 'total_delivered_only'),
             phone: 'amount',
             render: (row) => (
                 <>
@@ -114,7 +118,7 @@ export function orderListColumns(translate: TranslateFn, { overdue = false }: { 
                 </>
             ),
         },
-        { key: 'paid', title: translate('office_orders', 'col_given'), sortKey: 'paid', money: true, total: 'paid', phone: 'hide', render: (row) => <>{money(row.paid)}{row.refunded_amount != null && <small className="cell-sub" data-testid="order-refunded">{translate('office_orders', 'refunded_part', { amount: money(row.refunded_amount) })}</small>}</> },
+        { key: 'paid', title: translate('office_orders', 'col_given'), sortKey: 'paid', money: true, total: 'paid', totalNote: translate('office_orders', 'total_delivered_only'), phone: 'hide', render: (row) => <>{money(row.paid)}{row.refunded_amount != null && <small className="cell-sub" data-testid="order-refunded">{translate('office_orders', 'refunded_part', { amount: money(row.refunded_amount) })}</small>}</> },
         { key: 'to_pay', title: translate('office_orders', 'col_to_pay'), sortKey: 'to_pay', money: true, total: 'to_pay', phone: 'hide', render: (row) => money(orderDue(row)) },
         ...(overdue ? [
             { key: 'days_since_sent', title: translate('portal', 'col_days_since_sent'), sortKey: 'days_since_sent', align: 'right' as const, phone: 'hide' as const, render: (row: Row) => (row.days_since_sent != null ? <AgingPill days={Number(row.days_since_sent)} /> : '—') },
@@ -270,13 +274,27 @@ export default function OfficeOrders({ data }: { data: Row }) {
         return `${base}/orders${query ? `?${query}` : ''}`;
     };
 
-    const everyStatus = [...orderStatuses, ...Object.keys(counts).filter((status) => !orderStatuses.includes(status))];
+    // Five plain choices instead of eleven statuses; an address that names one status still works.
+    const groups = [
+        { key: 'group_waiting', members: ['submitted', 'held'] },
+        { key: 'group_ship', members: ['approved', 'partially_dispatched'] },
+        { key: 'dispatched', members: ['dispatched'] },
+        { key: 'group_done', members: ['delivered', 'partly_delivered'] },
+        { key: 'group_closed', members: ['returned', 'rejected', 'cancelled'] },
+    ];
+    const lone = activeStatus !== '' && !groups.some((group) => group.key === activeStatus) ? [{ key: activeStatus, members: [activeStatus] }] : [];
     const statusTabs = {
         home: 'orders',
         label: translate('portal', 'col_status'),
         tabs: [
             { key: 'all', label: translate('portal', 'orders_tab_all'), href: statusHref(''), active: activeStatus === '', count: Object.values(counts).reduce((sum, count) => sum + Number(count || 0), 0) },
-            ...everyStatus.map((status) => ({ key: status, label: label(status, translate), href: statusHref(status), active: activeStatus === status, count: Number(counts[status] ?? 0) })),
+            ...[...groups, ...lone].map((group) => ({
+                key: group.key,
+                label: group.key === 'dispatched' || lone.includes(group as never) ? label(group.key, translate) : translate('office_orders', group.key),
+                href: statusHref(group.key),
+                active: activeStatus === group.key,
+                count: group.members.reduce((sum, status) => sum + Number(counts[status] ?? 0), 0),
+            })),
         ],
     };
 

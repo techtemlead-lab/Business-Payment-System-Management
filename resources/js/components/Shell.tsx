@@ -15,6 +15,7 @@ import NotificationBell from './NotificationBell';
 import GlobalSearchLauncher from './GlobalSearchLauncher';
 import OnboardingTour from './OnboardingTour';
 import { useNativeFieldMessages } from '../shared/useNativeFieldMessages';
+import TextSizeToggle from './TextSizeToggle';
 import ThemeToggle from './ThemeToggle';
 import { t, useT, useTranslations } from '../shared/i18n/t';
 import {
@@ -162,8 +163,9 @@ export default function Shell({ section, children, action }: { section: string; 
     const ownerPortal = portal === 'sadmin';
     const base = portalBase || '';
     const shellClass = portal === 'sadmin' ? 'owner-shell' : (portal === 'manage' || workspaceMode === 'staff') ? 'company-shell' : portal === 'subdealer' ? 'subdealer-shell' : 'dealer-shell';
+    const seniorRole = user.role === 'md' || user.role === 'chairman' ? String(user.role) : null;
     const dashboardTitle = ownerPortal
-        ? translate('portal', 'owner_dashboard')
+        ? (seniorRole ? translate('office_shell', `dashboard_${seniorRole}`) : translate('portal', 'owner_dashboard'))
         : staff
             ? translate('portal', 'company_dashboard')
             : translate('portal', portal === 'subdealer' ? 'subdealer_workspace' : 'dealer_workspace');
@@ -187,6 +189,9 @@ export default function Shell({ section, children, action }: { section: string; 
 
     const hubLabel = (() => {
         if (ownerPortal) {
+            if (seniorRole) {
+                return translate('office_shell', `workspace_${seniorRole}`);
+            }
             const shop = typeof user.shop_name === 'string' && user.shop_name.trim() !== '' ? user.shop_name.trim() : null;
             return shop
                 ? translate('portal', 'owner_hub_named', { shop })
@@ -196,7 +201,10 @@ export default function Shell({ section, children, action }: { section: string; 
             return translate('portal', 'staff_terminal');
         }
         if (staff) {
-            return translate('portal', 'company_workspace');
+            const roleKey = `staff_role_${user.role}`;
+            const roleName = translate('portal', roleKey);
+
+            return roleName === roleKey ? translate('portal', 'company_workspace') : roleName;
         }
         if (user.role === 'sub_dealer') {
             return translate('portal', 'subdealer_workspace');
@@ -587,6 +595,7 @@ export default function Shell({ section, children, action }: { section: string; 
                         >
                             <Globe size={19} />
                         </a>
+                        {staff && <TextSizeToggle />}
                         <ThemeToggle compact />
                         <LanguageSwitcher compact />
                         <button

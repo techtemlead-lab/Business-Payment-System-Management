@@ -2403,8 +2403,12 @@ dialog.portal-modal::backdrop{
 .admin-work-queue li a{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:10px;padding:8px 10px;border:1px solid #e8ecf2;border-radius:10px;color:#0f172a;text-decoration:none;background:#fff;transition:border-color .15s,background .15s}
 .admin-work-queue li a:hover,.admin-work-queue li a:focus-visible{border-color:#2e3192;background:#f5f6ff}
 .admin-work-queue li strong{font-size:18px;line-height:1;text-align:center;color:#94a3b8;font-variant-numeric:tabular-nums}
-.admin-work-queue li.has-work strong{color:#c2410c}
-.admin-work-queue li.is-alert strong{color:#b42318}
+.admin-work-queue li.is-top strong{color:#c2410c}
+.admin-work-queue li.has-work:not(.is-top) strong{color:#0f172a}
+.admin-work-more{margin-top:8px}
+.admin-work-more>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-size:14px;font-weight:600;color:#2e3192}
+.admin-work-more ul{margin-top:6px}
+.admin-work-queue li.has-work.is-alert strong{color:#b42318}
 .admin-work-queue li.is-alert a{border-color:#f1b5ae;background:#fff5f4}
 .admin-work-queue li span{font-size:13px;font-weight:600}
 .admin-work-queue li svg{color:#94a3b8}

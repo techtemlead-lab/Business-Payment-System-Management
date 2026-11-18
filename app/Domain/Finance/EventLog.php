@@ -43,7 +43,8 @@ final class EventLog
             defaultSort: 'date',
             tieBreaker: 'x.id',
             sums: ['amount' => 'x.amount'],
-            defaultPeriod: 'today',
+            defaultPeriod: 'last30',
+            extraPeriods: ['last30'],
             sumsWhen: fn (array $filters): bool => isset($filters['action']) || isset($filters['fund']),
             countCap: 100000,
         ));
