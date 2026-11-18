@@ -13,7 +13,9 @@
 # Run as root from cron, e.g. /etc/cron.d/madina-backup:
 #   30 3 * * * root /opt/madina-nhac/infra/ops/host-backup.sh >> /var/log/madina-host-backup.log 2>&1
 # Settings: /etc/madina-ops.env (see infra/ops/madina-ops.env.example). Read-only for the live database.
-set -Eeuo pipefail
+set -euo pipefail
+# fd 3 is the real log: a failing step may have its output redirected into a file (the database dump).
+exec 3>&1
 umask 077
 
 ENV_FILE=${MADINA_OPS_ENV:-/etc/madina-ops.env}
@@ -29,10 +31,21 @@ RCLONE_DAILY_KEEP_DAYS=${RCLONE_DAILY_KEEP_DAYS:-35}
 RCLONE_MONTHLY_KEEP_DAYS=${RCLONE_MONTHLY_KEEP_DAYS:-400}
 HEARTBEAT_URL=${HOST_BACKUP_HEARTBEAT_URL:-}
 
-log() { echo "$(date '+%Y-%m-%d %H:%M:%S') host-backup: $*"; logger -t madina-host-backup -- "$*" 2>/dev/null || true; }
+log() { echo "$(date '+%Y-%m-%d %H:%M:%S') host-backup: $*" >&3; logger -t madina-host-backup -- "$*" 2>/dev/null || true; }
 ping_heartbeat() { [ -n "$HEARTBEAT_URL" ] && curl -fsS -m 10 --retry 3 -o /dev/null --data-raw "${2:-}" "${HEARTBEAT_URL%/}$1" || true; }
-fail() { log "FAILED: $*"; ping_heartbeat /fail "$*"; exit 1; }
-trap 'fail "line $LINENO: $BASH_COMMAND"' ERR
+reported=false
+finished=false
+fail() { log "FAILED: $*"; ping_heartbeat /fail "$*"; reported=true; exit 1; }
+# Runs once at the end; set -e stops the script at the first failing step.
+on_exit() {
+    local status=$?
+    rm -rf "${work:-}"
+    if [ "$finished" != true ] && [ "$reported" != true ]; then
+        log "FAILED: a step ended with exit $status; see the lines above"
+        ping_heartbeat /fail "exit $status"
+    fi
+}
+trap on_exit EXIT
 
 compose() { (cd "$STACK_DIR" && docker compose --env-file .env.production -f compose.production.yaml "$@"); }
 volume_dir() { docker volume inspect --format '{{ .Mountpoint }}' "${COMPOSE_PROJECT}_$1"; }
@@ -42,7 +55,6 @@ volume_dir() { docker volume inspect --format '{{ .Mountpoint }}' "${COMPOSE_PRO
 mkdir -p "$HOST_BACKUP_DIR"
 stamp=$(date -u +%Y%m%d-%H%M%S)
 work=$(mktemp -d "$HOST_BACKUP_DIR/.work-XXXXXX")
-trap 'rm -rf "$work"' EXIT
 ping_heartbeat /start
 
 log "dumping the database"
@@ -109,6 +121,6 @@ else
     log "RCLONE_REMOTE is empty: no off-site copy made (the backups are still only on this server)"
 fi
 
-trap - ERR
+finished=true
 ping_heartbeat "" "ok $(basename "$file")"
 log "done"
