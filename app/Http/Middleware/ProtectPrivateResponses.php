@@ -66,7 +66,8 @@ class ProtectPrivateResponses
             "default-src 'self'{$previewSource}{$domainHosts}; base-uri 'self'; object-src 'none'; "
             ."frame-ancestors 'self'{$domainHosts}; form-action {$formAction}; "
             ."frame-src 'self'{$domainHosts} https://maps.google.com https://www.google.com https://maps.googleapis.com{$videoFrames}; "
-            ."script-src 'self' 'nonce-{$nonce}' 'unsafe-inline'{$officeTools}{$domainHosts}{$viteDev}; "
+            // No 'unsafe-inline' for scripts (SA-10): every inline script carries the nonce. Styles keep it, as React sets inline styles.
+            ."script-src 'self' 'nonce-{$nonce}'{$officeTools}{$domainHosts}{$viteDev}; "
             ."style-src 'self' 'unsafe-inline' https://fonts.bunny.net{$domainHosts}{$viteDev}; "
             ."img-src 'self' data: blob:{$domainHosts}{$viteDev}; "
             ."font-src 'self' data: https://fonts.bunny.net{$fontFiles}{$domainHosts}{$viteDev}; "

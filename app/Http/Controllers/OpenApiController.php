@@ -32,10 +32,11 @@ class OpenApiController extends Controller
             ],
             'components' => [
                 'securitySchemes' => [
-                    'BearerAuth' => [
-                        'type' => 'http',
-                        'scheme' => 'bearer',
-                        'bearerFormat' => 'JWT / Session Token',
+                    // The API is used from a signed-in browser session (cookie + CSRF); there are no bearer tokens.
+                    'SessionCookie' => [
+                        'type' => 'apiKey',
+                        'in' => 'cookie',
+                        'name' => (string) config('session.cookie'),
                     ],
                     'CorrelationId' => [
                         'type' => 'apiKey',
@@ -75,7 +76,7 @@ class OpenApiController extends Controller
                 ],
             ],
             'security' => [
-                ['BearerAuth' => []],
+                ['SessionCookie' => []],
                 ['CorrelationId' => []],
             ],
             'paths' => [
