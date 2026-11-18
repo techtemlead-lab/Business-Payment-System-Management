@@ -36,6 +36,12 @@ final class TreasuryAccess
         return $user->status === 'active' && ($user->owner() || $user->allows('finance'));
     }
 
+    /** The profit and loss shows the owners' share, so it is for an owner on the owner panel only. */
+    public static function mayOpenProfit(User $user, string $portal): bool
+    {
+        return $user->status === 'active' && self::showsOwnerFunds($user, $portal);
+    }
+
     /** The owners' fund exists only for an owner on the owner panel. */
     public static function showsOwnerFunds(User $user, string $portal): bool
     {

@@ -75,6 +75,47 @@ final class FinanceSettings
     }
 
     /**
+     * "Pay matured commission on its own" (MA-15). Commission waiting out the cooling-off days is
+     * paid by the 15-minute job only while this is on. Until the owner saves it, the server setting
+     * MADINA_AUTO_RELEASE_MATURED decides, and the page says which one is in force.
+     *
+     * @return array{enabled: bool, version: int, from_server_setting: bool}
+     */
+    public function autoReleaseMatured(): array
+    {
+        $row = DB::table('business_settings')->where('key', 'auto_release_matured')->first();
+        $stored = $row ? json_decode($row->value, true, 512, JSON_THROW_ON_ERROR) : [];
+
+        return [
+            'enabled' => (bool) ($stored['enabled'] ?? filter_var(config('madina.auto_release_matured'), FILTER_VALIDATE_BOOLEAN)),
+            'version' => $row->version ?? 0,
+            'from_server_setting' => ! array_key_exists('enabled', $stored),
+        ];
+    }
+
+    public function saveAutoReleaseMatured(User $actor, bool $enabled, int $version, string $reason): void
+    {
+        DB::transaction(function () use ($actor, $enabled, $version, $reason): void {
+            CommissionWallet::lock();
+            // Paying money out with no person in between is the owner's call alone.
+            abort_unless($actor->fresh()->role === 'super_admin', 403);
+            $before = $this->autoReleaseMatured();
+            if ($version !== $before['version']) {
+                throw ValidationException::withMessages(['version' => __('portal.err_fin_wd_stale')]);
+            }
+            $after = ['enabled' => $enabled];
+            $stored = DB::table('business_settings')->where('key', 'auto_release_matured')->first();
+            DB::table('business_settings')->updateOrInsert(['key' => 'auto_release_matured'], [
+                'value' => json_encode($after, JSON_THROW_ON_ERROR), 'version' => $version + 1,
+                'updated_by' => $actor->id, 'created_at' => $stored->created_at ?? now(), 'updated_at' => now(),
+            ]);
+            Audit::record($actor->id, 'finance.auto_release_matured_changed', 'auto_release_matured', [
+                'before' => ['enabled' => $before['enabled']], 'after' => $after, 'reason' => $reason,
+            ]);
+        }, 3);
+    }
+
+    /**
      * Identity papers that count as "approved ID papers" for the first withdrawal.
      * KYC documents have no separate approval step: only office staff allowed to
      * handle identity papers can upload them, after checking the originals, so a

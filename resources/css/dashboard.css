@@ -2404,6 +2404,8 @@ dialog.portal-modal::backdrop{
 .admin-work-queue li a:hover,.admin-work-queue li a:focus-visible{border-color:#2e3192;background:#f5f6ff}
 .admin-work-queue li strong{font-size:18px;line-height:1;text-align:center;color:#94a3b8;font-variant-numeric:tabular-nums}
 .admin-work-queue li.has-work strong{color:#c2410c}
+.admin-work-queue li.is-alert strong{color:#b42318}
+.admin-work-queue li.is-alert a{border-color:#f1b5ae;background:#fff5f4}
 .admin-work-queue li span{font-size:13px;font-weight:600}
 .admin-work-queue li svg{color:#94a3b8}
 .admin-month-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:10px}

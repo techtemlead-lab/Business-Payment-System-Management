@@ -449,6 +449,8 @@ function staffMothers(available: Set<string>): NavMother[] {
         [
             mother('finance', 'treasury', pick(available, available.has('treasury') ? ['treasury'] : ['treasury-orders'])),
             mother('payouts', 'payouts_hub', pick(available, ['payouts-hub'])),
+            // MA-15: month close and the "pay matured commission now" button were in no menu.
+            mother('settlements', 'settlements', pick(available, ['settlements'])),
             mother('commissions', 'nav_commission_hub', pick(available, ['commissions'])),
         ],
         [

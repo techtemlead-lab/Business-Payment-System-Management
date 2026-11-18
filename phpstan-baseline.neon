@@ -1519,12 +1519,6 @@ parameters:
 			path: app/Http/Portals/Shared/Sections/NetworkSection.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, name\: string, dealer_code\: string\|null, phone\: string, district\: string\|null, division\: string\|null, sponsor_id\: int\<0, max\>\|null, sponsor_name\: mixed, role\: string, status\: string, rank\: mixed, lifetime_purchases\: float, created_at\: string\|null, sales_total\: string, sales_month\: string, qualifying_volume_month\: string, sponsor_earned\: string, viewer_earned\?\: string, viewer_earned_by_type\?\: array\<int, array\{category\: string, amount\: string\}\>\}, Closure\(App\\Models\\User\)\: array\{id\: int\<0, max\>, name\: string, dealer_code\: string\|null, phone\: string, district\: string\|null, division\: string\|null, sponsor_id\: int\<0, max\>\|null, sponsor_name\: mixed, role\: string, status\: string, rank\: mixed, lifetime_purchases\: float, created_at\: string\|null, sales_total\: string, sales_month\: string, qualifying_volume_month\: string, sponsor_earned\: string, viewer_earned\?\: string, viewer_earned_by_type\?\: array\<int, array\{category\: string, amount\: string\}\>\} given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Portals/Shared/Sections/NetworkSection.php
-
-		-
 			message: '#^Using nullsafe property access "\?\-\>current_rank" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
 			count: 1

@@ -3,6 +3,7 @@
 namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Commissions\CommissionPolicy;
+use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Geography\ManagementReferral;
 use App\Domain\Geography\PlaceCodeCatalog;
 use App\Models\AreaDealerAssignment;
@@ -11,6 +12,8 @@ use App\Models\User;
 use App\Support\ListPage;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Lang;
 
 /**
  * Territories: area dealer seats and the place-code catalog.
@@ -91,6 +94,9 @@ final class TerritorySection implements WorkspaceSection
             ListPage::search($filtered->values(), ListPage::query($request), ['zone_name', 'place_code.code', 'user.name', 'user.dealer_code', 'district']),
             $request,
         );
+        $props['area_text'] = collect(Lang::get('money_core'))
+            ->filter(fn (mixed $text, string $key): bool => str_starts_with($key, 'area_seat_'))
+            ->all();
         $props['area_filters'] = ['division' => $divisionFilter, 'level' => $levelFilter, 'q' => ListPage::query($request)];
         $props['place_codes'] = ! $canAssignSeats ? [] : PlaceCode::query()
             ->whereIn('level', PlaceCode::AssignmentLevels)
@@ -170,7 +176,9 @@ final class TerritorySection implements WorkspaceSection
             ->get()
             ->groupBy('user_id');
 
-        return $dealers->flatMap(function (User $dealer) use ($places, $seatsByDealer): array {
+        $heldByHolder = $this->heldQuotaShares();
+
+        return $dealers->flatMap(function (User $dealer) use ($places, $seatsByDealer, $heldByHolder): array {
             $profile = is_array($dealer->profile) ? $dealer->profile : [];
             $code = trim((string) ($profile['place_code'] ?? ''));
             $place = $code !== '' ? $places->get(strtoupper($code)) : null;
@@ -192,8 +200,11 @@ final class TerritorySection implements WorkspaceSection
                 ? $storedQuota
                 : $this->standardAreaQuota($level);
 
+            $ownSeat = $assignment && $place && (int) $assignment->place_code_id === (int) $place->id ? $assignment : null;
             $homeSeat = [
                 'id' => $dealer->id,
+                'assignment_id' => $ownSeat?->id,
+                'held_amount' => $ownSeat ? ($heldByHolder[$ownSeat->id.':'.$dealer->id] ?? '0.00') : '0.00',
                 'user_id' => $dealer->id,
                 'level' => $level ?? '',
                 'zone_name' => $place?->name ?? ($code !== '' ? $code : $dealer->name),
@@ -214,10 +225,31 @@ final class TerritorySection implements WorkspaceSection
             ];
             $furtherSeats = $dealerSeats
                 ->filter(fn (AreaDealerAssignment $seat): bool => $seat->placeCode !== null && (int) $seat->place_code_id !== (int) $place?->id)
-                ->map(fn (AreaDealerAssignment $seat): array => $this->furtherSeat($dealer, $seat));
+                ->map(fn (AreaDealerAssignment $seat): array => $this->furtherSeat($dealer, $seat, $heldByHolder[$seat->id.':'.$dealer->id] ?? '0.00'));
 
             return [$homeSeat, ...$furtherSeats->values()->all()];
         })->values()->all();
+    }
+
+    /**
+     * This month's area shares held because the seat holder has not reached the monthly target,
+     * added up per seat and holder ("seat id:user id" => amount).
+     *
+     * @return array<string, string>
+     */
+    private function heldQuotaShares(): array
+    {
+        return DB::table('commission_allocations')
+            ->selectRaw("metadata->>'assignment_id' as assignment_id, user_id, sum(amount) as held")
+            ->where('status', 'held')
+            ->where('category', 'like', 'area\\_%')
+            ->whereRaw("metadata->>'hold_reason' = 'quota'")
+            ->whereRaw("metadata->>'period_month' = ?", [CommissionQualification::currentMonth()])
+            ->whereRaw("metadata->>'assignment_id' is not null")
+            ->groupByRaw("metadata->>'assignment_id', user_id")
+            ->get()
+            ->mapWithKeys(fn (object $row): array => [$row->assignment_id.':'.$row->user_id => Money::decimal(Money::cents((string) $row->held))])
+            ->all();
     }
 
     /**
@@ -225,7 +257,7 @@ final class TerritorySection implements WorkspaceSection
      *
      * @return array<string, mixed>
      */
-    private function furtherSeat(User $dealer, AreaDealerAssignment $seat): array
+    private function furtherSeat(User $dealer, AreaDealerAssignment $seat, string $heldAmount): array
     {
         /** @var PlaceCode $place */
         $place = $seat->placeCode;
@@ -233,6 +265,8 @@ final class TerritorySection implements WorkspaceSection
 
         return [
             'id' => 'seat-'.$seat->id,
+            'assignment_id' => $seat->id,
+            'held_amount' => $heldAmount,
             'user_id' => $dealer->id,
             'level' => $seat->level,
             'zone_name' => $place->name,

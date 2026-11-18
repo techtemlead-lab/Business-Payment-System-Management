@@ -237,6 +237,8 @@ final class PartnerProgress
                     default => 'in_progress',
                 },
                 'line_cap' => $milestone['leg_cap_amount'],
+                // The prize the owner set for this reward; null while it is still blank, so partners are never shown a made-up figure.
+                'award' => $this->awardAmount($rules, $type),
                 'team_sales' => $milestone['raw_team_volume'],
                 'lines' => count($milestone['legs']),
                 ...$this->moneyBar(Money::cents($milestone['qualifying_volume']), Money::cents($milestone['target_amount'])),
@@ -244,6 +246,15 @@ final class PartnerProgress
         }
 
         return $rewards;
+    }
+
+    /** @param array<string, array<string, mixed>> $rules */
+    private function awardAmount(array $rules, string $type): ?string
+    {
+        $value = $rules['car_bike_incentive']['parameters'][$type.'_award_amount'] ?? null;
+        $cents = $value === null || $value === '' ? 0 : Money::cents((string) $value);
+
+        return $cents > 0 ? Money::decimal($cents) : null;
     }
 
     /**

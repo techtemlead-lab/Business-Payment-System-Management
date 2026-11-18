@@ -3,6 +3,7 @@
 namespace App\Domain\Commissions;
 
 use App\Domain\Accounts\PartnerBenefitControls;
+use App\Domain\Finance\MonthCloseStatus;
 use App\Domain\Finance\Percentage;
 use App\Domain\Geography\PlaceGeographyResolver;
 use App\Domain\Notifications\PartnerEventEmail;
@@ -38,6 +39,9 @@ final class CommissionSettlement
     /** Settlement payout rows written per insert statement. */
     private const PayoutInsertChunk = 2000;
 
+    /** Funds closed per transaction, so a month close never holds the money lock for long (PQ-01). */
+    public const CloseChunk = 200;
+
     /** @return list<string> */
     public static function settlementReserveCategories(): array
     {
@@ -51,7 +55,14 @@ final class CommissionSettlement
         private PlaceGeographyResolver $geography,
     ) {}
 
-    /** @return array<string, mixed> */
+    /**
+     * Month close for salary or royalty. The month's funds are closed a chunk at a time, each chunk
+     * in its own short transaction under the shared money lock with the paid partners locked, so
+     * orders and payouts keep running during a long close (PQ-01). A fund is closed once: a chunk
+     * re-reads only funds still pending, so a run that stops halfway is finished by the next run.
+     *
+     * @return array<string, mixed>
+     */
     public function settle(string $month, string $kind, ?int $actorId = null, ?string $requestKey = null): array
     {
         CommissionWallet::requireActive();
@@ -59,186 +70,236 @@ final class CommissionSettlement
         if ($end->isFuture()) {
             throw ValidationException::withMessages(['period_month' => __('portal.err_settle_month_open')]);
         }
-
-        $replayed = false;
-        $result = DB::transaction(function () use ($month, $kind, $actorId, $requestKey, &$replayed): array {
-            CommissionWallet::lock();
-            if ($requestKey !== null) {
-                $existing = DB::table('commission_settlement_runs')
-                    ->where('period_month', $month)
-                    ->where('kind', $kind)
-                    ->where('request_key', $requestKey)
-                    ->first();
-                if ($existing) {
-                    $replayed = true;
-
-                    return json_decode((string) $existing->result, true, 512, JSON_THROW_ON_ERROR);
-                }
+        if ($requestKey !== null) {
+            $existing = DB::table('commission_settlement_runs')->where('period_month', $month)->where('kind', $kind)->where('request_key', $requestKey)->first();
+            if ($existing) {
+                return json_decode((string) $existing->result, true, 512, JSON_THROW_ON_ERROR);
             }
-            $categories = $kind === 'salary' ? ['dealer_monthly_salary_pool', 'sub_dealer_salary'] : ['rank_royalty_pool'];
-            $funds = CommissionAllocation::whereIn('category', $categories)->where('status', 'pending')
-                ->where('metadata->period_month', $month)->orderBy('id')->lockForUpdate()->get();
-            $total = $funds->sum(fn (CommissionAllocation $a): int => Money::cents($a->amount));
-            if ($total === 0) {
+        }
+        $categories = $kind === 'salary' ? ['dealer_monthly_salary_pool', 'sub_dealer_salary'] : ['rank_royalty_pool'];
+        $fundIds = CommissionAllocation::whereIn('category', $categories)->where('status', 'pending')
+            ->where('metadata->period_month', $month)->orderBy('id')->pluck('id')->map(fn ($id): int => (int) $id)->all();
+
+        $dealers = User::query()->where('role', 'dealer')->where('status', 'active')->orderBy('id')->get();
+        $context = [
+            'dealers' => $dealers,
+            'dealerIds' => $dealers->pluck('id')->map(fn ($id): int => (int) $id)->all(),
+            'volumes' => $fundIds === [] ? [] : $this->qualification->monthlyVolumesFor($dealers->pluck('id')->map(fn ($id): int => (int) $id)->all(), $month),
+            // Salary is shared within each division (বিভাগ): the dealer's division, resolved the same way an order resolves its buyer's.
+            'dealerDivisions' => $kind === 'salary' && $fundIds !== [] ? $this->dealerDivisions($dealers) : [],
+            'paidAsByRules' => [],
+            'split' => FairPaisaSplit::forMonth($month),
+            'subDealerNames' => [],
+            'payees' => $dealers->keyBy('id')->all(),
+        ];
+        $total = 0;
+        $distributed = [];
+        $tiers = [];
+        $divisionSummary = [];
+        $toCompanyProfit = 0;
+        foreach (array_chunk($fundIds, max(1, (int) config('madina.settlement_close_chunk', self::CloseChunk))) as $chunkIds) {
+            $chunk = DB::transaction(fn (): array => $this->settleChunk($chunkIds, $month, $kind, $context), 3);
+            $total += $chunk['total'];
+            $toCompanyProfit += $chunk['to_company_profit'];
+            foreach ($chunk['distributed'] as $id => $amount) {
+                $distributed[$id] = ($distributed[$id] ?? 0) + $amount;
+            }
+            foreach ($chunk['tiers'] as $code => $tier) {
+                $tiers[$code]['qualifiers'] = $tier['qualifiers'];
+                $tiers[$code]['allocated_cents'] = ($tiers[$code]['allocated_cents'] ?? 0) + $tier['allocated_cents'];
+                $tiers[$code]['reserve_cents'] = ($tiers[$code]['reserve_cents'] ?? 0) + $tier['reserve_cents'];
+            }
+            foreach ($chunk['divisions'] as $key => $division) {
+                // A chunk names only the parts it saw for a division; the missing parts are zero.
+                $division += ['pool_cents' => 0, 'qualifiers' => 0, 'to_company_profit_cents' => 0];
+                $sofar = $divisionSummary[$key] ?? ['pool_cents' => 0, 'qualifiers' => 0, 'to_company_profit_cents' => 0];
+                $divisionSummary[$key] = [
+                    'name' => $division['name'],
+                    'pool_cents' => $sofar['pool_cents'] + $division['pool_cents'],
+                    'qualifiers' => max($sofar['qualifiers'], $division['qualifiers']),
+                    'to_company_profit_cents' => $sofar['to_company_profit_cents'] + $division['to_company_profit_cents'],
+                ];
+            }
+        }
+        if ($total === 0) {
+            return DB::transaction(function () use ($month, $kind, $requestKey, $actorId): array {
+                CommissionWallet::lockShared();
+
                 return $this->rememberSettlement($month, $kind, $requestKey, $actorId, [
                     'status' => 'empty_pool', 'total_pool' => '0.00', 'qualifiers_count' => 0,
                     'total_distributed' => '0.00', 'total_rolled_to_reserve' => '0.00',
                 ]);
-            }
-            $distributed = [];
-            $tiers = [];
-            $rolled = 0;
-            $dealers = User::query()->where('role', 'dealer')->where('status', 'active')->orderBy('id')->get();
-            $dealerIds = $dealers->pluck('id')->map(fn ($id): int => (int) $id)->all();
-            $volumes = $this->qualification->monthlyVolumesFor($dealerIds, $month);
-            $dealerNames = $dealers->pluck('name', 'id')->all();
-            // Salary is shared within each division (বিভাগ): the dealer's division, resolved the same way an order resolves its buyer's.
-            $dealerDivisions = $kind === 'salary' ? $this->dealerDivisions($dealers) : [];
-            $divisionSummary = [];
-            $toCompanyProfit = 0;
-            $subDealerNames = [];
-            /** @var array<string, array<int, array<string, mixed>>> */
-            $paidAsByRules = [];
-            $batchPolicies = $this->batchPolicies($funds);
-            $buyerGeographies = $kind === 'salary' ? $this->fundBuyerGeographies($funds, $batchPolicies) : [];
-            $partners = User::query()
-                ->whereIn('id', $funds->where('category', 'sub_dealer_salary')->pluck('user_id')->filter()->unique()->values())
-                ->get()
-                ->keyBy('id');
-            $partnerVolumes = $this->qualification->monthlyVolumesFor($partners
-                ->filter(fn (User $partner): bool => $partner->role === 'sub_dealer' && $partner->status === 'active' && ! array_key_exists($partner->id, $volumes))
-                ->keys()->map(fn ($id): int => (int) $id)->values()->all(), $month);
-            $payees = $dealers->keyBy('id')->union($partners)->all();
-            $split = FairPaisaSplit::forMonth($month);
-            $refundedBasis = $this->refundedBasisByOrder($funds);
-            $payoutRows = [];
-            foreach ($funds as $fund) {
-                [$rules, $fundDivision, $qualifiedIds] = $this->fundQualifiers($fund, $kind, $dealers, $dealerDivisions, $volumes, $batchPolicies, $buyerGeographies);
-                $cents = Money::cents($fund->amount);
-                $shares = [];
-                if ($fund->category === 'sub_dealer_salary') {
-                    $partner = $fund->user_id !== null ? $partners->get($fund->user_id) : null;
-                    if ($partner?->role === 'sub_dealer' && $partner->status === 'active') {
-                        $shares[$partner->id] = $cents;
-                        $subDealerNames[$partner->id] = $partner->name;
-                        if (! array_key_exists($partner->id, $volumes)) {
-                            $volumes[$partner->id] = $partnerVolumes[$partner->id] ?? 0;
-                        }
-                    }
-                } elseif ($kind === 'salary') {
-                    $shares = $split->divide($cents, $qualifiedIds, 'salary');
-                    [$divisionKey, $label] = $this->divisionSummaryKey($fundDivision);
-                    $divisionSummary[$divisionKey]['name'] = $label;
-                    $divisionSummary[$divisionKey]['pool_cents'] = ($divisionSummary[$divisionKey]['pool_cents'] ?? 0) + $cents;
-                    $divisionSummary[$divisionKey]['qualifiers'] = max($divisionSummary[$divisionKey]['qualifiers'] ?? 0, count($qualifiedIds));
-                } else {
-                    $buckets = $this->rankBuckets($cents, $rules['rank_royalty']['parameters']);
-                    $rulesKey = hash('xxh3', json_encode($rules['rank_maintenance']['parameters'] ?? [], JSON_THROW_ON_ERROR));
-                    if (! isset($paidAsByRules[$rulesKey])) {
-                        $paidAsByRules[$rulesKey] = $this->qualification->paidAsFor($dealerIds, $month, $rules);
-                    }
-                    foreach (['mo', 'am', 'sm', 'me'] as $index => $code) {
-                        $ids = array_values(array_filter(
-                            $dealerIds,
-                            fn (int $id): bool => ($paidAsByRules[$rulesKey][$id]['paid_as_rank'] ?? 'dealer') === $code,
-                        ));
-                        $tierShares = $split->divide($buckets[$index], $ids, 'royalty_'.$code);
-                        foreach ($tierShares as $id => $amount) {
-                            $shares[$id] = ($shares[$id] ?? 0) + $amount;
-                        }
-                        $tiers[$code]['qualifiers'] = count($ids);
-                        $tiers[$code]['allocated_cents'] = ($tiers[$code]['allocated_cents'] ?? 0) + array_sum($tierShares);
-                        $tiers[$code]['reserve_cents'] = ($tiers[$code]['reserve_cents'] ?? 0) + $buckets[$index] - array_sum($tierShares);
-                    }
-                }
-                // Every source fund keeps its own payout rows (refunds claw back per source),
-                // but wallets, the journal and notices are written once per partner below.
-                foreach ($shares as $id => $amount) {
-                    if ($amount > 0) {
-                        $payoutRows[] = ['allocation_id' => $fund->id, 'user_id' => $id, 'kind' => $kind,
-                            'refunded_basis' => $refundedBasis[$fund->order_id] ?? '0.00', 'period_month' => $month,
-                            'amount' => Money::decimal($amount), 'created_at' => now(), 'updated_at' => now()];
-                        $distributed[$id] = ($distributed[$id] ?? 0) + $amount;
-                    }
-                }
-                if (count($payoutRows) >= self::PayoutInsertChunk) {
-                    $this->insertPayouts($payoutRows);
-                }
-                $paidCents = array_sum($shares);
-                $remainder = $cents - $paidCents;
-                $reserveId = null;
-                if ($remainder > 0) {
-                    // Owner rule: every month closes in that month. Salary or royalty nobody earned
-                    // (including a sub-dealer who is no longer active) goes to the company profit fund.
-                    if ($fund->category === 'sub_dealer_salary') {
-                        $reserveId = $this->toCompanyProfit($fund, $remainder, $month, $kind, null, 'retained_reason_unclaimed_sub_dealer_salary');
-                        $toCompanyProfit += $remainder;
-                    } else {
-                        $reserveId = $this->toCompanyProfit($fund, $remainder, $month, $kind, $fundDivision['name'] ?? null);
-                        $toCompanyProfit += $remainder;
-                        if ($kind === 'salary') {
-                            [$divisionKey, $label] = $this->divisionSummaryKey($fundDivision);
-                            $divisionSummary[$divisionKey]['name'] = $label;
-                            $divisionSummary[$divisionKey]['to_company_profit_cents'] = ($divisionSummary[$divisionKey]['to_company_profit_cents'] ?? 0) + $remainder;
-                        }
-                    }
-                }
-                $fund->update(['status' => 'settled', 'metadata' => [...$fund->metadata, 'settled_at' => now()->toIso8601String(),
-                    'settled_period' => $month, 'distributed' => Money::decimal($paidCents), 'reserved' => Money::decimal($remainder),
-                    'settlement_reserve_allocation_id' => $reserveId]]);
-            }
-            $this->insertPayouts($payoutRows);
-            $this->creditSettlement($distributed, $month, $kind, $payees);
-            $totalPaid = array_sum($distributed);
-            $result = [];
-            $names = $dealerNames + $subDealerNames;
-            $missingVolumeIds = array_values(array_diff(array_keys($distributed), array_keys($volumes)));
-            if ($missingVolumeIds !== []) {
-                $volumes += $this->qualification->monthlyVolumesFor($missingVolumeIds, $month);
-            }
-            foreach ($distributed as $id => $amount) {
-                $result[] = [
-                    'user_id' => $id,
-                    'user_name' => $names[$id] ?? User::query()->find($id)?->name,
-                    'amount' => Money::decimal($amount),
-                    'monthly_volume' => Money::decimal($volumes[$id] ?? 0),
-                ];
-            }
-            foreach ($tiers as &$tier) {
-                $tier['allocated'] = Money::decimal($tier['allocated_cents']);
-                $tier['rolled_to_reserve'] = Money::decimal($tier['reserve_cents']);
-                unset($tier['allocated_cents'], $tier['reserve_cents']);
-            }
-            $divisions = [];
-            foreach ($divisionSummary as $row) {
-                $divisions[] = [
-                    'division' => $row['name'],
-                    'pool' => Money::decimal($row['pool_cents'] ?? 0),
-                    'qualifiers' => (int) ($row['qualifiers'] ?? 0),
-                    'to_company_profit' => Money::decimal($row['to_company_profit_cents'] ?? 0),
-                ];
-            }
+            }, 3);
+        }
+        $this->noticeSettlementCredits($distributed, $month, $kind, $context['payees']);
+        $volumes = $context['volumes'];
+        $missingVolumeIds = array_values(array_diff(array_keys($distributed), array_keys($volumes)));
+        if ($missingVolumeIds !== []) {
+            $volumes += $this->qualification->monthlyVolumesFor($missingVolumeIds, $month);
+        }
+        $names = $dealers->pluck('name', 'id')->all() + $context['subDealerNames'];
+        $result = [];
+        foreach ($distributed as $id => $amount) {
+            $result[] = [
+                'user_id' => $id,
+                'user_name' => $names[$id] ?? User::query()->find($id)?->name,
+                'amount' => Money::decimal($amount),
+                'monthly_volume' => Money::decimal($volumes[$id] ?? 0),
+            ];
+        }
+        foreach ($tiers as &$tier) {
+            $tier['allocated'] = Money::decimal($tier['allocated_cents']);
+            $tier['rolled_to_reserve'] = Money::decimal($tier['reserve_cents']);
+            unset($tier['allocated_cents'], $tier['reserve_cents']);
+        }
+        unset($tier);
+        $divisions = [];
+        foreach ($divisionSummary as $row) {
+            $divisions[] = [
+                'division' => $row['name'],
+                'pool' => Money::decimal((int) $row['pool_cents']),
+                'qualifiers' => (int) $row['qualifiers'],
+                'to_company_profit' => Money::decimal((int) $row['to_company_profit_cents']),
+            ];
+        }
+        $totalPaid = array_sum($distributed);
+        $result = DB::transaction(function () use ($month, $kind, $requestKey, $actorId, $totalPaid, $toCompanyProfit, $total, $distributed, $result, $tiers, $divisions): array {
+            CommissionWallet::lockShared();
             Audit::record($actorId, 'commissions.'.$kind.'_pool_settled', $month, [
                 'distributed' => Money::decimal($totalPaid),
-                'rolled_to_reserve' => Money::decimal($rolled),
+                'rolled_to_reserve' => '0.00',
                 'to_company_profit' => Money::decimal($toCompanyProfit),
                 'request_key' => $requestKey,
             ]);
 
             return $this->rememberSettlement($month, $kind, $requestKey, $actorId, [
                 'status' => $totalPaid > 0 ? 'settled' : 'rolled_over', 'period' => $month, 'total_pool' => Money::decimal($total),
-                'total_distributed' => Money::decimal($totalPaid), 'total_rolled_to_reserve' => Money::decimal($rolled),
+                'total_distributed' => Money::decimal($totalPaid), 'total_rolled_to_reserve' => '0.00',
                 'total_to_company_profit' => Money::decimal($toCompanyProfit),
                 'qualifiers_count' => count($distributed), 'distributed' => $result, 'distributions' => $tiers,
                 'divisions' => $divisions,
             ]);
         }, 3);
-
-        if (! $replayed) {
-            $this->notifySettlementCredits($result, $month, $kind);
-        }
+        $this->notifySettlementCredits($result, $month, $kind);
+        app(MonthCloseStatus::class)->clearFailure($kind, $month);
 
         return $result;
+    }
+
+    /**
+     * Closes one chunk of a month's funds inside the caller's transaction. Totals come back for the
+     * caller to add up, so a retried chunk is never counted twice. Shared look-ups (rank results,
+     * volumes, names) are kept in $context between chunks.
+     *
+     * @param  list<int>  $fundIds
+     * @param  array<string, mixed>  $context
+     * @return array{total: int, to_company_profit: int, distributed: array<int, int>, tiers: array<string, array{qualifiers: int, allocated_cents: int, reserve_cents: int}>, divisions: array<string, array<string, mixed>>}
+     */
+    private function settleChunk(array $fundIds, string $month, string $kind, array &$context): array
+    {
+        CommissionWallet::lockShared();
+        $funds = CommissionAllocation::query()->whereIn('id', $fundIds)->where('status', 'pending')->orderBy('id')->lockForUpdate()->get();
+        $chunk = ['total' => 0, 'to_company_profit' => 0, 'distributed' => [], 'tiers' => [], 'divisions' => []];
+        if ($funds->isEmpty()) {
+            return $chunk;
+        }
+        $chunk['total'] = $funds->sum(fn (CommissionAllocation $a): int => Money::cents($a->amount));
+        /** @var Collection<int, User> $dealers */
+        $dealers = $context['dealers'];
+        $dealerIds = $context['dealerIds'];
+        $split = $context['split'];
+        $batchPolicies = $this->batchPolicies($funds);
+        $buyerGeographies = $kind === 'salary' ? $this->fundBuyerGeographies($funds, $batchPolicies) : [];
+        $partners = User::query()
+            ->whereIn('id', $funds->where('category', 'sub_dealer_salary')->pluck('user_id')->filter()->unique()->values())
+            ->get()
+            ->keyBy('id');
+        $partnerVolumes = $this->qualification->monthlyVolumesFor($partners
+            ->filter(fn (User $partner): bool => $partner->role === 'sub_dealer' && $partner->status === 'active' && ! array_key_exists($partner->id, $context['volumes']))
+            ->keys()->map(fn ($id): int => (int) $id)->values()->all(), $month);
+        foreach ($partners as $id => $partner) {
+            $context['payees'][$id] = $partner;
+        }
+        $refundedBasis = $this->refundedBasisByOrder($funds);
+        $payoutRows = [];
+        foreach ($funds as $fund) {
+            [$rules, $fundDivision, $qualifiedIds] = $this->fundQualifiers($fund, $kind, $dealers, $context['dealerDivisions'], $context['volumes'], $batchPolicies, $buyerGeographies);
+            $cents = Money::cents($fund->amount);
+            $shares = [];
+            if ($fund->category === 'sub_dealer_salary') {
+                $partner = $fund->user_id !== null ? $partners->get($fund->user_id) : null;
+                if ($partner?->role === 'sub_dealer' && $partner->status === 'active') {
+                    $shares[$partner->id] = $cents;
+                    $context['subDealerNames'][$partner->id] = $partner->name;
+                    if (! array_key_exists($partner->id, $context['volumes'])) {
+                        $context['volumes'][$partner->id] = $partnerVolumes[$partner->id] ?? 0;
+                    }
+                }
+            } elseif ($kind === 'salary') {
+                $shares = $split->divide($cents, $qualifiedIds, 'salary');
+                [$divisionKey, $label] = $this->divisionSummaryKey($fundDivision);
+                $chunk['divisions'][$divisionKey]['name'] = $label;
+                $chunk['divisions'][$divisionKey]['pool_cents'] = ($chunk['divisions'][$divisionKey]['pool_cents'] ?? 0) + $cents;
+                $chunk['divisions'][$divisionKey]['qualifiers'] = max($chunk['divisions'][$divisionKey]['qualifiers'] ?? 0, count($qualifiedIds));
+            } else {
+                $buckets = $this->rankBuckets($cents, $rules['rank_royalty']['parameters']);
+                $rulesKey = hash('xxh3', json_encode($rules['rank_maintenance']['parameters'] ?? [], JSON_THROW_ON_ERROR));
+                if (! isset($context['paidAsByRules'][$rulesKey])) {
+                    $context['paidAsByRules'][$rulesKey] = $this->qualification->paidAsFor($dealerIds, $month, $rules);
+                }
+                foreach (['mo', 'am', 'sm', 'me'] as $index => $code) {
+                    $ids = array_values(array_filter(
+                        $dealerIds,
+                        fn (int $id): bool => ($context['paidAsByRules'][$rulesKey][$id]['paid_as_rank'] ?? 'dealer') === $code,
+                    ));
+                    $tierShares = $split->divide($buckets[$index], $ids, 'royalty_'.$code);
+                    foreach ($tierShares as $id => $amount) {
+                        $shares[$id] = ($shares[$id] ?? 0) + $amount;
+                    }
+                    $chunk['tiers'][$code]['qualifiers'] = count($ids);
+                    $chunk['tiers'][$code]['allocated_cents'] = ($chunk['tiers'][$code]['allocated_cents'] ?? 0) + array_sum($tierShares);
+                    $chunk['tiers'][$code]['reserve_cents'] = ($chunk['tiers'][$code]['reserve_cents'] ?? 0) + $buckets[$index] - array_sum($tierShares);
+                }
+            }
+            // Every source fund keeps its own payout rows (refunds claw back per source),
+            // but wallets and the journal are written once per partner for the chunk.
+            foreach ($shares as $id => $amount) {
+                if ($amount > 0) {
+                    $payoutRows[] = ['allocation_id' => $fund->id, 'user_id' => $id, 'kind' => $kind,
+                        'refunded_basis' => $refundedBasis[$fund->order_id] ?? '0.00', 'period_month' => $month,
+                        'amount' => Money::decimal($amount), 'created_at' => now(), 'updated_at' => now()];
+                    $chunk['distributed'][$id] = ($chunk['distributed'][$id] ?? 0) + $amount;
+                }
+            }
+            if (count($payoutRows) >= self::PayoutInsertChunk) {
+                $this->insertPayouts($payoutRows);
+            }
+            $paidCents = array_sum($shares);
+            $remainder = $cents - $paidCents;
+            $reserveId = null;
+            if ($remainder > 0) {
+                // Owner rule: every month closes in that month. Salary or royalty nobody earned
+                // (including a sub-dealer who is no longer active) goes to the company profit fund.
+                if ($fund->category === 'sub_dealer_salary') {
+                    $reserveId = $this->toCompanyProfit($fund, $remainder, $month, $kind, null, 'retained_reason_unclaimed_sub_dealer_salary');
+                } else {
+                    $reserveId = $this->toCompanyProfit($fund, $remainder, $month, $kind, $fundDivision['name'] ?? null);
+                    if ($kind === 'salary') {
+                        [$divisionKey, $label] = $this->divisionSummaryKey($fundDivision);
+                        $chunk['divisions'][$divisionKey]['name'] = $label;
+                        $chunk['divisions'][$divisionKey]['to_company_profit_cents'] = ($chunk['divisions'][$divisionKey]['to_company_profit_cents'] ?? 0) + $remainder;
+                    }
+                }
+                $chunk['to_company_profit'] += $remainder;
+            }
+            $fund->update(['status' => 'settled', 'metadata' => [...$fund->metadata, 'settled_at' => now()->toIso8601String(),
+                'settled_period' => $month, 'distributed' => Money::decimal($paidCents), 'reserved' => Money::decimal($remainder),
+                'settlement_reserve_allocation_id' => $reserveId]]);
+        }
+        $this->insertPayouts($payoutRows);
+        $this->creditSettlement($chunk['distributed'], $month, $kind);
+
+        return $chunk;
     }
 
     /**
@@ -498,9 +559,11 @@ final class CommissionSettlement
     {
         // A refund before the close already shrank the fund. Keep this row on the same footing,
         // so a later refund takes back only its fair share (CommissionReversal starts from original_amount).
+        // Two paisa amounts multiplied pass PHP's integer limit once a fund row is above about ৳3 crore,
+        // so the ratio is worked out in exact NUMERIC arithmetic, as CommissionReversal does.
         $fundNow = Money::cents($fund->amount);
         $originalAmount = $fundNow > 0
-            ? intdiv($amount * Money::cents($fund->original_amount ?? $fund->amount) + intdiv($fundNow, 2), $fundNow)
+            ? self::scaled($amount, Money::cents($fund->original_amount ?? $fund->amount), $fundNow)
             : $amount;
 
         return CommissionAllocation::query()->create([
@@ -524,13 +587,20 @@ final class CommissionSettlement
                 'place_code_id' => $fund->metadata['place_code_id'] ?? null,
                 'retained_by' => 'company_profit_unclaimed',
                 'reason_key' => $reasonKey ?? ($kind === 'salary' ? 'retained_reason_unclaimed_division_salary' : 'retained_reason_unclaimed_royalty'),
+                // A key with a dot names its own language file (money_core.*); a bare key lives in portal.
                 'reason' => $reasonKey !== null
-                    ? __('portal.'.$reasonKey)
+                    ? __(str_contains($reasonKey, '.') ? $reasonKey : 'portal.'.$reasonKey, ['place' => $fund->metadata['place_code'] ?? '—'])
                     : ($kind === 'salary'
                         ? __('portal.retained_reason_unclaimed_division_salary', ['division' => $division ?? __('portal.report_area_unknown')])
                         : __('portal.retained_reason_unclaimed_royalty')),
             ],
         ])->id;
+    }
+
+    /** $amount × $part ÷ $whole, rounded to the nearest paisa, with no 64-bit overflow at any order size. */
+    public static function scaled(int $amount, int $part, int $whole): int
+    {
+        return (int) DB::scalar('SELECT ROUND(CAST(? AS NUMERIC) * CAST(? AS NUMERIC) / CAST(? AS NUMERIC))', [$amount, $part, $whole]);
     }
 
     /**
@@ -646,18 +716,18 @@ final class CommissionSettlement
     }
 
     /**
-     * Credits each partner's settled total once: one wallet credit and one notice per
-     * partner, and one balanced journal entry for the whole run.
+     * Credits each partner's settled total for one chunk: the partners are locked in id order,
+     * then one wallet credit each and one balanced journal entry for the chunk.
      *
      * @param  array<int, int>  $distributed  user id => cents
-     * @param  array<int, User>  $payees
      */
-    private function creditSettlement(array $distributed, string $month, string $kind, array $payees): void
+    private function creditSettlement(array $distributed, string $month, string $kind): void
     {
         $distributed = array_filter($distributed, fn (int $amount): bool => $amount > 0);
         if ($distributed === []) {
             return;
         }
+        CommissionWallet::lockPartners(...array_keys($distributed));
         $lines = [['user_id' => null, 'account' => 'commission_expense', 'debit' => array_sum($distributed), 'credit' => 0]];
         foreach ($distributed as $userId => $amount) {
             $lines[] = ['user_id' => $userId, 'account' => 'wallet_liability', 'debit' => 0, 'credit' => $amount];
@@ -668,6 +738,18 @@ final class CommissionSettlement
         ]), $lines);
         foreach ($distributed as $userId => $amount) {
             $this->wallets->credit($userId, $amount);
+        }
+    }
+
+    /**
+     * One portal notice per partner for the whole close, however many chunks paid them.
+     *
+     * @param  array<int, int>  $distributed  user id => cents
+     * @param  array<int, User>  $payees
+     */
+    private function noticeSettlementCredits(array $distributed, string $month, string $kind, array $payees): void
+    {
+        foreach (array_filter($distributed, fn (int $amount): bool => $amount > 0) as $userId => $amount) {
             $partner = $payees[$userId] ?? User::find($userId);
             $locale = $partner?->preferredLocale() ?? app()->getLocale();
             Audit::notice(

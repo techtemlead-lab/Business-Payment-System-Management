@@ -2,6 +2,7 @@
 
 namespace App\Domain\Orders;
 
+use App\Domain\Finance\MoneyTaskFigures;
 use App\Domain\Inventory\BranchScope;
 use App\Domain\Inventory\SellableStock;
 use App\Models\Order;
@@ -25,7 +26,7 @@ final class StaffDashboardSummary
     /**
      * @param  BranchScope|null  $branchScope  The branch the top-bar switcher picked; null counts every branch.
      * @return array{
-     *     work_queue: list<array{key: string, count: int, section: string, query?: array<string, string>}>,
+     *     work_queue: list<array{key: string, count: int, section: string, query?: array<string, string>, label?: string, amount?: string, alert?: bool}>,
      *     trend: list<array{date: string, orders: int, value: string}>,
      *     month: array{sales: string, delivered_today: string, orders: int}|null
      * }
@@ -48,7 +49,7 @@ final class StaffDashboardSummary
     }
 
     /**
-     * @return list<array{key: string, count: int, section: string, query?: array<string, string>}>
+     * @return list<array{key: string, count: int, section: string, query?: array<string, string>, label?: string, amount?: string, alert?: bool}>
      */
     private function workQueue(User $viewer, ?BranchScope $branchScope): array
     {
@@ -73,6 +74,7 @@ final class StaffDashboardSummary
                 'count' => (int) $this->withdrawalsOf($branchScope)->where('withdrawals.status', 'requested')->count(),
                 'section' => 'payouts-hub',
             ];
+            array_push($queue, ...$this->commissionTasks());
         }
         $deliveryCounts = $this->deliveryCounts($viewer, $branchScope);
         if ($viewer->allows('inventory')) {
@@ -106,6 +108,32 @@ final class StaffDashboardSummary
         }
 
         return $queue;
+    }
+
+    /**
+     * MA-15, MA-03: commission ready to pay, commission held and a failed month close. They show
+     * only while there is something to do, and name themselves so they need no word list entry.
+     *
+     * @return list<array{key: string, count: int, section: string, label: string, amount?: string, alert?: bool}>
+     */
+    private function commissionTasks(): array
+    {
+        $figures = app(MoneyTaskFigures::class);
+        $ready = $figures->readyToPay();
+        $held = $figures->held();
+        $failedCloses = $figures->failedCloses();
+        $tasks = [];
+        if ($ready['count'] > 0) {
+            $tasks[] = ['key' => 'commission_ready_to_pay', 'count' => $ready['count'], 'section' => 'settlements', 'label' => (string) __('money_core.task_ready_to_pay'), 'amount' => $ready['amount']];
+        }
+        if ($held['count'] > 0) {
+            $tasks[] = ['key' => 'commission_held', 'count' => $held['count'], 'section' => 'operations/commission-holds', 'label' => (string) __('money_core.task_held'), 'amount' => $held['amount']];
+        }
+        if ($failedCloses > 0) {
+            $tasks[] = ['key' => 'month_close_failed', 'count' => $failedCloses, 'section' => 'settlements', 'label' => (string) __('money_core.task_close_failed'), 'alert' => true];
+        }
+
+        return $tasks;
     }
 
     /**

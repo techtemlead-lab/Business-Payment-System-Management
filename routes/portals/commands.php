@@ -211,6 +211,7 @@ return function (string $portal): void {
     Route::post('/commands/commissions/release-matured', [CommandController::class, 'releaseMaturedCommissions']);
     Route::post('/commands/commissions/simulate', [CommandController::class, 'simulateCommissions']);
     Route::post('/commands/area-dealers', [CommandController::class, 'assignAreaDealer']);
+    Route::post('/commands/area-dealers/{id}', [CommandController::class, 'updateAreaDealer'])->whereNumber('id');
     Route::delete('/commands/area-dealers/{id}', [CommandController::class, 'removeAreaDealer']);
 
     Route::post('/commands/support-tickets', [CommandController::class, 'supportTicket'])->middleware('throttle:10,1');

@@ -1,6 +1,7 @@
 import { Badge, money, number } from '../UI';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from '../MoneyTable';
 import { joined } from './format';
+import Figures from '../office/Figures';
 import { useT } from '../../shared/i18n/t';
 
 export type RewardAward = 'bike' | 'car';
@@ -9,6 +10,7 @@ export type RewardLeaderFigures = {
     targets: Record<RewardAward, string | null>;
     awards: Record<RewardAward, string | null>;
     counts: Record<RewardAward, number>;
+    pools: Record<RewardAward, { balance: string; award: string | null; prizes_payable: number | null }>;
 };
 
 export type RewardLeaderRow = {
@@ -21,6 +23,31 @@ export type RewardLeaderRow = {
     progress: string | null;
     stage: 'in_progress' | 'reached' | 'given';
 };
+
+/** The bike pool and the car pool side by side: what each holds, the prize it pays, and how many prizes it can pay now. */
+export function VehiclePoolsPanel({ pools }: { pools: RewardLeaderFigures['pools'] }) {
+    const translate = useT();
+    const notSet = translate('money_core', 'vp_not_set');
+
+    return (
+        <section>
+            <h3 className="hub-title is-sm">{translate('money_core', 'vp_title')}</h3>
+            <p className="hub-hint">{translate('money_core', 'vp_intro')}</p>
+            {(['bike', 'car'] as RewardAward[]).map((award) => (
+                <div key={award}>
+                    <h4 className="hub-title is-sm">{translate('treasury', `leaders_${award}`)}</h4>
+                    <Figures
+                        items={[
+                            { key: 'balance', label: translate('money_core', 'vp_balance'), value: pools[award].balance, headline: true },
+                            { key: 'award', label: translate('money_core', 'vp_award'), value: pools[award].award ?? notSet, text: pools[award].award === null },
+                            { key: 'payable', label: translate('money_core', 'vp_payable'), value: pools[award].prizes_payable === null ? notSet : number(pools[award].prizes_payable), text: true },
+                        ]}
+                    />
+                </div>
+            ))}
+        </section>
+    );
+}
 
 /** Leaders on their way to one award, highest sales first. The target and award are the same for every row, so they are said once. */
 export default function RewardLeaders({ award, table, figures }: { award: RewardAward; table: MoneyTableData<RewardLeaderRow>; figures: RewardLeaderFigures }) {

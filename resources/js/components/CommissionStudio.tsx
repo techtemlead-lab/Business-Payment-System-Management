@@ -41,7 +41,12 @@ export default function CommissionStudio({ rules: initialRules, limits }: { rule
     const translate = useT();
     const paramLabel = (key: string) => {
         const localized = translate('portal', `cs_param_${key}`);
-        return localized === `cs_param_${key}` ? humanize(key) : localized;
+        if (localized !== `cs_param_${key}`) {
+            return localized;
+        }
+        const fromMoneyCore = translate('money_core', `cs_param_${key}`);
+
+        return fromMoneyCore === `cs_param_${key}` ? humanize(key) : fromMoneyCore;
     };
     const {staffActions, data: pageData, auth} = usePage<any>().props;
     // Only the owner's own changes apply at once; everyone else's wait for the owner's approval.

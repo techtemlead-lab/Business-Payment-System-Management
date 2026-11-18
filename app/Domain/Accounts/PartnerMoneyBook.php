@@ -215,6 +215,39 @@ final class PartnerMoneyBook
             ->all();
     }
 
+    /**
+     * Commission held back for this partner: nothing is in the wallet yet. Each line says what it is,
+     * which order it came from and why it is held: the account is suspended (paid by itself when the
+     * account is active again) or the area target was not met (released when met, else company profit
+     * at month end).
+     *
+     * @return array{total: string, count: int, lines: list<array{id: int, amount: string, what: string, order_id: string, order_number: string|null, reason: string}>}
+     */
+    public function heldCommission(User $partner, int $limit = 20): array
+    {
+        // One query: the window totals cover every held row, the LIMIT only the lines shown.
+        $rows = DB::table('commission_allocations as a')->where('a.user_id', $partner->id)->where('a.status', 'held')->where('a.amount', '>', 0)
+            ->leftJoin('orders as o', 'o.id', '=', 'a.order_id')
+            ->orderByDesc('a.id')
+            ->limit($limit)
+            ->selectRaw("a.id, a.amount, a.category, o.id::text AS order_id, o.number AS order_number, COALESCE(a.metadata->>'hold_reason', 'inactive') AS reason, SUM(a.amount) OVER () AS held_total, COUNT(*) OVER () AS held_count")
+            ->get();
+        $first = $rows->isEmpty() ? null : $rows->first();
+        $totals = (object) ['total' => $first === null ? '0' : $first->held_total, 'count' => $first === null ? 0 : $first->held_count];
+        $lines = $rows
+            ->map(fn (object $row): array => [
+                'id' => (int) $row->id,
+                'amount' => FundCatalog::decimalOf(FundCatalog::centsOf($row->amount)),
+                'what' => FundCatalog::typeLabel((string) $row->category),
+                'order_id' => (string) $row->order_id,
+                'order_number' => $row->order_number !== null ? (string) $row->order_number : null,
+                'reason' => $row->reason === 'quota' ? 'quota' : 'inactive',
+            ])
+            ->all();
+
+        return ['total' => FundCatalog::decimalOf(FundCatalog::centsOf($totals->total)), 'count' => (int) $totals->count, 'lines' => $lines];
+    }
+
     /** @return list<object> */
     private function totalsByType(User $partner): array
     {

@@ -9,7 +9,8 @@ use App\Support\Money;
  * Read-only check of the car and bike reward fund against the current reward rule: does the money the
  * fund collects from a qualifier's team, at the target, cover the award? It changes nothing.
  *
- * The fund receives the rule's rate of every delivered, fully paid dealer order. A partner reaches a
+ * Each prize has its own pool: the rule's rate is split between bike and car (half each unless the owner changes it), and a
+ * pool receives its own part of the rate of every delivered, fully paid dealer order. A partner reaches a
  * target when the purchases of their team reach it, so at exactly the target the team has put in
  * target x rate. Everything else in the company's sales is extra and is shown only as the sales
  * needed in total (award / rate) before one award is paid for.
@@ -29,10 +30,11 @@ final class RewardFundCheck
     public function check(?array $rules = null): array
     {
         $rules ??= app(CommissionPolicy::class)->snapshot(false)['rules'];
-        $rate = CommissionPolicy::rate($rules, 'car_bike_incentive');
+        $rates = CommissionPolicy::vehiclePoolRates($rules);
         $parameters = $rules['car_bike_incentive']['parameters'];
         $result = [];
         foreach (['bike', 'car'] as $program) {
+            $rate = $rates[$program];
             $target = Money::cents((string) $parameters[$program.'_target']);
             $fund = $rate->of($target, 'half_up');
             $awardValue = $parameters[$program.'_award_amount'] ?? null;

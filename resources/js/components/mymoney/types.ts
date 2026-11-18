@@ -56,3 +56,9 @@ export type ReserveReceipt = { id: number; number: string };
 export function isBelowZero(amount: unknown): boolean {
     return Number(amount) < 0;
 }
+
+export type HeldCommissionLine = { id: number; amount: string; what: string; order_id: string; order_number: string | null; reason: 'quota' | 'inactive' };
+
+export type HeldCommission = { total: string; count: number; lines: HeldCommissionLine[] };
+
+export type SalaryNote = { month: string; state: 'paid' | 'none_low_volume' | 'none_other'; amount: string | null; pool: string | null; sharers: number | null; min_volume: string };

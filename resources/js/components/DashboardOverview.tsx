@@ -13,6 +13,7 @@ import NextStepsCard from './dealertools/NextStepsCard';
 import { ProfilePhoto } from './ProfilePhoto';
 import Figures, { type FigureItem } from './office/Figures';
 import OfficePage from './office/OfficePage';
+import StartBooksCard from './office/StartBooksCard';
 import { Badge, Empty, date, humanize, money, type Row, number } from './UI';
 import { businessTodayIso, localizeDigits } from '../business-date';
 import { useT } from '../shared/i18n/t';
@@ -218,6 +219,20 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
                         <dt>{translate('portal', 'pending_withdrawal')}</dt>
                         <dd>{money(wallet.pending_withdrawal)}</dd>
                     </div>
+                    {Number(wallet.commission_held?.total ?? 0) > 0 && (
+                        <div className="ph-hero-waiting" data-testid="home-commission-held">
+                            <dt>{translate('money_core', 'held_heading')}</dt>
+                            <dd>{money(wallet.commission_held.total)}</dd>
+                            {(wallet.commission_held.lines ?? []).map((line: Row) => (
+                                <dd className="ph-hero-note" key={line.id}>
+                                    {money(line.amount)} · {translate('money_core', 'held_line', { what: line.what, order: line.order_number ?? '—' })} · {translate('money_core', `held_reason_${line.reason}`)}
+                                </dd>
+                            ))}
+                            {wallet.commission_held.count > (wallet.commission_held.lines ?? []).length && (
+                                <dd className="ph-hero-note"><Link href={`${base}/my-money`}>{translate('money_core', 'held_more', { count: number(wallet.commission_held.count - wallet.commission_held.lines.length) })}</Link></dd>
+                            )}
+                        </div>
+                    )}
                     <div className="ph-hero-waiting" data-testid="home-commission-waiting">
                         <dt>{translate('portal', 'ph_commission_waiting')}</dt>
                         <dd>{money(wallet.commission_waiting?.total)}</dd>
@@ -377,7 +392,7 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
     );
 }
 
-type WorkItem = { key: string; count: number; section: string; query?: Record<string, string> };
+type WorkItem = { key: string; count: number; section: string; query?: Record<string, string>; label?: string; amount?: string; alert?: boolean };
 type TrendPoint = { date: string; orders: number; value: string };
 
 /** A business day (YYYY-MM-DD) in the page's language, whatever clock the browser is on. */
@@ -399,10 +414,10 @@ function WorkQueue({ items, base }: { items: WorkItem[]; base: string }) {
                 {items.map((item) => {
                     const query = item.query ? `?${new URLSearchParams(item.query).toString()}` : '';
                     return (
-                        <li key={item.key} className={item.count > 0 ? 'has-work' : 'is-clear'}>
+                        <li key={item.key} className={item.alert ? 'has-work is-alert' : item.count > 0 ? 'has-work' : 'is-clear'}>
                             <Link href={`${base}/${item.section}${query}`}>
                                 <strong>{number(item.count)}</strong>
-                                <span>{translate('portal', `dash_work_${item.key}`)}</span>
+                                <span>{item.label ?? translate('portal', `dash_work_${item.key}`)}{item.amount != null && <> · {money(item.amount)}</>}</span>
                                 <ChevronRight size={16} aria-hidden="true" />
                             </Link>
                         </li>
@@ -494,6 +509,7 @@ function AdminHome({ home }: { home: Row }) {
     return (
         <OfficePage title={translate('portal', 'overview')} action={<span className="office-home-date">{today}</span>}>
             <div className="office-home">
+                {home.start_books && <StartBooksCard />}
                 {/* The tour step talks about the numbers, so it is skipped for staff who get none here. */}
                 {figures.length > 0 && <div data-tour="home-metrics"><Figures items={figures} /></div>}
                 {(work.length > 0 || trend.length > 0) && (
@@ -502,7 +518,7 @@ function AdminHome({ home }: { home: Row }) {
                         {trend.length > 0 && <SalesTrend points={trend} month={home.month ?? null} />}
                     </section>
                 )}
-                {figures.length === 0 && work.length === 0 && trend.length === 0 && <Empty line={translate('office_home', 'nothing_waiting')} />}
+                {figures.length === 0 && work.length === 0 && trend.length === 0 && !home.start_books && <Empty line={translate('office_home', 'nothing_waiting')} />}
             </div>
         </OfficePage>
     );

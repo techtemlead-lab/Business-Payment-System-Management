@@ -12,6 +12,7 @@ use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Finance\ReportData;
 use App\Domain\Finance\ReserveService;
 use App\Domain\Finance\TreasuryAccess;
+use App\Domain\Finance\VehiclePools;
 use App\Domain\Finance\WithdrawalApprovalLimit;
 use App\Domain\Finance\WithdrawalSecurityWait;
 use App\Domain\Integrations\IntegrationSettings;
@@ -153,6 +154,10 @@ class OperationsController extends Controller
                 $total = $remaining[$category] ?? 0;
                 $data['summary'][$program.'_uncommitted_reserve'] = ($total < 0 ? '-' : '').Money::decimal(abs($total));
             }
+            // The bike and car prizes each have their own pool; the line above is both added together.
+            foreach (app(VehiclePools::class)->balances() as $pool => $balance) {
+                $data['summary'][$pool.'_uncommitted_reserve'] = ($balance < 0 ? '-' : '').Money::decimal(abs($balance));
+            }
         }
         if ($section === 'commission-holds') {
             $tables['held_allocations'] = DB::table('commission_allocations as a')->join('users as u', 'u.id', '=', 'a.user_id')->where('a.status', 'held')
@@ -174,6 +179,7 @@ class OperationsController extends Controller
             $data['autoApproval'] = app(FinanceSettings::class)->autoApproval();
             $data['kycBeforeFirstWithdrawal'] = [...app(FinanceSettings::class)->kycBeforeFirstWithdrawal(), 'can_edit' => $actor->role === 'super_admin'];
             $data['fullPaymentWhenOrdering'] = [...app(FinanceSettings::class)->fullPaymentWhenOrdering(), 'can_edit' => $actor->role === 'super_admin'];
+            $data['autoReleaseMatured'] = [...app(FinanceSettings::class)->autoReleaseMatured(), 'can_edit' => $actor->role === 'super_admin'];
             $data['approvalLimit'] = [...app(WithdrawalApprovalLimit::class)->current(), 'default' => WithdrawalApprovalLimit::DefaultAmount, 'can_edit' => $actor->owner() && $actor->canAct('finance', 'edit')];
         }
         if ($section === 'access-management') {

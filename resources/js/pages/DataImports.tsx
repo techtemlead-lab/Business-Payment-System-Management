@@ -11,7 +11,7 @@ import { useT } from '../shared/i18n/t';
 import { useReasonFields } from '../shared/reasonFields';
 
 
-export default function DataImports({ types, batches, preview, openingLocked, canApproveOwnOpening, templateBase, startup }: Row) {
+export default function DataImports({ types, batches, preview, openingLocked, canApproveOwnOpening, templateBase, startup, ownerCanStart }: Row) {
     const translate = useT();
     const translated = (key: string, value: string) => {
         const localized = translate('portal', key);
@@ -19,7 +19,7 @@ export default function DataImports({ types, batches, preview, openingLocked, ca
     };
     const typeTitle = (value: string) => translated(`imp_type_opt_${value}`, value);
     const title = (value: string) => translated(`imp_field_${value}`, value);
-    const { auth, staffActions } = usePage<any>().props;
+    const { auth, staffActions, portalBase } = usePage<any>().props;
     const reasonOf = useReasonFields();
     usePoll(10000, { only: ['batches', 'preview'], headers: backgroundRefreshHeaders });
     const [mode, setMode] = useState(startup?.mode === 'fresh' ? 'zero' : 'import');
@@ -41,10 +41,12 @@ export default function DataImports({ types, batches, preview, openingLocked, ca
     const summary = preview?.summary;
     const chooseMode = (next: 'zero' | 'import') => {
         setMode(next);
-        const saved = next === 'zero' ? 'fresh' : 'import';
-        startupForm.setData({ mode: saved, version: startup?.version ?? 0, reason: !startupReason.shown ? '' : next === 'zero'
-            ? translate('portal', 'imp_reason_fresh')
-            : translate('portal', 'imp_reason_import') });
+        // A new start is made by the owner's "Start the books" step, which opens the money records. This page only shows the way to it, so it never says "saved" for it.
+        if (next === 'zero') {
+            return;
+        }
+        // Sent as it is chosen: setting the form data and posting in one step could send the old choice.
+        startupForm.transform(() => ({ mode: 'import', version: startup?.version ?? 0, reason: !startupReason.shown ? '' : translate('portal', 'imp_reason_import') }));
         startupForm.post('/commands/operations/integrations/startup-mode', { preserveScroll: true });
     };
 
@@ -64,7 +66,8 @@ export default function DataImports({ types, batches, preview, openingLocked, ca
                     <label><input type="radio" name="start-mode" checked={mode === 'import'} onChange={() => chooseMode('import')} /> {translate('office_settings','import_mode_import')}</label>
                 </fieldset>
                 {!startup?.label && <p className="set-line">{translate('portal','imp_mode_not_selected')}</p>}
-                {mode === 'zero' && <p className="set-line">{translate('portal','imp_fresh_no_reset')}</p>}
+                {mode === 'zero' && startup?.mode === 'fresh' && <p className="set-line">{translate('portal','imp_fresh_no_reset')}</p>}
+                {mode === 'zero' && startup?.mode !== 'fresh' && <p className="set-line">{translate('money_core','start_books_pointer')} {ownerCanStart && <Link className="text-link" href={portalBase || '/'}>{translate('money_core','start_books_pointer_link')}</Link>}</p>}
                 {Object.keys(startupForm.errors).length > 0 && <div role="alert" className="error">{Object.values(startupForm.errors).join(' ')}</div>}
                 {openingLocked && mode === 'import' && <p className="set-line">{translate('portal','imp_opening_locked')}</p>}
                 <section className="panel table-panel">

@@ -33,7 +33,7 @@ final class PartnerDashboardHome
      *   targets: list<array<string, mixed>>,
      *   referral: array{code: string, url: string, qr_url: string}|null,
      *   sponsor: array{id: int, name: string, dealer_code: string|null, phone: string|null}|null,
-     *   wallet: array{available: string, pending_withdrawal: string, commission_waiting: array{total: string, amounts: list<array{ready_on: ?string, amount: string}>}},
+     *   wallet: array{available: string, pending_withdrawal: string, commission_waiting: array{total: string, amounts: list<array{ready_on: ?string, amount: string}>}, commission_held: array{total: string, count: int, lines: list<array<string, mixed>>}},
      *   is_birthday: bool
      * }
      */
@@ -93,7 +93,7 @@ final class PartnerDashboardHome
             ] : null,
             'sponsor' => $this->sponsorCard($user),
             // Shown behind a "tap to see balance" button on the home screen.
-            'wallet' => [...$this->walletSummary($user), 'commission_waiting' => $this->earnings->waitingCommission($user)],
+            'wallet' => [...$this->walletSummary($user), 'commission_waiting' => $this->earnings->waitingCommission($user), 'commission_held' => $this->moneyBook->heldCommission($user, 3)],
             // Shows a small "happy birthday" card; read from the profile already loaded, no query.
             'is_birthday' => BirthdayGreetings::isBirthdayToday($user),
         ];

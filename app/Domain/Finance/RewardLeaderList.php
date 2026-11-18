@@ -31,7 +31,7 @@ final class RewardLeaderList
      * The target and award set in the reward rule, null while the rule leaves one blank, and how
      * many leaders are on each list.
      *
-     * @return array{targets: array{bike: ?string, car: ?string}, awards: array{bike: ?string, car: ?string}, counts: array{bike: int, car: int}}
+     * @return array{targets: array{bike: ?string, car: ?string}, awards: array{bike: ?string, car: ?string}, counts: array{bike: int, car: int}, pools: array<string, array{balance: string, award: ?string, prizes_payable: ?int}>}
      */
     public function summary(): array
     {
@@ -42,6 +42,7 @@ final class RewardLeaderList
             'targets' => ['bike' => $this->setAmount($rule['bike_target'] ?? null), 'car' => $this->setAmount($rule['car_target'] ?? null)],
             'awards' => ['bike' => $this->setAmount($rule['bike_award_amount'] ?? null), 'car' => $this->setAmount($rule['car_award_amount'] ?? null)],
             'counts' => ['bike' => (int) ($counts['bike'] ?? 0), 'car' => (int) ($counts['car'] ?? 0)],
+            'pools' => app(VehiclePools::class)->summary(),
         ];
     }
 

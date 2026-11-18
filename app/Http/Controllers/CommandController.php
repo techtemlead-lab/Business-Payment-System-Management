@@ -16,7 +16,9 @@ use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Content\CircularPublishNotifications;
 use App\Domain\Content\PublicTrustContent;
 use App\Domain\Content\TestimonialLabels;
+use App\Domain\Finance\MonthCloseStatus;
 use App\Domain\Finance\PolicyDraftService;
+use App\Domain\Finance\UnownedShareSweeps;
 use App\Domain\Geography\ManagementReferral;
 use App\Domain\Geography\PlaceTree;
 use App\Domain\Inventory\BranchOperations;
@@ -48,6 +50,7 @@ use App\Models\SiteFeedback;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\DashboardManagement;
+use App\Support\LocalDigits;
 use App\Support\Money;
 use App\Support\PhoneIdentity;
 use App\Support\ReasonFields;
@@ -426,6 +429,10 @@ class CommandController extends Controller
                     'reason' => $reason,
                     'user_id' => $locked->id,
                 ];
+                if ($statusChange['to'] === 'active') {
+                    // Owner decision D3: commission held while the partner was suspended is paid now.
+                    app(UnownedShareSweeps::class)->releaseHeldForActivePartners($locked->id, $r->user()->id);
+                }
             }
             if ($isPartner && array_key_exists('sponsor_id', $d)) {
                 $nextSponsorId = ! empty($d['sponsor_id']) ? (int) $d['sponsor_id'] : null;
@@ -1201,7 +1208,7 @@ class CommandController extends Controller
         $result = $commissionService->settleMonthlySalaryPool($d['period_month'], $r->user()->id, $d['request_key']);
 
         if ($result['status'] === 'empty_pool') {
-            return back()->with('success', __('portal.flash_salary_pool_empty', ['period' => $d['period_month']]));
+            return back()->with('success', $this->alreadyClosedFlash($d['period_month'], 'salary') ?? __('portal.flash_salary_pool_empty', ['period' => $d['period_month']]));
         }
         $rolled = $result['total_rolled_to_reserve'] ?? '0.00';
         $toProfit = $result['total_to_company_profit'] ?? '0.00';
@@ -1225,7 +1232,7 @@ class CommandController extends Controller
         $result = $commissionService->settleRankRoyaltyPool($d['period_month'], $r->user()->id, $d['request_key']);
 
         if ($result['status'] === 'empty_pool') {
-            return back()->with('success', __('portal.flash_royalty_pool_empty', ['period' => $d['period_month']]));
+            return back()->with('success', $this->alreadyClosedFlash($d['period_month'], 'royalty') ?? __('portal.flash_royalty_pool_empty', ['period' => $d['period_month']]));
         }
 
         $rolled = $result['total_rolled_to_reserve'] ?? '0.00';
@@ -1237,6 +1244,21 @@ class CommandController extends Controller
             'period' => $d['period_month'],
             'amount' => $result['total_distributed'],
         ]).$extra);
+    }
+
+    /** "Already closed on 1 Feb" instead of "the fund is empty" when a month was closed before (MA-23). */
+    private function alreadyClosedFlash(string $month, string $kind): ?string
+    {
+        $closedAt = app(MonthCloseStatus::class)->closedAt($month, $kind);
+        if ($closedAt === null) {
+            return null;
+        }
+
+        return __('money_core.flash_already_closed', [
+            'kind' => __('money_core.mc_kind_'.$kind),
+            'month' => MonthCloseStatus::label($month),
+            'date' => LocalDigits::text(Carbon::parse($closedAt)->timezone('Asia/Dhaka')->locale(app()->getLocale())->translatedFormat('j F Y'), app()->getLocale()),
+        ]);
     }
 
     public function claimRankIncentive(Request $r, User $user, CommissionService $commissionService): RedirectResponse
@@ -1293,9 +1315,10 @@ class CommandController extends Controller
             // An area seat is always a place code; names are filled in from it, never typed.
             'place_code_id' => 'bail|required|integer|exists:place_codes,id',
             'zone_name' => 'nullable|string|max:128',
-            'monthly_quota' => 'required|numeric|min:0|max:99999999999|decimal:0,2',
+            'monthly_quota' => self::areaQuotaRules(),
         ], [
             'place_code_id.required' => __('portal.place_code_required'),
+            ...self::areaQuotaMessages(),
         ]);
 
         $place = PlaceCode::query()
@@ -1369,12 +1392,67 @@ class CommandController extends Controller
         return back()->with('success', __('portal.flash_area_dealer_assigned', ['zone' => $d['zone_name']]));
     }
 
+    /** @return list<string> */
+    private static function areaQuotaRules(): array
+    {
+        return ['required', 'numeric', 'min:0', 'max:'.AreaDealerAssignment::MaxMonthlyQuota, 'decimal:0,2'];
+    }
+
+    /** @return array<string, string> */
+    private static function areaQuotaMessages(): array
+    {
+        return [
+            'monthly_quota.required' => __('money_core.area_quota_required'),
+            'monthly_quota.numeric' => __('money_core.area_quota_numeric'),
+            'monthly_quota.min' => __('money_core.area_quota_min'),
+            'monthly_quota.max' => __('money_core.area_quota_max', ['max' => Money::grouped(AreaDealerAssignment::MaxMonthlyQuota)]),
+            'monthly_quota.decimal' => __('money_core.area_quota_decimal'),
+        ];
+    }
+
+    /** Changes only the monthly target of a live seat; the seat holder and place stay as they are. */
+    public function updateAreaDealer(Request $r, int $id): RedirectResponse
+    {
+        $this->permit($r, 'accounts');
+        $d = $r->validate(['monthly_quota' => self::areaQuotaRules()], self::areaQuotaMessages());
+
+        $before = '';
+        $assignment = DB::transaction(function () use ($id, $d, &$before): AreaDealerAssignment {
+            CommissionWallet::lock();
+            $seat = AreaDealerAssignment::query()->whereKey($id)->where('is_active', true)->lockForUpdate()->firstOrFail();
+            $before = (string) $seat->monthly_quota;
+            $seat->update(['monthly_quota' => $d['monthly_quota']]);
+
+            return $seat;
+        }, 3);
+        $after = Money::decimal(Money::cents((string) $assignment->monthly_quota));
+        Audit::record($r->user()->id, 'area_dealer.updated', (string) $assignment->user_id, [
+            'level' => $assignment->level,
+            'zone' => $assignment->zone_name,
+            'place_code_id' => $assignment->place_code_id,
+            'monthly_quota_before' => $before,
+            'monthly_quota_after' => $after,
+        ]);
+        $dealer = User::find($assignment->user_id);
+        if ($dealer) {
+            $locale = $dealer->preferredLocale();
+            Audit::notice(
+                $dealer->id,
+                __('money_core.notice_area_target_changed_title', [], $locale),
+                __('money_core.notice_area_target_changed_body', ['zone' => $assignment->zone_name, 'quota' => $after], $locale),
+            );
+        }
+
+        return back()->with('success', __('money_core.flash_area_target_changed', ['zone' => $assignment->zone_name, 'quota' => $after]));
+    }
+
+    /** Closes a seat. The row and every commission that points at it stay, so no money history is lost. */
     public function removeAreaDealer(Request $r, int $id): RedirectResponse
     {
         $this->permit($r, 'accounts');
-        $assignment = AreaDealerAssignment::findOrFail($id);
+        $assignment = AreaDealerAssignment::query()->where('is_active', true)->findOrFail($id);
         $assignment->update(['is_active' => false, 'territory_key' => null]);
-        Audit::record($r->user()->id, 'area_dealer.removed', (string) $assignment->user_id, ['level' => $assignment->level, 'zone' => $assignment->zone_name]);
+        Audit::record($r->user()->id, 'area_dealer.removed', (string) $assignment->user_id, ['level' => $assignment->level, 'zone' => $assignment->zone_name, 'place_code_id' => $assignment->place_code_id, 'monthly_quota' => (string) $assignment->monthly_quota]);
         $dealer = User::find($assignment->user_id);
         if ($dealer) {
             $locale = $dealer->preferredLocale();

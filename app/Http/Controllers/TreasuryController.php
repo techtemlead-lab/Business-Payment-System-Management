@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Domain\Accounts\PartnerIncomeBook;
 use App\Domain\Accounts\PartnerMoneyBook;
+use App\Domain\Finance\CompanyFunds;
 use App\Domain\Finance\EventLog;
 use App\Domain\Finance\OrderMoneyReport;
 use App\Domain\Finance\PartnerMoneyList;
+use App\Domain\Finance\ProfitAndLoss;
 use App\Domain\Finance\ReportData;
 use App\Domain\Finance\RewardLeaderList;
 use App\Domain\Finance\TreasuryAccess;
@@ -18,8 +20,11 @@ use App\Models\Order;
 use App\Models\User;
 use App\Support\OfficeHubs;
 use App\Support\PortalHost;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Lang;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -35,7 +40,7 @@ class TreasuryController extends Controller
     {
         abort_unless(TreasuryAccess::mayOpenFunds($request->user()), 403);
 
-        return Inertia::render('TreasuryFunds', [...$this->shared($request), 'cards' => $funds->cards($this->showsOwnerFunds($request)), 'partner_totals' => $funds->partnerTotals()]);
+        return Inertia::render('TreasuryFunds', [...$this->shared($request), 'cards' => $funds->cards($this->showsOwnerFunds($request)), 'partner_totals' => $funds->partnerTotals(), 'waiting_for_delivery' => OrderMoneyReport::receivedWaitingForDelivery()]);
     }
 
     public function fund(Request $request, string $fund, TreasuryFunds $funds, RewardLeaderList $leaders): Response
@@ -117,6 +122,52 @@ class TreasuryController extends Controller
         abort_unless(TreasuryAccess::mayOpenFunds($request->user()), 403);
 
         return Inertia::render('TreasuryWork', [...$this->shared($request), ...$this->work->for($request->user(), $this->portal($request), $request)]);
+    }
+
+    /** The owner's profit and loss for a month (this month by default) or any from-to range. */
+    public function profit(Request $request, ProfitAndLoss $report): Response
+    {
+        abort_unless(TreasuryAccess::mayOpenProfit($request->user(), $this->portal($request)), 403);
+        $asked = $request->validate([
+            'month' => ['nullable', 'date_format:Y-m'],
+            'from' => ['nullable', 'date_format:Y-m-d', 'required_with:to'],
+            'to' => ['nullable', 'date_format:Y-m-d', 'required_with:from', 'after_or_equal:from'],
+        ]);
+        [$from, $to] = $this->profitPeriod($asked);
+
+        return Inertia::render('TreasuryProfit', [
+            ...$this->shared($request),
+            'report' => $report->build($from, $to),
+            'month' => isset($asked['from']) ? null : substr($from, 0, 7),
+            'copy' => Lang::get('profit_loss'),
+        ]);
+    }
+
+    /**
+     * Dates asked for, else the whole month asked for, else this month so far. A range is at most
+     * a year, so one page never reads the whole history at once.
+     *
+     * @param  array{month?: ?string, from?: ?string, to?: ?string}  $asked
+     * @return array{0: string, 1: string}
+     */
+    private function profitPeriod(array $asked): array
+    {
+        if (isset($asked['from'], $asked['to'])) {
+            $from = CarbonImmutable::parse($asked['from']);
+            if ($from->addYear()->lessThanOrEqualTo(CarbonImmutable::parse($asked['to']))) {
+                throw ValidationException::withMessages(['to' => __('profit_loss.err_range_too_long')]);
+            }
+
+            return [$asked['from'], $asked['to']];
+        }
+        if (isset($asked['month'])) {
+            $month = CarbonImmutable::parse($asked['month'].'-01');
+
+            return [$month->toDateString(), $month->endOfMonth()->toDateString()];
+        }
+        $default = CompanyFunds::defaultPeriod();
+
+        return [$default['from'], $default['to']];
     }
 
     /** The view asked for in the address, when this fund has it; otherwise the money that came in. */

@@ -191,10 +191,11 @@ class ManagementReferralTest extends TestCase
         $this->actingAs($admin)->onPortal('sadmin')->getJson('/commands/identity/refer-preview')
             ->assertOk()
             ->assertJsonPath('data.warnings', [])
-            ->assertJsonPath('data.consumers.direct_referral.fund', 'management')
+            // Owner decision D1: until the owner ticks "send to the management fund", it is company profit.
+            ->assertJsonPath('data.consumers.direct_referral.fund', 'company_profit')
             ->assertJsonPath('data.consumers.direct_referral.refer_code', 'MNHC100')
-            ->assertJsonPath('data.consumers.d2d_gen2.fund', 'management')
-            ->assertJsonPath('data.consumers.d2d_gen3.fund', 'management');
+            ->assertJsonPath('data.consumers.d2d_gen2.fund', 'company_profit')
+            ->assertJsonPath('data.consumers.d2d_gen3.fund', 'company_profit');
 
         $this->actingAs($admin)->onPortal('sadmin')->getJson('/commands/identity/refer-preview?reference_code=MNHC100')
             ->assertOk()
@@ -210,6 +211,7 @@ class ManagementReferralTest extends TestCase
     {
         $this->seed(CommissionRuleSeeder::class);
         $this->enableFinancialPosting();
+        $this->ownerRoutesReferralToManagement();
         $admin = User::factory()->create(['role' => 'super_admin']);
         $this->actingAs($admin)->onPortal('sadmin')->post('/commands/accounts', $this->dealerPayload([
             'email' => 'fund-buyer@example.com',
@@ -251,6 +253,7 @@ class ManagementReferralTest extends TestCase
     {
         $this->seed(CommissionRuleSeeder::class);
         $this->enableFinancialPosting();
+        $this->ownerRoutesReferralToManagement();
         $sponsor = User::factory()->dealer()->create(['status' => 'active', 'refer_code' => 'PERSONAL-REF']);
         $buyer = User::factory()->dealer()->create(['status' => 'active', 'sponsor_id' => $sponsor->id]);
         $order = $this->deliveredOrder($buyer);
@@ -342,6 +345,19 @@ class ManagementReferralTest extends TestCase
     }
 
     /** @param array<string, mixed> $overrides @return array<string, mixed> */
+    /** The owner's own choice to send referral money with no upline to the management fund. */
+    private function ownerRoutesReferralToManagement(): void
+    {
+        $owner = User::factory()->create(['role' => 'super_admin']);
+        $this->actingAs($owner)->onPortal('sadmin')->post('/commands/place-codes/management-referral', [
+            'enabled' => 1,
+            'auto_blank_reference' => 1,
+            'route_referral_slices' => 1,
+            'place_code_id' => PlaceCode::query()->where('code', 'MNHC100')->firstOrFail()->id,
+            'version' => app(ManagementReferral::class)->settings()['version'],
+        ])->assertRedirect();
+    }
+
     private function dealerPayload(array $overrides): array
     {
         return [

@@ -24,7 +24,7 @@ final class TreasuryWork
     public function __construct(private FundBudgets $budgets) {}
 
     /**
-     * @return array{tab: string, tiles: list<array{key: string, label: string, href: string, count: int}>, approvals_table: array<string, mixed>|null, heads_table: array<string, mixed>|null, budgets_table: array<string, mixed>|null, heads: mixed, budget_month: string, methods: mixed}
+     * @return array{tab: string, tiles: list<array{key: string, label: string, href: string, count: int, amount: string|null, alert: bool}>, approvals_table: array<string, mixed>|null, heads_table: array<string, mixed>|null, budgets_table: array<string, mixed>|null, heads: mixed, budget_month: string, methods: mixed}
      */
     public function for(User $viewer, string $portal, Request $request): array
     {
@@ -58,7 +58,7 @@ final class TreasuryWork
     }
 
     /**
-     * @return list<array{key: string, label: string, href: string, count: int}>
+     * @return list<array{key: string, label: string, href: string, count: int, amount: string|null, alert: bool}>
      */
     private function tiles(User $viewer): array
     {
@@ -68,7 +68,7 @@ final class TreasuryWork
             $tiles[] = $this->tile('payments', '/payments', (int) DB::table('payment_claims')->where('status', 'pending')->count());
             $tiles[] = $this->tile('payouts', '/payouts-hub', (int) DB::table('withdrawals')->where('status', 'requested')->count());
             $tiles[] = $this->tile('settlements', '/settlements', 0);
-            $tiles[] = $this->tile('holds', '/operations/commission-holds', (int) DB::table('commission_allocations')->where('status', 'held')->count());
+            $tiles = [...$tiles, ...$this->commissionTiles()];
             $tiles[] = $this->tile('rewards', '/operations/reserve-payouts', (int) DB::table('reserve_disbursements')->where('status', 'requested')->where('program', '!=', FundSpending::Program)->count());
             $tiles[] = $this->tile('bank', '/operations/accounting', 0);
             $tiles[] = $this->tile('opening', '/operations/financial-readiness', 0);
@@ -80,10 +80,30 @@ final class TreasuryWork
         return $tiles;
     }
 
-    /** @return array{key: string, label: string, href: string, count: int} */
-    private function tile(string $key, string $href, int $count): array
+    /**
+     * MA-15, MA-03: commission ready to pay, commission held and a failed month close. Each shows
+     * only while there is something to do, with the money in it.
+     *
+     * @return list<array{key: string, label: string, href: string, count: int, amount: string|null, alert: bool}>
+     */
+    private function commissionTiles(): array
     {
-        return ['key' => $key, 'label' => (string) __('treasury.tile_'.$key), 'href' => $href, 'count' => $count];
+        $figures = app(MoneyTaskFigures::class);
+        $ready = $figures->readyToPay();
+        $held = $figures->held();
+        $failedCloses = $figures->failedCloses();
+
+        return array_values(array_filter([
+            $ready['count'] > 0 ? $this->tile('ready_to_pay', '/settlements', $ready['count'], $ready['amount'], (string) __('money_core.task_ready_to_pay')) : null,
+            $held['count'] > 0 ? $this->tile('holds', '/operations/commission-holds', $held['count'], $held['amount'], (string) __('money_core.task_held')) : null,
+            $failedCloses > 0 ? $this->tile('month_close_failed', '/settlements', $failedCloses, null, (string) __('money_core.task_close_failed'), true) : null,
+        ]));
+    }
+
+    /** @return array{key: string, label: string, href: string, count: int, amount: string|null, alert: bool} */
+    private function tile(string $key, string $href, int $count, ?string $amount = null, ?string $label = null, bool $alert = false): array
+    {
+        return ['key' => $key, 'label' => $label ?? (string) __('treasury.tile_'.$key), 'href' => $href, 'count' => $count, 'amount' => $amount, 'alert' => $alert];
     }
 
     /**

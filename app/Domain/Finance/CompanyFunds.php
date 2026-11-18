@@ -126,6 +126,10 @@ final class CompanyFunds
             }
         }
 
+        // MA-26: a "no commission" row counts the whole commission, including what partners still owe
+        // because their wallet was short. That part is not spendable until it is recovered.
+        $totals['company_profit']['pending'] += $this->stillOwedOnNoCommission();
+
         return array_map(function (array $fund): array {
             $balance = $fund['money_in'] - $fund['money_out'];
 
@@ -278,6 +282,23 @@ final class CompanyFunds
         return DB::table('reserve_expense_sources')->join('reserve_disbursements', 'disbursement_id', '=', 'reserve_disbursements.id')
             ->whereIn('reserve_disbursements.status', ['approved', 'paid'])->groupBy('reserve_expense_sources.allocation_id')
             ->selectRaw('reserve_expense_sources.allocation_id, SUM(reserve_expense_sources.amount - reserve_expense_sources.reversed_amount) AS total');
+    }
+
+    /**
+     * Paisa partners still owe on "no commission" refunds: live from the refund's open debts, or the
+     * amount saved on rows written before the refund was linked.
+     */
+    private function stillOwedOnNoCommission(): int
+    {
+        $owed = DB::table('commission_allocations as a')
+            ->where('a.category', self::NoCommissionCategory)
+            ->where('a.status', '!=', 'reversed')
+            ->selectRaw("COALESCE(SUM(CASE WHEN a.metadata->>'refund_id' IS NOT NULL
+                THEN (SELECT COALESCE(SUM(r.unrecovered), 0) FROM commission_reversals r WHERE r.refund_id::text = a.metadata->>'refund_id' AND r.user_id IS NOT NULL)
+                ELSE COALESCE((a.metadata->>'still_owed')::numeric, 0) END), 0) AS owed")
+            ->value('owed');
+
+        return self::cents($owed);
     }
 
     /** Whole-table totals can carry a sign, which Money::cents does not accept. */
