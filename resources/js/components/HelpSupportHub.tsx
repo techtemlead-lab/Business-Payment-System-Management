@@ -45,6 +45,8 @@ export default function HelpSupportHub({ data }: { data: Row }) {
     const [activeKey, setActiveKey] = useState<string>(String(sections[0]?.key || ''));
     const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
     const [feedbackSent, setFeedbackSent] = useState<string | null>(null);
+    // Partners start with the six common questions; the long guide opens on request or when they searched.
+    const [fullGuide, setFullGuide] = useState<boolean>(!isPartner || String(data.manual_query || '') !== '');
 
     // Filter sections based on query and selected category
     const filtered = useMemo(() => {
@@ -101,8 +103,25 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                 </section>
             )}
 
-            {/* Enterprise Documentation Panel */}
-            <section className="panel help-manual-enterprise-panel" data-tour="help-manual">
+            {isPartner && (
+                <section className="panel help-quick" data-testid="help-quick">
+                    <h2>{translate('partner_ux', 'faq_title')}</h2>
+                    <div className="help-quick-list">
+                        {[1, 2, 3, 4, 5, 6].map((number) => (
+                            <details key={number}>
+                                <summary>{translate('partner_ux', `faq${number}_q`)}</summary>
+                                <p>{translate('partner_ux', `faq${number}_a`)}</p>
+                            </details>
+                        ))}
+                    </div>
+                    {!fullGuide && (
+                        <button type="button" className="button" onClick={() => setFullGuide(true)}>{translate('partner_ux', 'faq_full_guide')}</button>
+                    )}
+                </section>
+            )}
+
+            {/* Enterprise Documentation Panel: for partners it opens from the button above, after the six common questions. */}
+            {(!isPartner || fullGuide) && <section className="panel help-manual-enterprise-panel" data-tour="help-manual">
                 <div className="panel-heading">
                     <div>
                         <div className="help-manual-brand-tag">
@@ -442,7 +461,7 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                         )}
                     </article>
                 </div>
-            </section>
+            </section>}
 
             {/* Support Ticket Submission Panel */}
             <section className="panel" id="support-request" data-tour="help-support">
