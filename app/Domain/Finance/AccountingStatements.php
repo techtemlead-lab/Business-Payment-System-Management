@@ -357,9 +357,12 @@ final class AccountingStatements
     /** @return array<string, array{opening_debit: int, opening_credit: int, debit: int, credit: int}> */
     private function accountMovements(CarbonImmutable $start, CarbonImmutable $end): array
     {
+        // Start from the newest month-start snapshot before the period, when there is one, and add only the lines since.
+        $snapshot = (new JournalOpeningSnapshots)->latestBefore($start);
         $rows = DB::table('journal_lines as l')
             ->join('journal_entries as j', 'j.id', '=', 'l.entry_id')
             ->where('j.created_at', '<', $end)
+            ->when($snapshot !== null, fn ($query) => $query->where('j.created_at', '>=', $snapshot['as_of']))
             ->groupBy('l.account')
             ->orderBy('l.account')
             ->selectRaw(
@@ -372,13 +375,23 @@ final class AccountingStatements
             )
             ->get();
         $accounts = [];
+        foreach ($snapshot['totals'] ?? [] as $account => $total) {
+            $accounts[$account] = ['opening_debit' => Money::cents($total['debit']), 'opening_credit' => Money::cents($total['credit']), 'debit' => 0, 'credit' => 0];
+        }
         foreach ($rows as $row) {
             $accounts[$row->account] = [
-                'opening_debit' => Money::cents((string) $row->opening_debit),
-                'opening_credit' => Money::cents((string) $row->opening_credit),
+                'opening_debit' => ($accounts[$row->account]['opening_debit'] ?? 0) + Money::cents((string) $row->opening_debit),
+                'opening_credit' => ($accounts[$row->account]['opening_credit'] ?? 0) + Money::cents((string) $row->opening_credit),
                 'debit' => Money::cents((string) $row->debit),
                 'credit' => Money::cents((string) $row->credit),
             ];
+        }
+
+        if ($snapshot !== null && $accounts !== []) {
+            // Snapshot accounts were added first; put them back in the database's own account order.
+            $names = array_keys($accounts);
+            $order = array_column(DB::select('SELECT account FROM (VALUES '.implode(',', array_fill(0, count($names), '(?)')).') AS t(account) ORDER BY account', $names), 'account');
+            $accounts = array_replace(array_flip($order), $accounts);
         }
 
         return $accounts;
