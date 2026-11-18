@@ -195,7 +195,8 @@ class PartnerOpsSuiteTest extends TestCase
         $this->assertSame('', $payload['company']['manufacturer']);
         $this->assertSame('Madina Natural Health Care', $payload['company']['marketed_by']);
         $this->assertSame('MNHC107', $payload['buyer']['referred_code']);
-        $this->assertSame('Dealer', $payload['buyer']['designation']);
+        $this->assertSame('Upazila Dealer', $payload['buyer']['designation']);
+        $this->assertSame('Vatara, Dhaka', $payload['buyer']['area']);
         $this->assertSame('500 ml', $payload['lines'][0]['pack_size']);
         $this->assertSame('9600.00', $payload['lines'][0]['mrp_bill']);
         $this->assertSame('4800.00', $payload['lines'][0]['commission']);
