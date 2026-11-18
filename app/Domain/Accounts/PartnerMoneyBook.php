@@ -175,7 +175,7 @@ final class PartnerMoneyBook
      * Which of these orders the partner placed themselves, as a lookup by order id.
      *
      * @param  array<int, mixed>  $orderIds
-     * @return array<string, true>
+     * @return array<string, bool>
      */
     public static function ownOrderIds(User $partner, array $orderIds): array
     {

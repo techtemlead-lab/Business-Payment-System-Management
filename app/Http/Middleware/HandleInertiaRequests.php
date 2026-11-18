@@ -70,6 +70,9 @@ class HandleInertiaRequests extends Middleware
         };
         $unreadNotices = fn (): int => $attention()['notices'];
 
+        $manualChapters = fn () => ($u && $portalShell) ? app(UserManual::class)->withoutRuleValues()->chaptersFor($u) : [];
+        $manualKey = 'userManual:'.($u?->id ?? 'guest').':'.app()->getLocale();
+
         return [...parent::share($request), 'auth' => [
             'user' => $u?->safe(),
             'capabilities' => $capabilities,
@@ -97,8 +100,8 @@ class HandleInertiaRequests extends Middleware
             'translationsUrl' => TranslationBundle::url(app()->getLocale()),
             // The manual is only needed when it is opened, so it loads after the page instead of with it.
             'userManualChapters' => config('madina.inline_translations')
-                ? Inertia::once(fn () => ($u && $portalShell) ? app(UserManual::class)->withoutRuleValues()->chaptersFor($u) : [])->as('userManual:'.($u?->id ?? 'guest').':'.app()->getLocale())
-                : Inertia::defer(fn () => ($u && $portalShell) ? app(UserManual::class)->withoutRuleValues()->chaptersFor($u) : [], 'manual')->once()->as('userManual:'.($u?->id ?? 'guest').':'.app()->getLocale()),
+                ? Inertia::once($manualChapters)->as($manualKey)
+                : Inertia::defer($manualChapters, 'manual')->once()->as($manualKey),
             'navCategories' => fn () => in_array($portal, ['dealer', 'subdealer'], true)
                 ? SiteCustomization::getNavCategories()
                 : [],
