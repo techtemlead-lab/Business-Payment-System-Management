@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'money_title' => 'My money',
+    'money_title' => 'Wallet',
     'tab_earnings' => 'Earnings',
     'tab_withdrawals' => 'Withdraw money',
     'tab_receipts' => 'Payment receipts',

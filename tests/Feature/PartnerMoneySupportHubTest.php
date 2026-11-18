@@ -236,6 +236,6 @@ class PartnerMoneySupportHubTest extends TestCase
     {
         $this->actingAs($this->dealer())->onPortal('dealer')
             ->get('/circulars')
-            ->assertInertia(fn ($page) => $page->where('translations.partner_hub.money_title', 'My money'));
+            ->assertInertia(fn ($page) => $page->where('translations.partner_hub.money_title', 'Wallet'));
     }
 }

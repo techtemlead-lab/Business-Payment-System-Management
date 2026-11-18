@@ -152,7 +152,7 @@ class ReservePayoutReceiptsTest extends TestCase
 
         $this->assertNotNull($chapter);
         $this->assertSame('Payment receipts', $chapter['title']);
-        $this->assertStringContainsString('My money', $chapter['purpose']);
+        $this->assertStringContainsString('Wallet', $chapter['purpose']);
         $this->assertCount(3, $chapter['steps']);
     }
 
