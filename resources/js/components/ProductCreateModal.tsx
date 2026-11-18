@@ -410,20 +410,20 @@ export default function ProductCreateModal({
                             </label>
                             <label className="pcm-field">
                                 <span>{translate('product_facts', 'field_manufacturer')} ({translate('product_facts', 'column_bn')})</span>
-                                <input value={manufacturerBn} maxLength={200} onChange={(event) => setManufacturerBn(event.target.value)} />
+                                <input data-bangla-from="pcm-manufacturer-en" data-bangla-kind="text" value={manufacturerBn} maxLength={200} onChange={(event) => setManufacturerBn(event.target.value)} />
                             </label>
                             <label className="pcm-field">
                                 <span>{translate('product_facts', 'field_manufacturer')} ({translate('product_facts', 'column_en')})</span>
-                                <input value={manufacturerEn} maxLength={200} onChange={(event) => setManufacturerEn(event.target.value)} />
+                                <input id="pcm-manufacturer-en" value={manufacturerEn} maxLength={200} onChange={(event) => setManufacturerEn(event.target.value)} />
                             </label>
                             <label className="pcm-field">
                                 <span>{translate('product_facts', 'field_group')} ({translate('product_facts', 'column_bn')})</span>
-                                <input value={groupBn} maxLength={120} list="pcm-group-bn" onChange={(event) => setGroupBn(event.target.value)} />
+                                <input data-bangla-from="pcm-group-en-box" data-bangla-kind="text" value={groupBn} maxLength={120} list="pcm-group-bn" onChange={(event) => setGroupBn(event.target.value)} />
                                 <datalist id="pcm-group-bn">{(groupSuggestions?.bn ?? []).map((item) => <option key={item} value={item} />)}</datalist>
                             </label>
                             <label className="pcm-field">
                                 <span>{translate('product_facts', 'field_group')} ({translate('product_facts', 'column_en')})</span>
-                                <input value={groupEn} maxLength={120} list="pcm-group-en" onChange={(event) => setGroupEn(event.target.value)} />
+                                <input id="pcm-group-en-box" value={groupEn} maxLength={120} list="pcm-group-en" onChange={(event) => setGroupEn(event.target.value)} />
                                 <datalist id="pcm-group-en">{(groupSuggestions?.en ?? []).map((item) => <option key={item} value={item} />)}</datalist>
                             </label>
                             {choice('category', translate('portal', 'pcm_category'), categoryId, activeCategories, (value) => {
@@ -464,19 +464,19 @@ export default function ProductCreateModal({
                             </label>
                             <label className="pcm-field pcm-span">
                                 <span>{translate('product_facts', 'field_efficacy')} ({translate('product_facts', 'column_bn')})</span>
-                                <textarea rows={3} maxLength={2000} value={efficacyBn} onChange={(event) => setEfficacyBn(event.target.value)} />
+                                <textarea data-bangla-from="pcm-efficacy-en" data-bangla-kind="text" rows={3} maxLength={2000} value={efficacyBn} onChange={(event) => setEfficacyBn(event.target.value)} />
                             </label>
                             <label className="pcm-field pcm-span">
                                 <span>{translate('product_facts', 'field_efficacy')} ({translate('product_facts', 'column_en')})</span>
-                                <textarea rows={3} maxLength={2000} value={efficacyEn} onChange={(event) => setEfficacyEn(event.target.value)} />
+                                <textarea id="pcm-efficacy-en" rows={3} maxLength={2000} value={efficacyEn} onChange={(event) => setEfficacyEn(event.target.value)} />
                             </label>
                             <label className="pcm-field pcm-span">
                                 <span>{translate('product_facts', 'field_warnings')} ({translate('product_facts', 'column_bn')})</span>
-                                <textarea rows={3} maxLength={2000} value={warningsBn} onChange={(event) => setWarningsBn(event.target.value)} />
+                                <textarea data-bangla-from="pcm-warnings-en" data-bangla-kind="text" rows={3} maxLength={2000} value={warningsBn} onChange={(event) => setWarningsBn(event.target.value)} />
                             </label>
                             <label className="pcm-field pcm-span">
                                 <span>{translate('product_facts', 'field_warnings')} ({translate('product_facts', 'column_en')})</span>
-                                <textarea rows={3} maxLength={2000} value={warningsEn} onChange={(event) => setWarningsEn(event.target.value)} />
+                                <textarea id="pcm-warnings-en" rows={3} maxLength={2000} value={warningsEn} onChange={(event) => setWarningsEn(event.target.value)} />
                             </label>
                         </div>
                     </section>
