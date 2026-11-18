@@ -4,6 +4,7 @@ namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Accounts\PartnerProfileCard;
 use App\Models\User;
+use App\Support\StoredPhrase;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -72,7 +73,13 @@ final class ProfileSection implements WorkspaceSection
     private function notices(User $user): array
     {
         return [
-            'notices' => DB::table('account_notices')->where('user_id', $user->id)->latest()->paginate(20),
+            'notices' => DB::table('account_notices')->where('user_id', $user->id)->latest()->paginate(20)
+                ->through(function (object $notice): object {
+                    $notice->title = StoredPhrase::readable((string) $notice->title);
+                    $notice->body = StoredPhrase::readable((string) $notice->body);
+
+                    return $notice;
+                }),
         ];
     }
 }

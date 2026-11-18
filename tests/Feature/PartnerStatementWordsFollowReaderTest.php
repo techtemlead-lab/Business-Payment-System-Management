@@ -63,6 +63,24 @@ class PartnerStatementWordsFollowReaderTest extends TestCase
         $this->assertSame(['Approved bike reward'], $this->wordsSeenBy($dealer));
     }
 
+    public function test_a_rank_reward_saved_under_its_old_key_reads_in_the_readers_language(): void
+    {
+        $bangla = User::factory()->dealer()->create(['status' => 'active', 'locale' => 'bn']);
+        $english = User::factory()->dealer()->create(['status' => 'active', 'locale' => 'en']);
+        $storedInBangla = __('portal.jr_commission_settlement', ['kind' => 'portal.settle_kind_rank_mo', 'month' => '2026-11'], 'bn');
+        $storedInEnglish = __('portal.jr_commission_settlement', ['kind' => 'portal.settle_kind_rank_am', 'month' => '2026-11'], 'en');
+        $this->journal($bangla, 'commissions.settlement.12.'.$bangla->id.'.rank_mo', $storedInBangla);
+        $this->journal($english, 'commissions.settlement.12.'.$english->id.'.rank_am', $storedInEnglish);
+
+        $this->assertSame([
+            __('portal.jr_commission_settlement', ['kind' => __('portal.settle_kind_rank_mo', [], 'bn'), 'month' => '2026-11'], 'bn'),
+        ], $this->wordsSeenBy($bangla));
+        $this->assertSame([
+            __('portal.jr_commission_settlement', ['kind' => __('portal.settle_kind_rank_am', [], 'en'), 'month' => '2026-11'], 'en'),
+        ], $this->wordsSeenBy($english));
+        $this->assertStringNotContainsString('portal.settle_kind_', $this->wordsSeenBy($bangla)[0]);
+    }
+
     public function test_a_line_with_no_known_sentence_keeps_its_stored_words(): void
     {
         $dealer = User::factory()->dealer()->create(['status' => 'active', 'locale' => 'en']);

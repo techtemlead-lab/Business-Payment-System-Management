@@ -34,6 +34,34 @@ class NotificationDropdownTest extends TestCase
         $this->assertNull($response->json('data.notices.0.read_at'));
     }
 
+    public function test_a_rank_reward_notice_saved_under_its_old_key_reads_in_the_readers_language(): void
+    {
+        $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active', 'locale' => 'bn']);
+        $kind = 'portal.settle_kind_rank_mo';
+        DB::table('account_notices')->insert([
+            'user_id' => $dealer->id,
+            'title' => __('portal.notice_settle_title', [], 'bn'),
+            'body' => __('portal.notice_settle_body', ['amount' => '5000.00', 'kind' => $kind, 'month' => '2026-11'], 'bn'),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $label = __('portal.settle_kind_rank_mo', [], 'bn');
+        $body = $this->actingAs($dealer)->onPortal('dealer')
+            ->getJson('/commands/notices/latest')
+            ->assertOk()
+            ->json('data.notices.0.body');
+        $this->assertIsString($body);
+        $this->assertStringContainsString($label, $body);
+        $this->assertStringNotContainsString($kind, $body);
+
+        $this->actingAs($dealer)->onPortal('dealer')
+            ->get('/notifications')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('data.notices.data.0.body', fn (string $body): bool => str_contains($body, $label) && ! str_contains($body, $kind)));
+    }
+
     public function test_latest_notices_list_is_empty_for_a_new_account(): void
     {
         $dealer = User::factory()->create(['role' => 'sub_dealer', 'status' => 'active']);
