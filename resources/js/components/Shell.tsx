@@ -258,8 +258,8 @@ export default function Shell({ section, children, action }: { section: string; 
     }, [profileOpen]);
 
     const staffAvailable = useMemo(
-        () => buildStaffAvailable({ capabilities, role: user.role, ownerPortal, chatAnswerer: Boolean(auth.chatAnswerer), prescriber: Boolean(auth.prescriber), ownerAreas: Array.isArray(user.owner_areas) ? user.owner_areas : [] }),
-        [capabilities, ownerPortal, user.role, user.owner_areas, auth.chatAnswerer, auth.prescriber],
+        () => buildStaffAvailable({ capabilities, role: user.role, ownerPortal, chatAnswerer: Boolean(auth.chatAnswerer), prescriber: Boolean(auth.prescriber), ownerAreas: Array.isArray(user.owner_areas) ? user.owner_areas : [], stockWorker: Boolean(page.props.staffActions?.inventory?.create || page.props.staffActions?.inventory?.approve) }),
+        [capabilities, ownerPortal, user.role, user.owner_areas, auth.chatAnswerer, auth.prescriber, page.props.staffActions],
     );
 
     const partnerAvailable = useMemo(

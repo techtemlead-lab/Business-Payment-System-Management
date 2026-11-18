@@ -152,4 +152,20 @@ class OwnerAccessAndPrivacyTest extends TestCase
         // The code the app would show at that moment, worked out with the authenticator's own method.
         return (fn (): string => $this->hotp($this->base32Decode($secret), intdiv($time, self::Period)))->call($totp);
     }
+
+    public function test_purchasing_and_stock_counts_need_more_than_viewing_stock(): void
+    {
+        $viewer = User::factory()->staff('employee')->create(['profile' => ['action_permissions' => [
+            'inventory' => ['view' => true, 'create' => false, 'edit' => false, 'approve' => false],
+        ]]]);
+        // F-verify-09
+        foreach (['/purchasing', '/stock-counts'] as $page) {
+            $this->actingAs($viewer)->onPortal('manage')->get($page)->assertForbidden();
+        }
+
+        $stockOfficer = User::factory()->staff('inventory')->create();
+        foreach (['/purchasing', '/stock-counts'] as $page) {
+            $this->actingAs($stockOfficer)->onPortal('manage')->get($page)->assertOk();
+        }
+    }
 }

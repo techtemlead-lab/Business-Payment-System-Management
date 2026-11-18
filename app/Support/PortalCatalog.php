@@ -107,6 +107,10 @@ final class PortalCatalog
             abort_unless($user->allows('orders') || $user->allows('finance'), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && in_array($section, ['training', 'events'], true)) {
             abort_unless(LeadershipAccess::granted($user, 'owner_tools') || $user->allows('content'), 403);
+        } elseif (in_array($portal, ['manage', 'sadmin'], true) && in_array($section, ['purchasing', 'stock-counts'], true)) {
+            // F-verify-09: buying from suppliers and counting stock are working pages, not reports: they need the
+            // right to enter or approve stock, not only to look at stock movement.
+            abort_unless($user->canAct('inventory', 'create') || $user->canAct('inventory', 'approve'), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'partner-messages') {
             abort_unless(PartnerChat::canAnswer($user), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'reports') {

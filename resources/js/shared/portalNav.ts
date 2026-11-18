@@ -31,6 +31,8 @@ type CapabilityContext = {
     chatAnswerer?: boolean;
     /** Verified prescriber (partner or office account) or the owner-doctor: shows the Prescriptions menu. */
     prescriber?: boolean;
+    /** May enter or approve stock (not only view it): opens purchasing and stock counts (F-verify-09). */
+    stockWorker?: boolean;
     /** Owner areas the Super Admin granted to the MD or Chairman (SA-07); the Super Admin has them all. */
     ownerAreas?: string[];
     dashboardControls?: Record<string, unknown> | null;
@@ -362,8 +364,10 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
         items.add('inventory');
         items.add('stock-lots');
         items.add('branches');
-        items.add('purchasing');
-        items.add('stock-counts');
+        if (ctx.stockWorker || role === 'super_admin') {
+            items.add('purchasing');
+            items.add('stock-counts');
+        }
     }
     if ((capabilities.includes('accounts') || owns('owner_tools')) && !items.has('branches')) items.add('branches');
     if (capabilities.some((cap) => ['reports', 'finance', 'inventory'].includes(cap)) || owns('owner_tools')) {
