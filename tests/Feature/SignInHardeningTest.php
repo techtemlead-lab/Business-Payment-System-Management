@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Domain\Auth\SignInGuard;
 use App\Models\User;
+use App\Support\PortalHost;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
@@ -208,5 +209,16 @@ class SignInHardeningTest extends TestCase
             ->post('/forgot-password', ['email' => 'second@example.test'])
             ->assertSessionHasNoErrors();
         $this->assertSame(0, DB::table('password_reset_tokens')->count());
+    }
+
+    public function test_a_partner_always_lands_on_the_home_page_after_signing_in(): void
+    {
+        $dealer = $this->dealer();
+        // PP-10: a page asked for before signing in is not where a partner lands.
+        $this->withSession(['url.intended' => 'http://'.PortalHost::host('dealer').'/orders'])
+            ->onPortal('dealer')
+            ->post('/login', ['email' => 'MNHC1001', 'password' => self::Password])
+            ->assertRedirect('/');
+        $this->assertAuthenticatedAs($dealer);
     }
 }

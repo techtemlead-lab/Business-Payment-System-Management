@@ -478,6 +478,11 @@ class AuthController extends Controller
             'ip' => $r->ip(),
         ]);
         $intended = $r->session()->pull('url.intended');
+        // PP-10: partners always start on their home page; an old or shared link must not drop an older
+        // partner on a page they did not expect. Office staff still go back to the page they asked for.
+        if (in_array($candidate->role, ['dealer', 'sub_dealer'], true)) {
+            return redirect('/');
+        }
         $path = is_string($intended) ? parse_url($intended, PHP_URL_PATH) : null;
         if (is_string($intended) && is_string($path) && $path !== '/login' && ! str_starts_with($path, '/login/') && parse_url($intended, PHP_URL_HOST) === $r->getHost() && $this->routeExists($intended)) {
             return redirect($intended);
