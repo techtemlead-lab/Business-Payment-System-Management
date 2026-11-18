@@ -229,18 +229,6 @@ parameters:
 			path: app/Domain/Accounts/PartnerDashboardHome.php
 
 		-
-			message: '#^Access to an undefined property App\\Models\\CommissionAllocation\:\:\$order\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Domain/Accounts/PartnerEarningsPresenter.php
-
-		-
-			message: '#^Relation ''order'' is not found in App\\Models\\CommissionAllocation model\.$#'
-			identifier: larastan.relationExistence
-			count: 1
-			path: app/Domain/Accounts/PartnerEarningsPresenter.php
-
-		-
 			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
 			count: 1
@@ -485,18 +473,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Domain/Commissions/PolicyScheduling.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\CommissionAllocation\:\:\$order\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Domain/Commissions/RetainedFundLedger.php
-
-		-
-			message: '#^Relation ''order'' is not found in App\\Models\\CommissionAllocation model\.$#'
-			identifier: larastan.relationExistence
-			count: 1
-			path: app/Domain/Commissions/RetainedFundLedger.php
 
 		-
 			message: '#^Using nullsafe property access "\?\-\>role" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
@@ -2009,3 +1985,93 @@ parameters:
 			identifier: arrayValues.list
 			count: 1
 			path: app/Support/TableWorkbook.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$dealer_code\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Accounts/PartnerEarningsPresenter.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Accounts/PartnerEarningsPresenter.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Accounts/PartnerEarningsPresenter.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$role\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Accounts/PartnerEarningsPresenter.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,App\\Models\\CommissionAllocation\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Domain/Accounts/PartnerEarningsPresenter.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$dealer_code\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Commissions/RetainedFundLedger.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$district\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Commissions/RetainedFundLedger.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$division\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Commissions/RetainedFundLedger.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Commissions/RetainedFundLedger.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Commissions/RetainedFundLedger.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$profile\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Domain/Commissions/RetainedFundLedger.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$role\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Domain/Commissions/RetainedFundLedger.php
+
+		-
+			message: '#^Call to function is_array\(\) with null will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Domain/Commissions/RetainedFundLedger.php
+
+		-
+			message: '#^Call to function is_array\(\) with string\|null will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Domain/Commissions/RetainedFundLedger.php
+
+		-
+			message: '#^Offset ''geography'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domain/Commissions/RetainedFundLedger.php
