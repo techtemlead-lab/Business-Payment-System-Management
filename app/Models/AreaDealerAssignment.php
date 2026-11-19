@@ -30,6 +30,7 @@ class AreaDealerAssignment extends Model
         return $this->belongsTo(User::class);
     }
 
+    /** @return BelongsTo<PlaceCode, $this> */
     public function placeCode(): BelongsTo
     {
         return $this->belongsTo(PlaceCode::class);
