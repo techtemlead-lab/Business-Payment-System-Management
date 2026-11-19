@@ -118,6 +118,6 @@ return [
     'settings_desc_privacy_requests' => 'Handle requests to see or delete personal data.',
     'settings_desc_data_cleanup' => 'Delete old test data. Use with care.',
     'settings_desc_errors' => 'See where the website had problems.',
-    'more_empty' => 'There are no more tools for you.',
+    'more_empty' => 'There are no other modules for you.',
     'settings_empty' => 'There are no settings here for you.',
 ];

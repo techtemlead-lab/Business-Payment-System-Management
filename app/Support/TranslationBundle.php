@@ -22,6 +22,7 @@ final class TranslationBundle
         'partner_profile' => 'partner_profile', 'product_facts' => 'product_facts', 'dealer_tools' => 'dealer_tools',
         'prescriber_public' => 'prescriber_public', 'accounting' => 'accounting', 'purchasing' => 'purchasing',
         'funds' => 'funds', 'reward_settings' => 'reward_settings', 'self_approval' => 'self_approval',
+        'cr15' => 'cr15',
         'owner_security' => 'owner_security', 'withdrawal_wait' => 'withdrawal_wait', 'productivity' => 'productivity',
         'clinic_records' => 'clinic_records', 'stock_lots' => 'stock_lots', 'stock_print' => 'stock_print',
         'courier_areas' => 'courier_areas', 'wave3_ops' => 'wave3_ops', 'order_payment' => 'order_payment',

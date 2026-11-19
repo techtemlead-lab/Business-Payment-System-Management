@@ -146,6 +146,15 @@ export const NAV_LINK_SPECS: Record<string, NavLinkSpec> = {
         iconKey: 'treasury',
         match: ({ section }) => section === 'treasury',
     },
+    /** The event log is a Treasury page with a box on the Other modules page (CR-15); it is never a sidebar row of its own. */
+    'treasury-events': {
+        id: 'treasury-events',
+        section: 'treasury-events',
+        labelKey: 'treasury',
+        hrefPath: 'treasury/events',
+        iconKey: 'treasury',
+        match: () => false,
+    },
     /** The same row for someone who may open only the order report. */
     'treasury-orders': {
         id: 'treasury-orders',
@@ -222,8 +231,9 @@ const MENU_ROWS: Record<string, MenuRow> = Object.fromEntries(([
     { id: 'office-staff', labelKey: 'nav_module_people', iconKey: 'people', tabs: ['employees', 'payroll', 'staff-operations', 'field-sales', 'access-management'] },
     { id: 'office-reports', labelKey: 'nav_module_reports', iconKey: 'reports', tabs: ['top-sellers', 'partner-scorecard', 'branch-performance', 'financial-reports'] },
     { id: 'office-website', labelKey: 'label_web', iconKey: 'website', tabs: ['website', 'content', 'public-trust', 'video-marketing', 'feedback', 'visitors'] },
-    // The sidebar's one entry for pages that are set once or opened rarely (CR-12); its boxes come from OfficeHubs::MoreGroups.
+    // The sidebar's one entry for pages that are set once or opened rarely (CR-12, renamed "Other modules" in CR-15); its boxes come from OfficeHubs::MoreGroups.
     { id: 'office-more', labelKey: 'nav_module_more', iconKey: 'more', home: 'more', tabs: [
+        'commissions', 'treasury-events',
         'schemes', 'contests', 'sales-kit', 'training', 'events', 'agreement',
         'employees', 'payroll', 'staff-operations', 'field-sales', 'access-management',
         'website', 'content', 'public-trust', 'video-marketing', 'feedback', 'visitors',
@@ -307,7 +317,7 @@ function rowItem(rowId: string, available: Set<string>): string | null {
     if (open.length === 0) {
         return null;
     }
-    // A More page keeps its own name even when only one page is open to this person.
+    // An Other modules page keeps its own name even when only one page is open to this person.
     return open.length === 1 && MENU_ROWS[rowId].home !== 'more' ? open[0] : `${rowId}@${open.join(',')}`;
 }
 
@@ -341,7 +351,10 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
             'commissions', 'policies', 'settlements', 'simulator', 'payouts-hub', 'payments'].forEach((item) => items.add(item));
     }
     const opensTreasury = capabilities.includes('finance') || owns('treasury');
-    if (opensTreasury) items.add('treasury');
+    if (opensTreasury) {
+        items.add('treasury');
+        items.add('treasury-events');
+    }
     if (opensTreasury || capabilities.includes('reports')) items.add('treasury-orders');
     else if (capabilities.includes('field_sales')) items.add('financial-reports');
     if (capabilities.some((cap) => ['reports', 'orders', 'finance'].includes(cap))) {
@@ -465,7 +478,7 @@ function partnerAvailableBeforeSwitches(role: string, dashboardControls?: Record
 
 /** The office menu: one list of rows in four blocks, with a thin line between blocks. */
 function staffMothers(available: Set<string>): NavMother[] {
-    // The most used pages first. Pages that are set once or opened rarely live on the "More tools" page (CR-12).
+    // The most used pages first. Pages that are set once or opened rarely live on the "Other modules" page (CR-12, CR-15).
     const blocks: Array<Array<NavMother | null>> = [
         [
             mother('overview', 'nav_module_overview', pick(available, ['overview'])),
@@ -479,14 +492,13 @@ function staffMothers(available: Set<string>): NavMother[] {
             mother('payouts', 'payouts_hub', pick(available, ['payouts-hub'])),
             // MA-15: month close and the "pay matured commission now" button were in no menu.
             mother('settlements', 'settlements', pick(available, ['settlements'])),
-            mother('commissions', 'nav_commission_hub', pick(available, ['commissions'])),
         ],
         [
             rowMother('office-stock', available),
             rowMother('office-partners', available),
             rowMother('office-applications', available),
             rowMother('office-reports', available),
-            // Prescriptions stay in the sidebar (client, 2026-11-19), not on the More tools page.
+            // Prescriptions stay in the sidebar (client, 2026-11-19), not on the Other modules page.
             mother('clinic', 'prescriptions', pick(available, ['prescriptions'])),
         ],
         [

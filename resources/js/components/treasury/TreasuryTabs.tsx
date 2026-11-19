@@ -8,7 +8,6 @@ type Place = { key: string; href: string; label: string; open: (viewer: Viewer) 
 const PLACES: Place[] = [
     { key: 'funds', href: '/treasury/funds', label: 'tab_funds', open: (viewer) => viewer.finance },
     { key: 'orders', href: '/treasury/orders', label: 'tab_orders', open: (viewer) => viewer.finance || viewer.reports },
-    { key: 'events', href: '/treasury/events', label: 'tab_events', open: (viewer) => viewer.finance },
     { key: 'partners', href: '/treasury/partners', label: 'tab_partners', open: (viewer) => viewer.finance },
     { key: 'work', href: '/treasury/work', label: 'tab_work', open: (viewer) => viewer.finance },
     { key: 'profit', href: '/treasury/profit', label: 'dl_profit_loss', open: (viewer) => viewer.owner },

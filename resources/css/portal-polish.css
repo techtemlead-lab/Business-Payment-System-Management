@@ -82,3 +82,21 @@
   :root .app-shell .panel:not(.table-panel)>.filter-bar:not(.ops-m-0,.branch-perf-filters)>:is(select,.button,.ptl-date-field){flex:1 1 120px}
   :root .app-shell .panel:not(.table-panel)>.filter-bar .preset-chips{flex:1 1 100%;margin-right:0}
 }
+
+/* CR-19: the office profile. Photo, name and role on the left; the details on the right. One column on a phone. */
+.app-shell .office-profile{display:grid;grid-template-columns:minmax(220px,260px) minmax(0,1fr);gap:var(--ds-s-8);align-items:start}
+.app-shell .office-profile-who{display:flex;flex-direction:column;align-items:center;gap:var(--ds-s-2);text-align:center;min-width:0}
+.app-shell .office-profile-who h2{margin:var(--ds-s-3) 0 0;font-size:var(--ds-fs-lg);overflow-wrap:anywhere}
+.app-shell .office-profile-who p{margin:0}
+.app-shell .office-profile-name-bn{font-size:var(--ds-fs-md);color:var(--ds-text)}
+.app-shell .office-profile-role{font-size:var(--ds-fs-md);font-weight:650;color:var(--ds-brand-text)}
+.app-shell .office-profile-photo{width:200px;height:200px;max-width:100%;border-radius:50%;font-size:72px;display:grid;place-items:center;object-fit:cover;position:relative}
+.app-shell .office-profile-photo img{width:100%;height:100%;border-radius:50%;object-fit:cover}
+.app-shell .office-profile-photo.has-photo-upload{overflow:visible}
+.app-shell .office-profile-photo .partner-home-avatar-camera{width:40px;height:40px;right:6px;bottom:6px}
+.app-shell .office-profile-details{display:flex;flex-direction:column;gap:var(--ds-s-5);min-width:0}
+.app-shell .office-profile-details>section h2{margin:0 0 var(--ds-s-2);font-size:var(--ds-fs-lg)}
+@media (max-width:767px){
+  .app-shell .office-profile{grid-template-columns:minmax(0,1fr);gap:var(--ds-s-5)}
+  .app-shell .office-profile-photo{width:160px;height:160px;font-size:60px}
+}
