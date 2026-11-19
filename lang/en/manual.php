@@ -890,7 +890,7 @@ return [
     'support_t2' => 'Write one problem in each request. It will reach the right person faster.',
     'support_t3' => 'To see the dashboard tour again, press “Start the dashboard tour” inside the guide.',
     'support_w1' => 'Do not write a password or a full NID number in a request.',
-    'catalog_orders_s1' => 'Open “New order” from the menu.',
+    'catalog_orders_s1' => 'To see all products and prices, open “Products & prices” from the menu. To buy, open “New order”.',
     'catalog_orders_s2' => 'In the “Find a product” box, type the product name, code or pack size. Products appear as you type.',
     'catalog_orders_s3' => 'Choose the pack size. Type how many you need and add the product. Do the same for each product.',
     'catalog_orders_s4' => 'Look at the “Available now” number next to the product. If you ask for more, the rest becomes a “back order”. That means the rest will be sent later, when stock arrives.',

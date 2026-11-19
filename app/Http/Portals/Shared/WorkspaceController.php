@@ -151,7 +151,7 @@ class WorkspaceController extends Controller
 
             return redirect('/');
         }
-        // CR-01: the partner product list is off (code kept; MADINA_PARTNER_CATALOG=true switches it back on).
+        // The partner product list is on again (client, 2026-11-19); MADINA_PARTNER_CATALOG=false hides it (CR-01).
         if ($section === 'catalog' && ! $staffWorkspace && in_array($u->role, ['dealer', 'sub_dealer'], true) && ! config('madina.partner_catalog_enabled')) {
             return redirect('/');
         }
