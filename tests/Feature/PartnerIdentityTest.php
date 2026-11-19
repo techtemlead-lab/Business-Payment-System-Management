@@ -223,4 +223,27 @@ class PartnerIdentityTest extends TestCase
         $this->assertSame('দায়িত্বের এলাকা', TranslationBundle::for('bn')['cr21_identity']['label_area']);
         $this->assertSame('ঠিকানা', $bn['label_address']);
     }
+
+    public function test_the_card_shows_the_code_and_a_sub_dealers_chamber_name_but_never_a_dealers(): void
+    {
+        $card = (string) file_get_contents(resource_path('js/components/PartnerDashboard.tsx'));
+        $this->assertStringContainsString('label_code_sub_dealer', $card);
+        $this->assertStringContainsString("card.type === 'sub_dealer' && <CardLine", $card);
+        $profile = (string) file_get_contents(resource_path('js/components/PartnerProfileCard.tsx'));
+        $this->assertStringContainsString("card.role==='sub_dealer'?[[c('label_chamber')", $profile);
+
+        $sub = User::factory()->create(['role' => 'sub_dealer', 'status' => 'active', 'dealer_code' => 'MNHC500001-000001', 'profile' => ['shop_name' => 'City Diagnostic Centre']]);
+        $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active', 'profile' => ['shop_name' => 'Should not show']]);
+        $this->assertSame('City Diagnostic Centre', app(PartnerDashboardHome::class)->for($sub)['card']['shop_name']);
+        $this->assertSame('MNHC500001-000001', app(PartnerDashboardHome::class)->for($sub)['card']['code']);
+        $this->assertNull(app(PartnerDashboardHome::class)->for($dealer)['card']['shop_name']);
+    }
+
+    public function test_a_session_that_ended_sends_the_window_to_sign_in_instead_of_a_pop_up(): void
+    {
+        $guard = (string) file_get_contents(resource_path('js/shared/sessionGuard.ts'));
+        $this->assertStringContainsString("router.on('httpException'", $guard);
+        $this->assertStringContainsString('return false;', $guard);
+        $this->assertStringContainsString('installSessionGuard();', (string) file_get_contents(resource_path('js/app.tsx')));
+    }
 }

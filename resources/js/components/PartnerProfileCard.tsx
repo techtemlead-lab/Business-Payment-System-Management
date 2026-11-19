@@ -34,7 +34,8 @@ export default function PartnerProfileCard({card}:{card:Row}){
   [p('card_status'),''],
   [p('card_joined'),card.joined_on||none],
   [p('card_place_code'),card.place_code||none],
-  ...(card.shop_name?[[p('card_shop'),card.shop_name] as [string,string]]:[]),
+  // Only a sub-dealer has a chamber, hospital or diagnostic centre; a dealer never shows this line.
+  ...(card.role==='sub_dealer'?[[c('label_chamber'),card.shop_name||none] as [string,string]]:[]),
  ];
  const copyLink=async()=>{
   try{await navigator.clipboard.writeText(card.refer_url);setCopied(true);window.setTimeout(()=>setCopied(false),2000);}catch{setCopied(false);}

@@ -21,6 +21,7 @@ return [
 
     'label_area' => 'Area of responsibility',
     'label_appointment' => 'Appointed as',
+    'label_chamber' => 'Hospital / diagnostic centre / chamber name',
     'label_address' => 'Address',
     'label_mobile' => 'Mobile',
     'label_code_dealer' => 'Dealer code',

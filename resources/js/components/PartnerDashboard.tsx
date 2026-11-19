@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
-import { CalendarDays, Landmark, Mail, MapPin, Store, Users } from 'lucide-react';
+import { Building2, CalendarDays, Hash, Landmark, Mail, MapPin, Users } from 'lucide-react';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from './MoneyTable';
 import { ProfilePhoto } from './ProfilePhoto';
 import { date, money, number, type Row } from './UI';
@@ -28,8 +28,9 @@ function ProfileCard({ card }: { card: Row }) {
             <div className="pd-photo"><ProfilePhoto src={card.photo_url} initial={card.initial || '?'} variant="cover" /></div>
             <h2 className="pd-name">{card.name}</h2>
             <p className="pd-type" data-testid="home-appointment">{card.appointment?.line || translate('cr_partner', type)}</p>
-            {card.shop_name && <p className="pd-shop"><Store size={16} aria-hidden="true" /> {card.shop_name}</p>}
             <dl className="pd-lines">
+                {card.code && <CardLine icon={<Hash size={16} />} label={translate('cr21_identity', card.type === 'sub_dealer' ? 'label_code_sub_dealer' : 'label_code_dealer')}>{card.code}</CardLine>}
+                {card.type === 'sub_dealer' && <CardLine icon={<Building2 size={16} />} label={translate('cr21_identity', 'label_chamber')}>{card.shop_name || translate('cr21_identity', 'not_given')}</CardLine>}
                 {card.appointment?.area && <CardLine icon={<Landmark size={16} />} label={translate('cr21_identity', 'label_area')}>{card.appointment.area}</CardLine>}
                 {card.area && <CardLine icon={<MapPin size={16} />} label={translate('cr21_identity', 'label_address')}>{card.area}</CardLine>}
                 {card.email && <CardLine icon={<Mail size={16} />} label={translate('cr_partner', 'card_email')}>{card.email}</CardLine>}
