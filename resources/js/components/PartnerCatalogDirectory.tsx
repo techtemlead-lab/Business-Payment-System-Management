@@ -1,11 +1,14 @@
-import React, { useState, useMemo } from 'react';
-import { Link, usePage } from '@inertiajs/react';
-import { Package, Search, ShoppingBag, ArrowRight, CheckCircle2, AlertTriangle, LayoutGrid, List } from 'lucide-react';
-import { money, Table, type TableColumn, type Row } from './UI';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Link, router, usePage } from '@inertiajs/react';
+import { Package, Search, ShoppingBag, ArrowRight, ShoppingCart, LayoutGrid, List } from 'lucide-react';
+import { money, number, Table, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
 import { catalogWord } from '../shared/catalogWords';
-import LuxuryProductCard from './LuxuryProductCard';
+import PartnerCartCard from './partnercart/PartnerCartCard';
+import CartChooser from './partnercart/CartChooser';
 import { oneCardPerGroup, sizesByGroup, type SizeCard } from '../shared/productSizes';
+import { addLine, lineFromProduct, refreshLines } from '../shared/partnerCart';
+import { usePartnerCartLines } from '../shared/usePartnerCart';
 
 interface Props {
     products: Row[];
@@ -13,42 +16,41 @@ interface Props {
     filters?: Row;
 }
 
-/** One product card; a product sold in several sizes gets size buttons that change what the card shows. */
-function PartnerProductCard({ card, role, publicBase, base }: { card: SizeCard; role: 'dealer' | 'subdealer'; publicBase: string; base: string }) {
-    const translate = useT();
-    const [chosenId, setChosenId] = useState<number | string>(card.first.id);
-    const product = card.sizes.find(size => size.id === chosenId) ?? card.first;
-    return (
-        <LuxuryProductCard
-            product={product}
-            role={role}
-            detailsUrl={`${publicBase}/products/${product.id}`}
-            orderUrl={`${base}/purchase?product_id=${product.id}`}
-            sizeChooser={card.sizes.length > 1 ? (
-                <div className="ops-row is-wrap is-snug" role="group" aria-label={translate('size_groups', 'choose_size')}>
-                    {card.sizes.map(size => (
-                        <button
-                            key={size.id}
-                            type="button"
-                            className={`pcd-chip${size.id === product.id ? ' is-active' : ''}`}
-                            aria-pressed={size.id === product.id}
-                            onClick={() => setChosenId(size.id)}
-                        >
-                            {size.size_label}
-                        </button>
-                    ))}
-                </div>
-            ) : undefined}
-        />
-    );
-}
-
 export default function PartnerCatalogDirectory({ products = [], categories = [], filters = {} }: Props) {
     const translate = useT();
     const pageProps = usePage<any>().props;
-    const { publicBase = '', portalBase: base = '', portal = '', auth = {} } = pageProps;
-    const isSubDealer = portal === 'subdealer' || auth?.user?.role === 'sub_dealer';
-    const partnerRole: 'dealer' | 'subdealer' = isSubDealer ? 'subdealer' : 'dealer';
+    const { publicBase = '', portalBase: base = '' } = pageProps;
+    // Units free to promise now, by product id: a warning on the card and in the chooser, never a block.
+    const availableMap: Record<string, number> = pageProps.data?.available_now ?? {};
+    const availableOf = (product: Row): number | null => {
+        const known = availableMap[String(product.id)];
+        return known === undefined || known === null ? null : Number(known);
+    };
+    const { lines, setLines } = usePartnerCartLines();
+    const [chooser, setChooser] = useState<null | { card: SizeCard; startId: number | string; mode: 'cart' | 'now' }>(null);
+    const [added, setAdded] = useState<string | null>(null);
+    const inCartOf = (product: Row) => lines.find(line => line.productId === Number(product.id))?.quantity ?? 0;
+
+    // Names and prices in the cart follow today's list whenever the page is loaded.
+    useEffect(() => {
+        if (lines.length > 0) {
+            setLines(refreshLines(lines, products));
+        }
+        // Only when the product list arrives: a quantity change must not loop.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [products]);
+
+    const confirmChoice = (product: Row, quantity: number) => {
+        setLines(addLine(lines, lineFromProduct(product, quantity)));
+        if (chooser?.mode === 'now') {
+            setChooser(null);
+            router.visit(`${base}/purchase`);
+            return;
+        }
+        setChooser(null);
+        setAdded(translate('catalog_cart', 'added', { name: `${product.name}${product.size_label ? ` (${product.size_label})` : ''}`, qty: number(quantity) }));
+        window.setTimeout(() => setAdded(null), 4000);
+    };
 
     const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
     const [search, setSearch] = useState<string>((filters?.q as string) || '');
@@ -165,9 +167,9 @@ export default function PartnerCatalogDirectory({ products = [], categories = []
             {/* Product Directory: Grid View vs Table View */}
             {viewMode === 'grid' ? (
                 filteredProducts.length > 0 ? (
-                    <div className="luxury-product-grid">
+                    <div className="pcart-grid">
                         {cards.map(card => (
-                            <PartnerProductCard key={card.key} card={card} role={partnerRole} publicBase={publicBase} base={base} />
+                            <PartnerCartCard key={card.key} card={card} detailsUrl={product => `${publicBase}/products/${product.id}`} availableOf={availableOf} onChoose={(chosen, startId, mode) => setChooser({ card: chosen, startId, mode })} />
                         ))}
                     </div>
                 ) : (
@@ -291,12 +293,9 @@ export default function PartnerCatalogDirectory({ products = [], categories = []
                                 title: translate('portal', 'pcd_col_action'),
                                 align: 'center',
                                 render: (p: Row) => (
-                                    <Link
-                                        href={`${base}/purchase?product_id=${p.id}`}
-                                        className="button small dark"
-                                    >
-                                        {translate('portal', 'b2b_order_item_btn')}
-                                    </Link>
+                                    <button type="button" className="button small dark" onClick={() => setChooser({ card: oneCardPerGroup([p], groups)[0], startId: p.id, mode: 'cart' })}>
+                                        <ShoppingCart size={14} aria-hidden="true" /> {translate('catalog_cart', 'add_to_cart')}
+                                    </button>
                                 ),
                             },
                         ]}
@@ -305,6 +304,19 @@ export default function PartnerCatalogDirectory({ products = [], categories = []
                         emptyMessage={translate('portal', 'pcd_empty_title')}
                     />
                 </section>
+            )}
+
+            {added && <p className="pcart-toast" role="status" data-testid="cart-added">{added}</p>}
+            {chooser && (
+                <CartChooser
+                    card={chooser.card}
+                    startId={chooser.startId}
+                    mode={chooser.mode}
+                    availableOf={availableOf}
+                    inCartOf={inCartOf}
+                    onClose={() => setChooser(null)}
+                    onConfirm={confirmChoice}
+                />
             )}
         </div>
     );

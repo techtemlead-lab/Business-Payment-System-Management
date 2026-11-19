@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Flash, label } from './UI';
 import { DealerBottomNav, PartnerProductSearch } from './PortalHeader';
+import PartnerCartButton from './partnercart/PartnerCartButton';
 import LanguageSwitcher from './LanguageSwitcher';
 import NotificationBell from './NotificationBell';
 import PartnerSignOut from './PartnerSignOut';
@@ -606,6 +607,8 @@ export default function Shell({ section, children, action }: { section: string; 
                         <BranchWorkspaceSelect branches={workspaceBranches} />
                     )}
                     <div className="header-actions" data-tour="header-actions">
+                        {/* The partner's one shopping cart; it comes with the products page. */}
+                        {!staff && page.props.dashboardControls?.partner_catalog_off !== true && <PartnerCartButton />}
                         <GlobalSearchLauncher />
                         {/* Partners get words, not a row of lone icons: website, night mode and the guide live in the account menu. */}
                         {staff && (

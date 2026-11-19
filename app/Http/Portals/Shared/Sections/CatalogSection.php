@@ -205,6 +205,10 @@ final class CatalogSection implements WorkspaceSection
                 }
             }
         }
+        if ($context->section === 'catalog' && ! $context->isStaff) {
+            // The products page shows the same "available now" and back-order warning as the order page.
+            $props['available_now'] = AvailableNow::forProducts($products);
+        }
         if ($context->section === 'purchase' && ! $context->isStaff) {
             // The order form asks for the whole payment and its screenshot while this is on.
             $props['full_payment_required'] = app(FinanceSettings::class)->fullPaymentWhenOrdering()['enabled'];
