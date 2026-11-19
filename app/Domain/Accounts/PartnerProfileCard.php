@@ -52,6 +52,8 @@ final class PartnerProfileCard
             'place_code' => $this->clean($profile['place_code'] ?? $profile['area_code'] ?? null),
             'address' => $address,
             'address_missing' => $missing,
+            'appointment' => app(PartnerAppointment::class)->for($user),
+            'biodata' => $this->biodata($user, $profile, $address),
             'referred_by' => $this->referredBy($user, $profile),
             'refer_code' => $user->refer_code,
             'refer_url' => $user->refer_code ? PortalHost::url('public', '/join/'.$user->refer_code) : null,
@@ -59,6 +61,62 @@ final class PartnerProfileCard
             'rank' => $user->role === 'dealer' ? $this->rank($user) : null,
             'locked' => PartnerProfileLock::isLocked($user),
         ];
+    }
+
+    /**
+     * The person's own details for the read-only profile. The ID number is always masked to its last four digits.
+     *
+     * @param  array<string, mixed>  $profile
+     * @param  array<string, string|null>  $address
+     * @return array<string, string|null>
+     */
+    private function biodata(User $user, array $profile, array $address): array
+    {
+        $names = app()->getLocale() === 'bn'
+            ? BanglaPlaceNames::translate(['division' => $address['division'], 'district' => $address['district'], 'upazila' => $address['upazila'], 'union' => $address['union']])
+            : ['division' => $address['division'], 'district' => $address['district'], 'upazila' => $address['upazila'], 'union' => $address['union']];
+        $full = array_filter([
+            $this->clean($address['village']),
+            $this->clean($profile['post_office'] ?? null),
+            $this->clean($names['union']),
+            $this->clean($names['upazila']),
+            $this->clean($names['district']),
+            $this->clean($names['division']),
+        ]);
+
+        return [
+            'name' => $user->name,
+            'father_name' => $this->clean($profile['father_name'] ?? null),
+            'mother_name' => $this->clean($profile['mother_name'] ?? null),
+            'date_of_birth' => $this->birthDate($profile['date_of_birth'] ?? null),
+            'nid' => $this->masked($user->nid),
+            'birth_certificate' => $this->masked($profile['birth_certificate_number'] ?? null),
+            'occupation' => $this->clean($profile['occupation'] ?? null),
+            'full_address' => $full === [] ? null : implode(', ', $full),
+            'phone' => $user->phone,
+            'email' => $user->email,
+            'extra_contact' => $this->clean($profile['extra_contact'] ?? null),
+        ];
+    }
+
+    private function masked(mixed $number): ?string
+    {
+        $text = $this->clean($number);
+
+        return $text === null ? null : str_repeat('•', max(0, strlen($text) - 4)).substr($text, -4);
+    }
+
+    private function birthDate(mixed $value): ?string
+    {
+        $text = $this->clean($value);
+        if ($text === null) {
+            return null;
+        }
+        try {
+            return CarbonImmutable::parse($text)->format('d/m/Y');
+        } catch (\Throwable) {
+            return $text;
+        }
     }
 
     /**
