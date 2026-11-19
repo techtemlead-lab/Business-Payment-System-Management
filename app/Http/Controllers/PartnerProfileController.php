@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Accounts\AccountPhoneRules;
+use App\Domain\Accounts\PartnerKycDocuments;
 use App\Domain\Accounts\PartnerProfileLock;
 use App\Models\User;
 use App\Support\Audit;
@@ -88,5 +89,22 @@ class PartnerProfileController extends Controller
         ]);
 
         return back()->with('success', __('partner_profile.flash_details_saved'));
+    }
+
+    /**
+     * R5: the partner sends his own National ID number and photo. It waits for staff to verify it; the first
+     * withdrawal stays closed until then.
+     */
+    public function nid(Request $request, PartnerKycDocuments $documents): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User && in_array($user->role, ['dealer', 'sub_dealer'], true), 403);
+        $data = $request->validate([
+            'nid' => 'required|string|max:30',
+            'photo' => 'required|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
+        ]);
+        $documents->submitOwnNid($user, $data['nid'], $request->file('photo'));
+
+        return back()->with('success', __('leftovers_partner.nid_sent_flash'));
     }
 }

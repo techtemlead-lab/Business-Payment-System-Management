@@ -197,8 +197,11 @@ final class PartnerAccountList
             ->get()
             ->keyBy('id');
         $activity = $this->activity()->whereIn('orders.user_id', $ids)->get()->keyBy('user_id');
-        $partners->each(function (User $user) use ($activity, $role): void {
+        $appointments = app(PartnerAppointment::class)->forMany($partners);
+        $partners->each(function (User $user) use ($activity, $role, $appointments): void {
             $row = $activity->get($user->id);
+            // Level and area together ('District dealer of Rangpur'), for the list column.
+            $user->setAttribute('appointment', $appointments[$user->id] ?? null);
             $user->setAttribute('current_rank', $role === 'dealer' ? ($user->getAttribute('current_rank') ?? 'dealer') : null);
             $user->setAttribute('last_order_at', $row?->last_order_at ? CarbonImmutable::parse($row->last_order_at, 'UTC')->toIso8601String() : null);
             $user->setAttribute('month_purchase', $this->decimal($row?->month_purchase));

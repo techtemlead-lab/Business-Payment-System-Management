@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Database\Connectors\PostgresConnector;
 use App\Domain\Auth\SignInGuard;
 use App\Domain\Integrations\SmtpMailConfig;
+use App\Domain\Notifications\PasswordResetMail;
 use App\Domain\Notifications\WebPushNotices;
 use App\Domain\Pricing\CurrentProductPricing;
 use App\Domain\Pricing\ProductPricing;
@@ -14,7 +15,6 @@ use App\Listeners\NoticeNewStaffDevice;
 use App\Models\User;
 use App\Support\LocalDigits;
 use App\Support\PasswordVault;
-use App\Support\PortalHost;
 use App\Support\SiteCustomization;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
@@ -153,11 +153,9 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(QueueBusy::class, function (QueueBusy $event): void {
             Log::critical('Queue backlog exceeded its threshold.', ['connection' => $event->connectionName, 'queue' => $event->queue, 'size' => $event->size]);
         });
-        ResetPassword::createUrlUsing(function ($user, string $token) {
-            $portal = $user instanceof User ? PortalHost::forUser($user) : 'dealer';
-
-            return PortalHost::url($portal, '/reset-password/'.$token.'?email='.urlencode((string) $user->email));
-        });
+        ResetPassword::createUrlUsing(fn ($user, string $token) => PasswordResetMail::url($user, $token));
+        // The reset email's wording comes from the message templates (the owner can re-word it).
+        ResetPassword::toMailUsing(fn ($notifiable, string $token) => PasswordResetMail::build($notifiable, $token));
 
         View::composer('*', function ($view) {
             try {

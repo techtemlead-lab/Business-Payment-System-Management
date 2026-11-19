@@ -15,6 +15,7 @@ import RepeatOrderPanel, { repeatChangeNotes, type RepeatOption } from './dealer
 import SchemeNotices, { type RunningScheme } from './dealertools/SchemeNotices';
 import { choiceName, oneCardPerGroup, sizesByGroup, type SizeCard } from '../shared/productSizes';
 import { amountInWords } from '../shared/orderAmountWords';
+import { useOrderCart } from '../shared/usePartnerCart';
 import { cardStock, filterChoices, partnerPrice, priceRange, searchProducts, stockKnown, stockState } from '../shared/orderSearch';
 
 interface Props {
@@ -134,7 +135,8 @@ export default function ProductPurchaseMatrix({
     );
 
     // Multi-item cart
-    const [cart, setCart] = useState<CartItem[]>([]);
+    // The same cart as the cart icon and the products page: one list, kept in the browser until the order is sent.
+    const [cart, setCart] = useOrderCart(products);
 
     /** Picks a card: one size goes straight to quantity; several sizes ask for the size first. */
     const pickCard = (card: SizeCard) => {
@@ -348,6 +350,8 @@ export default function ProductPurchaseMatrix({
     };
 
     // The confirm step: refresh the account figure first, so the split shown is the one the server will use.
+    // R2: emptying the whole cart asks first, so one slip of the finger does not lose a long order.
+    const [clearAsk, setClearAsk] = useState(false);
     const [confirm, setConfirm] = useState<null | { before: number; status: 'checking' | 'ready' | 'failed' }>(null);
     const askToConfirm = (e: React.FormEvent) => {
         e.preventDefault();
@@ -770,7 +774,8 @@ export default function ProductPurchaseMatrix({
                         <button
                             type="button"
                             className="text-link ppm-clear"
-                            onClick={() => setCart([])}
+                            onClick={() => setClearAsk(true)}
+                            data-testid="cart-clear"
                         >
                             {translate('portal', 'b2b_clear_all')}
                         </button>
@@ -1115,6 +1120,21 @@ export default function ProductPurchaseMatrix({
                     </div>
                 )}
             </section>
+
+            {clearAsk && (
+                <Modal
+                    title={translate('leftovers_partner', 'clear_cart_title')}
+                    onClose={() => setClearAsk(false)}
+                    footer={(
+                        <>
+                            <button type="button" className="button" data-testid="cart-clear-no" onClick={() => setClearAsk(false)}>{translate('leftovers_partner', 'clear_cart_no')}</button>
+                            <button type="button" className="button dark" data-testid="cart-clear-yes" onClick={() => { setCart([]); setClearAsk(false); }}>{translate('leftovers_partner', 'clear_cart_yes')}</button>
+                        </>
+                    )}
+                >
+                    <p>{translate('leftovers_partner', 'clear_cart_body', { count: String(cart.length) })}</p>
+                </Modal>
+            )}
 
             {confirm && (() => {
                 const checking = confirm.status === 'checking';

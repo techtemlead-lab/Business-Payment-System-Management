@@ -40,8 +40,10 @@ type FundView = 'in' | 'out' | RewardAward;
 /** One fund: the same three cards as the Treasury home, then the money that came in or went out. The car and bike fund can also list leaders' progress. */
 export default function TreasuryFund({ card, view, table, spend, leaders }: { card: FundCardData; view: FundView; table: MoneyTableData<MoneyInRow | MoneyOutRow | RewardLeaderRow>; spend: FundSpendOptions | null; leaders: RewardLeaderFigures | null }) {
     const translate = useT();
-    const path = usePage().url.split('?')[0];
-    const [spending, setSpending] = useState(false);
+    const pageUrl = usePage().url;
+    const path = pageUrl.split('?')[0];
+    // The Funds tab's "spend from a fund" button opens this fund with the spending form already up (findability #9).
+    const [spending, setSpending] = useState(() => Boolean(spend && card.spendable) && new URLSearchParams(pageUrl.split('?')[1] ?? '').get('spend') === '1');
     const viewSwitch = useRef<HTMLDivElement>(null);
 
     useEffect(() => {

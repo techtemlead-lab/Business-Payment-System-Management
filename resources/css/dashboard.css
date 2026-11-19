@@ -28,6 +28,7 @@
 @import './screens-office-stock.css';
 @import './screens-visitors.css';
 @import './screens-reason-fields.css';
+@import './screens-message-templates.css';
 @import './screens-text-size.css';
 @import './screens-partner-dashboard.css';
 @import url('https://fonts.bunny.net/css?family=instrument-serif:400,400i,700&display=swap');
@@ -3158,7 +3159,7 @@ html[data-theme="dark"] .app-shell .hub .button.danger:hover{background:var(--ds
 .app-shell .pw-actions{padding-top:16px;border-top:1px solid var(--ds-line-soft)}
 .app-shell .pw-custom{margin-top:14px;padding:14px 16px;border:1px solid var(--ds-line);border-radius:var(--ds-r-md);background:var(--ds-surface-3)}
 .app-shell .pw-custom>label{margin-bottom:6px}
-.app-shell .pw-input-wrap{position:relative;flex:1 1 240px}
+.app-shell .pw-input-wrap{position:relative;flex:none;width:100%;max-width:420px}
 .app-shell .pw-input-wrap>input{padding-right:36px;font-family:ui-monospace,monospace}
 .app-shell .pw-eye{position:absolute;right:8px;top:50%;transform:translateY(-50%);padding:2px;border:0;background:none;font-size:14px;line-height:1;cursor:pointer}
 .app-shell .pw-custom>small{display:block;margin-top:6px}
@@ -3318,3 +3319,15 @@ html[data-theme="dark"] .notice-panel .skeleton{background:linear-gradient(90deg
 html[data-theme="dark"] .ppc-note{color:#cbd5e1}
 html[data-theme="dark"] .ppc-note.is-error{color:#fca5a5}
 html[data-theme="dark"] .ppc-link{color:#7fd0a4}
+
+/* Findability: search action entries, and the office sidebar's help and sign-out lines */
+.app-shell .sidebar .sidebar-search-actions{list-style:none;margin:0 0 10px;padding:0 0 8px;border-bottom:1px solid var(--ds-side-line);display:grid;gap:4px}
+.app-shell .sidebar .sidebar-search-actions li{margin:0}
+.app-shell .sidebar .sidebar-search-actions a,.app-shell .sidebar .sidebar-search-actions button{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:8px 10px;border-radius:var(--ds-r-md);border:1px solid var(--ds-side-line);background:rgba(255,255,255,.07);color:var(--ds-side-strong);font-size:var(--ds-fs-sm);text-align:left;cursor:pointer;text-decoration:none}
+.app-shell .sidebar .sidebar-search-actions a:hover,.app-shell .sidebar .sidebar-search-actions button:hover{background:var(--ds-side-hover)}
+.app-shell .sidebar .sidebar-search-action-text{display:grid;gap:2px;line-height:1.35}
+.app-shell .sidebar .sidebar-search-action-text b{font-weight:600}
+.app-shell .sidebar .sidebar-search-action-text small{color:var(--ds-side-muted);font-size:12px}
+.app-shell .sidebar .sidebar-office-footer{display:grid;gap:6px}
+.app-shell .sidebar .sidebar-office-footer .sidebar-help-link,.app-shell .sidebar .sidebar-office-footer .sidebar-sign-out{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:8px 10px;border-radius:var(--ds-r-md);border:1px solid var(--ds-side-line);background:transparent;color:var(--ds-side-text);font-size:var(--ds-fs-sm);font-weight:500;text-decoration:none;cursor:pointer;text-align:left}
+.app-shell .sidebar .sidebar-office-footer .sidebar-help-link:hover,.app-shell .sidebar .sidebar-office-footer .sidebar-sign-out:hover{background:var(--ds-side-hover);color:var(--ds-side-strong)}

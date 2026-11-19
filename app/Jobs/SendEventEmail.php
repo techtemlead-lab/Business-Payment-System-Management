@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Domain\Integrations\SmtpMailConfig;
 use App\Domain\Notifications\EmailDeliveryLog;
 use App\Domain\Notifications\EmailEventSwitches;
+use App\Domain\Notifications\MessageTemplates;
 use App\Domain\Notifications\PartnerEventEmail;
 use App\Mail\EventNoticeMail;
 use App\Models\User;
@@ -29,7 +30,8 @@ class SendEventEmail implements ShouldQueue
 
     public int $timeout = 180;
 
-    public function __construct(public int $userId, public string $event, public string $title, public string $body) {}
+    /** @param  array<string, mixed>  $replace */
+    public function __construct(public int $userId, public string $event, public string $title, public string $body, public array $replace = []) {}
 
     public function handle(SmtpMailConfig $smtp, EmailEventSwitches $switches): void
     {
@@ -45,12 +47,23 @@ class SendEventEmail implements ShouldQueue
             if (! PartnerEventEmail::realMailConfigured() || ! $switches->isOn($this->event)) {
                 return;
             }
+            $portalUrl = PortalHost::url(PortalHost::forUser($user), '/');
+            $locale = $user->preferredLocale();
+            // The owner may have re-worded this email (message templates); with no saved text it is the text as prepared.
+            $text = MessageTemplates::email($this->event, $locale, [
+                ...$this->replace,
+                'name' => (string) $user->name,
+                'link' => $portalUrl,
+                'company' => (string) (config('mail.from.name') ?: config('app.name')),
+                'notice_title' => $this->title,
+                'notice_text' => $this->body,
+            ], $this->title, $this->body);
             Mail::to($address)->send(new EventNoticeMail(
-                noticeTitle: $this->title,
-                noticeBody: $this->body,
+                noticeTitle: $text['subject'],
+                noticeBody: $text['body'],
                 recipientName: (string) $user->name,
-                portalUrl: PortalHost::url(PortalHost::forUser($user), '/'),
-                language: $user->preferredLocale(),
+                portalUrl: $portalUrl,
+                language: $locale,
             ));
         } catch (Throwable $exception) {
             if ($this->willRunAgain()) {

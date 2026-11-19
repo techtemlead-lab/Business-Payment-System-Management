@@ -76,8 +76,8 @@ class PartnerEarningsAgreeWithMyMoneyTest extends TestCase
         $this->assertSame('40.00', $report['summary']['team_commission'], 'Held money of the team is left out too.');
         $byHead = array_column($report['commissions'], 'amount', 'category');
         $this->assertSame('36.00', $byHead['area_union']);
-        $this->assertArrayNotHasKey('direct_referral', $byHead, 'Money taken back in full leaves nothing to show.');
-        $this->assertSame('10.00', $byHead['reward']);
+        $this->assertArrayNotHasKey('referral', $byHead, 'Money taken back in full leaves nothing to show.');
+        $this->assertSame('10.00', $byHead['other']);
     }
 
     public function test_the_income_certificate_leaves_out_held_money_and_matches_my_money(): void
@@ -85,7 +85,7 @@ class PartnerEarningsAgreeWithMyMoneyTest extends TestCase
         $income = app(PartnerCertificates::class)->income($this->dealer, 2026);
 
         $this->assertSame('96.00', $income['total']);
-        $this->assertSame(['area_union', 'own_dealer_cashback', 'reward'], array_column($income['lines'], 'category'));
+        $this->assertSame(['own', 'area_union', 'other'], array_column($income['lines'], 'category'));
         $this->assertSame('36.00', array_column($income['lines'], 'amount', 'category')['area_union']);
     }
 

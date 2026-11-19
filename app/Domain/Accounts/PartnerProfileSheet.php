@@ -38,6 +38,7 @@ final class PartnerProfileSheet
             'role' => $partner->role,
             'status' => $partner->status,
             'locked' => PartnerProfileLock::isLocked($partner),
+            'appointment' => app(PartnerAppointment::class)->for($partner),
             'identity' => [
                 'name_bn' => $profile['name_bn'] ?? null,
                 'dealer_code' => $partner->dealer_code,

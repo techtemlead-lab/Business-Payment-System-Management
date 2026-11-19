@@ -33,13 +33,41 @@ final class BanglaPlaceNames
         $district = self::find($division['children'] ?? [], $names['district'] ?? null, $index['flat']['district']);
         $upazila = self::find($district['children'] ?? [], $names['upazila'] ?? null, $index['flat']['upazila']);
         $union = self::find($upazila['children'] ?? [], $names['union'] ?? null, $index['flat']['union']);
+        // R1: Pourashavas and city corporations are not in the union list of the geo file, only in the place-code data.
+        $municipal = $union === null ? self::findMunicipal($index['municipal'], $names['upazila'] ?? null, $names['union'] ?? null) : null;
+        $metroUpazila = $upazila === null && is_string($names['upazila'] ?? null) ? ($index['municipal']['metro'][self::exactKey($names['upazila'])] ?? null) : null;
 
         return [
             'division' => $division['bn'] ?? ($names['division'] ?? null),
             'district' => $district['bn'] ?? ($names['district'] ?? null),
-            'upazila' => $upazila['bn'] ?? ($names['upazila'] ?? null),
-            'union' => $union['bn'] ?? ($names['union'] ?? null),
+            'upazila' => $upazila['bn'] ?? $metroUpazila ?? ($names['upazila'] ?? null),
+            'union' => $union['bn'] ?? $municipal ?? ($names['union'] ?? null),
         ];
+    }
+
+    /**
+     * One place name in Bangla, looked up under the places above it ("Sadar" under the right district).
+     * Returns the name unchanged when nothing matches.
+     *
+     * @param  array{division?: ?string, district?: ?string, upazila?: ?string}  $above  The names of the places above it.
+     */
+    public static function level(string $level, string $name, array $above = []): string
+    {
+        return self::translate([...$above, $level => $name])[$level] ?? $name;
+    }
+
+    /**
+     * The key of a Pourashava or city corporation name: the spelling variants Pourashava, Paurashava,
+     * Pouroshova and Municipality fold into one, and a city corporation gets its own marker.
+     */
+    public static function municipalKey(string $name): string
+    {
+        $key = self::exactKey($name);
+        if (preg_match('/^(.*?)(?:citycorporation|corporation)$/', $key, $m) === 1 && $m[1] !== '') {
+            return $m[1].'|city';
+        }
+
+        return preg_replace('/(?:pourashava|paurashava|pouroshova|pourosova|porashava|pouroshava|municipality|municipal|pouro|paura)$/', '', $key) ?? $key;
     }
 
     /** The letters of a name only, lower case; Bangla and other scripts pass through as they are. */
@@ -62,6 +90,31 @@ final class BanglaPlaceNames
         $key = preg_replace('/[aeiou]/', '', $key) ?? '';
 
         return preg_replace('/(.)\1+/', '$1', $key) ?? '';
+    }
+
+    /**
+     * @param  array{byUpazila: array<string, string>, flat: array<string, string|null>, metro: array<string, string>}  $municipal
+     */
+    private static function findMunicipal(array $municipal, mixed $upazila, mixed $name): ?string
+    {
+        if (! is_string($name) || trim($name) === '' || trim($name) === '—') {
+            return null;
+        }
+        $key = self::municipalKey($name);
+        if (is_string($upazila) && trim($upazila) !== '') {
+            $inside = $municipal['byUpazila'][self::exactKey($upazila).'|'.$key] ?? null;
+            if ($inside !== null) {
+                return $inside;
+            }
+        }
+
+        // Without a matching upazila, only a name that says Pourashava or City Corporation itself is safe:
+        // a bare "Saidpur" is far more likely a union.
+        if ($key === self::exactKey($name)) {
+            return null;
+        }
+
+        return $municipal['flat'][$key] ?? null;
     }
 
     /**
@@ -99,13 +152,14 @@ final class BanglaPlaceNames
             return self::$index;
         }
         $path = database_path('data/bangladesh-geo.json');
-        $key = 'bangla-place-names:'.(string) @filemtime($path);
+        $codes = database_path('data/bangladesh-place-codes.json');
+        $key = 'bangla-place-names:v2:'.(string) @filemtime($path).':'.(string) @filemtime($codes);
 
-        return self::$index = Cache::rememberForever($key, fn (): array => self::build($path));
+        return self::$index = Cache::rememberForever($key, fn (): array => self::build($path, $codes));
     }
 
     /** @return array<string, mixed> */
-    private static function build(string $path): array
+    private static function build(string $path, string $codes): array
     {
         $tree = json_decode((string) file_get_contents($path), true);
         $flat = ['division' => ['e' => [], 's' => []], 'district' => ['e' => [], 's' => []], 'upazila' => ['e' => [], 's' => []], 'union' => ['e' => [], 's' => []]];
@@ -156,7 +210,50 @@ final class BanglaPlaceNames
             }
         }
 
-        return ['divisions' => $divisions, 'flat' => $flat];
+        return ['divisions' => $divisions, 'flat' => $flat, 'municipal' => self::buildMunicipal($codes)];
+    }
+
+    /**
+     * Pourashavas and city corporations (and the metro "upazilas" that hold city corporations) from the
+     * place-code data. A Pourashava is written with "পৌরসভা" after its name, a city corporation already
+     * carries its own word in the data.
+     *
+     * @return array{byUpazila: array<string, string>, flat: array<string, string|null>, metro: array<string, string>}
+     */
+    private static function buildMunicipal(string $codes): array
+    {
+        $data = json_decode((string) @file_get_contents($codes), true);
+        $places = is_array($data) && is_array($data['places'] ?? null) ? $data['places'] : [];
+        $nameOf = [];
+        foreach ($places as $place) {
+            if (is_array($place) && isset($place['code'], $place['name'])) {
+                $nameOf[(string) $place['code']] = (string) $place['name'];
+            }
+        }
+        $out = ['byUpazila' => [], 'flat' => [], 'metro' => []];
+        foreach ($places as $place) {
+            if (! is_array($place) || ! is_string($place['name'] ?? null) || ! is_string($place['bn_name'] ?? null) || trim($place['bn_name']) === '') {
+                continue;
+            }
+            $kind = $place['kind'] ?? null;
+            if ($kind === 'metro_upazila') {
+                $out['metro'][self::exactKey($place['name'])] = $place['bn_name'];
+
+                continue;
+            }
+            if ($kind !== 'pourashava' && $kind !== 'city_corporation') {
+                continue;
+            }
+            $bn = $kind === 'pourashava' ? trim($place['bn_name']).' পৌরসভা' : trim($place['bn_name']);
+            $key = self::municipalKey($place['name']);
+            $out['flat'][$key] = array_key_exists($key, $out['flat']) && $out['flat'][$key] !== $bn ? null : $bn;
+            $parent = $nameOf[(string) ($place['parent_code'] ?? '')] ?? null;
+            if ($parent !== null) {
+                $out['byUpazila'][self::exactKey($parent).'|'.$key] = $bn;
+            }
+        }
+
+        return $out;
     }
 
     private static function usable(mixed $place): bool

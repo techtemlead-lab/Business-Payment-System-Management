@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\PlaceCode;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -86,8 +88,9 @@ class DealerOnboardingTest extends TestCase
         $this->assertSame('মোঃ রফিকুল ইসলাম', $user->profile['name_bn']);
         $this->assertSame('Late Abdur Rahman', $user->profile['father_name']);
         $this->assertSame('Rahima Begum', $user->profile['mother_name']);
-        $this->assertSame('Kaliakair', $user->profile['upazila']);
-        $this->assertSame('Chapair', $user->profile['union']);
+        // The place code (a division here) decides the area; the typed upazila and union are not taken.
+        $this->assertSame('', $user->profile['upazila']);
+        $this->assertSame('', $user->profile['union']);
         $this->assertSame('Madina Care Point Gazipur', $user->profile['pharmacy']);
 
         // Check wallet initialized
@@ -189,6 +192,111 @@ class DealerOnboardingTest extends TestCase
             'reference_code' => $suspendedDealer->dealer_code,
         ]));
         $res->assertSessionHasErrors('reference_code');
+    }
+
+    public function test_a_dealer_on_an_upazila_code_never_gets_a_union_the_person_did_not_choose(): void
+    {
+        Notification::fake();
+        $this->seedClassicPlaceCodes();
+        $admin = User::factory()->create(['role' => 'super_admin']);
+        $division = PlaceCode::query()->where('code', 'MNHC102')->firstOrFail();
+        $district = PlaceCode::factory()->district($division)->create(['code' => 'MNHC362', 'name' => 'Rangpur District']);
+        $upazila = PlaceCode::factory()->upazila($district)->create(['code' => 'MNHC462', 'name' => 'Kaunia']);
+
+        $res = $this->actingAs($admin)->post('/commands/accounts', $this->placeOnboarding([
+            'place_code' => $upazila->code,
+            'dealer_code' => 'D-KAU-001',
+            'name' => 'Kaunia Dealer',
+            'email' => 'kaunia@example.com',
+            'phone' => '01712340001',
+            // A name left over from an earlier pick in the form.
+            'upazila' => 'Kaunia',
+            'union' => 'Rangpur City Corporation',
+        ]));
+        $res->assertSessionHasNoErrors();
+
+        $profile = User::where('email', 'kaunia@example.com')->firstOrFail()->profile;
+        $this->assertSame('Kaunia', $profile['upazila']);
+        $this->assertSame('', $profile['union']);
+    }
+
+    public function test_a_password_typed_by_the_office_is_used_and_not_forced_to_change(): void
+    {
+        Notification::fake();
+        $this->seedClassicPlaceCodes();
+        $admin = User::factory()->create(['role' => 'super_admin']);
+
+        $res = $this->actingAs($admin)->post('/commands/accounts', $this->placeOnboarding([
+            'dealer_code' => 'D-TYP-001',
+            'name' => 'Typed Password',
+            'email' => 'typed@example.com',
+            'phone' => '01712340011',
+            'password' => 'Madina#Typed77',
+        ]));
+        $res->assertSessionHasNoErrors();
+
+        $user = User::where('email', 'typed@example.com')->firstOrFail();
+        $this->assertTrue(Hash::check('Madina#Typed77', $user->password));
+        $this->assertFalse((bool) $user->must_change_password);
+        $this->assertStringNotContainsString('Madina#Typed77', (string) session('success'));
+        $this->assertStringNotContainsString('Madina#Typed77', json_encode(DB::table('audit_events')->get()->all()));
+    }
+
+    public function test_an_empty_password_box_makes_a_password_that_must_be_changed(): void
+    {
+        Notification::fake();
+        $this->seedClassicPlaceCodes();
+        $admin = User::factory()->create(['role' => 'super_admin']);
+
+        $this->actingAs($admin)->post('/commands/accounts', $this->placeOnboarding([
+            'dealer_code' => 'D-GEN-001',
+            'name' => 'Made Password',
+            'email' => 'made@example.com',
+            'phone' => '01712340012',
+            'password' => '',
+        ]))->assertSessionHasNoErrors();
+
+        $this->assertTrue((bool) User::where('email', 'made@example.com')->firstOrFail()->must_change_password);
+    }
+
+    public function test_a_typed_password_that_is_too_short_or_too_easy_is_refused(): void
+    {
+        Notification::fake();
+        $this->seedClassicPlaceCodes();
+        $admin = User::factory()->create(['role' => 'super_admin']);
+
+        foreach (['short1!', '12345678'] as $index => $password) {
+            $this->actingAs($admin)->post('/commands/accounts', $this->placeOnboarding([
+                'dealer_code' => 'D-EZ-00'.$index,
+                'name' => 'Easy Password',
+                'email' => "easy{$index}@example.com",
+                'phone' => '0171234002'.$index,
+                'password' => $password,
+            ]))->assertSessionHasErrors('password');
+            $this->assertDatabaseMissing('users', ['email' => "easy{$index}@example.com"]);
+        }
+    }
+
+    public function test_a_sub_dealer_gets_the_union_of_the_place_code(): void
+    {
+        Notification::fake();
+        $this->seedClassicPlaceCodes();
+        $admin = User::factory()->create(['role' => 'super_admin']);
+        $sponsor = User::factory()->create(['role' => 'dealer', 'status' => 'active', 'dealer_code' => 'D-DHK-SPONSOR']);
+        $code = $this->unionCode();
+
+        $this->actingAs($admin)->post('/commands/accounts', $this->placeOnboarding([
+            'role' => 'sub_dealer',
+            'place_code' => $code,
+            'name' => 'Union Sub',
+            'email' => 'unionsub@example.com',
+            'phone' => '01712340002',
+            'reference_code' => $sponsor->dealer_code,
+            'status' => 'active',
+            'union' => 'Some Other Union',
+        ]))->assertSessionHasNoErrors();
+
+        $this->assertSame('Test Union', User::where('email', 'unionsub@example.com')->firstOrFail()->profile['union']);
     }
 
     private function unionCode(): string

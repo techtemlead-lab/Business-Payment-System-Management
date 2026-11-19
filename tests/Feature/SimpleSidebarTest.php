@@ -256,7 +256,7 @@ class SimpleSidebarTest extends TestCase
     public function test_settings_page_offers_only_what_each_person_can_open(): void
     {
         $expected = [
-            ['super_admin', 'sadmin', ['finance-settings', 'payment-accounts', 'financial-readiness', 'place-codes', 'dashboards', 'identity-review', 'login-rules', 'reason-fields', 'service-integrations', 'courier-areas', 'data-imports', 'audit', 'privacy-requests', 'data-cleanup', 'errors']],
+            ['super_admin', 'sadmin', ['finance-settings', 'payment-accounts', 'financial-readiness', 'place-codes', 'dashboards', 'identity-review', 'login-rules', 'reason-fields', 'service-integrations', 'courier-areas', 'data-imports', 'audit', 'privacy-requests', 'data-cleanup', 'errors', 'message-templates']],
             ['finance', 'manage', ['finance-settings', 'payment-accounts', 'financial-readiness', 'identity-review', 'service-integrations', 'data-imports']],
             ['account_manager', 'manage', ['place-codes', 'dashboards', 'data-imports']],
         ];
@@ -366,7 +366,7 @@ class SimpleSidebarTest extends TestCase
         $this->actingAs(User::factory()->staff('inventory')->create())->onPortal('manage')->get('/operations/payroll')->assertForbidden();
     }
 
-    public function test_the_report_files_tab_is_only_for_those_who_cannot_open_the_money_report(): void
+    public function test_the_report_files_tab_is_offered_to_everyone_who_may_download_the_files(): void
     {
         $sr = User::factory()->staff('sr')->create();
         $this->actingAs($sr)->onPortal('manage')->get('/operations/financial-reports')->assertOk()
@@ -374,7 +374,9 @@ class SimpleSidebarTest extends TestCase
 
         $finance = User::factory()->staff('finance')->create();
         $tabs = $this->actingAs($finance)->onPortal('manage')->get('/top-sellers')->assertOk()->viewData('page')['props']['data']['hub']['tabs'];
-        $this->assertNotContains('/operations/financial-reports', array_column($tabs, 'href'));
+        $this->assertContains('/operations/financial-reports', array_column($tabs, 'href'));
+        $this->assertContains('/operations/financial-reports', array_column($this->actingAs(User::factory()->staff()->create())->onPortal('sadmin')->get('/top-sellers')->assertOk()->viewData('page')['props']['data']['hub']['tabs'], 'href'));
+        $this->actingAs(User::factory()->staff('inventory')->create())->onPortal('manage')->get('/operations/financial-reports')->assertForbidden();
     }
 
     public function test_partner_rows_get_their_tabs(): void

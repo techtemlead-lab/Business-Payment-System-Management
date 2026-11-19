@@ -2,6 +2,8 @@
 
 namespace App\Domain\Geography;
 
+use App\Domain\Accounts\BanglaPlaceNames;
+
 /**
  * The four cascading place pickers (division, district, upazila, union) of the public
  * dealer list. Works on the places returned by PlaceTree::areaOptions and on place code ids only.
@@ -19,6 +21,8 @@ final class DirectoryAreaFilter
     public static function build(array $places, array $query): array
     {
         $chosen = self::chosen($places, $query);
+        // Bangla pages list Bangla names (B6); ids, and so the filtering, do not depend on the name.
+        $places = app()->getLocale() === 'bn' ? self::inBangla($places) : $places;
 
         $options = [];
         foreach (self::Levels as $index => $level) {
@@ -47,6 +51,28 @@ final class DirectoryAreaFilter
         }
 
         return ['chosen' => $chosen, 'options' => $options];
+    }
+
+    /**
+     * The same places with Bangla names, each looked up under the places above it.
+     *
+     * @param  array<int, array{id: int, name: string, level: string, parent_id: int|null}>  $places
+     * @return array<int, array{id: int, name: string, level: string, parent_id: int|null}>
+     */
+    private static function inBangla(array $places): array
+    {
+        $english = $places;
+        foreach ($english as $id => $place) {
+            $above = [];
+            $parent = $place['parent_id'];
+            for ($guard = 0; $parent !== null && isset($english[$parent]) && $guard < 6; $guard++) {
+                $above[$english[$parent]['level']] = $english[$parent]['name'];
+                $parent = $english[$parent]['parent_id'];
+            }
+            $places[$id]['name'] = BanglaPlaceNames::level($place['level'], $place['name'], $above);
+        }
+
+        return $places;
     }
 
     /**

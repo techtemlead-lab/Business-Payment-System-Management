@@ -29,8 +29,9 @@ export default function MyMoney({ summary, cards, table, withdrawal_requests: wi
 }) {
     const translate = useT();
     const { portalBase: base, financeActive } = usePage<any>().props;
-    const [sheetOpen, setSheetOpen] = useState(false);
-    const selected = table.state.filters.type ?? '';
+    // ?withdraw=1 (dashboard button, menu search) opens the withdrawal sheet straight away.
+    const [sheetOpen, setSheetOpen] = useState(() => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('withdraw') === '1');
+    const selected = table.state.filters.head ?? '';
     const chooseType = useChooseIncomeType(selected);
     const orderHref = financeActive && Number(summary.available) > 0
         ? `${base}/purchase?pay=account&budget=${summary.available}`
@@ -46,6 +47,8 @@ export default function MyMoney({ summary, cards, table, withdrawal_requests: wi
                         <>
                             <button type="button" className="button dark" onClick={() => setSheetOpen(true)}>{translate('my_money', 'withdraw')}</button>
                             <Link className="button" href={orderHref}>{translate('my_money', 'order')}</Link>
+                            <Link className="button" href={`${base}/my-income`}>{translate('cr21_income', 'income_button')}</Link>
+                            <Downloads certificates={certificates} receipts={reserveReceipts} view={table.state} />
                         </>
                     )}
                 />
@@ -54,9 +57,8 @@ export default function MyMoney({ summary, cards, table, withdrawal_requests: wi
                 <NotEarnedAreaList rows={notEarnedArea} />
                 <SalaryNotes notes={salaryNotes} />
                 <IncomeCards cards={cards} selected={selected} onChoose={chooseType} />
-                <Link className="button mm-income-link" href={`${base}/my-income`}>{translate('income', 'open')}</Link>
                 <Lifetime lifetime={summary.lifetime} />
-                <MoneyBook table={table} actions={<Downloads certificates={certificates} receipts={reserveReceipts} view={table.state} />} />
+                <MoneyBook table={table} />
             </div>
             {sheetOpen && <WithdrawSheet available={summary.available} withdraw={withdraw} onClose={() => setSheetOpen(false)} />}
         </Shell>

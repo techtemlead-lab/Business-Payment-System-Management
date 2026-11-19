@@ -79,6 +79,7 @@ export default function PartnerProfile({ sheet, month, targets, canSetTargets, c
                         <div>
                             <h1>{sheet.name}</h1>
                             <p className="muted">{[identity.dealer_code, t(isDealer ? 'type_dealer' : 'type_sub_dealer')].filter(Boolean).join(' · ')}</p>
+                            {sheet.appointment?.line && <p><b>{sheet.appointment.line}</b></p>}
                         </div>
                         <span className="ops-row">{sheet.locked && <span className="badge tone-warn">{t('locked_badge')}</span>}<Badge status={sheet.status} /></span>
                     </div>
@@ -132,6 +133,7 @@ export default function PartnerProfile({ sheet, month, targets, canSetTargets, c
                 ]} />
 
                 <Facts title={t('sec_place')} lines={[
+                    [translate('cr21_identity', 'label_area'), sheet.appointment?.line],
                     [t('f_place_code'), place.place_code],
                     // The same code twice under two names only confuses; show the second one when it differs.
                     ...(place.area_code && place.area_code !== place.place_code ? [[t('f_area_code'), place.area_code] as [string, React.ReactNode]] : []),

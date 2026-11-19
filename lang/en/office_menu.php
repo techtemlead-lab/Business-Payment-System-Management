@@ -37,7 +37,7 @@ return [
     'tab_top_sellers' => 'Top sellers',
     'tab_partner_scorecard' => 'Partner scorecard',
     'tab_branch_performance' => 'Branch sales',
-    'tab_financial_reports' => 'Files',
+    'tab_financial_reports' => 'Report files (Excel)',
 
     'tab_website' => 'Arrange the website',
     'tab_content' => 'Page text',
@@ -61,7 +61,7 @@ return [
     'partner_tab_share_feedback' => 'Give feedback',
     'partner_tab_help' => 'Help',
     'partner_tab_profile' => 'Profile',
-    'partner_tab_security' => 'Security',
+    'partner_tab_security' => 'Password & security',
     'partner_tab_agreement' => 'Agreement',
 
     'settings_group_money' => 'Money',
@@ -82,6 +82,10 @@ return [
     'settings_link_audit' => 'Work log',
     'settings_link_privacy_requests' => 'Data requests',
     'settings_link_data_cleanup' => 'Clear old data',
+    'settings_link_message_templates' => 'Templates',
+    'settings_desc_message_templates' => 'Change the words of SMS and emails. If you change nothing, the present words keep going out.',
+    'more_desc_message_templates' => 'Change the words of SMS and emails. If you change nothing, the present words keep going out.',
+    'tab_message_templates' => 'Templates',
     'settings_link_errors' => 'Site problems',
     'more_group_partners' => 'For partners',
     'more_group_people' => 'Staff and people',

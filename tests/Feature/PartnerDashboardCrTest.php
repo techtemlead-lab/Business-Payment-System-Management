@@ -112,7 +112,7 @@ class PartnerDashboardCrTest extends TestCase
         $this->assertSame('Wallet', __('partner_hub.money_title', [], 'en'));
     }
 
-    public function test_the_partner_product_list_is_off_by_default_and_can_be_switched_back_on(): void
+    public function test_the_partner_product_list_is_on_by_default_and_can_be_switched_off(): void
     {
         $dealer = $this->partner(null);
         config(['madina.partner_catalog_enabled' => false]);

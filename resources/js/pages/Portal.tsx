@@ -72,6 +72,7 @@ const LoginRules=React.lazy(()=>import('../components/office/sections/LoginRules
 const Visitors=React.lazy(()=>import('../components/office/sections/Visitors'));
 const ErrorsPage=React.lazy(()=>import('../components/office/sections/Errors'));
 const ReasonFields=React.lazy(()=>import('../components/office/sections/ReasonFields'));
+const MessageTemplates=React.lazy(()=>import('../components/office/sections/MessageTemplates'));
 const Payments=React.lazy(()=>import('../components/office/sections/Payments'));
 const Inventory=React.lazy(()=>import('../components/office/sections/Inventory'));
 const Accounts=React.lazy(()=>import('../components/office/sections/Accounts'));
@@ -79,7 +80,7 @@ const PartnerFrame=React.lazy(()=>import('../components/office/sections/PartnerF
 const SettingsHome=React.lazy(()=>import('../components/office/SettingsHome'));
 const MoreHome=React.lazy(()=>import('../components/office/MoreHome'));
 /** These pages draw their own tab strip through OfficePage, so the page must not print a second one. */
-const DRAWS_OWN_TABS=['accounts','sub-dealers','partnerships','sub-dealer-applications','network-tree','area-dealers','ranks','employees','content','website','customization','public-trust','enquiries','feedback','agreement','training','events','sales-kit','schemes','contests','dashboards','data-cleanup','errors','identity-review','privacy-requests','login-rules','visitors','reason-fields','overview','support-admin','partner-messages','top-sellers','branch-performance','partner-scorecard','purchasing'];
+const DRAWS_OWN_TABS=['accounts','sub-dealers','partnerships','sub-dealer-applications','network-tree','area-dealers','ranks','employees','content','website','customization','public-trust','enquiries','feedback','agreement','training','events','sales-kit','schemes','contests','dashboards','data-cleanup','errors','identity-review','privacy-requests','login-rules','visitors','reason-fields','message-templates','overview','support-admin','partner-messages','top-sellers','branch-performance','partner-scorecard','purchasing'];
 /**
  * Every 30 seconds work queues refresh their list, so new orders and payments show up
  * without a reload. Every other page only refreshes the menu badges: re-sending a whole
@@ -96,7 +97,7 @@ export default function Portal({section,data:d,filters}:{section:string,data:Row
  const open=(name:string)=>{setModal(name)};const close=()=>{setModal(null)};
  const sectionProps={section,data:d,filters};
  const stats=d.stats??{}; const action=section==='overview'?<Link className="button dark" href={staff?(base+(caps.includes('orders')||caps.includes('finance')?'/orders':caps.includes('content')?'/content':'/profile')):(base+'/purchase')}>{staff?(caps.includes('orders')||caps.includes('finance')?translate('portal','manage_orders'):caps.includes('content')?translate('portal','manage_website'):translate('portal','view_profile')):translate('portal','new_purchase_request')}<ArrowUpRight size={17}/></Link>:(!staff&&(section==='orders'||section==='deliveries'||section==='catalog'))?<Link className="button dark" href={`${base}/purchase`}><Plus size={17}/>{translate('portal','new_purchase_request')}</Link>:section==='accounts'&&(staffActions?.accounts?.create??true)?<Link className="button dark" href="/accounts/create?intent=dealer"><Plus size={17}/>{translate('portal','acct_heading')}</Link>:section==='sub-dealers'&&(staffActions?.accounts?.create??true)?<Link className="button dark" href="/accounts/create?intent=sub_dealer"><Plus size={17}/>{translate('portal','sd_add')}</Link>:undefined;
- return <Shell section={d.hub?.home??section} action={action}><Head title={SECTION_LABEL_KEYS[section]?translate('portal',SECTION_LABEL_KEYS[section]):label(section,translate)}/><React.Suspense fallback={<SectionLoading/>}>
+ return <Shell section={d.hub?.home??section} action={action}><Head title={section==='agreement'&&u?.role==='sub_dealer'?translate('joining','agreement_title_sub'):SECTION_LABEL_KEYS[section]?translate('portal',SECTION_LABEL_KEYS[section]):label(section,translate)}/><React.Suspense fallback={<SectionLoading/>}>
  {d.hub&&!DRAWS_OWN_TABS.includes(section)&&<OfficeHubTabs hub={d.hub}/>}
  {d.partner_hub&&<PartnerHubNav hub={d.partner_hub}/>}
  {section==='settings'&&<SettingsHome groups={d.settings_groups??[]}/>}
@@ -147,6 +148,7 @@ export default function Portal({section,data:d,filters}:{section:string,data:Row
  {section==='visitors'&&d.visitors&&<Visitors report={d.visitors} hub={d.hub}/>}
  {section==='errors'&&d.errors&&<ErrorsPage data={d.errors}/>}
  {section==='reason-fields'&&d.reason_fields&&<ReasonFields settings={d.reason_fields}/>}
+ {section==='message-templates'&&d.message_templates&&<MessageTemplates data={d.message_templates} hub={d.hub}/>}
  {section==='content'&&<Content {...sectionProps}/>}
  {(section==='website'||section==='customization')&&<SiteCustomizationEditor trustEditor={d.trust_editor} customization={d.customization} defaults={d.defaults} products={d.products} websitePages={d.websitePages} bnCopy={d.bangla_defaults} videoSetting={d.videoSetting} videoProducts={d.videoProducts}/>}
  {section==='public-trust'&&<PublicTrustHub data={d.public_trust}/>}

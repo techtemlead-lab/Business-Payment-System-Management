@@ -22,7 +22,7 @@ export function productFactFormKeys(fields:ProductFactField[]):string[]{
  return ['registration_number','concern_ids','sync_concerns',...fields.flatMap(field=>[`${field.name}_bn`,`${field.name}_en`])];
 }
 
-const FIELD_HINTS:Record<string,string>={product_system:'hint_product_system',quality_points:'hint_quality_points',group:'hint_group',efficacy:'hint_efficacy',warnings:'hint_warnings'};
+const FIELD_HINTS:Record<string,string>={product_system:'hint_product_system',quality_points:'hint_quality_points',group:'hint_group',efficacy:'hint_efficacy',dose:'hint_dose',warnings:'hint_warnings'};
 
 function ConcernTagManager({concerns,canManage}:{concerns:ProductConcernOption[];canManage:boolean}){
  const translate=useT();

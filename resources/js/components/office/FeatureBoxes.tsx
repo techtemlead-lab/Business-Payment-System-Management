@@ -1,3 +1,4 @@
+import type { CSSProperties, ReactNode } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import { ChevronRight } from 'lucide-react';
 import { Empty } from '../UI';
@@ -11,7 +12,7 @@ export type FeatureGroup = { key: string; label: string; links: FeatureLink[] };
  * Rows are as tall as their tallest box, so a row always looks even. The caller has already left out
  * every page this person may not open.
  */
-export default function FeatureBoxes({ groups, emptyLine, columns = 4 }: { groups: FeatureGroup[]; emptyLine: string; columns?: 3 | 4 }) {
+export default function FeatureBoxes({ groups, emptyLine, columns = 4, sideBySide = false, extra = null }: { groups: FeatureGroup[]; emptyLine: string; columns?: 3 | 4; sideBySide?: boolean; extra?: ReactNode }) {
     const base = String(usePage<any>().props.portalBase ?? '');
 
     if (groups.length === 0) {
@@ -19,7 +20,7 @@ export default function FeatureBoxes({ groups, emptyLine, columns = 4 }: { group
     }
 
     return (
-        <div className="feature-boxes" data-columns={columns}>
+        <div className="feature-boxes" data-columns={columns} data-layout={sideBySide ? 'sides' : undefined} style={sideBySide ? ({ '--feature-sides': Math.min(4, groups.length + (extra ? 1 : 0)) } as CSSProperties) : undefined}>
             {groups.map((group) => (
                 <section key={group.key} aria-labelledby={`feature-group-${group.key}`}>
                     <h2 id={`feature-group-${group.key}`}>{group.label}</h2>
@@ -35,6 +36,7 @@ export default function FeatureBoxes({ groups, emptyLine, columns = 4 }: { group
                     </ul>
                 </section>
             ))}
+            {extra}
         </div>
     );
 }

@@ -10,8 +10,10 @@ import {
 } from 'lucide-react';
 import { Flash, label } from './UI';
 import { DealerBottomNav, PartnerProductSearch } from './PortalHeader';
+import PartnerCartButton from './partnercart/PartnerCartButton';
 import LanguageSwitcher from './LanguageSwitcher';
 import NotificationBell from './NotificationBell';
+import PartnerSignOut from './PartnerSignOut';
 import GlobalSearchLauncher from './GlobalSearchLauncher';
 import OnboardingTour from './OnboardingTour';
 import { useNativeFieldMessages } from '../shared/useNativeFieldMessages';
@@ -19,6 +21,7 @@ import TextSizeToggle from './TextSizeToggle';
 import ThemeToggle from './ThemeToggle';
 import TextSizeSwitch from './TextSizeSwitch';
 import { firstNameOf } from '../shared/personName';
+import { keywordKeyFor, matchesAny, shownActions, wordList, type SearchContext } from '../shared/menuSearch';
 import { OPEN_MANUAL_EVENT } from '../shared/openManual';
 import { t, useT, useTranslations } from '../shared/i18n/t';
 import {
@@ -135,12 +138,12 @@ const icons: Record<string, LucideIcon> = {
     deliveries: Truck,
     payments: Coins, network: GitBranch, policies: SlidersHorizontal, salary: BadgeCheck, withdrawals: Wallet, ledger: BookOpen,
     reports: FileText, customization: SlidersHorizontal, website: SlidersHorizontal, content: FileText, enquiries: MessageSquare, feedback: MessageSquare, 'share-feedback': MessageSquare, partnerships: Briefcase, audit: ShieldCheck,
-    profile: Users, security: Settings, notifications: Bell, circulars: BookOpen, 'my-money': Coins, ranks: Award,
+    profile: Users, security: Settings, notifications: Bell, circulars: BookOpen, 'my-money': Coins, 'my-income': ReceiptText, ranks: Award,
     commissions: Percent, 'network-tree': GitBranch, 'area-dealers': MapPin, 'place-codes': Hash, branches: Store, 'branch-performance': BarChart3, rewards: Trophy, 'capital-flow': TrendingUp,
     settlements: BadgeCheck, simulator: SlidersHorizontal, 'payouts-hub': Wallet,
     treasury: Landmark, 'sub-dealers': Store, 'sub-dealer-orders': ShoppingBag, 'sub-dealer-applications': Briefcase,
     employees: UserCheck, dashboards: SlidersHorizontal, help: LifeBuoy, 'support-admin': MessageSquare, agreement: ScrollText, 'top-sellers': Trophy,
-    finance: Landmark, payouts: Wallet, accounting: BookOpen, 'partner-messages': MessageSquare, messages: MessageSquare, partners: Users, people: UserCheck, settings: Settings, 'login-rules': ShieldCheck, visitors: BarChart3, 'reason-fields': SlidersHorizontal,
+    finance: Landmark, payouts: Wallet, accounting: BookOpen, 'partner-messages': MessageSquare, messages: MessageSquare, partners: Users, people: UserCheck, settings: Settings, 'login-rules': ShieldCheck, visitors: BarChart3, 'reason-fields': SlidersHorizontal, 'message-templates': MessageSquare,
     training: GraduationCap, learning: GraduationCap, events: CalendarDays, 'data-cleanup': Settings, errors: AlertTriangle, 'privacy-requests': ShieldCheck, prescriptions: Stethoscope, clinic: Stethoscope, purchasing: ShoppingCart, 'stock-counts': Hash,
 };
 
@@ -327,24 +330,52 @@ export default function Shell({ section, children, action }: { section: string; 
 
     const [expandedMother, setExpandedMother] = useState<string | null>(() => activeMotherIds[0] ?? null);
 
+    /** The everyday words that find a page, from the language file. */
+    const pageWords = (item: string): string[] => {
+        const key = keywordKeyFor(item);
+        const line = t(translations, 'findability', key);
+
+        return line === key ? [] : wordList(line);
+    };
+
     const filteredMothers = useMemo(() => {
-        const query = menuQuery.trim().toLowerCase();
+        const query = menuQuery.trim();
         if (!query) {
             return navMothers;
         }
 
         return compactMothers(navMothers.map((entry) => {
-            const motherLabel = t(translations, 'portal', entry.labelKey).toLowerCase();
-            if (motherLabel.includes(query)) {
+            if (matchesAny([t(translations, 'portal', entry.labelKey)], query)) {
                 return entry;
             }
-            const items = entry.items.flatMap((item) => menuRowTabs(item)).filter((item) => {
-                const label = t(translations, 'portal', labelKeyForNavItem(item, staff)).toLowerCase();
-                return label.includes(query) || item.toLowerCase().includes(query);
-            });
+            const items = entry.items.flatMap((item) => menuRowTabs(item)).filter((item) => (
+                matchesAny([t(translations, 'portal', labelKeyForNavItem(item, staff)), item, ...pageWords(item)], query)
+            ));
             return mother(entry.id, entry.labelKey, items);
         }));
     }, [navMothers, menuQuery, staff, translations]);
+
+    const searchContext: SearchContext = useMemo(() => ({
+        staff,
+        role: String(user.role ?? ''),
+        capabilities,
+        available: staff ? staffAvailable : partnerAvailable,
+        stockCreate: Boolean(page.props.staffActions?.inventory?.create),
+    }), [staff, user.role, capabilities, staffAvailable, partnerAvailable, page.props.staffActions]);
+
+    /** Action entries (withdraw, add stock, sign out ...) that match the typed words and that this person may open. */
+    const actionResults = useMemo(() => {
+        const query = menuQuery.trim();
+        if (!query) {
+            return [];
+        }
+
+        return shownActions(searchContext).filter((action) => {
+            const words = wordList(t(translations, 'findability', `kw_act_${action.id}`));
+
+            return matchesAny([t(translations, 'findability', `act_${action.id}`), ...words], query);
+        });
+    }, [menuQuery, searchContext, translations]);
 
     const searchingMenu = menuQuery.trim().length > 0;
 
@@ -507,6 +538,14 @@ export default function Shell({ section, children, action }: { section: string; 
         router.post('/logout');
     };
 
+    /** The sidebar's and the search's sign-out ask first, because the sidebar sits where a thumb can slip. */
+    const signOutAfterAsking = () => {
+        if (window.confirm(translate('findability', 'sign_out_confirm'))) {
+            setOpen(false);
+            signOut();
+        }
+    };
+
     return (
         <div className={`app-shell ${shellClass}`}>
             <a className="skip-link" href="#workspace-main">{translate('portal', 'skip_content')}</a>
@@ -529,6 +568,7 @@ export default function Shell({ section, children, action }: { section: string; 
                     <img src={siteBrand?.logo || '/madina-header-logo.png?v=10'} alt="" />
                     <span className="sidebar-logo-mark" aria-hidden="true">MNHC</span>
                 </a>
+                {!staff && <PartnerSignOut variant="drawer" />}
                 <div className="workspace-label">
                     <span className="live-dot" />
                     {hubLabel}
@@ -547,12 +587,49 @@ export default function Shell({ section, children, action }: { section: string; 
                 </label>
 
                 <div className="sidebar-nav-container" data-tour="sidebar-nav">
-                    {filteredMothers.length > 0 ? (
+                    {actionResults.length > 0 && (
+                        <ul className="sidebar-search-actions" aria-label={translate('findability', 'search_actions_title')}>
+                            {actionResults.map((action) => {
+                                const place = action.placeKey ? translate('findability', action.placeKey) : '';
+                                const label = translate('findability', `act_${action.id}`);
+                                const inner = (
+                                    <>
+                                        {action.path === null ? <LogOut size={15} aria-hidden="true" /> : <ArrowUpRight size={15} aria-hidden="true" />}
+                                        <span className="sidebar-search-action-text"><b>{label}</b>{place !== '' && <small>{place}</small>}</span>
+                                    </>
+                                );
+
+                                return (
+                                    <li key={action.id}>
+                                        {action.path === null
+                                            ? <button type="button" onClick={signOutAfterAsking} data-search-action={action.id}>{inner}</button>
+                                            : <Link href={`${base}/${action.path}`} onClick={() => setOpen(false)} data-search-action={action.id}>{inner}</Link>}
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    )}
+                    {filteredMothers.length > 0 || actionResults.length > 0 ? (
+                        filteredMothers.length === 0 ? null : (
                         staff
                             ? <nav className="sidebar-section-list" aria-label={translate('portal', 'company_navigation')}>{filteredMothers.map(renderStaffSection)}</nav>
                             : renderPartnerMothers(filteredMothers)
-                    ) : <p className="sidebar-menu-empty">{translate('portal', 'search_menu_empty')}</p>}
+                        )
+                    ) : <p className="sidebar-menu-empty">{translate('findability', 'search_empty')}</p>}
                 </div>
+
+                {staff && (
+                    <div className="sidebar-footer sidebar-office-footer">
+                        <Link href={`${base}/help`} className="sidebar-help-link" onClick={() => setOpen(false)}>
+                            <LifeBuoy size={16} aria-hidden="true" />
+                            <span>{translate('findability', 'help_link')}</span>
+                        </Link>
+                        <button type="button" className="sidebar-sign-out" onClick={signOutAfterAsking}>
+                            <LogOut size={16} aria-hidden="true" />
+                            <span>{translate('findability', 'sign_out')}</span>
+                        </button>
+                    </div>
+                )}
 
                 {/* Office: the guide is a box on "Other modules" and the compass in the header, so the sidebar keeps its height (CR-15). */}
                 {!staff && <div className="sidebar-footer">
@@ -604,6 +681,8 @@ export default function Shell({ section, children, action }: { section: string; 
                         <BranchWorkspaceSelect branches={workspaceBranches} />
                     )}
                     <div className="header-actions" data-tour="header-actions">
+                        {/* The partner's one shopping cart; it comes with the products page. */}
+                        {!staff && page.props.dashboardControls?.partner_catalog_off !== true && <PartnerCartButton />}
                         <GlobalSearchLauncher />
                         {/* Partners get words, not a row of lone icons: website, night mode and the guide live in the account menu. */}
                         {staff && (
@@ -622,6 +701,7 @@ export default function Shell({ section, children, action }: { section: string; 
                         {staff && <ThemeToggle compact />}
                         {!staff && <TextSizeSwitch place="header" />}
                         <LanguageSwitcher compact />
+                        {!staff && <PartnerSignOut variant="bar" />}
                         {staff && (
                             <button
                                 type="button"

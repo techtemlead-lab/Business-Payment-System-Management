@@ -29,8 +29,8 @@ class PartnerStatementWordsFollowReaderTest extends TestCase
         $this->assertEqualsCanonicalizing([
             __('portal.jr_commission_matured', [], 'en'),
             'Earned commissions for MN-261109-AAA',
-            'Commission Salary month closing 2026-10',
-            'Commission Rank bonus month closing 2026-09',
+            'Commission Monthly salary month closing 2026-10',
+            'Commission Rank royalty month closing 2026-09',
             __('portal.wd_journal_manual_payout', [], 'en'),
         ], $this->wordsSeenBy($dealer));
     }

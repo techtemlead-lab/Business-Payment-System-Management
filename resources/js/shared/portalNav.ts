@@ -70,7 +70,7 @@ export const SECTION_LABEL_KEYS: Record<string, string> = {
     'branch-performance': 'branch_performance',
     settlements: 'settlements', simulator: 'simulator', 'payouts-hub': 'payouts_hub', treasury: 'treasury', 'identity-review': 'identity_review',
     'sub-dealers': 'sub_dealers', 'sub-dealer-orders': 'sub_dealer_orders',
-    'sub-dealer-applications': 'sub_dealer_applications', 'login-rules': 'login_rules', visitors: 'visitors', 'reason-fields': 'reason_fields', errors: 'errors_nav',
+    'sub-dealer-applications': 'sub_dealer_applications', 'login-rules': 'login_rules', visitors: 'visitors', 'reason-fields': 'reason_fields', errors: 'errors_nav', 'message-templates': 'message_templates_nav',
     employees: 'employees', dashboards: 'dashboards', help: 'help', 'support-admin': 'support_admin', agreement: 'agreement',
     messages: 'chat_nav_partner', 'partner-messages': 'chat_nav_office', 'top-sellers': 'top_sellers',
     training: 'training', events: 'events', 'data-cleanup': 'cleanup_nav', prescriptions: 'prescriptions', 'sales-kit': 'sales_kit', customers: 'customer_book', schemes: 'dated_schemes', 'privacy-requests': 'privacy_requests_nav',
@@ -127,6 +127,15 @@ export const NAV_LINK_SPECS: Record<string, NavLinkSpec> = {
         hrefPath: 'commissions',
         iconKey: 'commissions',
         match: ({ section }) => ['commissions', 'policies', 'simulator', 'policy-schedules'].includes(section),
+    },
+    /** "My account" (V1): the partner's own income page, one line for every head. */
+    'my-income': {
+        id: 'my-income',
+        section: 'my-income',
+        labelKey: 'nav_module_account',
+        hrefPath: 'my-income',
+        iconKey: 'my-income',
+        match: ({ section }) => section === 'my-income',
     },
     /** One partner row for all their money. */
     'partner-money': {
@@ -230,24 +239,28 @@ const MENU_ROWS: Record<string, MenuRow> = Object.fromEntries(([
     { id: 'office-for-partners', labelKey: 'nav_module_for_partners', iconKey: 'agreement', tabs: ['schemes', 'contests', 'sales-kit', 'training', 'events', 'agreement'] },
     { id: 'office-staff', labelKey: 'nav_module_people', iconKey: 'people', tabs: ['employees', 'payroll', 'staff-operations', 'field-sales', 'access-management'] },
     { id: 'office-reports', labelKey: 'nav_module_reports', iconKey: 'reports', tabs: ['top-sellers', 'partner-scorecard', 'branch-performance', 'financial-reports'] },
-    { id: 'office-website', labelKey: 'label_web', iconKey: 'website', tabs: ['website', 'content', 'public-trust', 'video-marketing', 'feedback', 'visitors'] },
+    { id: 'office-website', labelKey: 'label_web', iconKey: 'website', tabs: ['website', 'content', 'public-trust', 'video-marketing', 'feedback', 'visitors', 'message-templates'] },
     // The sidebar's one entry for pages that are set once or opened rarely (CR-12, renamed "Other modules" in CR-15); its boxes come from OfficeHubs::MoreGroups.
     { id: 'office-more', labelKey: 'nav_module_more', iconKey: 'more', home: 'more', tabs: [
         'commissions', 'treasury-events',
         'schemes', 'contests', 'sales-kit', 'training', 'events', 'agreement',
         'employees', 'payroll', 'staff-operations', 'field-sales', 'access-management',
-        'website', 'content', 'public-trust', 'video-marketing', 'feedback', 'visitors',
+        'website', 'content', 'public-trust', 'video-marketing', 'feedback', 'visitors', 'message-templates',
     ] },
     { id: 'office-settings', labelKey: 'nav_module_settings', iconKey: 'settings', home: 'settings', tabs: [
         'finance-settings', 'payment-accounts', 'financial-readiness', 'place-codes', 'dashboards', 'identity-review',
-        'login-rules', 'reason-fields', 'service-integrations', 'courier-areas', 'data-imports', 'audit', 'privacy-requests', 'data-cleanup', 'errors',
+        'login-rules', 'reason-fields', 'service-integrations', 'courier-areas', 'data-imports', 'audit', 'privacy-requests', 'data-cleanup', 'errors', 'message-templates',
     ] },
     { id: 'partner-orders', labelKey: 'nav_module_commerce', iconKey: 'orders', tabs: ['orders', 'deliveries'] },
-    { id: 'partner-team', labelKey: 'nav_module_network', iconKey: 'network', tabs: ['network', 'customers', 'ranks'] },
+    // Best sellers and contests have one home: the team row's tabs (findability #18).
+    { id: 'partner-team', labelKey: 'nav_module_network', iconKey: 'network', tabs: ['network', 'customers', 'ranks', 'top-sellers', 'contests'] },
+    // A sub-dealer has no team tree or ranks, so the same row carries the customer book's name.
+    { id: 'partner-customers', labelKey: 'customer_book', iconKey: 'network', tabs: ['customers', 'top-sellers', 'contests'] },
     { id: 'partner-office', labelKey: 'nav_module_office', iconKey: 'messages', tabs: ['messages', 'partner-notices', 'help'] },
-    { id: 'partner-account', labelKey: 'nav_module_account', iconKey: 'profile', tabs: ['profile', 'security'] },
+    // The contract has one home: here (findability #18).
+    { id: 'partner-account', labelKey: 'nav_my_profile', iconKey: 'profile', tabs: ['profile', 'security', 'agreement'] },
     // The partner's one entry for pages opened less often (CR-14); its boxes come from PartnerHubTabs::MoreGroups. Prescriptions never go here.
-    { id: 'partner-more', labelKey: 'nav_module_more', iconKey: 'more', home: 'more', tabs: ['training', 'events', 'sales-kit', 'top-sellers', 'contests', 'share-feedback', 'agreement'] },
+    { id: 'partner-more', labelKey: 'nav_module_more', iconKey: 'more', home: 'more', tabs: ['training', 'events', 'sales-kit', 'share-feedback'] },
 ] satisfies MenuRow[]).map((row) => [row.id, row]));
 
 /** A row item is "rowId@tab,tab": the row and the tabs open to this person, first one first. */
@@ -356,7 +369,8 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
         items.add('treasury-events');
     }
     if (opensTreasury || capabilities.includes('reports')) items.add('treasury-orders');
-    else if (capabilities.includes('field_sales')) items.add('financial-reports');
+    // The report files tab is for everyone who may download them, not only field staff (findability #4).
+    if (capabilities.some((cap) => ['finance', 'reports', 'field_sales'].includes(cap))) items.add('financial-reports');
     if (capabilities.some((cap) => ['reports', 'orders', 'finance'].includes(cap))) {
         items.add('top-sellers');
         items.add('partner-scorecard');
@@ -399,6 +413,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
         ['website', 'content', 'public-trust', 'enquiries', 'feedback'].forEach((item) => items.add(item));
     }
     if (capabilities.includes('content') || (ownerPortal && owns('owner_tools'))) {
+        items.add('message-templates');
         items.add('training');
         items.add('events');
     }
@@ -422,7 +437,7 @@ export function buildPartnerAvailable(role: string, dashboardControls?: Record<s
 function partnerAvailableBeforeSwitches(role: string, dashboardControls?: Record<string, unknown> | null, prescriber = false): Set<string> {
     const controls = dashboardControls || {};
     if (role === 'dealer') {
-        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'catalog', 'network', 'ranks', 'top-sellers', 'my-money', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help', 'messages', 'training', 'events']);
+        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'catalog', 'network', 'ranks', 'top-sellers', 'my-money', 'my-income', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help', 'messages', 'training', 'events']);
         if (controls.dealer_catalog_enabled === false) {
             items.delete('catalog');
             items.delete('purchase');
@@ -450,7 +465,7 @@ function partnerAvailableBeforeSwitches(role: string, dashboardControls?: Record
         return items;
     }
     if (role === 'sub_dealer') {
-        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'catalog', 'network', 'top-sellers', 'my-money', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help', 'messages', 'training', 'events']);
+        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'catalog', 'network', 'top-sellers', 'my-money', 'my-income', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help', 'messages', 'training', 'events']);
         if (controls.subdealer_catalog_enabled === false) {
             items.delete('catalog');
             items.delete('purchase');
@@ -512,20 +527,18 @@ function staffMothers(available: Set<string>): NavMother[] {
 
 /** The dealer and sub-dealer menu: the day's work first, one row for each kind of work. */
 function partnerMothers(role: string, available: Set<string>): NavMother[] {
-    const teamAvailable = role === 'dealer' ? available : new Set([...available].filter((item) => item !== 'network'));
-
     return compactMothers([
         mother('home', 'nav_module_home', pick(available, ['overview'])),
+        // V1: home, my profile, my account (the income page), then orders and money.
+        rowMother('partner-account', available),
+        mother('my-income', 'nav_module_account', pick(available, ['my-income'])),
         mother('new-order', 'purchase', pick(available, ['purchase'])),
         rowMother('partner-orders', available),
         mother('products', 'nav_products', pick(available, ['catalog'])),
         mother('earnings', 'nav_module_earnings', pick(available, ['partner-money'])),
-        // A sub-dealer's team row only opens the customer list, so it carries that page's own name.
-        role === 'sub_dealer' && rowItem('partner-team', teamAvailable) === 'customers'
-            ? mother('partner-team', 'customer_book', ['customers'])
-            : rowMother('partner-team', teamAvailable),
+        // A sub-dealer has no team tree, so the row carries the customer book's name.
+        role === 'sub_dealer' ? rowMother('partner-customers', available) : rowMother('partner-team', available),
         rowMother('partner-office', available),
-        rowMother('partner-account', available),
         // Prescriptions always stay in the sidebar, in every panel (client, 2026-11-19); the More page never lists them.
         mother('clinic', 'prescriptions', pick(available, ['prescriptions'])),
         rowMother('partner-more', available),

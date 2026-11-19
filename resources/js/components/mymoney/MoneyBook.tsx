@@ -39,7 +39,7 @@ export default function MoneyBook({ table, actions, orderHref }: {
 }) {
     const translate = useT();
     const { portalBase: base } = usePage<any>().props;
-    const oneType = Boolean(table.state.filters.type);
+    const oneType = Boolean(table.state.filters.type || table.state.filters.head);
 
     const columns: MoneyColumn<StatementRow>[] = [
         { key: 'occurred_at', title: translate('my_money', 'col_date'), sortKey: 'date', phone: 'sub', render: (row) => date(row.occurred_at) },

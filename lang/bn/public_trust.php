@@ -9,7 +9,8 @@ return [
     'footer_partner_exit_policy' => 'পার্টনারশিপ ছাড়া ও না-খোলা পণ্য ফেরত',
     'footer_grievance' => 'অভিযোগ',
     'footer_quality_documents' => 'লাইসেন্স ও সনদ',
-    'footer_articles' => 'স্বাস্থ্য বিষয়ক লেখা',
+    'footer_articles' => 'স্বাস্থ্য লেখা',
+    'footer_batch_check' => 'পণ্য যাচাই',
 
     // Business identity block
     'identity_heading' => 'ব্যবসার তথ্য',

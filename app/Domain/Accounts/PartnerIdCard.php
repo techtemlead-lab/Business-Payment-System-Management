@@ -75,7 +75,7 @@ final class PartnerIdCard
             'mobile_label' => $t('pdf_id_card_mobile'),
             'mobile' => (string) ($user->phone ?: '—'),
             'link_label' => $t('pdf_id_card_join_link'),
-            'link' => $joinUrl,
+            'link' => PartnerJoinLink::enabled() ? $joinUrl : '',
             'qr' => $qrPng,
             'scan' => __('public_trust.id_card_scan_to_verify', [], $locale),
             'foot' => $t('pdf_id_card_foot', ['when' => $issued]),
@@ -148,7 +148,7 @@ final class PartnerIdCard
             <table>
                 <tr><td class="k">'.e($card['code_label']).'</td><td class="v">'.e($card['code']).'</td></tr>
                 <tr><td class="k">'.e($card['mobile_label']).'</td><td class="v">'.e($card['mobile']).'</td></tr>
-                <tr><td class="k">'.e($card['link_label']).'</td><td class="url">'.e($card['link']).'</td></tr>
+                '.($card['link'] !== '' ? '<tr><td class="k">'.e($card['link_label']).'</td><td class="url">'.e($card['link']).'</td></tr>' : '').'
             </table>
             </td>
             <td style="width:28%;text-align:center;vertical-align:middle">

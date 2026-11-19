@@ -7,6 +7,7 @@ use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
 use App\Domain\Payouts\ManualPayoutService;
+use App\Domain\Payouts\PartnerPayoutAccounts;
 use App\Domain\Payouts\PayoutLimits;
 use App\Domain\Payouts\PayoutReceipts;
 use App\Models\User;
@@ -35,8 +36,15 @@ class WithdrawalController extends Controller
     {
         abort_unless(in_array($r->user()->role, ['dealer', 'sub_dealer'], true), 403);
         CommissionWallet::requireActive();
-        $data = $r->validate(['amount' => ['required', 'regex:'.self::AmountPattern], 'channel' => 'required|in:'.implode(',', PaymentAccounts::channels()),
-            'destination' => 'required|string|min:6|max:200', 'idempotency_key' => 'required|uuid'], ['amount.regex' => __('payouts.err_amount_digits')]);
+        // V3: a partner with saved payout accounts picks one; its channel and number are read from the saved record, never typed.
+        $saved = app(PartnerPayoutAccounts::class);
+        $hasSaved = $saved->listFor($r->user()) !== [];
+        $data = $r->validate(['amount' => ['required', 'regex:'.self::AmountPattern], 'payout_account_id' => [$hasSaved ? 'required' : 'nullable', 'integer'],
+            'channel' => [$hasSaved ? 'nullable' : 'required', 'in:'.implode(',', PaymentAccounts::channels())],
+            'destination' => [$hasSaved ? 'nullable' : 'required', 'string', 'min:6', 'max:200'], 'idempotency_key' => 'required|uuid'], ['amount.regex' => __('payouts.err_amount_digits')]);
+        if ($hasSaved) {
+            $data = [...$data, ...$saved->asWithdrawal($r->user(), (int) $data['payout_account_id'])];
+        }
         ['id' => $id, 'created' => $created] = $service->submit($r->user(), $data);
         // A replayed request (same idempotency key) already sent its SMS the first time.
         if ($created) {

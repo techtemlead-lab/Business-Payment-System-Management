@@ -20,12 +20,6 @@ use Illuminate\Support\Facades\DB;
  */
 final class PartnerIncomeBook
 {
-    /** The parts every partner sees, even when empty. */
-    public const CoreParts = ['own', 'referral', 'team', 'area', 'salary', 'royalty', 'rank_bonus'];
-
-    /** Parts shown only once the partner has had money in them. */
-    public const ExtraParts = ['bike', 'car', 'additional_rank', 'reward'];
-
     /** A row is waiting to be released, ready in the wallet, or taken back after a refund. */
     public const Statuses = ['waiting', 'ready', 'taken_back'];
 
@@ -73,57 +67,65 @@ final class PartnerIncomeBook
         };
     }
 
-    /** @return list<string> */
+    /** @return list<string> Every income head key, in display order. */
     public static function parts(): array
     {
-        return [...self::CoreParts, ...self::ExtraParts];
+        return PartnerIncomeHeads::keys();
     }
 
     public static function partWord(string $part, ?string $locale = null): string
     {
-        return (string) __('income.part_'.$part, [], $locale);
+        return PartnerIncomeHeads::label($part, $locale);
     }
 
     /**
-     * Everything the income screen needs: the parts with their totals for the chosen days, the chosen
-     * part, and that part's day-by-day table.
+     * Everything the income screen needs: every head with its totals, the chosen head and its table.
      *
-     * @return array{parts: list<array{key: string, label: string, hint: string, amount: string, entries: int}>, part: string, table: array<string, mixed>}
+     * @return array{parts: list<array{key: string, label: string, hint: string, amount: string, total: string, entries: int}>, sum: array{amount: string, total: string}, part: string, table: array<string, mixed>}
      */
     public function page(Request $request, User $partner): array
     {
-        $parts = $this->overview($request, $partner);
+        $overview = $this->overview($request, $partner);
+        $parts = $overview['parts'];
         $asked = (string) $request->query('part', '');
-        $part = in_array($asked, array_column($parts, 'key'), true) ? $asked : $parts[0]['key'];
+        $withMoney = array_values(array_filter($parts, fn (array $part): bool => $part['entries'] > 0 || (float) $part['total'] !== 0.0));
+        $part = in_array($asked, array_column($parts, 'key'), true) ? $asked : ($withMoney[0]['key'] ?? $parts[0]['key']);
 
-        return ['parts' => $parts, 'part' => $part, 'table' => $this->table($request, $partner, $part)];
+        return ['parts' => $parts, 'sum' => $overview['sum'], 'part' => $part, 'table' => $this->table($request, $partner, $part)];
     }
 
     /**
-     * Every part with what came in during the chosen days. A part with no money ever is left out
-     * unless every partner sees it.
+     * Every head the partner's kind of account has, and any head holding money, each with what came in
+     * during the chosen days and to date. A head at zero is still listed.
      *
-     * @return list<array{key: string, label: string, hint: string, amount: string, entries: int}>
+     * @return array{parts: list<array{key: string, label: string, hint: string, amount: string, total: string, entries: int}>, sum: array{amount: string, total: string}}
      */
     public function overview(Request $request, User $partner): array
     {
-        $ever = $this->totals($partner, null);
-        $inPeriod = $this->totals($partner, MoneyTable::range($request, 'month'));
+        $range = MoneyTable::range($request, 'month');
+        $ever = $this->book->totalsByHead($partner);
+        $inPeriod = $this->book->totalsByHead($partner, $range === null ? [null, null] : [$range['from'], $range['until']]);
+        $shown = PartnerIncomeHeads::forRole((string) $partner->role);
         $parts = [];
-        foreach (self::parts() as $key) {
-            if (! in_array($key, self::CoreParts, true) && ! isset($ever[$key])) {
+        $sumPeriod = 0;
+        $sumEver = 0;
+        foreach (PartnerIncomeHeads::keys() as $key) {
+            if (! in_array($key, $shown, true) && ! isset($ever[$key])) {
                 continue;
             }
+            $sumPeriod += $inPeriod[$key]['cents'] ?? 0;
+            $sumEver += $ever[$key]['cents'] ?? 0;
             $parts[] = [
                 'key' => $key,
-                'label' => self::partWord($key),
-                'hint' => (string) __('income.hint_'.$key),
+                'label' => PartnerIncomeHeads::label($key),
+                'hint' => PartnerIncomeHeads::hint($key),
                 'amount' => FundCatalog::decimalOf($inPeriod[$key]['cents'] ?? 0),
+                'total' => FundCatalog::decimalOf($ever[$key]['cents'] ?? 0),
                 'entries' => $inPeriod[$key]['entries'] ?? 0,
             ];
         }
 
-        return $parts;
+        return ['parts' => $parts, 'sum' => ['amount' => FundCatalog::decimalOf($sumPeriod), 'total' => FundCatalog::decimalOf($sumEver)]];
     }
 
     /**
@@ -179,12 +181,15 @@ final class PartnerIncomeBook
         );
     }
 
-    /** One part's rows, as a query the date views can filter. */
+    /** One head's rows, as a query the date views can filter. */
     private function partRows(User $partner, string $part): Builder
     {
         abort_unless(in_array($part, self::parts(), true), 404);
 
-        return DB::query()->fromSub($this->classified((int) $partner->id), 'x')->where('x.part', $part);
+        return DB::query()->fromSub(
+            DB::query()->fromSub($this->book->headRows((int) $partner->id), 'h')->selectRaw("h.*, CASE WHEN h.amount < 0 THEN 'taken_back' WHEN h.waiting_until IS NOT NULL THEN 'waiting' ELSE 'ready' END AS status"),
+            'x',
+        )->where('x.head', $part);
     }
 
     /** Every income row of the partner with its part and its status worked out. */
@@ -196,33 +201,10 @@ final class PartnerIncomeBook
         );
     }
 
-    /**
-     * What each part earned (cents and number of entries) in a window, or ever when there is none.
-     *
-     * @param  array{from: CarbonImmutable, until: CarbonImmutable}|null  $range
-     * @return array<string, array{cents: int, entries: int}>
-     */
-    private function totals(User $partner, ?array $range): array
-    {
-        $rows = DB::query()->fromSub($this->classified((int) $partner->id), 'x')
-            ->when($range !== null, fn (Builder $query) => $query->where('x.occurred_at', '>=', $range['from'])->where('x.occurred_at', '<', $range['until']))
-            ->groupBy('x.part')
-            ->selectRaw('x.part, SUM(x.amount) AS total, COUNT(*) AS entries')
-            ->get();
-        $totals = [];
-        foreach ($rows as $row) {
-            $totals[(string) $row->part] = ['cents' => FundCatalog::centsOf($row->total), 'entries' => (int) $row->entries];
-        }
-
-        return $totals;
-    }
-
     /** @return array<string, mixed> */
     private function rowFor(object $row): array
     {
-        $what = $row->category !== null
-            ? FundCatalog::typeLabel((string) $row->category)
-            : ($row->program !== null ? $this->programWord((string) $row->program) : self::partWord((string) $row->part));
+        $what = PartnerIncomeHeads::label(PartnerIncomeHeads::headOf($row->type, $row->category, $row->program, $row->kind));
 
         return [
             'id' => (string) $row->id,
@@ -236,13 +218,5 @@ final class PartnerIncomeBook
             'waiting_until' => $row->waiting_until,
             'amount' => FundCatalog::decimalOf(FundCatalog::centsOf($row->amount)),
         ];
-    }
-
-    private function programWord(string $program): string
-    {
-        $key = 'portal.reward_program_'.$program;
-        $word = (string) __($key);
-
-        return $word === $key ? $program : $word;
     }
 }

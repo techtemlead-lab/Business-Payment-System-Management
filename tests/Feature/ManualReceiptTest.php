@@ -81,7 +81,8 @@ class ManualReceiptTest extends TestCase
         $this->assertDatabaseHas('withdrawals', ['id' => $id, 'status' => 'rejected', 'reason' => '']);
         $this->assertDatabaseHas('withdrawal_events', ['withdrawal_id' => $id, 'event' => 'rejected', 'note' => '']);
         $notice = (string) DB::table('account_notices')->where('user_id', $owner->id)->orderByDesc('id')->value('body');
-        $this->assertStringContainsString(__('reason_fields.not_written', [], $owner->preferredLocale()), $notice);
+        // B4: the partner reads a plain partner-facing sentence, never the staff's own note.
+        $this->assertStringContainsString(__('qa_fixes.notice_wd_rejected_body', [], $owner->preferredLocale()), $notice);
         $this->assertSame(__('reason_fields.not_written'), app(PartnerMoneyBook::class)->withdrawalRequests($owner)[0]['reason']);
     }
 

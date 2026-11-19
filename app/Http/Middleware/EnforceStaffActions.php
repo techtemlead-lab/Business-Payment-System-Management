@@ -49,7 +49,8 @@ class EnforceStaffActions
                 'FinanceOperationsController' => in_array($method, ['accounts', 'export', 'receipt'], true),
                 'PartnerAgreementController' => $method === 'accept',
                 // A partner whose profile the office left open fixes his own shop name and village; the controller checks the lock.
-                'PartnerProfileController' => in_array($method, ['details', 'changeRequest'], true),
+                'PartnerProfileController' => in_array($method, ['details', 'changeRequest', 'nid'], true),
+                'PartnerPayoutAccountController' => true,
                 'PartnerChatController' => $method === 'send',
                 // A partner asks to cancel or return his own order, or takes the request back; OrderReturns checks the order is his.
                 'OrderReturnController' => in_array($method, ['ask', 'withdraw', 'received'], true),
@@ -124,6 +125,10 @@ class EnforceStaffActions
         }
         if ($controller === 'ReasonFieldsController' && $actor->owner()) {
             // Only owners decide which reason and note boxes are asked; the controller checks again.
+            return $next($request);
+        }
+        if ($controller === 'MessageTemplateController' && $actor->owner()) {
+            // Owners re-word the SMS and email texts; the controller checks again.
             return $next($request);
         }
         if ($controller === 'PrescriptionSettingsController' && PrescriptionAccess::isOwnerDoctor($actor)) {
@@ -253,6 +258,7 @@ class EnforceStaffActions
             'CommandController' => match ($method) {
                 'account' => [['accounts'], 'create'], 'accountUpdate', 'invite', 'resetPartnerPassword', 'revealPartnerPassword', 'saveDashboardSettings', 'resetDashboardSettings' => [['accounts'], 'edit'],
                 'storeKycDocument' => [['accounts', 'identity_write'], 'create'],
+                'reviewKycDocument' => [['accounts', 'identity_write'], 'create'],
                 'benefitControls' => [['finance'], 'approve'],
                 'decision' => [['order_review'], 'approve'], 'verify', 'refund' => [['finance'], 'approve'],
                 'dispatch', 'delivered', 'supplyDate' => [['inventory'], 'edit'], 'stock' => [['inventory'], 'create'],
@@ -311,6 +317,7 @@ class EnforceStaffActions
             'PartnerChatController' => [['partner_chat'], 'create'],
             'PrescriberVerificationController' => [['prescriber_verify'], 'edit'],
             'PublicTrustAdminController' => [['content'], 'edit'],
+            'MessageTemplateController' => [['content'], 'edit'],
             'PartnerFileController' => [['accounts'], 'edit'],
             'AccountingController' => [['finance'], $method === 'saveApprovalLimit' ? 'edit' : 'create'],
             'PurchasingController' => [['inventory'], in_array($method, ['updateSupplier', 'archiveSupplier', 'restoreSupplier', 'sendOrder', 'cancelOrder'], true) ? 'edit' : 'create'],

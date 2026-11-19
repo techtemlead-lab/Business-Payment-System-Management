@@ -26,17 +26,17 @@
                 <tr>
                     <td style="padding:8px 28px 4px;">
                         <h1 style="font-size:19px;line-height:1.4;margin:0 0 14px;color:#14532d;">{{ $noticeTitle }}</h1>
-                        <p style="font-size:15px;line-height:1.6;margin:0 0 12px;">{{ __('event_emails.greeting', ['name' => $recipientName]) }}</p>
+                        <p style="font-size:15px;line-height:1.6;margin:0 0 12px;">{{ $greeting ?? __('event_emails.greeting', ['name' => $recipientName]) }}</p>
                         <p style="font-size:15px;line-height:1.6;margin:0 0 12px;">{!! nl2br(e($noticeBody)) !!}</p>
                     </td>
                 </tr>
                 <tr>
                     <td style="padding:8px 28px 24px;">
-                        <a href="{{ $portalUrl }}" style="display:inline-block;background:#14532d;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:6px;font-size:15px;">{{ __('event_emails.open_portal') }}</a>
+                        <a href="{{ $portalUrl }}" style="display:inline-block;background:#14532d;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:6px;font-size:15px;">{{ $buttonLabel ?? __('event_emails.open_portal') }}</a>
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding:14px 28px;border-top:1px solid #e3e8ee;font-size:12px;line-height:1.5;color:#616e7c;">{{ __('event_emails.footer', ['company' => $company]) }}</td>
+                    <td style="padding:14px 28px;border-top:1px solid #e3e8ee;font-size:12px;line-height:1.5;color:#616e7c;">{{ $footer ?? __('event_emails.footer', ['company' => $company]) }}</td>
                 </tr>
             </table>
         </td>

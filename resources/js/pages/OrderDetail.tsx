@@ -241,6 +241,8 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                     <ActionForm action={`/commands/claims/${claim.id}/verify`} fields={[
                         { name: 'approve', label: translate('portal', 'decision'), required: true, options: [{ value: '1', label: translate('portal', 'verify_received_payment') }, { value: '0', label: translate('portal', 'reject_claim') }] },
                         { name: 'reason', label: translate(claim.channel === 'Office' ? 'order_payment' : 'portal', claim.channel === 'Office' ? 'office_who_took' : 'verification_evidence'), type: 'textarea', required: true, place: 'payment.verify' },
+                        // Office cash is confirmed only against the counted amount (OrderService::verify); same box as the Payments page.
+                        ...(claim.channel === 'Office' ? [{ name: 'cash_counted', label: translate('payouts', 'cash_counted'), type: 'number', hint: translate('payouts', 'cash_counted_hint', { amount: money(claim.amount) }) }] : []),
                     ]} submit={translate('portal', 'record_payment_review')} />
                 </div>)}
             </section>

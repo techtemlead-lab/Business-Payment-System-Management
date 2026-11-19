@@ -59,11 +59,11 @@ export default function Downloads({ certificates, receipts, view }: { certificat
 
     return (
         <details ref={menu} className="mm-downloads">
-            <summary className="button small">{translate('my_money', 'downloads')} <ChevronDown size={15} aria-hidden="true" /></summary>
+            <summary className="button small">{translate('cr21_income', 'dl_title')} <ChevronDown size={15} aria-hidden="true" /></summary>
             <div className="mm-downloads-menu">
-                {item(statement('xlsx'), translate('portal', 'stmt_download_excel'))}
-                {item(statement('pdf'), translate('portal', 'stmt_download_pdf'))}
-                {item(`${base}/full-report/pdf`, translate('my_money', 'full_report_pdf'))}
+                {item(statement('xlsx'), translate('cr21_income', 'dl_statement_excel'))}
+                {item(statement('pdf'), translate('cr21_income', 'dl_statement_pdf'))}
+                {item(`${base}/full-report/pdf`, translate('cr21_income', 'dl_full_report'))}
                 {certificates.years.length > 0 && (
                     <div className="mm-downloads-year">
                         <label>
@@ -72,10 +72,10 @@ export default function Downloads({ certificates, receipts, view }: { certificat
                                 {certificates.years.map((choice) => <option key={choice} value={choice}>{choice}</option>)}
                             </select>
                         </label>
-                        {item(`${base}/income-certificate/pdf?year=${year}`, translate('portal', 'download_income_certificate'))}
+                        {item(`${base}/income-certificate/pdf?year=${year}`, translate('cr21_income', 'dl_income_cert'))}
                     </div>
                 )}
-                {certificates.rank && item(`${base}/rank-certificate/pdf`, translate('portal', 'download_rank_certificate'))}
+                {certificates.rank && item(`${base}/rank-certificate/pdf`, translate('cr21_income', 'dl_rank_cert'))}
                 {receipts.map((receipt) => (
                     <Fragment key={receipt.id}>{item(`${base}/payment-receipts/${receipt.id}/print`, translate('my_money', 'receipt_number', { number: receipt.number }))}</Fragment>
                 ))}

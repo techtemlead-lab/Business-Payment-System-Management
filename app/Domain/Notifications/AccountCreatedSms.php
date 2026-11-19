@@ -5,6 +5,7 @@ namespace App\Domain\Notifications;
 use App\Domain\Integrations\SmsGatewayClient;
 use App\Domain\Integrations\SmtpMailConfig;
 use App\Models\User;
+use App\Support\PortalHost;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -21,19 +22,19 @@ final class AccountCreatedSms
 
     public function send(User $user, string $plainPassword): bool
     {
-        return $this->deliverTemporaryPassword($user, $plainPassword, 'account_created', 'account_created_redacted', 'account.created', true);
+        return $this->deliverTemporaryPassword($user, $plainPassword, 'account_created', 'account.created', true);
     }
 
     public function sendPasswordReset(User $user, string $plainPassword): bool
     {
-        return $this->deliverTemporaryPassword($user, $plainPassword, 'password_reset_by_admin', 'password_reset_by_admin_redacted', 'account.password_reset');
+        return $this->deliverTemporaryPassword($user, $plainPassword, 'password_reset_by_admin', 'account.password_reset');
     }
 
     /**
      * @param  bool  $smsOnly  A new person's password goes by SMS or not at all, so a failed SMS never turns into
      *                         a plain password in an email. The caller sends a set-your-password link instead.
      */
-    private function deliverTemporaryPassword(User $user, string $plainPassword, string $messageKey, string $redactedKey, string $logPrefix, bool $smsOnly = false): bool
+    private function deliverTemporaryPassword(User $user, string $plainPassword, string $messageKey, string $logPrefix, bool $smsOnly = false): bool
     {
         $phone = preg_replace('/\D+/', '', (string) $user->phone) ?: '';
         $locale = $this->localeFor($user);
@@ -68,9 +69,15 @@ final class AccountCreatedSms
         if (! $smsOnly && $this->smtp->enabled() && filled($user->email)) {
             $this->smtp->apply();
             try {
-                Mail::raw((string) __('sms.'.$messageKey, $replace, $locale), function ($mail) use ($user): void {
-                    $mail->to((string) $user->email)
-                        ->subject(__('portal.notice_account_invite_title', [], $this->localeFor($user)));
+                // The email's words can be re-worded in the message templates; with no saved text it is today's text.
+                $text = MessageTemplates::email(MessageTemplateCatalog::CredentialsMailKey, $locale, [
+                    ...$replace,
+                    'name' => (string) $user->name,
+                    'link' => PortalHost::url(PortalHost::forUser($user), '/'),
+                    'company' => (string) (config('mail.from.name') ?: config('app.name')),
+                ], (string) __('portal.notice_account_invite_title', [], $locale), (string) __('sms.'.$messageKey, $replace, $locale));
+                Mail::raw($text['body'], function ($mail) use ($user, $text): void {
+                    $mail->to((string) $user->email)->subject($text['subject']);
                 });
                 Log::info($logPrefix.'.mail.smtp', [
                     'user_id' => $user->id,
@@ -104,8 +111,10 @@ final class AccountCreatedSms
                 'user_id' => $user->id,
                 'phone' => $phone,
                 'password_delivered' => true,
-                'message_redacted' => SmsText::make('sms.'.$redactedKey, [
+                // The same template as the sent text, with the password hidden, so the log shows what really goes out.
+                'message_redacted' => SmsText::make('sms.'.$messageKey, [
                     'username' => $phone,
+                    'password' => '[REDACTED]',
                 ]),
             ]);
             if ($driver === 'array') {

@@ -17,7 +17,7 @@ function bringStatementIntoView(): void {
     statement.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
 }
 
-/** Shows one kind of income in the statement, or all of them when the chosen card is pressed again. */
+/** Shows one income head in the statement, or all of them when the chosen card is pressed again. */
 export function useChooseIncomeType(selected: string): (type: string) => void {
     const { url } = usePage();
 
@@ -27,9 +27,9 @@ export function useChooseIncomeType(selected: string): (type: string) => void {
         current.searchParams.forEach((value, key) => { params[key] = value; });
         delete params.page;
         if (type === selected) {
-            delete params.type;
+            delete params.head;
         } else {
-            params.type = type;
+            params.head = type;
         }
         router.get(current.pathname, params, {
             preserveState: true,

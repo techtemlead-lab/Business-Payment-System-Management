@@ -5,7 +5,7 @@ return [
     'search_partners' => 'Name, code, phone or email',
     'view_open' => 'All partners',
     'view_closed' => 'Closed',
-    'col_area' => 'Area',
+    'col_area' => 'Appointment and area',
     'empty_partners' => 'No partners found',
     'empty_closed' => 'No closed partners',
     'detail_phone' => 'Phone',

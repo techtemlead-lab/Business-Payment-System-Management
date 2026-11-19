@@ -39,7 +39,8 @@ class PartnerMoreSidebarTest extends TestCase
                         $keys = collect($groups)->flatMap(fn ($group) => collect($group['links'])->pluck('key'))->all();
                         $text = collect($groups)->flatMap(fn ($group) => collect($group['links'])->map(fn ($link) => $link['label'].$link['description']))->all();
 
-                        return in_array('agreement', $keys, true) && in_array('share-feedback', $keys, true) && in_array('top-sellers', $keys, true)
+                        // Best sellers, contests and the contract each have one home elsewhere (findability #18).
+                        return in_array('share-feedback', $keys, true) && array_intersect(['agreement', 'top-sellers', 'contests'], $keys) === []
                             && collect($text)->every(fn ($line) => $line !== '' && ! str_contains($line, 'office_menu.') && ! str_contains($line, 'cr14.'));
                     }));
         }
@@ -89,10 +90,10 @@ class PartnerMoreSidebarTest extends TestCase
     {
         $menu = (string) file_get_contents(resource_path('js/shared/portalNav.ts'));
 
-        $this->assertMatchesRegularExpression("/id: 'partner-team'[^\n]*tabs: \['network', 'customers', 'ranks'\]/", $menu);
+        $this->assertMatchesRegularExpression("/id: 'partner-team'[^\n]*tabs: \['network', 'customers', 'ranks', 'top-sellers', 'contests'\]/", $menu);
         $this->assertMatchesRegularExpression("/id: 'partner-office'[^\n]*tabs: \['messages', 'partner-notices', 'help'\]/", $menu);
-        $this->assertMatchesRegularExpression("/id: 'partner-account'[^\n]*tabs: \['profile', 'security'\]/", $menu);
-        $this->assertMatchesRegularExpression("/id: 'partner-more'[^\n]*home: 'more'[^\n]*'training'[^\n]*'events'[^\n]*'sales-kit'[^\n]*'top-sellers'[^\n]*'contests'[^\n]*'share-feedback'[^\n]*'agreement'/", $menu);
+        $this->assertMatchesRegularExpression("/id: 'partner-account'[^\n]*tabs: \['profile', 'security', 'agreement'\]/", $menu);
+        $this->assertMatchesRegularExpression("/id: 'partner-more'[^\n]*home: 'more'[^\n]*'training'[^\n]*'events'[^\n]*'sales-kit'[^\n]*'share-feedback'\]/", $menu);
         $this->assertStringNotContainsString("rowMother('partner-learning'", $menu);
     }
 
@@ -123,6 +124,18 @@ class PartnerMoreSidebarTest extends TestCase
         $this->assertSame('রংপুর সদর', $result['upazila']);
         $this->assertSame('Somewhere', $result['union']);
         $this->assertNull(BanglaPlaceNames::translate([])['division']);
+    }
+
+    /** R1: a Pourashava or a city corporation is not in the geo union list; the place-code data names it. */
+    public function test_pourashava_and_city_corporation_names_are_bangla(): void
+    {
+        foreach (['Saidpur Pourashava', 'Saidpur Paurashava', 'Saidpur Municipality', 'saidpur pourashava'] as $spelling) {
+            $this->assertSame('সৈয়দপুর পৌরসভা', BanglaPlaceNames::translate(['division' => 'Rangpur', 'district' => 'Nilphamari', 'upazila' => 'Saidpur', 'union' => $spelling])['union'], $spelling);
+        }
+        $this->assertSame('সৈয়দপুর পৌরসভা', BanglaPlaceNames::translate(['union' => 'Saidpur Pourashava'])['union']);
+        $this->assertSame('রংপুর সিটি কর্পোরেশন', BanglaPlaceNames::translate(['union' => 'Rangpur City Corporation'])['union']);
+        $this->assertSame('ঢাকা মহানগর', BanglaPlaceNames::translate(['division' => 'Dhaka', 'district' => 'Dhaka', 'upazila' => 'Dhaka Metro'])['upazila']);
+        $this->assertSame('Nowhere Pourashava', BanglaPlaceNames::translate(['upazila' => 'Nowhere', 'union' => 'Nowhere Pourashava'])['union']);
     }
 
     public function test_a_place_is_looked_up_inside_its_own_district(): void
