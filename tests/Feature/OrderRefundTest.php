@@ -38,6 +38,10 @@ class OrderRefundTest extends TestCase
         foreach (['inventory', 'support', 'account_manager'] as $role) {
             $this->actingAs(User::factory()->staff($role)->create())->onPortal('manage')->post('/commands/orders/'.$order->id.'/refund', $this->payload())->assertForbidden();
         }
+        // D11: the MD and Chairman see payroll only until the Super Admin grants finance approval.
+        foreach (['md', 'chairman'] as $role) {
+            $this->actingAs(User::factory()->staff($role)->create())->onPortal('sadmin')->post('/commands/orders/'.$order->id.'/refund', $this->payload())->assertForbidden();
+        }
 
         $this->assertDatabaseCount('order_refunds', 0);
         $this->assertSame('approved', $order->fresh()->status);
