@@ -5,7 +5,7 @@ return [
     'search_partners' => 'নাম, কোড, ফোন বা ইমেইল',
     'view_open' => 'সব পার্টনার',
     'view_closed' => 'বন্ধ',
-    'col_area' => 'এলাকা',
+    'col_area' => 'দায়িত্ব ও এলাকা',
     'empty_partners' => 'কোনো পার্টনার পাওয়া যায়নি',
     'empty_closed' => 'কোনো বন্ধ পার্টনার নেই',
     'detail_phone' => 'ফোন',
