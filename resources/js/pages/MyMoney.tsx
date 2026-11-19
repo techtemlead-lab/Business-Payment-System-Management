@@ -48,6 +48,7 @@ export default function MyMoney({ summary, cards, table, withdrawal_requests: wi
                             <button type="button" className="button dark" onClick={() => setSheetOpen(true)}>{translate('my_money', 'withdraw')}</button>
                             <Link className="button" href={orderHref}>{translate('my_money', 'order')}</Link>
                             <Link className="button" href={`${base}/my-income`}>{translate('cr21_income', 'income_button')}</Link>
+                            <Downloads certificates={certificates} receipts={reserveReceipts} view={table.state} />
                         </>
                     )}
                 />
@@ -57,7 +58,7 @@ export default function MyMoney({ summary, cards, table, withdrawal_requests: wi
                 <SalaryNotes notes={salaryNotes} />
                 <IncomeCards cards={cards} selected={selected} onChoose={chooseType} />
                 <Lifetime lifetime={summary.lifetime} />
-                <MoneyBook table={table} actions={<Downloads certificates={certificates} receipts={reserveReceipts} view={table.state} />} />
+                <MoneyBook table={table} />
             </div>
             {sheetOpen && <WithdrawSheet available={summary.available} withdraw={withdraw} onClose={() => setSheetOpen(false)} />}
         </Shell>
