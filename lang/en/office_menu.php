@@ -37,7 +37,7 @@ return [
     'tab_top_sellers' => 'Top sellers',
     'tab_partner_scorecard' => 'Partner scorecard',
     'tab_branch_performance' => 'Branch sales',
-    'tab_financial_reports' => 'Files',
+    'tab_financial_reports' => 'Report files (Excel)',
 
     'tab_website' => 'Arrange the website',
     'tab_content' => 'Page text',
@@ -61,7 +61,7 @@ return [
     'partner_tab_share_feedback' => 'Give feedback',
     'partner_tab_help' => 'Help',
     'partner_tab_profile' => 'Profile',
-    'partner_tab_security' => 'Security',
+    'partner_tab_security' => 'Password & security',
     'partner_tab_agreement' => 'Agreement',
 
     'settings_group_money' => 'Money',

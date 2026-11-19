@@ -21,6 +21,9 @@ final class PublicTrustContent
         'partner-exit-policy' => 'exit',
     ];
 
+    /** The public page where anyone holding a pack can check its batch number. */
+    public const BatchCheckPath = '/batch-check';
+
     /** Every public page this feature adds, in footer order. */
     public const Pages = ['verify-dealer', 'refund-policy', 'delivery-policy', 'code-of-conduct', 'partner-exit-policy', 'grievance', 'quality-documents', 'articles'];
 
@@ -126,6 +129,10 @@ final class PublicTrustContent
         foreach (self::Pages as $page) {
             if (self::isVisible($page)) {
                 $links[] = ['url' => '/'.$page, 'label' => (string) __('public_trust.footer_'.str_replace('-', '_', $page))];
+            }
+            // The product batch check is public by design and sits next to the dealer check (findability #20).
+            if ($page === 'verify-dealer') {
+                $links[] = ['url' => self::BatchCheckPath, 'label' => (string) __('public_trust.footer_batch_check')];
             }
         }
 
