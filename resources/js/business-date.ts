@@ -136,3 +136,24 @@ export function businessDateTime(value?: string | null): string {
 
     return dateFormatter(!/^\d{4}-\d{2}-\d{2}$/.test(text)).format(parsed);
 }
+
+/**
+ * A typed date such as "15/06/1990", "15-6-1990" or Bangla digits, as YYYY-MM-DD. Null when the text
+ * is not (yet) a whole real date, so half-typed text and "31/02/1990" never pass as a date.
+ */
+export function parseTypedDate(raw: string): string | null {
+    const latin = raw.trim().replace(/[০-৯]/g, (digit) => String('০১২৩৪৫৬৭৮৯'.indexOf(digit)));
+    const dmy = latin.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
+    if (!dmy) {
+        return null;
+    }
+    const day = parseInt(dmy[1], 10);
+    const month = parseInt(dmy[2], 10);
+    const year = parseInt(dmy[3], 10);
+    const real = new Date(Date.UTC(year, month - 1, day));
+    if (year < 1900 || year > 2100 || real.getUTCFullYear() !== year || real.getUTCMonth() !== month - 1 || real.getUTCDate() !== day) {
+        return null;
+    }
+
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
