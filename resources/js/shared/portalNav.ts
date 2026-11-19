@@ -70,7 +70,7 @@ export const SECTION_LABEL_KEYS: Record<string, string> = {
     'branch-performance': 'branch_performance',
     settlements: 'settlements', simulator: 'simulator', 'payouts-hub': 'payouts_hub', treasury: 'treasury', 'identity-review': 'identity_review',
     'sub-dealers': 'sub_dealers', 'sub-dealer-orders': 'sub_dealer_orders',
-    'sub-dealer-applications': 'sub_dealer_applications', 'login-rules': 'login_rules', visitors: 'visitors', 'reason-fields': 'reason_fields', errors: 'errors_nav',
+    'sub-dealer-applications': 'sub_dealer_applications', 'login-rules': 'login_rules', visitors: 'visitors', 'reason-fields': 'reason_fields', errors: 'errors_nav', 'message-templates': 'message_templates_nav',
     employees: 'employees', dashboards: 'dashboards', help: 'help', 'support-admin': 'support_admin', agreement: 'agreement',
     messages: 'chat_nav_partner', 'partner-messages': 'chat_nav_office', 'top-sellers': 'top_sellers',
     training: 'training', events: 'events', 'data-cleanup': 'cleanup_nav', prescriptions: 'prescriptions', 'sales-kit': 'sales_kit', customers: 'customer_book', schemes: 'dated_schemes', 'privacy-requests': 'privacy_requests_nav',
@@ -239,17 +239,17 @@ const MENU_ROWS: Record<string, MenuRow> = Object.fromEntries(([
     { id: 'office-for-partners', labelKey: 'nav_module_for_partners', iconKey: 'agreement', tabs: ['schemes', 'contests', 'sales-kit', 'training', 'events', 'agreement'] },
     { id: 'office-staff', labelKey: 'nav_module_people', iconKey: 'people', tabs: ['employees', 'payroll', 'staff-operations', 'field-sales', 'access-management'] },
     { id: 'office-reports', labelKey: 'nav_module_reports', iconKey: 'reports', tabs: ['top-sellers', 'partner-scorecard', 'branch-performance', 'financial-reports'] },
-    { id: 'office-website', labelKey: 'label_web', iconKey: 'website', tabs: ['website', 'content', 'public-trust', 'video-marketing', 'feedback', 'visitors'] },
+    { id: 'office-website', labelKey: 'label_web', iconKey: 'website', tabs: ['website', 'content', 'public-trust', 'video-marketing', 'feedback', 'visitors', 'message-templates'] },
     // The sidebar's one entry for pages that are set once or opened rarely (CR-12, renamed "Other modules" in CR-15); its boxes come from OfficeHubs::MoreGroups.
     { id: 'office-more', labelKey: 'nav_module_more', iconKey: 'more', home: 'more', tabs: [
         'commissions', 'treasury-events',
         'schemes', 'contests', 'sales-kit', 'training', 'events', 'agreement',
         'employees', 'payroll', 'staff-operations', 'field-sales', 'access-management',
-        'website', 'content', 'public-trust', 'video-marketing', 'feedback', 'visitors',
+        'website', 'content', 'public-trust', 'video-marketing', 'feedback', 'visitors', 'message-templates',
     ] },
     { id: 'office-settings', labelKey: 'nav_module_settings', iconKey: 'settings', home: 'settings', tabs: [
         'finance-settings', 'payment-accounts', 'financial-readiness', 'place-codes', 'dashboards', 'identity-review',
-        'login-rules', 'reason-fields', 'service-integrations', 'courier-areas', 'data-imports', 'audit', 'privacy-requests', 'data-cleanup', 'errors',
+        'login-rules', 'reason-fields', 'service-integrations', 'courier-areas', 'data-imports', 'audit', 'privacy-requests', 'data-cleanup', 'errors', 'message-templates',
     ] },
     { id: 'partner-orders', labelKey: 'nav_module_commerce', iconKey: 'orders', tabs: ['orders', 'deliveries'] },
     { id: 'partner-team', labelKey: 'nav_module_network', iconKey: 'network', tabs: ['network', 'customers', 'ranks'] },
@@ -408,6 +408,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
         ['website', 'content', 'public-trust', 'enquiries', 'feedback'].forEach((item) => items.add(item));
     }
     if (capabilities.includes('content') || (ownerPortal && owns('owner_tools'))) {
+        items.add('message-templates');
         items.add('training');
         items.add('events');
     }
