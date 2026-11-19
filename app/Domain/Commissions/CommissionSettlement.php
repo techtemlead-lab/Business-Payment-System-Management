@@ -800,7 +800,7 @@ final class CommissionSettlement
             return LocalDigits::text($month, $locale);
         }
 
-        return LocalDigits::text(\Carbon\CarbonImmutable::instance($date)->locale($locale)->isoFormat('MMMM YYYY'), $locale);
+        return LocalDigits::text(CarbonImmutable::instance($date)->locale($locale)->isoFormat('MMMM YYYY'), $locale);
     }
 
     /** Leadership ranks from lowest to highest. */
