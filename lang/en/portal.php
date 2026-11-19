@@ -6162,7 +6162,7 @@ return [
     'section_hint_partner_purchase' => 'Pick products, pay and place your order.',
     'section_hint_partner_catalog' => 'All products with prices.',
     'section_hint_partner_deliveries' => 'Goods on the way to you, and goods delivered.',
-    'section_hint_partner_profile' => 'Your details, ID card and join link.',
+    'section_hint_partner_profile' => 'Your details, appointed area, payout accounts and ID card.',
     'section_hint_partner_security' => 'Change your password and keep your account safe.',
     'section_hint_partner_notifications' => 'Messages from the office about your account.',
     'section_hint_partner_circulars' => 'Office notices, and help when you need it.',

@@ -6162,7 +6162,7 @@ return [
     'section_hint_partner_purchase' => 'পণ্য বাছুন, টাকা দিন আর অর্ডার পাঠান।',
     'section_hint_partner_catalog' => 'দামসহ সব পণ্য।',
     'section_hint_partner_deliveries' => 'আপনার কাছে আসছে এমন পণ্য আর পৌঁছে যাওয়া পণ্য।',
-    'section_hint_partner_profile' => 'আপনার তথ্য, আইডি কার্ড ও যোগ দেওয়ার লিংক।',
+    'section_hint_partner_profile' => 'আপনার তথ্য, দায়িত্বের এলাকা, টাকা নেওয়ার অ্যাকাউন্ট ও আইডি কার্ড।',
     'section_hint_partner_security' => 'পাসওয়ার্ড বদলান আর অ্যাকাউন্ট নিরাপদ রাখুন।',
     'section_hint_partner_notifications' => 'আপনার অ্যাকাউন্ট নিয়ে অফিসের বার্তা।',
     'section_hint_partner_circulars' => 'অফিসের নোটিশ, আর দরকারে সাহায্য।',
