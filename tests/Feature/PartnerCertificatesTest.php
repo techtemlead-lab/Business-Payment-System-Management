@@ -54,7 +54,7 @@ class PartnerCertificatesTest extends TestCase
         $income = app(PartnerCertificates::class)->income($dealer, 2026);
 
         $this->assertSame('500.00', $income['total']);
-        $this->assertSame(['direct_referral'], array_column($income['lines'], 'category'));
+        $this->assertSame(['referral'], array_column($income['lines'], 'category'));
         $this->assertSame('380.00', $income['withdrawn_net']);
         $this->assertSame('20.00', $income['tax_cut']);
     }

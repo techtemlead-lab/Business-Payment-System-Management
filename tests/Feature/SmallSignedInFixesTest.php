@@ -61,6 +61,6 @@ class SmallSignedInFixesTest extends TestCase
 
         // The simpler partner home dropped the repeated account card; the poster button is on the profile only.
         $this->assertStringNotContainsString('join-poster/pdf', $dashboard);
-        $this->assertStringContainsString('includes(u.role)&&d.profile?.refer_code&&<a className="button small" href={`${base}/join-poster/pdf`}', $portal);
+        $this->assertStringContainsString('includes(u.role)&&d.profile?.refer_url&&<a className="button small" href={`${base}/join-poster/pdf`}', $portal);
     }
 }
