@@ -85,9 +85,9 @@ export default function OfficeTabsTable({ tabs }: { tabs: string[] }) {
     const loading = data === undefined || busy;
 
     return (
-        <section className="panel office-tabs" data-tour="office-tabs" aria-labelledby="office-tabs-title">
-            <h2 id="office-tabs-title" className="office-tabs-title">{translate('cr18', 'tabs_title')}</h2>
-            <div className="office-tabs-row" role="tablist" aria-label={translate('cr18', 'tabs_title')}>
+        <section className="panel odt" data-tour="office-tabs" aria-labelledby="odt-title">
+            <h2 id="odt-title" className="odt-title">{translate('cr18', 'tabs_title')}</h2>
+            <div className="odt-row" role="tablist" aria-label={translate('cr18', 'tabs_title')}>
                 {tabs.map((key) => (
                     <button
                         key={key}
@@ -96,7 +96,7 @@ export default function OfficeTabsTable({ tabs }: { tabs: string[] }) {
                         id={`office-tab-${key}`}
                         aria-selected={openTab === key}
                         aria-controls="office-tab-panel"
-                        className={`office-tab${openTab === key ? ' is-active' : ''}`}
+                        className={`odt-tab${openTab === key ? ' is-active' : ''}`}
                         onClick={() => ask({ tab: key, tq: undefined, tp: undefined })}
                     >
                         {translate('cr18', `tab_${key}`)}
@@ -104,9 +104,9 @@ export default function OfficeTabsTable({ tabs }: { tabs: string[] }) {
                 ))}
             </div>
             <div id="office-tab-panel" role="tabpanel" aria-labelledby={`office-tab-${openTab}`} aria-busy={loading}>
-                <div className="office-tab-tools">
+                <div className="odt-tools">
                     <form
-                        className="office-tab-search"
+                        className="odt-search"
                         role="search"
                         onSubmit={(event) => {
                             event.preventDefault();
@@ -116,20 +116,20 @@ export default function OfficeTabsTable({ tabs }: { tabs: string[] }) {
                         <input type="search" value={words} maxLength={100} aria-label={translate('cr18', 'search_label')} placeholder={translate('cr18', 'search_placeholder')} onChange={(event) => setWords(event.target.value)} />
                         <button type="submit" className="button small">{translate('cr18', 'search_button')}</button>
                     </form>
-                    {data && <Link href={`${base}${data.all_href}`} className="text-link office-tab-all">{translate('cr18', 'view_all')} <ArrowUpRight size={15} /></Link>}
+                    {data && <Link href={`${base}${data.all_href}`} className="text-link odt-all">{translate('cr18', 'view_all')} <ArrowUpRight size={15} /></Link>}
                 </div>
                 {loading && !data && (
-                    <div className="office-tab-skeleton" aria-hidden="true">
+                    <div className="odt-skeleton" aria-hidden="true">
                         {[0, 1, 2, 3, 4].map((line) => <i key={line} />)}
                     </div>
                 )}
                 {data && (
-                    <div className={`office-tab-body${busy ? ' is-busy' : ''}`}>
+                    <div className={`odt-body${busy ? ' is-busy' : ''}`}>
                         {data.rows.length === 0 ? (
-                            <p className="muted office-tab-empty">{translate('cr18', data.search ? 'empty_search' : 'empty')}</p>
+                            <p className="muted odt-empty">{translate('cr18', data.search ? 'empty_search' : 'empty')}</p>
                         ) : (
-                            <div className="office-tab-scroll">
-                                <table className="office-tab-table">
+                            <div className="odt-scroll">
+                                <table className="odt-table">
                                     <thead>
                                         <tr>{data.columns.map((column) => <th key={column.key} scope="col" className={column.type === 'money' || column.type === 'count' ? 'is-num' : undefined}>{heading(data.tab, column.key)}</th>)}</tr>
                                     </thead>
@@ -150,10 +150,10 @@ export default function OfficeTabsTable({ tabs }: { tabs: string[] }) {
                                 </table>
                             </div>
                         )}
-                        <div className="office-tab-foot">
+                        <div className="odt-foot">
                             <span>{translate('cr18', 'total_count', { count: number(data.total) })}</span>
                             {data.last_page > 1 && (
-                                <span className="office-tab-pages">
+                                <span className="odt-pages">
                                     <button type="button" className="button small" disabled={data.page <= 1 || busy} onClick={() => ask({ tab: data.tab, tq: data.search, tp: String(data.page - 1) })}>{translate('cr18', 'prev')}</button>
                                     <span>{translate('cr18', 'page_of', { page: number(data.page), last: number(data.last_page) })}</span>
                                     <button type="button" className="button small" disabled={data.page >= data.last_page || busy} onClick={() => ask({ tab: data.tab, tq: data.search, tp: String(data.page + 1) })}>{translate('cr18', 'next')}</button>
@@ -162,7 +162,7 @@ export default function OfficeTabsTable({ tabs }: { tabs: string[] }) {
                         </div>
                     </div>
                 )}
-                {data === null && <p className="muted office-tab-empty">{translate('cr18', 'empty')}</p>}
+                {data === null && <p className="muted odt-empty">{translate('cr18', 'empty')}</p>}
             </div>
         </section>
     );
