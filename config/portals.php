@@ -15,14 +15,14 @@
 return [
     'dealer' => [
         'page' => 'portals/dealer/Dashboard',
-        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'my-money', 'network', 'ranks', 'top-sellers', 'share-feedback', 'help', 'messages', 'training', 'events', 'prescriptions', 'sales-kit', 'customers', 'contests'],
+        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'my-money', 'network', 'ranks', 'top-sellers', 'share-feedback', 'help', 'messages', 'training', 'events', 'prescriptions', 'sales-kit', 'customers', 'contests', 'more'],
         'partner_commands' => true,
         'staff_commands' => false,
         'owner_commands' => false,
     ],
     'subdealer' => [
         'page' => 'portals/subdealer/Dashboard',
-        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'my-money', 'network', 'top-sellers', 'share-feedback', 'help', 'messages', 'training', 'events', 'prescriptions', 'sales-kit', 'customers', 'contests'],
+        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'my-money', 'network', 'top-sellers', 'share-feedback', 'help', 'messages', 'training', 'events', 'prescriptions', 'sales-kit', 'customers', 'contests', 'more'],
         'partner_commands' => true,
         'staff_commands' => false,
         'owner_commands' => false,

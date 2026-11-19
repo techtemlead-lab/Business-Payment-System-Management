@@ -156,7 +156,9 @@ class WorkspaceController extends Controller
             return redirect('/');
         }
         if ($section === OfficeHubs::MoreSection) {
-            abort_unless($staff && OfficeHubs::hasMoreToOpen($u, $catalogPortal, in_array($portal, ['manage', 'sadmin'], true)), 403);
+            abort_unless($staff
+                ? OfficeHubs::hasMoreToOpen($u, $catalogPortal, in_array($portal, ['manage', 'sadmin'], true))
+                : PartnerHubTabs::hasMoreToOpen($u), 403);
         }
         PortalCatalog::assertSection($u, $catalogPortal, $section);
         $periodRule = match ($section) {
