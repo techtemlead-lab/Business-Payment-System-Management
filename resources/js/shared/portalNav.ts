@@ -252,11 +252,15 @@ const MENU_ROWS: Record<string, MenuRow> = Object.fromEntries(([
         'login-rules', 'reason-fields', 'service-integrations', 'courier-areas', 'data-imports', 'audit', 'privacy-requests', 'data-cleanup', 'errors',
     ] },
     { id: 'partner-orders', labelKey: 'nav_module_commerce', iconKey: 'orders', tabs: ['orders', 'deliveries'] },
-    { id: 'partner-team', labelKey: 'nav_module_network', iconKey: 'network', tabs: ['network', 'customers', 'ranks'] },
+    // Best sellers and contests have one home: the team row's tabs (findability #18).
+    { id: 'partner-team', labelKey: 'nav_module_network', iconKey: 'network', tabs: ['network', 'customers', 'ranks', 'top-sellers', 'contests'] },
+    // A sub-dealer has no team tree or ranks, so the same row carries the customer book's name.
+    { id: 'partner-customers', labelKey: 'customer_book', iconKey: 'network', tabs: ['customers', 'top-sellers', 'contests'] },
     { id: 'partner-office', labelKey: 'nav_module_office', iconKey: 'messages', tabs: ['messages', 'partner-notices', 'help'] },
-    { id: 'partner-account', labelKey: 'nav_my_profile', iconKey: 'profile', tabs: ['profile', 'security'] },
+    // The contract has one home: here (findability #18).
+    { id: 'partner-account', labelKey: 'nav_my_profile', iconKey: 'profile', tabs: ['profile', 'security', 'agreement'] },
     // The partner's one entry for pages opened less often (CR-14); its boxes come from PartnerHubTabs::MoreGroups. Prescriptions never go here.
-    { id: 'partner-more', labelKey: 'nav_module_more', iconKey: 'more', home: 'more', tabs: ['training', 'events', 'sales-kit', 'top-sellers', 'contests', 'share-feedback', 'agreement'] },
+    { id: 'partner-more', labelKey: 'nav_module_more', iconKey: 'more', home: 'more', tabs: ['training', 'events', 'sales-kit', 'share-feedback'] },
 ] satisfies MenuRow[]).map((row) => [row.id, row]));
 
 /** A row item is "rowId@tab,tab": the row and the tabs open to this person, first one first. */
@@ -365,7 +369,8 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
         items.add('treasury-events');
     }
     if (opensTreasury || capabilities.includes('reports')) items.add('treasury-orders');
-    else if (capabilities.includes('field_sales')) items.add('financial-reports');
+    // The report files tab is for everyone who may download them, not only field staff (findability #4).
+    if (capabilities.some((cap) => ['finance', 'reports', 'field_sales'].includes(cap))) items.add('financial-reports');
     if (capabilities.some((cap) => ['reports', 'orders', 'finance'].includes(cap))) {
         items.add('top-sellers');
         items.add('partner-scorecard');
@@ -521,8 +526,6 @@ function staffMothers(available: Set<string>): NavMother[] {
 
 /** The dealer and sub-dealer menu: the day's work first, one row for each kind of work. */
 function partnerMothers(role: string, available: Set<string>): NavMother[] {
-    const teamAvailable = role === 'dealer' ? available : new Set([...available].filter((item) => item !== 'network'));
-
     return compactMothers([
         mother('home', 'nav_module_home', pick(available, ['overview'])),
         // V1: home, my profile, my account (the income page), then orders and money.
@@ -532,10 +535,8 @@ function partnerMothers(role: string, available: Set<string>): NavMother[] {
         rowMother('partner-orders', available),
         mother('products', 'nav_products', pick(available, ['catalog'])),
         mother('earnings', 'nav_module_earnings', pick(available, ['partner-money'])),
-        // A sub-dealer's team row only opens the customer list, so it carries that page's own name.
-        role === 'sub_dealer' && rowItem('partner-team', teamAvailable) === 'customers'
-            ? mother('partner-team', 'customer_book', ['customers'])
-            : rowMother('partner-team', teamAvailable),
+        // A sub-dealer has no team tree, so the row carries the customer book's name.
+        role === 'sub_dealer' ? rowMother('partner-customers', available) : rowMother('partner-team', available),
         rowMother('partner-office', available),
         // Prescriptions always stay in the sidebar, in every panel (client, 2026-11-19); the More page never lists them.
         mother('clinic', 'prescriptions', pick(available, ['prescriptions'])),

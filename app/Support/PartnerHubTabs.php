@@ -25,6 +25,7 @@ final class PartnerHubTabs
     private const Hubs = [
         'partner-orders' => ['title' => 'nav_module_commerce', 'tabs' => ['orders', 'deliveries']],
         'partner-team' => ['title' => 'nav_module_network', 'tabs' => ['network', 'customers', 'ranks', 'top-sellers', 'contests']],
+        // Best sellers and contests live only in the team row's tabs, and the contract only under the account (findability #18).
         'partner-learning' => ['title' => 'nav_module_learning', 'tabs' => ['training', 'events', 'sales-kit']],
         'partner-office' => ['title' => 'nav_module_office', 'tabs' => ['messages', 'circulars', 'share-feedback', 'help']],
         'partner-account' => ['title' => 'nav_module_account', 'tabs' => ['profile', 'security', 'agreement']],
@@ -40,8 +41,7 @@ final class PartnerHubTabs
      */
     private const MoreGroups = [
         'learn' => ['training' => '/training', 'events' => '/events', 'sales-kit' => '/sales-kit'],
-        'grow' => ['top-sellers' => '/top-sellers', 'contests' => '/contests'],
-        'office' => ['share-feedback' => '/share-feedback', 'agreement' => '/agreement'],
+        'office' => ['share-feedback' => '/share-feedback'],
     ];
 
     /** A sub-dealer's team page stays reachable by address but is not one of their tabs. */
