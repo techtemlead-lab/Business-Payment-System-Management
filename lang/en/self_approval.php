@@ -27,4 +27,9 @@ return [
     'count_cancel_reason' => 'Why is this count being cancelled?',
     'err_owner_needed' => 'This is :amount or more, so only the owner can approve it. You can still turn it down.',
     'owner_approves_withdrawal' => 'This is at or above the owner\'s limit, so only the owner can approve it. You can still turn it down.',
+    'dash_owner_withdrawals' => 'Large withdrawals waiting for you',
+    'dash_owner_refunds' => 'Large refunds waiting for you',
+    'dash_owner_fund_spends' => 'Fund spends waiting for you',
+    'dash_owner_rewards' => 'Large reward payouts waiting for you',
+    'dash_owner_commission_changes' => 'Commission changes waiting for you',
 ];
