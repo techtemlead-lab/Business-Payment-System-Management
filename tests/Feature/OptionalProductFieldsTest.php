@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Inventory\StockPrintList;
 use App\Models\CompanyBranch;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\App;
 use Tests\TestCase;
 
 /**
@@ -85,5 +87,26 @@ class OptionalProductFieldsTest extends TestCase
         }
         $this->assertSame('ঐচ্ছিক', __('stock_screens.mark_optional', [], 'bn'));
         $this->assertStringContainsString('ঐচ্ছিক', __('portal.pe_expires_on', [], 'bn'));
+    }
+
+    public function test_b9_a_dose_given_in_the_add_product_dialog_is_the_fact_the_stock_print_and_public_page_read(): void
+    {
+        $hub = CompanyBranch::query()->where('code', 'HO-PIRGANJ')->firstOrFail();
+        $owner = User::factory()->staff('super_admin')->create(['active_branch_id' => $hub->id]);
+
+        $this->actingAs($owner)->post('/commands/products', [
+            'name' => 'Dose Tonic', 'sku' => 'TEST-B9-DOSE', 'category' => 'Test Category', 'unit' => 'pack', 'mrp' => '200.00', 'dealer_price' => '140.00',
+            'active' => true, 'reason' => 'Synthetic product for this test', 'video_source' => 'none',
+            ...array_fill_keys(self::OptionalColumns, ''), 'dose_en' => 'Two spoons after food', 'dose_bn' => 'খাবারের পর দুই চামচ',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $product = Product::query()->where('sku', 'TEST-B9-DOSE')->firstOrFail();
+        $this->assertSame('Two spoons after food', $product->dose_en);
+        $usage = fn (): ?string => collect((new StockPrintList)->build()['rows'])->firstWhere('name', 'Dose Tonic')['usage'] ?? null;
+        App::setLocale('en');
+        $this->assertSame('Two spoons after food', $usage());
+        App::setLocale('bn');
+        $this->assertSame('খাবারের পর দুই চামচ', $usage());
+        $this->withCookie('locale', 'en')->get('/products/'.$product->id)->assertOk()->assertSee('Two spoons after food');
     }
 }
