@@ -4,6 +4,7 @@ import OfficePage from '../OfficePage';
 import type { OfficeHub } from '../../OfficeHubTabs';
 import { FormErrors } from '../../UI';
 import { useT } from '../../../shared/i18n/t';
+import { businessDateTime } from '../../../business-date';
 
 type Locale = 'bn' | 'en';
 type Channel = 'sms' | 'email';
@@ -229,7 +230,7 @@ function LocaleForm({ item, locale }: { item: Item; locale: Locale }) {
             <FormErrors errors={form.errors} />
             <p className="mt-last">
                 {version.last_changed
-                    ? translate('message_templates', 'last_changed', { name: version.last_changed.by, when: formatWhen(version.last_changed.at) })
+                    ? translate('message_templates', 'last_changed', { name: version.last_changed.by, when: businessDateTime(version.last_changed.at) })
                     : translate('message_templates', 'never_changed')}
             </p>
             <div className="mt-actions">
@@ -253,10 +254,4 @@ function LocaleForm({ item, locale }: { item: Item; locale: Locale }) {
             </div>
         </form>
     );
-}
-
-function formatWhen(iso: string | null): string {
-    if (!iso) return '';
-    const date = new Date(iso);
-    return Number.isNaN(date.getTime()) ? '' : date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 }
