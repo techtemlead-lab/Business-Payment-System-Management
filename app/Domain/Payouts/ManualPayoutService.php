@@ -5,6 +5,7 @@ namespace App\Domain\Payouts;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Finance\FraudAnomalyDetector;
+use App\Domain\Finance\OwnerApprovalLimits;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Finance\WithdrawalSecurityWait;
 use App\Domain\Security\SelfApproval;
@@ -34,6 +35,17 @@ class ManualPayoutService
         }
 
         return app(SelfApproval::class)->ownerFinishesAlone($viewer) ? null : 'second_person';
+    }
+
+    /**
+     * CR-16: true when this request is at or above the owner's limit and the viewer is not an
+     * owner, so only an owner may approve it (staff may still turn it down).
+     */
+    public function waitsForOwner(object $withdrawal, User $viewer): bool
+    {
+        return $withdrawal->status === 'requested'
+            && app(OwnerApprovalLimits::class)->needsOwner(OwnerApprovalLimits::Withdrawal, (string) $withdrawal->amount)
+            && ! OwnerApprovalLimits::ownerDecides($viewer);
     }
 
     /** @param array<string, mixed> $data */
@@ -106,16 +118,18 @@ class ManualPayoutService
                 'risk_flags' => $risk['flags'],
             ]);
             Audit::notice($actor->id, __('portal.notice_user_withdrawal_title'), __('portal.notice_user_withdrawal_body', ['amount' => TakaText::afterSign(Money::decimal($amount))]), 'withdrawal.requested');
-            Audit::notifyAdminsAndStaff(
-                ['finance'],
-                __('portal.notice_admin_withdrawal_title'),
-                __('portal.notice_admin_withdrawal_body', [
-                    'name' => $actor->name,
-                    'amount' => TakaText::afterSign(Money::decimal($amount)),
-                    'channel' => (string) $data['channel'],
-                ]),
-                $actor->id
-            );
+            // CR-16: a request at or above the owner's limit waits for an owner; smaller ones go to finance staff.
+            $title = __('portal.notice_admin_withdrawal_title');
+            $body = __('portal.notice_admin_withdrawal_body', [
+                'name' => $actor->name,
+                'amount' => TakaText::afterSign(Money::decimal($amount)),
+                'channel' => (string) $data['channel'],
+            ]);
+            if (app(OwnerApprovalLimits::class)->needsOwner(OwnerApprovalLimits::Withdrawal, Money::decimal($amount))) {
+                Audit::notifyOwners(['finance'], $title, $body, $actor->id);
+            } else {
+                Audit::notifyStaffFirst(['finance'], $title, $body, $actor->id);
+            }
 
             return ['id' => $id, 'created' => true];
         }, 3);
@@ -172,6 +186,7 @@ class ManualPayoutService
                         'limit' => TakaText::amount(Money::decimal($limit)),
                     ])]);
                 }
+                app(OwnerApprovalLimits::class)->refuseUnlessOwnerMayApprove($actor, OwnerApprovalLimits::Withdrawal, (string) $w->amount, 'withdrawal');
                 if ($payerId !== null && ! in_array($payerId, array_column($this->eligiblePayers($actor), 'id'), true)) {
                     throw ValidationException::withMessages(['payer_id' => __('payouts.err_payer_not_allowed')]);
                 }
@@ -189,7 +204,9 @@ class ManualPayoutService
             DB::table('withdrawal_events')->insert(['withdrawal_id' => $id, 'actor_id' => $actor->id, 'event' => $decision, 'note' => $reason, 'created_at' => now()]);
             Audit::record($actor->id, 'withdrawal.'.$decision, $id, [
                 'user_id' => $w->user_id, 'amount' => $w->amount, 'previous_status' => $w->status, 'reason' => $reason,
+                'reviewer_role' => $actor->role,
                 ...($decision === 'approved' ? ['payer_id' => $payerId] : []),
+                ...(app(OwnerApprovalLimits::class)->needsOwner(OwnerApprovalLimits::Withdrawal, (string) $w->amount) ? ['owner_limit' => true] : []),
             ]);
             $locale = $partner->preferredLocale();
             $decisionLabel = __('portal.wd_decision_'.$decision, [], $locale);

@@ -325,7 +325,7 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
     );
 }
 
-type WorkItem = { key: string; count: number; section: string; query?: Record<string, string>; label?: string; amount?: string; alert?: boolean; oldest_days?: number | null };
+type WorkItem = { key: string; count: number; section: string; query?: Record<string, string>; label?: string; amount?: string; alert?: boolean; oldest_days?: number | null; staff_handles?: boolean };
 type TrendPoint = { date: string; orders: number; value: string };
 
 /** A business day (YYYY-MM-DD) in the page's language, whatever clock the browser is on. */
@@ -488,7 +488,8 @@ function AdminHome({ home }: { home: Row }) {
     const { auth, portalBase: base } = usePage<any>().props;
     const translate = useT();
     const figures = officeFigures(home, base, auth.capabilities ?? [], translate);
-    const work: WorkItem[] = home.work_queue ?? [];
+    // CR-16: the owner's list leaves out work a staff member finishes; the figures above still count it.
+    const work: WorkItem[] = (home.work_queue ?? []).filter((item: WorkItem) => !item.staff_handles);
     const trend: TrendPoint[] = home.trend ?? [];
     const today = dayInWords(businessTodayIso(), { weekday: 'long', day: 'numeric', month: 'long' });
 

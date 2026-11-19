@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Finance\AccountingStatements;
+use App\Domain\Finance\OwnerApprovalLimits;
 use App\Domain\Finance\StatementImports;
-use App\Domain\Finance\WithdrawalApprovalLimit;
 use App\Domain\Payouts\PayoutBatch;
 use App\Models\User;
 use App\Support\Audit;
@@ -59,19 +59,24 @@ class AccountingController extends Controller
         ]);
     }
 
-    /** Owner-only: the withdrawal size flagged as a large payout. */
-    public function saveApprovalLimit(Request $request, WithdrawalApprovalLimit $limit): Response
+    /**
+     * Owner-only: the sizes at or above which a withdrawal, a refund or a fund spend waits for
+     * the owner (CR-16). Without a kind it is the withdrawal limit, as before.
+     */
+    public function saveApprovalLimit(Request $request, OwnerApprovalLimits $limits): Response
     {
         $this->authorizeAccounting($request->user());
         abort_unless($request->user()->owner(), 403);
         $data = $request->validate([
+            'kind' => ['sometimes', Rule::in(OwnerApprovalLimits::kinds())],
             'amount' => [...FinanceOperationsController::Amount, 'gt:0'],
             'version' => 'required|integer|min:0',
             'reason' => ReasonFields::rule('money.approval_limit', 1000, 5),
         ]);
-        $limit->save($request->user(), $data['amount'], (int) $data['version'], ReasonFields::text($data['reason'] ?? null));
+        $kind = $data['kind'] ?? OwnerApprovalLimits::Withdrawal;
+        $limits->save($request->user(), $kind, $data['amount'], (int) $data['version'], ReasonFields::text($data['reason'] ?? null));
 
-        return $request->expectsJson() ? response()->json(['data' => $limit->current()]) : back()->with('success', __('accounting.flash_limit_saved'));
+        return $request->expectsJson() ? response()->json(['data' => $limits->current($kind)]) : back()->with('success', __('accounting.flash_limit_saved'.($kind === OwnerApprovalLimits::Withdrawal ? '' : '_'.$kind)));
     }
 
     /** Download one statement as a spreadsheet or PDF, the same way the Report Centre does. */

@@ -2,12 +2,16 @@
 
 namespace App\Domain\Orders;
 
+use App\Domain\Finance\CompanyFunds;
+use App\Domain\Finance\FundSpending;
 use App\Domain\Finance\MoneyTaskFigures;
+use App\Domain\Finance\OwnerApprovalLimits;
 use App\Domain\Finance\PendingPaymentChecks;
 use App\Domain\Inventory\BranchScope;
 use App\Domain\Inventory\SellableStock;
 use App\Domain\Inventory\StockLevels;
 use App\Domain\Payouts\PayoutLimits;
+use App\Domain\Security\OwnerExemption;
 use App\Domain\Support\PartnerChat;
 use App\Http\Portals\Shared\Sections\WithdrawalsSection;
 use App\Models\Order;
@@ -27,6 +31,25 @@ use Illuminate\Support\Facades\DB;
 final class StaffDashboardSummary
 {
     public const TrendDays = 14;
+
+    /**
+     * CR-16: the staff capability that finishes each work-list row. A failed month close and
+     * unanswered chats are left out on purpose: the first is an alarm, and the owner decides who
+     * answers chat, so both stay on the owner's list.
+     */
+    private const QueueCapabilities = [
+        'orders_to_review' => ['order_review'],
+        'payments_to_check' => ['finance'],
+        'withdrawals_to_review' => ['finance'],
+        'payouts_overdue' => ['finance'],
+        'commission_ready_to_pay' => ['finance'],
+        'commission_held' => ['finance'],
+        'orders_to_dispatch' => ['inventory'],
+        'deliveries_overdue' => ['orders', 'inventory'],
+        'back_orders_late' => ['inventory', 'order_review'],
+        'low_stock_products' => ['inventory'],
+        'applications_to_review' => ['accounts'],
+    ];
 
     /**
      * @param  BranchScope|null  $branchScope  The branch the top-bar switcher picked; null counts every branch.
@@ -137,6 +160,55 @@ final class StaffDashboardSummary
                 'count' => (int) DB::table('dealer_applications')->where('status', 'pending')->count(),
                 'section' => 'partnerships',
             ];
+        }
+
+        return OwnerExemption::applies($viewer) ? $this->ownerQueue($queue) : $queue;
+    }
+
+    /**
+     * CR-16: the owner's "waiting for you" list holds only what waits for the owner: money at or
+     * above the owner's limits and commission changes, plus any staff work no active staff member
+     * can do. Work a staff member finishes is marked `staff_handles`, so the list leaves it out
+     * while the day's figures above it still count it. The owner sees every step in the activity log.
+     *
+     * @param  list<array<string, mixed>>  $queue
+     * @return list<array<string, mixed>>
+     */
+    private function ownerQueue(array $queue): array
+    {
+        $staff = User::query()->where('status', 'active')->staffAccounts()->whereNotIn('role', ['super_admin', 'md', 'chairman'])->get();
+        $covered = fn (string ...$capabilities): bool => $staff->contains(fn (User $person): bool => collect($capabilities)->contains(fn (string $cap): bool => $person->allows($cap)));
+        foreach ($queue as $index => $item) {
+            $capabilities = self::QueueCapabilities[$item['key']] ?? null;
+            if ($capabilities !== null && $covered(...$capabilities)) {
+                $queue[$index]['staff_handles'] = true;
+            }
+        }
+        $limits = app(OwnerApprovalLimits::class)->all();
+        $withdrawalLimit = $limits[OwnerApprovalLimits::Withdrawal]['amount'];
+        $ownerOnlyFunds = "'".implode("', '", CompanyFunds::OwnerOnly)."'";
+        // One query for every owner row, so the owner's home page does not grow a query per row.
+        $counts = DB::selectOne(
+            "SELECT (SELECT COUNT(*) FROM withdrawals WHERE status = 'requested' AND amount >= ?) AS withdrawals,
+                (SELECT COUNT(*) FROM order_return_requests AS r LEFT JOIN users AS first ON first.id = r.first_approved_by
+                    WHERE r.status = ? AND r.refund_amount >= ? AND (first.id IS NULL OR first.role NOT IN ('super_admin', 'md', 'chairman'))) AS refunds,
+                (SELECT COUNT(*) FROM reserve_disbursements WHERE program = ? AND status = 'requested' AND (amount >= ? OR fund_key IN ({$ownerOnlyFunds}))) AS fund_spends,
+                (SELECT COUNT(*) FROM reserve_disbursements WHERE program <> ? AND status = 'requested' AND amount >= ?) AS rewards,
+                (SELECT COUNT(*) FROM commission_policy_schedules WHERE status = 'draft') AS commission_changes",
+            [$withdrawalLimit, OrderReturns::StatusAwaitingSecond, $limits[OwnerApprovalLimits::Refund]['amount'],
+                FundSpending::Program, $limits[OwnerApprovalLimits::FundSpend]['amount'], FundSpending::Program, $withdrawalLimit],
+        );
+        $rows = [
+            ['key' => 'owner_withdrawals', 'count' => (int) $counts->withdrawals, 'section' => 'payouts-hub', 'query' => ['status' => 'requested']],
+            ['key' => 'owner_refunds', 'count' => (int) $counts->refunds, 'section' => 'orders'],
+            ['key' => 'owner_fund_spends', 'count' => (int) $counts->fund_spends, 'section' => 'treasury/work'],
+            ['key' => 'owner_rewards', 'count' => (int) $counts->rewards, 'section' => 'operations/reserve-payouts'],
+            ['key' => 'owner_commission_changes', 'count' => (int) $counts->commission_changes, 'section' => 'operations/policy-schedules'],
+        ];
+        foreach ($rows as $row) {
+            if ($row['count'] > 0) {
+                $queue[] = [...$row, 'label' => (string) __('self_approval.dash_'.$row['key'])];
+            }
         }
 
         return $queue;

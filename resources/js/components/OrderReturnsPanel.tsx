@@ -8,7 +8,7 @@ import { amountInWords } from '../shared/orderAmountWords';
 type ReturnLine = { line_id: number; name: string; is_free: boolean; unit_price: string; can_cancel: number; can_return: number; closed: number; returned: number };
 type Branch = { id: number; name: string; code: string };
 export type ReturnsData = {
-    open: null | (Row & { id: number; kind: string; status: string; lines: { line_id: number; quantity: number }[]; reason: string; refund_amount: string | null; refund_method: string | null; first_approved_name: string | null; can_confirm: boolean; can_approve: boolean; can_withdraw: boolean });
+    open: null | (Row & { id: number; kind: string; status: string; lines: { line_id: number; quantity: number }[]; reason: string; refund_amount: string | null; refund_method: string | null; first_approved_name: string | null; can_confirm: boolean; waits_for_owner?: boolean; can_approve: boolean; can_withdraw: boolean });
     lines: ReturnLine[];
     refundable_now: string;
     paid_left: string;
@@ -225,7 +225,7 @@ export default function OrderReturnsPanel({ order, data }: { order: Row; data: R
             <p><b>{translate('orders_stock', 'open_reason')}:</b> {open.reason}</p>
             {open.lines.length > 0 && <p><b>{translate('orders_stock', 'open_lines')}:</b> {open.lines.map(line => `${lineName(line.line_id)} × ${number(line.quantity)}`).join(', ')}</p>}
             {open.status === 'awaiting_second' && open.first_approved_name && <p>{translate('orders_stock', 'open_first', { name: open.first_approved_name, amount: money(open.refund_amount ?? '0').replace('৳', ''), method: translate('orders_stock', `method_${open.refund_method ?? 'cash'}`) })}</p>}
-            <p className="muted" role="status">{translate('orders_stock', open.status === 'awaiting_second' ? 'open_waiting_second' : 'open_waiting_office')}</p>
+            <p className="muted" role="status">{translate('orders_stock', open.waits_for_owner ? 'open_waiting_owner' : open.status === 'awaiting_second' ? 'open_waiting_second' : 'open_waiting_office')}</p>
             {open.can_withdraw && <WithdrawButton requestId={open.id} />}
             {open.can_approve && <><h3>{translate('orders_stock', 'approve_title')}</h3><StaffForm key={`approve-${open.id}`} order={order} data={data} request={open} /><h3>{translate('orders_stock', 'reject_title')}</h3><RejectForm requestId={open.id} /></>}
             {open.can_confirm && <><SecondApproval order={order} request={open} /><h3>{translate('orders_stock', 'reject_title')}</h3><RejectForm requestId={open.id} /></>}

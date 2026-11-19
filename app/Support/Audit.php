@@ -47,8 +47,51 @@ final class Audit
      */
     public static function notifyAdminsAndStaff(string|array $capabilities, string|Closure $title, string|Closure $body, ?int $excludeUserId = null): void
     {
-        $recipients = self::officeRecipients($capabilities, $excludeUserId);
+        self::send(self::officeRecipients($capabilities, $excludeUserId), $title, $body);
+    }
 
+    /**
+     * CR-16: work that a staff member finishes goes to the staff holding the capability. The
+     * owners hear of it only when no active staff member other than the excluded one can do it;
+     * they still see every step in the activity log.
+     *
+     * @param  string|list<string>  $capabilities
+     * @param  string|Closure(string): string  $title
+     * @param  string|Closure(string): string  $body
+     */
+    public static function notifyStaffFirst(string|array $capabilities, string|Closure $title, string|Closure $body, ?int $excludeUserId = null): void
+    {
+        $everyone = self::officeRecipients($capabilities, $excludeUserId);
+        $staff = $everyone->reject(fn (User $u): bool => $u->owner())->values();
+
+        self::send($staff->isEmpty() ? $everyone : $staff, $title, $body);
+    }
+
+    /**
+     * CR-16: work only an owner may finish (an item at or above an owner limit) goes to the owners:
+     * the Super Admin, and the MD or Chairman when they hold the capability.
+     *
+     * @param  string|list<string>  $capabilities
+     * @param  string|Closure(string): string  $title
+     * @param  string|Closure(string): string  $body
+     */
+    public static function notifyOwners(string|array $capabilities, string|Closure $title, string|Closure $body, ?int $excludeUserId = null): void
+    {
+        $owners = User::query()->where('status', 'active')->whereIn('role', ['super_admin', 'md', 'chairman'])
+            ->when($excludeUserId !== null, fn ($query) => $query->whereKeyNot($excludeUserId))->get()
+            ->filter(fn (User $u): bool => $u->role === 'super_admin' || collect((array) $capabilities)->contains(fn (string $cap): bool => $u->allows($cap)))
+            ->values();
+
+        self::send($owners, $title, $body);
+    }
+
+    /**
+     * @param  Collection<int, User>  $recipients
+     * @param  string|Closure(string): string  $title
+     * @param  string|Closure(string): string  $body
+     */
+    private static function send(Collection $recipients, string|Closure $title, string|Closure $body): void
+    {
         if ($recipients->isEmpty()) {
             return;
         }

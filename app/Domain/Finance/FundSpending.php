@@ -9,6 +9,7 @@ use App\Domain\Staff\LeadershipAccess;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
+use App\Support\TakaText;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -96,6 +97,11 @@ final class FundSpending
                     'updated_at' => now(),
                 ]);
                 Audit::record($actor->id, 'fund.spend_requested', (string) $id, ['fund' => $data['fund'], 'amount' => $data['amount'], 'head' => $head->name_en]);
+                // CR-16: a spend at or above the owner's limit waits for an owner, so the owners are told.
+                if (! in_array($data['fund'], CompanyFunds::OwnerOnly, true) && self::ownerOnly($data['fund'], (string) $data['amount']) && ! OwnerApprovalLimits::ownerDecides($actor)) {
+                    Audit::notifyOwners(['finance'], fn (string $locale): string => __('funds.notice_owner_spend_title', [], $locale),
+                        fn (string $locale): string => __('funds.notice_owner_spend_body', ['name' => $actor->name, 'amount' => TakaText::amount((string) $data['amount'], $locale), 'payee' => $data['payee']], $locale), $actor->id);
+                }
 
                 return $id;
             }, 3);
@@ -154,14 +160,23 @@ final class FundSpending
     }
 
     /**
-     * Who may approve a spend from this fund: owners and finance approvers, or only
-     * owners for the owner-only fund.
+     * Who may approve a spend from this fund: owners and finance approvers, or only owners for
+     * the owner-only fund and (CR-16) for a spend at or above the owner's fund-spending limit.
      *
      * @return \Closure(User): bool
      */
-    public static function approverOf(string $fund): \Closure
+    public static function approverOf(string $fund, ?string $amount = null): \Closure
     {
-        return fn (User $person): bool => $person->owner() || (! in_array($fund, CompanyFunds::OwnerOnly, true) && $person->canAct('finance', 'approve'));
+        $ownerOnly = self::ownerOnly($fund, $amount);
+
+        return fn (User $person): bool => $person->owner() || (! $ownerOnly && $person->canAct('finance', 'approve'));
+    }
+
+    /** Whether only an owner may approve this spend: the owners' own fund, or a spend at or above the owner's limit. */
+    public static function ownerOnly(string $fund, ?string $amount = null): bool
+    {
+        return in_array($fund, CompanyFunds::OwnerOnly, true)
+            || ($amount !== null && app(OwnerApprovalLimits::class)->needsOwner(OwnerApprovalLimits::FundSpend, $amount));
     }
 
     private function decide(User $actor, int $id, string $decision, string $reason, ?UploadedFile $receipt, ?string $path, bool &$attached): void
@@ -184,6 +199,7 @@ final class FundSpending
                 }
             }
             if ($decision === 'approved') {
+                app(OwnerApprovalLimits::class)->refuseUnlessOwnerMayApprove($actor, OwnerApprovalLimits::FundSpend, (string) $row->amount, 'spend');
                 $this->post($actor, $row);
             }
             DB::table('reserve_disbursements')->where('id', $id)->update([

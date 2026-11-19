@@ -64,7 +64,7 @@ return [
     'err_line_not_on_order' => 'One of these products is not on this order.',
     'err_over_receipt' => 'Too many units for :sku. Only :due are still due on this order.',
 
-    'count_intro' => 'Count what is on the shelf and compare it with the system. Staff who counted cannot approve the difference; someone else or the owner approves it.',
+    'count_intro' => 'Count what is on the shelf and compare it with the system. Staff who counted cannot approve the difference; another staff member with approval permission approves it.',
     'count_start' => 'Start a count',
     'count_session' => 'Count #:id',
     'count_list' => 'Counts',

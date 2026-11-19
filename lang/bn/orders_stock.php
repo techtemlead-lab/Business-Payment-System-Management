@@ -72,7 +72,7 @@ return [
     'open_lines' => 'পণ্য',
     'open_first' => ':name প্রথম অনুমোদন দিয়েছেন: ৳:amount, :method।',
     'open_waiting_office' => 'অফিস দেখছে। সিদ্ধান্ত হলে আপনাকে জানানো হবে।',
-    'open_waiting_second' => 'দ্বিতীয় একজনের নিশ্চিত করার অপেক্ষায়।',
+    'open_waiting_second' => 'দ্বিতীয় একজন স্টাফের নিশ্চিত করার অপেক্ষায়।',
     'withdraw' => 'অনুরোধ তুলে নিন',
     'partner_cancel_title' => 'অর্ডার বাতিল করতে চান?',
     'partner_cancel_hint_unpaid' => 'টাকা যাচাই হয়নি, তাই এখনই বাতিল হয়ে যাবে।',
@@ -148,4 +148,5 @@ return [
     'notice_received_title' => 'অর্ডার :number: পার্টনার পণ্য বুঝে পেয়েছেন',
     'notice_received_body' => ':name জানিয়েছেন অর্ডার :number এর পার্সেল তিনি হাতে পেয়েছেন। ডেলিভারি নিশ্চিত করুন।',
     'err_received_nothing' => 'এই অর্ডারে পথে থাকা কোনো পার্সেল নেই।',
+    'open_waiting_owner' => 'এই ফেরত মালিকের ঠিক করা সীমার সমান বা বেশি, তাই মালিককে নিশ্চিত করতে হবে।',
 ];
