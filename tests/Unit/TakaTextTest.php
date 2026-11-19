@@ -60,4 +60,15 @@ class TakaTextTest extends TestCase
         $this->assertSame('৳৩০,০০,০০,০০০ (৩০ কোটি টাকা)', TakaText::withWords('300000000', 'bn'));
         $this->assertSame('৳1,234.50', TakaText::withWords('1234.50', 'en'));
     }
+
+    public function test_exact_words_write_every_part(): void
+    {
+        $this->assertSame('১ লাখ ৫০ হাজার টাকা', TakaText::words('150000.00', 'bn', true));
+        $this->assertSame('1 lakh 23 thousand 456 taka', TakaText::words('123456', 'en', true));
+        $this->assertSame('৫ কোটি টাকা', TakaText::words('50000000', 'bn', true));
+        $this->assertSame('১ লাখ টাকা ৫০ পয়সা', TakaText::words('100000.50', 'bn', true));
+        $this->assertNull(TakaText::words('99999.99', 'bn', true));
+        // The rounded reading used elsewhere is unchanged.
+        $this->assertSame('১ লাখ টাকা', TakaText::words('150000.00', 'bn'));
+    }
 }

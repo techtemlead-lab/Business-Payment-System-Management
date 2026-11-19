@@ -61,7 +61,7 @@ export function useWithdrawalFacts(id: string | null): { facts: WithdrawalFactsD
 /** The amount in words for big figures, so ৳9 crore is not read as ৳90 lakh (MA-18). */
 export function AmountWords({ amount }: { amount: unknown }) {
     const translate = useT();
-    const words = takaWords(amount);
+    const words = takaWords(amount, undefined, true);
 
     return words ? <small className="cell-sub">{translate('payouts', 'amount_words', { words })}</small> : null;
 }

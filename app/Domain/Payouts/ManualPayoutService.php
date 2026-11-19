@@ -470,7 +470,7 @@ class ManualPayoutService
             'history' => DB::table('withdrawals')->where('user_id', $w->user_id)->where('id', '<>', $id)->orderByDesc('created_at')->limit(5)
                 ->get(['id', 'amount', 'status', 'channel', 'created_at', 'paid_at'])->all(),
             'payers' => $this->eligiblePayers($viewer, $w->status === 'approved' ? (int) $w->reviewed_by : null),
-            'amount_words' => TakaText::words($w->amount),
+            'amount_words' => TakaText::words($w->amount, null, true),
         ];
     }
 
