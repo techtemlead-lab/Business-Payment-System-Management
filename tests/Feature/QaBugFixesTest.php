@@ -90,7 +90,8 @@ class QaBugFixesTest extends TestCase
 
     public function test_b5_the_password_reset_mail_is_all_bangla_with_bangla_digits(): void
     {
-        $dealer = User::factory()->dealer()->create();
+        // The mail follows the person's own language (message templates); this dealer reads Bangla.
+        $dealer = User::factory()->dealer()->create(['locale' => 'bn']);
         app()->setLocale('bn');
         $mail = (new ResetPassword('token'))->toMail($dealer);
         $html = (string) $mail->render();
@@ -99,8 +100,8 @@ class QaBugFixesTest extends TestCase
             $this->assertStringNotContainsString($english, $html);
         }
         $this->assertStringContainsString('৬০ মিনিট', $html);
-        $this->assertStringContainsString('ধন্যবাদ', $html);
-        $this->assertStringContainsString('সর্বস্বত্ব সংরক্ষিত', $html);
+        $this->assertStringContainsString('প্রিয়', $html);
+        $this->assertStringContainsString('দয়া করে এই ইমেইলের উত্তর দেবেন না', $html);
     }
 
     public function test_b6_public_place_lists_show_bangla_names_on_bangla_pages(): void

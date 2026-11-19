@@ -96,7 +96,8 @@ class PortalQueryBudgetTest extends TestCase
         // 42: one read for which menu pages still have no content (training, meetings, sales kit, contests).
         // 43-49: the new dashboard (CR-02): the profile card's referral counts, and the three totals and income by
         // head (wallet, withdrawals paid, income by type, balance used on orders, refunds back to it, waiting money).
-        $this->assertQueriesAtMost(49, $queries, 'dealer dashboard');
+        // 50-51 (V1, V2): the appointed area line and the income-head totals; one read each, never one per order.
+        $this->assertQueriesAtMost(51, $queries, 'dealer dashboard');
 
         foreach (range(1, 8) as $index) {
             $this->line($this->order($dealer, $index % 2 === 0 ? 'delivered' : 'submitted', total: '20.00'), $product, quantity: 1, dispatched: 0);
@@ -277,7 +278,8 @@ class PortalQueryBudgetTest extends TestCase
 
         [$response, $queries] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/accounts'));
         $response->assertOk();
-        $this->assertQueriesAtMost(20, $queries, 'accounts list');
+        // 21 (V1): one recursive read gives every listed partner's appointed level and area together.
+        $this->assertQueriesAtMost(21, $queries, 'accounts list');
         $this->assertSame(1, $this->matching($queries, 'max(orders.created_at)'), 'Last order and month purchases should come from one grouped query.');
 
         $this->rankLeaders(8);
