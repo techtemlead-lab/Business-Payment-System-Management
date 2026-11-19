@@ -15,6 +15,7 @@ import RepeatOrderPanel, { repeatChangeNotes, type RepeatOption } from './dealer
 import SchemeNotices, { type RunningScheme } from './dealertools/SchemeNotices';
 import { choiceName, oneCardPerGroup, sizesByGroup, type SizeCard } from '../shared/productSizes';
 import { amountInWords } from '../shared/orderAmountWords';
+import { useOrderCart } from '../shared/usePartnerCart';
 import { cardStock, filterChoices, partnerPrice, priceRange, searchProducts, stockKnown, stockState } from '../shared/orderSearch';
 
 interface Props {
@@ -134,7 +135,8 @@ export default function ProductPurchaseMatrix({
     );
 
     // Multi-item cart
-    const [cart, setCart] = useState<CartItem[]>([]);
+    // The same cart as the cart icon and the products page: one list, kept in the browser until the order is sent.
+    const [cart, setCart] = useOrderCart(products);
 
     /** Picks a card: one size goes straight to quantity; several sizes ask for the size first. */
     const pickCard = (card: SizeCard) => {
