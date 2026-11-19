@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Domain\Commissions\CommissionSettlement;
 use App\Domain\Finance\WithdrawalSecurityWait;
 use App\Domain\Payouts\ManualPayoutService;
+use App\Domain\Geography\DirectoryAreaFilter;
 use App\Models\Order;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -99,5 +101,31 @@ class QaBugFixesTest extends TestCase
         $this->assertStringContainsString('৬০ মিনিট', $html);
         $this->assertStringContainsString('ধন্যবাদ', $html);
         $this->assertStringContainsString('সর্বস্বত্ব সংরক্ষিত', $html);
+    }
+
+    public function test_b6_public_place_lists_show_bangla_names_on_bangla_pages(): void
+    {
+        $division = PlaceCode::factory()->division()->create(['name' => 'Dhaka']);
+        $district = PlaceCode::factory()->district($division)->create(['name' => 'Dhaka']);
+        $upazila = PlaceCode::factory()->upazila($district)->create(['name' => 'Dhamrai']);
+
+        $this->onPortal('public')->getJson('/partnership/places?level=division&lang=bn')->assertOk()->assertJsonFragment(['id' => $division->id, 'name' => 'ঢাকা']);
+        $this->onPortal('public')->getJson('/partnership/places?level=upazila&parent_id='.$district->id.'&lang=bn')->assertOk()->assertJsonFragment(['id' => $upazila->id, 'name' => 'ধামরাই']);
+        $this->onPortal('public')->getJson('/partnership/places?level=division&lang=en')->assertOk()->assertJsonFragment(['id' => $division->id, 'name' => 'Dhaka']);
+    }
+
+    public function test_b6_the_dealer_directory_pickers_use_bangla_names_on_bangla_pages(): void
+    {
+        $places = [
+            1 => ['id' => 1, 'name' => 'Dhaka', 'level' => 'division', 'parent_id' => null],
+            2 => ['id' => 2, 'name' => 'Dhaka', 'level' => 'district', 'parent_id' => 1],
+            3 => ['id' => 3, 'name' => 'Dhamrai', 'level' => 'upazila', 'parent_id' => 2],
+        ];
+        app()->setLocale('bn');
+        $bn = DirectoryAreaFilter::build($places, ['division' => '1', 'district' => '2']);
+        $this->assertSame('ধামরাই', $bn['options']['upazila'][0]['name']);
+        $this->assertSame('ঢাকা', $bn['options']['division'][0]['name']);
+        app()->setLocale('en');
+        $this->assertSame('Dhamrai', DirectoryAreaFilter::build($places, ['division' => '1', 'district' => '2'])['options']['upazila'][0]['name']);
     }
 }

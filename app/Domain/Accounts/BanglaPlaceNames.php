@@ -46,6 +46,17 @@ final class BanglaPlaceNames
     }
 
     /**
+     * One place name in Bangla, looked up under the places above it ("Sadar" under the right district).
+     * Returns the name unchanged when nothing matches.
+     *
+     * @param  array{division?: ?string, district?: ?string, upazila?: ?string}  $above  The names of the places above it.
+     */
+    public static function level(string $level, string $name, array $above = []): string
+    {
+        return self::translate([...$above, $level => $name])[$level] ?? $name;
+    }
+
+    /**
      * The key of a Pourashava or city corporation name: the spelling variants Pourashava, Paurashava,
      * Pouroshova and Municipality fold into one, and a city corporation gets its own marker.
      */
