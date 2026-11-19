@@ -25,7 +25,10 @@ final class PartnerEventEmail
 
     public function __construct(private EmailEventSwitches $switches) {}
 
-    public function send(User|int $recipient, string $event, string $title, string $body): void
+    /**
+     * @param  array<string, mixed>  $replace  extra values an owner-edited template may use, such as {subject}
+     */
+    public function send(User|int $recipient, string $event, string $title, string $body, array $replace = []): void
     {
         try {
             if (! self::realMailConfigured() || ! $this->switches->isOn($event)) {
@@ -37,9 +40,9 @@ final class PartnerEventEmail
             }
             $userId = (int) $user->id;
             // Queued only after the action is saved, so a rolled-back action sends nothing.
-            DB::afterCommit(function () use ($userId, $event, $title, $body): void {
+            DB::afterCommit(function () use ($userId, $event, $title, $body, $replace): void {
                 try {
-                    SendEventEmail::dispatch($userId, $event, $title, $body);
+                    SendEventEmail::dispatch($userId, $event, $title, $body, $replace);
                 } catch (\Throwable $exception) {
                     Log::warning('email.not_queued', ['event' => $event, 'error' => RedactedError::message($exception)]);
                 }
@@ -57,7 +60,7 @@ final class PartnerEventEmail
     public function sendTranslated(User $user, string $event, string $titleKey, string $bodyKey, array $replace = []): void
     {
         $locale = $user->preferredLocale();
-        $this->send($user, $event, (string) __($titleKey, $replace, $locale), (string) __($bodyKey, $replace, $locale));
+        $this->send($user, $event, (string) __($titleKey, $replace, $locale), (string) __($bodyKey, $replace, $locale), $replace);
     }
 
     /**

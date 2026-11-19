@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Database\Connectors\PostgresConnector;
 use App\Domain\Auth\SignInGuard;
 use App\Domain\Integrations\SmtpMailConfig;
+use App\Domain\Notifications\PasswordResetMail;
 use App\Domain\Notifications\WebPushNotices;
 use App\Domain\Pricing\CurrentProductPricing;
 use App\Domain\Pricing\ProductPricing;
@@ -14,7 +15,6 @@ use App\Listeners\NoticeNewStaffDevice;
 use App\Models\User;
 use App\Support\LocalDigits;
 use App\Support\PasswordVault;
-use App\Support\PortalHost;
 use App\Support\SiteCustomization;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
@@ -26,7 +26,6 @@ use Illuminate\Foundation\Events\DiagnosingHealth;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\Looping;
 use Illuminate\Queue\Events\QueueBusy;
@@ -154,26 +153,9 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(QueueBusy::class, function (QueueBusy $event): void {
             Log::critical('Queue backlog exceeded its threshold.', ['connection' => $event->connectionName, 'queue' => $event->queue, 'size' => $event->size]);
         });
-        $resetUrl = function ($user, string $token): string {
-            $portal = $user instanceof User ? PortalHost::forUser($user) : 'dealer';
-
-            return PortalHost::url($portal, '/reset-password/'.$token.'?email='.urlencode((string) $user->email));
-        };
-        ResetPassword::createUrlUsing($resetUrl);
-        // The whole reset mail in the reader's language, with Bangla digits (B5); the framework's English greeting
-        // and sign-off are replaced here, and its footer words live in lang/*.json.
-        ResetPassword::toMailUsing(function ($notifiable, string $token) use ($resetUrl): MailMessage {
-            $minutes = (int) config('auth.passwords.'.config('auth.defaults.passwords').'.expire');
-
-            return (new MailMessage)
-                ->subject(__('Reset your password'))
-                ->greeting(__('qa_fixes.mail_greeting', ['name' => (string) ($notifiable->name ?? '')]))
-                ->line(__('You are receiving this email because we received a password reset request for your account.'))
-                ->action(__('Reset Password'), $resetUrl($notifiable, $token))
-                ->line(__('This password reset link will expire in :count minutes.', ['count' => LocalDigits::text($minutes)]))
-                ->line(__('If you did not request a password reset, no further action is required.'))
-                ->salutation(__('qa_fixes.mail_regards').' '.config('app.name'));
-        });
+        ResetPassword::createUrlUsing(fn ($user, string $token) => PasswordResetMail::url($user, $token));
+        // The reset email's wording comes from the message templates (the owner can re-word it).
+        ResetPassword::toMailUsing(fn ($notifiable, string $token) => PasswordResetMail::build($notifiable, $token));
 
         View::composer('*', function ($view) {
             try {

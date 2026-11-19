@@ -1,0 +1,48 @@
+/* =========================================================================
+   Message templates (office): SMS and email texts, one row per message with
+   its editor opening underneath. Mobile first; colours come from --ds tokens.
+   ========================================================================= */
+.app-shell .mt-page{display:grid;gap:var(--ds-s-4);max-width:920px}
+.app-shell .mt-tabs{display:inline-flex;justify-self:start;gap:2px;padding:3px;background:var(--ds-surface-2);border-radius:var(--ds-r-md)}
+.app-shell .mt-tabs button{min-height:44px;padding:0 var(--ds-s-5);border:0;background:transparent;border-radius:var(--ds-r-sm);font-size:var(--ds-fs-md);font-weight:600;color:var(--ds-text-2);cursor:pointer}
+.app-shell .mt-tabs button[data-active]{background:var(--ds-surface);color:var(--ds-brand);box-shadow:var(--ds-shadow-xs)}
+.app-shell .mt-tabs button:focus-visible,.app-shell .mt-chip:focus-visible,.app-shell .mt-lang:focus-visible{outline:2px solid var(--ds-brand);outline-offset:1px}
+.app-shell .mt-note,.app-shell .mt-hint,.app-shell .mt-last{margin:0;font-size:var(--ds-fs-sm);line-height:1.6;color:var(--ds-text-2)}
+.app-shell .mt-group{min-width:0;padding:var(--ds-s-5);background:var(--ds-surface);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);margin-bottom:var(--ds-s-4)}
+.app-shell .mt-group h2{margin:0 0 var(--ds-s-2);font-size:var(--ds-fs-md);font-weight:700;line-height:1.3;color:var(--ds-text)}
+.app-shell .mt-list{display:grid;margin:0;padding:0;list-style:none}
+.app-shell .mt-row{padding:var(--ds-s-3) 0;border-bottom:1px solid var(--ds-line-soft)}
+.app-shell .mt-row:last-child{border-bottom:0;padding-bottom:0}
+.app-shell .mt-row-head{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--ds-s-2);align-items:center}
+.app-shell .mt-row-text{display:grid;gap:4px;min-width:0}
+.app-shell .mt-row-text b{font-size:var(--ds-fs-md);line-height:1.45;color:var(--ds-text);overflow-wrap:anywhere}
+.app-shell .mt-row-text small{font-size:var(--ds-fs-sm);line-height:1.5;color:var(--ds-text-2)}
+.app-shell .mt-row-text .mt-to{color:var(--ds-text-muted)}
+.app-shell .mt-badge{justify-self:start;padding:2px var(--ds-s-3);border-radius:999px;background:var(--ds-surface-2);font-size:var(--ds-fs-xs);font-weight:600;color:var(--ds-text-2)}
+.app-shell .mt-badge[data-changed]{background:var(--ds-brand);color:#fff}
+.app-shell .mt-editor{display:grid;gap:var(--ds-s-3);margin-top:var(--ds-s-3);padding:var(--ds-s-4);background:var(--ds-surface-2);border-radius:var(--ds-r-md)}
+.app-shell .mt-langs{display:inline-flex;gap:var(--ds-s-2)}
+.app-shell .mt-lang{min-height:44px;padding:0 var(--ds-s-4);border:1px solid var(--ds-line);background:var(--ds-surface);border-radius:var(--ds-r-sm);font-weight:600;color:var(--ds-text-2);cursor:pointer}
+.app-shell .mt-lang[aria-pressed="true"]{border-color:var(--ds-brand);color:var(--ds-brand)}
+.app-shell .mt-form{display:grid;gap:var(--ds-s-3)}
+.app-shell .mt-form textarea{min-height:120px;line-height:1.7;font-size:16px}
+.app-shell .mt-form input[type="text"]{font-size:16px}
+.app-shell .mt-marks{display:grid;gap:var(--ds-s-2)}
+.app-shell .mt-marks p{margin:0;font-size:var(--ds-fs-sm);line-height:1.6;color:var(--ds-text-2)}
+.app-shell .mt-chips{display:flex;flex-wrap:wrap;gap:var(--ds-s-2)}
+.app-shell .mt-chip{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 var(--ds-s-3);border:1px solid var(--ds-line);background:var(--ds-surface);border-radius:var(--ds-r-sm);font-size:var(--ds-fs-sm);color:var(--ds-text);cursor:pointer}
+.app-shell .mt-chip[data-required]{border-color:var(--ds-brand)}
+.app-shell .mt-chip code{font-family:inherit;font-weight:700;color:var(--ds-brand)}
+.app-shell .mt-chip em{font-style:normal;font-size:var(--ds-fs-xs);color:var(--ds-warn-fg)}
+.app-shell .mt-warn{color:var(--ds-warn-fg)}
+.app-shell .mt-preview{display:grid;gap:var(--ds-s-2);padding:var(--ds-s-4);background:var(--ds-surface);border:1px solid var(--ds-line);border-radius:var(--ds-r-md)}
+.app-shell .mt-preview p{margin:0}
+.app-shell .mt-preview-subject{font-weight:700;line-height:1.6}
+.app-shell .mt-preview-body{white-space:pre-wrap;line-height:1.7;overflow-wrap:anywhere}
+.app-shell .mt-count{display:grid;gap:2px;font-weight:700;color:var(--ds-text)}
+.app-shell .mt-count small{font-weight:400;color:var(--ds-text-2)}
+.app-shell .mt-actions{display:flex;flex-wrap:wrap;gap:var(--ds-s-3)}
+
+@media (min-width:760px){
+    .app-shell .mt-row-head{grid-template-columns:minmax(0,1fr) auto auto;gap:var(--ds-s-4)}
+}

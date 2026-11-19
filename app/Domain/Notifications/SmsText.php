@@ -27,6 +27,11 @@ final class SmsText
             $replace['amount'] = TakaText::afterSign((string) $replace['amount'], self::Locale);
         }
 
+        // The owner may have re-worded this text (message templates); the default is the language file's line.
+        if (MessageTemplateCatalog::handlesSms($key)) {
+            return MessageTemplates::sms($key, $replace);
+        }
+
         return (string) __($key, $replace, self::Locale);
     }
 

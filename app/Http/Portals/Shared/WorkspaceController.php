@@ -47,6 +47,7 @@ use App\Http\Portals\Shared\Sections\EventsSection;
 use App\Http\Portals\Shared\Sections\FeedbackSection;
 use App\Http\Portals\Shared\Sections\FinanceSection;
 use App\Http\Portals\Shared\Sections\InventorySection;
+use App\Http\Portals\Shared\Sections\MessageTemplatesSection;
 use App\Http\Portals\Shared\Sections\NetworkSection;
 use App\Http\Portals\Shared\Sections\OfficeHubSection;
 use App\Http\Portals\Shared\Sections\OrdersSection;
@@ -134,6 +135,7 @@ class WorkspaceController extends Controller
         VisitorsSection::class,
         ErrorsSection::class,
         ReasonFieldsSection::class,
+        MessageTemplatesSection::class,
     ];
 
     public function index(Request $r, ProductPricing $pricing, string $section = 'overview'): Response|RedirectResponse

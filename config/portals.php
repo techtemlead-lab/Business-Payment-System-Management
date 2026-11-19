@@ -34,7 +34,7 @@ return [
             'dashboards', 'employees', 'accounts', 'sub-dealers', 'sub-dealer-applications', 'sub-dealer-orders', 'inventory', 'branches', 'branch-performance',
             'payments', 'policies', 'reports', 'top-sellers', 'partner-scorecard', 'content', 'website', 'customization', 'public-trust',
             'enquiries', 'feedback', 'partnerships', 'audit', 'commissions', 'network-tree', 'area-dealers', 'place-codes', 'ranks',
-            'settlements', 'simulator', 'payouts-hub', 'help', 'support-admin', 'agreement', 'partner-messages', 'training', 'events', 'prescriptions', 'stock-lots', 'purchasing', 'stock-counts', 'identity-review',
+            'settlements', 'simulator', 'payouts-hub', 'help', 'support-admin', 'agreement', 'partner-messages', 'training', 'events', 'prescriptions', 'stock-lots', 'purchasing', 'stock-counts', 'identity-review', 'message-templates',
         ],
         'staff_capabilities' => [
             'dashboards' => 'accounts',
@@ -71,6 +71,7 @@ return [
             'partner-messages' => 'partner_chat',
             'training' => 'content',
             'events' => 'content',
+            'message-templates' => 'content',
             'stock-lots' => 'inventory',
             'purchasing' => 'inventory',
             'stock-counts' => 'inventory',
@@ -86,7 +87,7 @@ return [
             'dashboards', 'employees', 'accounts', 'sub-dealers', 'sub-dealer-applications', 'sub-dealer-orders', 'inventory', 'branches', 'branch-performance',
             'payments', 'policies', 'reports', 'top-sellers', 'partner-scorecard', 'content', 'website', 'customization', 'public-trust',
             'enquiries', 'feedback', 'partnerships', 'audit', 'commissions', 'network-tree', 'area-dealers', 'place-codes', 'ranks',
-            'settlements', 'simulator', 'payouts-hub', 'help', 'support-admin', 'agreement', 'partner-messages', 'training', 'events', 'data-cleanup', 'prescriptions', 'sales-kit', 'schemes', 'contests', 'privacy-requests', 'stock-lots', 'purchasing', 'stock-counts', 'identity-review', 'login-rules', 'visitors', 'reason-fields', 'errors',
+            'settlements', 'simulator', 'payouts-hub', 'help', 'support-admin', 'agreement', 'partner-messages', 'training', 'events', 'data-cleanup', 'prescriptions', 'sales-kit', 'schemes', 'contests', 'privacy-requests', 'stock-lots', 'purchasing', 'stock-counts', 'identity-review', 'login-rules', 'visitors', 'reason-fields', 'errors', 'message-templates',
         ],
         'staff_capabilities' => [
             'dashboards' => 'accounts',
@@ -123,6 +124,7 @@ return [
             'partner-messages' => 'partner_chat',
             'training' => 'content',
             'events' => 'content',
+            'message-templates' => 'content',
             'stock-lots' => 'inventory',
             'purchasing' => 'inventory',
             'stock-counts' => 'inventory',
