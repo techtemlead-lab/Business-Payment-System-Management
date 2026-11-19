@@ -27,7 +27,7 @@ export default function TreasuryPartner({ partner, summary, cards, table, income
 }) {
     const translate = useT();
     const { portalBase: base } = usePage<any>().props;
-    const selected = table?.state.filters.type ?? '';
+    const selected = table?.state.filters.head ?? '';
     const chooseType = useChooseIncomeType(selected);
     const viewer = useTreasuryViewer();
     const accountsList = `${base}/${partner.role === 'sub_dealer' ? 'sub-dealers' : 'accounts'}?q=${encodeURIComponent(partner.code ?? partner.name)}`;

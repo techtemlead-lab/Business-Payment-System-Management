@@ -103,3 +103,18 @@
 .mm-part-hint{margin:0 0 var(--ds-s-3);font-size:var(--ds-fs-base);color:var(--ds-text-2)}
 .mm-part-hint b{color:var(--ds-text);font-variant-numeric:tabular-nums}
 .mm-income-link{align-self:flex-start}
+
+/* V2: every income head is one row, zero heads included; a press opens that head's entries. */
+.mm-heads-wrap{overflow-x:auto;border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);background:var(--ds-surface)}
+.mm-heads{width:100%;border-collapse:collapse;font-size:var(--ds-fs-base)}
+.mm-heads th,.mm-heads td{padding:var(--ds-s-3) var(--ds-s-4);border-bottom:1px solid var(--ds-line);text-align:left;vertical-align:middle}
+.mm-heads thead th{font-weight:600;color:var(--ds-text-2);white-space:nowrap}
+.mm-heads .num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.mm-heads tbody th{font-weight:500}
+.mm-heads tbody th button{display:block;width:100%;min-height:44px;padding:0;background:none;border:0;color:var(--ds-text);font:inherit;text-align:left;cursor:pointer}
+.mm-heads tbody tr:hover{background:var(--ds-surface-2,var(--ds-surface))}
+.mm-heads tbody tr.is-selected{box-shadow:inset 3px 0 0 var(--ds-brand);background:var(--ds-surface-2,var(--ds-surface))}
+.mm-heads tbody tr.is-selected th button{font-weight:700}
+.mm-heads .is-negative{color:var(--ds-danger-fg)}
+.mm-heads tfoot th,.mm-heads tfoot td{font-weight:700;border-bottom:0;border-top:2px solid var(--ds-line)}
+@media (max-width:640px){.mm-heads th,.mm-heads td{padding:var(--ds-s-2) var(--ds-s-3)}.mm-heads{font-size:var(--ds-fs-sm,.9rem)}}

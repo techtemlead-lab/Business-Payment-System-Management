@@ -49,9 +49,9 @@ class PartnerIncomePartsTest extends TestCase
             $page->component('MyIncome')->where('income.part', 'own');
             $amounts = collect($page->toArray()['props']['income']['parts'])->pluck('amount', 'key');
             $this->assertSame('50.00', $amounts['own']);
-            $this->assertSame('36.00', $amounts['area']);
+            $this->assertSame('36.00', $amounts['area_union']);
             $this->assertSame('170.00', $amounts['salary']);
-            $this->assertSame('10.00', $amounts['reward']);
+            $this->assertSame('10.00', $amounts['other']);
             $this->assertSame('0.00', $amounts['referral']);
             $this->assertSame(array_sum(array_map('floatval', $amounts->all())), (float) app(PartnerMoneyBook::class)->summary($this->dealer)['lifetime']['earned']);
         });
@@ -69,13 +69,13 @@ class PartnerIncomePartsTest extends TestCase
 
     public function test_a_row_says_whether_it_is_waiting_or_ready_and_can_be_filtered_and_searched(): void
     {
-        $this->actingAs($this->dealer)->onPortal('dealer')->get('/my-income?part=area&status=waiting')->assertInertia(function (Assert $page): void {
+        $this->actingAs($this->dealer)->onPortal('dealer')->get('/my-income?part=area_union&status=waiting')->assertInertia(function (Assert $page): void {
             $page->where('income.table.totals.count', 1)->where('income.table.rows.data.0.status', 'waiting')->where('income.table.rows.data.0.amount', '16.00');
         });
-        $this->actingAs($this->dealer)->onPortal('dealer')->get('/my-income?part=area&status=ready&sort=amount&dir=asc')->assertInertia(function (Assert $page): void {
+        $this->actingAs($this->dealer)->onPortal('dealer')->get('/my-income?part=area_union&status=ready&sort=amount&dir=asc')->assertInertia(function (Assert $page): void {
             $page->where('income.table.totals.count', 1)->where('income.table.rows.data.0.status', 'ready');
         });
-        $this->actingAs($this->dealer)->onPortal('dealer')->get('/my-income?part=area&q=NO-SUCH-ORDER')->assertInertia(fn (Assert $page) => $page->where('income.table.totals.count', 0));
+        $this->actingAs($this->dealer)->onPortal('dealer')->get('/my-income?part=area_union&q=NO-SUCH-ORDER')->assertInertia(fn (Assert $page) => $page->where('income.table.totals.count', 0));
     }
 
     public function test_money_taken_back_after_a_refund_is_taken_off_its_part(): void
@@ -145,8 +145,8 @@ class PartnerIncomePartsTest extends TestCase
         $this->assertSame(array_keys($bangla), array_keys($english));
         $this->assertSame([], array_filter($bangla, fn (string $word): bool => trim($word) === ''));
         foreach (PartnerIncomeBook::parts() as $part) {
-            $this->assertArrayHasKey('part_'.$part, $bangla);
-            $this->assertArrayHasKey('hint_'.$part, $bangla);
+            $this->assertArrayHasKey('head_'.$part, require lang_path('bn/cr21_income.php'));
+            $this->assertArrayHasKey('hint_'.$part, require lang_path('bn/cr21_income.php'));
         }
     }
 

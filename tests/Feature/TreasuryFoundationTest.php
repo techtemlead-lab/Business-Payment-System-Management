@@ -446,7 +446,7 @@ class TreasuryFoundationTest extends TestCase
         $book = app(PartnerMoneyBook::class);
         $cards = collect($book->incomeCards($seatHolder))->keyBy('key');
         $this->assertTrue($cards->has('referral'));
-        $this->assertTrue($cards->has('area'));
+        $this->assertTrue($cards->has('area_division'));
     }
 
     public function test_every_card_equals_its_filtered_total(): void
@@ -462,9 +462,9 @@ class TreasuryFoundationTest extends TestCase
             $cards = $book->incomeCards($partner);
             $this->assertNotSame([], $cards);
             foreach ($cards as $card) {
-                $table = $book->table(Request::create('/x', 'GET', ['type' => $card['key']]), $partner);
+                $table = $book->table(Request::create('/x', 'GET', ['head' => $card['key']]), $partner);
                 $this->assertSame($card['amount'], $table['totals']['sums']['amount'], $card['key']);
-                $this->assertNull($table['rows']->items()[0]['running'], 'running total is hidden when a type is chosen');
+                $this->assertNull($table['rows']->items()[0]['running'], 'running total is hidden when a head is chosen');
             }
         }
     }

@@ -4,7 +4,7 @@ import MoneyTable, { type MoneyColumn, type MoneyTableData } from '../MoneyTable
 import { date, money, number } from '../UI';
 import { useT } from '../../shared/i18n/t';
 
-export type IncomePart = { key: string; label: string; hint: string; amount: string; entries: number };
+export type IncomePart = { key: string; label: string; hint: string; amount: string; total: string; entries: number };
 
 export type IncomeRow = {
     id: string;
@@ -21,7 +21,7 @@ export type IncomeRow = {
     amount: string;
 };
 
-export type IncomeData = { parts: IncomePart[]; part: string; table: MoneyTableData<IncomeRow> };
+export type IncomeData = { parts: IncomePart[]; sum: { amount: string; total: string }; part: string; table: MoneyTableData<IncomeRow> };
 
 /** The statement file takes the same view as the table: period, dates, search and status. */
 function statementQuery(state: MoneyTableData<IncomeRow>['state']): string {
@@ -101,20 +101,37 @@ export default function IncomeByPart({ income, statementBase, orderHref, prop = 
         <div className="mm-income-parts">
             <section aria-labelledby="mm-parts-title">
                 <h2 id="mm-parts-title">{translate('income', 'parts_label')}</h2>
-                <div className="mm-cards">
-                    {income.parts.map((part) => (
-                        <button
-                            key={part.key}
-                            type="button"
-                            className={`mm-card${part.key === chosen.key ? ' is-selected' : ''}`}
-                            aria-pressed={part.key === chosen.key}
-                            onClick={() => choose(part.key)}
-                        >
-                            <span>{part.label}</span>
-                            <strong className={Number(part.amount) < 0 ? 'is-negative' : undefined}>{money(part.amount)}</strong>
-                            <small>{translate('income', 'entries', { count: part.entries })}</small>
-                        </button>
-                    ))}
+                <p className="mm-part-hint">{translate('income', 'all_parts_note')}</p>
+                <div className="mm-heads-wrap">
+                    <table className="mm-heads" data-testid="income-heads">
+                        <thead>
+                            <tr>
+                                <th scope="col">{translate('cr21_income', 'col_head')}</th>
+                                <th scope="col" className="num">{translate('cr21_income', income.table.state.period === 'month' ? 'col_this_month' : 'col_this_period')}</th>
+                                <th scope="col" className="num">{translate('cr21_income', 'col_to_date')}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {income.parts.map((part) => (
+                                <tr key={part.key} className={part.key === chosen.key ? 'is-selected' : undefined} data-head={part.key}>
+                                    <th scope="row">
+                                        <button type="button" aria-pressed={part.key === chosen.key} onClick={() => choose(part.key)} title={part.hint}>
+                                            {part.label}
+                                        </button>
+                                    </th>
+                                    <td className={`num${Number(part.amount) < 0 ? ' is-negative' : ''}`}>{money(part.amount)}</td>
+                                    <td className={`num${Number(part.total) < 0 ? ' is-negative' : ''}`}>{money(part.total)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                        <tfoot>
+                            <tr data-testid="income-heads-total">
+                                <th scope="row">{translate('cr21_income', 'sum_row')}</th>
+                                <td className="num">{money(income.sum.amount)}</td>
+                                <td className="num">{money(income.sum.total)}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
                 </div>
             </section>
             <section id="mm-book" className="mm-book" aria-labelledby="mm-part-title">

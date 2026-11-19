@@ -30,7 +30,7 @@ export default function MyMoney({ summary, cards, table, withdrawal_requests: wi
     const translate = useT();
     const { portalBase: base, financeActive } = usePage<any>().props;
     const [sheetOpen, setSheetOpen] = useState(false);
-    const selected = table.state.filters.type ?? '';
+    const selected = table.state.filters.head ?? '';
     const chooseType = useChooseIncomeType(selected);
     const orderHref = financeActive && Number(summary.available) > 0
         ? `${base}/purchase?pay=account&budget=${summary.available}`

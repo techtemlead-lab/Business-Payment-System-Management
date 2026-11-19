@@ -9,4 +9,4 @@ Route::get('/my-money', [MyMoneyController::class, 'show']);
 
 /* Each part of a partner's income on its own, and its printed statement. */
 Route::get('/my-income', [PartnerIncomeController::class, 'show']);
-Route::get('/my-income/{part}/pdf', [PartnerIncomeController::class, 'pdf'])->whereAlpha('part')->middleware('throttle:10,1');
+Route::get('/my-income/{part}/pdf', [PartnerIncomeController::class, 'pdf'])->where('part', '[a-z0-9_]+')->middleware('throttle:10,1');

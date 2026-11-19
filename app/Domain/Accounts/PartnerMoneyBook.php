@@ -62,20 +62,47 @@ final class PartnerMoneyBook
     }
 
     /**
-     * One card per kind of income the partner has money in.
+     * One card per income head the partner has money in, in the order of PartnerIncomeHeads. Zero heads
+     * stay out of the wallet; the income page lists them all.
      *
      * @return list<array{key: string, label: string, amount: string}>
      */
     public function incomeCards(User $partner): array
     {
+        $totals = $this->totalsByHead($partner);
         $cards = [];
-        foreach ($this->totalsByType($partner) as $row) {
-            if (in_array($row->type, [...self::IncomeTypes, 'opening'], true) && FundCatalog::centsOf($row->total) !== 0) {
-                $cards[] = ['key' => (string) $row->type, 'label' => self::typeWord((string) $row->type), 'amount' => FundCatalog::decimalOf(FundCatalog::centsOf($row->total))];
+        foreach (PartnerIncomeHeads::keys() as $head) {
+            if (($totals[$head]['cents'] ?? 0) !== 0) {
+                $cards[] = ['key' => $head, 'label' => PartnerIncomeHeads::label($head), 'amount' => FundCatalog::decimalOf($totals[$head]['cents'])];
             }
         }
 
         return $cards;
+    }
+
+    /**
+     * What each income head holds in cents, over every income row and the opening balance. The heads
+     * regroup the same rows the wallet counts, so they add up to the wallet's total income.
+     *
+     * @param  array{0: ?CarbonInterface, 1: ?CarbonInterface}  $window  from, until
+     * @return array<string, array{cents: int, entries: int}>
+     */
+    public function totalsByHead(User $partner, array $window = [null, null]): array
+    {
+        $head = PartnerIncomeHeads::sql('u');
+        $rows = DB::query()->fromSub($this->statementRows((int) $partner->id), 'u')
+            ->whereIn('u.type', PartnerIncomeHeads::RowTypes)
+            ->when($window[0] !== null, fn (Builder $query) => $query->where('u.occurred_at', '>=', $window[0]))
+            ->when($window[1] !== null, fn (Builder $query) => $query->where('u.occurred_at', '<', $window[1]))
+            ->groupByRaw($head)
+            ->selectRaw("{$head} AS head, SUM(u.amount) AS total, COUNT(*) AS entries")
+            ->get();
+        $totals = [];
+        foreach ($rows as $row) {
+            $totals[(string) $row->head] = ['cents' => FundCatalog::centsOf($row->total), 'entries' => (int) $row->entries];
+        }
+
+        return $totals;
     }
 
     /**
@@ -88,16 +115,18 @@ final class PartnerMoneyBook
      */
     public function earnedByHead(int|Builder $people, ?CarbonInterface $from = null, ?CarbonInterface $until = null): array
     {
+        $head = PartnerIncomeHeads::sql('u');
+
         return DB::query()->fromSub($this->statementRows($people), 'u')
             ->whereIn('u.type', self::IncomeTypes)
             ->when($from !== null, fn (Builder $query) => $query->where('u.occurred_at', '>=', $from))
             ->when($until !== null, fn (Builder $query) => $query->where('u.occurred_at', '<', $until))
-            ->groupByRaw('COALESCE(u.category, u.type)')
-            ->orderByRaw('COALESCE(u.category, u.type)')
-            ->selectRaw('COALESCE(u.category, u.type) AS head, SUM(u.amount) AS total, COUNT(*) FILTER (WHERE u.amount > 0) AS entries')
+            ->groupByRaw($head)
+            ->selectRaw("{$head} AS head, SUM(u.amount) AS total, COUNT(*) FILTER (WHERE u.amount > 0) AS entries")
             ->get()
             ->map(fn (object $row): array => ['head' => (string) $row->head, 'amount' => FundCatalog::centsOf($row->total), 'entries' => (int) $row->entries])
             ->reject(fn (array $row): bool => $row['amount'] === 0)
+            ->sortBy(fn (array $row): int => (int) array_search($row['head'], PartnerIncomeHeads::keys(), true))
             ->values()
             ->all();
     }
@@ -112,9 +141,12 @@ final class PartnerMoneyBook
         return array_sum(array_column($this->earnedByHead($people, $from, $until), 'amount'));
     }
 
-    /** A commission head or kind of income as people read it. */
+    /** An income head (or, for an old caller, a commission category) as people read it. */
     public static function headWord(string $head, ?string $locale = null): string
     {
+        if (isset(PartnerIncomeHeads::Heads[$head])) {
+            return PartnerIncomeHeads::label($head, $locale);
+        }
         foreach (['portal.report_cat_'.$head, 'my_money.type_'.$head] as $key) {
             $word = (string) __($key, [], $locale);
             if ($word !== $key) {
@@ -134,21 +166,27 @@ final class PartnerMoneyBook
     public function table(Request $request, User $partner): array
     {
         $rows = DB::query()->fromSub($this->statementRows((int) $partner->id), 'u')
-            ->selectRaw('u.*, SUM(u.amount) OVER (ORDER BY u.occurred_at, u.id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running');
+            ->selectRaw(PartnerIncomeHeads::sql('u').' AS head, u.*, SUM(u.amount) OVER (ORDER BY u.occurred_at, u.id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running');
         $table = MoneyTable::make($request, DB::query()->fromSub($rows, 'x'), new MoneyTableSpec(
             dateColumn: 'x.occurred_at',
             search: ['x.order_number', 'x.from_name'],
-            filters: [new MoneyTableFilter('type', (string) __('treasury.filter_type'), 'x.type', array_map(
-                fn (string $type): array => ['value' => $type, 'label' => self::typeWord($type)],
-                self::Types,
-            ))],
+            filters: [
+                new MoneyTableFilter('type', (string) __('treasury.filter_type'), 'x.type', array_map(
+                    fn (string $type): array => ['value' => $type, 'label' => self::typeWord($type)],
+                    self::Types,
+                )),
+                new MoneyTableFilter('head', (string) __('cr21_income.filter_head'), 'x.head', array_map(
+                    fn (string $head): array => ['value' => $head, 'label' => PartnerIncomeHeads::label($head)],
+                    PartnerIncomeHeads::keys(),
+                ), group: 'more'),
+            ],
             sorts: ['date' => 'x.occurred_at', 'amount' => 'x.amount'],
             defaultSort: 'date',
             tieBreaker: 'x.id',
             sums: ['amount' => 'x.amount'],
             defaultPeriod: null,
         ));
-        $typeChosen = isset($table['state']['filters']['type']);
+        $typeChosen = isset($table['state']['filters']['type']) || isset($table['state']['filters']['head']);
         $ownOrders = self::ownOrderIds($partner, $table['rows']->getCollection()->pluck('order_id')->all());
         $table['rows'] = $table['rows']->through(fn (object $row): array => [
             'id' => $row->id,
@@ -294,6 +332,17 @@ final class PartnerMoneyBook
         return DB::query()->fromSub($this->statementRows($people), 'u')->whereIn('u.type', self::IncomeTypes)->select('u.*');
     }
 
+    /**
+     * Income rows and the opening balance in the statement's shape, each with its income head.
+     *
+     * @param  int|Builder  $people  One partner's id, or a sub-query of partner ids.
+     */
+    public function headRows(int|Builder $people): Builder
+    {
+        return DB::query()->fromSub($this->statementRows($people), 'u')->whereIn('u.type', PartnerIncomeHeads::RowTypes)
+            ->selectRaw('u.*, '.PartnerIncomeHeads::sql('u').' AS head');
+    }
+
     /** The three kinds of movement, as one list of rows. */
     private function statementRows(int|Builder $people): Builder
     {
@@ -315,7 +364,7 @@ final class PartnerMoneyBook
             ->whereRaw("a.metadata->>'released_at' IS NULL")
             ->whereRaw("(a.status IN ('available', 'maturing') OR (a.status = 'reversed' AND NOT EXISTS (SELECT 1 FROM commission_reversals cr WHERE cr.allocation_id = a.id AND cr.source_status = 'held')))")
             ->whereRaw('COALESCE(a.original_amount, a.amount) > 0')
-            ->selectRaw("('a-' || a.id::text) AS id, j.created_at AS occurred_at, ".self::typeOfCategory('a.category')." AS type, a.category, a.rate_percentage AS percent, o.id::text AS order_id, o.number AS order_number, buyer.name AS from_name, NULL AS withdrawal_id, CASE WHEN a.status = 'maturing' THEN a.metadata->>'maturation_due_at' END AS waiting_until, COALESCE(a.original_amount, a.amount) AS amount, NULL::text AS program");
+            ->selectRaw("('a-' || a.id::text) AS id, j.created_at AS occurred_at, ".self::typeOfCategory('a.category')." AS type, a.category, a.rate_percentage AS percent, o.id::text AS order_id, o.number AS order_number, buyer.name AS from_name, NULL AS withdrawal_id, CASE WHEN a.status = 'maturing' THEN a.metadata->>'maturation_due_at' END AS waiting_until, COALESCE(a.original_amount, a.amount) AS amount, NULL::text AS program, NULL::text AS kind");
     }
 
     /** Every other money movement, one row per record, typed by what caused it. */
@@ -331,6 +380,8 @@ final class PartnerMoneyBook
         $accountPay = "starts_with(e.event_key, 'order.account_pay.')";
         $accountReturn = "starts_with(e.event_key, 'order.account_return.')";
         $payout = "starts_with(e.event_key, 'manual-payout:')";
+        // The settlement kind is third in a month-end key and last in a single award key; any other key has none.
+        $kind = "CASE WHEN starts_with(e.event_key, 'commissions.settlement.') THEN CASE WHEN e.event_key ~ '^commissions\\.settlement\\.[a-z_]+\\.[0-9]{4}-[0-9]{2}\\.' THEN split_part(e.event_key, '.', 3) ELSE substring(e.event_key from '\\.([a-z_]+)\$') END END";
 
         return DB::query()->fromSub($entries, 'e')
             ->leftJoin('commission_allocations as h', 'h.id', '=', DB::raw("(CASE WHEN {$holdRelease} THEN split_part(e.event_key, '.', 3)::bigint END)"))
@@ -348,7 +399,7 @@ final class PartnerMoneyBook
                 WHEN {$accountPay} THEN 'spent'
                 WHEN starts_with(e.event_key, 'commissions.debt_recovery.') THEN 'taken_back'
                 WHEN e.net < 0 THEN 'taken_back' ELSE 'returned' END AS type,
-                h.category, h.rate_percentage AS percent, o.id::text AS order_id, o.number AS order_number, buyer.name AS from_name, CASE WHEN {$payout} THEN substr(e.event_key, 15) END AS withdrawal_id, NULL AS waiting_until, e.net AS amount, CASE WHEN starts_with(e.event_key, 'reserve.award.') THEN (SELECT rd.program FROM reserve_disbursements rd WHERE rd.id::text = substr(e.event_key, 15)) END AS program");
+                h.category, h.rate_percentage AS percent, o.id::text AS order_id, o.number AS order_number, buyer.name AS from_name, CASE WHEN {$payout} THEN substr(e.event_key, 15) END AS withdrawal_id, NULL AS waiting_until, e.net AS amount, CASE WHEN starts_with(e.event_key, 'reserve.award.') THEN (SELECT rd.program FROM reserve_disbursements rd WHERE rd.id::text = substr(e.event_key, 15)) END AS program, {$kind} AS kind");
     }
 
     /**
@@ -370,7 +421,7 @@ final class PartnerMoneyBook
             ->joinSub($taken, 't', fn ($join) => $join->on('t.entry_id', '=', 'j.id')->on('t.user_id', '=', 'r.user_id'))
             ->leftJoin('orders as o', 'o.id', '=', 'a.order_id')->leftJoin('users as buyer', 'buyer.id', '=', 'o.user_id')
             ->whereRaw("{$amount} > 0")
-            ->selectRaw("('r-' || r.id::text) AS id, j.created_at AS occurred_at, ".self::typeOfCategory('a.category')." AS type, a.category, a.rate_percentage AS percent, o.id::text AS order_id, o.number AS order_number, buyer.name AS from_name, NULL AS withdrawal_id, NULL AS waiting_until, -{$amount} AS amount, NULL::text AS program");
+            ->selectRaw("('r-' || r.id::text) AS id, j.created_at AS occurred_at, ".self::typeOfCategory('a.category')." AS type, a.category, a.rate_percentage AS percent, o.id::text AS order_id, o.number AS order_number, buyer.name AS from_name, NULL AS withdrawal_id, NULL AS waiting_until, -{$amount} AS amount, NULL::text AS program, NULL::text AS kind");
     }
 
     /** SQL naming the statement type of a commission category. */
@@ -386,6 +437,10 @@ final class PartnerMoneyBook
 
     private function rowWord(object $row): string
     {
+        if (in_array($row->type, PartnerIncomeHeads::RowTypes, true)) {
+            return PartnerIncomeHeads::label(PartnerIncomeHeads::headOf($row->type, $row->category, $row->program, $row->kind));
+        }
+
         return $row->category !== null ? FundCatalog::typeLabel((string) $row->category) : self::typeWord((string) $row->type);
     }
 }
