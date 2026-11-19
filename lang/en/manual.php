@@ -1400,7 +1400,7 @@ return [
     'office_more_pages_s2' => 'For partners: “Schemes”, “Contests”, “Sales kit”, “Training”, “Meetings” and “Agreement”.',
     'office_more_pages_s3' => 'Staff and people: “Staff list”, “Staff salary”, “SR areas & targets”, “Field sales”, “Roles & permissions”.',
     'office_more_pages_s4' => 'In the staff list, add the new person’s name, phone, role and branch. After you save, the first password shows once. Write it down and give it to them.',
-    'office_more_pages_s5' => 'Website: “Arrange the website”, “Page text”, “Trust pages”, “Videos”, “Feedback” and “Website visitors”.',
+    'office_more_pages_s5' => 'Website: “Arrange the website”, “Page text”, “Trust pages”, “Videos”, “Feedback” and “Website visitors” (the same page also shows which dealers and sub-dealers are online now, with their last IP address, device and browser).',
     'office_more_pages_s6' => 'When you approve a review, it shows on the website.',
     'office_more_pages_s7' => 'Clinic: “Prescriptions”.',
     'office_more_pages_s8' => 'Look at new applications under “Applications” in the menu. Check the application number, age and any earlier account there.',
