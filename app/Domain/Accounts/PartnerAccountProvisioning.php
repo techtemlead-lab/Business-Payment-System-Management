@@ -2,6 +2,7 @@
 
 namespace App\Domain\Accounts;
 
+use App\Domain\Auth\SignInGuard;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Geography\ManagementReferral;
@@ -48,7 +49,7 @@ final class PartnerAccountProvisioning
 
     /**
      * @param  array<string, mixed>  $input
-     * @return array{user: User, place_label: ?string, commission_consumers: array<string, mixed>, credentials_sent: bool, password_link_sent: bool, first_password: string}
+     * @return array{user: User, place_label: ?string, commission_consumers: array<string, mixed>, credentials_sent: bool, password_link_sent: bool, first_password: string, password_typed: bool}
      */
     public function create(User $actor, array $input): array
     {
@@ -139,7 +140,12 @@ final class PartnerAccountProvisioning
         }
 
         $path = $this->geography->expandFromAnchor($place);
-        $plainPassword = $this->temporaryPassword();
+        // A password typed by the office is used as it is; left empty, one is made. Never logged or audited.
+        $typedPassword = trim((string) ($input['password'] ?? ''));
+        if ($typedPassword !== '' && (mb_strlen($typedPassword) < 8 || app(SignInGuard::class)->isTooEasy($typedPassword))) {
+            throw ValidationException::withMessages(['password' => __('security.password_too_easy')]);
+        }
+        $plainPassword = $typedPassword !== '' ? $typedPassword : $this->temporaryPassword();
         $shopName = trim((string) ($input['shop_name'] ?? $input['pharmacy'] ?? ''));
         $profile = [
             'name_bn' => trim((string) ($input['name_bn'] ?? '')),
@@ -194,7 +200,7 @@ final class PartnerAccountProvisioning
         }
 
         try {
-            $user = DB::transaction(function () use ($actor, $input, $role, $phone, $email, $referCode, $sponsor, $place, $path, $dealerCode, $profile, $plainPassword, $managementReferral, $managementSettings): User {
+            $user = DB::transaction(function () use ($actor, $input, $role, $phone, $email, $referCode, $sponsor, $place, $path, $dealerCode, $profile, $plainPassword, $typedPassword, $managementReferral, $managementSettings): User {
                 CommissionWallet::lock();
                 $this->claimCodes($actor, [$dealerCode]);
                 $user = (new User)->forceFill([
@@ -213,7 +219,8 @@ final class PartnerAccountProvisioning
                     'directory_visible' => ! empty($input['directory_visible']),
                     'status' => in_array(($status = (string) ($input['status'] ?? 'active')), ['active', 'suspended'], true) ? $status : 'active',
                     'password' => $plainPassword,
-                    'must_change_password' => true,
+                    // A made password must be changed at first sign-in; one the office chose is used as it is.
+                    'must_change_password' => $typedPassword === '',
                     'password_managed_by' => User::PasswordManagedByAdmin,
                     'admin_password_cipher' => $plainPassword,
                     'profile' => $profile,
@@ -255,6 +262,7 @@ final class PartnerAccountProvisioning
             'credentials_sent' => $credentialsSent,
             'password_link_sent' => $passwordLinkSent,
             'first_password' => $plainPassword,
+            'password_typed' => $typedPassword !== '',
         ];
     }
 

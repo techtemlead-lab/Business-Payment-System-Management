@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import Shell from '../components/Shell';
 import { label, type Row, DateInput, FormErrors } from '../components/UI';
-import { ArrowLeft, Search, AlertTriangle, CheckCircle2, Check } from 'lucide-react';
+import { ArrowLeft, Search, AlertTriangle, CheckCircle2, Check, Eye, EyeOff } from 'lucide-react';
 import { useT } from '../shared/i18n/t';
 import { useReasonField } from '../shared/reasonFields';
 import SearchSelect from '../components/SearchSelect';
@@ -93,6 +93,7 @@ export default function AccountCreate({
     const singlePartnerRole = roles.length === 1 && ['dealer', 'sub_dealer'].includes(roles[0]);
 
     const [dealerCodeTouched, setDealerCodeTouched] = useState(false);
+    const [passwordVisible, setPasswordVisible] = useState(false);
     const form = useForm({
         role: defaultRole,
         identity_type: default_identity_type as 'birth_certificate' | 'nid',
@@ -116,6 +117,7 @@ export default function AccountCreate({
         phone: '',
         email: '',
         extra_contact: '',
+        password: '',
         pharmacy: '',
         shop_name: '',
         directory_visible: false,
@@ -513,6 +515,7 @@ export default function AccountCreate({
             phone: data.phone,
             email: data.email,
             extra_contact: data.extra_contact,
+            password: data.password,
             pharmacy: data.shop_name,
             shop_name: data.shop_name,
             directory_visible: data.directory_visible,
@@ -851,6 +854,31 @@ export default function AccountCreate({
                                     <Box text={translate('portal', 'acct_email')} error={errorOf('email')}>
                                         <input type="email" inputMode="email" autoComplete="off" value={form.data.email} onChange={(e) => setBox('email', e.target.value)} />
                                     </Box>
+                                    {(form.data.role === 'dealer' || form.data.role === 'sub_dealer') && (
+                                        <Box text={translate('leftovers_office', 'acct_first_password')} error={errorOf('password')} hint={translate('leftovers_office', 'acct_first_password_hint')}>
+                                            <div className="pw-input-wrap">
+                                                <input
+                                                    id="acf-first-password"
+                                                    type={passwordVisible ? 'text' : 'password'}
+                                                    autoComplete="new-password"
+                                                    maxLength={64}
+                                                    value={form.data.password}
+                                                    onChange={(e) => setBox('password', e.target.value)}
+                                                    placeholder={translate('leftovers_office', 'acct_first_password_ph')}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    className="pw-eye"
+                                                    aria-pressed={passwordVisible}
+                                                    aria-label={translate('leftovers_office', passwordVisible ? 'acct_first_password_hide' : 'acct_first_password_show')}
+                                                    title={translate('leftovers_office', passwordVisible ? 'acct_first_password_hide' : 'acct_first_password_show')}
+                                                    onClick={() => setPasswordVisible((value) => !value)}
+                                                >
+                                                    {passwordVisible ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+                                                </button>
+                                            </div>
+                                        </Box>
+                                    )}
                                     <Box text={translate('joining', 'shop_name_label')} error={errorOf('shop_name')} hint={translate('joining', 'shop_name_hint')}>
                                         <input id="acf-shop-name" name="shop_name" autoComplete="off" value={form.data.shop_name} onChange={(e) => setBox('shop_name', e.target.value)} placeholder={translate('portal', 'acct_shop_placeholder')} />
                                     </Box>

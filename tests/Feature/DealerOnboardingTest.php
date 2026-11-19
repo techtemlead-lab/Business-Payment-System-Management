@@ -218,6 +218,63 @@ class DealerOnboardingTest extends TestCase
         $this->assertSame('', $profile['union']);
     }
 
+    public function test_a_password_typed_by_the_office_is_used_and_not_forced_to_change(): void
+    {
+        Notification::fake();
+        $this->seedClassicPlaceCodes();
+        $admin = User::factory()->create(['role' => 'super_admin']);
+
+        $res = $this->actingAs($admin)->post('/commands/accounts', $this->placeOnboarding([
+            'dealer_code' => 'D-TYP-001',
+            'name' => 'Typed Password',
+            'email' => 'typed@example.com',
+            'phone' => '01712340011',
+            'password' => 'Madina#Typed77',
+        ]));
+        $res->assertSessionHasNoErrors();
+
+        $user = User::where('email', 'typed@example.com')->firstOrFail();
+        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('Madina#Typed77', $user->password));
+        $this->assertFalse((bool) $user->must_change_password);
+        $this->assertStringNotContainsString('Madina#Typed77', (string) session('success'));
+        $this->assertStringNotContainsString('Madina#Typed77', json_encode(\Illuminate\Support\Facades\DB::table('audit_events')->get()->all()));
+    }
+
+    public function test_an_empty_password_box_makes_a_password_that_must_be_changed(): void
+    {
+        Notification::fake();
+        $this->seedClassicPlaceCodes();
+        $admin = User::factory()->create(['role' => 'super_admin']);
+
+        $this->actingAs($admin)->post('/commands/accounts', $this->placeOnboarding([
+            'dealer_code' => 'D-GEN-001',
+            'name' => 'Made Password',
+            'email' => 'made@example.com',
+            'phone' => '01712340012',
+            'password' => '',
+        ]))->assertSessionHasNoErrors();
+
+        $this->assertTrue((bool) User::where('email', 'made@example.com')->firstOrFail()->must_change_password);
+    }
+
+    public function test_a_typed_password_that_is_too_short_or_too_easy_is_refused(): void
+    {
+        Notification::fake();
+        $this->seedClassicPlaceCodes();
+        $admin = User::factory()->create(['role' => 'super_admin']);
+
+        foreach (['short1!', '12345678'] as $index => $password) {
+            $this->actingAs($admin)->post('/commands/accounts', $this->placeOnboarding([
+                'dealer_code' => 'D-EZ-00'.$index,
+                'name' => 'Easy Password',
+                'email' => "easy{$index}@example.com",
+                'phone' => '0171234002'.$index,
+                'password' => $password,
+            ]))->assertSessionHasErrors('password');
+            $this->assertDatabaseMissing('users', ['email' => "easy{$index}@example.com"]);
+        }
+    }
+
     public function test_a_sub_dealer_gets_the_union_of_the_place_code(): void
     {
         Notification::fake();

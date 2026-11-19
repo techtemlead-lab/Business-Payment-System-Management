@@ -164,6 +164,8 @@ class CommandController extends Controller
                 'shop_name' => 'nullable|string|max:150',
                 'directory_visible' => 'sometimes|boolean',
                 'status' => 'sometimes|in:active,suspended',
+                // The first password, typed by the office. Empty: one is made and shown once.
+                'password' => 'nullable|string|min:8|max:64',
                 'reason' => ReasonFields::rule('partner.account_create', 1000),
             ]);
             $media = [];
@@ -207,7 +209,9 @@ class CommandController extends Controller
                 'code' => $created['user']->dealer_code,
                 'phone' => $created['user']->phone,
                 'email' => $created['user']->email,
-            ]).($otherBranch === null ? '' : ' '.__('portal.acct_partner_went_to_branch', ['branch' => $otherBranch->name])).' '.FirstPassword::notice($created['user'], $created['first_password'])));
+            ]).($otherBranch === null ? '' : ' '.__('portal.acct_partner_went_to_branch', ['branch' => $otherBranch->name])).' '.($created['password_typed']
+                ? FirstPassword::typedNotice($created['user'])
+                : FirstPassword::notice($created['user'], $created['first_password']))));
         }
 
         $d = $r->validate([
