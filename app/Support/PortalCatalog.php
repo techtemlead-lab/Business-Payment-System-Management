@@ -105,8 +105,12 @@ final class PortalCatalog
             abort_unless(LeadershipAccess::granted($user, 'owner_tools') || $user->allows('reports') || $user->allows('finance') || $user->allows('inventory'), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && in_array($section, ['orders', 'deliveries'], true)) {
             abort_unless($user->allows('orders') || $user->allows('finance'), 403);
-        } elseif (in_array($portal, ['manage', 'sadmin'], true) && in_array($section, ['training', 'events', 'message-templates'], true)) {
+        } elseif (in_array($portal, ['manage', 'sadmin'], true) && in_array($section, ['training', 'events'], true)) {
             abort_unless(LeadershipAccess::granted($user, 'owner_tools') || $user->allows('content'), 403);
+        } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'message-templates') {
+            // SMS and email wording: the owner, or staff who edit the website or the settings (not the leadership
+            // owner-tools grant, so MD and Chairman stay payroll-only by default, D11).
+            abort_unless($user->allows('content') || $user->allows('settings'), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && in_array($section, ['purchasing', 'stock-counts'], true)) {
             // F-verify-09: buying from suppliers and counting stock are working pages, not reports: they need the
             // right to enter or approve stock, not only to look at stock movement.
