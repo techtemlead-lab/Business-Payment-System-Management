@@ -14,6 +14,7 @@ import { ProfilePhoto } from './ProfilePhoto';
 import Figures, { type FigureItem } from './office/Figures';
 import OfficePage from './office/OfficePage';
 import OfficeTabsTable from './office/OfficeTabsTable';
+import { ActivitySection, BusinessSection, EventsSection, MoneySection, SiteSection } from './office/OfficeSummarySections';
 import StartBooksCard from './office/StartBooksCard';
 import { Badge, Empty, date, humanize, money, type Row, number } from './UI';
 import { businessTodayIso, localizeDigits } from '../business-date';
@@ -498,6 +499,7 @@ function AdminHome({ home }: { home: Row }) {
     const figures = officeFigures(home, base, auth.capabilities ?? [], translate);
     const work: WorkItem[] = home.work_queue ?? [];
     const tabs: string[] = home.tabs ?? [];
+    const sections: string[] = home.sections ?? [];
     const trend: TrendPoint[] = home.trend ?? [];
     const today = dayInWords(businessTodayIso(), { weekday: 'long', day: 'numeric', month: 'long' });
 
@@ -508,14 +510,23 @@ function AdminHome({ home }: { home: Row }) {
                 {/* The tour step talks about the numbers, so it is skipped for staff who get none here. */}
                 <OfficeShortcuts base={base} caps={auth.capabilities ?? []} />
                 {figures.length > 0 && <div data-tour="home-metrics"><Figures items={figures} /></div>}
+                {sections.length > 0 && (
+                    <div className="osb-grid">
+                        <MoneySection sections={sections} />
+                        <SiteSection sections={sections} />
+                        <ActivitySection sections={sections} />
+                        <BusinessSection sections={sections} />
+                    </div>
+                )}
                 {tabs.length > 0 && <OfficeTabsTable tabs={tabs} />}
+                <EventsSection sections={sections} />
                 {(work.length > 0 || trend.length > 0) && (
                     <section className="admin-home-insights">
                         {work.length > 0 && <WorkQueue items={work} base={base} />}
                         {trend.length > 0 && <SalesTrend points={trend} month={home.month ?? null} />}
                     </section>
                 )}
-                {figures.length === 0 && work.length === 0 && trend.length === 0 && !home.start_books && <Empty line={translate('office_home', 'nothing_waiting')} />}
+                {figures.length === 0 && work.length === 0 && trend.length === 0 && tabs.length === 0 && sections.length === 0 && !home.start_books && <Empty line={translate('office_home', 'nothing_waiting')} />}
             </div>
         </OfficePage>
     );
