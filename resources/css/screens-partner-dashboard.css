@@ -115,3 +115,10 @@
 .psignout-dialog h2 { margin: 0 0 16px; font-size: 1.2rem; }
 .psignout-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 .psignout-actions .button { flex: 1 1 140px; min-height: 44px; }
+
+/* Findability: withdraw button beside the wallet link, and the follow-up card */
+.pd-heads-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.ph-follow-up { display: flex; align-items: center; gap: 14px; min-height: 56px; padding: 12px 16px; text-decoration: none; color: inherit; }
+.ph-follow-up span { display: grid; gap: 2px; flex: 1; line-height: 1.4; }
+.ph-follow-up b { font-size: 1rem; }
+.ph-follow-up small { color: var(--muted, #64748b); font-size: .875rem; }

@@ -12,7 +12,6 @@ use App\Domain\Finance\OwnerApprovalLimits;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Finance\ReportData;
 use App\Domain\Finance\ReserveService;
-use App\Domain\Finance\TreasuryAccess;
 use App\Domain\Finance\VehiclePools;
 use App\Domain\Finance\WithdrawalApprovalLimit;
 use App\Domain\Finance\WithdrawalSecurityWait;
@@ -71,10 +70,6 @@ class OperationsController extends Controller
             'financial-reports' => $actor->allows('finance') ? 'finance' : ($actor->allows('field_sales') ? 'field_sales' : 'reports'), default => 'finance'
         };
         abort_unless(in_array($section, self::Sections, true) && $actor->staff() && ($capability === null || $actor->allows($capability)), 403);
-        if ($section === 'financial-reports' && TreasuryAccess::mayOpenOrders($actor)) {
-            // Field staff cannot open the money report, so they keep this list of their files.
-            return redirect(OfficeHubs::OrderReport, 301);
-        }
         $request->validate(['q' => 'nullable|string|max:100']);
         $tables = [];
         $data = ['section' => $section, 'tables' => [], 'paymentAccounts' => [], 'partners' => [], 'staff' => [], 'summary' => [], 'partnerSearch' => (string) $request->string('q')];

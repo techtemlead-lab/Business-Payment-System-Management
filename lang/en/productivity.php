@@ -3,7 +3,7 @@
 return [
     'close' => 'Close',
 
-    'search_label' => 'Search',
+    'search_label' => 'Find order / partner',
     'search_keys' => 'Ctrl K',
     'search_open' => 'Search orders, partners and products (Ctrl+K)',
     'search_placeholder' => 'Order number, name, code, phone or SKU',

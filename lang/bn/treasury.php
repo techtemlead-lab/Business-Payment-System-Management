@@ -6,7 +6,7 @@ return [
     'tab_orders' => 'অর্ডারের হিসাব',
     'tab_events' => 'সব ঘটনা',
     'tab_partners' => 'পার্টনারদের টাকা',
-    'tab_work' => 'টাকার কাজ',
+    'tab_work' => 'খরচ, বাজেট ও বাকি কাজ',
     'partner_money_card' => 'পার্টনারদের টাকা',
 
     'fund_company_share' => 'কোম্পানির অংশ',

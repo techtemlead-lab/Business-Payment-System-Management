@@ -6,7 +6,7 @@ return [
     'tab_orders' => 'Order report',
     'tab_events' => 'All events',
     'tab_partners' => "Partners' money",
-    'tab_work' => 'Money tasks',
+    'tab_work' => 'Spending, budgets & pending work',
     'partner_money_card' => "Partners' money",
 
     'fund_company_share' => 'Company share',

@@ -3318,3 +3318,15 @@ html[data-theme="dark"] .notice-panel .skeleton{background:linear-gradient(90deg
 html[data-theme="dark"] .ppc-note{color:#cbd5e1}
 html[data-theme="dark"] .ppc-note.is-error{color:#fca5a5}
 html[data-theme="dark"] .ppc-link{color:#7fd0a4}
+
+/* Findability: search action entries, and the office sidebar's help and sign-out lines */
+.app-shell .sidebar .sidebar-search-actions{list-style:none;margin:0 0 10px;padding:0 0 8px;border-bottom:1px solid var(--ds-side-line);display:grid;gap:4px}
+.app-shell .sidebar .sidebar-search-actions li{margin:0}
+.app-shell .sidebar .sidebar-search-actions a,.app-shell .sidebar .sidebar-search-actions button{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:8px 10px;border-radius:var(--ds-r-md);border:1px solid var(--ds-side-line);background:rgba(255,255,255,.07);color:var(--ds-side-strong);font-size:var(--ds-fs-sm);text-align:left;cursor:pointer;text-decoration:none}
+.app-shell .sidebar .sidebar-search-actions a:hover,.app-shell .sidebar .sidebar-search-actions button:hover{background:var(--ds-side-hover)}
+.app-shell .sidebar .sidebar-search-action-text{display:grid;gap:2px;line-height:1.35}
+.app-shell .sidebar .sidebar-search-action-text b{font-weight:600}
+.app-shell .sidebar .sidebar-search-action-text small{color:var(--ds-side-muted);font-size:12px}
+.app-shell .sidebar .sidebar-office-footer{display:grid;gap:6px}
+.app-shell .sidebar .sidebar-office-footer .sidebar-help-link,.app-shell .sidebar .sidebar-office-footer .sidebar-sign-out{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:8px 10px;border-radius:var(--ds-r-md);border:1px solid var(--ds-side-line);background:transparent;color:var(--ds-side-text);font-size:var(--ds-fs-sm);font-weight:500;text-decoration:none;cursor:pointer;text-align:left}
+.app-shell .sidebar .sidebar-office-footer .sidebar-help-link:hover,.app-shell .sidebar .sidebar-office-footer .sidebar-sign-out:hover{background:var(--ds-side-hover);color:var(--ds-side-strong)}

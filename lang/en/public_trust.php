@@ -10,6 +10,7 @@ return [
     'footer_grievance' => 'Complaints',
     'footer_quality_documents' => 'Licences and certificates',
     'footer_articles' => 'Health articles',
+    'footer_batch_check' => 'Check a product',
 
     // Business identity block
     'identity_heading' => 'Business details',

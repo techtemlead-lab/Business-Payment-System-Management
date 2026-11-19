@@ -403,8 +403,8 @@ final class OfficeHubs
             'field-sales' => $user->allows('field_sales'),
             'access-management' => $user->role === 'super_admin' && $user->allows('staff_admin'),
             'video-marketing' => $user->allows('content') || $user->allows('catalog'),
-            // Anyone who can open the money report is sent there instead of this page.
-            'financial-reports' => $user->allows('field_sales') && ! TreasuryAccess::mayOpenOrders($user),
+            // The list of report files is for everyone who may download them; the page repeats this check.
+            'financial-reports' => $user->allows('finance') || $user->allows('field_sales') || $user->allows('reports'),
             'service-integrations' => $user->canAct('finance', 'view') || $user->role === 'super_admin',
             'courier-areas' => $portal === 'sadmin' && $user->owner(),
             'data-imports' => $user->canAct('finance', 'view') || $user->canAct('accounts', 'view')

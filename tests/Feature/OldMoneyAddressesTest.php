@@ -34,7 +34,6 @@ class OldMoneyAddressesTest extends TestCase
             'ledger with filters' => ['/ledger?q=MN-1&period=today', '/treasury/events?q=MN-1&period=today'],
             'car and bike rewards' => ['/rewards', '/treasury/funds/car_bike'],
             'salary' => ['/salary', '/treasury/funds/salary_pool'],
-            'report centre' => ['/operations/financial-reports', '/treasury/orders'],
             'office withdrawals' => ['/withdrawals?status=approved', '/payouts-hub?status=approved'],
             'accounting statements' => ['/operations/accounting?tab=statements', '/treasury/work'],
             'accounting limit' => ['/operations/accounting?tab=limit', '/operations/finance-settings'],
@@ -92,7 +91,15 @@ class OldMoneyAddressesTest extends TestCase
         foreach (['/treasury', '/ledger', '/rewards', '/company-funds'] as $old) {
             $this->actingAs($viewer)->onPortal('manage')->get($old)->assertRedirect('/treasury/orders');
         }
-        $this->actingAs($viewer)->onPortal('manage')->get('/operations/financial-reports')->assertRedirect('/treasury/orders');
+    }
+
+    /** Findability #4: the report files list opens for money readers too, as the "Report files (Excel)" tab. */
+    public function test_the_report_files_list_opens_for_finance_and_report_readers_instead_of_redirecting(): void
+    {
+        foreach ([User::factory()->staff('finance')->create(), $this->staffWith(['reports'])] as $reader) {
+            $this->actingAs($reader)->onPortal('manage')->get('/operations/financial-reports')->assertOk()
+                ->assertInertia(fn (Assert $page) => $page->component('Operations')->where('section', 'financial-reports')->has('reportTypes')->has('reportGroups'));
+        }
     }
 
     public function test_field_staff_keep_their_report_files_and_never_meet_a_403(): void

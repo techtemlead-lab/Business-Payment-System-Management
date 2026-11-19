@@ -32,5 +32,5 @@ return [
     'report_title' => 'Income report',
     'report_loading' => 'Loading the report…',
     'targets_live' => 'Updates by itself with every order and delivery.',
-    'open_wallet' => 'Open wallet',
+    'open_wallet' => 'Wallet & withdrawals',
 ];

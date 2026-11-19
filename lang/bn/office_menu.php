@@ -37,7 +37,7 @@ return [
     'tab_top_sellers' => 'সেরা বিক্রেতা',
     'tab_partner_scorecard' => 'পার্টনার স্কোরকার্ড',
     'tab_branch_performance' => 'ব্রাঞ্চের বিক্রি',
-    'tab_financial_reports' => 'ফাইল',
+    'tab_financial_reports' => 'রিপোর্ট ফাইল (এক্সেল)',
 
     'tab_website' => 'ওয়েবসাইট সাজান',
     'tab_content' => 'পাতার লেখা',
@@ -61,7 +61,7 @@ return [
     'partner_tab_share_feedback' => 'মতামত দিন',
     'partner_tab_help' => 'সাহায্য',
     'partner_tab_profile' => 'প্রোফাইল',
-    'partner_tab_security' => 'নিরাপত্তা',
+    'partner_tab_security' => 'পাসওয়ার্ড ও নিরাপত্তা',
     'partner_tab_agreement' => 'চুক্তি',
 
     'settings_group_money' => 'টাকা',

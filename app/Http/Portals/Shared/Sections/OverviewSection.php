@@ -13,6 +13,7 @@ use App\Domain\Orders\OrderOverviewTotals;
 use App\Domain\Orders\StaffDashboardSummary;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 /**
@@ -66,6 +67,8 @@ final class OverviewSection implements WorkspaceSection
                 ],
                 // MA-14: the one step that starts the books, for the owner, until it is done.
                 'start_books' => $user->role === 'super_admin' && ! app(FinancialReadiness::class)->booksStarted(),
+                // The "My salary" card: for staff who are paid a salary (the owners' own pages do not list it).
+                'has_salary_record' => $this->hasSalaryRecord($user),
                 'tabs' => OfficeDashboardTabs::visibleTo($user),
                 'sections' => OfficeDashboardSections::visibleTo($user, $context->portal),
                 ...app(StaffDashboardSummary::class)->for($user, $context->branchScope),
@@ -80,6 +83,17 @@ final class OverviewSection implements WorkspaceSection
         }
 
         return $props;
+    }
+
+    /** True when this staff member has a salary contract or a salary slip; the three owner roles read payroll elsewhere. */
+    private function hasSalaryRecord(User $user): bool
+    {
+        if (in_array($user->role, ['super_admin', 'md', 'chairman'], true)) {
+            return false;
+        }
+
+        return DB::table('staff_contracts')->where('staff_id', $user->id)->exists()
+            || DB::table('payroll_entries')->where('staff_id', $user->id)->exists();
     }
 
     /**
