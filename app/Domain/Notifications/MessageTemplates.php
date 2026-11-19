@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 /**
  * The one place every SMS and email text is built. The default is today's text in the language
@@ -35,8 +36,8 @@ final class MessageTemplates
     public static function sms(string $key, array $replace): string
     {
         $override = self::override($key, MessageTemplateCatalog::Sms, SmsText::Locale);
-        if ($override instanceof MessageTemplate) {
-            $text = self::fill((string) $override->body, $replace, MessageTemplateCatalog::placeholdersOf($key, MessageTemplateCatalog::Sms));
+        if ($override !== null) {
+            $text = self::fill($override['body'], $replace, MessageTemplateCatalog::placeholdersOf($key, MessageTemplateCatalog::Sms));
             if ($text !== null && trim($text) !== '') {
                 return $text;
             }
@@ -55,10 +56,10 @@ final class MessageTemplates
     public static function email(string $key, string $locale, array $values, string $defaultSubject, string $defaultBody): array
     {
         $override = self::override($key, MessageTemplateCatalog::Email, $locale);
-        if ($override instanceof MessageTemplate) {
+        if ($override !== null) {
             $allowed = MessageTemplateCatalog::placeholdersOf($key, MessageTemplateCatalog::Email);
-            $subject = self::fill((string) ($override->subject ?? ''), $values, $allowed);
-            $body = self::fill((string) $override->body, $values, $allowed);
+            $subject = self::fill($override['subject'], $values, $allowed);
+            $body = self::fill($override['body'], $values, $allowed);
             if ($subject !== null && $body !== null && trim($subject) !== '' && trim($body) !== '') {
                 return ['subject' => $subject, 'body' => $body];
             }
@@ -92,17 +93,24 @@ final class MessageTemplates
         return $broken ? null : $text;
     }
 
-    /** The saved, switched-on text for one template, or null. Never throws. */
-    public static function override(string $key, string $channel, string $locale): ?MessageTemplate
+    /**
+     * The saved, switched-on text for one template, or null. Never throws. Plain arrays are cached,
+     * not models, so a worker that has not loaded the model class can still read them.
+     *
+     * @return array{subject: string, body: string}|null
+     */
+    public static function override(string $key, string $channel, string $locale): ?array
     {
         try {
-            $all = Cache::remember(self::CacheKey, 300, fn (): array => MessageTemplate::query()->where('active', true)->get()->all());
+            $all = Cache::remember(self::CacheKey, 300, fn (): array => MessageTemplate::query()->where('active', true)->get()
+                ->map(fn (MessageTemplate $row): array => ['key' => $row->key, 'channel' => $row->channel, 'locale' => $row->locale, 'subject' => (string) $row->subject, 'body' => (string) $row->body])
+                ->all());
             foreach ($all as $row) {
-                if ($row->key === $key && $row->channel === $channel && $row->locale === $locale) {
-                    return $row;
+                if ($row['key'] === $key && $row['channel'] === $channel && $row['locale'] === $locale) {
+                    return ['subject' => $row['subject'], 'body' => $row['body']];
                 }
             }
-        } catch (\Throwable $exception) {
+        } catch (Throwable $exception) {
             Log::warning('message_template.read_failed', ['error' => RedactedError::message($exception)]);
         }
 
