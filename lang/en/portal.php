@@ -6554,6 +6554,7 @@ return [
     'section_hint_login_rules' => 'Turn the partner login SMS code and the password-reset notice on or off.',
     'section_hint_settings' => 'Every page of company rules and connections in one place.',
     'section_hint_more' => 'The pages used less often, in one place, each with a line on what it is for.',
+    'section_hint_partner_more' => 'The pages used less often, in one place: training, meetings, sales kit, contests and more.',
     'perm_support_desk' => 'Support desk',
     'perm_support_desk_hint' => 'Answer partner support requests and website enquiries.',
     'nav_commission_hub' => 'Commission rules & rates',
