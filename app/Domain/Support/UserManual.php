@@ -445,6 +445,7 @@ final class UserManual
             $this->ch('parcel_received_back', ['staff', 'owner'], 4, 3, 1, 1, ['returned', 'parcel', 'received back', 'courier', 'ফেরত', 'পার্সেল', 'পার্সেল ফেরত পেয়েছি', 'কুরিয়ার']),
             $this->ch('mixed_delivery_decision', ['staff', 'owner'], 5, 1, 1, 1, ['mixed', 'decision', 'delivered', 'returned', 'needs staff decision', 'সিদ্ধান্ত', 'ফেরত', 'ডেলিভারি']),
             $this->ch('manual_couriers', ['staff', 'owner'], 6, 1, 1, 1, ['courier', 'manual', 'sundarban', 'sa paribahan', 'karatoa', 'janani', 'continental', 'consignment', 'কুরিয়ার', 'সুন্দরবন', 'করতোয়া', 'জননী', 'কনসাইনমেন্ট']),
+            $this->ch('manual_message_templates', ['staff', 'owner'], 6, 1, 2, 2, ['template', 'sms', 'email', 'message', 'text', 'টেমপ্লেট', 'এসএমএস', 'ইমেইল', 'বার্তা', 'লেখা']),
             $this->ch('global_search', ['staff', 'owner'], 3, 1, 1, 1, ['search', 'ctrl k', 'find', 'order number', 'sku', 'খুঁজুন', 'অর্ডার নম্বর']),
             $this->ch('company_funds_heads', ['staff', 'owner'], 4, 1, 1, 1, ['company funds', 'expense head', 'spend', 'tour fund', 'report', 'কোম্পানির ফান্ড', 'খরচের খাত', 'ট্যুর ফান্ড']),
             $this->ch('accounting_statements', ['staff', 'owner'], 3, 1, 1, 2, ['accounting', 'trial balance', 'profit and loss', 'balance sheet', 'journal', 'হিসাব', 'ট্রায়াল ব্যালেন্স', 'লাভ-ক্ষতি', 'ব্যালেন্স শিট', 'জার্নাল']),
