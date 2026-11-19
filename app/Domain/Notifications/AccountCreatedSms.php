@@ -22,19 +22,19 @@ final class AccountCreatedSms
 
     public function send(User $user, string $plainPassword): bool
     {
-        return $this->deliverTemporaryPassword($user, $plainPassword, 'account_created', 'account_created_redacted', 'account.created', true);
+        return $this->deliverTemporaryPassword($user, $plainPassword, 'account_created', 'account.created', true);
     }
 
     public function sendPasswordReset(User $user, string $plainPassword): bool
     {
-        return $this->deliverTemporaryPassword($user, $plainPassword, 'password_reset_by_admin', 'password_reset_by_admin_redacted', 'account.password_reset');
+        return $this->deliverTemporaryPassword($user, $plainPassword, 'password_reset_by_admin', 'account.password_reset');
     }
 
     /**
      * @param  bool  $smsOnly  A new person's password goes by SMS or not at all, so a failed SMS never turns into
      *                         a plain password in an email. The caller sends a set-your-password link instead.
      */
-    private function deliverTemporaryPassword(User $user, string $plainPassword, string $messageKey, string $redactedKey, string $logPrefix, bool $smsOnly = false): bool
+    private function deliverTemporaryPassword(User $user, string $plainPassword, string $messageKey, string $logPrefix, bool $smsOnly = false): bool
     {
         $phone = preg_replace('/\D+/', '', (string) $user->phone) ?: '';
         $locale = $this->localeFor($user);
@@ -111,8 +111,10 @@ final class AccountCreatedSms
                 'user_id' => $user->id,
                 'phone' => $phone,
                 'password_delivered' => true,
-                'message_redacted' => SmsText::make('sms.'.$redactedKey, [
+                // The same template as the sent text, with the password hidden, so the log shows what really goes out.
+                'message_redacted' => SmsText::make('sms.'.$messageKey, [
                     'username' => $phone,
+                    'password' => '[REDACTED]',
                 ]),
             ]);
             if ($driver === 'array') {
