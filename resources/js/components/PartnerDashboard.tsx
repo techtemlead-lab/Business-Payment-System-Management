@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
-import { CalendarDays, Mail, MapPin, Phone, Store, Users } from 'lucide-react';
+import { CalendarDays, Landmark, Mail, MapPin, Store, Users } from 'lucide-react';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from './MoneyTable';
 import { ProfilePhoto } from './ProfilePhoto';
 import { date, money, number, type Row } from './UI';
@@ -27,11 +27,11 @@ function ProfileCard({ card }: { card: Row }) {
         <aside className="pd-card pd-profile" data-tour="home-profile" aria-label={String(card.name ?? '')}>
             <div className="pd-photo"><ProfilePhoto src={card.photo_url} initial={card.initial || '?'} variant="cover" /></div>
             <h2 className="pd-name">{card.name}</h2>
-            <p className="pd-type">{translate('cr_partner', type)}</p>
+            <p className="pd-type" data-testid="home-appointment">{card.appointment?.line || translate('cr_partner', type)}</p>
             {card.shop_name && <p className="pd-shop"><Store size={16} aria-hidden="true" /> {card.shop_name}</p>}
             <dl className="pd-lines">
-                {card.area && <CardLine icon={<MapPin size={16} />} label={translate('cr_partner', 'card_area')}>{card.area}</CardLine>}
-                {card.phone && <CardLine icon={<Phone size={16} />} label={translate('cr_partner', 'card_mobile')}>{card.phone}</CardLine>}
+                {card.appointment?.area && <CardLine icon={<Landmark size={16} />} label={translate('cr21_identity', 'label_area')}>{card.appointment.area}</CardLine>}
+                {card.area && <CardLine icon={<MapPin size={16} />} label={translate('cr21_identity', 'label_address')}>{card.area}</CardLine>}
                 {card.email && <CardLine icon={<Mail size={16} />} label={translate('cr_partner', 'card_email')}>{card.email}</CardLine>}
                 {card.joined_on && <CardLine icon={<CalendarDays size={16} />} label={translate('cr_partner', 'card_joined')}>{date(card.joined_on.split('/').reverse().join('-'))}</CardLine>}
             </dl>
@@ -44,14 +44,40 @@ function ProfileCard({ card }: { card: Row }) {
     );
 }
 
+/** The identity boxes at the top of the middle column: mobile, code, rank, this month's purchase and what is left of the target. */
+function IdentityBoxes({ card }: { card: Row }) {
+    const translate = useT();
+    const c = (key: string) => translate('cr21_identity', key);
+    const isSub = card.type === 'sub_dealer';
+    const targetLeft = card.target_left === null || card.target_left === undefined
+        ? null
+        : Number(card.target_left) > 0 ? money(card.target_left) : c('target_done');
+    const boxes: [string, React.ReactNode][] = [
+        [c('label_mobile'), card.phone],
+        [c(isSub ? 'label_code_sub_dealer' : 'label_code_dealer'), card.code],
+        ...(card.rank ? [[c('label_rank'), translate('portal', `net_rank_${card.rank}`)] as [string, React.ReactNode]] : []),
+        [c('label_month_purchase'), money(card.month_purchase ?? 0)],
+        ...(targetLeft !== null ? [[c('label_target_left'), targetLeft] as [string, React.ReactNode]] : []),
+    ];
+
+    return (
+        <dl className="pd-card pd-idboxes" data-testid="home-idboxes">
+            {boxes.filter(([, value]) => value !== null && value !== undefined && value !== '').map(([label, value]) => (
+                <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
+            ))}
+        </dl>
+    );
+}
+
 /** Middle column: the three big figures, then the income head by head. */
-function MoneyColumn({ totals, cards, held }: { totals: Row; cards?: IncomeCard[]; held?: Row }) {
+function MoneyColumn({ totals, cards, held, card }: { totals: Row; cards?: IncomeCard[]; held?: Row; card: Row }) {
     const translate = useT();
     const { portalBase: base } = usePage<any>().props;
     const heldLines: Row[] = held?.lines ?? [];
 
     return (
         <section className="pd-middle" data-tour="home-metrics" aria-label={translate('my_money', 'title')}>
+            <IdentityBoxes card={card} />
             <div className="pd-card pd-totals">
                 <div><span>{translate('cr_partner', 'total_income')}</span><strong>{money(totals.income)}</strong></div>
                 <div title={translate('cr_partner', 'total_withdrawn_hint')}><span>{translate('cr_partner', 'total_withdrawn')}</span><strong>{money(totals.withdrawn)}</strong></div>
@@ -102,7 +128,7 @@ export function DashboardGrid({ home, moneyCards, targetsPanel }: { home: Row; m
         <div className="pd-wrap">
             <div className="pd-grid">
                 <ProfileCard card={home.card ?? {}} />
-                <MoneyColumn totals={home.totals ?? {}} cards={moneyCards} held={home.wallet?.commission_held} />
+                <MoneyColumn totals={home.totals ?? {}} cards={moneyCards} held={home.wallet?.commission_held} card={home.card ?? {}} />
                 <div className="pd-right">{targetsPanel}</div>
             </div>
         </div>
