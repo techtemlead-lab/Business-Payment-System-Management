@@ -13,6 +13,7 @@ use App\Http\Middleware\ThrottleEachAction;
 use App\Listeners\NoticeNewStaffDevice;
 use App\Models\User;
 use App\Support\LocalDigits;
+use Illuminate\Notifications\Messages\MailMessage;
 use App\Support\PasswordVault;
 use App\Support\PortalHost;
 use App\Support\SiteCustomization;
@@ -153,10 +154,25 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(QueueBusy::class, function (QueueBusy $event): void {
             Log::critical('Queue backlog exceeded its threshold.', ['connection' => $event->connectionName, 'queue' => $event->queue, 'size' => $event->size]);
         });
-        ResetPassword::createUrlUsing(function ($user, string $token) {
+        $resetUrl = function ($user, string $token): string {
             $portal = $user instanceof User ? PortalHost::forUser($user) : 'dealer';
 
             return PortalHost::url($portal, '/reset-password/'.$token.'?email='.urlencode((string) $user->email));
+        };
+        ResetPassword::createUrlUsing($resetUrl);
+        // The whole reset mail in the reader's language, with Bangla digits (B5); the framework's English greeting
+        // and sign-off are replaced here, and its footer words live in lang/*.json.
+        ResetPassword::toMailUsing(function ($notifiable, string $token) use ($resetUrl): MailMessage {
+            $minutes = (int) config('auth.passwords.'.config('auth.defaults.passwords').'.expire');
+
+            return (new MailMessage)
+                ->subject(__('Reset your password'))
+                ->greeting(__('qa_fixes.mail_greeting', ['name' => (string) ($notifiable->name ?? '')]))
+                ->line(__('You are receiving this email because we received a password reset request for your account.'))
+                ->action(__('Reset Password'), $resetUrl($notifiable, $token))
+                ->line(__('This password reset link will expire in :count minutes.', ['count' => LocalDigits::text($minutes)]))
+                ->line(__('If you did not request a password reset, no further action is required.'))
+                ->salutation(__('qa_fixes.mail_regards').' '.config('app.name'));
         });
 
         View::composer('*', function ($view) {

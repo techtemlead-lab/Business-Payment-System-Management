@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Database\Seeders\CommissionRuleSeeder;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -83,5 +84,20 @@ class QaBugFixesTest extends TestCase
     public function test_b7_the_office_cash_method_is_named_plainly(): void
     {
         $this->assertSame('অফিসে নগদ', __('portal.pay_channel_office', [], 'bn'));
+    }
+
+    public function test_b5_the_password_reset_mail_is_all_bangla_with_bangla_digits(): void
+    {
+        $dealer = User::factory()->dealer()->create();
+        app()->setLocale('bn');
+        $mail = (new ResetPassword('token'))->toMail($dealer);
+        $html = (string) $mail->render();
+
+        foreach (['Hello', 'Regards', 'All rights reserved', "If you're having trouble", 'minutes'] as $english) {
+            $this->assertStringNotContainsString($english, $html);
+        }
+        $this->assertStringContainsString('৬০ মিনিট', $html);
+        $this->assertStringContainsString('ধন্যবাদ', $html);
+        $this->assertStringContainsString('সর্বস্বত্ব সংরক্ষিত', $html);
     }
 }
