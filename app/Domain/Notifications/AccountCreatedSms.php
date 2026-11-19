@@ -5,6 +5,7 @@ namespace App\Domain\Notifications;
 use App\Domain\Integrations\SmsGatewayClient;
 use App\Domain\Integrations\SmtpMailConfig;
 use App\Models\User;
+use App\Support\PortalHost;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -68,9 +69,15 @@ final class AccountCreatedSms
         if (! $smsOnly && $this->smtp->enabled() && filled($user->email)) {
             $this->smtp->apply();
             try {
-                Mail::raw((string) __('sms.'.$messageKey, $replace, $locale), function ($mail) use ($user): void {
-                    $mail->to((string) $user->email)
-                        ->subject(__('portal.notice_account_invite_title', [], $this->localeFor($user)));
+                // The email's words can be re-worded in the message templates; with no saved text it is today's text.
+                $text = MessageTemplates::email(MessageTemplateCatalog::CredentialsMailKey, $locale, [
+                    ...$replace,
+                    'name' => (string) $user->name,
+                    'link' => PortalHost::url(PortalHost::forUser($user), '/'),
+                    'company' => (string) (config('mail.from.name') ?: config('app.name')),
+                ], (string) __('portal.notice_account_invite_title', [], $locale), (string) __('sms.'.$messageKey, $replace, $locale));
+                Mail::raw($text['body'], function ($mail) use ($user, $text): void {
+                    $mail->to((string) $user->email)->subject($text['subject']);
                 });
                 Log::info($logPrefix.'.mail.smtp', [
                     'user_id' => $user->id,
