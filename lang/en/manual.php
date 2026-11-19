@@ -1427,7 +1427,7 @@ return [
     'office_dashboard_summary' => 'At the top of the dashboard are two buttons. Under them are today’s numbers, and under those is one area of lists. Press a list name to open that list.',
     'office_dashboard_purpose' => 'Your daily work can start from one page, so you do not have to hunt for other pages.',
     'office_dashboard_why' => 'A list that is outside your work is not shown. If you see fewer lists than someone else, nothing is broken.',
-    'office_dashboard_s1' => 'Press “Add a new dealer” at the top to open the new account form. Press “Add a new product” to open the new product form.',
+    'office_dashboard_s1' => 'Press “Add a new dealer” at the top to open the new dealer form. Press “Add a new sub-dealer” to open the new sub-dealer form. Press “Add a new product” to open the new product form.',
     'office_dashboard_s2' => 'If a button is missing, you have not been given that permission. Ask the owner.',
     'office_dashboard_s3' => 'To find an order, type the order number, phone number or name in the order search box and press “Search”.',
     'office_dashboard_s4' => 'Under the number cards the list names are laid out: Orders, Accounts, Withdrawals, Payments to check, New applications, Low stock. Press the one you want to see.',

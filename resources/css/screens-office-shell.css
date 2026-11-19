@@ -142,7 +142,7 @@ html[data-text-size="large"] .app-shell:is(.owner-shell,.company-shell){--ds-fs-
 .app-shell .office-find-order label{display:flex;flex:1;flex-direction:column;gap:4px;min-width:0;font-size:var(--ds-fs-sm);font-weight:600}
 .app-shell .office-find-order input{width:100%;min-height:44px}
 .app-shell .office-shortcuts .button{min-height:44px;display:inline-flex;align-items:center;justify-content:center}
-@media (max-width:600px){.app-shell .office-shortcuts .office-new-account{flex:1 1 100%}}
+@media (max-width:600px){.app-shell .office-shortcuts :is(.office-new-account,.office-new-sub-dealer){flex:1 1 100%}}
 
 /* CR-18: the add buttons at the top and the one tabbed table under the figures. */
 .app-shell .office-add-buttons{display:flex;flex-wrap:wrap;gap:var(--ds-s-3);order:-1;flex:1 1 100%}
