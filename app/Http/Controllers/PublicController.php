@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Accounts\AccountPhoneRules;
 use App\Domain\Accounts\PartnerAge;
 use App\Domain\Accounts\PartnerFormerCodes;
+use App\Domain\Accounts\PartnerJoinLink;
 use App\Domain\Audience\PartnerProductEnquiries;
 use App\Domain\Audience\PublicPartnerApplication;
 use App\Domain\Audience\PublicPartnerPlaces;
@@ -564,6 +565,10 @@ class PublicController extends Controller
     {
         $normalized = strtoupper(trim($code));
         abort_if($normalized === '' || strlen($normalized) > 40, 404);
+        // With the join link off nobody can apply under a partner: the old link opens the plain application page.
+        if (! PartnerJoinLink::enabled()) {
+            return redirect('/partnership#partner-apply');
+        }
 
         $forms = PlaceCode::serialForms($normalized);
         $partner = User::query()
@@ -638,6 +643,9 @@ class PublicController extends Controller
             $data['phone'] = $phones->normalize($data['phone']);
             if ($phones->isTaken($data['phone'])) {
                 throw ValidationException::withMessages(['phone' => __('portal.err_public_app_phone_taken')]);
+            }
+            if (! PartnerJoinLink::enabled()) {
+                $data['sponsor_code'] = null;
             }
             if (! empty($data['sponsor_code'])) {
                 $data['sponsor_code'] = strtoupper(trim((string) $data['sponsor_code']));

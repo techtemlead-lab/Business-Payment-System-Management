@@ -56,7 +56,7 @@ export default function PartnerProfileCard({card}:{card:Row}){
 
   {card.refer_code&&<><h3>{p('card_my_code_link')}</h3>
    <p><b>{card.refer_code}</b></p>
-   <p className="ops-row is-wrap"><a href={card.refer_url} className="text-link">{card.refer_url}</a> <button type="button" className="button small" onClick={copyLink}><Copy size={14}/> {copied?p('card_copied'):p('card_copy')}</button></p></>}
+   {card.refer_url&&<p className="ops-row is-wrap"><a href={card.refer_url} className="text-link">{card.refer_url}</a> <button type="button" className="button small" onClick={copyLink}><Copy size={14}/> {copied?p("card_copied"):p("card_copy")}</button></p>}</>}
 
   <div className="notice">{card.locked?<Lock size={19}/>:<LockOpen size={19}/>}<div><p>{p(card.locked?'lock_locked':'lock_open')}</p></div></div>
   {!card.locked&&<><h3>{p('lock_form_title')}</h3>

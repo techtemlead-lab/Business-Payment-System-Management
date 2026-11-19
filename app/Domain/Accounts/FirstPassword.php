@@ -47,6 +47,15 @@ final class FirstPassword
     /**
      * The one-time line staff see after the account is made. Plain words for someone who is not technical.
      */
+    /** When the office typed the password itself it is not shown again; the partner may change it later. */
+    public static function typedNotice(User $user): string
+    {
+        return __('leftovers_office.first_password_typed_notice', [
+            'name' => $user->name,
+            'login' => filled($user->phone) ? $user->phone : (string) $user->email,
+        ]);
+    }
+
     public static function notice(User $user, string $plain): string
     {
         return __('joining.first_password_notice', [

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Calendar as CalendarIcon } from 'lucide-react';
-import { toDisplayDate, toIsoDate } from '../business-date';
+import { parseTypedDate, toDisplayDate, toIsoDate } from '../business-date';
 import { useT } from '../shared/i18n/t';
 
 export type DateChangeEvent = { target: { value: string; name?: string } };
@@ -13,9 +13,6 @@ export interface DateInputProps extends Omit<React.InputHTMLAttributes<HTMLInput
     wrapperClassName?: string;
     placeholder?: string;
 }
-
-/** Bangla digits typed on a Bangla keyboard read the same as 0-9. */
-const latinDigits = (value: string): string => value.replace(/[০-৯]/g, (digit) => String('০১২৩৪৫৬৭৮৯'.indexOf(digit)));
 
 export default function DateInput({
     value,
@@ -48,10 +45,15 @@ export default function DateInput({
     useEffect(() => {
         if (value !== undefined) {
             const nextIso = toIsoDate(value);
+            // What this box just told the parent comes back as the same value: leave the typing alone.
+            if (nextIso === isoVal) {
+                return;
+            }
             const nextDisplay = toDisplayDate(value, separator);
             setIsoVal(nextIso);
             setDisplayVal(nextDisplay);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [value, separator]);
 
     const notifyChange = (newIso: string) => {
@@ -71,33 +73,24 @@ export default function DateInput({
             return;
         }
 
-        // Check if user has entered a valid DD/MM/YYYY or DD-MM-YYYY date
-        const cleaned = latinDigits(raw.trim());
-        const dmyMatch = cleaned.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
-        if (dmyMatch) {
-            const d = parseInt(dmyMatch[1], 10);
-            const m = parseInt(dmyMatch[2], 10);
-            const y = parseInt(dmyMatch[3], 10);
-            if (m >= 1 && m <= 12 && d >= 1 && d <= 31 && y >= 1900 && y <= 2100) {
-                const normalizedIso = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                notifyChange(normalizedIso);
-            }
+        // A whole real date (15/06/1990, 15-6-1990, Bangla digits) is taken at once. Anything else drops the
+        // date held before, so half-typed text can never submit an old value.
+        const typed = parseTypedDate(raw);
+        if (typed) {
+            notifyChange(typed);
+        } else if (isoVal !== '') {
+            notifyChange('');
         }
     };
 
-    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-        const raw = latinDigits(displayVal.trim());
+    const handleBlur = () => {
+        const raw = displayVal.trim();
         if (!raw) return;
 
-        const dmyMatch = raw.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
-        if (dmyMatch) {
-            const d = dmyMatch[1].padStart(2, '0');
-            const m = dmyMatch[2].padStart(2, '0');
-            const y = dmyMatch[3];
-            const normalizedDisplay = `${d}${separator}${m}${separator}${y}`;
-            const normalizedIso = `${y}-${m}-${d}`;
-            setDisplayVal(normalizedDisplay);
-            notifyChange(normalizedIso);
+        const typed = parseTypedDate(raw);
+        if (typed) {
+            setDisplayVal(toDisplayDate(typed, separator));
+            notifyChange(typed);
         } else if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
             setDisplayVal(toDisplayDate(raw, separator));
             notifyChange(raw);

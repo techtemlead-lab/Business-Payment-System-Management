@@ -90,7 +90,7 @@ final class PartnerDashboardHome
             'card' => $this->card($user, $profile) + $this->identityTop($user, $targets, $month),
             'totals' => $this->totals($user),
             'targets' => $targets,
-            'referral' => $user->refer_code ? [
+            'referral' => $user->refer_code && PartnerJoinLink::enabled() ? [
                 'code' => $user->refer_code,
                 'url' => PortalHost::url('public', '/join/'.$user->refer_code),
                 'qr_url' => '/referral-qr.svg',
