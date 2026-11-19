@@ -73,8 +73,9 @@ function IdentityBoxes({ card }: { card: Row }) {
 /** Middle column: the three big figures, then the income head by head. */
 function MoneyColumn({ totals, cards, held, card }: { totals: Row; cards?: IncomeCard[]; held?: Row; card: Row }) {
     const translate = useT();
-    const { portalBase: base } = usePage<any>().props;
+    const { portalBase: base, portalCatalog } = usePage<any>().props;
     const heldLines: Row[] = held?.lines ?? [];
+    const mayWithdraw: boolean = (portalCatalog?.sections ?? []).includes('my-money');
 
     return (
         <section className="pd-middle" data-tour="home-metrics" aria-label={translate('my_money', 'title')}>
@@ -107,7 +108,11 @@ function MoneyColumn({ totals, cards, held, card }: { totals: Row; cards?: Incom
             <div className="pd-card pd-heads">
                 <div className="pd-heads-top">
                     <h3>{translate('cr_partner', 'heads_title')}</h3>
-                    <Link className="text-link" href={`${base}/my-money`}>{translate('cr_partner', 'open_wallet')}</Link>
+                    <div className="pd-heads-actions">
+                        {/* The most wanted action sits on the home page; the wallet opens its withdrawal dialog (findability #2). */}
+                        {mayWithdraw && <Link className="button small dark" href={`${base}/my-money?withdraw=1`} data-testid="home-withdraw">{translate('findability', 'btn_withdraw')}</Link>}
+                        <Link className="text-link" href={`${base}/my-money`}>{translate('cr_partner', 'open_wallet')}</Link>
+                    </div>
                 </div>
                 {cards === undefined && <p className="muted" aria-busy="true">{translate('cr_partner', 'report_loading')}</p>}
                 {cards !== undefined && cards.length === 0 && <p className="muted">{translate('cr_partner', 'heads_empty')}</p>}

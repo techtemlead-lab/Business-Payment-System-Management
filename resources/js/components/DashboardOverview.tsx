@@ -261,6 +261,14 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
             {/* The big easy-way buttons sit under the money and targets, above the long report. */}
             <CallMeCard />
 
+            {Number(home.follow_up_due ?? 0) > 0 && sections.includes('customers') && (
+                <Link href={`${base}/customers?status=due`} className="ph-card ph-follow-up" data-testid="home-follow-up">
+                    <Phone size={20} aria-hidden="true" />
+                    <span><b>{translate('findability', 'follow_up_card', { count: number(home.follow_up_due) })}</b><small>{translate('findability', 'follow_up_hint')}</small></span>
+                    <ArrowUpRight size={16} aria-hidden="true" />
+                </Link>
+            )}
+
             <IncomeReport />
 
             <section className="ph-today" data-tour="home-metrics" aria-labelledby="ph-today-title">
@@ -452,14 +460,16 @@ function officeFigures(home: Row, base: string, caps: string[], translate: Retur
 }
 
 /** What the office does all day, one step from the dashboard: add a dealer, add a product, and open an order by its number, phone or name. */
-function OfficeShortcuts({ base, caps }: { base: string; caps: string[] }) {
+function OfficeShortcuts({ base, caps, stockCreate, hasSalary }: { base: string; caps: string[]; stockCreate: boolean; hasSalary: boolean }) {
     const translate = useT();
     const [words, setWords] = useState('');
     const mayCreate = caps.includes('accounts');
     const mayFind = caps.includes('orders') || caps.includes('finance');
     // The same two rights the add-product page asks for.
     const mayAddProduct = caps.includes('catalog') && caps.includes('pricing');
-    if (!mayCreate && !mayFind && !mayAddProduct) {
+    // Stock in and out: the same rights the stock page's own buttons ask for (findability #7).
+    const mayMoveStock = caps.includes('inventory') && stockCreate;
+    if (!mayCreate && !mayFind && !mayAddProduct && !mayMoveStock && !hasSalary) {
         return null;
     }
 
@@ -483,20 +493,29 @@ function OfficeShortcuts({ base, caps }: { base: string; caps: string[] }) {
                     <button type="submit" className="button dark">{translate('office_shell', 'find_order_button')}</button>
                 </form>
             )}
-            {(mayCreate || mayAddProduct) && (
+            {(mayCreate || mayAddProduct || mayMoveStock) && (
                 <div className="office-add-buttons">
                     {/* One button for each kind of account: a sub-dealer has its own form (the same right, "accounts", opens both). */}
                     {mayCreate && <Link className="button dark office-new-account" href={`${base}/accounts/create`}>{translate('cr18', 'btn_new_dealer')}</Link>}
                     {mayCreate && <Link className="button dark office-new-sub-dealer" href={`${base}/accounts/create?intent=sub_dealer`}>{translate('leftovers_office', 'btn_new_sub_dealer')}</Link>}
                     {mayAddProduct && <Link className="button office-new-product" href={`${base}/products/create`}>{translate('cr18', 'btn_new_product')}</Link>}
+                    {mayMoveStock && <Link className="button dark office-stock-in" href={`${base}/inventory?action=stock_in`}>{translate('findability', 'btn_stock_in')}</Link>}
+                    {mayMoveStock && <Link className="button office-stock-out" href={`${base}/inventory?action=stock_out`}>{translate('findability', 'btn_stock_out')}</Link>}
                 </div>
+            )}
+            {hasSalary && (
+                <Link className="office-my-salary" href={`${base}/operations/my-payroll`} data-testid="home-my-salary">
+                    <Wallet size={20} aria-hidden="true" />
+                    <span><b>{translate('findability', 'my_salary_title')}</b><small>{translate('findability', 'my_salary_hint')}</small></span>
+                    <ArrowUpRight size={16} aria-hidden="true" />
+                </Link>
             )}
         </section>
     );
 }
 
 function AdminHome({ home }: { home: Row }) {
-    const { auth, portalBase: base } = usePage<any>().props;
+    const { auth, portalBase: base, staffActions } = usePage<any>().props;
     const translate = useT();
     const figures = officeFigures(home, base, auth.capabilities ?? [], translate);
     // CR-16: the owner's list leaves out work a staff member finishes; the figures above still count it.
@@ -511,7 +530,7 @@ function AdminHome({ home }: { home: Row }) {
             <div className="office-home">
                 {home.start_books && <StartBooksCard />}
                 {/* The tour step talks about the numbers, so it is skipped for staff who get none here. */}
-                <OfficeShortcuts base={base} caps={auth.capabilities ?? []} />
+                <OfficeShortcuts base={base} caps={auth.capabilities ?? []} stockCreate={Boolean(staffActions?.inventory?.create)} hasSalary={home.has_salary_record === true} />
                 {figures.length > 0 && <div data-tour="home-metrics"><Figures items={figures} /></div>}
                 {sections.length > 0 && (
                     <div className="osb-grid">

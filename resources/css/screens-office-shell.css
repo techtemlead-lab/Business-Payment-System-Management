@@ -226,3 +226,13 @@ html[data-text-size="large"] .app-shell:is(.owner-shell,.company-shell){--ds-fs-
   .app-shell:is(.owner-shell,.company-shell) .workspace-header .profile-menu-trigger .user-caption{max-width:130px}
   .app-shell:is(.owner-shell,.company-shell) .workspace-header .profile-menu-trigger .user-caption :is(b,span){display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 }
+
+/* Findability: the salary card on the office dashboard */
+.office-my-salary{display:flex;align-items:center;gap:14px;min-height:56px;padding:12px 16px;border:1px solid var(--border,#e2e8f0);border-radius:12px;background:var(--surface,#fff);color:inherit;text-decoration:none;margin-top:12px}
+.office-my-salary span{display:grid;gap:2px;flex:1;line-height:1.4}
+.office-my-salary small{color:var(--muted,#64748b);font-size:.875rem}
+
+/* Findability: "spend from a fund" on the Funds tab */
+.tsy-spend-choice{margin:0 0 16px}
+.tsy-spend-choice ul{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.tsy-spend-choice [role="group"]{margin-top:10px;padding:12px;border:1px solid var(--border,#e2e8f0);border-radius:12px}

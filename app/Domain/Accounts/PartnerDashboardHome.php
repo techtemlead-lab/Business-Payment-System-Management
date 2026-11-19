@@ -8,6 +8,7 @@ use App\Domain\Notifications\BirthdayGreetings;
 use App\Domain\Orders\DeliveredMoney;
 use App\Models\DealerRank;
 use App\Models\Order;
+use App\Models\PartnerCustomer;
 use App\Models\ReferralTreePath;
 use App\Models\RewardMilestoneProgress;
 use App\Models\User;
@@ -34,7 +35,8 @@ final class PartnerDashboardHome
      *   referral: array{code: string, url: string, qr_url: string}|null,
      *   sponsor: array{id: int, name: string, dealer_code: string|null, phone: string|null}|null,
      *   wallet: array{available: string, pending_withdrawal: string, commission_waiting: array{total: string, amounts: list<array{ready_on: ?string, amount: string}>}, commission_held: array{total: string, count: int, lines: list<array<string, mixed>>}},
-     *   is_birthday: bool
+     *   is_birthday: bool,
+     *   follow_up_due: int
      * }
      */
     public function for(User $user): array
@@ -100,7 +102,18 @@ final class PartnerDashboardHome
             'wallet' => [...$this->walletSummary($user), 'commission_waiting' => $this->earnings->waitingCommission($user), 'commission_held' => $this->moneyBook->heldCommission($user, 3)],
             // Shows a small "happy birthday" card; read from the profile already loaded, no query.
             'is_birthday' => BirthdayGreetings::isBirthdayToday($user),
+            // Customers the partner meant to call today or earlier: the home page's "call today" card.
+            'follow_up_due' => $this->followUpsDue($user),
         ];
+    }
+
+    private function followUpsDue(User $user): int
+    {
+        return PartnerCustomer::query()
+            ->where('partner_id', $user->id)
+            ->whereNotNull('follow_up_on')
+            ->where('follow_up_on', '<=', CustomerBook::today())
+            ->count();
     }
 
     /**
