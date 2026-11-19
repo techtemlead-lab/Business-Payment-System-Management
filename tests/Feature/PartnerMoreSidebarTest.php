@@ -125,6 +125,18 @@ class PartnerMoreSidebarTest extends TestCase
         $this->assertNull(BanglaPlaceNames::translate([])['division']);
     }
 
+    /** R1: a Pourashava or a city corporation is not in the geo union list; the place-code data names it. */
+    public function test_pourashava_and_city_corporation_names_are_bangla(): void
+    {
+        foreach (['Saidpur Pourashava', 'Saidpur Paurashava', 'Saidpur Municipality', 'saidpur pourashava'] as $spelling) {
+            $this->assertSame('সৈয়দপুর পৌরসভা', BanglaPlaceNames::translate(['division' => 'Rangpur', 'district' => 'Nilphamari', 'upazila' => 'Saidpur', 'union' => $spelling])['union'], $spelling);
+        }
+        $this->assertSame('সৈয়দপুর পৌরসভা', BanglaPlaceNames::translate(['union' => 'Saidpur Pourashava'])['union']);
+        $this->assertSame('রংপুর সিটি কর্পোরেশন', BanglaPlaceNames::translate(['union' => 'Rangpur City Corporation'])['union']);
+        $this->assertSame('ঢাকা মহানগর', BanglaPlaceNames::translate(['division' => 'Dhaka', 'district' => 'Dhaka', 'upazila' => 'Dhaka Metro'])['upazila']);
+        $this->assertSame('Nowhere Pourashava', BanglaPlaceNames::translate(['upazila' => 'Nowhere', 'union' => 'Nowhere Pourashava'])['union']);
+    }
+
     public function test_a_place_is_looked_up_inside_its_own_district(): void
     {
         $inRangpur = BanglaPlaceNames::translate(['division' => 'Rangpur', 'district' => 'Rangpur', 'upazila' => 'Rangpur Sadar']);
