@@ -8,5 +8,5 @@ return [
     'wait_save' => 'Save waiting time',
     'wait_owner_only' => 'Only the owner can change this.',
     'err_wait_hours' => 'Type a whole number of hours from 0 to :max.',
-    'wd_wait_reason' => 'The phone number, password or payout account of this account was changed a short while ago. For your safety, you can request a withdrawal again from :time.',
+    'wd_wait_reason' => 'The phone number, password or payout account of this account was changed a short while ago. For your safety, you can request a withdrawal from :time.',
 ];

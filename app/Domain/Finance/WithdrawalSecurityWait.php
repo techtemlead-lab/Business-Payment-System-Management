@@ -4,6 +4,7 @@ namespace App\Domain\Finance;
 
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\LocalDigits;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -99,6 +100,6 @@ final class WithdrawalSecurityWait
 
     private function localTime(CarbonImmutable $moment): string
     {
-        return $moment->timezone('Asia/Dhaka')->locale(app()->getLocale())->isoFormat('D MMM YYYY, h:mm A');
+        return LocalDigits::text($moment->timezone('Asia/Dhaka')->locale(app()->getLocale())->isoFormat('D MMM YYYY, h:mm A'));
     }
 }
