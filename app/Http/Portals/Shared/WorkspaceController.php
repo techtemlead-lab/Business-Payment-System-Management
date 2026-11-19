@@ -237,8 +237,8 @@ class WorkspaceController extends Controller
 
         // The dashboard report is its own page prop, so a tab or a filter reloads only it (see MoneyTable's `prop`).
         // The office dashboard's tab table (CR-18) is a page prop of its own for the same reason.
-        $extra = Arr::only($data, ['income_report', 'dash_tab']);
-        unset($data['income_report'], $data['dash_tab']);
+        $extra = Arr::only($data, ['income_report', 'dash_tab', 'dash_sections']);
+        unset($data['income_report'], $data['dash_tab'], $data['dash_sections']);
 
         return Inertia::render(PortalCatalog::page($portal), [...$extra, 'section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role', 'channel', 'category', 'sub_category', 'unit', 'min_mrp', 'max_mrp', 'availability', 'sort', 'period', 'from', 'to', 'division', 'district', 'rank', 'no_order_days', 'branch_id', 'all_branches', 'product_id', 'movement'])]);
     }

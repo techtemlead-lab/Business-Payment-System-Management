@@ -71,6 +71,33 @@ final class EventLog
         return $table;
     }
 
+    /**
+     * The newest entries, for the dashboard. The same rows and the same hiding of owner-only and
+     * payroll entries as the full log, without its filters.
+     *
+     * @return list<array{id: int, occurred_at: string, action_label: string, label: ?string, partner_name: ?string, order_number: ?string, amount: ?string}>
+     */
+    public function latest(User $viewer, string $portal, int $limit = 8): array
+    {
+        Cache::lock('money-events', 10)->get(fn () => $this->projector->catchUp(2000));
+        $showOwnerFunds = TreasuryAccess::showsOwnerFunds($viewer, $portal);
+        $mayReadPayroll = $viewer->owner() || $viewer->allows('payroll');
+
+        return DB::table('money_events as x')
+            ->when(! $showOwnerFunds, fn ($rows) => $rows->where('x.audience', '!=', 'owner'))
+            ->when(! $mayReadPayroll, fn ($rows) => $rows->where('x.audience', '!=', 'payroll'))
+            ->orderByDesc('x.occurred_at')->orderByDesc('x.id')->limit($limit)->get()
+            ->map(fn (object $row): array => [
+                'id' => (int) $row->id,
+                'occurred_at' => CarbonImmutable::parse((string) $row->occurred_at)->utc()->toIso8601String(),
+                'action_label' => (string) __('treasury.action_'.$row->action),
+                'label' => $this->labelOf($row),
+                'partner_name' => $row->partner_name,
+                'order_number' => $row->order_number,
+                'amount' => $row->amount === null ? null : (string) $row->amount,
+            ])->all();
+    }
+
     /** @return list<MoneyTableFilter> */
     private function filters(bool $showOwnerFunds): array
     {
