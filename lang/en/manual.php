@@ -1431,6 +1431,8 @@ return [
     'office_dashboard_s4' => 'Under the number cards the list names are laid out: Orders, Accounts, Withdrawals, Payments to check, New applications, Low stock. Press the one you want to see.',
     'office_dashboard_s5' => 'To search a list, type a name, number or phone and press “Search”. If there are many rows, press “Next” and “Previous” under the list.',
     'office_dashboard_s6' => 'To see the whole list, press “See all” on the right of the list. Press the first word of a row to open that order or account.',
+    'office_dashboard_s7' => 'Below are summary boxes: Money summary, Website analysis summary, Products and orders summary and Latest events. A box whose figures you may not see is not shown.',
+    'office_dashboard_s8' => 'Press “See the full page” on the right of a box to open the whole page on that subject. The figures can take a few seconds to appear.',
     'office_dashboard_o1' => 'From the dashboard you can reach a new dealer, a new product or any order.',
     'office_dashboard_t1' => 'In the morning, look at “Payments to check” and “Withdrawals” first. Partners are waiting on these.',
     'office_dashboard_w1' => 'A list appears a moment after the page. Wait a second or two and do not press again and again.',
