@@ -19,6 +19,7 @@ import TextSizeToggle from './TextSizeToggle';
 import ThemeToggle from './ThemeToggle';
 import TextSizeSwitch from './TextSizeSwitch';
 import { firstNameOf } from '../shared/personName';
+import { OPEN_MANUAL_EVENT } from '../shared/openManual';
 import { t, useT, useTranslations } from '../shared/i18n/t';
 import {
     type NavMother,
@@ -148,6 +149,11 @@ export default function Shell({ section, children, action }: { section: string; 
     const page = usePage<any>();
     const { auth, portalBase, portal, demoMode, dashboardNotice, dashboardControls, siteCustomization, siteBrand, unreadNotices = 0, navAttention = {}, tour, userManualChapters, workspaceBranches } = page.props;
     const [manualOpen, setManualOpen] = useState(false);
+    useEffect(() => {
+        const openGuide = () => setManualOpen(true);
+        window.addEventListener(OPEN_MANUAL_EVENT, openGuide);
+        return () => window.removeEventListener(OPEN_MANUAL_EVENT, openGuide);
+    }, []);
     const [menuQuery, setMenuQuery] = useState('');
     const unreadCount = Number(unreadNotices ?? 0);
     const attention = {
@@ -548,7 +554,8 @@ export default function Shell({ section, children, action }: { section: string; 
                     ) : <p className="sidebar-menu-empty">{translate('portal', 'search_menu_empty')}</p>}
                 </div>
 
-                <div className="sidebar-footer">
+                {/* Office: the guide is a box on "Other modules" and the compass in the header, so the sidebar keeps its height (CR-15). */}
+                {!staff && <div className="sidebar-footer">
                     <button
                         type="button"
                         className="sidebar-guide-button"
@@ -573,7 +580,7 @@ export default function Shell({ section, children, action }: { section: string; 
                             <Link href={`${base}/help#support-request`} onClick={() => setOpen(false)}>{translate('partner_hub', 'help_card_link')} <ArrowUpRight size={14} /></Link>
                         </div>
                     )}
-                </div>
+                </div>}
             </aside>
 
             <div className="workspace" inert={open}>

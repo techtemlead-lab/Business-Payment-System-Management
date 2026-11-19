@@ -15,12 +15,15 @@ final class PartnerAreaLine
     {
         $profile = PartnerProfileLock::profileOf($user);
 
-        return self::format([
+        $names = [
             'union' => $profile['union'] ?? null,
             'upazila' => $profile['upazila'] ?? null,
             'district' => $user->district,
             'division' => $user->division,
-        ]);
+        ];
+
+        // On a Bangla screen the place names are Bangla too (CR-14); a name that has no match is kept as saved.
+        return self::format(app()->getLocale() === 'bn' ? BanglaPlaceNames::translate($names) : $names);
     }
 
     /**

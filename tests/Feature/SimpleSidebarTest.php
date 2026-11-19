@@ -243,6 +243,16 @@ class SimpleSidebarTest extends TestCase
         }
     }
 
+    public function test_the_other_modules_row_holds_commission_rules_and_events_and_the_prescriptions_row_stays(): void
+    {
+        $menu = (string) file_get_contents(resource_path('js/shared/portalNav.ts'));
+
+        $this->assertMatchesRegularExpression("/id: 'office-more', labelKey: 'nav_module_more'[^\]]*'commissions', 'treasury-events'/", $menu);
+        $this->assertSame('অন্যান্য মডিউল', trans('portal.nav_module_more', [], 'bn'));
+        $this->assertMatchesRegularExpression("/function staffMothers[\s\S]*?mother\('clinic', 'prescriptions'/", $menu);
+        $this->assertDoesNotMatchRegularExpression("/function staffMothers[\s\S]*?mother\('commissions'/", $menu);
+    }
+
     public function test_settings_page_offers_only_what_each_person_can_open(): void
     {
         $expected = [

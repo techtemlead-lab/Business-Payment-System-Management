@@ -22,6 +22,7 @@ final class TranslationBundle
         'partner_profile' => 'partner_profile', 'product_facts' => 'product_facts', 'dealer_tools' => 'dealer_tools',
         'prescriber_public' => 'prescriber_public', 'accounting' => 'accounting', 'purchasing' => 'purchasing',
         'funds' => 'funds', 'reward_settings' => 'reward_settings', 'self_approval' => 'self_approval',
+        'cr15' => 'cr15',
         'owner_security' => 'owner_security', 'withdrawal_wait' => 'withdrawal_wait', 'productivity' => 'productivity',
         'clinic_records' => 'clinic_records', 'stock_lots' => 'stock_lots', 'stock_print' => 'stock_print',
         'courier_areas' => 'courier_areas', 'wave3_ops' => 'wave3_ops', 'order_payment' => 'order_payment',
@@ -33,7 +34,7 @@ final class TranslationBundle
         'office_settings' => 'office_settings', 'office_reports' => 'office_reports', 'office_visitors' => 'office_visitors',
         'office_errors' => 'office_errors', 'reason_fields' => 'reason_fields', 'partner_ux' => 'partner_ux',
         'money_core' => 'money_core', 'joining' => 'joining', 'orders_stock' => 'orders_stock',
-        'stock_screens' => 'stock_screens', 'purchase_page' => 'purchase_page', 'payouts' => 'payouts', 'cr_partner' => 'cr_partner',
+        'stock_screens' => 'stock_screens', 'purchase_page' => 'purchase_page', 'payouts' => 'payouts', 'cr_partner' => 'cr_partner', 'cr14' => 'cr14', 'cr17' => 'cr17', 'cr18' => 'cr18',
     ];
 
     /** @var array<string, string> */

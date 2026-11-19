@@ -72,7 +72,7 @@ return [
     'open_lines' => 'Products',
     'open_first' => ':name gave the first approval: ৳:amount, :method.',
     'open_waiting_office' => 'The office is looking at it. You will be told the decision.',
-    'open_waiting_second' => 'Waiting for a second person to confirm.',
+    'open_waiting_second' => 'Waiting for a second staff member to confirm.',
     'withdraw' => 'Withdraw the request',
     'partner_cancel_title' => 'Cancel this order?',
     'partner_cancel_hint_unpaid' => 'No payment was checked yet, so it is cancelled at once.',
@@ -148,4 +148,5 @@ return [
     'notice_received_title' => 'Order :number: the partner received the goods',
     'notice_received_body' => ':name says the parcel for order :number is in their hands. Please confirm the delivery.',
     'err_received_nothing' => 'This order has no parcel on the way.',
+    'open_waiting_owner' => 'This refund is at or above the owner\'s limit, so the owner must confirm it.',
 ];

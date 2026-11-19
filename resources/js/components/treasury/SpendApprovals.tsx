@@ -6,7 +6,7 @@ import { useReasonFields } from '../../shared/reasonFields';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from '../MoneyTable';
 import { FUNDS_COMMAND_ROOT, useHeadName } from './FundSpendForm';
 
-export type SpendApproval = Row & { id: number; fund_key: string; amount: string; can_review: boolean; can_cancel?: boolean; can_add_receipt?: boolean; waits_for_owner?: boolean; over_budget?: boolean };
+export type SpendApproval = Row & { id: number; fund_key: string; amount: string; can_review: boolean; can_cancel?: boolean; can_add_receipt?: boolean; waits_for_owner?: boolean; waits_for_staff?: boolean; over_budget?: boolean };
 
 /** Spends waiting for a decision, on the shared table. Everything else opens in a box. */
 export default function SpendApprovals({ table }: { table: MoneyTableData<SpendApproval> }) {
@@ -90,6 +90,7 @@ function ApprovalBox({ row, onClose }: { row: SpendApproval; onClose: () => void
                     {row.can_review && <button type="button" className="button small" onClick={() => setDecision('rejected')}>{translate('funds', 'reject')}</button>}
                     {row.can_cancel && <button type="button" className="button small" onClick={() => setDecision('cancel')}>{translate('self_approval', 'cancel_spend')}</button>}
                     {row.waits_for_owner && <span className="muted">{translate('funds', 'owner_approves_hint')}</span>}
+                    {row.waits_for_staff && <span className="muted">{translate('funds', 'staff_approves_hint')}</span>}
                 </div>
             )}
         </Modal>

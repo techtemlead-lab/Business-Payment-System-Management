@@ -66,7 +66,9 @@ class PortalQueryBudgetTest extends TestCase
             ->where('data.admin_home.snapshot.purchases', '200.00')
             ->where('data.admin_home.snapshot.dues', '150.00'));
         // 34: approved payouts past the due days (MA-06). 35: the payout due-days setting. 36: one read for unanswered partner chats (JA-08).
-        $this->assertQueriesAtMost(36, $queries, 'owner dashboard');
+        // 37-39 (CR-16): the owner's list asks once which work an active staff member covers, once for the owner
+        // limits, and once for every owner-only count together. All three are fixed, never one per row.
+        $this->assertQueriesAtMost(39, $queries, 'owner dashboard');
         $this->assertSame(1, $this->matching($queries, 'filter (where status in'), 'Order count, pending, today and money totals should come from one aggregate query.');
 
         foreach (range(1, 10) as $index) {

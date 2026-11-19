@@ -26,6 +26,11 @@ class RequirePartnerAgreement
     public const OpenPaths = [
         'agreement',
         'commands/agreement/*',
+        // The first-password change and sign-in safety must never wait for the agreement (the two gates locked each other).
+        'security',
+        'security/*',
+        // The page words; without them the agreement page shows raw keys.
+        'i18n/*',
         'logout',
         'help',
         'commands/support-tickets',

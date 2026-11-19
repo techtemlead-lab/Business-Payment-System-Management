@@ -32,6 +32,7 @@ class RequireAuthenticatorSetup
     public const OpenPaths = [
         'security',
         'security/*',
+        'i18n/*',
         'logout',
         'help',
         'commands/tours/*',

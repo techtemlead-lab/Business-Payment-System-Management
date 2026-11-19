@@ -21,6 +21,10 @@ class RequireFirstPasswordChange
         'logout',
         'help',
         'agreement',
+        // A new partner may meet this gate and the agreement gate together: either step can be done first.
+        'commands/agreement/*',
+        // The page words; without them the open pages show raw keys.
+        'i18n/*',
         'commands/tours/*',
         'api/v1/me',
         'api/v1/health',

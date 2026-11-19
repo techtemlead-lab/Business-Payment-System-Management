@@ -134,6 +134,9 @@ final class OfficeHubs
      * @var array<string, array<string, string>>
      */
     private const MoreGroups = [
+        'records' => [
+            'commissions' => '/commissions', 'treasury-events' => '/treasury/events',
+        ],
         'partners' => [
             'schemes' => '/schemes', 'contests' => '/contests', 'sales-kit' => '/sales-kit',
             'training' => '/training', 'events' => '/events', 'agreement' => '/agreement',
@@ -147,6 +150,9 @@ final class OfficeHubs
             'video-marketing' => '/operations/video-marketing', 'feedback' => '/feedback', 'visitors' => '/visitors',
         ],
     ];
+
+    /** Boxes on the More page whose name and line live in lang/cr15.php instead of office_menu.php. */
+    private const MoreOwnTexts = ['commissions', 'treasury-events'];
 
     /** Filters of the old order table that the order list understands too. */
     private const OrderListFilters = ['q', 'status', 'period', 'from', 'to', 'buyer_role', 'branch_id', 'all_branches', 'page'];
@@ -270,16 +276,17 @@ final class OfficeHubs
             foreach ($links as $section => $href) {
                 if (self::mayOpen($user, $portal, $onOfficeHost, $section, $href)) {
                     $name = str_replace('-', '_', $section);
+                    $own = in_array($section, self::MoreOwnTexts, true);
                     $open[] = [
                         'key' => $section,
-                        'label' => (string) __('office_menu.tab_'.$name),
-                        'description' => (string) __('office_menu.more_desc_'.$name),
+                        'label' => (string) __($own ? 'cr15.more_title_'.$name : 'office_menu.tab_'.$name),
+                        'description' => (string) __($own ? 'cr15.more_desc_'.$name : 'office_menu.more_desc_'.$name),
                         'href' => $href,
                     ];
                 }
             }
             if ($open !== []) {
-                $groups[] = ['key' => $key, 'label' => (string) __('office_menu.more_group_'.$key), 'links' => $open];
+                $groups[] = ['key' => $key, 'label' => (string) __($key === 'records' ? 'cr15.more_group_records' : 'office_menu.more_group_'.$key), 'links' => $open];
             }
         }
 
@@ -375,6 +382,11 @@ final class OfficeHubs
 
     private static function mayOpen(User $user, string $portal, bool $onOfficeHost, string $section, string $href): bool
     {
+        // The event log is a Treasury page, not a portal section: it has its own access check.
+        if ($section === 'treasury-events') {
+            return $onOfficeHost && $user->staff() && TreasuryAccess::mayOpenEvents($user);
+        }
+
         if (str_starts_with($href, '/operations/')) {
             return $onOfficeHost && $user->staff() && self::mayOpenOperationsPage($user, $portal, $section);
         }

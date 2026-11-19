@@ -80,7 +80,7 @@ return [
     'approve_title' => 'Approve this spend',
     'reject_title' => 'Reject this spend',
     'fld_reason' => 'Why (at least 5 letters)',
-    'owner_approves_hint' => 'You can see this spend. The owner approves it.',
+    'owner_approves_hint' => 'This spend is at or above the owner\'s limit, so only the owner approves it.',
     'heads_add' => 'Add a head',
     'heads_edit' => 'Change head',
     'heads_hint' => 'Spends must use one of these heads. Rename or switch a head off here.',
@@ -151,4 +151,7 @@ return [
     'budget_none' => 'No budgets set for this month.',
     'budget_over_warning' => ':head is over its :month budget. Budget :budget, used so far :used, over by :over. The spend is still saved.',
     'flash_budget_saved' => 'Budget saved.',
+    'staff_approves_hint' => 'Another staff member with approval permission approves this spend.',
+    'notice_owner_spend_title' => 'A fund spend is waiting for you',
+    'notice_owner_spend_body' => ':name recorded a spend of :amount to :payee. It is at or above your limit, so it waits for you. Open the money tasks page to check it.',
 ];

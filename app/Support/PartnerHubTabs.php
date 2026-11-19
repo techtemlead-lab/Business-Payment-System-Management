@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Domain\Support\PartnerEmptySections;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
@@ -27,6 +28,20 @@ final class PartnerHubTabs
         'partner-learning' => ['title' => 'nav_module_learning', 'tabs' => ['training', 'events', 'sales-kit']],
         'partner-office' => ['title' => 'nav_module_office', 'tabs' => ['messages', 'circulars', 'share-feedback', 'help']],
         'partner-account' => ['title' => 'nav_module_account', 'tabs' => ['profile', 'security', 'agreement']],
+    ];
+
+    /** The sidebar's one entry for the pages a partner opens less often (CR-14). */
+    public const MoreSection = 'more';
+
+    /**
+     * The pages on the partner More page, in groups. Prescriptions are never listed: they stay in the sidebar.
+     *
+     * @var array<string, array<string, string>>
+     */
+    private const MoreGroups = [
+        'learn' => ['training' => '/training', 'events' => '/events', 'sales-kit' => '/sales-kit'],
+        'grow' => ['top-sellers' => '/top-sellers', 'contests' => '/contests'],
+        'office' => ['share-feedback' => '/share-feedback', 'agreement' => '/agreement'],
     ];
 
     /** A sub-dealer's team page stays reachable by address but is not one of their tabs. */
@@ -94,5 +109,42 @@ final class PartnerHubTabs
         }
 
         return ['title' => (string) __('portal.'.$title), 'active' => $active, 'tabs' => $open];
+    }
+
+    /**
+     * The partner More page's boxes for the pages this partner can open, without empty groups.
+     *
+     * @return list<array{key: string, label: string, links: list<array{key: string, label: string, description: string, href: string}>}>
+     */
+    public static function moreGroups(User $user): array
+    {
+        $portal = $user->role === 'sub_dealer' ? 'subdealer' : 'dealer';
+        // Pages the company has not filled yet are left out, the same as in the sidebar.
+        $empty = app(PartnerEmptySections::class)->for($user);
+        $groups = [];
+        foreach (self::MoreGroups as $key => $links) {
+            $open = [];
+            foreach ($links as $section => $href) {
+                if (! in_array($section, $empty, true) && OfficeHubs::mayOpenSection($user, $portal, $section)) {
+                    $name = str_replace('-', '_', $section);
+                    $open[] = [
+                        'key' => $section,
+                        'label' => (string) __('office_menu.partner_tab_'.$name),
+                        'description' => (string) __('cr14.more_desc_'.$name),
+                        'href' => $href,
+                    ];
+                }
+            }
+            if ($open !== []) {
+                $groups[] = ['key' => $key, 'label' => (string) __('cr14.more_group_'.$key), 'links' => $open];
+            }
+        }
+
+        return $groups;
+    }
+
+    public static function hasMoreToOpen(User $user): bool
+    {
+        return in_array($user->role, ['dealer', 'sub_dealer'], true) && self::moreGroups($user) !== [];
     }
 }

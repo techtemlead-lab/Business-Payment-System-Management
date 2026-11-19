@@ -10,7 +10,7 @@ export function ProfilePhoto({
 }: {
     src?: string | null;
     initial: string;
-    variant?: 'home' | 'cover' | 'account';
+    variant?: 'home' | 'cover' | 'account' | 'office';
     upload?: boolean;
 }) {
     const translate = useT();
@@ -20,7 +20,9 @@ export function ProfilePhoto({
         ? 'partner-home-avatar'
         : variant === 'account'
             ? 'account-avatar'
-            : 'avatar large';
+            : variant === 'office'
+                ? 'avatar office-profile-photo'
+                : 'avatar large';
 
     const choosePhoto = (file: File | null) => {
         if (!file) {

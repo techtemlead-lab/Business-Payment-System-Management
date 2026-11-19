@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domain\Accounts\PartnerToolsCache;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -18,6 +19,16 @@ class Order extends Model
     protected $attributes = ['paid' => '0.00', 'due_credit' => '0.00'];
 
     protected $hidden = ['idempotency_key', 'payload_hash', 'commission_policy_snapshot'];
+
+    /** A changed order state makes the partner dashboard cards work out their numbers again. */
+    protected static function booted(): void
+    {
+        static::updated(function (Order $order): void {
+            if ($order->wasChanged('status')) {
+                PartnerToolsCache::forgetFor((int) $order->user_id);
+            }
+        });
+    }
 
     protected function casts(): array
     {

@@ -118,6 +118,8 @@ final class ReserveService
                 app(SelfApproval::class)->finishOwnStep($actor, 'reserve', __('portal.err_reserve_reviewer'));
             }
             if ($decision === 'approved') {
+                // CR-16: a reserve payout at or above the owner's payout limit is approved by an owner.
+                app(OwnerApprovalLimits::class)->refuseUnlessOwnerMayApprove($actor, OwnerApprovalLimits::Withdrawal, (string) $row->amount, 'reserve');
                 if ($row->user_id) {
                     $partner = User::findOrFail($row->user_id);
                     abort_unless($partner->status === 'active' && in_array($partner->role, ['dealer', 'sub_dealer'], true), 422);

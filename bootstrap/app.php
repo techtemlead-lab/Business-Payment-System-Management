@@ -9,6 +9,7 @@ use App\Http\Middleware\EnforceStaffActions;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\PortalArea;
 use App\Http\Middleware\ProtectPrivateResponses;
+use App\Http\Middleware\RecordPartnerActivity;
 use App\Http\Middleware\RequireAuthenticatorSetup;
 use App\Http\Middleware\RequireFirstPasswordChange;
 use App\Http\Middleware\RequirePartnerAgreement;
@@ -43,6 +44,7 @@ return Application::configure(basePath: dirname(__DIR__))
             CoordinateBackups::class,
             ProtectPrivateResponses::class,
             BindSessionFingerprint::class,
+            RecordPartnerActivity::class,
             RequireFirstPasswordChange::class,
             EnforceStaffActions::class,
             HandleInertiaRequests::class,
