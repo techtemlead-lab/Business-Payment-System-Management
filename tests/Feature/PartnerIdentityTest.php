@@ -60,6 +60,22 @@ class PartnerIdentityTest extends TestCase
         $this->assertStringNotContainsString('Pourashava', $pourashava['line']);
     }
 
+    /** Found by the client guide: a Bangla place name that already ends in "পৌরসভা" read "পৌরসভা পৌরসভা". */
+    public function test_a_bangla_place_name_never_repeats_its_level_word(): void
+    {
+        $division = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
+        $district = PlaceCode::factory()->district($division)->create(['name' => 'Nilphamari']);
+        $upazila = PlaceCode::factory()->upazila($district)->create(['name' => 'Saidpur']);
+        $pourashava = PlaceCode::factory()->union($upazila)->create(['name' => 'Saidpur Pourashava']);
+        $sub = User::factory()->create(['role' => 'sub_dealer', 'status' => 'active', 'profile' => ['place_code_id' => $pourashava->id]]);
+
+        foreach ([$this->dealerAt($pourashava), $sub] as $person) {
+            $line = app(PartnerAppointment::class)->for($person, 'bn')['line'];
+            $this->assertStringNotContainsString('পৌরসভা পৌরসভা', $line);
+            $this->assertStringNotContainsString('Saidpur', $line);
+        }
+    }
+
     public function test_the_same_levels_read_in_english(): void
     {
         $places = $this->places();

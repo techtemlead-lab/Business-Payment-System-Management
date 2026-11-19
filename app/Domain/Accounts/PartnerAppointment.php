@@ -153,11 +153,16 @@ final class PartnerAppointment
         $guard = 0;
         while ($cursor !== null && $guard++ < 6) {
             if (array_key_exists($cursor->level, $names)) {
-                $names[$cursor->level] = $cursor->level === $level ? $name : $cursor->name;
+                // The full name ("Saidpur Pourashava") lets the lookup find pourashavas; the level word is dropped after.
+                $names[$cursor->level] = $cursor->name;
             }
             $cursor = $cursor->parent;
         }
 
-        return BanglaPlaceNames::translate($names)[$level] ?? $name;
+        // The Bangla list may carry the level word itself ("সৈয়দপুর পৌরসভা"); the line adds it, so drop it here.
+        $bangla = (string) (BanglaPlaceNames::translate($names)[$level] ?? $name);
+        $bangla = trim((string) preg_replace('/s*(pourashava|paurashava|municipality|union|upazila|thana|district|division|ইউনিয়ন|পৌরসভা|উপজেলা|থানা|জেলা|বিভাগ)s*$/iu', '', $bangla));
+
+        return $bangla !== '' ? $bangla : $name;
     }
 }
