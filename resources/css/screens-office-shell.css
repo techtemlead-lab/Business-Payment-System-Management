@@ -177,9 +177,9 @@ html[data-text-size="large"] .app-shell:is(.owner-shell,.company-shell){--ds-fs-
 }
 
 /* CR-18: the bordered summary sections (money, website, products and orders, partner activity, events). */
-.app-shell .osb-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ds-s-4);align-items:start}
-.app-shell .osb{display:flex;flex-direction:column;min-width:0;padding:var(--ds-s-4);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);background:var(--ds-surface)}
-.app-shell .osb.is-wide{grid-column:1/-1}
+.app-shell .osb-grid{display:flex;flex-wrap:wrap;gap:var(--ds-s-4);align-items:stretch}
+.app-shell .osb{display:flex;flex-direction:column;flex:1 1 420px;min-width:0;padding:var(--ds-s-4);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);background:var(--ds-surface)}
+.app-shell .osb.is-wide{flex-basis:100%}
 .app-shell .osb-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:var(--ds-s-2);padding-bottom:var(--ds-s-3);margin-bottom:var(--ds-s-3);border-bottom:1px solid var(--ds-line)}
 .app-shell .osb-head h2{margin:0;font-size:var(--ds-fs-lg)}
 .app-shell .osb-link{white-space:nowrap}
@@ -202,5 +202,4 @@ html[data-text-size="large"] .app-shell:is(.owner-shell,.company-shell){--ds-fs-
 .app-shell .osb-skeleton i{display:block;height:36px;border-radius:var(--ds-r-md,8px);background:linear-gradient(90deg,var(--ds-line) 25%,transparent 50%,var(--ds-line) 75%);background-size:200% 100%;animation:odt-pulse 1.3s linear infinite}
 @media (prefers-reduced-motion:reduce){.app-shell .osb-skeleton i{animation:none}}
 @media (max-width:1100px){.app-shell .osb-money{grid-template-columns:1fr}}
-@media (max-width:900px){.app-shell .osb-grid{grid-template-columns:1fr}}
 @media (max-width:600px){.app-shell .osb{padding:var(--ds-s-3)}}
