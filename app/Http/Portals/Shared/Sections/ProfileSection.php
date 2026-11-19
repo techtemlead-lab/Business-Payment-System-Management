@@ -2,7 +2,9 @@
 
 namespace App\Http\Portals\Shared\Sections;
 
+use App\Domain\Accounts\PartnerKycDocuments;
 use App\Domain\Accounts\PartnerProfileCard;
+use App\Domain\Payouts\PartnerPayoutAccounts;
 use App\Models\User;
 use App\Support\StoredPhrase;
 use Illuminate\Support\Facades\DB;
@@ -36,6 +38,7 @@ final class ProfileSection implements WorkspaceSection
             || ($identityType === 'birth_certificate' && $hasBirthCert)
             || filled($user->nid)
             || $hasBirthCert;
+        $isPartner = in_array($user->role, ['dealer', 'sub_dealer'], true);
         $props['profile'] = [
             ...$user->safe(),
             'phone' => $user->phone,
@@ -46,6 +49,7 @@ final class ProfileSection implements WorkspaceSection
             'union' => $profile['union'] ?? null,
             'village' => $profile['village'] ?? null,
             'refer_code' => $user->refer_code,
+            'payout_accounts' => $isPartner ? app(PartnerPayoutAccounts::class)->listFor($user) : null,
             'partner_card' => in_array($user->role, ['dealer', 'sub_dealer'], true) ? app(PartnerProfileCard::class)->for($user) : null,
             'kyc' => [
                 'identity_type' => $identityType !== '' ? $identityType : null,
@@ -59,6 +63,8 @@ final class ProfileSection implements WorkspaceSection
                     ? __('portal.kyc_status_on_file')
                     : __('portal.kyc_status_missing'),
                 'date_of_birth_on_file' => filled($profile['date_of_birth'] ?? null),
+                // R5: only a partner without a verified NID sees the box to send one.
+                'nid_request' => in_array($user->role, ['dealer', 'sub_dealer'], true) ? app(PartnerKycDocuments::class)->nidRequestState($user) : null,
             ],
         ];
 

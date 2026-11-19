@@ -6,6 +6,7 @@ import PartnerBenefitControls from './PartnerBenefitControls';
 import PartnerProfileLock from './PartnerProfileLock';
 import PartnerPrescriberControls from './PartnerPrescriberControls';
 import PartnerAccountDelete from './PartnerAccountDelete';
+import NidReview from './NidReview';
 import AccountPasswordManager from './AccountPasswordManager';
 import { useT } from '../shared/i18n/t';
 import { useReasonField } from '../shared/reasonFields';
@@ -23,6 +24,9 @@ type KycDoc = {
     size_bytes: number;
     note: string | null;
     created_at: string;
+    review_status?: string;
+    review_note?: string | null;
+    claimed_nid?: string | null;
 };
 
 type PasswordStatus = {
@@ -234,6 +238,8 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                                     {translate('portal', `kyc_kind_${doc.kind}`)} · {doc.original_name}
                                 </a>
                                 {doc.note ? <span className="muted"> — {doc.note}</span> : null}
+                                {doc.review_status === 'rejected' && <span className="muted"> — {translate('leftovers_partner', 'review_rejected_label')}{doc.review_note ? `: ${doc.review_note}` : ''}</span>}
+                                {doc.review_status === 'pending' && <NidReview accountId={account.id} doc={doc} onDone={() => fetch(`/commands/accounts/${account.id}/kyc-documents`, { headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' }).then(response => response.json()).then(json => setDocs(json.data || [])).catch(() => setDocsError(translate('portal', 'kyc_load_failed')))} />}
                             </li>
                         ))}
                     </ul>

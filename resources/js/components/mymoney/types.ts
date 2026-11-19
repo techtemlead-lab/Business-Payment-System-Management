@@ -1,4 +1,5 @@
 import type { MoneyTableData } from '../MoneyTable';
+import type { NidRequest } from '../NidSubmit';
 
 export type MoneyLifetime = {
     ordered_mrp: string;
@@ -49,7 +50,7 @@ export type WithdrawalRequest = {
 
 export type NotEarnedArea = { month: string; amount: string };
 
-export type WithdrawInfo ={ can: boolean; kyc_block: boolean; nid_block?: boolean; security_wait: string | null; minimum: string; channel_limits?: Record<string, string | null>; tin_last4?: string | null };
+export type WithdrawInfo ={ can: boolean; kyc_block: boolean; nid_block?: boolean; nid_request?: NidRequest; saved_accounts?: Array<{ id: number; label: string; is_default: boolean }>; security_wait: string | null; minimum: string; channel_limits?: Record<string, string | null>; tin_last4?: string | null };
 
 export type Certificates = { years: number[]; rank: boolean };
 

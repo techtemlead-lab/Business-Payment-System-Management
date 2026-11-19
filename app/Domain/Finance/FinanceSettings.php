@@ -149,7 +149,7 @@ final class FinanceSettings
             return false;
         }
 
-        return ! DB::table('kyc_documents')->where('user_id', $partner->id)->whereIn('kind', self::ApprovedIdKinds)->exists();
+        return ! DB::table('kyc_documents')->where('user_id', $partner->id)->whereIn('kind', self::ApprovedIdKinds)->where('review_status', 'approved')->exists();
     }
 
     public function saveKycBeforeFirstWithdrawal(User $actor, bool $enabled, int $version, string $reason): void

@@ -43,3 +43,14 @@ test('toIsoDate converts DD/MM/YYYY and DD-MM-YYYY to YYYY-MM-DD', () => {
     assert.equal(toIsoDate(''), '');
     assert.equal(toIsoDate(null), '');
 });
+
+test('parseTypedDate reads a date typed on a keyboard and refuses half-typed or impossible dates', async () => {
+    const { parseTypedDate } = await import('../../resources/js/business-date.ts');
+    assert.equal(parseTypedDate('15/06/1990'), '1990-06-15');
+    assert.equal(parseTypedDate('5-6-1990'), '1990-06-05');
+    assert.equal(parseTypedDate('১৫/০৬/১৯৯০'), '1990-06-15');
+    assert.equal(parseTypedDate('15/06/199'), null);
+    assert.equal(parseTypedDate('15/06'), null);
+    assert.equal(parseTypedDate('31/02/1990'), null);
+    assert.equal(parseTypedDate(''), null);
+});

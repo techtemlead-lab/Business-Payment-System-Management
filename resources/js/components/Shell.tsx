@@ -12,6 +12,7 @@ import { Flash, label } from './UI';
 import { DealerBottomNav, PartnerProductSearch } from './PortalHeader';
 import LanguageSwitcher from './LanguageSwitcher';
 import NotificationBell from './NotificationBell';
+import PartnerSignOut from './PartnerSignOut';
 import GlobalSearchLauncher from './GlobalSearchLauncher';
 import OnboardingTour from './OnboardingTour';
 import { useNativeFieldMessages } from '../shared/useNativeFieldMessages';
@@ -135,7 +136,7 @@ const icons: Record<string, LucideIcon> = {
     deliveries: Truck,
     payments: Coins, network: GitBranch, policies: SlidersHorizontal, salary: BadgeCheck, withdrawals: Wallet, ledger: BookOpen,
     reports: FileText, customization: SlidersHorizontal, website: SlidersHorizontal, content: FileText, enquiries: MessageSquare, feedback: MessageSquare, 'share-feedback': MessageSquare, partnerships: Briefcase, audit: ShieldCheck,
-    profile: Users, security: Settings, notifications: Bell, circulars: BookOpen, 'my-money': Coins, ranks: Award,
+    profile: Users, security: Settings, notifications: Bell, circulars: BookOpen, 'my-money': Coins, 'my-income': ReceiptText, ranks: Award,
     commissions: Percent, 'network-tree': GitBranch, 'area-dealers': MapPin, 'place-codes': Hash, branches: Store, 'branch-performance': BarChart3, rewards: Trophy, 'capital-flow': TrendingUp,
     settlements: BadgeCheck, simulator: SlidersHorizontal, 'payouts-hub': Wallet,
     treasury: Landmark, 'sub-dealers': Store, 'sub-dealer-orders': ShoppingBag, 'sub-dealer-applications': Briefcase,
@@ -529,6 +530,7 @@ export default function Shell({ section, children, action }: { section: string; 
                     <img src={siteBrand?.logo || '/madina-header-logo.png?v=10'} alt="" />
                     <span className="sidebar-logo-mark" aria-hidden="true">MNHC</span>
                 </a>
+                {!staff && <PartnerSignOut variant="drawer" />}
                 <div className="workspace-label">
                     <span className="live-dot" />
                     {hubLabel}
@@ -622,6 +624,7 @@ export default function Shell({ section, children, action }: { section: string; 
                         {staff && <ThemeToggle compact />}
                         {!staff && <TextSizeSwitch place="header" />}
                         <LanguageSwitcher compact />
+                        {!staff && <PartnerSignOut variant="bar" />}
                         {staff && (
                             <button
                                 type="button"

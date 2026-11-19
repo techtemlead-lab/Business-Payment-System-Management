@@ -485,7 +485,9 @@ function OfficeShortcuts({ base, caps }: { base: string; caps: string[] }) {
             )}
             {(mayCreate || mayAddProduct) && (
                 <div className="office-add-buttons">
+                    {/* One button for each kind of account: a sub-dealer has its own form (the same right, "accounts", opens both). */}
                     {mayCreate && <Link className="button dark office-new-account" href={`${base}/accounts/create`}>{translate('cr18', 'btn_new_dealer')}</Link>}
+                    {mayCreate && <Link className="button dark office-new-sub-dealer" href={`${base}/accounts/create?intent=sub_dealer`}>{translate('leftovers_office', 'btn_new_sub_dealer')}</Link>}
                     {mayAddProduct && <Link className="button office-new-product" href={`${base}/products/create`}>{translate('cr18', 'btn_new_product')}</Link>}
                 </div>
             )}

@@ -34,6 +34,8 @@ export type SearchSelectProps = {
     /** For a list searched on the server: called with the typed words, and the parent replaces `options`. */
     onSearch?: (query: string) => void;
     loading?: boolean;
+    /** Words for the loading note when "Searching…" does not fit, such as a list that is still being fetched. */
+    loadingLabel?: string;
 };
 
 /** A list this long or longer gets the search box when a form helper decides by size. */
@@ -52,7 +54,7 @@ const supportsPopover = (): boolean => typeof HTMLElement !== 'undefined' && typ
  * the browser's top layer, so a scrolling table or a dialog never cuts it off.
  */
 export default function SearchSelect({
-    options, value, onChange, emptyLabel, placeholder, selectedLabel, required, disabled, name, id, ariaLabel, className, onSearch, loading,
+    options, value, onChange, emptyLabel, placeholder, selectedLabel, required, disabled, name, id, ariaLabel, className, onSearch, loading, loadingLabel,
 }: SearchSelectProps) {
     const translate = useT();
     const listId = useId();
@@ -294,7 +296,7 @@ export default function SearchSelect({
                     </li>
                 ))}
             </ul>
-            {loading && <p className="ss-note" role="status">{translate('portal', 'search_select_loading')}</p>}
+            {loading && <p className="ss-note" role="status">{loadingLabel ?? translate('portal', 'search_select_loading')}</p>}
             {!loading && rows.list.length === 0 && <p className="ss-note" role="status">{translate('portal', 'search_select_none')}</p>}
             {rows.hidden > 0 && <p className="ss-note">{translate('portal', 'search_select_more', { count: rows.hidden })}</p>}
         </div>

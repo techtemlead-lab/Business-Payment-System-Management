@@ -61,6 +61,8 @@ final class PartnerDashboardHome
         $commissionMonth = $this->moneyBook->earnedTotal((int) $user->id, $monthStartUtc);
         $commissionToday = $this->moneyBook->earnedTotal((int) $user->id, $todayUtc);
 
+        $targets = $this->targets($user, $rules, $month);
+
         return [
             'profile' => [
                 'name' => $user->name,
@@ -85,10 +87,10 @@ final class PartnerDashboardHome
                 'commission_month' => Money::decimal($commissionMonth),
                 'commission_today' => Money::decimal($commissionToday),
             ],
-            'card' => $this->card($user, $profile),
+            'card' => $this->card($user, $profile) + $this->identityTop($user, $targets, $month),
             'totals' => $this->totals($user),
-            'targets' => $this->targets($user, $rules, $month),
-            'referral' => $user->refer_code ? [
+            'targets' => $targets,
+            'referral' => $user->refer_code && PartnerJoinLink::enabled() ? [
                 'code' => $user->refer_code,
                 'url' => PortalHost::url('public', '/join/'.$user->refer_code),
                 'qr_url' => '/referral-qr.svg',
@@ -121,7 +123,9 @@ final class PartnerDashboardHome
             'type' => $user->role,
             'photo_url' => $profile['photo_url'] ?? $profile['avatar_url'] ?? null,
             'initial' => mb_strtoupper(mb_substr((string) $user->name, 0, 1)),
+            // The personal address (where the person lives); the appointed area is in 'appointment'.
             'area' => app(PartnerAreaLine::class)->for($user),
+            'appointment' => app(PartnerAppointment::class)->for($user),
             'phone' => $user->phone,
             'email' => $user->email,
             'joined_on' => $user->created_at?->timezone($tz)->format('d/m/Y'),
@@ -132,6 +136,27 @@ final class PartnerDashboardHome
             'direct' => (int) ($counts->direct ?? 0),
             'gen1' => (int) ($counts->gen1 ?? 0),
             'gen2' => (int) ($counts->gen2 ?? 0),
+        ];
+    }
+
+    /**
+     * The extra boxes at the top of the dashboard: code, rank, this month's purchase and what is left of the target.
+     * Every figure is one the dashboard already works out; nothing is calculated a new way here.
+     *
+     * @param  list<array<string, mixed>>  $targets
+     * @return array{code: string|null, rank: string|null, month_purchase: string, target_left: string|null}
+     */
+    private function identityTop(User $user, array $targets, string $month): array
+    {
+        $isDealer = $user->role === 'dealer';
+        $volume = $isDealer ? $this->targetsVolume : $this->qualification->monthlyVolume($user->id, $month);
+        $salary = collect($targets)->firstWhere('key', 'monthly_salary');
+
+        return [
+            'code' => $user->dealer_code,
+            'rank' => $isDealer ? $this->targetsRank : null,
+            'month_purchase' => Money::decimal($volume),
+            'target_left' => $isDealer && is_array($salary) ? (string) $salary['remaining'] : null,
         ];
     }
 

@@ -8,6 +8,7 @@ use App\Domain\Accounts\PartnerCertificates;
 use App\Domain\Accounts\PartnerEarningsPresenter;
 use App\Domain\Accounts\PartnerFullReport;
 use App\Domain\Accounts\PartnerIdCard;
+use App\Domain\Accounts\PartnerJoinLink;
 use App\Domain\Accounts\PartnerJoinPoster;
 use App\Domain\Audience\SiteVisitReport;
 use App\Domain\Finance\FinanceSettings;
@@ -151,7 +152,7 @@ class WorkspaceController extends Controller
 
             return redirect('/');
         }
-        // CR-01: the partner product list is off (code kept; MADINA_PARTNER_CATALOG=true switches it back on).
+        // The partner product list is on again (client, 2026-11-19); MADINA_PARTNER_CATALOG=false hides it (CR-01).
         if ($section === 'catalog' && ! $staffWorkspace && in_array($u->role, ['dealer', 'sub_dealer'], true) && ! config('madina.partner_catalog_enabled')) {
             return redirect('/');
         }
@@ -340,6 +341,7 @@ class WorkspaceController extends Controller
     {
         $u = $r->user();
         abort_unless(in_array($u->role, ['dealer', 'sub_dealer'], true), 403);
+        abort_unless(PartnerJoinLink::enabled(), 404);
 
         return app(PartnerJoinPoster::class)->downloadPdf($u);
     }
@@ -348,7 +350,7 @@ class WorkspaceController extends Controller
     {
         $u = $r->user();
         abort_unless(in_array($u->role, ['dealer', 'sub_dealer'], true), 403);
-        abort_unless(filled($u->refer_code), 404);
+        abort_unless(filled($u->refer_code) && PartnerJoinLink::enabled(), 404);
         $url = PortalHost::url('public', '/join/'.$u->refer_code);
 
         return response(JoinQr::svg($url, 180), 200, [

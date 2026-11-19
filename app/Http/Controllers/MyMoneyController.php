@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Accounts\PartnerKycDocuments;
 use App\Domain\Accounts\PartnerMoneyBook;
 use App\Domain\Accounts\PartnerSalaryNotes;
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Finance\WithdrawalSecurityWait;
 use App\Domain\Payouts\ManualPayoutService;
+use App\Domain\Payouts\PartnerPayoutAccounts;
 use App\Domain\Payouts\PayoutLimits;
 use App\Domain\Payouts\PayoutReceipts;
 use Illuminate\Http\Request;
@@ -38,7 +40,7 @@ class MyMoneyController extends Controller
             'not_earned_area' => $book->notEarnedAreaCommission($partner),
             'held_commission' => $book->heldCommission($partner),
             'salary_notes' => app(PartnerSalaryNotes::class)->for($partner),
-            'withdraw' => ['can' => ! $kycBlock && ! $nidBlock, 'kyc_block' => $kycBlock, 'nid_block' => $nidBlock, 'security_wait' => $opensAt === null ? null : $wait->reason($opensAt), 'minimum' => (string) $settings->withdrawalMinimum()['amount'],
+            'withdraw' => ['can' => ! $kycBlock && ! $nidBlock, 'kyc_block' => $kycBlock, 'nid_block' => $nidBlock, 'nid_request' => app(PartnerKycDocuments::class)->nidRequestState($partner), 'saved_accounts' => array_map(fn (array $a): array => ['id' => $a['id'], 'label' => $a['label'], 'is_default' => $a['is_default']], app(PartnerPayoutAccounts::class)->listFor($partner)), 'security_wait' => $opensAt === null ? null : $wait->reason($opensAt), 'minimum' => (string) $settings->withdrawalMinimum()['amount'],
                 'channel_limits' => app(PayoutLimits::class)->settings()['per_channel'],
                 'tin_last4' => trim((string) $partner->tin) === '' ? null : substr((string) $partner->tin, -4)],
             'reserve_receipts' => $receipts->reservePayoutsFor($partner),

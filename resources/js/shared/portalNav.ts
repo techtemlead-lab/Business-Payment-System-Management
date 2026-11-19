@@ -128,6 +128,15 @@ export const NAV_LINK_SPECS: Record<string, NavLinkSpec> = {
         iconKey: 'commissions',
         match: ({ section }) => ['commissions', 'policies', 'simulator', 'policy-schedules'].includes(section),
     },
+    /** "My account" (V1): the partner's own income page, one line for every head. */
+    'my-income': {
+        id: 'my-income',
+        section: 'my-income',
+        labelKey: 'nav_module_account',
+        hrefPath: 'my-income',
+        iconKey: 'my-income',
+        match: ({ section }) => section === 'my-income',
+    },
     /** One partner row for all their money. */
     'partner-money': {
         id: 'partner-money',
@@ -245,7 +254,7 @@ const MENU_ROWS: Record<string, MenuRow> = Object.fromEntries(([
     { id: 'partner-orders', labelKey: 'nav_module_commerce', iconKey: 'orders', tabs: ['orders', 'deliveries'] },
     { id: 'partner-team', labelKey: 'nav_module_network', iconKey: 'network', tabs: ['network', 'customers', 'ranks'] },
     { id: 'partner-office', labelKey: 'nav_module_office', iconKey: 'messages', tabs: ['messages', 'partner-notices', 'help'] },
-    { id: 'partner-account', labelKey: 'nav_module_account', iconKey: 'profile', tabs: ['profile', 'security'] },
+    { id: 'partner-account', labelKey: 'nav_my_profile', iconKey: 'profile', tabs: ['profile', 'security'] },
     // The partner's one entry for pages opened less often (CR-14); its boxes come from PartnerHubTabs::MoreGroups. Prescriptions never go here.
     { id: 'partner-more', labelKey: 'nav_module_more', iconKey: 'more', home: 'more', tabs: ['training', 'events', 'sales-kit', 'top-sellers', 'contests', 'share-feedback', 'agreement'] },
 ] satisfies MenuRow[]).map((row) => [row.id, row]));
@@ -422,7 +431,7 @@ export function buildPartnerAvailable(role: string, dashboardControls?: Record<s
 function partnerAvailableBeforeSwitches(role: string, dashboardControls?: Record<string, unknown> | null, prescriber = false): Set<string> {
     const controls = dashboardControls || {};
     if (role === 'dealer') {
-        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'catalog', 'network', 'ranks', 'top-sellers', 'my-money', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help', 'messages', 'training', 'events']);
+        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'catalog', 'network', 'ranks', 'top-sellers', 'my-money', 'my-income', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help', 'messages', 'training', 'events']);
         if (controls.dealer_catalog_enabled === false) {
             items.delete('catalog');
             items.delete('purchase');
@@ -450,7 +459,7 @@ function partnerAvailableBeforeSwitches(role: string, dashboardControls?: Record
         return items;
     }
     if (role === 'sub_dealer') {
-        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'catalog', 'network', 'top-sellers', 'my-money', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help', 'messages', 'training', 'events']);
+        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'catalog', 'network', 'top-sellers', 'my-money', 'my-income', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help', 'messages', 'training', 'events']);
         if (controls.subdealer_catalog_enabled === false) {
             items.delete('catalog');
             items.delete('purchase');
@@ -516,6 +525,9 @@ function partnerMothers(role: string, available: Set<string>): NavMother[] {
 
     return compactMothers([
         mother('home', 'nav_module_home', pick(available, ['overview'])),
+        // V1: home, my profile, my account (the income page), then orders and money.
+        rowMother('partner-account', available),
+        mother('my-income', 'nav_module_account', pick(available, ['my-income'])),
         mother('new-order', 'purchase', pick(available, ['purchase'])),
         rowMother('partner-orders', available),
         mother('products', 'nav_products', pick(available, ['catalog'])),
@@ -525,7 +537,6 @@ function partnerMothers(role: string, available: Set<string>): NavMother[] {
             ? mother('partner-team', 'customer_book', ['customers'])
             : rowMother('partner-team', teamAvailable),
         rowMother('partner-office', available),
-        rowMother('partner-account', available),
         // Prescriptions always stay in the sidebar, in every panel (client, 2026-11-19); the More page never lists them.
         mother('clinic', 'prescriptions', pick(available, ['prescriptions'])),
         rowMother('partner-more', available),
