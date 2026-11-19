@@ -137,8 +137,10 @@ final class TreasuryWork
             defaultPeriod: null,
         ));
         $ownerDecidesOwn = app(SelfApproval::class)->ownerFinishesAlone($actor);
-        $table['rows']->through(fn (object $row): array => [...(array) $row, 'can_review' => FundSpending::approverOf((string) $row->fund_key)($actor) && ($row->created_by !== $actor->id || $ownerDecidesOwn), 'can_cancel' => $row->created_by === $actor->id,
-            'waits_for_owner' => $row->created_by !== $actor->id && ! FundSpending::approverOf((string) $row->fund_key)($actor),
+        $table['rows']->through(fn (object $row): array => [...(array) $row, 'can_review' => FundSpending::approverOf((string) $row->fund_key, (string) $row->amount)($actor) && ($row->created_by !== $actor->id || $ownerDecidesOwn), 'can_cancel' => $row->created_by === $actor->id,
+            // CR-16: say who must act. Only an owner for the owners' fund or a spend at or above the owner's limit; otherwise another finance approver.
+            'waits_for_owner' => ! $actor->owner() && FundSpending::ownerOnly((string) $row->fund_key, (string) $row->amount),
+            'waits_for_staff' => ! FundSpending::ownerOnly((string) $row->fund_key, (string) $row->amount) && ($row->created_by === $actor->id ? ! $ownerDecidesOwn : ! FundSpending::approverOf((string) $row->fund_key)($actor)),
             'over_budget' => ! in_array($row->fund_key, CompanyFunds::OwnerOnly, true) && in_array($row->expense_head_id.'|'.substr((string) $row->spent_on, 0, 7), $overBudget, true),
             'can_add_receipt' => $row->created_by === $actor->id && $ownerDecidesOwn && ! $row->has_receipt]);
 

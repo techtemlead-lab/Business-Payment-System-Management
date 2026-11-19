@@ -5,7 +5,7 @@ return [
     'confirm_label' => 'Nobody else can do this step. I am doing it alone, and it will be noted in the activity log.',
     'confirm_yes' => 'Yes, I confirm',
     'receipt_label' => 'Receipt or bill (if you have one)',
-    'wait_second_person' => 'You approved this payment, so someone else or the owner needs to pay it.',
+    'wait_second_person' => 'You approved this payment, so another finance staff member pays it.',
 
     'err_confirm' => 'Please confirm that you are doing this alone.',
     'err_reason' => 'Write a reason of at least 5 letters.',
@@ -25,4 +25,6 @@ return [
 
     'count_cancel_submitted' => 'Cancel this count',
     'count_cancel_reason' => 'Why is this count being cancelled?',
+    'err_owner_needed' => 'This is :amount or more, so only the owner can approve it. You can still turn it down.',
+    'owner_approves_withdrawal' => 'This is at or above the owner\'s limit, so only the owner can approve it. You can still turn it down.',
 ];

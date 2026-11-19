@@ -6499,7 +6499,7 @@ return [
     'event_privacy_request_resolved' => 'তথ্যের অনুরোধের উত্তর দেওয়া হয়েছে',
     'accounting' => 'হিসাব',
     'section_hint_accounting' => 'ট্রায়াল ব্যালেন্স, লাভ-ক্ষতি, ব্যালেন্স শিট, স্টেটমেন্ট মেলানো আর পেমেন্ট ফাইল।',
-    'event_finance_withdrawal_approval_limit_changed' => 'বড় উইথড্রের সীমা বদলানো হয়েছে',
+    'event_finance_withdrawal_approval_limit_changed' => 'টাকা তোলার জন্য মালিকের সীমা বদলানো হয়েছে',
     'purchasing_nav' => 'ক্রয়',
     'section_hint_purchasing' => 'সাপ্লায়ার, ক্রয় অর্ডার আর গ্রহণ করা মাল।',
     'status_partly_received' => 'আংশিক এসেছে',
@@ -6838,4 +6838,6 @@ return [
     'cs_param_upazila_monthly_quota' => 'উপজেলা আসনের শুরুর মাসিক টার্গেট (৳)',
     'cs_param_union_monthly_quota' => 'ইউনিয়ন / পৌরসভা আসনের শুরুর মাসিক টার্গেট (৳)',
     'cs_param_held_share_months' => 'আটকে থাকা এরিয়া অংশ কত মাস পর কোম্পানির ফান্ডে যাবে (০ = কখনো নয়)',
+    'event_finance_refund_owner_limit_changed' => 'টাকা ফেরতের জন্য মালিকের সীমা বদলানো হয়েছে',
+    'event_finance_fund_spend_owner_limit_changed' => 'ফান্ড খরচের জন্য মালিকের সীমা বদলানো হয়েছে',
 ];

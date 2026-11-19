@@ -15,6 +15,7 @@ type WithdrawalStatus = 'requested' | 'approved' | 'paid' | 'rejected' | 'cancel
 interface WithdrawalRecord {
     id: string;
     payer_state?: 'second_person' | null;
+    waits_for_owner?: boolean;
     user_id: number;
     user_name: string;
     dealer_code: string;
@@ -243,6 +244,10 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                 <button type="button" onClick={() => { setModalErrors({}); setAttachFile(null); setAttachRecord(w); }} className="button small dark">
                     {translate('payouts', 'attach_receipt')}
                 </button>
+            )}
+
+            {w.status === 'requested' && w.waits_for_owner && (
+                <small className="muted">{translate('self_approval', 'owner_approves_withdrawal')}</small>
             )}
 
             {w.status === 'requested' && canProcess && (

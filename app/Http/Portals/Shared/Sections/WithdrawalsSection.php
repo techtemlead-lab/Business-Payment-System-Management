@@ -146,6 +146,7 @@ final class WithdrawalsSection implements WorkspaceSection
             'district' => $row->district,
             'division' => $row->division,
             'payer_state' => app(ManualPayoutService::class)->payerState($row, $request->user()),
+            'waits_for_owner' => app(ManualPayoutService::class)->waitsForOwner($row, $request->user()),
             'on_hold' => $row->on_hold_at !== null,
             'partner_status' => $row->partner_status,
             'approved_at' => $row->approved_at,

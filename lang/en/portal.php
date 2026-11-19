@@ -6499,7 +6499,7 @@ return [
     'event_privacy_request_resolved' => 'Owner answered a data request',
     'accounting' => 'Accounting',
     'section_hint_accounting' => 'Trial balance, profit and loss, balance sheet, statement checks and the payout file.',
-    'event_finance_withdrawal_approval_limit_changed' => 'Large withdrawal limit changed',
+    'event_finance_withdrawal_approval_limit_changed' => 'Owner limit for withdrawals changed',
     'purchasing_nav' => 'Purchasing',
     'section_hint_purchasing' => 'Suppliers, purchase orders and goods received.',
     'status_partly_received' => 'Partly received',
@@ -6838,4 +6838,6 @@ return [
     'cs_param_upazila_monthly_quota' => 'Starting monthly target, upazila seat (৳)',
     'cs_param_union_monthly_quota' => 'Starting monthly target, union / pourashava seat (৳)',
     'cs_param_held_share_months' => 'Months a held area share waits before it goes to the company fund (0 = never)',
+    'event_finance_refund_owner_limit_changed' => 'Owner limit for refunds changed',
+    'event_finance_fund_spend_owner_limit_changed' => 'Owner limit for fund spending changed',
 ];

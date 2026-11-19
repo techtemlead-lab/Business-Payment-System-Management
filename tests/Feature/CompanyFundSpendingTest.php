@@ -56,7 +56,9 @@ class CompanyFundSpendingTest extends TestCase
         $firstRow = 'approvals_table.rows.data.0.';
 
         $this->actingAs($enterOnly)->onPortal('manage')->get('/treasury/work')->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where($firstRow.'can_review', false)->where($firstRow.'can_cancel', false)->where($firstRow.'waits_for_owner', true));
+            ->assertInertia(fn (Assert $page) => $page->where($firstRow.'can_review', false)->where($firstRow.'can_cancel', false)
+                // CR-16: a small spend waits for another finance approver, not for the owner.
+                ->where($firstRow.'waits_for_owner', false)->where($firstRow.'waits_for_staff', true));
         $this->review($enterOnly, $id, 'approved')->assertForbidden();
 
         $this->actingAs($checker)->onPortal('manage')->get('/treasury/work')->assertOk()

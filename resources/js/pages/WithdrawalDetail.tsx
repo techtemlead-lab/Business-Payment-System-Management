@@ -400,6 +400,7 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
             {finance && w.status === 'requested' && (
                 <section className="panel narrow-panel">
                     <h2>{translate('portal', 'wd_review_title')}</h2>
+                    {w.waits_for_owner && <p className="notice" role="status">{translate('self_approval', 'owner_approves_withdrawal')}</p>}
                     <ActionForm
                         action={`/commands/withdrawals/${w.id}/review`}
                         fields={[
@@ -408,7 +409,7 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                                 label: translate('portal', 'wd_decision'),
                                 required: true,
                                 options: [
-                                    ...(facts?.blocker || facts?.over_channel_limit ? [] : [{ value: 'approved', label: translate('portal', 'wd_approve') }]),
+                                    ...(facts?.blocker || facts?.over_channel_limit || w.waits_for_owner ? [] : [{ value: 'approved', label: translate('portal', 'wd_approve') }]),
                                     { value: 'rejected', label: translate('portal', 'wd_reject') },
                                 ],
                             },

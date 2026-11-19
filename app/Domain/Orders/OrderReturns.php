@@ -6,6 +6,7 @@ use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Commissions\CommissionReversal;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Finance\CompanyFunds;
+use App\Domain\Finance\OwnerApprovalLimits;
 use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\StockLots;
 use App\Domain\Security\OwnerExemption;
@@ -107,6 +108,22 @@ final class OrderReturns
         return OwnerExemption::applies($actor);
     }
 
+    /** CR-16: the open refund needs an owner as its second person, and the viewer is not one. */
+    private function waitsForOwner(object $request, User $viewer): bool
+    {
+        return $this->secondMustBeOwner($request, User::find($request->first_approved_by)) && ! OwnerApprovalLimits::ownerDecides($viewer);
+    }
+
+    /**
+     * CR-16: a refund at or above the owner's refund limit needs an owner in one of its two steps.
+     * True when the first step was not an owner's, so the second person must be one.
+     */
+    private function secondMustBeOwner(object $request, ?User $firstApprover): bool
+    {
+        return app(OwnerApprovalLimits::class)->needsOwner(OwnerApprovalLimits::Refund, (string) ($request->refund_amount ?? '0'))
+            && ! OwnerApprovalLimits::ownerDecides($firstApprover);
+    }
+
     /**
      * The partner asks to cancel (before shipping) or return (after delivery). An unpaid order
      * that is not approved yet, with no payment waiting to be checked, is cancelled at once:
@@ -134,7 +151,7 @@ final class OrderReturns
             }
             $id = $this->insertRequest($locked, $partner, $kind, $units, $reason);
             $this->event($locked, $partner, self::ActionRequested, ['request_id' => $id, 'kind' => $kind, 'lines' => $this->linesForRecord($units), 'reason' => $reason]);
-            Audit::notifyAdminsAndStaff(
+            Audit::notifyStaffFirst(
                 ['orders', 'finance'],
                 __('orders_stock.notice_staff_request_title', ['number' => $locked->number]),
                 __('orders_stock.notice_staff_request_body', ['name' => $partner->name, 'number' => $locked->number, 'kind' => __('orders_stock.kind_'.$kind), 'reason' => $reason]),
@@ -209,12 +226,14 @@ final class OrderReturns
             }
             DB::table('order_return_requests')->where('id', $request->id)->update(['status' => self::StatusAwaitingSecond, 'updated_at' => now()]);
             $this->event($order, $actor, self::ActionFirstApproved, ['request_id' => $request->id, 'refund' => Money::decimal($cents), 'method' => $method, 'reason' => $note]);
-            Audit::notifyAdminsAndStaff(
-                ['finance'],
-                __('orders_stock.notice_second_needed_title', ['number' => $order->number]),
-                __('orders_stock.notice_second_needed_body', ['name' => $actor->name, 'number' => $order->number, 'amount' => Money::grouped(Money::decimal($cents))]),
-                $actor->id,
-            );
+            $title = __('orders_stock.notice_second_needed_title', ['number' => $order->number]);
+            $body = __('orders_stock.notice_second_needed_body', ['name' => $actor->name, 'number' => $order->number, 'amount' => Money::grouped(Money::decimal($cents))]);
+            // CR-16: a big refund that no owner has approved yet waits for an owner; the rest go to finance staff.
+            if ($this->secondMustBeOwner($request, $actor)) {
+                Audit::notifyOwners(['finance'], $title, $body, $actor->id);
+            } else {
+                Audit::notifyStaffFirst(['finance'], $title, $body, $actor->id);
+            }
 
             return false;
         }, 3);
@@ -234,6 +253,9 @@ final class OrderReturns
             }
             if ((int) $request->first_approved_by === (int) $actor->id) {
                 throw ValidationException::withMessages(['request' => __('orders_stock.err_same_person')]);
+            }
+            if ($this->secondMustBeOwner($request, User::find($request->first_approved_by))) {
+                app(OwnerApprovalLimits::class)->refuseUnlessOwnerMayApprove($actor, OwnerApprovalLimits::Refund, (string) $request->refund_amount, 'request');
             }
             $units = $this->storedUnits($request);
             $this->checkedUnits($order, $request->kind, $this->unitsAsLines($units), byStaff: true, allowEmpty: $request->kind === self::KindRefund);
@@ -310,7 +332,9 @@ final class OrderReturns
 
         return [
             'open' => $open === null ? null : [...(array) $open, 'lines' => json_decode((string) $open->lines, true),
-                'can_confirm' => $staff && $open->status === self::StatusAwaitingSecond && OrderRefund::canRefund($viewer) && (int) $open->first_approved_by !== (int) $viewer->id,
+                'can_confirm' => $staff && $open->status === self::StatusAwaitingSecond && OrderRefund::canRefund($viewer) && (int) $open->first_approved_by !== (int) $viewer->id
+                    && ! $this->waitsForOwner($open, $viewer),
+                'waits_for_owner' => $staff && $open->status === self::StatusAwaitingSecond && $this->waitsForOwner($open, $viewer),
                 'can_approve' => $staff && $open->status === self::StatusRequested,
                 'can_withdraw' => $isPartner && $open->status === self::StatusRequested],
             'lines' => $lines,
