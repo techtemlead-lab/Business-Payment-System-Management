@@ -3159,7 +3159,7 @@ html[data-theme="dark"] .app-shell .hub .button.danger:hover{background:var(--ds
 .app-shell .pw-actions{padding-top:16px;border-top:1px solid var(--ds-line-soft)}
 .app-shell .pw-custom{margin-top:14px;padding:14px 16px;border:1px solid var(--ds-line);border-radius:var(--ds-r-md);background:var(--ds-surface-3)}
 .app-shell .pw-custom>label{margin-bottom:6px}
-.app-shell .pw-input-wrap{position:relative;flex:1 1 240px}
+.app-shell .pw-input-wrap{position:relative;flex:none;width:100%;max-width:420px}
 .app-shell .pw-input-wrap>input{padding-right:36px;font-family:ui-monospace,monospace}
 .app-shell .pw-eye{position:absolute;right:8px;top:50%;transform:translateY(-50%);padding:2px;border:0;background:none;font-size:14px;line-height:1;cursor:pointer}
 .app-shell .pw-custom>small{display:block;margin-top:6px}
