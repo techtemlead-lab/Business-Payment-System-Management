@@ -8,6 +8,7 @@ use App\Domain\Accounts\PartnerCertificates;
 use App\Domain\Accounts\PartnerEarningsPresenter;
 use App\Domain\Accounts\PartnerFullReport;
 use App\Domain\Accounts\PartnerIdCard;
+use App\Domain\Accounts\PartnerJoinLink;
 use App\Domain\Accounts\PartnerJoinPoster;
 use App\Domain\Audience\SiteVisitReport;
 use App\Domain\Finance\FinanceSettings;
@@ -340,6 +341,7 @@ class WorkspaceController extends Controller
     {
         $u = $r->user();
         abort_unless(in_array($u->role, ['dealer', 'sub_dealer'], true), 403);
+        abort_unless(PartnerJoinLink::enabled(), 404);
 
         return app(PartnerJoinPoster::class)->downloadPdf($u);
     }
@@ -348,7 +350,7 @@ class WorkspaceController extends Controller
     {
         $u = $r->user();
         abort_unless(in_array($u->role, ['dealer', 'sub_dealer'], true), 403);
-        abort_unless(filled($u->refer_code), 404);
+        abort_unless(filled($u->refer_code) && PartnerJoinLink::enabled(), 404);
         $url = PortalHost::url('public', '/join/'.$u->refer_code);
 
         return response(JoinQr::svg($url, 180), 200, [

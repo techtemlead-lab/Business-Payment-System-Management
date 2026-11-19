@@ -54,7 +54,7 @@ final class PartnerProfileCard
             'address_missing' => $missing,
             'referred_by' => $this->referredBy($user, $profile),
             'refer_code' => $user->refer_code,
-            'refer_url' => $user->refer_code ? PortalHost::url('public', '/join/'.$user->refer_code) : null,
+            'refer_url' => $user->refer_code && PartnerJoinLink::enabled() ? PortalHost::url('public', '/join/'.$user->refer_code) : null,
             'referrals' => $this->referrals($user),
             'rank' => $user->role === 'dealer' ? $this->rank($user) : null,
             'locked' => PartnerProfileLock::isLocked($user),

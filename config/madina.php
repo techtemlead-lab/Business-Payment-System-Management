@@ -11,6 +11,8 @@ return [
     'guest_locale' => env('MADINA_GUEST_LOCALE', 'bn'),
     // The partner (dealer and sub-dealer) product list page. On again since 2026-11-19 (it was off under CR-01); false hides it.
     'partner_catalog_enabled' => env('MADINA_PARTNER_CATALOG', true),
+    // The partner-side join link, QR, share buttons and poster. Off: the client says partners never join anyone and the office sets the sponsor.
+    'partner_join_link_enabled' => env('MADINA_PARTNER_JOIN_LINK', false),
     'financial_activation' => env('MADINA_FINANCIAL_ACTIVATION', false),
     'preview_mode' => env('MADINA_PREVIEW_MODE', false),
     // Removes product photo backgrounds in the office browser. The files are too large for git:

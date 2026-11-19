@@ -86,6 +86,17 @@ class PartnerApplicationJourneyTest extends TestCase
         $this->assertSame(PublicPartnerApplication::numberFor($application->id), $application->application_number);
     }
 
+    public function test_with_the_join_link_off_an_application_never_names_a_partner_as_sponsor(): void
+    {
+        config(['madina.partner_join_link_enabled' => false]);
+
+        $this->onPortal('public')->from('/partnership')->post('/partnership/apply', $this->form(['sponsor_code' => 'REF200']))
+            ->assertSessionHasNoErrors();
+
+        $payload = json_decode((string) DB::table('dealer_applications')->sole()->data, true);
+        $this->assertEmpty($payload['sponsor_code'] ?? null);
+    }
+
     public function test_a_place_that_does_not_belong_to_the_district_is_refused(): void
     {
         $otherDistrict = PlaceCode::factory()->district($this->division)->create(['name' => 'Bogura']);

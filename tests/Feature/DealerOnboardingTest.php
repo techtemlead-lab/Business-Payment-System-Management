@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\PlaceCode;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -234,10 +236,10 @@ class DealerOnboardingTest extends TestCase
         $res->assertSessionHasNoErrors();
 
         $user = User::where('email', 'typed@example.com')->firstOrFail();
-        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('Madina#Typed77', $user->password));
+        $this->assertTrue(Hash::check('Madina#Typed77', $user->password));
         $this->assertFalse((bool) $user->must_change_password);
         $this->assertStringNotContainsString('Madina#Typed77', (string) session('success'));
-        $this->assertStringNotContainsString('Madina#Typed77', json_encode(\Illuminate\Support\Facades\DB::table('audit_events')->get()->all()));
+        $this->assertStringNotContainsString('Madina#Typed77', json_encode(DB::table('audit_events')->get()->all()));
     }
 
     public function test_an_empty_password_box_makes_a_password_that_must_be_changed(): void
