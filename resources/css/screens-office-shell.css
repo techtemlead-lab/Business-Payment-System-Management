@@ -214,3 +214,15 @@ html[data-text-size="large"] .app-shell:is(.owner-shell,.company-shell){--ds-fs-
 @media (prefers-reduced-motion:reduce){.app-shell .osb-skeleton i{animation:none}}
 @media (max-width:1100px){.app-shell .osb-money{grid-template-columns:1fr}}
 @media (max-width:600px){.app-shell .osb{padding:var(--ds-s-3)}}
+
+/* R6: from 1024 px the office top bar must fit without sideways scroll. Below 1280 px the search shows
+   only its icon and the website link (also in the account menu) steps aside, so the bell and the
+   account menu stay on screen. A long name is cut short instead of pushing them out. */
+@media (min-width:761px) and (max-width:1279px){
+  .app-shell:is(.owner-shell,.company-shell) .workspace-header .header-actions .global-search-trigger{width:36px;justify-content:center;padding:0}
+  .app-shell:is(.owner-shell,.company-shell) .workspace-header .header-actions .global-search-trigger :is(.global-search-trigger-label,kbd){display:none}
+  .app-shell:is(.owner-shell,.company-shell) .workspace-header .header-actions .portal-website-link{display:none}
+  .app-shell:is(.owner-shell,.company-shell) .workspace-header .header-actions{flex-shrink:0}
+  .app-shell:is(.owner-shell,.company-shell) .workspace-header .profile-menu-trigger .user-caption{max-width:130px}
+  .app-shell:is(.owner-shell,.company-shell) .workspace-header .profile-menu-trigger .user-caption :is(b,span){display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}
