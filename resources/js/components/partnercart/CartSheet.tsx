@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { useT } from '../../shared/i18n/t';
 import '../../../css/screens-partner-cart.css';
@@ -22,13 +23,17 @@ export default function CartSheet({ title, onClose, children, footer, side = fal
 
     useEffect(() => {
         const before = document.activeElement as HTMLElement | null;
-        const first = panel.current?.querySelector<HTMLElement>('[data-autofocus], input, button:not(.pcart-x)');
+        // The window names what to focus (the quantity box); otherwise the first button that is not "close".
+        const first = panel.current?.querySelector<HTMLElement>('[data-autofocus]') ?? panel.current?.querySelector<HTMLElement>('input, button:not(.pcart-x)');
         (first ?? panel.current)?.focus();
         const overflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
         const onKey = (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
-                closeRef.current();
+                // A question window above this one (clear all?) takes the key first.
+                if (!document.querySelector('dialog[open]')) {
+                    closeRef.current();
+                }
                 return;
             }
             // Tab stays inside the window.
@@ -57,7 +62,8 @@ export default function CartSheet({ title, onClose, children, footer, side = fal
         };
     }, []);
 
-    return (
+    // Drawn on the page body, not inside the page: a fading or moving page would otherwise carry the window with it.
+    return createPortal(
         <div className={`pcart-overlay${side ? ' is-side' : ''}`} onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
             <div ref={panel} className="pcart-sheet" role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} data-testid={testId}>
                 <header className="pcart-sheet-head">
@@ -69,6 +75,7 @@ export default function CartSheet({ title, onClose, children, footer, side = fal
                 <div className="pcart-sheet-body">{children}</div>
                 {footer && <footer className="pcart-sheet-foot">{footer}</footer>}
             </div>
-        </div>
+        </div>,
+        document.body,
     );
 }
