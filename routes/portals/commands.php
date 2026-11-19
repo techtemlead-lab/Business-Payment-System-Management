@@ -80,6 +80,7 @@ return function (string $portal): void {
     Route::post('/commands/profile/details', [PartnerProfileController::class, 'details'])->middleware('throttle:10,1');
     Route::post('/commands/profile/change-request', [PartnerProfileController::class, 'changeRequest'])->middleware('throttle:5,1');
     Route::post('/commands/accounts/{user}/profile-lock', [PartnerProfileController::class, 'lock'])->middleware('throttle:20,1');
+    Route::post('/commands/profile/nid', [PartnerProfileController::class, 'nid'])->middleware('throttle:5,1');
     Route::post('/commands/profile/photo', [AuthController::class, 'profilePhoto'])->middleware('throttle:10,1');
     Route::post('/commands/owner/partner-login-otp', [AuthController::class, 'partnerLoginOtp'])->middleware('throttle:5,1');
     Route::post('/commands/owner/confirmation', [AuthController::class, 'ownerConfirmation'])->middleware('throttle:5,1');
@@ -144,6 +145,7 @@ return function (string $portal): void {
     Route::post('/commands/accounts/{user}/reveal-password', [CommandController::class, 'revealPartnerPassword'])->middleware('throttle:5,1,password-reveal');
     Route::get('/commands/accounts/{user}/kyc-documents', [CommandController::class, 'kycDocuments'])->middleware('throttle:60,1');
     Route::post('/commands/accounts/{user}/kyc-documents', [CommandController::class, 'storeKycDocument'])->middleware('throttle:20,1');
+    Route::post('/commands/accounts/{user}/kyc-documents/{document}/review', [CommandController::class, 'reviewKycDocument'])->whereUuid('document')->middleware('throttle:30,1');
     Route::get('/commands/accounts/{user}/kyc-documents/{document}', [CommandController::class, 'downloadKycDocument'])->middleware('throttle:60,1');
     Route::post('/commands/identity/bdris-lookup', [IdentityLookupController::class, 'bdris'])->middleware('throttle:20,1');
     Route::get('/commands/identity/place-preview', [IdentityLookupController::class, 'placePreview'])->middleware('throttle:60,1');

@@ -2,6 +2,7 @@
 
 namespace App\Http\Portals\Shared\Sections;
 
+use App\Domain\Accounts\PartnerKycDocuments;
 use App\Domain\Accounts\PartnerProfileCard;
 use App\Models\User;
 use App\Support\StoredPhrase;
@@ -59,6 +60,8 @@ final class ProfileSection implements WorkspaceSection
                     ? __('portal.kyc_status_on_file')
                     : __('portal.kyc_status_missing'),
                 'date_of_birth_on_file' => filled($profile['date_of_birth'] ?? null),
+                // R5: only a partner without a verified NID sees the box to send one.
+                'nid_request' => in_array($user->role, ['dealer', 'sub_dealer'], true) ? app(PartnerKycDocuments::class)->nidRequestState($user) : null,
             ],
         ];
 
