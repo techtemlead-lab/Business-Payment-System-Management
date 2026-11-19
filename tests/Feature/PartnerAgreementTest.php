@@ -496,4 +496,30 @@ class PartnerAgreementTest extends TestCase
         $owner = User::factory()->staff()->create();
         app(PartnerAgreement::class)->saveSetting($owner, true, 0);
     }
+
+    /** Client report 2026-11-19: a new partner with a first password was locked between the two gates. */
+    public function test_a_new_partner_can_change_the_first_password_and_accept_the_agreement_in_either_order(): void
+    {
+        $owner = User::factory()->staff()->create();
+        $this->actingAs($owner)->onPortal('sadmin')->post('/commands/agreement/setting', ['required' => 1, 'version' => 0])->assertSessionHasNoErrors();
+        $version = PartnerAgreementVersion::query()->sole();
+
+        // Agreement first, then the password.
+        $dealer = User::factory()->dealer()->create(['must_change_password' => true]);
+        $this->actingAs($dealer)->onPortal('dealer')->get('/i18n/bn/0000000000000000.json')->assertOk();
+        $this->actingAs($dealer)->onPortal('dealer')->post('/commands/agreement/accept', ['version_id' => $version->id])->assertRedirect('/');
+        $this->assertTrue(PartnerAgreementAcceptance::query()->where('user_id', $dealer->id)->exists());
+        $this->actingAs($dealer)->onPortal('dealer')->get('/')->assertRedirect('/security');
+
+        // Password first, then the agreement.
+        $subDealer = User::factory()->subDealer()->create(['must_change_password' => true]);
+        $this->actingAs($subDealer)->onPortal('subdealer')->get('/security')->assertOk();
+        $this->actingAs($subDealer)->onPortal('subdealer')->post('/security/password', [
+            'current_password' => 'password', 'password' => 'Brand-new-pass-77', 'password_confirmation' => 'Brand-new-pass-77',
+        ])->assertSessionHasNoErrors();
+        $this->assertFalse($subDealer->fresh()->must_change_password);
+        $this->actingAs($subDealer->fresh())->onPortal('subdealer')->get('/')->assertRedirect('/agreement');
+        $this->actingAs($subDealer->fresh())->onPortal('subdealer')->post('/commands/agreement/accept', ['version_id' => $version->id])->assertRedirect('/');
+        $this->actingAs($subDealer->fresh())->onPortal('subdealer')->get('/')->assertOk();
+    }
 }
