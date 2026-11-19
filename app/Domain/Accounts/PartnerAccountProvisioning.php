@@ -148,8 +148,10 @@ final class PartnerAccountProvisioning
             'occupation' => trim((string) ($input['occupation'] ?? '')),
             'village' => trim((string) ($input['village'] ?? '')),
             'post_office' => trim((string) ($input['post_office'] ?? '')),
-            'upazila' => $path['upazila'] ?? trim((string) ($input['upazila'] ?? '')),
-            'union' => $path['union'] ?? trim((string) ($input['union'] ?? '')),
+            // The place code decides the area. A typed or left-over name is never taken: a dealer on an
+            // upazila code has no union, and must not get one from another upazila.
+            'upazila' => (string) ($path['upazila'] ?? ''),
+            'union' => (string) ($path['union'] ?? ''),
             'pharmacy' => $shopName,
             'shop_name' => $shopName,
             'area_code' => $role === 'sub_dealer' ? $dealerCode : $place->code,
