@@ -20,6 +20,7 @@ use App\Http\Controllers\PartnerChatController;
 use App\Http\Controllers\PartnerContestController;
 use App\Http\Controllers\PartnerEventController;
 use App\Http\Controllers\PartnerFileController;
+use App\Http\Controllers\PartnerPayoutAccountController;
 use App\Http\Controllers\PartnerProfileController;
 use App\Http\Controllers\PartnerRegistrationFormController;
 use App\Http\Controllers\PlaceCodeController;
@@ -80,6 +81,10 @@ return function (string $portal): void {
     Route::post('/commands/profile/details', [PartnerProfileController::class, 'details'])->middleware('throttle:10,1');
     Route::post('/commands/profile/change-request', [PartnerProfileController::class, 'changeRequest'])->middleware('throttle:5,1');
     Route::post('/commands/accounts/{user}/profile-lock', [PartnerProfileController::class, 'lock'])->middleware('throttle:20,1');
+    Route::post('/commands/payout-accounts', [PartnerPayoutAccountController::class, 'store'])->middleware('throttle:20,1');
+    Route::post('/commands/payout-accounts/{account}', [PartnerPayoutAccountController::class, 'update'])->whereNumber('account')->middleware('throttle:20,1');
+    Route::post('/commands/payout-accounts/{account}/remove', [PartnerPayoutAccountController::class, 'destroy'])->whereNumber('account')->middleware('throttle:20,1');
+    Route::post('/commands/payout-accounts/{account}/default', [PartnerPayoutAccountController::class, 'makeDefault'])->whereNumber('account')->middleware('throttle:20,1');
     Route::post('/commands/profile/nid', [PartnerProfileController::class, 'nid'])->middleware('throttle:5,1');
     Route::post('/commands/profile/photo', [AuthController::class, 'profilePhoto'])->middleware('throttle:10,1');
     Route::post('/commands/owner/partner-login-otp', [AuthController::class, 'partnerLoginOtp'])->middleware('throttle:5,1');

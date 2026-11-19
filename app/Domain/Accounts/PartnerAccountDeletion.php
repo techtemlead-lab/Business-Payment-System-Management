@@ -47,6 +47,7 @@ final class PartnerAccountDeletion
         'list_column_choices.user_id',
         'partner_anniversary_greetings.user_id',
         'partner_birthday_greetings.user_id',
+        'partner_payout_accounts.user_id',
         'partner_former_codes.user_id',
         'referral_tree_paths.descendant_id',
         'saved_list_filters.user_id',

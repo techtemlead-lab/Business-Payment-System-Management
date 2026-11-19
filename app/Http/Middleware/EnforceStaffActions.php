@@ -50,6 +50,7 @@ class EnforceStaffActions
                 'PartnerAgreementController' => $method === 'accept',
                 // A partner whose profile the office left open fixes his own shop name and village; the controller checks the lock.
                 'PartnerProfileController' => in_array($method, ['details', 'changeRequest', 'nid'], true),
+                'PartnerPayoutAccountController' => true,
                 'PartnerChatController' => $method === 'send',
                 // A partner asks to cancel or return his own order, or takes the request back; OrderReturns checks the order is his.
                 'OrderReturnController' => in_array($method, ['ask', 'withdraw', 'received'], true),

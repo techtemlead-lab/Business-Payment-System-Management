@@ -28,6 +28,7 @@ export default function WithdrawSheet({ available, withdraw, onClose }: { availa
     const [budget, setBudget] = useState(Number(available) > 0 ? available : '');
     const requestKey = useRef(randomUuid());
 
+    const saved = withdraw.saved_accounts ?? [];
     const usable = Number(available);
     const budgetAmount = Number(plainDigits(budget));
     const budgetIsFine = Number.isFinite(budgetAmount) && budgetAmount > 0 && budgetAmount <= usable;
@@ -80,7 +81,25 @@ export default function WithdrawSheet({ available, withdraw, onClose }: { availa
 
             {step === 'choose' && withdraw.nid_block && <NidSubmit request={withdraw.nid_request} />}
 
-            {step === 'take' && (
+            {/* V3: with saved accounts the partner picks one; its channel and number are read from the saved record. */}
+            {step === 'take' && saved.length > 0 && (
+                <>
+                    <ActionForm
+                        action="/commands/withdrawals"
+                        defaults={{ idempotency_key: requestKey.current, payout_account_id: String((saved.find((account) => account.is_default) ?? saved[0]).id) }}
+                        submit={translate('portal', 'request_withdrawal')}
+                        fields={[
+                            { name: 'amount', type: 'number', label: translate('portal', 'amount_minimum', { amount: String(withdraw.minimum) }), required: true },
+                            { name: 'payout_account_id', label: translate('leftovers_partner', 'pa_pick'), required: true, options: saved.map((account) => ({ value: String(account.id), label: account.label })) },
+                        ]}
+                    />
+                    <Link className="text-link" href={`${base}/profile`}>{translate('leftovers_partner', 'pa_manage_link')}</Link>
+                </>
+            )}
+
+            {step === 'take' && saved.length === 0 && (
+                <>
+                <p className="muted">{translate('leftovers_partner', 'pa_none_withdraw')} <Link className="text-link" href={`${base}/profile`}>{translate('leftovers_partner', 'pa_manage_link')}</Link></p>
                 <ActionForm
                     action="/commands/withdrawals"
                     defaults={{ idempotency_key: requestKey.current }}
@@ -96,6 +115,7 @@ export default function WithdrawSheet({ available, withdraw, onClose }: { availa
                         { name: 'destination', label: translate('portal', 'account_or_wallet'), required: true },
                     ]}
                 />
+                </>
             )}
 
             {step === 'take' && (
