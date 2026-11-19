@@ -16,6 +16,9 @@ export default function TreasuryFunds({ cards, partner_totals: partnerTotals, wa
     const translate = useT();
     const viewer = useTreasuryViewer();
     const [showAll, setShowAll] = useState(false);
+    const spendable = cards.filter((card) => card.spendable);
+    // The menu search's "record an expense" arrives here with ?spend=1 and shows the fund choice at once.
+    const [choosing, setChoosing] = useState(() => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('spend') === '1');
 
     const empty = cards.filter(isEmpty);
     const shown = showAll ? cards : cards.filter((card) => !isEmpty(card));
@@ -26,6 +29,22 @@ export default function TreasuryFunds({ cards, partner_totals: partnerTotals, wa
 
     return (
         <TreasuryPage title={translate('treasury', 'title')} showTabs>
+            {viewer.finance && (
+                <div className="tsy-spend-choice" data-testid="fund-spend-choice">
+                    <button type="button" className="button dark" aria-expanded={choosing} onClick={() => setChoosing((value) => !value)}>{translate('findability', 'btn_fund_spend')}</button>
+                    {choosing && (
+                        <div role="group" aria-label={translate('findability', 'spend_choose_title')}>
+                            <p><b>{translate('findability', 'spend_choose_title')}</b></p>
+                            {spendable.length === 0 && <p className="muted">{translate('findability', 'spend_choose_none')}</p>}
+                            <ul>
+                                {spendable.map((card) => (
+                                    <li key={card.key}><Link className="button" href={`${card.href}?spend=1`}>{card.name} · {money(card.balance)}</Link></li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                </div>
+            )}
             {waitingForDelivery != null && (
                 <section className="tsy-fund tsy-waiting" data-testid="waiting-for-delivery">
                     <h2>{translate('money_core', 'waiting_for_delivery_title')}</h2>
