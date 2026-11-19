@@ -947,7 +947,7 @@ return [
     'withdrawals_s8' => 'Office: the person who sends the money adds the receipt. If there is no receipt yet, choose “Money sent, receipt later”. Then press “Add receipt” later.',
     'withdrawals_o1' => 'Every withdrawal has one line on the “Wallet” page. Once it is paid, the receipt is there too.',
     'withdrawals_o2' => 'If a request is cancelled before the money is sent, the money returns to your Wallet.',
-    'withdrawals_t1' => 'Keep your bank or mobile number correct, or the money may come back.',
+    'withdrawals_t1' => 'Save your bank, bKash, Nagad or Rocket accounts in your profile under "My payout accounts" and pick one when you withdraw. Keep the numbers correct or the money may come back. After you change an account, withdrawals pause for a short while for your safety.',
     'withdrawals_t2' => 'If you have a TIN (tax number), you can save it on the withdraw form.',
     'withdrawals_w1' => 'For a short time after you change your phone number or password, you cannot ask for a withdrawal. This is usually 2 hours. It keeps your money safe if someone else gets into your account.',
     'withdrawals_w2' => 'If your account is suspended, your open requests are put on hold. No money is sent then. When the account is switched on again, the requests go on.',
