@@ -52,3 +52,17 @@ test('a very long line without full stops is cut at commas', () => {
     assert.ok(pieces.length > 1);
     assert.ok(pieces.every((piece) => piece.length <= 400));
 });
+
+test('the "please check" tint beats the form styles and follows the app theme', async () => {
+    const { BANGLA_FILL_CSS } = await import('../../resources/js/shared/banglaFill/autofill.ts');
+    assert.match(BANGLA_FILL_CSS, /input\[data-bangla-state="filled"\][^{]*\{background-color:#fff8db!important\}/);
+    assert.match(BANGLA_FILL_CSS, /html\[data-theme="dark"\] input\[data-bangla-state="filled"\]/);
+    // The computer's dark setting applies only when the person has not picked a light theme in the app.
+    assert.match(BANGLA_FILL_CSS, /prefers-color-scheme:dark\)\{html:not\(\[data-theme="light"\]\)/);
+});
+
+test('an empty Bangla box says it is being made while the model works', async () => {
+    const { workingHint } = await import('../../resources/js/shared/banglaFill/autofill.ts');
+    assert.equal(workingHint(true), 'বাংলা তৈরি হচ্ছে…');
+    assert.ok(workingHint(false).endsWith('…'));
+});

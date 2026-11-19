@@ -55,8 +55,14 @@ export function takaAmount(value: unknown, locale?: TakaLocale): string {
     return `৳${digits(paisa === 0n ? whole : `${whole}.${paisa.toString().padStart(2, '0')}`, locale)}`;
 }
 
-/** "1 crore 20 lakh taka" for amounts from one lakh up (rounded down to a whole lakh), else null. */
-export function takaWords(value: unknown, locale?: TakaLocale): string | null {
+/**
+ * "1 crore 20 lakh taka" for amounts from one lakh up (rounded down to a whole lakh), else null.
+ * With exact, every part is written ("1 lakh 50 thousand taka"), for approval screens.
+ */
+export function takaWords(value: unknown, locale?: TakaLocale, exact = false): string | null {
+    if (exact) {
+        return exactWords(toCents(value), locale);
+    }
     const totalLakh = toCents(value) / 100n / LAKH;
     if (totalLakh < 1n) {
         return null;
@@ -73,6 +79,24 @@ export function takaWords(value: unknown, locale?: TakaLocale): string | null {
     }
 
     return digits(`${parts.join(' ')} ${bangla ? 'টাকা' : 'taka'}`, locale);
+}
+
+function exactWords(cents: bigint, locale?: TakaLocale): string | null {
+    const whole = cents / 100n;
+    if (whole < LAKH) {
+        return null;
+    }
+    const bangla = isBangla(locale);
+    const units: [bigint, string][] = [
+        [whole / 10000000n, bangla ? 'কোটি' : 'crore'],
+        [(whole / 100000n) % 100n, bangla ? 'লাখ' : 'lakh'],
+        [(whole / 1000n) % 100n, bangla ? 'হাজার' : 'thousand'],
+        [whole % 1000n, ''],
+    ];
+    const parts = units.filter(([count]) => count > 0n).map(([count, name]) => `${count} ${name}`.trim());
+    const paisa = cents % 100n;
+
+    return digits(`${parts.join(' ')} ${bangla ? 'টাকা' : 'taka'}${paisa > 0n ? ` ${paisa} ${bangla ? 'পয়সা' : 'paisa'}` : ''}`, locale);
 }
 
 /** The amount plus its words in brackets when there are words: "৳৩০,০০,০০,০০০ (৩০ কোটি টাকা)". */

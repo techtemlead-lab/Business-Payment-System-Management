@@ -96,6 +96,8 @@ export default function ProductCreateModal({
     const [description, setDescription] = useState('');
     const [efficacyBn, setEfficacyBn] = useState('');
     const [efficacyEn, setEfficacyEn] = useState('');
+    const [doseBn, setDoseBn] = useState('');
+    const [doseEn, setDoseEn] = useState('');
     const [warningsBn, setWarningsBn] = useState('');
     const [warningsEn, setWarningsEn] = useState('');
     const [imageFile, setImageFile] = useState<File | null>(null);
@@ -303,6 +305,9 @@ export default function ProductCreateModal({
         formData.append('group_en', groupEn.trim());
         formData.append('efficacy_bn', efficacyBn.trim());
         formData.append('efficacy_en', efficacyEn.trim());
+        // The same dose fact the facts panel, the public page and the stock print read.
+        formData.append('dose_bn', doseBn.trim());
+        formData.append('dose_en', doseEn.trim());
         formData.append('warnings_bn', warningsBn.trim());
         formData.append('warnings_en', warningsEn.trim());
         formData.append('description', description.trim());
@@ -471,6 +476,15 @@ export default function ProductCreateModal({
                             <label className="pcm-field pcm-span">
                                 <span>{translate('product_facts', 'field_efficacy')} ({translate('product_facts', 'column_en')})<OptionalTag /></span>
                                 <textarea id="pcm-efficacy-en" rows={3} maxLength={2000} value={efficacyEn} onChange={(event) => setEfficacyEn(event.target.value)} />
+                            </label>
+                            <label className="pcm-field pcm-span">
+                                <span>{translate('product_facts', 'field_dose')} ({translate('product_facts', 'column_bn')})<OptionalTag /></span>
+                                <textarea data-bangla-from="pcm-dose-en" data-bangla-kind="text" rows={3} maxLength={2000} value={doseBn} onChange={(event) => setDoseBn(event.target.value)} />
+                                <small className="field-hint">{translate('product_facts', 'hint_dose')}</small>
+                            </label>
+                            <label className="pcm-field pcm-span">
+                                <span>{translate('product_facts', 'field_dose')} ({translate('product_facts', 'column_en')})<OptionalTag /></span>
+                                <textarea id="pcm-dose-en" rows={3} maxLength={2000} value={doseEn} onChange={(event) => setDoseEn(event.target.value)} />
                             </label>
                             <label className="pcm-field pcm-span">
                                 <span>{translate('product_facts', 'field_warnings')} ({translate('product_facts', 'column_bn')})</span>

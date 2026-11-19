@@ -2,6 +2,7 @@
 
 namespace App\Domain\Audience;
 
+use App\Domain\Accounts\BanglaPlaceNames;
 use App\Models\AreaDealerAssignment;
 use App\Models\PlaceCode;
 use Illuminate\Validation\ValidationException;
@@ -36,11 +37,33 @@ final class PublicPartnerPlaces
             ? AreaDealerAssignment::query()->where('is_active', true)->whereIn('place_code_id', $places->pluck('id'))->pluck('place_code_id')->flip()
             : collect();
 
+        // On Bangla pages the lists show Bangla names (B6); the saved application keeps the English name.
+        $above = $level !== PlaceCode::LevelDivision && $parentId !== null ? $this->namesAbove($parentId) : [];
+        $bangla = app()->getLocale() === 'bn';
+
         return $places->map(fn (PlaceCode $place): array => [
             'id' => (int) $place->id,
-            'name' => PlaceCode::displayLabel($place->name),
+            'name' => $bangla ? BanglaPlaceNames::level($level, PlaceCode::displayLabel($place->name), $above) : PlaceCode::displayLabel($place->name),
             'held' => $held->has($place->id),
         ])->values()->all();
+    }
+
+    /**
+     * The English names of a place and the places above it, by level.
+     *
+     * @return array<string, string>
+     */
+    private function namesAbove(int $placeId): array
+    {
+        $names = [];
+        for ($place = PlaceCode::query()->find($placeId, ['id', 'name', 'level', 'parent_id']), $guard = 0; $place !== null && $guard < 6; $guard++) {
+            if (in_array($place->level, self::Levels, true)) {
+                $names[$place->level] = PlaceCode::displayLabel($place->name);
+            }
+            $place = $place->parent_id !== null ? PlaceCode::query()->find($place->parent_id, ['id', 'name', 'level', 'parent_id']) : null;
+        }
+
+        return $names;
     }
 
     /**

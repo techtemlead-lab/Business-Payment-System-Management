@@ -1,3 +1,4 @@
+import { isBanglaDocument } from '../../business-date.ts';
 import { type BanglaKind, shouldFill } from './rules.ts';
 
 /**
@@ -30,26 +31,49 @@ function typeInto(box: Box, value: string): void {
     box.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
+/**
+ * The "please check" tint. The attribute selectors carry the element name and !important so the form's own input
+ * styles cannot hide it; dark follows the app's theme switch first and the computer's setting only when the
+ * person has not chosen.
+ */
+export const BANGLA_FILL_CSS = [
+    'input[data-bangla-state="filled"],textarea[data-bangla-state="filled"]{background-color:#fff8db!important}',
+    'input[data-bangla-state="working"],textarea[data-bangla-state="working"]{opacity:.7}',
+    'html[data-theme="dark"] input[data-bangla-state="filled"],html[data-theme="dark"] textarea[data-bangla-state="filled"]{background-color:#3a3420!important}',
+    '@media (prefers-color-scheme:dark){html:not([data-theme="light"]) input[data-bangla-state="filled"],html:not([data-theme="light"]) textarea[data-bangla-state="filled"]{background-color:#3a3420!important}}',
+].join('');
+
+/** The small hint on an empty Bangla box while the model downloads, loads or translates. */
+export function workingHint(banglaPage: boolean): string {
+    return banglaPage ? 'বাংলা তৈরি হচ্ছে…' : 'Making the Bangla…';
+}
+
 /** Fills one Bangla box from its English box. Resolves to true when it wrote something. */
 export async function fillBanglaBox(bangla: Box): Promise<boolean> {
     const english = document.getElementById(bangla.dataset.banglaFrom ?? '');
     if (!isBox(english) || !shouldFill(english.value, bangla.value) || bangla.dataset.banglaState === 'working') {
         return false;
     }
-    const { checkBanglaModel, englishToBangla } = await import('./banglaModel.ts');
-    if (!(await checkBanglaModel()).ready) {
-        return false;
-    }
     const asked = english.value;
     const placeholder = bangla.placeholder;
+    // Marked at once, before the model check: the first use may download the model for minutes, and the box says so.
     bangla.dataset.banglaState = 'working';
     bangla.setAttribute('aria-busy', 'true');
-    bangla.placeholder = '…';
+    bangla.placeholder = workingHint(isBanglaDocument());
+    let again = false;
     try {
+        const { checkBanglaModel, englishToBangla } = await import('./banglaModel.ts');
+        if (!(await checkBanglaModel()).ready) {
+            delete bangla.dataset.banglaState;
+
+            return false;
+        }
         const written = await englishToBangla(asked, (bangla.dataset.banglaKind === 'name' ? 'name' : 'text') as BanglaKind);
         // The person may have typed Bangla or changed the English while the model worked: theirs wins.
         if (written === '' || english.value !== asked || bangla.value.trim() !== '') {
             delete bangla.dataset.banglaState;
+            // Changed English with a still-empty Bangla box gets a fresh fill, so the last English typed is the one written.
+            again = english.value !== asked && bangla.value.trim() === '';
 
             return false;
         }
@@ -65,6 +89,9 @@ export async function fillBanglaBox(bangla: Box): Promise<boolean> {
     } finally {
         bangla.removeAttribute('aria-busy');
         bangla.placeholder = placeholder;
+        if (again) {
+            void fillBanglaBox(bangla);
+        }
     }
 }
 
@@ -78,7 +105,7 @@ export function installBanglaAutofill(): void {
     installed = true;
     // A filled box is tinted until the person checks or changes it.
     const style = document.createElement('style');
-    style.textContent = '[data-bangla-state="filled"]{background-color:#fff8db}[data-bangla-state="working"]{opacity:.7}@media (prefers-color-scheme:dark){[data-bangla-state="filled"]{background-color:#3a3420}}';
+    style.textContent = BANGLA_FILL_CSS;
     document.head.append(style);
 
     document.addEventListener('focusin', (event) => {
@@ -94,8 +121,8 @@ export function installBanglaAutofill(): void {
         }
     });
     document.addEventListener('input', (event) => {
-        // A person's own change to a filled box ends the "please check" tint.
-        if (isBox(event.target) && event.isTrusted && event.target.dataset.banglaState === 'filled') {
+        // A person's own change, or a box emptied so it can be filled again, ends the "please check" tint.
+        if (isBox(event.target) && event.target.dataset.banglaState === 'filled' && (event.isTrusted || event.target.value === '')) {
             delete event.target.dataset.banglaState;
         }
     });

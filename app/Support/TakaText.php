@@ -35,10 +35,14 @@ final class TakaText
      *
      * @param  string|int  $decimal  A decimal string such as "12000000.00" or "300000".
      * @param  string|null  $locale  'bn' writes Bangla words and digits; null uses the app locale.
+     * @param  bool  $exact  Write every part down to the paisa ("1 lakh 50 thousand taka") instead of rounding down to a whole lakh; for approval screens.
      */
-    public static function words(string|int $decimal, ?string $locale = null): ?string
+    public static function words(string|int $decimal, ?string $locale = null, bool $exact = false): ?string
     {
         $cents = Money::cents($decimal);
+        if ($exact) {
+            return self::exactWords($cents, $locale);
+        }
         $totalLakh = intdiv(intdiv($cents, 100), self::Lakh);
         if ($totalLakh < 1) {
             return null;
@@ -88,6 +92,34 @@ final class TakaText
 
         // Not ltrim(): it strips bytes, and the ৳ sign shares its first bytes with Bangla digits.
         return str_starts_with($written, '৳') ? substr($written, strlen('৳')) : $written;
+    }
+
+    /** Every part of the amount, e.g. "1 lakh 50 thousand taka"; null below one lakh. */
+    private static function exactWords(int $cents, ?string $locale): ?string
+    {
+        $whole = intdiv($cents, 100);
+        if ($whole < self::Lakh) {
+            return null;
+        }
+        $bangla = ($locale ?? app()->getLocale()) === 'bn';
+        $units = [
+            [intdiv($whole, 10000000), $bangla ? 'কোটি' : 'crore'],
+            [intdiv($whole, 100000) % 100, $bangla ? 'লাখ' : 'lakh'],
+            [intdiv($whole, 1000) % 100, $bangla ? 'হাজার' : 'thousand'],
+            [$whole % 1000, ''],
+        ];
+        $parts = [];
+        foreach ($units as [$count, $name]) {
+            if ($count > 0) {
+                $parts[] = trim($count.' '.$name);
+            }
+        }
+        $text = implode(' ', $parts).($bangla ? ' টাকা' : ' taka');
+        if ($cents % 100 > 0) {
+            $text .= ' '.($cents % 100).($bangla ? ' পয়সা' : ' paisa');
+        }
+
+        return LocalDigits::text($text, $locale);
     }
 
     /** Lakh/crore grouping of a whole number written in digits: "12345678" becomes "1,23,45,678". */

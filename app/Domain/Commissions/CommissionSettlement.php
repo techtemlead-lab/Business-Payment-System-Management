@@ -13,6 +13,7 @@ use App\Models\CommissionAllocation;
 use App\Models\DealerRank;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\LocalDigits;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -342,7 +343,7 @@ final class CommissionSettlement
                 $partner,
                 'commission.posted',
                 __('portal.notice_settle_title', [], $locale),
-                __('portal.notice_settle_body', ['amount' => Money::display($amount, $locale), 'kind' => __('portal.settle_kind_'.$kind, [], $locale), 'month' => $month], $locale),
+                __('portal.notice_settle_body', ['amount' => Money::display($amount, $locale), 'kind' => __('portal.settle_kind_'.$kind, [], $locale), 'month' => self::monthLabel($month, $locale)], $locale),
             );
         }
     }
@@ -756,9 +757,9 @@ final class CommissionSettlement
                 $userId,
                 __('portal.notice_settle_title', [], $locale),
                 __('portal.notice_settle_body', [
-                    'amount' => Money::decimal($amount),
+                    'amount' => Money::display(Money::decimal($amount), $locale),
                     'kind' => __('portal.settle_kind_'.$kind, [], $locale),
-                    'month' => $month,
+                    'month' => self::monthLabel($month, $locale),
                 ], $locale),
             );
         }
@@ -784,11 +785,22 @@ final class CommissionSettlement
             $userId,
             __('portal.notice_settle_title', [], $locale),
             __('portal.notice_settle_body', [
-                'amount' => Money::decimal($amount),
+                'amount' => Money::display(Money::decimal($amount), $locale),
                 'kind' => $kindLabel,
-                'month' => $month,
+                'month' => self::monthLabel($month, $locale),
             ], $locale),
         );
+    }
+
+    /** "2027-03" written for the partner: month word and year in the partner's language and digits. */
+    public static function monthLabel(string $month, string $locale): string
+    {
+        $date = \DateTimeImmutable::createFromFormat('!Y-m', $month);
+        if ($date === false) {
+            return LocalDigits::text($month, $locale);
+        }
+
+        return LocalDigits::text(CarbonImmutable::instance($date)->locale($locale)->isoFormat('MMMM YYYY'), $locale);
     }
 
     /** Leadership ranks from lowest to highest. */

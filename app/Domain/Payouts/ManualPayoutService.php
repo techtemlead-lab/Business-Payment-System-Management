@@ -13,7 +13,6 @@ use App\Models\User;
 use App\Support\Audit;
 use App\Support\LocalDigits;
 use App\Support\Money;
-use App\Support\ReasonFields;
 use App\Support\TakaText;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
@@ -209,11 +208,11 @@ class ManualPayoutService
                 ...(app(OwnerApprovalLimits::class)->needsOwner(OwnerApprovalLimits::Withdrawal, (string) $w->amount) ? ['owner_limit' => true] : []),
             ]);
             $locale = $partner->preferredLocale();
-            $decisionLabel = __('portal.wd_decision_'.$decision, [], $locale);
+            // The staff reason stays in the office record; the partner reads one plain sentence in their own language (B4).
             Audit::notice(
                 $w->user_id,
                 __('portal.notice_wd_reviewed_title', [], $locale),
-                __('portal.notice_wd_reviewed_body', ['decision' => $decisionLabel, 'reason' => ReasonFields::shown($reason, $locale)], $locale),
+                __($decision === 'approved' ? 'qa_fixes.notice_wd_approved_body' : 'qa_fixes.notice_wd_rejected_body', [], $locale),
                 'withdrawal.'.$decision,
             );
         }, 3);
@@ -470,7 +469,7 @@ class ManualPayoutService
             'history' => DB::table('withdrawals')->where('user_id', $w->user_id)->where('id', '<>', $id)->orderByDesc('created_at')->limit(5)
                 ->get(['id', 'amount', 'status', 'channel', 'created_at', 'paid_at'])->all(),
             'payers' => $this->eligiblePayers($viewer, $w->status === 'approved' ? (int) $w->reviewed_by : null),
-            'amount_words' => TakaText::words($w->amount),
+            'amount_words' => TakaText::words($w->amount, null, true),
         ];
     }
 
