@@ -151,7 +151,7 @@ class ManualPayoutService
             return false;
         }
 
-        return ! DB::table('kyc_documents')->where('user_id', $partner->id)->whereIn('kind', FinanceSettings::ApprovedIdKinds)->exists();
+        return ! DB::table('kyc_documents')->where('user_id', $partner->id)->whereIn('kind', FinanceSettings::ApprovedIdKinds)->where('review_status', 'approved')->exists();
     }
 
     /**
@@ -456,7 +456,7 @@ class ManualPayoutService
             'partner' => [
                 'name' => $partner->name, 'code' => $partner->dealer_code, 'phone' => $partner->phone,
                 'status' => $partner->closed_at !== null ? 'closed' : $partner->status,
-                'nid_on_file' => trim((string) $partner->nid) !== '' || DB::table('kyc_documents')->where('user_id', $partner->id)->whereIn('kind', FinanceSettings::ApprovedIdKinds)->exists(),
+                'nid_on_file' => trim((string) $partner->nid) !== '' || DB::table('kyc_documents')->where('user_id', $partner->id)->whereIn('kind', FinanceSettings::ApprovedIdKinds)->where('review_status', 'approved')->exists(),
                 'tin_on_file' => trim((string) $partner->tin) !== '',
             ],
             'balance' => ['available' => $wallet->available ?? '0.00', 'held' => $wallet->held ?? '0.00'],

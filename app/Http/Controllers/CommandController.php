@@ -1285,7 +1285,7 @@ class CommandController extends Controller
         $this->permit($r, 'identity_write');
         abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 404);
 
-        return response()->json(['data' => $documents->listFor($user)]);
+        return response()->json(['data' => $documents->listFor($user, true)]);
     }
 
     public function storeKycDocument(Request $r, User $user, PartnerKycDocuments $documents): RedirectResponse
@@ -1300,6 +1300,17 @@ class CommandController extends Controller
         $stored = $documents->store($r->user(), $user, $data['kind'], $r->file('document'), $data['note'] ?? null);
 
         return back()->with('success', __('portal.flash_kyc_stored', ['kind' => __('portal.kyc_kind_'.$stored['kind'])]));
+    }
+
+    /** R5: verify or send back a National ID the partner sent himself. */
+    public function reviewKycDocument(Request $r, User $user, string $document, PartnerKycDocuments $documents): RedirectResponse
+    {
+        $this->permit($r, 'identity_write');
+        abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 404);
+        $data = $r->validate(['decision' => ['required', Rule::in(['approve', 'send_back'])], 'note' => 'nullable|string|max:300']);
+        $documents->reviewNid($r->user(), $user, $document, $data['decision'] === 'approve', $data['note'] ?? null);
+
+        return back()->with('success', __($data['decision'] === 'approve' ? 'leftovers_partner.review_ok_flash' : 'leftovers_partner.review_back_flash'));
     }
 
     public function downloadKycDocument(Request $r, User $user, string $document, PartnerKycDocuments $documents): StreamedResponse
