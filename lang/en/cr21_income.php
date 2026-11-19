@@ -53,4 +53,11 @@ return [
     'sum_row' => 'Total income',
     'open_entries' => 'See this head\'s entries below',
     'zero_note' => 'A head that received nothing shows ৳0.00.',
+    'income_button' => 'Income by head',
+    'dl_title' => 'Downloads and certificates',
+    'dl_statement_excel' => 'Account statement (spreadsheet)',
+    'dl_statement_pdf' => 'Account statement (printable)',
+    'dl_full_report' => 'Full report (printable)',
+    'dl_income_cert' => 'Income certificate',
+    'dl_rank_cert' => 'Rank certificate',
 ];
