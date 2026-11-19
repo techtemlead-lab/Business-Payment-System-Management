@@ -5,9 +5,12 @@ namespace Tests\Feature;
 use App\Domain\Accounts\PartnerNextSteps;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Models\DealerRank;
+use App\Models\Order;
 use App\Models\ReferralTreePath;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -85,5 +88,27 @@ class PartnerNextStepsTest extends TestCase
             $this->assertNotSame('dealer_tools.step_'.$kind, __('dealer_tools.step_'.$kind, [], 'en'));
             $this->assertNotSame('dealer_tools.step_'.$kind, __('dealer_tools.step_'.$kind, [], 'bn'));
         }
+    }
+
+    /** Client test 2026-11-19: after a delivery the next-step card still showed the old amounts for 10 minutes. */
+    public function test_a_change_in_an_order_state_refreshes_the_cards_of_the_buyer_and_the_sponsor(): void
+    {
+        $sponsor = User::factory()->dealer()->create();
+        $dealer = User::factory()->dealer()->create(['sponsor_id' => $sponsor->id]);
+        Cache::put('partner-tools:next-steps:'.$dealer->id, [['kind' => 'stale', 'values' => []]], 600);
+        Cache::put('partner-tools:alerts:'.$dealer->id, ['stale'], 600);
+        Cache::put('partner-tools:next-steps:'.$sponsor->id, [['kind' => 'stale', 'values' => []]], 600);
+        $order = Order::query()->create([
+            'idempotency_key' => (string) Str::uuid(), 'payload_hash' => hash('sha256', (string) Str::uuid()),
+            'number' => 'ORD-NS-'.Str::upper(Str::random(6)), 'user_id' => $dealer->id, 'status' => 'shipped',
+            'total' => '10000.00', 'paid' => '10000.00',
+        ]);
+        $this->assertTrue(Cache::has('partner-tools:next-steps:'.$dealer->id), 'Creating an order does not clear anything.');
+
+        $order->update(['status' => 'delivered']);
+
+        $this->assertFalse(Cache::has('partner-tools:next-steps:'.$dealer->id));
+        $this->assertFalse(Cache::has('partner-tools:alerts:'.$dealer->id));
+        $this->assertFalse(Cache::has('partner-tools:next-steps:'.$sponsor->id));
     }
 }
