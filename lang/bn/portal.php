@@ -64,6 +64,7 @@ return [
     'nav_module_network' => 'আমার টিম',
     'nav_module_earnings' => 'ওয়ালেট',
     'nav_module_account' => 'আমার অ্যাকাউন্ট',
+    'nav_my_profile' => 'আমার প্রোফাইল',
     'nav_module_people' => 'স্টাফ',
     'nav_module_finance_ops' => 'হিসাব ও পেমেন্ট',
     'nav_module_finance' => 'কোম্পানির হিসাব',

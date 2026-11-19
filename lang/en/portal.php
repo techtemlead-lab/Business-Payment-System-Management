@@ -64,6 +64,7 @@ return [
     'nav_module_network' => 'My team',
     'nav_module_earnings' => 'Wallet',
     'nav_module_account' => 'My account',
+    'nav_my_profile' => 'My profile',
     'nav_module_people' => 'Staff',
     'nav_module_finance_ops' => 'Accounts & payments',
     'nav_module_finance' => 'Company accounts',

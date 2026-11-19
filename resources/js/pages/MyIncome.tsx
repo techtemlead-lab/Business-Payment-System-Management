@@ -10,7 +10,7 @@ export default function MyIncome({ income }: { income: IncomeData }) {
     const { portalBase: base } = usePage<any>().props;
 
     return (
-        <Shell section="my-money">
+        <Shell section="my-income">
             <Head title={translate('income', 'title')} />
             <div className="mm-page">
                 <header className="mm-partner-head">
