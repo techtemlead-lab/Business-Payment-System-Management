@@ -13,7 +13,6 @@ use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 /**
  * CR-18: the bordered summary sections of the office dashboard. Every section reads figures the
@@ -48,7 +47,8 @@ final class OfficeDashboardSections
             'site' => self::ownerOnly($viewer, $portal),
             'business' => $viewer->allows('orders') || $viewer->allows('finance'),
             'events' => TreasuryAccess::mayOpenEvents($viewer),
-            'activity' => self::ownerOnly($viewer, $portal) && Schema::hasTable(self::ActivityTable),
+            // The partner_activity table ships in the same release (CR-17), so no schema look-up on every visit.
+            'activity' => self::ownerOnly($viewer, $portal),
             default => false,
         };
     }
