@@ -16,6 +16,6 @@ return [
     'notice_totp_enrolled_body' => 'A new authenticator app was added to the account of :name at :time. If this was not you, tell the Super Admin now.',
     'forgot_choose_title' => 'Forgot your password?',
     'forgot_choose_subtitle' => 'Are you a dealer or a sub-dealer? Choose below, then ask for a new password link. If you have no email, call the office.',
-    'application_consent' => 'By sending this form you agree that the company keeps your name, phone, date of birth, parents names, address and identity details, only for your partner account, commissions and legal records. Date of birth, parents names, address and identity numbers are stored encrypted.',
+    'application_consent' => 'By sending this form you agree that the company keeps your name, phone, date of birth, parents names, address and identity details, only for your partner account, commissions and legal records. Date of birth, parents names, address and identity numbers are stored encrypted. Once you have an account, your last sign-in IP address and device are kept for security.',
     'privacy_notice_link' => 'Read the privacy notice',
 ];

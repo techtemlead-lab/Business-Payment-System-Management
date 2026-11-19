@@ -5,6 +5,7 @@ import OfficePage from '../OfficePage';
 import { ReportFilterSheet } from '../../BranchPerformanceHub';
 import type { OfficeHub } from '../../OfficeHubTabs';
 import { ActionForm, Table, dateTime, number, type Row } from '../../UI';
+import PartnerActivityList, { type PartnerActivityReport } from './PartnerActivityList';
 import { useT } from '../../../shared/i18n/t';
 import { businessDate, businessMonth, localizeDigits } from '../../../business-date';
 
@@ -25,6 +26,7 @@ export interface VisitorsReport {
     details_partial: boolean;
     keep_months: number;
     counting: { enabled: boolean; version: number };
+    partner_activity: PartnerActivityReport;
 }
 
 /** The ready-made views, in the order the buttons show. "day" and "custom" come from the date boxes. */
@@ -276,6 +278,8 @@ export default function Visitors({ report, hub }: { report: VisitorsReport; hub?
                     ]}
                 />
             </section>
+
+            <PartnerActivityList report={report.partner_activity} />
 
             <div className="set-sheet">
                 <section className="set-block">

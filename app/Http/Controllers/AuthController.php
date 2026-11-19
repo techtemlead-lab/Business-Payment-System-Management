@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Accounts\AccountPhoneRules;
 use App\Domain\Accounts\PartnerProfileLock;
+use App\Domain\Audience\PartnerActivity;
 use App\Domain\Auth\LoginCaptcha;
 use App\Domain\Auth\LoginOtpChallenge;
 use App\Domain\Auth\SignInGuard;
@@ -472,6 +473,7 @@ class AuthController extends Controller
         // SA-10: the session belongs to this portal, and an office session has a fixed end (BindSessionFingerprint).
         $r->session()->put(['session_portal' => PortalHost::current($r), 'session_started_at' => now()->getTimestamp()]);
         $this->persistLoginLocale($r);
+        app(PartnerActivity::class)->signedIn($r, $candidate);
         Audit::record($r->user()->id, 'login', 'account', [
             'portal' => PortalHost::current($r),
             'second_step' => $method,
