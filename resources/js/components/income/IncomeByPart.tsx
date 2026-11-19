@@ -58,6 +58,7 @@ export default function IncomeByPart({ income, statementBase, orderHref, prop = 
 }) {
     const translate = useT();
     const { url } = usePage();
+    const periodLabel = translate('cr21_income', income.table.state.period === 'month' ? 'col_this_month' : 'col_this_period');
     const chosen = income.parts.find((part) => part.key === income.part) ?? income.parts[0];
 
     const choose = (part: string) => {
@@ -107,7 +108,7 @@ export default function IncomeByPart({ income, statementBase, orderHref, prop = 
                         <thead>
                             <tr>
                                 <th scope="col">{translate('cr21_income', 'col_head')}</th>
-                                <th scope="col" className="num">{translate('cr21_income', income.table.state.period === 'month' ? 'col_this_month' : 'col_this_period')}</th>
+                                <th scope="col" className="num">{periodLabel}</th>
                                 <th scope="col" className="num">{translate('cr21_income', 'col_to_date')}</th>
                             </tr>
                         </thead>
@@ -119,16 +120,16 @@ export default function IncomeByPart({ income, statementBase, orderHref, prop = 
                                             {part.label}
                                         </button>
                                     </th>
-                                    <td className={`num${Number(part.amount) < 0 ? ' is-negative' : ''}`}>{money(part.amount)}</td>
-                                    <td className={`num${Number(part.total) < 0 ? ' is-negative' : ''}`}>{money(part.total)}</td>
+                                    <td data-label={periodLabel} className={`num${Number(part.amount) < 0 ? ' is-negative' : ''}`}>{money(part.amount)}</td>
+                                    <td data-label={translate('cr21_income', 'col_to_date')} className={`num${Number(part.total) < 0 ? ' is-negative' : ''}`}>{money(part.total)}</td>
                                 </tr>
                             ))}
                         </tbody>
                         <tfoot>
                             <tr data-testid="income-heads-total">
                                 <th scope="row">{translate('cr21_income', 'sum_row')}</th>
-                                <td className="num">{money(income.sum.amount)}</td>
-                                <td className="num">{money(income.sum.total)}</td>
+                                <td data-label={periodLabel} className="num">{money(income.sum.amount)}</td>
+                                <td data-label={translate('cr21_income', 'col_to_date')} className="num">{money(income.sum.total)}</td>
                             </tr>
                         </tfoot>
                     </table>

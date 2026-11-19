@@ -117,4 +117,4 @@
 .mm-heads tbody tr.is-selected th button{font-weight:700}
 .mm-heads .is-negative{color:var(--ds-danger-fg)}
 .mm-heads tfoot th,.mm-heads tfoot td{font-weight:700;border-bottom:0;border-top:2px solid var(--ds-line)}
-@media (max-width:640px){.mm-heads th,.mm-heads td{padding:var(--ds-s-2) var(--ds-s-3)}.mm-heads{font-size:var(--ds-fs-sm,.9rem)}}
+@media (max-width:640px){.mm-heads thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}.mm-heads,.mm-heads tbody,.mm-heads tfoot{display:block}.mm-heads tr{display:grid;grid-template-columns:1fr 1fr;gap:0 var(--ds-s-3);padding:var(--ds-s-2) var(--ds-s-3);border-bottom:1px solid var(--ds-line)}.mm-heads th,.mm-heads td{padding:var(--ds-s-1) 0;border:0}.mm-heads tbody th,.mm-heads tfoot th{grid-column:1/-1}.mm-heads td.num{display:flex;flex-direction:column;align-items:flex-start;text-align:left;white-space:normal;overflow-wrap:anywhere}.mm-heads td.num::before{content:attr(data-label);font-size:var(--ds-fs-sm,.85rem);color:var(--ds-text-2)}.mm-heads tfoot tr{border-top:2px solid var(--ds-line);border-bottom:0}}
