@@ -33,14 +33,17 @@ class LocaleController extends Controller
         // Only return JSON if caller explicitly requested JSON, does NOT accept HTML,
         // and is not an Inertia request. Inertia and browsers request HTML and require a redirect response.
         if (! $isInertia && ! $acceptsHtml && ($request->wantsJson() || $request->expectsJson())) {
-            return response()->json([
+            $response = response()->json([
                 'ok' => true,
                 'locale' => $data['locale'],
                 'return_url' => $returnUrl,
             ]);
+        } else {
+            $response = redirect()->to($returnUrl);
         }
+        $response->headers->setCookie(SetLocale::legacyCookieExpiry());
 
-        return redirect()->to($returnUrl);
+        return $response;
     }
 
     /**
