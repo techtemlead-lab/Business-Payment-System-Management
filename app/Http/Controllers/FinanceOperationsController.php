@@ -6,6 +6,7 @@ use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Commissions\PolicyScheduling;
 use App\Domain\Finance\CompanyFunds;
 use App\Domain\Finance\FinancialReadiness;
+use App\Domain\Finance\FundCatalog;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Finance\PayrollService;
 use App\Domain\Finance\ReportData;
@@ -492,7 +493,7 @@ class FinanceOperationsController extends Controller
             $key = 'funds.'.($column === 'fund' ? 'fund_' : 'method_').$value;
             $label = __($key);
 
-            return $label !== $key ? $label : Str::headline($value);
+            return $label !== $key ? $label : ($column === 'fund' ? FundCatalog::name($value) : Str::headline($value));
         }
 
         return $this->reportValueLabel($value);
