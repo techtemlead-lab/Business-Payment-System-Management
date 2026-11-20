@@ -93,8 +93,8 @@ return [
     'drawer_batch' => 'ব্যাচ',
     'drawer_no_batch' => 'ব্যাচ নম্বর নেই',
     'drawer_no_expiry' => 'তারিখ নেই',
-    'drawer_this_branch' => 'এই শাখায়',
-    'drawer_all_branches' => 'সব শাখায়',
+    'drawer_this_branch' => 'এই ব্রাঞ্চে',
+    'drawer_all_branches' => 'সব ব্রাঞ্চে',
     'drawer_units' => ':count ইউনিট',
 
     'expiring_soon' => 'মেয়াদ শেষ হবে',

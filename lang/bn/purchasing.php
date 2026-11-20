@@ -17,7 +17,7 @@ return [
 
     'new_order' => 'নতুন ক্রয় অর্ডার',
     'order_number' => 'অর্ডার নং',
-    'receiving_branch' => 'যে শাখায় মাল আসবে',
+    'receiving_branch' => 'যে ব্রাঞ্চে মাল আসবে',
     'product' => 'পণ্য',
     'quantity' => 'পরিমাণ',
     'add_line' => 'পণ্য যোগ করুন',
@@ -32,7 +32,7 @@ return [
     'due' => 'এখনো বাকি',
     'date' => 'তারিখ',
     'status' => 'অবস্থা',
-    'branch' => 'শাখা',
+    'branch' => 'ব্রাঞ্চ',
     'raised_by' => 'অর্ডার করেছেন',
 
     'send_order' => 'সাপ্লায়ারকে পাঠিয়েছি',
@@ -69,7 +69,7 @@ return [
     'count_session' => 'গণনা #:id',
     'count_list' => 'গণনার তালিকা',
     'count_no_sessions' => 'এখনো কোনো গণনা হয়নি',
-    'count_no_sessions_body' => 'কোনো শাখায়র গণনা শুরু করলে এখানে দেখা যাবে।',
+    'count_no_sessions_body' => 'কোনো ব্রাঞ্চের গণনা শুরু করলে এখানে দেখা যাবে।',
     'count_started_by' => 'শুরু করেছেন',
     'count_counted_lines' => 'যত পণ্য গোনা হয়েছে',
     'count_variance_lines' => 'যত পণ্যে গরমিল',
@@ -87,7 +87,7 @@ return [
     'count_wait_second_person' => 'যিনি এই গণনায় ছিলেন না এমন একজন, অথবা মালিক, এটি অনুমোদন করবেন।',
     'count_uncounted_hint' => 'যে পণ্য গোনেননি সেটা খালি রাখুন। তার স্টক বদলাবে না।',
     'count_overdue_title' => 'গণনার সময় পেরিয়ে গেছে',
-    'count_overdue_body' => 'এই শাখাগুলোতে :days দিনের মধ্যে কোনো অনুমোদিত গণনা হয়নি: :branches',
+    'count_overdue_body' => 'এই ব্রাঞ্চগুলোতে :days দিনের মধ্যে কোনো অনুমোদিত গণনা হয়নি: :branches',
 
     'flash_count_started' => 'গণনা #:id শুরু হয়েছে।',
     'flash_counts_saved' => 'গণনা সেভ হয়েছে।',
@@ -96,7 +96,7 @@ return [
     'flash_count_rejected' => 'গণনা বাতিল হয়েছে। স্টক বদলায়নি।',
     'flash_count_cancelled' => 'গণনা বাতিল হয়েছে।',
 
-    'err_count_already_open' => 'এই শাখায় একটি গণনা চলছে। আগে সেটা শেষ বা বাতিল করুন।',
+    'err_count_already_open' => 'এই ব্রাঞ্চে একটি গণনা চলছে। আগে সেটা শেষ বা বাতিল করুন।',
     'err_count_not_open' => 'এই গণনায় আর কিছু বদলানো যাবে না।',
     'err_count_not_submitted' => 'এই গণনা অনুমোদনের অপেক্ষায় নেই।',
     'err_count_line_unknown' => 'এর মধ্যে একটি পণ্য এই গণনার অংশ নয়।',
@@ -104,7 +104,7 @@ return [
     'err_second_person' => 'যে স্টাফ এই গণনায় ছিলেন তিনি অনুমোদন বা বাতিল করতে পারবেন না। অন্য কেউ বা মালিককে করতে হবে।',
 
     'notice_count_overdue_title' => 'স্টক গণনার সময় পেরিয়ে গেছে',
-    'notice_count_overdue_body' => 'এই শাখাগুলোতে :days দিনের মধ্যে কোনো অনুমোদিত স্টক গণনা হয়নি: :branches',
+    'notice_count_overdue_body' => 'এই ব্রাঞ্চগুলোতে :days দিনের মধ্যে কোনো অনুমোদিত স্টক গণনা হয়নি: :branches',
     'page_title' => 'ক্রয়',
     'views_label' => 'ক্রয়ের তালিকা বেছে নিন',
     'tab_archived_suppliers' => 'আর্কাইভ করা সাপ্লায়ার',
