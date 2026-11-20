@@ -12,7 +12,7 @@
 .pd-photo .avatar.large, .pd-photo .partner-home-avatar { width: 128px; height: 128px; font-size: 48px; border-radius: 50%; object-fit: cover; }
 .pd-photo img { width: 128px; height: 128px; border-radius: 50%; object-fit: cover; }
 .pd-name { margin: 0; font-size: 1.35rem; line-height: 1.3; overflow-wrap: anywhere; }
-.pd-type { margin: 6px auto 0; display: inline-block; padding: 4px 14px; border-radius: 999px; background: var(--ds-brand-soft, #e3f1eb); color: var(--ds-brand-text, #00694d); font-weight: 700; }
+.pd-type { margin: 6px auto 0; display: block; }
 .pd-shop { margin: 10px 0 0; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 600; overflow-wrap: anywhere; }
 .pd-lines { margin: 16px 0 0; text-align: left; display: grid; gap: 10px; }
 .pd-line { display: grid; grid-template-columns: 22px 1fr; column-gap: 8px; align-items: start; }
@@ -122,3 +122,8 @@
 .ph-follow-up span { display: grid; gap: 2px; flex: 1; line-height: 1.4; }
 .ph-follow-up b { font-size: 1rem; }
 .ph-follow-up small { color: var(--muted, #64748b); font-size: .875rem; }
+
+/* The appointment badge: kind of dealer on line 1 (bold), the place and its parents on line 2 (smaller). */
+.appt-pill { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; max-width: 100%; padding: 6px 16px; border-radius: 18px; background: var(--ds-brand-soft, #e3f1eb); color: var(--ds-brand-text, #00694d); text-align: center; line-height: 1.45; overflow-wrap: anywhere; }
+.appt-title { font-weight: 800; font-size: 1rem; }
+.appt-place { font-weight: 600; font-size: .85rem; }

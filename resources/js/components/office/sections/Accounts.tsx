@@ -8,6 +8,7 @@ import { SavedFilterPanel } from '../../OfficeListTools';
 import { Badge, Modal, date, label, money, number, type Row } from '../../UI';
 import MoreMenu from '../MoreMenu';
 import PartnerFrame from './PartnerFrame';
+import AppointmentPill from '../../AppointmentPill';
 
 const FILE_FILTER_KEYS = ['division', 'district', 'rank', 'no_order_days'];
 const BRANCH_KEYS = ['branch_id', 'all_branches'];
@@ -94,7 +95,7 @@ export default function Accounts({ section, data }: { section: string; data: Row
         { key: 'dealer_code', title: translate('portal', 'col_dealer_code'), sortKey: 'code', phone: 'sub', render: (row) => row.dealer_code || '—' },
         { key: 'phone', title: translate('office_partners', 'detail_phone'), phone: 'hide', render: (row) => <>{row.phone || '—'}{row.email && <small className="cell-sub">{row.email}</small>}</> },
         { key: 'sponsor', title: translate('portal', 'net_sponsor'), sortKey: 'sponsor', phone: 'hide', render: (row) => (row.sponsor?.name ? <>{row.sponsor.name}<small className="cell-sub">{row.sponsor.dealer_code}</small></> : row.profile?.refer_code || '—') },
-        { key: 'area', title: translate('office_partners', 'col_area'), sortKey: 'place', phone: 'sub', render: (row) => <>{row.appointment?.line || row.profile?.place_code || row.profile?.area_code || '—'}{row.appointment?.line && (row.profile?.place_code || row.profile?.area_code) && <small className="cell-sub">{row.profile?.place_code || row.profile?.area_code}</small>}</> },
+        { key: 'area', title: translate('office_partners', 'col_area'), sortKey: 'place', phone: 'sub', render: (row) => <>{row.appointment?.title ? <AppointmentPill appointment={row.appointment} /> : (row.profile?.place_code || row.profile?.area_code || '—')}{row.appointment?.title && (row.profile?.place_code || row.profile?.area_code) && <small className="cell-sub">{row.profile?.place_code || row.profile?.area_code}</small>}</> },
         { key: 'joined', title: translate('portal', 'col_joined'), sortKey: 'joined', phone: 'hide', render: (row) => (row.created_at ? date(row.created_at) : '—') },
         ...(section === 'accounts' ? [{ key: 'rank', title: translate('portal', 'acct_col_rank'), sortKey: 'rank', phone: 'hide' as const, render: (row: Row) => translate('portal', `net_rank_${row.current_rank || 'dealer'}`) }] : []),
         { key: 'last_order_at', title: translate('portal', 'acct_col_last_order'), sortKey: 'last_order_at', phone: 'hide', render: (row) => (row.last_order_at ? date(row.last_order_at) : <small className="cell-sub">{translate('portal', 'acct_never_ordered')}</small>) },

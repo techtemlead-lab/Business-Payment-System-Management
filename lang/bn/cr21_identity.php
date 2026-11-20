@@ -1,13 +1,6 @@
 <?php
 
 return [
-    // The appointment sentence: what the partner is, and where.
-    'line_division' => ':area বিভাগের বিভাগীয় ডিলার',
-    'line_district' => ':area জেলার জেলা ডিলার',
-    'line_upazila' => ':area উপজেলার থানা ডিলার',
-    'line_union' => ':area ইউনিয়নের ইউনিয়ন ডিলার',
-    'line_pourashava' => ':area পৌরসভার পৌরসভা ডিলার',
-    'line_sub_dealer' => ':area-এর সাব-ডিলার',
     // The level alone, when the area is not known.
     'short_division' => 'বিভাগীয় ডিলার',
     'short_district' => 'জেলা ডিলার',
