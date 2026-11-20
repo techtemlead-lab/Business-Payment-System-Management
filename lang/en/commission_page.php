@@ -201,6 +201,9 @@ return [
     'cond_sub_dealer_extras_title' => 'Sub-dealer salary, tour and extra rank',
     'cond_sub_dealer_extras_text' => 'On every purchase of a sub-dealer, these three parts are set aside at the rates in the commission table. There is no separate number to change for them.',
 
+    // One person's special rate
+    'special_title' => 'One person\'s special rate',
+
     // Bottom buttons
     'bottom_label' => 'Other commission pages',
     'bottom_lead' => 'Go to another commission page:',
