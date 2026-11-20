@@ -103,7 +103,7 @@ class ReportController extends Controller
             fputcsv($f, $headers, ',', '"', '');
             foreach ($q->lazy(500)->chunk(500) as $batch) {
                 if ($staff) {
-                    app(PartnerAppointment::class)->attachTypes($batch->map(fn ($order) => $order->user));
+                    app(PartnerAppointment::class)->attachTypes($batch->map(fn ($order) => $order->getRelation('user')));
                 }
                 foreach ($batch as $o) {
                     $buyer = $o->user;
