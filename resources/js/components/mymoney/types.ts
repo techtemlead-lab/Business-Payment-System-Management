@@ -66,3 +66,10 @@ export type HeldCommissionLine = { id: number; amount: string; what: string; ord
 export type HeldCommission = { total: string; count: number; lines: HeldCommissionLine[] };
 
 export type SalaryNote = { month: string; state: 'paid' | 'none_low_volume' | 'none_other'; amount: string | null; pool: string | null; sharers: number | null; min_volume: string };
+
+export type PendingLine = { id: string; head: string; what: string; month: string; amount: string; order_number: string | null; reason: 'target_not_met' | 'target_met_waiting' | 'month_end'; estimate: boolean };
+
+export type PaidLine = { id: string; head: string; what: string; month: string; amount: string; order_number: string | null };
+
+/** Money that waits for the month's target or the month-end close. It is not in the usable balance. */
+export type PendingMoney = { total: string; count: number; has_estimate: boolean; lines: PendingLine[]; paid: PaidLine[] };
