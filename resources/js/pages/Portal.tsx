@@ -30,7 +30,7 @@ const SiteCustomizationEditor=React.lazy(()=>import('../components/SiteCustomiza
 const PublicTrustHub=React.lazy(()=>import('../components/PublicTrustHub'));
 const ProductManagementHub=React.lazy(()=>import('../components/ProductManagementHub'));
 const ProductCreateModal=React.lazy(()=>import('../components/ProductCreateModal'));
-const CommissionStudio=React.lazy(()=>import('../components/CommissionStudio'));
+const CommissionPage=React.lazy(()=>import('../components/commissionpage/CommissionPage'));
 const AreaDealersHub=React.lazy(()=>import('../components/AreaDealersHub'));
 const PlaceCodesHub=React.lazy(()=>import('../components/PlaceCodesHub'));
 const BranchesHub=React.lazy(()=>import('../components/BranchesHub'));
@@ -40,7 +40,7 @@ const StockLotsHub=React.lazy(()=>import('../components/StockLotsHub'));
 const RankRoyaltyHub=React.lazy(()=>import('../components/RankRoyaltyHub'));
 const TopSellersBoard=React.lazy(()=>import('../components/TopSellersBoard'));
 const SettlementsHub=React.lazy(()=>import('../components/SettlementsHub'));
-const CompensationSimulator=React.lazy(()=>import('../components/CompensationSimulator'));
+const CommissionCalculator=React.lazy(()=>import('../components/commissionpage/CommissionCalculator'));
 const PayoutDisbursementHub=React.lazy(()=>import('../components/PayoutDisbursementHub'));
 const WorkLogTable=React.lazy(()=>import('../components/WorkLogTable'));
 const EmployeesHub=React.lazy(()=>import('../components/EmployeesHub'));
@@ -112,9 +112,9 @@ export default function Portal({section,data:d,filters}:{section:string,data:Row
  {section==='inventory'&&<Inventory {...sectionProps}/>}
  {section==='payments'&&<Payments {...sectionProps}/>}
  {section==='policies'&&<Policies {...sectionProps}/>}
- {section==='commissions'&&<CommissionStudio rules={d.rules||[]}/>}
+ {section==='commissions'&&<CommissionPage page={d.commission_page} hub={d.hub} fundCheck={d.reward_fund_check}/>}
  {section==='settlements'&&<SettlementsHub state={d.settlement_state}/>}
- {section==='simulator'&&<CompensationSimulator initialSimulation={d.simulation} activeRules={d.active_rules||[]}/>}
+ {section==='simulator'&&<CommissionCalculator hub={d.hub}/>}
  {section==='payouts-hub'&&<div data-tour="payouts-hub"><PayoutDisbursementHub data={d.payouts_table} tdsRate={d.tds_rate??0.00}/></div>}
  {section==='network-tree'&&staff&&<PartnerFrame data={d}><NetworkTreeExplorer key={String(d.tree_root??'all')} dealers={d.dealers||[]} treeStats={d.tree_stats??null} serverFocus={{rootId:d.tree_root??null,rootName:d.tree_root_name??null}}/><TreeShowMore data={d} base={base}/></PartnerFrame>}
  {section==='area-dealers'&&<PartnerFrame data={d}><AreaDealersHub assignments={d.assignments} summary={d.area_summary} areaFilters={d.area_filters||{}} areaPoolRate={d.area_pool_rate} areaText={d.area_text||{}} divisions={d.divisions||[]} dealers_list={d.dealers_list||[]} place_codes={d.place_codes||[]}/></PartnerFrame>}

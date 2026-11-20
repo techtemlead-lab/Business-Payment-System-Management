@@ -1,0 +1,167 @@
+/*
+ * Commission page and calculator ("কমিশন রুলস অ্যান্ড রেট"). One calm column: a title, a table,
+ * the conditions, buttons. The same look is used on the calculator and the one-person rate page.
+ */
+.app-shell .cp-page{display:flex;flex-direction:column;gap:var(--ds-s-5);max-width:1100px}
+.app-shell .cp-head h1{margin:0;font-size:var(--ds-fs-2xl);font-weight:700;line-height:1.3;letter-spacing:0;color:var(--ds-text)}
+.app-shell .cp-head p{margin:var(--ds-s-2) 0 0;font-size:var(--ds-fs-md);line-height:1.6;color:var(--ds-text-2);max-width:68ch}
+
+.app-shell .cp-card{padding:var(--ds-s-5);background:var(--ds-surface);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);color:var(--ds-text)}
+.app-shell .cp-card-head{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:var(--ds-s-4);margin-bottom:var(--ds-s-4)}
+.app-shell .cp-card h2{margin:0;font-size:var(--ds-fs-xl,20px);font-weight:700;line-height:1.35;letter-spacing:0}
+.app-shell .cp-card h3{margin:0;font-size:var(--ds-fs-md);font-weight:650;line-height:1.4}
+.app-shell .cp-hint{margin:var(--ds-s-1) 0 0;font-size:var(--ds-fs-base);line-height:1.6;color:var(--ds-text-muted);max-width:72ch}
+.app-shell .cp-empty{margin:0;padding:var(--ds-s-5);text-align:center;font-size:var(--ds-fs-md);color:var(--ds-text-muted);background:var(--ds-surface-2);border-radius:var(--ds-r-lg)}
+.app-shell .cp-state{display:flex;flex-wrap:wrap;align-items:center;gap:var(--ds-s-2);margin:0 0 var(--ds-s-4);font-size:var(--ds-fs-base);line-height:1.6;color:var(--ds-text-2)}
+.app-shell .cp-pill{display:inline-flex;align-items:center;min-height:24px;padding:0 10px;border-radius:999px;font-size:var(--ds-fs-xs);font-weight:650;white-space:nowrap}
+.app-shell .cp-pill.is-live{background:var(--ds-brand-soft);color:var(--ds-ok-fg)}
+.app-shell .cp-pill.is-draft{background:var(--ds-warn-bg);color:var(--ds-warn-fg)}
+.app-shell .cp-pill.is-bad{background:var(--ds-danger-bg);color:var(--ds-danger-fg)}
+
+/* Buttons under a table or a list. */
+.app-shell .cp-actions{display:flex;flex-wrap:wrap;gap:var(--ds-s-3);margin-top:var(--ds-s-5)}
+.app-shell .cp-actions .button,.app-shell .cp-bottom .button,.app-shell .cp-modal-foot .button,.app-shell .cp-calc-form .button{min-height:44px}
+
+/* Dealer / sub-dealer switch. */
+.app-shell .cp-switch{display:inline-flex;padding:3px;gap:2px;background:var(--ds-surface-3);border-radius:999px}
+.app-shell .cp-switch button{min-height:40px;padding:0 20px;border:0;border-radius:999px;background:transparent;font:inherit;font-size:var(--ds-fs-md);font-weight:600;color:var(--ds-text-2);cursor:pointer}
+.app-shell .cp-switch button.is-on{background:var(--ds-brand);color:var(--ds-on-brand)}
+.app-shell .cp-switch button:focus-visible{outline:2px solid var(--ds-brand);outline-offset:2px}
+
+/* The commission table. */
+.app-shell .cp-table-wrap{overflow-x:auto;border:1px solid var(--ds-line);border-radius:var(--ds-r-lg)}
+.app-shell .cp-table{width:100%;border-collapse:collapse;font-size:var(--ds-fs-md)}
+.app-shell .cp-table th{padding:12px var(--ds-s-4);text-align:left;font-size:var(--ds-fs-base);font-weight:650;color:var(--ds-text-muted);background:var(--ds-surface-2);border-bottom:1px solid var(--ds-line);white-space:nowrap}
+.app-shell .cp-table td{padding:12px var(--ds-s-4);vertical-align:middle;line-height:1.5;border-bottom:1px solid var(--ds-line-soft);overflow-wrap:anywhere}
+.app-shell .cp-table tbody tr:last-child td{border-bottom:0}
+.app-shell .cp-table .is-num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums lining-nums;font-weight:600}
+.app-shell .cp-table .is-num small{display:block;font-size:var(--ds-fs-xs);font-weight:500;color:var(--ds-text-muted)}
+.app-shell .cp-table tfoot td{font-weight:700;background:var(--ds-surface-2);border-top:2px solid var(--ds-line);border-bottom:0}
+.app-shell .cp-table .cp-foot-note{font-weight:500;font-size:var(--ds-fs-base);color:var(--ds-text-muted)}
+.app-shell .cp-name{font-weight:600}
+.app-shell .cp-plain{padding-left:26px}
+.app-shell .cp-expand{display:inline-flex;align-items:center;gap:var(--ds-s-2);min-height:44px;padding:0 var(--ds-s-2) 0 0;border:0;background:none;font:inherit;font-weight:600;color:var(--ds-text);text-align:left;cursor:pointer}
+.app-shell .cp-expand svg{flex:none;transition:transform .15s ease;color:var(--ds-brand)}
+.app-shell .cp-expand[aria-expanded="true"] svg{transform:rotate(180deg)}
+.app-shell .cp-expand:focus-visible{outline:2px solid var(--ds-brand);outline-offset:2px;border-radius:var(--ds-r-md,8px)}
+.app-shell .cp-off{margin-left:var(--ds-s-2);padding:2px 8px;border-radius:999px;font-size:var(--ds-fs-xs);font-weight:650;background:var(--ds-surface-3);color:var(--ds-text-muted)}
+.app-shell .cp-table tr.is-open>td{background:var(--ds-surface-2)}
+.app-shell .cp-parts-row>td{padding:0 var(--ds-s-4) var(--ds-s-4) 44px;background:var(--ds-surface-2)}
+.app-shell .cp-parts{padding:var(--ds-s-4);background:var(--ds-surface);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg)}
+.app-shell .cp-parts-title{margin:0 0 var(--ds-s-2);font-size:var(--ds-fs-base);font-weight:650;color:var(--ds-text-2)}
+.app-shell .cp-parts ul{margin:0;padding:0;list-style:none}
+.app-shell .cp-parts li{display:flex;justify-content:space-between;gap:var(--ds-s-4);padding:9px 0;border-bottom:1px solid var(--ds-line-soft);font-size:var(--ds-fs-md)}
+.app-shell .cp-parts li b{font-variant-numeric:tabular-nums lining-nums}
+.app-shell .cp-parts-sum{display:flex;align-items:center;gap:var(--ds-s-2);margin:var(--ds-s-3) 0 0;font-size:var(--ds-fs-base);font-weight:600}
+.app-shell .cp-parts-sum.is-ok{color:var(--ds-ok-fg)}
+.app-shell .cp-parts-sum.is-bad{color:var(--ds-danger-fg)}
+
+/* Conditions. */
+.app-shell .cp-conds{display:grid;gap:var(--ds-s-3);margin:0;padding:0;list-style:none}
+.app-shell .cp-conds li{padding:var(--ds-s-4);background:var(--ds-surface-2);border-radius:var(--ds-r-lg)}
+.app-shell .cp-conds p{margin:var(--ds-s-2) 0 0;font-size:var(--ds-fs-md);line-height:1.75;color:var(--ds-text-2);max-width:78ch}
+
+/* The bike and car fund check, kept from the old page. */
+.app-shell .cp-fund-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ds-s-4);margin:var(--ds-s-4) 0}
+.app-shell .cp-fund{padding:var(--ds-s-4);background:var(--ds-surface-2);border-radius:var(--ds-r-lg)}
+.app-shell .cp-fund dl{margin:var(--ds-s-3) 0}
+.app-shell .cp-fund dl>div{display:flex;justify-content:space-between;gap:var(--ds-s-3);padding:5px 0;font-size:var(--ds-fs-base)}
+.app-shell .cp-fund dt{color:var(--ds-text-muted)}
+.app-shell .cp-fund dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums lining-nums}
+.app-shell .cp-fund .cp-pill{margin:0}
+
+/* Bottom buttons to the other tabs. */
+.app-shell .cp-bottom{padding:var(--ds-s-5);border:1px dashed var(--ds-line);border-radius:var(--ds-r-lg)}
+.app-shell .cp-bottom p{margin:0 0 var(--ds-s-3);font-size:var(--ds-fs-base);color:var(--ds-text-muted)}
+.app-shell .cp-bottom>div{display:flex;flex-wrap:wrap;gap:var(--ds-s-3)}
+
+/* Modals. */
+.app-shell .cp-modal{display:flex;flex-direction:column;gap:var(--ds-s-4)}
+.app-shell .cp-modal-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--ds-s-3)}
+.app-shell .cp-modal-top .cp-state{margin:0;flex:1 1 280px}
+.app-shell .cp-modal-foot{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:var(--ds-s-3)}
+.app-shell .cp-edit-list{margin:0;padding:0;list-style:none;border:1px solid var(--ds-line);border-radius:var(--ds-r-lg)}
+.app-shell .cp-edit-item{padding:var(--ds-s-3) var(--ds-s-4);border-bottom:1px solid var(--ds-line-soft)}
+.app-shell .cp-edit-item:last-child{border-bottom:0}
+.app-shell .cp-edit-item.has-error{background:var(--ds-danger-bg)}
+.app-shell .cp-edit-row{display:flex;align-items:center;justify-content:space-between;gap:var(--ds-s-4)}
+.app-shell .cp-edit-row>label,.app-shell .cp-edit-name>label{font-size:var(--ds-fs-md);font-weight:600;line-height:1.5}
+.app-shell .cp-edit-name{display:flex;flex-direction:column;min-width:0}
+.app-shell .cp-edit-name small{font-size:var(--ds-fs-xs);color:var(--ds-text-muted);padding-left:26px}
+.app-shell .cp-edit-name>label{padding-left:26px}
+.app-shell .cp-edit-parts{margin:var(--ds-s-2) 0 var(--ds-s-1) 26px;padding:var(--ds-s-3) var(--ds-s-4);background:var(--ds-surface-2);border-radius:var(--ds-r-lg)}
+.app-shell .cp-edit-row.is-part{padding:4px 0}
+.app-shell .cp-field{display:inline-flex;align-items:center;gap:var(--ds-s-2);flex:none}
+.app-shell .cp-field input{width:120px;min-height:44px;padding:0 12px;text-align:right;font-size:var(--ds-fs-md);font-variant-numeric:tabular-nums lining-nums}
+.app-shell .cp-field>span{min-width:1.5em;font-size:var(--ds-fs-md);font-weight:600;color:var(--ds-text-muted)}
+.app-shell .cp-field input[readonly]{background:var(--ds-surface-3);color:var(--ds-text-2)}
+.app-shell .cp-field input[aria-invalid="true"]{border-color:var(--ds-danger-fg)}
+.app-shell .cp-error{margin:var(--ds-s-2) 0 0;font-size:var(--ds-fs-base);font-weight:600;line-height:1.55;color:var(--ds-danger-fg)}
+.app-shell .cp-totals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ds-s-3);margin:0}
+.app-shell .cp-totals>div{padding:var(--ds-s-3) var(--ds-s-4);background:var(--ds-surface-2);border-radius:var(--ds-r-lg)}
+.app-shell .cp-totals>div.is-bad{background:var(--ds-danger-bg);color:var(--ds-danger-fg)}
+.app-shell .cp-totals dt{font-size:var(--ds-fs-base);color:var(--ds-text-muted)}
+.app-shell .cp-totals dd{margin:2px 0 0;font-size:var(--ds-fs-lg,18px);font-weight:700;font-variant-numeric:tabular-nums lining-nums}
+.app-shell .cp-totals dd small{font-size:var(--ds-fs-xs);font-weight:500;color:var(--ds-text-muted)}
+.app-shell .cp-label{display:flex;flex-direction:column;gap:var(--ds-s-2);font-size:var(--ds-fs-md);font-weight:600}
+.app-shell .cp-label input,.app-shell .cp-label select{min-height:44px;font-weight:400}
+.app-shell .cp-label .cp-field input{width:100%}
+.app-shell .cp-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ds-s-4)}
+.app-shell .cp-reason input{width:100%}
+.app-shell .cp-legend{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--ds-s-3);margin:0}
+.app-shell .cp-legend>div{padding:var(--ds-s-3);background:var(--ds-surface-2);border-radius:var(--ds-r-lg)}
+.app-shell .cp-legend dd{margin:var(--ds-s-2) 0 0;font-size:var(--ds-fs-base);line-height:1.55;color:var(--ds-text-2)}
+.app-shell .cp-tag{display:inline-flex;align-items:center;min-height:24px;padding:0 10px;border-radius:999px;font-size:var(--ds-fs-xs);font-weight:650;background:var(--ds-surface-3);color:var(--ds-text-2);white-space:nowrap}
+.app-shell .cp-tag.is-own{background:var(--ds-brand-soft);color:var(--ds-ok-fg)}
+.app-shell .cp-tag.is-team,.app-shell .cp-tag.is-team_count,.app-shell .cp-tag.is-team_depth{background:var(--ds-info-bg);color:var(--ds-info-fg)}
+.app-shell .cp-tag.is-each{background:var(--ds-warn-bg);color:var(--ds-warn-fg)}
+.app-shell .cp-cond-group{margin:0;padding:var(--ds-s-3) var(--ds-s-4);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg)}
+.app-shell .cp-cond-group legend{padding:0 var(--ds-s-2);font-size:var(--ds-fs-md);font-weight:650}
+.app-shell .cp-num{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:var(--ds-s-2) var(--ds-s-3);padding:var(--ds-s-2) 0;border-bottom:1px solid var(--ds-line-soft)}
+.app-shell .cp-num:last-child{border-bottom:0}
+.app-shell .cp-num label{font-size:var(--ds-fs-md);line-height:1.5}
+.app-shell .cp-num .cp-error{grid-column:1/-1;margin:0}
+.app-shell .cp-num.has-error{background:var(--ds-danger-bg);margin:0 calc(var(--ds-s-2) * -1);padding-inline:var(--ds-s-2)}
+
+/* Calculator. */
+.app-shell .cp-calc-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:var(--ds-s-4);align-items:end}
+.app-shell .cp-calc-who{display:flex;flex-direction:column;gap:var(--ds-s-2)}
+.app-shell .cp-label-text{font-size:var(--ds-fs-md);font-weight:600}
+.app-shell .cp-calc-sum{margin:0 0 var(--ds-s-4);font-size:var(--ds-fs-lg,18px);font-weight:650;line-height:1.5}
+.app-shell .cp-calc-table .cp-calc-part td{font-size:var(--ds-fs-base);color:var(--ds-text-2)}
+.app-shell .cp-calc-table .cp-calc-part .cp-plain{padding-left:44px}
+
+/* Phone: the table becomes one card per commission. */
+@media (max-width:720px){
+    .app-shell .cp-card{padding:var(--ds-s-4)}
+    .app-shell .cp-table-wrap{border:0}
+    .app-shell .cp-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+    .app-shell .cp-table,.app-shell .cp-table tbody,.app-shell .cp-table tfoot,.app-shell .cp-table tr,.app-shell .cp-table td{display:block}
+    .app-shell .cp-table tr{margin-bottom:var(--ds-s-3);padding:var(--ds-s-2) var(--ds-s-4);background:var(--ds-surface-2);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg)}
+    .app-shell .cp-table td,.app-shell .cp-table tbody tr:last-child td{display:flex;justify-content:space-between;align-items:center;gap:var(--ds-s-4);padding:9px 0;border-bottom:1px solid var(--ds-line-soft);text-align:right}
+    .app-shell .cp-table td:last-child{border-bottom:0}
+    .app-shell .cp-table td::before{content:attr(data-label);flex:none;font-size:var(--ds-fs-base);font-weight:500;color:var(--ds-text-muted);text-align:left}
+    .app-shell .cp-table td.cp-name{font-size:var(--ds-fs-md)}
+    .app-shell .cp-table td.cp-name::before{display:none}
+    .app-shell .cp-table td.cp-name{justify-content:flex-start;text-align:left}
+    .app-shell .cp-plain{padding-left:0}
+    .app-shell .cp-table tfoot tr{background:var(--ds-brand-soft)}
+    .app-shell .cp-table tfoot td{background:transparent;border-top:0}
+    .app-shell .cp-parts-row{margin-top:calc(var(--ds-s-3) * -1)}
+    .app-shell .cp-parts-row>td{display:block;padding:var(--ds-s-2) 0 0;background:transparent;text-align:left}
+    .app-shell .cp-parts-row>td::before{display:none}
+    .app-shell .cp-table tr.cp-parts-row{padding:0;border:0;background:transparent}
+    .app-shell .cp-calc-table .cp-calc-part{margin-left:var(--ds-s-4);background:var(--ds-surface)}
+    .app-shell .cp-calc-table .cp-calc-part .cp-plain{padding-left:0}
+    .app-shell .cp-fund-grid,.app-shell .cp-two,.app-shell .cp-legend,.app-shell .cp-totals{grid-template-columns:1fr}
+    .app-shell .cp-edit-row{flex-wrap:wrap}
+    .app-shell .cp-num{grid-template-columns:1fr}
+    .app-shell .cp-field input{width:100%;min-width:96px}
+    .app-shell .cp-field{flex:1 1 140px}
+    .app-shell .cp-actions .button{flex:1 1 100%;justify-content:center}
+    .app-shell .cp-switch{display:flex}
+    .app-shell .cp-switch button{flex:1}
+}
+@media (prefers-reduced-motion:reduce){
+    .app-shell .cp-expand svg{transition:none}
+}
