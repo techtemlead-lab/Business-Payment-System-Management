@@ -5,6 +5,7 @@ namespace App\Domain\Accounts;
 use App\Models\AreaDealerAssignment;
 use App\Models\PlaceCode;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
 /**
@@ -113,6 +114,43 @@ final class PartnerAppointment
         foreach ($users as $user) {
             $user->setAttribute('partner_type', $cells[$user->id] ?? null);
             $user->makeHidden('profile');
+        }
+    }
+
+    /**
+     * The same two lines for partners known only by id (rows of a raw query), in one read of the users and
+     * a fixed number of reads of their places.
+     *
+     * @param  iterable<int|string|null>  $userIds
+     * @return array<int, array{title: string|null, place: string|null}> keyed by user id
+     */
+    public function typesById(iterable $userIds, ?string $locale = null): array
+    {
+        $ids = collect($userIds)->filter(fn (mixed $id): bool => is_numeric($id))->map(fn (mixed $id): int => (int) $id)->unique()->values();
+        if ($ids->isEmpty()) {
+            return [];
+        }
+
+        return $this->tableCells(User::query()->whereIn('id', $ids)->get(['id', 'role', 'profile']), $locale);
+    }
+
+    /**
+     * Sets `partner_type` on every row (a model or a plain query row) from the partner id the row holds.
+     *
+     * @param  iterable<object>  $rows
+     */
+    public function attachToRows(iterable $rows, string $idField = 'user_id', ?string $locale = null): void
+    {
+        $rows = collect($rows);
+        $types = $this->typesById($rows->map(fn (object $row): mixed => $row instanceof Model ? $row->getAttribute($idField) : ($row->{$idField} ?? null)), $locale);
+        foreach ($rows as $row) {
+            $id = $row instanceof Model ? $row->getAttribute($idField) : ($row->{$idField} ?? null);
+            $type = is_numeric($id) ? ($types[(int) $id] ?? null) : null;
+            if ($row instanceof Model) {
+                $row->setAttribute('partner_type', $type);
+            } else {
+                $row->partner_type = $type;
+            }
         }
     }
 
