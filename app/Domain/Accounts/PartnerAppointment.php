@@ -5,6 +5,7 @@ namespace App\Domain\Accounts;
 use App\Models\AreaDealerAssignment;
 use App\Models\PlaceCode;
 use App\Models\User;
+use Illuminate\Support\Collection;
 
 /**
  * What a dealer or sub-dealer is appointed as, and where: "Rangpur District — district dealer".
@@ -41,6 +42,88 @@ final class PartnerAppointment
     public function forMany(iterable $users, ?string $locale = null): array
     {
         $users = collect($users);
+        $places = $this->placesOf($users);
+
+        $out = [];
+        foreach ($users as $user) {
+            $out[$user->id] = $this->forPlace($user, $places[$user->id] ?? null, $locale);
+        }
+
+        return $out;
+    }
+
+    /**
+     * The two lines a table cell shows under the heading "Partner type": the kind of dealer, then the place with
+     * its parent as plain names ("Balia, Nababganj"), no level words. A partner with no appointed place gets no place line.
+     *
+     * @param  iterable<User>  $users
+     * @return array<int, array{title: string|null, place: string|null}> keyed by user id
+     */
+    public function tableCells(iterable $users, ?string $locale = null): array
+    {
+        $locale ??= app()->getLocale();
+        $users = collect($users);
+        $places = $this->placesOf($users);
+
+        $out = [];
+        foreach ($users as $user) {
+            $place = $places[$user->id] ?? null;
+            if ($place === null) {
+                $out[$user->id] = ['title' => $user->role === 'sub_dealer' ? __('cr21_identity.short_sub_dealer', [], $locale) : null, 'place' => null];
+
+                continue;
+            }
+            $kind = $user->role === 'sub_dealer' ? 'sub_dealer' : $this->kindOf($place);
+            $out[$user->id] = ['title' => __('cr21_identity.short_'.$kind, [], $locale), 'place' => $this->plainPlace($place, $this->kindOf($place), $locale)];
+        }
+
+        return $out;
+    }
+
+    /**
+     * The same two lines on one row for a file download ("Union dealer — Balia, Nababganj"). A partner with no
+     * appointed place gets $fallback (the plain role word).
+     *
+     * @param  array{title?: string|null, place?: string|null}|null  $cell
+     */
+    public static function cellText(?array $cell, string $fallback = ''): string
+    {
+        $title = (string) ($cell['title'] ?? '');
+        $place = (string) ($cell['place'] ?? '');
+        if ($title === '') {
+            return $fallback;
+        }
+
+        return $place === '' ? $title : $title.' — '.$place;
+    }
+
+    /**
+     * Gives each user of a list its `partner_type` (title and place) and keeps the saved profile out of the page data.
+     * The users must have been loaded with their `role` and `profile` columns.
+     *
+     * @param  iterable<User|null>  $users
+     */
+    public function attachTypes(iterable $users, ?string $locale = null): void
+    {
+        $users = collect($users)->filter()->values();
+        if ($users->isEmpty()) {
+            return;
+        }
+        $cells = $this->tableCells($users->unique(fn (User $user): int => $user->id), $locale);
+        foreach ($users as $user) {
+            $user->setAttribute('partner_type', $cells[$user->id] ?? null);
+            $user->makeHidden('profile');
+        }
+    }
+
+    /**
+     * The appointed place of each partner: a dealer's active seat first, then the place code on the profile.
+     *
+     * @param  Collection<int, User>  $users
+     * @return array<int, PlaceCode|null> keyed by user id
+     */
+    private function placesOf(Collection $users): array
+    {
         $seatPlace = AreaDealerAssignment::query()
             ->whereIn('user_id', $users->where('role', 'dealer')->pluck('id'))
             ->where('is_active', true)
@@ -58,10 +141,33 @@ final class PartnerAppointment
         foreach ($users as $user) {
             $home = $homes->get((int) (PartnerProfileLock::profileOf($user)['place_code_id'] ?? 0));
             $place = $seatPlace->get($user->id) ?? $home;
-            $out[$user->id] = $this->forPlace($user, $place !== null && in_array($place->level, PlaceCode::AssignmentLevels, true) ? $place : null, $locale);
+            $out[$user->id] = $place !== null && in_array($place->level, PlaceCode::AssignmentLevels, true) ? $place : null;
         }
 
         return $out;
+    }
+
+    /** The place for a table cell: its own name and the one above it, as plain names. A division or district stands alone. */
+    private function plainPlace(PlaceCode $place, string $placeKind, string $locale): ?string
+    {
+        $own = $this->nameOf($place, $locale);
+        if ($own === null) {
+            return null;
+        }
+        if ($placeKind === PlaceCode::LevelDivision || $placeKind === PlaceCode::LevelDistrict) {
+            return $own;
+        }
+
+        $raw = ['division' => null, 'district' => null, 'upazila' => null, 'union' => null];
+        for ($cursor = $place, $guard = 0; $cursor !== null && $guard < 6; $cursor = $cursor->parent, $guard++) {
+            if (array_key_exists($cursor->level, $raw)) {
+                $raw[$cursor->level] = $cursor->name;
+            }
+        }
+        $names = $locale === 'bn' ? BanglaPlaceNames::translate($raw) : $raw;
+        $parent = $this->bare($names[$place->level === PlaceCode::LevelUnion ? 'upazila' : 'district'] ?? null);
+
+        return $parent === null || PlaceCode::isPlaceholderLabel($parent) ? $own : $own.__('appointment_lines.separator', [], $locale).$parent;
     }
 
     /**
