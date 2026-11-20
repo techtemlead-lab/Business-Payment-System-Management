@@ -120,7 +120,8 @@ final class TreasuryWork
             ->leftJoin('fund_expense_heads as h', 'h.id', '=', 'r.expense_head_id')
             ->leftJoin('users as maker', 'maker.id', '=', 'r.created_by')
             ->where('r.program', FundSpending::Program)->where('r.status', 'requested')->whereIn('r.fund_key', $visible)
-            ->select(['r.id', 'r.fund_key', 'r.amount', 'r.spent_on', 'r.expense_head_id', 'r.payee_name', 'r.payment_method', 'r.payment_reference', 'r.reason', 'r.created_by', 'h.name_en', 'h.name_bn', 'maker.name as maker_name', DB::raw('r.receipt_path IS NOT NULL AS has_receipt')]);
+            ->select(['r.id', 'r.fund_key', 'r.amount', 'r.spent_on', 'r.expense_head_id', 'r.payee_name', 'r.payment_method', 'r.payment_reference', 'r.reason', 'r.created_by', 'h.name_en', 'h.name_bn', 'maker.name as maker_name', DB::raw('r.receipt_path IS NOT NULL AS has_receipt'),
+                DB::raw('(SELECT COUNT(*) FROM fund_spend_partners fp WHERE fp.disbursement_id = r.id) AS for_partners')]);
 
         $table = MoneyTable::make($request, $query, new MoneyTableSpec(
             dateColumn: 'r.spent_on',

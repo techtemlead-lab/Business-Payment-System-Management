@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Domain\Finance\CompanyFunds;
 use App\Domain\Finance\FundBudgets;
 use App\Domain\Finance\FundSpending;
+use App\Domain\Finance\FundSpendPartners;
 use App\Domain\Payouts\PayoutReceipts;
+use App\Models\User;
 use App\Support\ReasonFields;
 use App\Support\TransactionReference;
 use Carbon\CarbonImmutable;
@@ -40,10 +42,39 @@ class FundSpendingController extends Controller
             'receipt' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
             'note' => ReasonFields::rule('money.fund_spend_note', 1000),
             'request_key' => 'required|uuid',
+            // Who the spend is for; nothing here means the company itself, as before.
+            'for' => 'nullable|array',
+            'for.mode' => ['nullable', Rule::in(FundSpendPartners::Modes)],
+            'for.partner_ids' => 'nullable|array|max:'.FundSpendPartners::MaxSelected,
+            'for.partner_ids.*' => 'integer',
         ], TransactionReference::messages('reference'));
         $id = $spending->request($request->user(), $data, $request->file('receipt'));
 
         return $this->done($request, ['id' => $id], __('funds.flash_spend_recorded'), $this->budgets->warningFor($id));
+    }
+
+    /**
+     * Finds active dealers and sub-dealers by name, code or phone for the "who is this for" choice, and says how many there are of each type.
+     */
+    public function partners(Request $request): JsonResponse
+    {
+        abort_unless(FundSpending::canManage($request->user()), 403);
+        $text = trim((string) $request->query('q'));
+        $active = fn () => User::query()->where('status', 'active');
+        $counts = ['dealers' => $active()->where('role', 'dealer')->count(), 'sub_dealers' => $active()->where('role', 'sub_dealer')->count()];
+        if (mb_strlen($text) < 2) {
+            return response()->json(['partners' => [], 'counts' => $counts]);
+        }
+        $like = '%'.addcslashes($text, '%_\\').'%';
+        $digits = preg_replace('/\D+/', '', $text) ?? '';
+        $partners = $active()->whereIn('role', ['dealer', 'sub_dealer'])
+            ->where(fn ($match) => $match->where('name', 'ilike', $like)->orWhere('dealer_code', 'ilike', $like)
+                ->when(strlen($digits) >= 3, fn ($or) => $or->orWhere('phone', 'like', '%'.$digits.'%')))
+            ->orderBy('name')->limit(20)->get(['id', 'name', 'dealer_code', 'role', 'district', 'phone']);
+
+        return response()->json(['partners' => $partners->map(fn (User $partner): array => [
+            'id' => $partner->id, 'name' => $partner->name, 'code' => $partner->dealer_code, 'role' => $partner->role, 'district' => $partner->district, 'phone' => $partner->phone,
+        ])->all(), 'counts' => $counts]);
     }
 
     public function review(Request $request, int $id, FundSpending $spending): RedirectResponse|JsonResponse

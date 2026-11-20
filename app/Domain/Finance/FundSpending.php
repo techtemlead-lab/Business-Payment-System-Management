@@ -35,7 +35,7 @@ final class FundSpending
         'marketing' => 'company_marketing_expense',
     ];
 
-    public function __construct(private CommissionWallet $wallets, private CompanyFunds $funds) {}
+    public function __construct(private CommissionWallet $wallets, private CompanyFunds $funds, private FundSpendPartners $partners) {}
 
     /**
      * Owners and finance staff only; the owners' own fund is the owners' alone. The MD and Chairman
@@ -47,7 +47,7 @@ final class FundSpending
     }
 
     /**
-     * @param  array{fund: string, expense_head_id: int, amount: string, spent_on: string, payee: string, payment_method: string, reference?: ?string, note?: ?string, request_key: string}  $data
+     * @param  array{fund: string, expense_head_id: int, amount: string, spent_on: string, payee: string, payment_method: string, reference?: ?string, note?: ?string, request_key: string, for?: array{mode?: ?string, partner_ids?: array<int, mixed>}|null}  $data
      */
     public function request(User $actor, array $data, ?UploadedFile $receipt): int
     {
@@ -79,6 +79,8 @@ final class FundSpending
                 if (Money::cents($data['amount']) > $this->funds->balances()[$data['fund']]['available']) {
                     throw ValidationException::withMessages(['amount' => __('funds.err_overspend')]);
                 }
+                // Who the spend is for: nobody named means the company itself, as before.
+                $partnerIds = $this->partners->resolve($data['for'] ?? null);
                 $id = DB::table('reserve_disbursements')->insertGetId([
                     'program' => self::Program,
                     'fund_key' => $data['fund'],
@@ -96,7 +98,8 @@ final class FundSpending
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
-                Audit::record($actor->id, 'fund.spend_requested', (string) $id, ['fund' => $data['fund'], 'amount' => $data['amount'], 'head' => $head->name_en]);
+                $this->partners->record($id, (string) $data['amount'], $partnerIds);
+                Audit::record($actor->id, 'fund.spend_requested', (string) $id, ['fund' => $data['fund'], 'amount' => $data['amount'], 'head' => $head->name_en, 'for_partners' => count($partnerIds)]);
                 // CR-16: a spend at or above the owner's limit waits for an owner, so the owners are told.
                 if (! in_array($data['fund'], CompanyFunds::OwnerOnly, true) && self::ownerOnly($data['fund'], (string) $data['amount']) && ! OwnerApprovalLimits::ownerDecides($actor)) {
                     Audit::notifyOwners(['finance'], fn (string $locale): string => __('funds.notice_owner_spend_title', [], $locale),
