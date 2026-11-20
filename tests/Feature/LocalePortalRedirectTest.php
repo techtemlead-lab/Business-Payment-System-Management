@@ -41,7 +41,7 @@ class LocalePortalRedirectTest extends TestCase
         $this->actingAs($admin)->onPortal('sadmin')
             ->post('/commands/accounts/'.$dealer->id.'/invite')
             ->assertRedirect()
-            ->assertSessionHas('success', 'অ্যাকাউন্ট যোগ্য হলে ব্যক্তিগত পাসওয়ার্ড-সেটিং লিঙ্ক ইমেইল করা হয়েছে।');
+            ->assertSessionHas('success', 'অ্যাকাউন্টটি ইমেইল পাওয়ার মতো হলে পাসওয়ার্ড দেওয়ার লিংক ইমেইলে পাঠানো হয়েছে।');
 
         $sent = config('madina.sms.sent');
         $this->assertSame('account.invitation_sent', $sent[0]['event'] ?? null);

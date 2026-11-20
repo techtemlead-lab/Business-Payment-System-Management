@@ -104,7 +104,7 @@ class AdversarialM1LocaleTest extends TestCase
             $this->fail('Expected ValidationException');
         } catch (ValidationException $e) {
             $this->assertSame(__('portal.err_order_already_decided', [], 'bn'), $e->errors()['status'][0]);
-            $this->assertSame('এই অর্ডার ইতিমধ্যে সিদ্ধান্ত নেওয়া হয়েছে।', $e->errors()['status'][0]);
+            $this->assertSame('এই অর্ডারে আগেই সিদ্ধান্ত নেওয়া হয়ে গেছে।', $e->errors()['status'][0]);
         }
 
         // English already decided message
@@ -212,7 +212,7 @@ class AdversarialM1LocaleTest extends TestCase
             ])
             ->assertUnprocessable()
             ->assertJsonPath('errors.tracking.0', __('portal.err_dispatch_tracking', [], 'en'))
-            ->assertJsonPath('errors.tracking.0', 'Enter a tracking reference, or select an enabled courier API provider.');
+            ->assertJsonPath('errors.tracking.0', 'Enter a tracking reference, or choose an active courier service.');
     }
 
     public function test_behavior_when_default_locale_is_changed(): void

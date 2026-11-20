@@ -56,7 +56,7 @@ class OrderServiceLocaleTest extends TestCase
             $this->fail('Expected ValidationException for decided order');
         } catch (ValidationException $exception) {
             $this->assertSame(
-                'এই অর্ডার ইতিমধ্যে সিদ্ধান্ত নেওয়া হয়েছে।',
+                'এই অর্ডারে আগেই সিদ্ধান্ত নেওয়া হয়ে গেছে।',
                 $exception->errors()['status'][0] ?? null,
             );
         }
