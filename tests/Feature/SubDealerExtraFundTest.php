@@ -23,8 +23,9 @@ use Tests\TestCase;
 
 /**
  * Client voice message, 2026-11-20: of the sub-dealer's purchase, the salary and the tour stay the sub-dealer's
- * and the extra part goes to a company fund of its own, "Sub-dealer extra". Today that part goes to the sub-dealer
- * rank fund. The change is a rule value, so it reaches new orders only and the default is today's behaviour.
+ * and the extra part goes to a company fund of its own, "Sub-dealer extra" (owner decision: by default, for new
+ * orders). Before, that part went to the sub-dealer rank fund. It is a rule value the owner can switch back; an
+ * order keeps the rules it was captured with, and one captured before the setting existed keeps the old fund.
  *
  * The orders here use round numbers: a product with an MRP of 10,000; a dealer pays 7,000 and a sub-dealer 7,500.
  */
@@ -88,9 +89,17 @@ class SubDealerExtraFundTest extends TestCase
         return (string) (DB::table('commission_allocations')->where('order_id', $order->id)->where('category', $category)->sum('amount') ?: '0.00');
     }
 
-    private function sendExtraToTheNewFund(): void
+    private function sendExtraToTheRankFund(): void
     {
-        $this->actingAs($this->owner)->onPortal('sadmin')->postJson('/commands/commissions/rules', ['rules' => ['additional_rank' => ['parameters' => ['destination' => 'extra_fund']]]])->assertRedirect();
+        $this->actingAs($this->owner)->onPortal('sadmin')->postJson('/commands/commissions/rules', ['rules' => ['additional_rank' => ['parameters' => ['destination' => 'rank_fund']]]])->assertRedirect();
+    }
+
+    /** A rule set as it was stored before the setting existed: no destination in the sub-dealer extra rule. */
+    private function withoutTheSetting(Order $order): void
+    {
+        $snapshot = $order->commission_policy_snapshot;
+        unset($snapshot['rules']['additional_rank']['parameters']['destination']);
+        $order->forceFill(['commission_policy_snapshot' => $snapshot])->save();
     }
 
     /**
@@ -109,7 +118,7 @@ class SubDealerExtraFundTest extends TestCase
         return app(CompanyFunds::class)->balances()[$key]['balance'];
     }
 
-    public function test_today_the_extra_part_goes_to_the_sub_dealer_rank_fund(): void
+    public function test_by_default_the_extra_part_goes_to_the_new_company_fund(): void
     {
         $order = $this->posted('sub_dealer');
 
@@ -117,54 +126,63 @@ class SubDealerExtraFundTest extends TestCase
         $this->assertSame('3000.00', $this->batch($order)['company'], 'The company keeps 30% of the MRP.');
         $this->assertSame('225.00', $this->amountOf($order, 'sub_dealer_salary'));
         $this->assertSame('225.00', $this->amountOf($order, 'sub_dealer_tour'));
-        $this->assertSame('300.00', $this->amountOf($order, 'additional_rank_pool'));
-        $this->assertSame('0.00', $this->amountOf($order, 'sub_dealer_extra_fund'));
+        $this->assertSame('300.00', $this->amountOf($order, 'sub_dealer_extra_fund'));
+        $this->assertSame('0.00', $this->amountOf($order, 'additional_rank_pool'));
+        $this->assertSame(0, $this->fund('rank_reward'));
+        $this->assertSame(30000, $this->fund('sub_dealer_extra'));
+        $this->assertSame('extra_fund', CommissionPolicy::ExtraDestinationDefault);
+        $this->assertSame('extra_fund', collect((new CommissionPageModel(app(CommissionPolicy::class)))->build()['heads'])->firstWhere('key', 'additional_rank')['destination']);
+        $this->assertSame($this->batch($order)['cash'], '7500.00');
+        $this->assertCount(18, app(FinancialReadiness::class)->checks());
+        $this->assertSame(['order_receipts'], $this->failedChecks(), 'Only the bank receipt check fails, because the test order has no bank receipt.');
+    }
+
+    public function test_the_owner_can_send_it_back_to_the_rank_fund_and_only_the_extra_part_moves(): void
+    {
+        $default = $this->posted('sub_dealer');
+        $defaultRows = $this->rows($default);
+
+        $this->sendExtraToTheRankFund();
+        $back = $this->posted('sub_dealer');
+
+        $moved = array_map(fn (array $row): array => $row[0] === 'sub_dealer_extra_fund' ? ['additional_rank_pool', $row[1], $row[2]] : $row, $defaultRows);
+        $this->assertSame($moved, $this->rows($back), 'Every row is the same except the name of the fund the extra part sits in.');
+        $this->assertSame($this->batch($default), $this->batch($back), 'The totals do not move.');
+        $this->assertSame('300.00', $this->amountOf($back, 'additional_rank_pool'));
+        $this->assertSame('0.00', $this->amountOf($back, 'sub_dealer_extra_fund'));
+        $this->assertSame(30000, $this->fund('rank_reward'));
+        $this->assertSame(30000, $this->fund('sub_dealer_extra'), 'The first order stays in the new fund; the second is not added to it.');
+        $this->assertSame(['order_receipts'], $this->failedChecks());
+    }
+
+    public function test_an_order_captured_before_the_deploy_still_goes_to_the_old_fund(): void
+    {
+        $old = $this->newOrder('sub_dealer');
+        // An order captured before the setting existed has no value for it in its rules.
+        $this->withoutTheSetting($old);
+
+        $old = $this->deliver($old);
+
+        $this->assertSame('300.00', $this->amountOf($old, 'additional_rank_pool'), 'Captured without the setting: the old rank fund.');
+        $this->assertSame('0.00', $this->amountOf($old, 'sub_dealer_extra_fund'));
         $this->assertSame(30000, $this->fund('rank_reward'));
         $this->assertSame(0, $this->fund('sub_dealer_extra'));
-        $this->assertSame('rank_fund', collect((new CommissionPageModel(app(CommissionPolicy::class)))->build()['heads'])->firstWhere('key', 'additional_rank')['destination']);
-    }
-
-    public function test_after_the_rule_changes_a_new_order_sends_only_the_extra_part_to_the_new_fund(): void
-    {
-        $before = $this->posted('sub_dealer');
-        $beforeRows = $this->rows($before);
-        $failedBefore = $this->failedChecks();
-
-        $this->sendExtraToTheNewFund();
-        $after = $this->posted('sub_dealer');
-
-        $moved = array_map(fn (array $row): array => $row[0] === 'additional_rank_pool' ? ['sub_dealer_extra_fund', $row[1], $row[2]] : $row, $beforeRows);
-        $this->assertSame($moved, $this->rows($after), 'Every row is the same except the name of the fund the extra part sits in.');
-        $this->assertSame($this->batch($before), $this->batch($after), 'The totals do not move.');
-        $this->assertSame('300.00', $this->amountOf($after, 'sub_dealer_extra_fund'));
-        $this->assertSame('0.00', $this->amountOf($after, 'additional_rank_pool'));
-        $this->assertSame('225.00', $this->amountOf($after, 'sub_dealer_salary'));
-        $this->assertSame('225.00', $this->amountOf($after, 'sub_dealer_tour'));
-        $this->assertSame(30000, $this->fund('rank_reward'), 'The old order stays in the rank fund; the new one is not added to it.');
-        $this->assertSame(30000, $this->fund('sub_dealer_extra'));
-        $this->assertSame($failedBefore, $this->failedChecks(), 'Using the new fund adds no failing money check.');
+        $this->assertSame('3750.00', $this->batch($old)['allocated']);
         $this->assertSame(['order_receipts'], $this->failedChecks());
-        $this->assertCount(18, app(FinancialReadiness::class)->checks());
     }
 
-    public function test_an_order_already_posted_or_captured_before_the_change_does_not_move(): void
+    public function test_an_order_already_posted_does_not_move_when_the_owner_changes_the_rule(): void
     {
-        $old = $this->posted('sub_dealer');
-        $beforeRows = $this->rows($old);
-        $beforeSnapshot = $old->commission_policy_snapshot;
-        $waiting = $this->newOrder('sub_dealer');
-        // An order captured before the setting existed has no such value in its rules.
-        $snapshot = $waiting->commission_policy_snapshot;
-        unset($snapshot['rules']['additional_rank']['parameters']['destination']);
-        $waiting->forceFill(['commission_policy_snapshot' => $snapshot])->save();
+        $posted = $this->posted('sub_dealer');
+        $rows = $this->rows($posted);
+        $snapshot = $posted->commission_policy_snapshot;
 
-        $this->sendExtraToTheNewFund();
+        $this->sendExtraToTheRankFund();
 
-        $this->assertSame($beforeRows, $this->rows($old->refresh()));
-        $this->assertSame($beforeSnapshot, $old->commission_policy_snapshot);
-        $waiting = $this->deliver($waiting);
-        $this->assertSame('300.00', $this->amountOf($waiting, 'additional_rank_pool'), 'An older snapshot keeps the old destination.');
-        $this->assertSame('0.00', $this->amountOf($waiting, 'sub_dealer_extra_fund'));
+        $this->assertSame($rows, $this->rows($posted->refresh()));
+        $this->assertSame($snapshot, $posted->commission_policy_snapshot);
+        $this->assertSame(30000, $this->fund('sub_dealer_extra'));
+        $this->assertSame(0, $this->fund('rank_reward'));
     }
 
     public function test_a_dealer_order_is_exactly_the_same_before_and_after(): void
@@ -172,7 +190,7 @@ class SubDealerExtraFundTest extends TestCase
         $before = $this->posted('dealer');
         $beforeRows = $this->rows($before);
 
-        $this->sendExtraToTheNewFund();
+        $this->sendExtraToTheRankFund();
         $after = $this->posted('dealer');
 
         $this->assertSame($beforeRows, $this->rows($after));
@@ -184,7 +202,6 @@ class SubDealerExtraFundTest extends TestCase
 
     public function test_a_refund_takes_the_money_back_out_of_the_new_fund(): void
     {
-        $this->sendExtraToTheNewFund();
         $order = $this->posted('sub_dealer');
         $this->assertSame(30000, $this->fund('sub_dealer_extra'));
         $failedBefore = $this->failedChecks();
@@ -197,7 +214,6 @@ class SubDealerExtraFundTest extends TestCase
 
     public function test_the_new_fund_has_a_treasury_card_and_a_plain_name_in_both_languages(): void
     {
-        $this->sendExtraToTheNewFund();
         $this->posted('sub_dealer');
 
         $this->assertContains('sub_dealer_extra', FundCatalog::keys());
@@ -213,22 +229,22 @@ class SubDealerExtraFundTest extends TestCase
         }
     }
 
-    public function test_the_rule_value_is_checked_and_follows_the_draft_then_publish_flow(): void
+    public function test_the_rule_value_is_checked_and_switching_back_follows_the_draft_then_publish_flow(): void
     {
         $finance = User::factory()->staff('finance')->create();
 
         $this->actingAs($this->owner)->onPortal('sadmin')->postJson('/commands/commissions/rules', ['rules' => ['additional_rank' => ['parameters' => ['destination' => 'somewhere']]]])
             ->assertUnprocessable()->assertJsonValidationErrors('rules');
 
-        $this->actingAs($finance)->onPortal('manage')->postJson('/commands/commissions/rules', ['rules' => ['additional_rank' => ['parameters' => ['destination' => 'extra_fund']]]])->assertRedirect();
-        $this->assertSame('rank_fund', app(CommissionPolicy::class)->snapshot(false)['rules']['additional_rank']['parameters']['destination'], 'A draft changes nothing yet.');
-        $this->assertSame('0.00', $this->amountOf($this->posted('sub_dealer'), 'sub_dealer_extra_fund'));
+        $this->actingAs($finance)->onPortal('manage')->postJson('/commands/commissions/rules', ['rules' => ['additional_rank' => ['parameters' => ['destination' => 'rank_fund']]]])->assertRedirect();
+        $this->assertSame('extra_fund', app(CommissionPolicy::class)->snapshot(false)['rules']['additional_rank']['parameters']['destination'], 'A draft changes nothing yet.');
+        $this->assertSame('300.00', $this->amountOf($this->posted('sub_dealer'), 'sub_dealer_extra_fund'));
 
         $draft = DB::table('commission_policy_schedules')->where('origin', 'rule_edit')->where('status', 'draft')->value('id');
         $this->actingAs($this->owner)->postJson('/api/v1/operations/policy-schedules/'.$draft.'/review', ['decision' => 'approved', 'reason' => 'Checked against the budget'])->assertOk();
 
-        $this->assertSame('extra_fund', app(CommissionPolicy::class)->snapshot(false)['rules']['additional_rank']['parameters']['destination']);
-        $this->assertSame('300.00', $this->amountOf($this->posted('sub_dealer'), 'sub_dealer_extra_fund'));
+        $this->assertSame('rank_fund', app(CommissionPolicy::class)->snapshot(false)['rules']['additional_rank']['parameters']['destination']);
+        $this->assertSame('300.00', $this->amountOf($this->posted('sub_dealer'), 'additional_rank_pool'));
     }
 
     public function test_the_page_groups_the_sub_dealer_only_heads_and_names_the_renamed_ones(): void

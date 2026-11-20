@@ -101,12 +101,13 @@ class CompanyFundSpendingTest extends TestCase
     {
         [$maker, $checker] = $this->financeStaff();
         $this->fundRow(CommissionPosting::SubDealerExtraCategory, '500.00', ['status' => 'pending']);
+        // The setUp order is a sub-dealer order, so the fund already holds its extra part (4.80).
         $before = $this->balance('sub_dealer_extra');
-        $this->assertSame(50000, $before);
+        $this->assertSame(480 + 50000, $before);
 
         $id = $this->spend($maker, ['fund' => 'sub_dealer_extra', 'amount' => '200.00'])->assertOk()->json('data.id');
         $this->assertSame($before - 20000, $this->available('sub_dealer_extra'));
-        $this->spend($maker, ['fund' => 'sub_dealer_extra', 'amount' => '300.01'])->assertUnprocessable()->assertJsonValidationErrors('amount');
+        $this->spend($maker, ['fund' => 'sub_dealer_extra', 'amount' => '400.01'])->assertUnprocessable()->assertJsonValidationErrors('amount');
         $this->review($checker, $id, 'approved')->assertOk();
 
         $this->assertSame($before - 20000, $this->balance('sub_dealer_extra'));

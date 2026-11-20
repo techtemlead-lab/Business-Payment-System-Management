@@ -5549,6 +5549,7 @@ return [
     'cs_param_sm_min_monthly_volume' => 'SM lowest monthly sales (৳)',
     'cs_param_me_min_monthly_volume' => 'ME lowest monthly sales (৳)',
     'cs_param_grace_period_days' => 'Extra days before the rank drops',
+    'cs_param_destination' => 'Where the sub-dealer extra part goes',
     'imp_type_opt_partners' => 'Partners',
     'imp_type_opt_products' => 'Products',
     'imp_type_opt_opening_balances' => 'Starting balances',

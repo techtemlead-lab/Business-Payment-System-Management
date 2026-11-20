@@ -5549,6 +5549,7 @@ return [
     'cs_param_sm_min_monthly_volume' => 'SM-এর মাসে সবচেয়ে কম বিক্রি (৳)',
     'cs_param_me_min_monthly_volume' => 'ME-র মাসে সবচেয়ে কম বিক্রি (৳)',
     'cs_param_grace_period_days' => 'র‍্যাঙ্ক নামার আগে বাড়তি দিন',
+    'cs_param_destination' => 'সাব-ডিলার এক্সট্রা অংশ কোথায় যাবে',
     'imp_type_opt_partners' => 'পার্টনার',
     'imp_type_opt_products' => 'পণ্য',
     'imp_type_opt_opening_balances' => 'শুরুর হিসাব',
