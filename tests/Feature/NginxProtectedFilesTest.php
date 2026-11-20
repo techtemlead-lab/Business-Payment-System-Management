@@ -23,6 +23,18 @@ class NginxProtectedFilesTest extends TestCase
         config(['madina.nginx_protected_files' => true]);
     }
 
+    /**
+     * DECISION: nginx-served media stays off until files are stored group-readable (0640) and nginx joins
+     * the www-data group (a later ops task). The files are 0600 owned by www-data, so nginx got 403.
+     */
+    public function test_production_compose_keeps_nginx_served_files_off_by_default(): void
+    {
+        $compose = (string) file_get_contents(base_path('compose.production.yaml'));
+
+        $this->assertStringContainsString('MADINA_NGINX_PROTECTED_FILES: "${MADINA_NGINX_PROTECTED_FILES:-false}"', $compose);
+        $this->assertStringNotContainsString('MADINA_NGINX_PROTECTED_FILES: "true"', $compose);
+    }
+
     public function test_a_product_photo_is_handed_to_nginx_with_its_cache_rule_and_no_body(): void
     {
         Storage::disk('local')->put('product-images/tonic photo.jpg', 'jpeg-bytes');
