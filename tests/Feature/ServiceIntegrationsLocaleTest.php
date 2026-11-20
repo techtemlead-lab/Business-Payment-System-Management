@@ -24,7 +24,7 @@ class ServiceIntegrationsLocaleTest extends TestCase
         $groups = IntegrationCatalog::groups();
 
         $this->assertSame('এসএমএস সেবা', $groups['sms']['label'] ?? null);
-        $this->assertStringContainsString('অ্যাকাউন্ট তৈরি', $groups['sms']['description'] ?? '');
+        $this->assertStringContainsString('নতুন অ্যাকাউন্ট', $groups['sms']['description'] ?? '');
         $this->assertSame('পেমেন্ট মাধ্যম', $groups['payments']['label'] ?? null);
         $this->assertSame(__('portal.si_provider_pathao', [], 'bn'), $groups['couriers']['providers']['pathao']['label'] ?? null);
         $this->assertSame(__('portal.si_provider_bkash', [], 'bn'), $groups['payments']['providers']['bkash']['label'] ?? null);

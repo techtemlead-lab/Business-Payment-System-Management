@@ -6,7 +6,7 @@ return [
     'dashboard_md' => 'Managing Director dashboard',
     'dashboard_chairman' => 'Chairman dashboard',
     'tour_welcome_role_title' => 'Madina Natural Health Care — :role',
-    'page_loading' => 'The page is opening… please wait a moment',
+    'page_loading' => 'Opening the page… one moment',
     'audit_subject_agreement_version' => 'Partner agreement, version :version',
     'audit_subject_application' => 'Application',
     'audit_subject_withdrawal_of' => 'Withdrawal request of :name',

@@ -22,7 +22,7 @@ return [
     'food_label' => 'Food',
     'food_before' => 'before food',
     'food_after' => 'after food',
-    'course_length' => 'For how many',
+    'course_length' => 'For how long',
     'course_unit' => 'Days / weeks / months',
     'unit_day' => 'days',
     'unit_week' => 'weeks',

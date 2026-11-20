@@ -31,7 +31,7 @@ return [
     'never' => 'Not seen yet',
     'ago_now' => 'Just now',
     'ago_minutes' => ':count min ago',
-    'ago_hours' => ':count h ago',
+    'ago_hours' => ':count hours ago',
     'ago_days' => ':count days ago',
     'empty' => 'Nobody matches.',
     'prev' => 'Previous page',

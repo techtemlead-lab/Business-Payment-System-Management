@@ -108,7 +108,7 @@ return [
     'module_company_hint' => 'Name, phones, email, address and licence. Used on every page.',
     'module_header' => 'Header',
     'module_header_hint' => 'The Bismillah line and the company name band at the very top.',
-    'module_navbar' => 'Navbar',
+    'module_navbar' => 'Top menu',
     'module_navbar_hint' => 'Menu button names, the search box and category lists.',
     'module_footer' => 'Footer',
     'module_footer_hint' => 'Everything at the bottom of every page, including social links.',

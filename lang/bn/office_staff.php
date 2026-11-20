@@ -9,7 +9,7 @@ return [
     'card_off' => 'বন্ধ অ্যাকাউন্ট',
 
     'view_staff' => 'স্টাফ',
-    'view_prescribers' => 'কে প্রেসক্রিপশন লিখতে পারবেন',
+    'view_prescribers' => 'কারা প্রেসক্রিপশন লিখতে পারবেন',
     'view_owners' => 'এমডি ও চেয়ারম্যান',
     'views_label' => 'কোন তালিকা দেখবেন',
 
@@ -35,7 +35,7 @@ return [
     'detail_permissions' => 'অনুমতি',
     'no_permissions' => 'কোনো অনুমতি দেওয়া হয়নি',
     'send_invite' => 'আমন্ত্রণ পাঠান',
-    'edit_staff' => 'স্টাফের তথ্য এডিট',
+    'edit_staff' => 'স্টাফের তথ্য বদলান',
 
     'field_full_name' => 'স্টাফের পূর্ণ নাম',
     'field_name' => 'স্টাফের নাম',
@@ -47,7 +47,7 @@ return [
     'save_staff' => 'সেভ করুন',
 
     'prescribers_search' => 'নাম দিয়ে খুঁজুন',
-    'prescriber_manage' => 'এডিট',
+    'prescriber_manage' => 'বদলান',
     'prescriber_title' => 'প্রেসক্রিপশনের অনুমতি',
 
     'owner_turn_off_title' => ':name: অ্যাকাউন্ট বন্ধ করুন',
@@ -64,7 +64,7 @@ return [
     'agreements_empty' => 'কোনো বেতন চুক্তি নেই',
     'col_month' => 'মাস',
     'col_gross' => 'মোট বেতন',
-    'col_cut' => 'কাটা',
+    'col_cut' => 'কাটা হয়েছে',
     'col_net' => 'হাতে পাবেন',
     'col_effective_month' => 'যে মাস থেকে',
     'col_base_salary' => 'মূল বেতন',
@@ -73,7 +73,7 @@ return [
     'detail_payment_reference' => 'পেমেন্ট রেফারেন্স',
     'detail_paid_at' => 'পরিশোধের সময়',
     'detail_sales_target' => 'বিক্রির লক্ষ্য',
-    'detail_sales_counted' => 'গণনা করা বিক্রি',
+    'detail_sales_counted' => 'হিসাবে ধরা বিক্রি',
     'detail_bonus_earned' => 'পাওয়া বোনাস',
     'detail_calculation' => 'বেতনের হিসাব',
     'detail_reason' => 'কারণ',
@@ -103,8 +103,8 @@ return [
     'field_view_applications' => 'ডিলার আবেদন',
     'field_view_areas' => 'আমার এলাকা',
     'field_sales_this_month' => 'এই মাসে এলাকার বিক্রি',
-    'submit_order' => 'অর্ডার জমা দিন',
-    'submit_application' => 'ডিলার আবেদন জমা দিন',
+    'submit_order' => 'অর্ডার পাঠান',
+    'submit_application' => 'ডিলার আবেদন পাঠান',
     'orders_empty' => 'কোনো অর্ডার নেই',
     'no_area_line' => 'আপনাকে এখনো কোনো এলাকা দেওয়া হয়নি',
     'col_order' => 'অর্ডার',

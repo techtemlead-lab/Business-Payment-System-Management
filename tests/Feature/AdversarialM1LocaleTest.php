@@ -47,13 +47,13 @@ class AdversarialM1LocaleTest extends TestCase
                 'email' => __('auth_ui.account_unavailable_contact', [], 'en'),
             ]);
 
-        $this->assertSame('This account is unavailable. Contact the company.', __('auth_ui.account_unavailable_contact', [], 'en'));
+        $this->assertSame('This account is not active right now. Contact the company.', __('auth_ui.account_unavailable_contact', [], 'en'));
 
         $this->actingAs($enDealer)->onPortal('dealer')->getJson('/api/v1/me')
             ->assertForbidden()
             ->assertJsonFragment(['message' => __('auth_ui.account_unavailable', [], 'en')]);
 
-        $this->assertSame('This account is unavailable.', __('auth_ui.account_unavailable', [], 'en'));
+        $this->assertSame('This account is not active right now.', __('auth_ui.account_unavailable', [], 'en'));
     }
 
     public function test_order_service_decision_validation_switching_between_bn_and_en(): void
@@ -104,7 +104,7 @@ class AdversarialM1LocaleTest extends TestCase
             $this->fail('Expected ValidationException');
         } catch (ValidationException $e) {
             $this->assertSame(__('portal.err_order_already_decided', [], 'bn'), $e->errors()['status'][0]);
-            $this->assertSame('এই অর্ডার ইতিমধ্যে সিদ্ধান্ত নেওয়া হয়েছে।', $e->errors()['status'][0]);
+            $this->assertSame('এই অর্ডারে আগেই সিদ্ধান্ত নেওয়া হয়ে গেছে।', $e->errors()['status'][0]);
         }
 
         // English already decided message
@@ -114,7 +114,7 @@ class AdversarialM1LocaleTest extends TestCase
             $this->fail('Expected ValidationException');
         } catch (ValidationException $e) {
             $this->assertSame(__('portal.err_order_already_decided', [], 'en'), $e->errors()['status'][0]);
-            $this->assertSame('This order has already been decided.', $e->errors()['status'][0]);
+            $this->assertSame('A decision was already made on this order.', $e->errors()['status'][0]);
         }
     }
 
@@ -200,7 +200,7 @@ class AdversarialM1LocaleTest extends TestCase
             ])
             ->assertUnprocessable()
             ->assertJsonPath('errors.tracking.0', __('portal.err_dispatch_tracking', [], 'bn'))
-            ->assertJsonPath('errors.tracking.0', 'ট্র্যাকিং রেফারেন্স দিন, অথবা সক্রিয় কুরিয়ার API প্রদানকারী নির্বাচন করুন।');
+            ->assertJsonPath('errors.tracking.0', 'ট্র্যাকিং রেফারেন্স দিন, অথবা চালু কুরিয়ার সার্ভিস বেছে নিন।');
 
         // 2. Accept-Language: en
         $this->actingAs($admin)
@@ -212,7 +212,7 @@ class AdversarialM1LocaleTest extends TestCase
             ])
             ->assertUnprocessable()
             ->assertJsonPath('errors.tracking.0', __('portal.err_dispatch_tracking', [], 'en'))
-            ->assertJsonPath('errors.tracking.0', 'Enter a tracking reference, or select an enabled courier API provider.');
+            ->assertJsonPath('errors.tracking.0', 'Enter a tracking reference, or choose an active courier service.');
     }
 
     public function test_behavior_when_default_locale_is_changed(): void

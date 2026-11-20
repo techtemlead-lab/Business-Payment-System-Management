@@ -2,7 +2,7 @@
 
 return [
     'title' => 'Site problems',
-    'subtitle' => 'Times the site hit a problem while people were using it. Each kind of problem is listed once.',
+    'subtitle' => 'Problems people ran into while using the site. Each kind of problem is listed once.',
     'open_count' => 'Not fixed yet',
     'fixed_count' => 'Marked fixed',
     'week_count' => 'Seen in the last 7 days',
@@ -26,7 +26,7 @@ return [
     'col_state' => 'State',
     'state_open' => 'Not fixed',
     'state_fixed' => 'Fixed',
-    'empty_open' => 'No problems are waiting. Nothing has gone wrong that we know of.',
+    'empty_open' => 'No open problems. Nothing has gone wrong that we know of.',
     'empty_filtered' => 'No problem matches this search.',
     'details' => 'Details',
     'back_to_list' => 'Back to the list',
@@ -36,7 +36,7 @@ return [
     'd_file' => 'Where in the code',
     'd_portal' => 'Which part of the site',
     'd_route' => 'Which page',
-    'd_status' => 'Answer code',
+    'd_status' => 'Response code',
     'd_user' => 'Signed-in person',
     'd_first' => 'First seen',
     'd_last' => 'Last seen',
