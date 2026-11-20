@@ -1,0 +1,28 @@
+<?php
+
+return [
+    'title' => 'Where this order’s money went',
+    'title_preview' => 'Where this order’s money will go',
+    'col_head' => 'Head',
+    'col_percent' => 'Percent',
+    'col_amount' => 'Amount',
+    'col_goes_to' => 'Goes to',
+    'col_status' => 'Status',
+    'total' => 'Total',
+    'accounted' => 'Total accounted: :amount of :cash',
+    'not_adding_up' => 'These lines do not add up to the money received. Please tell the office.',
+    'preview_notice' => 'This is a preview. Money is not posted yet.',
+    'preview_hint' => 'It shows what this order will pay out when money posting is on. Nothing has been paid to anyone.',
+    'reason_posting_off' => 'Money posting is switched off for now.',
+    'reason_not_posted_yet' => 'The order is not delivered and paid in full yet.',
+    'posted_note' => 'These amounts are posted.',
+    'own_only' => 'Only your own lines of this order are shown.',
+    'company_fund' => 'Company fund',
+    'returned' => 'Taken back: :amount',
+    'of_mrp' => 'of MRP',
+    'of_paid' => 'of price',
+    'none_opening_balance' => 'This order was entered from old records, so no commission is worked out for it.',
+    'none_closed' => 'This order was closed, so no money is split.',
+    'none_not_available' => 'The split cannot be worked out for this order right now.',
+    'none_title' => 'Where this order’s money went',
+];

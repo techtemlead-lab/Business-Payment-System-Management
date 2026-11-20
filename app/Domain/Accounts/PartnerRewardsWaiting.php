@@ -8,7 +8,10 @@ use App\Domain\Commissions\CommissionSettlement;
 use App\Domain\Finance\FundCatalog;
 use App\Domain\Finance\ReserveService;
 use App\Models\DealerRank;
+use App\Models\RewardMilestoneProgress;
 use App\Models\User;
+use Closure;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -29,29 +32,41 @@ final class PartnerRewardsWaiting
      *
      * @return list<array{id: string, head: string, what: string, amount: ?string, reason: string, state: string, since: ?string}>
      */
-    public function for(User $partner): array
+    public function for(User $partner, array $context = []): array
     {
         if (! in_array($partner->role, ['dealer', 'sub_dealer'], true) || $partner->status !== 'active') {
             return [];
         }
-        $rules = $this->policies->snapshot()['rules'];
+        // The caller may already hold what this needs (the dashboard has the rules, the rank row and the bike and car rows), so nothing is
+        // read twice. The rules are read only when there is a prize or a rank to look at: most partners have neither.
+        $rules = null;
+        $rulesOf = function () use (&$rules, $context): array {
+            return $rules ??= $context['rules'] ?? $this->policies->snapshot(false)['rules'];
+        };
+        $milestones = $context['milestones'] ?? RewardMilestoneProgress::query()->where('user_id', $partner->id)->whereIn('milestone_type', ['bike', 'car'])->get()->keyBy('milestone_type');
         if ($partner->role === 'sub_dealer') {
-            return [...$this->vehiclePrizes($partner, $rules), ...$this->tourFund($partner)];
+            return [...$this->vehiclePrizes($partner, $milestones, $rulesOf), ...$this->tourFund($partner)];
         }
+        $rank = array_key_exists('rank', $context) ? $context['rank'] : DealerRank::query()->where('user_id', $partner->id)->first();
+        $holdsRank = $rank !== null && in_array($rank->current_rank, CommissionSettlement::LeadershipRanks, true);
 
-        return [...$this->rankPrizes($partner, $rules), ...$this->vehiclePrizes($partner, $rules), ...$this->royaltyNote($partner, $rules)];
+        return [
+            ...($holdsRank ? $this->rankPrizes($partner, $rank, $rulesOf) : []),
+            ...$this->vehiclePrizes($partner, $milestones, $rulesOf),
+            ...($holdsRank ? $this->royaltyNote($partner, $rulesOf) : []),
+        ];
     }
 
     /**
      * The rank royalty is a share of the month's pool among everyone who qualifies, so its amount exists only when the month closes.
      * A dealer who is paid as a rank holder is told so, with no figure.
      *
-     * @param  array<string, array<string, mixed>>  $rules
+     * @param  Closure(): array<string, array<string, mixed>>  $rules
      * @return list<array{id: string, head: string, what: string, amount: ?string, reason: string, state: string, since: ?string}>
      */
-    private function royaltyNote(User $partner, array $rules): array
+    private function royaltyNote(User $partner, Closure $rules): array
     {
-        $paidAs = (string) ($this->qualification->paidAs((int) $partner->id, null, $rules)['paid_as_rank'] ?? 'dealer');
+        $paidAs = (string) ($this->qualification->paidAs((int) $partner->id, null, $rules())['paid_as_rank'] ?? 'dealer');
         if (! in_array($paidAs, CommissionSettlement::LeadershipRanks, true)) {
             return [];
         }
@@ -78,15 +93,12 @@ final class PartnerRewardsWaiting
      * One line for each reached rank whose one-time prize has not been paid. The engine pays them lowest first, as soon as the
      * rank is reached when the office has switched on automatic approval, otherwise when the office pays it.
      *
-     * @param  array<string, array<string, mixed>>  $rules
+     * @param  Closure(): array<string, array<string, mixed>>  $rulesOf
      * @return list<array{id: string, head: string, what: string, amount: string, reason: string, state: string, since: ?string}>
      */
-    private function rankPrizes(User $partner, array $rules): array
+    private function rankPrizes(User $partner, DealerRank $rank, Closure $rulesOf): array
     {
-        $rank = DealerRank::where('user_id', $partner->id)->first();
-        if (! $rank || ! in_array($rank->current_rank, CommissionSettlement::LeadershipRanks, true)) {
-            return [];
-        }
+        $rules = $rulesOf();
         $paid = DB::table('rank_incentive_awards')->where('user_id', $partner->id)->pluck('rank')->all();
         // A prize paid before the award record existed is only a flag; the engine refuses a second one, so none is waiting.
         if ($rank->one_time_incentive_paid && $paid === []) {
@@ -122,19 +134,19 @@ final class PartnerRewardsWaiting
     /**
      * A bike or car prize whose target is met: waiting for the office to ask for it, or for the request to be approved.
      *
-     * @param  array<string, array<string, mixed>>  $rules
+     * @param  Collection<string, RewardMilestoneProgress>  $milestones  the partner's bike and car rows by type
+     * @param  Closure(): array<string, array<string, mixed>>  $rulesOf
      * @return list<array{id: string, head: string, what: string, amount: string, reason: string, state: string, since: ?string}>
      */
-    private function vehiclePrizes(User $partner, array $rules): array
+    private function vehiclePrizes(User $partner, Collection $milestones, Closure $rulesOf): array
     {
         $lines = [];
-        $reached = DB::table('reward_milestone_progress')->where('user_id', $partner->id)->where('achieved', true)
-            ->whereIn('milestone_type', ['bike', 'car'])->pluck('achieved_at', 'milestone_type');
+        $reached = $milestones->filter(fn (RewardMilestoneProgress $row): bool => (bool) $row->achieved)->map(fn (RewardMilestoneProgress $row) => $row->achieved_at);
         foreach (['bike', 'car'] as $program) {
             if (! $reached->has($program)) {
                 continue;
             }
-            $amount = FundCatalog::centsOf((string) ($rules['car_bike_incentive']['parameters'][$program.'_award_amount'] ?? '0'));
+            $amount = FundCatalog::centsOf((string) ($rulesOf()['car_bike_incentive']['parameters'][$program.'_award_amount'] ?? '0'));
             if ($amount <= 0) {
                 continue;
             }
@@ -150,7 +162,7 @@ final class PartnerRewardsWaiting
                 'amount' => FundCatalog::decimalOf($amount),
                 'reason' => $award === 'requested' ? 'prize_review' : 'prize_office',
                 'state' => 'pending',
-                'since' => $reached->get($program) !== null ? (string) $reached->get($program) : null,
+                'since' => $reached->get($program)?->toIso8601String(),
             ];
         }
 

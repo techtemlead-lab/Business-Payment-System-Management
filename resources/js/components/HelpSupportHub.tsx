@@ -510,9 +510,10 @@ export default function HelpSupportHub({ data }: { data: Row }) {
             {/* My Tickets List Panel */}
             <section className="panel">
                 <div className="panel-heading"><h2>{translate('portal', 'my_support_tickets')}</h2></div>
-                {requests.length ? (
-                    <Table
+                <Table
                         rows={requests}
+                        empty={translate('portal', 'support_empty_title')}
+                        emptyBody={translate('portal', 'support_empty_body')}
                         columns={[
                             { key: 'created_at', title: translate('portal', 'col_date'), render: (row) => date(row.created_at) },
                             { key: 'category', title: translate('portal', 'support_category'), render: (row) => row.topic_label ?? translate('portal', `support_cat_${row.category}`) },
@@ -520,9 +521,6 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                             { key: 'status', title: translate('portal', 'col_status'), render: (row) => <Badge status={row.status} /> },
                         ]}
                     />
-                ) : (
-                    <Empty title={translate('portal', 'support_empty_title')} body={translate('portal', 'support_empty_body')} />
-                )}
                 <p className="muted ops-mt-3">{translate('portal', 'support_signed_in_as', { name: auth.user.name })}</p>
             </section>
         </div>

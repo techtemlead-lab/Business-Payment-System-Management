@@ -91,6 +91,9 @@ return [
     'line_status_held' => 'Held',
     'line_status_moved' => 'Moved to profit',
     'line_status_returned' => 'Taken back',
+    'line_status_preview' => 'Preview',
+    'preview_reason_maturing' => 'Will wait for the cooling-off days before it can be used',
+    'preview_reason_held' => 'Will be held: the partner is not active or has not met the monthly target',
 
     'posting_waiting' => 'Commission is shared out once this is delivered',
     'posting_waiting_rest' => 'The delivered goods are counted. Commission is shared out once the rest arrives.',

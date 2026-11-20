@@ -6,7 +6,10 @@ use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionSettlement;
 use App\Domain\Finance\FundCatalog;
 use App\Domain\Finance\ReserveService;
+use App\Models\DealerRank;
+use App\Models\RewardMilestoneProgress;
 use App\Models\User;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -31,6 +34,7 @@ final class PartnerPendingMoney
     public function __construct(private CommissionQualification $qualification, private CommissionSettlement $settlement, private PartnerRewardsWaiting $rewards) {}
 
     /**
+     * @param  array{rules?: array<string, array<string, mixed>>, rank?: ?DealerRank, milestones?: Collection<string, RewardMilestoneProgress>}  $rewardContext  what the caller already holds, so the prize lines read nothing twice
      * @return array{
      *   total: string,
      *   count: int,
@@ -41,7 +45,7 @@ final class PartnerPendingMoney
      *   rewards: list<array{id: string, head: string, what: string, amount: ?string, reason: string, state: string, since: ?string}>
      * }
      */
-    public function for(User $partner, int $limit = 20, bool $withPaid = true): array
+    public function for(User $partner, int $limit = 20, bool $withPaid = true, array $rewardContext = []): array
     {
         $area = $this->areaLines($partner, $limit);
         $awaiting = [];
@@ -66,7 +70,7 @@ final class PartnerPendingMoney
             'lines' => $lines,
             'paid' => $withPaid ? $this->paidAreaLines($partner) : [],
             // Earned prizes not in the wallet yet (rank prize, bike, car). Kept apart: they are not part of the pending total.
-            'rewards' => $this->rewards->for($partner),
+            'rewards' => $this->rewards->for($partner, $rewardContext),
         ];
     }
 

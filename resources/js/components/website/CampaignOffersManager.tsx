@@ -766,11 +766,7 @@ export function CampaignOffersManager({
                                         </div>
 
                                         {/* Table of Bundled Items */}
-                                        {bundleItems.length === 0 ? (
-                                            <div className="ed-empty is-sm">
-                                                {translate('portal', 'sce_package_empty')}
-                                            </div>
-                                        ) : (
+                                        {(
                                             <div className="ed-table-wrap">
                                                 <table className="ed-table">
                                                     <thead>
@@ -788,6 +784,9 @@ export function CampaignOffersManager({
                                                         </tr>
                                                     </thead>
                                                     <tbody>
+                                                        {bundleItems.length === 0 && (
+                                                            <tr><td colSpan={bundleMode === 'itemized' ? 5 : 3} className="ed-empty is-sm">{translate('portal', 'sce_package_empty')}</td></tr>
+                                                        )}
                                                         {bundleItems.map((it, itemIdx) => (
                                                             <tr key={itemIdx}>
                                                                 <td className="ed-meta">{itemIdx + 1}</td>
