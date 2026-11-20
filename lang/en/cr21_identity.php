@@ -29,7 +29,7 @@ return [
     'label_rank' => 'Rank',
     'label_total_income' => 'Total income',
     'label_balance' => 'Current balance',
-    'label_month_purchase' => 'This month\'s purchase',
+    'label_month_purchase' => 'Bought this month',
     'label_target_left' => 'Left to reach target',
     'target_done' => 'Target reached',
     'target_none' => 'No target yet',
@@ -52,7 +52,7 @@ return [
     'f_extra_contact' => 'Extra contact',
     'f_email' => 'Email',
     'not_given' => 'Not given',
-    'locked_note' => 'The code and area of responsibility can be changed by the office only.',
+    'locked_note' => 'Only the office can change the code and area of responsibility.',
 
     'sign_out' => 'Sign out',
     'sign_out_ask' => 'Sign out now?',
