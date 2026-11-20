@@ -59,7 +59,7 @@ return [
     'file_choose' => 'ফাইল বেছে নিন',
     'file_none' => 'কোনো ফাইল বাছা হয়নি',
     'file_change' => 'অন্য ফাইল বেছে নিন',
-    'all_targets' => 'সব লক্ষ্য ও র‍্যাঙ্ক দেখুন',
+    'all_targets' => 'সব টার্গেট ও র‍্যাঙ্ক দেখুন',
     'agreement_subdealer' => 'সাব-ডিলার চুক্তি',
     'agreement_hint_subdealer' => 'আপনার সাব-ডিলার চুক্তি পড়ুন ও মেনে নিন।',
     'search_only_in' => 'এখন শুধু “:category” পণ্যের মধ্যে খোঁজা হচ্ছে।',

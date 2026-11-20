@@ -79,7 +79,7 @@ class CompanyAccessTest extends TestCase
             return str_starts_with($mail->actionUrl, PortalHost::url('manage', '/reset-password/'));
         });
         $token = Password::createToken($staff);
-        $this->get('/company/reset-password/'.$token.'?email='.urlencode($staff->email))->assertOk()->assertSee('Confirm Password');
+        $this->get('/company/reset-password/'.$token.'?email='.urlencode($staff->email))->assertOk()->assertSee('Confirm password');
         $this->post('/company/reset-password', ['token' => $token, 'email' => $staff->email, 'password' => 'ReplacementPassword123', 'password_confirmation' => 'ReplacementPassword123'])->assertRedirect('/login');
     }
 

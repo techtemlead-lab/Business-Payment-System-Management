@@ -89,7 +89,7 @@ class PartnerRegistrationFormTest extends TestCase
         $this->assertSame('Md. Rafiqul Islam', $dealer[0]['name']);
 
         $sub = $form->signatures($this->partner('sub_dealer'), 'bn');
-        $this->assertSame('সাব-ডিলারের স্বাক্ষর', $sub[0]['title']);
+        $this->assertSame('সাব-ডিলারের সই', $sub[0]['title']);
     }
 
     public function test_the_other_three_titles_are_written_by_the_company_and_blank_until_then(): void

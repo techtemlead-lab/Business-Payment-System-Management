@@ -9,7 +9,7 @@ return [
     'order' => 'অর্ডার করুন',
     'where_from' => 'যেখান থেকে এসেছে',
     'running_total' => 'মোট জমা',
-    'ordered_mrp' => 'এমআরপিতে মোট অর্ডার',
+    'ordered_mrp' => 'MRP দামে মোট অর্ডার',
     'cash_given' => 'ক্যাশ দিয়েছেন',
     'withdrawn' => 'তুলেছেন',
     'spent' => 'অর্ডারে খরচ',
@@ -32,7 +32,7 @@ return [
     'requests_heading' => 'আপনার টাকা তোলার আবেদন',
     'request_status_requested' => 'অফিসের অপেক্ষায়',
     'request_status_approved' => 'অনুমোদন হয়েছে, টাকা এখনো দেওয়া হয়নি',
-    'request_status_rejected' => 'নামঞ্জুর',
+    'request_status_rejected' => 'বাতিল হয়েছে',
 
     'not_earned_heading' => 'অর্জিত না হওয়া এরিয়া কমিশন',
     'not_earned_reason' => 'এই মাসে আপনার এরিয়া টার্গেট পূরণ হয়নি, তাই এই টাকা কোম্পানির লাভের ফান্ডে গেছে। এটি পরের মাসে যাবে না।',

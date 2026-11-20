@@ -19,7 +19,7 @@ return [
     'arm_owner_only' => 'Only the owner can change this.',
 
     // MA-26: smaller money cases.
-    'notice_debt_recovered_title' => 'Money you owed from a refund was taken',
+    'notice_debt_recovered_title' => 'We took back money you owed from a refund',
     'notice_debt_recovered_body' => 'You owed the company money from an earlier refund. ৳:amount of the money coming to you paid that off; the other ৳:credited was added to your money.',
 
     // MA-01 and MA-23: month close status on the Settlements page.
@@ -34,8 +34,8 @@ return [
     'mc_none_waiting' => 'No month is waiting.',
     'mc_kind_salary' => 'Monthly salary',
     'mc_kind_royalty' => 'Rank royalty',
-    'mc_kind_area_quota' => 'Area target month end',
-    'mc_kind_additional_rank' => 'Sub-dealer rank fund month end',
+    'mc_kind_area_quota' => 'Area target, month end',
+    'mc_kind_additional_rank' => 'Sub-dealer rank fund, month end',
     'mc_month_label' => 'Month',
     'flash_already_closed' => ':kind for :month was already closed on :date. Nothing was left to pay.',
 

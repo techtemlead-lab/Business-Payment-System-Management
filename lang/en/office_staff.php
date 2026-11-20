@@ -59,7 +59,7 @@ return [
     'salary_view_register' => 'Salary list',
     'salary_view_agreements' => 'Salary agreements',
     'add_salary_agreement' => 'Add salary agreement',
-    'prepare_month_salary' => 'Prepare month\'s salary',
+    'prepare_month_salary' => 'Prepare monthly salary',
     'salary_empty' => 'No salary entries yet',
     'agreements_empty' => 'No salary agreements yet',
     'col_month' => 'Month',

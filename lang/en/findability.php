@@ -6,7 +6,7 @@
  */
 return [
     // The search box.
-    'search_empty' => 'No match. To find an order or a partner, type in the “Find order / partner” box above.',
+    'search_empty' => 'Nothing found. To find an order or a partner, type in the “Find order / partner” box above.',
     'search_actions_title' => 'Do it directly',
     'place_wallet' => 'Wallet',
     'place_customers' => 'My team & customers → Customers',
