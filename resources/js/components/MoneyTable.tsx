@@ -409,11 +409,10 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
             {dateRefusal && <FormErrors errors={{ money_table_range: dateRefusal }} className="error mt-error" />}
             {selecting && bulk && rows.length > 0 && <BulkBar kind={bulk.kind} pageIds={rows.map(rowId)} picked={picked} onPick={setPicked} />}
 
-            {rows.length === 0 ? (
-                <p className="mt-empty">{empty}</p>
-            ) : (
+            {/* With no rows the column names still show, with the "nothing here" line under them. */}
+            {(
                 <>
-                    <div ref={scrollBox} className={`mt-table-wrap${isOverflowing ? ' is-overflowing' : ''}`}>
+                    <div ref={scrollBox} className={`mt-table-wrap${isOverflowing ? ' is-overflowing' : ''}${rows.length === 0 ? ' is-empty' : ''}`}>
                         <table className="mt-table">
                             <thead>
                                 <tr>
@@ -437,6 +436,9 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
                                 </tr>
                             </thead>
                             <tbody>
+                                {rows.length === 0 && (
+                                    <tr className="mt-empty-row"><td className="mt-empty-cell" colSpan={columns.length + (selecting ? 1 : 0) + (hasOpenColumn ? 1 : 0)}>{empty}</td></tr>
+                                )}
                                 {rows.map((row, index) => {
                                     const href = onRowOpen ? null : rowHref?.(row) ?? null;
                                     const open = rowOpener(row, href);
@@ -452,7 +454,7 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
                                     );
                                 })}
                             </tbody>
-                            <tfoot>
+                            {rows.length > 0 && <tfoot>
                                 <tr>
                                     {selecting && <td />}
                                     {columns.map((column, index) => (
@@ -462,11 +464,11 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
                                     ))}
                                     {hasOpenColumn && <td className="table-pin-action" />}
                                 </tr>
-                            </tfoot>
+                            </tfoot>}
                         </table>
                     </div>
 
-                    <ul className="mt-cards">
+                    {rows.length > 0 && <ul className="mt-cards">
                         {rows.map((row, index) => {
                             const href = onRowOpen ? null : rowHref?.(row) ?? null;
                             const open = rowOpener(row, href);
@@ -492,9 +494,9 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
                                 </div>
                             ))}
                         </li>
-                    </ul>
+                    </ul>}
 
-                    <Pagination page={data.rows} />
+                    {rows.length > 0 && <Pagination page={data.rows} />}
                 </>
             )}
 

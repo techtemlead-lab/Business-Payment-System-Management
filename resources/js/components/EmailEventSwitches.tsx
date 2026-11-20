@@ -53,13 +53,16 @@ export default function EmailEventSwitches({ panel, canEdit }: { panel: EmailEve
 
             <section className="set-block">
                 <h3>{text.failures_title}</h3>
-                {panel.failures.length === 0 ? <p className="set-line">{text.failures_none}</p> : (
+                {(
                     <div className="table-wrap">
                         <table className="cleanup-table">
                             <thead>
                                 <tr><th>{text.failures_when}</th><th>{text.failures_event}</th><th>{text.failures_to}</th><th>{text.failures_reason}</th></tr>
                             </thead>
                             <tbody>
+                                {panel.failures.length === 0 && (
+                                    <tr><td colSpan={4} className="set-line">{text.failures_none}</td></tr>
+                                )}
                                 {panel.failures.map(failure => (
                                     <tr key={failure.id}>
                                         <td>{failure.created_at}</td>

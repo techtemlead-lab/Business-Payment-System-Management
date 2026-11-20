@@ -15,10 +15,6 @@ export type AccessLogRow = {
 
 /** Who opened a patient record, newest first. Only the patient's own prescriber gets these rows. */
 export function PatientAccessLogList({ rows, showPatient, translate }: { rows: AccessLogRow[]; showPatient: boolean; translate: Translate }) {
-    if (rows.length === 0) {
-        return <Empty title={translate('clinic_records', 'access_log_empty')} />;
-    }
-
     return (
         <div className="table-wrap">
             <table className="rx-table">
@@ -31,6 +27,9 @@ export function PatientAccessLogList({ rows, showPatient, translate }: { rows: A
                     </tr>
                 </thead>
                 <tbody>
+                    {rows.length === 0 && (
+                        <tr><td colSpan={showPatient ? 4 : 3}><Empty title={translate('clinic_records', 'access_log_empty')} /></td></tr>
+                    )}
                     {rows.map((row) => (
                         <tr key={row.id}>
                             <td>{row.at ? dateTime(row.at) : ''}</td>

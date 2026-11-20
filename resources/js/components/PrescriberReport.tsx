@@ -61,9 +61,7 @@ export function PrescriberReportTab({ report, translate }: { report: PrescriberR
                     </>
                 )}
             </div>
-            {report.rows.length === 0 ? (
-                <Empty title={translate('prescription', 'mr_empty')} />
-            ) : (
+            {(
                 <div className="table-wrap">
                     <table className="rx-table">
                         <thead><tr>
@@ -81,6 +79,9 @@ export function PrescriberReportTab({ report, translate }: { report: PrescriberR
                             )}
                         </tr></thead>
                         <tbody>
+                            {report.rows.length === 0 && (
+                                <tr><td colSpan={clinic ? 6 : 4}><Empty title={translate('prescription', 'mr_empty')} /></td></tr>
+                            )}
                             {report.rows.map((row) => (
                                 <tr key={row.period}>
                                     <td>{row.period}</td>

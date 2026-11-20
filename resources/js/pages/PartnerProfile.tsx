@@ -163,12 +163,13 @@ export default function PartnerProfile({ sheet, month, targets, canSetTargets, c
                     <h2>{t('sec_money')}</h2>
                     <dl className="office-facts"><div><dt>{t('f_wallet')}</dt><dd>{money(sheet.money?.available ?? 0)}</dd></div></dl>
                     <h3>{t('payouts_title')}</h3>
-                    {(sheet.money?.payouts ?? []).length === 0 ? <p className="muted">{t('no_payouts')}</p> : (
+                    {(
                         <div className="table-scroll">
                             <table className="table">
                                 <thead><tr><th>{t('col_receipt')}</th><th>{t('col_method')}</th><th>{t('col_account')}</th><th>{t('col_paid_on')}</th><th>{t('col_net')}</th></tr></thead>
                                 <tbody>
-                                    {(sheet.money.payouts as Row[]).map((row) => (
+                                    {(sheet.money?.payouts ?? []).length === 0 && <tr><td colSpan={5} className="muted">{t('no_payouts')}</td></tr>}
+                                    {((sheet.money?.payouts ?? []) as Row[]).map((row) => (
                                         <tr key={row.number}>
                                             <td>{row.number}</td>
                                             <td>{t(`method_${row.method}`)}{row.bank_name ? ` · ${row.bank_name}` : ''}</td>

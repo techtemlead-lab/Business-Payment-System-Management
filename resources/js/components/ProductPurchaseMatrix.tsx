@@ -803,7 +803,7 @@ export default function ProductPurchaseMatrix({
                     )}
                 </div>
 
-                {cart.length > 0 ? (
+                {(
                     <div className="table-responsive">
                         <table className="ppm-cart">
                             <thead>
@@ -819,6 +819,17 @@ export default function ProductPurchaseMatrix({
                                 </tr>
                             </thead>
                             <tbody>
+                                {cart.length === 0 && (
+                                    <tr>
+                                        <td colSpan={8}>
+                                            <div className="hub-empty ppm-empty">
+                                                <ShoppingBag size={32} />
+                                                <p className="ops-semibold">{translate('portal', 'ppm_cart_empty_title')}</p>
+                                                <small className="ops-muted">{translate('portal', 'ppm_cart_empty_body')}</small>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )}
                                 {cart.map((item, index) => {
                                     const p = item.product;
                                     const itemMrp = Number(p.mrp || 0);
@@ -901,12 +912,6 @@ export default function ProductPurchaseMatrix({
                                 })}
                             </tbody>
                         </table>
-                    </div>
-                ) : (
-                    <div className="hub-empty ppm-empty">
-                        <ShoppingBag size={32} />
-                        <p className="ops-semibold">{translate('portal', 'ppm_cart_empty_title')}</p>
-                        <small className="ops-muted">{translate('portal', 'ppm_cart_empty_body')}</small>
                     </div>
                 )}
 

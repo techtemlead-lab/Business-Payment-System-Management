@@ -35,7 +35,7 @@ final class CommissionPosting
     ) {}
 
     /** @return array<string, mixed> */
-    public function capture(Order $order, User $buyer, string $event = 'submission', array $replacements = [], ?User $actor = null): array
+    public function capture(Order $order, User $buyer, string $event = 'submission', array $replacements = [], ?User $actor = null, bool $persist = true): array
     {
         if (($order->commission_policy_snapshot['capture_event'] ?? null) === 'approval') {
             return $order->commission_policy_snapshot;
@@ -105,9 +105,41 @@ final class CommissionPosting
             $snapshot['funding_decisions'] = $preview['funding_decisions'];
             $snapshot['approved_company_share'] = Money::decimal($preview['company']);
         }
-        $order->update(['commission_policy_snapshot' => $snapshot]);
+        if ($persist) {
+            $order->update(['commission_policy_snapshot' => $snapshot]);
+        }
 
         return $snapshot;
+    }
+
+    /**
+     * What this order will pay out when it posts, worked out with the same rules and rounding as the
+     * posting itself and from the rules the order was captured with. It writes nothing: no snapshot,
+     * no row, no wallet. Null when the order never posts (opening balance, no price, not a dealer or
+     * sub-dealer) or its figures do not reconcile.
+     *
+     * @return array{rows: list<array<string, mixed>>, cash: int, mrp: int, company: int, allocated: int, snapshot: array<string, mixed>, captured: bool}|null
+     */
+    public function preview(Order $order): ?array
+    {
+        $cash = Money::cents((string) $order->total);
+        if ($order->is_opening_balance || $cash === 0) {
+            return null;
+        }
+        $buyer = User::query()->select('users.*')->whereKey($order->user_id)->first();
+        if (! $buyer instanceof User || ! in_array($buyer->role, ['dealer', 'sub_dealer'], true)) {
+            return null;
+        }
+        try {
+            $saved = $order->getAttribute('commission_policy_snapshot');
+            $captured = is_array($saved) && isset($saved['rules'], $saved['account_type']);
+            $snapshot = $captured ? $saved : $this->capture($order, $buyer, 'submission', [], null, false);
+            $result = $this->calculate($order, $buyer, $snapshot);
+        } catch (ValidationException) {
+            return null;
+        }
+
+        return ['rows' => $result['rows'], 'cash' => $cash, 'mrp' => $result['mrp'], 'company' => $result['company'], 'allocated' => $result['allocated'], 'snapshot' => $snapshot, 'captured' => $captured];
     }
 
     /** @return list<array<string, mixed>> */

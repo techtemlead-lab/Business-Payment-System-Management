@@ -2,6 +2,7 @@
 
 namespace App\Domain\Orders;
 
+use App\Domain\Accounts\PartnerAppointment;
 use App\Domain\Finance\PendingPaymentChecks;
 use App\Domain\Inventory\BranchScope;
 use App\Domain\Staff\LeadershipAccess;
@@ -97,27 +98,44 @@ final class OfficeDashboardTabs
             app(OrderListFilter::class)->apply($orders, Request::create('/', 'GET', ['q' => $search]), 'orders', true);
         }
         $total = (clone $orders)->count();
-        $rows = $orders->with('user:id,name,dealer_code')->latest('created_at')->forPage($page, self::PerPage)
-            ->get(['id', 'number', 'user_id', 'status', 'total', 'paid', 'created_at'])
-            ->map(function (Order $order): array {
-                $closed = in_array($order->status, ['rejected', 'cancelled'], true);
-                $paidCents = Money::cents((string) $order->paid);
-
-                return [
-                    'href' => '/orders/'.$order->id,
-                    'number' => $order->number,
-                    'partner' => trim(data_get($order, 'user.name').' '.(data_get($order, 'user.dealer_code') ? '('.data_get($order, 'user.dealer_code').')' : '')),
-                    'total' => (string) $order->total,
-                    'payment' => $closed ? 'none' : ($paidCents >= Money::cents((string) $order->total) ? 'paid' : ($paidCents > 0 ? 'part' : 'unpaid')),
-                    'status' => $order->status,
-                    'created_at' => $order->created_at?->toIso8601String(),
-                ];
-            })->all();
+        $found = $orders->with(['user:id,name,dealer_code,role,phone,division,district,profile', 'lines:id,order_id,quantity'])->latest('created_at')->latest('id')->forPage($page, self::PerPage)
+            ->select('orders.*')->selectRaw(OrderListFigures::MrpSql.' AS mrp_total')
+            ->get();
+        // The address is written before attachTypes hides the saved profile; both read no further rows.
+        $addresses = $found->mapWithKeys(fn (Order $order): array => [$order->id => OrderListFigures::addressLine($order->user)]);
+        app(PartnerAppointment::class)->attachTypes($found->map(fn (Order $order) => $order->user));
+        $rows = $found->map(fn (Order $order): array => $this->orderRow($order, $addresses[$order->id] ?? null))->all();
 
         return [[
-            ['key' => 'number', 'type' => 'text'], ['key' => 'partner', 'type' => 'text'], ['key' => 'total', 'type' => 'money'],
-            ['key' => 'payment', 'type' => 'payment'], ['key' => 'status', 'type' => 'status'], ['key' => 'created_at', 'type' => 'date'],
+            ['key' => 'number', 'type' => 'text'], ['key' => 'created_at', 'type' => 'date'], ['key' => 'partner', 'type' => 'text'], ['key' => 'code', 'type' => 'text'],
+            ['key' => 'partner_type', 'type' => 'partner_type'], ['key' => 'phone', 'type' => 'text'], ['key' => 'address', 'type' => 'text'], ['key' => 'items', 'type' => 'count'],
+            ['key' => 'mrp', 'type' => 'money'], ['key' => 'total', 'type' => 'money'], ['key' => 'paid', 'type' => 'money'], ['key' => 'to_pay', 'type' => 'money'],
+            ['key' => 'status', 'type' => 'status'],
         ], $total, $rows, '/orders'];
+    }
+
+    /** @return array<string, mixed> */
+    private function orderRow(Order $order, ?string $address): array
+    {
+        $buyer = $order->user;
+        $type = $buyer?->getAttribute('partner_type');
+
+        return [
+            'href' => '/orders/'.$order->id,
+            'number' => $order->number,
+            'created_at' => $order->created_at?->toIso8601String(),
+            'partner' => $buyer?->getAttribute('name'),
+            'code' => $buyer?->getAttribute('dealer_code'),
+            'partner_type' => $buyer ? ['title' => data_get($type, 'title'), 'place' => data_get($type, 'place'), 'role' => $buyer->getAttribute('role')] : null,
+            'phone' => $buyer?->getAttribute('phone'),
+            'address' => $address,
+            'items' => (int) $order->lines->sum('quantity'),
+            'mrp' => Money::decimal(Money::cents((string) $order->getAttribute('mrp_total'))),
+            'total' => (string) $order->total,
+            'paid' => (string) $order->paid,
+            'to_pay' => OrderListFigures::toPay($order),
+            'status' => $order->status,
+        ];
     }
 
     /** @return array{list<array{key: string, type: string}>, int, list<array<string, mixed>>, string} */

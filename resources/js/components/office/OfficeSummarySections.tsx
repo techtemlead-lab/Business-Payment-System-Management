@@ -174,11 +174,12 @@ export function EventsSection({ sections }: Props) {
 
     return (
         <Box id="events" title={translate('cr18', 'events_title')} href="/treasury/events" ready={data !== undefined} wide>
-            {rows.length === 0 ? <p className="muted">{translate('cr18', 'nothing_yet')}</p> : (
+            {(
                 <div className="odt-scroll">
                     <table className="odt-table">
                         <thead><tr><th scope="col">{translate('cr18', 'col_when')}</th><th scope="col">{translate('cr18', 'col_what')}</th><th scope="col">{translate('cr18', 'col_who')}</th><th scope="col" className="is-num">{translate('cr18', 'col_amount')}</th></tr></thead>
                         <tbody>
+                            {rows.length === 0 && <tr><td colSpan={4} className="muted">{translate('cr18', 'nothing_yet')}</td></tr>}
                             {rows.map((row) => (
                                 <tr key={row.id}>
                                     <td data-label={translate('cr18', 'col_when')}>{dateTime(row.occurred_at)}</td>

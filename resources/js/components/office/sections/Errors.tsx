@@ -104,9 +104,7 @@ export default function Errors({ data }: { data: ErrorsData }) {
                 <button type="submit" className="button">{t('apply')}</button>
             </form>
 
-            {data.rows.data.length === 0 ? (
-                <p className="set-line">{data.filters.q || data.filters.status !== 'open' ? t('empty_filtered') : t('empty_open')}</p>
-            ) : (
+            {(
                 <section className="panel table-panel">
                     <div className="table-wrap">
                         <table>
@@ -121,6 +119,9 @@ export default function Errors({ data }: { data: ErrorsData }) {
                                 </tr>
                             </thead>
                             <tbody>
+                                {data.rows.data.length === 0 && (
+                                    <tr><td colSpan={6} className="set-line">{data.filters.q || data.filters.status !== 'open' ? t('empty_filtered') : t('empty_open')}</td></tr>
+                                )}
                                 {data.rows.data.map((row) => (
                                     <tr key={row.id}>
                                         <td><b>{row.exception_class.split('\\').pop()}</b><small className="cell-sub">{row.message}</small></td>

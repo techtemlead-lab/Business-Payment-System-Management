@@ -12,6 +12,8 @@ use App\Domain\Accounts\PartnerJoinLink;
 use App\Domain\Accounts\PartnerJoinPoster;
 use App\Domain\Audience\SiteVisitReport;
 use App\Domain\Finance\FinanceSettings;
+use App\Domain\Finance\OrderMoneyReport;
+use App\Domain\Finance\TreasuryAccess;
 use App\Domain\Geography\ManagementReferral;
 use App\Domain\Identity\BdrisLookup;
 use App\Domain\Inventory\BranchOperations;
@@ -400,6 +402,7 @@ class WorkspaceController extends Controller
             'handledBy' => app(OrderWatchers::class)->seen($order, $u),
             'backOrder' => app(BackOrders::class)->forOrder($order, $u),
             'stockByBranch' => $u->staff() ? app(BackOrders::class)->stockByBranch($order) : [],
+            'moneyBreakdown' => app(OrderMoneyReport::class)->breakdown($order, $u, TreasuryAccess::showsOwnerFunds($u, (string) PortalHost::current($r))),
             'outstanding' => $order->outstanding(),
             'paymentPrompt' => app(OrderPaymentPrompt::class)->for($order, $claims),
             'fullPaymentRequired' => app(FinanceSettings::class)->fullPaymentWhenOrdering()['enabled'],

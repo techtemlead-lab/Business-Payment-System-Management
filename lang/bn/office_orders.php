@@ -35,4 +35,6 @@ return [
     'view_failed' => 'বুকিং হয়নি',
     'view_decisions' => 'সিদ্ধান্ত বাকি',
     'stage_with_courier' => 'কুরিয়ারে আছে',
+    'col_address' => 'ঠিকানা',
+    'col_mrp' => 'MRP',
 ];

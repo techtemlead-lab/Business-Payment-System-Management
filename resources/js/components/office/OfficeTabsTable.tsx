@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Badge, channelLabel, date, label, money, number, type Row } from '../UI';
 import { useT } from '../../shared/i18n/t';
 
-type Column = { key: string; type: 'text' | 'money' | 'date' | 'status' | 'payment' | 'role' | 'channel' | 'count' };
+type Column = { key: string; type: 'text' | 'money' | 'date' | 'status' | 'payment' | 'role' | 'channel' | 'count' | 'partner_type' };
 type TabData = {
     tab: string;
     columns: Column[];
@@ -70,6 +70,7 @@ export default function OfficeTabsTable({ tabs }: { tabs: string[] }) {
             case 'count': return number(value);
             case 'status': return <Badge status={String(value)} />;
             case 'role': return label(String(value), translate);
+            case 'partner_type': return <>{value.title ?? (value.role ? label(String(value.role), translate) : '—')}{value.place && <small className="cell-sub">{value.place}</small>}</>;
             case 'channel': return channelLabel(value, translate);
             case 'payment': return value === 'none' ? <span className="muted">—</span> : <span className={`office-pay is-${value}`}>{translate('cr18', `pay_${value}`)}</span>;
             default: return String(value);
@@ -125,31 +126,31 @@ export default function OfficeTabsTable({ tabs }: { tabs: string[] }) {
                 )}
                 {data && (
                     <div className={`odt-body${busy ? ' is-busy' : ''}`}>
-                        {data.rows.length === 0 ? (
-                            <p className="muted odt-empty">{translate('cr18', data.search ? 'empty_search' : 'empty')}</p>
-                        ) : (
-                            <div className="odt-scroll">
-                                <table className="odt-table">
-                                    <thead>
-                                        <tr>{data.columns.map((column) => <th key={column.key} scope="col" className={column.type === 'money' || column.type === 'count' ? 'is-num' : undefined}>{heading(data.tab, column.key)}</th>)}</tr>
-                                    </thead>
-                                    <tbody>
-                                        {data.rows.map((row, index) => (
-                                            <tr key={`${row.href ?? ''}-${index}`}>
-                                                {data.columns.map((column, position) => {
-                                                    const text = heading(data.tab, column.key);
-                                                    return (
-                                                        <td key={column.key} data-label={text} className={column.type === 'money' || column.type === 'count' ? 'is-num' : undefined}>
-                                                            {position === 0 && row.href ? <Link href={`${base}${row.href}`} className="text-link">{cell(column, row)}</Link> : cell(column, row)}
-                                                        </td>
-                                                    );
-                                                })}
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
+                        <div className="odt-scroll">
+                            <table className="odt-table">
+                                <caption className="sr-only">{translate('cr18', `tab_${data.tab}`)}</caption>
+                                <thead>
+                                    <tr>{data.columns.map((column) => <th key={column.key} scope="col" className={column.type === 'money' || column.type === 'count' ? 'is-num' : undefined}>{heading(data.tab, column.key)}</th>)}</tr>
+                                </thead>
+                                <tbody>
+                                    {data.rows.length === 0 && (
+                                        <tr className="odt-empty-row"><td colSpan={data.columns.length} className="muted odt-empty">{translate('cr18', data.search ? 'empty_search' : 'empty')}</td></tr>
+                                    )}
+                                    {data.rows.map((row, index) => (
+                                        <tr key={`${row.href ?? ''}-${index}`}>
+                                            {data.columns.map((column, position) => {
+                                                const text = heading(data.tab, column.key);
+                                                return (
+                                                    <td key={column.key} data-label={text} className={column.type === 'money' || column.type === 'count' ? 'is-num' : undefined}>
+                                                        {position === 0 && row.href ? <Link href={`${base}${row.href}`} className="text-link">{cell(column, row)}</Link> : cell(column, row)}
+                                                    </td>
+                                                );
+                                            })}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                         <div className="odt-foot">
                             <span>{translate('cr18', 'total_count', { count: number(data.total) })}</span>
                             {data.last_page > 1 && (

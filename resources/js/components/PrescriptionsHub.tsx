@@ -493,7 +493,7 @@ function ReportTab({ report, translate }: { report: ReportData; translate: Trans
                 <div><small>{translate('prescription', 'report_manufacturer')}</small><b>{money(report.manufacturer_share)}</b></div>
                 <div><small>{translate('prescription', 'report_clinic')}</small><b className={Number(report.clinic_fund) < 0 ? 'is-bad' : undefined}>{money(report.clinic_fund)}</b></div>
             </div>
-            {report.by_method.length > 0 && (
+            {(
                 <div className="table-wrap">
                     <table className="rx-table">
                         <thead><tr>
@@ -502,6 +502,9 @@ function ReportTab({ report, translate }: { report: ReportData; translate: Trans
                             <th className="num">{translate('prescription', 'report_sales')}</th>
                         </tr></thead>
                         <tbody>
+                            {report.by_method.length === 0 && (
+                                <tr><td colSpan={3}><Empty title={translate('prescription', 'report_empty')} /></td></tr>
+                            )}
                             {report.by_method.map((row) => (
                                 <tr key={row.method}>
                                     <td>{translate('prescription', `payment_${row.method}`)}</td>
@@ -513,9 +516,7 @@ function ReportTab({ report, translate }: { report: ReportData; translate: Trans
                     </table>
                 </div>
             )}
-            {report.days.length === 0 ? (
-                <Empty title={translate('prescription', 'report_empty')} />
-            ) : (
+            {(
                 <div className="table-wrap">
                     <table className="rx-table">
                         <thead><tr>
@@ -526,6 +527,9 @@ function ReportTab({ report, translate }: { report: ReportData; translate: Trans
                             <th className="num">{translate('prescription', 'report_clinic')}</th>
                         </tr></thead>
                         <tbody>
+                            {report.days.length === 0 && (
+                                <tr><td colSpan={5}><Empty title={translate('prescription', 'report_empty')} /></td></tr>
+                            )}
                             {report.days.map((day) => (
                                 <tr key={day.day}>
                                     <td>{date(day.day)}</td>

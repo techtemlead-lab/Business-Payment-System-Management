@@ -91,6 +91,7 @@
 /* Up to a small laptop the pinned status and action columns would sit on top of the money column, so a row becomes a card as it does on a phone. */
 @media (max-width:1023px){
   .mt-table-wrap{display:none}
+  .mt-table-wrap.is-empty{display:block}
   .mt-cards{display:block;overflow:hidden;border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);background:var(--ds-surface)}
   .mt-card{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border-bottom:1px solid var(--ds-line-soft)}
   .mt-card:last-child{border-bottom:0}
@@ -116,3 +117,6 @@
   .mt-card-total-line{display:flex;justify-content:space-between;gap:12px;color:var(--ds-text-2);font-size:var(--ds-fs-sm)}
   .mt-card-total-line b{color:var(--ds-text);font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
 }
+
+/* With no rows the table keeps its column names and says so in one line under them, on a phone too. */
+.mt-table td.mt-empty-cell{padding:28px 16px;text-align:center;color:var(--ds-text-muted);white-space:normal}

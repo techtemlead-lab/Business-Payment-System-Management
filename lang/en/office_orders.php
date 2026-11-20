@@ -35,4 +35,6 @@ return [
     'view_failed' => 'Not booked',
     'view_decisions' => 'Decision needed',
     'stage_with_courier' => 'With courier',
+    'col_address' => 'Address',
+    'col_mrp' => 'MRP',
 ];
