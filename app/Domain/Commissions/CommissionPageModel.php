@@ -161,7 +161,7 @@ final class CommissionPageModel
 
     /**
      * @param  array<string, array<string, mixed>>  $rules
-     * @return list<array{key: string, param: ?string, unit: string, pct: string}>  pct holds the percent, or the taka for a money part
+     * @return list<array{key: string, param: ?string, unit: string, pct: string}> pct holds the percent, or the taka for a money part
      */
     private function children(string $key, array $rules): array
     {

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Accounts\PartnerIncomeHeads;
 use App\Domain\Commissions\CommissionPageModel;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionPosting;
@@ -271,10 +272,10 @@ class SubDealerExtraFundTest extends TestCase
         $this->assertSame('স্টাফ কমিশন', $bn['head_referral_sub']);
 
         app()->setLocale('bn');
-        $this->assertSame('ডিলার একুইজিশন টার্গেট বোনাস', \App\Domain\Accounts\PartnerIncomeHeads::label('salary', null, 'dealer'));
-        $this->assertSame('সাব-ডিলার স্যালারি', \App\Domain\Accounts\PartnerIncomeHeads::label('salary', null, 'sub_dealer'));
-        $this->assertSame('স্টাফ কমিশন', \App\Domain\Accounts\PartnerIncomeHeads::label('referral', null, 'sub_dealer'));
-        $this->assertSame('রেফারেল আয় (সরাসরি)', \App\Domain\Accounts\PartnerIncomeHeads::label('referral', null, 'dealer'));
-        $this->assertSame('ডক্টর অনারারিয়াম', \App\Domain\Accounts\PartnerIncomeHeads::label('own', null, 'sub_dealer'));
+        $this->assertSame('ডিলার একুইজিশন টার্গেট বোনাস', PartnerIncomeHeads::label('salary', null, 'dealer'));
+        $this->assertSame('সাব-ডিলার স্যালারি', PartnerIncomeHeads::label('salary', null, 'sub_dealer'));
+        $this->assertSame('স্টাফ কমিশন', PartnerIncomeHeads::label('referral', null, 'sub_dealer'));
+        $this->assertSame('রেফারেল আয় (সরাসরি)', PartnerIncomeHeads::label('referral', null, 'dealer'));
+        $this->assertSame('ডক্টর অনারারিয়াম', PartnerIncomeHeads::label('own', null, 'sub_dealer'));
     }
 }
