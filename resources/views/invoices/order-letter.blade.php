@@ -201,6 +201,7 @@
             border-radius: 3px;
         }
 
+        .delivery-line { font-size: 12px; font-weight: 600; color: #334155; margin-top: 3px; }
         .date-cell { text-align: right; padding-top: 6px; font-size: 15px; font-weight: 700; color: #0f172a; }
 
         /* Items Table */
@@ -253,6 +254,8 @@
         table.pay-summary .totals td.amt { text-align: right; font-weight: 600; white-space: nowrap; }
         table.pay-summary .totals tr.due td { font-weight: 700; border-top: 1.5px solid #0f172a; border-bottom: 1.5px solid #0f172a; }
         table.pay-summary .history { padding-right: 14px; }
+        .pay-method-title { font-size: 10.5px; font-weight: 700; color: #1e293b; margin-bottom: 3px; }
+        .pay-method-none { font-size: 10px; color: #64748b; }
         table.pay-summary .history table { width: 100%; border-collapse: collapse; }
         table.pay-summary .history th { font-size: 9px; text-align: left; padding: 3px 4px; background: #f1f5f9; border-bottom: 1px solid #94a3b8; }
         table.pay-summary .history td { font-size: 9.5px; padding: 3px 4px; border-bottom: 0.5px solid #e2e8f0; }
@@ -409,7 +412,15 @@
                     </td></tr>
                 </table>
             </td>
-            <td class="date-cell">{{ __('portal.inv_date') }} : {{ $order['date'] }}</td>
+            <td class="date-cell">{{ __('portal.inv_date') }} : {{ $order['date'] }}
+                @if (($delivery['kind'] ?? 'none') === 'office')
+                    <div class="delivery-line" style="font-size:11px;font-weight:600;color:#334155;margin-top:3px;white-space:nowrap">{{ __('portal.inv_delivery') }} : {{ __('portal.inv_delivery_office') }}</div>
+                @elseif (($delivery['kind'] ?? 'none') === 'courier')
+                    @foreach ($delivery['couriers'] as $courier)
+                        <div class="delivery-line" style="font-size:11px;font-weight:600;color:#334155;margin-top:3px;white-space:nowrap">{{ __('portal.inv_delivery_courier') }} : {{ $courier['name'] }}@if ($courier['tracking'] !== '') · {{ __('portal.inv_delivery_tracking') }} : {{ $courier['tracking'] }}@endif</div>
+                    @endforeach
+                @endif
+            </td>
         </tr>
     </table>
 
@@ -478,7 +489,10 @@
     <table class="pay-summary">
         <tr>
             <td class="history">
-                @if (! empty($payments))
+                <div class="pay-method-title">{{ __('portal.inv_pay_title') }}</div>
+                @if (empty($payments))
+                    <div class="pay-method-none">{{ __('portal.inv_pay_none') }}</div>
+                @else
                     <table>
                         <thead>
                             <tr>

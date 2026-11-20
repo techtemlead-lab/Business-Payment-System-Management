@@ -252,6 +252,7 @@ final class OrderInvoice
                 'payment_state_label' => __('portal.inv_payment_'.$paymentState),
             ],
             'payments' => $payments,
+            'delivery' => app(OrderDelivery::class)->for($order),
             'buyer' => [
                 'name' => $buyer?->name,
                 'code' => $buyer?->dealer_code,
