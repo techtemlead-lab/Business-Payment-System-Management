@@ -875,6 +875,7 @@ return [
     'csv_col_name' => 'Name',
     'csv_col_phone' => 'Phone',
     'csv_col_role' => 'Role',
+    'csv_col_partner_type' => 'Partner type',
     'csv_col_rank' => 'Rank',
     'csv_col_sponsor_code' => 'Referrer\'s code',
     'csv_col_sponsor_name' => 'Referrer\'s name',

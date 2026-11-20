@@ -2,6 +2,7 @@
 
 namespace App\Http\Portals\Shared\Sections;
 
+use App\Domain\Accounts\PartnerAppointment;
 use App\Domain\Inventory\StockStages;
 use App\Domain\Orders\CourierBoard;
 use App\Domain\Orders\CourierOptions;
@@ -19,7 +20,6 @@ use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Contracts\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use stdClass;
@@ -69,7 +69,7 @@ final class OrdersSection implements WorkspaceSection
         $filteredOrders = app(OrderListFilter::class)->apply(clone $context->orders, $request, $context->section, $context->isStaff);
         // Overview only needs ordered and sent quantities for the items and delivered columns — keep the payload slim.
         $lineRelation = $context->section === 'overview' && $context->isStaff ? 'lines:id,order_id,quantity,dispatched' : 'lines';
-        $orderWith = ['user:id,name,dealer_code,role,phone,division,district', $lineRelation];
+        $orderWith = ['user:id,name,dealer_code,role,phone,division,district,profile', $lineRelation];
         // Partners see which branch is sending their order; only the name and code are loaded.
         if (Schema::hasColumn('orders', 'fulfillment_branch_id')) {
             $orderWith[] = 'fulfillmentBranch:id,name,code';
@@ -107,6 +107,9 @@ final class OrdersSection implements WorkspaceSection
             if ($usesSharedTable) {
                 $this->addParcelLinks($orderPage);
             }
+            if ($context->isStaff) {
+                app(PartnerAppointment::class)->attachTypes($orderPage->getCollection()->map(fn (Order $order) => $order->user));
+            }
             $props['orders'] = $orderPage;
         }
         if ($context->section === 'orders') {
@@ -114,7 +117,7 @@ final class OrdersSection implements WorkspaceSection
             $props['order_totals'] = $this->listTotals($filteredOrders);
             if ($context->isStaff) {
                 $totals = $props['order_totals'];
-                $props['orders_table'] = $this->tableFacts($request, $sorts, $sort, $direction, ['count' => $totals['orders'], 'capped' => false, 'sums' => Arr::except($totals, ['orders', 'ordered'])], ['buyer_role', 'branch_id']);
+                $props['orders_table'] = $this->tableFacts($request, $sorts, $sort, $direction, ['count' => $totals['orders'], 'capped' => false, 'sums' => $this->tableSums($totals)], ['buyer_role', 'branch_id']);
             }
         }
         if ($context->section === 'deliveries') {
@@ -262,7 +265,7 @@ final class OrdersSection implements WorkspaceSection
             ->when($failedOnly, fn ($query) => $query->where('shipments.courier_booking_status', 'failed'))
             ->when(! $failedOnly && ! $request->filled('ship_status') && ! $request->filled('q'), fn ($query) => $query->where('shipments.status', StockStages::OpenParcel))
             ->select([
-                'shipments.id', 'shipments.order_id', 'orders.number', 'users.name as partner', 'users.dealer_code', 'users.phone',
+                'shipments.id', 'shipments.order_id', 'orders.number', 'orders.user_id', 'users.name as partner', 'users.dealer_code', 'users.role', 'users.phone',
                 'shipments.status', 'shipments.courier', 'shipments.courier_provider', 'shipments.tracking', 'shipments.courier_status', 'shipments.courier_booking_status',
                 'shipments.courier_booking_error', 'shipments.courier_status_at', 'shipments.courier_timeline', 'shipments.updated_at',
             ])
@@ -300,6 +303,7 @@ final class OrdersSection implements WorkspaceSection
 
             return $row;
         });
+        app(PartnerAppointment::class)->attachToRows($table['rows']->getCollection());
 
         return $table;
     }
@@ -309,7 +313,7 @@ final class OrdersSection implements WorkspaceSection
      * count delivered goods only; a partly delivered order counts its delivered part. Rejected and
      * cancelled orders count as orders but add nothing to any money figure.
      *
-     * @return array{orders: int, value: string, paid: string, to_pay: string, ordered: string}
+     * @return array{orders: int, value: string, paid: string, to_pay: string, ordered: string, received: string}
      */
     private function listTotals(Builder $filteredOrders): array
     {
@@ -317,7 +321,8 @@ final class OrdersSection implements WorkspaceSection
             ->selectRaw('COUNT(*) AS orders, COALESCE(SUM('.DeliveredMoney::valueSql().'), 0) AS value, '
                 .'COALESCE(SUM('.DeliveredMoney::paidSql().'), 0) AS paid, '
                 .'COALESCE(SUM('.self::ToPaySql.'), 0) AS to_pay, '
-                ."COALESCE(SUM(CASE WHEN orders.status NOT IN ('rejected', 'cancelled') THEN orders.total ELSE 0 END), 0) AS ordered")
+                ."COALESCE(SUM(CASE WHEN orders.status NOT IN ('rejected', 'cancelled') THEN orders.total ELSE 0 END), 0) AS ordered, "
+                ."COALESCE(SUM(CASE WHEN orders.status NOT IN ('rejected', 'cancelled') THEN orders.paid ELSE 0 END), 0) AS received")
             ->first();
 
         return [
@@ -327,6 +332,26 @@ final class OrdersSection implements WorkspaceSection
             'to_pay' => Money::decimal(Money::cents((string) $row->to_pay)),
             // What was ordered (not cancelled or refused), shown beside what has been delivered so neither reads as zero.
             'ordered' => Money::decimal(Money::cents((string) $row->ordered)),
+            // Money received on those same orders, delivered or not.
+            'received' => Money::decimal(Money::cents((string) $row->received)),
+        ];
+    }
+
+    /**
+     * The totals row of the office table. Price and Paid add up the whole orders, like the rows above them;
+     * what the money reports count (delivered goods only) is kept under its own names for the note under the table.
+     *
+     * @param  array<string, int|string>  $totals
+     * @return array<string, string>
+     */
+    private function tableSums(array $totals): array
+    {
+        return [
+            'price' => (string) $totals['ordered'],
+            'received' => (string) $totals['received'],
+            'to_pay' => (string) $totals['to_pay'],
+            'delivered_value' => (string) $totals['value'],
+            'delivered_paid' => (string) $totals['paid'],
         ];
     }
 

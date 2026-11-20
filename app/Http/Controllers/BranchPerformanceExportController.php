@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Accounts\PartnerAppointment;
 use App\Domain\Inventory\BranchPerformance;
 use App\Models\User;
 use App\Support\Audit;
@@ -33,6 +34,8 @@ class BranchPerformanceExportController extends Controller
         $columns = [
             ['key' => 'number', 'label' => $label('col_order')],
             ['key' => 'partner', 'label' => $label('col_partner')],
+            ['key' => 'code', 'label' => __('office_orders.col_code')],
+            ['key' => 'partner_type_text', 'label' => __('office_orders.col_partner_type')],
             ['key' => 'branch', 'label' => $label('col_branch')],
             ['key' => 'status', 'label' => $label('col_status')],
             ['key' => 'date', 'label' => $label('col_date')],
@@ -75,7 +78,9 @@ class BranchPerformanceExportController extends Controller
             $status = __($statusKey);
             yield [
                 ...$order,
-                'partner' => trim(($order['partner_name'] ?? '').($order['dealer_code'] ? ' ('.$order['dealer_code'].')' : '')),
+                'partner' => (string) ($order['partner_name'] ?? ''),
+                'code' => (string) ($order['dealer_code'] ?? ''),
+                'partner_type_text' => PartnerAppointment::cellText($order['partner_type'] ?? null, (string) ($order['partner_role'] ? __('portal.acct_role_'.$order['partner_role']) : '')),
                 'branch' => $order['branch_code'] ? $order['branch_name'].' · '.$order['branch_code'] : $order['branch_name'],
                 'status' => $status === $statusKey ? ucfirst((string) $order['status']) : $status,
                 'date' => substr((string) $order['created_at'], 0, 10),

@@ -6,7 +6,7 @@ import MixedOutcomeDecisionList from './MixedOutcomeDecisionList';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from './MoneyTable';
 import Figures, { type FigureItem } from './office/Figures';
 import OfficePage from './office/OfficePage';
-import { deliveryStatuses } from './office/portalShared';
+import { deliveryStatuses, PartnerTypeCell, partnerTypeText } from './office/portalShared';
 import {
     FactList,
     OrderDrawer,
@@ -128,7 +128,9 @@ function ParcelTable({ table, failedOnly }: { table: MoneyTableData<Row>; failed
 
     const columns: MoneyColumn<Row>[] = [
         { key: 'number', title: translate('courier', 'col_order'), sortKey: 'number', phone: 'title', render: (row) => <b>{row.number}</b> },
-        { key: 'partner', title: translate('courier', 'col_partner'), sortKey: 'partner', phone: 'sub', render: (row) => <>{row.partner}<small className="cell-sub">{row.dealer_code}</small></> },
+        { key: 'partner', title: translate('courier', 'col_partner'), sortKey: 'partner', phone: 'sub', render: (row) => <>{row.partner}</> },
+        { key: 'code', title: translate('office_orders', 'col_code'), phone: 'hide', render: (row) => row.dealer_code || '—' },
+        { key: 'partner_type', title: translate('office_orders', 'col_partner_type'), phone: 'hide', render: (row) => <PartnerTypeCell user={row} /> },
         { key: 'phone', title: translate('portal', 'ops_fld_phone'), phone: 'hide', render: (row) => row.phone || '—' },
         { key: 'courier', title: translate('courier', 'col_courier'), sortKey: 'courier', phone: 'sub' },
         failedOnly
@@ -168,7 +170,9 @@ function ParcelDrawer({ parcel, onClose }: { parcel: Row; onClose: () => void })
     const { portalBase: base } = usePage<any>().props;
     const timeline: Row[] = Array.isArray(parcel.courier_timeline) ? parcel.courier_timeline : [];
     const facts: [string, React.ReactNode][] = [
-        [translate('courier', 'col_partner'), [parcel.partner, parcel.dealer_code].filter(Boolean).join(' · ')],
+        [translate('courier', 'col_partner'), parcel.partner],
+        [translate('office_orders', 'col_code'), parcel.dealer_code],
+        [translate('office_orders', 'col_partner_type'), partnerTypeText(parcel)],
         [translate('portal', 'ops_fld_phone'), parcel.phone],
         [translate('courier', 'col_courier'), parcel.courier],
         [translate('courier', 'col_tracking'), parcel.tracking_url

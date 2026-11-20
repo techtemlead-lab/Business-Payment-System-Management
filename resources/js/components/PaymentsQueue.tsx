@@ -3,7 +3,7 @@ import { ArrowUpRight } from 'lucide-react';
 import { Badge, channelLabel, dateTime, label, money, type Row } from './UI';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from './MoneyTable';
 import { joined } from './treasury/format';
-import { orderDue } from './office/portalShared';
+import { orderDue, PartnerTypeCell } from './office/portalShared';
 import { useT } from '../shared/i18n/t';
 
 /** Payments waiting to be checked, on the shared table. Reviewing opens the same box as before. */
@@ -35,7 +35,9 @@ export default function PaymentsQueue({ data, onReview, actions, picked, onPick 
                 </>
             ),
         },
-        { key: 'partner', title: translate('portal', 'col_partner'), sortKey: 'partner', phone: 'sub', render: (row) => <>{row.name ?? '—'}<small className="cell-sub">{joined([row.dealer_code, row.role ? label(row.role, translate) : null, row.phone])}</small></> },
+        { key: 'partner', title: translate('portal', 'col_partner'), sortKey: 'partner', phone: 'sub', render: (row) => <>{row.name ?? '—'}{row.phone && <small className="cell-sub">{row.phone}</small>}</> },
+        { key: 'code', title: translate('office_orders', 'col_code'), phone: 'hide', render: (row) => row.dealer_code || '—' },
+        { key: 'partner_type', title: translate('office_orders', 'col_partner_type'), phone: 'hide', render: (row) => <PartnerTypeCell user={row} /> },
         { key: 'area', title: translate('portal', 'col_area'), sortKey: 'area', phone: 'hide', render: (row) => <>{joined([row.district, row.division]) || '—'}{row.branch_name && <small className="cell-sub">{row.branch_name}</small>}</> },
         {
             key: 'channel',

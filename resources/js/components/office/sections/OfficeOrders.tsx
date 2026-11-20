@@ -8,7 +8,7 @@ import { SavedFilterPanel } from '../../OfficeListTools';
 import { Badge, Modal, date, label, money, number, type Row } from '../../UI';
 import MoreMenu from '../MoreMenu';
 import OfficePage from '../OfficePage';
-import { AgingPill, channelName, notYetSendable, OrderSentCell, orderDue, orderItemCount, orderSentCount, orderStatuses, ordersExportHref, returnedByLine, type TranslateFn } from '../portalShared';
+import { AgingPill, PartnerTypeCell, partnerTypeText, channelName, notYetSendable, OrderSentCell, orderDue, orderItemCount, orderSentCount, orderStatuses, ordersExportHref, returnedByLine, type TranslateFn } from '../portalShared';
 
 const CLOSED_STATUSES = ['rejected', 'cancelled'];
 
@@ -73,10 +73,9 @@ export function OrderNumberCell({ row }: { row: Row }) {
     return <Link className="record-link" href={`${base}/orders/${row.id}`} onClick={(event) => event.stopPropagation()}><b>{row.number}</b></Link>;
 }
 
+/** The partner's name alone: the code and the kind of partner have their own columns. */
 export function OrderPartnerCell({ row }: { row: Row }) {
-    const translate = useT();
-
-    return <>{row.user?.name ?? '—'}<small className="cell-sub">{[row.user?.dealer_code, row.user?.role ? label(row.user.role, translate) : null].filter(Boolean).join(' · ')}</small></>;
+    return <>{row.user?.name ?? '—'}</>;
 }
 
 export function OrderStatusCell({ row }: { row: Row }) {
@@ -94,6 +93,8 @@ export function orderListColumns(translate: TranslateFn, { overdue = false }: { 
         { key: 'number', title: translate('office_orders', 'col_order'), sortKey: 'number', phone: 'title', render: (row) => <OrderNumberCell row={row} /> },
         { key: 'created_at', title: translate('portal', 'col_date'), sortKey: 'created_at', phone: 'sub', render: (row) => date(row.created_at) },
         { key: 'partner', title: translate('portal', 'col_partner'), sortKey: 'partner', phone: 'sub', render: (row) => <OrderPartnerCell row={row} /> },
+        { key: 'code', title: translate('office_orders', 'col_code'), phone: 'hide', render: (row) => row.user?.dealer_code || '—' },
+        { key: 'partner_type', title: translate('office_orders', 'col_partner_type'), phone: 'sub', render: (row) => <PartnerTypeCell user={row.user} /> },
         { key: 'phone', title: translate('portal', 'ops_fld_phone'), phone: 'hide', render: (row) => row.user?.phone || '—' },
         { key: 'area', title: translate('portal', 'col_area'), sortKey: 'area', phone: 'hide', render: (row) => [row.user?.district, row.user?.division].filter(Boolean).join(', ') || '—' },
         { key: 'branch', title: translate('portal', 'col_branch'), sortKey: 'branch', phone: 'hide', render: (row) => row.fulfillment_branch?.name || '—' },
@@ -104,8 +105,7 @@ export function orderListColumns(translate: TranslateFn, { overdue = false }: { 
             title: translate('office_orders', 'col_price'),
             sortKey: 'total',
             money: true,
-            total: 'value',
-            totalNote: translate('office_orders', 'total_delivered_only'),
+            total: 'price',
             phone: 'amount',
             render: (row) => (
                 <>
@@ -118,7 +118,7 @@ export function orderListColumns(translate: TranslateFn, { overdue = false }: { 
                 </>
             ),
         },
-        { key: 'paid', title: translate('office_orders', 'col_given'), sortKey: 'paid', money: true, total: 'paid', totalNote: translate('office_orders', 'total_delivered_only'), phone: 'hide', render: (row) => <>{money(row.paid)}{row.refunded_amount != null && <small className="cell-sub" data-testid="order-refunded">{translate('office_orders', 'refunded_part', { amount: money(row.refunded_amount) })}</small>}</> },
+        { key: 'paid', title: translate('office_orders', 'col_given'), sortKey: 'paid', money: true, total: 'received', phone: 'hide', render: (row) => <>{money(row.paid)}{row.refunded_amount != null && <small className="cell-sub" data-testid="order-refunded">{translate('office_orders', 'refunded_part', { amount: money(row.refunded_amount) })}</small>}</> },
         { key: 'to_pay', title: translate('office_orders', 'col_to_pay'), sortKey: 'to_pay', money: true, total: 'to_pay', phone: 'hide', render: (row) => money(orderDue(row)) },
         ...(overdue ? [
             { key: 'days_since_sent', title: translate('portal', 'col_days_since_sent'), sortKey: 'days_since_sent', align: 'right' as const, phone: 'hide' as const, render: (row: Row) => (row.days_since_sent != null ? <AgingPill days={Number(row.days_since_sent)} /> : '—') },
@@ -172,7 +172,9 @@ export function OrderDrawer({ order, onClose }: { order: Row; onClose: () => voi
     const isOwnOrder = auth.user.id === order.user_id;
     const facts: [string, React.ReactNode][] = [
         ...(isOwnOrder ? [] : [
-            [translate('portal', 'col_partner'), [order.user?.name, order.user?.dealer_code].filter(Boolean).join(' · ')],
+            [translate('portal', 'col_partner'), order.user?.name],
+            [translate('office_orders', 'col_code'), order.user?.dealer_code],
+            [translate('office_orders', 'col_partner_type'), partnerTypeText(order.user)],
             [translate('portal', 'ops_fld_phone'), order.user?.phone],
             [translate('portal', 'col_area'), [order.user?.district, order.user?.division].filter(Boolean).join(', ')],
         ] as [string, React.ReactNode][]),
@@ -312,7 +314,7 @@ export default function OfficeOrders({ data }: { data: Row }) {
                     empty={translate('portal', 'empty_orders_title')}
                 />
             </div>
-            <p className="muted" data-testid="order-totals-note">{translate('portal', 'order_totals_note')}</p>
+            <p className="muted" data-testid="order-totals-note">{translate('office_orders', 'totals_note', { value: money(table.totals.sums?.delivered_value ?? 0), paid: money(table.totals.sums?.delivered_paid ?? 0) })}</p>
             {opened && <OrderDrawer order={opened} onClose={() => setOpened(null)} />}
         </OfficePage>
     );
