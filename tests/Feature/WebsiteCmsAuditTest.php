@@ -51,8 +51,8 @@ class WebsiteCmsAuditTest extends TestCase
 
         $html = $this->get('/')->assertOk()->getContent();
 
-        // The footer's logo and company name left the page (client, 2026-11-20); the header still shows the certified logo.
-        $this->assertStringNotContainsString('ref-footer-brand', $html);
+        // The footer's logo and company name show on desktop (phones hide them by stylesheet); the header shows the certified logo.
+        $this->assertStringContainsString('ref-footer-brand', $html);
         $this->assertStringContainsString('/branding/site-photos/new-logo.png', $html);
     }
 
