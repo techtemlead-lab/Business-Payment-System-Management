@@ -114,7 +114,7 @@ class AdversarialM1LocaleTest extends TestCase
             $this->fail('Expected ValidationException');
         } catch (ValidationException $e) {
             $this->assertSame(__('portal.err_order_already_decided', [], 'en'), $e->errors()['status'][0]);
-            $this->assertSame('This order has already been decided.', $e->errors()['status'][0]);
+            $this->assertSame('A decision was already made on this order.', $e->errors()['status'][0]);
         }
     }
 
@@ -200,7 +200,7 @@ class AdversarialM1LocaleTest extends TestCase
             ])
             ->assertUnprocessable()
             ->assertJsonPath('errors.tracking.0', __('portal.err_dispatch_tracking', [], 'bn'))
-            ->assertJsonPath('errors.tracking.0', 'ট্র্যাকিং রেফারেন্স দিন, অথবা সক্রিয় কুরিয়ার API প্রদানকারী নির্বাচন করুন।');
+            ->assertJsonPath('errors.tracking.0', 'ট্র্যাকিং রেফারেন্স দিন, অথবা চালু কুরিয়ার সার্ভিস বেছে নিন।');
 
         // 2. Accept-Language: en
         $this->actingAs($admin)
