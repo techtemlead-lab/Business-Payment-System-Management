@@ -15,8 +15,8 @@ return [
     'spent' => 'Spent on orders',
     'earned' => 'Total earned',
 
-    'type_own' => 'Own purchase income',
-    'type_referral' => 'Referral income (direct)',
+    'type_own' => 'Doctor Honorarium',
+    'type_referral' => 'Staff commission',
     'type_team' => 'D2D income (2nd and 3rd generation)',
     'type_area' => 'Area dealer income',
     'type_salary' => 'Monthly salary',
