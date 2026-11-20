@@ -33,7 +33,7 @@ class SeedPlaceCodesCommandTest extends TestCase
         $this->assertSame(1, PlaceCode::query()->where('code', 'MNHC100')->where('level', 'management')->count());
 
         $this->artisan('madina:seed-place-codes')
-            ->expectsOutputToContain('Total: 0 added, 0 given a code, 0 names/parents filled, 0 base links set, 0 skipped.')
+            ->expectsOutputToContain('Total: 0 added, 0 given a code, 0 names/parents filled, 0 base places set, 0 skipped.')
             ->assertSuccessful();
         $this->assertSame(self::Total, PlaceCode::query()->count());
     }
