@@ -68,6 +68,15 @@ final class StockImage
     }
 
     /**
+     * The JPEG copy of the default picture for a category, as a file on this server for the printed
+     * stock list (the PDF library and the server's image library cannot read the WebP originals).
+     */
+    public static function pdfFileForCategory(?string $category): string
+    {
+        return public_path('branding/stock/pdf/'.self::imageForCategory((string) $category).'.jpg');
+    }
+
+    /**
      * @return list<string>
      */
     public static function allImageNames(): array

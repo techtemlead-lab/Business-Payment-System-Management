@@ -1,0 +1,26 @@
+<?php
+
+return [
+    'button' => 'Print product list',
+    'button_hint' => 'Download the list of all live products as a PDF. Products that are not on sale on the website are left out.',
+    'button_with_pictures' => 'With pictures',
+    'button_without_pictures' => 'Without pictures',
+    'hint_with_pictures' => 'The product list with a picture of each product',
+    'hint_without_pictures' => 'A shorter product list without pictures, with more rows on each page',
+    'title' => 'Product list',
+    'col_serial' => 'SL',
+    'col_product' => 'Product name',
+    'col_pack' => 'Pack size',
+    'col_category' => 'Category',
+    'col_group' => 'Group',
+    'col_mrp' => 'MRP',
+    'col_dealer_discount' => 'Dealer discount',
+    'col_sub_dealer_discount' => 'Sub-dealer discount',
+    'col_image' => 'Photo',
+    'col_usage' => 'How to use',
+    'col_efficacy' => 'What it does',
+    'empty' => 'There are no live products to list.',
+    'note' => 'A dash means the pack size, category or price is not set. Products are grouped by category.',
+    'footer' => 'Product list printed on :date',
+    'page' => 'Page',
+];

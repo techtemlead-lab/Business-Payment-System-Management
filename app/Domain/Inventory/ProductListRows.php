@@ -5,7 +5,6 @@ namespace App\Domain\Inventory;
 use App\Domain\Catalog\ProductSizeGroups;
 use App\Models\Product;
 use App\Support\Money;
-use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
 
 /**
@@ -14,11 +13,11 @@ use InvalidArgumentException;
  * last), then by name. It shows no quantities and no totals: it is the product list with prices
  * and discounts, the same for every branch. Nothing here changes stock.
  */
-final class StockPrintList
+final class ProductListRows
 {
     /**
      * @return array{
-     *     rows: list<array{serial: int, name: string, pack_size: ?string, category: ?string, group: ?string, mrp: ?string, dealer_discount: ?string, sub_dealer_discount: ?string, image: ?string, usage: ?string, efficacy: ?string}>
+     *     rows: list<array{product_id: int, serial: int, name: string, pack_size: ?string, category: ?string, group: ?string, mrp: ?string, dealer_discount: ?string, sub_dealer_discount: ?string, image: string, usage: ?string, efficacy: ?string}>
      * }
      */
     public function build(): array
@@ -41,6 +40,7 @@ final class StockPrintList
             $product = $entry['product'];
             $mrpCents = $this->cents($product->mrp);
             $rows[] = [
+                'product_id' => (int) $product->id,
                 'serial' => $index + 1,
                 'name' => $entry['name'],
                 'pack_size' => $entry['pack_size'],
@@ -49,7 +49,7 @@ final class StockPrintList
                 'mrp' => $mrpCents > 0 ? Money::decimal($mrpCents) : null,
                 'dealer_discount' => $this->discount($product, $product->dealer_price),
                 'sub_dealer_discount' => $this->discount($product, $product->sub_dealer_price),
-                'image' => $this->imagePath($product),
+                'image' => PdfPhotos::sourceFor((int) $product->id, $product->image_path, $product->category),
                 'usage' => $this->localizedFact($product, 'dose'),
                 // The product description stands in until the owner fills in the efficacy.
                 'efficacy' => $this->localizedFact($product, 'efficacy') ?? $this->plainText($product->description),
@@ -57,18 +57,6 @@ final class StockPrintList
         }
 
         return ['rows' => $rows];
-    }
-
-    /** The saved product photo, as a file this server can embed in the PDF. */
-    private function imagePath(Product $product): ?string
-    {
-        $relative = $product->image_path;
-        if (! is_string($relative) || $relative === '') {
-            return null;
-        }
-        $path = Storage::disk('local')->path($relative);
-
-        return is_file($path) ? $path : null;
     }
 
     /** Bangla first on a Bangla page, then English, for a fact stored in both languages. */

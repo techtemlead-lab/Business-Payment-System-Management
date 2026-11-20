@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
-import { Camera, Eye, Plus, Save } from 'lucide-react';
+import { Camera, Download, Eye, Plus, Save } from 'lucide-react';
 import { FeaturedProductsManager } from './website/FeaturedProductsManager';
 import { type FeaturedOrderProduct } from './website/FeaturedOrderList';
 import { HomePageOrderPanel } from './website/HomePageOrderPanel';
@@ -293,6 +293,16 @@ export default function ProductManagementHub({
                     <a href="/" target="_blank" rel="noopener noreferrer" className="button small">
                         <Eye size={14} aria-hidden="true" /> {t('view_homepage')}
                     </a>
+                    {(auth.capabilities.includes('inventory') || auth.capabilities.includes('catalog')) && (
+                        <span className="ops-row" role="group" aria-label={translate('product_list_print', 'button')}>
+                            <a href="/exports/product-list" className="button small" title={translate('product_list_print', 'hint_with_pictures')}>
+                                <Download size={14} aria-hidden="true" /> {translate('product_list_print', 'button')}: {translate('product_list_print', 'button_with_pictures')}
+                            </a>
+                            <a href="/exports/product-list?pictures=0" className="button small" title={translate('product_list_print', 'hint_without_pictures')}>
+                                <Download size={14} aria-hidden="true" /> {translate('product_list_print', 'button')}: {translate('product_list_print', 'button_without_pictures')}
+                            </a>
+                        </span>
+                    )}
                     {canCreate && (
                         <button type="button" className="button dark" onClick={onCreateProduct}>
                             <Plus size={17} aria-hidden="true" /> {t('new_product')}
