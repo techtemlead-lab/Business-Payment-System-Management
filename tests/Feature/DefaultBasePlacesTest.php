@@ -87,8 +87,13 @@ class DefaultBasePlacesTest extends TestCase
         // Two city corporations in one metro area: no way to tell which one is the headquarters.
         $this->assertSame('no_match', $empty['1004']);
         $this->assertArrayNotHasKey('100', $empty);
-        // The review list names the weaker choices and the empty list names the candidates.
-        $this->assertSame(['1006' => 'preferred_over_same_name', '1007' => 'only_child'], $result['review']);
+        // Each choice names the rule that matched, and the empty list names the candidates.
+        $this->assertSame('division_same_name_district', $result['rules']['101']);
+        $this->assertSame('district_sadar_upazila', $result['rules']['202']);
+        $this->assertSame('district_metro_area', $result['rules']['203']);
+        $this->assertSame('upazila_pourashava_named_like_upazila_preferred_over_same_name', $result['rules']['1006']);
+        $this->assertSame('upazila_pourashava_named_like_upazila', $result['rules']['1005']);
+        $this->assertSame('upazila_only_child', $result['rules']['1007']);
         $this->assertSame(['One', 'Two'], collect($result['empty'])->firstWhere('code', '1009')['candidates']);
         $this->assertArrayNotHasKey('100001', $empty);
     }
@@ -118,9 +123,11 @@ class DefaultBasePlacesTest extends TestCase
             $this->assertTrue($place->basePlace->is_active);
             $this->assertNotNull(PlaceCode::normalizeCode($place->basePlace->code));
         }
-        $whys = array_unique(array_column($summary['base_review'], 'why'));
-        sort($whys);
-        $this->assertSame(['only_child', 'preferred_over_same_name'], $whys);
+        $rules = array_unique(array_column($summary['base_set_list'], 'rule'));
+        $this->assertContains('upazila_only_child', $rules);
+        $this->assertContains('upazila_city_corporation_named_like_upazila', $rules);
+        $this->assertContains('district_metro_area', $rules);
+        $this->assertSame(8 + 64 + $summary['by_level']['upazila']['base_set'], count($summary['base_set_list']));
         $this->assertNotSame([], collect($summary['base_empty'])->firstWhere('code', '1003')['candidates']);
         $reasons = array_unique(array_column($summary['base_empty'], 'reason'));
         sort($reasons);
@@ -159,7 +166,7 @@ class DefaultBasePlacesTest extends TestCase
         $summary = app(DefaultPlaceCatalog::class)->load();
 
         $this->assertNull($dhaka->fresh()->base_place_id);
-        $this->assertTrue((bool) collect($summary['base_empty'])->contains(fn (array $e): bool => $e['name'] === 'Dhaka' && $e['level'] === 'division' && $e['reason'] === 'candidate_unusable'));
+        $this->assertTrue((bool) collect($summary['base_empty'])->contains(fn (array $e): bool => $e['name'] === 'Dhaka' && $e['level'] === 'division' && $e['reason'] === 'candidate_turned_off'));
         $this->assertFalse($off->fresh()->is_active);
         $this->assertNotNull($gazipur->fresh());
     }
