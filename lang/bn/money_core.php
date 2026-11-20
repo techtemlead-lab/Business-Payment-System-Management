@@ -20,7 +20,7 @@ return [
 
     // MA-26: smaller money cases.
     'notice_debt_recovered_title' => 'ফেরতের বাকি টাকা কেটে নেওয়া হয়েছে',
-    'notice_debt_recovered_body' => 'আগের একটি ফেরত (রিফান্ড) থেকে আপনার কাছে কোম্পানির যে টাকা পাওনা ছিল, তার ৳:amount আপনার কাছে আসা টাকা থেকে কেটে নেওয়া হয়েছে। বাকি ৳:credited আপনার টাকায় যোগ হয়েছে।',
+    'notice_debt_recovered_body' => 'আগের একটি অর্ডার ফেরতের কারণে কোম্পানির আপনার কাছে যে টাকা পাওনা ছিল, তার ৳:amount আপনার কাছে আসা টাকা থেকে কেটে নেওয়া হয়েছে। বাকি ৳:credited আপনার টাকায় যোগ হয়েছে।',
 
     // MA-01 and MA-23: month close status on the Settlements page.
     'mc_failed_title' => 'মাসের হিসাব বন্ধ করা যায়নি',
@@ -40,7 +40,7 @@ return [
     'flash_already_closed' => ':month-এর :kind আগেই :date তারিখে বন্ধ হয়েছে। দেওয়ার মতো আর কিছু বাকি নেই।',
 
     // MA-19
-    'readiness_failed' => 'টাকার হিসাব মেলেনি। এই যাচাইগুলো পাস করেনি: :checks',
+    'readiness_failed' => 'টাকার হিসাব মেলেনি। এই যাচাইগুলো মেলেনি: :checks',
 
     // MA-13
     'area_quota_required' => 'মাসের লক্ষ্যের টাকা লিখুন।',
@@ -68,7 +68,7 @@ return [
     'start_books_pointer_link' => 'মালিকের হোম পেজে যান',
     'waiting_for_delivery_title' => 'টাকা পেয়েছি, পণ্য পৌঁছায়নি',
     'waiting_for_delivery_note' => 'যাচাই করা পেমেন্টের যে টাকা এসেছে কিন্তু অর্ডারের পণ্য এখনো পৌঁছায়নি। পণ্য পৌঁছালে এই টাকা ফান্ডে যোগ হবে।',
-    'task_ready_to_pay' => 'পরিশোধের জন্য প্রস্তুত কমিশন',
+    'task_ready_to_pay' => 'দেওয়ার জন্য তৈরি কমিশন',
     'task_held' => 'আটকে থাকা কমিশন',
     'task_close_failed' => 'একটি মাস বন্ধ করা যায়নি',
 

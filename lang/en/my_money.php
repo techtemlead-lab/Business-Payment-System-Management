@@ -32,7 +32,7 @@ return [
     'requests_heading' => 'Your withdrawal requests',
     'request_status_requested' => 'Waiting for the office',
     'request_status_approved' => 'Approved, not paid yet',
-    'request_status_rejected' => 'Refused',
+    'request_status_rejected' => 'Turned down',
 
     'not_earned_heading' => 'Area commission not earned',
     'not_earned_reason' => 'You did not reach your area target this month, so this money went to the company profit fund. It does not carry over.',

@@ -14,7 +14,7 @@ return [
 
     'filter_status' => 'অবস্থা',
     'status_waiting' => 'অপেক্ষায়',
-    'status_ready' => 'ব্যবহারের জন্য তৈরি',
+    'status_ready' => 'ব্যবহার করতে পারবেন',
     'status_taken_back' => 'ফেরত নেওয়া',
     'waiting_until' => ':date তারিখ পর্যন্ত অপেক্ষায়',
 
