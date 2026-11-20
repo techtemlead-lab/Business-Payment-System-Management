@@ -58,7 +58,7 @@ export default function TreasuryFund({ card, view, table, spend, leaders }: { ca
     const views: { key: FundView; word: string }[] = [
         { key: 'in', word: translate('treasury', 'came_in') },
         { key: 'out', word: translate('treasury', 'went_out') },
-        ...(leaders ? (['bike', 'car'] as RewardAward[]).map((award) => ({ key: award, word: `${translate('treasury', `leaders_${award}`)} (${number(leaders.counts[award])})` })) : []),
+        ...(leaders ? leaders.shown.map((award) => ({ key: award, word: `${translate('treasury', `leaders_${award}`)} (${number(leaders.counts[award])})` })) : []),
     ];
 
     const columnsIn: MoneyColumn<MoneyInRow>[] = [
@@ -106,7 +106,7 @@ export default function TreasuryFund({ card, view, table, spend, leaders }: { ca
             action={spend && card.spendable ? <button type="button" className="button dark" onClick={() => setSpending(true)}>{translate('treasury', 'spend')}</button> : undefined}
         >
             <FundFigures card={card} />
-            {leaders && <VehiclePoolsPanel pools={leaders.pools} />}
+            {leaders && <VehiclePoolsPanel pools={leaders.pools} shown={leaders.shown} />}
             <div className="office-switch" role="group" aria-label={card.name} ref={viewSwitch}>
                 {views.map((option) => (
                     <Link key={option.key} href={option.key === 'in' ? path : `${path}?view=${option.key}`} preserveScroll className={option.key === view ? 'is-active' : undefined} aria-current={option.key === view ? 'true' : undefined}>
