@@ -1320,6 +1320,7 @@ return [
     'finance_treasury_s5' => 'The “Event log” box on the “Other modules” page lists orders, money received, commission, withdrawals and stock. Use the filter to pick one kind.',
     'finance_treasury_s6' => 'On the “Partners\' money” tab, see each dealer and sub-dealer with their money now and total earned. Anything waiting for someone is on the “Spending, budgets & pending work” tab.',
     'finance_treasury_s7' => 'Only the owner sees the “Profit and loss” tab. Pick a month or dates to see the profit or loss after the cost of goods, commission and salaries.',
+    'finance_treasury_s8' => 'The Bike fund and the Car fund are two separate cards. A bike prize is paid from the Bike fund and a car prize from the Car fund. If the right fund is short, only the old “Car and bike (old)” money can help, and that card shows only while it holds old money.',
     'finance_treasury_o1' => 'You can tap any figure to see the lines behind it.',
     'finance_treasury_o2' => 'You know where every taka of the company is right now.',
     'finance_treasury_t1' => 'Cards always show the total up to today. Changing the dates only changes the list below.',
