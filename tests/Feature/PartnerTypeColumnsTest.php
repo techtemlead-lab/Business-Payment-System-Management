@@ -8,6 +8,7 @@ use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -127,6 +128,41 @@ class PartnerTypeColumnsTest extends TestCase
         $this->assertSame($upazila->name, $lines[1][$typeAt - 2]);
         $this->assertSame($upazila->dealer_code, $lines[1][$typeAt - 1]);
         $this->assertMatchesRegularExpression('/ — (Pirganj, Rangpur|পীরগঞ্জ, রংপুর)$/u', $lines[1][$typeAt]);
+    }
+
+    public function test_the_payment_queue_and_parcel_list_carry_the_type_beside_the_code(): void
+    {
+        $owner = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $sub = $this->partnerAt($this->places()['union'], 'sub_dealer');
+        $order = $this->order($sub, 'dispatched', '90.00');
+        DB::table('payment_claims')->insert(['order_id' => $order->id, 'channel' => 'bKash', 'reference' => 'BK-TYPE-1', 'amount' => '90.00', 'status' => 'pending', 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('shipments')->insert(['order_id' => $order->id, 'courier' => 'Steadfast', 'tracking' => 'ST-TYPE', 'lines' => '[]', 'actor_id' => $owner->id, 'status' => 'dispatched', 'idempotency_key' => (string) Str::uuid(), 'payload_hash' => str_repeat('a', 64), 'created_at' => now(), 'updated_at' => now()]);
+
+        $this->actingAs($owner)->onPortal('sadmin')->get('/payments')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('data.payments_table.rows.data.0.partner_type.title', 'Sub-dealer')
+                ->where('data.payments_table.rows.data.0.partner_type.place', 'Kabilpur, Pirganj')
+                ->where('data.payments_table.rows.data.0.dealer_code', $sub->dealer_code));
+
+        $this->actingAs($owner)->onPortal('sadmin')->get('/deliveries?view=parcels')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('data.parcels_table.rows.data.0.partner_type.title', 'Sub-dealer')
+                ->where('data.parcels_table.rows.data.0.partner_type.place', 'Kabilpur, Pirganj'));
+    }
+
+    public function test_the_selected_orders_and_partners_downloads_carry_the_partner_type(): void
+    {
+        $owner = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $district = $this->partnerAt($this->places()['district']);
+        $order = $this->order($district, 'submitted', '60.00');
+
+        $orders = $this->actingAs($owner)->onPortal('sadmin')->post('/commands/bulk/orders-export', ['ids' => [(string) $order->id]])->assertOk()->streamedContent();
+        $partners = $this->actingAs($owner)->onPortal('sadmin')->post('/commands/bulk/partners-export', ['ids' => [$district->id]])->assertOk()->streamedContent();
+
+        foreach ([$orders, $partners] as $csv) {
+            $this->assertMatchesRegularExpression('/'.preg_quote($district->name, '/').'"?,'.preg_quote($district->dealer_code, '/').',/', $csv);
+            $this->assertMatchesRegularExpression('/District dealer — Rangpur|জেলা ডিলার — রংপুর/u', $csv);
+        }
     }
 
     private function order(User $user, string $status, string $total): Order
