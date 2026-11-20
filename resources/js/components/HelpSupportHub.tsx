@@ -22,6 +22,7 @@ import {
 import { Badge, date, Empty, Modal, Table, type Row, number } from './UI';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from './MoneyTable';
 import OfficePage from './office/OfficePage';
+import { PartnerTypeCell, partnerTypeText } from './office/portalShared';
 import Figures, { type FigureItem } from './office/Figures';
 import PrerequisiteHelper from './PrerequisiteHelper';
 import { restartOnboardingTour } from './OnboardingTour';
@@ -597,6 +598,8 @@ type SupportDeskRow = Row & {
     status: string;
     user_name: string;
     dealer_code: string | null;
+    user_role?: string | null;
+    partner_type?: { title: string | null; place: string | null } | null;
     created_at: string;
     waiting_hours: number | null;
     overdue: boolean;
@@ -616,7 +619,9 @@ function SupportTicketDrawer({ ticket, onClose }: { ticket: SupportDeskRow; onCl
     return (
         <Modal variant="drawer" title={ticket.subject} badge={<Badge status={ticket.status} />} onClose={onClose}>
             <dl className="office-facts">
-                <div><dt>{translate('portal', 'col_partner')}</dt><dd>{[ticket.user_name, ticket.dealer_code].filter(Boolean).join(' · ')}</dd></div>
+                <div><dt>{translate('portal', 'col_partner')}</dt><dd>{ticket.user_name}</dd></div>
+                <div><dt>{translate('office_orders', 'col_code')}</dt><dd>{ticket.dealer_code || '—'}</dd></div>
+                <div><dt>{translate('office_orders', 'col_partner_type')}</dt><dd>{partnerTypeText(ticket) || '—'}</dd></div>
                 <div><dt>{translate('portal', 'support_category')}</dt><dd>{translate('portal', `support_cat_${ticket.category}`)}</dd></div>
                 <div><dt>{translate('portal', 'col_date')}</dt><dd>{date(ticket.created_at)}</dd></div>
                 {ticket.waiting_hours !== null && (
@@ -689,7 +694,9 @@ export function SupportAdminHub({ data }: { data: Row }) {
     });
     const columns: MoneyColumn<SupportDeskRow>[] = [
         { key: 'subject', title: translate('portal', 'support_subject'), sortKey: 'subject', phone: 'title', render: (row) => <>{row.subject}<small className="cell-sub">{translate('portal', `support_cat_${row.category}`)}</small></> },
-        { key: 'user_name', title: translate('portal', 'col_partner'), sortKey: 'name', phone: 'sub', render: (row) => <>{row.user_name}<small className="cell-sub">{row.dealer_code}</small></> },
+        { key: 'user_name', title: translate('portal', 'col_partner'), sortKey: 'name', phone: 'sub', render: (row) => <>{row.user_name}</> },
+        { key: 'code', title: translate('office_orders', 'col_code'), phone: 'hide', render: (row) => row.dealer_code || '—' },
+        { key: 'partner_type', title: translate('office_orders', 'col_partner_type'), phone: 'hide', render: (row) => <PartnerTypeCell user={{ partner_type: row.partner_type, role: row.user_role }} /> },
         { key: 'created_at', title: translate('portal', 'col_date'), sortKey: 'created_at', phone: 'sub', render: (row) => date(row.created_at) },
         {
             key: 'waiting_hours',

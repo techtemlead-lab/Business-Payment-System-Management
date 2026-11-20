@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Accounts\PartnerAppointment;
 use App\Domain\Accounts\TeamOrdersReport;
 use App\Domain\Orders\OrderListFilter;
 use App\Models\User;
@@ -66,6 +67,7 @@ class TeamOrdersController extends Controller
             ['key' => 'number', 'label' => $label('report_col_order')],
             ['key' => 'member_name', 'label' => $label('report_col_member')],
             ['key' => 'member_code', 'label' => $label('col_dealer_code')],
+            ['key' => 'member_type_text', 'label' => __('office_orders.col_partner_type')],
             ['key' => 'status_label', 'label' => $label('col_status')],
             ['key' => 'total', 'label' => $label('report_col_ordered'), 'type' => 'money', 'total' => true],
             ['key' => 'paid', 'label' => $label('report_col_paid'), 'type' => 'money', 'total' => true],
@@ -77,6 +79,7 @@ class TeamOrdersController extends Controller
                     ...$row,
                     'date' => CarbonImmutable::parse($row['created_at'])->timezone('Asia/Dhaka')->format('d M Y H:i'),
                     'member_code' => (string) ($row['member_code'] ?? ''),
+                    'member_type_text' => PartnerAppointment::cellText($row['member_type'] ?? null, $row['member_role'] ? (string) __('portal.acct_role_'.$row['member_role']) : ''),
                     'status_label' => __('portal.status_'.$row['status']),
                 ];
             }

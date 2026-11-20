@@ -120,10 +120,10 @@ class CommissionReportHubTest extends TestCase
 
     public function test_there_is_only_one_commission_calculator(): void
     {
-        $studio = (string) file_get_contents(resource_path('js/components/CommissionStudio.tsx'));
+        $source = (string) file_get_contents(resource_path('js/components/commissionpage/CommissionPage.tsx'));
 
-        $this->assertStringNotContainsString('setSimOrderAmount', $studio);
-        $this->assertStringNotContainsString('cs_tab_simulator', $studio);
+        $this->assertStringNotContainsString('setSimOrderAmount', $source);
+        $this->assertStringNotContainsString('cs_tab_simulator', $source);
         $this->office($this->staffWith(['finance']))->get('/simulator')->assertOk()
             ->assertInertia(fn (Assert $page) => $page->where('section', 'simulator')->has('data.simulation'));
     }

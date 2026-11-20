@@ -35,6 +35,7 @@ final class TranslationBundle
         'office_errors' => 'office_errors', 'reason_fields' => 'reason_fields', 'partner_ux' => 'partner_ux',
         'money_core' => 'money_core', 'joining' => 'joining', 'orders_stock' => 'orders_stock',
         'stock_screens' => 'stock_screens', 'purchase_page' => 'purchase_page', 'payouts' => 'payouts', 'cr_partner' => 'cr_partner', 'cr14' => 'cr14', 'cr17' => 'cr17', 'cr18' => 'cr18', 'cr21_income' => 'cr21_income', 'cr21_identity' => 'cr21_identity', 'appointment_lines' => 'appointment_lines', 'office_profile' => 'office_profile', 'leftovers_office' => 'leftovers_office', 'leftovers_partner' => 'leftovers_partner', 'catalog_cart' => 'catalog_cart', 'qa_fixes' => 'qa_fixes', 'findability' => 'findability', 'message_templates' => 'message_templates',
+        'commission_page' => 'commission_page',
     ];
 
     /** @var array<string, string> */

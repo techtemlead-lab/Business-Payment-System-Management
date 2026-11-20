@@ -3,6 +3,7 @@
 namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Accounts\PartnerWalletStatement;
+use App\Domain\Commissions\CommissionPageModel;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionService;
@@ -52,6 +53,7 @@ final class CommissionsSection implements WorkspaceSection
         $props['rules'] = array_values($commissionSnapshot['rules']);
         $props['policy_limits'] = $this->commissionPoolLimits($commissionSnapshot);
         $props['reward_fund_check'] = app(RewardFundCheck::class)->check($commissionSnapshot['rules']);
+        $props['commission_page'] = app(CommissionPageModel::class)->build($context->user, $commissionSnapshot);
 
         return $props;
     }

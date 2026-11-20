@@ -66,7 +66,7 @@ class BackendIntegrationTest extends TestCase
         $this->assertDatabaseHas('commission_batches', ['order_id' => $order->id, 'account_type' => 'sub_dealer', 'total_allocated' => '60.00', 'company_share' => '60.00']);
         $this->assertDatabaseHas('commission_allocations', ['order_id' => $order->id, 'category' => 'sub_dealer_salary', 'amount' => '3.60', 'status' => 'pending']);
         $this->assertDatabaseHas('commission_allocations', ['order_id' => $order->id, 'category' => 'sub_dealer_tour', 'amount' => '3.60', 'status' => 'reserved']);
-        $this->assertDatabaseHas('commission_allocations', ['order_id' => $order->id, 'category' => 'additional_rank_pool', 'amount' => '4.80']);
+        $this->assertDatabaseHas('commission_allocations', ['order_id' => $order->id, 'category' => 'sub_dealer_extra_fund', 'amount' => '4.80']);
         $this->assertDatabaseHas('wallets', ['user_id' => $buyer->id, 'available' => '6.00']);
     }
 

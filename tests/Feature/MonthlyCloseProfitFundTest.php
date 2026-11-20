@@ -18,6 +18,7 @@ use Database\Seeders\CommissionRuleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Tests\Support\SubDealerExtraInRankFund;
 use Tests\TestCase;
 
 /**
@@ -28,6 +29,7 @@ use Tests\TestCase;
 class MonthlyCloseProfitFundTest extends TestCase
 {
     use RefreshDatabase;
+    use SubDealerExtraInRankFund;
 
     private PlaceCode $division;
 
@@ -37,6 +39,7 @@ class MonthlyCloseProfitFundTest extends TestCase
         $this->withoutVite();
         $this->enableFinancialPosting();
         $this->seed(CommissionRuleSeeder::class);
+        $this->sendSubDealerExtraToTheRankFund();
         $this->travelTo(now()->setDate(2026, 11, 10)->startOfDay());
         $this->division = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
     }

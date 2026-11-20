@@ -74,7 +74,7 @@ final class PartnerMoneyBook
         $cards = [];
         foreach (PartnerIncomeHeads::keys() as $head) {
             if (($totals[$head]['cents'] ?? 0) !== 0) {
-                $cards[] = ['key' => $head, 'label' => PartnerIncomeHeads::label($head), 'amount' => FundCatalog::decimalOf($totals[$head]['cents'])];
+                $cards[] = ['key' => $head, 'label' => PartnerIncomeHeads::label($head, null, $partner->role), 'amount' => FundCatalog::decimalOf($totals[$head]['cents'])];
             }
         }
 
@@ -177,7 +177,7 @@ final class PartnerMoneyBook
                     self::Types,
                 )),
                 new MoneyTableFilter('head', (string) __('cr21_income.filter_head'), 'x.head', array_map(
-                    fn (string $head): array => ['value' => $head, 'label' => PartnerIncomeHeads::label($head)],
+                    fn (string $head): array => ['value' => $head, 'label' => PartnerIncomeHeads::label($head, null, $partner->role)],
                     PartnerIncomeHeads::keys(),
                 ), group: 'more'),
             ],
@@ -193,7 +193,7 @@ final class PartnerMoneyBook
             'id' => $row->id,
             'occurred_at' => CarbonImmutable::parse((string) $row->occurred_at, 'UTC')->toIso8601String(),
             'type' => $row->type,
-            'type_label' => $this->rowWord($row),
+            'type_label' => $this->rowWord($row, $partner->role),
             'percent' => $row->percent === null ? null : (string) $row->percent,
             'order_id' => $row->order_id,
             // Only the partner's own orders open; an order of someone in the team stays closed to them.
@@ -438,10 +438,10 @@ final class PartnerMoneyBook
         return (string) __('my_money.type_'.$type);
     }
 
-    private function rowWord(object $row): string
+    private function rowWord(object $row, ?string $role = null): string
     {
         if (in_array($row->type, PartnerIncomeHeads::RowTypes, true)) {
-            return PartnerIncomeHeads::label(PartnerIncomeHeads::headOf($row->type, $row->category, $row->program, $row->kind));
+            return PartnerIncomeHeads::label(PartnerIncomeHeads::headOf($row->type, $row->category, $row->program, $row->kind), null, $role);
         }
 
         return $row->category !== null ? FundCatalog::typeLabel((string) $row->category) : self::typeWord((string) $row->type);

@@ -227,27 +227,30 @@ final class PartnerAccountList
             ->select(['users.id', 'users.name', 'users.email', 'users.phone', 'users.role', 'users.status', 'users.dealer_code', 'users.division', 'users.district', 'users.profile', 'users.created_at',
                 'sponsors.name as sponsor_name', 'sponsors.dealer_code as sponsor_code', 'dealer_ranks.current_rank', 'activity.last_order_at', 'activity.month_purchase'])
             ->orderByDesc('users.id');
-        foreach ($query->cursor() as $row) {
-            $profile = json_decode((string) ($row->profile ?? '{}'), true);
-            $profile = is_array($profile) ? $profile : [];
-            yield [
-                'name' => $row->name,
-                'name_bn' => $profile['name_bn'] ?? '',
-                'shop_name' => $profile['shop_name'] ?? '',
-                'phone' => $row->phone,
-                'email' => $row->email,
-                'dealer_code' => $row->dealer_code,
-                'sponsor' => trim(($row->sponsor_name ?? '').($row->sponsor_code ? ' ('.$row->sponsor_code.')' : '')),
-                'place' => $profile['place_code'] ?? ($profile['area_code'] ?? ''),
-                'role' => __('portal.acct_role_'.$row->role),
-                'district' => $row->district,
-                'division' => $row->division,
-                'joined' => $row->created_at ? CarbonImmutable::parse($row->created_at, 'UTC')->timezone('Asia/Dhaka')->format('d M Y') : '',
-                'status' => $this->statusLabel((string) $row->status),
-                'rank' => __('portal.net_rank_'.($row->current_rank ?: 'dealer')),
-                'last_order_at' => $row->last_order_at ? CarbonImmutable::parse($row->last_order_at, 'UTC')->timezone('Asia/Dhaka')->format('d M Y') : '',
-                'month_purchase' => $this->decimal($row->month_purchase),
-            ];
+        foreach ($query->cursor()->chunk(500) as $batch) {
+            app(PartnerAppointment::class)->attachToRows($batch, 'id');
+            foreach ($batch as $row) {
+                $profile = json_decode((string) ($row->profile ?? '{}'), true);
+                $profile = is_array($profile) ? $profile : [];
+                yield [
+                    'name' => $row->name,
+                    'name_bn' => $profile['name_bn'] ?? '',
+                    'shop_name' => $profile['shop_name'] ?? '',
+                    'phone' => $row->phone,
+                    'email' => $row->email,
+                    'dealer_code' => $row->dealer_code,
+                    'sponsor' => trim(($row->sponsor_name ?? '').($row->sponsor_code ? ' ('.$row->sponsor_code.')' : '')),
+                    'place' => $profile['place_code'] ?? ($profile['area_code'] ?? ''),
+                    'role' => PartnerAppointment::cellText($row->partner_type, (string) __('portal.acct_role_'.$row->role)),
+                    'district' => $row->district,
+                    'division' => $row->division,
+                    'joined' => $row->created_at ? CarbonImmutable::parse($row->created_at, 'UTC')->timezone('Asia/Dhaka')->format('d M Y') : '',
+                    'status' => $this->statusLabel((string) $row->status),
+                    'rank' => __('portal.net_rank_'.($row->current_rank ?: 'dealer')),
+                    'last_order_at' => $row->last_order_at ? CarbonImmutable::parse($row->last_order_at, 'UTC')->timezone('Asia/Dhaka')->format('d M Y') : '',
+                    'month_purchase' => $this->decimal($row->month_purchase),
+                ];
+            }
         }
     }
 

@@ -24,11 +24,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
+use Tests\Support\SubDealerExtraInRankFund;
 use Tests\TestCase;
 
 class NetworkAndFinancePageScalingTest extends TestCase
 {
     use RefreshDatabase;
+    use SubDealerExtraInRankFund;
 
     protected function setUp(): void
     {
@@ -187,6 +189,7 @@ class NetworkAndFinancePageScalingTest extends TestCase
 
     public function test_reserve_summary_matches_each_fund_and_shows_the_car_and_bike_fund_once(): void
     {
+        $this->sendSubDealerExtraToTheRankFund();
         $this->enableFinancialPosting();
         $buyer = $this->partner($this->partner(null), 'sub_dealer');
         $order = $this->postedOrder($buyer, '120.00');

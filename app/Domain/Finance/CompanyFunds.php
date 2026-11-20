@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\DB;
 final class CompanyFunds
 {
     /** Funds fed by commission allocation rows. */
-    public const AllocationFunds = ['company_profit', 'management', 'marketing', 'tour', 'geographic_reserve', 'referral_reserve', 'car_bike', 'rank_reward', 'salary_reserve'];
+    public const AllocationFunds = ['company_profit', 'management', 'marketing', 'tour', 'geographic_reserve', 'referral_reserve', 'car_bike', 'rank_reward', 'salary_reserve', 'sub_dealer_extra'];
 
     /** Funds worked out from order batches and clinic sales. */
     public const LedgerFunds = ['company_share', 'clinic', 'benefits'];
@@ -76,6 +76,7 @@ final class CompanyFunds
             ."WHEN funds.category = 'company_marketing_fund' THEN 'marketing' "
             ."WHEN funds.category = 'car_bike_incentive_fund' THEN 'car_bike' "
             ."WHEN funds.category = 'sub_dealer_tour' THEN 'tour' "
+            ."WHEN funds.category = '".CommissionPosting::SubDealerExtraCategory."' THEN 'sub_dealer_extra' "
             ."WHEN funds.category = 'additional_rank_pool' AND funds.status = 'pending' THEN 'rank_reward' "
             ."WHEN funds.category = '{$rankReserve}' THEN 'rank_reward' "
             ."WHEN funds.category IN ('{$dealerSalary}', '{$subDealerSalary}') THEN 'salary_reserve' END";
@@ -326,6 +327,11 @@ final class CompanyFunds
         }
         $key = 'portal.report_cat_'.$category;
         $label = __($key);
+        if ($label === $key) {
+            // Words for money added after the portal word list was written live in the commission page's own file.
+            $label = __('commission_page.type_'.$category);
+            $key = 'commission_page.type_'.$category;
+        }
 
         return $label === $key ? $category : $label;
     }

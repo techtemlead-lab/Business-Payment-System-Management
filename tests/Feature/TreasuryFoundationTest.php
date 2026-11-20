@@ -29,6 +29,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
+use Tests\Support\SubDealerExtraInRankFund;
 use Tests\TestCase;
 
 /**
@@ -39,6 +40,7 @@ use Tests\TestCase;
 class TreasuryFoundationTest extends TestCase
 {
     use RefreshDatabase;
+    use SubDealerExtraInRankFund;
 
     private User $owner;
 
@@ -198,6 +200,7 @@ class TreasuryFoundationTest extends TestCase
 
     public function test_a_closed_sub_dealer_rank_month_keeps_its_money_in_and_nets_to_zero(): void
     {
+        $this->sendSubDealerExtraToTheRankFund();
         $this->delivered(User::factory()->subDealer()->create(), '100.00', '120.00');
         $before = $this->card('rank_reward')['money_in'];
         $this->assertNotSame('0.00', $before);

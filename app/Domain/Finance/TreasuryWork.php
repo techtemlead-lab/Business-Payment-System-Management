@@ -126,7 +126,7 @@ final class TreasuryWork
             dateColumn: 'r.spent_on',
             search: ['r.payee_name', 'r.reason', 'r.payment_reference', 'h.name_en', 'h.name_bn', 'maker.name'],
             filters: [
-                new MoneyTableFilter('fund', (string) __('funds.col_fund'), 'r.fund_key', array_map(fn (string $key): array => ['value' => $key, 'label' => (string) __('treasury.fund_'.$key)], $visible)),
+                new MoneyTableFilter('fund', (string) __('funds.col_fund'), 'r.fund_key', array_map(fn (string $key): array => ['value' => $key, 'label' => FundCatalog::name($key)], $visible)),
                 $this->headFilter('r.expense_head_id', $heads),
             ],
             sorts: ['date' => 'r.spent_on', 'fund' => 'r.fund_key', 'payee' => 'r.payee_name', 'amount' => 'r.amount', 'maker' => 'maker.name'],

@@ -5,6 +5,7 @@ import { Table, money, date, Badge, type Row, DateInput, number, Modal } from '.
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from './MoneyTable';
 import OfficePage from './office/OfficePage';
 import Figures from './office/Figures';
+import { PartnerTypeCell } from './office/portalShared';
 import type { OfficeHub } from './OfficeHubTabs';
 import { useT } from '../shared/i18n/t';
 import { businessTodayIso } from '../business-date';
@@ -36,6 +37,8 @@ interface PerformanceOrder extends Row {
     status: string;
     partner_name?: string | null;
     dealer_code?: string | null;
+    partner_role?: string | null;
+    partner_type?: { title: string | null; place: string | null } | null;
     delivered_value: string;
     delivered_paid: string;
     outstanding: string;
@@ -309,7 +312,9 @@ export default function BranchPerformanceHub({ performance, branch_options = [] 
         : <b>{row.name}</b>);
     const orderTable: MoneyTableData<PerformanceOrder> | undefined = performance.orders_table && { ...performance.orders_table, rows: performance.orders };
     const orderColumns: MoneyColumn<PerformanceOrder>[] = [
-        { key: 'number', title: translate('portal', 'col_order'), sortKey: 'number', phone: 'title', render: (row) => <><b>{row.number}</b><small className="cell-sub">{row.partner_name}{row.dealer_code ? ` · ${row.dealer_code}` : ''}</small></> },
+        { key: 'number', title: translate('portal', 'col_order'), sortKey: 'number', phone: 'title', render: (row) => <><b>{row.number}</b>{row.partner_name && <small className="cell-sub">{row.partner_name}</small>}</> },
+        { key: 'code', title: translate('office_orders', 'col_code'), phone: 'hide', render: (row) => row.dealer_code || '—' },
+        { key: 'partner_type', title: translate('office_orders', 'col_partner_type'), phone: 'hide', render: (row) => <PartnerTypeCell user={{ partner_type: row.partner_type, role: row.partner_role }} /> },
         { key: 'created_at', title: translate('portal', 'col_date'), sortKey: 'date', phone: 'sub', render: (row) => date(row.created_at) },
         { key: 'branch_name', title: translate('portal', 'col_branch'), sortKey: 'branch', phone: 'hide', render: (row) => (row.branch_code ? `${row.branch_name} · ${row.branch_code}` : (row.branch_name || '—')) },
         { key: 'status', title: translate('portal', 'col_status'), sortKey: 'status', phone: 'sub', render: (row) => <Badge status={row.status} /> },
