@@ -14,6 +14,7 @@ use App\Http\Middleware\ThrottleEachAction;
 use App\Listeners\NoticeNewStaffDevice;
 use App\Models\User;
 use App\Support\LocalDigits;
+use App\Support\Mail\MailgunHttpTransport;
 use App\Support\PasswordVault;
 use App\Support\SiteCustomization;
 use Illuminate\Auth\Events\Login;
@@ -34,6 +35,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\URL;
@@ -166,6 +168,13 @@ class AppServiceProvider extends ServiceProvider
             $view->with('siteCustomization', $customization);
             $view->with('publicPageEnabled', SiteCustomization::enabledPagesMap($customization));
         });
+
+        Mail::extend('mailgun-http', fn (array $config) => new MailgunHttpTransport(
+            (string) ($config['domain'] ?? ''),
+            (string) ($config['secret'] ?? ''),
+            (string) ($config['endpoint'] ?? 'api.mailgun.net'),
+            (int) ($config['timeout'] ?? 15),
+        ));
 
         try {
             $this->app->make(SmtpMailConfig::class)->apply();

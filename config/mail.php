@@ -65,6 +65,16 @@ return [
             'transport' => 'resend',
         ],
 
+        // Mailgun over its HTTP API (no extra composer package). The key stays in the server's
+        // environment only. Use MAILGUN_ENDPOINT=api.eu.mailgun.net for an EU-region domain.
+        'mailgun_http' => [
+            'transport' => 'mailgun-http',
+            'domain' => env('MAILGUN_DOMAIN'),
+            'secret' => env('MAILGUN_SECRET'),
+            'endpoint' => env('MAILGUN_ENDPOINT', 'api.mailgun.net'),
+            'timeout' => 15,
+        ],
+
         'sendmail' => [
             'transport' => 'sendmail',
             'path' => env('MAIL_SENDMAIL_PATH', '/usr/sbin/sendmail -bs -i'),
@@ -83,6 +93,7 @@ return [
             'transport' => 'failover',
             'mailers' => [
                 'smtp',
+                'mailgun_http',
                 'log',
             ],
             'retry_after' => 60,
