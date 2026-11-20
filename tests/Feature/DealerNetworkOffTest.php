@@ -19,7 +19,7 @@ class DealerNetworkOffTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
-        config(['madina.public_dealer_network' => false]);
+        config(['madina.public_dealer_network' => false, 'madina.public_verify_dealer' => false]);
         SiteCustomization::forgetCache();
     }
 
@@ -76,6 +76,9 @@ class DealerNetworkOffTest extends TestCase
         SiteCustomization::save(['page_enabled_dealers' => '1']);
 
         $this->onPortal('public')->get('/dealers')->assertOk();
+        // Verify a dealer has its own switch: turning the network on does not turn it on.
+        $this->onPortal('public')->get('/verify-dealer')->assertNotFound();
+        SiteCustomization::save(['page_enabled_verify-dealer' => '1']);
         $this->onPortal('public')->get('/verify-dealer')->assertOk();
         $this->assertStringContainsString('ref-dealer-network-banner', (string) $this->onPortal('public')->get('/')->getContent());
     }

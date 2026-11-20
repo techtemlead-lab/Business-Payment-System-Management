@@ -90,6 +90,8 @@ return [
     // Factory default of the website editor's "Dealer network" page switch: off. The owner can turn the page on in the
     // website editor at any time; a new project can start with it on by setting MADINA_PUBLIC_DEALER_NETWORK=true.
     'public_dealer_network' => (bool) env('MADINA_PUBLIC_DEALER_NETWORK', false),
+    // Factory default of the website editor's "Verify a dealer" page switch: off, turned on only by the owner in the website editor (client, 2026-11-20).
+    'public_verify_dealer' => (bool) env('MADINA_PUBLIC_VERIFY_DEALER', false),
     // Prefer /public/build over Vite HMR. Stale public/hot points CSS/JS at :5173, which CSP
     // blocks on port-forwarded Cloud Agent browsers and blanks public pages.
     'force_built_assets' => (bool) env('MADINA_FORCE_BUILT_ASSETS', false),
