@@ -49,8 +49,9 @@ class TreasuryController extends Controller
     {
         abort_unless(TreasuryAccess::mayOpenFunds($request->user()), 403);
         $card = $funds->card($fund, $this->showsOwnerFunds($request));
-        $leaderFigures = $fund === RewardLeaderList::Fund ? $leaders->summary() : null;
-        $view = $this->fundView($request, $leaderFigures !== null);
+        $awards = RewardLeaderList::awardsOf($fund);
+        $leaderFigures = $awards === [] ? null : [...$leaders->summary(), 'shown' => $awards];
+        $view = $this->fundView($request, $awards);
 
         return Inertia::render('TreasuryFund', [
             ...$this->shared($request),
@@ -176,12 +177,16 @@ class TreasuryController extends Controller
         return [$default['from'], $default['to']];
     }
 
-    /** The view asked for in the address, when this fund has it; otherwise the money that came in. */
-    private function fundView(Request $request, bool $hasLeaders): string
+    /**
+     * The view asked for in the address, when this fund has it; otherwise the money that came in.
+     *
+     * @param  list<string>  $awards  the leader lists this fund has
+     */
+    private function fundView(Request $request, array $awards): string
     {
         $asked = $request->query('view');
 
-        return is_string($asked) && in_array($asked, ['out', ...($hasLeaders ? RewardLeaderList::Awards : [])], true) ? $asked : 'in';
+        return is_string($asked) && in_array($asked, ['out', ...$awards], true) ? $asked : 'in';
     }
 
     /** @return array{section: string, tabs: array{waiting: int}} */

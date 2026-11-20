@@ -677,7 +677,10 @@ final class ReserveService
         return CommissionAllocation::where('category', self::Programs[$program])->when($program === 'tour', fn ($q) => $q->where('user_id', $userId))
             // A bike prize draws only on bike rows, a car prize only on car rows; rows from before the split count half for each.
             ->when(in_array($program, VehiclePools::Programs, true), fn ($q) => $q->whereRaw("(metadata->>'vehicle_pool' IS NULL OR metadata->>'vehicle_pool' = ?)", [$program]))
-            ->where('status', '!=', self::ClosedFundStatus)->where('amount', '>', 0)->orderBy('id')->lockForUpdate()->get();
+            ->where('status', '!=', self::ClosedFundStatus)->where('amount', '>', 0)
+            // A bike or car prize is paid from its own fund first (tagged rows), and only if that is short from the old combined money (untagged rows).
+            ->when(in_array($program, VehiclePools::Programs, true), fn ($q) => $q->orderByRaw("(metadata->>'vehicle_pool' IS NULL)"))
+            ->orderBy('id')->lockForUpdate()->get();
     }
 
     /**

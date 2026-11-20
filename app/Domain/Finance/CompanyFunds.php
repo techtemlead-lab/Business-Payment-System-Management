@@ -23,13 +23,16 @@ use Illuminate\Support\Facades\DB;
 final class CompanyFunds
 {
     /** Funds fed by commission allocation rows. */
-    public const AllocationFunds = ['company_profit', 'management', 'marketing', 'tour', 'geographic_reserve', 'referral_reserve', 'car_bike', 'rank_reward', 'salary_reserve', 'sub_dealer_extra'];
+    public const AllocationFunds = ['company_profit', 'management', 'marketing', 'tour', 'geographic_reserve', 'referral_reserve', 'bike', 'car', 'car_bike', 'rank_reward', 'salary_reserve', 'sub_dealer_extra'];
 
     /** Funds worked out from order batches and clinic sales. */
     public const LedgerFunds = ['company_share', 'clinic', 'benefits'];
 
-    /** Funds that only their own award or month-close flow may draw on. */
-    public const AwardOnly = ['car_bike', 'rank_reward', 'salary_reserve'];
+    /**
+     * Funds that only their own award or month-close flow may draw on. Bike and Car are the two prize
+     * funds; car_bike is the old combined fund, kept for rows posted before the pools were tagged.
+     */
+    public const AwardOnly = ['bike', 'car', 'car_bike', 'rank_reward', 'salary_reserve'];
 
     /** Seen and spent by the owners only, on the owner panel. */
     public const OwnerOnly = ['benefits'];
@@ -38,7 +41,7 @@ final class CompanyFunds
     public const NoCommissionCategory = 'no_commission_to_company';
 
     /** Older payout programs that drew on a fund before the generic spend flow. */
-    public const LegacyPrograms = ['marketing' => ['marketing'], 'car_bike' => ['bike', 'car'], 'tour' => ['tour'], 'rank_reward' => ['additional_rank']];
+    public const LegacyPrograms = ['marketing' => ['marketing'], 'bike' => ['bike'], 'car' => ['car'], 'car_bike' => ['bike', 'car'], 'tour' => ['tour'], 'rank_reward' => ['additional_rank']];
 
     /** @return list<string> */
     public static function keys(): array
@@ -68,13 +71,17 @@ final class CompanyFunds
         $subDealerSalary = CommissionSettlement::SubDealerSalaryReserve;
 
         $noCommission = self::NoCommissionCategory;
+        $vehicle = VehiclePools::Category;
 
         return "CASE WHEN funds.category IN ('{$companyProfit}', '{$noCommission}') OR funds.metadata->>'retained_by' = '{$retainedProfit}' THEN 'company_profit' "
             ."WHEN funds.category = 'area_management' OR funds.metadata->>'retained_by' = '{$retainedManagement}' THEN 'management' "
             ."WHEN funds.category LIKE '%\\_override\\_reserve' OR funds.category LIKE '%\\_breakage' THEN 'referral_reserve' "
             ."WHEN funds.status = 'unassigned_reserve' THEN 'geographic_reserve' "
             ."WHEN funds.category = 'company_marketing_fund' THEN 'marketing' "
-            ."WHEN funds.category = 'car_bike_incentive_fund' THEN 'car_bike' "
+            // Rows tagged with their pool belong to the Bike or Car fund; older untagged rows stay in the old combined fund.
+            ."WHEN funds.category = '{$vehicle}' AND funds.metadata->>'vehicle_pool' = 'bike' THEN 'bike' "
+            ."WHEN funds.category = '{$vehicle}' AND funds.metadata->>'vehicle_pool' = 'car' THEN 'car' "
+            ."WHEN funds.category = '{$vehicle}' THEN 'car_bike' "
             ."WHEN funds.category = 'sub_dealer_tour' THEN 'tour' "
             ."WHEN funds.category = '".CommissionPosting::SubDealerExtraCategory."' THEN 'sub_dealer_extra' "
             ."WHEN funds.category = 'additional_rank_pool' AND funds.status = 'pending' THEN 'rank_reward' "

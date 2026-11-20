@@ -58,7 +58,7 @@ class OldMoneyAddressController extends Controller
 
     public function rewards(Request $request): RedirectResponse
     {
-        $target = TreasuryAccess::mayOpenFunds($request->user()) ? '/treasury/funds/car_bike' : $this->treasuryHome($request->user());
+        $target = TreasuryAccess::mayOpenFunds($request->user()) ? '/treasury/funds/bike' : $this->treasuryHome($request->user());
 
         return $this->moveTo($request, $this->officeOrMyMoney($request, $target));
     }
