@@ -36,6 +36,7 @@ use App\Http\Controllers\PrescriptionToolsController;
 use App\Http\Controllers\PrivacyRequestController;
 use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductConcernController;
+use App\Http\Controllers\ProductListPrintController;
 use App\Http\Controllers\ProductPhotoModelController;
 use App\Http\Controllers\ProductRegistryController;
 use App\Http\Controllers\ProductSizeGroupController;
@@ -121,6 +122,7 @@ return function (string $portal): void {
     Route::get('/exports/accounts', AccountListExportController::class)->middleware('throttle:15,1,data-exports');
     Route::get('/exports/partner-registration-form/{user}', PartnerRegistrationFormController::class)->whereNumber('user')->middleware('throttle:30,1');
     Route::get('/exports/stock-movements', StockMovementExportController::class)->middleware('throttle:15,1,data-exports');
+    Route::get('/exports/product-list', ProductListPrintController::class)->middleware('throttle:15,1,data-exports');
     Route::get('/exports/stock-print', StockPrintController::class)->middleware('throttle:15,1,data-exports');
     Route::get('/exports/branch-performance', BranchPerformanceExportController::class)->middleware('throttle:15,1,data-exports');
 

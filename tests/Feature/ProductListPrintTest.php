@@ -3,9 +3,10 @@
 namespace Tests\Feature;
 
 use App\Domain\Inventory\BranchOperations;
-use App\Domain\Inventory\StockPrintList;
+use App\Domain\Inventory\PdfPhotos;
+use App\Domain\Inventory\ProductListPdf;
+use App\Domain\Inventory\ProductListRows;
 use App\Domain\Inventory\StockPrintName;
-use App\Domain\Inventory\StockPrintPdf;
 use App\Models\CompanyBranch;
 use App\Models\Product;
 use App\Models\User;
@@ -22,7 +23,7 @@ use Tests\TestCase;
 /**
  * The printed stock list: who may download it, and what each row and the grand total say.
  */
-class StockPrintTest extends TestCase
+class ProductListPrintTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -43,13 +44,13 @@ class StockPrintTest extends TestCase
         $this->stockOf($this->product(['name' => 'Herbal Syrup', 'pack_size_en' => '100 ml', 'mrp' => '200.00']), $this->hub, 5, '2027-03-31');
         $storekeeper = User::factory()->create(['role' => 'inventory', 'status' => 'active']);
 
-        $response = $this->actingAs($storekeeper)->onPortal('manage')->get('/exports/stock-print')
+        $response = $this->actingAs($storekeeper)->onPortal('manage')->get('/exports/product-list')
             ->assertOk()
             ->assertHeader('content-type', 'application/pdf');
 
         $this->assertStringStartsWith('%PDF', file_get_contents($response->baseResponse->getFile()->getPathname()));
-        $this->assertStringContainsString('Madina-stock-list-', (string) $response->headers->get('content-disposition'));
-        $this->assertDatabaseHas('audit_events', ['action' => 'report.exported', 'subject' => 'stock-print']);
+        $this->assertStringContainsString('Madina-product-list-', (string) $response->headers->get('content-disposition'));
+        $this->assertDatabaseHas('audit_events', ['action' => 'report.exported', 'subject' => 'product-list']);
     }
 
     public function test_the_pdf_also_renders_in_bangla_and_when_nothing_is_in_stock(): void
@@ -57,7 +58,7 @@ class StockPrintTest extends TestCase
         $owner = User::factory()->staff()->create();
         App::setLocale('bn');
 
-        $this->actingAs($owner)->onPortal('sadmin')->get('/exports/stock-print')
+        $this->actingAs($owner)->onPortal('sadmin')->get('/exports/product-list')
             ->assertOk()
             ->assertHeader('content-type', 'application/pdf');
     }
@@ -67,13 +68,13 @@ class StockPrintTest extends TestCase
         $finance = User::factory()->create(['role' => 'finance', 'status' => 'active']);
         $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
 
-        $this->actingAs($finance)->onPortal('manage')->get('/exports/stock-print')->assertForbidden();
-        $this->actingAs($dealer)->onPortal('dealer')->get('/exports/stock-print')->assertForbidden();
+        $this->actingAs($finance)->onPortal('manage')->get('/exports/product-list')->assertForbidden();
+        $this->actingAs($dealer)->onPortal('dealer')->get('/exports/product-list')->assertForbidden();
     }
 
     public function test_a_guest_cannot_download_the_list(): void
     {
-        $this->onPortal('sadmin')->get('/exports/stock-print')->assertRedirect();
+        $this->onPortal('sadmin')->get('/exports/product-list')->assertRedirect();
     }
 
     public function test_a_row_shows_name_pack_size_category_mrp_and_both_discounts_and_nothing_about_quantity(): void
@@ -84,7 +85,7 @@ class StockPrintTest extends TestCase
         ]);
         $this->stockOf($product, $this->hub, 7, '2027-03-31');
 
-        $list = (new StockPrintList)->build();
+        $list = (new ProductListRows)->build();
 
         $this->assertSame(['rows'], array_keys($list));
         $productId = (int) Product::query()->where('name', 'Herbal Syrup')->value('id');
@@ -118,14 +119,14 @@ class StockPrintTest extends TestCase
         ]);
         $this->stockOf($product, $this->hub, 1, null);
 
-        $row = (new StockPrintList)->build()['rows'][0];
+        $row = (new ProductListRows)->build()['rows'][0];
 
         $this->assertSame('Helps digestion', $row['efficacy']);
         $this->assertSame('One spoon after food', $row['usage']);
         $this->assertSame(Storage::disk('local')->path($stored), $row['image']);
 
         App::setLocale('bn');
-        $bangla = (new StockPrintList)->build()['rows'][0];
+        $bangla = (new ProductListRows)->build()['rows'][0];
         $this->assertSame('খাবারের পর এক চামচ', $bangla['usage']);
     }
 
@@ -137,18 +138,18 @@ class StockPrintTest extends TestCase
         ]);
         $this->stockOf($product, $this->hub, 3, null);
 
-        $row = (new StockPrintList)->build()['rows'][0];
+        $row = (new ProductListRows)->build()['rows'][0];
         $this->assertSame('Paracetamol', $row['group']);
         $this->assertSame('Helps with fever', $row['efficacy']);
 
         App::setLocale('bn');
-        $this->assertSame('প্যারাসিটামল', (new StockPrintList)->build()['rows'][0]['group']);
+        $this->assertSame('প্যারাসিটামল', (new ProductListRows)->build()['rows'][0]['group']);
     }
 
     public function test_one_table_carries_photo_group_what_it_does_and_how_to_use_and_there_is_no_branch_or_date_line(): void
     {
-        $html = view('invoices.stock-list', [
-            'company' => app(StockPrintPdf::class)->company(),
+        $html = view('invoices.product-list', [
+            'company' => app(ProductListPdf::class)->company(),
             'rows' => [['serial' => 1, 'name' => 'Napa Test', 'pack_size' => null, 'category' => 'Tablet', 'group' => 'Paracetamol',
                 'mrp' => '10.00', 'dealer_discount' => null, 'sub_dealer_discount' => null, 'image' => '/tmp/napa.jpg',
                 'usage' => 'One after food', 'efficacy' => 'Helps with fever']],
@@ -157,7 +158,7 @@ class StockPrintTest extends TestCase
         $this->assertSame(1, substr_count($html, '<table class="items"'), 'The product list is one table.');
         $this->assertSame(1, substr_count($html, 'src="/tmp/napa.jpg"'));
         foreach (['col_image', 'col_group', 'col_category', 'col_efficacy', 'col_usage', 'col_mrp', 'col_dealer_discount', 'col_sub_dealer_discount'] as $column) {
-            $this->assertSame(1, substr_count($html, '>'.__('stock_print.'.$column).'</th>'), $column);
+            $this->assertSame(1, substr_count($html, '>'.__('product_list_print.'.$column).'</th>'), $column);
         }
         $this->assertStringContainsString('Paracetamol', $html);
         $this->assertStringContainsString('One after food', $html);
@@ -171,7 +172,7 @@ class StockPrintTest extends TestCase
         $this->stockOf($this->product(['name' => 'Asthma Kit (অাজমা কিট) 30Tab', 'category' => 'Medicine', 'mrp' => '400.00']), $this->hub, 2, null);
         $this->stockOf($this->product(['name' => 'Syrup Ulica (সিরাপ ইউলিকা) 100 ML', 'category' => 'Syrup', 'pack_size_en' => '100 ml', 'mrp' => '180.00']), $this->hub, 2, null);
 
-        $rows = (new StockPrintList)->build()['rows'];
+        $rows = (new ProductListRows)->build()['rows'];
 
         $this->assertSame(['Asthma Kit (অাজমা কিট)', 'Syrup Ulica (সিরাপ ইউলিকা)'], array_column($rows, 'name'));
         $this->assertSame(['30Tab', '100 ml'], array_column($rows, 'pack_size'));
@@ -211,7 +212,7 @@ class StockPrintTest extends TestCase
         $this->stockOf($this->product(['name' => 'Amla Tab', 'category' => 'Medicine', 'mrp' => '10.00']), $this->hub, 1, null);
         $this->stockOf($this->product(['name' => 'Basil Syrup', 'category' => 'Syrup', 'mrp' => '10.00']), $this->hub, 1, null);
 
-        $rows = (new StockPrintList)->build()['rows'];
+        $rows = (new ProductListRows)->build()['rows'];
 
         $this->assertSame(['Amla Tab', 'Zinc Tab', 'Basil Syrup', 'Cough Syrup', 'Orphan Product'], array_column($rows, 'name'));
         $this->assertSame(['Medicine', 'Medicine', 'Syrup', 'Syrup', null], array_column($rows, 'category'));
@@ -225,7 +226,7 @@ class StockPrintTest extends TestCase
         $this->product(['name' => 'Switched Off', 'mrp' => '10.00', 'active' => false]);
         $this->product(['name' => 'Removed From Sale', 'mrp' => '10.00', 'active' => false, 'archived_at' => now()]);
 
-        $rows = (new StockPrintList)->build()['rows'];
+        $rows = (new ProductListRows)->build()['rows'];
 
         $this->assertSame(['Live In Khulna', 'Live Without Stock'], array_column($rows, 'name'));
     }
@@ -234,7 +235,7 @@ class StockPrintTest extends TestCase
     {
         $this->product(['name' => 'Switched Off', 'mrp' => '10.00', 'active' => false]);
 
-        $this->assertSame(['rows' => []], (new StockPrintList)->build());
+        $this->assertSame(['rows' => []], (new ProductListRows)->build());
     }
 
     public function test_a_missing_price_shows_no_discount_and_a_price_above_mrp_is_not_called_a_discount(): void
@@ -242,7 +243,7 @@ class StockPrintTest extends TestCase
         $this->stockOf($this->product(['name' => 'No Trade Price', 'mrp' => '100.00', 'dealer_price' => null, 'sub_dealer_price' => '0.00']), $this->hub, 1, null);
         $this->stockOf($this->product(['name' => 'Odd Price', 'mrp' => '100.00', 'dealer_price' => '120.00', 'sub_dealer_price' => '66.67']), $this->hub, 1, null);
 
-        $rows = (new StockPrintList)->build()['rows'];
+        $rows = (new ProductListRows)->build()['rows'];
 
         $this->assertSame([null, null], [$rows[0]['dealer_discount'], $rows[0]['sub_dealer_discount']]);
         $this->assertNull($rows[1]['dealer_discount']);
@@ -251,7 +252,7 @@ class StockPrintTest extends TestCase
 
     public function test_the_letterhead_has_both_phone_numbers_65_first_and_the_licence_and_trademark_numbers(): void
     {
-        $company = app(StockPrintPdf::class)->company();
+        $company = app(ProductListPdf::class)->company();
 
         $this->assertSame('+8801730532966', $company['whatsapp']);
         $this->assertSame('+8801730532965', $company['mobile']);
@@ -263,7 +264,7 @@ class StockPrintTest extends TestCase
         $this->assertSame('BD-H-1-335903', $company['trademark']);
 
         SiteCustomization::save(['trust_trade_licence' => 'TL-9', 'trust_trademark' => 'BD-H-1-111111 (Class 5)']);
-        $changed = app(StockPrintPdf::class)->company();
+        $changed = app(ProductListPdf::class)->company();
         $this->assertSame('TL-9', $changed['licence']);
         $this->assertSame('BD-H-1-111111', $changed['trademark']);
     }
@@ -271,12 +272,12 @@ class StockPrintTest extends TestCase
     public function test_the_whatsapp_line_follows_the_owners_whatsapp_link_not_the_last_digits(): void
     {
         SiteCustomization::save(['social_whatsapp' => 'https://wa.me/8801730532965?text=hello']);
-        $swapped = app(StockPrintPdf::class)->company();
+        $swapped = app(ProductListPdf::class)->company();
         $this->assertSame('+8801730532965', $swapped['whatsapp']);
         $this->assertSame('+8801730532966', $swapped['mobile']);
 
         SiteCustomization::save(['social_whatsapp' => 'https://wa.me/8801999999999']);
-        $unmatched = app(StockPrintPdf::class)->company();
+        $unmatched = app(ProductListPdf::class)->company();
         $this->assertSame('+8801730532966', $unmatched['whatsapp']);
         $this->assertSame('+8801730532965', $unmatched['mobile']);
     }
@@ -290,7 +291,7 @@ class StockPrintTest extends TestCase
         $this->stockOf($product, $this->hub, 3, null);
         $owner = User::factory()->staff()->create();
 
-        $response = app(StockPrintPdf::class)->download($owner);
+        $response = app(ProductListPdf::class)->download($owner);
         $pdf = $response->getFile()->getPathname();
 
         $this->assertGreaterThan(200_000, strlen($photo), 'The test photo has to be big to prove anything.');
@@ -300,8 +301,8 @@ class StockPrintTest extends TestCase
 
     public function test_photos_are_printed_big_enough_to_recognise_and_keep_their_shape(): void
     {
-        $html = view('invoices.stock-list', [
-            'company' => app(StockPrintPdf::class)->company(),
+        $html = view('invoices.product-list', [
+            'company' => app(ProductListPdf::class)->company(),
             'rows' => [['serial' => 1, 'name' => 'Wide Box', 'pack_size' => null, 'category' => null, 'group' => null, 'mrp' => '10.00',
                 'dealer_discount' => null, 'sub_dealer_discount' => null, 'image' => '/tmp/wide.jpg', 'image_width' => 130, 'image_height' => 65,
                 'usage' => null, 'efficacy' => null]],
@@ -309,8 +310,8 @@ class StockPrintTest extends TestCase
 
         // CR-00: drawn about 34 mm wide (it was 52 px, about 14 mm), and a wide box stays wide.
         $this->assertStringContainsString('src="/tmp/wide.jpg" alt="" width="130" height="65"', $html);
-        $this->assertSame(400, StockPrintPdf::ThumbnailPixels);
-        $this->assertGreaterThanOrEqual(2 * 52, StockPrintPdf::DisplayPixels);
+        $this->assertSame(400, PdfPhotos::ThumbnailPixels);
+        $this->assertGreaterThanOrEqual(2 * 52, PdfPhotos::DisplayPixels);
     }
 
     public function test_a_list_with_photos_stays_small_enough_to_send_by_mail(): void
@@ -322,7 +323,7 @@ class StockPrintTest extends TestCase
             $this->stockOf($this->product(['name' => "Photo Product {$n}", 'image_path' => "product-media/images/photo-{$n}.jpg"]), $this->hub, 3, null);
         }
 
-        $response = app(StockPrintPdf::class)->download(User::factory()->staff()->create());
+        $response = app(ProductListPdf::class)->download(User::factory()->staff()->create());
 
         // Five busy 1000 px photos: well under 100 KB each in the PDF, so 95 products stay a few megabytes.
         $this->assertLessThan(5 * 100_000 + 150_000, filesize($response->getFile()->getPathname()));
@@ -336,7 +337,7 @@ class StockPrintTest extends TestCase
         $this->stockOf($product, $this->hub, 1, null);
         $owner = User::factory()->staff()->create();
 
-        $response = app(StockPrintPdf::class)->download($owner);
+        $response = app(ProductListPdf::class)->download($owner);
 
         $this->assertStringStartsWith('%PDF', (string) file_get_contents($response->getFile()->getPathname()));
     }
@@ -347,7 +348,7 @@ class StockPrintTest extends TestCase
         $this->product(['name' => 'Old Oil', 'category' => 'Black seed oil', 'image_path' => '']);
         $this->product(['name' => 'Odd One', 'category' => 'Something else', 'image_path' => null]);
 
-        $images = array_column(app(StockPrintList::class)->build()['rows'], 'image', 'name');
+        $images = array_column(app(ProductListRows::class)->build()['rows'], 'image', 'name');
 
         $this->assertSame(public_path('branding/stock/pdf/honey.jpg'), $images['Old Syrup']);
         $this->assertSame(public_path('branding/stock/pdf/black-seed.jpg'), $images['Old Oil']);
@@ -379,7 +380,7 @@ class StockPrintTest extends TestCase
         $this->product(['name' => 'Broken File', 'image_path' => 'product-media/images/broken.jpg', 'category' => 'Skin cosmetics']);
         Log::spy();
 
-        $response = app(StockPrintPdf::class)->download(User::factory()->staff()->create());
+        $response = app(ProductListPdf::class)->download(User::factory()->staff()->create());
 
         $pdf = (string) file_get_contents($response->getFile()->getPathname());
         $this->assertGreaterThanOrEqual(5, preg_match_all('#/Subtype\s*/Image#', $pdf), 'Each of the five products has a picture in the PDF.');
@@ -392,23 +393,73 @@ class StockPrintTest extends TestCase
         $product = $this->product(['name' => 'Gone File', 'category' => 'Syrup', 'image_path' => 'product-media/images/gone.jpg']);
         Log::spy();
 
-        $row = app(StockPrintList::class)->build()['rows'][0];
+        $row = app(ProductListRows::class)->build()['rows'][0];
 
         $this->assertSame(public_path('branding/stock/pdf/honey.jpg'), $row['image']);
         Log::shouldHaveReceived('warning')->withArgs(fn (string $message, array $context): bool => ($context['product_id'] ?? null) === $product->id)->once();
     }
 
+    public function test_only_products_the_website_shows_are_listed_not_drafts_or_archived_ones(): void
+    {
+        $this->product(['name' => 'Live Syrup', 'active' => true]);
+        $this->product(['name' => 'Draft Syrup', 'active' => false, 'archived_at' => null]);
+        $this->product(['name' => 'Archived Syrup', 'active' => false, 'archived_at' => now()]);
+
+        $names = array_column(app(ProductListRows::class)->build()['rows'], 'name');
+
+        $this->assertSame(['Live Syrup'], $names);
+    }
+
+    public function test_the_catalogue_team_may_download_the_list_from_the_products_page(): void
+    {
+        $this->product(['name' => 'Catalogue Syrup']);
+        $editor = User::factory()->create(['role' => 'editor', 'status' => 'active']);
+
+        $this->actingAs($editor)->onPortal('manage')->get('/exports/product-list')->assertOk()->assertHeader('content-type', 'application/pdf');
+    }
+
+    public function test_the_list_comes_with_pictures_or_as_a_compact_copy_without_them(): void
+    {
+        $this->product(['name' => 'Picture Syrup', 'category' => 'Syrup']);
+        $this->product(['name' => 'Picture Oil', 'category' => 'Black seed oil']);
+        $this->product(['name' => 'Draft One', 'active' => false]);
+        $owner = User::factory()->staff()->create();
+
+        $with = $this->actingAs($owner)->onPortal('sadmin')->get('/exports/product-list')->assertOk();
+        $without = $this->actingAs($owner)->onPortal('sadmin')->get('/exports/product-list?pictures=0')->assertOk();
+
+        $withPdf = (string) file_get_contents($with->baseResponse->getFile()->getPathname());
+        $withoutPdf = (string) file_get_contents($without->baseResponse->getFile()->getPathname());
+        $this->assertStringContainsString('Madina-product-list-', (string) $with->headers->get('content-disposition'));
+        $this->assertStringContainsString('Madina-product-list-no-pictures-', (string) $without->headers->get('content-disposition'));
+        $this->assertGreaterThan(preg_match_all('#/Subtype\s*/Image#', $withoutPdf), preg_match_all('#/Subtype\s*/Image#', $withPdf));
+        $this->assertLessThanOrEqual(2, preg_match_all('#/Subtype\s*/Image#', $withoutPdf), 'Only the letterhead logo is a picture.');
+        $this->assertSame(['Picture Oil', 'Picture Syrup'], array_column(app(ProductListRows::class)->build()['rows'], 'name'), 'Both copies list the same live products.');
+    }
+
+    public function test_the_without_pictures_copy_has_no_photo_column_and_fits_more_rows_per_page(): void
+    {
+        $rows = [];
+        foreach (range(1, 40) as $n) {
+            $rows[] = ['serial' => $n, 'name' => "Product {$n}", 'pack_size' => '100 ml', 'category' => 'Syrup', 'group' => null, 'mrp' => '100.00', 'dealer_discount' => null, 'sub_dealer_discount' => null, 'image' => null, 'usage' => null, 'efficacy' => null];
+        }
+        $render = fn (bool $withPictures): string => view('invoices.product-list', ['company' => app(ProductListPdf::class)->company(), 'rows' => $rows, 'withPictures' => $withPictures])->render();
+
+        $this->assertStringContainsString(__('product_list_print.col_image'), $render(true));
+        $this->assertStringNotContainsString(__('product_list_print.col_image'), $render(false));
+    }
+
     public function test_both_languages_carry_the_same_keys_and_the_bangla_text_is_not_a_copy_of_the_english(): void
     {
-        $english = require lang_path('en/stock_print.php');
-        $bangla = require lang_path('bn/stock_print.php');
+        $english = require lang_path('en/product_list_print.php');
+        $bangla = require lang_path('bn/product_list_print.php');
 
         $this->assertSame(array_keys($english), array_keys($bangla));
         foreach ($english as $key => $text) {
             $this->assertNotSame($text, $bangla[$key], $key.' is not translated.');
             $this->assertMatchesRegularExpression('/\p{Bengali}/u', $bangla[$key], $key.' has no Bangla letters.');
         }
-        $this->assertTrue(Lang::has('stock_print.button', 'en'));
+        $this->assertTrue(Lang::has('product_list_print.button', 'en'));
     }
 
     /** A busy 1000 x 1000 picture that does not compress well, like a real photo of a bottle. */

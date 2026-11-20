@@ -5,9 +5,6 @@ namespace App\Domain\Inventory;
 use App\Domain\Catalog\ProductSizeGroups;
 use App\Models\Product;
 use App\Support\Money;
-use App\Support\StockImage;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
 
 /**
@@ -16,7 +13,7 @@ use InvalidArgumentException;
  * last), then by name. It shows no quantities and no totals: it is the product list with prices
  * and discounts, the same for every branch. Nothing here changes stock.
  */
-final class StockPrintList
+final class ProductListRows
 {
     /**
      * @return array{
@@ -52,7 +49,7 @@ final class StockPrintList
                 'mrp' => $mrpCents > 0 ? Money::decimal($mrpCents) : null,
                 'dealer_discount' => $this->discount($product, $product->dealer_price),
                 'sub_dealer_discount' => $this->discount($product, $product->sub_dealer_price),
-                'image' => $this->imagePath($product),
+                'image' => PdfPhotos::sourceFor((int) $product->id, $product->image_path, $product->category),
                 'usage' => $this->localizedFact($product, 'dose'),
                 // The product description stands in until the owner fills in the efficacy.
                 'efficacy' => $this->localizedFact($product, 'efficacy') ?? $this->plainText($product->description),
@@ -60,25 +57,6 @@ final class StockPrintList
         }
 
         return ['rows' => $rows];
-    }
-
-    /**
-     * The picture the website shows for this product, as a file this server can embed in the PDF:
-     * the saved photo, or, when the owner has not uploaded one (or the file is gone), the same
-     * default category picture the website falls back to. It is never left empty.
-     */
-    private function imagePath(Product $product): string
-    {
-        $relative = $product->image_path;
-        if (is_string($relative) && $relative !== '') {
-            $path = Storage::disk('local')->path($relative);
-            if (is_file($path)) {
-                return $path;
-            }
-            Log::warning('Stock print: the saved product photo is missing, the default picture is used.', ['product_id' => $product->id, 'image_path' => $relative]);
-        }
-
-        return StockImage::pdfFileForCategory($product->category);
     }
 
     /** Bangla first on a Bangla page, then English, for a fact stored in both languages. */

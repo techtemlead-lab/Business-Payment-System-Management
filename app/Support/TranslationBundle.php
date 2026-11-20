@@ -24,7 +24,7 @@ final class TranslationBundle
         'funds' => 'funds', 'reward_settings' => 'reward_settings', 'self_approval' => 'self_approval',
         'cr15' => 'cr15',
         'owner_security' => 'owner_security', 'withdrawal_wait' => 'withdrawal_wait', 'productivity' => 'productivity',
-        'clinic_records' => 'clinic_records', 'stock_lots' => 'stock_lots', 'stock_print' => 'stock_print',
+        'clinic_records' => 'clinic_records', 'stock_lots' => 'stock_lots', 'stock_print' => 'stock_print', 'product_list_print' => 'product_list_print',
         'courier_areas' => 'courier_areas', 'wave3_ops' => 'wave3_ops', 'order_payment' => 'order_payment',
         'order_split' => 'order_split', 'shipping_label' => 'shipping_label', 'treasury' => 'treasury',
         'my_money' => 'my_money', 'income' => 'income', 'office_shell' => 'office_shell', 'office_menu' => 'office_menu',

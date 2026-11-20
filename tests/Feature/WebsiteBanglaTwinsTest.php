@@ -85,7 +85,7 @@ class WebsiteBanglaTwinsTest extends TestCase
             'invoice_manufacturer' => 'Madina Herbal Lab',
             'invoice_manufacturer_bn' => 'মদিনা হারবাল ল্যাব',
         ]);
-        $sources = ['app/Domain/Orders/OrderInvoice.php', 'app/Domain/Payouts/PayoutReceipts.php', 'app/Domain/Orders/ShippingLabels.php', 'app/Domain/Inventory/StockPrintPdf.php', 'app/Domain/Inventory/StockLotReports.php', 'app/Domain/Clinic/PrescriptionLetterhead.php', 'app/Support/LetterheadContacts.php'];
+        $sources = ['app/Domain/Orders/OrderInvoice.php', 'app/Domain/Payouts/PayoutReceipts.php', 'app/Domain/Orders/ShippingLabels.php', 'app/Domain/Inventory/ProductListPdf.php', 'app/Domain/Inventory/StockLotReports.php', 'app/Domain/Clinic/PrescriptionLetterhead.php', 'app/Support/LetterheadContacts.php'];
 
         app()->setLocale('bn');
         $bangla = SiteCustomization::inVisitorLanguage(SiteCustomization::all());
