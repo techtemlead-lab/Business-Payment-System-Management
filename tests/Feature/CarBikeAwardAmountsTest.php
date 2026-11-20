@@ -97,7 +97,7 @@ class CarBikeAwardAmountsTest extends TestCase
         app()->setLocale('en');
         $this->assertStringContainsString('bike ৳40,00,000', implode(' ', app(UserManual::class)->chapter('rewards_milestones', $dealer)['steps']));
 
-        $this->actingAs($this->owner)->onPortal('sadmin')->get('/treasury/funds/car_bike?view=bike')->assertOk()
+        $this->actingAs($this->owner)->onPortal('sadmin')->get('/treasury/funds/bike?view=bike')->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page->where('leaders.targets.bike', '4000000.00'));
 
         $changes = json_decode(DB::table('audit_events')->where('action', 'commissions.rules_updated')->first()->metadata, true)['changes']['car_bike_incentive'];
@@ -203,7 +203,7 @@ class CarBikeAwardAmountsTest extends TestCase
                     && $parameters['car_award_amount'] === null;
             }));
 
-        $this->actingAs($this->owner)->onPortal('sadmin')->get('/treasury/funds/car_bike?view=bike')->assertOk()
+        $this->actingAs($this->owner)->onPortal('sadmin')->get('/treasury/funds/bike?view=bike')->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('leaders.awards.bike', '300000.00')
                 ->where('leaders.awards.car', null));
