@@ -9,6 +9,7 @@ use Symfony\Component\Mailer\SentMessage;
 use Symfony\Component\Mailer\Transport\AbstractTransport;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
+use Symfony\Component\Mime\Message;
 use Symfony\Component\Mime\MessageConverter;
 
 /**
@@ -55,7 +56,11 @@ final class MailgunHttpTransport extends AbstractTransport
             throw new TransportException('Mailgun endpoint is not a valid host name (MAILGUN_ENDPOINT).');
         }
 
-        $email = MessageConverter::toEmail($message->getOriginalMessage());
+        $original = $message->getOriginalMessage();
+        if (! $original instanceof Message) {
+            throw new TransportException('Mailgun can only send a complete email message.');
+        }
+        $email = MessageConverter::toEmail($original);
         $url = 'https://'.$endpoint.'/v3/'.$this->domain.'/messages';
 
         try {
