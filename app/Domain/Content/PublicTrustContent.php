@@ -106,8 +106,8 @@ final class PublicTrustContent
         if (! self::isEnabled($page)) {
             return false;
         }
-        // Dealer verification belongs to the public dealer network, which is switched off.
-        if ($page === 'verify-dealer' && ! config('madina.public_dealer_network')) {
+        // Dealer verification belongs to the public dealer network and follows its page switch in the website editor.
+        if ($page === 'verify-dealer' && ! SiteCustomization::isPageEnabled('dealers')) {
             return false;
         }
 

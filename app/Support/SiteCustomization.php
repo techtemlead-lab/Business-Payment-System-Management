@@ -632,7 +632,8 @@ class SiteCustomization
             // Public page visibility (owner can turn pages off site-wide)
             'page_enabled_about' => '1',
             'page_enabled_products' => '1',
-            'page_enabled_dealers' => '1',
+            // Off until the owner turns it on in the website editor (client, 2026-11-20).
+            'page_enabled_dealers' => config('madina.public_dealer_network') ? '1' : '0',
             'page_enabled_contact' => '1',
             'page_enabled_partnership' => '1',
             'page_enabled_services' => '1',
@@ -773,10 +774,6 @@ class SiteCustomization
         $map = [];
         foreach (self::toggleablePages() as $page) {
             $map[$page] = filter_var($all['page_enabled_'.$page] ?? '1', FILTER_VALIDATE_BOOLEAN);
-        }
-        // The dealer network is switched off site-wide (config), whatever the owner saved in the website editor.
-        if (! config('madina.public_dealer_network') && array_key_exists('dealers', $map)) {
-            $map['dealers'] = false;
         }
 
         return $map;

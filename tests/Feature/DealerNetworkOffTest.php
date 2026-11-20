@@ -7,7 +7,10 @@ use App\Support\SiteCustomization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-/** Client, 2026-11-20: the public dealer network is switched off; WhatsApp and the other social links stay. */
+/**
+ * Client, 2026-11-20: the public dealer network is off by default; the owner can turn it on in the website editor.
+ * WhatsApp and the other social links stay either way.
+ */
 class DealerNetworkOffTest extends TestCase
 {
     use RefreshDatabase;
@@ -58,18 +61,17 @@ class DealerNetworkOffTest extends TestCase
             ->assertDontSee(__('site.find_a_dealer'));
     }
 
-    public function test_the_owner_cannot_switch_the_page_back_on_from_the_editor_while_the_network_is_off(): void
+    public function test_the_owner_can_turn_the_page_on_in_the_website_editor(): void
     {
         SiteCustomization::save(['page_enabled_dealers' => '1']);
 
-        $this->assertFalse(SiteCustomization::isPageEnabled('dealers'));
-        $this->assertNull(SiteCustomization::publicHref('/dealers'));
+        $this->assertTrue(SiteCustomization::isPageEnabled('dealers'));
+        $this->onPortal('public')->get('/dealers')->assertOk();
     }
 
-    public function test_switching_the_network_on_brings_everything_back(): void
+    public function test_turning_the_page_on_brings_everything_back(): void
     {
-        config(['madina.public_dealer_network' => true]);
-        SiteCustomization::forgetCache();
+        SiteCustomization::save(['page_enabled_dealers' => '1']);
 
         $this->onPortal('public')->get('/dealers')->assertOk();
         $this->onPortal('public')->get('/verify-dealer')->assertOk();

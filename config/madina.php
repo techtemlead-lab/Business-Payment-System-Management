@@ -86,10 +86,10 @@ return [
     'trusted_proxies' => env('TRUSTED_PROXIES', ''),
     // After the permission check, let nginx send private product photos, videos and the photo model
     // (X-Accel-Redirect) so PHP workers are not held by slow downloads. Only for the production nginx image.
-    // The public dealer network (/dealers directory, "find a dealer" links and banners, /verify-dealer). Off by default;
-    // the code stays, so another client can switch it on with MADINA_PUBLIC_DEALER_NETWORK=true.
-    'public_dealer_network' => (bool) env('MADINA_PUBLIC_DEALER_NETWORK', false),
     'nginx_protected_files' => (bool) env('MADINA_NGINX_PROTECTED_FILES', false),
+    // Factory default of the website editor's "Dealer network" page switch: off. The owner can turn the page on in the
+    // website editor at any time; a new project can start with it on by setting MADINA_PUBLIC_DEALER_NETWORK=true.
+    'public_dealer_network' => (bool) env('MADINA_PUBLIC_DEALER_NETWORK', false),
     // Prefer /public/build over Vite HMR. Stale public/hot points CSS/JS at :5173, which CSP
     // blocks on port-forwarded Cloud Agent browsers and blanks public pages.
     'force_built_assets' => (bool) env('MADINA_FORCE_BUILT_ASSETS', false),
