@@ -20,7 +20,7 @@ use RuntimeException;
  * the office to fill in. Running it again changes nothing.
  */
 /**
- * @phpstan-type PlaceSummary array{created: int, coded: int, filled: int, linked: int, codes_taken: list<string>, by_level: array<string, array<string, int>>, conflicts: list<array{code: string, level: string, name: string, held_by: string}>, base_empty: list<array{code: string, level: string, name: string, reason: string, candidates: list<string>}>, base_review: list<array{code: string, level: string, name: string, base: string, why: string}>}
+ * @phpstan-type PlaceSummary array{created: int, coded: int, filled: int, linked: int, codes_taken: list<string>, by_level: array<string, array<string, int>>, conflicts: list<array{code: string, level: string, name: string, held_by: string}>, base_empty: list<array{code: string, level: string, name: string, reason: string, candidates: list<string>}>, base_set_list: list<array{code: string, level: string, name: string, base: string, rule: string}>}
  */
 final class DefaultPlaceCatalog
 {
@@ -101,7 +101,7 @@ final class DefaultPlaceCatalog
      */
     private function fill(array $payload): array
     {
-        $summary = ['created' => 0, 'coded' => 0, 'filled' => 0, 'linked' => 0, 'codes_taken' => [], 'by_level' => [], 'conflicts' => [], 'base_empty' => [], 'base_review' => []];
+        $summary = ['created' => 0, 'coded' => 0, 'filled' => 0, 'linked' => 0, 'codes_taken' => [], 'by_level' => [], 'conflicts' => [], 'base_empty' => [], 'base_set_list' => []];
         foreach (PlaceCode::Levels as $level) {
             $summary['by_level'][$level] = ['created' => 0, 'coded' => 0, 'taken' => 0, 'other_code' => 0, 'base_set' => 0];
         }
@@ -148,6 +148,14 @@ final class DefaultPlaceCatalog
                     $claimed[$existing->id] = true;
                     $idBySource[$place['code']] = $existing->id;
                     $this->fillGaps($existing, $place, $code, $parentId, $codeOwner, $summary, $now, $rows);
+
+                    continue;
+                }
+
+                // The same place under another spelling is already matched: never add a second one.
+                $sameName = $this->bestStructureMatch($byStructure[$level.'|'.($parentId ?? '').'|'.$this->nameKey($place['name'])] ?? [], $rows, []);
+                if ($sameName !== null) {
+                    $idBySource[$place['code']] = $sameName->id;
 
                     continue;
                 }
@@ -214,10 +222,9 @@ final class DefaultPlaceCatalog
         $name = $this->nameKey($place['name']);
         // Under its parent first; a place the office saved without a parent counts too.
         foreach ([$parentId, null] as $parent) {
-            foreach ($byStructure[$place['level'].'|'.($parent ?? '').'|'.$name] ?? [] as $id) {
-                if (! isset($claimed[$id])) {
-                    return $rows[$id];
-                }
+            $best = $this->bestStructureMatch($byStructure[$place['level'].'|'.($parent ?? '').'|'.$name] ?? [], $rows, $claimed);
+            if ($best !== null) {
+                return $best;
             }
         }
 
@@ -227,6 +234,32 @@ final class DefaultPlaceCatalog
         }
 
         return null;
+    }
+
+    /**
+     * Among places with the same level, parent and name (a duplicate the office made, or kept
+     * switched off), the live one wins: active before turned off, then coded before code-less,
+     * then the oldest. A turned-off duplicate can never become the parent of the places added below.
+     *
+     * @param  list<int>  $ids
+     * @param  array<int, \stdClass>  $rows
+     * @param  array<int, true>  $claimed
+     */
+    private function bestStructureMatch(array $ids, array $rows, array $claimed): ?object
+    {
+        $best = null;
+        foreach ($ids as $id) {
+            if (isset($claimed[$id])) {
+                continue;
+            }
+            $row = $rows[$id];
+            $score = ($row->is_active ? 2 : 0) + (is_string($row->code) && ! PlaceCode::isPlaceholderLabel($row->code) ? 1 : 0);
+            if ($best === null || $score > $best[0]) {
+                $best = [$score, $row];
+            }
+        }
+
+        return $best[1] ?? null;
     }
 
     /**
@@ -299,6 +332,8 @@ final class DefaultPlaceCatalog
 
         /** @var array<string, string> $emptyReason */
         $emptyReason = [];
+        /** @var array<string, list<string>> $candidatesOf */
+        $candidatesOf = [];
         foreach ($links as $link) {
             $placeId = $idBySource[$link['code']] ?? null;
             $baseId = $idBySource[$link['base_code']] ?? null;
@@ -306,8 +341,16 @@ final class DefaultPlaceCatalog
                 continue;
             }
             $candidate = $rows[$baseId];
-            if ($candidate->parent_id !== $placeId || ! $candidate->is_active || PlaceCode::normalizeCode($candidate->code) === null || PlaceCode::isPlaceholderLabel($candidate->name)) {
-                $emptyReason[$link['code']] = 'candidate_unusable';
+            $problem = match (true) {
+                $candidate->parent_id !== $placeId => 'candidate_not_below',
+                ! $candidate->is_active => 'candidate_turned_off',
+                PlaceCode::normalizeCode($candidate->code) === null => 'candidate_no_code',
+                PlaceCode::isPlaceholderLabel($candidate->name) => 'candidate_no_name',
+                default => null,
+            };
+            if ($problem !== null) {
+                $emptyReason[$link['code']] = $problem;
+                $candidatesOf[$link['code']] = [(string) $candidate->name];
 
                 continue;
             }
@@ -315,15 +358,13 @@ final class DefaultPlaceCatalog
             $rows[$placeId]->base_place_id = $baseId;
             $summary['linked']++;
             $summary['by_level'][(string) $rows[$placeId]->level]['base_set']++;
-            if (isset($derived['review'][$link['code']])) {
-                $summary['base_review'][] = ['code' => $link['code'], 'level' => (string) $rows[$placeId]->level, 'name' => (string) $rows[$placeId]->name, 'base' => (string) $candidate->name, 'why' => $derived['review'][$link['code']]];
-            }
+            $summary['base_set_list'][] = ['code' => $link['code'], 'level' => (string) $rows[$placeId]->level, 'name' => (string) $rows[$placeId]->name, 'base' => (string) $candidate->name, 'rule' => $derived['rules'][$link['code']] ?? 'data_file'];
         }
 
-        $candidates = [];
+        $candidates = $candidatesOf;
         foreach ($derived['empty'] as $item) {
             $emptyReason[$item['code']] ??= $item['reason'];
-            $candidates[$item['code']] = $item['candidates'];
+            $candidates[$item['code']] ??= $item['candidates'];
         }
         foreach ($payload['places'] as $place) {
             $placeId = $idBySource[$place['code']] ?? null;
