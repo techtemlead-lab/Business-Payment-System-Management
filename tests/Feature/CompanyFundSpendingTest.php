@@ -257,7 +257,9 @@ class CompanyFundSpendingTest extends TestCase
         [$maker] = $this->financeStaff();
         $this->fundRow('car_bike_incentive_fund', '500.00');
 
-        $this->spend($maker, ['fund' => 'car_bike'])->assertUnprocessable()->assertJsonValidationErrors('fund');
+        foreach (['bike', 'car', 'car_bike'] as $prizeFund) {
+            $this->spend($maker, ['fund' => $prizeFund])->assertUnprocessable()->assertJsonValidationErrors('fund');
+        }
         $this->spend($maker, ['fund' => 'rank_reward'])->assertUnprocessable()->assertJsonValidationErrors('fund');
     }
 
