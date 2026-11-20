@@ -7,19 +7,19 @@ return [
     // Refusals
     'err_nid_first' => 'Before your first withdrawal we need your National ID (NID). Send your NID number and a photo of the card from your profile. Withdrawals open once the office has checked it.',
     'err_over_balance' => 'You cannot withdraw that much. The most you can withdraw now is :balance.',
-    'err_channel_limit' => 'One :channel withdrawal can be at most :limit. Your balance to withdraw is :balance. For more, choose bank, or withdraw in parts.',
-    'err_approve_over_limit' => 'One :channel payment can carry at most :limit, so this cannot be approved. Reject it and ask the partner to request a bank payment.',
+    'err_channel_limit' => 'You can withdraw at most :limit at a time by :channel. You can withdraw :balance now. For more, choose bank or withdraw in parts.',
+    'err_approve_over_limit' => 'A single :channel payment can be at most :limit, so this cannot be approved. Reject it and ask the partner to request a bank payment.',
     'err_office_cash_limit' => 'Cash at the office is accepted up to :limit. Send :amount by bank or mobile banking and give the TrxID.',
     'err_payer_not_allowed' => 'This person cannot pay this withdrawal. Choose someone else in finance (not the person who approved it).',
-    'err_cancel_not_pending' => 'Only a request still waiting for its check can be cancelled. Once approved, please call the office.',
+    'err_cancel_not_pending' => 'Only a request that is still waiting to be checked can be cancelled. Once it is approved, call the office.',
     'err_receipt_not_due' => 'This payment already has its receipt.',
     'err_partner_not_active' => 'The partner\'s account is not active (suspended or closed). Nothing can be approved or paid until it is active again.',
     'err_on_hold' => 'This request is on hold because the partner\'s account was suspended. It can go ahead once the account is active again.',
     'err_security_wait' => 'The partner changed their phone number or password a short while ago. For safety, approve or pay after :time.',
     'err_reference_mobile' => 'A bKash/Nagad TrxID has 8 to 12 letters and digits, with no signs or spaces. Copy it from the message.',
     'err_reference_format' => 'The reference is not right. Write at least 6 letters or digits (only - / . may sit between them).',
-    'err_receipt_too_small' => 'The receipt picture is too small to read. Give the full screenshot or a clear photo.',
-    'err_receipt_blank' => 'The receipt picture looks blank. Give the real screenshot or photo of the transfer.',
+    'err_receipt_too_small' => 'The receipt picture is too small to read. Upload the full screenshot or a clear photo.',
+    'err_receipt_blank' => 'The receipt picture looks blank. Upload the real screenshot or photo of the transfer.',
     'err_amount_digits' => 'Write the amount in digits only, for example 5000 or 5000.50.',
     'err_tin_format' => 'A TIN has 12 digits. Please check it.',
     'err_cash_count_mismatch' => 'The cash counted (:counted) is not the payment amount (:amount). Confirm only when the full amount is in hand; otherwise reject.',
@@ -41,7 +41,7 @@ return [
 
     // Flash messages
     'flash_cancelled' => 'Request cancelled. The money is back in your wallet.',
-    'flash_payer_named' => 'The person who pays is set.',
+    'flash_payer_named' => 'The person who will pay is saved.',
     'flash_receipt_attached' => 'Receipt added.',
     'flash_tin_saved' => 'TIN saved.',
 
@@ -56,8 +56,8 @@ return [
 
     // Facts finance checks (review and payment boxes)
     'facts_title' => 'Check before approving',
-    'facts_loading' => 'Loading the facts…',
-    'facts_failed' => 'Could not load the facts. Close the box and open it again.',
+    'facts_loading' => 'Loading details…',
+    'facts_failed' => 'Could not load the details. Close the box and open it again.',
     'fact_partner' => 'Partner',
     'fact_status' => 'Account',
     'account_active' => 'Active',
@@ -104,7 +104,7 @@ return [
     'receipt_later' => 'Money sent, receipt later',
     'receipt_later_hint' => 'It is recorded without the receipt and shows as "Receipt missing". Add it later with "Add receipt".',
     'receipt_paste_hint' => 'Copy the screenshot and press Ctrl+V here, or take a photo with the phone camera.',
-    'receipt_pasted' => 'Taken: :name',
+    'receipt_pasted' => 'Added: :name',
     'attach_receipt' => 'Add receipt',
     'attach_save' => 'Save receipt',
 
@@ -117,13 +117,13 @@ return [
     'withdraw_limit_hint' => 'Most per withdrawal by this method: :limit',
     'withdraw_over_limit' => 'This amount is above the :channel limit. Choose bank or write less.',
     'tin_title' => 'TIN (tax number)',
-    'tin_hint' => 'If you have one, add it; it is needed for the tax record. 12 digits.',
+    'tin_hint' => 'Add it if you have one. It is used for the tax record. 12 digits.',
     'tin_save' => 'Save TIN',
     'tin_saved' => 'Saved TIN ending in :last',
 
     // Owner limits (finance settings)
     'limits_title' => 'Withdrawal and office cash limits',
-    'limits_body' => 'The most one withdrawal may ask for by each method, the most cash the office takes for one order, and within how many days an approved withdrawal must be sent.',
+    'limits_body' => 'The most one withdrawal can be by each method, the most cash the office takes for one order, and how many days after approval the money must be sent.',
     'limit_channel' => 'Most per :channel withdrawal (empty = no separate limit)',
     'limit_office_cash' => 'Most cash at the office (one order)',
     'limit_due_days' => 'Days to send after approval',
