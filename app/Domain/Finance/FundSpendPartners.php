@@ -177,6 +177,12 @@ final class FundSpendPartners
         }
     }
 
+    /** The lines of a partner the company has spent nothing on. */
+    public static function none(): array
+    {
+        return ['total' => '0.00', 'count' => 0, 'lines' => []];
+    }
+
     /**
      * What the company has spent on one partner, newest first: one line per approved spend that names them.
      * A spend that is still waiting, refused or withdrawn is not shown. It is money spent on them, not a wallet credit.
@@ -185,18 +191,19 @@ final class FundSpendPartners
      */
     public function linesFor(User $partner, int $limit = 20): array
     {
-        $base = fn () => DB::table('fund_spend_partners as p')
+        // One read: the newest lines, each carrying the total and the count of all the partner's lines.
+        $lines = DB::table('fund_spend_partners as p')
             ->join('reserve_disbursements as r', 'r.id', '=', 'p.disbursement_id')
-            ->where('p.user_id', $partner->id)->where('r.program', FundSpending::Program)->where('r.status', 'paid');
-        $sum = (clone $base())->selectRaw('COALESCE(SUM(p.share_amount), 0) AS total, COUNT(*) AS count')->first();
-        $lines = $base()->leftJoin('fund_expense_heads as h', 'h.id', '=', 'r.expense_head_id')
+            ->leftJoin('fund_expense_heads as h', 'h.id', '=', 'r.expense_head_id')
+            ->where('p.user_id', $partner->id)->where('r.program', FundSpending::Program)->where('r.status', 'paid')
             ->orderByRaw('COALESCE(r.paid_at, r.spent_on::timestamp, r.created_at) DESC')->orderByDesc('p.id')->limit($limit)
-            ->get(['p.id', 'p.share_amount', 'r.fund_key', 'r.reason', 'r.paid_at', 'r.spent_on', 'r.created_at', 'h.name_en', 'h.name_bn']);
+            ->selectRaw('p.id, p.share_amount, r.fund_key, r.reason, r.paid_at, r.spent_on, r.created_at, h.name_en, h.name_bn, COALESCE(SUM(p.share_amount) OVER (), 0) AS all_total, COUNT(*) OVER () AS all_count')
+            ->get();
         $locale = app()->getLocale();
 
         return [
-            'total' => Money::decimal(Money::cents((string) $sum->total)),
-            'count' => (int) $sum->count,
+            'total' => Money::decimal(Money::cents((string) ($lines->first()->all_total ?? '0'))),
+            'count' => (int) ($lines->first()->all_count ?? 0),
             'lines' => $lines->map(function (object $row) use ($locale): array {
                 $fund = (string) __('funds.fund_'.$row->fund_key);
                 $fund = $fund === 'funds.fund_'.$row->fund_key ? FundCatalog::name((string) $row->fund_key) : $fund;
