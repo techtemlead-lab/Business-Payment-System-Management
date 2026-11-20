@@ -2,6 +2,7 @@
 
 namespace App\Domain\Support;
 
+use App\Domain\Accounts\PartnerAppointment;
 use App\Domain\Notifications\PartnerEventEmail;
 use App\Models\User;
 use App\Support\Audit;
@@ -67,6 +68,7 @@ final class SupportTickets
             ])
             ->selectRaw('('.self::waitingSinceSql().') AS waiting_since')
             ->get();
+        app(PartnerAppointment::class)->attachToRows($rows);
         $replies = $this->repliesByTicket($rows->pluck('id')->map(fn ($id): string => (string) $id)->all());
         $tickets = $rows
             ->map(function ($row) use ($now, $cutoff, $replies): array {
@@ -77,6 +79,7 @@ final class SupportTickets
                     'user_name' => $row->user_name,
                     'dealer_code' => $row->dealer_code,
                     'user_role' => $row->user_role,
+                    'partner_type' => $row->partner_type,
                     'waiting_since' => $waitingSince?->toIso8601String(),
                     'waiting_hours' => $waitingSince ? (int) floor($waitingSince->diffInMinutes($now) / 60) : null,
                     'overdue' => $waitingSince !== null && $waitingSince->lessThan($cutoff),

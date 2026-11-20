@@ -2,6 +2,7 @@
 
 namespace App\Http\Portals\Shared\Sections;
 
+use App\Domain\Accounts\PartnerAppointment;
 use App\Domain\Support\ChatRouting;
 use App\Domain\Support\PartnerChat;
 use App\Domain\Support\PartnerSupportHistory;
@@ -127,6 +128,7 @@ final class SupportSection implements WorkspaceSection
             defaultPeriod: null,
         ));
 
+        app(PartnerAppointment::class)->attachToRows($table['rows']->getCollection());
         $replies = $this->repliesFor(array_map(fn (object $ticket): string => (string) $ticket->id, $table['rows']->items()));
         $table['rows']->through(function (object $ticket) use ($now, $cutoff, $replies): array {
             $since = $ticket->waiting_since ? CarbonImmutable::parse((string) $ticket->waiting_since, 'UTC') : null;
@@ -143,6 +145,7 @@ final class SupportSection implements WorkspaceSection
                 'user_name' => $ticket->user_name,
                 'dealer_code' => $ticket->dealer_code,
                 'user_role' => $ticket->user_role,
+                'partner_type' => $ticket->partner_type,
                 'waiting_hours' => $since ? (int) floor($since->diffInMinutes($now) / 60) : null,
                 'overdue' => $since !== null && $since->lessThan($cutoff),
                 'replies' => $replies[(string) $ticket->id] ?? [],

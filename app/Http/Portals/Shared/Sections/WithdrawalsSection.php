@@ -2,6 +2,7 @@
 
 namespace App\Http\Portals\Shared\Sections;
 
+use App\Domain\Accounts\PartnerAppointment;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Inventory\BranchScope;
@@ -123,6 +124,7 @@ final class WithdrawalsSection implements WorkspaceSection
                 'users.division',
             ]);
         $table = MoneyTable::make($request, $rows, $spec([$statusFilter, ...$otherFilters]));
+        app(PartnerAppointment::class)->attachToRows($table['rows']->getCollection());
         $table['rows']->through(fn (object $row): array => [
             'id' => $row->id,
             'user_id' => $row->user_id,
@@ -143,6 +145,7 @@ final class WithdrawalsSection implements WorkspaceSection
             'payout_receipt_number' => $row->payout_receipt_number,
             'payout_method' => $row->payout_method,
             'role' => $row->role,
+            'partner_type' => $row->partner_type,
             'district' => $row->district,
             'division' => $row->division,
             'payer_state' => app(ManualPayoutService::class)->payerState($row, $request->user()),

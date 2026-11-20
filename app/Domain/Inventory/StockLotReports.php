@@ -2,6 +2,7 @@
 
 namespace App\Domain\Inventory;
 
+use App\Domain\Accounts\PartnerAppointment;
 use App\Models\PurchaseOrder;
 use App\Models\StockLot;
 use App\Models\StockTransfer;
@@ -111,8 +112,9 @@ final class StockLotReports
             ->groupBy('o.id', 'o.number', 'o.status', 'u.id', 'u.name', 'u.dealer_code', 'u.role', 'p.name', 'p.sku', 'l.batch_number', 'l.expires_on', 'b.code', 'b.name')
             ->orderByRaw('MIN(m.created_at) DESC')
             ->limit(self::RowLimit)
-            ->selectRaw("o.id AS order_id, o.number AS order_number, o.status, u.name AS partner_name, u.dealer_code, u.role AS partner_role, p.name AS product, p.sku, l.batch_number, l.expires_on, b.code AS branch_code, b.name AS branch_name, SUM(CASE WHEN m.kind = 'dispatch' THEN -m.quantity ELSE 0 END) AS sent, SUM(CASE WHEN m.kind = 'return' THEN m.quantity ELSE 0 END) AS returned, MIN(m.created_at) AS sent_at")
+            ->selectRaw("o.id AS order_id, o.number AS order_number, o.status, u.id AS user_id, u.name AS partner_name, u.dealer_code, u.role AS partner_role, p.name AS product, p.sku, l.batch_number, l.expires_on, b.code AS branch_code, b.name AS branch_name, SUM(CASE WHEN m.kind = 'dispatch' THEN -m.quantity ELSE 0 END) AS sent, SUM(CASE WHEN m.kind = 'return' THEN m.quantity ELSE 0 END) AS returned, MIN(m.created_at) AS sent_at")
             ->get()
+            ->tap(fn ($rows) => app(PartnerAppointment::class)->attachToRows($rows))
             ->map(fn (object $row): array => [...(array) $row, 'sent' => (int) $row->sent, 'returned' => (int) $row->returned])
             ->all();
 

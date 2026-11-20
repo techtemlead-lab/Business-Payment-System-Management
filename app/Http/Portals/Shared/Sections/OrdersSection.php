@@ -265,7 +265,7 @@ final class OrdersSection implements WorkspaceSection
             ->when($failedOnly, fn ($query) => $query->where('shipments.courier_booking_status', 'failed'))
             ->when(! $failedOnly && ! $request->filled('ship_status') && ! $request->filled('q'), fn ($query) => $query->where('shipments.status', StockStages::OpenParcel))
             ->select([
-                'shipments.id', 'shipments.order_id', 'orders.number', 'users.name as partner', 'users.dealer_code', 'users.phone',
+                'shipments.id', 'shipments.order_id', 'orders.number', 'orders.user_id', 'users.name as partner', 'users.dealer_code', 'users.role', 'users.phone',
                 'shipments.status', 'shipments.courier', 'shipments.courier_provider', 'shipments.tracking', 'shipments.courier_status', 'shipments.courier_booking_status',
                 'shipments.courier_booking_error', 'shipments.courier_status_at', 'shipments.courier_timeline', 'shipments.updated_at',
             ])
@@ -303,6 +303,7 @@ final class OrdersSection implements WorkspaceSection
 
             return $row;
         });
+        app(PartnerAppointment::class)->attachToRows($table['rows']->getCollection());
 
         return $table;
     }
