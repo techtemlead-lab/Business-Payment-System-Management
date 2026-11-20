@@ -492,7 +492,7 @@ class FinanceOperationsController extends Controller
             $key = 'funds.'.($column === 'fund' ? 'fund_' : 'method_').$value;
             $label = __($key);
 
-            return $label !== $key ? $label : Str::headline($value);
+            return $label !== $key ? $label : ($column === 'fund' ? FundCatalog::name($value) : Str::headline($value));
         }
 
         return $this->reportValueLabel($value);

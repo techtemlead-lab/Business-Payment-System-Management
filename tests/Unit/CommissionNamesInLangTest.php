@@ -55,6 +55,19 @@ class CommissionNamesInLangTest extends TestCase
         'monthly salary pool',
         'sub-dealer monthly salary',
         'sub-dealer additional rank',
+        // Second sweep: generic spellings of the same heads
+        'cashback',
+        'ক্যাশব্যাক',
+        'back on own purchase',
+        'নিজের কেনায় ফেরত',
+        'dealer salary',
+        'salary pool',
+        'salary fund',
+        'salary reserve',
+        'সরাসরি রেফারেল',
+        'বেতন ফান্ড',
+        'বেতনের জমা ফান্ড',
+        'বেতন রিজার্ভ',
     ];
 
     /**
@@ -68,6 +81,8 @@ class CommissionNamesInLangTest extends TestCase
         'portal.net_direct_referrals' => 'count of level 1 referred partners',
         'portal.net_company_tree' => 'the referral tree (who referred whom)',
         'portal.dash_card_network_desc' => 'the people referred directly',
+        // Search words people may still type, and the generic word in the manual's formula line.
+        'findability.kw_my_income' => 'search keywords: people may still type the old words',
         'cr_partner.card_direct' => 'how many people the partner referred directly',
         'manual.network_genealogy_t2' => 'the direct referrer (a person), whose commission is named Staff commission',
     ];
@@ -87,7 +102,8 @@ class CommissionNamesInLangTest extends TestCase
                     if (isset(self::Allowed[$group.'.'.$key])) {
                         continue;
                     }
-                    $clean = str_replace('সাব-ডিলার স্যালারি', '', $value);
+                    // Placeholder names such as :cashback_rate are code, not words people read.
+                    $clean = str_ireplace(['সাব-ডিলার স্যালারি', 'sub-dealer salary'], '', (string) preg_replace('/:[a-z_]+/i', '', $value));
                     foreach (self::OldNames as $old) {
                         if (mb_stripos($clean, $old) !== false) {
                             $found[] = $locale.'/'.$group.'.'.$key.'  ['.$old.']';

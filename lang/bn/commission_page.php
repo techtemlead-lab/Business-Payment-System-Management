@@ -83,11 +83,11 @@ return [
     'dest_pick' => 'সাব-ডিলার এক্সট্রা অংশ কোথায় যাবে',
     'dest_note' => 'বদল শুধু নতুন অর্ডারে লাগে। আগের অর্ডারের হিসাব বদলায় না। এটি কোনো ব্যক্তির টাকা নয়, কোম্পানির ফান্ড।',
     'err_extra_destination' => 'সাব-ডিলার এক্সট্রা কোথায় যাবে, তা তালিকা থেকে বেছে নিন।',
-    'fund_sub_dealer_extra' => 'সাব-ডিলার এক্সট্রা',
+    'fund_sub_dealer_extra' => 'সাব-ডিলার এক্সট্রা ফান্ড',
     'type_sub_dealer_extra_fund' => 'সাব-ডিলার এক্সট্রা',
 
     // ধরন
-    'kind_cashback' => 'নিজের কেনায় ফেরত',
+    'kind_cashback' => 'ডক্টর অনারারিয়াম',
     'kind_referral' => 'স্টাফ কমিশন',
     'kind_d2d' => 'টিমের আয়',
     'kind_area' => 'এলাকার আয়',
@@ -201,7 +201,7 @@ return [
     'cond_area_title' => 'এলাকা ডিলারের আয়',
     'cond_area_text' => 'বিভাগ, জেলা, উপজেলা ও ইউনিয়নের এলাকা ডিলার আসন পেলে শুরুতে মাসিক টার্গেট ধরা হয়: বিভাগ :division_monthly_quota, জেলা :district_monthly_quota, উপজেলা :upazila_monthly_quota, ইউনিয়ন :union_monthly_quota। কোনো ভাগ আটকে থাকলে তা :held_text।',
     'cond_salary_title' => 'ডিলার একুইজিশন টার্গেট বোনাস',
-    'cond_salary_text' => 'ওই মাসে নিজে অন্তত :min_monthly_volume কিনলে বেতনের ভাগ পাওয়া যায়। যাঁরা শর্ত পূরণ করেন, তাঁরা সমান ভাগে পান।',
+    'cond_salary_text' => 'ওই মাসে নিজে অন্তত :min_monthly_volume কিনলে ডিলার একুইজিশন টার্গেট বোনাসের ভাগ পাওয়া যায়। যাঁরা শর্ত পূরণ করেন, তাঁরা সমান ভাগে পান।',
     'cond_rank_join_title' => 'র‍্যাঙ্ক পাওয়ার শর্ত',
     'cond_rank_join_text' => 'MO: যোগ দেওয়ার পর নিজের মোট কেনা :mo_target হতে হবে। AM: টিমের :qualification_depth ধাপের মধ্যে MO বা তার উপরের :am_count জন সক্রিয় ডিলার লাগবে। SM: AM বা তার উপরের :sm_count জন লাগবে। ME: SM বা তার উপরের :me_count জন লাগবে।',
     'cond_rank_keep_title' => 'র‍্যাঙ্ক রয়্যালটি পেতে মাসিক কেনা',
