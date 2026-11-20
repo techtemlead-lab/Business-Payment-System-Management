@@ -6,7 +6,9 @@ import IncomeCards, { useChooseIncomeType } from '../components/mymoney/IncomeCa
 import Lifetime from '../components/mymoney/Lifetime';
 import MoneyBook from '../components/mymoney/MoneyBook';
 import MoneyHero from '../components/mymoney/MoneyHero';
-import type { IncomeCard, MoneySummary, StatementTable } from '../components/mymoney/types';
+import NotEarnedAreaList from '../components/mymoney/NotEarnedArea';
+import PendingMoneyList from '../components/mymoney/PendingMoney';
+import type { IncomeCard, MoneySummary, NotEarnedArea, PendingMoney, StatementTable } from '../components/mymoney/types';
 import { label } from '../components/UI';
 import { useTreasuryViewer } from '../components/treasury/TreasuryTabs';
 import { useT } from '../shared/i18n/t';
@@ -17,13 +19,15 @@ type Partner = { id: number; name: string; code: string | null; role: string; ar
  * The office's read-only view of one partner's money: the same body as My Money, without the buttons,
  * or, with the second tab, the same income-by-part view the partner sees.
  */
-export default function TreasuryPartner({ partner, summary, cards, table, income, view }: {
+export default function TreasuryPartner({ partner, summary, cards, table, income, view, pending, not_earned_area: notEarnedArea }: {
     partner: Partner;
     summary: MoneySummary;
     cards: IncomeCard[];
     table: StatementTable | null;
     income: IncomeData | null;
     view: 'money' | 'income';
+    pending: PendingMoney | null;
+    not_earned_area: NotEarnedArea[];
 }) {
     const translate = useT();
     const { portalBase: base } = usePage<any>().props;
@@ -44,7 +48,7 @@ export default function TreasuryPartner({ partner, summary, cards, table, income
                     <h2>{partner.name}</h2>
                     {who && <p>{who}</p>}
                 </header>
-                <MoneyHero summary={summary} />
+                <MoneyHero summary={summary} pending={pending} />
                 <nav className="office-switch" aria-label={partner.name}>
                     <Link href={here} aria-current={view === 'money' ? 'page' : undefined}>{translate('income', 'tab_money')}</Link>
                     <Link href={`${here}?view=income`} aria-current={view === 'income' ? 'page' : undefined}>{translate('income', 'admin_heading')}</Link>
@@ -53,6 +57,8 @@ export default function TreasuryPartner({ partner, summary, cards, table, income
                     <IncomeByPart income={income} statementBase={`${here}/income`} orderHref={orderHref} />
                 ) : (
                     <>
+                        <PendingMoneyList pending={pending} />
+                        <NotEarnedAreaList rows={notEarnedArea} />
                         <IncomeCards cards={cards} selected={selected} onChoose={chooseType} />
                         <Lifetime lifetime={summary.lifetime} />
                         {table && <MoneyBook table={table} orderHref={orderHref} />}
