@@ -31,7 +31,18 @@ final class DefaultBasePlaces
     /** Chosen, but worth a look: the only child, or one of several places carrying the upazila's name. */
     public const NoteOnlyChild = 'only_child';
 
+    public const NoteOnlyPourashava = 'only_pourashava';
+
+    public const NoteHeadquarters = 'headquarters_union';
+
+    public const ReasonSeveralPourashavas = 'several_pourashavas';
+
+    public const ReasonHeadquartersNotMatched = 'headquarters_not_matched';
+
     public const NotePreferred = 'preferred_over_same_name';
+
+    /** @param  array<string, string>  $headquarters Upazila code => the headquarters union as a source writes it */
+    public function __construct(private readonly array $headquarters = [], private readonly UnionNameMatcher $matcher = new UnionNameMatcher) {}
 
     private const Suffix = '/(citycorporation|pourashava|paurashava|municipality|union|sadar|city|metro)$/';
 
@@ -40,12 +51,14 @@ final class DefaultBasePlaces
 
     /**
      * @param  list<array{code: string, level: string, name: string, parent_code: ?string, kind?: string}>  $places
-     * @return array{links: list<array{code: string, base_code: string}>, empty: list<array{code: string, level: string, name: string, reason: string, candidates: list<string>}>, rules: array<string, string>}
+     * @return array{links: list<array{code: string, base_code: string}>, empty: list<array{code: string, level: string, name: string, reason: string, candidates: list<string>, parent: string}>, rules: array<string, string>}
      */
     public function derive(array $places): array
     {
         $children = [];
+        $names = [];
         foreach ($places as $place) {
+            $names[$place['code']] = $place['name'];
             if ($place['parent_code'] !== null) {
                 $children[$place['parent_code']][] = $place;
             }
@@ -68,7 +81,7 @@ final class DefaultBasePlaces
                 $links[] = ['code' => $place['code'], 'base_code' => $base['code']];
                 $rules[$place['code']] = $this->ruleLabel($place, $base, $reason);
             } else {
-                $empty[] = ['code' => $place['code'], 'level' => $place['level'], 'name' => $place['name'], 'reason' => $reason ?? self::ReasonNoMatch, 'candidates' => array_map(fn (array $k): string => (string) $k['name'], $kids)];
+                $empty[] = ['code' => $place['code'], 'level' => $place['level'], 'name' => $place['name'], 'reason' => $reason ?? self::ReasonNoMatch, 'candidates' => array_map(fn (array $k): string => (string) $k['name'], $kids), 'parent' => (string) ($names[(string) $place['parent_code']] ?? '')];
             }
         }
 
@@ -88,7 +101,9 @@ final class DefaultBasePlaces
             PlaceCode::LevelDistrict => ($base['kind'] ?? '') === 'metro_upazila' ? 'district_metro_area' : 'district_sadar_upazila',
             default => $note === self::NoteOnlyChild
                 ? 'upazila_only_child'
-                : 'upazila_'.$this->kindOf($base).'_named_like_upazila'.($note === self::NotePreferred ? '_preferred_over_same_name' : ''),
+                : ($note === self::NoteOnlyPourashava ? 'upazila_only_pourashava'
+                : ($note === self::NoteHeadquarters ? 'upazila_headquarters_union'
+                : 'upazila_'.$this->kindOf($base).'_named_like_upazila'.($note === self::NotePreferred ? '_preferred_over_same_name' : ''))),
         };
     }
 
@@ -153,7 +168,36 @@ final class DefaultBasePlaces
             return [$base, $base !== null && count($named) > 1 ? self::NotePreferred : $reason];
         }
 
-        return count($unions) === 1 ? [$unions[0], self::NoteOnlyChild] : [null, self::ReasonNoMatch];
+        if (count($unions) === 1) {
+            return [$unions[0], self::NoteOnlyChild];
+        }
+
+        // Exactly one municipality among the children is the upazila's main one.
+        $pourashavas = array_values(array_filter($unions, fn (array $u): bool => $this->isPourashava($u)));
+        if (count($pourashavas) === 1) {
+            return [$pourashavas[0], self::NoteOnlyPourashava];
+        }
+        if (count($pourashavas) > 1) {
+            return [null, self::ReasonSeveralPourashavas];
+        }
+
+        // No municipality: the union that hosts the upazila headquarters, when a source names it
+        // and it matches exactly one union of ours.
+        $headquarters = $this->headquarters[(string) $upazila['code']] ?? null;
+        if ($headquarters !== null) {
+            $names = array_map(fn (array $u): string => (string) $u['name'], $unions);
+            $found = $this->matcher->find($headquarters, $names)['match'];
+            if ($found === null) {
+                return [null, self::ReasonHeadquartersNotMatched];
+            }
+            foreach ($unions as $union) {
+                if ($union['name'] === $found) {
+                    return [$union, self::NoteHeadquarters];
+                }
+            }
+        }
+
+        return [null, self::ReasonNoMatch];
     }
 
     /**
@@ -170,6 +214,12 @@ final class DefaultBasePlaces
             1 => [$found[0], null],
             default => [null, self::ReasonSeveral],
         };
+    }
+
+    /** @param  array<string, mixed>  $place */
+    private function isPourashava(array $place): bool
+    {
+        return ($place['kind'] ?? '') === 'pourashava' || (bool) preg_match('/(pourashava|paurashava|municipality)$/', $this->key((string) $place['name']));
     }
 
     /** @param  array<string, mixed>  $place */

@@ -131,7 +131,7 @@ class DefaultBasePlacesTest extends TestCase
         $this->assertNotSame([], collect($summary['base_empty'])->firstWhere('code', '1003')['candidates']);
         $reasons = array_unique(array_column($summary['base_empty'], 'reason'));
         sort($reasons);
-        $this->assertSame(['no_children', 'no_match'], $reasons);
+        $this->assertSame(['no_children', 'no_match', 'several_pourashavas'], $reasons);
 
         $again = app(DefaultPlaceCatalog::class)->load();
         $this->assertSame(0, $again['linked']);
