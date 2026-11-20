@@ -4384,7 +4384,6 @@ return [
     'csv_col_payment_ref' => 'Transaction ID',
     'inv_title' => 'Invoice',
     'inv_number' => 'Invoice No',
-    'inv_referred_code' => 'Referred by (code)',
     'inv_name' => 'Name',
     'inv_dealer_code' => 'Dealer Code',
     'inv_designation' => 'Designation',

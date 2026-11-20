@@ -4384,7 +4384,6 @@ return [
     'csv_col_payment_ref' => 'ট্রানজেকশন আইডি',
     'inv_title' => 'ইনভয়েস',
     'inv_number' => 'ইনভয়েস নং',
-    'inv_referred_code' => 'রেফার কোড',
     'inv_name' => 'নাম',
     'inv_dealer_code' => 'ডিলার কোড',
     'inv_designation' => 'পদবি',

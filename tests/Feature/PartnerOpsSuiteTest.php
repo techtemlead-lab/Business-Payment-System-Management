@@ -208,7 +208,9 @@ class PartnerOpsSuiteTest extends TestCase
         $html = view('invoices.order-letter', $payload)->render();
         $this->assertStringContainsString(e(__('portal.inv_title')), $html);
         $this->assertStringNotContainsString('Marketed', $html);
-        $this->assertStringContainsString(e(__('portal.inv_referred_code')).':', $html);
+        $this->assertStringContainsString(e(__('partner_profile.inv_referred_by')).': ', $html);
+        $this->assertStringContainsString(e(__('partner_profile.inv_referred_by')).': '.e($payload['buyer']['referred_name']).' · MNHC107', $html);
+        $this->assertStringNotContainsString('(code)', $html);
         $this->assertStringContainsString(e(__('portal.inv_col_mrp_bill')), $html);
         $this->assertStringContainsString(e(__('portal.inv_sign_customer')), $html);
         $this->assertStringContainsString(e(__('portal.inv_sign_authority')), $html);
