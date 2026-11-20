@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'no_batch' => 'no batch number',
+    'no_batch' => 'No batch number',
     'err_expired_refused' => ':product: :expired unit(s) in batch :batches have expired and cannot be sent. Only :usable good unit(s) are left at this branch.',
     'err_not_enough' => ':product: only :usable unit(s) are left at this branch.',
     'err_same_branch' => 'Choose two different branches.',

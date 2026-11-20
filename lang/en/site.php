@@ -512,7 +512,7 @@ Questions about these terms, partnership rules or the website:
     'side_banner_1_alt' => 'Madina products',
     'side_banner_2_alt' => 'Madina Authorized Dealer Network - Available Nationwide',
     'shortcut1_title' => 'Our Products',
-    'shortcut1_subtitle' => 'browse wellness items',
+    'shortcut1_subtitle' => 'Browse wellness items',
     'shortcut2_title' => 'Become a Partner',
     'shortcut2_subtitle' => 'Dealer & sub-dealer programme',
     'shortcut3_title' => 'Our Services',
