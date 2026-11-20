@@ -121,7 +121,9 @@ class InvoiceBuyerPlaceTest extends TestCase
         $this->assertStringContainsString('>Upazila Dealer</td>', $html);
         $this->assertStringContainsString('Mithapukur, Rangpur, Rangpur', $html);
         $this->assertStringContainsString('WhatsApp: +8801730532966', $html);
-        $this->assertStringContainsString('Mobile: +8801730532965', $html);
+        $this->assertStringContainsString('Mob: +8801730532965', $html);
+        $this->assertStringNotContainsString('Marketed', $html);
+        $this->assertStringNotContainsString('Mobile: +880', $html);
         $this->assertStringContainsString('madinanaturalhealthcare@gmail.com', $html);
         $this->assertStringContainsString('href="https://madina.example.com/"', $html);
         foreach (['whatsapp', 'call', 'mail', 'web'] as $icon) {
@@ -143,6 +145,16 @@ class InvoiceBuyerPlaceTest extends TestCase
 
         config(['madina.app_domain' => 'madina.example.com', 'app.url' => 'https://madina.example.com']);
         $this->assertSame('madina.example.com', LetterheadContacts::lines()['website']);
+    }
+
+    public function test_the_mob_line_adds_the_listed_numbers_and_never_repeats_the_whatsapp_number(): void
+    {
+        SiteCustomization::save(['invoice_marketed_phones' => '01730532965, 01730532966, 01730532967']);
+
+        $lines = LetterheadContacts::lines();
+
+        $this->assertSame('+8801730532966', $lines['whatsapp']);
+        $this->assertSame('+8801730532965, +8801730532967', $lines['mobile']);
     }
 
     public function test_every_contact_icon_file_exists(): void

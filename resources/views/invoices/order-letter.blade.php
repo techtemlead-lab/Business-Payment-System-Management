@@ -148,29 +148,29 @@
 
         /* Invoice Sheet Layout */
         .header { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
-        .header td { vertical-align: middle; }
-        .logo-cell { width: 130px; text-align: center; vertical-align: middle; }
+        .header td { vertical-align: top; }
+        .logo-cell { width: 130px; text-align: left; vertical-align: top; }
+        /* The round logo starts a hair lower: the picture has a little empty margin, so its visible top edge meets the top of the capital letters of the name. */
         .logo-cell img {
             width: 120px;
             height: 120px;
             max-width: 120px;
             max-height: 120px;
             object-fit: contain;
-            display: inline-block;
+            display: block;
+            margin-top: 1.5px;
         }
-        .brand-block { text-align: center; }
+        .brand-block { text-align: center; vertical-align: top; }
         .brand-name {
             font-size: 28px;
             font-weight: 700;
+            line-height: 1.1;
             color: #006837;
             letter-spacing: .02em;
             margin: 0;
         }
-        .brand-address { font-size: 15px; color: #334155; margin: 2px 0 0; }
-        .brand-phone { font-size: 14px; color: #334155; margin: 1px 0 0; font-weight: 500; }
-        .marketed { text-align: center; margin: 6px 0 4px; }
-        .marketed .by { color: #1e40af; font-weight: 700; font-size: 15px; }
-        .marketed .phones { color: #334155; font-size: 14px; }
+        .brand-address { font-size: 15px; line-height: 1.25; color: #334155; margin: 1px 0 0; }
+        .brand-contacts { margin-top: 5px; white-space: nowrap; }
 
         .invoice-title { text-align: center; margin: 8px 0 10px; }
         .invoice-title span {
@@ -201,6 +201,7 @@
             border-radius: 3px;
         }
 
+        .delivery-line { font-size: 12px; font-weight: 600; color: #334155; margin-top: 3px; }
         .date-cell { text-align: right; padding-top: 6px; font-size: 15px; font-weight: 700; color: #0f172a; }
 
         /* Items Table */
@@ -253,6 +254,8 @@
         table.pay-summary .totals td.amt { text-align: right; font-weight: 600; white-space: nowrap; }
         table.pay-summary .totals tr.due td { font-weight: 700; border-top: 1.5px solid #0f172a; border-bottom: 1.5px solid #0f172a; }
         table.pay-summary .history { padding-right: 14px; }
+        .pay-method-title { font-size: 10.5px; font-weight: 700; color: #1e293b; margin-bottom: 3px; }
+        .pay-method-none { font-size: 10px; color: #64748b; }
         table.pay-summary .history table { width: 100%; border-collapse: collapse; }
         table.pay-summary .history th { font-size: 9px; text-align: left; padding: 3px 4px; background: #f1f5f9; border-bottom: 1px solid #94a3b8; }
         table.pay-summary .history td { font-size: 9.5px; padding: 3px 4px; border-bottom: 0.5px solid #e2e8f0; }
@@ -370,23 +373,12 @@
                     <div class="brand-name">{{ $company['name'] }}</div>
                 @endif
                 <div class="brand-address">{{ $company['address'] }}</div>
+                <div class="brand-contacts">
+                    @include('partials.letterhead-contacts', ['company' => $company, 'size' => '14px'])
+                </div>
             </td>
-            <td class="logo-cell"></td>
         </tr>
     </table>
-
-    <div style="text-align:center;margin-top:2px">
-        @include('partials.letterhead-contacts', ['company' => $company, 'size' => '14.5px'])
-    </div>
-
-    @if (! empty($company['marketed_by']))
-        <div class="marketed">
-            <div class="by">{{ __('portal.inv_marketed_by') }}: {{ $company['marketed_by'] }}</div>
-            @if (! empty($company['marketed_phones']))
-                <div class="phones">{{ __('portal.inv_mobile_short') }}: {{ $company['marketed_phones'] }}</div>
-            @endif
-        </div>
-    @endif
 
     <div class="invoice-title"><span>{{ __('portal.inv_title') }}</span></div>
 
@@ -395,7 +387,7 @@
             <td class="invoice-no">{{ __('portal.inv_number') }} : {{ $order['number'] }}</td>
             <td style="text-align:right">
                 @if (! empty($buyer['referred_code']))
-                    <div class="referred">{{ __('portal.inv_referred_code') }}: {{ $buyer['referred_code'] }}@if (! empty($buyer['referred_name'])) · {{ __('partner_profile.inv_referred_by') }}: {{ $buyer['referred_name'] }}@endif</div>
+                    <div class="referred">{{ __('partner_profile.inv_referred_by') }}: {{ collect([$buyer['referred_name'] ?? null, $buyer['referred_code']])->filter()->implode(' · ') }}</div>
                 @elseif (! empty($buyer['referred_company']))
                     <div class="referred">{{ __('partner_profile.inv_referred_by') }}: {{ __('partner_profile.referred_by_company') }}</div>
                 @endif
@@ -420,7 +412,15 @@
                     </td></tr>
                 </table>
             </td>
-            <td class="date-cell">{{ __('portal.inv_date') }} : {{ $order['date'] }}</td>
+            <td class="date-cell">{{ __('portal.inv_date') }} : {{ $order['date'] }}
+                @if (($delivery['kind'] ?? 'none') === 'office')
+                    <div class="delivery-line" style="font-size:11px;font-weight:600;color:#334155;margin-top:3px;white-space:nowrap">{{ __('portal.inv_delivery') }} : {{ __('portal.inv_delivery_office') }}</div>
+                @elseif (($delivery['kind'] ?? 'none') === 'courier')
+                    @foreach ($delivery['couriers'] as $courier)
+                        <div class="delivery-line" style="font-size:11px;font-weight:600;color:#334155;margin-top:3px;white-space:nowrap">{{ __('portal.inv_delivery_courier') }} : {{ $courier['name'] }}@if ($courier['tracking'] !== '') · {{ __('portal.inv_delivery_tracking') }} : {{ $courier['tracking'] }}@endif</div>
+                    @endforeach
+                @endif
+            </td>
         </tr>
     </table>
 
@@ -489,7 +489,10 @@
     <table class="pay-summary">
         <tr>
             <td class="history">
-                @if (! empty($payments))
+                <div class="pay-method-title">{{ __('portal.inv_pay_title') }}</div>
+                @if (empty($payments))
+                    <div class="pay-method-none">{{ __('portal.inv_pay_none') }}</div>
+                @else
                     <table>
                         <thead>
                             <tr>

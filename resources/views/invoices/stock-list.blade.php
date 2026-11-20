@@ -13,11 +13,11 @@
     <style>
         body { font-family: freeserif, sans-serif; color: #0f172a; font-size: 11pt; margin: 0; }
         table.header { width: 100%; border-collapse: collapse; }
-        table.header td { vertical-align: middle; }
+        table.header td { vertical-align: top; }
         .logo-cell { width: 165px; text-align: left; }
         .legal-cell { width: 245px; text-align: right; }
-        .brand-name { font-size: 25pt; font-weight: bold; color: #006837; }
-        .brand-line { font-size: 13pt; color: #334155; line-height: 1.45; }
+        .brand-name { font-size: 25pt; font-weight: bold; line-height: 1.05; color: #006837; }
+        .brand-line { font-size: 13pt; color: #334155; line-height: 1.3; }
         .title { text-align: center; margin: 8px 0 8px; }
         .title span { font-size: 18pt; font-weight: bold; color: #006837; border-bottom: 2px solid #006837; padding: 0 18px 2px; }
         table.items { width: 100%; border-collapse: collapse; }
@@ -33,23 +33,21 @@
 <body>
 <table class="header">
     <tr>
-        <td class="logo-cell" rowspan="2">
+        <td class="logo-cell">
             @if (! empty($company['logo_path']))
-                <img src="{{ $company['logo_path'] }}" alt="" width="140" height="140">
+                <img src="{{ $company['logo_path'] }}" alt="" width="140" height="140" style="margin-top:4px">
             @endif
         </td>
-        <td style="text-align:center;vertical-align:bottom">
+        <td style="text-align:center;vertical-align:top">
             <div class="brand-name">{{ $company['name'] }}</div>
             <div class="brand-line">{{ $company['address'] }}</div>
+            <div style="margin-top:3px">
+                @include('partials.letterhead-contacts', ['company' => $company, 'size' => '13pt', 'localDigits' => true])
+            </div>
         </td>
-        <td class="legal-cell" rowspan="2">
+        <td class="legal-cell">
             <div class="brand-line">{{ __('site.top_bar_trade_licence') }}: <b>{{ $digits($company['licence']) }}</b></div>
             <div class="brand-line">{{ __('site.top_bar_trademark') }}: <b>{{ $company['trademark'] }}</b></div>
-        </td>
-    </tr>
-    <tr>
-        <td style="text-align:center;vertical-align:top">
-            @include('partials.letterhead-contacts', ['company' => $company, 'size' => '13pt', 'localDigits' => true])
         </td>
     </tr>
 </table>
