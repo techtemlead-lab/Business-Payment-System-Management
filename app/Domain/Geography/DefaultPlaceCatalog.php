@@ -20,11 +20,13 @@ use RuntimeException;
  * the office to fill in. Running it again changes nothing.
  */
 /**
- * @phpstan-type PlaceSummary array{created: int, coded: int, filled: int, linked: int, codes_taken: list<string>, by_level: array<string, array<string, int>>, conflicts: list<array{code: string, level: string, name: string, held_by: string}>, base_empty: list<array{code: string, level: string, name: string, reason: string, candidates: list<string>}>, base_set_list: list<array{code: string, level: string, name: string, base: string, rule: string}>}
+ * @phpstan-type PlaceSummary array{created: int, coded: int, filled: int, linked: int, codes_taken: list<string>, by_level: array<string, array<string, int>>, conflicts: list<array{code: string, level: string, name: string, held_by: string}>, base_empty: list<array{code: string, level: string, name: string, reason: string, candidates: list<string>, parent: string}>, base_set_list: list<array{code: string, level: string, name: string, base: string, rule: string}>}
  */
 final class DefaultPlaceCatalog
 {
     public const DataFile = 'data/bangladesh-place-codes.json';
+
+    public const HeadquartersFile = 'data/bangladesh-upazila-headquarters.json';
 
     private const InsertChunk = 500;
 
@@ -307,6 +309,47 @@ final class DefaultPlaceCatalog
     }
 
     /**
+     * Upazila headquarters unions found in public sources (database/data/bangladesh-upazila-headquarters.json),
+     * only the entries an authoritative source states outright (confidence high).
+     *
+     * @return array<string, string> Upazila code => union as the source writes it
+     */
+    public function headquarters(): array
+    {
+        $path = database_path(self::HeadquartersFile);
+        if (! is_file($path)) {
+            return [];
+        }
+        /** @var array{upazilas?: list<array{code: string, hq_union: ?string, confidence: string}>} $data */
+        $data = json_decode((string) file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+        $map = [];
+        foreach ($data['upazilas'] ?? [] as $row) {
+            if ($row['confidence'] === 'high' && is_string($row['hq_union']) && $row['hq_union'] !== '') {
+                $map[$row['code']] = $row['hq_union'];
+            }
+        }
+
+        return $map;
+    }
+
+    /**
+     * Every researched headquarters entry, whatever its confidence, for the review file.
+     *
+     * @return array<string, array{hq_union: ?string, source_url: ?string, confidence: string, note: ?string}>
+     */
+    public function headquartersReview(): array
+    {
+        $path = database_path(self::HeadquartersFile);
+        if (! is_file($path)) {
+            return [];
+        }
+        /** @var array{upazilas?: list<array{code: string, hq_union: ?string, source_url: ?string, confidence: string, note: ?string}>} $data */
+        $data = json_decode((string) file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+
+        return array_column($data['upazilas'] ?? [], null, 'code');
+    }
+
+    /**
      * Sets the base place of every division, district and upazila that has none: first the links
      * of the data file, then the headquarters found by DefaultBasePlaces. A base the office already
      * set is never touched, and a candidate that is turned off, has no code or no name, or is not
@@ -321,7 +364,7 @@ final class DefaultPlaceCatalog
      */
     private function linkBasePlaces(array $payload, array &$rows, array $idBySource, array &$summary, CarbonInterface $now): void
     {
-        $derived = (new DefaultBasePlaces)->derive($payload['places']);
+        $derived = (new DefaultBasePlaces($this->headquarters()))->derive($payload['places']);
         $links = $payload['base_links'];
         $fromFile = array_column($links, 'code');
         foreach ($derived['links'] as $link) {
@@ -366,12 +409,13 @@ final class DefaultPlaceCatalog
             $emptyReason[$item['code']] ??= $item['reason'];
             $candidates[$item['code']] ??= $item['candidates'];
         }
+        $parentNames = array_column($payload['places'], 'name', 'code');
         foreach ($payload['places'] as $place) {
             $placeId = $idBySource[$place['code']] ?? null;
             if ($placeId === null || ! isset($emptyReason[$place['code']]) || $rows[$placeId]->base_place_id !== null) {
                 continue;
             }
-            $summary['base_empty'][] = ['code' => $place['code'], 'level' => $place['level'], 'name' => $place['name'], 'reason' => $emptyReason[$place['code']], 'candidates' => $candidates[$place['code']] ?? []];
+            $summary['base_empty'][] = ['code' => $place['code'], 'level' => $place['level'], 'name' => $place['name'], 'reason' => $emptyReason[$place['code']], 'candidates' => $candidates[$place['code']] ?? [], 'parent' => $parentNames[(string) $place['parent_code']] ?? ''];
         }
     }
 

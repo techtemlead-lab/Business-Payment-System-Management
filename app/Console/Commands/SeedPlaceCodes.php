@@ -10,7 +10,8 @@ use Illuminate\Console\Command;
  */
 class SeedPlaceCodes extends Command
 {
-    protected $signature = 'madina:seed-place-codes {--dry-run : Show what would be added without saving anything}';
+    protected $signature = 'madina:seed-place-codes {--dry-run : Show what would be added without saving anything}
+        {--review-csv= : Write the upazilas left without a base place, with the headquarters found in public sources, to this CSV file}';
 
     protected $description = 'Add the missing places, default place codes (100, 101…, 201…, 1001…, 100001…) and empty base places. Never changes an existing code or base place.';
 
@@ -65,6 +66,35 @@ class SeedPlaceCodes extends Command
             ));
         }
 
+        $csv = $this->option('review-csv');
+        if (is_string($csv) && $csv !== '') {
+            $this->writeReviewCsv($csv, $summary['base_empty'], $catalog->headquartersReview());
+            $this->info('Review file written: '.$csv);
+        }
+
         return self::SUCCESS;
+    }
+
+    /**
+     * @param  list<array{code: string, level: string, name: string, reason: string, candidates: list<string>, parent: string}>  $empty
+     * @param  array<string, array{hq_union: ?string, source_url: ?string, confidence: string, note: ?string}>  $found
+     */
+    private function writeReviewCsv(string $path, array $empty, array $found): void
+    {
+        $handle = fopen($path, 'wb');
+        if ($handle === false) {
+            $this->error('Cannot write '.$path);
+
+            return;
+        }
+        fputcsv($handle, ['upazila', 'district', 'headquarters union found', 'candidates', 'source URL', 'confidence', 'reason', 'note'], ',', '"', '');
+        foreach ($empty as $item) {
+            if ($item['level'] !== 'upazila') {
+                continue;
+            }
+            $hq = $found[$item['code']] ?? null;
+            fputcsv($handle, [$item['name'], $item['parent'], $hq['hq_union'] ?? '', implode('; ', $item['candidates']), $hq['source_url'] ?? '', $hq['confidence'] ?? '', $item['reason'], $hq['note'] ?? ''], ',', '"', '');
+        }
+        fclose($handle);
     }
 }
