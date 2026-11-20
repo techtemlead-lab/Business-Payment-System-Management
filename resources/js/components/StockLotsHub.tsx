@@ -4,6 +4,7 @@ import { ActionForm, Modal, Table, date, number, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
 import StockLotHoldTab from './StockLotHoldTab';
 import StockLotDetailsTab from './StockLotDetailsTab';
+import { PartnerTypeCell } from './office/portalShared';
 
 const TABS = [
     { key: 'near', label: 'tab_near_expiry' },
@@ -74,7 +75,9 @@ function Recall({ data }: { data: Row }) {
                 <h3>{t('recall_orders')}</h3>
                 <Table rows={recall.orders} tools={false} columns={[
                     { key: 'order_number', title: t('col_order') },
-                    { key: 'partner_name', title: t('col_partner'), render: (row: Row) => `${row.partner_name} · ${row.dealer_code ?? '—'}` },
+                    { key: 'partner_name', title: t('col_partner') },
+                    { key: 'dealer_code', title: translate('office_orders', 'col_code'), render: (row: Row) => row.dealer_code ?? '—' },
+                    { key: 'partner_type', title: translate('office_orders', 'col_partner_type'), render: (row: Row) => <PartnerTypeCell user={{ partner_type: row.partner_type, role: row.partner_role }} /> },
                     { key: 'product', title: t('col_product') },
                     { key: 'branch_code', title: t('col_branch') },
                     { key: 'expires_on', title: t('col_expiry'), render: (row: Row) => row.expires_on ? date(row.expires_on) : '—' },

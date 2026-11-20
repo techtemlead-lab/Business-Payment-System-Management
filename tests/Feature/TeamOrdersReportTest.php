@@ -116,8 +116,8 @@ class TeamOrdersReportTest extends TestCase
 
         $this->assertCount(33, $rows, 'Header, 31 orders and the totals row.');
         $this->assertSame('ORD-X1', $rows[1][1]);
-        $this->assertSame(350.0, (float) $rows[32][5]);
-        $this->assertSame(50.0, (float) $rows[32][7]);
+        $this->assertSame(350.0, (float) $rows[32][6]);
+        $this->assertSame(50.0, (float) $rows[32][8]);
         $this->assertSame(1, DB::table('audit_events')->where('action', 'report.exported')->where('subject', 'team-orders')->count());
 
         $staff = User::factory()->create(['role' => 'finance', 'status' => 'active']);

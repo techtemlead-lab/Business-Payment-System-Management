@@ -9,6 +9,7 @@ import { useEscape } from '../shared/useEscape';
 import { channelName, methodForChannel, payoutMethods, type PayoutMethod } from '../shared/payoutMethods';
 import WithdrawalFacts, { AmountWords, useWithdrawalFacts } from './payouts/WithdrawalFacts';
 import ReceiptPicker from './payouts/ReceiptPicker';
+import { PartnerTypeCell } from './office/portalShared';
 
 type WithdrawalStatus = 'requested' | 'approved' | 'paid' | 'rejected' | 'cancelled';
 
@@ -21,6 +22,7 @@ interface WithdrawalRecord {
     dealer_code: string;
     phone: string;
     role?: string | null;
+    partner_type?: { title: string | null; place: string | null } | null;
     district?: string | null;
     division?: string | null;
     amount: string | number;
@@ -82,7 +84,9 @@ function PayoutsTable({ data, rowActions }: { data: MoneyTableData<WithdrawalRec
     const translate = useT();
     const columns: MoneyColumn<WithdrawalRecord>[] = [
         { key: 'created_at', title: translate('portal', 'pay_col_date'), sortKey: 'date', phone: 'sub', render: (w) => date(w.created_at) },
-        { key: 'user_name', title: translate('portal', 'pay_col_partner'), sortKey: 'partner', phone: 'title', render: (w) => <><b>{w.user_name}</b><small className="cell-sub">{[w.dealer_code, w.phone, w.district, w.division].filter(Boolean).join(' · ')}</small></> },
+        { key: 'user_name', title: translate('portal', 'pay_col_partner'), sortKey: 'partner', phone: 'title', render: (w) => <><b>{w.user_name}</b><small className="cell-sub">{[w.phone, w.district, w.division].filter(Boolean).join(' · ')}</small></> },
+        { key: 'code', title: translate('office_orders', 'col_code'), phone: 'hide', render: (w) => w.dealer_code || '—' },
+        { key: 'partner_type', title: translate('office_orders', 'col_partner_type'), phone: 'hide', render: (w) => <PartnerTypeCell user={w} /> },
         { key: 'channel', title: translate('portal', 'pay_col_method'), sortKey: 'method', phone: 'sub', render: (w) => channelName(w.channel, translate) },
         { key: 'destination', title: translate('portal', 'wd_destination'), phone: 'hide', render: (w) => w.destination_masked || '—' },
         { key: 'payment_reference', title: translate('portal', 'col_reference'), sortKey: 'reference', phone: 'hide', render: (w) => <>{w.payment_reference || '—'}{w.paid_at && <small className="cell-sub">{date(w.paid_at)}</small>}</> },

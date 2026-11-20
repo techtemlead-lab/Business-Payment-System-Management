@@ -2,6 +2,7 @@
 
 namespace App\Domain\Lists;
 
+use App\Domain\Accounts\PartnerAppointment;
 use App\Domain\Inventory\BranchOperations;
 use App\Http\Controllers\AccountListExportController;
 use App\Models\Order;
@@ -48,7 +49,7 @@ final class BulkActions
         $query = Order::query()->whereIn('orders.id', $ids);
         $this->branches->scopeFor($actor, $request)->restrictOrders($query);
 
-        return $query->with(['user:id,name,dealer_code,role,phone,division,district', 'fulfillmentBranch:id,name,code', 'lines:id,order_id,name,sku,quantity'])
+        return $query->with(['user:id,name,dealer_code,role,phone,division,district,profile', 'fulfillmentBranch:id,name,code', 'lines:id,order_id,name,sku,quantity'])
             ->orderBy('orders.created_at')
             ->get();
     }
@@ -59,6 +60,7 @@ final class BulkActions
     public function exportOrders(User $actor, Request $request, array $ids): StreamedResponse
     {
         $orders = $this->orders($actor, $request, $ids);
+        app(PartnerAppointment::class)->attachTypes($orders->map(fn (Order $order) => $order->user));
         $fullContacts = AccountListExportController::mayExportFullContacts($actor);
         Audit::record($actor->id, 'report.exported', 'orders-selected', ['count' => $orders->count(), 'full_contacts' => $fullContacts]);
         $rows = $orders->map(function (Order $order) use ($fullContacts): array {
@@ -68,8 +70,9 @@ final class BulkActions
             return [
                 $order->number,
                 $order->created_at?->timezone('Asia/Dhaka')->format('Y-m-d H:i'),
-                $buyer?->dealer_code,
                 $buyer?->name,
+                $buyer?->dealer_code,
+                PartnerAppointment::cellText($buyer?->getAttribute('partner_type'), $buyer ? (string) __('portal.acct_role_'.$buyer->role) : ''),
                 $fullContacts ? $buyer?->phone : PhoneIdentity::masked($buyer?->phone),
                 $this->statusLabel((string) $order->status),
                 $order->total,
@@ -78,7 +81,7 @@ final class BulkActions
             ];
         });
 
-        return $this->csv('madina-orders-selected', ['csv_col_order', 'csv_col_date_dhaka', 'csv_col_dealer_code', 'csv_col_name', 'csv_col_phone', 'csv_col_status', 'csv_col_total_bdt', 'csv_col_verified_receipts_bdt', 'csv_col_unpaid_bdt'], $rows->all());
+        return $this->csv('madina-orders-selected', ['csv_col_order', 'csv_col_date_dhaka', 'csv_col_name', 'csv_col_dealer_code', 'csv_col_partner_type', 'csv_col_phone', 'csv_col_status', 'csv_col_total_bdt', 'csv_col_verified_receipts_bdt', 'csv_col_unpaid_bdt'], $rows->all());
     }
 
     /**
@@ -89,20 +92,21 @@ final class BulkActions
         abort_unless(($actor->staff() || $actor->usingStaffWorkspace()) && ($actor->owner() || $actor->allows('accounts')), 403);
         $query = User::query()->whereIn('users.id', $ids)->whereIn('users.role', ['dealer', 'sub_dealer']);
         $this->branches->scopeFor($actor, $request)->restrictPartners($query);
-        $partners = $query->orderBy('users.name')->get(['users.id', 'users.name', 'users.dealer_code', 'users.role', 'users.status', 'users.phone', 'users.district', 'users.division']);
+        $partners = $query->orderBy('users.name')->get(['users.id', 'users.name', 'users.dealer_code', 'users.role', 'users.status', 'users.phone', 'users.district', 'users.division', 'users.profile']);
+        app(PartnerAppointment::class)->attachTypes($partners);
         $fullContacts = AccountListExportController::mayExportFullContacts($actor);
         Audit::record($actor->id, 'report.exported', 'partners-selected', ['count' => $partners->count(), 'full_contacts' => $fullContacts]);
         $rows = $partners->map(fn (User $partner): array => [
-            $partner->dealer_code,
             $partner->name,
-            (string) __('portal.acct_role_'.$partner->role),
+            $partner->dealer_code,
+            PartnerAppointment::cellText($partner->getAttribute('partner_type'), (string) __('portal.acct_role_'.$partner->role)),
             $fullContacts ? $partner->phone : PhoneIdentity::masked($partner->phone),
             $this->statusLabel((string) $partner->status),
             $partner->district,
             $partner->division,
         ]);
 
-        return $this->csv('madina-partners-selected', ['csv_col_dealer_code', 'csv_col_name', 'csv_col_role', 'csv_col_phone', 'csv_col_status', 'csv_col_district', 'csv_col_division'], $rows->all());
+        return $this->csv('madina-partners-selected', ['csv_col_name', 'csv_col_dealer_code', 'csv_col_partner_type', 'csv_col_phone', 'csv_col_status', 'csv_col_district', 'csv_col_division'], $rows->all());
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Domain\Inventory;
 
+use App\Domain\Accounts\PartnerAppointment;
 use App\Domain\Orders\DeliveredMoney;
 use App\Domain\Orders\OrderListFilter;
 use App\Models\CompanyBranch;
@@ -179,8 +180,11 @@ final class BranchPerformance
     public function orderRows(User $actor, array $filters = []): Generator
     {
         ['period' => $period, 'branch_id' => $branchFilter, 'branches' => $branches, 'can_view_all_branches' => $canViewAllBranches] = $this->reportScope($actor, $filters);
-        foreach ($this->listedOrders($this->confirmedOrders($period, $branchFilter, $branches, $canViewAllBranches))->lazy(500) as $order) {
-            yield $this->orderRow($order, $branches, $period['timezone']);
+        foreach ($this->listedOrders($this->confirmedOrders($period, $branchFilter, $branches, $canViewAllBranches))->lazy(500)->chunk(500) as $batch) {
+            app(PartnerAppointment::class)->attachToRows($batch);
+            foreach ($batch as $order) {
+                yield $this->orderRow($order, $branches, $period['timezone']);
+            }
         }
     }
 
@@ -277,6 +281,7 @@ final class BranchPerformance
             defaultPeriod: null,
             perPage: $perPage,
         ));
+        app(PartnerAppointment::class)->attachToRows($table['rows']->getCollection());
         $table['rows'] = $table['rows']
             ->appends(Arr::only($request->query(), self::PeriodKeys))
             ->through(fn (object $order): array => $this->orderRow($order, $branches, $timezone));
@@ -302,8 +307,10 @@ final class BranchPerformance
                 'o.due_credit',
                 'o.fulfillment_branch_id',
                 'o.created_at',
+                'o.user_id',
                 'u.name as partner_name',
                 'u.dealer_code',
+                'u.role as partner_role',
                 DB::raw('COALESCE(lc.estimated_profit, 0) AS estimated_profit'),
                 DB::raw('COALESCE(lc.estimated_cost, 0) AS estimated_cost'),
             ])
@@ -328,6 +335,8 @@ final class BranchPerformance
             'status' => $order->status,
             'partner_name' => $order->partner_name,
             'dealer_code' => $order->dealer_code,
+            'partner_role' => $order->partner_role,
+            'partner_type' => $order->partner_type,
             'total' => Money::decimal(Money::cents((string) $order->total)),
             'paid' => Money::decimal(Money::cents((string) $order->paid)),
             'delivered_value' => Money::decimal(Money::cents((string) $order->delivered_value)),

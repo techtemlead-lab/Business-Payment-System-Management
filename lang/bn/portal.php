@@ -875,6 +875,7 @@ return [
     'csv_col_name' => 'নাম',
     'csv_col_phone' => 'ফোন',
     'csv_col_role' => 'পদ',
+    'csv_col_partner_type' => 'পার্টনারের ধরন',
     'csv_col_rank' => 'র‍্যাঙ্ক',
     'csv_col_sponsor_code' => 'রেফারকারীর কোড',
     'csv_col_sponsor_name' => 'রেফারকারীর নাম',

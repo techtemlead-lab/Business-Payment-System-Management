@@ -39,8 +39,8 @@ export function orderSentCount(row:Row):number{return Math.max(0,(row.lines??[])
 export function returnedByLine(shipments:Row[]):Map<number,number>{const byLine=new Map<number,number>();shipments.filter(s=>s.status==='returned').forEach(s=>parseJson<Row[]>(s.lines,[]).forEach((l:Row)=>byLine.set(Number(l.line_id),(byLine.get(Number(l.line_id))??0)+Number(l.quantity||0))));return byLine;}
 /** The list's "sent / ordered" figure, with the returned units under it when any came back. */
 export function OrderSentCell({row}:{row:Row}){const translate=useT();return <span title={translate('portal','col_delivered_hint')}>{number(orderSentCount(row))} / {number(orderItemCount(row))}{Number(row.returned_units)>0&&<small className="cell-sub" data-testid="order-returned-units">{translate('office_orders','returned_units',{count:number(row.returned_units)})}</small>}</span>;}
-/** Statuses where nothing can have been sent yet, so the delivered column shows a dash. */
-export const notYetSendable=['submitted','held','cancelled','rejected'];
+/** Statuses where sending does not apply (the order was cancelled or refused), so the sent column shows a dash. An order not yet sent shows 0. */
+export const notYetSendable=['cancelled','rejected'];
 export function AgingPill({days}:{days:number}){const translate=useT();const band=days>90?'is-90':days>60?'is-60':days>30?'is-30':'';return <span className={`aging-pill ${band}`.trim()}>{translate('portal','days_count',{n:number(days)})}</span>;}
 /** "Page total" when the list has more pages than the one on screen, so the footer sum is not read as a grand total. */
 /** Stock movement types (receipt, dispatch, ...) in plain words. */
@@ -216,3 +216,8 @@ export function usePortalSection({section,data:d,filters}:PortalSectionProps){
  const open=(name:string,row:Row={})=>{setSelected(row);setModal(name)};const close=()=>{setModal(null)};
  return {section,d,filters,translate,auth,u,caps,staff,base,portal,financeActive,staffActions,withdrawalMinimum,staffRoles,security,otp,totp,flash,sharedCollectionAccounts,statusSelect,open,close,modal,selected};
 }
+
+/** The partner's kind and place on one row, for a side panel or a title. */
+export function partnerTypeText(user:Row|null|undefined):string{const type=user?.partner_type;return [type?.title,type?.place].filter(Boolean).join(' — ');}
+/** Two lines like the pill on the partner's dashboard: the kind of dealer, then the place ("Balia, Nababganj"). A partner with no appointed place shows the plain role word. */
+export function PartnerTypeCell({user}:{user:Row|null|undefined}){const translate=useT();const type=user?.partner_type;if(!user){return <>—</>;}return <>{type?.title??(user.role?label(user.role,translate):'—')}{type?.place&&<small className="cell-sub">{type.place}</small>}</>;}

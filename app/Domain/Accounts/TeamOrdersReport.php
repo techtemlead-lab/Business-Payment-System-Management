@@ -32,6 +32,7 @@ final class TeamOrdersReport
             ->orderByDesc('orders.id')
             ->paginate(self::PerPage, $this->columns())
             ->withQueryString();
+        app(PartnerAppointment::class)->attachToRows($page->getCollection());
         $page->setCollection($page->getCollection()->map(fn (object $row): array => $this->present($row)));
 
         return [
@@ -54,8 +55,11 @@ final class TeamOrdersReport
             ->orderBy('orders.id')
             ->select($this->columns())
             ->lazy(500, 'orders.id');
-        foreach ($rows as $row) {
-            yield $this->present($row);
+        foreach ($rows->chunk(500) as $batch) {
+            app(PartnerAppointment::class)->attachToRows($batch);
+            foreach ($batch as $row) {
+                yield $this->present($row);
+            }
         }
     }
 
@@ -170,6 +174,7 @@ final class TeamOrdersReport
             'member_name' => (string) $row->member_name,
             'member_code' => $row->member_code,
             'member_role' => (string) $row->member_role,
+            'member_type' => $row->partner_type,
             'total' => Money::decimal($total),
             'paid' => Money::decimal($paid),
             'due' => Money::decimal($due),
