@@ -41,7 +41,7 @@ class GuestLanguageTest extends TestCase
 
         $response = $this->onPortal('subdealer')->get('/login?lang=en')->assertOk()->assertSee('<html lang="en"', false);
 
-        $cookie = collect($response->headers->getCookies())->first(fn ($c): bool => $c->getName() === 'locale');
+        $cookie = collect($response->headers->getCookies())->first(fn ($c): bool => $c->getName() === 'locale' && ! $c->isCleared());
         $this->assertNotNull($cookie);
         $this->assertSame('.example.test', $cookie->getDomain());
     }

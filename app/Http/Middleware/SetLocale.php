@@ -11,10 +11,13 @@ use Symfony\Component\HttpFoundation\Response;
 class SetLocale
 {
     /**
-     * Language order: a link's ?lang=, the signed-in person's choice, this session's choice, the
-     * shared "locale" cookie, then (for someone who never chose) the company's guest language,
-     * Bangla, because most partners read Bangla only. With the guest language switched off the
-     * browser's own preference decides.
+     * Language order: a link's ?lang=, the shared "locale" cookie (the last choice made in this
+     * browser on ANY host), this host's session choice, the signed-in person's saved language, then
+     * (for someone who never chose) the company's guest language, Bangla, because most partners read
+     * Bangla only. With the guest language switched off the browser's own preference decides.
+     *
+     * The saved language comes last on purpose: older accounts carry the former column default "en"
+     * although nobody chose it, and it must never override what this browser was just showing.
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -26,11 +29,13 @@ class SetLocale
             $request->session()->put('locale', $linked);
             cookie()->queue(self::cookieFor($linked));
         }
-        $candidate = $linked
-            ?? $request->user()?->locale
-            ?? $request->session()->get('locale')
-            ?? $request->cookie('locale');
-        if (! is_string($candidate) || ! in_array($candidate, $supported, true)) {
+        $candidate = collect([
+            $linked,
+            $request->cookie('locale'),
+            $request->session()->get('locale'),
+            $request->user()?->locale,
+        ])->first(fn (mixed $value): bool => is_string($value) && in_array($value, $supported, true));
+        if (! is_string($candidate)) {
             // The company's guest language first; with it switched off, staff and owner panels still
             // open in Bangla (not for JSON calls) and other sites follow the browser.
             $guest = config('madina.guest_locale');
@@ -46,7 +51,22 @@ class SetLocale
         }
         app()->setLocale($candidate);
 
-        return $next($request);
+        $response = $next($request);
+        if ($linked !== null) {
+            $response->headers->setCookie(self::legacyCookieExpiry());
+        }
+
+        return $response;
+    }
+
+    /**
+     * Until 18 Nov 2026 the cookie had no domain. A browser holding both that old cookie and the shared
+     * one sends both, and the older one (an earlier choice) is the one the server reads, so every
+     * new choice also clears the old copy.
+     */
+    public static function legacyCookieExpiry(): Cookie
+    {
+        return cookie()->forget('locale', '/', null);
     }
 
     /**
