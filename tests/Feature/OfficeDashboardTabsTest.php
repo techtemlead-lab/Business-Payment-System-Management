@@ -74,7 +74,8 @@ class OfficeDashboardTabsTest extends TestCase
             $this->assertNotEmpty($tab['rows'], $key);
         }
         $orders = $this->tab($owner, '?tab=orders');
-        $this->assertSame('paid', $orders['rows'][0]['payment']);
+        $this->assertSame('500.00', $orders['rows'][0]['paid']);
+        $this->assertSame('0.00', $orders['rows'][0]['to_pay']);
         $this->assertSame('/orders', $orders['all_href']);
     }
 

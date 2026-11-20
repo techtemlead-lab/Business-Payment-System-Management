@@ -5,6 +5,7 @@ namespace App\Domain\Orders;
 use App\Models\Order;
 use App\Models\User;
 use App\Support\Money;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * The extra figures every order list shows beside an order: its MRP, what is left to pay and the
@@ -31,7 +32,7 @@ final class OrderListFigures
      * The buyer's address from the names saved on the account, smallest place first
      * ("Village, Upazila, District, Division"). Never reads the database.
      */
-    public static function addressLine(?User $buyer): ?string
+    public static function addressLine(?Model $buyer): ?string
     {
         if (! $buyer instanceof User) {
             return null;

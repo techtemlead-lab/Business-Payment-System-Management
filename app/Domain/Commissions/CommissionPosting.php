@@ -131,8 +131,9 @@ final class CommissionPosting
             return null;
         }
         try {
-            $captured = is_array($order->commission_policy_snapshot) && $order->commission_policy_snapshot !== [];
-            $snapshot = $captured ? $order->commission_policy_snapshot : $this->capture($order, $buyer, 'submission', [], null, false);
+            $saved = $order->getAttribute('commission_policy_snapshot');
+            $captured = is_array($saved) && $saved !== [];
+            $snapshot = $captured ? $saved : $this->capture($order, $buyer, 'submission', [], null, false);
             $result = $this->calculate($order, $buyer, $snapshot);
         } catch (ValidationException) {
             return null;

@@ -104,22 +104,7 @@ final class OfficeDashboardTabs
         // The address is written before attachTypes hides the saved profile; both read no further rows.
         $addresses = $found->mapWithKeys(fn (Order $order): array => [$order->id => OrderListFigures::addressLine($order->user)]);
         app(PartnerAppointment::class)->attachTypes($found->map(fn (Order $order) => $order->user));
-        $rows = $found->map(fn (Order $order): array => [
-            'href' => '/orders/'.$order->id,
-            'number' => $order->number,
-            'created_at' => $order->created_at?->toIso8601String(),
-            'partner' => $order->user?->name,
-            'code' => $order->user?->dealer_code,
-            'partner_type' => $order->user ? ['title' => data_get($order->user->getAttribute('partner_type'), 'title'), 'place' => data_get($order->user->getAttribute('partner_type'), 'place'), 'role' => $order->user->role] : null,
-            'phone' => $order->user?->phone,
-            'address' => $addresses[$order->id] ?? null,
-            'items' => (int) $order->lines->sum('quantity'),
-            'mrp' => Money::decimal(Money::cents((string) $order->getAttribute('mrp_total'))),
-            'total' => (string) $order->total,
-            'paid' => (string) $order->paid,
-            'to_pay' => OrderListFigures::toPay($order),
-            'status' => $order->status,
-        ])->all();
+        $rows = $found->map(fn (Order $order): array => $this->orderRow($order, $addresses[$order->id] ?? null))->all();
 
         return [[
             ['key' => 'number', 'type' => 'text'], ['key' => 'created_at', 'type' => 'date'], ['key' => 'partner', 'type' => 'text'], ['key' => 'code', 'type' => 'text'],
@@ -127,6 +112,30 @@ final class OfficeDashboardTabs
             ['key' => 'mrp', 'type' => 'money'], ['key' => 'total', 'type' => 'money'], ['key' => 'paid', 'type' => 'money'], ['key' => 'to_pay', 'type' => 'money'],
             ['key' => 'status', 'type' => 'status'],
         ], $total, $rows, '/orders'];
+    }
+
+    /** @return array<string, mixed> */
+    private function orderRow(Order $order, ?string $address): array
+    {
+        $buyer = $order->user;
+        $type = $buyer?->getAttribute('partner_type');
+
+        return [
+            'href' => '/orders/'.$order->id,
+            'number' => $order->number,
+            'created_at' => $order->created_at?->toIso8601String(),
+            'partner' => $buyer?->getAttribute('name'),
+            'code' => $buyer?->getAttribute('dealer_code'),
+            'partner_type' => $buyer ? ['title' => data_get($type, 'title'), 'place' => data_get($type, 'place'), 'role' => $buyer->getAttribute('role')] : null,
+            'phone' => $buyer?->getAttribute('phone'),
+            'address' => $address,
+            'items' => (int) $order->lines->sum('quantity'),
+            'mrp' => Money::decimal(Money::cents((string) $order->getAttribute('mrp_total'))),
+            'total' => (string) $order->total,
+            'paid' => (string) $order->paid,
+            'to_pay' => OrderListFigures::toPay($order),
+            'status' => $order->status,
+        ];
     }
 
     /** @return array{list<array{key: string, type: string}>, int, list<array<string, mixed>>, string} */

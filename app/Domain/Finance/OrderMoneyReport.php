@@ -383,7 +383,7 @@ final class OrderMoneyReport
     }
 
     /**
-     * @param  Collection<int, stdClass>  $rows
+     * @param  Collection<int, covariant object>  $rows
      * @return list<array<string, mixed>>
      */
     private function allocationLines(Collection $rows): array
