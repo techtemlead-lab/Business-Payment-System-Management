@@ -201,7 +201,9 @@ class WebsiteSectionsCmsTest extends TestCase
             ->get('/orders/'.$order->id.'/invoice/print')
             ->assertOk()
             ->assertSee(config('madina.invoice_manufacturer'))
-            ->assertSee('01730532965, +8801730532966');
+            // Client, 2026-11-20: the "Marketed By" line and its separate phone line are no longer printed.
+            ->assertDontSee('Marketed By')
+            ->assertDontSee('01730532965, +8801730532966');
     }
 
     public function test_invoice_letterhead_uses_what_the_owner_typed(): void
@@ -222,7 +224,7 @@ class WebsiteSectionsCmsTest extends TestCase
             ->assertOk()
             ->assertSee('Green Leaf Labs')
             ->assertSee('Madina Herbal House')
-            ->assertSee('01800-000000')
+            ->assertDontSee('01800-000000')
             ->assertSee('Station Road, Rangpur')
             ->assertDontSee('Factory Default Maker');
     }
