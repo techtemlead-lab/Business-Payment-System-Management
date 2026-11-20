@@ -24,7 +24,7 @@ return [
     'card_shop' => 'দোকানের নাম',
     'card_people' => 'জন',
     'total_income' => 'মোট আয়',
-    'total_withdrawn' => 'মোট তোলা ও খরচ',
+    'total_withdrawn' => 'মোট উত্তোলন ও খরচ',
     'total_balance' => 'বর্তমান ব্যালেন্স',
     'total_withdrawn_hint' => 'টাকা তোলা আর অর্ডারে ব্যালেন্স থেকে দেওয়া টাকা মিলিয়ে',
     'heads_title' => 'কোন খাত থেকে কত আয়',

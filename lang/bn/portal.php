@@ -3802,7 +3802,7 @@ return [
     'col_rate' => 'হার %',
     'col_source_account' => 'যে অ্যাকাউন্ট থেকে',
     'col_order' => 'অর্ডার / ইনভয়েস',
-    'total_withdrawn' => 'মোট টাকা তোলা',
+    'total_withdrawn' => 'মোট টাকা উত্তোলন',
     'pending_withdrawal' => 'তোলার অনুরোধ করা টাকা (এখনো পাননি)',
     'preset_today' => 'আজ',
     'preset_week' => 'এই সপ্তাহ',
