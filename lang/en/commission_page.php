@@ -79,7 +79,7 @@ return [
     'sub_name_line' => 'For a sub-dealer: :name',
     'subblock_title' => 'Sub-dealer only',
     'subblock_lead' => 'These three apply only to a sub-dealer\'s purchase. Every commission above applies to a sub-dealer\'s purchase the same as to a dealer\'s.',
-    'extra_goes_label' => 'This part goes to',
+    'extra_goes_label' => 'This part now goes to',
     'dest_rank_fund' => 'the sub-dealer rank fund (as before)',
     'dest_extra_fund' => 'the company fund "Sub-dealer extra"',
     'dest_pick' => 'Where the sub-dealer extra part goes',
@@ -217,7 +217,7 @@ return [
     'cond_cooling_off_title' => 'When a commission can be withdrawn',
     'cond_cooling_off_text' => 'After delivery, a commission :cool_text.',
     'cond_sub_dealer_extras_title' => 'Sub-dealer only: salary, tour and extra',
-    'cond_sub_dealer_extras_text' => 'On every purchase of a sub-dealer, these three parts are set aside at the rates in the commission table. The salary and the tour belong to the sub-dealer. The sub-dealer extra goes to no person\'s account. It is a company fund, and it now goes to :dest_text. There is no separate number to change for them.',
+    'cond_sub_dealer_extras_text' => 'On every purchase of a sub-dealer, these three parts are set aside at the rates in the commission table. The salary and the tour belong to the sub-dealer. The sub-dealer extra goes to no person\'s account. It is a company fund, and it now goes to :dest_text. The owner can switch it back to the old rank fund, but only new orders follow the switch.',
 
     // One person's special rate
     'special_title' => 'One person\'s special rate',
