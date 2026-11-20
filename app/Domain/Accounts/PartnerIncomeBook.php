@@ -43,7 +43,7 @@ final class PartnerIncomeBook
         // The dashboard report opens on every day, so a first look shows all the income, not just this month's.
         $table = MoneyTable::make($request, $this->reportRows($partner, $tab), $this->spec(null));
         $ownOrders = PartnerMoneyBook::ownOrderIds($partner, $table['rows']->getCollection()->pluck('order_id')->all());
-        $table['rows'] = $table['rows']->through(fn (object $row): array => [...$this->rowFor($row), 'order_is_own' => $row->order_id !== null && isset($ownOrders[(string) $row->order_id])]);
+        $table['rows'] = $table['rows']->through(fn (object $row): array => [...$this->rowFor($row, $partner->role), 'order_is_own' => $row->order_id !== null && isset($ownOrders[(string) $row->order_id])]);
 
         return [
             'tabs' => array_map(fn (string $key): array => ['key' => $key, 'label' => (string) __('cr_partner.tab_'.$key)], self::ReportTabs),
@@ -117,7 +117,7 @@ final class PartnerIncomeBook
             $sumEver += $ever[$key]['cents'] ?? 0;
             $parts[] = [
                 'key' => $key,
-                'label' => PartnerIncomeHeads::label($key),
+                'label' => PartnerIncomeHeads::label($key, null, $partner->role),
                 'hint' => PartnerIncomeHeads::hint($key),
                 'amount' => FundCatalog::decimalOf($inPeriod[$key]['cents'] ?? 0),
                 'total' => FundCatalog::decimalOf($ever[$key]['cents'] ?? 0),
@@ -137,7 +137,7 @@ final class PartnerIncomeBook
     {
         $table = MoneyTable::make($request, $this->partRows($partner, $part), $this->spec());
         $ownOrders = PartnerMoneyBook::ownOrderIds($partner, $table['rows']->getCollection()->pluck('order_id')->all());
-        $table['rows'] = $table['rows']->through(fn (object $row): array => [...$this->rowFor($row), 'order_is_own' => $row->order_id !== null && isset($ownOrders[(string) $row->order_id])]);
+        $table['rows'] = $table['rows']->through(fn (object $row): array => [...$this->rowFor($row, $partner->role), 'order_is_own' => $row->order_id !== null && isset($ownOrders[(string) $row->order_id])]);
 
         return $table;
     }
@@ -155,7 +155,7 @@ final class PartnerIncomeBook
         $range = MoneyTable::range($request, 'month');
 
         return [
-            'rows' => $rows->orderBy('x.occurred_at')->orderBy('x.id')->limit(self::PdfRowLimit)->get()->map(fn (object $row): array => $this->rowFor($row))->all(),
+            'rows' => $rows->orderBy('x.occurred_at')->orderBy('x.id')->limit(self::PdfRowLimit)->get()->map(fn (object $row): array => $this->rowFor($row, $partner->role))->all(),
             'total' => FundCatalog::decimalOf(FundCatalog::centsOf($total)),
             'count' => $count,
             'capped' => $count > self::PdfRowLimit,
@@ -202,9 +202,9 @@ final class PartnerIncomeBook
     }
 
     /** @return array<string, mixed> */
-    private function rowFor(object $row): array
+    private function rowFor(object $row, ?string $role = null): array
     {
-        $what = PartnerIncomeHeads::label(PartnerIncomeHeads::headOf($row->type, $row->category, $row->program, $row->kind));
+        $what = PartnerIncomeHeads::label(PartnerIncomeHeads::headOf($row->type, $row->category, $row->program, $row->kind), null, $role);
 
         return [
             'id' => (string) $row->id,

@@ -73,9 +73,15 @@ final class PartnerIncomeHeads
         return array_keys(array_filter(self::Heads, fn (array $head): bool => in_array($role, $head['audience'], true)));
     }
 
-    public static function label(string $head, ?string $locale = null): string
+    /**
+     * The head's name. The salary head holds a dealer's monthly bonus and a sub-dealer's own salary, which have
+     * different names, so the partner's role picks the word. Only the word changes; the sums do not.
+     */
+    public static function label(string $head, ?string $locale = null, ?string $role = null): string
     {
-        return (string) __('cr21_income.head_'.$head, [], $locale);
+        $key = in_array($head, ['salary', 'referral'], true) && $role === 'sub_dealer' ? 'head_'.$head.'_sub' : 'head_'.$head;
+
+        return (string) __('cr21_income.'.$key, [], $locale);
     }
 
     public static function hint(string $head, ?string $locale = null): string

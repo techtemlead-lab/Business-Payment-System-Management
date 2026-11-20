@@ -4,7 +4,7 @@
 return [
     'filter_head' => 'আয়ের খাত',
 
-    'head_own' => 'নিজের কেনার আয়',
+    'head_own' => 'ডক্টর অনারারিয়াম',
     'head_referral' => 'রেফারেল আয় (সরাসরি)',
     'head_d2d_gen2' => 'D2D আয় · ২য় প্রজন্ম',
     'head_d2d_gen3' => 'D2D আয় · ৩য় প্রজন্ম',
@@ -12,7 +12,9 @@ return [
     'head_area_district' => 'এরিয়া ডিলার আয় · জেলা',
     'head_area_upazila' => 'এরিয়া ডিলার আয় · উপজেলা',
     'head_area_union' => 'এরিয়া ডিলার আয় · ইউনিয়ন / পৌরসভা',
-    'head_salary' => 'মাসিক বেতন',
+    'head_salary' => 'ডিলার একুইজিশন টার্গেট বোনাস',
+    'head_salary_sub' => 'সাব-ডিলার স্যালারি',
+    'head_referral_sub' => 'স্টাফ কমিশন',
     'head_rank_mo' => 'র‍্যাঙ্ক আয় · MO',
     'head_rank_am' => 'র‍্যাঙ্ক আয় · AM',
     'head_rank_sm' => 'র‍্যাঙ্ক আয় · SM',
