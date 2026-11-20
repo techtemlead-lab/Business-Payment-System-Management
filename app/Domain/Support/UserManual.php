@@ -406,7 +406,7 @@ final class UserManual
             $this->ch('inventory_branches', ['staff', 'owner'], 8, 4, 4, 3, ['inventory', 'stock', 'branch', 'warehouse', 'hub', 'স্টক', 'ব্রাঞ্চ', 'গুদাম']),
             $this->ch('branch_performance', ['staff', 'owner'], 7, 3, 3, 2, ['branch-performance', 'profit', 'income', 'today', 'month', 'প্রফিট', 'ইনকাম', 'ব্রাঞ্চ']),
             $this->ch('place_codes_admin', ['staff', 'owner'], 6, 2, 2, 2, ['place-codes', 'geography', 'bangladesh', 'union', 'pourashava', 'upazila', 'ভূগোল', 'ইউনিয়ন', 'পৌরসভা', 'উপজেলা']),
-            $this->ch('finance_treasury', ['staff', 'owner'], 7, 2, 2, 2, ['treasury', 'capital', '60%', 'retained', 'collection', 'ট্রেজারি', 'মূলধন', 'ক্যাশ']),
+            $this->ch('finance_treasury', ['staff', 'owner'], 8, 2, 2, 2, ['treasury', 'capital', '60%', 'retained', 'collection', 'ট্রেজারি', 'মূলধন', 'ক্যাশ']),
             $this->ch('finance_policies_simulator', ['staff', 'owner'], 6, 2, 2, 2, ['policy', 'commission', 'simulator', 'preview', 'rate', 'পলিসি', 'সিমুলেটর', 'স্যান্ডবক্স']),
             $this->ch('payouts_settlements', ['staff', 'owner'], 7, 2, 2, 2, ['payouts-hub', 'settlement', 'salary', 'rewards', 'পেআউট', 'সেটেলমেন্ট', 'নিষ্পত্তি']),
             $this->ch('ledger_audit_reports', ['staff', 'owner'], 4, 2, 1, 1, ['ledger', 'audit', 'reports', 'integrity', 'লেজার', 'অডিট', 'আইডিপোটেন্সি']),

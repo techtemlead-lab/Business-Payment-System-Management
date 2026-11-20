@@ -32,7 +32,7 @@ class OldMoneyAddressesTest extends TestCase
             'spend approvals' => ['/company-funds?tab=approvals', '/treasury/work?tab=approvals'],
             'spending heads' => ['/company-funds?tab=heads', '/treasury/work?tab=heads'],
             'ledger with filters' => ['/ledger?q=MN-1&period=today', '/treasury/events?q=MN-1&period=today'],
-            'car and bike rewards' => ['/rewards', '/treasury/funds/car_bike'],
+            'car and bike rewards' => ['/rewards', '/treasury/funds/bike'],
             'salary' => ['/salary', '/treasury/funds/salary_pool'],
             'office withdrawals' => ['/withdrawals?status=approved', '/payouts-hub?status=approved'],
             'accounting statements' => ['/operations/accounting?tab=statements', '/treasury/work'],

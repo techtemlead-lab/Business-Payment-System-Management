@@ -6,11 +6,15 @@ import { useT } from '../../shared/i18n/t';
 
 export type RewardAward = 'bike' | 'car';
 
+export type RewardPool = { balance: string; own: string; old: string; award: string | null; prizes_payable: number | null; waiting_count: number; waiting_amount: string };
+
 export type RewardLeaderFigures = {
     targets: Record<RewardAward, string | null>;
     awards: Record<RewardAward, string | null>;
     counts: Record<RewardAward, number>;
-    pools: Record<RewardAward, { balance: string; award: string | null; prizes_payable: number | null }>;
+    pools: Record<RewardAward, RewardPool>;
+    /** The awards this fund's page lists: one for the Bike or Car fund, both for the old combined fund. */
+    shown: RewardAward[];
 };
 
 export type RewardLeaderRow = {
@@ -24,25 +28,32 @@ export type RewardLeaderRow = {
     stage: 'in_progress' | 'reached' | 'given';
 };
 
-/** The bike pool and the car pool side by side: what each holds, the prize it pays, and how many prizes it can pay now. */
-export function VehiclePoolsPanel({ pools }: { pools: RewardLeaderFigures['pools'] }) {
+/** What each prize fund on this page holds and can pay: its own money, the old combined money that can also pay, the prize amount, how many prizes can be paid now and how many are waiting. */
+export function VehiclePoolsPanel({ pools, shown }: { pools: RewardLeaderFigures['pools']; shown: RewardAward[] }) {
     const translate = useT();
     const notSet = translate('money_core', 'vp_not_set');
+    const single = shown.length === 1;
 
     return (
         <section>
-            <h3 className="hub-title is-sm">{translate('money_core', 'vp_title')}</h3>
-            <p className="hub-hint">{translate('money_core', 'vp_intro')}</p>
-            {(['bike', 'car'] as RewardAward[]).map((award) => (
+            <h3 className="hub-title is-sm">{translate('money_core', single ? 'vp_title_one' : 'vp_title')}</h3>
+            <p className="hub-hint">{translate('money_core', single ? 'vp_intro_one' : 'vp_intro')}</p>
+            {shown.map((award) => (
                 <div key={award}>
-                    <h4 className="hub-title is-sm">{translate('treasury', `leaders_${award}`)}</h4>
+                    {!single && <h4 className="hub-title is-sm">{translate('treasury', `leaders_${award}`)}</h4>}
                     <Figures
                         items={[
-                            { key: 'balance', label: translate('money_core', 'vp_balance'), value: pools[award].balance, headline: true },
+                            { key: 'balance', label: translate('money_core', single ? 'vp_own' : 'vp_balance'), value: single ? pools[award].own : pools[award].balance, headline: true },
                             { key: 'award', label: translate('money_core', 'vp_award'), value: pools[award].award ?? notSet, text: pools[award].award === null },
                             { key: 'payable', label: translate('money_core', 'vp_payable'), value: pools[award].prizes_payable === null ? notSet : number(pools[award].prizes_payable), text: true },
+                            { key: 'waiting', label: translate('money_core', 'vp_waiting'), value: translate('money_core', 'vp_waiting_value', { count: number(pools[award].waiting_count), amount: number(pools[award].waiting_amount) }), text: true },
                         ]}
                     />
+                    {single && Number(pools[award].old) > 0 && (
+                        <p className="hub-hint">
+                            {translate('money_core', 'vp_old')}: <b>{money(pools[award].old)}</b>
+                        </p>
+                    )}
                 </div>
             ))}
         </section>

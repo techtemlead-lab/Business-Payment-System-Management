@@ -17,10 +17,17 @@ use Illuminate\Support\Facades\DB;
  */
 final class RewardLeaderList
 {
-    public const Fund = 'car_bike';
-
     /** @var list<string> */
     public const Awards = ['bike', 'car'];
+
+    /** The award each prize fund lists leaders for; the old combined fund lists both. */
+    private const FundAwards = ['bike' => ['bike'], 'car' => ['car'], 'car_bike' => ['bike', 'car']];
+
+    /** @return list<string> The awards whose leaders this fund's page lists; none for any other fund. */
+    public static function awardsOf(string $fund): array
+    {
+        return self::FundAwards[$fund] ?? [];
+    }
 
     /** @var list<string> */
     private const Stages = ['in_progress', 'reached', 'given'];
@@ -31,7 +38,7 @@ final class RewardLeaderList
      * The target and award set in the reward rule, null while the rule leaves one blank, and how
      * many leaders are on each list.
      *
-     * @return array{targets: array{bike: ?string, car: ?string}, awards: array{bike: ?string, car: ?string}, counts: array{bike: int, car: int}, pools: array<string, array{balance: string, award: ?string, prizes_payable: ?int}>}
+     * @return array{targets: array{bike: ?string, car: ?string}, awards: array{bike: ?string, car: ?string}, counts: array{bike: int, car: int}, pools: array<string, array{balance: string, own: string, old: string, award: ?string, prizes_payable: ?int, waiting_count: int, waiting_amount: string}>}
      */
     public function summary(): array
     {

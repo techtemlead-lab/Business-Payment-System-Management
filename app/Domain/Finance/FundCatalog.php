@@ -18,10 +18,10 @@ final class FundCatalog
     public const ClosedRowFunds = ['salary_pool', 'royalty_pool', 'rank_reward'];
 
     /** Old money only. The card appears only while something came in. */
-    public const HiddenWhileEmpty = ['salary_reserve', 'geographic_reserve', 'referral_reserve'];
+    public const HiddenWhileEmpty = ['car_bike', 'salary_reserve', 'geographic_reserve', 'referral_reserve'];
 
     /** The order the cards appear in. */
-    private const Order = ['company_share', 'company_profit', 'management', 'marketing', 'tour', 'sub_dealer_extra', 'car_bike', 'salary_pool', 'royalty_pool', 'rank_bonus', 'rank_reward', 'clinic', 'benefits', 'salary_reserve', 'geographic_reserve', 'referral_reserve'];
+    private const Order = ['company_share', 'company_profit', 'management', 'marketing', 'tour', 'sub_dealer_extra', 'bike', 'car', 'car_bike', 'salary_pool', 'royalty_pool', 'rank_bonus', 'rank_reward', 'clinic', 'benefits', 'salary_reserve', 'geographic_reserve', 'referral_reserve'];
 
     /** @return list<string> */
     public static function keys(): array

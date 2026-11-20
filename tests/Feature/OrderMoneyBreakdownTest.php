@@ -112,6 +112,13 @@ class OrderMoneyBreakdownTest extends TestCase
         $this->assertSame('posted', $posted['mode']);
         $shape = fn (array $lines): array => collect($lines)->map(fn (array $line): string => $line['type_label'].'|'.$line['amount'].'|'.$line['to']['name'])->sort()->values()->all();
         $this->assertSame($shape($posted['lines']), $shape($preview['lines']));
+        // The bike and car parts go to the Bike fund and the Car fund, before and after posting.
+        foreach ([$preview, $posted] as $shown) {
+            $names = collect($shown['lines'])->pluck('to.name');
+            $this->assertContains('Bike fund', $names);
+            $this->assertContains('Car fund', $names);
+            $this->assertNotContains('Car and bike fund', $names);
+        }
     }
 
     public function test_the_preview_follows_the_posting_off_state_and_names_the_company_fund_for_a_share_with_no_person(): void
@@ -163,7 +170,7 @@ class OrderMoneyBreakdownTest extends TestCase
             ['area_union', 'unassigned_reserve', ['retained_by' => 'company_profit_fund']], ['area_district', 'available', []],
             ['area_management', 'pending', []], ['dealer_monthly_salary_pool', 'pending', []], ['sub_dealer_salary', 'pending', []],
             ['rank_royalty_pool', 'pending', []], ['rank_incentive_pool', 'pending', []], ['company_marketing_fund', 'pending', []],
-            ['car_bike_incentive_fund', 'pending', []], ['sub_dealer_tour', 'reserved', []], ['sub_dealer_extra_fund', 'pending', []],
+            ['car_bike_incentive_fund', 'pending', []], ['car_bike_incentive_fund', 'pending', ['vehicle_pool' => 'bike']], ['car_bike_incentive_fund', 'pending', ['vehicle_pool' => 'car']], ['sub_dealer_tour', 'reserved', []], ['sub_dealer_extra_fund', 'pending', []],
             ['additional_rank_pool', 'pending', []], ['no_commission_to_company', 'available', []], ['d2d_gen2_breakage', 'unassigned_reserve', []],
             ['dealer_salary_settlement_reserve', 'available', []],
         ];

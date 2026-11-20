@@ -133,13 +133,13 @@ class EmployeesSubDealerLocaleTest extends TestCase
                 ->where('translations.portal.st_release', 'সময় হওয়া কমিশন ছাড়ুন')
                 ->where('translations.portal.st_approve_pay', 'অনুমোদন দিয়ে টাকা দিন'));
 
-        $this->actingAs($admin)->onPortal('sadmin')->get('/treasury/funds/car_bike')
+        $this->actingAs($admin)->onPortal('sadmin')->get('/treasury/funds/bike')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('TreasuryFund')
                 ->where('section', 'treasury')
-                ->where('card.name', 'গাড়ি ও বাইক ফান্ড')
+                ->where('card.name', 'বাইক ফান্ড')
                 ->where('translations.treasury.tab_funds', 'ফান্ড')
-                ->where('translations.treasury.fund_car_bike', 'গাড়ি ও বাইক ফান্ড'));
+                ->where('translations.treasury.fund_bike', 'বাইক ফান্ড'));
     }
 }

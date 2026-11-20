@@ -235,7 +235,7 @@ class FundSpendForPartnersTest extends TestCase
         $spendable = array_values(array_filter(FundCatalog::keys(), fn (string $fund): bool => CompanyFunds::isSpendable($fund)));
         sort($spendable);
         $this->assertSame(['benefits', 'clinic', 'company_profit', 'company_share', 'geographic_reserve', 'management', 'marketing', 'referral_reserve', 'sub_dealer_extra', 'tour'], $spendable);
-        foreach (['car_bike', 'rank_reward', 'salary_reserve', 'salary_pool', 'royalty_pool', 'rank_bonus'] as $notOffered) {
+        foreach (['bike', 'car', 'car_bike', 'rank_reward', 'salary_reserve', 'salary_pool', 'royalty_pool', 'rank_bonus'] as $notOffered) {
             $this->assertFalse(CompanyFunds::isSpendable($notOffered), $notOffered.' must not be spendable.');
         }
 
