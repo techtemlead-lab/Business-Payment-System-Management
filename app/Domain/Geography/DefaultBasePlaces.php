@@ -28,6 +28,11 @@ final class DefaultBasePlaces
 
     public const ReasonNoChildren = 'no_children';
 
+    /** Chosen, but worth a look: the only child, or one of several places carrying the upazila's name. */
+    public const NoteOnlyChild = 'only_child';
+
+    public const NotePreferred = 'preferred_over_same_name';
+
     private const Suffix = '/(citycorporation|pourashava|paurashava|municipality|union|sadar|city|metro)$/';
 
     /** Lower rank is picked first when several union-level places carry the upazila's name. */
@@ -35,7 +40,7 @@ final class DefaultBasePlaces
 
     /**
      * @param  list<array{code: string, level: string, name: string, parent_code: ?string, kind?: string}>  $places
-     * @return array{links: list<array{code: string, base_code: string}>, empty: list<array{code: string, level: string, name: string, reason: string}>}
+     * @return array{links: list<array{code: string, base_code: string}>, empty: list<array{code: string, level: string, name: string, reason: string, candidates: list<string>}>, review: array<string, string>}
      */
     public function derive(array $places): array
     {
@@ -48,6 +53,7 @@ final class DefaultBasePlaces
 
         $links = [];
         $empty = [];
+        $review = [];
         foreach ($places as $place) {
             if (! in_array($place['level'], [PlaceCode::LevelDivision, PlaceCode::LevelDistrict, PlaceCode::LevelUpazila], true)) {
                 continue;
@@ -60,12 +66,15 @@ final class DefaultBasePlaces
             };
             if ($base !== null) {
                 $links[] = ['code' => $place['code'], 'base_code' => $base['code']];
+                if ($reason !== null) {
+                    $review[$place['code']] = $reason;
+                }
             } else {
-                $empty[] = ['code' => $place['code'], 'level' => $place['level'], 'name' => $place['name'], 'reason' => $reason ?? self::ReasonNoMatch];
+                $empty[] = ['code' => $place['code'], 'level' => $place['level'], 'name' => $place['name'], 'reason' => $reason ?? self::ReasonNoMatch, 'candidates' => array_map(fn (array $k): string => (string) $k['name'], $kids)];
             }
         }
 
-        return ['links' => $links, 'empty' => $empty];
+        return ['links' => $links, 'empty' => $empty, 'review' => $review];
     }
 
     /**
@@ -113,10 +122,13 @@ final class DefaultBasePlaces
         if ($named !== []) {
             $best = min(array_map(fn (array $u): int => $this->rank($u), $named));
 
-            return $this->only(array_values(array_filter($named, fn (array $u): bool => $this->rank($u) === $best)), fn (): bool => true);
+            $top = array_values(array_filter($named, fn (array $u): bool => $this->rank($u) === $best));
+            [$base, $reason] = $this->only($top, fn (): bool => true);
+
+            return [$base, $base !== null && count($named) > 1 ? self::NotePreferred : $reason];
         }
 
-        return count($unions) === 1 ? [$unions[0], null] : [null, self::ReasonNoMatch];
+        return count($unions) === 1 ? [$unions[0], self::NoteOnlyChild] : [null, self::ReasonNoMatch];
     }
 
     /**

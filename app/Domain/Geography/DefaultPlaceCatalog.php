@@ -20,7 +20,7 @@ use RuntimeException;
  * the office to fill in. Running it again changes nothing.
  */
 /**
- * @phpstan-type PlaceSummary array{created: int, coded: int, filled: int, linked: int, codes_taken: list<string>, by_level: array<string, array<string, int>>, conflicts: list<array{code: string, level: string, name: string, held_by: string}>, base_empty: list<array{code: string, level: string, name: string, reason: string}>}
+ * @phpstan-type PlaceSummary array{created: int, coded: int, filled: int, linked: int, codes_taken: list<string>, by_level: array<string, array<string, int>>, conflicts: list<array{code: string, level: string, name: string, held_by: string}>, base_empty: list<array{code: string, level: string, name: string, reason: string, candidates: list<string>}>, base_review: list<array{code: string, level: string, name: string, base: string, why: string}>}
  */
 final class DefaultPlaceCatalog
 {
@@ -101,7 +101,7 @@ final class DefaultPlaceCatalog
      */
     private function fill(array $payload): array
     {
-        $summary = ['created' => 0, 'coded' => 0, 'filled' => 0, 'linked' => 0, 'codes_taken' => [], 'by_level' => [], 'conflicts' => [], 'base_empty' => []];
+        $summary = ['created' => 0, 'coded' => 0, 'filled' => 0, 'linked' => 0, 'codes_taken' => [], 'by_level' => [], 'conflicts' => [], 'base_empty' => [], 'base_review' => []];
         foreach (PlaceCode::Levels as $level) {
             $summary['by_level'][$level] = ['created' => 0, 'coded' => 0, 'taken' => 0, 'other_code' => 0, 'base_set' => 0];
         }
@@ -315,17 +315,22 @@ final class DefaultPlaceCatalog
             $rows[$placeId]->base_place_id = $baseId;
             $summary['linked']++;
             $summary['by_level'][(string) $rows[$placeId]->level]['base_set']++;
+            if (isset($derived['review'][$link['code']])) {
+                $summary['base_review'][] = ['code' => $link['code'], 'level' => (string) $rows[$placeId]->level, 'name' => (string) $rows[$placeId]->name, 'base' => (string) $candidate->name, 'why' => $derived['review'][$link['code']]];
+            }
         }
 
+        $candidates = [];
         foreach ($derived['empty'] as $item) {
             $emptyReason[$item['code']] ??= $item['reason'];
+            $candidates[$item['code']] = $item['candidates'];
         }
         foreach ($payload['places'] as $place) {
             $placeId = $idBySource[$place['code']] ?? null;
             if ($placeId === null || ! isset($emptyReason[$place['code']]) || $rows[$placeId]->base_place_id !== null) {
                 continue;
             }
-            $summary['base_empty'][] = ['code' => $place['code'], 'level' => $place['level'], 'name' => $place['name'], 'reason' => $emptyReason[$place['code']]];
+            $summary['base_empty'][] = ['code' => $place['code'], 'level' => $place['level'], 'name' => $place['name'], 'reason' => $emptyReason[$place['code']], 'candidates' => $candidates[$place['code']] ?? []];
         }
     }
 

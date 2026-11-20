@@ -48,13 +48,21 @@ class SeedPlaceCodes extends Command
             $this->warn(sprintf('%d places have no base place and none could be chosen safely (the office can choose one in the Place codes panel):', count($summary['base_empty'])));
             $this->table(['Reason', 'Places'], array_map(fn (string $reason, int $count): array => [$reason, $count], array_keys($reasons), $reasons));
             if ($this->getOutput()->isVerbose()) {
-                $this->table(['Code', 'Level', 'Place', 'Reason'], array_map(
-                    fn (array $e): array => [$e['code'], $e['level'], $e['name'], $e['reason']],
+                $this->table(['Code', 'Level', 'Place', 'Reason', 'Children (candidates)'], array_map(
+                    fn (array $e): array => [$e['code'], $e['level'], $e['name'], $e['reason'], implode(', ', $e['candidates'])],
                     $summary['base_empty'],
                 ));
             } else {
                 $this->line('Run with -v to list every place.');
             }
+        }
+
+        if ($summary['base_review'] !== [] && $this->getOutput()->isVerbose()) {
+            $this->warn('Base places chosen by the weaker rules (the only child, or one of several places with the upazila\'s name). Worth a look:');
+            $this->table(['Code', 'Level', 'Place', 'Base chosen', 'Why'], array_map(
+                fn (array $r): array => [$r['code'], $r['level'], $r['name'], $r['base'], $r['why']],
+                $summary['base_review'],
+            ));
         }
 
         return self::SUCCESS;
