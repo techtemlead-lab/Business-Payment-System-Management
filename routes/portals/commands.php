@@ -7,6 +7,7 @@ use App\Http\Controllers\BranchController;
 use App\Http\Controllers\BranchPerformanceExportController;
 use App\Http\Controllers\ClinicRecordsController;
 use App\Http\Controllers\CommandController;
+use App\Http\Controllers\CommissionPageController;
 use App\Http\Controllers\CourierShipmentController;
 use App\Http\Controllers\CustomerBookController;
 use App\Http\Controllers\DataCleanupController;
@@ -245,6 +246,8 @@ return function (string $portal): void {
     Route::post('/commands/commissions/claim-incentive/{user}', [CommandController::class, 'claimRankIncentive']);
     Route::post('/commands/commissions/release-matured', [CommandController::class, 'releaseMaturedCommissions']);
     Route::post('/commands/commissions/simulate', [CommandController::class, 'simulateCommissions']);
+    Route::post('/commands/commissions/split', [CommissionPageController::class, 'split']);
+    Route::post('/commands/commissions/new-head', [CommissionPageController::class, 'newHead']);
     Route::post('/commands/area-dealers', [CommandController::class, 'assignAreaDealer']);
     Route::post('/commands/area-dealers/{id}', [CommandController::class, 'updateAreaDealer'])->whereNumber('id');
     Route::delete('/commands/area-dealers/{id}', [CommandController::class, 'removeAreaDealer']);
