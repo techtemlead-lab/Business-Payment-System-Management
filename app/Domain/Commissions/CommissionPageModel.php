@@ -302,9 +302,9 @@ final class CommissionPageModel
     /** @param array<string, array<string, mixed>> $rules */
     private function extraDestination(array $rules): string
     {
-        $value = $rules['additional_rank']['parameters'][CommissionPolicy::ExtraDestinationParameter] ?? 'rank_fund';
+        $value = $rules['additional_rank']['parameters'][CommissionPolicy::ExtraDestinationParameter] ?? CommissionPolicy::ExtraDestinationDefault;
 
-        return in_array($value, CommissionPolicy::ExtraDestinations, true) ? (string) $value : 'rank_fund';
+        return in_array($value, CommissionPolicy::ExtraDestinations, true) ? (string) $value : CommissionPolicy::ExtraDestinationDefault;
     }
 
     private function points(int $basisPoints): string

@@ -543,8 +543,9 @@ final class CommissionPosting
             $add('car_bike_incentive_fund', 'car_bike_incentive', null, 'pending', $poolRate->decimal(), null, ['vehicle_pool' => $pool]);
         }
         if ($type === 'sub_dealer') {
-            // The extra percent goes to the rank reward fund unless the rules this order was captured with say otherwise.
-            $extraToFund = ($rules['additional_rank']['parameters'][CommissionPolicy::ExtraDestinationParameter] ?? 'rank_fund') === 'extra_fund';
+            // The extra percent goes where the rules this order was captured with say. An order captured before the
+            // setting existed has no value and keeps the old destination, the rank reward fund.
+            $extraToFund = ($rules['additional_rank']['parameters'][CommissionPolicy::ExtraDestinationParameter] ?? CommissionPolicy::ExtraDestinationBefore) === 'extra_fund';
             $add($extraToFund ? self::SubDealerExtraCategory : 'additional_rank_pool', 'additional_rank');
             $add('sub_dealer_salary', 'sub_dealer_salary', $buyer->id);
             $add('sub_dealer_tour', 'sub_dealer_tour', $buyer->id, 'reserved');
