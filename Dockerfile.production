@@ -23,7 +23,8 @@ COPY --from=postgres-tools /export/libpq.so.5 /usr/local/lib/libpq.so.5
 RUN ldconfig
 WORKDIR /var/www/html
 COPY --chown=www-data:www-data . .
-RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-progress \
+# Composer gives up a download after 300 s; the VPS reaches GitHub slowly (mpdf is 46 MB), so allow 30 minutes and keep a download cache between builds.
+RUN --mount=type=cache,target=/tmp/composer-cache COMPOSER_CACHE_DIR=/tmp/composer-cache php -d default_socket_timeout=1800 /usr/local/bin/composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-progress \
     && mkdir -p storage/app/private storage/app/public storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs /var/backups/madina public/branding/site-photos public/branding/category-icons \
     && chown -R www-data:www-data storage bootstrap/cache /var/backups/madina public/branding/site-photos public/branding/category-icons
 COPY --from=frontend --chown=www-data:www-data /build/public/build ./public/build
