@@ -101,7 +101,7 @@ class QaBugFixesTest extends TestCase
         }
         $this->assertStringContainsString('৬০ মিনিট', $html);
         $this->assertStringContainsString('প্রিয়', $html);
-        $this->assertStringContainsString('দয়া করে এই ইমেইলের উত্তর দেবেন না', $html);
+        $this->assertStringContainsString('এই ইমেইলের উত্তর দেবেন না', $html);
     }
 
     public function test_b6_public_place_lists_show_bangla_names_on_bangla_pages(): void

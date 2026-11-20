@@ -435,7 +435,7 @@ class OrderService
             if ($bookCourier) {
                 $courier = $courier !== '' ? $courier : ucfirst($provider);
                 $gatewayMeta = ['provider' => $provider, 'booking' => 'pending'];
-            } elseif ($tracking === '') {
+            } elseif ($tracking === '' && ! OfficePickup::matches($courier)) {
                 throw ValidationException::withMessages(['tracking' => __('portal.err_shipment_tracking')]);
             }
             $shipmentId = DB::table('shipments')->insertGetId([

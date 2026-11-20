@@ -43,18 +43,18 @@ class PartnerHeldAndSalaryNotesTest extends TestCase
         $this->allocation($suspendedOrder, $partner, 'direct_referral', '750000.00', 'held');
         $this->allocation($quotaOrder, $partner, 'area_division', '300.00', 'held', ['hold_reason' => 'quota', 'period_month' => '2026-11']);
 
+        // The target-held area share is listed as pending (see PartnerPendingMoneyTest), not in the held list.
         $this->actingAs($partner)->onPortal('dealer')->get('/my-money')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('held_commission.total', '750300.00')
-            ->where('held_commission.count', 2)
-            ->where('held_commission.lines', function ($lines) use ($suspendedOrder, $quotaOrder): bool {
+            ->where('held_commission.total', '750000.00')
+            ->where('held_commission.count', 1)
+            ->where('held_commission.lines', function ($lines) use ($suspendedOrder): bool {
                 $byOrder = collect($lines)->keyBy('order_number');
                 $this->assertSame('750000.00', $byOrder[$suspendedOrder->number]['amount']);
                 $this->assertSame('inactive', $byOrder[$suspendedOrder->number]['reason']);
-                $this->assertSame('300.00', $byOrder[$quotaOrder->number]['amount']);
-                $this->assertSame('quota', $byOrder[$quotaOrder->number]['reason']);
 
                 return true;
             })
+            ->where('pending.total', '300.00')
             ->where('summary.lifetime.earned', '0.00')
             ->where('summary.available', '0.00')
             ->where('cards', []));

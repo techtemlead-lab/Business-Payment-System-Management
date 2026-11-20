@@ -49,5 +49,5 @@ return [
     'foot' => 'Made from company records on :date. Serial :serial.',
 
     'download_form' => 'Download registration form',
-    'download_hint' => 'A printable form with the details you just entered and four signature places.',
+    'download_hint' => 'A printable form with the details you entered, and four places to sign.',
 ];

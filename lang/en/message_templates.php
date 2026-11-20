@@ -20,7 +20,7 @@ return [
     'field_body' => 'Text',
     'placeholders_title' => 'Marks you can insert',
     'placeholders_hint' => 'Press a mark to put it in the text. When the message goes out, each mark is replaced by the real detail.',
-    'must_keep' => 'must stay',
+    'must_keep' => 'Must stay',
     'preview_title' => 'Preview',
     'preview_hint' => 'Shown with sample details. The real details go in when the message is sent.',
     'length_line' => ':chars characters · :parts part(s)',

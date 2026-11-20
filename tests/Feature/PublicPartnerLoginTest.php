@@ -33,7 +33,7 @@ class PublicPartnerLoginTest extends TestCase
         $this->onPortal('dealer')->get('/login')
             ->assertOk()
             ->assertSee('Dealer log in')
-            ->assertSee('Email, Phone Number or Dealer Code')
+            ->assertSee('Email, phone number or dealer code')
             ->assertSee('Enter your email, phone number or dealer code')
             ->assertSee('Need a dealer account?')
             ->assertDontSee('Account Login')
@@ -46,7 +46,7 @@ class PublicPartnerLoginTest extends TestCase
         $this->onPortal('subdealer')->get('/login')
             ->assertOk()
             ->assertSee('Sub-dealer log in')
-            ->assertSee('Email, Phone Number or Sub-dealer Code')
+            ->assertSee('Email, phone number or sub-dealer code')
             ->assertSee('Enter your email, phone number or sub-dealer code')
             ->assertSee('Need a sub-dealer account?')
             ->assertDontSee('or Dealer Code')
@@ -77,7 +77,7 @@ class PublicPartnerLoginTest extends TestCase
         $response = $this->onPortal('subdealer')->from('/login')->post('/login', ['password' => 'unused', 'captcha' => 'unused']);
 
         $response->assertSessionHasErrors('email');
-        $this->assertStringContainsString('Sub-dealer Code', (string) session('errors')->first('email'));
+        $this->assertStringContainsStringIgnoringCase('sub-dealer code', (string) session('errors')->first('email'));
     }
 
     public function test_the_old_saved_title_gives_way_but_a_custom_title_stays(): void

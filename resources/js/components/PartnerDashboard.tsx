@@ -72,7 +72,7 @@ function IdentityBoxes({ card }: { card: Row }) {
 }
 
 /** Middle column: the three big figures, then the income head by head. */
-function MoneyColumn({ totals, cards, held, card }: { totals: Row; cards?: IncomeCard[]; held?: Row; card: Row }) {
+function MoneyColumn({ totals, cards, held, pending, card }: { totals: Row; cards?: IncomeCard[]; held?: Row; pending?: Row; card: Row }) {
     const translate = useT();
     const { portalBase: base, portalCatalog } = usePage<any>().props;
     const heldLines: Row[] = held?.lines ?? [];
@@ -86,6 +86,16 @@ function MoneyColumn({ totals, cards, held, card }: { totals: Row; cards?: Incom
                 <div title={translate('cr_partner', 'total_withdrawn_hint')}><span>{translate('cr_partner', 'total_withdrawn')}</span><strong>{money(totals.withdrawn)}</strong></div>
                 <div className="is-balance"><span>{translate('cr_partner', 'total_balance')}</span><strong>{money(totals.balance)}</strong></div>
             </div>
+            {/* Money that waits for the month's target or the month-end close: beside the balance, never inside it. */}
+            {Number(pending?.total ?? 0) > 0 && (
+                <div className="pd-card pd-held" data-testid="home-pending-balance">
+                    <div className="pd-heads-top">
+                        <h3>{translate('my_money', 'pending_balance')}</h3>
+                        <strong>{money(pending?.total)}</strong>
+                    </div>
+                    <p className="muted">{translate('my_money', 'pending_balance_hint')}</p>
+                </div>
+            )}
             {/* MA-03: commission held for the partner is shown while it is held, with the reason. */}
             {Number(held?.total ?? 0) > 0 && (
                 <div className="pd-card pd-held" data-testid="home-commission-held">
@@ -135,7 +145,7 @@ export function DashboardGrid({ home, moneyCards, targetsPanel }: { home: Row; m
         <div className="pd-wrap">
             <div className="pd-grid">
                 <ProfileCard card={home.card ?? {}} />
-                <MoneyColumn totals={home.totals ?? {}} cards={moneyCards} held={home.wallet?.commission_held} card={home.card ?? {}} />
+                <MoneyColumn totals={home.totals ?? {}} cards={moneyCards} held={home.wallet?.commission_held} pending={home.wallet?.pending} card={home.card ?? {}} />
                 <div className="pd-right">{targetsPanel}</div>
             </div>
         </div>

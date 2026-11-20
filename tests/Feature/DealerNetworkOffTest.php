@@ -19,7 +19,7 @@ class DealerNetworkOffTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
-        config(['madina.public_dealer_network' => false]);
+        config(['madina.public_dealer_network' => false, 'madina.public_verify_dealer' => false]);
         SiteCustomization::forgetCache();
     }
 
@@ -38,14 +38,16 @@ class DealerNetworkOffTest extends TestCase
         $this->assertStringNotContainsString('verify-dealer', $html);
     }
 
-    public function test_the_footer_keeps_only_the_social_links_of_the_stay_connected_block(): void
+    public function test_the_footer_keeps_the_social_links_and_phones_hide_the_brand_block(): void
     {
         SiteCustomization::save(['social_whatsapp' => 'https://wa.me/8801730532966']);
         $html = (string) $this->onPortal('public')->get('/contact')->assertOk()->getContent();
         $this->assertSame(1, preg_match('/<footer.*<\/footer>/s', $html, $footer));
 
         $this->assertStringContainsString('wa.me', $footer[0]);
-        $this->assertStringNotContainsString('ref-footer-brand', $footer[0]);
+        // Client, 2026-11-20: the brand block stays on desktop and is hidden on phones by the stylesheet.
+        $this->assertStringContainsString('ref-footer-brandblock', $footer[0]);
+        $this->assertStringContainsString('@media(max-width:767px){.ref-footer-brandblock{display:none}}', (string) file_get_contents(resource_path('css/reference-home.css')));
         $this->assertStringNotContainsString('ref-business-identity', $footer[0]);
         $this->assertStringNotContainsString('href="/dealers"', $footer[0]);
         $this->assertStringNotContainsString('verify-dealer', $footer[0]);
@@ -74,6 +76,9 @@ class DealerNetworkOffTest extends TestCase
         SiteCustomization::save(['page_enabled_dealers' => '1']);
 
         $this->onPortal('public')->get('/dealers')->assertOk();
+        // Verify a dealer has its own switch: turning the network on does not turn it on.
+        $this->onPortal('public')->get('/verify-dealer')->assertNotFound();
+        SiteCustomization::save(['page_enabled_verify-dealer' => '1']);
         $this->onPortal('public')->get('/verify-dealer')->assertOk();
         $this->assertStringContainsString('ref-dealer-network-banner', (string) $this->onPortal('public')->get('/')->getContent());
     }

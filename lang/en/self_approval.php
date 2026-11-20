@@ -11,7 +11,7 @@ return [
     'err_reason' => 'Write a reason of at least 5 letters.',
     'err_owner_not_on_payroll' => 'The owner is not on payroll. Record money the owner takes out on the Fund balances page, under Owner\'s drawings.',
     'err_already_checked' => 'This opening copy has already been checked.',
-    'err_snapshot_changed' => 'The account book changed after this copy was saved. Send the starting balances again.',
+    'err_snapshot_changed' => 'The accounts changed after this copy was saved. Submit the starting balances again.',
     'err_cancel_spend' => 'Only the person who recorded this spend can cancel it, and only before it is reviewed.',
 
     'fresh_start_title' => 'Fresh start: no opening balances',
