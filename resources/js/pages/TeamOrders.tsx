@@ -111,14 +111,12 @@ export default function TeamOrders({ partner, filters, statuses, orders, totals,
                 rows={orders.data ?? []}
                 empty={translate('portal', 'team_orders_empty')}
                 columns={[
-                    { key: 'number', title: translate('portal', 'report_col_order'), render: (r: Row) => <>{staffView ? <Link className="text-link" href={`${base}/orders/${r.id}`}>{r.number}</Link> : <b>{r.number}</b>}<small className="cell-sub">{dateTime(r.created_at)}</small></> },
+                    { key: 'number', title: translate('portal', 'report_col_order'), render: (r: Row) => <>{staffView ? <Link className="text-link" href={`${base}/orders/${r.id}`}>{r.number}</Link> : <b>{r.number}</b>}<small className="cell-sub">{dateTime(r.created_at)}</small><Badge status={r.status} /></> },
                     { key: 'member_name', title: translate('portal', 'report_col_member'), render: (r: Row) => <b>{r.member_name}</b> },
                     { key: 'member_code', title: translate('office_orders', 'col_code'), render: (r: Row) => r.member_code || '—' },
                     { key: 'member_type', title: translate('office_orders', 'col_partner_type'), render: (r: Row) => <PartnerTypeCell user={{ partner_type: r.member_type, role: r.member_role }} /> },
-                    { key: 'status', title: translate('portal', 'col_status'), render: (r: Row) => <Badge status={r.status} /> },
                     { key: 'total', title: translate('portal', 'report_col_ordered'), align: 'right', render: (r: Row) => money(r.total) },
-                    { key: 'paid', title: translate('portal', 'report_col_paid'), align: 'right', render: (r: Row) => money(r.paid) },
-                    { key: 'due', title: translate('portal', 'report_col_due'), align: 'right', render: (r: Row) => money(r.due) },
+                    { key: 'paid', title: translate('portal', 'report_col_paid'), align: 'right', render: (r: Row) => <>{money(r.paid)}<small className="cell-sub">{translate('portal', 'report_col_due')}: {money(r.due)}</small></> },
                 ]}
             />
             <Pagination page={orders} />
