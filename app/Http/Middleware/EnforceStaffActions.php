@@ -156,14 +156,6 @@ class EnforceStaffActions
             // Only owners may grant no-condition benefits; the controller refuses everyone else.
             return $next($request);
         }
-        if ($controller === 'OrderReturnController' && in_array($method, ['start', 'approve', 'confirm', 'reject'], true) && $actor->owner()) {
-            // Owners handle cancels, returns and refunds; OrderReturns checks again (only the Super Admin acts alone).
-            return $next($request);
-        }
-        if ($controller === 'CommandController' && $method === 'refund' && $actor->owner()) {
-            // The owners decided they may refund a paid order themselves; OrderRefund checks again.
-            return $next($request);
-        }
         if (in_array($controller, ['TrainingController', 'PartnerEventController', 'SalesKitController', 'DatedSchemeController', 'PartnerContestController'], true) && $actor->owner()) {
             // Owners manage the partner training library and meetings calendar; the controllers check again.
             return $next($request);

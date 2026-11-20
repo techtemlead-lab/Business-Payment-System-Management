@@ -177,6 +177,28 @@ class OwnerApprovalLimitsTest extends TestCase
         $this->assertDatabaseHas('order_refunds', ['order_id' => $order->id, 'amount' => '60.00', 'refunded_by' => $first->id, 'approved_by' => $this->owner->id]);
     }
 
+    public function test_the_md_and_chairman_cannot_finish_a_refund_without_finance_approval(): void
+    {
+        $this->seed(CommissionRuleSeeder::class);
+        $this->setLimit('refund', '50.00');
+        $finance = User::factory()->staff('finance')->create();
+        $small = $this->paidOrder();
+        $large = $this->paidOrder();
+
+        $this->actingAs($finance)->onPortal('manage')->post('/commands/orders/'.$small->id.'/refund', ['amount' => '40.00', 'reason' => 'Dealer changed the order'])->assertSessionHasNoErrors();
+        $waiting = (int) DB::table('order_return_requests')->where('order_id', $small->id)->value('id');
+
+        foreach (['md', 'chairman'] as $role) {
+            $leader = User::factory()->staff($role)->create();
+            $this->actingAs($leader)->onPortal('sadmin')->post('/commands/orders/'.$large->id.'/refund', ['amount' => '60.00', 'reason' => 'Trying to refund it'])->assertForbidden();
+            $this->actingAs($leader)->onPortal('sadmin')->post('/commands/order-returns/'.$waiting.'/confirm', ['reason' => 'Trying to pay it back', 'confirmed' => '1'])->assertForbidden();
+        }
+
+        $this->assertDatabaseCount('order_refunds', 0);
+        $this->assertDatabaseMissing('order_return_requests', ['order_id' => $large->id]);
+        $this->assertSame('awaiting_second', DB::table('order_return_requests')->where('id', $waiting)->value('status'));
+    }
+
     public function test_the_owner_refunds_a_large_amount_alone(): void
     {
         $this->seed(CommissionRuleSeeder::class);
