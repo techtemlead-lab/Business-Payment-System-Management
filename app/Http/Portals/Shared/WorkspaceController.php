@@ -79,6 +79,8 @@ use App\Support\JoinQr;
 use App\Support\OfficeHubs;
 use App\Support\PartnerHubTabs;
 use App\Support\PortalCatalog;
+use App\Domain\Finance\OrderMoneyReport;
+use App\Domain\Finance\TreasuryAccess;
 use App\Support\PortalHost;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -400,6 +402,7 @@ class WorkspaceController extends Controller
             'handledBy' => app(OrderWatchers::class)->seen($order, $u),
             'backOrder' => app(BackOrders::class)->forOrder($order, $u),
             'stockByBranch' => $u->staff() ? app(BackOrders::class)->stockByBranch($order) : [],
+            'moneyBreakdown' => app(OrderMoneyReport::class)->breakdown($order, $u, TreasuryAccess::showsOwnerFunds($u, (string) PortalHost::current($r))),
             'outstanding' => $order->outstanding(),
             'paymentPrompt' => app(OrderPaymentPrompt::class)->for($order, $claims),
             'fullPaymentRequired' => app(FinanceSettings::class)->fullPaymentWhenOrdering()['enabled'],

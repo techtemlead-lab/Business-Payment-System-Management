@@ -2,10 +2,14 @@
 
 namespace App\Domain\Finance;
 
+use App\Domain\Commissions\CommissionPosting;
+use App\Domain\Commissions\CommissionSettlement;
+use App\Domain\Geography\ManagementReferral;
 use App\Domain\Inventory\BranchScope;
 use App\Domain\Orders\DeliveredMoney;
 use App\Domain\Orders\MixedOutcomeDecisions;
 use App\Models\Order;
+use App\Models\User;
 use App\Support\Money;
 use App\Support\MoneyTable;
 use App\Support\MoneyTableFilter;
@@ -172,6 +176,127 @@ final class OrderMoneyReport
             'lines_total' => FundCatalog::decimalOf($linesTotal),
             'adds_up' => $batch === null || $linesTotal === Money::cents((string) $batch->cash_basis),
         ];
+    }
+
+    /**
+     * Where this order's money went, for the order page. With postings it is the posted split (the
+     * same lines as the Treasury page). Without postings (posting off, or the order not delivered
+     * and paid yet) it is a preview of what the order will pay out, worked out by the posting's own
+     * calculation from the rules the order was captured with. Nothing is written. A partner sees
+     * only their own lines.
+     *
+     * @return array{mode: string, lines: list<array<string, mixed>>, cash: ?string, lines_total: ?string, adds_up: bool, own_only: bool, reason: ?string, posting: ?string}
+     */
+    public function breakdown(Order $order, User $viewer, bool $showOwnerFunds): array
+    {
+        $staff = $viewer->staff();
+        $none = fn (string $reason): array => ['mode' => 'none', 'lines' => [], 'cash' => null, 'lines_total' => null, 'adds_up' => true, 'own_only' => ! $staff, 'reason' => $reason, 'posting' => null];
+        if (DB::table('commission_batches')->where('order_id', $order->id)->exists()) {
+            $detail = $this->detail($order, $showOwnerFunds);
+            $result = ['mode' => 'posted', 'lines' => $detail['lines'], 'cash' => $detail['basis']['cash'] ?? null, 'lines_total' => $detail['lines_total'], 'adds_up' => $detail['adds_up'], 'own_only' => ! $staff, 'reason' => null, 'posting' => $detail['posting']];
+        } elseif ($order->is_opening_balance) {
+            return $none('opening_balance');
+        } elseif (in_array($order->status, ['rejected', 'cancelled'], true)) {
+            return $none('closed');
+        } else {
+            $preview = app(CommissionPosting::class)->preview($order);
+            if ($preview === null) {
+                return $none('not_available');
+            }
+            $lines = $this->previewLines($preview, $showOwnerFunds);
+            $total = array_sum(array_map(fn (array $line): int => FundCatalog::centsOf($line['amount']), $lines));
+            $result = ['mode' => 'preview', 'lines' => $lines, 'cash' => Money::decimal($preview['cash']), 'lines_total' => FundCatalog::decimalOf($total), 'adds_up' => $total === $preview['cash'], 'own_only' => ! $staff, 'reason' => config('madina.financial_activation') ? 'not_posted_yet' : 'posting_off', 'posting' => null];
+        }
+        if (! $staff) {
+            $result['lines'] = array_values(array_filter($result['lines'], fn (array $line): bool => ($line['to']['kind'] ?? null) === 'partner' && (int) ($line['to']['id'] ?? 0) === (int) $viewer->id));
+            $result['lines_total'] = null;
+            $result['cash'] = null;
+            $result['adds_up'] = true;
+        }
+
+        return $result;
+    }
+
+    /**
+     * The company lines and the commission lines of a preview, shaped like the posted ones.
+     *
+     * @param  array{rows: list<array<string, mixed>>, cash: int, mrp: int, company: int, allocated: int, snapshot: array<string, mixed>, captured: bool}  $preview
+     * @return list<array<string, mixed>>
+     */
+    private function previewLines(array $preview, bool $showOwnerFunds): array
+    {
+        $company = $preview['company'];
+        $owners = $preview['cash'] - $company - $preview['allocated'];
+        $name = FundCatalog::name('company_share');
+        $lines = [];
+        if (! $showOwnerFunds) {
+            $lines[] = $this->fundLine('company_share', $name, null, null, $company + max(0, $owners), 0, 'company_share', $name);
+        } else {
+            $companyPercent = $preview['snapshot']['company_mrp_percent'] ?? null;
+            $lines[] = $this->fundLine('company_share', $name, $companyPercent !== null ? (string) $companyPercent : null, 'mrp', $company, 0, 'company_share', $name);
+            if ($owners > 0) {
+                $ownersName = FundCatalog::name('benefits');
+                $lines[] = $this->fundLine('owners_share', $ownersName, null, null, $owners, 0, 'benefits', $ownersName);
+            }
+        }
+        $rows = collect($preview['rows'])->values()->map(fn (array $row, int $index): object => (object) [
+            'id' => 'preview-'.$index,
+            'category' => $row['category'],
+            'user_id' => $row['user_id'],
+            'status' => $row['status'],
+            'rate_percentage' => $row['rate_percentage'],
+            'original_amount' => Money::decimal($row['cents']),
+            'amount' => Money::decimal($row['cents']),
+            'metadata' => json_encode($row['metadata'], JSON_THROW_ON_ERROR),
+            'fund_key' => self::fundKeyOf($row),
+        ]);
+        foreach ($this->allocationLines($rows) as $index => $line) {
+            $row = $rows[$index];
+            $line['status'] = 'preview';
+            $line['status_label'] = (string) __('treasury.line_status_preview');
+            $line['reason'] = match (true) {
+                $row->status === 'maturing' => (string) __('treasury.preview_reason_maturing'),
+                $row->status === 'held' => (string) __('treasury.preview_reason_held'),
+                default => $line['reason'],
+            };
+            $lines[] = $line;
+        }
+
+        return $lines;
+    }
+
+    /**
+     * The fund a commission row belongs to, by the same rule as the SQL the Treasury uses
+     * (FundCatalog::rowFundSql). A test keeps the two in step.
+     *
+     * @param  array<string, mixed>  $row  category, status and metadata of one row
+     */
+    public static function fundKeyOf(array $row): ?string
+    {
+        $category = (string) $row['category'];
+        $status = (string) $row['status'];
+        $retainedBy = (string) (((array) ($row['metadata'] ?? []))['retained_by'] ?? '');
+        $monthlyPool = match (true) {
+            $category === 'additional_rank_pool' => 'rank_reward',
+            in_array($category, ['dealer_monthly_salary_pool', 'sub_dealer_salary'], true) => 'salary_pool',
+            $category === 'rank_royalty_pool' => 'royalty_pool',
+            $category === 'rank_incentive_pool' => 'rank_bonus',
+            default => null,
+        };
+
+        return $monthlyPool ?? match (true) {
+            in_array($category, [CommissionSettlement::CompanyProfitCategory, CompanyFunds::NoCommissionCategory], true) || $retainedBy === CommissionPosting::CompanyProfit => 'company_profit',
+            $category === 'area_management' || $retainedBy === ManagementReferral::FundRetainedBy => 'management',
+            str_ends_with($category, '_override_reserve') || str_ends_with($category, '_breakage') => 'referral_reserve',
+            $status === 'unassigned_reserve' => 'geographic_reserve',
+            $category === 'company_marketing_fund' => 'marketing',
+            $category === 'car_bike_incentive_fund' => 'car_bike',
+            $category === 'sub_dealer_tour' => 'tour',
+            $category === CommissionPosting::SubDealerExtraCategory => 'sub_dealer_extra',
+            $category === CommissionSettlement::RankRoyaltyReserve => 'rank_reward',
+            in_array($category, [CommissionSettlement::DealerSalaryReserve, CommissionSettlement::SubDealerSalaryReserve], true) => 'salary_reserve',
+            default => null,
+        };
     }
 
     /** Orders counted by delivered parcels only, on alias o. */

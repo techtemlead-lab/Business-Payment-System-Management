@@ -87,6 +87,9 @@ return [
     'line_status_held' => 'আটকে আছে',
     'line_status_moved' => 'লাভে গেছে',
     'line_status_returned' => 'ফেরত নেওয়া',
+    'line_status_preview' => 'আগাম হিসাব',
+    'preview_reason_maturing' => 'নির্দিষ্ট দিন অপেক্ষার পর ব্যবহার করা যাবে',
+    'preview_reason_held' => 'আপাতত আটকে থাকবে: পার্টনার সক্রিয় নন বা মাসের লক্ষ্য পূরণ হয়নি',
 
     'posting_waiting' => 'ডেলিভারি হলে কমিশন ভাগ হবে',
     'posting_waiting_rest' => 'ডেলিভারি হওয়া পণ্যের টাকা হিসাবে ধরা হয়েছে। বাকি পণ্য ডেলিভারি হলে কমিশন ভাগ হবে।',

@@ -12,6 +12,7 @@ import { randomUuid } from '../shared/randomUuid';
 import TransactionProgressStepper from '../components/TransactionProgressStepper';
 import CourierTrackingPanel from '../components/CourierTrackingPanel';
 import PartlyDeliveredCommission from '../components/PartlyDeliveredCommission';
+import OrderMoneyBreakdown, { type OrderMoneyBreakdownData } from '../components/OrderMoneyBreakdown';
 import { shipmentArrivalText } from '../components/orderShipmentArrival';
 import { returnedByLine } from '../components/office/portalShared';
 
@@ -117,7 +118,7 @@ function PayWithoutDetails({ orderId, outstanding, payOptions }: { orderId: stri
 
 type BackOrder = { days: number; late: boolean; warn: boolean; days_left: number; deadline_days: number; stock_elsewhere: { branch: string; units: number; can_send_all: boolean }[] };
 
-export default function OrderDetail({ order, claims, shipments, events = [], outstanding, paymentPrompt, backUrl, replacementSlots=[], replacementCandidates=[], fullPaymentRequired=false, courierChoices=[], payOptions=null, returns=null, handledBy=[], backOrder=null, stockByBranch=[] }: { order: Row; claims: Row[]; shipments: Row[]; events: Row[]; outstanding: string; paymentPrompt: { ask_for_payment: boolean; waiting_for_check: boolean; waiting_amount: string }; backUrl?:string; replacementSlots?:Row[]; replacementCandidates?:Row[]; fullPaymentRequired?:boolean; courierChoices?:{ key: string; label: string }[]; payOptions?:{ account_available: string; account_usable: boolean; account_block: null | 'debt' | 'off' } | null; returns?: ReturnsData | null; handledBy?: string[]; backOrder?: BackOrder | null; stockByBranch?: BranchStock[] }) {
+export default function OrderDetail({ order, claims, shipments, events = [], outstanding, paymentPrompt, backUrl, replacementSlots=[], replacementCandidates=[], fullPaymentRequired=false, courierChoices=[], payOptions=null, returns=null, handledBy=[], backOrder=null, stockByBranch=[], moneyBreakdown=null }: { moneyBreakdown?: OrderMoneyBreakdownData | null; order: Row; claims: Row[]; shipments: Row[]; events: Row[]; outstanding: string; paymentPrompt: { ask_for_payment: boolean; waiting_for_check: boolean; waiting_amount: string }; backUrl?:string; replacementSlots?:Row[]; replacementCandidates?:Row[]; fullPaymentRequired?:boolean; courierChoices?:{ key: string; label: string }[]; payOptions?:{ account_available: string; account_usable: boolean; account_block: null | 'debt' | 'off' } | null; returns?: ReturnsData | null; handledBy?: string[]; backOrder?: BackOrder | null; stockByBranch?: BranchStock[] }) {
     const translate = useT();
     const { auth,staffActions,portalBase:base,collectionAccounts=[] } = usePage<any>().props;
     const capabilities: string[] = auth.capabilities;
@@ -204,6 +205,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                 ? <div className="metric"><span>{translate('order_payment', officeCashWaiting ? 'office_waiting_metric' : 'waiting_metric')}</span><strong>{money(paymentPrompt.waiting_amount)}</strong>{owner && !officeCashWaiting && <small>{translate('order_payment', 'waiting_metric_hint')}</small>}</div>
                 : <div className="metric"><span>{translate('portal', 'remaining_payment')}</span><strong>{money(outstanding)}</strong>{paymentPrompt.ask_for_payment && <small>{translate('portal', 'remaining_payment_hint')}</small>}</div>}
         </div>
+        <OrderMoneyBreakdown data={moneyBreakdown} />
         {owner && paymentPrompt.waiting_for_check && <div className="notice" role="status"><b>{translate('order_payment', officeCashWaiting ? 'office_waiting_title' : 'waiting_title')}</b><p>{translate('order_payment', officeCashWaiting ? 'office_waiting_body' : 'waiting_body', { amount: money(paymentPrompt.waiting_amount) })}</p></div>}
         <section className="panel"><div className="panel-heading"><h2>{translate('portal', 'products_fulfilment')}</h2><span>{translate('portal', 'prices_saved_at_submission')}</span></div>
             <Table rows={order.lines} columns={[
