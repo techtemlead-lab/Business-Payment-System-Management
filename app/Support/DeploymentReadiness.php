@@ -11,6 +11,7 @@ use App\Domain\Security\SecuritySettings;
 use App\Logging\CreateAlertLogger;
 use App\Models\PlaceCode;
 use App\Models\User;
+use App\Support\Mail\MailgunHttpTransport;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -81,7 +82,8 @@ final class DeploymentReadiness
             $checks['working_mail_configuration'] = ! in_array(config('mail.default'), ['log', 'array', 'null'], true)
                 && filter_var(config('mail.from.address'), FILTER_VALIDATE_EMAIL) !== false
                 && ! str_ends_with((string) config('mail.from.address'), '@example.com')
-                && (config('mail.default') !== 'smtp' || filled(config('mail.mailers.smtp.host')));
+                && (config('mail.default') !== 'smtp' || filled(config('mail.mailers.smtp.host')))
+                && $this->mailgunReady((string) config('mail.default'));
             $checks['scheduler_recent'] = Cache::has('operations:scheduler-heartbeat');
             $checks['queue_worker_recent'] = Cache::has('operations:queue-heartbeat');
             $checks['backups_configured'] = config('madina.backups_enabled') && strlen((string) config('madina.backup_password')) >= 32;
@@ -99,7 +101,7 @@ final class DeploymentReadiness
         }
         if (! $strict) {
             $mailDriver = (string) config('mail.default');
-            if (in_array($mailDriver, ['log', 'array', 'null'], true)) {
+            if (in_array($mailDriver, ['log', 'array', 'null'], true) || ! $this->mailgunReady($mailDriver)) {
                 $warnings[] = 'mail_driver_logging_only';
             } else {
                 $fromAddress = (string) config('mail.from.address');
@@ -709,6 +711,16 @@ final class DeploymentReadiness
      * Partner SMS tries enabled Service Integrations providers before the log driver.
      * An enabled provider with credentials clears go-live SMS warnings.
      */
+    /** True unless the chosen mailer is Mailgun over HTTP and its domain or key is missing (then nothing can leave). */
+    private function mailgunReady(string $mailer): bool
+    {
+        if (config('mail.mailers.'.$mailer.'.transport') !== 'mailgun-http') {
+            return true;
+        }
+
+        return MailgunHttpTransport::isConfigured((array) config('mail.mailers.'.$mailer));
+    }
+
     private function smsGatewayConfigured(): bool
     {
         try {
