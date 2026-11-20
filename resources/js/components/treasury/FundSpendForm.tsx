@@ -26,7 +26,7 @@ export default function FundSpendForm({ card, spend, onClose }: { card: FundCard
     const translate = useT();
     const headName = useHeadName();
     const spendNote = useReasonField('money.fund_spend_note');
-    const form = useForm<Row>({ fund: card.key, expense_head_id: '', amount: '', spent_on: businessTodayIso(), payee: '', payment_method: '', reference: '', note: '', receipt: null, request_key: randomUuid(), for: { mode: 'company', partner_ids: [] } as SpendFor });
+    const form = useForm<Row>({ fund: card.key, expense_head_id: '', amount: '', spent_on: businessTodayIso(), payee: '', payment_method: '', reference: '', note: '', receipt: null, request_key: randomUuid(), for: { mode: 'company', partner_ids: [], split: 'equal', amounts: {} } as SpendFor });
     const usableHeads = spend.heads.filter((head) => head.is_active !== false && (card.key !== 'tour' || head.for_tours));
     const submit = (event: React.FormEvent) => {
         event.preventDefault();

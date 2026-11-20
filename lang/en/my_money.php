@@ -87,6 +87,7 @@ return [
     'benefits_intro' => 'The company spent this money on you, for example on a tour, an event or a contest prize. It was not added to your wallet, so it does not change your balance.',
     'benefits_status_paid_by_office' => 'Paid by the office',
     'benefits_more' => ':count more',
+    'benefits_direct' => 'Paid directly by the company',
     'benefits_total' => 'Total: :amount',
     'status_pending' => 'Pending',
     'status_paid' => 'Paid',

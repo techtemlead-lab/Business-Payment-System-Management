@@ -87,6 +87,7 @@ return [
     'benefits_intro' => 'কোম্পানি আপনার জন্য এই টাকা খরচ করেছে, যেমন ট্যুর, ইভেন্ট বা প্রতিযোগিতার পুরস্কার। এটি আপনার ওয়ালেটে জমা হয়নি, তাই আপনার ব্যালেন্সে যোগ হয় না।',
     'benefits_status_paid_by_office' => 'অফিস দিয়েছে',
     'benefits_more' => 'আরও :count টি',
+    'benefits_direct' => 'কোম্পানি সরাসরি দিয়েছে',
     'benefits_total' => 'মোট: :amount',
     'status_pending' => 'পেন্ডিং',
     'status_paid' => 'পাওয়া গেছে',

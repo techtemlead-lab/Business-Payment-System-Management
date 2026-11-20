@@ -47,6 +47,9 @@ class FundSpendingController extends Controller
             'for.mode' => ['nullable', Rule::in(FundSpendPartners::Modes)],
             'for.partner_ids' => 'nullable|array|max:'.FundSpendPartners::MaxSelected,
             'for.partner_ids.*' => 'integer',
+            'for.split' => ['nullable', Rule::in(FundSpendPartners::Splits)],
+            'for.amounts' => 'nullable|array|max:'.FundSpendPartners::MaxSelected,
+            'for.amounts.*' => 'nullable|string|max:15',
         ], TransactionReference::messages('reference'));
         $id = $spending->request($request->user(), $data, $request->file('receipt'));
 

@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Domain\Accounts\PartnerDashboardHome;
 use App\Domain\Commissions\CommissionPosting;
+use App\Domain\Finance\CompanyFunds;
 use App\Domain\Finance\FinancialReadiness;
+use App\Domain\Finance\FundCatalog;
 use App\Domain\Finance\FundSpendPartners;
 use App\Domain\Orders\OrderService;
 use App\Models\Order;
@@ -168,6 +170,94 @@ class FundSpendForPartnersTest extends TestCase
         $this->assertSame([], $this->myMoney($outsider)['benefits']['lines']);
     }
 
+    public function test_each_chosen_partner_can_get_their_own_amount_when_the_amounts_add_up_to_the_spend(): void
+    {
+        $a = $this->partner('dealer', 'Anwar');
+        $b = $this->partner('dealer', 'Babul');
+        $c = $this->partner('sub_dealer', 'Chand');
+        $id = $this->spend(['amount' => '300.00', 'for' => ['mode' => 'partners', 'split' => 'amounts', 'partner_ids' => [$a->id, $b->id, $c->id], 'amounts' => [$a->id => '100', $b->id => '50.50', $c->id => '149.50']]])->assertOk()->json('data.id');
+        $this->approve($id);
+
+        $this->assertSame('100.00', $this->myMoney($a)['benefits']['lines'][0]['amount']);
+        $this->assertSame('50.50', $this->myMoney($b)['benefits']['lines'][0]['amount']);
+        $this->assertSame('149.50', $this->myMoney($c)['benefits']['lines'][0]['amount']);
+        $this->assertSame('300.00', (string) DB::table('fund_spend_partners')->where('disbursement_id', $id)->sum('share_amount'));
+        $this->assertSame('300.00', (string) DB::table('reserve_disbursements')->where('id', $id)->value('amount'), 'The spend itself is the same amount as before.');
+        $this->assertSame('0.00', $this->wallet($a));
+    }
+
+    public function test_amounts_that_do_not_add_up_are_refused_with_a_plain_message_and_nothing_is_written(): void
+    {
+        $a = $this->partner();
+        $b = $this->partner();
+        $ids = [$a->id, $b->id];
+        $sumMessage = $this->spend(['amount' => '300.00', 'for' => ['mode' => 'partners', 'split' => 'amounts', 'partner_ids' => $ids, 'amounts' => [$a->id => '100', $b->id => '150']]])
+            ->assertUnprocessable()->json('errors')['for.amounts'][0];
+        $this->assertStringContainsString('250.00', $sumMessage);
+        $this->assertStringContainsString('300.00', $sumMessage);
+
+        $this->spend(['amount' => '300.00', 'for' => ['mode' => 'partners', 'split' => 'amounts', 'partner_ids' => $ids, 'amounts' => [$a->id => '300']]])->assertUnprocessable()->assertJsonValidationErrors('for.amounts');
+        $this->spend(['amount' => '300.00', 'for' => ['mode' => 'partners', 'split' => 'amounts', 'partner_ids' => $ids, 'amounts' => [$a->id => '0', $b->id => '300']]])->assertUnprocessable();
+        $this->spend(['amount' => '300.00', 'for' => ['mode' => 'partners', 'split' => 'amounts', 'partner_ids' => $ids, 'amounts' => [$a->id => 'abc', $b->id => '300']]])->assertUnprocessable();
+        $this->spend(['amount' => '300.00', 'for' => ['mode' => 'everyone', 'split' => 'amounts', 'amounts' => [$a->id => '300']]])->assertUnprocessable()->assertJsonValidationErrors('for.split');
+        $this->spend(['amount' => '300.00', 'for' => ['mode' => 'partners', 'split' => 'cheaply', 'partner_ids' => $ids]])->assertUnprocessable();
+
+        $this->assertSame(0, DB::table('reserve_disbursements')->where('program', 'company_spend')->count());
+        $this->assertSame(0, DB::table('fund_spend_partners')->count());
+    }
+
+    public function test_the_company_can_pay_directly_and_list_the_members_with_no_amount_of_their_own(): void
+    {
+        $a = $this->partner('dealer', 'Anwar');
+        $b = $this->partner('sub_dealer', 'Chand');
+        $outsider = $this->partner();
+        $id = $this->spend(['amount' => '5000.00', 'note' => 'Cox\'s Bazar tour', 'for' => ['mode' => 'partners', 'split' => 'direct', 'partner_ids' => [$a->id, $b->id]]])->assertOk()->json('data.id');
+        $this->approve($id);
+
+        foreach ([$a, $b] as $member) {
+            $benefits = $this->myMoney($member)['benefits'];
+            $this->assertCount(1, $benefits['lines']);
+            $this->assertNull($benefits['lines'][0]['amount'], 'No amount of their own.');
+            $this->assertSame('Cox\'s Bazar tour', $benefits['lines'][0]['purpose']);
+            $this->assertSame('0.00', $benefits['total']);
+            $this->assertSame('0.00', $this->wallet($member));
+        }
+        $this->assertSame([], $this->myMoney($outsider)['benefits']['lines']);
+        $this->assertSame(2, DB::table('fund_spend_partners')->where('disbursement_id', $id)->whereNull('share_amount')->count());
+
+        // "Everyone" can be paid directly too (a whole-network event).
+        $all = $this->spend(['amount' => '100.00', 'for' => ['mode' => 'all_dealers', 'split' => 'direct']])->assertOk()->json('data.id');
+        $this->assertGreaterThan(0, DB::table('fund_spend_partners')->where('disbursement_id', $all)->whereNull('share_amount')->count());
+    }
+
+    public function test_the_spend_form_offers_every_spendable_fund_and_never_an_award_fund_or_a_month_pool(): void
+    {
+        $spendable = array_values(array_filter(FundCatalog::keys(), fn (string $fund): bool => CompanyFunds::isSpendable($fund)));
+        sort($spendable);
+        $this->assertSame(['benefits', 'clinic', 'company_profit', 'company_share', 'geographic_reserve', 'management', 'marketing', 'referral_reserve', 'sub_dealer_extra', 'tour'], $spendable);
+        foreach (['car_bike', 'rank_reward', 'salary_reserve', 'salary_pool', 'royalty_pool', 'rank_bonus'] as $notOffered) {
+            $this->assertFalse(CompanyFunds::isSpendable($notOffered), $notOffered.' must not be spendable.');
+        }
+
+        // Every offered fund has a plain name in both languages (not the raw key), and the page offers exactly the spendable cards.
+        foreach (['bn', 'en'] as $locale) {
+            app()->setLocale($locale);
+            foreach ($spendable as $fund) {
+                $name = FundCatalog::name($fund);
+                $this->assertNotSame('', trim($name), "{$locale} {$fund}");
+                $this->assertStringNotContainsString('treasury.fund_', $name);
+                $this->assertStringNotContainsString('commission_page.fund_', $name);
+            }
+        }
+        app()->setLocale('en');
+        $owner = User::factory()->staff('super_admin')->create();
+        $cards = collect($this->actingAs($owner)->onPortal('sadmin')->get('/treasury/funds')->assertOk()->viewData('page')['props']['cards']);
+        $this->assertSame([], $cards->where('spendable', true)->pluck('key')->diff($spendable)->all(), 'The page never offers a fund that is not spendable.');
+        $this->assertSame([], $cards->where('spendable', false)->pluck('key')->intersect($spendable)->all());
+        $this->assertContains('tour', $cards->where('spendable', true)->pluck('key')->all());
+        $this->assertContains('benefits', $cards->where('spendable', true)->pluck('key')->all(), 'The owner sees the owners\' benefits fund.');
+    }
+
     public function test_all_dealers_all_sub_dealers_and_everyone_reach_the_right_partners(): void
     {
         $dealers = [$this->partner('dealer'), $this->partner('dealer')];
@@ -258,7 +348,9 @@ class FundSpendForPartnersTest extends TestCase
     public function test_the_new_words_exist_in_both_languages(): void
     {
         foreach (['funds' => ['for_title', 'for_company', 'for_partners', 'for_all_dealers', 'for_all_sub_dealers', 'for_everyone', 'for_search', 'for_remove', 'for_none', 'for_each', 'for_hint', 'for_spend_partners',
-            'err_for_mode', 'err_for_pick', 'err_for_partner', 'err_for_none'], 'my_money' => ['benefits_heading', 'benefits_intro', 'benefits_status_paid_by_office', 'benefits_more', 'benefits_total']] as $group => $keys) {
+            'err_for_mode', 'err_for_pick', 'err_for_partner', 'err_for_none', 'for_split_title', 'for_split_equal', 'for_split_amounts', 'for_split_direct', 'for_fill_equal', 'for_amount_of',
+            'for_amount_placeholder', 'for_sum_now', 'for_sum_ok', 'for_sum_need_amount', 'for_direct_hint', 'err_for_split', 'err_for_amounts_mode', 'err_for_amount_each', 'err_for_sum'],
+            'my_money' => ['benefits_heading', 'benefits_intro', 'benefits_status_paid_by_office', 'benefits_more', 'benefits_total', 'benefits_direct']] as $group => $keys) {
             foreach (['bn', 'en'] as $locale) {
                 $words = require lang_path($locale.'/'.$group.'.php');
                 foreach ($keys as $key) {

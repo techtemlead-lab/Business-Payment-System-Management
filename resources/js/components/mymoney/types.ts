@@ -75,7 +75,8 @@ export type PaidLine = { id: string; head: string; what: string; month: string; 
 export type PendingMoney = { total: string; count: number; has_estimate: boolean; lines: PendingLine[]; paid: PaidLine[]; rewards?: RewardWaitingLine[] };
 
 /** What the company spent on this partner (not a wallet credit). */
-export type CompanyBenefitLine = { id: string; date: string; what: string; purpose: string; amount: string; status: 'paid_by_office' };
+/** `amount` is null when the company paid directly for many members and this partner has no amount of their own. */
+export type CompanyBenefitLine = { id: string; date: string; what: string; purpose: string; amount: string | null; status: 'paid_by_office' };
 
 export type CompanyBenefits = { total: string; count: number; lines: CompanyBenefitLine[] };
 

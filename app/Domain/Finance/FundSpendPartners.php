@@ -27,6 +27,15 @@ final class FundSpendPartners
 
     public const Everyone = 'everyone';
 
+    public const Equal = 'equal';
+
+    public const Amounts = 'amounts';
+
+    public const Direct = 'direct';
+
+    /** @var list<string> */
+    public const Splits = [self::Equal, self::Amounts, self::Direct];
+
     /** @var list<string> */
     public const Modes = [self::Company, self::Selected, self::AllDealers, self::AllSubDealers, self::Everyone];
 
@@ -95,17 +104,72 @@ final class FundSpendPartners
     }
 
     /**
+     * Who gets what from a spend. Nobody for the company itself; otherwise by the chosen split: equal (the default),
+     * an amount typed for each chosen partner (they must add up to the spend), or "the company pays directly" (the partners
+     * are listed with no amount of their own).
+     *
+     * @param  array{mode?: ?string, partner_ids?: array<int, mixed>, split?: ?string, amounts?: array<int|string, mixed>}|null  $for
+     * @return array<int, ?string> partner id => share; null means the company pays directly and the partner has no amount of their own
+     */
+    public function plan(?array $for, string $amount): array
+    {
+        $ids = $this->resolve($for);
+        if ($ids === []) {
+            return [];
+        }
+        $split = (string) ($for['split'] ?? self::Equal);
+        if (! in_array($split, self::Splits, true)) {
+            throw ValidationException::withMessages(['for.split' => __('funds.err_for_split')]);
+        }
+
+        return match ($split) {
+            self::Direct => array_fill_keys($ids, null),
+            self::Amounts => $this->typed((array) ($for['amounts'] ?? []), $ids, (string) ($for['mode'] ?? ''), $amount),
+            default => $this->split($amount, $ids),
+        };
+    }
+
+    /**
+     * The amounts typed for each chosen partner. Every chosen partner needs one, and together they must equal the spend exactly.
+     *
+     * @param  array<int|string, mixed>  $typed
+     * @param  list<int>  $ids
+     * @return array<int, string>
+     */
+    private function typed(array $typed, array $ids, string $mode, string $amount): array
+    {
+        if ($mode !== self::Selected) {
+            throw ValidationException::withMessages(['for.split' => __('funds.err_for_amounts_mode')]);
+        }
+        $shares = [];
+        $sum = 0;
+        foreach ($ids as $id) {
+            $value = trim((string) ($typed[$id] ?? $typed[(string) $id] ?? ''));
+            if (preg_match('/^\d{1,9}(\.\d{1,2})?$/D', $value) !== 1 || Money::cents($value) <= 0) {
+                throw ValidationException::withMessages(['for.amounts' => __('funds.err_for_amount_each')]);
+            }
+            $shares[$id] = Money::decimal(Money::cents($value));
+            $sum += Money::cents($value);
+        }
+        if ($sum !== Money::cents($amount)) {
+            throw ValidationException::withMessages(['for.amounts' => __('funds.err_for_sum', ['entered' => Money::grouped(Money::decimal($sum)), 'spend' => Money::grouped(Money::decimal(Money::cents($amount)))])]);
+        }
+
+        return $shares;
+    }
+
+    /**
      * Writes the rows for a spend. Call it inside the spend's own transaction.
      *
-     * @param  list<int>  $ids
+     * @param  array<int, ?string>  $shares  partner id => share (null: the company pays directly)
      */
-    public function record(int $disbursementId, string $amount, array $ids): void
+    public function record(int $disbursementId, array $shares): void
     {
-        if ($ids === []) {
+        if ($shares === []) {
             return;
         }
         $rows = [];
-        foreach ($this->split($amount, $ids) as $id => $share) {
+        foreach ($shares as $id => $share) {
             $rows[] = ['disbursement_id' => $disbursementId, 'user_id' => $id, 'share_amount' => $share, 'created_at' => now(), 'updated_at' => now()];
         }
         foreach (array_chunk($rows, 1000) as $chunk) {
@@ -117,7 +181,7 @@ final class FundSpendPartners
      * What the company has spent on one partner, newest first: one line per approved spend that names them.
      * A spend that is still waiting, refused or withdrawn is not shown. It is money spent on them, not a wallet credit.
      *
-     * @return array{total: string, count: int, lines: list<array{id: string, date: string, what: string, purpose: string, amount: string, status: string}>}
+     * @return array{total: string, count: int, lines: list<array{id: string, date: string, what: string, purpose: string, amount: ?string, status: string}>}
      */
     public function linesFor(User $partner, int $limit = 20): array
     {
@@ -144,7 +208,8 @@ final class FundSpendPartners
                     'date' => CarbonImmutable::parse((string) $date, 'UTC')->toIso8601String(),
                     'what' => $head !== '' ? $fund.' · '.$head : $fund,
                     'purpose' => trim((string) $row->reason),
-                    'amount' => Money::decimal(Money::cents((string) $row->share_amount)),
+                    // No amount when the company paid directly (a tour for many members): the line still shows.
+                    'amount' => $row->share_amount === null ? null : Money::decimal(Money::cents((string) $row->share_amount)),
                     'status' => 'paid_by_office',
                 ];
             })->all(),

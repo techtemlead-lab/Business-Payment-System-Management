@@ -22,7 +22,7 @@ export default function CompanyBenefits({ benefits, compact = false }: { benefit
                     <li key={line.id}>
                         <div className="mm-request">
                             <span>{line.what}</span>
-                            <strong>{money(line.amount)}</strong>
+                            <strong>{line.amount === null ? translate('my_money', 'benefits_direct') : money(line.amount)}</strong>
                             <span className="badge paid">{translate('my_money', 'benefits_status_paid_by_office')}</span>
                             <small>{date(line.date)}{line.purpose ? ` · ${line.purpose}` : ''}</small>
                         </div>
