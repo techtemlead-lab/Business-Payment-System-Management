@@ -19,7 +19,7 @@ return [
     'total_delivered_only' => 'শুধু যে মাল পৌঁছেছে',
     'refunded_part' => 'ফেরত দেওয়া :amount',
     'filter_buyer' => 'পার্টনারের ধরন',
-    'filter_branch' => 'ব্রাঞ্চ',
+    'filter_branch' => 'শাখা',
     'open_order' => 'অর্ডার খুলুন',
     'detail_reason' => 'কারণ',
     'col_returned' => 'ফেরত এসেছে',
