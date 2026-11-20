@@ -38,7 +38,7 @@ final class PartnerPendingMoney
      *   awaiting_close: list<array{month: string, amount: string}>,
      *   lines: list<array{id: string, head: string, what: string, month: string, amount: string, order_number: ?string, reason: string, estimate: bool}>,
      *   paid: list<array{id: string, head: string, what: string, month: string, amount: string, order_number: ?string}>,
-     *   rewards: list<array{id: string, head: string, what: string, amount: string, reason: string, since: ?string}>
+     *   rewards: list<array{id: string, head: string, what: string, amount: ?string, reason: string, state: string, since: ?string}>
      * }
      */
     public function for(User $partner, int $limit = 20, bool $withPaid = true): array

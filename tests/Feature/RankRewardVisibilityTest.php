@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Accounts\PartnerDashboardHome;
+use App\Domain\Accounts\PartnerWalletStatement;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Orders\OrderService;
 use App\Models\CommissionRuleParameter;
@@ -112,7 +113,7 @@ class RankRewardVisibilityTest extends TestCase
         $this->purchase(User::factory()->create(['role' => 'sub_dealer', 'status' => 'active']), '250000.00', '400000.00');
         $this->assertTrue(app(CommissionService::class)->claimOneTimeRankIncentive($leader->id)['success']);
 
-        $this->assertSame([], $this->rewards($leader));
+        $this->assertSame(['royalty'], array_column($this->rewards($leader), 'head'), 'Only the royalty note is left once the prize is paid.');
         // The engine writes one wallet line for each reserve fund the prize was drawn from; they carry the same name and add up to the prize.
         $rows = collect($this->statementRows($leader))->where('type_label', __('cr21_income.head_rank_mo'));
         $this->assertNotEmpty($rows, 'The paid prize is its own line in the statement.');
@@ -137,7 +138,7 @@ class RankRewardVisibilityTest extends TestCase
 
         $lines = $this->rewards($leader);
 
-        $this->assertSame(['rank_am'], array_column($lines, 'head'));
+        $this->assertSame(['rank_am', 'royalty'], array_column($lines, 'head'), 'The paid MO prize has no line; the royalty note follows the prizes.');
         $this->assertSame('50000.00', $lines[0]['amount']);
     }
 
@@ -198,7 +199,7 @@ class RankRewardVisibilityTest extends TestCase
         $finance = User::factory()->create(['role' => 'finance', 'status' => 'active']);
 
         $home = app(PartnerDashboardHome::class)->for($leader);
-        $this->assertSame(['rank_mo'], array_column($home['wallet']['pending']['rewards'], 'head'));
+        $this->assertSame(['rank_mo', 'royalty'], array_column($home['wallet']['pending']['rewards'], 'head'));
 
         $this->actingAs($finance)->onPortal('manage')->get('/treasury/partners/'.$leader->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('TreasuryPartner')
@@ -214,10 +215,54 @@ class RankRewardVisibilityTest extends TestCase
         $this->assertSame([], $this->actingAs($sub)->onPortal('subdealer')->get('/my-money')->assertOk()->viewData('page')['props']['pending']['rewards']);
     }
 
+    public function test_the_royalty_note_has_no_amount_and_only_a_rank_holder_gets_it(): void
+    {
+        $holder = $this->dealer();
+        $plain = $this->dealer();
+        DealerRank::create(['user_id' => $holder->id, 'current_rank' => 'sm', 'achieved_at' => now()]);
+        DB::table('rank_incentive_awards')->insert([
+            ['user_id' => $holder->id, 'rank' => 'mo', 'amount' => '5000.00', 'sources' => '{}', 'created_at' => now(), 'updated_at' => now()],
+            ['user_id' => $holder->id, 'rank' => 'am', 'amount' => '50000.00', 'sources' => '{}', 'created_at' => now(), 'updated_at' => now()],
+            ['user_id' => $holder->id, 'rank' => 'sm', 'amount' => '250000.00', 'sources' => '{}', 'created_at' => now(), 'updated_at' => now()],
+        ]);
+
+        $lines = $this->rewards($holder);
+        $this->assertSame([['royalty', null, 'royalty_month_end', 'pending']], array_map(fn (array $line): array => [$line['head'], $line['amount'], $line['reason'], $line['state']], $lines));
+        $this->assertSame(__('cr21_income.head_royalty'), $lines[0]['what']);
+        $this->assertSame([], $this->rewards($plain));
+    }
+
+    public function test_a_sub_dealers_tour_fund_and_bike_prize_show_and_a_dealer_has_no_tour_line(): void
+    {
+        $sub = User::factory()->subDealer()->create(['status' => 'active']);
+        $dealer = $this->dealer();
+        $this->purchase($sub, '10000.00', '12000.00');
+        RewardMilestoneProgress::create(['user_id' => $sub->id, 'milestone_type' => 'bike', 'target_amount' => '5000000.00', 'leg_cap_amount' => '800000.00', 'achieved' => true, 'achieved_at' => now()]);
+
+        $lines = collect($this->actingAs($sub)->onPortal('subdealer')->get('/my-money')->assertOk()->viewData('page')['props']['pending']['rewards'])->keyBy('head');
+        $this->assertSame(['bike', 'tour'], $lines->keys()->sort()->values()->all());
+        $this->assertSame(['set_aside', 'tour_fund'], [$lines['tour']['state'], $lines['tour']['reason']]);
+        $this->assertGreaterThan(0, (float) $lines['tour']['amount']);
+        $this->assertSame(['pending', 'prize_office'], [$lines['bike']['state'], $lines['bike']['reason']]);
+        $this->assertSame([], $this->rewards($dealer));
+    }
+
+    public function test_the_statement_words_a_rank_prize_a_refund_and_an_old_order_payment_in_plain_words(): void
+    {
+        $statement = app(PartnerWalletStatement::class);
+
+        $this->assertSame(__('portal.jr_rank_prize', ['kind' => __('portal.settle_kind_rank_am')]), $statement->describe('commissions.settlement.12.7.rank_am', 'Commission Rank income · AM month closing 2026-09'));
+        $this->assertStringNotContainsString('month closing', $statement->describe('commissions.settlement.12.7.rank_mo', 'Commission Rank income · MO month closing 2026-09'));
+        $this->assertSame(__('orders_stock.jr_refund_to_account', ['number' => 'ORD-9']), $statement->describe('order.refund_to_account.'.Str::uuid(), 'অর্ডার ORD-9 এর ফেরতের টাকা পার্টনারের অ্যাকাউন্টে'));
+        $this->assertSame(__('portal.jr_opening_collection', ['number' => 'OLD-3']), $statement->describe('opening.collection.5', 'Payment received for old order OLD-3'));
+        // A month-end royalty keeps its month-closing sentence.
+        $this->assertStringContainsString('2026-09', $statement->describe('commissions.settlement.royalty.2026-09.abc', __('portal.jr_commission_settlement', ['kind' => __('portal.settle_kind_royalty'), 'month' => '2026-09'])));
+    }
+
     public function test_the_new_words_exist_in_both_languages(): void
     {
-        foreach (['portal' => ['notice_rank_prize_title', 'notice_rank_prize_body'], 'my_money' => ['rewards_heading', 'rewards_intro', 'reward_reason_rank_prize_office',
-            'reward_reason_rank_prize_keep', 'reward_reason_prize_office', 'reward_reason_prize_review']] as $group => $keys) {
+        foreach (['portal' => ['notice_rank_prize_title', 'notice_rank_prize_body', 'jr_rank_prize'], 'my_money' => ['rewards_heading', 'rewards_intro', 'reward_reason_rank_prize_office',
+            'reward_reason_rank_prize_keep', 'reward_reason_prize_office', 'reward_reason_prize_review', 'reward_reason_royalty_month_end', 'reward_reason_tour_fund', 'status_set_aside']] as $group => $keys) {
             foreach (['bn', 'en'] as $locale) {
                 $words = require lang_path($locale.'/'.$group.'.php');
                 foreach ($keys as $key) {

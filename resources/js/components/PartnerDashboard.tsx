@@ -107,7 +107,7 @@ function MoneyColumn({ totals, cards, held, pending, card }: { totals: Row; card
                             <li key={line.id}>
                                 <div className="pd-heads-top">
                                     <span>{line.what}</span>
-                                    <strong>{money(line.amount)}</strong>
+                                    {line.amount !== null && <strong>{money(line.amount)}</strong>}
                                 </div>
                                 <p className="muted">{translate('my_money', `reward_reason_${line.reason}`)}</p>
                             </li>

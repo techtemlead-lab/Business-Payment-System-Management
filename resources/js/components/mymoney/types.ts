@@ -75,4 +75,14 @@ export type PaidLine = { id: string; head: string; what: string; month: string; 
 export type PendingMoney = { total: string; count: number; has_estimate: boolean; lines: PendingLine[]; paid: PaidLine[]; rewards?: RewardWaitingLine[] };
 
 /** A prize the partner has earned (rank prize, bike, car) that is not in the balance yet. */
-export type RewardWaitingLine = { id: string; head: string; what: string; amount: string; reason: 'rank_prize_office' | 'rank_prize_keep' | 'prize_office' | 'prize_review'; since: string | null };
+export type RewardWaitingLine = {
+    id: string;
+    head: string;
+    what: string;
+    /** Null when no honest figure exists before the month closes (the rank royalty). */
+    amount: string | null;
+    reason: 'rank_prize_office' | 'rank_prize_keep' | 'prize_office' | 'prize_review' | 'royalty_month_end' | 'tour_fund';
+    /** "pending": earned or coming, not in the balance. "set_aside": the partner's own fund, spent by the office. */
+    state: 'pending' | 'set_aside';
+    since: string | null;
+};

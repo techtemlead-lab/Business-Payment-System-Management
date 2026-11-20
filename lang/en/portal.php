@@ -746,6 +746,7 @@ return [
     'jr_opening_hold_release' => 'Starting commission hold released after review',
     'jr_commissions_earned' => 'Earned commissions for :number',
     'jr_commission_settlement' => 'Commission :kind month closing :month',
+    'jr_rank_prize' => 'One-time rank prize: :kind',
     'jr_commission_matured' => 'Commission released after the waiting time',
     'jr_payroll_approved' => 'Approve staff salary :month',
     'jr_payroll_paid' => 'Staff salary paid with receipt',

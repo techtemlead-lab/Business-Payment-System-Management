@@ -22,8 +22,8 @@ export default function PendingMoney({ pending }: { pending?: Pending | null }) 
                             <li key={line.id}>
                                 <div className="mm-request">
                                     <span>{line.what}</span>
-                                    <strong>{money(line.amount)}</strong>
-                                    <span className="badge pending">{translate('my_money', 'status_pending')}</span>
+                                    {line.amount !== null && <strong>{money(line.amount)}</strong>}
+                                    <span className="badge pending">{translate('my_money', line.state === 'set_aside' ? 'status_set_aside' : 'status_pending')}</span>
                                     <small>{translate('my_money', `reward_reason_${line.reason}`)}</small>
                                 </div>
                             </li>

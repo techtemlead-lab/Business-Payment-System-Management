@@ -6,6 +6,7 @@ use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionSettlement;
 use App\Domain\Finance\FundCatalog;
+use App\Domain\Finance\ReserveService;
 use App\Models\DealerRank;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -20,19 +21,57 @@ use Illuminate\Support\Facades\DB;
  */
 final class PartnerRewardsWaiting
 {
-    public function __construct(private CommissionQualification $qualification, private CommissionPolicy $policies) {}
+    public function __construct(private CommissionQualification $qualification, private CommissionPolicy $policies, private ReserveService $reserves) {}
 
     /**
-     * @return list<array{id: string, head: string, what: string, amount: string, reason: string, since: ?string}>
+     * `state` is "pending" (earned or coming, not in the balance) or "set_aside" (the partner's own fund, spent by the office);
+     * `amount` is null when no honest figure exists before the month closes.
+     *
+     * @return list<array{id: string, head: string, what: string, amount: ?string, reason: string, state: string, since: ?string}>
      */
     public function for(User $partner): array
     {
-        if ($partner->role !== 'dealer' || $partner->status !== 'active') {
+        if (! in_array($partner->role, ['dealer', 'sub_dealer'], true) || $partner->status !== 'active') {
             return [];
         }
         $rules = $this->policies->snapshot()['rules'];
+        if ($partner->role === 'sub_dealer') {
+            return [...$this->vehiclePrizes($partner, $rules), ...$this->tourFund($partner)];
+        }
 
-        return [...$this->rankPrizes($partner, $rules), ...$this->vehiclePrizes($partner, $rules)];
+        return [...$this->rankPrizes($partner, $rules), ...$this->vehiclePrizes($partner, $rules), ...$this->royaltyNote($partner, $rules)];
+    }
+
+    /**
+     * The rank royalty is a share of the month's pool among everyone who qualifies, so its amount exists only when the month closes.
+     * A dealer who is paid as a rank holder is told so, with no figure.
+     *
+     * @param  array<string, array<string, mixed>>  $rules
+     * @return list<array{id: string, head: string, what: string, amount: ?string, reason: string, state: string, since: ?string}>
+     */
+    private function royaltyNote(User $partner, array $rules): array
+    {
+        $paidAs = (string) ($this->qualification->paidAs((int) $partner->id, null, $rules)['paid_as_rank'] ?? 'dealer');
+        if (! in_array($paidAs, CommissionSettlement::LeadershipRanks, true)) {
+            return [];
+        }
+
+        return [['id' => 'royalty-month', 'head' => 'royalty', 'what' => PartnerIncomeHeads::label('royalty'), 'amount' => null, 'reason' => 'royalty_month_end', 'state' => 'pending', 'since' => null]];
+    }
+
+    /**
+     * A sub-dealer's own tour fund: money set aside for them from their orders. The office spends it on tours; it is never paid into the balance.
+     *
+     * @return list<array{id: string, head: string, what: string, amount: ?string, reason: string, state: string, since: ?string}>
+     */
+    private function tourFund(User $partner): array
+    {
+        $left = max(0, $this->reserves->remainingByCategory((int) $partner->id)['sub_dealer_tour'] ?? 0);
+        if ($left <= 0) {
+            return [];
+        }
+
+        return [['id' => 'tour-fund', 'head' => 'tour', 'what' => PartnerIncomeHeads::label('tour'), 'amount' => FundCatalog::decimalOf($left), 'reason' => 'tour_fund', 'state' => 'set_aside', 'since' => null]];
     }
 
     /**
@@ -40,7 +79,7 @@ final class PartnerRewardsWaiting
      * rank is reached when the office has switched on automatic approval, otherwise when the office pays it.
      *
      * @param  array<string, array<string, mixed>>  $rules
-     * @return list<array{id: string, head: string, what: string, amount: string, reason: string, since: ?string}>
+     * @return list<array{id: string, head: string, what: string, amount: string, reason: string, state: string, since: ?string}>
      */
     private function rankPrizes(User $partner, array $rules): array
     {
@@ -72,6 +111,7 @@ final class PartnerRewardsWaiting
                 'what' => PartnerIncomeHeads::label('rank_'.$code),
                 'amount' => FundCatalog::decimalOf($amount),
                 'reason' => $kept ? 'rank_prize_office' : 'rank_prize_keep',
+                'state' => 'pending',
                 'since' => optional($rank->achieved_at)->toIso8601String(),
             ];
         }
@@ -83,7 +123,7 @@ final class PartnerRewardsWaiting
      * A bike or car prize whose target is met: waiting for the office to ask for it, or for the request to be approved.
      *
      * @param  array<string, array<string, mixed>>  $rules
-     * @return list<array{id: string, head: string, what: string, amount: string, reason: string, since: ?string}>
+     * @return list<array{id: string, head: string, what: string, amount: string, reason: string, state: string, since: ?string}>
      */
     private function vehiclePrizes(User $partner, array $rules): array
     {
@@ -109,6 +149,7 @@ final class PartnerRewardsWaiting
                 'what' => PartnerIncomeHeads::label($program),
                 'amount' => FundCatalog::decimalOf($amount),
                 'reason' => $award === 'requested' ? 'prize_review' : 'prize_office',
+                'state' => 'pending',
                 'since' => $reached->get($program) !== null ? (string) $reached->get($program) : null,
             ];
         }

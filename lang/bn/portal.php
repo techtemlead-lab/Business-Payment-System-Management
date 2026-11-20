@@ -746,6 +746,7 @@ return [
     'jr_opening_hold_release' => 'যাচাইয়ের পর শুরুর আটকে থাকা কমিশন ছাড়া হয়েছে',
     'jr_commissions_earned' => ':number-এর অর্জিত কমিশন',
     'jr_commission_settlement' => 'কমিশন :kind মাস শেষের হিসাব :month',
+    'jr_rank_prize' => 'র‍্যাঙ্কের একবারের পুরস্কার: :kind',
     'jr_commission_matured' => 'অপেক্ষার সময় শেষে কমিশন ছাড়া হয়েছে',
     'jr_payroll_approved' => 'স্টাফ বেতন অনুমোদন :month',
     'jr_payroll_paid' => 'রসিদসহ স্টাফ বেতন পরিশোধ',
