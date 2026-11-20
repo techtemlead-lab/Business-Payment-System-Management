@@ -132,9 +132,6 @@ final class OrderInvoice
             'address' => $letterhead('office_address'),
             'phones' => $letterhead('contact_phone'),
             'manufacturer' => $letterhead('invoice_manufacturer'),
-            // Empty boxes mean "same as the company": the name and phones are stored once.
-            'marketed_by' => $letterhead('invoice_marketed_by') ?: $letterhead('contact_company_title'),
-            'marketed_phones' => $letterhead('invoice_marketed_phones') ?: implode(', ', array_filter([SiteCustomization::secondPhone(), $letterhead('contact_phone')])),
             'logo_path' => is_file($logoPath) ? $logoPath : null,
             ...LetterheadContacts::lines(),
             'icons' => LetterheadContacts::icons(),

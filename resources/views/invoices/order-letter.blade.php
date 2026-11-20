@@ -148,29 +148,29 @@
 
         /* Invoice Sheet Layout */
         .header { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
-        .header td { vertical-align: middle; }
-        .logo-cell { width: 130px; text-align: center; vertical-align: middle; }
+        .header td { vertical-align: top; }
+        .logo-cell { width: 130px; text-align: left; vertical-align: top; }
+        /* The round logo starts a hair lower: the picture has a little empty margin, so its visible top edge meets the top of the capital letters of the name. */
         .logo-cell img {
             width: 120px;
             height: 120px;
             max-width: 120px;
             max-height: 120px;
             object-fit: contain;
-            display: inline-block;
+            display: block;
+            margin-top: 1.5px;
         }
-        .brand-block { text-align: center; }
+        .brand-block { text-align: center; vertical-align: top; }
         .brand-name {
             font-size: 28px;
             font-weight: 700;
+            line-height: 1.1;
             color: #006837;
             letter-spacing: .02em;
             margin: 0;
         }
-        .brand-address { font-size: 15px; color: #334155; margin: 2px 0 0; }
-        .brand-phone { font-size: 14px; color: #334155; margin: 1px 0 0; font-weight: 500; }
-        .marketed { text-align: center; margin: 6px 0 4px; }
-        .marketed .by { color: #1e40af; font-weight: 700; font-size: 15px; }
-        .marketed .phones { color: #334155; font-size: 14px; }
+        .brand-address { font-size: 15px; line-height: 1.25; color: #334155; margin: 1px 0 0; }
+        .brand-contacts { margin-top: 5px; white-space: nowrap; }
 
         .invoice-title { text-align: center; margin: 8px 0 10px; }
         .invoice-title span {
@@ -370,23 +370,12 @@
                     <div class="brand-name">{{ $company['name'] }}</div>
                 @endif
                 <div class="brand-address">{{ $company['address'] }}</div>
+                <div class="brand-contacts">
+                    @include('partials.letterhead-contacts', ['company' => $company, 'size' => '14px'])
+                </div>
             </td>
-            <td class="logo-cell"></td>
         </tr>
     </table>
-
-    <div style="text-align:center;margin-top:2px">
-        @include('partials.letterhead-contacts', ['company' => $company, 'size' => '14.5px'])
-    </div>
-
-    @if (! empty($company['marketed_by']))
-        <div class="marketed">
-            <div class="by">{{ __('portal.inv_marketed_by') }}: {{ $company['marketed_by'] }}</div>
-            @if (! empty($company['marketed_phones']))
-                <div class="phones">{{ __('portal.inv_mobile_short') }}: {{ $company['marketed_phones'] }}</div>
-            @endif
-        </div>
-    @endif
 
     <div class="invoice-title"><span>{{ __('portal.inv_title') }}</span></div>
 

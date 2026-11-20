@@ -4391,7 +4391,6 @@ return [
     'inv_area' => 'Area',
     'inv_mobile' => 'Mobile No',
     'inv_mobile_short' => 'Mob',
-    'inv_marketed_by' => 'Marketed By',
     'inv_booking_address' => 'Booking Address',
     'inv_date' => 'Date',
     'inv_col_sl' => 'Sl',

@@ -4391,7 +4391,6 @@ return [
     'inv_area' => 'এলাকা',
     'inv_mobile' => 'মোবাইল নং',
     'inv_mobile_short' => 'মোবাইল',
-    'inv_marketed_by' => 'বাজারজাতকারী',
     'inv_booking_address' => 'ঠিকানা',
     'inv_date' => 'তারিখ',
     'inv_col_sl' => 'ক্রম',

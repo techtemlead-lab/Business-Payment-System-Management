@@ -193,7 +193,6 @@ class PartnerOpsSuiteTest extends TestCase
         $payload = app(OrderInvoice::class)->payload($order->fresh(['user', 'lines']), 'dealer');
 
         $this->assertSame('', $payload['company']['manufacturer']);
-        $this->assertSame('Madina Natural Health Care', $payload['company']['marketed_by']);
         $this->assertSame('MNHC107', $payload['buyer']['referred_code']);
         $this->assertSame('Upazila Dealer', $payload['buyer']['designation']);
         $this->assertSame('Vatara, Dhaka', $payload['buyer']['area']);
@@ -208,7 +207,7 @@ class PartnerOpsSuiteTest extends TestCase
 
         $html = view('invoices.order-letter', $payload)->render();
         $this->assertStringContainsString(e(__('portal.inv_title')), $html);
-        $this->assertStringContainsString(e(__('portal.inv_marketed_by')).':', $html);
+        $this->assertStringNotContainsString('Marketed', $html);
         $this->assertStringContainsString(e(__('portal.inv_referred_code')).':', $html);
         $this->assertStringContainsString(e(__('portal.inv_col_mrp_bill')), $html);
         $this->assertStringContainsString(e(__('portal.inv_sign_customer')), $html);
