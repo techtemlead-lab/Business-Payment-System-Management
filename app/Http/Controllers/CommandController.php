@@ -10,6 +10,7 @@ use App\Domain\Accounts\PartnerAge;
 use App\Domain\Accounts\PartnerBenefitControls;
 use App\Domain\Accounts\PartnerCreateMedia;
 use App\Domain\Accounts\PartnerKycDocuments;
+use App\Domain\Accounts\PartnerProfileLock;
 use App\Domain\Accounts\PasswordAccess;
 use App\Domain\Accounts\PasswordResetOwnerNotice;
 use App\Domain\Auth\SignInGuard;
@@ -447,7 +448,7 @@ class CommandController extends Controller
 
             // The office typing a staff member's National ID is the verification: from then on that person only views it (OfficeProfile).
             if (array_key_exists('nid', $d) && $locked->staff()) {
-                $stamped = is_array($d['profile'] ?? null) ? $d['profile'] : (is_array($locked->profile) ? $locked->profile : []);
+                $stamped = is_array($d['profile'] ?? null) ? $d['profile'] : PartnerProfileLock::profileOf($locked);
                 if (filled($d['nid'])) {
                     $stamped[OfficeProfile::NidVerifiedKey] = now()->toIso8601String();
                 } else {

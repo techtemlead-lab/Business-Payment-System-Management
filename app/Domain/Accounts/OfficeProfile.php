@@ -39,7 +39,7 @@ final class OfficeProfile
             return false;
         }
 
-        return filled(is_array($user->profile) ? ($user->profile[self::NidVerifiedKey] ?? null) : null);
+        return filled(PartnerProfileLock::profileOf($user)[self::NidVerifiedKey] ?? null);
     }
 
     /** Only the last four digits: "•••••• 1234". */
@@ -60,7 +60,7 @@ final class OfficeProfile
      */
     public function payload(User $user): array
     {
-        $profile = is_array($user->profile) ? $user->profile : [];
+        $profile = PartnerProfileLock::profileOf($user);
         $device = DB::table('known_sign_in_devices')->where('user_id', $user->id)->orderByDesc('last_seen_at')->first(['device', 'last_seen_at']);
         $isOwner = $user->owner();
         $branches = $isOwner ? [] : $user->branchAssignments()->with('branch')->get()
@@ -82,7 +82,7 @@ final class OfficeProfile
                 'gender' => $profile['gender'] ?? '',
                 'present_address' => $profile['present_address'] ?? '',
                 'permanent_address' => $profile['permanent_address'] ?? '',
-                'same_as_present' => filled($profile['present_address'] ?? null) && ($profile['present_address'] ?? null) === ($profile['permanent_address'] ?? null),
+                'same_as_present' => filled($profile['present_address'] ?? null) && $profile['present_address'] === ($profile['permanent_address'] ?? null),
                 'emergency_contact_name' => $profile['emergency_contact_name'] ?? '',
                 'emergency_contact_relation' => $profile['emergency_contact_relation'] ?? '',
                 'emergency_contact_phone' => $profile['emergency_contact_phone'] ?? '',
@@ -117,7 +117,7 @@ final class OfficeProfile
      */
     public function saveProfileKeys(User $user, array $values): array
     {
-        $profile = is_array($user->profile) ? $user->profile : [];
+        $profile = PartnerProfileLock::profileOf($user);
         $changed = [];
         foreach ($values as $key => $value) {
             $new = is_string($value) ? (trim($value) === '' ? null : trim($value)) : $value;
@@ -157,9 +157,9 @@ final class OfficeProfile
                 $user->nid = $clean;
                 $changed[] = 'nid';
                 // A new number waits for the office again.
-                $profile = is_array($user->profile) ? $user->profile : [];
+                $profile = PartnerProfileLock::profileOf($user);
                 unset($profile[self::NidVerifiedKey]);
-                $user->profile = $profile;
+                $user->forceFill(['profile' => $profile]);
                 $user->save();
             }
         }

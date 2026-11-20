@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Accounts\AccountPhoneRules;
 use App\Domain\Accounts\OfficeProfile;
+use App\Domain\Accounts\PartnerProfileLock;
 use App\Domain\Security\OwnerConfirmation;
 use App\Models\User;
 use App\Support\PhoneIdentity;
@@ -47,7 +48,7 @@ class OfficeProfileController extends Controller
         if (($phone ?: null) !== ($user->phone ?: null)) {
             $changed[] = 'phone';
         }
-        $profile = is_array($user->profile) ? $user->profile : [];
+        $profile = PartnerProfileLock::profileOf($user);
         $bnChanged = (trim((string) ($data['name_bn'] ?? '')) ?: null) !== ($profile['name_bn'] ?? null);
         $phone2Changed = $phone2 !== ($profile['phone2'] ?? null);
         if ($changed === [] && ! $bnChanged && ! $phone2Changed) {
