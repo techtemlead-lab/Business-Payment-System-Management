@@ -98,7 +98,7 @@ return [
     'max' => 'Max',
     'any' => 'Any',
     'in_stock_only' => 'In-stock products only',
-    'apply_filters' => 'Apply filters',
+    'apply_filters' => 'Apply price',
     'clear_filters' => 'Clear Filters',
     'products_found' => ':count Products Found',
     'products_found_for' => ':count Products Found for “:query”',

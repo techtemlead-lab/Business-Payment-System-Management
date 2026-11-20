@@ -798,7 +798,7 @@ class SiteCustomizationTest extends TestCase
         $this->assertSame('MADINA OWNER TOP BAR', SiteCustomization::raw()['contact_company_title']);
 
         $this->get('/products')->assertOk()
-            ->assertSee('Apply filters')
+            ->assertSee('Apply price')
             ->assertSee('Out of stock')
             ->assertDontSee('Apply Filters')
             ->assertDontSee('Awaiting Stock');
@@ -811,7 +811,7 @@ class SiteCustomizationTest extends TestCase
 
         $this->post('/locale', ['locale' => 'bn'])->assertRedirect();
         $this->get('/products')->assertOk()
-            ->assertSee('ফিল্টার করুন')
+            ->assertSee('মূল্য প্রয়োগ করুন')
             ->assertSee('স্টক নেই')
             ->assertDontSee('Apply Filters')
             ->assertDontSee('Awaiting Stock');
