@@ -41,8 +41,8 @@ final class PartnerIncomeHeads
         'incentive' => ['programs' => ['additional_rank'], 'categories' => ['rank_incentive_pool', 'additional_rank_pool'], 'types' => ['rank_bonus'], 'audience' => ['dealer', 'sub_dealer']],
         'bike' => ['programs' => ['bike'], 'audience' => ['dealer']],
         'car' => ['programs' => ['car'], 'audience' => ['dealer']],
-        // DECISION: dealers see the tour head at ৳0 until the client sets a dealer tour rule; only sub-dealers earn it today.
-        'tour' => ['programs' => ['tour'], 'categories' => ['sub_dealer_tour'], 'audience' => ['dealer', 'sub_dealer']],
+        // DECISION: the tour fund exists only for sub-dealers (client, 2026-11-20); dealers never see a tour head.
+        'tour' => ['programs' => ['tour'], 'categories' => ['sub_dealer_tour'], 'audience' => ['sub_dealer']],
         'opening' => ['types' => ['opening'], 'audience' => []],
         // Everything else the company pays (marketing awards, vehicle-fund rows with no program, area management share).
         'other' => ['programs' => ['marketing'], 'categories' => ['area_management', 'company_marketing_fund', 'car_bike_incentive_fund'], 'audience' => ['dealer', 'sub_dealer']],

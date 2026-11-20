@@ -2,6 +2,7 @@
 
 namespace App\Http\Portals\Shared\Sections;
 
+use App\Domain\Accounts\OfficeProfile;
 use App\Domain\Accounts\PartnerKycDocuments;
 use App\Domain\Accounts\PartnerProfileCard;
 use App\Domain\Payouts\PartnerPayoutAccounts;
@@ -67,6 +68,11 @@ final class ProfileSection implements WorkspaceSection
                 'nid_request' => in_array($user->role, ['dealer', 'sub_dealer'], true) ? app(PartnerKycDocuments::class)->nidRequestState($user) : null,
             ],
         ];
+
+        // The office profile page (owner, MD, Chairman, staff) reads its cards from here.
+        if (OfficeProfile::applies($user)) {
+            $props['profile']['office'] = app(OfficeProfile::class)->payload($user);
+        }
 
         return $props;
     }

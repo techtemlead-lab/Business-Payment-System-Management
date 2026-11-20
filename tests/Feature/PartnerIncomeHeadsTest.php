@@ -129,7 +129,9 @@ class PartnerIncomeHeadsTest extends TestCase
             $total = $parts->pluck('total', 'key');
             $this->assertSame('50.00', $total['own']);
             $this->assertSame('0.00', $total['referral'], 'A head with no money is still a row.');
-            $this->assertSame('0.00', $total['tour'], 'DECISION: dealers see the tour head at zero.');
+            $this->assertArrayNotHasKey('tour', $total->all(), 'DECISION: the tour fund is for sub-dealers only; a dealer has no tour head.');
+            $this->assertNotContains('tour', PartnerIncomeHeads::forRole('dealer'));
+            $this->assertContains('tour', PartnerIncomeHeads::forRole('sub_dealer'));
             $this->assertSame('36.00', $total['area_union']);
             $this->assertSame('170.00', $total['salary']);
             $this->assertSame('60.00', $total['rank_mo']);

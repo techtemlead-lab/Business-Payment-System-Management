@@ -26,8 +26,9 @@ class EnforceStaffActions
         $route = $request->route();
         $controller = class_basename($route?->getControllerClass() ?? '');
         $method = (string) ($route?->getActionMethod() ?? '');
+        // OfficeProfileController: everyone edits their own profile card; it never touches role, branch or permissions.
         // SiteVisitController only notes that a public page was opened; it decides itself whose visits count.
-        if ($request->isMethodSafe() || $controller === 'AuthController' || $controller === 'LocaleController' || $controller === 'ProductReviewController' || $controller === 'SiteVisitController') {
+        if ($request->isMethodSafe() || $controller === 'AuthController' || $controller === 'OfficeProfileController' || $controller === 'LocaleController' || $controller === 'ProductReviewController' || $controller === 'SiteVisitController') {
             return $next($request);
         }
         if (! $actor) {

@@ -96,7 +96,18 @@
 .app-shell .office-profile-photo .partner-home-avatar-camera{width:40px;height:40px;right:6px;bottom:6px}
 .app-shell .office-profile-details{display:flex;flex-direction:column;gap:var(--ds-s-5);min-width:0}
 .app-shell .office-profile-details>section h2{margin:0 0 var(--ds-s-2);font-size:var(--ds-fs-lg)}
+.app-shell .office-card{border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);padding:var(--ds-s-5);background:var(--ds-surface);display:flex;flex-direction:column;gap:var(--ds-s-3);min-width:0}
+.app-shell .office-card>h2{margin:0;font-size:var(--ds-fs-lg)}
+.app-shell .office-card-hint{margin:0;font-size:var(--ds-fs-sm)}
+.app-shell .office-card-sub{margin:var(--ds-s-3) 0 0;font-size:var(--ds-fs-md)}
+.app-shell .office-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ds-s-4)}
+.app-shell .office-card-grid .office-card-wide{grid-column:1/-1}
+.app-shell .office-card-check{flex-direction:row;align-items:center;gap:var(--ds-s-2);font-weight:500}
+.app-shell .office-card-check input{width:22px;min-height:22px;height:22px;flex:none}
+.app-shell .office-card-facts{margin:0}
+.app-shell .office-card .action-form>.button{align-self:flex-start}
 @media (max-width:767px){
   .app-shell .office-profile{grid-template-columns:minmax(0,1fr);gap:var(--ds-s-5)}
   .app-shell .office-profile-photo{width:160px;height:160px;font-size:60px}
+  .app-shell .office-card-grid{grid-template-columns:minmax(0,1fr)}
 }
