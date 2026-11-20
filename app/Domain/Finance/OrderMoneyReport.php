@@ -306,7 +306,11 @@ final class OrderMoneyReport
             str_ends_with($category, '_override_reserve') || str_ends_with($category, '_breakage') => 'referral_reserve',
             $status === 'unassigned_reserve' => 'geographic_reserve',
             $category === 'company_marketing_fund' => 'marketing',
-            $category === 'car_bike_incentive_fund' => 'car_bike',
+            $category === VehiclePools::Category => match (((array) ($row['metadata'] ?? []))['vehicle_pool'] ?? null) {
+                'bike' => 'bike',
+                'car' => 'car',
+                default => 'car_bike',
+            },
             $category === 'sub_dealer_tour' => 'tour',
             $category === CommissionPosting::SubDealerExtraCategory => 'sub_dealer_extra',
             $category === CommissionSettlement::RankRoyaltyReserve => 'rank_reward',
