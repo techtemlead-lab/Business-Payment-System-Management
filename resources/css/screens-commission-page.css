@@ -289,3 +289,17 @@
 @media (prefers-reduced-motion:reduce){
     .app-shell .sr-switch-knob,.app-shell .sr-switch-knob::after{transition:none}
 }
+
+/* The shared form rules stack a label's children; these labels are one row. */
+.app-shell label.sr-radio{flex-direction:row;align-items:center;justify-content:flex-start;text-align:left}
+.app-shell label.sr-radio input{flex:none;margin:0}
+.app-shell .sr-steps{list-style:decimal}
+.app-shell .sr-rank{flex-direction:column;align-items:stretch}
+
+@media (max-width:720px){
+    /* On a phone the person's box sits under its label, full width, with the "Higher" word and the reset button below it. */
+    .app-shell .sr-table td:last-child{flex-direction:column;align-items:stretch;gap:var(--ds-s-2);text-align:left}
+    .app-shell .sr-cell{width:100%;min-width:0;justify-content:flex-start}
+    .app-shell .sr-cell .cp-field{flex:1 1 100%}
+    .app-shell .sr-reset{flex:1 1 auto;justify-content:center;white-space:nowrap}
+}
