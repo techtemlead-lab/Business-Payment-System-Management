@@ -327,4 +327,31 @@ class MessageTemplatesTest extends TestCase
         }
         $this->assertSame('শুভ জন্মদিন {name}!', MessageTemplate::query()->firstOrFail()->body);
     }
+
+    public function test_a_payroll_only_md_or_chairman_cannot_rewrite_sms_or_email_wording(): void
+    {
+        $body = ['key' => 'sms.account_created', 'channel' => 'sms', 'locale' => 'bn', 'body' => 'আপনার নাম {username} এবং পাসওয়ার্ড {password}'];
+        $reset = ['key' => 'sms.account_created', 'channel' => 'sms', 'locale' => 'bn'];
+
+        foreach (['md', 'chairman'] as $role) {
+            $leader = User::factory()->staff($role)->create();
+            $this->actingAs($leader)->onPortal('sadmin')->get('/message-templates')->assertForbidden();
+            $this->actingAs($leader)->onPortal('sadmin')->post('/commands/message-templates', $body)->assertForbidden();
+            $this->actingAs($leader)->onPortal('sadmin')->post('/commands/message-templates/reset', $reset)->assertForbidden();
+        }
+
+        $this->assertSame(0, MessageTemplate::query()->count());
+    }
+
+    public function test_an_md_granted_website_edit_can_rewrite_the_wording(): void
+    {
+        $md = User::factory()->staff('md')->create([
+            'profile' => ['action_permissions' => ['content' => ['view' => true, 'create' => false, 'edit' => true, 'approve' => false]]],
+        ]);
+        $body = ['key' => 'sms.account_created', 'channel' => 'sms', 'locale' => 'bn', 'body' => 'আপনার নাম {username} এবং পাসওয়ার্ড {password}'];
+
+        $this->actingAs($md)->onPortal('sadmin')->post('/commands/message-templates', $body)->assertSessionHasNoErrors();
+
+        $this->assertSame($body['body'], MessageTemplate::query()->firstOrFail()->body);
+    }
 }

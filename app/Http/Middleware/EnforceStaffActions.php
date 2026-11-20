@@ -128,10 +128,6 @@ class EnforceStaffActions
             // Only owners decide which reason and note boxes are asked; the controller checks again.
             return $next($request);
         }
-        if ($controller === 'MessageTemplateController' && $actor->owner()) {
-            // Owners re-word the SMS and email texts; the controller checks again.
-            return $next($request);
-        }
         if ($controller === 'PrescriptionSettingsController' && PrescriptionAccess::isOwnerDoctor($actor)) {
             // Only the owner's own account allows or stops medicines that are not company products; the controller checks again.
             return $next($request);
@@ -310,6 +306,7 @@ class EnforceStaffActions
             'PartnerChatController' => [['partner_chat'], 'create'],
             'PrescriberVerificationController' => [['prescriber_verify'], 'edit'],
             'PublicTrustAdminController' => [['content'], 'edit'],
+            // Payroll-only MD and Chairman are owners but must not rewrite SMS or email, including password texts (D11).
             'MessageTemplateController' => [['content'], 'edit'],
             'PartnerFileController' => [['accounts'], 'edit'],
             'AccountingController' => [['finance'], $method === 'saveApprovalLimit' ? 'edit' : 'create'],
