@@ -8,6 +8,7 @@ use App\Domain\Orders\CourierBoard;
 use App\Domain\Orders\CourierOptions;
 use App\Domain\Orders\DeliveredMoney;
 use App\Domain\Orders\OrderLines;
+use App\Domain\Orders\OrderListFigures;
 use App\Domain\Orders\OrderListFilter;
 use App\Domain\Orders\OverdueDeliveries;
 use App\Domain\Orders\ShipmentTracking;
@@ -44,6 +45,7 @@ final class OrdersSection implements WorkspaceSection
         'branch' => '(SELECT company_branches.name FROM company_branches WHERE company_branches.id = orders.fulfillment_branch_id)',
         'items' => '(SELECT COALESCE(SUM(order_lines.quantity), 0) FROM order_lines WHERE order_lines.order_id = orders.id)',
         'delivered' => "((SELECT COALESCE(SUM(order_lines.dispatched), 0) FROM order_lines WHERE order_lines.order_id = orders.id) - COALESCE((SELECT SUM((item.value->>'quantity')::int) FROM shipments AS parcel CROSS JOIN LATERAL json_array_elements(parcel.lines) AS item(value) WHERE parcel.order_id = orders.id AND parcel.status = 'returned'), 0))",
+        'mrp' => OrderListFigures::MrpSql,
         'total' => 'orders.total',
         'paid' => 'orders.paid',
         'to_pay' => self::ToPaySql,
@@ -90,6 +92,9 @@ final class OrdersSection implements WorkspaceSection
 
         $listQuery->with($orderWith)
             ->selectRaw(DeliveredMoney::valueSql().' AS delivered_value, '.DeliveredMoney::paidSql().' AS delivered_paid, '.OrderListFilter::cameBackSql().' AS came_back, '.OrderListFilter::returnedUnitsSql().' AS returned_units');
+        if ($context->isStaff) {
+            $listQuery->selectRaw(OrderListFigures::MrpSql.' AS mrp_total');
+        }
         if ($usesSharedTable) {
             $listQuery->selectRaw('(SELECT SUM(order_refunds.amount) FROM order_refunds WHERE order_refunds.order_id = orders.id) AS refunded_amount');
         }
@@ -108,6 +113,10 @@ final class OrdersSection implements WorkspaceSection
                 $this->addParcelLinks($orderPage);
             }
             if ($context->isStaff) {
+                // The address is written before attachTypes hides the saved profile.
+                foreach ($orderPage->getCollection() as $order) {
+                    $order->user?->setAttribute('address_line', OrderListFigures::addressLine($order->user));
+                }
                 app(PartnerAppointment::class)->attachTypes($orderPage->getCollection()->map(fn (Order $order) => $order->user));
             }
             $props['orders'] = $orderPage;
