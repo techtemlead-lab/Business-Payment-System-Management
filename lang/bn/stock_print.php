@@ -14,7 +14,7 @@ return [
     'col_pack' => 'প্যাকের মাপ',
     'col_category' => 'ক্যাটাগরি',
     'col_group' => 'গ্রুপ',
-    'col_mrp' => 'MRP',
+    'col_mrp' => 'এমআরপি',
     'col_dealer_discount' => 'ডিলার ছাড়',
     'col_sub_dealer_discount' => 'সাব-ডিলার ছাড়',
     'col_image' => 'ছবি',

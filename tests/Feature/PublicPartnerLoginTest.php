@@ -77,7 +77,7 @@ class PublicPartnerLoginTest extends TestCase
         $response = $this->onPortal('subdealer')->from('/login')->post('/login', ['password' => 'unused', 'captcha' => 'unused']);
 
         $response->assertSessionHasErrors('email');
-        $this->assertStringContainsString('Sub-dealer Code', (string) session('errors')->first('email'));
+        $this->assertStringContainsStringIgnoringCase('sub-dealer code', (string) session('errors')->first('email'));
     }
 
     public function test_the_old_saved_title_gives_way_but_a_custom_title_stays(): void

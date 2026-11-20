@@ -119,7 +119,7 @@ class PlaceBaseLinkTest extends TestCase
 
         $this->saveEditForm($this->division, ['base_place_id' => $other->id], $banglaOwner)
             ->assertSessionHasErrors([
-                'base_place_id' => 'Dinajpur (জেলা) জায়গাটির এখনো কোনো কোড নেই। আগে ওই জায়গায় একটি কোড দিন, তারপর সেটি বেস প্লেস হিসেবে বেছে নিন।',
+                'base_place_id' => 'Dinajpur (জেলা)-এর এখনো কোনো কোড নেই। আগে ওই জায়গার কোড দিন, তারপর সেটি বেস প্লেস হিসেবে বেছে নিন।',
             ]);
     }
 
