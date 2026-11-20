@@ -5,6 +5,8 @@ namespace App\Domain\Inventory;
 use App\Domain\Catalog\ProductSizeGroups;
 use App\Models\Product;
 use App\Support\Money;
+use App\Support\StockImage;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
 
@@ -18,7 +20,7 @@ final class StockPrintList
 {
     /**
      * @return array{
-     *     rows: list<array{serial: int, name: string, pack_size: ?string, category: ?string, group: ?string, mrp: ?string, dealer_discount: ?string, sub_dealer_discount: ?string, image: ?string, usage: ?string, efficacy: ?string}>
+     *     rows: list<array{product_id: int, serial: int, name: string, pack_size: ?string, category: ?string, group: ?string, mrp: ?string, dealer_discount: ?string, sub_dealer_discount: ?string, image: string, usage: ?string, efficacy: ?string}>
      * }
      */
     public function build(): array
@@ -41,6 +43,7 @@ final class StockPrintList
             $product = $entry['product'];
             $mrpCents = $this->cents($product->mrp);
             $rows[] = [
+                'product_id' => (int) $product->id,
                 'serial' => $index + 1,
                 'name' => $entry['name'],
                 'pack_size' => $entry['pack_size'],
@@ -59,16 +62,23 @@ final class StockPrintList
         return ['rows' => $rows];
     }
 
-    /** The saved product photo, as a file this server can embed in the PDF. */
-    private function imagePath(Product $product): ?string
+    /**
+     * The picture the website shows for this product, as a file this server can embed in the PDF:
+     * the saved photo, or, when the owner has not uploaded one (or the file is gone), the same
+     * default category picture the website falls back to. It is never left empty.
+     */
+    private function imagePath(Product $product): string
     {
         $relative = $product->image_path;
-        if (! is_string($relative) || $relative === '') {
-            return null;
+        if (is_string($relative) && $relative !== '') {
+            $path = Storage::disk('local')->path($relative);
+            if (is_file($path)) {
+                return $path;
+            }
+            Log::warning('Stock print: the saved product photo is missing, the default picture is used.', ['product_id' => $product->id, 'image_path' => $relative]);
         }
-        $path = Storage::disk('local')->path($relative);
 
-        return is_file($path) ? $path : null;
+        return StockImage::pdfFileForCategory($product->category);
     }
 
     /** Bangla first on a Bangla page, then English, for a fact stored in both languages. */

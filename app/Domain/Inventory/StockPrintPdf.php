@@ -9,6 +9,8 @@ use App\Support\LocalDigits;
 use App\Support\PdfFonts;
 use App\Support\SiteCustomization;
 use App\Support\SiteFacts;
+use App\Support\StockImage;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Mpdf\Mpdf;
@@ -111,6 +113,11 @@ final class StockPrintPdf
             }
             $target = $dir.'/stock-photo-'.Str::lower(Str::random(10)).'.jpg';
             $size = $this->thumbnail($source, $target);
+            if ($size === null) {
+                // A photo that cannot be read as a picture must not leave a hole in the list.
+                Log::warning('Stock print: a product photo could not be read, the default picture is used.', ['product_id' => $row['product_id'] ?? null, 'file' => $source]);
+                $size = $this->thumbnail(StockImage::pdfFileForCategory($row['category'] ?? null), $target);
+            }
             if ($size !== null) {
                 $created[] = $target;
                 $rows[$index]['image'] = $target;
