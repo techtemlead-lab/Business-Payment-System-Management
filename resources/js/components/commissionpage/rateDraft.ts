@@ -56,15 +56,16 @@ export function rowProblems(head: Head, draft: RowDraft): Problem[] {
 
 /**
  * What the draft of one commission changes compared with a baseline (the live rule for the rules window, the general
- * rate for a special rate). An empty object means nothing changed.
+ * rate for a special rate). An empty object means nothing changed. With `full` every value is written out, changed or not: a special
+ * plan is worked out from the person's CURRENT plan, so a value left out would keep the old special value.
  */
-export function ruleEntry(head: Head, baseline: Head, draft: RowDraft, withDestination: boolean): Record<string, unknown> {
+export function ruleEntry(head: Head, baseline: Head, draft: RowDraft, withDestination: boolean, full = false): Record<string, unknown> {
     const total = toBasisPoints(draft.pct);
     if (total === null) {
         return {};
     }
     const entry: Record<string, unknown> = {};
-    if (total !== toBasisPoints(baseline.percentage)) {
+    if (full || total !== toBasisPoints(baseline.percentage)) {
         entry.percentage = fromBasisPoints(total);
     }
     const parameters: Record<string, string> = {};
@@ -75,7 +76,7 @@ export function ruleEntry(head: Head, baseline: Head, draft: RowDraft, withDesti
         const base = baseline.children[index] ?? part;
         if (part.unit === 'money') {
             const typed = (draft.parts[part.key] ?? '').trim();
-            if (Number(typed) !== Number(base.pct)) {
+            if (full || Number(typed) !== Number(base.pct)) {
                 parameters[part.param] = typed;
             }
 
@@ -85,14 +86,14 @@ export function ruleEntry(head: Head, baseline: Head, draft: RowDraft, withDesti
             // The saved value is the bike's share of the fund, not the bike's percent of the order.
             const bike = toBasisPoints(draft.parts.bike) ?? 0;
             const share = shareForBikePart(total, bike);
-            if (share !== null && (bike !== toBasisPoints(base.pct) || total !== toBasisPoints(baseline.percentage))) {
+            if (share !== null && (full || bike !== toBasisPoints(base.pct) || total !== toBasisPoints(baseline.percentage))) {
                 parameters[part.param] = fromBasisPoints(share);
             }
 
             return;
         }
         const next = toBasisPoints(draft.parts[part.key]) ?? 0;
-        if (next !== toBasisPoints(base.pct)) {
+        if (full || next !== toBasisPoints(base.pct)) {
             parameters[part.param] = fromBasisPoints(next);
         }
     });

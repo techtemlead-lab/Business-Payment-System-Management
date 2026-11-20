@@ -80,7 +80,7 @@ function ActionModal({ action, onClose }: { action: Action; onClose: () => void 
         setSaving(true);
         const url = `${root}/policy-schedules/${action.item.id}/${isEnd ? 'end' : 'review'}`;
         const payload = isEnd
-            ? { mode: endMode === 'now' ? 'stop_now' : 'set_end', ...(endMode === 'date' ? { expires_at: end } : {}), ...(reasonField.shown ? { reason } : {}) }
+            ? { mode: endMode === 'now' ? 'stop_now' : endMode === 'open' ? 'open_end' : 'set_end', ...(endMode === 'date' ? { expires_at: end } : {}), ...(reasonField.shown ? { reason } : {}) }
             : { decision: action.kind, ...(reasonField.shown ? { reason } : {}) };
         router.post(url, payload as never, {
             preserveScroll: true,

@@ -40,11 +40,12 @@ export default function BuyerCard({ special, person }: { special: SpecialData; p
                 problems[head.key] = list;
                 continue;
             }
-            const entry = ruleEntry(head, head, draft, false);
-            if (Object.keys(entry).length === 0) {
+            const different = Object.keys(ruleEntry(head, head, draft, false)).length > 0;
+            // The whole plan is written, so a commission set back to the general rate really goes back.
+            rules[head.key] = ruleEntry(head, head, draft, false, true);
+            if (!different) {
                 continue;
             }
-            rules[head.key] = entry;
             const typed = toBasisPoints(draft.pct) ?? 0;
             if (typed !== toBasisPoints(head.percentage)) {
                 summary.push(`${tc(`head_${head.key}`)}: ${showPercent(fromBasisPoints(typed))} (${t('general')}: ${showPercent(head.percentage)})`);
@@ -61,7 +62,8 @@ export default function BuyerCard({ special, person }: { special: SpecialData; p
             }
         }
 
-        return { rules, summary, problems };
+        // Nothing differs from the general plan: there is no special plan to write (to remove one, stop it in the list).
+        return { rules: summary.length === 0 ? {} : rules, summary, problems };
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [drafts, special.heads]);
     const caps = poolTotals(special.heads, drafts, special.totals);

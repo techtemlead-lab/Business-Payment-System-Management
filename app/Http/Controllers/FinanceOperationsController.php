@@ -117,7 +117,7 @@ class FinanceOperationsController extends Controller
     /** Change the end of an approved special rate, or stop it now. Owner only; PolicyScheduling::end checks again. */
     public function scheduleEnd(Request $request, int $id, PolicyScheduling $schedules): Response
     {
-        $data = $request->validate(['mode' => 'required|in:stop_now,set_end', 'expires_at' => 'nullable|required_if:mode,set_end|date', 'reason' => ReasonFields::rule('money.policy_schedule_review', 1000, 5)]);
+        $data = $request->validate(['mode' => 'required|in:stop_now,set_end,open_end', 'expires_at' => 'nullable|required_if:mode,set_end|date', 'reason' => ReasonFields::rule('money.policy_schedule_review', 1000, 5)]);
         $endsAt = $data['mode'] === 'stop_now' || empty($data['expires_at']) ? null : CarbonImmutable::parse($data['expires_at'], 'Asia/Dhaka')->utc();
         $schedules->end($request->user(), $id, $data['mode'] === 'stop_now' ? CarbonImmutable::now() : $endsAt, ReasonFields::text($data['reason'] ?? null));
 
