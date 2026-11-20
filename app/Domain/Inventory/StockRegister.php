@@ -51,7 +51,26 @@ final class StockRegister
         }
         $showsCost = $viewer->allows('cost_read');
         $showsDealerPrice = $viewer->allows('pricing') || $viewer->allows('orders') || $viewer->allows('finance');
-        $table = MoneyTable::make($request, $rows, new MoneyTableSpec(
+        $table = MoneyTable::make($request, $rows, $this->stockSpec($fields));
+        $matchedExpiry = $this->matchedExpiries($active, $table['rows']->items());
+        /** @var LengthAwarePaginator<int, object> $page */
+        $page = $table['rows'];
+        $page->through(fn (object $row): array => $this->rowForScreen($row, $matchedExpiry, $showsCost, $showsDealerPrice));
+        if ($active === [] && $table['totals']['sums'] !== null && MoneyTable::range($request, null) === null) {
+            // The low and out tiles are the count the staff dashboard shows, not a count of branch rows.
+            $levels = StockLevels::counts($scope);
+            $table['totals']['sums'] = [...$table['totals']['sums'], 'low_count' => (string) $levels['low'], 'out_count' => (string) $levels['out']];
+        }
+
+        return $table;
+    }
+
+    /**
+     * @param  list<MoneyTableFilter>  $fields
+     */
+    private function stockSpec(array $fields): MoneyTableSpec
+    {
+        return new MoneyTableSpec(
             dateColumn: null,
             search: ['stock_row.name', 'stock_row.sku', 'stock_row.strength', 'stock_row.category', 'stock_row.sub_category', 'stock_row.unit', 'stock_row.next_batch', 'stock_row.branch_name'],
             filters: $fields,
@@ -80,18 +99,38 @@ final class StockRegister
                 'out_count' => "CASE WHEN stock_row.level = 'out_of_stock' THEN 1 ELSE 0 END",
             ],
             defaultPeriod: null,
-        ));
-        $matchedExpiry = $this->matchedExpiries($active, $table['rows']->items());
-        /** @var LengthAwarePaginator<int, object> $page */
-        $page = $table['rows'];
-        $page->through(fn (object $row): array => $this->rowForScreen($row, $matchedExpiry, $showsCost, $showsDealerPrice));
-        if ($active === [] && $table['totals']['sums'] !== null && MoneyTable::range($request, null) === null) {
-            // The low and out tiles are the count the staff dashboard shows, not a count of branch rows.
-            $levels = StockLevels::counts($scope);
-            $table['totals']['sums'] = [...$table['totals']['sums'], 'low_count' => (string) $levels['low'], 'out_count' => (string) $levels['out']];
-        }
+        );
+    }
 
-        return $table;
+    /**
+     * Every row the Stock page would list for the same address (branch, filters, search, dates), with
+     * no paging, for the stock print. The first rows by name, at most $limit.
+     *
+     * @return array{rows: list<array<string, mixed>>, total: int, truncated: bool, filtered: bool}
+     */
+    public function printRows(Request $request, BranchScope $scope, User $viewer, int $limit = 3000): array
+    {
+        $branchId = $scope->allBranches ? null : ($scope->branchIds[0] ?? null);
+        $fields = $this->fields(branchChoice: $branchId === null, showsStock: true, branchChoices: $branchId === null ? $this->branchOptions() : []);
+        $active = MoneyTable::chosenFilters($request, $fields);
+        $rows = $this->rows($branchId, wholeProduct: false, catalogRules: false);
+        $this->applyFilters($rows, $active);
+        if (($range = MoneyTable::range($request, null)) !== null) {
+            $this->onlyMovedBetween($rows, $range['from'], $range['until']);
+        }
+        $filtered = MoneyTable::filtered($request, $rows, $this->stockSpec($fields));
+        $total = (clone $filtered)->count();
+        $found = $filtered->orderByRaw('stock_row.name ASC')->orderByRaw('stock_row.branch_name ASC NULLS LAST')->orderBy('stock_row.row_key')->limit($limit)->get();
+        $matchedExpiry = $this->matchedExpiries($active, $found->all());
+        $showsCost = $viewer->allows('cost_read');
+        $showsDealerPrice = $viewer->allows('pricing') || $viewer->allows('orders') || $viewer->allows('finance');
+
+        return [
+            'rows' => $found->map(fn (object $row): array => $this->rowForScreen($row, $matchedExpiry, $showsCost, $showsDealerPrice))->all(),
+            'total' => $total,
+            'truncated' => $total > $limit,
+            'filtered' => $active !== [] || MoneyTable::range($request, null) !== null || trim((string) $request->query('q', '')) !== '',
+        ];
     }
 
     /**
