@@ -7,56 +7,10 @@ import { useReasonField } from '../../shared/reasonFields';
 import { localizeDigits } from '../../business-date';
 import BuyerSwitch from './BuyerSwitch';
 import {
-    DESTINATIONS, SUB_DEALER_ONLY, fromBasisPoints, shareForBikePart, toBasisPoints, showPercent,
-    type BuyerType, type CommissionPageData, type Head,
+    DESTINATIONS, SUB_DEALER_ONLY, fromBasisPoints, toBasisPoints, showPercent,
+    type BuyerType, type CommissionPageData,
 } from './shared';
-
-/** What the person has typed for one commission: its percent and, when it is split, each part. */
-interface RowDraft {
-    pct: string;
-    parts: Record<string, string>;
-    /** Where the sub-dealer extra part goes; empty for every other commission. */
-    destination: string;
-}
-
-const MONEY_TEXT = /^\d{1,11}(\.\d{1,2})?$/;
-
-type Drafts = Record<string, RowDraft>;
-
-const startDrafts = (heads: Head[]): Drafts => Object.fromEntries(heads.map((head) => [
-    head.key,
-    { pct: head.percentage, parts: Object.fromEntries(head.children.map((part) => [part.key, part.pct])), destination: head.destination ?? '' },
-]));
-
-/** Everything wrong with one row, as plain-language keys the modal turns into words. */
-function rowProblems(head: Head, draft: RowDraft): { key: string; replace?: Record<string, string> }[] {
-    const total = toBasisPoints(draft.pct);
-    if (total === null) {
-        return [{ key: 'err_percent' }];
-    }
-    if (head.children.some((part) => part.unit === 'money' && !MONEY_TEXT.test((draft.parts[part.key] ?? '').trim()))) {
-        return [{ key: 'err_number' }];
-    }
-    const percentParts = head.children.filter((part) => part.unit === 'percent');
-    if (percentParts.length === 0) {
-        return [];
-    }
-    const parts = percentParts.map((part) => toBasisPoints(part.param === null ? '0' : draft.parts[part.key] ?? ''));
-    if (parts.some((value) => value === null)) {
-        return [{ key: 'err_percent' }];
-    }
-    if (head.key === 'car_bike_incentive') {
-        const bike = parts[0] as number;
-        if (bike > total) {
-            return [{ key: 'err_bike_more' }];
-        }
-
-        return shareForBikePart(total, bike) === null ? [{ key: 'err_bike_split' }] : [];
-    }
-    const sum = (parts as number[]).reduce((all, value) => all + value, 0);
-
-    return sum === total ? [] : [{ key: 'err_parts_sum', replace: { sum: localizeDigits(String(parseFloat(fromBasisPoints(sum)))), total: localizeDigits(String(parseFloat(fromBasisPoints(total)))) } }];
-}
+import { poolTotals, rowProblems, ruleEntry, startDrafts, type Drafts, type Problem } from './rateDraft';
 
 /**
  * Change the percents: one row per commission with a box for the new percent. A commission that is split
@@ -77,62 +31,13 @@ export default function ChangeRatesModal({ page, startWith, onClose }: { page: C
 
     const shown = page.heads.filter((head) => mode === 'sub_dealer' || !SUB_DEALER_ONLY.includes(head.key));
     const problems = useMemo(() => Object.fromEntries(page.heads.map((head) => [head.key, rowProblems(head, drafts[head.key])])), [page.heads, drafts]);
-    const totalOf = (keys: (head: Head) => boolean) => page.heads.filter(keys).reduce((sum, head) => {
-        const points = head.is_active ? toBasisPoints(drafts[head.key].pct) : 0;
-
-        return sum + (points ?? 0);
-    }, 0);
-    const dealerTotal = totalOf((head) => !SUB_DEALER_ONLY.includes(head.key));
-    const subTotal = totalOf(() => true);
-    const dealerCap = Math.round(parseFloat(page.totals.dealer_cap_pct) * 100);
-    const subCap = Math.round(parseFloat(page.totals.sub_dealer_cap_pct) * 100);
-    const overCap = dealerTotal > dealerCap || subTotal > subCap;
+    const { dealerTotal, subTotal, dealerCap, subCap, over: overCap } = poolTotals(page.heads, drafts, page.totals);
     const hasProblem = Object.values(problems).some((list) => list.length > 0);
 
     const changed = useMemo(() => {
         const rules: Record<string, Record<string, unknown>> = {};
         for (const head of page.heads) {
-            const draft = drafts[head.key];
-            const total = toBasisPoints(draft.pct);
-            if (total === null) {
-                continue;
-            }
-            const entry: Record<string, unknown> = {};
-            if (total !== toBasisPoints(head.percentage)) {
-                entry.percentage = fromBasisPoints(total);
-            }
-            const parameters: Record<string, string> = {};
-            for (const part of head.children) {
-                if (part.param === null) {
-                    continue;
-                }
-                if (part.unit === 'money') {
-                    const typed = (draft.parts[part.key] ?? '').trim();
-                    if (Number(typed) !== Number(part.pct)) {
-                        parameters[part.param] = typed;
-                    }
-                    continue;
-                }
-                if (head.key === 'car_bike_incentive') {
-                    // The saved value is the bike's share of the fund, not the bike's percent of the order.
-                    const bike = toBasisPoints(draft.parts.bike) ?? 0;
-                    const share = shareForBikePart(total, bike);
-                    if (share !== null && (bike !== toBasisPoints(part.pct) || total !== toBasisPoints(head.percentage))) {
-                        parameters[part.param] = fromBasisPoints(share);
-                    }
-                    continue;
-                }
-                const next = toBasisPoints(draft.parts[part.key]) ?? 0;
-                if (next !== toBasisPoints(part.pct)) {
-                    parameters[part.param] = fromBasisPoints(next);
-                }
-            }
-            if (head.key === 'additional_rank' && draft.destination !== (head.destination ?? '')) {
-                parameters.destination = draft.destination;
-            }
-            if (Object.keys(parameters).length > 0) {
-                entry.parameters = parameters;
-            }
+            const entry = ruleEntry(head, head, drafts[head.key], true);
             if (Object.keys(entry).length > 0) {
                 rules[head.key] = { version: head.version, ...entry };
             }
@@ -163,7 +68,7 @@ export default function ChangeRatesModal({ page, startWith, onClose }: { page: C
         });
     };
 
-    const errorText = (list: { key: string; replace?: Record<string, string> }[]) => list.map((item) => t(item.key, item.replace)).join(' ');
+    const errorText = (list: Problem[]) => list.map((item) => t(item.key, item.replace)).join(' ');
     const footer = (
         <div className="cp-modal-foot">
             <button type="button" className="button" onClick={onClose}>{t('cancel')}</button>

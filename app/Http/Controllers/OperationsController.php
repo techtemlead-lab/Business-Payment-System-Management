@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\PolicyChangeSummary;
 use App\Domain\Commissions\RecipientFunding;
+use App\Domain\Commissions\SpecialRateModel;
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Finance\FundSpending;
@@ -87,8 +88,12 @@ class OperationsController extends Controller
         }
         if (in_array($section, ['policy-schedules', 'reserve-payouts', 'field-sales', 'commission-holds'], true)) {
             $partners = $section === 'field-sales' ? app(TerritoryAccess::class)->partners($actor) : User::whereIn('role', ['dealer', 'sub_dealer']);
-            $data['partners'] = $partners->when($request->filled('q'), fn ($q) => $q->where(fn ($match) => $match->where('name', 'ilike', '%'.$request->string('q').'%')->orWhere('dealer_code', 'ilike', '%'.$request->string('q').'%')))
-                ->orderBy('name')->limit(200)->get(['id', 'name', 'dealer_code', 'role', 'status', 'division', 'district'])->toArray();
+            // The special-rate page finds a person by name, code or phone and shows the phone beside the name.
+            $byPhone = $section === 'policy-schedules';
+            $digits = (string) preg_replace('/\D+/', '', (string) $request->string('q'));
+            $data['partners'] = $partners->when($request->filled('q'), fn ($q) => $q->where(fn ($match) => $match->where('name', 'ilike', '%'.$request->string('q').'%')->orWhere('dealer_code', 'ilike', '%'.$request->string('q').'%')
+                ->when($byPhone && $digits !== '', fn ($or) => $or->orWhere('phone', 'like', '%'.$digits.'%'))))
+                ->orderBy('name')->limit($byPhone && $request->filled('q') ? 20 : 200)->get(['id', 'name', 'dealer_code', 'role', 'status', 'division', 'district', ...($byPhone ? ['phone'] : [])])->toArray();
         }
         if ($section === 'payment-accounts' || in_array($section, ['payroll', 'reserve-payouts'], true) && $actor->allows('finance')) {
             $data['paymentAccounts'] = app(PaymentAccounts::class)->listing($actor);
@@ -135,6 +140,8 @@ class OperationsController extends Controller
                     's.effective_at', 's.expires_at', 'reviewer.name as reviewed_by_name', 's.reviewed_at', 's.review_reason', 's.created_by', 's.user_id'])
                 ->orderByRaw("CASE WHEN s.status = 'draft' THEN 0 ELSE 1 END")->orderByDesc('s.id');
             $data['policy'] = [...app(CommissionPolicy::class)->snapshot(), 'funding_sources' => RecipientFunding::Sources];
+            $person = $request->filled('person') ? User::whereIn('role', ['dealer', 'sub_dealer'])->whereKey((int) $request->integer('person'))->first() : null;
+            $data['special'] = app(SpecialRateModel::class)->build($actor, $person);
         }
         if ($section === 'reserve-payouts') {
             $tables['reserve_requests'] = DB::table('reserve_disbursements as r')->where('r.program', '!=', FundSpending::Program)->leftJoin('users as u', 'u.id', '=', 'r.user_id')->leftJoin('payout_receipts as pr', 'pr.reserve_disbursement_id', '=', 'r.id')

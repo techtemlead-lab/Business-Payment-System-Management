@@ -129,6 +129,51 @@ final class PolicyScheduling
         }, 3);
     }
 
+    /**
+     * Change when a special rate that is already approved stops, or stop it now. Only the owner does this, as only
+     * the owner approves a rate. The engine already ignores a schedule after its end time, so this changes data it
+     * reads and nothing in how a commission is worked out; orders already captured keep the rules they were captured
+     * with. A schedule that has not started yet and is ended before its start is cancelled instead.
+     *
+     * @return array{status: 'ended'|'cancelled', expires_at: ?string}
+     */
+    public function end(User $actor, int $id, ?CarbonImmutable $endsAt, string $reason): array
+    {
+        abort_unless(CommissionPolicy::approves($actor), 403, __('portal.err_policy_owner_only'));
+
+        return DB::transaction(function () use ($actor, $id, $endsAt, $reason): array {
+            CommissionWallet::lock();
+            $row = DB::table('commission_policy_schedules')->where('id', $id)->lockForUpdate()->first();
+            abort_if($row === null, 404);
+            $now = CarbonImmutable::now();
+            // A change made after the start cannot rewrite the past: an end time already gone means "now".
+            $endsAt = $endsAt !== null && $endsAt->lt($now) ? $now : $endsAt;
+            if ($row->status !== 'approved' || $row->origin === 'rule_edit'
+                || ($row->expires_at && CarbonImmutable::parse($row->expires_at)->lte($now))) {
+                throw ValidationException::withMessages(['schedule' => __('portal.err_sched_closed')]);
+            }
+            $before = $row->expires_at ? CarbonImmutable::parse($row->expires_at)->toIso8601String() : null;
+            $started = CarbonImmutable::parse($row->effective_at)->lte($now);
+            if ($endsAt !== null && ! $started && $endsAt->lte(CarbonImmutable::parse($row->effective_at))) {
+                DB::table('commission_policy_schedules')->where('id', $id)->update(['status' => 'cancelled', 'reviewed_by' => $actor->id,
+                    'reviewed_at' => now(), 'review_reason' => $reason, 'updated_at' => now()]);
+                $outcome = ['status' => 'cancelled', 'expires_at' => null];
+            } else {
+                if ($endsAt !== null && $endsAt->lte(CarbonImmutable::parse($row->effective_at))) {
+                    throw ValidationException::withMessages(['expires_at' => __('special_rates.err_end_before_start')]);
+                }
+                DB::table('commission_policy_schedules')->where('id', $id)->update(['expires_at' => $endsAt, 'updated_at' => now()]);
+                $outcome = ['status' => 'ended', 'expires_at' => $endsAt?->toIso8601String()];
+            }
+            Audit::record($actor->id, 'policy_schedule.end_changed', (string) $id, [
+                'reason' => $reason, 'scope' => $row->scope, 'user_id' => $row->user_id,
+                'expires_before' => $before, 'expires_after' => $outcome['expires_at'], 'outcome' => $outcome['status'],
+            ]);
+
+            return $outcome;
+        }, 3);
+    }
+
     private function approve(User $actor, object $row): void
     {
         $rules = json_decode($row->rules, true, flags: JSON_THROW_ON_ERROR);

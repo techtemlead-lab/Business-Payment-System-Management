@@ -132,6 +132,7 @@ $operations = function (): void {
     Route::post('/payroll/{id}/pay', [$finance, 'payrollPay'])->whereUuid('id');
     Route::post('/policy-schedules', [$finance, 'schedule']);
     Route::post('/policy-schedules/{id}/review', [$finance, 'scheduleReview'])->whereNumber('id');
+    Route::post('/policy-schedules/{id}/end', [$finance, 'scheduleEnd'])->whereNumber('id');
     Route::post('/reserves', [$finance, 'reserve']);
     Route::post('/reserves/{id}/review', [$finance, 'reserveReview'])->whereNumber('id');
     Route::post('/reserves/{id}/pay', [$finance, 'reservePay'])->whereNumber('id');
