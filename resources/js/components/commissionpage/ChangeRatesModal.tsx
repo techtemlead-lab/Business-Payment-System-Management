@@ -232,8 +232,8 @@ export default function ChangeRatesModal({ page, startWith, onClose }: { page: C
                                                 </div>
                                             );
                                         })}
-                                        {head.key !== 'car_bike_incentive' && (
-                                            <p className={`cp-parts-sum${list.length === 0 ? ' is-ok' : ' is-bad'}`}>
+                                        {head.key !== 'car_bike_incentive' && list.length === 0 && (
+                                            <p className="cp-parts-sum is-ok">
                                                 {t('parts_sum_now', {
                                                     sum: localizeDigits(String(parseFloat(fromBasisPoints(head.children.reduce((all, part) => all + (toBasisPoints(draft.parts[part.key] ?? '') ?? 0), 0))))),
                                                     total: localizeDigits(String(parseFloat(fromBasisPoints(toBasisPoints(draft.pct) ?? 0)))),

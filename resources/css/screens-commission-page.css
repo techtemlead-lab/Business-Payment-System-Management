@@ -24,7 +24,7 @@
 
 /* Dealer / sub-dealer switch. */
 .app-shell .cp-switch{display:inline-flex;padding:3px;gap:2px;background:var(--ds-surface-3);border-radius:999px}
-.app-shell .cp-switch button{min-height:40px;padding:0 20px;border:0;border-radius:999px;background:transparent;font:inherit;font-size:var(--ds-fs-md);font-weight:600;color:var(--ds-text-2);cursor:pointer}
+.app-shell .cp-switch button{min-height:40px;padding:0 20px;border:0;border-radius:999px;background:transparent;font:inherit;font-size:var(--ds-fs-md);font-weight:600;color:var(--ds-text-2);cursor:pointer;white-space:nowrap}
 .app-shell .cp-switch button.is-on{background:var(--ds-brand);color:var(--ds-on-brand)}
 .app-shell .cp-switch button:focus-visible{outline:2px solid var(--ds-brand);outline-offset:2px}
 
@@ -160,7 +160,7 @@
     .app-shell .cp-field{flex:1 1 140px}
     .app-shell .cp-actions .button{flex:1 1 100%;justify-content:center}
     .app-shell .cp-switch{display:flex}
-    .app-shell .cp-switch button{flex:1}
+    .app-shell .cp-switch button{flex:1;padding:0 10px}
 }
 @media (prefers-reduced-motion:reduce){
     .app-shell .cp-expand svg{transition:none}

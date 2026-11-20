@@ -21,7 +21,8 @@ function shown(entry: ConditionNumber, t: Translate): string {
         return t('not_set');
     }
     if (entry.unit === 'money') {
-        return money(entry.value);
+        // Whole takas read better without ".00".
+        return /^d+.00$/.test(entry.value) ? `৳ ${number(entry.value)}` : money(entry.value);
     }
 
     return number(entry.value);
