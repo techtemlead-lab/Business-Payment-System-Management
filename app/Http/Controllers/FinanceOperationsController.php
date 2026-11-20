@@ -6,6 +6,7 @@ use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Commissions\PolicyScheduling;
 use App\Domain\Finance\CompanyFunds;
 use App\Domain\Finance\FinancialReadiness;
+use App\Domain\Finance\FundCatalog;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Finance\PayrollService;
 use App\Domain\Finance\ReportData;

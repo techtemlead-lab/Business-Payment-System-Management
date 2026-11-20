@@ -5950,6 +5950,7 @@ return [
     'event_commissions_royalty_pool_settled' => 'র‍্যাঙ্ক রয়্যালটি ফান্ড ভাগ করা হয়েছে',
     'event_commissions_rules_change_proposed' => 'কমিশনের নিয়ম বদলের প্রস্তাব',
     'event_commissions_rules_updated' => 'কমিশনের নিয়ম বদলানো হয়েছে',
+    'event_commission_stored_names_renamed' => 'কমিশনের পুরোনো নাম নতুন নামে বদলানো হয়েছে',
     'event_commissions_salary_pool_settled' => 'ডিলার একুইজিশন টার্গেট বোনাস ফান্ড ভাগ করা হয়েছে',
     'event_content_updated' => 'ওয়েবসাইটের পাতা বদলানো হয়েছে',
     'event_customization_category_icon_uploaded' => 'ক্যাটাগরির ছবি আপলোড হয়েছে',

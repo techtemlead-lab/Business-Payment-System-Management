@@ -7,6 +7,7 @@ use App\Domain\Accounts\PartnerMoneyBook;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Finance\CompanyFunds;
 use App\Domain\Finance\FundCatalog;
+use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -113,7 +114,7 @@ class CommissionLabelCoverageTest extends TestCase
             if (__('portal.report_cat_'.$category) === 'portal.report_cat_'.$category) {
                 $missing[] = 'portal.report_cat_'.$category;
             }
-            if (PartnerMoneyBook::headWord($category, $locale) === \Illuminate\Support\Str::headline($category)) {
+            if (PartnerMoneyBook::headWord($category, $locale) === Str::headline($category)) {
                 $missing[] = 'PartnerMoneyBook::headWord('.$category.')';
             }
         }

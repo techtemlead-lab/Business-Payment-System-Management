@@ -5950,6 +5950,7 @@ return [
     'event_commissions_royalty_pool_settled' => 'Rank royalty fund shared out',
     'event_commissions_rules_change_proposed' => 'Commission rule change suggested',
     'event_commissions_rules_updated' => 'Commission rules changed',
+    'event_commission_stored_names_renamed' => 'Old commission names changed to the new names',
     'event_commissions_salary_pool_settled' => 'Dealer Acquisition Target Bonus fund shared out',
     'event_content_updated' => 'Website page changed',
     'event_customization_category_icon_uploaded' => 'Category picture uploaded',

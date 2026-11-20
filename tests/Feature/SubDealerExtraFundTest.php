@@ -222,9 +222,9 @@ class SubDealerExtraFundTest extends TestCase
         $card = collect(app(TreasuryFunds::class)->cards(true))->firstWhere('key', 'sub_dealer_extra');
         $this->assertNotNull($card);
         $this->assertSame('300.00', $card['money_in']);
-        foreach (['bn' => 'সাব-ডিলার এক্সট্রা', 'en' => 'Sub-dealer extra'] as $locale => $word) {
+        foreach (['bn' => ['সাব-ডিলার এক্সট্রা', 'সাব-ডিলার এক্সট্রা ফান্ড'], 'en' => ['Sub-dealer extra', 'Sub-dealer extra fund']] as $locale => [$word, $fundName]) {
             app()->setLocale($locale);
-            $this->assertSame($word, FundCatalog::name('sub_dealer_extra'));
+            $this->assertSame($fundName, FundCatalog::name('sub_dealer_extra'));
             $this->assertSame($word, FundCatalog::typeLabel('sub_dealer_extra_fund'));
         }
     }
