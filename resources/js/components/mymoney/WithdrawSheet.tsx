@@ -5,7 +5,6 @@ import { ActionForm, Modal, money } from '../UI';
 import { useT } from '../../shared/i18n/t';
 import { randomUuid } from '../../shared/randomUuid';
 import type { WithdrawInfo } from './types';
-import NidSubmit from '../NidSubmit';
 
 type Step = 'choose' | 'take' | 'order';
 
@@ -78,8 +77,6 @@ export default function WithdrawSheet({ available, withdraw, onClose }: { availa
                     </button>
                 </div>
             )}
-
-            {step === 'choose' && withdraw.nid_block && <NidSubmit request={withdraw.nid_request} />}
 
             {/* V3: with saved accounts the partner picks one; its channel and number are read from the saved record. */}
             {step === 'take' && saved.length > 0 && (

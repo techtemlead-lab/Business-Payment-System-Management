@@ -4,6 +4,10 @@
     $slides = ($siteCustomization['slides'] ?? []) ?: $siteDefaults['slides'];
     $sideBanner1Slides = ($siteCustomization['side_banner_1_slides'] ?? []) ?: $siteDefaults['side_banner_1_slides'];
     $sideBanner2Slides = ($siteCustomization['side_banner_2_slides'] ?? []) ?: $siteDefaults['side_banner_2_slides'];
+    // Banner pictures that point to the dealer network are left out while that network is off.
+    if (! ($publicPageEnabled['dealers'] ?? true)) {
+        $sideBanner2Slides = array_values(array_filter($sideBanner2Slides, fn ($slide) => ! str_starts_with((string) ($slide['link'] ?? '/dealers'), '/dealers')));
+    }
 @endphp
 
 @extends('reference.layout')
@@ -60,6 +64,7 @@
                     @endforeach
                 </div>
             </div>
+            @if(count($sideBanner2Slides) > 0)
             <div class="ref-side-carousel ref-carousel-instance" aria-roledescription="carousel" aria-label="{{ __('site.bottom_side_promotion') }}">
                 <div class="ref-slides">
                     @foreach($sideBanner2Slides as $idx => $slide)
@@ -80,6 +85,7 @@
                     @endforeach
                 </div>
             </div>
+            @endif
         </div>
     </section>
     <div class="ref-announcement"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i><div><span>{{ $chrome('announcement_text', $siteCustomization['announcement_text'] ?? null) }}</span></div></div>

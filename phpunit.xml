@@ -21,6 +21,8 @@
         <env name="APP_ENV" value="testing" force="true"/>
         <env name="APP_URL" value="http://example.test" force="true"/>
         <env name="APP_DOMAIN" value="example.test" force="true"/>
+        <!-- Production has the public dealer network off; the tests keep it on so its code stays covered, and DealerNetworkOffTest checks the off case. -->
+        <env name="MADINA_PUBLIC_DEALER_NETWORK" value="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>

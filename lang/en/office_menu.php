@@ -39,7 +39,7 @@ return [
     'tab_branch_performance' => 'Branch sales',
     'tab_financial_reports' => 'Report files (Excel)',
 
-    'tab_website' => 'Arrange the website',
+    'tab_website' => 'Edit website',
     'tab_content' => 'Page text',
     'tab_public_trust' => 'Trust page',
     'tab_video_marketing' => 'Videos',
@@ -102,7 +102,7 @@ return [
     'more_desc_field_sales' => 'See the sales SRs made in the field.',
     'more_desc_access_management' => 'Decide what each staff member may do.',
     'more_desc_website' => 'Change the website\'s pictures, texts and look.',
-    'more_desc_content' => 'Edit the website\'s page texts and health articles.',
+    'more_desc_content' => 'Edit website\'s page texts and health articles.',
     'more_desc_public_trust' => 'Show quality papers and trust facts.',
     'more_desc_video_marketing' => 'Add and change the website videos.',
     'more_desc_feedback' => 'Read customer reviews and allow them on the website.',

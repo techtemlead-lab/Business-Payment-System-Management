@@ -6,6 +6,7 @@ import { ProfilePhoto } from './ProfilePhoto';
 import { date, money, number, type Row } from './UI';
 import type { IncomeCard } from './mymoney/types';
 import { useT } from '../shared/i18n/t';
+import AppointmentPill from './AppointmentPill';
 
 /** One line of the profile card: a small icon, a word and the value. */
 function CardLine({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
@@ -27,7 +28,7 @@ function ProfileCard({ card }: { card: Row }) {
         <aside className="pd-card pd-profile" data-tour="home-profile" aria-label={String(card.name ?? '')}>
             <div className="pd-photo"><ProfilePhoto src={card.photo_url} initial={card.initial || '?'} variant="cover" /></div>
             <h2 className="pd-name">{card.name}</h2>
-            <p className="pd-type" data-testid="home-appointment">{card.appointment?.line || translate('cr_partner', type)}</p>
+            <p className="pd-type"><AppointmentPill appointment={card.appointment} fallback={translate('cr_partner', type)} testId="home-appointment" /></p>
             <dl className="pd-lines">
                 {card.code && <CardLine icon={<Hash size={16} />} label={translate('cr21_identity', card.type === 'sub_dealer' ? 'label_code_sub_dealer' : 'label_code_dealer')}>{card.code}</CardLine>}
                 {card.type === 'sub_dealer' && <CardLine icon={<Building2 size={16} />} label={translate('cr21_identity', 'label_chamber')}>{card.shop_name || translate('cr21_identity', 'not_given')}</CardLine>}

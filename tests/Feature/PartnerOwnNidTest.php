@@ -26,7 +26,15 @@ class PartnerOwnNidTest extends TestCase
 
     private function birthRegistrationPartner(): User
     {
-        return User::factory()->create(['role' => 'dealer', 'status' => 'active', 'nid' => null, 'profile' => ['identity_type' => 'birth_certificate', 'birth_certificate_number' => '19900000000000001']]);
+        // Joined with a birth registration and no number on file (the office takes the number when it opens the account).
+        return User::factory()->create(['role' => 'dealer', 'status' => 'active', 'nid' => null, 'profile' => ['identity_type' => 'birth_certificate']]);
+    }
+
+    public function test_a_birth_certificate_number_taken_at_account_opening_is_enough_to_withdraw(): void
+    {
+        $partner = User::factory()->create(['role' => 'dealer', 'status' => 'active', 'nid' => null, 'profile' => ['identity_type' => 'birth_certificate', 'birth_certificate_number' => '19900000000000001']]);
+
+        $this->assertFalse(app(ManualPayoutService::class)->needsNidBeforeFirstWithdrawal($partner));
     }
 
     private function send(User $partner, string $nid = '1234567890'): TestResponse
