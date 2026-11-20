@@ -6007,6 +6007,7 @@ return [
     'event_policy_published' => 'Commission rules published',
     'event_policy_schedule_approved' => 'Commission schedule approved',
     'event_policy_schedule_cancelled' => 'Commission schedule cancelled',
+    'event_policy_schedule_end_changed' => 'Special rate end changed or stopped',
     'event_policy_schedule_proposed' => 'Commission schedule suggested',
     'event_policy_schedule_rejected' => 'Commission schedule rejected',
     'event_privacy_purged' => 'Old personal data removed',
