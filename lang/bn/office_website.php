@@ -3,7 +3,7 @@
 return [
     'partners_title' => 'পার্টনারের জন্য',
     'messages_title' => 'মেসেজ ও সাপোর্ট',
-    'edit' => 'এডিট',
+    'edit' => 'বদলান',
 
     'page_text_write' => 'পাতার লেখা লিখুন',
     'page_text_search' => 'পাতা বা শিরোনাম দিয়ে খুঁজুন',
@@ -20,9 +20,9 @@ return [
     'col_event' => 'মিটিং',
     'col_sms' => 'এসএমএস',
 
-    'scheme_edit_title' => 'স্কিম এডিট করুন',
-    'contest_edit_title' => 'প্রতিযোগিতা এডিট করুন',
-    'kit_edit_title' => 'ফাইল এডিট করুন',
+    'scheme_edit_title' => 'স্কিম বদলান',
+    'contest_edit_title' => 'প্রতিযোগিতা বদলান',
+    'kit_edit_title' => 'ফাইল বদলান',
     'quiz_limit_button' => 'কুইজের সীমা',
-    'agreement_view_label' => 'পার্টনার অথবা সংস্করণ দেখুন',
+    'agreement_view_label' => 'পার্টনার বা সংস্করণ বেছে দেখুন',
 ];

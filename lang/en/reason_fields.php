@@ -4,17 +4,17 @@ return [
     'title' => 'Reason and note boxes',
     'count_line' => 'The portals ask for a reason or a note in :count places.',
 
-    'mode_required' => 'Compulsory',
+    'mode_required' => 'Required',
     'mode_optional' => 'Optional',
     'mode_off' => 'Off',
     'legend_title' => 'The three choices',
     'legend_required' => 'The box shows and must be filled.',
     'legend_optional' => 'The box shows and may be left blank.',
     'legend_off' => 'The box does not show and nothing is asked.',
-    'owner_never_forced' => 'The owner\'s own account (Super Admin) is never made to fill a box. Compulsory applies to the MD, the Chairman, staff and partners.',
+    'owner_never_forced' => 'The owner\'s own account (Super Admin) is never made to fill a box. “Required” applies to the MD, the Chairman, staff and partners.',
 
     'money_mark' => 'Money record',
-    'money_warning' => 'Unless this is compulsory, there may be nothing to say why the money was refunded, held or rejected.',
+    'money_warning' => 'Unless this is required, there may be nothing to say why the money was refunded, held or rejected.',
     'choice_for' => ':place: which choice',
 
     'save' => 'Save',
@@ -22,7 +22,7 @@ return [
     'unsaved' => ':count changes not saved yet',
     'no_changes' => 'No changes',
     'flash_saved' => 'The choices for the reason and note boxes are saved.',
-    'err_unknown_place' => 'A place that is not on the list was sent. Open the page again and retry.',
+    'err_unknown_place' => 'We received a place that is not on the list. Open the page again and try again.',
 
     // Shown to someone else in place of a reason that was left blank.
     'not_written' => 'No reason was written',
@@ -48,7 +48,7 @@ return [
 
     'place_product_edit' => 'Editing a product: what changed and why',
     'place_product_remove' => 'Removing a product',
-    'place_product_taxonomy_remove' => 'Deleting a category, sub-category or unit',
+    'place_product_taxonomy_remove' => 'Deleting a category, subcategory or unit',
 
     'place_stock_adjust' => 'Reason for adding or removing stock',
     'place_stock_count_approve' => 'Note when approving a stock count',
