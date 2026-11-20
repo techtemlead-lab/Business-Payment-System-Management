@@ -305,10 +305,10 @@ class SpecialRatesPageTest extends TestCase
         $receiver = $model->lines('recipient', ['direct_referral' => ['before' => [], 'after' => ['percentage' => '12.00', 'funding_mode' => 'company']]]);
         $buyer = $model->lines('buyer', ['area_dealer_pool' => ['before' => ['percentage' => '10.00', 'parameters' => ['division_share_pct' => '2.00']], 'after' => ['percentage' => '11.00', 'parameters' => ['division_share_pct' => '3.00']]]]);
 
-        $this->assertSame(['Direct Referral: 12% (From the Company Share)'], $receiver);
+        $this->assertSame(['Staff commission: 12% (From the Company Share)'], $receiver);
         $this->assertSame(['Area dealer income: 10% → 11%', 'Area dealer income · Division: 2.00 → 3.00'], $buyer);
         app()->setLocale('bn');
-        $this->assertSame(['সরাসরি রেফারেল: ১২% (কোম্পানির অংশ থেকে)'], $model->lines('recipient', ['direct_referral' => ['before' => [], 'after' => ['percentage' => '12.00', 'funding_mode' => 'company']]]));
+        $this->assertSame(['স্টাফ কমিশন: ১২% (কোম্পানির অংশ থেকে)'], $model->lines('recipient', ['direct_referral' => ['before' => [], 'after' => ['percentage' => '12.00', 'funding_mode' => 'company']]]));
     }
 
     public function test_every_word_of_the_page_exists_in_both_languages(): void

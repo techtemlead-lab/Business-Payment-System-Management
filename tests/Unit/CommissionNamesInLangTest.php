@@ -29,7 +29,20 @@ class CommissionNamesInLangTest extends TestCase
         'সাব-ডিলার মাসিক বেতন ফান্ড',
         'সাব-ডিলার অতিরিক্ত র‍্যাঙ্ক',
         'রেফার ১০',
+        // The referral commission is now Staff commission for everyone (the plain word for the act of referring is fine)
+        'রেফারেল আয়',
+        'রেফার কমিশন',
+        'রেফারেল কমিশন',
+        'সরাসরি রেফার',
+        'রেফার বোনাস',
         // English
+        'direct referral',
+        'referral income',
+        'referral commission',
+        'referral bonus',
+        'referral money',
+        'refer commission',
+        'old referral',
         'own dealer commission',
         'own dealer cashback',
         'own purchase cashback',
@@ -49,7 +62,15 @@ class CommissionNamesInLangTest extends TestCase
      *
      * @var array<string, string>
      */
-    private const Allowed = [];
+    private const Allowed = [
+        // The people a partner referred, or the referral relationship: not the commission.
+        'portal.direct_referrals' => 'count of directly referred partners',
+        'portal.net_direct_referrals' => 'count of level 1 referred partners',
+        'portal.net_company_tree' => 'the referral tree (who referred whom)',
+        'portal.dash_card_network_desc' => 'the people referred directly',
+        'cr_partner.card_direct' => 'how many people the partner referred directly',
+        'manual.network_genealogy_t2' => 'the direct referrer (a person), whose commission is named Staff commission',
+    ];
 
     public function test_no_old_commission_name_is_left_in_any_lang_value(): void
     {
@@ -86,7 +107,7 @@ class CommissionNamesInLangTest extends TestCase
         $expected = [
             'head_own_dealer_cashback' => ['ডক্টর অনারারিয়াম', 'Doctor Honorarium'],
             'head_dealer_monthly_salary' => ['ডিলার একুইজিশন টার্গেট বোনাস', 'Dealer Acquisition Target Bonus'],
-            'sub_name_direct_referral' => ['স্টাফ কমিশন', 'Staff commission'],
+            'head_direct_referral' => ['স্টাফ কমিশন', 'Staff commission'],
             'head_sub_dealer_salary' => ['সাব-ডিলার স্যালারি', 'Sub-dealer salary'],
             'head_sub_dealer_tour' => ['ট্যুর', 'Tour'],
             'head_additional_rank' => ['সাব-ডিলার এক্সট্রা', 'Sub-dealer extra'],
