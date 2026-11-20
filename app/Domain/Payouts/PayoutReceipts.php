@@ -5,6 +5,7 @@ namespace App\Domain\Payouts;
 use App\Models\User;
 use App\Support\AmountInWords;
 use App\Support\Audit;
+use App\Support\LetterheadContacts;
 use App\Support\Money;
 use App\Support\SiteCustomization;
 use App\Support\TransactionReference;
@@ -217,6 +218,8 @@ final class PayoutReceipts
                 'name' => (string) ($custom['contact_company_title'] ?? config('madina.company_name', 'Madina Natural Health Care')),
                 'address' => (string) ($custom['office_address'] ?? $custom['footer_address'] ?? config('madina.company_address')),
                 'phones' => (string) ($custom['contact_phone'] ?? $custom['footer_phone'] ?? config('madina.company_phone')),
+                ...LetterheadContacts::lines(),
+                'icons' => LetterheadContacts::icons(forBrowser: true),
                 'logo_url' => SiteCustomization::logoFilePath() !== null ? asset(ltrim((string) parse_url(SiteCustomization::logoUrl(), PHP_URL_PATH), '/')) : (is_file(public_path('branding/madina-logo-latest.png')) ? asset('branding/madina-logo-latest.png') : asset('madina-header-logo.png')),
             ],
             'receipt' => [
