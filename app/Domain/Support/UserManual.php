@@ -433,7 +433,7 @@ final class UserManual
             $this->ch('office_dashboard', ['staff', 'owner'], 8, 1, 1, 1, ['dashboard', 'overview', 'tabs', 'new dealer', 'new product', 'find order', 'ড্যাশবোর্ড', 'তালিকা', 'অর্ডার খুঁজুন']),
             $this->ch('settings_home', ['staff', 'owner'], 6, 1, 1, 1, ['settings', 'account rules', 'login rules', 'courier', 'excel', 'work log', 'সেটিংস', 'হিসাবের নিয়ম', 'লগইন', 'এক্সেল', 'কাজের রেকর্ড']),
             $this->ch('office_more_pages', ['staff', 'owner'], 8, 1, 1, 1, ['applications', 'training', 'meetings', 'agreement', 'roles', 'salary', 'আবেদন', 'প্রশিক্ষণ', 'মিটিং', 'চুক্তি', 'পদ', 'বেতন']),
-            $this->ch('commission_tabs', ['staff', 'owner'], 5, 1, 1, 1, ['commission', 'tabs', 'rules', 'rates', 'calculator', 'special rate', 'কমিশন', 'ট্যাব', 'হার', 'ক্যালকুলেটর']),
+            $this->ch('commission_tabs', ['staff', 'owner'], 7, 1, 1, 1, ['commission', 'tabs', 'rules', 'rates', 'calculator', 'special rate', 'কমিশন', 'ট্যাব', 'হার', 'ক্যালকুলেটর']),
             $this->ch('report_centre', ['staff', 'owner'], 3, 1, 1, 1, ['report', 'report centre', 'download', 'excel', 'রিপোর্ট', 'রিপোর্ট সেন্টার', 'ডাউনলোড']),
             $this->ch('my_money_tabs', ['dealer', 'sub_dealer'], 5, 1, 1, 1, ['my money', 'wallet', 'ওয়ালেট', 'tabs', 'earnings', 'withdraw', 'receipts', 'আমার টাকা', 'ট্যাব', 'আয়', 'টাকা তোলা', 'রসিদ']),
             $this->ch('support_one_form', ['dealer', 'sub_dealer'], 4, 1, 1, 1, ['support', 'help', 'form', 'request', 'nid correction', 'সাপোর্ট', 'সাহায্য', 'ফর্ম', 'অনুরোধ']),
