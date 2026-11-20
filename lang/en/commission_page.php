@@ -202,7 +202,7 @@ return [
 
     'cond_area_title' => 'Area dealer income',
     'cond_area_text' => 'When an area dealer takes a division, district, upazila or union seat, the monthly target starts at: division :division_monthly_quota, district :district_monthly_quota, upazila :upazila_monthly_quota, union :union_monthly_quota. A share that is held back :held_text.',
-    'cond_salary_title' => 'Dealer monthly salary',
+    'cond_salary_title' => 'Dealer Acquisition Target Bonus',
     'cond_salary_text' => 'A dealer who buys at least :min_monthly_volume in the month gets a part of the salary fund. Everyone who qualifies gets an equal part.',
     'cond_rank_join_title' => 'What it takes to get a rank',
     'cond_rank_join_text' => 'MO: your own total purchase since joining must be :mo_target. AM: you need :am_count active dealers of MO rank or above within :qualification_depth steps of your team. SM: you need :sm_count of AM or above. ME: you need :me_count of SM or above.',

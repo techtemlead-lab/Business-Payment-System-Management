@@ -79,7 +79,7 @@ return [
     'source_rank_incentive_pool' => 'র‍্যাঙ্কের একবারের পুরস্কার',
     'source_company_marketing_fund' => 'মার্কেটিং ফান্ড',
     'source_car_bike_incentive_fund' => 'গাড়ি ও বাইকের পুরস্কার ফান্ড',
-    'source_additional_rank_pool' => 'সাব-ডিলার র‍্যাঙ্ক ফান্ড',
+    'source_additional_rank_pool' => 'সাব-ডিলার এক্সট্রা',
     'source_sub_dealer_salary' => 'সাব-ডিলার স্যালারি',
     'source_sub_dealer_tour' => 'ট্যুর',
 

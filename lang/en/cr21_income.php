@@ -23,7 +23,7 @@ return [
     'head_incentive' => 'Rank incentive',
     'head_bike' => 'Bike incentive',
     'head_car' => 'Car incentive',
-    'head_tour' => 'Tour incentive',
+    'head_tour' => 'Tour',
     'head_opening' => 'Previous balance',
     'head_other' => 'Other',
 
@@ -41,7 +41,7 @@ return [
     'hint_rank_sm' => 'Income for reaching the SM rank',
     'hint_rank_me' => 'Income for reaching the ME rank',
     'hint_royalty' => 'Monthly royalty for your rank',
-    'hint_incentive' => 'Other incentive for your rank, including the sub-dealer additional rank',
+    'hint_incentive' => 'Other incentive for your rank, including the Sub-dealer extra',
     'hint_bike' => 'Incentive for reaching the bike target',
     'hint_car' => 'Incentive for reaching the car target',
     'hint_tour' => 'Incentive for the tour',

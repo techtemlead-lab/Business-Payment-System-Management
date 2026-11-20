@@ -202,7 +202,7 @@ return [
 
     'cond_area_title' => 'এলাকা ডিলারের আয়',
     'cond_area_text' => 'বিভাগ, জেলা, উপজেলা ও ইউনিয়নের এলাকা ডিলার আসন পেলে শুরুতে মাসিক টার্গেট ধরা হয়: বিভাগ :division_monthly_quota, জেলা :district_monthly_quota, উপজেলা :upazila_monthly_quota, ইউনিয়ন :union_monthly_quota। কোনো ভাগ আটকে থাকলে তা :held_text।',
-    'cond_salary_title' => 'ডিলারের মাসিক বেতন',
+    'cond_salary_title' => 'ডিলার একুইজিশন টার্গেট বোনাস',
     'cond_salary_text' => 'ওই মাসে নিজে অন্তত :min_monthly_volume কিনলে বেতনের ভাগ পাওয়া যায়। যাঁরা শর্ত পূরণ করেন, তাঁরা সমান ভাগে পান।',
     'cond_rank_join_title' => 'র‍্যাঙ্ক পাওয়ার শর্ত',
     'cond_rank_join_text' => 'MO: যোগ দেওয়ার পর নিজের মোট কেনা :mo_target হতে হবে। AM: টিমের :qualification_depth ধাপের মধ্যে MO বা তার উপরের :am_count জন সক্রিয় ডিলার লাগবে। SM: AM বা তার উপরের :sm_count জন লাগবে। ME: SM বা তার উপরের :me_count জন লাগবে।',

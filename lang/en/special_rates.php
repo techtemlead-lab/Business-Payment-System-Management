@@ -79,7 +79,7 @@ return [
     'source_rank_incentive_pool' => 'One-time Rank Prize',
     'source_company_marketing_fund' => 'Marketing Fund',
     'source_car_bike_incentive_fund' => 'Car and Bike Prize Fund',
-    'source_additional_rank_pool' => 'Sub-dealer Rank Fund',
+    'source_additional_rank_pool' => 'Sub-dealer extra',
     'source_sub_dealer_salary' => 'Sub-dealer Salary',
     'source_sub_dealer_tour' => 'Tour',
 
