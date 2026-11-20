@@ -5,6 +5,7 @@ import Shell from '../components/Shell';
 import AccountPasswordManager from '../components/AccountPasswordManager';
 import { Badge, date, money, number, type Row } from '../components/UI';
 import { useT } from '../shared/i18n/t';
+import AppointmentPill from '../components/AppointmentPill';
 
 type Target = {
     kind: 'salary' | 'rank' | 'royalty' | 'incentive';
@@ -79,7 +80,7 @@ export default function PartnerProfile({ sheet, month, targets, canSetTargets, c
                         <div>
                             <h1>{sheet.name}</h1>
                             <p className="muted">{[identity.dealer_code, t(isDealer ? 'type_dealer' : 'type_sub_dealer')].filter(Boolean).join(' · ')}</p>
-                            {sheet.appointment?.line && <p><b>{sheet.appointment.line}</b></p>}
+                            {(sheet.appointment?.title || sheet.appointment?.line) && <p><AppointmentPill appointment={sheet.appointment} /></p>}
                         </div>
                         <span className="ops-row">{sheet.locked && <span className="badge tone-warn">{t('locked_badge')}</span>}<Badge status={sheet.status} /></span>
                     </div>
