@@ -45,7 +45,7 @@ class AccountListExportController extends Controller
             ['key' => 'dealer_code', 'label' => $label('col_dealer_code')],
             ['key' => 'sponsor', 'label' => $label('net_sponsor')],
             ['key' => 'place', 'label' => $label('col_place')],
-            ['key' => 'role', 'label' => $label('col_type')],
+            ['key' => 'role', 'label' => __('office_orders.col_partner_type')],
             ['key' => 'district', 'label' => $label('csv_col_district')],
             ['key' => 'division', 'label' => $label('csv_col_division')],
             ['key' => 'joined', 'label' => $label('col_joined')],
