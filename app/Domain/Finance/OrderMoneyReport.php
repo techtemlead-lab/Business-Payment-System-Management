@@ -250,6 +250,7 @@ final class OrderMoneyReport
             'metadata' => json_encode($row['metadata'], JSON_THROW_ON_ERROR),
             'fund_key' => self::fundKeyOf($row),
         ]);
+        $lines = array_map(fn (array $line): array => [...$line, 'status' => 'preview', 'status_label' => (string) __('treasury.line_status_preview')], $lines);
         foreach ($this->allocationLines($rows) as $index => $line) {
             $row = $rows[$index];
             $line['status'] = 'preview';

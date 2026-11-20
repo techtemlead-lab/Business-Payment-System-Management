@@ -2,6 +2,7 @@
 
 namespace App\Domain\Orders;
 
+use App\Domain\Accounts\PartnerAppointment;
 use App\Domain\Finance\PendingPaymentChecks;
 use App\Domain\Inventory\BranchScope;
 use App\Domain\Staff\LeadershipAccess;
