@@ -14,6 +14,7 @@ use App\Http\Controllers\DatedSchemeController;
 use App\Http\Controllers\ErrorTrackingController;
 use App\Http\Controllers\IdentityLookupController;
 use App\Http\Controllers\MessageTemplateController;
+use App\Http\Controllers\OfficeProfileController;
 use App\Http\Controllers\OrderReturnController;
 use App\Http\Controllers\PartnerAccountDeletionController;
 use App\Http\Controllers\PartnerAgreementController;
@@ -79,6 +80,10 @@ return function (string $portal): void {
     Route::get('/commands/messages/{message}/photo', [PartnerChatController::class, 'photo'])->middleware('throttle:120,1');
     Route::post('/commands/chat-answerers', [PartnerChatController::class, 'answerers'])->middleware('throttle:10,1');
     Route::post('/commands/owner/contact', [AuthController::class, 'ownerContact'])->middleware('throttle:5,1');
+    Route::post('/commands/office-profile/contact', [OfficeProfileController::class, 'contact'])->middleware('throttle:10,1');
+    Route::post('/commands/office-profile/personal', [OfficeProfileController::class, 'personal'])->middleware('throttle:20,1');
+    Route::post('/commands/office-profile/identity', [OfficeProfileController::class, 'identity'])->middleware('throttle:10,1');
+    Route::post('/commands/office-profile/title', [OfficeProfileController::class, 'title'])->middleware('throttle:10,1');
     Route::post('/commands/profile/details', [PartnerProfileController::class, 'details'])->middleware('throttle:10,1');
     Route::post('/commands/profile/change-request', [PartnerProfileController::class, 'changeRequest'])->middleware('throttle:5,1');
     Route::post('/commands/accounts/{user}/profile-lock', [PartnerProfileController::class, 'lock'])->middleware('throttle:20,1');
