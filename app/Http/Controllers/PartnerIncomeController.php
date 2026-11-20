@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Accounts\PartnerIncomeBook;
 use App\Domain\Accounts\PartnerIncomeStatementPdf;
+use App\Domain\Finance\FundSpendPartners;
 use App\Domain\Finance\TreasuryAccess;
 use App\Models\User;
 use App\Support\Audit;
@@ -25,6 +26,7 @@ class PartnerIncomeController extends Controller
         return Inertia::render('MyIncome', [
             'section' => 'my-money',
             'income' => $income->page($request, $partner),
+            'benefits' => app(FundSpendPartners::class)->linesFor($partner),
         ]);
     }
 

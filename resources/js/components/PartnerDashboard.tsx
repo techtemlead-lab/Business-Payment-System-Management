@@ -4,7 +4,8 @@ import { Building2, CalendarDays, Hash, Landmark, Mail, MapPin, Users } from 'lu
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from './MoneyTable';
 import { ProfilePhoto } from './ProfilePhoto';
 import { date, money, number, type Row } from './UI';
-import type { IncomeCard } from './mymoney/types';
+import type { CompanyBenefits as CompanyBenefitsData, IncomeCard } from './mymoney/types';
+import CompanyBenefitsList from './mymoney/CompanyBenefits';
 import { useT } from '../shared/i18n/t';
 import AppointmentPill from './AppointmentPill';
 
@@ -72,7 +73,7 @@ function IdentityBoxes({ card }: { card: Row }) {
 }
 
 /** Middle column: the three big figures, then the income head by head. */
-function MoneyColumn({ totals, cards, held, pending, card }: { totals: Row; cards?: IncomeCard[]; held?: Row; pending?: Row; card: Row }) {
+function MoneyColumn({ totals, cards, held, pending, benefits, card }: { totals: Row; cards?: IncomeCard[]; held?: Row; pending?: Row; benefits?: CompanyBenefitsData | null; card: Row }) {
     const translate = useT();
     const { portalBase: base, portalCatalog } = usePage<any>().props;
     const heldLines: Row[] = held?.lines ?? [];
@@ -96,6 +97,27 @@ function MoneyColumn({ totals, cards, held, pending, card }: { totals: Row; card
                     <p className="muted">{translate('my_money', 'pending_balance_hint')}</p>
                 </div>
             )}
+            {/* Prizes already earned (rank prize, bike, car) that are not in the balance yet: one line each with the plain reason. */}
+            {(pending?.rewards ?? []).length > 0 && (
+                <div className="pd-card pd-held" data-testid="home-rewards-waiting">
+                    <div className="pd-heads-top">
+                        <h3>{translate('my_money', 'rewards_heading')}</h3>
+                    </div>
+                    <ul>
+                        {(pending?.rewards ?? []).map((line: Row) => (
+                            <li key={line.id}>
+                                <div className="pd-heads-top">
+                                    <span>{line.what}</span>
+                                    {line.amount !== null && <strong>{money(line.amount)}</strong>}
+                                </div>
+                                <p className="muted">{translate('my_money', `reward_reason_${line.reason}`)}</p>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+            {/* What the company spent on the partner (tour, event or contest prize): the latest three, never in the balance. */}
+            <CompanyBenefitsList benefits={benefits} compact />
             {/* MA-03: commission held for the partner is shown while it is held, with the reason. */}
             {Number(held?.total ?? 0) > 0 && (
                 <div className="pd-card pd-held" data-testid="home-commission-held">
@@ -145,7 +167,7 @@ export function DashboardGrid({ home, moneyCards, targetsPanel }: { home: Row; m
         <div className="pd-wrap">
             <div className="pd-grid">
                 <ProfileCard card={home.card ?? {}} />
-                <MoneyColumn totals={home.totals ?? {}} cards={moneyCards} held={home.wallet?.commission_held} pending={home.wallet?.pending} card={home.card ?? {}} />
+                <MoneyColumn totals={home.totals ?? {}} cards={moneyCards} held={home.wallet?.commission_held} pending={home.wallet?.pending} benefits={home.wallet?.benefits} card={home.card ?? {}} />
                 <div className="pd-right">{targetsPanel}</div>
             </div>
         </div>

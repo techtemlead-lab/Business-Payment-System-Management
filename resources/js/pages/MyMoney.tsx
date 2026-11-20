@@ -9,14 +9,15 @@ import MoneyBook from '../components/mymoney/MoneyBook';
 import MoneyHero from '../components/mymoney/MoneyHero';
 import NotEarnedAreaList from '../components/mymoney/NotEarnedArea';
 import PendingMoneyList from '../components/mymoney/PendingMoney';
+import CompanyBenefitsList from '../components/mymoney/CompanyBenefits';
 import SalaryNotes from '../components/mymoney/SalaryNotes';
 import WithdrawalRequests from '../components/mymoney/WithdrawalRequests';
 import WithdrawSheet from '../components/mymoney/WithdrawSheet';
-import type { Certificates, HeldCommission, IncomeCard, MoneySummary, NotEarnedArea, PendingMoney, ReserveReceipt, SalaryNote, StatementTable, WithdrawalRequest, WithdrawInfo } from '../components/mymoney/types';
+import type { CompanyBenefits, Certificates, HeldCommission, IncomeCard, MoneySummary, NotEarnedArea, PendingMoney, ReserveReceipt, SalaryNote, StatementTable, WithdrawalRequest, WithdrawInfo } from '../components/mymoney/types';
 import { useT } from '../shared/i18n/t';
 
 /** All of a partner's money on one page: what they can use, where it came from, every movement. */
-export default function MyMoney({ summary, cards, table, withdrawal_requests: withdrawalRequests, not_earned_area: notEarnedArea, held_commission: heldCommission, pending, salary_notes: salaryNotes, withdraw, certificates, reserve_receipts: reserveReceipts }: {
+export default function MyMoney({ summary, cards, table, withdrawal_requests: withdrawalRequests, not_earned_area: notEarnedArea, held_commission: heldCommission, pending, salary_notes: salaryNotes, withdraw, certificates, reserve_receipts: reserveReceipts, benefits }: {
     summary: MoneySummary;
     cards: IncomeCard[];
     table: StatementTable;
@@ -28,6 +29,7 @@ export default function MyMoney({ summary, cards, table, withdrawal_requests: wi
     withdraw: WithdrawInfo;
     certificates: Certificates;
     reserve_receipts: ReserveReceipt[];
+    benefits?: CompanyBenefits | null;
 }) {
     const translate = useT();
     const { portalBase: base, financeActive } = usePage<any>().props;
@@ -57,6 +59,7 @@ export default function MyMoney({ summary, cards, table, withdrawal_requests: wi
                 />
                 <WithdrawalRequests requests={withdrawalRequests} />
                 <PendingMoneyList pending={pending} />
+                <CompanyBenefitsList benefits={benefits} />
                 <HeldCommissionList held={heldCommission} />
                 <NotEarnedAreaList rows={notEarnedArea} />
                 <SalaryNotes notes={salaryNotes} />
