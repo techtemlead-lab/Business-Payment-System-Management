@@ -26,7 +26,7 @@ return [
     'open_whole_order' => 'Open the whole order',
     'rates_col_who' => 'Who gets it',
     'rates_col_kind' => 'Kind',
-    'rates_off' => 'off',
+    'rates_off' => 'Off',
     'rates_change' => 'Change the rates',
     'rates_see_boxes' => 'See the boxes',
     'branch_perf_delivered_value' => 'Value of goods delivered',
