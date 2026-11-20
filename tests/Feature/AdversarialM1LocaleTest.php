@@ -47,13 +47,13 @@ class AdversarialM1LocaleTest extends TestCase
                 'email' => __('auth_ui.account_unavailable_contact', [], 'en'),
             ]);
 
-        $this->assertSame('This account is unavailable. Contact the company.', __('auth_ui.account_unavailable_contact', [], 'en'));
+        $this->assertSame('This account is not active right now. Contact the company.', __('auth_ui.account_unavailable_contact', [], 'en'));
 
         $this->actingAs($enDealer)->onPortal('dealer')->getJson('/api/v1/me')
             ->assertForbidden()
             ->assertJsonFragment(['message' => __('auth_ui.account_unavailable', [], 'en')]);
 
-        $this->assertSame('This account is unavailable.', __('auth_ui.account_unavailable', [], 'en'));
+        $this->assertSame('This account is not active right now.', __('auth_ui.account_unavailable', [], 'en'));
     }
 
     public function test_order_service_decision_validation_switching_between_bn_and_en(): void
