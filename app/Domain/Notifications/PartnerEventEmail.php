@@ -4,6 +4,7 @@ namespace App\Domain\Notifications;
 
 use App\Jobs\SendEventEmail;
 use App\Models\User;
+use App\Support\Mail\MailgunHttpTransport;
 use App\Support\RedactedError;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -77,6 +78,9 @@ final class PartnerEventEmail
         $from = strtolower((string) config('mail.from.address'));
         if (filter_var($from, FILTER_VALIDATE_EMAIL) === false || str_ends_with($from, '@example.com')) {
             return false;
+        }
+        if ($transport === 'mailgun-http') {
+            return MailgunHttpTransport::isConfigured((array) config('mail.mailers.'.$mailer));
         }
         if ($transport === 'smtp') {
             $host = strtolower(trim((string) config('mail.mailers.'.$mailer.'.host')));
