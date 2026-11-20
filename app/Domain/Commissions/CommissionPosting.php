@@ -126,7 +126,7 @@ final class CommissionPosting
         if ($order->is_opening_balance || $cash === 0) {
             return null;
         }
-        $buyer = User::query()->find($order->user_id);
+        $buyer = User::query()->select('users.*')->whereKey($order->user_id)->first();
         if (! $buyer instanceof User || ! in_array($buyer->role, ['dealer', 'sub_dealer'], true)) {
             return null;
         }
