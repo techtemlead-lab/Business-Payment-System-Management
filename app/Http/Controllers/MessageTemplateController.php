@@ -10,8 +10,9 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 /**
- * Saves or resets the owner-edited SMS and email texts. The owner and staff who may edit the
- * website (EnforceStaffActions checks the staff right; this controller checks again).
+ * Saves or resets SMS and email texts. Only someone who may edit the website may do this
+ * (EnforceStaffActions checks the content edit right; this controller checks again). The Super
+ * Admin has that right. A payroll-only MD or Chairman does not, even though owner() is true for them.
  */
 class MessageTemplateController extends Controller
 {
@@ -39,7 +40,7 @@ class MessageTemplateController extends Controller
     private function editor(Request $request): User
     {
         $actor = $request->user();
-        abort_unless($actor instanceof User && ($actor->owner() || $actor->canAct('content', 'edit')), 403);
+        abort_unless($actor instanceof User && $actor->canAct('content', 'edit'), 403);
 
         return $actor;
     }
