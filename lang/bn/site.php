@@ -98,7 +98,7 @@ return [
     'max' => 'সর্বোচ্চ',
     'any' => 'যেকোনো',
     'in_stock_only' => 'শুধু স্টকে থাকা পণ্য',
-    'apply_filters' => 'ফিল্টার করুন',
+    'apply_filters' => 'মূল্য প্রয়োগ করুন',
     'clear_filters' => 'ফিল্টার মুছুন',
     'products_found' => ':countটি পণ্য পাওয়া গেছে',
     'products_found_for' => '“:query” এর জন্য :countটি পণ্য পাওয়া গেছে',
