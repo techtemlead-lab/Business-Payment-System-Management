@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Accounts\PartnerIncomeBook;
 use App\Domain\Accounts\PartnerMoneyBook;
+use App\Domain\Accounts\PartnerPendingMoney;
 use App\Domain\Finance\CompanyFunds;
 use App\Domain\Finance\EventLog;
 use App\Domain\Finance\OrderMoneyReport;
@@ -111,6 +112,8 @@ class TreasuryController extends Controller
             'partner' => ['id' => $partner->id, 'name' => $partner->name, 'code' => $partner->dealer_code, 'role' => $partner->role, 'area' => OrderMoneyReport::areaOf((object) ['profile' => $partner->getAttribute('profile'), 'district' => $partner->district, 'division' => $partner->division])],
             'summary' => $book->summary($partner),
             'cards' => $book->incomeCards($partner),
+            'pending' => $incomeView ? null : app(PartnerPendingMoney::class)->for($partner),
+            'not_earned_area' => $incomeView ? [] : $book->notEarnedAreaCommission($partner),
             'view' => $incomeView ? 'income' : 'money',
             'table' => $incomeView ? null : $book->table($request, $partner),
             'income' => $incomeView ? $income->page($request, $partner) : null,

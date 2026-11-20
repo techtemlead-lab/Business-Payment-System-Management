@@ -25,7 +25,7 @@ final class PartnerDashboardHome
 
     private string $targetsRank = 'dealer';
 
-    public function __construct(private CommissionQualification $qualification, private PartnerProgress $progress, private PartnerEarningsPresenter $earnings, private PartnerMoneyBook $moneyBook) {}
+    public function __construct(private CommissionQualification $qualification, private PartnerProgress $progress, private PartnerEarningsPresenter $earnings, private PartnerMoneyBook $moneyBook, private PartnerPendingMoney $pending) {}
 
     /**
      * @return array{
@@ -99,7 +99,7 @@ final class PartnerDashboardHome
             ] : null,
             'sponsor' => $this->sponsorCard($user),
             // Shown behind a "tap to see balance" button on the home screen.
-            'wallet' => [...$this->walletSummary($user), 'commission_waiting' => $this->earnings->waitingCommission($user), 'commission_held' => $this->moneyBook->heldCommission($user, 3)],
+            'wallet' => [...$this->walletSummary($user), 'commission_waiting' => $this->earnings->waitingCommission($user), 'commission_held' => $this->moneyBook->heldCommission($user, 3, false), 'pending' => $this->pending->for($user, 1, false)],
             // Shows a small "happy birthday" card; read from the profile already loaded, no query.
             'is_birthday' => BirthdayGreetings::isBirthdayToday($user),
             // Customers the partner meant to call today or earlier: the home page's "call today" card.
