@@ -87,9 +87,13 @@ class PublicSiteHeaderAndFooterTest extends TestCase
             ->assertDontSee('ref-footer-contact-link is-address', false);
     }
 
-    public function test_the_footer_shows_the_company_name_beside_the_logo_before_the_social_links(): void
+    public function test_the_footer_has_no_logo_block_or_licence_sentence_but_keeps_the_social_links(): void
     {
-        $this->get('/')->assertOk()->assertSeeInOrder(['ref-footer-brand', '<img', '<h3>', 'ref-socials'], false);
+        // Client, 2026-11-20: the heading, logo, company name and licence sentence left the footer; WhatsApp and the other social links stay.
+        $this->get('/')->assertOk()
+            ->assertDontSee('ref-footer-brand', false)
+            ->assertDontSee('Licensed distributor')
+            ->assertSee('ref-socials', false);
     }
 
     public function test_the_dealer_login_menu_opens_the_public_website(): void

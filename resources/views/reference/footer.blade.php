@@ -75,7 +75,9 @@
         </div>
     </section>
     <section>
-        {{-- The heading, logo, licence text and business identity lines are not shown (client, 2026-11-20); only the social links stay. --}}
+        {{-- The heading, logo, company name and licence sentence are not shown (client, 2026-11-20). The registration numbers
+             the owner fills in (TIN, trade licence, trademark) still show, and so do the social links. --}}
+        @include('reference.partials.business-identity')
         @include('reference.partials.social-links')
         @php
             $appLinks = collect([
