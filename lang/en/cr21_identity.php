@@ -1,12 +1,6 @@
 <?php
 
 return [
-    'line_division' => 'Divisional dealer of :area Division',
-    'line_district' => 'District dealer of :area District',
-    'line_upazila' => 'Thana dealer of :area Upazila',
-    'line_union' => 'Union dealer of :area Union',
-    'line_pourashava' => 'Pourashava dealer of :area Pourashava',
-    'line_sub_dealer' => 'Sub-dealer of :area',
     'short_division' => 'Divisional dealer',
     'short_district' => 'District dealer',
     'short_upazila' => 'Thana dealer',
