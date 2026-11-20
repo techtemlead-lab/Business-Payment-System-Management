@@ -46,7 +46,7 @@ return [
     'office_pay_title' => 'Pay in cash at the office',
     'office_pay_hint' => 'Bring :amount to the office. You do not need to enter anything here.',
     'office_pay_button' => 'I will pay at the office',
-    'account_pay_title' => 'Pay from my account',
+    'account_pay_title' => 'Pay from account balance',
     'account_pay_button' => 'Take :amount from my account',
     'refund_to_account' => ':amount of this went back to the partner\'s account.',
 ];
