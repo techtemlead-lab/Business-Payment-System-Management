@@ -238,7 +238,12 @@ class OrderService
         }, 3);
     }
 
-    public function decision(User $actor, Order $order, string $status, string $reason, array $replacements = []): void
+    /**
+     * Approves, holds or rejects a submitted order. An approved order whose dealer picked a courier
+     * is booked at once unless $bookNow is false. The office screens pass false: staff then confirm
+     * the courier on the courier page, and nothing is sent until they press Next.
+     */
+    public function decision(User $actor, Order $order, string $status, string $reason, array $replacements = [], bool $bookNow = true): void
     {
         abort_unless($actor->allows('order_review'), 403);
         $this->assertNotOwnOrder($actor, $order);
@@ -246,7 +251,7 @@ class OrderService
         if (! in_array($status, ['approved', 'held', 'rejected'], true)) {
             throw ValidationException::withMessages(['status' => __('portal.err_order_status_choice')]);
         }
-        DB::transaction(function () use ($actor, $order, $status, $reason, $replacements): void {
+        DB::transaction(function () use ($actor, $order, $status, $reason, $replacements, $bookNow): void {
             CommissionWallet::lock();
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             if (! in_array($locked->status, ['submitted', 'held'], true)) {
@@ -298,7 +303,7 @@ class OrderService
                 'number' => $locked->number,
                 'reason' => ReasonFields::shown($reason, SmsText::Locale),
             ]);
-            if ($status === 'approved') {
+            if ($status === 'approved' && $bookNow) {
                 // The dealer picked a courier: the parcel is booked now, without waiting for manual dispatch.
                 $this->autoShip($actor, $locked);
             }
@@ -595,9 +600,10 @@ class OrderService
      * Staff or the owner switch the order to another courier: before the booking, or after
      * the courier refused it (closed, not serving that area, ...). The optional note is
      * shown to the dealer. A waiting or failed booking is then sent to the new courier; an
-     * approved order that was not booked yet is booked now.
+     * approved order that was not booked yet is booked now, unless $bookNow is false (the
+     * office screens: the courier page sends it when staff press Next).
      */
-    public function changeCourier(User $actor, Order $order, string $provider, ?string $note): void
+    public function changeCourier(User $actor, Order $order, string $provider, ?string $note, bool $bookNow = true): void
     {
         abort_unless($actor->allows('inventory') || $actor->allows('order_review'), 403);
         $this->assertNotOwnOrder($actor, $order);
@@ -607,7 +613,7 @@ class OrderService
             throw ValidationException::withMessages(['courier' => __('courier.err_courier_not_enabled')]);
         }
         $note = $note !== null && trim($note) !== '' ? Str::limit(trim($note), 500, '') : null;
-        DB::transaction(function () use ($actor, $order, $provider, $note): void {
+        DB::transaction(function () use ($actor, $order, $provider, $note, $bookNow): void {
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             $shipment = DB::table('shipments')->where('order_id', $locked->id)->whereNotNull('courier_provider')
                 ->orderByDesc('id')->lockForUpdate()->first();
@@ -640,25 +646,86 @@ class OrderService
                     DB::afterCommit(fn () => BookShipmentCourier::dispatch((int) $shipment->id));
                 }
             }
-            $this->event($locked, $actor, 'order.courier_changed', [
-                'from' => $from,
-                'to' => $provider,
-                'from_label' => CourierOptions::label($from),
-                'to_label' => CourierOptions::label($provider),
-                'note' => $note,
-                'shipment_id' => $shipment?->id,
-            ]);
-            $partner = User::find($locked->user_id);
-            $locale = $partner?->preferredLocale() ?? app()->getLocale();
-            $replace = ['number' => $locked->number, 'from' => CourierOptions::label($from, $locale), 'to' => CourierOptions::label($provider, $locale), 'note' => (string) $note];
-            Audit::notice(
-                $locked->user_id,
-                __('courier.notice_changed_title', $replace, $locale),
-                __($note !== null ? 'courier.notice_changed_body_with_note' : 'courier.notice_changed_body', $replace, $locale),
-            );
-            if (! $shipment && $locked->status === 'approved') {
+            $this->announceCourierChange($actor, $locked, $from, $provider, $note, $shipment?->id);
+            if ($bookNow && ! $shipment && $locked->status === 'approved') {
                 $this->autoShip($actor, $locked);
             }
+        }, 3);
+    }
+
+    /**
+     * Writes a courier change on the order's history and tells the dealer which courier now has the parcel.
+     */
+    private function announceCourierChange(User $actor, Order $locked, ?string $from, string $provider, ?string $note, ?int $shipmentId): void
+    {
+        $this->event($locked, $actor, 'order.courier_changed', [
+            'from' => $from,
+            'to' => $provider,
+            'from_label' => CourierOptions::label($from),
+            'to_label' => CourierOptions::label($provider),
+            'note' => $note,
+            'shipment_id' => $shipmentId,
+        ]);
+        $partner = User::find($locked->user_id);
+        $locale = $partner?->preferredLocale() ?? app()->getLocale();
+        $replace = ['number' => $locked->number, 'from' => CourierOptions::label($from, $locale), 'to' => CourierOptions::label($provider, $locale), 'note' => (string) $note];
+        Audit::notice(
+            $locked->user_id,
+            __('courier.notice_changed_title', $replace, $locale),
+            __($note !== null ? 'courier.notice_changed_body_with_note' : 'courier.notice_changed_body', $replace, $locale),
+        );
+    }
+
+    /**
+     * Sends an approved order with the courier staff confirmed on the courier page: every item still
+     * to go, from the chosen branch. When the courier differs from the dealer's pick, the change is
+     * recorded and the dealer is told, in the same step. A courier with a booking system is then
+     * booked in the background and its tracking number fills in by itself; a manual courier needs
+     * the tracking number typed here. Nothing is saved if the stock or the courier refuses.
+     *
+     * @param  array{courier_provider: string, tracking?: ?string, branch_id?: ?int, idempotency_key: string, eta?: ?string, courier_contact?: ?string}  $data
+     */
+    public function shipWithCourier(User $actor, Order $order, array $data, ?string $note): void
+    {
+        abort_unless($actor->allows('inventory'), 403);
+        $this->assertNotOwnOrder($actor, $order);
+        abort_unless($this->branches->mayOpenOrder($actor, $order), 403);
+        $provider = (string) $data['courier_provider'];
+        if (! app(CourierOptions::class)->isEnabled($provider)) {
+            throw ValidationException::withMessages(['courier_provider' => __('courier.err_courier_not_enabled')]);
+        }
+        $note = $note !== null && trim($note) !== '' ? Str::limit(trim($note), 500, '') : null;
+        DB::transaction(function () use ($actor, $order, $data, $provider, $note): void {
+            $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            // The same key twice is a double press of Next: the parcel is already saved, so do nothing more.
+            if (DB::table('shipments')->where('order_id', $locked->id)->where('idempotency_key', $data['idempotency_key'])->exists()) {
+                return;
+            }
+            if (! in_array($locked->status, ['approved', 'partially_dispatched'], true)) {
+                throw ValidationException::withMessages(['courier_provider' => __('portal.err_shipment_approve_first')]);
+            }
+            $items = $locked->lines()->whereRaw(OrderLines::unsentSql())->orderBy('id')->get()
+                ->map(fn (OrderLine $line): array => ['line_id' => (int) $line->getKey(),
+                    'quantity' => (int) $line->getAttribute('quantity') - (int) $line->getAttribute('dispatched') - (int) $line->getAttribute('closed')])
+                ->all();
+            if ($items === []) {
+                throw ValidationException::withMessages(['courier_provider' => __('courier.err_nothing_to_send')]);
+            }
+            if ($locked->courier_choice !== $provider) {
+                $from = $locked->courier_choice;
+                $locked->update(['courier_choice' => $provider]);
+                $this->announceCourierChange($actor, $locked, $from, $provider, $note, null);
+            }
+            $this->dispatch($actor, $locked, [
+                'courier' => CourierOptions::label($provider),
+                'tracking' => $data['tracking'] ?? '',
+                'courier_provider' => $provider,
+                'courier_contact' => $data['courier_contact'] ?? null,
+                'eta' => $data['eta'] ?? null,
+                'branch_id' => $data['branch_id'] ?? null,
+                'idempotency_key' => $data['idempotency_key'],
+                'items' => $items,
+            ]);
         }, 3);
     }
 

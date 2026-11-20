@@ -565,6 +565,22 @@
 @media (max-width:767px){
   .app-shell .courier-board-filters{padding:0 14px 12px}
 }
+/* The page after approving an order: one card per courier, the dealer's pick already ticked. */
+.app-shell .courier-pick{display:grid;gap:12px}
+.app-shell .courier-pick-card{display:flex;flex-direction:row;align-items:flex-start;gap:14px;padding:14px 16px;border:1px solid var(--border);border-radius:10px;background:#fff;cursor:pointer;font-weight:500}
+.app-shell .courier-pick-card input[type=radio]{width:20px;min-height:20px;height:20px;margin-top:2px;flex:none}
+.app-shell .courier-pick-card.is-chosen{border-color:var(--green);background:#f3f8f2;box-shadow:0 0 0 1px var(--green)}
+.app-shell .courier-pick-card.is-off{opacity:.6;cursor:not-allowed}
+.app-shell .courier-pick-card>span{display:flex;flex-direction:column;gap:6px;min-width:0}
+.app-shell .courier-pick-name{font-size:15px;font-weight:650}
+.app-shell .courier-pick-tags{display:flex;flex-wrap:wrap;gap:6px}
+.app-shell .courier-pick-warn{color:#8a5a12;font-size:12px}
+.app-shell .courier-pick-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:767px){
+  .app-shell .courier-pick-summary{grid-template-columns:minmax(0,1fr)}
+  .app-shell .courier-pick-actions{flex-direction:column;align-items:stretch}
+}
+.app-shell .courier-pick-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 /* Stock movement log: units in and out. */
 .qty-in{color:var(--ds-ok-fg,#166534);font-variant-numeric:tabular-nums}
 .qty-out{color:var(--ds-danger-fg,#b91c1c);font-variant-numeric:tabular-nums}

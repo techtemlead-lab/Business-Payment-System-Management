@@ -22,7 +22,8 @@ class CourierShipmentController extends Controller
     public function change(ChangeCourierRequest $request, Order $order, OrderService $orders): RedirectResponse
     {
         $data = $request->validated();
-        $orders->changeCourier($request->user(), $order, $data['courier'], $data['note'] ?? null);
+        // A change on an approved order that is not sent yet only saves the new pick; Next on the courier page sends it.
+        $orders->changeCourier($request->user(), $order, $data['courier'], $data['note'] ?? null, bookNow: false);
 
         return back(fallback: '/orders/'.$order->id)->with('success', __('courier.flash_changed'));
     }

@@ -305,7 +305,8 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                 { name: 'reason', label: translate('portal', 'decision_reason'), type: 'textarea', place: 'order.decision' },
             ]} submit={translate('portal', 'record_decision')} />
         </section>}
-        {capabilities.includes('inventory') && (staffActions?.inventory?.edit??true) && ['approved', 'partially_dispatched'].includes(order.status) && <section className="panel"><h2>{translate('portal', 'dispatch_available_items')}</h2><DispatchForm key={`${order.id}-${shipments.length}`} order={order} courierChoices={courierChoices} stockByBranch={stockByBranch} /></section>}
+        {capabilities.includes('inventory') && (staffActions?.inventory?.edit??true) && ['approved', 'partially_dispatched'].includes(order.status) && <section className="panel"><h2>{translate('portal', 'dispatch_available_items')}</h2>
+            <p><Link className="button dark" data-testid="choose-courier-link" href={`/orders/${order.id}/courier`}>{translate('courier', 'pick_open_link')}</Link></p><DispatchForm key={`${order.id}-${shipments.length}`} order={order} courierChoices={courierChoices} stockByBranch={stockByBranch} /></section>}
         <section className="panel"><h2>{translate('portal', 'order_activity')}</h2>
             {events.length ? events.map(event => {
                 const metadata = typeof event.metadata === 'string' ? JSON.parse(event.metadata) : event.metadata;
