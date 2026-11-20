@@ -13,6 +13,7 @@ use App\Support\SiteCustomization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Lang;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -86,7 +87,9 @@ class StockPrintTest extends TestCase
         $list = (new StockPrintList)->build();
 
         $this->assertSame(['rows'], array_keys($list));
+        $productId = (int) Product::query()->where('name', 'Herbal Syrup')->value('id');
         $this->assertSame([[
+            'product_id' => $productId,
             'serial' => 1,
             'name' => 'Herbal Syrup',
             'pack_size' => '100 ml',
@@ -95,7 +98,7 @@ class StockPrintTest extends TestCase
             'mrp' => '200.00',
             'dealer_discount' => '20',
             'sub_dealer_discount' => '12.5',
-            'image' => null,
+            'image' => public_path('branding/stock/pdf/honey.jpg'),
             'usage' => null,
             'efficacy' => null,
         ]], $list['rows']);
@@ -336,6 +339,63 @@ class StockPrintTest extends TestCase
         $response = app(StockPrintPdf::class)->download($owner);
 
         $this->assertStringStartsWith('%PDF', (string) file_get_contents($response->getFile()->getPathname()));
+    }
+
+    public function test_a_product_without_its_own_photo_prints_the_default_picture_the_website_shows(): void
+    {
+        $this->product(['name' => 'Old Syrup', 'category' => 'Syrup', 'image_path' => null]);
+        $this->product(['name' => 'Old Oil', 'category' => 'Black seed oil', 'image_path' => '']);
+        $this->product(['name' => 'Odd One', 'category' => 'Something else', 'image_path' => null]);
+
+        $images = array_column(app(StockPrintList::class)->build()['rows'], 'image', 'name');
+
+        $this->assertSame(public_path('branding/stock/pdf/honey.jpg'), $images['Old Syrup']);
+        $this->assertSame(public_path('branding/stock/pdf/black-seed.jpg'), $images['Old Oil']);
+        $this->assertSame(public_path('branding/stock/pdf/brand.jpg'), $images['Odd One']);
+        foreach ($images as $file) {
+            $this->assertFileExists($file);
+            $this->assertNotFalse(@imagecreatefromstring((string) file_get_contents($file)), 'The default picture must be readable by the image library.');
+        }
+    }
+
+    public function test_every_product_gets_a_picture_in_the_pdf_old_style_new_style_missing_file_and_unreadable_file(): void
+    {
+        Storage::fake('local');
+        Storage::disk('local')->put('product-media/images/new.jpg', $this->noisyPhoto());
+        $transparent = imagecreatetruecolor(300, 200);
+        imagealphablending($transparent, false);
+        imagesavealpha($transparent, true);
+        imagefill($transparent, 0, 0, (int) imagecolorallocatealpha($transparent, 0, 0, 0, 127));
+        imagefilledellipse($transparent, 150, 100, 160, 120, (int) imagecolorallocate($transparent, 200, 30, 30));
+        ob_start();
+        imagepng($transparent);
+        Storage::disk('local')->put('product-media/images/cutout.png', (string) ob_get_clean());
+        Storage::disk('local')->put('product-media/images/broken.jpg', 'this is not a picture');
+
+        $this->product(['name' => 'Old Style', 'image_path' => null]);
+        $this->product(['name' => 'New Style', 'image_path' => 'product-media/images/new.jpg']);
+        $this->product(['name' => 'Cut Out', 'image_path' => 'product-media/images/cutout.png']);
+        $this->product(['name' => 'Gone File', 'image_path' => 'product-media/images/gone.jpg']);
+        $this->product(['name' => 'Broken File', 'image_path' => 'product-media/images/broken.jpg', 'category' => 'Skin cosmetics']);
+        Log::spy();
+
+        $response = app(StockPrintPdf::class)->download(User::factory()->staff()->create());
+
+        $pdf = (string) file_get_contents($response->getFile()->getPathname());
+        $this->assertGreaterThanOrEqual(5, preg_match_all('#/Subtype\s*/Image#', $pdf), 'Each of the five products has a picture in the PDF.');
+        Log::shouldHaveReceived('warning')->twice();
+    }
+
+    public function test_a_missing_file_is_logged_with_the_product_id_and_the_default_picture_is_used(): void
+    {
+        Storage::fake('local');
+        $product = $this->product(['name' => 'Gone File', 'category' => 'Syrup', 'image_path' => 'product-media/images/gone.jpg']);
+        Log::spy();
+
+        $row = app(StockPrintList::class)->build()['rows'][0];
+
+        $this->assertSame(public_path('branding/stock/pdf/honey.jpg'), $row['image']);
+        Log::shouldHaveReceived('warning')->withArgs(fn (string $message, array $context): bool => ($context['product_id'] ?? null) === $product->id)->once();
     }
 
     public function test_both_languages_carry_the_same_keys_and_the_bangla_text_is_not_a_copy_of_the_english(): void
