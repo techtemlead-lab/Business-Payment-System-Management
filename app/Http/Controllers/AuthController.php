@@ -13,6 +13,7 @@ use App\Domain\Security\OwnerConfirmation;
 use App\Domain\Security\SecuritySettings;
 use App\Domain\Staff\LeadershipAccess;
 use App\Http\Middleware\RequireAuthenticatorSetup;
+use App\Http\Middleware\SetLocale;
 use App\Models\PlaceCode;
 use App\Models\User;
 use App\Support\Audit;
@@ -508,20 +509,24 @@ class AuthController extends Controller
         }
     }
 
-    /** Keep the language chosen on the login screen after authentication. */
+    /**
+     * Keep the language the sign-in screen was showing after authentication. SetLocale chose it
+     * before the person was known (their choice, else the guest language), so signing in never
+     * changes the page, and an old saved "en" nobody chose does not flip a Bangla page to English.
+     */
     private function persistLoginLocale(Request $r): void
     {
-        $supported = config('madina.locales', ['en', 'bn']);
-        $locale = $r->session()->get('locale') ?? $r->cookie('locale');
-        if (! is_string($locale) || ! in_array($locale, $supported, true)) {
+        $locale = app()->getLocale();
+        if (! in_array($locale, config('madina.locales', ['en', 'bn']), true)) {
             return;
         }
+        $r->session()->put('locale', $locale);
+        cookie()->queue(SetLocale::cookieFor($locale));
         $user = $r->user();
         if (! $user || $user->locale === $locale) {
             return;
         }
         $user->forceFill(['locale' => $locale])->save();
-        app()->setLocale($locale);
     }
 
     public function logout(Request $r): Response

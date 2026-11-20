@@ -462,7 +462,7 @@ Questions about these terms, partnership rules or the website:
     'mobile_navigation' => 'Mobile menu',
     'navigation' => 'Navigation',
     'partner_workspace' => 'Partner Store Panel',
-    'announcement_text' => 'Natural food supplements, unani medicine, personal care, agriculture and wellness products are available now.',
+    'announcement_text' => 'Natural food supplements, unani medicine, personal care products are available now. Dealerships and sub-dealerships are given only to registered doctors.',
     'floating_chat_label' => 'CHAT',
     'customer_support_chat' => 'Customer support chat',
     'chat_with_representative' => 'Chat with a representative',
