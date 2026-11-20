@@ -19,7 +19,8 @@ use Illuminate\Support\Facades\DB;
  *  - a dealer's salary share, worked out with the same rules as the month close (an estimate).
  *
  * None of it is in the wallet, so it can be neither withdrawn nor used to pay an order. Rank,
- * reward, car, bike, royalty and tour money is never counted here. What the month-end close does
+ * reward, car, bike, royalty and tour money is never counted in the total; prizes already earned but not yet
+ * paid (rank prize, bike, car) are listed apart under `rewards`. What the month-end close does
  * with it (pay it, or send an unearned share to the company profit fund) is unchanged.
  */
 final class PartnerPendingMoney
@@ -27,7 +28,7 @@ final class PartnerPendingMoney
     /** Seconds the dealers' salary shares of one month are kept, so a busy page does not recompute the plan. */
     private const SalaryShareSeconds = 60;
 
-    public function __construct(private CommissionQualification $qualification, private CommissionSettlement $settlement) {}
+    public function __construct(private CommissionQualification $qualification, private CommissionSettlement $settlement, private PartnerRewardsWaiting $rewards) {}
 
     /**
      * @return array{
@@ -36,7 +37,8 @@ final class PartnerPendingMoney
      *   has_estimate: bool,
      *   awaiting_close: list<array{month: string, amount: string}>,
      *   lines: list<array{id: string, head: string, what: string, month: string, amount: string, order_number: ?string, reason: string, estimate: bool}>,
-     *   paid: list<array{id: string, head: string, what: string, month: string, amount: string, order_number: ?string}>
+     *   paid: list<array{id: string, head: string, what: string, month: string, amount: string, order_number: ?string}>,
+     *   rewards: list<array{id: string, head: string, what: string, amount: string, reason: string, since: ?string}>
      * }
      */
     public function for(User $partner, int $limit = 20, bool $withPaid = true): array
@@ -63,6 +65,8 @@ final class PartnerPendingMoney
             'awaiting_close' => $awaiting,
             'lines' => $lines,
             'paid' => $withPaid ? $this->paidAreaLines($partner) : [],
+            // Earned prizes not in the wallet yet (rank prize, bike, car). Kept apart: they are not part of the pending total.
+            'rewards' => $this->rewards->for($partner),
         ];
     }
 

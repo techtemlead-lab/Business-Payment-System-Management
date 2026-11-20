@@ -96,6 +96,25 @@ function MoneyColumn({ totals, cards, held, pending, card }: { totals: Row; card
                     <p className="muted">{translate('my_money', 'pending_balance_hint')}</p>
                 </div>
             )}
+            {/* Prizes already earned (rank prize, bike, car) that are not in the balance yet: one line each with the plain reason. */}
+            {(pending?.rewards ?? []).length > 0 && (
+                <div className="pd-card pd-held" data-testid="home-rewards-waiting">
+                    <div className="pd-heads-top">
+                        <h3>{translate('my_money', 'rewards_heading')}</h3>
+                    </div>
+                    <ul>
+                        {(pending?.rewards ?? []).map((line: Row) => (
+                            <li key={line.id}>
+                                <div className="pd-heads-top">
+                                    <span>{line.what}</span>
+                                    <strong>{money(line.amount)}</strong>
+                                </div>
+                                <p className="muted">{translate('my_money', `reward_reason_${line.reason}`)}</p>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
             {/* MA-03: commission held for the partner is shown while it is held, with the reason. */}
             {Number(held?.total ?? 0) > 0 && (
                 <div className="pd-card pd-held" data-testid="home-commission-held">

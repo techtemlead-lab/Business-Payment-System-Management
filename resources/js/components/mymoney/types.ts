@@ -72,4 +72,7 @@ export type PendingLine = { id: string; head: string; what: string; month: strin
 export type PaidLine = { id: string; head: string; what: string; month: string; amount: string; order_number: string | null };
 
 /** Money that waits for the month's target or the month-end close. It is not in the usable balance. */
-export type PendingMoney = { total: string; count: number; has_estimate: boolean; lines: PendingLine[]; paid: PaidLine[] };
+export type PendingMoney = { total: string; count: number; has_estimate: boolean; lines: PendingLine[]; paid: PaidLine[]; rewards?: RewardWaitingLine[] };
+
+/** A prize the partner has earned (rank prize, bike, car) that is not in the balance yet. */
+export type RewardWaitingLine = { id: string; head: string; what: string; amount: string; reason: 'rank_prize_office' | 'rank_prize_keep' | 'prize_office' | 'prize_review'; since: string | null };
