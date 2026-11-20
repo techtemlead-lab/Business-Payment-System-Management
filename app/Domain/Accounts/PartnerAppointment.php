@@ -24,9 +24,8 @@ final class PartnerAppointment
     ];
 
     /**
-     * @return array{kind: string|null, area: string|null, line: string|null, short: string|null}
-     *                                                                                            kind: division, district, upazila, union, pourashava, sub_dealer or null when nothing is known.
-     *                                                                                            area: the place name alone. line: the full sentence. short: the level name without the place.
+     * @return array{kind: string|null, area: string|null, line: string|null, short: string|null, title: string|null, place: string|null}
+     *                                                                                                                                    title is line 1 (the kind of dealer), place is line 2 (the place and its parents), line is both on one row for old readers.
      */
     public function for(User $user, ?string $locale = null): array
     {
@@ -37,7 +36,7 @@ final class PartnerAppointment
      * The same answer for many partners with a fixed number of queries, for a list page.
      *
      * @param  iterable<User>  $users
-     * @return array<int, array{kind: string|null, area: string|null, line: string|null, short: string|null}> keyed by user id
+     * @return array<int, array{kind: string|null, area: string|null, line: string|null, short: string|null, title: string|null, place: string|null}> keyed by user id
      */
     public function forMany(iterable $users, ?string $locale = null): array
     {
@@ -66,13 +65,14 @@ final class PartnerAppointment
     }
 
     /**
-     * @return array{kind: string|null, area: string|null, line: string|null, short: string|null}
+     * @return array{kind: string|null, area: string|null, line: string|null, short: string|null, title: string|null, place: string|null}
+     *                                                                                                                                    title is line 1 (the kind of dealer), place is line 2 (the place and its parents), line is both on one row for old readers.
      */
     private function forPlace(User $user, ?PlaceCode $place, ?string $locale = null): array
     {
         $locale ??= app()->getLocale();
         if ($place === null) {
-            return ['kind' => null, 'area' => null, 'line' => null, 'short' => null];
+            return ['kind' => null, 'area' => null, 'line' => null, 'short' => null, 'title' => null, 'place' => null];
         }
 
         $isSub = $user->role === 'sub_dealer';
@@ -83,13 +83,61 @@ final class PartnerAppointment
 
         $short = __('cr21_identity.short_'.$kind, [], $locale);
         if ($name === null) {
-            return ['kind' => $kind, 'area' => null, 'line' => $short, 'short' => $short];
+            return ['kind' => $kind, 'area' => null, 'line' => $short, 'short' => $short, 'title' => $short, 'place' => null];
         }
 
         $area = $isSub ? $name.' '.__('cr21_identity.word_'.$placeKind, [], $locale) : $name;
-        $line = __('cr21_identity.line_'.$kind, ['area' => $isSub ? $area : $name], $locale);
+        $placeLine = $this->placeLine($place, $placeKind, $locale);
+        $line = $placeLine === null ? $short : __('appointment_lines.line', ['title' => $short, 'place' => $placeLine], $locale);
 
-        return ['kind' => $kind, 'area' => $area, 'line' => $line, 'short' => $short];
+        return ['kind' => $kind, 'area' => $area, 'line' => $line, 'short' => $short, 'title' => $short, 'place' => $placeLine];
+    }
+
+    /**
+     * Line 2: the place and the places above it, each with its level word ("Balia Union, Nababganj Upazila,
+     * Dinajpur District, Rangpur Division"). A division or district stands alone. A parent without a usable name is skipped.
+     */
+    private function placeLine(PlaceCode $place, string $placeKind, string $locale): ?string
+    {
+        $own = $this->nameOf($place, $locale);
+        if ($own === null) {
+            return null;
+        }
+        if ($placeKind === PlaceCode::LevelDivision || $placeKind === PlaceCode::LevelDistrict) {
+            return $own;
+        }
+
+        $raw = ['division' => null, 'district' => null, 'upazila' => null, 'union' => null];
+        $cursor = $place;
+        for ($guard = 0; $cursor !== null && $guard < 6; $guard++) {
+            if (array_key_exists($cursor->level, $raw)) {
+                $raw[$cursor->level] = $cursor->name;
+            }
+            $cursor = $cursor->parent;
+        }
+        $names = $locale === 'bn' ? BanglaPlaceNames::translate($raw) : $raw;
+
+        $parts = [];
+        foreach ([PlaceCode::LevelUnion => $placeKind, PlaceCode::LevelUpazila => 'upazila', PlaceCode::LevelDistrict => 'district', PlaceCode::LevelDivision => 'division'] as $level => $word) {
+            if ($level === PlaceCode::LevelUnion && $place->level !== PlaceCode::LevelUnion) {
+                continue;
+            }
+            $name = $level === $place->level ? $own : $this->bare($names[$level] ?? null);
+            if ($name === null || PlaceCode::isPlaceholderLabel($name)) {
+                continue;
+            }
+            $parts[] = $name.' '.__('cr21_identity.word_'.$word, [], $locale);
+        }
+
+        return $parts === [] ? null : implode(__('appointment_lines.separator', [], $locale), $parts);
+    }
+
+    /** A place name without its trailing level word, or null when nothing is left. */
+    private function bare(?string $name): ?string
+    {
+        $name = trim((string) preg_replace('/\s*(pourashava|paurashava|municipality|union|upazila|thana|district|division|ইউনিয়ন|পৌরসভা|উপজেলা|থানা|জেলা|বিভাগ)\s*$/iu', '', trim((string) $name)));
+
+        return $name === '' ? null : $name;
     }
 
     /** The place a partner is appointed to: the active seat first, then the place code on the profile. */
@@ -161,7 +209,7 @@ final class PartnerAppointment
 
         // The Bangla list may carry the level word itself ("সৈয়দপুর পৌরসভা"); the line adds it, so drop it here.
         $bangla = (string) (BanglaPlaceNames::translate($names)[$level] ?? $name);
-        $bangla = trim((string) preg_replace('/s*(pourashava|paurashava|municipality|union|upazila|thana|district|division|ইউনিয়ন|পৌরসভা|উপজেলা|থানা|জেলা|বিভাগ)s*$/iu', '', $bangla));
+        $bangla = trim((string) preg_replace('/\s*(pourashava|paurashava|municipality|union|upazila|thana|district|division|ইউনিয়ন|পৌরসভা|উপজেলা|থানা|জেলা|বিভাগ)\s*$/iu', '', $bangla));
 
         return $bangla !== '' ? $bangla : $name;
     }

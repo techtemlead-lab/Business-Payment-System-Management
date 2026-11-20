@@ -40,24 +40,43 @@ class PartnerIdentityTest extends TestCase
     {
         $places = $this->places();
         $expected = [
-            'division' => 'রংপুর বিভাগের বিভাগীয় ডিলার',
-            'district' => 'রংপুর জেলার জেলা ডিলার',
-            'upazila' => 'পীরগঞ্জ উপজেলার থানা ডিলার',
+            'division' => ['বিভাগীয় ডিলার', 'রংপুর'],
+            'district' => ['জেলা ডিলার', 'রংপুর'],
+            'upazila' => ['থানা ডিলার', 'পীরগঞ্জ উপজেলা, রংপুর জেলা, রংপুর বিভাগ'],
         ];
-        foreach ($expected as $level => $line) {
+        foreach ($expected as $level => [$title, $place]) {
             $result = app(PartnerAppointment::class)->for($this->dealerAt($places[$level]), 'bn');
-            $this->assertSame($line, $result['line'], $level);
+            $this->assertSame($title, $result['title'], $level);
+            $this->assertSame($place, $result['place'], $level);
+            $this->assertSame($title.' — '.$place, $result['line'], $level);
             $this->assertSame($level, $result['kind']);
         }
 
         $union = app(PartnerAppointment::class)->for($this->dealerAt($places['union']), 'bn');
         $this->assertSame('union', $union['kind']);
-        $this->assertStringEndsWith('ইউনিয়নের ইউনিয়ন ডিলার', $union['line']);
+        $this->assertSame('ইউনিয়ন ডিলার', $union['title']);
+        $this->assertStringContainsString(' ইউনিয়ন, পীরগঞ্জ উপজেলা, রংপুর জেলা, রংপুর বিভাগ', $union['place']);
 
         $pourashava = app(PartnerAppointment::class)->for($this->dealerAt($places['pourashava']), 'bn');
         $this->assertSame('pourashava', $pourashava['kind']);
-        $this->assertStringEndsWith('পৌরসভার পৌরসভা ডিলার', $pourashava['line']);
-        $this->assertStringNotContainsString('Pourashava', $pourashava['line']);
+        $this->assertSame('পৌরসভা ডিলার', $pourashava['title']);
+        $this->assertStringContainsString(' পৌরসভা, পীরগঞ্জ উপজেলা, রংপুর জেলা, রংপুর বিভাগ', $pourashava['place']);
+        $this->assertStringNotContainsString('Pourashava', $pourashava['place']);
+    }
+
+    public function test_a_missing_parent_name_is_skipped_without_an_empty_comma(): void
+    {
+        $division = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
+        $district = PlaceCode::factory()->district($division)->create(['name' => '—']);
+        $upazila = PlaceCode::factory()->upazila($district)->create(['name' => 'Pirganj']);
+
+        foreach (['bn', 'en'] as $locale) {
+            $place = (string) app(PartnerAppointment::class)->for($this->dealerAt($upazila), $locale)['place'];
+            $this->assertCount(2, explode(', ', $place), $locale);
+            $this->assertStringNotContainsString(',,', $place);
+            $this->assertStringNotContainsString(', ,', $place);
+            $this->assertStringNotContainsString('—', $place);
+        }
     }
 
     /** Found by the client guide: a Bangla place name that already ends in "পৌরসভা" read "পৌরসভা পৌরসভা". */
@@ -70,9 +89,12 @@ class PartnerIdentityTest extends TestCase
         $sub = User::factory()->create(['role' => 'sub_dealer', 'status' => 'active', 'profile' => ['place_code_id' => $pourashava->id]]);
 
         foreach ([$this->dealerAt($pourashava), $sub] as $person) {
-            $line = app(PartnerAppointment::class)->for($person, 'bn')['line'];
-            $this->assertStringNotContainsString('পৌরসভা পৌরসভা', $line);
-            $this->assertStringNotContainsString('Saidpur', $line);
+            $result = app(PartnerAppointment::class)->for($person, 'bn');
+            foreach ([$result['line'], $result['place']] as $text) {
+                $this->assertStringNotContainsString('পৌরসভা পৌরসভা', $text);
+                $this->assertStringNotContainsString('Saidpur', $text);
+            }
+            $this->assertStringStartsWith('সৈয়দপুর পৌরসভা, সৈয়দপুর উপজেলা, নীলফামারী জেলা, রংপুর বিভাগ', $result['place']);
         }
     }
 
@@ -80,11 +102,18 @@ class PartnerIdentityTest extends TestCase
     {
         $places = $this->places();
 
-        $this->assertSame('Divisional dealer of Rangpur Division', app(PartnerAppointment::class)->for($this->dealerAt($places['division']), 'en')['line']);
-        $this->assertSame('District dealer of Rangpur District', app(PartnerAppointment::class)->for($this->dealerAt($places['district']), 'en')['line']);
-        $this->assertSame('Thana dealer of Pirganj Upazila', app(PartnerAppointment::class)->for($this->dealerAt($places['upazila']), 'en')['line']);
-        $this->assertSame('Union dealer of Kabilpur Union', app(PartnerAppointment::class)->for($this->dealerAt($places['union']), 'en')['line']);
-        $this->assertSame('Pourashava dealer of Syedpur Pourashava', app(PartnerAppointment::class)->for($this->dealerAt($places['pourashava']), 'en')['line']);
+        $expected = [
+            'division' => ['Divisional dealer', 'Rangpur'],
+            'district' => ['District dealer', 'Rangpur'],
+            'upazila' => ['Thana dealer', 'Pirganj Upazila, Rangpur District, Rangpur Division'],
+            'union' => ['Union dealer', 'Kabilpur Union, Pirganj Upazila, Rangpur District, Rangpur Division'],
+            'pourashava' => ['Pourashava dealer', 'Syedpur Pourashava, Pirganj Upazila, Rangpur District, Rangpur Division'],
+        ];
+        foreach ($expected as $level => [$title, $place]) {
+            $result = app(PartnerAppointment::class)->for($this->dealerAt($places[$level]), 'en');
+            $this->assertSame($title, $result['title'], $level);
+            $this->assertSame($place, $result['place'], $level);
+        }
     }
 
     public function test_a_sub_dealer_is_the_sub_dealer_of_their_union_or_pourashava(): void
@@ -94,8 +123,11 @@ class PartnerIdentityTest extends TestCase
 
         $bn = app(PartnerAppointment::class)->for($sub, 'bn');
         $this->assertSame('sub_dealer', $bn['kind']);
-        $this->assertStringEndsWith('পৌরসভা-এর সাব-ডিলার', $bn['line']);
-        $this->assertSame('Sub-dealer of Syedpur Pourashava', app(PartnerAppointment::class)->for($sub, 'en')['line']);
+        $this->assertSame('সাব-ডিলার', $bn['title']);
+        $this->assertStringContainsString(' পৌরসভা, পীরগঞ্জ উপজেলা, রংপুর জেলা, রংপুর বিভাগ', $bn['place']);
+        $en = app(PartnerAppointment::class)->for($sub, 'en');
+        $this->assertSame('Sub-dealer', $en['title']);
+        $this->assertSame('Syedpur Pourashava, Pirganj Upazila, Rangpur District, Rangpur Division', $en['place']);
     }
 
     public function test_the_active_area_seat_decides_the_level_for_a_dealer(): void
@@ -110,12 +142,14 @@ class PartnerIdentityTest extends TestCase
     public function test_missing_data_falls_back_without_breaking(): void
     {
         $nobody = User::factory()->create(['role' => 'dealer', 'status' => 'active', 'profile' => []]);
-        $this->assertSame(['kind' => null, 'area' => null, 'line' => null, 'short' => null], app(PartnerAppointment::class)->for($nobody, 'bn'));
+        $this->assertSame(['kind' => null, 'area' => null, 'line' => null, 'short' => null, 'title' => null, 'place' => null], app(PartnerAppointment::class)->for($nobody, 'bn'));
 
         $placeholder = PlaceCode::factory()->district(PlaceCode::factory()->division()->create())->create(['name' => '—']);
         $result = app(PartnerAppointment::class)->for($this->dealerAt($placeholder), 'bn');
         $this->assertSame('জেলা ডিলার', $result['line']);
         $this->assertNull($result['area']);
+        $this->assertNull($result['place']);
+        $this->assertSame('জেলা ডিলার', $result['title']);
     }
 
     public function test_the_list_gets_every_partners_line_with_a_fixed_number_of_queries(): void
@@ -125,9 +159,10 @@ class PartnerIdentityTest extends TestCase
 
         $many = app(PartnerAppointment::class)->forMany($users, 'en');
 
-        $this->assertSame('District dealer of Rangpur District', $many[$users[0]->id]['line']);
-        $this->assertSame('Thana dealer of Pirganj Upazila', $many[$users[1]->id]['line']);
-        $this->assertSame('Sub-dealer of Kabilpur Union', $many[$users[2]->id]['line']);
+        $this->assertSame('District dealer — Rangpur', $many[$users[0]->id]['line']);
+        $this->assertSame('Pirganj Upazila, Rangpur District, Rangpur Division', $many[$users[1]->id]['place']);
+        $this->assertSame('Sub-dealer', $many[$users[2]->id]['title']);
+        $this->assertSame('Kabilpur Union, Pirganj Upazila, Rangpur District, Rangpur Division', $many[$users[2]->id]['place']);
     }
 
     public function test_the_office_list_carries_level_and_area_for_each_row(): void
@@ -138,7 +173,8 @@ class PartnerIdentityTest extends TestCase
 
         $table = app(PartnerAccountList::class)->table(Request::create('/accounts'), 'dealer', PartnerAccountList::filters(Request::create('/accounts')));
 
-        $this->assertSame('District dealer of Rangpur District', $table['rows']->first()->appointment['line']);
+        $this->assertSame('District dealer', $table['rows']->first()->appointment['title']);
+        $this->assertSame('Rangpur', $table['rows']->first()->appointment['place']);
     }
 
     public function test_the_dashboard_card_keeps_the_appointed_area_apart_from_the_home_address(): void
@@ -148,7 +184,8 @@ class PartnerIdentityTest extends TestCase
 
         $home = app(PartnerDashboardHome::class)->for($dealer);
 
-        $this->assertSame('District dealer of Rangpur District', $home['card']['appointment']['line']);
+        $this->assertSame('District dealer', $home['card']['appointment']['title']);
+        $this->assertSame('Rangpur', $home['card']['appointment']['place']);
         $this->assertStringContainsString('Gazipur', (string) $home['card']['area']);
         $this->assertSame($dealer->dealer_code, $home['card']['code']);
         $this->assertSame('dealer', $home['card']['rank']);

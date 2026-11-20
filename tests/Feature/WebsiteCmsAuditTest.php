@@ -45,15 +45,15 @@ class WebsiteCmsAuditTest extends TestCase
         $this->assertSame(1, substr_count($html, '/branding/site-photos/white.png'));
     }
 
-    public function test_the_footer_shows_the_same_certified_logo_as_the_header(): void
+    public function test_the_footer_has_no_logo_block_and_the_header_uses_the_certified_logo(): void
     {
         SiteCustomization::save(['site_logo_url' => '/branding/site-photos/new-logo.png', 'footer_logo_url' => '/branding/site-photos/white.png']);
 
         $html = $this->get('/')->assertOk()->getContent();
-        $footer = substr($html, (int) strpos($html, 'ref-footer-brand'), 400);
 
-        $this->assertStringContainsString('/branding/site-photos/new-logo.png', $footer);
-        $this->assertStringNotContainsString('white.png', $footer);
+        // The footer's logo and company name left the page (client, 2026-11-20); the header still shows the certified logo.
+        $this->assertStringNotContainsString('ref-footer-brand', $html);
+        $this->assertStringContainsString('/branding/site-photos/new-logo.png', $html);
     }
 
     public function test_the_login_and_error_pages_use_the_saved_logo(): void

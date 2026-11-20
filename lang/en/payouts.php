@@ -5,7 +5,7 @@
  */
 return [
     // Refusals
-    'err_nid_first' => 'Before your first withdrawal we need your National ID (NID). Send your NID number and a photo of the card from your profile. Withdrawals open once the office has checked it.',
+    'err_nid_first' => 'Before your first withdrawal the office needs your National ID (NID) or birth registration number. Tell the office and they will add it; then withdrawals open.',
     'err_over_balance' => 'You cannot withdraw that much. The most you can withdraw now is :balance.',
     'err_channel_limit' => 'One :channel withdrawal can be at most :limit. Your balance to withdraw is :balance. For more, choose bank, or withdraw in parts.',
     'err_approve_over_limit' => 'One :channel payment can carry at most :limit, so this cannot be approved. Reject it and ask the partner to request a bank payment.',

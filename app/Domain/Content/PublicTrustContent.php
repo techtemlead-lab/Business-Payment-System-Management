@@ -106,6 +106,10 @@ final class PublicTrustContent
         if (! self::isEnabled($page)) {
             return false;
         }
+        // Dealer verification belongs to the public dealer network and follows its page switch in the website editor.
+        if ($page === 'verify-dealer' && ! SiteCustomization::isPageEnabled('dealers')) {
+            return false;
+        }
 
         if (isset(self::TextPages[$page])) {
             return self::text(self::TextPages[$page].'_body') !== '';
@@ -130,7 +134,8 @@ final class PublicTrustContent
             if (self::isVisible($page)) {
                 $links[] = ['url' => '/'.$page, 'label' => (string) __('public_trust.footer_'.str_replace('-', '_', $page))];
             }
-            // The product batch check is public by design and sits next to the dealer check (findability #20).
+            // The product batch check is public by design and sits next to the dealer check (findability #20),
+            // and stays even while the dealer check is off.
             if ($page === 'verify-dealer') {
                 $links[] = ['url' => self::BatchCheckPath, 'label' => (string) __('public_trust.footer_batch_check')];
             }
