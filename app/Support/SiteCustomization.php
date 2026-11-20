@@ -774,6 +774,10 @@ class SiteCustomization
         foreach (self::toggleablePages() as $page) {
             $map[$page] = filter_var($all['page_enabled_'.$page] ?? '1', FILTER_VALIDATE_BOOLEAN);
         }
+        // The dealer network is switched off site-wide (config), whatever the owner saved in the website editor.
+        if (! config('madina.public_dealer_network') && array_key_exists('dealers', $map)) {
+            $map['dealers'] = false;
+        }
 
         return $map;
     }

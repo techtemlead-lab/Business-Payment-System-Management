@@ -32,7 +32,7 @@
                     </span>
                 </a>
                 @endif
-                @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_directory_link'] ?? '/dealers'))
+                @if(($publicPageEnabled['dealers'] ?? true) && ($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_directory_link'] ?? '/dealers')))
                 <a class="ref-support-box" href="{{ $href }}">
                     <i class="{{ $siteCustomization['footer_directory_icon'] ?? 'fa-solid fa-location-dot' }}" aria-hidden="true"></i>
                     <span><small>{{ $chrome('find_local_partner', $siteCustomization['footer_directory_subtitle'] ?? null) }}</small><b>{{ $chrome('dealer_directory', $siteCustomization['footer_directory_title'] ?? null) }}</b></span>
@@ -75,13 +75,7 @@
         </div>
     </section>
     <section>
-        <h2>{{ $chrome('footer_stay_connected', $siteCustomization['footer_stay_connected_heading'] ?? null) }}</h2>
-        <div class="ref-footer-brand">
-            <a href="{{ $site('/') }}" aria-label="{{ __('site.brand_home') }}"><img src="{{ \App\Support\SiteCustomization::logoUrl() }}" alt="{{ \App\Support\SiteCustomization::brandName() }}" width="56" height="56" decoding="async" loading="lazy"></a>
-            <h3>{{ \App\Support\SiteCustomization::brandName() }}</h3>
-        </div>
-        <p>{{ $chrome('footer_about_desc', $siteCustomization['footer_about_desc'] ?? null) }}</p>
-        @include('reference.partials.business-identity')
+        {{-- The heading, logo, licence text and business identity lines are not shown (client, 2026-11-20); only the social links stay. --}}
         @include('reference.partials.social-links')
         @php
             $appLinks = collect([

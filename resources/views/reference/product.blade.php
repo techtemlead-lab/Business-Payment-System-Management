@@ -100,9 +100,11 @@
         <p class="ref-product-medical-note"><i class="fa-solid fa-user-doctor" aria-hidden="true"></i> <span>{{ $chrome('product_medical_note', $siteCustomization['product_medical_note'] ?? null) }}</span></p>
 
         <div class="ref-partner-information">
+            @if($publicPageEnabled['dealers'] ?? true)
             <span class="ref-company-eyebrow">{{ __('site.product_network_eyebrow') }}</span>
             <h2>{{ __('site.product_available_title') }}</h2>
             <p>{{ __('site.product_available_body') }}</p>
+            @endif
             <div class="ref-company-intro-actions">
                 @if($publicPageEnabled['dealers'] ?? true)
                     <a href="/dealers" class="ref-primary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ __('site.find_a_dealer') }}</a>
