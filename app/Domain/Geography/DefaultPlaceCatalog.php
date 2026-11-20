@@ -20,7 +20,7 @@ use RuntimeException;
  * the office to fill in. Running it again changes nothing.
  */
 /**
- * @phpstan-type PlaceSummary array{created: int, coded: int, filled: int, linked: int, codes_taken: list<string>, by_level: array<string, array<string, int>>, conflicts: list<array{code: string, level: string, name: string, held_by: string}>}
+ * @phpstan-type PlaceSummary array{created: int, coded: int, filled: int, linked: int, codes_taken: list<string>, by_level: array<string, array<string, int>>, conflicts: list<array{code: string, level: string, name: string, held_by: string}>, base_empty: list<array{code: string, level: string, name: string, reason: string}>}
  */
 final class DefaultPlaceCatalog
 {
@@ -29,7 +29,7 @@ final class DefaultPlaceCatalog
     private const InsertChunk = 500;
 
     /** Older or other common English spellings, read as the spelling the list uses. */
-    private const NameAliases = [
+    public const NameAliases = [
         'chittagong' => 'chattogram',
         'barisal' => 'barishal',
         'comilla' => 'cumilla',
@@ -101,9 +101,9 @@ final class DefaultPlaceCatalog
      */
     private function fill(array $payload): array
     {
-        $summary = ['created' => 0, 'coded' => 0, 'filled' => 0, 'linked' => 0, 'codes_taken' => [], 'by_level' => [], 'conflicts' => []];
+        $summary = ['created' => 0, 'coded' => 0, 'filled' => 0, 'linked' => 0, 'codes_taken' => [], 'by_level' => [], 'conflicts' => [], 'base_empty' => []];
         foreach (PlaceCode::Levels as $level) {
-            $summary['by_level'][$level] = ['created' => 0, 'coded' => 0, 'taken' => 0, 'other_code' => 0];
+            $summary['by_level'][$level] = ['created' => 0, 'coded' => 0, 'taken' => 0, 'other_code' => 0, 'base_set' => 0];
         }
 
         /** @var array<int, \stdClass> $rows */
@@ -112,7 +112,7 @@ final class DefaultPlaceCatalog
         $codeOwner = [];
         /** @var array<string, list<int>> $byStructure */
         $byStructure = [];
-        foreach (DB::table('place_codes')->lockForUpdate()->orderBy('id')->get(['id', 'level', 'code', 'name', 'parent_id', 'base_place_id']) as $row) {
+        foreach (DB::table('place_codes')->lockForUpdate()->orderBy('id')->get(['id', 'level', 'code', 'name', 'parent_id', 'base_place_id', 'is_active']) as $row) {
             $row->id = (int) $row->id;
             $row->parent_id = $row->parent_id === null ? null : (int) $row->parent_id;
             $row->base_place_id = $row->base_place_id === null ? null : (int) $row->base_place_id;
@@ -180,16 +180,7 @@ final class DefaultPlaceCatalog
             $summary['by_level'][$level]['created'] += count($pending);
         }
 
-        foreach ($payload['base_links'] as $link) {
-            $placeId = $idBySource[$link['code']] ?? null;
-            $baseId = $idBySource[$link['base_code']] ?? null;
-            if ($placeId === null || $baseId === null || $rows[$placeId]->base_place_id !== null) {
-                continue;
-            }
-            DB::table('place_codes')->where('id', $placeId)->update(['base_place_id' => $baseId, 'updated_at' => $now]);
-            $rows[$placeId]->base_place_id = $baseId;
-            $summary['linked']++;
-        }
+        $this->linkBasePlaces($payload, $rows, $idBySource, $summary, $now);
 
         return $summary;
     }
@@ -283,6 +274,62 @@ final class DefaultPlaceCatalog
     }
 
     /**
+     * Sets the base place of every division, district and upazila that has none: first the links
+     * of the data file, then the headquarters found by DefaultBasePlaces. A base the office already
+     * set is never touched, and a candidate that is turned off, has no code or no name, or is not
+     * directly under the place is left out and the place is listed as empty.
+     *
+     * @param  array{places: list<array{code: string, level: string, name: string, parent_code: ?string, sort_order: int, bn_name: ?string, kind: string}>, base_links: list<array{code: string, base_code: string}>}  $payload
+     * @param  array<int, \stdClass>  $rows
+     * @param  array<string, int>  $idBySource
+     * @param  PlaceSummary  $summary
+     *
+     * @param-out PlaceSummary $summary
+     */
+    private function linkBasePlaces(array $payload, array &$rows, array $idBySource, array &$summary, CarbonInterface $now): void
+    {
+        $derived = (new DefaultBasePlaces)->derive($payload['places']);
+        $links = $payload['base_links'];
+        $fromFile = array_column($links, 'code');
+        foreach ($derived['links'] as $link) {
+            if (! in_array($link['code'], $fromFile, true)) {
+                $links[] = $link;
+            }
+        }
+
+        /** @var array<string, string> $emptyReason */
+        $emptyReason = [];
+        foreach ($links as $link) {
+            $placeId = $idBySource[$link['code']] ?? null;
+            $baseId = $idBySource[$link['base_code']] ?? null;
+            if ($placeId === null || $baseId === null || $rows[$placeId]->base_place_id !== null) {
+                continue;
+            }
+            $candidate = $rows[$baseId];
+            if ($candidate->parent_id !== $placeId || ! $candidate->is_active || PlaceCode::normalizeCode($candidate->code) === null || PlaceCode::isPlaceholderLabel($candidate->name)) {
+                $emptyReason[$link['code']] = 'candidate_unusable';
+
+                continue;
+            }
+            DB::table('place_codes')->where('id', $placeId)->update(['base_place_id' => $baseId, 'updated_at' => $now]);
+            $rows[$placeId]->base_place_id = $baseId;
+            $summary['linked']++;
+            $summary['by_level'][(string) $rows[$placeId]->level]['base_set']++;
+        }
+
+        foreach ($derived['empty'] as $item) {
+            $emptyReason[$item['code']] ??= $item['reason'];
+        }
+        foreach ($payload['places'] as $place) {
+            $placeId = $idBySource[$place['code']] ?? null;
+            if ($placeId === null || ! isset($emptyReason[$place['code']]) || $rows[$placeId]->base_place_id !== null) {
+                continue;
+            }
+            $summary['base_empty'][] = ['code' => $place['code'], 'level' => $place['level'], 'name' => $place['name'], 'reason' => $emptyReason[$place['code']]];
+        }
+    }
+
+    /**
      * A default code that another place already holds: the place goes without a code, the office decides.
      *
      * @param  PlaceSummary  $summary
@@ -324,7 +371,7 @@ final class DefaultPlaceCatalog
         }
 
         $newIds = [];
-        foreach (DB::table('place_codes')->where('level', $level)->where('id', '>', $lastId)->get(['id', 'level', 'code', 'name', 'parent_id', 'base_place_id']) as $row) {
+        foreach (DB::table('place_codes')->where('level', $level)->where('id', '>', $lastId)->get(['id', 'level', 'code', 'name', 'parent_id', 'base_place_id', 'is_active']) as $row) {
             $row->id = (int) $row->id;
             $row->parent_id = $row->parent_id === null ? null : (int) $row->parent_id;
             $row->base_place_id = null;
