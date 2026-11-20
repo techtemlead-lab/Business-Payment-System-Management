@@ -245,7 +245,7 @@ class ClinicRecordsTest extends TestCase
             ->assertSee('ওজন: ৬৫.৫ কেজি', false)
             ->assertSee('পালস: ৭২ /মিনিট', false)
             ->assertSee('তাপমাত্রা: ৯৮.৬ °F', false);
-        $this->actingAs($this->prescriber)->onPortal('dealer')->get('/prescriptions/patients/'.$patient->id)->assertOk()
+        $this->actingAs($this->prescriber)->onPortal('dealer')->get('/prescriptions/patients/'.$patient->id.'?lang=en')->assertOk()
             ->assertInertia(fn (Assert $page) => $page->where('record.prescriptions.0.vitals.0.value', '120/80 mmHg'));
 
         $this->assertHiddenFromOthers(fn (self $test) => $test->get('/prescriptions/'.$prescription->id.'/print?lang=en'));
