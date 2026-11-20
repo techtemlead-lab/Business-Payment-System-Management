@@ -73,8 +73,7 @@ export default function IdentityReviewHub() {
             </div>
             {error && <p className="field-error" role="alert">{error}</p>}
             {!listing && !error && <p className="set-line" role="status">{translate('office_shell', 'loading_list')}</p>}
-            {listing && listing.rows.length === 0 && <p className="set-line">{translate('productivity', 'review_empty')}</p>}
-            {listing && listing.rows.length > 0 && (
+            {listing && (
                 <section className="panel table-panel">
                     <div className="table-wrap">
                         <table className="cleanup-table">
@@ -87,6 +86,9 @@ export default function IdentityReviewHub() {
                                 </tr>
                             </thead>
                             <tbody>
+                                {listing.rows.length === 0 && (
+                                    <tr><td colSpan={4} className="set-line">{translate('productivity', 'review_empty')}</td></tr>
+                                )}
                                 {listing.rows.map((flag) => (
                                     <tr key={flag.id}>
                                         <td>

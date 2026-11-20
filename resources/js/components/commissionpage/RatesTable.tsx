@@ -12,10 +12,6 @@ export default function RatesTable({ heads, totals }: { heads: Head[]; totals: P
     const toggle = (key: string) => setOpen((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
     const t = (key: string, replace: Record<string, string> = {}) => translate('commission_page', key, replace);
 
-    if (heads.length === 0) {
-        return <p className="cp-empty">{t('table_empty')}</p>;
-    }
-
     return (
         <div className="cp-table-wrap">
             <table className="cp-table">
@@ -28,6 +24,9 @@ export default function RatesTable({ heads, totals }: { heads: Head[]; totals: P
                     </tr>
                 </thead>
                 <tbody>
+                    {heads.length === 0 && (
+                        <tr><td colSpan={4} className="cp-empty">{t('table_empty')}</td></tr>
+                    )}
                     {heads.map((head, index) => {
                         const isOpen = open.includes(head.key);
                         const startsSubBlock = head.block === 'sub_only' && heads[index - 1]?.block !== 'sub_only';

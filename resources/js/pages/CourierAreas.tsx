@@ -158,9 +158,7 @@ export default function CourierAreas({ provider: providerKey, providers, filters
                     </label>
                     <button className="button" type="submit">{translate('courier_areas', 'apply')}</button>
                 </form>
-                {rows.length === 0 ? (
-                    <p className="set-line">{translate('courier_areas', 'empty_title')}</p>
-                ) : (
+                {(
                     <section className="panel table-panel">
                         <div className="table-wrap">
                             <table className="cleanup-table">
@@ -173,6 +171,9 @@ export default function CourierAreas({ provider: providerKey, providers, filters
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    {rows.length === 0 && (
+                                        <tr><td colSpan={4} className="set-line">{translate('courier_areas', 'empty_title')}</td></tr>
+                                    )}
                                     {rows.map(place => (
                                         <tr key={place.id}>
                                             <td><b>{place.code}</b><small className="cell-sub">{place.name} · {translate('courier_areas', `level_${place.level}`)}</small></td>

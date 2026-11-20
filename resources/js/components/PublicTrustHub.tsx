@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { router, useForm, usePage } from '@inertiajs/react';
 import { Plus, Trash2 } from 'lucide-react';
-import { Empty, Modal, Table, number } from './UI';
+import { Modal, Table, number } from './UI';
 import OfficePage from './office/OfficePage';
 import { bilingualBox } from '../shared/banglaFill/pair';
 import { useT } from '../shared/i18n/t';
@@ -241,10 +241,9 @@ function DocumentsSection({ data, label }: HubProps) {
                 <div className="toolbar-end">
                     <button type="button" className="button small" onClick={() => setAdding(true)}><Plus size={15} aria-hidden="true" /> {label('admin_document_upload')}</button>
                 </div>
-                {data.documents.length === 0
-                    ? <Empty line title={label('admin_document_empty')} />
-                    : (
+                {(
                         <Table
+                            empty={label('admin_document_empty')}
                             tools={false}
                             searchable={false}
                             rows={data.documents}
@@ -355,10 +354,9 @@ function ArticlesSection({ data, label }: HubProps) {
                 <div className="toolbar-end">
                     <button type="button" className="button small" onClick={() => setAdding(true)}><Plus size={15} aria-hidden="true" /> {label('admin_article_new')}</button>
                 </div>
-                {data.articles.length === 0
-                    ? <Empty line title={label('admin_article_empty')} />
-                    : (
+                {(
                         <Table
+                            empty={label('admin_article_empty')}
                             tools={false}
                             searchable={false}
                             rows={data.articles}

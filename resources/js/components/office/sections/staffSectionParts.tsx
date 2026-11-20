@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
-import { Empty, FormErrors, Modal, Table, label, type Row, type TableProps } from '../../UI';
+import { FormErrors, Modal, Table, label, type Row, type TableProps } from '../../UI';
 import { randomUuid } from '../../../shared/randomUuid';
 import { useT } from '../../../shared/i18n/t';
 import { usePlacedFields, type ReasonPlace } from '../../../shared/reasonFields';
@@ -281,11 +281,7 @@ export function DrawerLines({ lines }: { lines: { label: string; value: React.Re
     );
 }
 
-/** A server-paged table with no search of its own; with no rows it is one quiet line. */
+/** A server-paged table with no search of its own; with no rows it keeps its column names and says so in one row. */
 export function StaffTable({ empty, rows, ...rest }: TableProps<Row> & { empty: string }) {
-    if (!rows || rows.length === 0) {
-        return <Empty line title={empty} />;
-    }
-
-    return <Table rows={rows} {...rest} />;
+    return <Table rows={rows ?? []} empty={empty} {...rest} />;
 }
