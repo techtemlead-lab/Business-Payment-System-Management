@@ -996,7 +996,7 @@ export function Modal({title,onClose,children,variant='dialog',badge,footer}:{ti
   const timer=window.setTimeout(()=>onCloseRef.current(),MODAL_CLOSE_MS);
   return ()=>window.clearTimeout(timer);
  },[closing]);
- /** Close button, Esc and a click outside fade the dialog out first; reduced motion closes at once. */
+ /** The close button, Cancel and Esc fade the dialog out first; reduced motion closes at once. A click outside never closes it. */
  const requestClose=()=>{
   if(closing){
    return;
@@ -1012,7 +1012,8 @@ export function Modal({title,onClose,children,variant='dialog',badge,footer}:{ti
    ref={ref}
    className={`portal-modal${variant==='dialog'?'':` portal-modal-${variant}`}${closing?' is-closing':''}`}
    onCancel={e=>{e.preventDefault();requestClose()}}
-   onClick={e=>{if(e.target===ref.current)requestClose()}}
+   // A click outside the dialog does nothing: one slip of the mouse used to close it and wipe everything typed (client, 2026-11-20).
+   // The close button, Cancel and Esc still close it.
   >
    <div className="modal-heading">
     <h2>{title}</h2>
