@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Accounts\PartnerAppointment;
 use App\Domain\Inventory\BranchOperations;
 use App\Domain\Orders\OrderListFilter;
 use App\Models\Order;
@@ -58,7 +59,7 @@ class ReportController extends Controller
             $section,
             $staff,
         )
-            ->with(['user:id,name,dealer_code,role,phone,division,district', 'fulfillmentBranch:id,name,code'])
+            ->with(['user:id,name,dealer_code,role,phone,division,district,profile', 'fulfillmentBranch:id,name,code'])
             ->withSum('lines as item_quantity', 'quantity')
             ->addSelect([
                 'verified_channels' => DB::table('payment_claims')
@@ -79,9 +80,9 @@ class ReportController extends Controller
             $col('csv_col_order'),
             $col('csv_col_date_dhaka'),
             ...($staff ? [
-                $col('csv_col_dealer_code'),
                 $col('csv_col_name'),
-                $col('csv_col_role'),
+                $col('csv_col_dealer_code'),
+                $col('csv_col_partner_type'),
                 $col('csv_col_phone'),
                 $col('csv_col_district'),
                 $col('csv_col_division'),
@@ -100,28 +101,34 @@ class ReportController extends Controller
             $f = fopen('php://output', 'w');
             fwrite($f, "\xEF\xBB\xBF");
             fputcsv($f, $headers, ',', '"', '');
-            foreach ($q->lazy(500) as $o) {
-                $buyer = $o->user;
-                fputcsv($f, array_map(SpreadsheetCell::text(...), [
-                    $o->number,
-                    $o->created_at->timezone('Asia/Dhaka')->format('Y-m-d H:i'),
-                    ...($staff ? [
-                        $buyer?->dealer_code,
-                        $buyer?->name,
-                        $buyer ? $this->localizedCsvEnum('acct_role_'.$buyer->role, (string) $buyer->role, $locale) : '',
-                        $buyer?->phone,
-                        $buyer?->district,
-                        $buyer?->division,
-                        $o->fulfillmentBranch?->name,
-                    ] : []),
-                    (int) ($o->item_quantity ?? 0),
-                    $this->localizedCsvEnum('status_'.$o->status, (string) $o->status, $locale),
-                    $o->total,
-                    $o->paid,
-                    $o->outstanding(),
-                    $o->verified_channels,
-                    $o->verified_references,
-                ]), ',', '"', '');
+            foreach ($q->lazy(500)->chunk(500) as $batch) {
+                if ($staff) {
+                    app(PartnerAppointment::class)->attachTypes($batch->map(fn ($order) => $order->getRelation('user')));
+                }
+                foreach ($batch as $o) {
+                    $buyer = $o->user;
+                    $type = $buyer?->getAttribute('partner_type');
+                    fputcsv($f, array_map(SpreadsheetCell::text(...), [
+                        $o->number,
+                        $o->created_at->timezone('Asia/Dhaka')->format('Y-m-d H:i'),
+                        ...($staff ? [
+                            $buyer?->name,
+                            $buyer?->dealer_code,
+                            PartnerAppointment::cellText($type, $buyer ? $this->localizedCsvEnum('acct_role_'.$buyer->role, (string) $buyer->role, $locale) : ''),
+                            $buyer?->phone,
+                            $buyer?->district,
+                            $buyer?->division,
+                            $o->fulfillmentBranch?->name,
+                        ] : []),
+                        (int) ($o->item_quantity ?? 0),
+                        $this->localizedCsvEnum('status_'.$o->status, (string) $o->status, $locale),
+                        $o->total,
+                        $o->paid,
+                        $o->outstanding(),
+                        $o->verified_channels,
+                        $o->verified_references,
+                    ]), ',', '"', '');
+                }
             }
             fclose($f);
         }, 'madina-orders-'.now('Asia/Dhaka')->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv; charset=utf-8', 'Cache-Control' => 'private, no-store']);

@@ -2,6 +2,7 @@
 
 namespace App\Http\Portals\Shared\Sections;
 
+use App\Domain\Accounts\PartnerAppointment;
 use App\Domain\Inventory\BranchScope;
 use App\Support\AuditSubjectNames;
 use App\Support\LocalDigits;
@@ -61,6 +62,7 @@ final class FinanceSection implements WorkspaceSection
                 'orders.paid',
                 'orders.due_credit',
                 'orders.status as order_status',
+                'orders.user_id',
                 'users.name',
                 'users.phone',
                 'users.dealer_code',
@@ -121,8 +123,21 @@ final class FinanceSection implements WorkspaceSection
                     $rows->sum(fn ($row): int => Money::cents((string) $row->amount)),
                 ))->all(),
             ],
-            'payments_table' => MoneyTable::make($request, $oneStatus ? (clone $claims)->where('payment_claims.status', $status) : $claims, $spec),
+            'payments_table' => $this->withPartnerTypes(MoneyTable::make($request, $oneStatus ? (clone $claims)->where('payment_claims.status', $status) : $claims, $spec)),
         ];
+    }
+
+    /**
+     * Names the kind and place of each partner on the page of rows.
+     *
+     * @param  array<string, mixed>  $table
+     * @return array<string, mixed>
+     */
+    private function withPartnerTypes(array $table): array
+    {
+        app(PartnerAppointment::class)->attachToRows($table['rows']->getCollection());
+
+        return $table;
     }
 
     /**

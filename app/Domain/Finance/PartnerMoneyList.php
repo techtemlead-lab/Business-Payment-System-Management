@@ -2,6 +2,7 @@
 
 namespace App\Domain\Finance;
 
+use App\Domain\Accounts\PartnerAppointment;
 use App\Support\MoneyTable;
 use App\Support\MoneyTableFilter;
 use App\Support\MoneyTableSpec;
@@ -41,8 +42,9 @@ final class PartnerMoneyList
             sums: ['available' => 'x.available', 'waiting' => 'x.waiting', 'ordered_mrp' => 'x.ordered_mrp', 'cash_given' => 'x.cash_given', 'withdrawn' => 'x.withdrawn', 'spent' => 'x.spent'],
             defaultPeriod: null,
         ));
+        app(PartnerAppointment::class)->attachToRows($table['rows']->getCollection(), 'id');
         $table['rows'] = $table['rows']->through(fn (object $row): array => [
-            'id' => (int) $row->id, 'name' => $row->name, 'code' => $row->code, 'role' => $row->role, 'area' => $row->area,
+            'id' => (int) $row->id, 'name' => $row->name, 'code' => $row->code, 'role' => $row->role, 'partner_type' => $row->partner_type, 'area' => $row->area,
             'available' => (string) $row->available, 'waiting' => (string) $row->waiting, 'ordered_mrp' => (string) $row->ordered_mrp,
             'cash_given' => (string) $row->cash_given, 'withdrawn' => (string) $row->withdrawn, 'spent' => (string) $row->spent,
         ]);
