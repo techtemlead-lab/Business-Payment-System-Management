@@ -16,7 +16,7 @@ use PHPUnit\Framework\TestCase;
 class CommissionNamesInLangTest extends TestCase
 {
     /** @var list<string> Old spellings, matched case-insensitively against every lang value. */
-    private const OldNames = [
+    public const OldNames = [
         // Bangla
         'ওন ডিলার',
         'নিজের কেনায় ক্যাশব্যাক',
