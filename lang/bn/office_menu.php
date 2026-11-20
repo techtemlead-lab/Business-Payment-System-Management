@@ -39,7 +39,7 @@ return [
     'tab_branch_performance' => 'ব্রাঞ্চের বিক্রি',
     'tab_financial_reports' => 'রিপোর্ট ফাইল (এক্সেল)',
 
-    'tab_website' => 'ওয়েবসাইট সাজান',
+    'tab_website' => 'ওয়েবসাইট এডিট করুন',
     'tab_content' => 'পাতার লেখা',
     'tab_public_trust' => 'বিশ্বাসযোগ্যতার পাতা',
     'tab_video_marketing' => 'ভিডিও',
