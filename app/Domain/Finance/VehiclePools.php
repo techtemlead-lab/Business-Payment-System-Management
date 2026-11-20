@@ -94,8 +94,8 @@ final class VehiclePools
                 'old' => Money::decimal(max(0, $funds[$program]['old'])),
                 'award' => $award > 0 ? Money::decimal($award) : null,
                 'prizes_payable' => $award > 0 ? intdiv($balance, $award) : null,
-                'waiting_count' => (int) ($waiting->get($program)?->total ?? 0),
-                'waiting_amount' => Money::decimal($this->cents((string) ($waiting->get($program)?->amount ?? '0'))),
+                'waiting_count' => (int) ($waiting[$program]->total ?? 0),
+                'waiting_amount' => Money::decimal($this->cents((string) ($waiting[$program]->amount ?? '0'))),
             ];
         }
 
