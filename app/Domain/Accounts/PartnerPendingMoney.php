@@ -34,6 +34,7 @@ final class PartnerPendingMoney
      *   total: string,
      *   count: int,
      *   has_estimate: bool,
+     *   awaiting_close: list<array{month: string, amount: string}>,
      *   lines: list<array{id: string, head: string, what: string, month: string, amount: string, order_number: ?string, reason: string, estimate: bool}>,
      *   paid: list<array{id: string, head: string, what: string, month: string, amount: string, order_number: ?string}>
      * }
@@ -41,6 +42,16 @@ final class PartnerPendingMoney
     public function for(User $partner, int $limit = 20, bool $withPaid = true): array
     {
         $area = $this->areaLines($partner, $limit);
+        $awaiting = [];
+        // A share of a month that has ended without the target is already lost; it only waits for the month close to
+        // move it. It is shown as not received, never as pending again.
+        if ($area['closed'] > 0) {
+            $missed = $this->missedAfterMonthEnd($partner);
+            if ($missed['ids'] !== []) {
+                $area = $this->areaLines($partner, $limit, $missed['ids']);
+                $awaiting = $missed['months'];
+            }
+        }
         $salary = $this->salaryLines($partner);
         $lines = [...$area['lines'], ...$salary];
         $total = $area['total'] + array_sum(array_map(fn (array $line): int => FundCatalog::centsOf($line['amount']), $salary));
@@ -49,6 +60,7 @@ final class PartnerPendingMoney
             'total' => FundCatalog::decimalOf($total),
             'count' => $area['count'] + count($salary),
             'has_estimate' => in_array(true, array_column($salary, 'estimate'), true),
+            'awaiting_close' => $awaiting,
             'lines' => $lines,
             'paid' => $withPaid ? $this->paidAreaLines($partner) : [],
         ];
@@ -58,9 +70,10 @@ final class PartnerPendingMoney
      * Area shares held for the target: the lines (newest first, up to $limit) and the cents of all of them.
      * Only months under the target rule count; an older held share is not a target matter.
      *
-     * @return array{total: int, count: int, lines: list<array{id: string, head: string, what: string, month: string, amount: string, order_number: ?string, reason: string, estimate: bool}>}
+     * @param  list<int>  $exclude  allocation ids that are not pending (their month ended without the target)
+     * @return array{total: int, count: int, closed: int, lines: list<array{id: string, head: string, what: string, month: string, amount: string, order_number: ?string, reason: string, estimate: bool}>}
      */
-    private function areaLines(User $partner, int $limit): array
+    private function areaLines(User $partner, int $limit, array $exclude = []): array
     {
         $rows = DB::table('commission_allocations as a')
             ->leftJoin('orders as o', 'o.id', '=', 'a.order_id')
@@ -68,12 +81,13 @@ final class PartnerPendingMoney
             ->where('a.category', 'like', 'area\_%')
             ->whereRaw("a.metadata->>'hold_reason' = 'quota'")
             ->whereRaw("a.metadata->>'period_month' >= ?", [ReserveService::AreaTargetRuleFirstMonth])
+            ->when($exclude !== [], fn ($query) => $query->whereNotIn('a.id', $exclude))
             ->orderByDesc('a.id')
             ->limit($limit)
-            ->selectRaw("a.id, a.amount, a.category, o.number AS order_number, a.metadata->>'period_month' AS month, a.metadata->>'monthly_quota' AS quota, SUM(a.amount) OVER () AS total, COUNT(*) OVER () AS count")
+            ->selectRaw("a.id, a.amount, a.category, o.number AS order_number, a.metadata->>'period_month' AS month, a.metadata->>'monthly_quota' AS quota, SUM(a.amount) OVER () AS total, COUNT(*) OVER () AS count, COUNT(*) FILTER (WHERE a.metadata->>'period_month' < ?) OVER () AS closed", [CommissionQualification::currentMonth()])
             ->get();
         if ($rows->isEmpty()) {
-            return ['total' => 0, 'count' => 0, 'lines' => []];
+            return ['total' => 0, 'count' => 0, 'closed' => 0, 'lines' => []];
         }
         // A share whose month already reached the target is only waiting for the office to release it.
         $volumes = [];
@@ -84,6 +98,7 @@ final class PartnerPendingMoney
         return [
             'total' => FundCatalog::centsOf($rows->first()->total),
             'count' => (int) $rows->first()->count,
+            'closed' => (int) $rows->first()->closed,
             'lines' => $rows->map(fn (object $row): array => [
                 'id' => 'area-'.$row->id,
                 'head' => (string) $row->category,
@@ -95,6 +110,59 @@ final class PartnerPendingMoney
                 'estimate' => false,
             ])->all(),
         ];
+    }
+
+    /**
+     * Held shares of months that have ended where the month's volume stayed below the target. The month close
+     * forfeits them to the company fund; until it runs they are shown as not received, not as pending.
+     *
+     * @return array{ids: list<int>, months: list<array{month: string, amount: string}>}
+     */
+    private function missedAfterMonthEnd(User $partner): array
+    {
+        $rows = DB::table('commission_allocations')
+            ->where('user_id', $partner->id)->where('status', 'held')->where('amount', '>', 0)
+            ->where('category', 'like', 'area\_%')
+            ->whereRaw("metadata->>'hold_reason' = 'quota'")
+            ->whereRaw("metadata->>'period_month' >= ?", [ReserveService::AreaTargetRuleFirstMonth])
+            ->whereRaw("metadata->>'period_month' < ?", [CommissionQualification::currentMonth()])
+            ->selectRaw("id, amount, metadata->>'period_month' AS month, metadata->>'monthly_quota' AS quota")
+            ->get();
+        $volumes = [];
+        $ids = [];
+        $months = [];
+        foreach ($rows as $row) {
+            $month = (string) $row->month;
+            $volumes[$month] ??= $this->qualification->monthlyVolume((int) $partner->id, $month);
+            if ($row->quota !== null && $volumes[$month] < FundCatalog::centsOf($row->quota)) {
+                $ids[] = (int) $row->id;
+                $months[$month] = ($months[$month] ?? 0) + FundCatalog::centsOf($row->amount);
+            }
+        }
+        krsort($months);
+
+        return [
+            'ids' => $ids,
+            'months' => array_map(fn (string $month, int $cents): array => ['month' => $month, 'amount' => FundCatalog::decimalOf($cents)], array_keys($months), array_values($months)),
+        ];
+    }
+
+    /**
+     * The per-month "not received" list: shares the month close already forfeited plus those it has not reached yet.
+     *
+     * @param  list<array{month: string, amount: string}>  $forfeited
+     * @param  list<array{month: string, amount: string}>  $awaitingClose
+     * @return list<array{month: string, amount: string}>
+     */
+    public static function notReceived(array $forfeited, array $awaitingClose): array
+    {
+        $byMonth = [];
+        foreach ([...$forfeited, ...$awaitingClose] as $row) {
+            $byMonth[$row['month']] = ($byMonth[$row['month']] ?? 0) + FundCatalog::centsOf($row['amount']);
+        }
+        krsort($byMonth);
+
+        return array_map(fn (string $month, int $cents): array => ['month' => $month, 'amount' => FundCatalog::decimalOf($cents)], array_keys($byMonth), array_values($byMonth));
     }
 
     /**

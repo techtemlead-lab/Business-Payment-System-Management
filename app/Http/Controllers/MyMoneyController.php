@@ -31,6 +31,7 @@ class MyMoneyController extends Controller
         $nidBlock = app(ManualPayoutService::class)->needsNidBeforeFirstWithdrawal($partner);
         $wait = app(WithdrawalSecurityWait::class);
         $opensAt = $wait->opensAt($partner);
+        $pending = app(PartnerPendingMoney::class)->for($partner);
 
         return Inertia::render('MyMoney', [
             'section' => 'my-money',
@@ -38,9 +39,9 @@ class MyMoneyController extends Controller
             'cards' => $book->incomeCards($partner),
             'table' => $book->table($request, $partner),
             'withdrawal_requests' => $book->withdrawalRequests($partner),
-            'not_earned_area' => $book->notEarnedAreaCommission($partner),
+            'not_earned_area' => PartnerPendingMoney::notReceived($book->notEarnedAreaCommission($partner), $pending['awaiting_close']),
             'held_commission' => $book->heldCommission($partner, 20, false),
-            'pending' => app(PartnerPendingMoney::class)->for($partner),
+            'pending' => $pending,
             'salary_notes' => app(PartnerSalaryNotes::class)->for($partner),
             'withdraw' => ['can' => ! $kycBlock && ! $nidBlock, 'kyc_block' => $kycBlock, 'nid_block' => $nidBlock, 'nid_request' => app(PartnerKycDocuments::class)->nidRequestState($partner), 'saved_accounts' => array_map(fn (array $a): array => ['id' => $a['id'], 'label' => $a['label'], 'is_default' => $a['is_default']], app(PartnerPayoutAccounts::class)->listFor($partner)), 'security_wait' => $opensAt === null ? null : $wait->reason($opensAt), 'minimum' => (string) $settings->withdrawalMinimum()['amount'],
                 'channel_limits' => app(PayoutLimits::class)->settings()['per_channel'],

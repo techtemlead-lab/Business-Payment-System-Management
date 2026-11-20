@@ -193,6 +193,79 @@ class PartnerPendingMoneyTest extends TestCase
             ->where('not_earned_area', []));
     }
 
+    /**
+     * Client rule: the day the target is met, that month's held shares are paid and later orders of the month pay
+     * at once; a month that never meets the target is lost at its month end and never paid later. November is the
+     * missed month, December meets the target on the 15th.
+     */
+    public function test_only_the_month_that_meets_its_target_is_released_and_a_missed_month_is_never_pending_again(): void
+    {
+        config(['madina.auto_release_quota_holds' => true]);
+        $dealer = $this->seatedDealer('100.00');
+        $november = [$this->areaShare($this->purchase($this->buyer()))];
+        $this->travelTo(now()->setDate(2026, 11, 20)->startOfDay());
+        $november[] = $this->areaShare($this->purchase($this->buyer()));
+        $novemberTotal = number_format((float) $november[0]->amount + (float) $november[1]->amount, 2, '.', '');
+
+        // Month ended, close not run yet: already not pending, shown as not received.
+        $this->travelTo(now()->setDate(2026, 12, 1)->setTime(0, 30));
+        $this->assertSame('held', $november[0]->fresh()->status);
+        $this->myMoney($dealer, fn (Assert $page) => $page
+            ->where('pending.total', '0.00')->where('pending.lines', [])
+            ->where('not_earned_area.0.month', '2026-11')->where('not_earned_area.0.amount', $novemberTotal));
+
+        $this->artisan('finance:auto-approve')->assertSuccessful();
+        foreach ($november as $share) {
+            $this->assertSame('forfeited', $share->fresh()->status);
+        }
+
+        $this->travelTo(now()->setDate(2026, 12, 3)->startOfDay());
+        $december = [$this->areaShare($this->purchase($this->buyer()))];
+        $this->travelTo(now()->setDate(2026, 12, 8)->startOfDay());
+        $december[] = $this->areaShare($this->purchase($this->buyer()));
+        $this->artisan('finance:release-quota-holds')->assertSuccessful();
+        foreach ($december as $share) {
+            $this->assertSame('held', $share->fresh()->status);
+        }
+        $decemberTotal = number_format((float) $december[0]->amount + (float) $december[1]->amount, 2, '.', '');
+        $this->myMoney($dealer, fn (Assert $page) => $page
+            ->where('pending.total', $decemberTotal)->where('pending.count', 2)
+            ->where('not_earned_area.0.month', '2026-11'));
+
+        // The dealer reaches the target on the 15th: December's held shares are paid that day, November's are not.
+        $this->travelTo(now()->setDate(2026, 12, 15)->startOfDay());
+        $own = $this->areaShare($this->purchase($dealer));
+        $this->artisan('finance:release-quota-holds')->assertSuccessful();
+        foreach ([...$december, $own] as $share) {
+            $this->assertContains($share->fresh()->status, ['available', 'maturing']);
+            $this->assertSame(1, DB::table('journal_entries')->where('event_key', 'commission.hold_release.'.$share->id)->count());
+        }
+        foreach ($november as $share) {
+            $this->assertSame('forfeited', $share->fresh()->status);
+            $this->assertSame(0, DB::table('journal_entries')->where('event_key', 'commission.hold_release.'.$share->id)->count());
+        }
+
+        // Every later order of December pays straight in.
+        $this->travelTo(now()->setDate(2026, 12, 16)->startOfDay());
+        $later = $this->areaShare($this->purchase($this->buyer()));
+        $this->assertContains($later->status, ['available', 'maturing']);
+        $this->myMoney($dealer, fn (Assert $page) => $page
+            ->where('pending.total', '0.00')->where('pending.lines', [])
+            ->where('pending.paid', fn ($paid) => collect($paid)->pluck('amount')->sort()->values()->all() === collect([...$december, $own])->map(fn ($share) => (string) $share->amount)->sort()->values()->all())
+            ->where('not_earned_area.0.month', '2026-11')->where('not_earned_area.0.amount', $novemberTotal));
+
+        // Later closes never pay November and never move it twice.
+        $this->travelTo(now()->setDate(2027, 1, 1)->setTime(1, 0));
+        $this->artisan('finance:auto-approve')->assertSuccessful();
+        $this->artisan('finance:auto-approve')->assertSuccessful();
+        foreach ($november as $share) {
+            $this->assertSame('forfeited', $share->fresh()->status);
+            $this->assertSame(1, CommissionAllocation::where('metadata->source_allocation_id', $share->id)->count());
+            $this->assertSame(0, DB::table('journal_entries')->where('event_key', 'commission.hold_release.'.$share->id)->count());
+        }
+        $this->myMoney($dealer, fn (Assert $page) => $page->where('pending.total', '0.00')->where('not_earned_area.0.month', '2026-11'));
+    }
+
     public function test_incentives_and_other_money_are_not_part_of_the_pending_balance(): void
     {
         $dealer = $this->seatedDealer();

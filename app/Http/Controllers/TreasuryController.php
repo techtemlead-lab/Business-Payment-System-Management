@@ -106,14 +106,15 @@ class TreasuryController extends Controller
         abort_unless(in_array($partner->role, ['dealer', 'sub_dealer'], true), 404);
 
         $incomeView = $request->query('view') === 'income';
+        $pending = $incomeView ? null : app(PartnerPendingMoney::class)->for($partner);
 
         return Inertia::render('TreasuryPartner', [
             ...$this->shared($request),
             'partner' => ['id' => $partner->id, 'name' => $partner->name, 'code' => $partner->dealer_code, 'role' => $partner->role, 'area' => OrderMoneyReport::areaOf((object) ['profile' => $partner->getAttribute('profile'), 'district' => $partner->district, 'division' => $partner->division])],
             'summary' => $book->summary($partner),
             'cards' => $book->incomeCards($partner),
-            'pending' => $incomeView ? null : app(PartnerPendingMoney::class)->for($partner),
-            'not_earned_area' => $incomeView ? [] : $book->notEarnedAreaCommission($partner),
+            'pending' => $pending,
+            'not_earned_area' => $pending === null ? [] : PartnerPendingMoney::notReceived($book->notEarnedAreaCommission($partner), $pending['awaiting_close']),
             'view' => $incomeView ? 'income' : 'money',
             'table' => $incomeView ? null : $book->table($request, $partner),
             'income' => $incomeView ? $income->page($request, $partner) : null,
