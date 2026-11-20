@@ -87,13 +87,13 @@ class PublicSiteHeaderAndFooterTest extends TestCase
             ->assertDontSee('ref-footer-contact-link is-address', false);
     }
 
-    public function test_the_footer_has_no_logo_block_or_licence_sentence_but_keeps_the_social_links(): void
+    public function test_the_footer_brand_block_is_for_desktop_only_and_the_social_links_always_stay(): void
     {
-        // Client, 2026-11-20: the heading, logo, company name and licence sentence left the footer; WhatsApp and the other social links stay.
+        // Client, 2026-11-20: the heading, logo, company name and licence sentence show on desktop and are hidden on phones (stylesheet); WhatsApp and the other social links always stay.
         $this->get('/')->assertOk()
-            ->assertDontSee('ref-footer-brand', false)
-            ->assertDontSee('Licensed distributor')
+            ->assertSee('ref-footer-brandblock', false)
             ->assertSee('ref-socials', false);
+        $this->assertStringContainsString('@media(max-width:767px){.ref-footer-brandblock{display:none}}', (string) file_get_contents(resource_path('css/reference-home.css')));
     }
 
     public function test_the_dealer_login_menu_opens_the_public_website(): void

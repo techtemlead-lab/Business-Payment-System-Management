@@ -93,9 +93,8 @@ class SiteSharedFactsTest extends TestCase
     {
         $this->saveAsEditor(['contact_company_title' => 'Madina Herbal House']);
 
-        // The footer no longer repeats the company name (client, 2026-11-20); the top bar and the contact page do.
         $this->get('/')->assertOk()
-            ->assertDontSee('<h3>Madina Herbal House</h3>', false)
+            ->assertSee('<h3>Madina Herbal House</h3>', false)
             ->assertSee('ref-bar-text">Madina Herbal House', false);
         $this->get('/contact')->assertOk()->assertSee('Madina Herbal House');
     }

@@ -4096,3 +4096,6 @@ html[data-theme="dark"] .ref-inner-main .ref-partner-information{background:var(
   .ref-slide-caption b{font-size:18px}
   .locale-bn .ref-slide-caption b{font-size:20px}
 }
+
+/* Footer brand block (heading, logo, name, licence sentence) is for desktop only; phones keep the contact and social links (client, 2026-11-20). */
+@media(max-width:767px){.ref-footer-brandblock{display:none}}
