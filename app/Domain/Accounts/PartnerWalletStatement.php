@@ -33,6 +33,8 @@ final class PartnerWalletStatement
         'manual-payout:' => 'wd_journal_manual_payout',
         'order.account_pay.' => 'order_payment.jr_account_pay',
         'order.account_return.' => 'order_payment.jr_account_return',
+        'order.refund_to_account.' => 'orders_stock.jr_refund_to_account',
+        'opening.collection.' => 'jr_opening_collection',
     ];
 
     /**
@@ -272,6 +274,10 @@ final class PartnerWalletStatement
     {
         $eventKey = (string) $entry->event_key;
         $stored = (string) ($entry->description ?: $eventKey);
+        // The one-time rank prize is stored with the month-closing sentence; it is not a month-end payment, so it is worded from its key.
+        if (preg_match('/^commissions\.settlement\.\d+\.\d+\.(rank_(?:mo|am|sm|me))$/', $eventKey, $match) === 1) {
+            return (string) __('portal.jr_rank_prize', ['kind' => $this->labelOr('portal.settle_kind_'.$match[1], $match[1])]);
+        }
         foreach (self::Sentences as $start => $sentence) {
             if (str_starts_with($eventKey, $start)) {
                 $values = $this->sentenceValues($sentence, $stored);

@@ -55,7 +55,6 @@ export default function RatesTable({ heads, totals }: { heads: Head[]; totals: P
                                             <span className="cp-plain">{t(`head_${head.key}`)}</span>
                                         )}
                                         {!head.is_active && <span className="cp-off">{t('off')}</span>}
-                                        {head.sub_name && <small className="cp-subline">{t('sub_name_line', { name: t(`sub_name_${head.key}`) })}</small>}
                                         {head.destination !== null && <small className="cp-subline">{t('extra_goes_label')}: {t(`dest_${head.destination}`)}</small>}
                                     </td>
                                     <td data-label={t('col_kind')}>{t(`kind_${head.kind}`)}</td>

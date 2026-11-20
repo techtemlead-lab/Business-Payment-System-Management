@@ -79,7 +79,7 @@ final class PartnerIncomeHeads
      */
     public static function label(string $head, ?string $locale = null, ?string $role = null): string
     {
-        $key = in_array($head, ['salary', 'referral'], true) && $role === 'sub_dealer' ? 'head_'.$head.'_sub' : 'head_'.$head;
+        $key = $head === 'salary' && $role === 'sub_dealer' ? 'head_salary_sub' : 'head_'.$head;
 
         return (string) __('cr21_income.'.$key, [], $locale);
     }

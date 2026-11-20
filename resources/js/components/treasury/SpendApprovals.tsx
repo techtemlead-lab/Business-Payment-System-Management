@@ -44,6 +44,7 @@ function ApprovalBox({ row, onClose }: { row: SpendApproval; onClose: () => void
         [translate('funds', 'col_fund'), translate('treasury', `fund_${row.fund_key}`)],
         [translate('funds', 'col_head'), headName(row)],
         [translate('funds', 'col_payee'), row.payee_name],
+        [translate('funds', 'for_title'), Number(row.for_partners) > 0 ? translate('funds', 'for_spend_partners', { count: Number(row.for_partners) }) : translate('funds', 'for_company')],
         [translate('funds', 'col_method'), translate('funds', `method_${row.payment_method}`)],
         [translate('funds', 'col_reference'), row.payment_reference || '—'],
         [translate('treasury', 'col_recorded_by'), row.maker_name],

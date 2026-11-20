@@ -6,12 +6,31 @@ import type { PendingMoney as Pending } from './types';
 export default function PendingMoney({ pending }: { pending?: Pending | null }) {
     const translate = useT();
 
-    if (!pending || (pending.lines.length === 0 && pending.paid.length === 0)) {
+    const rewards = pending?.rewards ?? [];
+    if (!pending || (pending.lines.length === 0 && pending.paid.length === 0 && rewards.length === 0)) {
         return null;
     }
 
     return (
         <section className="mm-requests mm-pending" aria-label={translate('my_money', 'pending_heading')} data-testid="my-money-pending">
+            {rewards.length > 0 && (
+                <div data-testid="my-money-rewards-waiting">
+                    <h2>{translate('my_money', 'rewards_heading')}</h2>
+                    <p>{translate('my_money', 'rewards_intro')}</p>
+                    <ul>
+                        {rewards.map((line) => (
+                            <li key={line.id}>
+                                <div className="mm-request">
+                                    <span>{line.what}</span>
+                                    {line.amount !== null && <strong>{money(line.amount)}</strong>}
+                                    <span className="badge pending">{translate('my_money', line.state === 'set_aside' ? 'status_set_aside' : 'status_pending')}</span>
+                                    <small>{translate('my_money', `reward_reason_${line.reason}`)}</small>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
             {pending.lines.length > 0 && (
                 <>
                     <h2>{translate('my_money', 'pending_heading')}</h2>

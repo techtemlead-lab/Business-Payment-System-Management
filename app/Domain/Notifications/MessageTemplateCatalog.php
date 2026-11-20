@@ -156,7 +156,7 @@ final class MessageTemplateCatalog
         'username' => ['০১৭১২৩৪৫৬৭৮', '01712345678'], 'password' => ['Ab12cd34', 'Ab12cd34'],
         'amount' => ['১২,৫০০', '12,500'], 'number' => ['ORD-1024', 'ORD-1024'], 'status' => ['অনুমোদিত', 'Approved'],
         'reason' => ['কাগজ স্পষ্ট নয়', 'The paper is not clear'], 'outcome' => ['যাচাই হয়েছে', 'verified'],
-        'channel' => ['বিকাশ', 'bKash'], 'topic' => ['পণ্যের দাম', 'Product price'], 'kind' => ['রেফারেল কমিশন', 'Referral commission'],
+        'channel' => ['বিকাশ', 'bKash'], 'topic' => ['পণ্যের দাম', 'Product price'], 'kind' => ['স্টাফ কমিশন', 'Staff commission'],
         'month' => ['নভেম্বর ২০২৬', 'November 2026'], 'courier' => ['সুন্দরবন কুরিয়ার', 'Sundarban Courier'],
         'tracking' => ['SB-55821', 'SB-55821'], 'program' => ['ঈদ পুরস্কার', 'Eid reward'], 'category' => ['কমিশন', 'Commission'],
         'role' => ['ডিলার', 'Dealer'], 'rank' => ['সিলভার', 'Silver'], 'milestone' => ['পাঁচ লাখ টাকা', 'Five lakh taka'],

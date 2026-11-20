@@ -3,8 +3,8 @@
 // Client change requests 2026-11-18 (CR-02): the new partner dashboard.
 return [
     'tab_all' => 'মোট রিপোর্ট',
-    'tab_own' => 'নিজের কেনার আয়',
-    'tab_gen1' => 'রেফারেল আয় (সরাসরি)',
+    'tab_own' => 'ডক্টর অনারারিয়াম',
+    'tab_gen1' => 'স্টাফ কমিশন',
     'tab_gen2' => 'D2D আয় · ২য় প্রজন্ম',
     'tab_team_all' => 'পুরো টিম (রেফারেল + D2D)',
     'tab_rank_bonus' => 'র‍্যাঙ্ক আয় ও ইনসেন্টিভ',

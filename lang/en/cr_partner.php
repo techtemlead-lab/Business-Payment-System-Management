@@ -3,8 +3,8 @@
 // Client change requests 2026-11-18 (CR-02): the new partner dashboard.
 return [
     'tab_all' => 'Total report',
-    'tab_own' => 'Own purchase income',
-    'tab_gen1' => 'Referral income (direct)',
+    'tab_own' => 'Doctor Honorarium',
+    'tab_gen1' => 'Staff commission',
     'tab_gen2' => 'D2D income · 2nd generation',
     'tab_team_all' => 'Whole team (referral + D2D)',
     'tab_rank_bonus' => 'Rank income and incentive',

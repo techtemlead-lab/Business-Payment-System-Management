@@ -64,7 +64,7 @@ return [
 
     // Commission names
     'head_own_dealer_cashback' => 'Doctor Honorarium',
-    'head_direct_referral' => 'Direct referral',
+    'head_direct_referral' => 'Staff commission',
     'head_d2d_multitier' => 'Team income (2nd and 3rd step)',
     'head_area_dealer_pool' => 'Area dealer income',
     'head_dealer_monthly_salary' => 'Dealer Acquisition Target Bonus',
@@ -75,8 +75,6 @@ return [
     'head_additional_rank' => 'Sub-dealer extra',
     'head_sub_dealer_salary' => 'Sub-dealer salary',
     'head_sub_dealer_tour' => 'Tour',
-    'sub_name_direct_referral' => 'Staff commission',
-    'sub_name_line' => 'For a sub-dealer: :name',
     'subblock_title' => 'Sub-dealer only',
     'subblock_lead' => 'These three apply only to a sub-dealer\'s purchase. Every commission above applies to a sub-dealer\'s purchase the same as to a dealer\'s.',
     'extra_goes_label' => 'This part now goes to',
@@ -90,7 +88,7 @@ return [
 
     // Kinds
     'kind_cashback' => 'Back on own purchase',
-    'kind_referral' => 'Referral',
+    'kind_referral' => 'Staff commission',
     'kind_d2d' => 'Team income',
     'kind_area' => 'Area income',
     'kind_salary' => 'Monthly salary',
@@ -202,7 +200,7 @@ return [
 
     'cond_area_title' => 'Area dealer income',
     'cond_area_text' => 'When an area dealer takes a division, district, upazila or union seat, the monthly target starts at: division :division_monthly_quota, district :district_monthly_quota, upazila :upazila_monthly_quota, union :union_monthly_quota. A share that is held back :held_text.',
-    'cond_salary_title' => 'Dealer monthly salary',
+    'cond_salary_title' => 'Dealer Acquisition Target Bonus',
     'cond_salary_text' => 'A dealer who buys at least :min_monthly_volume in the month gets a part of the salary fund. Everyone who qualifies gets an equal part.',
     'cond_rank_join_title' => 'What it takes to get a rank',
     'cond_rank_join_text' => 'MO: your own total purchase since joining must be :mo_target. AM: you need :am_count active dealers of MO rank or above within :qualification_depth steps of your team. SM: you need :sm_count of AM or above. ME: you need :me_count of SM or above.',

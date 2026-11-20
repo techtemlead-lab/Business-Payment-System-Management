@@ -4,6 +4,7 @@ import { useT } from '../../shared/i18n/t';
 import { useReasonField } from '../../shared/reasonFields';
 import { randomUuid } from '../../shared/randomUuid';
 import SearchSelect from '../SearchSelect';
+import SpendRecipients, { type SpendFor } from './SpendRecipients';
 import { businessTodayIso } from '../../business-date';
 import type { FundCardData } from './FundCard';
 
@@ -25,7 +26,7 @@ export default function FundSpendForm({ card, spend, onClose }: { card: FundCard
     const translate = useT();
     const headName = useHeadName();
     const spendNote = useReasonField('money.fund_spend_note');
-    const form = useForm<Row>({ fund: card.key, expense_head_id: '', amount: '', spent_on: businessTodayIso(), payee: '', payment_method: '', reference: '', note: '', receipt: null, request_key: randomUuid() });
+    const form = useForm<Row>({ fund: card.key, expense_head_id: '', amount: '', spent_on: businessTodayIso(), payee: '', payment_method: '', reference: '', note: '', receipt: null, request_key: randomUuid(), for: { mode: 'company', partner_ids: [], split: 'equal', amounts: {} } as SpendFor });
     const usableHeads = spend.heads.filter((head) => head.is_active !== false && (card.key !== 'tour' || head.for_tours));
     const submit = (event: React.FormEvent) => {
         event.preventDefault();
@@ -48,6 +49,7 @@ export default function FundSpendForm({ card, spend, onClose }: { card: FundCard
                 </label>
                 <label>{translate('funds', 'fld_amount')}<input required inputMode="decimal" value={form.data.amount} onChange={(event) => form.setData('amount', event.target.value)} /></label>
                 <label>{translate('funds', 'fld_date')}<DateInput required value={form.data.spent_on} onChange={(event) => form.setData('spent_on', event.target.value)} /></label>
+                <SpendRecipients value={form.data.for as SpendFor} onChange={(next) => form.setData('for', next)} amount={String(form.data.amount ?? '')} />
                 <label>{translate('funds', 'fld_payee')}<input required maxLength={150} value={form.data.payee} onChange={(event) => form.setData('payee', event.target.value)} /></label>
                 <label>{translate('funds', 'fld_method')}
                     <select required value={form.data.payment_method} onChange={(event) => form.setData('payment_method', event.target.value)}>

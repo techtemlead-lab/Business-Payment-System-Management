@@ -72,4 +72,23 @@ export type PendingLine = { id: string; head: string; what: string; month: strin
 export type PaidLine = { id: string; head: string; what: string; month: string; amount: string; order_number: string | null };
 
 /** Money that waits for the month's target or the month-end close. It is not in the usable balance. */
-export type PendingMoney = { total: string; count: number; has_estimate: boolean; lines: PendingLine[]; paid: PaidLine[] };
+export type PendingMoney = { total: string; count: number; has_estimate: boolean; lines: PendingLine[]; paid: PaidLine[]; rewards?: RewardWaitingLine[] };
+
+/** What the company spent on this partner (not a wallet credit). */
+/** `amount` is null when the company paid directly for many members and this partner has no amount of their own. */
+export type CompanyBenefitLine = { id: string; date: string; what: string; purpose: string; amount: string | null; status: 'paid_by_office' };
+
+export type CompanyBenefits = { total: string; count: number; lines: CompanyBenefitLine[] };
+
+/** A prize the partner has earned (rank prize, bike, car) that is not in the balance yet. */
+export type RewardWaitingLine = {
+    id: string;
+    head: string;
+    what: string;
+    /** Null when no honest figure exists before the month closes (the rank royalty). */
+    amount: string | null;
+    reason: 'rank_prize_office' | 'rank_prize_keep' | 'prize_office' | 'prize_review' | 'royalty_month_end' | 'tour_fund';
+    /** "pending": earned or coming, not in the balance. "set_aside": the partner's own fund, spent by the office. */
+    state: 'pending' | 'set_aside';
+    since: string | null;
+};

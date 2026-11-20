@@ -27,7 +27,6 @@ export interface Head {
     /** Shared with the dealer, or paid only on a sub-dealer's purchase ("সাব-ডিলার আলাদা"). */
     block: 'shared' | 'sub_only';
     /** A sub-dealer's purchase calls this commission by another name. */
-    sub_name: boolean;
     /** Where the sub-dealer extra part goes (additional_rank only). */
     destination: 'rank_fund' | 'extra_fund' | null;
 }

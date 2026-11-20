@@ -253,13 +253,14 @@ class SubDealerExtraFundTest extends TestCase
 
         $this->assertSame(['additional_rank', 'sub_dealer_salary', 'sub_dealer_tour'], $heads->where('block', 'sub_only')->pluck('key')->all());
         $this->assertCount(9, $heads->where('block', 'shared'));
-        $this->assertSame(['direct_referral'], $heads->where('sub_name', true)->pluck('key')->all());
+        $this->assertArrayNotHasKey('sub_name', $heads->first());
         $bn = require lang_path('bn/commission_page.php');
         $en = require lang_path('en/commission_page.php');
         $this->assertSame('ডক্টর অনারারিয়াম', $bn['head_own_dealer_cashback']);
         $this->assertSame('Doctor Honorarium', $en['head_own_dealer_cashback']);
         $this->assertSame('ডিলার একুইজিশন টার্গেট বোনাস', $bn['head_dealer_monthly_salary']);
-        $this->assertSame('স্টাফ কমিশন', $bn['sub_name_direct_referral']);
+        $this->assertSame('স্টাফ কমিশন', $bn['head_direct_referral']);
+        $this->assertArrayNotHasKey('sub_name_direct_referral', $bn);
         $this->assertSame('সাব-ডিলার আলাদা', $bn['subblock_title']);
         $this->assertSame('সাব-ডিলার এক্সট্রা', $bn['head_additional_rank']);
     }
@@ -285,13 +286,13 @@ class SubDealerExtraFundTest extends TestCase
         $this->assertSame('ডক্টর অনারারিয়াম', $bn['head_own']);
         $this->assertSame('ডিলার একুইজিশন টার্গেট বোনাস', $bn['head_salary']);
         $this->assertSame('সাব-ডিলার স্যালারি', $bn['head_salary_sub']);
-        $this->assertSame('স্টাফ কমিশন', $bn['head_referral_sub']);
+        $this->assertSame('স্টাফ কমিশন', $bn['head_referral']);
 
         app()->setLocale('bn');
         $this->assertSame('ডিলার একুইজিশন টার্গেট বোনাস', PartnerIncomeHeads::label('salary', null, 'dealer'));
         $this->assertSame('সাব-ডিলার স্যালারি', PartnerIncomeHeads::label('salary', null, 'sub_dealer'));
         $this->assertSame('স্টাফ কমিশন', PartnerIncomeHeads::label('referral', null, 'sub_dealer'));
-        $this->assertSame('রেফারেল আয় (সরাসরি)', PartnerIncomeHeads::label('referral', null, 'dealer'));
+        $this->assertSame('স্টাফ কমিশন', PartnerIncomeHeads::label('referral', null, 'dealer'));
         $this->assertSame('ডক্টর অনারারিয়াম', PartnerIncomeHeads::label('own', null, 'sub_dealer'));
     }
 }

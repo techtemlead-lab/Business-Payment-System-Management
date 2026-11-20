@@ -64,7 +64,7 @@ class EmployeesSubDealerLocaleTest extends TestCase
                 ->component('portals/sadmin/Dashboard')
                 ->where('section', 'sub-dealers')
                 ->where('translations.portal.sd_heading', 'সাব-ডিলারের কাজ ও রেকর্ড')
-                ->where('translations.portal.sd_salary_title', 'নিশ্চিত সাব-ডিলার মাসিক বেতন · ৩%')
+                ->where('translations.portal.sd_salary_title', 'নিশ্চিত সাব-ডিলার স্যালারি · ৩%')
                 ->where('translations.portal.sd_policy_rule', 'নিয়ম:'));
     }
 

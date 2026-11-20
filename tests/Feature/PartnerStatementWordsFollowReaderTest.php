@@ -73,10 +73,10 @@ class PartnerStatementWordsFollowReaderTest extends TestCase
         $this->journal($english, 'commissions.settlement.12.'.$english->id.'.rank_am', $storedInEnglish);
 
         $this->assertSame([
-            __('portal.jr_commission_settlement', ['kind' => __('portal.settle_kind_rank_mo', [], 'bn'), 'month' => '2026-11'], 'bn'),
+            __('portal.jr_rank_prize', ['kind' => __('portal.settle_kind_rank_mo', [], 'bn')], 'bn'),
         ], $this->wordsSeenBy($bangla));
         $this->assertSame([
-            __('portal.jr_commission_settlement', ['kind' => __('portal.settle_kind_rank_am', [], 'en'), 'month' => '2026-11'], 'en'),
+            __('portal.jr_rank_prize', ['kind' => __('portal.settle_kind_rank_am', [], 'en')], 'en'),
         ], $this->wordsSeenBy($english));
         $this->assertStringNotContainsString('portal.settle_kind_', $this->wordsSeenBy($bangla)[0]);
     }

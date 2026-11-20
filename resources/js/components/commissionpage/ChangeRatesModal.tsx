@@ -121,7 +121,6 @@ export default function ChangeRatesModal({ page, startWith, onClose }: { page: C
                                             <label htmlFor={inputId}>{t(`head_${head.key}`)}</label>
                                         )}
                                         <small>{t(SUB_DEALER_ONLY.includes(head.key) ? 'only_sub_dealer' : 'both_buyers')}</small>
-                                        {head.sub_name && <small>{t('sub_name_line', { name: t(`sub_name_${head.key}`) })}</small>}
                                     </div>
                                     <div className="cp-field">
                                         <input
