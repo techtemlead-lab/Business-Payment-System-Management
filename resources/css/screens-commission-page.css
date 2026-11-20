@@ -131,6 +131,19 @@
 .app-shell .cp-calc-table .cp-calc-part td{font-size:var(--ds-fs-base);color:var(--ds-text-2)}
 .app-shell .cp-calc-table .cp-calc-part .cp-plain{padding-left:44px}
 
+/* The sub-dealer-only block, a second name under a commission, and the extra-fund picker. */
+.app-shell .cp-block-row th{padding:14px var(--ds-s-4) 10px;text-align:left;background:var(--ds-surface-2);border-top:2px solid var(--ds-line);border-bottom:1px solid var(--ds-line)}
+.app-shell .cp-block-row th span{display:block;font-size:var(--ds-fs-md);font-weight:700;color:var(--ds-text)}
+.app-shell .cp-block-row th small{display:block;margin-top:2px;font-size:var(--ds-fs-base);font-weight:500;line-height:1.5;color:var(--ds-text-muted)}
+.app-shell .cp-subline{display:block;margin:2px 0 0 26px;font-size:var(--ds-fs-base);font-weight:500;line-height:1.5;color:var(--ds-text-muted)}
+.app-shell .cp-edit-block{display:flex;flex-direction:column;gap:2px;padding:var(--ds-s-3) var(--ds-s-4);background:var(--ds-surface-2);border-bottom:1px solid var(--ds-line);border-top:2px solid var(--ds-line)}
+.app-shell .cp-edit-block b{font-size:var(--ds-fs-md)}
+.app-shell .cp-edit-block small{font-size:var(--ds-fs-base);line-height:1.5;color:var(--ds-text-muted)}
+.app-shell .cp-edit-dest{display:flex;flex-direction:column;gap:var(--ds-s-2);margin:var(--ds-s-2) 0 var(--ds-s-1) 26px;padding:var(--ds-s-3) var(--ds-s-4);background:var(--ds-surface-2);border-radius:var(--ds-r-lg)}
+.app-shell .cp-edit-dest label{font-size:var(--ds-fs-md);font-weight:600}
+.app-shell .cp-edit-dest select{min-height:44px}
+.app-shell .cp-edit-dest small{font-size:var(--ds-fs-base);line-height:1.5;color:var(--ds-text-muted)}
+
 /* Phone: the table becomes one card per commission. */
 @media (max-width:720px){
     .app-shell .cp-card{padding:var(--ds-s-4)}
@@ -153,6 +166,10 @@
     .app-shell .cp-table tr.cp-parts-row{padding:0;border:0;background:transparent}
     .app-shell .cp-calc-table .cp-calc-part{margin-left:var(--ds-s-4);background:var(--ds-surface)}
     .app-shell .cp-calc-table .cp-calc-part .cp-plain{padding-left:0}
+    .app-shell .cp-table tr.cp-block-row{padding:0;border:0;background:transparent;margin:var(--ds-s-4) 0 var(--ds-s-2)}
+    .app-shell .cp-block-row th{display:block;border:0;padding:var(--ds-s-2) 0;background:transparent}
+    .app-shell .cp-subline{margin-left:0}
+    .app-shell .cp-edit-dest{margin-left:0}
     .app-shell .cp-fund-grid,.app-shell .cp-two,.app-shell .cp-legend,.app-shell .cp-totals{grid-template-columns:1fr}
     .app-shell .cp-edit-row{flex-wrap:wrap}
     .app-shell .cp-num{grid-template-columns:1fr}

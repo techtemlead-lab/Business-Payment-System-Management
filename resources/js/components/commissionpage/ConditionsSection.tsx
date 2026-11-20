@@ -43,6 +43,10 @@ export function conditionText(condition: Condition, t: Translate): string {
         replace.cool_text = Number(cooling.value ?? 0) === 0 ? t('cool_none') : t('cool_days', { days: localizeDigits(String(Number(cooling.value))) });
     }
 
+    if (condition.facts?.destination) {
+        replace.dest_text = t(`dest_${condition.facts.destination}`);
+    }
+
     return t(`cond_${condition.id}_text`, replace);
 }
 

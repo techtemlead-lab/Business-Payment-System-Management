@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Check, ChevronDown } from 'lucide-react';
 import { useT } from '../../shared/i18n/t';
+import { money } from '../UI';
 import { localizeDigits } from '../../business-date';
 import { showPercent, type Head, type PageTotals } from './shared';
 
@@ -27,13 +28,22 @@ export default function RatesTable({ heads, totals }: { heads: Head[]; totals: P
                     </tr>
                 </thead>
                 <tbody>
-                    {heads.map((head) => {
+                    {heads.map((head, index) => {
                         const isOpen = open.includes(head.key);
+                        const startsSubBlock = head.block === 'sub_only' && heads[index - 1]?.block !== 'sub_only';
                         const hasParts = head.children.length > 0;
                         const panelId = `cp-parts-${head.key}`;
 
                         return (
                             <React.Fragment key={head.key}>
+                                {startsSubBlock && (
+                                    <tr className="cp-block-row">
+                                        <th scope="rowgroup" colSpan={4}>
+                                            <span>{t('subblock_title')}</span>
+                                            <small>{t('subblock_lead')}</small>
+                                        </th>
+                                    </tr>
+                                )}
                                 <tr className={isOpen ? 'is-open' : undefined}>
                                     <td data-label={t('col_name')} className="cp-name">
                                         {hasParts ? (
@@ -46,6 +56,8 @@ export default function RatesTable({ heads, totals }: { heads: Head[]; totals: P
                                             <span className="cp-plain">{t(`head_${head.key}`)}</span>
                                         )}
                                         {!head.is_active && <span className="cp-off">{t('off')}</span>}
+                                        {head.sub_name && <small className="cp-subline">{t('sub_name_line', { name: t(`sub_name_${head.key}`) })}</small>}
+                                        {head.destination !== null && <small className="cp-subline">{t('extra_goes_label')}: {t(`dest_${head.destination}`)}</small>}
                                     </td>
                                     <td data-label={t('col_kind')}>{t(`kind_${head.kind}`)}</td>
                                     <td data-label={t('col_dealer')} className="is-num">
@@ -62,14 +74,18 @@ export default function RatesTable({ heads, totals }: { heads: Head[]; totals: P
                                                     {head.children.map((part) => (
                                                         <li key={part.key}>
                                                             <span>{t(`part_${head.key}_${part.key}`)}</span>
-                                                            <b>{showPercent(part.pct)}</b>
+                                                            <b>{part.unit === 'money' ? money(part.pct) : showPercent(part.pct)}</b>
                                                         </li>
                                                     ))}
                                                 </ul>
-                                                <p className={`cp-parts-sum${head.children_match ? ' is-ok' : ' is-bad'}`}>
-                                                    {head.children_match && <Check size={16} aria-hidden="true" />}
-                                                    {t(head.children_match ? 'parts_sum_ok' : 'parts_sum_bad', { sum: localizeDigits(String(parseFloat(head.children_total ?? '0'))), total: localizeDigits(String(parseFloat(head.percentage))) })}
-                                                </p>
+                                                {head.children_total !== null ? (
+                                                    <p className={`cp-parts-sum${head.children_match ? ' is-ok' : ' is-bad'}`}>
+                                                        {head.children_match && <Check size={16} aria-hidden="true" />}
+                                                        {t(head.children_match ? 'parts_sum_ok' : 'parts_sum_bad', { sum: localizeDigits(String(parseFloat(head.children_total))), total: localizeDigits(String(parseFloat(head.percentage))) })}
+                                                    </p>
+                                                ) : (
+                                                    <p className="cp-parts-sum">{t('parts_money_note')}</p>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>

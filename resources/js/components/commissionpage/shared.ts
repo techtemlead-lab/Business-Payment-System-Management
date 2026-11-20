@@ -3,8 +3,11 @@ import { localizeDigits } from '../../business-date';
 /** One part of a commission that is split (for example the area share of one level). */
 export interface HeadPart {
     key: string;
-    /** The rule parameter that holds the part's percent; null when the part is worked out from the others. */
+    /** The rule parameter that holds the part's value; null when the part is worked out from the others. */
     param: string | null;
+    /** A percent of the purchase, or a prize amount in taka (rank prizes), which is not a split of the head's percent. */
+    unit: 'percent' | 'money';
+    /** The percent, or the taka when unit is money. */
     pct: string;
 }
 
@@ -21,6 +24,12 @@ export interface Head {
     children: HeadPart[];
     children_total: string | null;
     children_match: boolean;
+    /** Shared with the dealer, or paid only on a sub-dealer's purchase ("সাব-ডিলার আলাদা"). */
+    block: 'shared' | 'sub_only';
+    /** A sub-dealer's purchase calls this commission by another name. */
+    sub_name: boolean;
+    /** Where the sub-dealer extra part goes (additional_rank only). */
+    destination: 'rank_fund' | 'extra_fund' | null;
 }
 
 export type BuyerType = 'dealer' | 'sub_dealer';
@@ -37,6 +46,7 @@ export interface Condition {
     rule: string;
     applies_to: BuyerType[];
     version: number;
+    facts: { destination?: 'rank_fund' | 'extra_fund' };
     numbers: ConditionNumber[];
 }
 
@@ -60,6 +70,8 @@ export interface CommissionPageData {
     conditions: Condition[];
     workflow: PageWorkflow;
 }
+
+export const DESTINATIONS = ['rank_fund', 'extra_fund'] as const;
 
 /** Heads paid only on a sub-dealer's own purchase. */
 export const SUB_DEALER_ONLY = ['additional_rank', 'sub_dealer_salary', 'sub_dealer_tour'];

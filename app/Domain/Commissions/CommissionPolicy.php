@@ -25,6 +25,15 @@ final class CommissionPolicy
     /** Sales targets: a target of zero would make every partner qualify, so it must stay above zero. */
     private const TargetParameters = ['bike_target', 'car_target', 'mo_target'];
 
+    /**
+     * Where the sub-dealer "extra" percent (rule additional_rank) goes: 'rank_fund' is the rank reward fund it has
+     * always gone to; 'extra_fund' is the company fund "Sub-dealer extra". An order keeps the rules it was captured
+     * with, so a change here reaches new orders only, and an order captured before this setting existed has none.
+     */
+    public const ExtraDestinationParameter = 'destination';
+
+    public const ExtraDestinations = ['rank_fund', 'extra_fund'];
+
     /** Months a held area share may wait before it goes to the company fund (0 = never). */
     private const HeldMonthsParameter = 'held_share_months';
 
@@ -61,7 +70,7 @@ final class CommissionPolicy
             'rank_incentive' => ['incentive', 'Rank incentive reserve', '2.00', ['mo_bonus' => '5000.00', 'am_bonus' => '50000.00', 'sm_bonus' => '250000.00', 'me_bonus' => '300000.00']],
             'company_marketing' => ['marketing', 'Marketing reserve', '2.00', []],
             'car_bike_incentive' => ['rewards', 'Car and motorcycle reserve', '2.00', ['bike_target' => '5000000.00', 'bike_leg_cap' => '800000.00', 'car_target' => '250000000.00', 'car_leg_cap' => '20000000.00', 'bike_award_amount' => '300000.00', 'car_award_amount' => null, 'bike_pool_share_pct' => '50.00']],
-            'additional_rank' => ['sub_dealer', 'Sub-dealer additional rank reserve', '4.00', []],
+            'additional_rank' => ['sub_dealer', 'Sub-dealer additional rank reserve', '4.00', ['destination' => 'rank_fund']],
             'sub_dealer_salary' => ['sub_dealer', 'Sub-dealer monthly salary', '3.00', []],
             'sub_dealer_tour' => ['sub_dealer', 'Sub-dealer tour reserve', '3.00', []],
             'commission_cooling_off' => ['operations', 'Commission cooling-off', '0.00', ['cooling_off_days' => 0]],
@@ -321,6 +330,10 @@ final class CommissionPolicy
                     if ($name === 'dynamic_compression') {
                         if (! is_bool($value)) {
                             throw new InvalidArgumentException(__('portal.err_policy_compression_bool'));
+                        }
+                    } elseif ($name === self::ExtraDestinationParameter) {
+                        if (! in_array($value, self::ExtraDestinations, true)) {
+                            throw new InvalidArgumentException(__('commission_page.err_extra_destination'));
                         }
                     } elseif (in_array($name, self::AwardAmountParameters, true) && ($value === null || $value === '')) {
                         continue;

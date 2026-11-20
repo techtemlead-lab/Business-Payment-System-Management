@@ -23,6 +23,9 @@ final class CommissionPosting
     /** One row holding the commission nobody received because staff chose no commission. */
     public const NoCommissionCategory = 'no_commission_to_company';
 
+    /** The sub-dealer extra percent when it goes to the company fund "Sub-dealer extra" (see CompanyFunds). */
+    public const SubDealerExtraCategory = 'sub_dealer_extra_fund';
+
     public function __construct(
         private CommissionPolicy $policies,
         private CommissionWallet $wallets,
@@ -540,7 +543,9 @@ final class CommissionPosting
             $add('car_bike_incentive_fund', 'car_bike_incentive', null, 'pending', $poolRate->decimal(), null, ['vehicle_pool' => $pool]);
         }
         if ($type === 'sub_dealer') {
-            $add('additional_rank_pool', 'additional_rank');
+            // The extra percent goes to the rank reward fund unless the rules this order was captured with say otherwise.
+            $extraToFund = ($rules['additional_rank']['parameters'][CommissionPolicy::ExtraDestinationParameter] ?? 'rank_fund') === 'extra_fund';
+            $add($extraToFund ? self::SubDealerExtraCategory : 'additional_rank_pool', 'additional_rank');
             $add('sub_dealer_salary', 'sub_dealer_salary', $buyer->id);
             $add('sub_dealer_tour', 'sub_dealer_tour', $buyer->id, 'reserved');
         }

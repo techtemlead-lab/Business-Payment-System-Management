@@ -7,7 +7,7 @@ import { useReasonField } from '../../shared/reasonFields';
 import { localizeDigits } from '../../business-date';
 import BuyerSwitch from './BuyerSwitch';
 import {
-    SUB_DEALER_ONLY, fromBasisPoints, shareForBikePart, toBasisPoints, showPercent,
+    DESTINATIONS, SUB_DEALER_ONLY, fromBasisPoints, shareForBikePart, toBasisPoints, showPercent,
     type BuyerType, type CommissionPageData, type Head,
 } from './shared';
 
@@ -15,13 +15,17 @@ import {
 interface RowDraft {
     pct: string;
     parts: Record<string, string>;
+    /** Where the sub-dealer extra part goes; empty for every other commission. */
+    destination: string;
 }
+
+const MONEY_TEXT = /^\d{1,11}(\.\d{1,2})?$/;
 
 type Drafts = Record<string, RowDraft>;
 
 const startDrafts = (heads: Head[]): Drafts => Object.fromEntries(heads.map((head) => [
     head.key,
-    { pct: head.percentage, parts: Object.fromEntries(head.children.map((part) => [part.key, part.pct])) },
+    { pct: head.percentage, parts: Object.fromEntries(head.children.map((part) => [part.key, part.pct])), destination: head.destination ?? '' },
 ]));
 
 /** Everything wrong with one row, as plain-language keys the modal turns into words. */
@@ -30,10 +34,14 @@ function rowProblems(head: Head, draft: RowDraft): { key: string; replace?: Reco
     if (total === null) {
         return [{ key: 'err_percent' }];
     }
-    if (head.children.length === 0) {
+    if (head.children.some((part) => part.unit === 'money' && !MONEY_TEXT.test((draft.parts[part.key] ?? '').trim()))) {
+        return [{ key: 'err_number' }];
+    }
+    const percentParts = head.children.filter((part) => part.unit === 'percent');
+    if (percentParts.length === 0) {
         return [];
     }
-    const parts = head.children.map((part) => toBasisPoints(part.param === null ? '0' : draft.parts[part.key] ?? ''));
+    const parts = percentParts.map((part) => toBasisPoints(part.param === null ? '0' : draft.parts[part.key] ?? ''));
     if (parts.some((value) => value === null)) {
         return [{ key: 'err_percent' }];
     }
@@ -98,6 +106,13 @@ export default function ChangeRatesModal({ page, startWith, onClose }: { page: C
                 if (part.param === null) {
                     continue;
                 }
+                if (part.unit === 'money') {
+                    const typed = (draft.parts[part.key] ?? '').trim();
+                    if (Number(typed) !== Number(part.pct)) {
+                        parameters[part.param] = typed;
+                    }
+                    continue;
+                }
                 if (head.key === 'car_bike_incentive') {
                     // The saved value is the bike's share of the fund, not the bike's percent of the order.
                     const bike = toBasisPoints(draft.parts.bike) ?? 0;
@@ -111,6 +126,9 @@ export default function ChangeRatesModal({ page, startWith, onClose }: { page: C
                 if (next !== toBasisPoints(part.pct)) {
                     parameters[part.param] = fromBasisPoints(next);
                 }
+            }
+            if (head.key === 'additional_rank' && draft.destination !== (head.destination ?? '')) {
+                parameters.destination = draft.destination;
             }
             if (Object.keys(parameters).length > 0) {
                 entry.parameters = parameters;
@@ -127,6 +145,7 @@ export default function ChangeRatesModal({ page, startWith, onClose }: { page: C
 
     const setPct = (key: string, value: string) => setDrafts((current) => ({ ...current, [key]: { ...current[key], pct: value } }));
     const setPart = (key: string, part: string, value: string) => setDrafts((current) => ({ ...current, [key]: { ...current[key], parts: { ...current[key].parts, [part]: value } } }));
+    const setDestination = (key: string, value: string) => setDrafts((current) => ({ ...current, [key]: { ...current[key], destination: value } }));
     const toggle = (key: string) => setOpen((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
 
     const save = () => {
@@ -168,8 +187,9 @@ export default function ChangeRatesModal({ page, startWith, onClose }: { page: C
                 {mode === 'sub_dealer' && <p className="cp-hint">{t('shared_rates_note')}</p>}
 
                 <ul className="cp-edit-list">
-                    {shown.map((head) => {
+                    {shown.map((head, index) => {
                         const draft = drafts[head.key];
+                        const startsSubBlock = head.block === 'sub_only' && shown[index - 1]?.block !== 'sub_only';
                         const list = problems[head.key];
                         const isOpen = open.includes(head.key);
                         const inputId = `cp-pct-${head.key}`;
@@ -177,7 +197,14 @@ export default function ChangeRatesModal({ page, startWith, onClose }: { page: C
                         const showError = list.length > 0 && (tried || toBasisPoints(draft.pct) !== toBasisPoints(head.percentage) || head.children.some((part) => (draft.parts[part.key] ?? '') !== part.pct));
 
                         return (
-                            <li key={head.key} className={`cp-edit-item${showError ? ' has-error' : ''}`}>
+                            <React.Fragment key={head.key}>
+                            {startsSubBlock && (
+                                <li className="cp-edit-block">
+                                    <b>{t('subblock_title')}</b>
+                                    <small>{t('subblock_lead')}</small>
+                                </li>
+                            )}
+                            <li className={`cp-edit-item${showError ? ' has-error' : ''}`}>
                                 <div className="cp-edit-row">
                                     <div className="cp-edit-name">
                                         {head.children.length > 0 ? (
@@ -189,6 +216,7 @@ export default function ChangeRatesModal({ page, startWith, onClose }: { page: C
                                             <label htmlFor={inputId}>{t(`head_${head.key}`)}</label>
                                         )}
                                         <small>{t(SUB_DEALER_ONLY.includes(head.key) ? 'only_sub_dealer' : 'both_buyers')}</small>
+                                        {head.sub_name && <small>{t('sub_name_line', { name: t(`sub_name_${head.key}`) })}</small>}
                                     </div>
                                     <div className="cp-field">
                                         <input
@@ -227,12 +255,12 @@ export default function ChangeRatesModal({ page, startWith, onClose }: { page: C
                                                             value={derived ? fromBasisPoints(Math.max(0, total - bike)) : draft.parts[part.key]}
                                                             onChange={(event) => setPart(head.key, part.key, event.target.value)}
                                                         />
-                                                        <span aria-hidden="true">%</span>
+                                                        <span aria-hidden="true">{part.unit === 'money' ? '৳' : '%'}</span>
                                                     </div>
                                                 </div>
                                             );
                                         })}
-                                        {head.key !== 'car_bike_incentive' && list.length === 0 && (
+                                        {head.key !== 'car_bike_incentive' && head.children_total !== null && list.length === 0 && (
                                             <p className="cp-parts-sum is-ok">
                                                 {t('parts_sum_now', {
                                                     sum: localizeDigits(String(parseFloat(fromBasisPoints(head.children.reduce((all, part) => all + (toBasisPoints(draft.parts[part.key] ?? '') ?? 0), 0))))),
@@ -242,8 +270,18 @@ export default function ChangeRatesModal({ page, startWith, onClose }: { page: C
                                         )}
                                     </div>
                                 )}
+                                {head.destination !== null && (
+                                    <div className="cp-edit-dest">
+                                        <label htmlFor="cp-dest-extra">{t('dest_pick')}</label>
+                                        <select id="cp-dest-extra" value={draft.destination} onChange={(event) => setDestination(head.key, event.target.value)}>
+                                            {DESTINATIONS.map((option) => <option key={option} value={option}>{t(`dest_${option}`)}</option>)}
+                                        </select>
+                                        <small>{t('dest_note')}</small>
+                                    </div>
+                                )}
                                 {showError && <p className="cp-error" id={errorId} role="alert">{errorText(list)}</p>}
                             </li>
+                            </React.Fragment>
                         );
                     })}
                 </ul>

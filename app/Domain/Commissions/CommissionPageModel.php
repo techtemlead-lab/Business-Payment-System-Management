@@ -27,6 +27,9 @@ final class CommissionPageModel
     /** Heads paid only on a sub-dealer's own purchase. */
     public const SubDealerKeys = ['additional_rank', 'sub_dealer_salary', 'sub_dealer_tour'];
 
+    /** Heads a sub-dealer's purchase names differently from a dealer's (names only; the engine key is the same). */
+    public const SubDealerNames = ['direct_referral'];
+
     /**
      * Heads that are split into parts. `param` is the rule parameter that holds the part's percent;
      * the parts must add up to the head's percent (CommissionPolicy::validateSchedule()).
@@ -131,7 +134,9 @@ final class CommissionPageModel
             $isSubDealerOnly = in_array($key, self::SubDealerKeys, true);
             $effective = CommissionPolicy::rate($rules, $key)->decimal();
             $children = $this->children($key, $rules);
-            $childrenTotal = array_sum(array_map(fn (array $child): int => Percentage::from($child['pct'])->basisPoints, $children));
+            // Prize amounts listed under a head (rank prizes) are not a split of its percent, so they are not summed.
+            $percentParts = array_values(array_filter($children, fn (array $child): bool => $child['unit'] === 'percent'));
+            $childrenTotal = array_sum(array_map(fn (array $child): int => Percentage::from($child['pct'])->basisPoints, $percentParts));
             $heads[] = [
                 'key' => $key,
                 'kind' => (string) $rule['category'],
@@ -142,8 +147,12 @@ final class CommissionPageModel
                 'is_active' => (bool) $rule['is_active'],
                 'version' => (int) $rule['version'],
                 'children' => $children,
-                'children_total' => $children === [] ? null : Percentage::fromBasisPoints($childrenTotal)->decimal(),
-                'children_match' => $children === [] || $childrenTotal === Percentage::from((string) $rule['percentage'])->basisPoints,
+                'children_total' => $percentParts === [] ? null : Percentage::fromBasisPoints($childrenTotal)->decimal(),
+                'children_match' => $percentParts === [] || $childrenTotal === Percentage::from((string) $rule['percentage'])->basisPoints,
+                'block' => $isSubDealerOnly ? 'sub_only' : 'shared',
+                // The name a sub-dealer's purchase calls this commission, when it differs from the dealer's.
+                'sub_name' => in_array($key, self::SubDealerNames, true),
+                'destination' => $key === 'additional_rank' ? $this->extraDestination($rules) : null,
             ];
         }
 
@@ -152,7 +161,7 @@ final class CommissionPageModel
 
     /**
      * @param  array<string, array<string, mixed>>  $rules
-     * @return list<array{key: string, param: ?string, pct: string}>
+     * @return list<array{key: string, param: ?string, unit: string, pct: string}>  pct holds the percent, or the taka for a money part
      */
     private function children(string $key, array $rules): array
     {
@@ -160,7 +169,7 @@ final class CommissionPageModel
             $parameters = $rules[$key]['parameters'];
 
             return array_map(fn (array $part): array => [
-                'key' => $part['key'], 'param' => $part['param'],
+                'key' => $part['key'], 'param' => $part['param'], 'unit' => 'percent',
                 'pct' => Percentage::from((string) $parameters[$part['param']])->decimal(),
             ], self::Splits[$key]);
         }
@@ -169,9 +178,18 @@ final class CommissionPageModel
             $pools = CommissionPolicy::vehiclePoolRates($rules);
 
             return [
-                ['key' => 'bike', 'param' => 'bike_pool_share_pct', 'pct' => $pools['bike']->decimal()],
-                ['key' => 'car', 'param' => null, 'pct' => $pools['car']->decimal()],
+                ['key' => 'bike', 'param' => 'bike_pool_share_pct', 'unit' => 'percent', 'pct' => $pools['bike']->decimal()],
+                ['key' => 'car', 'param' => null, 'unit' => 'percent', 'pct' => $pools['car']->decimal()],
             ];
+        }
+        if ($key === 'rank_incentive') {
+            // The one-time prize of each rank, in taka. They are paid from this fund; they do not split its percent.
+            $parameters = $rules[$key]['parameters'];
+
+            return array_map(fn (string $rank): array => [
+                'key' => $rank, 'param' => $rank.'_bonus', 'unit' => 'money',
+                'pct' => Money::decimal(Money::cents((string) $parameters[$rank.'_bonus'])),
+            ], ['mo', 'am', 'sm', 'me']);
         }
 
         return [];
@@ -216,6 +234,7 @@ final class CommissionPageModel
                 'rule' => $condition['rule'],
                 'applies_to' => $condition['applies_to'],
                 'version' => (int) ($rules[$condition['rule']]['version'] ?? 1),
+                'facts' => $condition['id'] === 'sub_dealer_extras' ? ['destination' => $this->extraDestination($rules)] : [],
                 'numbers' => array_map(fn (array $number): array => [
                     ...$number,
                     'value' => array_key_exists($number['param'], $parameters) && $parameters[$number['param']] !== null && $parameters[$number['param']] !== ''
@@ -256,7 +275,7 @@ final class CommissionPageModel
             $amount = $rate->of($cashCents, 'half_up');
             $total += $amount;
             $parts = [];
-            foreach ($this->children($key, $rules) as $child) {
+            foreach (array_filter($this->children($key, $rules), fn (array $child): bool => $child['unit'] === 'percent') as $child) {
                 $parts[] = ['key' => $child['key'], 'pct' => $child['pct'], 'amount' => Money::decimal(Percentage::from($child['pct'])->of($cashCents, 'half_up'))];
             }
             $lines[] = ['key' => $key, 'pct' => $rate->decimal(), 'amount' => Money::decimal($amount), 'parts' => $rate->basisPoints > 0 ? $parts : []];
@@ -278,6 +297,14 @@ final class CommissionPageModel
     private function signed(int $cents): string
     {
         return ($cents < 0 ? '-' : '').Money::decimal(abs($cents));
+    }
+
+    /** @param array<string, array<string, mixed>> $rules */
+    private function extraDestination(array $rules): string
+    {
+        $value = $rules['additional_rank']['parameters'][CommissionPolicy::ExtraDestinationParameter] ?? 'rank_fund';
+
+        return in_array($value, CommissionPolicy::ExtraDestinations, true) ? (string) $value : 'rank_fund';
     }
 
     private function points(int $basisPoints): string
