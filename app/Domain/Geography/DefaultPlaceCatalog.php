@@ -335,7 +335,7 @@ final class DefaultPlaceCatalog
     /**
      * Every researched headquarters entry, whatever its confidence, for the review file.
      *
-     * @return array<string, array{hq_union: ?string, source_url: ?string, confidence: string, note: ?string}>
+     * @return array<string, array{hq_union: ?string, found_in_source: ?string, source_url: ?string, confidence: string, note: ?string}>
      */
     public function headquartersReview(): array
     {
@@ -343,7 +343,7 @@ final class DefaultPlaceCatalog
         if (! is_file($path)) {
             return [];
         }
-        /** @var array{upazilas?: list<array{code: string, hq_union: ?string, source_url: ?string, confidence: string, note: ?string}>} $data */
+        /** @var array{upazilas?: list<array{code: string, hq_union: ?string, found_in_source: ?string, source_url: ?string, confidence: string, note: ?string}>} $data */
         $data = json_decode((string) file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
 
         return array_column($data['upazilas'] ?? [], null, 'code');

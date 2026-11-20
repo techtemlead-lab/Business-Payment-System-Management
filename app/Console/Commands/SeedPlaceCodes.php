@@ -77,7 +77,7 @@ class SeedPlaceCodes extends Command
 
     /**
      * @param  list<array{code: string, level: string, name: string, reason: string, candidates: list<string>, parent: string}>  $empty
-     * @param  array<string, array{hq_union: ?string, source_url: ?string, confidence: string, note: ?string}>  $found
+     * @param  array<string, array{hq_union: ?string, found_in_source: ?string, source_url: ?string, confidence: string, note: ?string}>  $found
      */
     private function writeReviewCsv(string $path, array $empty, array $found): void
     {
@@ -93,7 +93,7 @@ class SeedPlaceCodes extends Command
                 continue;
             }
             $hq = $found[$item['code']] ?? null;
-            fputcsv($handle, [$item['name'], $item['parent'], $hq['hq_union'] ?? '', implode('; ', $item['candidates']), $hq['source_url'] ?? '', $hq['confidence'] ?? '', $item['reason'], $hq['note'] ?? ''], ',', '"', '');
+            fputcsv($handle, [$item['name'], $item['parent'], $hq['found_in_source'] ?? $hq['hq_union'] ?? '', implode('; ', $item['candidates']), $hq['source_url'] ?? '', $hq['confidence'] ?? '', $item['reason'], $hq['note'] ?? ''], ',', '"', '');
         }
         fclose($handle);
     }
