@@ -74,8 +74,6 @@ return [
     's_device' => 'Device and browser',
     's_unknown' => 'Not known',
 
-    'confirm_note_password' => 'Your current password is needed to save.',
-
     'flash_contact_saved' => 'Name and contact details saved.',
     'flash_personal_saved' => 'Personal details saved.',
     'flash_identity_saved' => 'Identity details saved.',

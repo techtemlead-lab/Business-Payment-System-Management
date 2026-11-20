@@ -66,7 +66,7 @@ function ContactCard({ office, isOwner, security }: { office: any; isOwner: bool
     };
     return (
         <Card title={translate('office_profile', 'card_contact_title')} hint={translate('office_profile', 'card_contact_hint')} tour={isOwner ? 'owner-profile-edit' : undefined}>
-            {isOwner && <OwnerConfirmationNote control={security?.owner_confirmation} />}
+            {isOwner && security?.owner_confirmation?.method !== 'none' && <OwnerConfirmationNote control={security?.owner_confirmation} />}
             <form className="action-form" onSubmit={submit}>
                 <div className="office-card-grid">
                     <Row name="name" text={translate('office_profile', 'f_name')} errors={form.errors}>
