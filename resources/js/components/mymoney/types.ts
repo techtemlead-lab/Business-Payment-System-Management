@@ -74,6 +74,11 @@ export type PaidLine = { id: string; head: string; what: string; month: string; 
 /** Money that waits for the month's target or the month-end close. It is not in the usable balance. */
 export type PendingMoney = { total: string; count: number; has_estimate: boolean; lines: PendingLine[]; paid: PaidLine[]; rewards?: RewardWaitingLine[] };
 
+/** What the company spent on this partner (not a wallet credit). */
+export type CompanyBenefitLine = { id: string; date: string; what: string; purpose: string; amount: string; status: 'paid_by_office' };
+
+export type CompanyBenefits = { total: string; count: number; lines: CompanyBenefitLine[] };
+
 /** A prize the partner has earned (rank prize, bike, car) that is not in the balance yet. */
 export type RewardWaitingLine = {
     id: string;

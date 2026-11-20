@@ -8,7 +8,8 @@ import MoneyBook from '../components/mymoney/MoneyBook';
 import MoneyHero from '../components/mymoney/MoneyHero';
 import NotEarnedAreaList from '../components/mymoney/NotEarnedArea';
 import PendingMoneyList from '../components/mymoney/PendingMoney';
-import type { IncomeCard, MoneySummary, NotEarnedArea, PendingMoney, StatementTable } from '../components/mymoney/types';
+import CompanyBenefitsList from '../components/mymoney/CompanyBenefits';
+import type { CompanyBenefits, IncomeCard, MoneySummary, NotEarnedArea, PendingMoney, StatementTable } from '../components/mymoney/types';
 import { label } from '../components/UI';
 import { useTreasuryViewer } from '../components/treasury/TreasuryTabs';
 import { useT } from '../shared/i18n/t';
@@ -19,7 +20,7 @@ type Partner = { id: number; name: string; code: string | null; role: string; ar
  * The office's read-only view of one partner's money: the same body as My Money, without the buttons,
  * or, with the second tab, the same income-by-part view the partner sees.
  */
-export default function TreasuryPartner({ partner, summary, cards, table, income, view, pending, not_earned_area: notEarnedArea }: {
+export default function TreasuryPartner({ partner, summary, cards, table, income, view, pending, benefits, not_earned_area: notEarnedArea }: {
     partner: Partner;
     summary: MoneySummary;
     cards: IncomeCard[];
@@ -27,6 +28,7 @@ export default function TreasuryPartner({ partner, summary, cards, table, income
     income: IncomeData | null;
     view: 'money' | 'income';
     pending: PendingMoney | null;
+    benefits?: CompanyBenefits | null;
     not_earned_area: NotEarnedArea[];
 }) {
     const translate = useT();
@@ -54,10 +56,14 @@ export default function TreasuryPartner({ partner, summary, cards, table, income
                     <Link href={`${here}?view=income`} aria-current={view === 'income' ? 'page' : undefined}>{translate('income', 'admin_heading')}</Link>
                 </nav>
                 {view === 'income' && income ? (
-                    <IncomeByPart income={income} statementBase={`${here}/income`} orderHref={orderHref} />
+                    <>
+                        <IncomeByPart income={income} statementBase={`${here}/income`} orderHref={orderHref} />
+                        <CompanyBenefitsList benefits={benefits} />
+                    </>
                 ) : (
                     <>
                         <PendingMoneyList pending={pending} />
+                        <CompanyBenefitsList benefits={benefits} />
                         <NotEarnedAreaList rows={notEarnedArea} />
                         <IncomeCards cards={cards} selected={selected} onChoose={chooseType} />
                         <Lifetime lifetime={summary.lifetime} />

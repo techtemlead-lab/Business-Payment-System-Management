@@ -7,6 +7,7 @@ use App\Domain\Accounts\PartnerMoneyBook;
 use App\Domain\Accounts\PartnerPendingMoney;
 use App\Domain\Finance\CompanyFunds;
 use App\Domain\Finance\EventLog;
+use App\Domain\Finance\FundSpendPartners;
 use App\Domain\Finance\OrderMoneyReport;
 use App\Domain\Finance\PartnerMoneyList;
 use App\Domain\Finance\ProfitAndLoss;
@@ -114,6 +115,7 @@ class TreasuryController extends Controller
             'summary' => $book->summary($partner),
             'cards' => $book->incomeCards($partner),
             'pending' => $pending,
+            'benefits' => app(FundSpendPartners::class)->linesFor($partner),
             'not_earned_area' => $pending === null ? [] : PartnerPendingMoney::notReceived($book->notEarnedAreaCommission($partner), $pending['awaiting_close']),
             'view' => $incomeView ? 'income' : 'money',
             'table' => $incomeView ? null : $book->table($request, $partner),

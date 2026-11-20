@@ -7,6 +7,7 @@ use App\Domain\Accounts\PartnerMoneyBook;
 use App\Domain\Accounts\PartnerPendingMoney;
 use App\Domain\Accounts\PartnerSalaryNotes;
 use App\Domain\Finance\FinanceSettings;
+use App\Domain\Finance\FundSpendPartners;
 use App\Domain\Finance\WithdrawalSecurityWait;
 use App\Domain\Payouts\ManualPayoutService;
 use App\Domain\Payouts\PartnerPayoutAccounts;
@@ -42,6 +43,7 @@ class MyMoneyController extends Controller
             'not_earned_area' => PartnerPendingMoney::notReceived($book->notEarnedAreaCommission($partner), $pending['awaiting_close']),
             'held_commission' => $book->heldCommission($partner, 20, false),
             'pending' => $pending,
+            'benefits' => app(FundSpendPartners::class)->linesFor($partner),
             'salary_notes' => app(PartnerSalaryNotes::class)->for($partner),
             'withdraw' => ['can' => ! $kycBlock && ! $nidBlock, 'kyc_block' => $kycBlock, 'nid_block' => $nidBlock, 'nid_request' => app(PartnerKycDocuments::class)->nidRequestState($partner), 'saved_accounts' => array_map(fn (array $a): array => ['id' => $a['id'], 'label' => $a['label'], 'is_default' => $a['is_default']], app(PartnerPayoutAccounts::class)->listFor($partner)), 'security_wait' => $opensAt === null ? null : $wait->reason($opensAt), 'minimum' => (string) $settings->withdrawalMinimum()['amount'],
                 'channel_limits' => app(PayoutLimits::class)->settings()['per_channel'],

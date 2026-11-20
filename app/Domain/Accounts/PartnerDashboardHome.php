@@ -4,6 +4,7 @@ namespace App\Domain\Accounts;
 
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
+use App\Domain\Finance\FundSpendPartners;
 use App\Domain\Notifications\BirthdayGreetings;
 use App\Domain\Orders\DeliveredMoney;
 use App\Models\DealerRank;
@@ -99,7 +100,7 @@ final class PartnerDashboardHome
             ] : null,
             'sponsor' => $this->sponsorCard($user),
             // Shown behind a "tap to see balance" button on the home screen.
-            'wallet' => [...$this->walletSummary($user), 'commission_waiting' => $this->earnings->waitingCommission($user), 'commission_held' => $this->moneyBook->heldCommission($user, 3, false), 'pending' => $this->pending->for($user, 1, false)],
+            'wallet' => [...$this->walletSummary($user), 'commission_waiting' => $this->earnings->waitingCommission($user), 'commission_held' => $this->moneyBook->heldCommission($user, 3, false), 'pending' => $this->pending->for($user, 1, false), 'benefits' => app(FundSpendPartners::class)->linesFor($user, 3)],
             // Shows a small "happy birthday" card; read from the profile already loaded, no query.
             'is_birthday' => BirthdayGreetings::isBirthdayToday($user),
             // Customers the partner meant to call today or earlier: the home page's "call today" card.
