@@ -144,7 +144,7 @@ final class PolicyScheduling
         return DB::transaction(function () use ($actor, $id, $endsAt, $reason): array {
             CommissionWallet::lock();
             $row = DB::table('commission_policy_schedules')->where('id', $id)->lockForUpdate()->first();
-            abort_unless($row, 404);
+            abort_if($row === null, 404);
             $now = CarbonImmutable::now();
             // A change made after the start cannot rewrite the past: an end time already gone means "now".
             $endsAt = $endsAt !== null && $endsAt->lt($now) ? $now : $endsAt;

@@ -13,6 +13,7 @@ use Database\Seeders\CommissionRuleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 /**
@@ -344,7 +345,7 @@ class SpecialRatesPageTest extends TestCase
     {
         $this->assertTrue(CommissionPolicy::approves($this->owner));
         $this->assertFalse(CommissionPolicy::approves($this->finance));
-        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+        $this->expectException(HttpException::class);
 
         app(PolicyScheduling::class)->end($this->finance, 1, null, 'Not the owner');
     }

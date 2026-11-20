@@ -6006,6 +6006,7 @@ return [
     'event_policy_published' => 'কমিশনের নিয়ম প্রকাশ করা হয়েছে',
     'event_policy_schedule_approved' => 'কমিশন রেটের তালিকা অনুমোদিত',
     'event_policy_schedule_cancelled' => 'কমিশন রেটের তালিকা বাতিল',
+    'event_policy_schedule_end_changed' => 'বিশেষ রেটের শেষ বদলানো বা বন্ধ করা',
     'event_policy_schedule_proposed' => 'কমিশন রেটের তালিকার প্রস্তাব',
     'event_policy_schedule_rejected' => 'কমিশন রেটের তালিকা নামঞ্জুর',
     'event_privacy_purged' => 'পুরোনো ব্যক্তিগত তথ্য মুছে ফেলা হয়েছে',
