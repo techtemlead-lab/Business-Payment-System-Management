@@ -2,6 +2,7 @@
 
 namespace App\Domain\Payouts;
 
+use App\Domain\Accounts\PartnerProfileLock;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Finance\FraudAnomalyDetector;
@@ -144,6 +145,10 @@ class ManualPayoutService
             return false;
         }
         if (trim((string) $partner->nid) !== '') {
+            return false;
+        }
+        // The NID or the birth-certificate number is taken when the account is opened (client, 2026-11-20).
+        if (trim((string) (PartnerProfileLock::profileOf($partner)['birth_certificate_number'] ?? '')) !== '') {
             return false;
         }
         if (DB::table('withdrawals')->where('user_id', $partner->id)->whereIn('status', ['approved', 'paid'])->exists()) {

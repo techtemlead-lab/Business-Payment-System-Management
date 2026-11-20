@@ -870,7 +870,7 @@ return [
     'profile_security_o1' => 'Your profile details are correct. No wrong details go on invoices and ID cards.',
     'profile_security_o2' => 'Only you know your password. When you change it, you are logged out of your other devices.',
     'profile_security_o3' => 'You can shut out a strange device right away.',
-    'profile_security_t1' => 'If you joined with a birth registration, send your NID number and a photo of the card from this page before your first withdrawal. The office will check it.',
+    'profile_security_t1' => 'The office takes your National ID (NID) or birth registration number when it opens your account, so you do not need to send it here.',
     'profile_security_t2' => 'The office adds new members, so there is no join link or poster for partners now.',
     'profile_security_t3' => 'If a box in your profile is closed, tell the office. Once your NID is on file, dealers cannot change it themselves. The same goes for office staff once the office has verified their NID; then ask the office. Only the last 4 digits of the number are shown.',
     'profile_security_w1' => 'Nobody from the office will ask for your password. If someone asks, do not give it.',
