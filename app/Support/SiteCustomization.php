@@ -246,7 +246,7 @@ class SiteCustomization
             // Quick Shortcuts
             'shortcuts_section_enabled' => '1',
             'shortcuts' => [
-                ['title' => 'Our Products', 'subtitle' => 'browse wellness items', 'icon' => 'fa-seedling', 'link' => '/products'],
+                ['title' => 'Our Products', 'subtitle' => 'Browse wellness items', 'icon' => 'fa-seedling', 'link' => '/products'],
                 ['title' => 'Become a Partner', 'subtitle' => 'Dealer & sub-dealer programme', 'icon' => 'fa-handshake', 'link' => '/partnership'],
                 ['title' => 'Our Services', 'subtitle' => 'Natural Health Care and Physiotherapy Center', 'icon' => 'fa-hand-holding-heart', 'link' => '/services'],
                 ['title' => 'Contact Us', 'subtitle' => 'Support & Inquiries', 'icon' => 'fa-headset', 'link' => '/contact'],
