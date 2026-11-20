@@ -104,7 +104,7 @@ class PublicWebsiteTest extends TestCase
     {
         $u = User::factory()->create(['status' => 'active', 'password' => 'PreviousPassword123']);
         $token = Password::createToken($u);
-        $this->get('/reset-password/'.$token.'?email='.urlencode($u->email))->assertOk()->assertSee('Confirm Password');
+        $this->get('/reset-password/'.$token.'?email='.urlencode($u->email))->assertOk()->assertSee('Confirm password');
         $this->post('/reset-password', ['email' => $u->email, 'token' => $token, 'password' => 'ReplacementPassword123', 'password_confirmation' => 'ReplacementPassword123'])->assertRedirect('/login');
         $this->assertTrue(Hash::check('ReplacementPassword123', $u->fresh()->password));
         $this->post('/reset-password', ['email' => $u->email, 'token' => $token, 'password' => 'AnotherPassword123', 'password_confirmation' => 'AnotherPassword123'])->assertSessionHasErrors('email');
@@ -184,6 +184,7 @@ class PublicWebsiteTest extends TestCase
         $res->assertSee('Core Objectives');
         $res->assertSee('Genuine Products:');
         $res->assertSee('Strong Partners:');
+        $res->assertSee('Trade License 2026-00563');
         $res->assertSee('Pirganj, Rangpur, Bangladesh');
         $res->assertSee('staff-verified dealer and sub-dealer network');
         $res->assertSee('dependable mother company for dealers');

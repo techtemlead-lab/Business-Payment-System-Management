@@ -59,7 +59,7 @@ final class PublicTrustContent
     {
         $defaults = [];
         foreach (self::Pages as $page) {
-            $defaults['page_enabled_'.$page] = '1';
+            $defaults['page_enabled_'.$page] = ($page === 'verify-dealer' && ! config('madina.public_verify_dealer')) ? '0' : '1';
         }
         foreach (self::TextKeys as $key) {
             $defaults['trust_'.$key] = '';
@@ -106,11 +106,6 @@ final class PublicTrustContent
         if (! self::isEnabled($page)) {
             return false;
         }
-        // Dealer verification belongs to the public dealer network and follows its page switch in the website editor.
-        if ($page === 'verify-dealer' && ! SiteCustomization::isPageEnabled('dealers')) {
-            return false;
-        }
-
         if (isset(self::TextPages[$page])) {
             return self::text(self::TextPages[$page].'_body') !== '';
         }

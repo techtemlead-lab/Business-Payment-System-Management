@@ -143,7 +143,7 @@ class SiteCustomizationTest extends TestCase
             ->assertSee('Registered doctors')
             ->assertSee('Pharmacy owners')
             ->assertSee('Medical institutes')
-            ->assertSee('Related health practices');
+            ->assertSee('Other health practices');
         $this->get('/faq')->assertSee('Frequently Asked Questions');
 
         $this->actingAs($editor)->post('/commands/customization', [

@@ -97,7 +97,8 @@ class PortalQueryBudgetTest extends TestCase
         // 43-49: the new dashboard (CR-02): the profile card's referral counts, and the three totals and income by
         // head (wallet, withdrawals paid, income by type, balance used on orders, refunds back to it, waiting money).
         // 50-51 (V1, V2): the appointed area line and the income-head totals; one read each, never one per order.
-        $this->assertQueriesAtMost(51, $queries, 'dealer dashboard');
+        // 52-53: the pending balance (area shares held for the target, sub-dealer salary or the dealer's pool months); one read each, never one per order.
+        $this->assertQueriesAtMost(53, $queries, 'dealer dashboard');
 
         foreach (range(1, 8) as $index) {
             $this->line($this->order($dealer, $index % 2 === 0 ? 'delivered' : 'submitted', total: '20.00'), $product, quantity: 1, dispatched: 0);

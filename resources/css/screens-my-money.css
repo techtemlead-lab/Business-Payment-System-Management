@@ -118,3 +118,11 @@
 .mm-heads .is-negative{color:var(--ds-danger-fg)}
 .mm-heads tfoot th,.mm-heads tfoot td{font-weight:700;border-bottom:0;border-top:2px solid var(--ds-line)}
 @media (max-width:640px){.mm-heads thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}.mm-heads,.mm-heads tbody,.mm-heads tfoot{display:block}.mm-heads tr{display:grid;grid-template-columns:1fr 1fr;gap:0 var(--ds-s-3);padding:var(--ds-s-2) var(--ds-s-3);border-bottom:1px solid var(--ds-line)}.mm-heads th,.mm-heads td{padding:var(--ds-s-1) 0;border:0}.mm-heads tbody th,.mm-heads tfoot th{grid-column:1/-1}.mm-heads td.num{display:flex;flex-direction:column;align-items:flex-start;text-align:left;white-space:normal;overflow-wrap:anywhere}.mm-heads td.num::before{content:attr(data-label);font-size:var(--ds-fs-sm,.85rem);color:var(--ds-text-2)}.mm-heads tfoot tr{border-top:2px solid var(--ds-line);border-bottom:0}}
+
+/* Pending balance: money that waits for the month's target or the month-end close; beside the usable number, never inside it */
+.mm-hero-pending{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--ds-s-1) var(--ds-s-3);margin:0;font-size:var(--ds-fs-md);color:var(--ds-text-2)}
+.mm-hero-pending b{font-size:var(--ds-fs-xl);font-weight:700;color:var(--ds-warn-fg);font-variant-numeric:tabular-nums;white-space:nowrap}
+.mm-hero-pending small{flex-basis:100%;font-size:var(--ds-fs-sm);color:var(--ds-text-2)}
+.mm-pending>p{margin:0 0 var(--ds-s-3);font-size:var(--ds-fs-base);color:var(--ds-text-2)}
+.mm-pending ul+h2{margin-top:var(--ds-s-5)}
+.mm-request .badge{align-self:center}

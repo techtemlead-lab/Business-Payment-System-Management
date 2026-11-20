@@ -2,6 +2,7 @@
 
 namespace App\Domain\Orders;
 
+use App\Domain\Security\OwnerExemption;
 use App\Models\Order;
 use App\Models\User;
 
@@ -19,11 +20,14 @@ final class OrderRefund
 
     public function __construct(private readonly OrderReturns $returns) {}
 
-    /** Owners always may; other staff need the finance right with approval allowed. */
+    /**
+     * The Super Admin always may. Everyone else, including the MD and Chairman, needs the finance
+     * right with approval allowed (D11). Being on the owner panel is not that right.
+     */
     public static function canRefund(User $actor): bool
     {
         return $actor->status === 'active'
-            && ($actor->owner() || ($actor->allows('finance') && $actor->canAct('finance', 'approve')));
+            && (OwnerExemption::applies($actor) || ($actor->allows('finance') && $actor->canAct('finance', 'approve')));
     }
 
     /**

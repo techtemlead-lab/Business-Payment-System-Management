@@ -43,9 +43,11 @@ const BIG_ORDER_TAKA = 1000000;
 /** Most products listed under the search box at once. */
 const RESULT_LIMIT = 30;
 
-/** By Office and From My Account: the partner enters nothing, the server sets the payment details. */
+/** By Office and Account balance: the partner enters nothing, the server sets the payment details. */
 const OFFICE_CHANNEL = 'Office';
 const ACCOUNT_CHANNEL = 'Account';
+/** Paid by sending money to a company account, so each needs one set up by the owner. */
+const MOBILE_CHANNELS = ['Bank', 'bKash', 'Nagad', 'Rocket'];
 
 interface PayOptions {
     account_available: string;
@@ -282,9 +284,10 @@ export default function ProductPurchaseMatrix({
         };
     }, [cart]);
 
-    // Only the ways to pay that have a company account behind them are offered; paying at the office always is.
+    // Bank, bKash, Nagad and Rocket are always listed. One with no company account behind it yet shows as
+    // "not set up yet" and cannot be picked; paying at the office always can.
     const payChannels = useMemo(
-        () => [...['Bank', 'bKash', 'Nagad', 'Rocket'].filter(x => collectionAccounts.some(account => account.channel === x)), OFFICE_CHANNEL],
+        () => [...MOBILE_CHANNELS.filter(x => collectionAccounts.some(account => account.channel === x)), OFFICE_CHANNEL],
         [collectionAccounts],
     );
 
@@ -306,19 +309,24 @@ export default function ProductPurchaseMatrix({
         items: [] as { product_id: number; quantity: number }[],
         reference: '',
         payment_account_id: '',
-        channel: openedWithAccount && payOptions.account_usable ? ACCOUNT_CHANNEL : openedAtOffice ? OFFICE_CHANNEL : payChannels[0],
+        channel: openedWithAccount && payOptions.account_usable && Number(payOptions.account_available) > 0 ? ACCOUNT_CHANNEL : openedAtOffice ? OFFICE_CHANNEL : payChannels[0],
         amount: '',
-        use_account: false,
         note: '',
         courier_choice: 'company',
         proof: null as File | null,
     });
     const orderNote = useReasonField('order.note');
 
+    // "Account balance" short of the order total: the balance pays its part and this second method pays the rest.
+    const [restChannel, setRestChannel] = useState<string>(payChannels[0]);
+    const accountChosen = f.data.channel === ACCOUNT_CHANNEL;
+    /** The method that moves money outside the account: the rest method of a split, else the chosen one. */
+    const moneyChannel = accountChosen ? restChannel : f.data.channel;
+
     /** Company accounts that take the chosen payment method. */
     const channelAccounts = useMemo(
-        () => collectionAccounts.filter(account => account.channel === f.data.channel),
-        [collectionAccounts, f.data.channel],
+        () => collectionAccounts.filter(account => account.channel === moneyChannel),
+        [collectionAccounts, moneyChannel],
     );
     // Only one account takes this method: pick it, so the dealer cannot miss the step.
     useEffect(() => {
@@ -327,17 +335,30 @@ export default function ProductPurchaseMatrix({
         }
     }, [channelAccounts, f.data.payment_account_id]);
 
-    const paysFromAccount = f.data.channel === ACCOUNT_CHANNEL;
-    const paysAtOffice = f.data.channel === OFFICE_CHANNEL;
-    const serverSetsPayment = paysFromAccount || paysAtOffice;
     const accountBalance = Number(payOptions.account_available);
+    // The account balance is offered only when it can be spent and holds something.
+    const accountOffered = payOptions.account_usable && accountBalance > 0;
     const accountAfter = accountBalance - cartSummary.totalPayable;
     const accountIsShort = paisa(cartSummary.totalPayable) > paisa(accountBalance);
-    // Not enough in the account for the whole order: let the balance pay part and another way pay the rest.
-    const splitAvailable = payOptions.account_usable && accountBalance > 0 && accountIsShort && !paysFromAccount;
-    const splitOn = splitAvailable && f.data.use_account;
+    // Not enough in the account for the whole order: the balance pays part and a second method pays the rest.
+    const splitOn = accountChosen && accountOffered && accountIsShort;
+    const paysFromAccount = accountChosen && !splitOn;
+    const paysAtOffice = moneyChannel === OFFICE_CHANNEL;
+    const serverSetsPayment = paysFromAccount || paysAtOffice;
     const splitRest = (paisa(cartSummary.totalPayable) - paisa(accountBalance)) / 100;
     const budgetLeft = budget === null ? 0 : budget - cartSummary.totalPayable;
+
+    // The balance can drop to nothing while this page stays open: step back to a normal method, not a dead choice.
+    useEffect(() => {
+        if (f.data.channel === ACCOUNT_CHANNEL && !accountOffered) {
+            f.setData('channel', payChannels[0]);
+        }
+    }, [accountOffered, f.data.channel, payChannels]);
+    useEffect(() => {
+        if (!payChannels.includes(restChannel)) {
+            setRestChannel(payChannels[0]);
+        }
+    }, [payChannels, restChannel]);
 
     // One key for one order: a retry of the same order is charged once, and only a changed order gets a new key.
     const retryKey = useRef<{ key: string; order: string } | null>(null);
@@ -374,7 +395,7 @@ export default function ProductPurchaseMatrix({
                 product_id: item.product.id,
                 quantity: item.quantity,
             })),
-            channel: f.data.channel,
+            channel: paysFromAccount ? ACCOUNT_CHANNEL : moneyChannel,
             ...(splitOn ? { use_account: true } : {}),
             note: orderNote.shown ? f.data.note : undefined,
             courier_choice: courierChoices.length ? f.data.courier_choice : undefined,
@@ -947,11 +968,14 @@ export default function ProductPurchaseMatrix({
                                             f.setData('payment_account_id', '');
                                         }}
                                     >
-                                        {payChannels.map(x => (
-                                            <option key={x} value={x}>{translate('portal', `pay_channel_${x.toLowerCase()}`)}</option>
+                                        {MOBILE_CHANNELS.map(x => (
+                                            <option key={x} value={x} disabled={!payChannels.includes(x)}>
+                                                {translate('portal', `pay_channel_${x.toLowerCase()}`)}{payChannels.includes(x) ? '' : ` ${translate('order_split', 'method_not_ready')}`}
+                                            </option>
                                         ))}
-                                        {payOptions.account_block !== 'off' && (
-                                            <option value={ACCOUNT_CHANNEL} disabled={!payOptions.account_usable}>{translate('portal', 'pay_channel_account')}</option>
+                                        <option value={OFFICE_CHANNEL}>{translate('portal', 'pay_channel_office')}</option>
+                                        {accountOffered && (
+                                            <option value={ACCOUNT_CHANNEL}>{translate('portal', 'pay_channel_account')} ({money(accountBalance)})</option>
                                         )}
                                     </select>
                                     {paysAtOffice && <small className="field-hint">{translate('order_payment', 'method_office_hint')}</small>}
@@ -959,24 +983,30 @@ export default function ProductPurchaseMatrix({
                                     {payOptions.account_block === 'debt' && <small className="field-hint is-warn" role="status">{translate('order_payment', 'account_block_debt')}</small>}
                                 </label>
 
-                                {/* The space is kept while the choice is hidden or its lines change, so the form below does not jump. */}
-                                {payOptions.account_usable && accountBalance > 0 && !paysFromAccount && (
-                                    <div className="ppm-split-slot" style={{ minHeight: '8.5em' }}>
-                                {splitAvailable && (
+                                {/* Account balance is less than the order: say what is taken and ask how the rest is paid. */}
+                                {splitOn && (
                                     <div data-testid="split-pay">
-                                        <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                                            <input type="checkbox" checked={f.data.use_account} onChange={e => { f.setData('use_account', e.target.checked); router.reload({ only: ['data'], headers: { 'X-Background-Refresh': '1' } }); }} />
-                                            {translate('order_split', 'toggle')}
+                                        <p className="field-hint" role="status" data-testid="split-summary">
+                                            {translate('order_split', 'split_message', { balance: money(accountBalance), rest: money(splitRest) })}
+                                        </p>
+                                        <label>
+                                            {translate('order_split', 'rest_method')}
+                                            <select
+                                                value={restChannel}
+                                                onChange={e => {
+                                                    setRestChannel(e.target.value);
+                                                    f.setData('payment_account_id', '');
+                                                }}
+                                            >
+                                                {MOBILE_CHANNELS.map(x => (
+                                                    <option key={x} value={x} disabled={!payChannels.includes(x)}>
+                                                        {translate('portal', `pay_channel_${x.toLowerCase()}`)}{payChannels.includes(x) ? '' : ` ${translate('order_split', 'method_not_ready')}`}
+                                                    </option>
+                                                ))}
+                                                <option value={OFFICE_CHANNEL}>{translate('portal', 'pay_channel_office')}</option>
+                                            </select>
                                         </label>
-                                        <small className="field-hint">{translate('order_split', 'toggle_hint')}</small>
-                                        {splitOn && (
-                                            <p className="field-hint" role="status" data-testid="split-summary">
-                                                {translate('order_split', 'summary', { balance: money(accountBalance), total: money(cartSummary.totalPayable), rest: money(splitRest) })}
-                                            </p>
-                                        )}
-                                        {splitOn && paysAtOffice && <small className="field-hint">{translate('order_split', 'cash_note')}</small>}
-                                    </div>
-                                )}
+                                        {paysAtOffice && <small className="field-hint">{translate('order_split', 'cash_note')}</small>}
                                     </div>
                                 )}
 
@@ -1064,11 +1094,6 @@ export default function ProductPurchaseMatrix({
                                     </div>
                                 </div>
                             )}
-                            {paysFromAccount && accountIsShort && (
-                                <p className="field-error" role="alert" data-testid="account-short">
-                                    {translate('order_payment', 'account_short', { amount: money(-accountAfter) })}
-                                </p>
-                            )}
 
                             {courierChoices.length > 0 && (
                                 <label>
@@ -1104,7 +1129,7 @@ export default function ProductPurchaseMatrix({
                                 <button
                                     type="submit"
                                     className="button dark ppm-submit"
-                                    disabled={f.processing || (paysFromAccount && accountIsShort)}
+                                    disabled={f.processing}
                                 >
                                     {f.processing
                                         ? translate('portal', 'submitting')
@@ -1143,8 +1168,12 @@ export default function ProductPurchaseMatrix({
                     .map(item => ({ item, free: availableOf(item.product) }))
                     .filter((entry): entry is { item: CartItem; free: number } => entry.free !== null && entry.item.quantity > entry.free);
                 const balanceMoved = paisa(confirm.before) !== paisa(accountBalance);
-                const methodLabel = translate('portal', `pay_channel_${f.data.channel.toLowerCase()}`);
-                const sendBlocked = checking || failed || (paysFromAccount && accountIsShort);
+                const methodLabel = splitOn
+                    ? `${translate('portal', 'pay_channel_account')} + ${translate('portal', `pay_channel_${moneyChannel.toLowerCase()}`)}`
+                    : translate('portal', `pay_channel_${f.data.channel.toLowerCase()}`);
+                // The balance dropped while the page was open: the rest payment's details were never asked for, so go back first.
+                const restDetailsMissing = splitOn && !paysAtOffice && f.data.reference.trim() === '';
+                const sendBlocked = checking || failed || restDetailsMissing;
                 return (
                     <Modal
                         title={page('confirm_title')}
@@ -1178,8 +1207,8 @@ export default function ProductPurchaseMatrix({
                                     <p>{page('confirm_account_balance', { balance: money(accountBalance) })}</p>
                                     {balanceMoved && <p className="field-hint is-warn" role="status">{page('confirm_account_changed', { before: money(confirm.before), now: money(accountBalance) })}</p>}
                                     {splitOn && <p>{page('confirm_account_split', { balance: money(accountBalance), rest: money(splitRest) })}</p>}
-                                    {paysFromAccount && !accountIsShort && <p>{page('confirm_account_full', { amount: money(cartSummary.totalPayable), after: money(Math.max(0, accountAfter)) })}</p>}
-                                    {paysFromAccount && accountIsShort && <p className="field-error" role="alert">{page('confirm_account_short')}</p>}
+                                    {paysFromAccount && <p>{page('confirm_account_full', { amount: money(cartSummary.totalPayable), after: money(Math.max(0, accountAfter)) })}</p>}
+                                    {restDetailsMissing && <p className="field-error" role="alert">{page('confirm_account_short')}</p>}
                                 </div>
                             )}
                             {!checking && !failed && backOrders.length > 0 && (

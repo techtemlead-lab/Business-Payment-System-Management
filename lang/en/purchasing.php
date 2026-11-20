@@ -13,7 +13,7 @@ return [
     'contact' => 'Contact',
     'notes' => 'Notes',
     'no_suppliers' => 'No suppliers yet',
-    'no_suppliers_body' => 'Add a supplier first, then you can raise an order.',
+    'no_suppliers_body' => 'Add a supplier first, then you can place an order.',
 
     'new_order' => 'New purchase order',
     'order_number' => 'Order no.',
@@ -24,7 +24,7 @@ return [
     'remove_line' => 'Remove product',
     'save_draft' => 'Save as draft',
     'no_orders' => 'No purchase orders yet',
-    'no_orders_body' => 'Orders you raise will show here.',
+    'no_orders_body' => 'Orders you place will show here.',
     'open_order' => 'Open',
 
     'ordered' => 'Ordered',
@@ -33,7 +33,7 @@ return [
     'date' => 'Date',
     'status' => 'Status',
     'branch' => 'Branch',
-    'raised_by' => 'Raised by',
+    'raised_by' => 'Ordered by',
 
     'send_order' => 'Mark as sent to supplier',
     'cancel_order' => 'Cancel order',
@@ -64,7 +64,7 @@ return [
     'err_line_not_on_order' => 'One of these products is not on this order.',
     'err_over_receipt' => 'Too many units for :sku. Only :due are still due on this order.',
 
-    'count_intro' => 'Count what is on the shelf and compare it with the system. Staff who counted cannot approve the difference; another staff member with approval permission approves it.',
+    'count_intro' => 'Count what is on the shelf and compare it with the system. The person who counted cannot approve the difference. Another staff member with approval permission must do that.',
     'count_start' => 'Start a count',
     'count_session' => 'Count #:id',
     'count_list' => 'Counts',
@@ -86,7 +86,7 @@ return [
     'count_note' => 'Note',
     'count_wait_second_person' => 'Someone who did not take part in this count, or the owner, needs to approve it.',
     'count_uncounted_hint' => 'Leave a line empty if you did not count it. Its stock will not change.',
-    'count_overdue_title' => 'Overdue for a count',
+    'count_overdue_title' => 'Stock count is overdue',
     'count_overdue_body' => 'These branches have not had an approved count in :days days: :branches',
 
     'flash_count_started' => 'Count #:id started.',

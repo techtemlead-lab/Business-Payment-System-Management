@@ -119,7 +119,7 @@ class PlaceBaseLinkTest extends TestCase
 
         $this->saveEditForm($this->division, ['base_place_id' => $other->id], $banglaOwner)
             ->assertSessionHasErrors([
-                'base_place_id' => 'Dinajpur (জেলা) জায়গাটির এখনো কোনো কোড নেই। আগে ওই জায়গায় একটি কোড দিন, তারপর সেটি বেস প্লেস হিসেবে বেছে নিন।',
+                'base_place_id' => 'Dinajpur (জেলা)-এর এখনো কোনো কোড নেই। আগে ওই জায়গার কোড দিন, তারপর সেটি বেস প্লেস হিসেবে বেছে নিন।',
             ]);
     }
 
@@ -130,7 +130,7 @@ class PlaceBaseLinkTest extends TestCase
         $elsewhere = PlaceCode::factory()->district($otherDivision)->create(['code' => 'MNHC303', 'name' => 'Sunamganj']);
 
         $this->saveEditForm($this->division, ['base_place_id' => $turnedOff->id])
-            ->assertSessionHasErrors(['base_place_id' => 'Kurigram (MNHC302) is not active. Mark that place Active first, then choose it as the base place.']);
+            ->assertSessionHasErrors(['base_place_id' => 'Kurigram (MNHC302) is turned off. Turn that place on first, then choose it as the base place.']);
 
         $this->saveEditForm($this->division, ['base_place_id' => $elsewhere->id])
             ->assertSessionHasErrors(['base_place_id' => 'Sunamganj (MNHC303) is not directly under this place. Choose a place one level below this one.']);

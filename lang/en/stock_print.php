@@ -6,7 +6,7 @@ return [
     'title' => 'Product list',
     'mobile_whatsapp' => 'Mob / WhatsApp',
     'whatsapp' => 'WhatsApp',
-    'mobile' => 'Mobile',
+    'mobile' => 'Mob',
     'email' => 'Email',
     'website' => 'Website',
     'col_serial' => 'SL',

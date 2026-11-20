@@ -15,9 +15,11 @@
         .toolbar button.primary { background: #006837; color: #fff; }
         .sheet { position: relative; width: 210mm; max-width: calc(100% - 24px); margin: 16px auto; padding: 14mm 16mm; background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; }
         .copy { position: absolute; top: 10mm; right: 14mm; padding: 2px 8px; border: 1px solid #006837; border-radius: 4px; color: #006837; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
-        .head { display: flex; gap: 12px; align-items: center; justify-content: center; text-align: center; border-bottom: 2px solid #006837; padding-bottom: 8px; }
-        .head img { width: 56px; height: 56px; object-fit: contain; }
-        .brand { font-size: 20px; font-weight: 700; color: #006837; margin: 0; }
+        .head { display: flex; gap: 12px; align-items: flex-start; justify-content: center; text-align: center; border-bottom: 2px solid #006837; padding-bottom: 8px; }
+        .head img { width: 56px; height: 56px; object-fit: contain; margin-top: 3px; }
+        .brand { font-size: 20px; font-weight: 700; line-height: 1.1; color: #006837; margin: 0; }
+        .head .muted { line-height: 1.25; }
+        .head .contacts { margin-top: 4px; }
         .muted { color: #475569; }
         h1 { text-align: center; font-size: 17px; letter-spacing: .04em; margin: 12px 0 10px; color: #006837; }
         .meta { display: flex; justify-content: space-between; gap: 12px; font-weight: 600; margin-bottom: 10px; }
@@ -68,7 +70,7 @@
         <div>
             <p class="brand">{{ $company['name'] }}</p>
             <div class="muted">{{ $company['address'] }}</div>
-            <div class="muted">{{ __('portal.inv_mobile_short') }}: {{ $company['phones'] }}</div>
+            <div class="muted contacts">@include('partials.letterhead-contacts', ['company' => $company, 'size' => '13px'])</div>
         </div>
     </div>
 

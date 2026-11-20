@@ -94,6 +94,6 @@ return [
     'ask_call' => 'Ask the office to call me',
     'call_me_message' => 'Please call me. I want to order or need help by phone.',
     'call_me_sent' => 'The office has been told. They will call you.',
-    'call_me_failed' => 'Could not send. Try again or call the office.',
+    'call_me_failed' => 'We could not send it. Please try again or call the office.',
     'totals_note' => '“You ordered” is the price of every running and delivered order. “Delivered” is only the goods that reached you. “Still to pay” is the money not yet paid on your orders.',
 ];

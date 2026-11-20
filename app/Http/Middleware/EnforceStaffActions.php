@@ -128,10 +128,6 @@ class EnforceStaffActions
             // Only owners decide which reason and note boxes are asked; the controller checks again.
             return $next($request);
         }
-        if ($controller === 'MessageTemplateController' && $actor->owner()) {
-            // Owners re-word the SMS and email texts; the controller checks again.
-            return $next($request);
-        }
         if ($controller === 'PrescriptionSettingsController' && PrescriptionAccess::isOwnerDoctor($actor)) {
             // Only the owner's own account allows or stops medicines that are not company products; the controller checks again.
             return $next($request);
@@ -154,14 +150,6 @@ class EnforceStaffActions
         }
         if ($controller === 'CommandController' && $method === 'benefitControls' && $actor->owner()) {
             // Only owners may grant no-condition benefits; the controller refuses everyone else.
-            return $next($request);
-        }
-        if ($controller === 'OrderReturnController' && in_array($method, ['start', 'approve', 'confirm', 'reject'], true) && $actor->owner()) {
-            // Owners handle cancels, returns and refunds; OrderReturns checks again (only the Super Admin acts alone).
-            return $next($request);
-        }
-        if ($controller === 'CommandController' && $method === 'refund' && $actor->owner()) {
-            // The owners decided they may refund a paid order themselves; OrderRefund checks again.
             return $next($request);
         }
         if (in_array($controller, ['TrainingController', 'PartnerEventController', 'SalesKitController', 'DatedSchemeController', 'PartnerContestController'], true) && $actor->owner()) {
@@ -319,6 +307,7 @@ class EnforceStaffActions
             'PartnerChatController' => [['partner_chat'], 'create'],
             'PrescriberVerificationController' => [['prescriber_verify'], 'edit'],
             'PublicTrustAdminController' => [['content'], 'edit'],
+            // Payroll-only MD and Chairman are owners but must not rewrite SMS or email, including password texts (D11).
             'MessageTemplateController' => [['content'], 'edit'],
             'PartnerFileController' => [['accounts'], 'edit'],
             'AccountingController' => [['finance'], $method === 'saveApprovalLimit' ? 'edit' : 'create'],

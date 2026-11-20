@@ -19,6 +19,9 @@ use RuntimeException;
  * office lacks is added; when its default code is already taken it is added without a code, for
  * the office to fill in. Running it again changes nothing.
  */
+/**
+ * @phpstan-type PlaceSummary array{created: int, coded: int, filled: int, linked: int, codes_taken: list<string>, by_level: array<string, array<string, int>>, conflicts: list<array{code: string, level: string, name: string, held_by: string}>}
+ */
 final class DefaultPlaceCatalog
 {
     public const DataFile = 'data/bangladesh-place-codes.json';
@@ -66,11 +69,21 @@ final class DefaultPlaceCatalog
     }
 
     /**
-     * @return array{created: int, coded: int, filled: int, linked: int, codes_taken: list<string>}
+     * @return PlaceSummary
      */
-    public function load(): array
+    public function load(bool $dryRun = false): array
     {
         $payload = $this->payload();
+
+        if ($dryRun) {
+            // Runs the real fill and rolls it back, so the report is exactly what a real run would do.
+            DB::beginTransaction();
+            try {
+                return $this->fill($payload);
+            } finally {
+                DB::rollBack();
+            }
+        }
 
         $summary = DB::transaction(fn (): array => $this->fill($payload), 3);
         if ($summary['codes_taken'] !== []) {
@@ -84,11 +97,14 @@ final class DefaultPlaceCatalog
 
     /**
      * @param  array{places: list<array{code: string, level: string, name: string, parent_code: ?string, sort_order: int, bn_name: ?string, kind: string}>, base_links: list<array{code: string, base_code: string}>}  $payload
-     * @return array{created: int, coded: int, filled: int, linked: int, codes_taken: list<string>}
+     * @return PlaceSummary
      */
     private function fill(array $payload): array
     {
-        $summary = ['created' => 0, 'coded' => 0, 'filled' => 0, 'linked' => 0, 'codes_taken' => []];
+        $summary = ['created' => 0, 'coded' => 0, 'filled' => 0, 'linked' => 0, 'codes_taken' => [], 'by_level' => [], 'conflicts' => []];
+        foreach (PlaceCode::Levels as $level) {
+            $summary['by_level'][$level] = ['created' => 0, 'coded' => 0, 'taken' => 0, 'other_code' => 0];
+        }
 
         /** @var array<int, \stdClass> $rows */
         $rows = [];
@@ -131,14 +147,14 @@ final class DefaultPlaceCatalog
                 if ($existing !== null) {
                     $claimed[$existing->id] = true;
                     $idBySource[$place['code']] = $existing->id;
-                    $this->fillGaps($existing, $place, $code, $parentId, $codeOwner, $summary, $now);
+                    $this->fillGaps($existing, $place, $code, $parentId, $codeOwner, $summary, $now, $rows);
 
                     continue;
                 }
 
                 $free = ! isset($codeOwner[$code]);
                 if (! $free) {
-                    $summary['codes_taken'][] = $code;
+                    $this->recordTaken($summary, $code, $level, $place['name'], $codeOwner[$code], $rows);
                 }
                 $pending[] = [
                     'source' => $place['code'],
@@ -161,6 +177,7 @@ final class DefaultPlaceCatalog
 
             $this->insert($level, $pending, $rows, $codeOwner, $idBySource);
             $summary['created'] += count($pending);
+            $summary['by_level'][$level]['created'] += count($pending);
         }
 
         foreach ($payload['base_links'] as $link) {
@@ -227,19 +244,25 @@ final class DefaultPlaceCatalog
      * @param  \stdClass  $row
      * @param  array{code: string, level: string, name: string, parent_code: ?string, sort_order: int, bn_name: ?string, kind: string}  $place
      * @param  array<string, int>  $codeOwner
-     * @param  array{created: int, coded: int, filled: int, linked: int, codes_taken: list<string>}  $summary
+     * @param  PlaceSummary  $summary
+     *
+     * @param-out PlaceSummary $summary
      */
-    private function fillGaps(object $row, array $place, string $code, ?int $parentId, array &$codeOwner, array &$summary, CarbonInterface $now): void
+    private function fillGaps(object $row, array $place, string $code, ?int $parentId, array &$codeOwner, array &$summary, CarbonInterface $now, array $rows): void
     {
         $changes = [];
         if ($row->code === null || PlaceCode::isPlaceholderLabel($row->code)) {
             if (isset($codeOwner[$code])) {
-                $summary['codes_taken'][] = $code;
+                $this->recordTaken($summary, $code, $place['level'], $place['name'], $codeOwner[$code], $rows);
             } else {
                 $changes['code'] = $code;
                 $codeOwner[$code] = (int) $row->id;
                 $summary['coded']++;
+                $summary['by_level'][$place['level']]['coded']++;
             }
+        } elseif (PlaceCode::normalizeCode($row->code) !== $code) {
+            // The office chose its own code for this place: kept as it is, only counted.
+            $summary['by_level'][$place['level']]['other_code']++;
         }
         if (PlaceCode::isPlaceholderLabel($row->name)) {
             $changes['name'] = $place['name'];
@@ -257,6 +280,28 @@ final class DefaultPlaceCatalog
         foreach ($changes as $column => $value) {
             $row->{$column} = $value;
         }
+    }
+
+    /**
+     * A default code that another place already holds: the place goes without a code, the office decides.
+     *
+     * @param  PlaceSummary  $summary
+     *
+     * @param-out PlaceSummary $summary
+     *
+     * @param  array<int, \stdClass>  $rows
+     */
+    private function recordTaken(array &$summary, string $code, string $level, string $name, int $holderId, array $rows): void
+    {
+        $holder = $rows[$holderId] ?? null;
+        $summary['codes_taken'][] = $code;
+        $summary['by_level'][$level]['taken']++;
+        $summary['conflicts'][] = [
+            'code' => $code,
+            'level' => $level,
+            'name' => $name,
+            'held_by' => $holder === null ? 'a place added in this run' : $holder->level.' '.$holder->name,
+        ];
     }
 
     /**

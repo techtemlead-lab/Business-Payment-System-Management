@@ -75,8 +75,15 @@
         </div>
     </section>
     <section>
-        {{-- The heading, logo, company name and licence sentence are not shown (client, 2026-11-20). The registration numbers
-             the owner fills in (TIN, trade licence, trademark) still show, and so do the social links. --}}
+        {{-- The heading, logo, company name and licence sentence show on desktop only; phones hide them (client, 2026-11-20). --}}
+        <div class="ref-footer-brandblock">
+            <h2>{{ $chrome('footer_stay_connected', $siteCustomization['footer_stay_connected_heading'] ?? null) }}</h2>
+            <div class="ref-footer-brand">
+                <a href="{{ $site('/') }}" aria-label="{{ __('site.brand_home') }}"><img src="{{ \App\Support\SiteCustomization::logoUrl() }}" alt="{{ \App\Support\SiteCustomization::brandName() }}" width="56" height="56" decoding="async" loading="lazy"></a>
+                <h3>{{ \App\Support\SiteCustomization::brandName() }}</h3>
+            </div>
+            <p>{{ $chrome('footer_about_desc', $siteCustomization['footer_about_desc'] ?? null) }}</p>
+        </div>
         @include('reference.partials.business-identity')
         @include('reference.partials.social-links')
         @php

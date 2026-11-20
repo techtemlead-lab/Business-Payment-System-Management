@@ -1,9 +1,9 @@
 <?php
 
 return [
-    'toggle' => 'Use my account balance first',
-    'toggle_hint' => 'Your account balance pays part of this order. You pay the rest another way.',
-    'summary' => 'You have :balance in your account. This order is :total. How will you pay the other :rest?',
+    'split_message' => 'You have :balance in your account. :balance will be taken from your account. How will you pay the other :rest?',
+    'rest_method' => 'Pay the other part by',
+    'method_not_ready' => '(not set up yet)',
     'from_account' => 'From your account',
     'still_to_pay' => 'Still to pay',
     'cash_note' => 'Cash at the office: the office writes a cash receipt when it gets the money. The order is approved only after that.',

@@ -140,7 +140,7 @@ class PartnerEventCalendarTest extends TestCase
         $this->assertDatabaseHas('account_notices', [
             'user_id' => $dealer->id,
             'title' => 'Meeting cancelled: Product training',
-            'body' => 'The meeting "Product training" on 15 November 2026 at 3:00 PM has been cancelled. Reason: Heavy rain',
+            'body' => 'The meeting "Product training" on 15 November 2026 at 3:00 PM was cancelled. Reason: Heavy rain',
         ]);
         $this->assertDatabaseHas('account_notices', ['user_id' => $subDealer->id, 'title' => 'মিটিং বাতিল: পণ্য প্রশিক্ষণ']);
         $this->assertSame(2, DB::table('account_notices')->count());
