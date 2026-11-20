@@ -27,9 +27,6 @@ final class CommissionPageModel
     /** Heads paid only on a sub-dealer's own purchase. */
     public const SubDealerKeys = ['additional_rank', 'sub_dealer_salary', 'sub_dealer_tour'];
 
-    /** Heads a sub-dealer's purchase names differently from a dealer's (names only; the engine key is the same). */
-    public const SubDealerNames = ['direct_referral'];
-
     /**
      * Heads that are split into parts. `param` is the rule parameter that holds the part's percent;
      * the parts must add up to the head's percent (CommissionPolicy::validateSchedule()).
@@ -150,8 +147,6 @@ final class CommissionPageModel
                 'children_total' => $percentParts === [] ? null : Percentage::fromBasisPoints($childrenTotal)->decimal(),
                 'children_match' => $percentParts === [] || $childrenTotal === Percentage::from((string) $rule['percentage'])->basisPoints,
                 'block' => $isSubDealerOnly ? 'sub_only' : 'shared',
-                // The name a sub-dealer's purchase calls this commission, when it differs from the dealer's.
-                'sub_name' => in_array($key, self::SubDealerNames, true),
                 'destination' => $key === 'additional_rank' ? $this->extraDestination($rules) : null,
             ];
         }
