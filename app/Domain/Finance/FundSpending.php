@@ -262,10 +262,18 @@ final class FundSpending
         } elseif ($amount > $this->funds->balances()[$row->fund_key]['balance']) {
             throw ValidationException::withMessages(['spend' => __('funds.err_overspend')]);
         }
-        $this->wallets->journal('fund.spend.'.$row->id, __('funds.jr_spend', ['fund' => __('funds.fund_'.$row->fund_key), 'head' => $this->headName((int) $row->expense_head_id)]), [
+        $this->wallets->journal('fund.spend.'.$row->id, __('funds.jr_spend', ['fund' => $this->fundWord((string) $row->fund_key), 'head' => $this->headName((int) $row->expense_head_id)]), [
             ['account' => self::FundAccounts[$row->fund_key] ?? 'company_fund_expense', 'user_id' => null, 'debit' => $amount, 'credit' => 0],
             ['account' => $row->fund_key === 'clinic' ? ClinicDispensing::ClinicCashAccount : 'manual_payout_clearing', 'user_id' => null, 'debit' => 0, 'credit' => $amount],
         ]);
+    }
+
+    /** The fund's name in a journal line; a fund the funds word list does not know yet uses the Treasury name. */
+    private function fundWord(string $fund): string
+    {
+        $word = (string) __('funds.fund_'.$fund);
+
+        return $word === 'funds.fund_'.$fund ? FundCatalog::name($fund) : $word;
     }
 
     /** Draws the amount oldest-first from the fund's allocation rows, as the marketing flow does. */

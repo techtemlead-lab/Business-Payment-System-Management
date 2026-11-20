@@ -21,11 +21,13 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Tests\Support\SubDealerExtraInRankFund;
 use Tests\TestCase;
 
 class OperationsCompletionTest extends TestCase
 {
     use RefreshDatabase;
+    use SubDealerExtraInRankFund;
 
     protected function setUp(): void
     {
@@ -138,6 +140,7 @@ class OperationsCompletionTest extends TestCase
 
     public function test_rank_reserve_award_cannot_be_self_approved_and_reverses_after_refund(): void
     {
+        $this->sendSubDealerExtraToTheRankFund();
         $this->enableFinancialPosting();
         $admin = User::factory()->create(['role' => 'finance']);
         $reviewer = User::factory()->create(['role' => 'finance']);
@@ -156,6 +159,7 @@ class OperationsCompletionTest extends TestCase
 
     public function test_reward_after_partial_refund_only_claws_back_subsequent_refund_fraction(): void
     {
+        $this->sendSubDealerExtraToTheRankFund();
         $this->enableFinancialPosting();
         $buyer = User::factory()->create(['role' => 'sub_dealer']);
         $order = $this->postedOrder($buyer, '120.00');
