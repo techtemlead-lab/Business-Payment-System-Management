@@ -225,4 +225,15 @@ class OrderMoneyBreakdownTest extends TestCase
                 ->where('data.orders.data.0.user.address_line', 'Rangpur')
                 ->etc());
     }
+
+    public function test_a_half_saved_policy_snapshot_never_breaks_the_order_page(): void
+    {
+        $owner = User::factory()->staff()->create();
+        $order = $this->paid($this->purchase(User::factory()->dealer()->create()));
+        $order->forceFill(['commission_policy_snapshot' => ['uplines' => []]])->save();
+
+        $shown = $this->breakdownProp($owner, $order, 'sadmin');
+
+        $this->assertContains($shown['mode'], ['preview', 'none']);
+    }
 }

@@ -20,8 +20,10 @@ use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use stdClass;
+use Throwable;
 
 /**
  * The accountant's report: one row per delivered order, and a detail page showing where every
@@ -188,6 +190,19 @@ final class OrderMoneyReport
      * @return array{mode: string, lines: list<array<string, mixed>>, cash: ?string, lines_total: ?string, adds_up: bool, own_only: bool, reason: ?string, posting: ?string}
      */
     public function breakdown(Order $order, User $viewer, bool $showOwnerFunds): array
+    {
+        try {
+            return $this->buildBreakdown($order, $viewer, $showOwnerFunds);
+        } catch (Throwable $error) {
+            // The money section must never break the order page: say so plainly and log why.
+            Log::warning('Order money breakdown could not be built.', ['order' => $order->id, 'error' => $error->getMessage()]);
+
+            return ['mode' => 'none', 'lines' => [], 'cash' => null, 'lines_total' => null, 'adds_up' => true, 'own_only' => ! $viewer->staff(), 'reason' => 'not_available', 'posting' => null];
+        }
+    }
+
+    /** @return array{mode: string, lines: list<array<string, mixed>>, cash: ?string, lines_total: ?string, adds_up: bool, own_only: bool, reason: ?string, posting: ?string} */
+    private function buildBreakdown(Order $order, User $viewer, bool $showOwnerFunds): array
     {
         $staff = $viewer->staff();
         $none = fn (string $reason): array => ['mode' => 'none', 'lines' => [], 'cash' => null, 'lines_total' => null, 'adds_up' => true, 'own_only' => ! $staff, 'reason' => $reason, 'posting' => null];

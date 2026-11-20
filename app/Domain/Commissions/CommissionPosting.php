@@ -132,7 +132,7 @@ final class CommissionPosting
         }
         try {
             $saved = $order->getAttribute('commission_policy_snapshot');
-            $captured = is_array($saved) && $saved !== [];
+            $captured = is_array($saved) && isset($saved['rules'], $saved['account_type']);
             $snapshot = $captured ? $saved : $this->capture($order, $buyer, 'submission', [], null, false);
             $result = $this->calculate($order, $buyer, $snapshot);
         } catch (ValidationException) {
