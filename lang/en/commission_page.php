@@ -64,7 +64,7 @@ return [
 
     // Commission names
     'head_own_dealer_cashback' => 'Doctor Honorarium',
-    'head_direct_referral' => 'Direct referral',
+    'head_direct_referral' => 'Staff commission',
     'head_d2d_multitier' => 'Team income (2nd and 3rd step)',
     'head_area_dealer_pool' => 'Area dealer income',
     'head_dealer_monthly_salary' => 'Dealer Acquisition Target Bonus',
@@ -75,8 +75,6 @@ return [
     'head_additional_rank' => 'Sub-dealer extra',
     'head_sub_dealer_salary' => 'Sub-dealer salary',
     'head_sub_dealer_tour' => 'Tour',
-    'sub_name_direct_referral' => 'Staff commission',
-    'sub_name_line' => 'For a sub-dealer: :name',
     'subblock_title' => 'Sub-dealer only',
     'subblock_lead' => 'These three apply only to a sub-dealer\'s purchase. Every commission above applies to a sub-dealer\'s purchase the same as to a dealer\'s.',
     'extra_goes_label' => 'This part now goes to',
@@ -90,7 +88,7 @@ return [
 
     // Kinds
     'kind_cashback' => 'Back on own purchase',
-    'kind_referral' => 'Referral',
+    'kind_referral' => 'Staff commission',
     'kind_d2d' => 'Team income',
     'kind_area' => 'Area income',
     'kind_salary' => 'Monthly salary',

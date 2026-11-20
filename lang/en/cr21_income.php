@@ -5,7 +5,7 @@ return [
     'filter_head' => 'Income head',
 
     'head_own' => 'Doctor Honorarium',
-    'head_referral' => 'Referral income (direct)',
+    'head_referral' => 'Staff commission',
     'head_d2d_gen2' => 'D2D income · 2nd generation',
     'head_d2d_gen3' => 'D2D income · 3rd generation',
     'head_area_division' => 'Area dealer income · Division',
@@ -14,7 +14,6 @@ return [
     'head_area_union' => 'Area dealer income · Union / Pourashava',
     'head_salary' => 'Dealer Acquisition Target Bonus',
     'head_salary_sub' => 'Sub-dealer salary',
-    'head_referral_sub' => 'Staff commission',
     'head_rank_mo' => 'Rank income · MO',
     'head_rank_am' => 'Rank income · AM',
     'head_rank_sm' => 'Rank income · SM',

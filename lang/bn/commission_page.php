@@ -64,7 +64,7 @@ return [
 
     // কমিশনের নাম
     'head_own_dealer_cashback' => 'ডক্টর অনারারিয়াম',
-    'head_direct_referral' => 'সরাসরি রেফারেল',
+    'head_direct_referral' => 'স্টাফ কমিশন',
     'head_d2d_multitier' => 'টিমের আয় (২য় ও ৩য় ধাপ)',
     'head_area_dealer_pool' => 'এলাকা ডিলারের আয়',
     'head_dealer_monthly_salary' => 'ডিলার একুইজিশন টার্গেট বোনাস',
@@ -75,8 +75,6 @@ return [
     'head_additional_rank' => 'সাব-ডিলার এক্সট্রা',
     'head_sub_dealer_salary' => 'সাব-ডিলার স্যালারি',
     'head_sub_dealer_tour' => 'ট্যুর',
-    'sub_name_direct_referral' => 'স্টাফ কমিশন',
-    'sub_name_line' => 'সাব-ডিলারের ক্ষেত্রে: :name',
     'subblock_title' => 'সাব-ডিলার আলাদা',
     'subblock_lead' => 'এই তিনটি শুধু সাব-ডিলারের কেনায় লাগে। ওপরের সব কমিশন সাব-ডিলারের কেনাতেও ডিলারের মতোই লাগে।',
     'extra_goes_label' => 'এই অংশ এখন যায়',
@@ -90,7 +88,7 @@ return [
 
     // ধরন
     'kind_cashback' => 'নিজের কেনায় ফেরত',
-    'kind_referral' => 'রেফারেল',
+    'kind_referral' => 'স্টাফ কমিশন',
     'kind_d2d' => 'টিমের আয়',
     'kind_area' => 'এলাকার আয়',
     'kind_salary' => 'মাসিক বেতন',
