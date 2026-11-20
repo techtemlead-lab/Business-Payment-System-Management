@@ -57,11 +57,11 @@ class SeedPlaceCodes extends Command
             }
         }
 
-        if ($summary['base_review'] !== [] && $this->getOutput()->isVerbose()) {
-            $this->warn('Base places chosen by the weaker rules (the only child, or one of several places with the upazila\'s name). Worth a look:');
-            $this->table(['Code', 'Level', 'Place', 'Base chosen', 'Why'], array_map(
-                fn (array $r): array => [$r['code'], $r['level'], $r['name'], $r['base'], $r['why']],
-                $summary['base_review'],
+        if ($summary['base_set_list'] !== [] && $this->getOutput()->isVerbose()) {
+            $this->info('Base places set (place → chosen base, with the rule that matched):');
+            $this->table(['Code', 'Level', 'Place', 'Base chosen', 'Rule'], array_map(
+                fn (array $r): array => [$r['code'], $r['level'], $r['name'], $r['base'], $r['rule']],
+                $summary['base_set_list'],
             ));
         }
 
