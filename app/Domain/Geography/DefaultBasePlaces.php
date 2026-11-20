@@ -40,7 +40,7 @@ final class DefaultBasePlaces
 
     /**
      * @param  list<array{code: string, level: string, name: string, parent_code: ?string, kind?: string}>  $places
-     * @return array{links: list<array{code: string, base_code: string}>, empty: list<array{code: string, level: string, name: string, reason: string, candidates: list<string>}>, review: array<string, string>}
+     * @return array{links: list<array{code: string, base_code: string}>, empty: list<array{code: string, level: string, name: string, reason: string, candidates: list<string>}>, rules: array<string, string>}
      */
     public function derive(array $places): array
     {
@@ -53,7 +53,7 @@ final class DefaultBasePlaces
 
         $links = [];
         $empty = [];
-        $review = [];
+        $rules = [];
         foreach ($places as $place) {
             if (! in_array($place['level'], [PlaceCode::LevelDivision, PlaceCode::LevelDistrict, PlaceCode::LevelUpazila], true)) {
                 continue;
@@ -66,15 +66,40 @@ final class DefaultBasePlaces
             };
             if ($base !== null) {
                 $links[] = ['code' => $place['code'], 'base_code' => $base['code']];
-                if ($reason !== null) {
-                    $review[$place['code']] = $reason;
-                }
+                $rules[$place['code']] = $this->ruleLabel($place, $base, $reason);
             } else {
                 $empty[] = ['code' => $place['code'], 'level' => $place['level'], 'name' => $place['name'], 'reason' => $reason ?? self::ReasonNoMatch, 'candidates' => array_map(fn (array $k): string => (string) $k['name'], $kids)];
             }
         }
 
-        return ['links' => $links, 'empty' => $empty, 'review' => $review];
+        return ['links' => $links, 'empty' => $empty, 'rules' => $rules];
+    }
+
+    /**
+     * Which rule picked the base, for the review lists.
+     *
+     * @param  array<string, mixed>  $place
+     * @param  array<string, mixed>  $base
+     */
+    private function ruleLabel(array $place, array $base, ?string $note): string
+    {
+        return match ($place['level']) {
+            PlaceCode::LevelDivision => 'division_same_name_district',
+            PlaceCode::LevelDistrict => ($base['kind'] ?? '') === 'metro_upazila' ? 'district_metro_area' : 'district_sadar_upazila',
+            default => $note === self::NoteOnlyChild
+                ? 'upazila_only_child'
+                : 'upazila_'.$this->kindOf($base).'_named_like_upazila'.($note === self::NotePreferred ? '_preferred_over_same_name' : ''),
+        };
+    }
+
+    /** @param  array<string, mixed>  $place */
+    private function kindOf(array $place): string
+    {
+        return match ($this->rank($place)) {
+            0 => 'city_corporation',
+            1 => 'pourashava',
+            default => 'union',
+        };
     }
 
     /**
