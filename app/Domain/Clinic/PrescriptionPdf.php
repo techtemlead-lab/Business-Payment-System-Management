@@ -5,6 +5,7 @@ namespace App\Domain\Clinic;
 use App\Models\Prescription;
 use App\Support\LocalDigits;
 use App\Support\PdfFonts;
+use App\Support\PdfPaper;
 use Illuminate\Support\Facades\Storage;
 use Mpdf\HTMLParserMode;
 use Mpdf\Mpdf;
@@ -37,7 +38,7 @@ final class PrescriptionPdf
 
         $pdf = new Mpdf([
             'tempDir' => $dir,
-            'format' => 'A4',
+            'format' => PdfPaper::Portrait,
             'margin_left' => 10,
             'margin_right' => 10,
             'margin_top' => 42,

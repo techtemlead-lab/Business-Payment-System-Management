@@ -12,6 +12,7 @@ use App\Support\LetterheadContacts;
 use App\Support\Money;
 use App\Support\PaymentChannel;
 use App\Support\PdfFonts;
+use App\Support\PdfPaper;
 use App\Support\PortalHost;
 use App\Support\SiteCustomization;
 use Carbon\CarbonImmutable;
@@ -70,7 +71,7 @@ final class OrderInvoice
 
         $pdf = new Mpdf([
             'tempDir' => $dir,
-            'format' => 'A4',
+            'format' => PdfPaper::Portrait,
             ...PdfFonts::options(),
             'margin_left' => 12,
             'margin_right' => 12,

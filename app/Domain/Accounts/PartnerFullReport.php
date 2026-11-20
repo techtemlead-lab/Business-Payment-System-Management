@@ -11,6 +11,7 @@ use App\Support\LocalDigits;
 use App\Support\Money;
 use App\Support\PaymentChannel;
 use App\Support\PdfFonts;
+use App\Support\PdfPaper;
 use App\Support\PhoneIdentity;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -241,7 +242,7 @@ final class PartnerFullReport
         try {
             $pdf = new Mpdf([
                 'tempDir' => $dir,
-                'format' => 'A4',
+                'format' => PdfPaper::Portrait,
                 ...PdfFonts::options(),
             ]);
             $pdf->SetTitle($t('pdf_partner_full_report_doc_title'));
