@@ -3185,6 +3185,8 @@ return [
     'err_staff_action_denied' => 'Your role does not allow this action.',
     'notice_settle_title' => 'Monthly commission added',
     'notice_settle_body' => '৳:amount added for :kind / :month.',
+    'notice_rank_prize_title' => 'Rank prize added',
+    'notice_rank_prize_body' => ':kind: ৳:amount has been added to your balance. This is a one-time prize.',
     'notice_commission_matured_title' => 'Commission ready to withdraw',
     'notice_commission_matured_body' => '৳:amount commission has finished its waiting time and is now available in your wallet.',
     'notice_rank_achieved_title' => 'Rank achieved',

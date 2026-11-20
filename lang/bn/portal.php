@@ -3185,6 +3185,8 @@ return [
     'err_staff_action_denied' => 'আপনার রোলে এই কাজের অনুমতি নেই।',
     'notice_settle_title' => 'মাসিক কমিশন জমা হয়েছে',
     'notice_settle_body' => ':kind / :month-এর জন্য ৳:amount জমা হয়েছে।',
+    'notice_rank_prize_title' => 'র‍্যাঙ্কের পুরস্কার জমা হয়েছে',
+    'notice_rank_prize_body' => ':kind: ৳:amount আপনার ব্যালেন্সে জমা হয়েছে। এটি একবারের পুরস্কার।',
     'notice_commission_matured_title' => 'কমিশন তোলার যোগ্য',
     'notice_commission_matured_body' => 'অপেক্ষার সময় শেষ — ৳:amount কমিশন এখন আপনার ওয়ালেটে তোলার যোগ্য।',
     'notice_rank_achieved_title' => 'র‍্যাঙ্ক অর্জিত',
