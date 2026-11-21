@@ -165,8 +165,8 @@ class PartnerHeldAndSalaryNotesTest extends TestCase
 
     public function test_the_team_share_label_is_used_in_both_languages_and_no_dealer_to_dealer_wording_is_left(): void
     {
-        $this->assertSame('টিম শেয়ার (২য় + ৩য় প্রজন্ম)', __('portal.rule_name_d2d_multitier', [], 'bn'));
-        $this->assertSame('Team share (2nd + 3rd generation)', __('portal.rule_name_d2d_multitier', [], 'en'));
+        $this->assertSame('টিমের আয় (২য় ও ৩য় ধাপ)', __('portal.rule_name_d2d_multitier', [], 'bn'));
+        $this->assertSame('Team income (2nd and 3rd step)', __('portal.rule_name_d2d_multitier', [], 'en'));
         foreach (['bn', 'en'] as $locale) {
             $words = require lang_path($locale.'/portal.php');
             foreach ($words as $key => $word) {
@@ -177,7 +177,7 @@ class PartnerHeldAndSalaryNotesTest extends TestCase
         }
         App::setLocale('en');
         $this->seed(CommissionRuleSeeder::class);
-        $this->assertSame('Team share (2nd + 3rd generation)', app(CommissionPolicy::class)->snapshot(false)['rules']['d2d_multitier']['name']);
+        $this->assertSame('Team income (2nd and 3rd step)', app(CommissionPolicy::class)->snapshot(false)['rules']['d2d_multitier']['name']);
     }
 
     public function test_every_new_word_is_there_in_both_languages(): void

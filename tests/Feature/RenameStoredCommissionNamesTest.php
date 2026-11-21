@@ -32,9 +32,11 @@ class RenameStoredCommissionNamesTest extends TestCase
         $this->store('own_dealer_cashback', 'Own purchase cashback');
         $this->store('dealer_monthly_salary', 'Dealer monthly salary pool');
         $this->store('sub_dealer_tour', 'Our summer tour');
+        $this->store('d2d_multitier', 'Team share (2nd + 3rd generation)');
 
         $this->artisan('madina:rename-stored-commission-names')->assertSuccessful();
 
+        $this->assertSame('Team income (2nd and 3rd step)', $this->nameOf('d2d_multitier'));
         $this->assertSame('Staff commission', $this->nameOf('direct_referral'));
         $this->assertSame('Doctor Honorarium', $this->nameOf('own_dealer_cashback'));
         $this->assertSame('Dealer Acquisition Target Bonus', $this->nameOf('dealer_monthly_salary'));

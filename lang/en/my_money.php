@@ -17,7 +17,7 @@ return [
 
     'type_own' => 'Doctor Honorarium',
     'type_referral' => 'Staff commission',
-    'type_team' => 'D2D income (2nd and 3rd generation)',
+    'type_team' => 'Team income (2nd and 3rd step)',
     'type_area' => 'Area dealer income',
     'type_salary' => 'Monthly salary',
     'type_royalty' => 'Rank royalty',
