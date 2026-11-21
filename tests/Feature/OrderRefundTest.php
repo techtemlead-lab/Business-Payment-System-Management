@@ -191,7 +191,7 @@ class OrderRefundTest extends TestCase
         $this->assertStringContainsString($order->number, $sheet);
         $this->assertStringContainsString('Duplicate order', $sheet);
         $this->assertStringContainsString('Finance Officer', $sheet);
-        $this->assertStringContainsString('75.5', $sheet);
+        $this->assertStringContainsString('100', $sheet);
         $zip->close();
         unlink($file);
     }

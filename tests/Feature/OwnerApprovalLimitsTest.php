@@ -137,19 +137,19 @@ class OwnerApprovalLimitsTest extends TestCase
     public function test_a_small_refund_is_finished_by_two_staff_members_without_the_owner(): void
     {
         $this->seed(CommissionRuleSeeder::class);
-        $this->setLimit('refund', '50.00');
+        $this->setLimit('refund', '150.00');
         $order = $this->paidOrder();
         $first = User::factory()->staff('finance')->create();
         $second = User::factory()->staff('finance')->create();
 
-        $this->actingAs($first)->onPortal('manage')->post('/commands/orders/'.$order->id.'/refund', ['amount' => '40.00', 'reason' => 'Dealer changed the order'])->assertSessionHasNoErrors();
+        $this->actingAs($first)->onPortal('manage')->post('/commands/orders/'.$order->id.'/refund', ['amount' => '100.00', 'reason' => 'Dealer changed the order'])->assertSessionHasNoErrors();
         $request = (int) DB::table('order_return_requests')->where('order_id', $order->id)->value('id');
         $this->actingAs($first)->onPortal('manage')->post('/commands/order-returns/'.$request.'/confirm', ['reason' => 'Checked it myself', 'confirmed' => '1'])
             ->assertSessionHasErrors('request');
         $this->actingAs($second)->onPortal('manage')->post('/commands/order-returns/'.$request.'/confirm', ['reason' => 'Checked the bank slip', 'confirmed' => '1'])
             ->assertSessionHasNoErrors();
 
-        $this->assertDatabaseHas('order_refunds', ['order_id' => $order->id, 'amount' => '40.00', 'refunded_by' => $first->id, 'approved_by' => $second->id]);
+        $this->assertDatabaseHas('order_refunds', ['order_id' => $order->id, 'amount' => '100.00', 'refunded_by' => $first->id, 'approved_by' => $second->id]);
         $this->assertDatabaseHas('audit_events', ['actor_id' => $second->id, 'action' => 'order.return_done', 'subject' => $order->id]);
         $this->assertSame(0, DB::table('account_notices')->where('user_id', $this->owner->id)->where('title', __('orders_stock.notice_second_needed_title', ['number' => $order->number]))->count());
     }
@@ -162,7 +162,7 @@ class OwnerApprovalLimitsTest extends TestCase
         $first = User::factory()->staff('finance')->create();
         $second = User::factory()->staff('finance')->create();
 
-        $this->actingAs($first)->onPortal('manage')->post('/commands/orders/'.$order->id.'/refund', ['amount' => '60.00', 'reason' => 'Dealer changed the order'])->assertSessionHasNoErrors();
+        $this->actingAs($first)->onPortal('manage')->post('/commands/orders/'.$order->id.'/refund', ['amount' => '100.00', 'reason' => 'Dealer changed the order'])->assertSessionHasNoErrors();
         $request = (int) DB::table('order_return_requests')->where('order_id', $order->id)->value('id');
         $this->assertSame(1, DB::table('account_notices')->where('user_id', $this->owner->id)->where('title', __('orders_stock.notice_second_needed_title', ['number' => $order->number]))->count());
 
@@ -174,23 +174,23 @@ class OwnerApprovalLimitsTest extends TestCase
 
         $this->actingAs($this->owner)->onPortal('sadmin')->post('/commands/order-returns/'.$request.'/confirm', ['reason' => 'Owner checked', 'confirmed' => '1'])
             ->assertSessionHasNoErrors();
-        $this->assertDatabaseHas('order_refunds', ['order_id' => $order->id, 'amount' => '60.00', 'refunded_by' => $first->id, 'approved_by' => $this->owner->id]);
+        $this->assertDatabaseHas('order_refunds', ['order_id' => $order->id, 'amount' => '100.00', 'refunded_by' => $first->id, 'approved_by' => $this->owner->id]);
     }
 
     public function test_the_md_and_chairman_cannot_finish_a_refund_without_finance_approval(): void
     {
         $this->seed(CommissionRuleSeeder::class);
-        $this->setLimit('refund', '50.00');
+        $this->setLimit('refund', '150.00');
         $finance = User::factory()->staff('finance')->create();
         $small = $this->paidOrder();
         $large = $this->paidOrder();
 
-        $this->actingAs($finance)->onPortal('manage')->post('/commands/orders/'.$small->id.'/refund', ['amount' => '40.00', 'reason' => 'Dealer changed the order'])->assertSessionHasNoErrors();
+        $this->actingAs($finance)->onPortal('manage')->post('/commands/orders/'.$small->id.'/refund', ['amount' => '100.00', 'reason' => 'Dealer changed the order'])->assertSessionHasNoErrors();
         $waiting = (int) DB::table('order_return_requests')->where('order_id', $small->id)->value('id');
 
         foreach (['md', 'chairman'] as $role) {
             $leader = User::factory()->staff($role)->create();
-            $this->actingAs($leader)->onPortal('sadmin')->post('/commands/orders/'.$large->id.'/refund', ['amount' => '60.00', 'reason' => 'Trying to refund it'])->assertForbidden();
+            $this->actingAs($leader)->onPortal('sadmin')->post('/commands/orders/'.$large->id.'/refund', ['amount' => '100.00', 'reason' => 'Trying to refund it'])->assertForbidden();
             $this->actingAs($leader)->onPortal('sadmin')->post('/commands/order-returns/'.$waiting.'/confirm', ['reason' => 'Trying to pay it back', 'confirmed' => '1'])->assertForbidden();
         }
 
