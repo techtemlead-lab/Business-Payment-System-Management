@@ -6925,4 +6925,5 @@ return [
     'pp_salary_dealer_nationwide_how' => 'Buy at least :target from the company this month (paid and delivered). Then the :rate% Dealer Acquisition Target Bonus fund of all of Bangladesh is shared equally among all dealers in the country who reached their own target.',
     'pp_salary_estimate_nationwide' => 'If the month ended today, you would get :share. (Fund for all of Bangladesh: :pool · dealers sharing it: :people)',
     'retained_reason_unclaimed_national_salary' => 'No dealer in Bangladesh met his monthly target, so this salary went to company profit.',
+    'retained_reason_rank_prize_surplus' => 'The rank prize fund had more than the prizes still waiting need, so this part went to company profit at the month close.',
 ];
