@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Support\LocalDigits;
 use App\Support\Money;
 use App\Support\PdfFonts;
+use App\Support\PdfPaper;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -84,7 +85,7 @@ final class PartnerCertificates
             .'<tr><td>'.e($t('cert_income_tax_cut')).'</td><td class="num">৳ '.e($amount($income['tax_cut'])).'</td></tr></table>'
             .'<p class="note">'.e($t('cert_income_note')).'</p>';
 
-        return $this->render($user, $body, $t('cert_income_doc_title', ['year' => $yearText]), 'Madina-income-certificate-'.$year, 'A4', $locale);
+        return $this->render($user, $body, $t('cert_income_doc_title', ['year' => $yearText]), 'Madina-income-certificate-'.$year, PdfPaper::Portrait, $locale);
     }
 
     public function rankPdf(User $user): BinaryFileResponse
@@ -107,7 +108,7 @@ final class PartnerCertificates
             .'<p class="lead">'.e($t('cert_rank_since', ['date' => $achieved])).'</p>'
             .'<p class="note">'.e($t('cert_rank_note')).'</p></div>';
 
-        return $this->render($user, $body, $t('cert_rank_doc_title'), 'Madina-rank-certificate-'.$rank->current_rank, 'A4-L', $locale);
+        return $this->render($user, $body, $t('cert_rank_doc_title'), 'Madina-rank-certificate-'.$rank->current_rank, PdfPaper::Landscape, $locale);
     }
 
     /** Completion certificate for a training item whose quiz the partner passed. No money figures. */
@@ -125,7 +126,7 @@ final class PartnerCertificates
             .'<p class="lead">'.e($t('cert_training_score', ['score' => LocalDigits::text((string) $completion->best_score, $locale), 'date' => $passed])).'</p>'
             .'<p class="note">'.e($t('cert_training_note')).'</p></div>';
 
-        return $this->render($user, $body, $t('cert_training_doc_title'), 'Madina-training-certificate-'.$item->id, 'A4-L', $locale);
+        return $this->render($user, $body, $t('cert_training_doc_title'), 'Madina-training-certificate-'.$item->id, PdfPaper::Landscape, $locale);
     }
 
     /** A date in Dhaka time in the reader's language, with Bangla digits on a Bangla certificate. */

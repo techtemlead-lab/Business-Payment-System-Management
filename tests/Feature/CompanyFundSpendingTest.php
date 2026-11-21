@@ -97,6 +97,26 @@ class CompanyFundSpendingTest extends TestCase
         $this->assertDatabaseHas('audit_events', ['action' => 'fund.spend_approved', 'subject' => (string) $id]);
     }
 
+    public function test_the_sub_dealer_extra_fund_is_spent_like_the_other_allocation_funds(): void
+    {
+        [$maker, $checker] = $this->financeStaff();
+        $this->fundRow(CommissionPosting::SubDealerExtraCategory, '500.00', ['status' => 'pending']);
+        // The setUp order is a sub-dealer order, so the fund already holds its extra part (4.80).
+        $before = $this->balance('sub_dealer_extra');
+        $this->assertSame(480 + 50000, $before);
+
+        $id = $this->spend($maker, ['fund' => 'sub_dealer_extra', 'amount' => '200.00'])->assertOk()->json('data.id');
+        $this->assertSame($before - 20000, $this->available('sub_dealer_extra'));
+        $this->spend($maker, ['fund' => 'sub_dealer_extra', 'amount' => '400.01'])->assertUnprocessable()->assertJsonValidationErrors('amount');
+        $this->review($checker, $id, 'approved')->assertOk();
+
+        $this->assertSame($before - 20000, $this->balance('sub_dealer_extra'));
+        $lines = DB::table('journal_lines')->join('journal_entries', 'journal_entries.id', '=', 'journal_lines.entry_id')->where('event_key', 'fund.spend.'.$id)->get();
+        $this->assertCount(2, $lines);
+        $this->assertSame((float) $lines->sum('debit'), (float) $lines->sum('credit'));
+        $this->assertStringContainsString('Sub-dealer extra', (string) DB::table('journal_entries')->where('event_key', 'fund.spend.'.$id)->value('description'));
+    }
+
     public function test_a_spend_cannot_take_a_fund_below_zero(): void
     {
         [$maker, $checker] = $this->financeStaff();
@@ -237,7 +257,9 @@ class CompanyFundSpendingTest extends TestCase
         [$maker] = $this->financeStaff();
         $this->fundRow('car_bike_incentive_fund', '500.00');
 
-        $this->spend($maker, ['fund' => 'car_bike'])->assertUnprocessable()->assertJsonValidationErrors('fund');
+        foreach (['bike', 'car', 'car_bike'] as $prizeFund) {
+            $this->spend($maker, ['fund' => $prizeFund])->assertUnprocessable()->assertJsonValidationErrors('fund');
+        }
         $this->spend($maker, ['fund' => 'rank_reward'])->assertUnprocessable()->assertJsonValidationErrors('fund');
     }
 

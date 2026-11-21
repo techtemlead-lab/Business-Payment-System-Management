@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { router, useForm, usePage } from '@inertiajs/react';
 import { PackageCheck, Plus, Trash2 } from 'lucide-react';
-import { ActionForm, Badge, DateInput, Empty, FormErrors, Modal, Pagination, Table, date, money, number, type Row } from './UI';
+import { ActionForm, Badge, DateInput, FormErrors, Modal, Pagination, Table, date, money, number, type Row } from './UI';
 import type { OfficeHub } from './OfficeHubTabs';
 import OfficePage from './office/OfficePage';
 import { currentView, DrawerLines, StaffActionDialog, ViewSwitch, type StaffAction } from './office/sections/staffSectionParts';
@@ -287,10 +287,12 @@ export default function PurchasingHub({ data, hub }: { data: PurchasingData; hub
         >
             <ViewSwitch views={views} active={view} fallback="orders" label={text('views_label')} />
 
-            {view === 'orders' && (orders.length === 0 ? <Empty title={text('no_orders')} body={text('no_orders_body')} /> : (
+            {view === 'orders' && (
                 <>
                     <Table
                         rows={orders}
+                        empty={text('no_orders')}
+                        emptyBody={text('no_orders_body')}
                         columns={[
                             { key: 'number', title: text('order_number'), render: (order: Row) => <button type="button" className="record-link" onClick={() => setSelectedOrderId(order.id)}>{order.number}</button> },
                             { key: 'date', title: text('date'), render: (order: Row) => date(order.created_at) },
@@ -304,15 +306,13 @@ export default function PurchasingHub({ data, hub }: { data: PurchasingData; hub
                     />
                     <Pagination page={data.orders} />
                 </>
-            ))}
+            )}
 
-            {view === 'suppliers' && (data.suppliers.length === 0
-                ? <Empty title={text('no_suppliers')} body={text('no_suppliers_body')} />
-                : <Table rows={data.suppliers} columns={[...supplierColumns, { key: 'notes', title: text('notes'), render: (supplier: Row) => supplier.notes || '—' }]} />)}
+            {view === 'suppliers' && (
+                <Table rows={data.suppliers} empty={text('no_suppliers')} emptyBody={text('no_suppliers_body')} columns={[...supplierColumns, { key: 'notes', title: text('notes'), render: (supplier: Row) => supplier.notes || '—' }]} />)}
 
-            {view === 'archived' && (data.archived_suppliers.length === 0
-                ? <Empty line title={text('no_archived_suppliers')} />
-                : <Table rows={data.archived_suppliers} columns={[...supplierColumns, { key: 'archived_at', title: text('archived_on'), render: (supplier: Row) => date(supplier.archived_at) }]} />)}
+            {view === 'archived' && (
+                <Table rows={data.archived_suppliers} empty={text('no_archived_suppliers')} columns={[...supplierColumns, { key: 'archived_at', title: text('archived_on'), render: (supplier: Row) => date(supplier.archived_at) }]} />)}
 
             {creating && <Modal title={text('new_order')} onClose={() => setCreating(false)}><NewOrderForm data={data} onDone={() => setCreating(false)} /></Modal>}
             {selectedOrder && <OrderDetail order={selectedOrder} data={data} onClose={() => setSelectedOrderId(null)} />}

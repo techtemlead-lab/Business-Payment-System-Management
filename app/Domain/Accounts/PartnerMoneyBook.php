@@ -4,6 +4,7 @@ namespace App\Domain\Accounts;
 
 use App\Domain\Finance\FundCatalog;
 use App\Domain\Finance\OrderMoneyReport;
+use App\Domain\Finance\ReserveService;
 use App\Models\User;
 use App\Support\Money;
 use App\Support\MoneyTable;
@@ -73,7 +74,7 @@ final class PartnerMoneyBook
         $cards = [];
         foreach (PartnerIncomeHeads::keys() as $head) {
             if (($totals[$head]['cents'] ?? 0) !== 0) {
-                $cards[] = ['key' => $head, 'label' => PartnerIncomeHeads::label($head), 'amount' => FundCatalog::decimalOf($totals[$head]['cents'])];
+                $cards[] = ['key' => $head, 'label' => PartnerIncomeHeads::label($head, null, $partner->role), 'amount' => FundCatalog::decimalOf($totals[$head]['cents'])];
             }
         }
 
@@ -176,7 +177,7 @@ final class PartnerMoneyBook
                     self::Types,
                 )),
                 new MoneyTableFilter('head', (string) __('cr21_income.filter_head'), 'x.head', array_map(
-                    fn (string $head): array => ['value' => $head, 'label' => PartnerIncomeHeads::label($head)],
+                    fn (string $head): array => ['value' => $head, 'label' => PartnerIncomeHeads::label($head, null, $partner->role)],
                     PartnerIncomeHeads::keys(),
                 ), group: 'more'),
             ],
@@ -192,7 +193,7 @@ final class PartnerMoneyBook
             'id' => $row->id,
             'occurred_at' => CarbonImmutable::parse((string) $row->occurred_at, 'UTC')->toIso8601String(),
             'type' => $row->type,
-            'type_label' => $this->rowWord($row),
+            'type_label' => $this->rowWord($row, $partner->role),
             'percent' => $row->percent === null ? null : (string) $row->percent,
             'order_id' => $row->order_id,
             // Only the partner's own orders open; an order of someone in the team stays closed to them.
@@ -278,14 +279,16 @@ final class PartnerMoneyBook
      * Commission held back for this partner: nothing is in the wallet yet. Each line says what it is,
      * which order it came from and why it is held: the account is suspended (paid by itself when the
      * account is active again) or the area target was not met (released when met, else company profit
-     * at month end).
+     * at month end). With $includeQuota false the target-held rows are left out: the pending section shows them.
      *
      * @return array{total: string, count: int, lines: list<array{id: int, amount: string, what: string, order_id: string, order_number: string|null, reason: string}>}
      */
-    public function heldCommission(User $partner, int $limit = 20): array
+    public function heldCommission(User $partner, int $limit = 20, bool $includeQuota = true): array
     {
         // One query: the window totals cover every held row, the LIMIT only the lines shown.
         $rows = DB::table('commission_allocations as a')->where('a.user_id', $partner->id)->where('a.status', 'held')->where('a.amount', '>', 0)
+            // The target rows the pending section lists (area, quota, from the first month of the rule) are left out of this list.
+            ->when(! $includeQuota, fn (Builder $query) => $query->whereRaw("NOT (a.category LIKE 'area\_%' AND a.metadata->>'hold_reason' = 'quota' AND a.metadata->>'period_month' >= ?)", [ReserveService::AreaTargetRuleFirstMonth]))
             ->leftJoin('orders as o', 'o.id', '=', 'a.order_id')
             ->orderByDesc('a.id')
             ->limit($limit)
@@ -435,10 +438,10 @@ final class PartnerMoneyBook
         return (string) __('my_money.type_'.$type);
     }
 
-    private function rowWord(object $row): string
+    private function rowWord(object $row, ?string $role = null): string
     {
         if (in_array($row->type, PartnerIncomeHeads::RowTypes, true)) {
-            return PartnerIncomeHeads::label(PartnerIncomeHeads::headOf($row->type, $row->category, $row->program, $row->kind));
+            return PartnerIncomeHeads::label(PartnerIncomeHeads::headOf($row->type, $row->category, $row->program, $row->kind), null, $role);
         }
 
         return $row->category !== null ? FundCatalog::typeLabel((string) $row->category) : self::typeWord((string) $row->type);

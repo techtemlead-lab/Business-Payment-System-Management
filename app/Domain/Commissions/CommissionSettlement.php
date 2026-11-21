@@ -781,6 +781,11 @@ final class CommissionSettlement
             ['user_id' => $userId, 'account' => 'wallet_liability', 'debit' => 0, 'credit' => $amount],
         ]);
         $this->wallets->credit($userId, $amount);
+        // The one-time rank prize (kind rank_mo … rank_me) is not a monthly commission and may be drawn from several funds:
+        // incentive() sends one notice for the whole prize instead.
+        if (str_starts_with($kind, 'rank_')) {
+            return;
+        }
         Audit::notice(
             $userId,
             __('portal.notice_settle_title', [], $locale),
@@ -913,6 +918,12 @@ final class CommissionSettlement
                     break;
                 }
             }
+            $locale = $user->preferredLocale();
+            Audit::notice(
+                $userId,
+                __('portal.notice_rank_prize_title', [], $locale),
+                __('portal.notice_rank_prize_body', ['amount' => Money::display(Money::decimal($amount), $locale), 'kind' => __('portal.settle_kind_rank_'.$awardRank, [], $locale)], $locale),
+            );
             DB::table('rank_incentive_awards')->insert(['user_id' => $userId, 'rank' => $awardRank, 'amount' => Money::decimal($amount),
                 'request_key' => $requestKey, 'sources' => json_encode($sources, JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);
             $rank->update(['one_time_incentive_paid' => true, 'one_time_incentive_paid_at' => now()]);

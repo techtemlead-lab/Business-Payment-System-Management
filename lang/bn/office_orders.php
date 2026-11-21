@@ -17,6 +17,9 @@ return [
     'items_sent' => ':sent / :total',
     'delivered_part' => 'ডেলিভারি :amount',
     'total_delivered_only' => 'শুধু যে মাল পৌঁছেছে',
+    'col_partner_type' => 'পার্টনারের ধরন',
+    'col_code' => 'কোড',
+    'totals_note' => 'মোট হিসাবে বাতিল আর না-মঞ্জুর করা অর্ডার ছাড়া তালিকার সব অর্ডার ধরা হয়েছে। এর মধ্যে যে মাল পৌঁছে গেছে তার দাম :value, আর তার জন্য পেয়েছি :paid। টাকার রিপোর্টে শুধু পৌঁছে যাওয়া মালের হিসাব ধরা হয়।',
     'refunded_part' => 'ফেরত দেওয়া :amount',
     'filter_buyer' => 'পার্টনারের ধরন',
     'filter_branch' => 'ব্রাঞ্চ',
@@ -32,4 +35,6 @@ return [
     'view_failed' => 'বুকিং হয়নি',
     'view_decisions' => 'সিদ্ধান্ত বাকি',
     'stage_with_courier' => 'কুরিয়ারে আছে',
+    'col_address' => 'ঠিকানা',
+    'col_mrp' => 'MRP',
 ];

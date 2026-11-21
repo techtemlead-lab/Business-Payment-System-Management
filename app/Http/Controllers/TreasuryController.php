@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Domain\Accounts\PartnerIncomeBook;
 use App\Domain\Accounts\PartnerMoneyBook;
+use App\Domain\Accounts\PartnerPendingMoney;
 use App\Domain\Finance\CompanyFunds;
 use App\Domain\Finance\EventLog;
+use App\Domain\Finance\FundSpendPartners;
 use App\Domain\Finance\OrderMoneyReport;
 use App\Domain\Finance\PartnerMoneyList;
 use App\Domain\Finance\ProfitAndLoss;
@@ -47,8 +49,9 @@ class TreasuryController extends Controller
     {
         abort_unless(TreasuryAccess::mayOpenFunds($request->user()), 403);
         $card = $funds->card($fund, $this->showsOwnerFunds($request));
-        $leaderFigures = $fund === RewardLeaderList::Fund ? $leaders->summary() : null;
-        $view = $this->fundView($request, $leaderFigures !== null);
+        $awards = RewardLeaderList::awardsOf($fund);
+        $leaderFigures = $awards === [] ? null : [...$leaders->summary(), 'shown' => $awards];
+        $view = $this->fundView($request, $awards);
 
         return Inertia::render('TreasuryFund', [
             ...$this->shared($request),
@@ -105,12 +108,16 @@ class TreasuryController extends Controller
         abort_unless(in_array($partner->role, ['dealer', 'sub_dealer'], true), 404);
 
         $incomeView = $request->query('view') === 'income';
+        $pending = $incomeView ? null : app(PartnerPendingMoney::class)->for($partner);
 
         return Inertia::render('TreasuryPartner', [
             ...$this->shared($request),
             'partner' => ['id' => $partner->id, 'name' => $partner->name, 'code' => $partner->dealer_code, 'role' => $partner->role, 'area' => OrderMoneyReport::areaOf((object) ['profile' => $partner->getAttribute('profile'), 'district' => $partner->district, 'division' => $partner->division])],
             'summary' => $book->summary($partner),
             'cards' => $book->incomeCards($partner),
+            'pending' => $pending,
+            'benefits' => app(FundSpendPartners::class)->linesFor($partner),
+            'not_earned_area' => $pending === null ? [] : PartnerPendingMoney::notReceived($book->notEarnedAreaCommission($partner), $pending['awaiting_close']),
             'view' => $incomeView ? 'income' : 'money',
             'table' => $incomeView ? null : $book->table($request, $partner),
             'income' => $incomeView ? $income->page($request, $partner) : null,
@@ -170,12 +177,16 @@ class TreasuryController extends Controller
         return [$default['from'], $default['to']];
     }
 
-    /** The view asked for in the address, when this fund has it; otherwise the money that came in. */
-    private function fundView(Request $request, bool $hasLeaders): string
+    /**
+     * The view asked for in the address, when this fund has it; otherwise the money that came in.
+     *
+     * @param  list<string>  $awards  the leader lists this fund has
+     */
+    private function fundView(Request $request, array $awards): string
     {
         $asked = $request->query('view');
 
-        return is_string($asked) && in_array($asked, ['out', ...($hasLeaders ? RewardLeaderList::Awards : [])], true) ? $asked : 'in';
+        return is_string($asked) && in_array($asked, ['out', ...$awards], true) ? $asked : 'in';
     }
 
     /** @return array{section: string, tabs: array{waiting: int}} */

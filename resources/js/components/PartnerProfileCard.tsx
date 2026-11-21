@@ -73,7 +73,7 @@ export default function PartnerProfileCard({card}:{card:Row}){
    <div><dt>{p('refs_team')}</dt><dd>{number(refs.team??0)}</dd></div>
    <div><dt>{p('refs_sales')}</dt><dd>{money(refs.sales_total??0)}</dd></div>
   </dl>
-  {(refs.items??[]).length===0?<p className="muted">{p('refs_empty')}</p>:<div className="table-scroll"><table className="mt-table"><thead><tr><th>{p('refs_col_name')}</th><th>{p('refs_col_code')}</th><th>{p('refs_col_joined')}</th><th>{p('refs_col_own')}</th><th>{p('refs_col_branch')}</th><th>{p('refs_col_team')}</th></tr></thead><tbody>{refs.items.map((item:Row)=><tr key={item.id}><td>{item.name}</td><td>{item.dealer_code||'—'}</td><td>{item.joined_on}</td><td>{money(item.own_sales)}</td><td>{money(item.branch_sales)}</td><td>{number(item.branch_members+1)}</td></tr>)}</tbody></table></div>}
+  {<div className="table-scroll"><table className="mt-table"><thead><tr><th>{p('refs_col_name')}</th><th>{p('refs_col_code')}</th><th>{p('refs_col_joined')}</th><th>{p('refs_col_own')}</th><th>{p('refs_col_branch')}</th><th>{p('refs_col_team')}</th></tr></thead><tbody>{(refs.items??[]).length===0&&<tr><td colSpan={6} className="muted">{p('refs_empty')}</td></tr>}{(refs.items??[]).map((item:Row)=><tr key={item.id}><td>{item.name}</td><td>{item.dealer_code||'—'}</td><td>{item.joined_on}</td><td>{money(item.own_sales)}</td><td>{money(item.branch_sales)}</td><td>{number(item.branch_members+1)}</td></tr>)}</tbody></table></div>}
   <small className="muted">{p('refs_note')}</small>
   {refs.truncated&&<small className="muted"> {p('refs_truncated',{count:String(refs.items.length)})}</small>}
 

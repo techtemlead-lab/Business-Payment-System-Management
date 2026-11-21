@@ -26,7 +26,11 @@ final class EventLogProjector
 
     private const WithdrawalEvents = ['requested', 'approved', 'rejected', 'paid'];
 
-    private const ProgramFunds = "CASE r.program WHEN 'marketing' THEN 'marketing' WHEN 'bike' THEN 'car_bike' WHEN 'car' THEN 'car_bike' WHEN 'tour' THEN 'tour' WHEN 'additional_rank' THEN 'rank_reward' END";
+    /**
+     * The fund a payout program belongs to. A bike or car prize is the Bike or Car fund's, unless it was
+     * paid (even in part) from old combined money, which has no pool tag: then it is the old combined fund's.
+     */
+    private const ProgramFunds = "CASE WHEN r.program IN ('bike', 'car') THEN CASE WHEN EXISTS (SELECT 1 FROM commission_settlement_payouts vp JOIN commission_allocations va ON va.id = vp.allocation_id WHERE vp.kind = 'award_' || r.id::text AND va.metadata->>'vehicle_pool' IS NULL) THEN 'car_bike' ELSE r.program END WHEN r.program = 'marketing' THEN 'marketing' WHEN r.program = 'tour' THEN 'tour' WHEN r.program = 'additional_rank' THEN 'rank_reward' END";
 
     /** New rows inserted since the last run. */
     public function catchUp(int $limit = 5000): int

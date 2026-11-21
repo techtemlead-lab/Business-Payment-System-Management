@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Support\Audit;
 use App\Support\LocalDigits;
 use App\Support\PdfFonts;
+use App\Support\PdfPaper;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -135,7 +136,7 @@ final class PartnerRegistrationForm
         try {
             $pdf = new Mpdf([
                 'tempDir' => $dir,
-                'format' => 'A4',
+                'format' => PdfPaper::Portrait,
                 'margin_left' => 14,
                 'margin_right' => 14,
                 'margin_top' => 12,

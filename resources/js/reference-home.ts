@@ -89,6 +89,8 @@ function initFloatingChatTuck(): void {
     }, { passive: true });
 }
 initFloatingChatTuck();
+// Product filter: category, concern and stock choices apply at once; typed price fields keep their own button.
+document.querySelectorAll<HTMLFormElement>('[data-filter-autosubmit]').forEach(form=>form.addEventListener('change',event=>{const target=event.target as HTMLInputElement;if(target.type==='radio'||target.type==='checkbox')form.requestSubmit();}));
 document.querySelectorAll<HTMLSelectElement>('[data-autosubmit]').forEach(select=>select.addEventListener('change',()=>select.form?.requestSubmit()));
 const tabs=[...document.querySelectorAll<HTMLButtonElement>('[data-info-tab]')];
 function activateTab(tab:HTMLButtonElement){tabs.forEach(other=>{const selected=other===tab;other.setAttribute('aria-selected',String(selected));other.tabIndex=selected?0:-1;const panel=document.getElementById(other.dataset.infoTab!);if(panel)panel.hidden=!selected;});}

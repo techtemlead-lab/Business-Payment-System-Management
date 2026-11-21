@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Support\PdfLetterhead;
 use App\Support\SiteCustomization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -85,7 +86,7 @@ class WebsiteBanglaTwinsTest extends TestCase
             'invoice_manufacturer' => 'Madina Herbal Lab',
             'invoice_manufacturer_bn' => 'মদিনা হারবাল ল্যাব',
         ]);
-        $sources = ['app/Domain/Orders/OrderInvoice.php', 'app/Domain/Payouts/PayoutReceipts.php', 'app/Domain/Orders/ShippingLabels.php', 'app/Domain/Inventory/StockPrintPdf.php', 'app/Domain/Inventory/StockLotReports.php', 'app/Domain/Clinic/PrescriptionLetterhead.php', 'app/Support/LetterheadContacts.php'];
+        $sources = ['app/Domain/Orders/OrderInvoice.php', 'app/Domain/Payouts/PayoutReceipts.php', 'app/Domain/Orders/ShippingLabels.php', 'app/Support/PdfLetterhead.php', 'app/Domain/Inventory/StockLotReports.php', 'app/Domain/Clinic/PrescriptionLetterhead.php', 'app/Support/LetterheadContacts.php'];
 
         app()->setLocale('bn');
         $bangla = SiteCustomization::inVisitorLanguage(SiteCustomization::all());
@@ -95,6 +96,14 @@ class WebsiteBanglaTwinsTest extends TestCase
         $this->assertSame('মদিনা ন্যাচারাল হেলথ কেয়ার', $bangla['contact_company_title']);
         $this->assertSame('মদিনা হারবাল ল্যাব', $bangla['invoice_manufacturer']);
         $this->assertSame('Madina Herbal Lab', $english['invoice_manufacturer']);
+        // The product list and the stock print take their letterhead from the shared PdfLetterhead, which reads the settings above.
+        foreach (['app/Domain/Inventory/ProductListPdf.php', 'app/Domain/Inventory/StockPrintPdf.php'] as $printer) {
+            $this->assertStringContainsString('PdfLetterhead::company()', (string) file_get_contents(base_path($printer)), $printer.' must use the shared letterhead.');
+        }
+        app()->setLocale('bn');
+        $this->assertSame('মদিনা ন্যাচারাল হেলথ কেয়ার', PdfLetterhead::company()['name']);
+        app()->setLocale('en');
+        $this->assertSame('Madina Natural Health Care', PdfLetterhead::company()['name']);
         foreach ($sources as $source) {
             $this->assertStringContainsString('SiteCustomization::inVisitorLanguage(SiteCustomization::all())', (string) file_get_contents(base_path($source)), $source.' must read the settings in the reader\'s language.');
         }

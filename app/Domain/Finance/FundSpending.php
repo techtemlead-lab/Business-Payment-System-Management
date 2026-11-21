@@ -35,7 +35,7 @@ final class FundSpending
         'marketing' => 'company_marketing_expense',
     ];
 
-    public function __construct(private CommissionWallet $wallets, private CompanyFunds $funds) {}
+    public function __construct(private CommissionWallet $wallets, private CompanyFunds $funds, private FundSpendPartners $partners) {}
 
     /**
      * Owners and finance staff only; the owners' own fund is the owners' alone. The MD and Chairman
@@ -47,7 +47,7 @@ final class FundSpending
     }
 
     /**
-     * @param  array{fund: string, expense_head_id: int, amount: string, spent_on: string, payee: string, payment_method: string, reference?: ?string, note?: ?string, request_key: string}  $data
+     * @param  array{fund: string, expense_head_id: int, amount: string, spent_on: string, payee: string, payment_method: string, reference?: ?string, note?: ?string, request_key: string, for?: array{mode?: ?string, partner_ids?: array<int, mixed>, split?: ?string, amounts?: array<int|string, mixed>}|null}  $data
      */
     public function request(User $actor, array $data, ?UploadedFile $receipt): int
     {
@@ -79,6 +79,8 @@ final class FundSpending
                 if (Money::cents($data['amount']) > $this->funds->balances()[$data['fund']]['available']) {
                     throw ValidationException::withMessages(['amount' => __('funds.err_overspend')]);
                 }
+                // Who the spend is for: nobody named means the company itself, as before.
+                $shares = $this->partners->plan($data['for'] ?? null, (string) $data['amount']);
                 $id = DB::table('reserve_disbursements')->insertGetId([
                     'program' => self::Program,
                     'fund_key' => $data['fund'],
@@ -96,7 +98,8 @@ final class FundSpending
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
-                Audit::record($actor->id, 'fund.spend_requested', (string) $id, ['fund' => $data['fund'], 'amount' => $data['amount'], 'head' => $head->name_en]);
+                $this->partners->record($id, $shares);
+                Audit::record($actor->id, 'fund.spend_requested', (string) $id, ['fund' => $data['fund'], 'amount' => $data['amount'], 'head' => $head->name_en, 'for_partners' => count($shares)]);
                 // CR-16: a spend at or above the owner's limit waits for an owner, so the owners are told.
                 if (! in_array($data['fund'], CompanyFunds::OwnerOnly, true) && self::ownerOnly($data['fund'], (string) $data['amount']) && ! OwnerApprovalLimits::ownerDecides($actor)) {
                     Audit::notifyOwners(['finance'], fn (string $locale): string => __('funds.notice_owner_spend_title', [], $locale),
@@ -262,10 +265,18 @@ final class FundSpending
         } elseif ($amount > $this->funds->balances()[$row->fund_key]['balance']) {
             throw ValidationException::withMessages(['spend' => __('funds.err_overspend')]);
         }
-        $this->wallets->journal('fund.spend.'.$row->id, __('funds.jr_spend', ['fund' => __('funds.fund_'.$row->fund_key), 'head' => $this->headName((int) $row->expense_head_id)]), [
+        $this->wallets->journal('fund.spend.'.$row->id, __('funds.jr_spend', ['fund' => $this->fundWord((string) $row->fund_key), 'head' => $this->headName((int) $row->expense_head_id)]), [
             ['account' => self::FundAccounts[$row->fund_key] ?? 'company_fund_expense', 'user_id' => null, 'debit' => $amount, 'credit' => 0],
             ['account' => $row->fund_key === 'clinic' ? ClinicDispensing::ClinicCashAccount : 'manual_payout_clearing', 'user_id' => null, 'debit' => 0, 'credit' => $amount],
         ]);
+    }
+
+    /** The fund's name in a journal line; a fund the funds word list does not know yet uses the Treasury name. */
+    private function fundWord(string $fund): string
+    {
+        $word = (string) __('funds.fund_'.$fund);
+
+        return $word === 'funds.fund_'.$fund ? FundCatalog::name($fund) : $word;
     }
 
     /** Draws the amount oldest-first from the fund's allocation rows, as the marketing flow does. */

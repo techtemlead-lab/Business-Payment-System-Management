@@ -17,6 +17,9 @@ return [
     'items_sent' => ':sent / :total',
     'delivered_part' => 'Delivered :amount',
     'total_delivered_only' => 'Delivered goods only',
+    'col_partner_type' => 'Partner type',
+    'col_code' => 'Code',
+    'totals_note' => 'The totals add up every order in the list except cancelled and refused ones. Of that, goods already delivered: :value, paid for them: :paid. The money reports count delivered goods only.',
     'refunded_part' => 'Refunded :amount',
     'filter_buyer' => 'Partner type',
     'filter_branch' => 'Branch',
@@ -32,4 +35,6 @@ return [
     'view_failed' => 'Not booked',
     'view_decisions' => 'Decision needed',
     'stage_with_courier' => 'With courier',
+    'col_address' => 'Address',
+    'col_mrp' => 'MRP',
 ];

@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Domain\Inventory\StockPrintList;
+use App\Domain\Inventory\ProductListRows;
 use App\Models\CompanyBranch;
 use App\Models\Product;
 use App\Models\User;
@@ -102,7 +102,7 @@ class OptionalProductFieldsTest extends TestCase
 
         $product = Product::query()->where('sku', 'TEST-B9-DOSE')->firstOrFail();
         $this->assertSame('Two spoons after food', $product->dose_en);
-        $usage = fn (): ?string => collect((new StockPrintList)->build()['rows'])->firstWhere('name', 'Dose Tonic')['usage'] ?? null;
+        $usage = fn (): ?string => collect((new ProductListRows)->build()['rows'])->firstWhere('name', 'Dose Tonic')['usage'] ?? null;
         App::setLocale('en');
         $this->assertSame('Two spoons after food', $usage());
         App::setLocale('bn');

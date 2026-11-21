@@ -23,6 +23,9 @@ final class CommissionPosting
     /** One row holding the commission nobody received because staff chose no commission. */
     public const NoCommissionCategory = 'no_commission_to_company';
 
+    /** The sub-dealer extra percent when it goes to the company fund "Sub-dealer extra" (see CompanyFunds). */
+    public const SubDealerExtraCategory = 'sub_dealer_extra_fund';
+
     public function __construct(
         private CommissionPolicy $policies,
         private CommissionWallet $wallets,
@@ -32,7 +35,7 @@ final class CommissionPosting
     ) {}
 
     /** @return array<string, mixed> */
-    public function capture(Order $order, User $buyer, string $event = 'submission', array $replacements = [], ?User $actor = null): array
+    public function capture(Order $order, User $buyer, string $event = 'submission', array $replacements = [], ?User $actor = null, bool $persist = true): array
     {
         if (($order->commission_policy_snapshot['capture_event'] ?? null) === 'approval') {
             return $order->commission_policy_snapshot;
@@ -102,9 +105,41 @@ final class CommissionPosting
             $snapshot['funding_decisions'] = $preview['funding_decisions'];
             $snapshot['approved_company_share'] = Money::decimal($preview['company']);
         }
-        $order->update(['commission_policy_snapshot' => $snapshot]);
+        if ($persist) {
+            $order->update(['commission_policy_snapshot' => $snapshot]);
+        }
 
         return $snapshot;
+    }
+
+    /**
+     * What this order will pay out when it posts, worked out with the same rules and rounding as the
+     * posting itself and from the rules the order was captured with. It writes nothing: no snapshot,
+     * no row, no wallet. Null when the order never posts (opening balance, no price, not a dealer or
+     * sub-dealer) or its figures do not reconcile.
+     *
+     * @return array{rows: list<array<string, mixed>>, cash: int, mrp: int, company: int, allocated: int, snapshot: array<string, mixed>, captured: bool}|null
+     */
+    public function preview(Order $order): ?array
+    {
+        $cash = Money::cents((string) $order->total);
+        if ($order->is_opening_balance || $cash === 0) {
+            return null;
+        }
+        $buyer = User::query()->select('users.*')->whereKey($order->user_id)->first();
+        if (! $buyer instanceof User || ! in_array($buyer->role, ['dealer', 'sub_dealer'], true)) {
+            return null;
+        }
+        try {
+            $saved = $order->getAttribute('commission_policy_snapshot');
+            $captured = is_array($saved) && isset($saved['rules'], $saved['account_type']);
+            $snapshot = $captured ? $saved : $this->capture($order, $buyer, 'submission', [], null, false);
+            $result = $this->calculate($order, $buyer, $snapshot);
+        } catch (ValidationException) {
+            return null;
+        }
+
+        return ['rows' => $result['rows'], 'cash' => $cash, 'mrp' => $result['mrp'], 'company' => $result['company'], 'allocated' => $result['allocated'], 'snapshot' => $snapshot, 'captured' => $captured];
     }
 
     /** @return list<array<string, mixed>> */
@@ -540,7 +575,10 @@ final class CommissionPosting
             $add('car_bike_incentive_fund', 'car_bike_incentive', null, 'pending', $poolRate->decimal(), null, ['vehicle_pool' => $pool]);
         }
         if ($type === 'sub_dealer') {
-            $add('additional_rank_pool', 'additional_rank');
+            // The extra percent goes where the rules this order was captured with say. An order captured before the
+            // setting existed has no value and keeps the old destination, the rank reward fund.
+            $extraToFund = ($rules['additional_rank']['parameters'][CommissionPolicy::ExtraDestinationParameter] ?? CommissionPolicy::ExtraDestinationBefore) === 'extra_fund';
+            $add($extraToFund ? self::SubDealerExtraCategory : 'additional_rank_pool', 'additional_rank');
             $add('sub_dealer_salary', 'sub_dealer_salary', $buyer->id);
             $add('sub_dealer_tour', 'sub_dealer_tour', $buyer->id, 'reserved');
         }

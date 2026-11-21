@@ -70,6 +70,8 @@ class LeaderListPaginationTest extends TestCase
     public function test_car_and_bike_fund_page_sends_only_the_leaders_tab_on_screen_one_page_at_a_time(): void
     {
         $leaders = $this->leaders(self::Leaders);
+        // The old combined fund's page shows both lists, and only while it holds old money.
+        $this->carBikeFundRow($leaders->first(), 'RW-OLD');
         foreach ($leaders as $index => $leader) {
             DB::table('users')->where('id', $leader->id)->update(['dealer_code' => sprintf('LD-%03d', $index + 1)]);
             $this->milestone($leader, 'bike', 1000 * ($index + 1));

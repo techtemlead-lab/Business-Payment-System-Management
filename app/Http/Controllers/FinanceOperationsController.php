@@ -6,6 +6,7 @@ use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Commissions\PolicyScheduling;
 use App\Domain\Finance\CompanyFunds;
 use App\Domain\Finance\FinancialReadiness;
+use App\Domain\Finance\FundCatalog;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Finance\PayrollService;
 use App\Domain\Finance\ReportData;
@@ -15,6 +16,7 @@ use App\Domain\Payouts\PayoutReceipts;
 use App\Support\Audit;
 use App\Support\Money;
 use App\Support\PdfFonts;
+use App\Support\PdfPaper;
 use App\Support\ReasonFields;
 use App\Support\SpreadsheetCell;
 use App\Support\TableWorkbook;
@@ -110,6 +112,16 @@ class FinanceOperationsController extends Controller
     {
         $data = $request->validate(['decision' => 'required|in:approved,rejected,cancelled', 'reason' => ReasonFields::rule('money.policy_schedule_review', 1000, 5)]);
         $schedules->review($request->user(), $id, $data['decision'], ReasonFields::text($data['reason'] ?? null));
+
+        return $this->done($request);
+    }
+
+    /** Change the end of an approved special rate, or stop it now. Owner only; PolicyScheduling::end checks again. */
+    public function scheduleEnd(Request $request, int $id, PolicyScheduling $schedules): Response
+    {
+        $data = $request->validate(['mode' => 'required|in:stop_now,set_end,open_end', 'expires_at' => 'nullable|required_if:mode,set_end|date', 'reason' => ReasonFields::rule('money.policy_schedule_review', 1000, 5)]);
+        $endsAt = $data['mode'] === 'stop_now' || empty($data['expires_at']) ? null : CarbonImmutable::parse($data['expires_at'], 'Asia/Dhaka')->utc();
+        $schedules->end($request->user(), $id, $data['mode'] === 'stop_now' ? CarbonImmutable::now() : $endsAt, ReasonFields::text($data['reason'] ?? null));
 
         return $this->done($request);
     }
@@ -389,7 +401,7 @@ class FinanceOperationsController extends Controller
                         : '<th>'.e($column === $report['columns'][0] ? __('portal.ops_export_total') : '').'</th>';
                 }
                 $html .= '</tr></tfoot></table>'.($totalNote !== null ? '<p><strong>'.e(__('portal.ops_total_counts')).':</strong> '.e($totalNote).'</p>' : '').'<p><small>'.e(__('portal.ops_export_generated_footer', ['when' => $generatedAt])).'</small></p>';
-                $pdf = new Mpdf(['tempDir' => Storage::disk('local')->path('report-exports'), 'format' => 'A4-L', ...PdfFonts::options()]);
+                $pdf = new Mpdf(['tempDir' => Storage::disk('local')->path('report-exports'), 'format' => PdfPaper::Landscape, ...PdfFonts::options()]);
                 $pdf->SetTitle(__('portal.ops_export_pdf_title', ['name' => $reportName]));
                 $pdf->SetHTMLFooter('<div style="text-align:right;font-size:8pt">'.e(__('portal.ops_export_pdf_footer')).'</div>');
                 $pdf->WriteHTML($html);
@@ -481,7 +493,7 @@ class FinanceOperationsController extends Controller
             $key = 'funds.'.($column === 'fund' ? 'fund_' : 'method_').$value;
             $label = __($key);
 
-            return $label !== $key ? $label : Str::headline($value);
+            return $label !== $key ? $label : ($column === 'fund' ? FundCatalog::name($value) : Str::headline($value));
         }
 
         return $this->reportValueLabel($value);

@@ -265,10 +265,10 @@ class VehiclePoolsTest extends TestCase
         $this->setRule(['bike_award_amount' => '0.30', 'car_award_amount' => null]);
         $summary = app(VehiclePools::class)->summary();
 
-        $this->assertSame(['balance' => '1.00', 'award' => '0.30', 'prizes_payable' => 3], $summary['bike']);
-        $this->assertSame(['balance' => '1.00', 'award' => null, 'prizes_payable' => null], $summary['car']);
+        $this->assertSame(['balance' => '1.00', 'own' => '1.00', 'old' => '0.00', 'award' => '0.30', 'prizes_payable' => 3, 'waiting_count' => 0, 'waiting_amount' => '0.00'], $summary['bike']);
+        $this->assertSame(['balance' => '1.00', 'own' => '1.00', 'old' => '0.00', 'award' => null, 'prizes_payable' => null, 'waiting_count' => 0, 'waiting_amount' => '0.00'], $summary['car']);
 
-        $this->actingAs($this->owner)->onPortal('sadmin')->get('/treasury/funds/car_bike?view=bike')->assertOk()
+        $this->actingAs($this->owner)->onPortal('sadmin')->get('/treasury/funds/bike?view=bike')->assertOk()
             ->assertInertia(fn ($page) => $page->where('leaders.pools.bike.balance', '1.00')->where('leaders.pools.bike.prizes_payable', 3)
                 ->where('leaders.pools.car.award', null));
     }

@@ -2,10 +2,12 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 import Shell from '../components/Shell';
 import IncomeByPart, { type IncomeData } from '../components/income/IncomeByPart';
+import CompanyBenefitsList from '../components/mymoney/CompanyBenefits';
+import type { CompanyBenefits } from '../components/mymoney/types';
 import { useT } from '../shared/i18n/t';
 
 /** Every income of a partner as its own part: how much, on which day, and a statement for each. */
-export default function MyIncome({ income }: { income: IncomeData }) {
+export default function MyIncome({ income, benefits }: { income: IncomeData; benefits?: CompanyBenefits | null }) {
     const translate = useT();
     const { portalBase: base } = usePage<any>().props;
 
@@ -19,6 +21,7 @@ export default function MyIncome({ income }: { income: IncomeData }) {
                     <p>{translate('income', 'intro')}</p>
                 </header>
                 <IncomeByPart income={income} statementBase={`${base}/my-income`} orderHref={(orderId) => `${base}/orders/${orderId}`} />
+                <CompanyBenefitsList benefits={benefits} />
             </div>
         </Shell>
     );

@@ -46,7 +46,7 @@ return [
     'office_pay_title' => 'অফিসে নগদ দিন',
     'office_pay_hint' => ':amount নিয়ে অফিসে আসুন। এখানে আর কিছু লিখতে হবে না।',
     'office_pay_button' => 'অফিসে নগদ দেব',
-    'account_pay_title' => 'আমার অ্যাকাউন্ট থেকে দিন',
+    'account_pay_title' => 'অ্যাকাউন্ট ব্যালেন্স থেকে দিন',
     'account_pay_button' => 'অ্যাকাউন্ট থেকে :amount কাটুন',
     'refund_to_account' => 'এর মধ্যে :amount পার্টনারের অ্যাকাউন্টে ফেরত গেছে।',
 ];

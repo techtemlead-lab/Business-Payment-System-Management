@@ -14,7 +14,7 @@ return [
     'confirm_account_split' => ':balance will be taken from your account. You pay the other :rest another way.',
     'confirm_account_full' => 'The whole :amount will be taken from your account. :after will be left.',
     'confirm_account_changed' => 'Your account balance has changed: it was :before, it is now :now. The figures below use the balance now.',
-    'confirm_account_short' => 'There is not enough in your account now. Pay the full amount another way, or go back and make the order smaller.',
+    'confirm_account_short' => 'There is not enough in your account now, so the rest must be paid another way. Go back and choose how you will pay the rest.',
     'confirm_send' => 'Yes, send the order',
     'confirm_back' => 'Go back',
     'available_now' => 'Available now: :qty',

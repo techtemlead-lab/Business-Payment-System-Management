@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Support\LocalDigits;
 use App\Support\Money;
 use App\Support\PdfFonts;
+use App\Support\PdfPaper;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -57,7 +58,7 @@ final class PartnerIncomeStatementPdf
         Storage::disk('local')->makeDirectory('report-exports');
         $path = Storage::disk('local')->path('report-exports/'.Str::uuid().'.pdf');
         try {
-            $pdf = new Mpdf(['tempDir' => Storage::disk('local')->path('report-exports'), 'format' => 'A4', ...PdfFonts::options()]);
+            $pdf = new Mpdf(['tempDir' => Storage::disk('local')->path('report-exports'), 'format' => PdfPaper::Portrait, ...PdfFonts::options()]);
             $pdf->SetTitle($partWord.' — '.$t('pdf_title'));
             $pdf->WriteHTML($html);
             $pdf->Output($path, Destination::FILE);

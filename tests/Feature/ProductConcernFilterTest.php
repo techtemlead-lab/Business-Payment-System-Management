@@ -164,4 +164,24 @@ class ProductConcernFilterTest extends TestCase
         $this->actingAs($staff)->post('/commands/product-concerns', ['name_bn' => 'হজম', 'name_en' => 'Digestion'])
             ->assertForbidden();
     }
+
+    public function test_choosing_a_category_applies_at_once_and_keeps_the_other_filters(): void
+    {
+        Product::factory()->create(['category' => 'Herbal tea', 'name' => 'Tea product']);
+        Product::factory()->create(['category' => 'Honey', 'name' => 'Honey product']);
+
+        $html = $this->withCookie('locale', 'en')->get('/products?category=Honey&sort=price_asc&min_price=5')->assertOk()
+            ->assertSee('Honey product')
+            ->assertDontSee('Tea product')
+            ->getContent();
+
+        $this->assertStringContainsString('class="ref-filter-form" data-filter-autosubmit', $html);
+        $this->assertStringContainsString('action="/products#catalog-results"', $html);
+        $this->assertStringContainsString('id="catalog-results"', $html);
+        $this->assertMatchesRegularExpression('/<input type="radio" name="category" value="Honey"\s+checked/', $html);
+        $this->assertStringContainsString('<input type="hidden" name="sort" value="price_asc">', $html);
+        $this->assertStringContainsString('name="min_price" value="5"', $html);
+        $this->assertStringContainsString('Apply price', $html);
+        $this->assertStringNotContainsString('Apply filters', $html);
+    }
 }

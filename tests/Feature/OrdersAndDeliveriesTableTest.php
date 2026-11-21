@@ -41,9 +41,11 @@ class OrdersAndDeliveriesTableTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->has('data.orders.data', 3)
                 ->where('data.orders_table.totals.count', 3)
-                ->where('data.orders_table.totals.sums.value', '1000.00')
-                ->where('data.orders_table.totals.sums.paid', '1000.00')
+                ->where('data.orders_table.totals.sums.price', '1700.00')
+                ->where('data.orders_table.totals.sums.received', '1000.00')
                 ->where('data.orders_table.totals.sums.to_pay', '700.00')
+                ->where('data.orders_table.totals.sums.delivered_value', '1000.00')
+                ->where('data.orders_table.totals.sums.delivered_paid', '1000.00')
                 ->where('data.orders_table.state.sort', 'created_at')
                 ->where('data.orders_table.state.dir', 'desc')
                 ->where('data.orders_table.state.period', '')

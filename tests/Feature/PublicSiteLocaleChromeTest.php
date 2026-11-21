@@ -55,7 +55,7 @@ class PublicSiteLocaleChromeTest extends TestCase
         $this->onPortal('public')->get('/products')
             ->assertOk()
             ->assertSee('আমাদের পণ্য ক্যাটালগ', false)
-            ->assertSee('ফিল্টার করুন', false)
+            ->assertSee('মূল্য প্রয়োগ করুন', false)
             ->assertSee('কম স্টক', false)
             ->assertSee('পণ্যের বিবরণ দেখুন', false);
 

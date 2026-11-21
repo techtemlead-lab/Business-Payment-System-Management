@@ -30,7 +30,7 @@ final class LetterheadContacts
 
         return [
             'whatsapp' => $phones['whatsapp'],
-            'mobile' => $phones['mobile'],
+            'mobile' => self::mobileLine($phones, (string) $setting('invoice_marketed_phones')),
             'email' => trim($setting('contact_email')),
             'website' => $site['label'],
             'website_url' => $site['url'],
@@ -84,6 +84,27 @@ final class LetterheadContacts
             'whatsapp' => self::display($whatsapp),
             'mobile' => self::display($mobile),
         ];
+    }
+
+    /**
+     * The mobile line: the second website number, then any further number the owner listed for the
+     * invoice letterhead, in the same +880 form. The WhatsApp number is never repeated here.
+     *
+     * @param  array{whatsapp: string, mobile: string}  $phones
+     */
+    private static function mobileLine(array $phones, string $listed): string
+    {
+        $tail = static fn (string $number): string => substr((string) preg_replace('/\D/', '', $number), -10);
+        $numbers = [];
+        foreach (array_merge([$phones['mobile']], preg_split('/[,;\/]+/', $listed) ?: []) as $number) {
+            $shown = self::display($number);
+            if ($shown === '' || $tail($shown) === $tail($phones['whatsapp']) || in_array($tail($shown), array_map($tail, $numbers), true)) {
+                continue;
+            }
+            $numbers[] = $shown;
+        }
+
+        return implode(', ', $numbers);
     }
 
     /** A phone number the way the website shows it (+8801…); empty when none is set. */

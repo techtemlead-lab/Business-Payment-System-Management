@@ -7,6 +7,7 @@ use App\Http\Controllers\BranchController;
 use App\Http\Controllers\BranchPerformanceExportController;
 use App\Http\Controllers\ClinicRecordsController;
 use App\Http\Controllers\CommandController;
+use App\Http\Controllers\CommissionPageController;
 use App\Http\Controllers\CourierShipmentController;
 use App\Http\Controllers\CustomerBookController;
 use App\Http\Controllers\DataCleanupController;
@@ -36,6 +37,7 @@ use App\Http\Controllers\PrescriptionToolsController;
 use App\Http\Controllers\PrivacyRequestController;
 use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductConcernController;
+use App\Http\Controllers\ProductListPrintController;
 use App\Http\Controllers\ProductPhotoModelController;
 use App\Http\Controllers\ProductRegistryController;
 use App\Http\Controllers\ProductSizeGroupController;
@@ -121,6 +123,7 @@ return function (string $portal): void {
     Route::get('/exports/accounts', AccountListExportController::class)->middleware('throttle:15,1,data-exports');
     Route::get('/exports/partner-registration-form/{user}', PartnerRegistrationFormController::class)->whereNumber('user')->middleware('throttle:30,1');
     Route::get('/exports/stock-movements', StockMovementExportController::class)->middleware('throttle:15,1,data-exports');
+    Route::get('/exports/product-list', ProductListPrintController::class)->middleware('throttle:15,1,data-exports');
     Route::get('/exports/stock-print', StockPrintController::class)->middleware('throttle:15,1,data-exports');
     Route::get('/exports/branch-performance', BranchPerformanceExportController::class)->middleware('throttle:15,1,data-exports');
 
@@ -247,6 +250,8 @@ return function (string $portal): void {
     Route::post('/commands/commissions/claim-incentive/{user}', [CommandController::class, 'claimRankIncentive']);
     Route::post('/commands/commissions/release-matured', [CommandController::class, 'releaseMaturedCommissions']);
     Route::post('/commands/commissions/simulate', [CommandController::class, 'simulateCommissions']);
+    Route::post('/commands/commissions/split', [CommissionPageController::class, 'split']);
+    Route::post('/commands/commissions/new-head', [CommissionPageController::class, 'newHead']);
     Route::post('/commands/area-dealers', [CommandController::class, 'assignAreaDealer']);
     Route::post('/commands/area-dealers/{id}', [CommandController::class, 'updateAreaDealer'])->whereNumber('id');
     Route::delete('/commands/area-dealers/{id}', [CommandController::class, 'removeAreaDealer']);

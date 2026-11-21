@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { router, useForm, usePage } from '@inertiajs/react';
 import { Play } from 'lucide-react';
-import { ActionForm, Badge, Empty, FormErrors, Pagination, Table, date, number, type Row } from './UI';
+import { ActionForm, Badge, FormErrors, Pagination, Table, date, number, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
 import { useReasonField } from '../shared/reasonFields';
 import SearchSelect from './SearchSelect';
@@ -241,10 +241,12 @@ export default function StockCountHub({ data }: { data: StockCountData }) {
 
             <section className="panel">
                 <h2>{text('count_list')}</h2>
-                {sessions.length === 0 ? <Empty title={text('count_no_sessions')} body={text('count_no_sessions_body')} /> : (
+                {(
                     <>
                         <Table
                             rows={sessions}
+                            empty={text('count_no_sessions')}
+                            emptyBody={text('count_no_sessions_body')}
                             columns={[
                                 { key: 'id', title: '#', render: (session: Row) => <button type="button" className="record-link" onClick={() => open(session.id)}>{text('count_session', { id: String(session.id) })}</button> },
                                 { key: 'date', title: text('date'), render: (session: Row) => date(session.created_at) },

@@ -97,9 +97,7 @@ export default function DataCleanupHub({ data }: { data?: CleanupData | null }) 
                     <button type="submit" className="button">{translate('portal', 'cleanup_apply')}</button>
                 </form>
                 {error && <p className="field-error" role="alert">{error}</p>}
-                {rows.length === 0 ? (
-                    <p className="set-line">{translate('portal', 'cleanup_empty_title')}</p>
-                ) : (
+                {(
                     <section className="panel table-panel">
                         <div className="table-wrap">
                             <table className="cleanup-table">
@@ -116,6 +114,9 @@ export default function DataCleanupHub({ data }: { data?: CleanupData | null }) 
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    {rows.length === 0 && (
+                                        <tr><td colSpan={4} className="set-line">{translate('portal', 'cleanup_empty_title')}</td></tr>
+                                    )}
                                     {rows.map((row) => (
                                         <tr key={row.ref} className={selected.has(row.ref) ? 'is-selected' : undefined}>
                                             <td>

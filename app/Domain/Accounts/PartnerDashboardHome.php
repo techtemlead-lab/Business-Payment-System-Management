@@ -4,6 +4,7 @@ namespace App\Domain\Accounts;
 
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
+use App\Domain\Finance\FundSpendPartners;
 use App\Domain\Notifications\BirthdayGreetings;
 use App\Domain\Orders\DeliveredMoney;
 use App\Models\DealerRank;
@@ -16,6 +17,7 @@ use App\Support\DashboardManagement;
 use App\Support\Money;
 use App\Support\PortalHost;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 final class PartnerDashboardHome
@@ -25,7 +27,15 @@ final class PartnerDashboardHome
 
     private string $targetsRank = 'dealer';
 
-    public function __construct(private CommissionQualification $qualification, private PartnerProgress $progress, private PartnerEarningsPresenter $earnings, private PartnerMoneyBook $moneyBook) {}
+    /** The rank row and the bike and car rows the targets already read, handed to the prize lines so they are not read again. Reset on every call of for(). */
+    private ?DealerRank $rankRow = null;
+
+    private bool $rankRowLoaded = false;
+
+    /** @var Collection<string, RewardMilestoneProgress>|null */
+    private ?Collection $vehicleRows = null;
+
+    public function __construct(private CommissionQualification $qualification, private PartnerProgress $progress, private PartnerEarningsPresenter $earnings, private PartnerMoneyBook $moneyBook, private PartnerPendingMoney $pending) {}
 
     /**
      * @return array{
@@ -47,6 +57,9 @@ final class PartnerDashboardHome
         $month = CommissionQualification::currentMonth();
         $monthStartUtc = CarbonImmutable::createFromFormat('!Y-m', $month, $tz)->utc();
         $rules = app(CommissionPolicy::class)->snapshot(false)['rules'];
+        $this->rankRow = null;
+        $this->rankRowLoaded = false;
+        $this->vehicleRows = null;
         $profile = is_array($user->profile) ? $user->profile : [];
 
         $ownSalesToday = $this->purchaseTotal(
@@ -64,6 +77,11 @@ final class PartnerDashboardHome
         $commissionToday = $this->moneyBook->earnedTotal((int) $user->id, $todayUtc);
 
         $targets = $this->targets($user, $rules, $month);
+        // One read says whether the partner has any company-spend lines at all; the lines themselves are read only when they have.
+        $wallet = $this->walletSummary($user);
+        $hasBenefits = $wallet['benefit_rows'] > 0;
+        unset($wallet['benefit_rows']);
+        $rewardContext = $this->rewardContext($rules);
 
         return [
             'profile' => [
@@ -99,7 +117,7 @@ final class PartnerDashboardHome
             ] : null,
             'sponsor' => $this->sponsorCard($user),
             // Shown behind a "tap to see balance" button on the home screen.
-            'wallet' => [...$this->walletSummary($user), 'commission_waiting' => $this->earnings->waitingCommission($user), 'commission_held' => $this->moneyBook->heldCommission($user, 3)],
+            'wallet' => [...$wallet, 'commission_waiting' => $this->earnings->waitingCommission($user), 'commission_held' => $this->moneyBook->heldCommission($user, 3, false), 'pending' => $this->pending->for($user, 1, false, $rewardContext), 'benefits' => $hasBenefits ? app(FundSpendPartners::class)->linesFor($user, 3) : FundSpendPartners::none()],
             // Shows a small "happy birthday" card; read from the profile already loaded, no query.
             'is_birthday' => BirthdayGreetings::isBirthdayToday($user),
             // Customers the partner meant to call today or earlier: the home page's "call today" card.
@@ -192,21 +210,44 @@ final class PartnerDashboardHome
     }
 
     /**
+     * What the dashboard has already read that the prize lines also need (the rules, the rank row, the bike and car rows), so they are not read twice.
+     *
+     * @param  array<string, array<string, mixed>>  $rules
+     * @return array{rules: array<string, array<string, mixed>>, rank?: ?DealerRank, milestones?: Collection<string, RewardMilestoneProgress>}
+     */
+    private function rewardContext(array $rules): array
+    {
+        $context = ['rules' => $rules];
+        if ($this->rankRowLoaded) {
+            $context['rank'] = $this->rankRow;
+        }
+        if ($this->vehicleRows !== null) {
+            $context['milestones'] = $this->vehicleRows;
+        }
+
+        return $context;
+    }
+
+    /**
      * Money ready to withdraw and money already asked for, in one query.
      *
-     * @return array{available: string, pending_withdrawal: string}
+     * The same read also counts the partner's company-spend lines (benefit_rows), so those are read only when there are any.
+     *
+     * @return array{available: string, pending_withdrawal: string, benefit_rows: int}
      */
     private function walletSummary(User $user): array
     {
         $row = DB::query()->selectRaw(
             '(SELECT available FROM wallets WHERE user_id = ?) AS available, '
-            ."(SELECT COALESCE(SUM(amount), 0) FROM withdrawals WHERE user_id = ? AND status IN ('requested', 'approved', 'pending')) AS pending",
-            [$user->id, $user->id],
+            ."(SELECT COALESCE(SUM(amount), 0) FROM withdrawals WHERE user_id = ? AND status IN ('requested', 'approved', 'pending')) AS pending, "
+            .'(SELECT COUNT(*) FROM fund_spend_partners WHERE user_id = ?) AS benefit_rows',
+            [$user->id, $user->id, $user->id],
         )->first();
 
         return [
             'available' => Money::decimal(Money::cents((string) ($row->available ?? '0'))),
             'pending_withdrawal' => Money::decimal(Money::cents((string) ($row->pending ?? '0'))),
+            'benefit_rows' => (int) ($row->benefit_rows ?? 0),
         ];
     }
 
@@ -245,10 +286,12 @@ final class PartnerDashboardHome
             : $this->dealerTargets($user, $rules, $month);
 
         if (DashboardManagement::partnerFeatureEnabled($user, 'rewards')) {
-            $bike = RewardMilestoneProgress::query()
+            // The bike and car rows are read together, so the prize lines can use the same read.
+            $this->vehicleRows = RewardMilestoneProgress::query()
                 ->where('user_id', $user->id)
-                ->where('milestone_type', 'bike')
-                ->first();
+                ->whereIn('milestone_type', ['bike', 'car'])
+                ->get()->keyBy('milestone_type');
+            $bike = $this->vehicleRows->get('bike');
             $bikeCurrent = Money::cents((string) ($bike === null
                 ? $this->qualification->milestone($user->id, 'bike')['qualifying_volume']
                 : $bike->qualifying_volume));
@@ -335,6 +378,8 @@ final class PartnerDashboardHome
 
         // Read only: a page view never creates the rank row (posting creates it with the first purchase).
         $rank = DealerRank::query()->where('user_id', $user->id)->first();
+        $this->rankRow = $rank;
+        $this->rankRowLoaded = true;
         $currentRank = $rank->current_rank ?? 'dealer';
         $this->targetsRank = $currentRank;
         $moTarget = Money::cents((string) ($rules['rank_royalty']['parameters']['mo_target'] ?? '250000.00'));

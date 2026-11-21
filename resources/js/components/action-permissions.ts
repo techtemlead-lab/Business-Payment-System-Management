@@ -37,7 +37,7 @@ export function actionAllowed(url:string,matrix:Matrix|undefined,method='post'):
     // Courier parcels: change courier, try a refused booking again, mark picked up.
     if(/^\/commands\/orders\/[^/]+\/(courier|mixed-outcome-decision|shipments\/\d+\/(courier-retry|picked-up|received-back|manual-update))$/.test(path))return any(['inventory','order_review'],'edit');
     if(path.startsWith('/commands/claims')||path.startsWith('/commands/withdrawals'))return any(['finance'],'approve');
-    if(path.startsWith('/commands/commissions'))return any(['finance'],path.endsWith('/rules')?'edit':path.endsWith('/simulate')?'view':'approve');
+    if(path.startsWith('/commands/commissions'))return any(['finance'],path.endsWith('/rules')?'edit':path.endsWith('/simulate')||path.endsWith('/split')?'view':path.endsWith('/new-head')?'create':'approve');
     if(path==='/commands/policies')return any(['finance'],'create');
     if(/^\/commands\/policies\/\d+\/publish$/.test(path))return any(['finance'],'approve');
     if(path==='/commands/content'||path==='/commands/customization/reset')return any(['content'],'edit');

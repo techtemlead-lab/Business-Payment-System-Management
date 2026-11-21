@@ -25,6 +25,21 @@ final class CommissionPolicy
     /** Sales targets: a target of zero would make every partner qualify, so it must stay above zero. */
     private const TargetParameters = ['bike_target', 'car_target', 'mo_target'];
 
+    /**
+     * Where the sub-dealer "extra" percent (rule additional_rank) goes: 'extra_fund' is the company fund "Sub-dealer
+     * extra" (the default from 2026-11-20, owner decision); 'rank_fund' is the rank reward fund it went to before and
+     * stays an option. An order keeps the rules it was captured with, so a change here reaches new orders only, and an
+     * order captured before this setting existed has no value and keeps the old fund (ExtraDestinationBefore).
+     */
+    public const ExtraDestinationParameter = 'destination';
+
+    public const ExtraDestinations = ['rank_fund', 'extra_fund'];
+
+    public const ExtraDestinationDefault = 'extra_fund';
+
+    /** What an order captured before the setting existed does: the extra part went to the rank fund. */
+    public const ExtraDestinationBefore = 'rank_fund';
+
     /** Months a held area share may wait before it goes to the company fund (0 = never). */
     private const HeldMonthsParameter = 'held_share_months';
 
@@ -50,20 +65,20 @@ final class CommissionPolicy
     public static function defaults(): array
     {
         $definitions = [
-            'own_dealer_cashback' => ['cashback', 'Own purchase cashback', '5.00', []],
-            'direct_referral' => ['referral', 'Direct referral', '10.00', []],
+            'own_dealer_cashback' => ['cashback', 'Doctor Honorarium', '5.00', []],
+            'direct_referral' => ['referral', 'Staff commission', '10.00', []],
             'd2d_multitier' => ['d2d', 'Team share (2nd + 3rd generation)', '3.00', ['gen2_pct' => '2.00', 'gen3_pct' => '1.00', 'dynamic_compression' => false]],
             'area_dealer_pool' => ['area', 'Area dealer pool', '10.00', ['management_share_pct' => '2.00', 'division_share_pct' => '2.00', 'district_share_pct' => '2.00', 'upazila_share_pct' => '2.00', 'union_share_pct' => '2.00',
                 'division_monthly_quota' => '50000.00', 'district_monthly_quota' => '40000.00', 'upazila_monthly_quota' => '20000.00', 'union_monthly_quota' => '10000.00',
                 'held_share_months' => 3]],
-            'dealer_monthly_salary' => ['salary', 'Dealer monthly salary pool', '2.00', ['min_monthly_volume' => '10000.00']],
+            'dealer_monthly_salary' => ['salary', 'Dealer Acquisition Target Bonus', '2.00', ['min_monthly_volume' => '10000.00']],
             'rank_royalty' => ['rank', 'Rank royalty pool', '4.00', ['mo_target' => '250000.00', 'am_count' => 10, 'sm_count' => 10, 'me_count' => 10, 'qualification_depth' => 3, 'mo_share_pct' => '1.00', 'am_share_pct' => '1.00', 'sm_share_pct' => '1.00', 'me_share_pct' => '1.00']],
             'rank_incentive' => ['incentive', 'Rank incentive reserve', '2.00', ['mo_bonus' => '5000.00', 'am_bonus' => '50000.00', 'sm_bonus' => '250000.00', 'me_bonus' => '300000.00']],
             'company_marketing' => ['marketing', 'Marketing reserve', '2.00', []],
             'car_bike_incentive' => ['rewards', 'Car and motorcycle reserve', '2.00', ['bike_target' => '5000000.00', 'bike_leg_cap' => '800000.00', 'car_target' => '250000000.00', 'car_leg_cap' => '20000000.00', 'bike_award_amount' => '300000.00', 'car_award_amount' => null, 'bike_pool_share_pct' => '50.00']],
-            'additional_rank' => ['sub_dealer', 'Sub-dealer additional rank reserve', '4.00', []],
-            'sub_dealer_salary' => ['sub_dealer', 'Sub-dealer monthly salary', '3.00', []],
-            'sub_dealer_tour' => ['sub_dealer', 'Sub-dealer tour reserve', '3.00', []],
+            'additional_rank' => ['sub_dealer', 'Sub-dealer extra', '4.00', ['destination' => self::ExtraDestinationDefault]],
+            'sub_dealer_salary' => ['sub_dealer', 'Sub-dealer salary', '3.00', []],
+            'sub_dealer_tour' => ['sub_dealer', 'Tour', '3.00', []],
             'commission_cooling_off' => ['operations', 'Commission cooling-off', '0.00', ['cooling_off_days' => 0]],
             'payout_tax_withholding' => ['operations', 'Configured payout withholding', '0.00', ['threshold' => '0.00']],
             'rank_maintenance' => ['operations', 'Rank maintenance', '0.00', ['mo_min_monthly_volume' => '5000.00', 'am_min_monthly_volume' => '15000.00', 'sm_min_monthly_volume' => '30000.00', 'me_min_monthly_volume' => '50000.00', 'grace_period_days' => 30]],
@@ -321,6 +336,10 @@ final class CommissionPolicy
                     if ($name === 'dynamic_compression') {
                         if (! is_bool($value)) {
                             throw new InvalidArgumentException(__('portal.err_policy_compression_bool'));
+                        }
+                    } elseif ($name === self::ExtraDestinationParameter) {
+                        if (! in_array($value, self::ExtraDestinations, true)) {
+                            throw new InvalidArgumentException(__('commission_page.err_extra_destination'));
                         }
                     } elseif (in_array($name, self::AwardAmountParameters, true) && ($value === null || $value === '')) {
                         continue;

@@ -225,6 +225,9 @@ final class TreasuryFunds
         if ($row->category === 'clinic_sale') {
             return (string) __('treasury.type_clinic_sale');
         }
+        if ($row->category === VehiclePools::Category && in_array($row->pool ?? null, VehiclePools::Programs, true)) {
+            return (string) __('treasury.type_'.$row->pool.'_pool');
+        }
 
         return FundCatalog::typeLabel((string) $row->category);
     }
@@ -245,7 +248,7 @@ final class TreasuryFunds
             ->leftJoin('commission_batches as b', 'b.order_id', '=', 'funds.order_id')
             ->where('funds.status', '!=', 'reversed')->where('funds.amount', '>', 0)
             ->whereRaw('('.FundCatalog::rowFundSql().') = ?', [$fund])
-            ->selectRaw("funds.id::text AS id, funds.created_at, o.id AS order_id, o.number AS order_number, u.name AS partner_name, u.dealer_code AS partner_code, u.role AS partner_role, funds.amount, funds.category, funds.rate_percentage AS percent, 'paid' AS percent_of, b.mrp_basis AS mrp_total, b.cash_basis AS paid, CASE WHEN funds.category = '".CompanyFunds::NoCommissionCategory."' THEN funds.metadata->>'reason' END AS reason, funds.metadata->>'reason_key' AS reason_key, funds.metadata->>'place_code' AS place_code");
+            ->selectRaw("funds.id::text AS id, funds.created_at, o.id AS order_id, o.number AS order_number, u.name AS partner_name, u.dealer_code AS partner_code, u.role AS partner_role, funds.amount, funds.category, funds.rate_percentage AS percent, 'paid' AS percent_of, b.mrp_basis AS mrp_total, b.cash_basis AS paid, CASE WHEN funds.category = '".CompanyFunds::NoCommissionCategory."' THEN funds.metadata->>'reason' END AS reason, funds.metadata->>'reason_key' AS reason_key, funds.metadata->>'place_code' AS place_code, funds.metadata->>'vehicle_pool' AS pool");
     }
 
     /** The company share and the owners' share of each order, scaled down by what was refunded. */

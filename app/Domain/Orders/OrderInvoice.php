@@ -12,6 +12,7 @@ use App\Support\LetterheadContacts;
 use App\Support\Money;
 use App\Support\PaymentChannel;
 use App\Support\PdfFonts;
+use App\Support\PdfPaper;
 use App\Support\PortalHost;
 use App\Support\SiteCustomization;
 use Carbon\CarbonImmutable;
@@ -70,7 +71,7 @@ final class OrderInvoice
 
         $pdf = new Mpdf([
             'tempDir' => $dir,
-            'format' => 'A4',
+            'format' => PdfPaper::Portrait,
             ...PdfFonts::options(),
             'margin_left' => 12,
             'margin_right' => 12,
@@ -132,9 +133,6 @@ final class OrderInvoice
             'address' => $letterhead('office_address'),
             'phones' => $letterhead('contact_phone'),
             'manufacturer' => $letterhead('invoice_manufacturer'),
-            // Empty boxes mean "same as the company": the name and phones are stored once.
-            'marketed_by' => $letterhead('invoice_marketed_by') ?: $letterhead('contact_company_title'),
-            'marketed_phones' => $letterhead('invoice_marketed_phones') ?: implode(', ', array_filter([SiteCustomization::secondPhone(), $letterhead('contact_phone')])),
             'logo_path' => is_file($logoPath) ? $logoPath : null,
             ...LetterheadContacts::lines(),
             'icons' => LetterheadContacts::icons(),
@@ -255,6 +253,7 @@ final class OrderInvoice
                 'payment_state_label' => __('portal.inv_payment_'.$paymentState),
             ],
             'payments' => $payments,
+            'delivery' => app(OrderDelivery::class)->for($order),
             'buyer' => [
                 'name' => $buyer?->name,
                 'code' => $buyer?->dealer_code,
