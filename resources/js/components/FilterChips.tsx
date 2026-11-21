@@ -7,6 +7,11 @@ export type ChipOption = { value: string; label: string; count?: number };
 /** A filter with this many choices or fewer (not counting "All") is shown as a row of chips; longer lists get the searchable drop-down. */
 export const ChipsUpTo = 8;
 
+/** Filters that pick one person, place, product or branch from a list that can grow without limit stay a searchable drop-down. */
+const LongListKey = /(place|partner|product|dealer|account|branch|upazila|district|division|union|user|staff|checked_by|sponsor|member)/i;
+
+export const wantsSearch = (key: string, optionCount: number): boolean => LongListKey.test(key) || optionCount > 60;
+
 /**
  * One filter as a row of buttons: "All" first, then each choice. One click on a chip applies it, so there
  * is no drop-down to open and no Apply button. The chosen chip is marked with aria-pressed and a filled
@@ -51,7 +56,7 @@ export function FilterChips({ options, value, onChange, label, allLabel, ariaLab
  * The filter control for every list: a small set of choices shows as chips, a long list (places, products,
  * partners) as a searchable drop-down. Both apply the moment a choice is made.
  */
-export default function FilterPicker({ options, value, onChange, label, allLabel, search, className, chipClassName, showLabel = true }: {
+export default function FilterPicker({ options, value, onChange, label, allLabel, search, maxChips = ChipsUpTo, className, chipClassName, showLabel = true }: {
     options: SearchOption[] | ChipOption[];
     value: string;
     onChange: (value: string) => void;
@@ -60,6 +65,8 @@ export default function FilterPicker({ options, value, onChange, label, allLabel
     allLabel?: string;
     /** Ask for the searchable drop-down whatever the size. */
     search?: boolean;
+    /** Most choices still drawn as chips. Fund, income head, type and status lists pass Infinity so they never become a drop-down. */
+    maxChips?: number;
     /** Class for the drop-down form of the control. */
     className?: string;
     chipClassName?: string;
@@ -69,7 +76,7 @@ export default function FilterPicker({ options, value, onChange, label, allLabel
     const translate = useT();
     const everything = allLabel ?? translate('portal', 'all');
 
-    if (search || options.length > ChipsUpTo) {
+    if (search || options.length > maxChips) {
         return (
             <AutoSelect
                 search

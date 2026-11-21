@@ -104,7 +104,7 @@ export function SectionTableSearch({ table }: { table: StaffSectionTable }) {
                 </div>
             )}
             {statuses.length > 0 && (
-                <FilterPicker label={translate('office_staff', 'col_status')} value={filter?.status ?? ''} onChange={(value) => apply({ status: value })} options={statuses.map((status) => ({ value: status, label: label(status, translate) }))} />
+                <FilterPicker maxChips={Infinity} label={translate('office_staff', 'col_status')} value={filter?.status ?? ''} onChange={(value) => apply({ status: value })} options={statuses.map((status) => ({ value: status, label: label(status, translate) }))} />
             )}
             {Boolean(filter?.q || filter?.status) && (
                 <div className="order-filter-actions">

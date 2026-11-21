@@ -5,7 +5,7 @@ import { useT } from '../shared/i18n/t';
 import { DateInput, FormErrors, Modal, Pagination, money, number, useTableOverflow } from './UI';
 import { MoreFilterControls, filterKeys, isToolbarFilter, optionText, type MoneyFilter, type SortOption } from './MoneyTableFilters';
 import { BulkBar, type BulkKind } from './OfficeListTools';
-import FilterPicker from './FilterChips';
+import FilterPicker, { wantsSearch } from './FilterChips';
 
 export type MoneyColumn<T> = {
     key: string;
@@ -285,6 +285,8 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
         <FilterPicker
             label={filter.label}
             showLabel={showLabel}
+            maxChips={Infinity}
+            search={wantsSearch(filter.key, filter.options?.length ?? 0)}
             value={state.filters[filter.key] ?? ''}
             onChange={(value) => visit({ [filter.key]: value || null })}
             options={(filter.options ?? []).map((option) => ({ value: option.value, label: optionText(option) }))}

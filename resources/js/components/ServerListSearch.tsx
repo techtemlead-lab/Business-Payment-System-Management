@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { Search } from 'lucide-react';
 import { useT } from '../shared/i18n/t';
-import FilterPicker from './FilterChips';
+import FilterPicker, { wantsSearch } from './FilterChips';
 
 export type ServerListSelect = {
     name: string;
@@ -54,6 +54,8 @@ export default function ServerListSearch({ query, placeholder, selects = [], kee
             {selects.map((select) => (
                 <FilterPicker
                     key={select.name}
+                    maxChips={Infinity}
+                    search={wantsSearch(select.name, select.options.length)}
                     label={select.label}
                     allLabel={select.options.find((option) => option.value === '')?.label}
                     value={select.value}

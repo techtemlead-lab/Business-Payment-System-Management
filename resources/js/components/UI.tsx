@@ -1,4 +1,4 @@
-﻿import React,{useEffect,useMemo,useRef,useState} from 'react';
+import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {Link,useForm,usePage} from '@inertiajs/react';
 import {ArrowUpRight, X, Inbox, ArrowUpDown, ArrowUp, ArrowDown, ArrowLeftRight, RotateCcw, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Download, Printer} from 'lucide-react';
 import {actionAllowed} from './action-permissions';
@@ -7,7 +7,7 @@ import {useT} from '../shared/i18n/t';
 import {usePlacedFields,type ReasonPlace} from '../shared/reasonFields';
 import DateInput from './DateInput';
 import {AutoSelect} from './SearchSelect';
-import FilterPicker from './FilterChips';
+import FilterPicker, {wantsSearch} from './FilterChips';
 
 export { default as DateInput } from './DateInput';
 export type Row=Record<string,any>;
@@ -697,6 +697,7 @@ export function Table<T extends Row = any>({
      )}
      {tools && searchable && statuses.length > 1 && (
       <FilterPicker
+       maxChips={Infinity}
        label={translate('portal', 'table_status')}
        value={status}
        onChange={value => { setStatus(value); setCurrentPage(1); }}
@@ -706,6 +707,8 @@ export function Table<T extends Row = any>({
      {tools && filters?.map(f => (
       <FilterPicker
        key={f.key}
+       maxChips={Infinity}
+       search={wantsSearch(f.key, f.options.length)}
        label={f.label}
        value={customFilters[f.key] ?? ''}
        onChange={value => {
