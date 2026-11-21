@@ -2,6 +2,7 @@
 
 namespace App\Domain\Finance;
 
+use App\Support\CommissionCodeLabel;
 use App\Support\Money;
 
 /**
@@ -71,7 +72,12 @@ final class FundCatalog
             $key = $own;
         }
 
-        return $label === $key ? $category : $label;
+        if ($label !== $key) {
+            return $label;
+        }
+
+        // No name found: show the code, but never one of the retired commission names.
+        return CommissionCodeLabel::replaceRetired($category) === $category ? $category : CommissionCodeLabel::fromCode($category);
     }
 
     /** Text amount with an optional sign, as whole paisa. */
