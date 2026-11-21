@@ -590,6 +590,7 @@ export default function ProductPurchaseMatrix({
                                             {several
                                                 ? <span className="ppm-strength">{card.sizes.map(size => size.size_label || size.strength).filter(Boolean).join(' · ') || translate('order_search', 'sizes_count', { count: String(card.sizes.length) })}</span>
                                                 : (product.size_label || product.strength) && <span className="ppm-strength">({product.size_label || product.strength})</span>}
+                                            {product.group ? <div className="ops-meta ppm-group">{String(product.group)}</div> : null}
                                             <div className="ops-meta">
                                                 {categoryWord(product.category)} {product.sub_category ? `› ${product.sub_category}` : ''}
                                             </div>
@@ -653,6 +654,7 @@ export default function ProductPurchaseMatrix({
                 {pickedCard && activeProduct && (
                     <form onSubmit={handleAddToCart} className="ppm-pick">
                         <div className="ppm-pick-name">{choiceName(pickedCard.first, sizeGroups)}</div>
+                        {activeProduct.group ? <div className="ops-meta ppm-group">{String(activeProduct.group)}</div> : null}
 
                         {availableVariants.length > 1 && (
                             <fieldset className="ppm-sizes" ref={sizesRef}>
@@ -863,6 +865,7 @@ export default function ProductPurchaseMatrix({
                                                 <div className="ppm-line-name">
                                                     {p.name}
                                                 </div>
+                                                {p.group ? <div className="cell-sub ppm-group">{String(p.group)}</div> : null}
                                                 <div className="cell-sub">
                                                     {(p.size_label || p.strength) ? <strong className="ppm-line-strength">{p.size_label || p.strength}</strong> : null}
                                                     <span>{categoryWord(p.category)}{p.sub_category ? ` · ${p.sub_category}` : ''}</span>

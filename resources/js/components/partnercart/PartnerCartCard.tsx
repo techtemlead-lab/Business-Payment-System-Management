@@ -45,6 +45,7 @@ export default function PartnerCartCard({ card, detailsUrl, availableOf, onChoos
                 </div>
 
                 <h3 className="pcart-title"><a href={detailsUrl(product)}>{String(product.name)}</a></h3>
+                {product.group ? <p className="pcart-group">{String(product.group)}</p> : null}
 
                 {card.sizes.length > 1 && (
                     <div className="pcart-sizes-row" role="group" aria-label={translate('size_groups', 'choose_size')}>
