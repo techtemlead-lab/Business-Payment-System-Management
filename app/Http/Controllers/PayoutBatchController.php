@@ -44,14 +44,16 @@ class PayoutBatchController extends Controller
         return $this->csv($file['rows'], 'Madina-payout-batch-'.$file['batch']->month.'-'.($file['batch']->channel ?? 'all').'-'.PayoutBatchFiles::shortId($id).'-again.csv');
     }
 
-    /** The bank did not send this withdrawal: it goes back to the approved list. */
+    /** The bank did not send this withdrawal: recorded by one person, carried out by a second. */
     public function notSent(Request $request, string $id, PayoutBatchFiles $files): JsonResponse|RedirectResponse
     {
         $this->authorizeFinance($request->user());
         $data = $request->validate(['note' => 'required|string|min:5|max:1000']);
-        $files->markNotSent($request->user(), $id, ReasonFields::text($data['note']));
+        $done = $files->markNotSent($request->user(), $id, ReasonFields::text($data['note']));
 
-        return $request->expectsJson() ? response()->json(['data' => ['id' => $id, 'status' => 'approved']]) : back()->with('success', __('payouts.flash_not_sent'));
+        return $request->expectsJson()
+            ? response()->json(['data' => ['id' => $id, 'status' => 'approved', 'in_bank_file' => ! $done, 'waiting_second' => ! $done]])
+            : back()->with('success', __($done ? 'payouts.flash_not_sent' : 'payouts.flash_not_sent_recorded'));
     }
 
     /** @param list<list<string>> $rows */

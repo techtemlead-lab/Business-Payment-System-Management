@@ -3,9 +3,12 @@
 namespace App\Domain\Payouts;
 
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Finance\OwnerApprovalLimits;
+use App\Domain\Security\SelfApproval;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
+use App\Support\TakaText;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -104,22 +107,87 @@ final class PayoutBatchFiles
     /**
      * The bank or wallet did not send this withdrawal: it leaves its batch and is approved and
      * unpaid again, so finance can send it in a new file, pay it by hand or reject it.
+     *
+     * Two people, because a wrong mark puts the withdrawal in the next file and it could be paid
+     * twice: the first call records the step with a note, a second finance person's call carries
+     * it out. The owner finishes alone; at or above the owner's withdrawal limit an owner must take
+     * one of the two steps. Returns true when it was carried out.
      */
-    public function markNotSent(User $actor, string $withdrawalId, string $note): void
+    public function markNotSent(User $actor, string $withdrawalId, string $note): bool
     {
         abort_unless($actor->allows('finance'), 403);
-        DB::transaction(function () use ($actor, $withdrawalId, $note): void {
+
+        return DB::transaction(function () use ($actor, $withdrawalId, $note): bool {
             $w = DB::table('withdrawals')->where('id', $withdrawalId)->lockForUpdate()->first();
             abort_unless($w !== null, 404);
             if ($w->status !== 'approved' || $w->exported_at === null) {
                 throw ValidationException::withMessages(['withdrawal' => __('payouts.err_not_in_bank_file')]);
             }
-            DB::table('withdrawals')->where('id', $withdrawalId)->update(['payout_batch_id' => null, 'exported_at' => null, 'updated_at' => now()]);
+            if ((int) $actor->id === (int) $w->user_id) {
+                throw ValidationException::withMessages(['withdrawal' => __('portal.err_wd_self_review')]);
+            }
+            if ($w->not_sent_requested_by === null) {
+                DB::table('withdrawals')->where('id', $withdrawalId)->update(['not_sent_requested_by' => $actor->id, 'not_sent_requested_at' => now(), 'not_sent_note' => $note, 'updated_at' => now()]);
+                DB::table('withdrawal_events')->insert(['withdrawal_id' => $withdrawalId, 'actor_id' => $actor->id, 'event' => 'not_sent_requested', 'note' => $note, 'created_at' => now()]);
+                Audit::record($actor->id, 'withdrawal.not_sent_requested', $withdrawalId, ['user_id' => $w->user_id, 'amount' => $w->amount, 'batch_id' => $w->payout_batch_id, 'note' => $note]);
+                if (! app(SelfApproval::class)->ownerFinishesAlone($actor)) {
+                    $title = fn (string $locale): string => __('payouts.notice_not_sent_second_title', [], $locale);
+                    $body = fn (string $locale): string => __('payouts.notice_not_sent_second_body', ['amount' => TakaText::amount($w->amount), 'by' => $actor->name], $locale);
+                    if ($this->needsOwnerStep($w, $actor)) {
+                        Audit::notifyOwners(['finance'], $title, $body, $actor->id);
+                    } else {
+                        Audit::notifyStaffFirst(['finance'], $title, $body, $actor->id);
+                    }
+
+                    return false;
+                }
+                $requester = $actor;
+            } else {
+                if ((int) $w->not_sent_requested_by === (int) $actor->id) {
+                    throw ValidationException::withMessages(['withdrawal' => __('payouts.err_not_sent_same_person')]);
+                }
+                $requester = User::find($w->not_sent_requested_by);
+                if ($this->needsOwnerStep($w, $requester)) {
+                    app(OwnerApprovalLimits::class)->refuseUnlessOwnerMayApprove($actor, OwnerApprovalLimits::Withdrawal, (string) $w->amount, 'withdrawal');
+                }
+            }
+            DB::table('withdrawals')->where('id', $withdrawalId)->update(['payout_batch_id' => null, 'exported_at' => null,
+                'not_sent_requested_by' => null, 'not_sent_requested_at' => null, 'not_sent_note' => null, 'updated_at' => now()]);
             DB::table('withdrawal_events')->insert(['withdrawal_id' => $withdrawalId, 'actor_id' => $actor->id, 'event' => 'not_sent', 'note' => $note, 'created_at' => now()]);
             Audit::record($actor->id, 'withdrawal.not_sent', $withdrawalId, [
                 'user_id' => $w->user_id, 'amount' => $w->amount, 'batch_id' => $w->payout_batch_id, 'exported_at' => (string) $w->exported_at, 'note' => $note,
+                'requested_by' => $requester?->id, 'request_note' => $w->not_sent_note ?? $note,
+                ...((int) $requester?->id === (int) $actor->id ? ['self_approved' => true] : []),
             ]);
+
+            return true;
         }, 3);
+    }
+
+    /**
+     * What this viewer may do about "the bank did not send it": 'record', 'confirm', 'wait_second'
+     * (the viewer recorded it), 'wait_owner' (it needs an owner and the viewer is not one), or null.
+     */
+    public function notSentState(object $withdrawal, User $viewer): ?string
+    {
+        if ($withdrawal->status !== 'approved' || $withdrawal->exported_at === null || ! $viewer->allows('finance')) {
+            return null;
+        }
+        if ($withdrawal->not_sent_requested_by === null) {
+            return 'record';
+        }
+        if ((int) $withdrawal->not_sent_requested_by === (int) $viewer->id) {
+            return 'wait_second';
+        }
+
+        return $this->needsOwnerStep($withdrawal, User::find($withdrawal->not_sent_requested_by)) && ! OwnerApprovalLimits::ownerDecides($viewer) ? 'wait_owner' : 'confirm';
+    }
+
+    /** At or above the owner's withdrawal limit, an owner must take one of the two steps. */
+    private function needsOwnerStep(object $withdrawal, ?User $firstPerson): bool
+    {
+        return app(OwnerApprovalLimits::class)->needsOwner(OwnerApprovalLimits::Withdrawal, (string) $withdrawal->amount)
+            && ! OwnerApprovalLimits::ownerDecides($firstPerson);
     }
 
     /**

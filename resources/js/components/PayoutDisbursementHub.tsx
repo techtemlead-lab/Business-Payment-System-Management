@@ -53,6 +53,9 @@ interface WithdrawalRecord {
     /** Approved and listed in a file sent to the bank; it may not be rejected until it is paid or marked as not sent. */
     in_bank_file?: boolean;
     bank_file?: string | null;
+    /** "Bank did not send": same two-person states as a return (PayoutBatchFiles::notSentState). */
+    not_sent_state?: ReturnState;
+    not_sent_note?: string | null;
     return_state?: ReturnState;
     return_note?: string | null;
     returned_at?: string | null;
@@ -414,11 +417,13 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                 </button>
             )}
 
-            {w.status === 'approved' && w.in_bank_file && canProcess && (
+            {canProcess && (w.not_sent_state === 'record' || w.not_sent_state === 'confirm') && (
                 <button type="button" onClick={() => { setModalErrors({}); setNotSentNote(''); setNotSentRecord(w); }} className="button small">
-                    {translate('payouts', 'not_sent_button')}
+                    {translate('payouts', w.not_sent_state === 'confirm' ? 'not_sent_confirm_button' : 'not_sent_button')}
                 </button>
             )}
+            {w.not_sent_state === 'wait_second' && <small className="muted">{translate('payouts', 'not_sent_wait_second')}</small>}
+            {w.not_sent_state === 'wait_owner' && <small className="muted">{translate('payouts', 'not_sent_wait_owner')}</small>}
 
             {canProcess && w.return_state === 'record' && (
                 <button type="button" onClick={() => openReturn(w, 'record')} className="button small">
@@ -818,6 +823,7 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                         <h3 className="hub-title is-lg">{translate('payouts', 'not_sent_title')}</h3>
                         <p className="hub-sub is-lead">{notSentRecord.user_name} · {money(notSentRecord.net_amount ?? notSentRecord.amount)} · {translate('payouts', 'in_bank_file_badge', { batch: notSentRecord.bank_file ?? '' })}</p>
                         <div className="notice" role="note"><p>{translate('payouts', 'not_sent_body')}</p></div>
+                        {notSentRecord.not_sent_note && <p className="hub-hint">{translate('payouts', 'not_sent_recorded_line', { note: notSentRecord.not_sent_note })}</p>}
                         <form onSubmit={handleNotSent}>
                             <div className="hub-field is-last">
                                 <label htmlFor="not-sent-note">{translate('payouts', 'not_sent_note')}</label>
@@ -826,7 +832,7 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                             <FormErrors errors={modalErrors} />
                             <div className="hub-row is-end">
                                 <button type="button" onClick={() => setNotSentRecord(null)} className="button">{translate('portal', 'pay_cancel')}</button>
-                                <button type="submit" disabled={processingNotSent || notSentNote.trim().length < 5} className="button danger">{translate('payouts', 'not_sent_save')}</button>
+                                <button type="submit" disabled={processingNotSent || notSentNote.trim().length < 5} className="button danger">{translate('payouts', notSentRecord.not_sent_state === 'confirm' ? 'not_sent_confirm_button' : 'not_sent_save')}</button>
                             </div>
                         </form>
                     </div>

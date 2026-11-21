@@ -481,11 +481,14 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                     <h2>{translate('payouts', 'not_sent_title')}</h2>
                     <p className="notice" role="status">{translate('payouts', 'in_bank_file_badge', { batch: String(w.payout_batch_id ?? '').slice(0, 8).toUpperCase() })}</p>
                     <p className="muted">{translate('payouts', 'not_sent_body')}</p>
-                    <ActionForm
+                    {w.not_sent_note && <p className="muted">{translate('payouts', 'not_sent_recorded_line', { note: String(w.not_sent_note) })}</p>}
+                    {w.not_sent_state === 'wait_second' && <p className="notice" role="status">{translate('payouts', 'not_sent_wait_second')}</p>}
+                    {w.not_sent_state === 'wait_owner' && <p className="notice" role="status">{translate('payouts', 'not_sent_wait_owner')}</p>}
+                    {(w.not_sent_state === 'record' || w.not_sent_state === 'confirm') && <ActionForm
                         action={`/commands/withdrawals/${w.id}/not-sent`}
                         fields={[{ name: 'note', label: translate('payouts', 'not_sent_note'), type: 'textarea', required: true }]}
-                        submit={translate('payouts', 'not_sent_save')}
-                    />
+                        submit={translate('payouts', w.not_sent_state === 'confirm' ? 'not_sent_confirm_button' : 'not_sent_save')}
+                    />}
                 </section>
             )}
             {finance && w.status === 'approved' && !w.exported_at && (

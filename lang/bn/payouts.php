@@ -200,4 +200,15 @@ return [
     'event_label_return_requested' => 'লেখা হলো: টাকা ফেরত এসেছে',
     'event_label_returned' => 'টাকা ওয়ালেটে ফেরত গেছে',
     'event_label_return_cancelled' => '"ফেরত এসেছে" ফিরিয়ে নেওয়া হলো',
+
+    // "Bank did not send" needs a second person
+    'err_not_sent_same_person' => 'ব্যাংক পাঠায়নি বলে আপনি লিখেছেন। হিসাব বিভাগের অন্য একজনকে নিশ্চিত করতে হবে।',
+    'flash_not_sent_recorded' => 'লেখা হলো। ব্যাংক পাঠায়নি কি না হিসাব বিভাগের অন্য একজনকে নিশ্চিত করতে হবে।',
+    'notice_not_sent_second_title' => 'যাচাই করুন: ব্যাংক টাকা পাঠায়নি',
+    'notice_not_sent_second_body' => ':by লিখেছেন, ব্যাংক :amount পাঠায়নি। ব্যাংকে খোঁজ নিয়ে নিশ্চিত করুন, নইলে এটি ব্যাংক ফাইলেই থাকবে।',
+    'not_sent_confirm_button' => 'ব্যাংক পাঠায়নি নিশ্চিত করুন',
+    'not_sent_wait_second' => 'ব্যাংক পাঠায়নি নিশ্চিত করতে হিসাব বিভাগের আরেকজনের অপেক্ষা',
+    'not_sent_wait_owner' => 'এত টাকার ক্ষেত্রে ব্যাংক পাঠায়নি তা মালিককে নিশ্চিত করতে হবে',
+    'not_sent_recorded_line' => 'পাঠানো হয়নি লেখা: :note',
+    'event_label_not_sent_requested' => 'লেখা হলো: ব্যাংক পাঠায়নি',
 ];

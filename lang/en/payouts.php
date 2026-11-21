@@ -200,4 +200,15 @@ return [
     'event_label_return_requested' => 'Written: money came back',
     'event_label_returned' => 'Money back in the wallet',
     'event_label_return_cancelled' => '"Came back" taken back',
+
+    // "Bank did not send" needs a second person
+    'err_not_sent_same_person' => 'You wrote that the bank did not send this. Another finance person must confirm it.',
+    'flash_not_sent_recorded' => 'Written. Another finance person must confirm that the bank did not send it.',
+    'notice_not_sent_second_title' => 'Check: bank did not send a payout',
+    'notice_not_sent_second_body' => ':by wrote that the bank did not send :amount. Check the bank and confirm, or it stays in the bank file.',
+    'not_sent_confirm_button' => 'Confirm bank did not send',
+    'not_sent_wait_second' => 'Waiting for a second finance person to confirm the bank did not send it',
+    'not_sent_wait_owner' => 'This amount needs the owner to confirm the bank did not send it',
+    'not_sent_recorded_line' => 'Written as not sent: :note',
+    'event_label_not_sent_requested' => 'Written: bank did not send',
 ];

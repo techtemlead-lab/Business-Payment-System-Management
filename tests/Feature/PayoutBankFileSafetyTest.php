@@ -52,11 +52,23 @@ class PayoutBankFileSafetyTest extends TestCase
         $finance = User::factory()->staff('finance')->create();
         $id = $this->approvedWithdrawal($partner, '1000.00');
         $batch = $this->exportFile($finance);
+        $second = User::factory()->staff('finance')->create();
 
         $this->actingAs($finance)->onPortal('manage')->post('/commands/withdrawals/'.$id.'/not-sent', ['note' => 'Bank says the account number was closed'])
             ->assertSessionHasNoErrors();
+        $row = DB::table('withdrawals')->where('id', $id)->first();
+        $this->assertSame($batch, $row->payout_batch_id, 'One person alone does not take it out of the bank file.');
+        $this->assertSame($finance->id, $row->not_sent_requested_by);
+        $this->assertSame('wait_second', app(PayoutBatchFiles::class)->notSentState($row, $finance));
+        $this->assertSame('confirm', app(PayoutBatchFiles::class)->notSentState($row, $second));
+        $this->actingAs($finance)->onPortal('manage')->post('/commands/withdrawals/'.$id.'/not-sent', ['note' => 'Confirming it myself'])
+            ->assertSessionHasErrors(['withdrawal' => __('payouts.err_not_sent_same_person')]);
+
+        $this->actingAs($second)->onPortal('manage')->post('/commands/withdrawals/'.$id.'/not-sent', ['note' => 'Checked with the bank: not sent'])
+            ->assertSessionHasNoErrors();
 
         $row = DB::table('withdrawals')->where('id', $id)->first();
+        $this->assertNull($row->not_sent_requested_by);
         $this->assertSame('approved', $row->status);
         $this->assertNull($row->exported_at);
         $this->assertNull($row->payout_batch_id);
@@ -70,7 +82,8 @@ class PayoutBankFileSafetyTest extends TestCase
 
         $next = app(PayoutBatchFiles::class)->export($finance, (string) Str::uuid(), now()->timezone('Asia/Dhaka')->format('Y-m'), null);
         $this->assertSame([$id], $next['ids'], 'Marked as not sent, it goes in the next file.');
-        app(PayoutBatchFiles::class)->markNotSent($finance, $id, 'Bank refused again');
+        $owner = User::factory()->staff('super_admin')->create();
+        $this->assertTrue(app(PayoutBatchFiles::class)->markNotSent($owner, $id, 'Bank refused again'), 'The owner finishes alone.');
 
         $this->actingAs($finance)->onPortal('manage')->post('/commands/withdrawals/'.$id.'/review', ['decision' => 'rejected', 'reason' => 'Partner asked to stop'])
             ->assertSessionHasNoErrors();
