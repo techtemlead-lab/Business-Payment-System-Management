@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Inventory\StockService;
+use App\Domain\Orders\OrderInvoice;
 use App\Domain\Orders\OrderService;
 use App\Domain\Orders\OwedItems;
 use App\Domain\Orders\StaffDashboardSummary;
@@ -125,6 +126,11 @@ class OwedItemsTest extends TestCase
             'idempotency_key' => (string) Str::uuid(), 'courier' => 'Test courier', 'tracking' => 'TRK-'.Str::random(6), 'branch_id' => $this->hub->id,
         ]);
         $this->assertSame($before - 3, $this->stock());
+
+        $invoiceLine = collect(app(OrderInvoice::class)->payload($next->fresh(), 'none')['lines'])->firstWhere('owed_note', '!=', null);
+        $this->assertNotNull($invoiceLine);
+        $this->assertSame('0.00', $invoiceLine['total']);
+        $this->assertStringContainsString($source->number, (string) $invoiceLine['owed_note']);
     }
 
     public function test_staff_can_refund_an_owed_item_instead(): void
