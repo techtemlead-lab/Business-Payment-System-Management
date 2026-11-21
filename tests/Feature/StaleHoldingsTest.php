@@ -66,7 +66,7 @@ class StaleHoldingsTest extends TestCase
 
         $readiness = app(FinancialReadiness::class);
         $this->assertFalse($readiness->checks()['stale_holdings']);
-        $this->assertCount(20, $readiness->checks());
+        $this->assertCount(21, $readiness->checks());
         // Old money asks for a person; it does not make the books disagree (the test orders have no bank receipt).
         $this->assertSame(['order_receipts'], FinancialReadiness::failedNames(FinancialReadiness::bookChecks($readiness->checks())));
         $this->assertSame(['stale_holdings'], $readiness->inspect()['needs_attention']);

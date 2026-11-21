@@ -127,7 +127,7 @@ class CarBikeFundsTest extends TestCase
     private function assertBooksAddUp(): void
     {
         $checks = app(FinancialReadiness::class)->inspect()['checks'];
-        $this->assertCount(18, $checks);
+        $this->assertCount(21, $checks);
         $this->assertSame([], FinancialReadiness::failedNames($checks));
         $this->assertTrue(app(FinancialReadiness::class)->booksMatch());
         app(AuditChain::class)->seal();

@@ -133,7 +133,7 @@ class SubDealerExtraFundTest extends TestCase
         $this->assertSame('extra_fund', CommissionPolicy::ExtraDestinationDefault);
         $this->assertSame('extra_fund', collect((new CommissionPageModel(app(CommissionPolicy::class)))->build()['heads'])->firstWhere('key', 'additional_rank')['destination']);
         $this->assertSame($this->batch($order)['cash'], '7500.00');
-        $this->assertCount(20, app(FinancialReadiness::class)->checks());
+        $this->assertCount(21, app(FinancialReadiness::class)->checks());
         $this->assertSame(['order_receipts'], $this->failedChecks(), 'Only the bank receipt check fails, because the test order has no bank receipt.');
     }
 
