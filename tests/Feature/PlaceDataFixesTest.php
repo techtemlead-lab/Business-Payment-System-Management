@@ -81,4 +81,36 @@ class PlaceDataFixesTest extends TestCase
         $this->assertContains('move_union', array_column($summary['fixes'], 'step'));
         $this->assertSame('Eidgaon', $this->place('1206')->fresh()->basePlace?->name);
     }
+
+    public function test_a_plain_natai_without_references_is_switched_off_and_the_two_proper_unions_stay(): void
+    {
+        app(DefaultPlaceCatalog::class)->load();
+        $plain = PlaceCode::query()->create(['level' => 'union', 'code' => null, 'name' => 'Natai', 'parent_id' => $this->place('1159')->id, 'is_active' => true]);
+
+        $this->artisan('madina:fix-place-data')->expectsOutputToContain('switch_off_legacy_union')->assertSuccessful();
+        $this->assertTrue((bool) $plain->fresh()->is_active);
+
+        $this->artisan('madina:fix-place-data', ['--apply' => true])->assertSuccessful();
+
+        $this->assertFalse((bool) $plain->fresh()->is_active);
+        $this->assertTrue((bool) $this->place('101489')->is_active);
+        $this->assertTrue((bool) $this->place('101490')->is_active);
+        $this->assertSame(1, PlaceCode::query()->where('id', $plain->id)->count());
+        // Repeating changes nothing and is quiet about it.
+        $this->artisan('madina:fix-place-data', ['--apply' => true])->doesntExpectOutputToContain('referenced')->assertSuccessful();
+    }
+
+    public function test_a_referenced_plain_natai_stays_on_and_the_dry_run_names_the_exact_ids(): void
+    {
+        app(DefaultPlaceCatalog::class)->load();
+        $plain = PlaceCode::query()->create(['level' => 'union', 'code' => null, 'name' => 'Natai', 'parent_id' => $this->place('1159')->id, 'is_active' => true]);
+        $holder = $this->place('1159');
+        $holder->update(['base_place_id' => $plain->id]);
+
+        $this->artisan('madina:fix-place-data', ['--apply' => true])
+            ->expectsOutputToContain('Place id '.$plain->id.' is used by place_codes#'.$holder->id.' (base place)')
+            ->assertSuccessful();
+
+        $this->assertTrue((bool) $plain->fresh()->is_active);
+    }
 }

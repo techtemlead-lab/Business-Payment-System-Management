@@ -116,7 +116,7 @@ class BasePlacesRemainingRulesTest extends TestCase
             $this->assertArrayHasKey($code, $upazilas, 'Unknown upazila code '.$code);
             $this->assertContains($row['confidence'], ['high', 'medium', 'low']);
         }
-        $this->assertSame(array_keys(array_filter($review, fn (array $r): bool => $r['confidence'] === 'high' && ! empty($r['hq_union']))), array_keys($catalog->headquarters()));
+        $this->assertSame(array_keys(array_filter($review, fn (array $r): bool => ! empty($r['hq_union']))), array_keys($catalog->headquarters()));
 
         $first = $catalog->load();
         $again = $catalog->load();
@@ -131,7 +131,7 @@ class BasePlacesRemainingRulesTest extends TestCase
         $this->assertSame([], array_values(array_diff($left, array_keys($review))), 'Upazilas without a base place and without a researched line');
     }
 
-    public function test_the_review_csv_lists_the_upazilas_left_without_a_base(): void
+    public function test_the_review_csv_is_empty_when_every_upazila_has_a_base_place(): void
     {
         $path = sys_get_temp_dir().'/base-places-review-'.uniqid().'.csv';
 
@@ -140,7 +140,7 @@ class BasePlacesRemainingRulesTest extends TestCase
         $rows = array_map(fn (string $line): array => str_getcsv($line, ',', '"', ''), file($path, FILE_IGNORE_NEW_LINES));
         unlink($path);
         $this->assertSame(['upazila', 'district', 'headquarters union found', 'candidates', 'source URL', 'confidence', 'reason', 'note'], $rows[0]);
-        $this->assertGreaterThanOrEqual(1, count($rows) - 1);
-        $this->assertNotSame('', $rows[1][1], 'The district column is filled');
+        // No upazila is left without a base place, so the file has only its header line.
+        $this->assertCount(1, $rows);
     }
 }

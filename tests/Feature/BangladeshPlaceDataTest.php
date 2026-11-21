@@ -33,8 +33,8 @@ class BangladeshPlaceDataTest extends TestCase
         $this->assertSame(499, $counts['upazila']);
         $this->assertSame(495, $kinds['upazila']);
         $this->assertSame(4, $kinds['metro_upazila']);
-        $this->assertSame(4865, $counts['union']);
-        $this->assertSame(4525, $kinds['union']);
+        $this->assertSame(4866, $counts['union']);
+        $this->assertSame(4526, $kinds['union']);
         $this->assertSame(328, $kinds['pourashava']);
         $this->assertSame(12, $kinds['city_corporation']);
 

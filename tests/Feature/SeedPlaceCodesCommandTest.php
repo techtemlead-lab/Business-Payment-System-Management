@@ -13,7 +13,7 @@ class SeedPlaceCodesCommandTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const Total = 1 + 8 + 64 + 499 + 4865;
+    private const Total = 1 + 8 + 64 + 499 + 4866;
 
     public function test_a_dry_run_reports_the_whole_list_and_saves_nothing(): void
     {

@@ -22,9 +22,9 @@ class DefaultPlaceCatalogTest extends TestCase
     {
         $summary = app(DefaultPlaceCatalog::class)->load();
 
-        $this->assertSame(1 + 8 + 64 + 499 + 4865, $summary['created']);
+        $this->assertSame(1 + 8 + 64 + 499 + 4866, $summary['created']);
         $this->assertSame([], $summary['codes_taken']);
-        $this->assertSame(1 + 8 + 64 + 499 + 4865, PlaceCode::query()->whereNotNull('code')->count());
+        $this->assertSame(1 + 8 + 64 + 499 + 4866, PlaceCode::query()->whereNotNull('code')->count());
         $this->assertDatabaseHas('place_codes', ['code' => 'MNHC100', 'level' => 'management', 'parent_id' => null]);
         $dhaka = PlaceCode::query()->where('code', 'MNHC101')->firstOrFail();
         $this->assertSame(['division', 'Dhaka'], [$dhaka->level, $dhaka->name]);
@@ -40,7 +40,7 @@ class DefaultPlaceCatalogTest extends TestCase
         $again = app(DefaultPlaceCatalog::class)->load();
 
         $this->assertSame(0, $again['created'] + $again['coded'] + $again['filled'] + $again['linked']);
-        $this->assertSame(1 + 8 + 64 + 499 + 4865, PlaceCode::query()->count());
+        $this->assertSame(1 + 8 + 64 + 499 + 4866, PlaceCode::query()->count());
     }
 
     public function test_loading_keeps_what_the_office_already_set(): void

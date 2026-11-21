@@ -20,7 +20,7 @@ class BangladeshPlaceCodeSeederTest extends TestCase
         $this->assertSame(8, PlaceCode::query()->where('level', 'division')->count());
         $this->assertSame(64, PlaceCode::query()->where('level', 'district')->count());
         $this->assertGreaterThanOrEqual(495, PlaceCode::query()->where('level', 'upazila')->count());
-        $this->assertGreaterThanOrEqual(4525 + 328 + 12, PlaceCode::query()->where('level', 'union')->count());
+        $this->assertGreaterThanOrEqual(4526 + 328 + 12, PlaceCode::query()->where('level', 'union')->count());
 
         $this->assertDatabaseHas('place_codes', ['code' => 'MNHC101', 'name' => 'Dhaka', 'level' => 'division']);
         $this->assertDatabaseHas('place_codes', ['code' => 'MNHC102', 'name' => 'Rangpur', 'level' => 'division']);
