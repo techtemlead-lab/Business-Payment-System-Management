@@ -39,7 +39,7 @@
                 </select>
             </label>
             @endforeach
-            <button class="ref-primary-button">{{ __('prescriber_public.filter') }}</button>
+            <noscript><button class="ref-primary-button">{{ __('prescriber_public.filter') }}</button></noscript>
             <a href="/prescribers">{{ __('prescriber_public.clear') }}</a>
         </form>
     </section>

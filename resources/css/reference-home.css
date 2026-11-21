@@ -4099,3 +4099,16 @@ html[data-theme="dark"] .ref-inner-main .ref-partner-information{background:var(
 
 /* Footer brand block (heading, logo, name, licence sentence) is for desktop only; phones keep the contact and social links (client, 2026-11-20). */
 @media(max-width:767px){.ref-footer-brandblock{display:none}}
+
+/* One-click filter chips on the public pages: a row of buttons that apply the moment they are pressed. */
+.ref-chip-group{display:flex;flex-wrap:wrap;align-items:center;gap:8px;min-width:0}
+.ref-chip-label{font-size:12px;font-weight:600;color:#5d6b63}
+.ref-chip-group .ref-chip{display:inline-flex;align-items:center;min-height:40px;padding:8px 16px;border:1.5px solid var(--sm-line);border-radius:999px;background:var(--ds-surface,#fff);color:var(--sm-green-deep);font:inherit;font-size:14px;font-weight:500;line-height:1.3;white-space:nowrap;cursor:pointer;transition:background-color .15s ease,border-color .15s ease,color .15s ease}
+.ref-chip-group .ref-chip:hover{border-color:var(--sm-green);background:var(--sm-panel)}
+.ref-chip-group .ref-chip:focus-visible{outline:3px solid var(--sm-gold);outline-offset:2px}
+.ref-chip-group .ref-chip[aria-pressed="true"]{border-color:var(--sm-green);background:var(--sm-green);color:#fff;font-weight:600}
+html[data-theme="dark"] .ref-chip-group .ref-chip{color:var(--ds-text,#e8f0ea)}
+html[data-theme="dark"] .ref-chip-group .ref-chip[aria-pressed="true"]{color:#fff}
+html[data-theme="dark"] .ref-chip-label{color:var(--ds-text-muted,#a9bbb0)}
+@media (max-width:640px){.ref-catalog-toolbar{flex-direction:column;align-items:stretch}.ref-chip-group .ref-chip{min-height:44px}}
+@media (prefers-reduced-motion:reduce){.ref-chip-group .ref-chip{transition:none}}
