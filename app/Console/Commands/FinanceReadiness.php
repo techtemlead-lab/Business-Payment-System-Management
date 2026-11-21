@@ -48,6 +48,11 @@ class FinanceReadiness extends Command
         $snapshot = $readiness->inspectWithoutLock();
         $this->line(json_encode($snapshot, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
         $this->warnIfEventLogIsMissingRows($projector);
+        // Money waiting for a person is a warning: the books still agree, so the check itself passes.
+        if ($snapshot['needs_attention'] !== []) {
+            $this->warn(__('money_core.readiness_attention', ['checks' => implode(', ', $snapshot['needs_attention'])]));
+            Log::warning('Money waiting for a person.', ['checks' => $snapshot['needs_attention']]);
+        }
         if ($snapshot['internally_reconciled']) {
             return self::SUCCESS;
         }

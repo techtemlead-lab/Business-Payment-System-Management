@@ -139,4 +139,8 @@ return [
     'reason_suspended_hold_expired' => 'Commission held for a suspended partner waited longer than the owner\'s limit, so it went to company profit.',
     'notice_suspended_hold_title' => 'Held commission went to the company',
     'notice_suspended_hold_body' => 'Your account was not active for more than :months months, so ৳:amount of commission held for you went to the company.',
+
+    // Orders delivered and paid while money posting was off (finance:post-missed-orders).
+    'missed_not_posted' => 'The order could not be posted. Open the order and check its price and payment.',
+    'readiness_attention' => 'The books agree, but money is waiting for a person: :checks',
 ];

@@ -139,4 +139,8 @@ return [
     'reason_suspended_hold_expired' => 'স্থগিত পার্টনারের আটকে থাকা কমিশন মালিকের ঠিক করা সময়ের বেশি পড়ে ছিল, তাই কোম্পানির লাভে গেছে।',
     'notice_suspended_hold_title' => 'আটকে থাকা কমিশন কোম্পানিতে গেছে',
     'notice_suspended_hold_body' => 'আপনার অ্যাকাউন্ট :months মাসের বেশি চালু ছিল না, তাই আপনার জন্য আটকে থাকা ৳:amount কমিশন কোম্পানিতে গেছে।',
+
+    // Orders delivered and paid while money posting was off (finance:post-missed-orders).
+    'missed_not_posted' => 'অর্ডারটির কমিশন হিসাবে তোলা যায়নি। অর্ডারটি খুলে দাম আর টাকা দেওয়া ঠিক আছে কিনা দেখুন।',
+    'readiness_attention' => 'হিসাব মিলেছে, কিন্তু কিছু টাকা কারও কাজের অপেক্ষায় আছে: :checks',
 ];
