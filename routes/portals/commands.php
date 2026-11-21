@@ -243,6 +243,9 @@ return function (string $portal): void {
     Route::post('/commands/withdrawals/{id}/payer', [WithdrawalController::class, 'payer'])->whereUuid('id');
     Route::post('/commands/withdrawals/{id}/attach-receipt', [WithdrawalController::class, 'attachReceipt'])->whereUuid('id');
     Route::post('/commands/withdrawals/{id}/not-sent', [PayoutBatchController::class, 'notSent'])->whereUuid('id');
+    Route::post('/commands/withdrawals/{id}/returned', [WithdrawalController::class, 'recordReturn'])->whereUuid('id');
+    Route::post('/commands/withdrawals/{id}/returned/confirm', [WithdrawalController::class, 'confirmReturn'])->whereUuid('id');
+    Route::post('/commands/withdrawals/{id}/returned/cancel', [WithdrawalController::class, 'cancelReturn'])->whereUuid('id');
     Route::post('/commands/policies/{id}/publish', [CommandController::class, 'publishPolicy']);
     Route::post('/commands/commissions/rules', [CommandController::class, 'updateCommissionRules']);
     Route::post('/commands/commissions/settle-salary', [CommandController::class, 'settleSalaryPool']);

@@ -12,7 +12,10 @@ import ReceiptPicker from './payouts/ReceiptPicker';
 import { PartnerTypeCell } from './office/portalShared';
 import { randomUuid } from '../shared/randomUuid';
 
-type WithdrawalStatus = 'requested' | 'approved' | 'paid' | 'rejected' | 'cancelled';
+type WithdrawalStatus = 'requested' | 'approved' | 'paid' | 'returned' | 'rejected' | 'cancelled';
+
+/** What the viewer may do about paid money that came back (PayoutReturns::state). */
+type ReturnState = 'record' | 'confirm' | 'wait_second' | 'wait_owner' | null;
 
 interface WithdrawalRecord {
     id: string;
@@ -50,6 +53,9 @@ interface WithdrawalRecord {
     /** Approved and listed in a file sent to the bank; it may not be rejected until it is paid or marked as not sent. */
     in_bank_file?: boolean;
     bank_file?: string | null;
+    return_state?: ReturnState;
+    return_note?: string | null;
+    returned_at?: string | null;
 }
 
 /** A file of approved withdrawals sent to the bank (PayoutBatchFiles::recent). */
@@ -181,7 +187,7 @@ function PayoutsTable({ data, rowActions }: { data: MoneyTableData<WithdrawalRec
         { key: 'withheld_amount', title: translate('portal', 'pay_col_withholding'), sortKey: 'withheld', money: true, phone: 'hide', render: (w) => money(w.withheld_amount ?? 0) },
         { key: 'net_amount', title: translate('portal', 'pay_col_net'), sortKey: 'net', money: true, phone: 'hide', render: (w) => money(w.net_amount ?? w.amount) },
         { key: 'status', title: translate('portal', 'pay_col_status'), sortKey: 'status', phone: 'sub', render: (w) => <>
-            <span className={`badge hub-capital ${w.status}`}>{w.status === 'cancelled' ? translate('payouts', 'status_cancelled') : translate('portal', `pay_status_${w.status}`)}</span>
+            <span className={`badge hub-capital ${w.status === 'returned' ? 'rejected' : w.status}`}>{w.status === 'cancelled' || w.status === 'returned' ? translate('payouts', `status_${w.status}`) : translate('portal', `pay_status_${w.status}`)}</span>
             {w.on_hold && <span className="badge rejected">{translate('payouts', 'on_hold_badge')}</span>}
             {w.overdue && <span className="badge rejected">{translate('payouts', 'overdue_badge')}</span>}
             {w.receipt_due && <span className="badge requested">{translate('payouts', 'receipt_due_badge')}</span>}
@@ -341,6 +347,31 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
         });
     };
 
+    // "Money came back": one person records it, a second confirms or takes it back (the owner finishes alone).
+    const [returnRecord, setReturnRecord] = useState<WithdrawalRecord | null>(null);
+    const [returnStep, setReturnStep] = useState<'record' | 'confirm' | 'cancel'>('record');
+    const [returnNote, setReturnNote] = useState('');
+    const [processingReturn, setProcessingReturn] = useState(false);
+    useEscape(returnRecord !== null, () => setReturnRecord(null));
+    const openReturn = (w: WithdrawalRecord, step: 'record' | 'confirm' | 'cancel') => {
+        setModalErrors({});
+        setReturnNote('');
+        setReturnStep(step);
+        setReturnRecord(w);
+    };
+    const handleReturn = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!returnRecord) return;
+        setProcessingReturn(true);
+        const path = returnStep === 'record' ? 'returned' : `returned/${returnStep}`;
+        router.post(`/commands/withdrawals/${returnRecord.id}/${path}`, { note: returnNote }, {
+            preserveScroll: true,
+            onSuccess: () => setReturnRecord(null),
+            onError: (errors) => setModalErrors(errors),
+            onFinish: () => setProcessingReturn(false),
+        });
+    };
+
     const rowActions = (w: WithdrawalRecord) => (
         <div className="hub-row is-end">
             {w.status === 'approved' && canProcess && w.payer_id !== myId && w.payer_state !== 'second_person' && (
@@ -389,6 +420,33 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                 </button>
             )}
 
+            {canProcess && w.return_state === 'record' && (
+                <button type="button" onClick={() => openReturn(w, 'record')} className="button small">
+                    {translate('payouts', 'return_button')}
+                </button>
+            )}
+            {canProcess && w.return_state === 'confirm' && (
+                <>
+                    <button type="button" onClick={() => openReturn(w, 'confirm')} className="button small dark">
+                        {translate('payouts', 'return_confirm_button')}
+                    </button>
+                    <button type="button" onClick={() => openReturn(w, 'cancel')} className="button small">
+                        {translate('payouts', 'return_cancel_button')}
+                    </button>
+                </>
+            )}
+            {w.return_state === 'wait_second' && (
+                <>
+                    <small className="muted">{translate('payouts', 'return_wait_second')}</small>
+                    {canProcess && (
+                        <button type="button" onClick={() => openReturn(w, 'cancel')} className="button small">
+                            {translate('payouts', 'return_cancel_button')}
+                        </button>
+                    )}
+                </>
+            )}
+            {w.return_state === 'wait_owner' && <small className="muted">{translate('payouts', 'return_wait_owner')}</small>}
+
             {/* The full number to send the money to is only on this page, where opening it is logged. */}
             <a
                 href={`/withdrawals/${w.id}`}
@@ -397,7 +455,7 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                 {translate('portal', 'pay_details')}
             </a>
 
-            {w.status === 'paid' && w.payout_receipt_id && (
+            {(w.status === 'paid' || w.status === 'returned') && w.payout_receipt_id && (
                 <a
                     href={`${portalBase ?? ''}/payment-receipts/${w.payout_receipt_id}/print`}
                     target="_blank"
@@ -769,6 +827,31 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                             <div className="hub-row is-end">
                                 <button type="button" onClick={() => setNotSentRecord(null)} className="button">{translate('portal', 'pay_cancel')}</button>
                                 <button type="submit" disabled={processingNotSent || notSentNote.trim().length < 5} className="button danger">{translate('payouts', 'not_sent_save')}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {returnRecord && (
+                <div className="hub-overlay">
+                    <div className="hub-dialog" role="dialog" aria-modal="true">
+                        <h3 className="hub-title is-lg">{translate('payouts', returnStep === 'record' ? 'return_title' : returnStep === 'confirm' ? 'return_confirm_title' : 'return_cancel_button')}</h3>
+                        <p className="hub-sub is-lead">{returnRecord.user_name} · {money(returnRecord.amount)} · {returnRecord.payment_reference}</p>
+                        {returnStep === 'record' && <div className="notice" role="note"><p>{translate('payouts', 'return_body')}</p></div>}
+                        {returnStep === 'confirm' && <div className="notice" role="note"><p>{translate('payouts', 'return_confirm_body', { amount: money(returnRecord.amount) })}</p></div>}
+                        {returnStep !== 'record' && returnRecord.return_note && <p className="hub-hint">{translate('payouts', 'return_recorded_line', { note: returnRecord.return_note })}</p>}
+                        <form onSubmit={handleReturn}>
+                            <div className="hub-field is-last">
+                                <label htmlFor="return-note">{translate('payouts', returnStep === 'record' ? 'return_note' : returnStep === 'confirm' ? 'return_confirm_note' : 'return_cancel_note')}</label>
+                                <textarea id="return-note" required minLength={5} maxLength={1000} rows={3} value={returnNote} onChange={(e) => setReturnNote(e.target.value)} />
+                            </div>
+                            <FormErrors errors={modalErrors} />
+                            <div className="hub-row is-end">
+                                <button type="button" onClick={() => setReturnRecord(null)} className="button">{translate('portal', 'pay_cancel')}</button>
+                                <button type="submit" disabled={processingReturn || returnNote.trim().length < 5} className={`button ${returnStep === 'cancel' ? '' : 'dark'}`}>
+                                    {translate('payouts', returnStep === 'record' ? 'return_save' : returnStep === 'confirm' ? 'return_confirm_save' : 'return_cancel_button')}
+                                </button>
                             </div>
                         </form>
                     </div>

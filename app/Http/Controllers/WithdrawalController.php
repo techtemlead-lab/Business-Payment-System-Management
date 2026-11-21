@@ -10,6 +10,7 @@ use App\Domain\Payouts\ManualPayoutService;
 use App\Domain\Payouts\PartnerPayoutAccounts;
 use App\Domain\Payouts\PayoutLimits;
 use App\Domain\Payouts\PayoutReceipts;
+use App\Domain\Payouts\PayoutReturns;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\LocalDigits;
@@ -75,7 +76,7 @@ class WithdrawalController extends Controller
             Audit::record($r->user()->id, 'withdrawal.destination_viewed', $id);
         }
 
-        return Inertia::render('WithdrawalDetail', ['withdrawal' => collect((array) $w)->except(['receipt_path', 'receipt_sha256', 'destination', 'idempotency_key'])->all() + ['destination_masked' => str_repeat('•', max(0, strlen($destination) - 4)).substr($destination, -4), 'destination_for_payment' => $finance ? $destination : null, 'has_receipt' => (bool) $w->receipt_path, 'payer_state' => $finance ? $service->payerState($w, $r->user()) : null, 'waits_for_owner' => $finance && $service->waitsForOwner($w, $r->user()), ...$this->timing($w)],
+        return Inertia::render('WithdrawalDetail', ['withdrawal' => collect((array) $w)->except(['receipt_path', 'receipt_sha256', 'destination', 'idempotency_key', ...($finance ? [] : ['return_note'])])->all() + ['destination_masked' => str_repeat('•', max(0, strlen($destination) - 4)).substr($destination, -4), 'destination_for_payment' => $finance ? $destination : null, 'has_receipt' => (bool) $w->receipt_path, 'payer_state' => $finance ? $service->payerState($w, $r->user()) : null, 'waits_for_owner' => $finance && $service->waitsForOwner($w, $r->user()), 'return_state' => $finance ? app(PayoutReturns::class)->state($w, $r->user()) : null, ...$this->timing($w)],
             'paymentAccounts' => $finance ? app(PaymentAccounts::class)->listing($r->user()) : [],
             'payoutReceipt' => app(PayoutReceipts::class)->forWithdrawal($id),
             'facts' => $finance && in_array($w->status, ['requested', 'approved'], true) ? $service->reviewFacts($r->user(), $id) : null,
@@ -148,6 +149,39 @@ class WithdrawalController extends Controller
         $s->attachReceipt($r->user(), $id, $d['receipt']);
 
         return back()->with('success', __('payouts.flash_receipt_attached'));
+    }
+
+    /** "Money came back" on a paid withdrawal: the first person records it (the owner finishes alone). */
+    public function recordReturn(Request $r, string $id, PayoutReturns $returns): JsonResponse|RedirectResponse
+    {
+        abort_unless($r->user()->allows('finance'), 403);
+        $d = $r->validate(['note' => 'required|string|min:5|max:1000']);
+        $done = $returns->request($r->user(), $id, ReasonFields::text($d['note']));
+        if ($r->expectsJson()) {
+            return response()->json(['data' => ['id' => $id, 'status' => $done ? PayoutReturns::Status : 'paid', 'waiting_second' => ! $done]]);
+        }
+
+        return back()->with('success', __($done ? 'payouts.flash_returned' : 'payouts.flash_return_recorded'));
+    }
+
+    /** A second finance person confirms the money came back; it goes to the partner's wallet. */
+    public function confirmReturn(Request $r, string $id, PayoutReturns $returns): JsonResponse|RedirectResponse
+    {
+        abort_unless($r->user()->allows('finance'), 403);
+        $d = $r->validate(['note' => 'required|string|min:5|max:1000']);
+        $returns->confirm($r->user(), $id, ReasonFields::text($d['note']));
+
+        return $r->expectsJson() ? response()->json(['data' => ['id' => $id, 'status' => PayoutReturns::Status]]) : back()->with('success', __('payouts.flash_returned'));
+    }
+
+    /** Takes back a "money came back" step nobody has confirmed. */
+    public function cancelReturn(Request $r, string $id, PayoutReturns $returns): JsonResponse|RedirectResponse
+    {
+        abort_unless($r->user()->allows('finance'), 403);
+        $d = $r->validate(['note' => 'required|string|min:5|max:1000']);
+        $returns->cancel($r->user(), $id, ReasonFields::text($d['note']));
+
+        return $r->expectsJson() ? response()->json(['data' => ['id' => $id, 'status' => 'paid']]) : back()->with('success', __('payouts.flash_return_cancelled'));
     }
 
     /** A partner saves their tax number (e-TIN, 12 digits) for the payout tax register (D12). */

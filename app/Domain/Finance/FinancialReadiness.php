@@ -6,6 +6,7 @@ use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Commissions\RetainedFundLedger;
 use App\Domain\Integrations\IntegrationSettings;
+use App\Domain\Payouts\PayoutReturns;
 use App\Domain\Security\SelfApproval;
 use App\Models\User;
 use App\Support\Audit;
@@ -83,9 +84,16 @@ final class FinancialReadiness
             // and no such fund is spent below zero.
             'fund_balances' => $this->fundBalancesAgree(),
             // A paid withdrawal debits the partner wallet and credits payout clearing (manual-payout journal).
-            'withdrawal_journals' => ! DB::table('withdrawals as w')->where('w.status', 'paid')
+            // A paid withdrawal whose money came back keeps that journal and has its exact reverse
+            // (manual-payout-return journal); no other withdrawal has a reverse.
+            'withdrawal_journals' => ! DB::table('withdrawals as w')->whereIn('w.status', ['paid', PayoutReturns::Status])
                 ->whereRaw("(w.amount <> COALESCE((SELECT SUM(l.debit) FROM journal_entries e INNER JOIN journal_lines l ON l.entry_id = e.id WHERE e.event_key = 'manual-payout:' || w.id::text AND l.account = 'wallet_liability' AND l.user_id = w.user_id),0)
-                    OR COALESCE(w.net_amount, w.amount) <> COALESCE((SELECT SUM(l.credit) FROM journal_entries e INNER JOIN journal_lines l ON l.entry_id = e.id WHERE e.event_key = 'manual-payout:' || w.id::text AND l.account = 'manual_payout_clearing'),0))")->exists(),
+                    OR COALESCE(w.net_amount, w.amount) <> COALESCE((SELECT SUM(l.credit) FROM journal_entries e INNER JOIN journal_lines l ON l.entry_id = e.id WHERE e.event_key = 'manual-payout:' || w.id::text AND l.account = 'manual_payout_clearing'),0))")->exists()
+                && ! DB::table('withdrawals as w')->where('w.status', PayoutReturns::Status)
+                    ->whereRaw("(w.amount <> COALESCE((SELECT SUM(l.credit) FROM journal_entries e INNER JOIN journal_lines l ON l.entry_id = e.id WHERE e.event_key = 'manual-payout-return:' || w.id::text AND l.account = 'wallet_liability' AND l.user_id = w.user_id),0)
+                        OR COALESCE(w.net_amount, w.amount) <> COALESCE((SELECT SUM(l.debit) FROM journal_entries e INNER JOIN journal_lines l ON l.entry_id = e.id WHERE e.event_key = 'manual-payout-return:' || w.id::text AND l.account = 'manual_payout_clearing'),0))")->exists()
+                && ! DB::table('journal_entries as e')->whereRaw("e.event_key LIKE 'manual-payout-return:%'")
+                    ->whereRaw("NOT EXISTS (SELECT 1 FROM withdrawals w WHERE 'manual-payout-return:' || w.id::text = e.event_key AND w.status = ?)", [PayoutReturns::Status])->exists(),
             // Approved payroll books the gross pay as expense; paid payroll clears the net pay (payroll.approved and payroll.paid journals).
             'payroll_journals' => ! DB::table('payroll_entries as p')->whereIn('p.status', ['approved', 'paid'])
                 ->whereRaw("p.gross <> COALESCE((SELECT SUM(l.debit) FROM journal_entries e INNER JOIN journal_lines l ON l.entry_id = e.id WHERE e.event_key = 'payroll.approved.' || p.id::text AND l.account = 'payroll_expense'),0)")->exists()

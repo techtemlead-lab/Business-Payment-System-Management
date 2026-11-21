@@ -9,6 +9,7 @@ use App\Domain\Inventory\BranchScope;
 use App\Domain\Payouts\ManualPayoutService;
 use App\Domain\Payouts\PayoutBatchFiles;
 use App\Domain\Payouts\PayoutLimits;
+use App\Domain\Payouts\PayoutReturns;
 use App\Support\Money;
 use App\Support\MoneyTable;
 use App\Support\MoneyTableFilter;
@@ -49,7 +50,7 @@ final class WithdrawalsSection implements WorkspaceSection
     {
         $matching = DB::table('withdrawals')->join('users', 'users.id', '=', 'withdrawals.user_id');
         $branchScope?->restrictPartners($matching);
-        $statusFilter = new MoneyTableFilter('status', (string) __('portal.pay_col_status'), 'withdrawals.status', array_map(fn (string $status): array => ['value' => $status, 'label' => (string) __(in_array($status, ['cancelled'], true) ? 'payouts.status_'.$status : 'portal.pay_status_'.$status)], ['requested', 'approved', 'rejected', 'paid', 'cancelled']));
+        $statusFilter = new MoneyTableFilter('status', (string) __('portal.pay_col_status'), 'withdrawals.status', array_map(fn (string $status): array => ['value' => $status, 'label' => (string) __(in_array($status, ['cancelled', PayoutReturns::Status], true) ? 'payouts.status_'.$status : 'portal.pay_status_'.$status)], ['requested', 'approved', 'rejected', 'paid', PayoutReturns::Status, 'cancelled']));
         $dueDays = app(PayoutLimits::class)->dueDays();
         $followUp = self::followUpSql($dueDays);
         $otherFilters = [
@@ -126,6 +127,9 @@ final class WithdrawalsSection implements WorkspaceSection
                 'withdrawals.receipt_due',
                 'withdrawals.payout_batch_id',
                 'withdrawals.exported_at',
+                'withdrawals.return_requested_by',
+                'withdrawals.return_note',
+                'withdrawals.returned_at',
                 'payers.name as payer_name',
                 'users.status as partner_status',
                 'users.name as user_name',
@@ -170,6 +174,9 @@ final class WithdrawalsSection implements WorkspaceSection
             'receipt_due' => (bool) $row->receipt_due,
             'in_bank_file' => $row->status === 'approved' && $row->exported_at !== null,
             'bank_file' => $row->payout_batch_id !== null ? PayoutBatchFiles::shortId((string) $row->payout_batch_id) : null,
+            'return_state' => app(PayoutReturns::class)->state($row, $request->user()),
+            'return_note' => $row->return_requested_by !== null || $row->status === PayoutReturns::Status ? $row->return_note : null,
+            'returned_at' => $row->returned_at,
             'waiting_days' => in_array($row->status, ['requested', 'approved'], true)
                 ? (int) CarbonImmutable::parse($row->status === 'approved' && $row->approved_at ? $row->approved_at : $row->created_at)->diffInDays(now())
                 : null,
