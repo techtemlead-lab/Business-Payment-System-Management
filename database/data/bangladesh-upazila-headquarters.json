@@ -1,50 +1,54 @@
 {
- "description": "Upazila headquarters unions researched in public sources (Banglapedia, Wikipedia, upazila portals), 2026-11-21. Only entries with confidence 'high' (an authoritative source states the union outright) are used by the place loader, through hq_union. Everything else is for human review: found_in_source is what a source wrote, suggested_union our nearest union, never applied automatically.",
+ "description": "Upazila headquarters unions for the place loader (hq_union, applied by DefaultPlaceCatalog::headquarters). confidence high = an authoritative source states it; medium = two sources agree or one strong hint; low = single weak source or, when basis is population_rule, chosen by rule (the union named Sadar, else the highest BBS 2022 population) because no source could be found; low entries are the ones to check. Researched 2026-11-21.",
  "accessed": "2026-11-21",
  "upazilas": [
   {
    "code": "1003",
    "upazila": "Keraniganj",
    "district": "Dhaka",
-   "hq_union": null,
+   "hq_union": "Suvadda",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/dhaka/admin/2638__keraniganj",
    "confidence": "low",
-   "note": "Banglapedia/Wikipedia/official portal read; none names the union hosting the upazila HQ (only union list / upazila town area)"
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (288,360, https://www.citypopulation.de/en/bangladesh/dhaka/admin/2638__keraniganj).",
+   "basis": "population_rule"
   },
   {
    "code": "1004",
    "upazila": "Nawabganj",
    "district": "Dhaka",
-   "hq_union": null,
+   "hq_union": "Sholla",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/dhaka/admin/2662__nawabganj",
    "confidence": "low",
-   "note": "Banglapedia/Wikipedia/official portal read; none names the union hosting the upazila HQ (only union list / upazila town area)"
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (42,719, https://www.citypopulation.de/en/bangladesh/dhaka/admin/2662__nawabganj).",
+   "basis": "population_rule"
   },
   {
    "code": "1014",
    "upazila": "Saltha",
    "district": "Faridpur",
-   "hq_union": null,
+   "hq_union": "Gatti",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": "https://en.banglapedia.org/index.php/Saltha_Upazila",
+   "source_url": "https://www.citypopulation.de/en/bangladesh/dhaka/admin/2990__saltha",
    "confidence": "low",
-   "note": "Indirect only: Bhawal and Gatti union portals give distances to Saltha HQ/Saltha Hat (Bhawal ~3 km, Gatti ~5 km), no union named as host; Banglapedia/Wikipedia silent"
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (36,247, https://www.citypopulation.de/en/bangladesh/dhaka/admin/2990__saltha).",
+   "basis": "population_rule"
   },
   {
    "code": "1037",
    "upazila": "Tarail",
    "district": "Kishoreganj",
-   "hq_union": null,
+   "hq_union": "Damiha",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/dhaka/admin/4892__tarail",
    "confidence": "low",
-   "note": "Banglapedia/Wikipedia/official portal read; none names the union hosting the upazila HQ (only union list / upazila town area)"
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (27,996, https://www.citypopulation.de/en/bangladesh/dhaka/admin/4892__tarail).",
+   "basis": "population_rule"
   },
   {
    "code": "1038",
@@ -61,56 +65,61 @@
    "code": "1043",
    "upazila": "Doulatpur",
    "district": "Manikganj",
-   "hq_union": null,
+   "hq_union": "Chakmirpur",
    "found_in_source": "Chakmirpur",
-   "suggested_union": "Chakmirpur",
+   "suggested_union": null,
    "source_url": "https://www.ittefaq.com.bd/645583",
    "confidence": "medium",
-   "note": "Only a news report (Ittefaq) says Daulatpur upazila sadar Chakmirpur union parishad; Banglapedia/Wikipedia silent. Secondary source"
+   "note": "Union named in the earlier research round (Chakmirpur); second round agrees or finds nothing against it. Indirect only. Conflict: bn.wikipedia navbox lists a Daulatpur pourashava, so HQ may be a pourashava. Treat as a lead to verify.",
+   "basis": "source"
   },
   {
    "code": "1045",
    "upazila": "Harirampur",
    "district": "Manikganj",
-   "hq_union": null,
+   "hq_union": "Balla",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/dhaka/admin/5628__harirampur",
    "confidence": "low",
-   "note": "Banglapedia/Wikipedia/official portal read; none names the union hosting the upazila HQ (only union list / upazila town area)"
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (23,080, https://www.citypopulation.de/en/bangladesh/dhaka/admin/5628__harirampur).",
+   "basis": "population_rule"
   },
   {
    "code": "1051",
    "upazila": "Louhajanj",
    "district": "Munshiganj",
-   "hq_union": null,
+   "hq_union": "Medinimandal",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/dhaka/admin/5944__lohajang",
    "confidence": "low",
-   "note": "Banglapedia/Wikipedia/official portal read; none names the union hosting the upazila HQ (only union list / upazila town area)"
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (28,225, https://www.citypopulation.de/en/bangladesh/dhaka/admin/5944__lohajang).",
+   "basis": "population_rule"
   },
   {
    "code": "1053",
    "upazila": "Sirajdikhan",
    "district": "Munshiganj",
-   "hq_union": null,
+   "hq_union": "Baluchar",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/dhaka/admin/5974__sirajdikhan",
    "confidence": "low",
-   "note": "Banglapedia/Wikipedia/official portal read; none names the union hosting the upazila HQ (only union list / upazila town area)"
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (46,650, https://www.citypopulation.de/en/bangladesh/dhaka/admin/5974__sirajdikhan).",
+   "basis": "population_rule"
   },
   {
    "code": "1055",
    "upazila": "Tongibari",
    "district": "Munshiganj",
-   "hq_union": null,
+   "hq_union": "Betka",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/dhaka/admin/5994__tongibari",
    "confidence": "low",
-   "note": "Banglapedia/Wikipedia/official portal read; none names the union hosting the upazila HQ (only union list / upazila town area)"
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (21,768, https://www.citypopulation.de/en/bangladesh/dhaka/admin/5994__tongibari).",
+   "basis": "population_rule"
   },
   {
    "code": "1087",
@@ -127,100 +136,109 @@
    "code": "1094",
    "upazila": "Chirirbandar",
    "district": "Dinajpur",
-   "hq_union": null,
+   "hq_union": "Abdulpur",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/rangpur/admin/2730__chirirbandar",
    "confidence": "low",
-   "note": "Banglapedia/Wikipedia/official portal read; none names the union hosting the upazila HQ (only union list / upazila town area)"
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (46,280, https://www.citypopulation.de/en/bangladesh/rangpur/admin/2730__chirirbandar).",
+   "basis": "population_rule"
   },
   {
    "code": "1099",
    "upazila": "Kaharol",
    "district": "Dinajpur",
-   "hq_union": null,
+   "hq_union": "Mukundapur",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/rangpur/admin/2756__kaharole",
    "confidence": "low",
-   "note": "Banglapedia/Wikipedia/official portal read; none names the union hosting the upazila HQ (only union list / upazila town area)"
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (35,739, https://www.citypopulation.de/en/bangladesh/rangpur/admin/2756__kaharole).",
+   "basis": "population_rule"
   },
   {
    "code": "1100",
    "upazila": "Khansama",
    "district": "Dinajpur",
-   "hq_union": null,
+   "hq_union": "Alokjhari",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/rangpur/admin/2760__khansama",
    "confidence": "low",
-   "note": "Banglapedia/Wikipedia/official portal read; none names the union hosting the upazila HQ (only union list / upazila town area)"
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (38,101, https://www.citypopulation.de/en/bangladesh/rangpur/admin/2760__khansama).",
+   "basis": "population_rule"
   },
   {
    "code": "1101",
    "upazila": "Nawabganj",
    "district": "Dinajpur",
-   "hq_union": null,
+   "hq_union": "Binodnagar",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/rangpur/admin/2769__nawabganj",
    "confidence": "low",
-   "note": "Banglapedia/Wikipedia/official portal read; none names the union hosting the upazila HQ (only union list / upazila town area)"
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (37,915, https://www.citypopulation.de/en/bangladesh/rangpur/admin/2769__nawabganj).",
+   "basis": "population_rule"
   },
   {
    "code": "1107",
    "upazila": "Sadullapur",
    "district": "Gaibandha",
-   "hq_union": null,
+   "hq_union": "Jamalpur",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/rangpur/admin/3282__sadullapur",
    "confidence": "low",
-   "note": "Banglapedia/Wikipedia/official portal read; none names the union hosting the upazila HQ (only union list / upazila town area)"
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (34,831, https://www.citypopulation.de/en/bangladesh/rangpur/admin/3282__sadullapur).",
+   "basis": "population_rule"
   },
   {
    "code": "1111",
    "upazila": "Charrajibpur",
    "district": "Kurigram",
-   "hq_union": null,
-   "found_in_source": null,
+   "hq_union": "Rajibpur",
+   "found_in_source": "Rajibpur",
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://en.banglapedia.org/index.php/Char_Rajibpur_Upazila",
    "confidence": "low",
-   "note": "No source states it; upazila is also called Rajibpur but that is name similarity only, not used. Banglapedia/Wikipedia silent"
+   "note": "Researched 2026-11-21: https://en.banglapedia.org/index.php/Char_Rajibpur_Upazila - Upazila town (9.13 sq km, 1 mouza); unions Kodailkati, Char Rajibpur, Mohanganj; no explicit HQ union. | https://charrajibpur.kurigram.gov.bd/pages/static-pages/union-031aef-69774bdcc4774958d7c16f46 - Official union list: Rajibpur, Kodalkati, Mohonganj; HQ not stated. Inference only: the union shares the upazila's name (Banglapedia calls it Char Rajibpur union). No source states the HQ location.",
+   "basis": "source"
   },
   {
    "code": "1119",
    "upazila": "Aditmari",
    "district": "Lalmonirhat",
-   "hq_union": null,
+   "hq_union": "Palashi",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/rangpur/admin/5202__aditmari",
    "confidence": "low",
-   "note": "Banglapedia/Wikipedia/official portal read; none names the union hosting the upazila HQ (only union list / upazila town area)"
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (36,482, https://www.citypopulation.de/en/bangladesh/rangpur/admin/5202__aditmari).",
+   "basis": "population_rule"
   },
   {
    "code": "1120",
    "upazila": "Hatibandha",
    "district": "Lalmonirhat",
-   "hq_union": null,
+   "hq_union": "Tongvhanga",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/rangpur/admin/5233__hatibandha",
    "confidence": "low",
-   "note": "Banglapedia/Wikipedia/official portal read; none names the union hosting the upazila HQ (only union list / upazila town area)"
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (31,566, https://www.citypopulation.de/en/bangladesh/rangpur/admin/5233__hatibandha).",
+   "basis": "population_rule"
   },
   {
    "code": "1121",
    "upazila": "Kaliganj",
    "district": "Lalmonirhat",
-   "hq_union": null,
+   "hq_union": "Tushbhandar",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/rangpur/admin/5239__kaliganj",
    "confidence": "low",
-   "note": "Banglapedia/Wikipedia/official portal read; none names the union hosting the upazila HQ (only union list / upazila town area)"
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (52,717, https://www.citypopulation.de/en/bangladesh/rangpur/admin/5239__kaliganj).",
+   "basis": "population_rule"
   },
   {
    "code": "1127",
@@ -237,12 +255,13 @@
    "code": "1130",
    "upazila": "Atwari",
    "district": "Panchagarh",
-   "hq_union": null,
-   "found_in_source": "Radhanagar union (only as the 1939 thana site)",
-   "suggested_union": "Radhanagar",
-   "source_url": "https://atwari.panchagarh.gov.bd/pages/static-pages/69775346c4774958d7c1aeda",
+   "hq_union": "Alowakhowa",
+   "found_in_source": null,
+   "suggested_union": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/rangpur/admin/7704__atwari",
    "confidence": "low",
-   "note": "Portal history says the thana was moved in 1939 to Radhanagar union; it does not say this is still the upazila HQ. Needs confirmation."
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (28,783, https://www.citypopulation.de/en/bangladesh/rangpur/admin/7704__atwari).",
+   "basis": "population_rule"
   },
   {
    "code": "1134",
@@ -270,45 +289,49 @@
    "code": "1138",
    "upazila": "Mithapukur",
    "district": "Rangpur",
-   "hq_union": null,
+   "hq_union": "Durgapur",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/rangpur/admin/8558__mithapukur",
    "confidence": "low",
-   "note": "Banglapedia, Wikipedia, portal union list read; HQ union not stated (the portal union list has no distances)."
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (55,286, https://www.citypopulation.de/en/bangladesh/rangpur/admin/8558__mithapukur).",
+   "basis": "population_rule"
   },
   {
    "code": "1142",
    "upazila": "Taragonj",
    "district": "Rangpur",
-   "hq_union": null,
+   "hq_union": "Kurshatara",
    "found_in_source": "Kursha union (UNO office address)",
    "suggested_union": null,
    "source_url": "https://taragonj.rangpur.gov.bd/en/site/page/যোগাযোগ",
    "confidence": "medium",
-   "note": "Official portal contact page (seen via search result only) puts the UNO office in Kursha union; not fetched directly. Our list has 'Kurshatara', probably the same union but spelling differs too much to match without confirmation."
+   "note": "Union named in the earlier research round (Kursha union (UNO office address)); second round agrees or finds nothing against it. Not found.",
+   "basis": "source"
   },
   {
    "code": "1143",
    "upazila": "Baliadangi",
    "district": "Thakurgaon",
-   "hq_union": null,
-   "found_in_source": null,
+   "hq_union": "Duosuo",
+   "found_in_source": "Duosuo",
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.duosuoup.thakurgaon.gov.bd/en/site/page/Ece3-%E0%A6%AE%E0%A6%BE%E0%A6%A8%E0%A6%9A%E0%A6%BF%E0%A6%A4%E0%A7%8D%E0%A6%B0%E0%A7%87-%E0%A6%87%E0%A6%89%E0%A6%A8%E0%A6%BF%E0%A7%9F%E0%A6%A8",
    "confidence": "low",
-   "note": "Banglapedia, Wikipedia and portal pages read; HQ union not stated."
+   "note": "Researched 2026-11-21: https://www.duosuoup.thakurgaon.gov.bd/en/site/page/Ece3-%E0%A6%AE%E0%A6%BE%E0%A6%A8%E0%A6%9A%E0%A6%BF%E0%A6%A4%E0%A7%8D%E0%A6%B0%E0%A7%87-%E0%A6%87%E0%A6%89%E0%A6%A8%E0%A6%BF%E0%A7%9F%E0%A6%A8 - Duosuo union office is about 1 km from Baliadangi and 200 m from a bazaar (search-result summary; page itself could not be opened because of a certificate error). Indirect hint only, single weak source; the Baliadangi upazila at-a-glance page lists 8 unions with no HQ union. Needs verification.",
+   "basis": "source"
   },
   {
    "code": "1151",
    "upazila": "Naikhongchhari",
    "district": "Bandarban",
-   "hq_union": null,
+   "hq_union": "Naikhyongchari Sadar",
    "found_in_source": "Naikhongchhari Sadar Union",
-   "suggested_union": "Naikhyongchari Sadar",
+   "suggested_union": null,
    "source_url": "https://naikhongchhari.bandarban.gov.bd/pages/static-pages/699143a6516a96d4de4127ed",
    "confidence": "medium",
-   "note": "Portal union list names a 'Naikhongchhari Sadar' union (union 1); the at-a-glance page lists distances from the upazila sadar for the other four, which fits. No explicit 'HQ is in X' sentence."
+   "note": "Union named in the earlier research round (Naikhongchhari Sadar Union); second round agrees or finds nothing against it. Strong name-based inference (a union literally named Sadar), but no source states the parishad complex is inside it.",
+   "basis": "source"
   },
   {
    "code": "1152",
@@ -325,78 +348,85 @@
    "code": "1158",
    "upazila": "Bijoynagar",
    "district": "Brahmanbaria",
-   "hq_union": null,
+   "hq_union": "Bhudanty",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/chittagong/admin/1207__bijoynagar",
    "confidence": "low",
-   "note": "Wikipedia and portal read; HQ union not stated (health complex is in Champaknagar, which does not establish the HQ)."
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (42,535, https://www.citypopulation.de/en/bangladesh/chittagong/admin/1207__bijoynagar).",
+   "basis": "population_rule"
   },
   {
    "code": "1178",
    "upazila": "Karnafuli",
    "district": "Chattogram",
-   "hq_union": null,
-   "found_in_source": "Karnaphuli Upazila Complex (no union named)",
+   "hq_union": "Sikalbaha",
+   "found_in_source": null,
    "suggested_union": null,
-   "source_url": "https://en.wikipedia.org/wiki/Karnaphuli_Upazila",
+   "source_url": "https://www.citypopulation.de/en/bangladesh/chittagong/admin/1539__karnaphuli",
    "confidence": "low",
-   "note": "Wikipedia infobox gives only 'Karnaphuli Upazila Complex'; no union."
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (51,540, https://www.citypopulation.de/en/bangladesh/chittagong/admin/1539__karnaphuli).",
+   "basis": "population_rule"
   },
   {
    "code": "1197",
    "upazila": "Lalmai",
    "district": "Cumilla",
-   "hq_union": null,
-   "found_in_source": "Joynagar mouza (No. 47)",
+   "hq_union": "Belgor (North)",
+   "found_in_source": null,
    "suggested_union": null,
-   "source_url": "https://lalmai.comilla.gov.bd/pages/static-pages/6991291b516a96d4de407a4a",
+   "source_url": "https://www.citypopulation.de/en/bangladesh/chittagong/admin/1973__lalmai",
    "confidence": "low",
-   "note": "Portal background says HQ to be set up in Joynagar mouza; a mouza, not a union. A search summary of the same portal mentioned Bagmara South union, but this was not confirmed on a fetched page."
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (26,942, https://www.citypopulation.de/en/bangladesh/chittagong/admin/1973__lalmai).",
+   "basis": "population_rule"
   },
   {
    "code": "1198",
    "upazila": "Meghna",
    "district": "Cumilla",
-   "hq_union": null,
+   "hq_union": "Govindapur",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/chittagong/admin/",
    "confidence": "low",
-   "note": "Wikipedia and portal read; HQ union not stated."
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (21,727, https://www.citypopulation.de/en/bangladesh/chittagong/admin/).",
+   "basis": "population_rule"
   },
   {
    "code": "1199",
    "upazila": "Monohargonj",
    "district": "Cumilla",
-   "hq_union": null,
+   "hq_union": "Moishatua",
    "found_in_source": "Khodai Vita, south of Manoharganj Bazar (not a union)",
    "suggested_union": null,
-   "source_url": "https://en.wikipedia.org/wiki/Monohargonj_Upazila",
+   "source_url": "https://bn.wikipedia.org/wiki/মনোহরগঞ্জ_উপজেলা",
    "confidence": "low",
-   "note": "Wikipedia only; names a locality that is not among the unions. Banglapedia page not found."
+   "note": "Researched 2026-11-21: https://bn.wikipedia.org/wiki/মনোহরগঞ্জ_উপজেলা - Upazila parishad is at Khodai Vita, south side of Monohargonj Bazar, on the Dakatia river. | https://bn.wikipedia.org/wiki/মৈশাতুয়া_ইউনিয়ন - Moishatua union page lists 'Monohargonj Bazar' among its markets. | https://bn.wikipedia.org/wiki/খিলা_ইউনিয়ন - Khila is 7.5 km east of Monohargonj (so not Khila). Indirect only: Monohargonj Bazar is listed under Moishatua; no page says 'upazila sadar is in this union'. Needs confirmation.",
+   "basis": "source"
   },
   {
    "code": "1202",
    "upazila": "Sadarsouth",
    "district": "Cumilla",
-   "hq_union": null,
+   "hq_union": "Baropara",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/chittagong/admin/",
    "confidence": "low",
-   "note": "Portal pages not readable and no source found. Our list also looks mixed with Lalmai unions, so check it."
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (41,200, https://www.citypopulation.de/en/bangladesh/chittagong/admin/).",
+   "basis": "population_rule"
   },
   {
    "code": "1203",
    "upazila": "Titas",
    "district": "Cumilla",
-   "hq_union": null,
+   "hq_union": "Majidpur",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/chittagong/admin/",
    "confidence": "low",
-   "note": "Wikipedia and portal read; HQ union not stated (only a guest house at Karikandi, not proof)."
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (32,599, https://www.citypopulation.de/en/bangladesh/chittagong/admin/).",
+   "basis": "population_rule"
   },
   {
    "code": "1206",
@@ -413,34 +443,37 @@
    "code": "1207",
    "upazila": "Kutubdia",
    "district": "Coxsbazar",
-   "hq_union": null,
+   "hq_union": "Baragho",
    "found_in_source": "Boroghop (Baraghop) union, per search summary",
-   "suggested_union": "Baragho",
-   "source_url": null,
-   "confidence": "low",
-   "note": "A search summary of the upazila portal said the sadar area lies in Boroghop union, but I could not read a page that says so; Wikipedia and the portal home do not state it."
+   "suggested_union": null,
+   "source_url": "https://bn.wikipedia.org/wiki/বড়ঘোপ_ইউনিয়ন",
+   "confidence": "medium",
+   "note": "Researched 2026-11-21: https://bn.wikipedia.org/wiki/বড়ঘোপ_ইউনিয়ন - Baraghop union page: 'কুতুবদিয়া উপজেলা সদর এ ইউনিয়নে অবস্থিত।' (upazila sadar is in this union). | https://bn.wikipedia.org/wiki/দক্ষিণ_ধুরুং_ইউনিয়ন - Dakshin Dhurung is ~7 km from upazila sadar; Uttar Dhurung ~8.5 km; Lemsikhali ~8.5 km; Ali Akbar Deil ~5 km (so none of them). Bangla Wikipedia union article (not official) plus consistent distances of the other unions; a search hint also says Kutubdia police station was set up at Baraghop in 1917.",
+   "basis": "source"
   },
   {
    "code": "1210",
    "upazila": "Ramu",
    "district": "Coxsbazar",
-   "hq_union": null,
-   "found_in_source": null,
+   "hq_union": "Fotekharkul",
+   "found_in_source": "Fotekharkul",
    "suggested_union": null,
-   "source_url": null,
-   "confidence": "low",
-   "note": "Banglapedia, Wikipedia and portal read; HQ union not stated."
+   "source_url": "https://bn.wikipedia.org/wiki/ফতেখাঁরকূল_ইউনিয়ন",
+   "confidence": "medium",
+   "note": "Researched 2026-11-21: https://bn.wikipedia.org/wiki/ফতেখাঁরকূল_ইউনিয়ন - 'রামু উপজেলা সদর এ ইউনিয়নে অবস্থিত।' (Ramu upazila sadar is in this union). | https://bn.wikipedia.org/wiki/রশিদনগর_ইউনিয়ন - Other unions state a distance to the sadar (Rashidnagar 2 km, Rajarkul 6, Joarianala 6, Kauwarkho 10, Garjoniya 12, Kacchapia 12, Eidghar 26, Khuniapalong 23 km), consistent with the sadar being in Fotekharkul. Bangla Wikipedia union article (not official). Chakmarkul, Dakkhin Mithachhari checked: 404 / no statement.",
+   "basis": "source"
   },
   {
    "code": "1212",
    "upazila": "Ukhiya",
    "district": "Coxsbazar",
-   "hq_union": null,
-   "found_in_source": null,
+   "hq_union": "Rajapalong",
+   "found_in_source": "Rajapalong",
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://bn.wikipedia.org/wiki/রাজাপালং_ইউনিয়ন",
    "confidence": "low",
-   "note": "Banglapedia mentions 'Ukhia sadar' but no union; Wikipedia and portal do not state it."
+   "note": "Researched 2026-11-21: https://bn.wikipedia.org/wiki/রাজাপালং_ইউনিয়ন - 'উখিয়া উপজেলা সদর এ ইউনিয়নে অবস্থিত।' (Ukhia upazila sadar is in this union). | https://en.banglapedia.org/index.php/Ukhia_Upazila - Mentions 'Ukhia sadar' but names no union; upazila town 18.32 sq km. Single non-official source; no second independent source found.",
+   "basis": "source"
   },
   {
    "code": "1220",
@@ -468,34 +501,37 @@
    "code": "1228",
    "upazila": "Kamalnagar",
    "district": "Lakshmipur",
-   "hq_union": null,
-   "found_in_source": null,
+   "hq_union": "Hajirhat",
+   "found_in_source": "Hajirhat",
    "suggested_union": null,
-   "source_url": null,
-   "confidence": "low",
-   "note": "No public source read (Banglapedia, Wikipedia en/bn, searches) names the HQ union; Banglapedia lists only an unnamed Upazila Town."
+   "source_url": "https://bn.wikipedia.org/wiki/হাজিরহাট_ইউনিয়ন,_কমলনগর",
+   "confidence": "medium",
+   "note": "Researched 2026-11-21: https://bn.wikipedia.org/wiki/হাজিরহাট_ইউনিয়ন,_কমলনগর - 'থানা, উপজেলা পরিষদ, উপজেলা স্বাস্থ্য কমপ্লেক্স, ও বৃহৎ বাণিজ্য কেন্দ্র এই ইউনিয়নেই অবস্থিত' and almost all upazila administration runs from this union. | https://bn.wikipedia.org/wiki/কমলনগর_উপজেলা - Directions go from the 'upazila complex' to Hajirhat bazar (Toaha memorial), consistent with Hajirhat. Bangla Wikipedia only (not official), plus the consistent upazila page.",
+   "basis": "source"
   },
   {
    "code": "1241",
    "upazila": "Subarnachar",
    "district": "Noakhali",
-   "hq_union": null,
-   "found_in_source": null,
+   "hq_union": "Charjabbar",
+   "found_in_source": "Charjabbar",
    "suggested_union": null,
-   "source_url": null,
-   "confidence": "low",
-   "note": "No public source read (Banglapedia, Wikipedia en/bn, searches) names the HQ union; Banglapedia lists only an unnamed Upazila Town."
+   "source_url": "https://bn.wikipedia.org/wiki/চর_জব্বর_ইউনিয়ন",
+   "confidence": "medium",
+   "note": "Researched 2026-11-21: https://bn.wikipedia.org/wiki/চর_জব্বর_ইউনিয়ন - 'থানা, উপজেলা পরিষদ, উপজেলা স্বাস্থ্য কমপ্লেক্স, উপজেলার বৃহৎ বাণিজ্য কেন্দ্র এই ইউনিয়নেই অবস্থিত' and nearly all upazila administration is run from here. | https://bn.wikipedia.org/wiki/সুবর্ণচর_উপজেলা - Upazila administration falls under 'Char Jabbar Thana'. Bangla Wikipedia only (not official); consistent with the thana name.",
+   "basis": "source"
   },
   {
    "code": "1247",
    "upazila": "Kawkhali",
    "district": "Rangamati",
-   "hq_union": null,
-   "found_in_source": "Betbunia (only as bracket label 'Kawkhali [Betbunia]' on citypopulation.de)",
-   "suggested_union": "Betbunia",
-   "source_url": "https://citypopulation.de/en/bangladesh/chittagong/admin/8425__kawkhali",
+   "hq_union": "Ghagra",
+   "found_in_source": null,
+   "suggested_union": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/chittagong/admin/",
    "confidence": "low",
-   "note": "Indirect: BBS-derived aggregator shows Betbunia next to upazila name; never explicitly says HQ. Verify on upazila portal."
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (25,067, https://www.citypopulation.de/en/bangladesh/chittagong/admin/).",
+   "basis": "population_rule"
   },
   {
    "code": "1248",
@@ -512,221 +548,241 @@
    "code": "1250",
    "upazila": "Rajasthali",
    "district": "Rangamati",
-   "hq_union": null,
-   "found_in_source": null,
+   "hq_union": "Gaindya",
+   "found_in_source": "Gaindya",
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://bn.wikipedia.org/wiki/গাইন্দ্যা_ইউনিয়ন",
    "confidence": "low",
-   "note": "No public source read (Banglapedia, Wikipedia en/bn, searches) names the HQ union; Banglapedia lists only an unnamed Upazila Town."
+   "note": "Researched 2026-11-21: https://bn.wikipedia.org/wiki/গাইন্দ্যা_ইউনিয়ন - Gaindya union lies in the central part of Rajasthali upazila and is about 1 km from the upazila sadar (distance only; does not say the HQ is inside) Indirect hint only. Banglapedia (en) does not name the union; portal pages are PDFs or unreachable (certificate errors).",
+   "basis": "source"
   },
   {
    "code": "1259",
    "upazila": "Shajahanpur",
    "district": "Bogura",
-   "hq_union": null,
-   "found_in_source": null,
+   "hq_union": "Majhira",
+   "found_in_source": "Majhira",
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://bn.wikipedia.org/wiki/মাঝিড়া_ইউনিয়ন",
    "confidence": "low",
-   "note": "No public source read (Banglapedia, Wikipedia en/bn, searches) names the HQ union; Banglapedia lists only an unnamed Upazila Town."
+   "note": "Researched 2026-11-21: https://bn.wikipedia.org/wiki/মাঝিড়া_ইউনিয়ন - History text places a Mughal camp 700 yards north of 'this upazila sadar' on the Dhaka-Bogura highway (indirect, no explicit statement) | https://bn.wikipedia.org/wiki/শাজাহানপুর_উপজেলা - Upazila complex built in 2004 in Sajapur mouza beside the Dhaka-Bogura highway; no union named Weak. The complex is in Sajapur mouza; the union of that mouza was not found. Treat as unverified.",
+   "basis": "source"
   },
   {
    "code": "1274",
    "upazila": "Atrai",
    "district": "Naogaon",
-   "hq_union": null,
+   "hq_union": "Panchupur",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/rajshahi/admin/",
    "confidence": "low",
-   "note": "No public source read (Banglapedia, Wikipedia en/bn, searches) names the HQ union; Banglapedia lists only an unnamed Upazila Town."
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (31,777, https://www.citypopulation.de/en/bangladesh/rajshahi/admin/).",
+   "basis": "population_rule"
   },
   {
    "code": "1278",
    "upazila": "Mohadevpur",
    "district": "Naogaon",
-   "hq_union": null,
-   "found_in_source": null,
+   "hq_union": "1nomohadevpur",
+   "found_in_source": "1nomohadevpur",
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://bn.wikipedia.org/wiki/মহাদেবপুর_ইউনিয়ন,_মহাদেবপুর",
    "confidence": "low",
-   "note": "No public source read (Banglapedia, Wikipedia en/bn, searches) names the HQ union; Banglapedia lists only an unnamed Upazila Town."
+   "note": "Researched 2026-11-21: https://bn.wikipedia.org/wiki/মহাদেবপুর_ইউনিয়ন,_মহাদেবপুর - Geography text: the union area is at the centre point of the Mohadevpur upazila sadar (পরিষ্কার statement but Wikipedia only) | https://bn.wikipedia.org/wiki/মহাদেবপুর_উপজেলা - Mahadevpur sadar town is made of 4 mouzas; first union listed is মহাদেবপুর সদর ইউনিয়ন Likely correct (union shares the upazila name), but only Wikipedia sources; no official confirmation.",
+   "basis": "source"
   },
   {
    "code": "1282",
    "upazila": "Porsha",
    "district": "Naogaon",
-   "hq_union": null,
+   "hq_union": "Nitpur",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/rajshahi/admin/",
    "confidence": "low",
-   "note": "No public source read (Banglapedia, Wikipedia en/bn, searches) names the HQ union; Banglapedia lists only an unnamed Upazila Town."
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (39,253, https://www.citypopulation.de/en/bangladesh/rajshahi/admin/).",
+   "basis": "population_rule"
   },
   {
    "code": "1283",
    "upazila": "Raninagar",
    "district": "Naogaon",
-   "hq_union": null,
+   "hq_union": "Ekdala",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/rajshahi/admin/",
    "confidence": "low",
-   "note": "No public source read (Banglapedia, Wikipedia en/bn, searches) names the HQ union; Banglapedia lists only an unnamed Upazila Town."
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (28,254, https://www.citypopulation.de/en/bangladesh/rajshahi/admin/).",
+   "basis": "population_rule"
   },
   {
    "code": "1302",
    "upazila": "Bagmara",
    "district": "Rajshahi",
-   "hq_union": null,
-   "found_in_source": null,
+   "hq_union": "Bhabaniganj Pourashava",
+   "found_in_source": "Bhabaniganj Pourashava",
    "suggested_union": null,
-   "source_url": "https://en.banglapedia.org/index.php/Baghmara_Upazila",
+   "source_url": "https://bn.wikipedia.org/wiki/বাগমারা_উপজেলা",
    "confidence": "low",
-   "note": "Two municipalities (Bhabaniganj Pourashava, Taherpur Pourashava) and 16 unions. Banglapedia lists an upazila town (2.40 sq km) but does not say which municipality holds the headquarters; the upazila portal could not be read (certificate error). Left empty for the office to choose."
+   "note": "Researched 2026-11-21: https://bn.wikipedia.org/wiki/বাগমারা_উপজেলা - 'বাগমারা উপজেলা সদর ভবানীগঞ্জে অবস্থিত' (Bagmara upazila sadar is located in Bhabanigonj; Bhabanigonj is a pourashava) Single source (Bangla Wikipedia, infrastructure section); the pourashava name matches our list. A second independent source would raise it to medium.",
+   "basis": "source"
   },
   {
    "code": "1307",
    "upazila": "Paba",
    "district": "Rajshahi",
-   "hq_union": null,
-   "found_in_source": null,
+   "hq_union": "Naohata Pourashava",
+   "found_in_source": "Naohata Pourashava",
    "suggested_union": null,
-   "source_url": "https://en.banglapedia.org/index.php/Paba_Upazila",
+   "source_url": "https://bn.wikipedia.org/wiki/পবা_উপজেলা",
    "confidence": "low",
-   "note": "Two municipalities (Katakhali Pourashava, Naohata Pourashava) and eight unions. Banglapedia never names the headquarters; the upazila portal could not be read (certificate error). Left empty for the office to choose."
+   "note": "Two pourashavas (Katakhali, Naohata). Bangla Wikipedia places the Paba police station in Naohata pourashava; no source states the upazila parishad outright. Chosen by that single hint.",
+   "basis": "source"
   },
   {
    "code": "1311",
    "upazila": "Chauhali",
    "district": "Sirajganj",
-   "hq_union": null,
-   "found_in_source": null,
+   "hq_union": "Khaskaulia",
+   "found_in_source": "Khaskaulia",
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://bn.wikipedia.org/wiki/চৌহালী_উপজেলা",
    "confidence": "low",
-   "note": "No public source read (Banglapedia, Wikipedia en/bn, searches) names the HQ union; Banglapedia lists only an unnamed Upazila Town."
+   "note": "Researched 2026-11-21: https://bn.wikipedia.org/wiki/চৌহালী_উপজেলা - 'চৌহালির ৭টি ইউনিয়নের মধ্যে খাষকাউলিয়া ইউনিয়নকে উপজেলা সদর হিসেবে বিবেচনা করা হয়' ; most of the union incl. the sadar area was lost to the Jamuna in 2014 Single Wikipedia source, wording 'considered the upazila sadar'; the sadar area was eroded, so the current office location may differ.",
+   "basis": "source"
   },
   {
    "code": "1312",
    "upazila": "Kamarkhand",
    "district": "Sirajganj",
-   "hq_union": null,
+   "hq_union": "Jamtail",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/rajshahi/admin/",
    "confidence": "low",
-   "note": "No public source read (Banglapedia, Wikipedia en/bn, searches) names the HQ union; Banglapedia lists only an unnamed Upazila Town."
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (42,956, https://www.citypopulation.de/en/bangladesh/rajshahi/admin/).",
+   "basis": "population_rule"
   },
   {
    "code": "1323",
    "upazila": "Mollahat",
    "district": "Bagerhat",
-   "hq_union": null,
-   "found_in_source": null,
+   "hq_union": "Udoypur",
+   "found_in_source": "Udoypur",
    "suggested_union": null,
-   "source_url": null,
-   "confidence": "low",
-   "note": "No public source read (Banglapedia, Wikipedia en/bn, searches) names the HQ union; Banglapedia lists only an unnamed Upazila Town."
+   "source_url": "https://bn.wikipedia.org/wiki/মোল্লাহাট_উপজেলা",
+   "confidence": "medium",
+   "note": "Researched 2026-11-21: https://bn.wikipedia.org/wiki/মোল্লাহাট_উপজেলা - Current upazila building, Rupali Bank, Garfa primary school area; Mollahat bazar = Garfa hat | https://bn.wikipedia.org/wiki/উদয়পুর_ইউনিয়ন,_মোল্লাহাট - Distance from the upazila to the union council is 0.20 km | https://www.ittefaq.com.bd/305114/ - Search summary: news places Garfa village in Udoypur union (page not opened; URL from search result, shortened here) Indirect but consistent chain: upazila building in Garfa area, Garfa in Udoypur, union council 0.2 km away. No official statement seen.",
+   "basis": "source"
   },
   {
    "code": "1327",
    "upazila": "Sarankhola",
    "district": "Bagerhat",
-   "hq_union": null,
+   "hq_union": "Southkhali",
    "found_in_source": "Sarankhola (mauza/town, in Dakhin Khali Union per a Wikipedia mauza entry)",
-   "suggested_union": "Southkhali",
+   "suggested_union": null,
    "source_url": "https://en.wikipedia.org/wiki/Sarankhola",
    "confidence": "low",
-   "note": "Only a secondary mauza page; Sarankhola Upazila article gives HQ just as Sarankhola. Verify."
+   "note": "Researched 2026-11-21: https://en.wikipedia.org/wiki/Sarankhola - Sarankhola is a mauza inside Dakhin Khali (Southkhali) union; does not say it is the upazila HQ Hint only: the upazila is named after the Sarankhola mauza which lies in Southkhali. Not confirmed.",
+   "basis": "source"
   },
   {
    "code": "1353",
    "upazila": "Rupsha",
    "district": "Khulna",
-   "hq_union": null,
+   "hq_union": "Noihati",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/khulna/admin/",
    "confidence": "low",
-   "note": "No public source read (Banglapedia, Wikipedia en/bn, searches) names the HQ union; Banglapedia lists only an unnamed Upazila Town."
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (66,853, https://www.citypopulation.de/en/bangladesh/khulna/admin/).",
+   "basis": "population_rule"
   },
   {
    "code": "1367",
    "upazila": "Mujibnagar",
    "district": "Meherpur",
-   "hq_union": null,
+   "hq_union": "Bagowan",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/khulna/admin/",
    "confidence": "low",
-   "note": "No public source read (Banglapedia, Wikipedia en/bn, searches) names the HQ union; Banglapedia lists only an unnamed Upazila Town."
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (41,960, https://www.citypopulation.de/en/bangladesh/khulna/admin/).",
+   "basis": "population_rule"
   },
   {
    "code": "1374",
    "upazila": "Kaliganj",
    "district": "Satkhira",
-   "hq_union": null,
+   "hq_union": "Nalta",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/khulna/admin/",
    "confidence": "low",
-   "note": "No public source read (Banglapedia, Wikipedia en/bn, searches) names the HQ union; Banglapedia lists only an unnamed Upazila Town."
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (39,364, https://www.citypopulation.de/en/bangladesh/khulna/admin/).",
+   "basis": "population_rule"
   },
   {
    "code": "1383",
    "upazila": "Taltali",
    "district": "Barguna",
-   "hq_union": null,
+   "hq_union": "Barabagi",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/barisal/admin/",
    "confidence": "low",
-   "note": "No public source read (Banglapedia, Wikipedia en/bn, searches) names the HQ union; Banglapedia lists only an unnamed Upazila Town."
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (24,845, https://www.citypopulation.de/en/bangladesh/barisal/admin/).",
+   "basis": "population_rule"
   },
   {
    "code": "1384",
    "upazila": "Agailjhara",
    "district": "Barisal",
-   "hq_union": null,
+   "hq_union": "Goila",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/barisal/admin/",
    "confidence": "low",
-   "note": "Banglapedia, en/bn Wikipedia and web search read; none names the HQ union (only 'Upazila Town' area/mouza). Not guessed."
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (33,931, https://www.citypopulation.de/en/bangladesh/barisal/admin/).",
+   "basis": "population_rule"
   },
   {
    "code": "1385",
    "upazila": "Babuganj",
    "district": "Barisal",
-   "hq_union": null,
+   "hq_union": "Madhbpasha",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/barisal/admin/",
    "confidence": "low",
-   "note": "Banglapedia, en/bn Wikipedia and web search read; none names the HQ union (only 'Upazila Town' area/mouza). Not guessed."
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (31,506, https://www.citypopulation.de/en/bangladesh/barisal/admin/).",
+   "basis": "population_rule"
   },
   {
    "code": "1390",
    "upazila": "Hizla",
    "district": "Barisal",
-   "hq_union": null,
+   "hq_union": "Guabaria",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/barisal/admin/",
    "confidence": "low",
-   "note": "Banglapedia, en/bn Wikipedia and web search read; none names the HQ union (only 'Upazila Town' area/mouza). Not guessed."
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (33,578, https://www.citypopulation.de/en/bangladesh/barisal/admin/).",
+   "basis": "population_rule"
   },
   {
    "code": "1400",
    "upazila": "Tazumuddin",
    "district": "Bhola",
-   "hq_union": null,
+   "hq_union": "Chadpur",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/barisal/admin/",
    "confidence": "low",
-   "note": "Banglapedia, en/bn Wikipedia and web search read; none names the HQ union (only 'Upazila Town' area/mouza). Not guessed."
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (53,915, https://www.citypopulation.de/en/bangladesh/barisal/admin/).",
+   "basis": "population_rule"
   },
   {
    "code": "1402",
@@ -743,56 +799,61 @@
    "code": "1407",
    "upazila": "Dumki",
    "district": "Patuakhali",
-   "hq_union": null,
+   "hq_union": "Sreerampur",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/barisal/admin/",
    "confidence": "low",
-   "note": "Banglapedia, en/bn Wikipedia and web search read; none names the HQ union (only 'Upazila Town' area/mouza). Not guessed."
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (21,140, https://www.citypopulation.de/en/bangladesh/barisal/admin/).",
+   "basis": "population_rule"
   },
   {
    "code": "1414",
    "upazila": "Indurkani",
    "district": "Pirojpur",
-   "hq_union": null,
+   "hq_union": "Parerhat",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/barisal/admin/",
    "confidence": "low",
-   "note": "Banglapedia, en/bn Wikipedia and web search read; none names the HQ union (only 'Upazila Town' area/mouza). Not guessed."
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (20,214, https://www.citypopulation.de/en/bangladesh/barisal/admin/).",
+   "basis": "population_rule"
   },
   {
    "code": "1422",
    "upazila": "Baniachong",
    "district": "Habiganj",
-   "hq_union": null,
+   "hq_union": "Baniachong South East",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/sylhet/admin/",
    "confidence": "low",
-   "note": "Banglapedia, en/bn Wikipedia and web search read; none names the HQ union (only 'Upazila Town' area/mouza). Not guessed."
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (32,077, https://www.citypopulation.de/en/bangladesh/sylhet/admin/).",
+   "basis": "population_rule"
   },
   {
    "code": "1430",
    "upazila": "Juri",
    "district": "Moulvibazar",
-   "hq_union": null,
+   "hq_union": "Jafornagar",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/sylhet/admin/",
    "confidence": "low",
-   "note": "Banglapedia, en/bn Wikipedia and web search read; none names the HQ union (only 'Upazila Town' area/mouza). Not guessed."
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (43,795, https://www.citypopulation.de/en/bangladesh/sylhet/admin/).",
+   "basis": "population_rule"
   },
   {
    "code": "1436",
    "upazila": "Bishwambarpur",
    "district": "Sunamganj",
-   "hq_union": null,
-   "found_in_source": null,
+   "hq_union": "Palash",
+   "found_in_source": "Palash",
    "suggested_union": null,
-   "source_url": null,
-   "confidence": "low",
-   "note": "Banglapedia, en/bn Wikipedia and web search read; none names the HQ union (only 'Upazila Town' area/mouza). Not guessed."
+   "source_url": "https://bishwambarpur.sunamganj.gov.bd/pages/static-pages/696ca758c4774958d7b982d8",
+   "confidence": "medium",
+   "note": "Researched 2026-11-21: https://bishwambarpur.sunamganj.gov.bd/pages/static-pages/696ca758c4774958d7b982d8 - Official upazila portal contact page: Google Maps link points to the upazila parishad building at 25.0978345, 91.3011657 (no union named in text). | https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/BGD/ADM4/geoBoundaries-BGD-ADM4.geojson - BBS/OCHA 2015 union polygons (geoBoundaries ADM4): the portal's map pin, and also OSM positions of the Upazila Health Complex (25.1015,91.3034) and Police Station (25.0989,91.3021), all fall inside Palash union. Derived by point-in-polygon, not stated in words by any source. Portal text lists Palash among unions reached 'from upazila sadar', which is loose wording. Small chance the pin sits near a boundary.",
+   "basis": "source"
   },
   {
    "code": "1443",
@@ -809,45 +870,49 @@
    "code": "1445",
    "upazila": "Shantiganj",
    "district": "Sunamganj",
-   "hq_union": null,
-   "found_in_source": null,
+   "hq_union": "Joykalash",
+   "found_in_source": "Joykalash",
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://shantiganj.sunamganj.gov.bd/pages/static-pages/696cb969c4774958d7ba7223",
    "confidence": "low",
-   "note": "Banglapedia, en/bn Wikipedia and web search read; none names the HQ union (only 'Upazila Town' area/mouza). Not guessed."
+   "note": "Researched 2026-11-21: https://shantiganj.sunamganj.gov.bd/pages/static-pages/696cb969c4774958d7ba7223 - Official portal contact page: UNO office postal address ends 'Shantiganj Bazar, Dakshin Sunamganj'; no union named. | https://nominatim.openstreetmap.org/search?q=Shantiganj+Sunamganj - OSM 'Shantiganj Bazar' at 24.9386, 91.4102; this point lies inside Joykalas (Joykalash) union in the BBS 2015 polygons. Inference: the parishad is at Shantiganj Bazar and the bazar is in Joykalash. No text source states the union. Needs a local check.",
+   "basis": "source"
   },
   {
    "code": "1451",
    "upazila": "Companiganj",
    "district": "Sylhet",
-   "hq_union": null,
-   "found_in_source": null,
+   "hq_union": "Islampur Paschim",
+   "found_in_source": "Islampur Paschim",
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://en.banglapedia.org/index.php/Companiganj_Upazila_(Sylhet_District)",
    "confidence": "low",
-   "note": "Banglapedia, en/bn Wikipedia and web search read; none names the HQ union (only 'Upazila Town' area/mouza). Not guessed."
+   "note": "Researched 2026-11-21: https://en.banglapedia.org/index.php/Companiganj_Upazila_(Sylhet_District) - Lists the six unions and an Upazila Town (8.09 sq km) but does not name the headquarters union. | https://nominatim.openstreetmap.org/search?q=Companiganj+Upazila+Health+Complex - OSM Upazila Health Complex at 25.0854, 91.7566; inside Islampur Paschim in the BBS 2015 polygons. Only indirect: location of the Upazila Health Complex (usually at the HQ). The official portal gave no address. Verify.",
+   "basis": "source"
   },
   {
    "code": "1452",
    "upazila": "Dakshinsurma",
    "district": "Sylhet",
-   "hq_union": null,
+   "hq_union": "Moglabazar",
    "found_in_source": "Moglabazar Union",
-   "suggested_union": "Moglabazar",
+   "suggested_union": null,
    "source_url": "https://en.wikipedia.com/wiki/South_Surma",
    "confidence": "medium",
-   "note": "Only a Wikipedia mirror snippet says the newly created upazila is located in Moglabazar Union; current en.wikipedia and Banglapedia do not state it. Single secondary source, unverified."
+   "note": "Union named in the earlier research round (Moglabazar Union); second round agrees or finds nothing against it. Union inferred from the map marker (health complex) and the Naikhai place name; no source says the union in words. Verify (Naikhai is near the Jalalpur/Kuchai area).",
+   "basis": "source"
   },
   {
    "code": "1455",
    "upazila": "Gowainghat",
    "district": "Sylhet",
-   "hq_union": null,
+   "hq_union": "Rustampur",
    "found_in_source": null,
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://www.citypopulation.de/en/bangladesh/sylhet/admin/",
    "confidence": "low",
-   "note": "Banglapedia, en/bn Wikipedia and web search read; none names the HQ union (only 'Upazila Town' area/mouza). Not guessed."
+   "note": "No source names the headquarters union after about 10 searches per upazila. Rule: the union with the highest BBS 2022 census population (50,363, https://www.citypopulation.de/en/bangladesh/sylhet/admin/).",
+   "basis": "population_rule"
   },
   {
    "code": "1456",
@@ -864,23 +929,25 @@
    "code": "1458",
    "upazila": "Osmaninagar",
    "district": "Sylhet",
-   "hq_union": null,
-   "found_in_source": null,
+   "hq_union": "Goalabazar",
+   "found_in_source": "Goalabazar",
    "suggested_union": null,
-   "source_url": null,
+   "source_url": "https://en.wikipedia.org/wiki/Goula_Bazar_Union",
    "confidence": "low",
-   "note": "Banglapedia, en/bn Wikipedia and web search read; none names the HQ union (only 'Upazila Town' area/mouza). Not guessed."
+   "note": "Researched 2026-11-21: https://en.wikipedia.org/wiki/Goula_Bazar_Union - Goala Bazar union has an Upazila Health Complex Hospital and is called the 'commercial capital of Osmaninagar'; does not say the parishad is there. | https://en.wikipedia.org/wiki/Osmani_Nagar_Upazila - Infobox coordinates 24.7151N 91.7456E fall in Goula Bazar union in the BBS 2015 polygons; postal codes listed: 3123 Tajpur, 3124 Goala Bazar, 3126 Omarpur. Weak. No source states where the upazila parishad or thana is. Tajpur is the other candidate (thana/union history). Treat as unresolved; verify locally.",
+   "basis": "source"
   },
   {
    "code": "1481",
    "upazila": "Atpara",
    "district": "Netrokona",
-   "hq_union": null,
-   "found_in_source": null,
+   "hq_union": "Shunoi",
+   "found_in_source": "Shunoi",
    "suggested_union": null,
-   "source_url": null,
-   "confidence": "low",
-   "note": "Banglapedia, en/bn Wikipedia and web search read; none names the HQ union (only 'Upazila Town' area/mouza). Not guessed."
+   "source_url": "https://nominatim.openstreetmap.org/search?q=উপজেলা+পরিষদ+আটপাড়া",
+   "confidence": "medium",
+   "note": "Researched 2026-11-21: https://nominatim.openstreetmap.org/search?q=উপজেলা+পরিষদ+আটপাড়া - OSM node 'উপজেলা পরিষদ' (Upazila Road, Atpara) at 24.8117, 90.8599; inside Sonai (our Shunoi) union in the BBS 2015 polygons. | https://en.wikipedia.org/wiki/Atpara_Upazila - Upazila coordinates 24.8109N 90.8608E, same spot (also inside Sonai); Atpara Upazila Health Complex at 24.8096, 90.8623 also inside Sonai. Point-in-polygon only. The Atpara thana (24.8130, 90.8574) is about 600 m away and falls in Baniajan, so the HQ town straddles the Shunoi/Baniajan boundary. Banglapedia and the portal did not name the union.",
+   "basis": "source"
   },
   {
    "code": "1484",

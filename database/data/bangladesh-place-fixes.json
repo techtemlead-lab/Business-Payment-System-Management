@@ -1,5 +1,5 @@
 {
- "description": "Corrections to the default place list found on 2026-11-21 (see PlaceDataFixes). The main list already has them applied; this file tells the loader what to do to a database built from the older list: move unions by code under the right upazila, switch off the duplicate copies (never one that is referenced), clear base places of metropolitan areas. Sources: Wikipedia only (no BBS/LGD/Banglapedia page covers the newest upazilas), so confidence is medium.",
+ "description": "Corrections to the default place list found on 2026-11-21 (see PlaceDataFixes). The main list already has them applied; this file tells the loader what to do to a database built from the older list: move unions by code under the right upazila, switch off the duplicate copies and the old plain Natai (never one that is referenced), clear base places of metropolitan areas. Sources: Banglapedia and Wikipedia (no BBS/LGD page covers the newest upazilas).",
  "accessed": "2026-11-21",
  "moves": [
   {
@@ -54,16 +54,16 @@
    "to_parent_code": "1220",
    "source_url": "https://en.wikipedia.org/wiki/Guimara_Upazila",
    "confidence": "medium",
-   "note": "Wikipedia lists Guimara, Hafchhari and Sindukchhari for Guimara Upazila (upazila since 30 Nov 2020). Guimara sits under Matiranga and Hafchari under Ramgarh in our list."
+   "note": "Wikipedia lists Guimara, Hafchhari and Sindukchhari for Guimara Upazila (upazila since 30 Nov 2020). Guimara sits under Matiranga and Hafchari under Ramgarh in our list. Matiranga no longer lists Guimara (Wikipedia); citypopulation.de names Matiranga as a parent of Guimara Upazila. Matiranga no longer lists Guimara (Wikipedia); citypopulation.de names Matiranga as a parent of Guimara Upazila."
   },
   {
    "code": "102170",
    "name": "Hafchari",
    "from_parent_code": "1227",
    "to_parent_code": "1220",
-   "source_url": "https://en.wikipedia.org/wiki/Guimara_Upazila",
-   "confidence": "medium",
-   "note": "Wikipedia lists Guimara, Hafchhari and Sindukchhari for Guimara Upazila (upazila since 30 Nov 2020). Guimara sits under Matiranga and Hafchari under Ramgarh in our list."
+   "source_url": "https://en.banglapedia.org/index.php/Ramgarh_Upazila",
+   "confidence": "high",
+   "note": "Hafchhari was a union of Ramgarh (Banglapedia, old Ramgarh Upazila: Pathachhara, Ramgarh, Hapchhari) and is listed for Guimara Upazila by English and Bangla Wikipedia; citypopulation.de (BBS 2022) lists Guimara with parents Matiranga, Ramgarh and Mahalchhari. Ramgarh no longer lists it."
   },
   {
    "code": "104025",
@@ -275,19 +275,40 @@
    "sort_order": 4,
    "bn_name": "সিন্দুকছড়ি",
    "kind": "union",
-   "source_url": "https://en.wikipedia.org/wiki/Guimara_Upazila",
+   "source_url": "https://en.banglapedia.org/index.php/Mahalchhari_Upazila",
+   "confidence": "high",
+   "note": "Sindukchhari was a union of Mahalchhari (Banglapedia, old Mahalchhari Upazila lists it; the current Mahalchhari list does not) and is listed for Guimara Upazila by English and Bangla Wikipedia; BBS 2022 population 8,985 (citypopulation.de). Code = next free union number of the numbering rule (never renumbered), not a BBS geocode."
+  },
+  {
+   "code": "104542",
+   "level": "union",
+   "name": "Bakai Uttar",
+   "parent_code": "1197",
+   "sort_order": 9,
+   "bn_name": "বাকই উত্তর",
+   "kind": "union",
+   "source_url": "https://en.wikipedia.org/wiki/Lalmai_Upazila",
    "confidence": "medium",
-   "note": "Wikipedia lists it as the third union of Guimara Upazila; no such union exists anywhere in our list. Code = next free union number of the numbering rule (never renumbered), not a BBS geocode."
+   "note": "Lalmai Upazila (9 Jan 2017) has nine unions, the ninth Bakai North, taken from Laksam (English and Bangla Wikipedia; BBS 2022 population 21,127 at citypopulation.de). Laksam keeps its union Bakoi (101935); a news item says about 20 villages of Bakai North still depend on Laksam. No source says Bakoi is the same union, so Bakoi is not moved. Code = next free union number of the numbering rule."
   }
  ],
  "needs_owner": [
   {
-   "place": "Lalmai (1197)",
-   "detail": "Wikipedia says Lalmai has nine unions: eight from Cumilla Sadar South and Bakai North from Laksam. Our list has only the eight. The Laksam union Bakoi (101935) may be the one; not moved because no source names it."
-  },
+   "place": "Bakoi (101935, Laksam)",
+   "detail": "Possibly the parent of Lalmai's Bakai Uttar (about 20 villages moved); not verified, left under Laksam."
+  }
+ ],
+ "legacy_unions": [
   {
-   "place": "Natai",
-   "detail": "Left as is by the owner's decision (Natai (Dakshin) 101489, Natai (Uttar) 101490 under Brahmanbaria Sadar)."
+   "name": "Natai",
+   "parent_code": "1159",
+   "replaced_by": [
+    "MNHC101489 Natai (Dakshin)",
+    "MNHC101490 Natai (Uttar)"
+   ],
+   "source_url": "https://en.banglapedia.org/index.php/Brahmanbaria_Sadar_Upazila",
+   "confidence": "high",
+   "note": "Banglapedia, English and Bangla Wikipedia and BBS (citypopulation.de) all list two unions, Natai Dakshin and Natai Uttar, and no single Natai. A plain Natai row without a code is switched off when nothing refers to it; if something does, it stays on and the dry run names the exact ids."
   }
  ]
 }
