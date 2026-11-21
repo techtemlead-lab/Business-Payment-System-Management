@@ -10,8 +10,8 @@ return [
 
     'collect_from_office' => 'Collect from the office',
     'detail_title' => 'How the goods are received',
-    'detail_office_waiting' => 'The partner collects this order at the office, once it is approved.',
-    'detail_office_ready' => 'The order is approved. Come to the office and take the goods.',
+    'detail_office_waiting' => 'The goods for this order are collected at the office, once it is approved.',
+    'detail_office_ready' => 'The order is approved. The goods can be collected at the office now.',
     'detail_office_done' => 'The goods were collected at the office.',
 
     'handover_title' => 'Hand over the goods at the office',

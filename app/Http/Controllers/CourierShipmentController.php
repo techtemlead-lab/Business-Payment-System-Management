@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Orders\MixedOutcomeDecisions;
+use App\Domain\Orders\OfficePickup;
+use App\Domain\Orders\OrderDeliveryMethod;
 use App\Domain\Orders\OrderService;
 use App\Domain\Orders\ShipmentTracking;
 use App\Http\Requests\Backend\ChangeCourierRequest;
@@ -26,6 +28,35 @@ class CourierShipmentController extends Controller
         $orders->changeCourier($request->user(), $order, $data['courier'], $data['note'] ?? null, bookNow: false);
 
         return back(fallback: '/orders/'.$order->id)->with('success', __('courier.flash_changed'));
+    }
+
+    /** Switch an order between courier and office pickup before anything is sent; the partner is told. */
+    public function deliveryMethod(Request $request, Order $order, OrderDeliveryMethod $methods): RedirectResponse
+    {
+        $data = $request->validate([
+            'delivery_method' => ['required', 'string', Rule::in(OfficePickup::Methods)],
+            'note' => ReasonFields::rule('order.courier_change', 500),
+        ]);
+        $methods->change($request->user(), $order, $data['delivery_method'], $data['note'] ?? null);
+
+        return back(fallback: '/orders/'.$order->id)->with('success', __('order_delivery.flash_changed'));
+    }
+
+    /** The partner took the goods at the office: out of stock and delivered in one step. */
+    public function officeHandover(Request $request, Order $order, OrderDeliveryMethod $methods): RedirectResponse
+    {
+        $data = $request->validate([
+            'idempotency_key' => ['required', 'uuid'],
+            'branch_id' => ['nullable', 'integer'],
+            'note' => ReasonFields::rule('order.delivery_confirm', 500),
+        ]);
+        $methods->handOver($request->user(), $order, [
+            'idempotency_key' => $data['idempotency_key'],
+            'branch_id' => isset($data['branch_id']) ? (int) $data['branch_id'] : null,
+            'note' => $data['note'] ?? null,
+        ]);
+
+        return redirect('/orders/'.$order->id)->with('success', __('order_delivery.flash_handed'));
     }
 
     public function retry(Request $request, Order $order, int $shipment, OrderService $orders): RedirectResponse

@@ -6,6 +6,7 @@ use App\Domain\Integrations\CourierAreaMapping;
 use App\Domain\Inventory\BranchOperations;
 use App\Domain\Orders\BackOrders;
 use App\Domain\Orders\CourierOptions;
+use App\Domain\Orders\OfficePickup;
 use App\Domain\Orders\OrderLines;
 use App\Domain\Orders\OrderService;
 use App\Domain\Orders\ShippingLabels;
@@ -34,7 +35,8 @@ class OrderCourierController extends Controller
         abort_unless($staff->allows('inventory') && (int) $staff->id !== (int) $order->user_id, 403);
         abort_unless(app(BranchOperations::class)->mayOpenOrder($staff, $order), 404);
         $unsent = $order->lines()->whereRaw(OrderLines::unsentSql())->exists();
-        if (! in_array($order->status, self::OpenStatuses, true) || ! $unsent) {
+        // Collected at the office: there is no courier to choose; the hand-over is on the order page.
+        if (! in_array($order->status, self::OpenStatuses, true) || ! $unsent || OfficePickup::isPickupOrder($order)) {
             return redirect('/orders/'.$order->id);
         }
 

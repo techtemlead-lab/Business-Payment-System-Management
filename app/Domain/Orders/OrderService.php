@@ -307,7 +307,12 @@ class OrderService
                 'number' => $locked->number,
                 'reason' => ReasonFields::shown($reason, SmsText::Locale),
             ]);
-            if ($status === 'approved' && $bookNow) {
+            if ($status === 'approved' && OfficePickup::isPickupOrder($locked)) {
+                // Collected at the office: nothing is booked; the partner is told to come for the goods.
+                $this->partnerNotice($locked->user_id, 'order_delivery.notice_approved_pickup_title', 'order_delivery.notice_approved_pickup_body', [
+                    'number' => $locked->number,
+                ]);
+            } elseif ($status === 'approved' && $bookNow) {
                 // The dealer picked a courier: the parcel is booked now, without waiting for manual dispatch.
                 $this->autoShip($actor, $locked);
             }
@@ -407,12 +412,18 @@ class OrderService
         }
     }
 
-    public function dispatch(User $actor, Order $order, array $data): void
+    /**
+     * Records goods leaving the stock for an approved order: a courier parcel, or goods handed over at
+     * the office. An order the partner collects at the office is always saved as an office hand-over,
+     * whatever courier details were sent. `$announce` false leaves telling the partner to the caller
+     * (the one-step office hand-over tells them once, when the order is delivered).
+     */
+    public function dispatch(User $actor, Order $order, array $data, bool $announce = true): void
     {
         $this->branches->assertCompanyHandler($actor);
         abort_unless($actor->allows('inventory'), 403);
         $this->assertNotOwnOrder($actor, $order);
-        DB::transaction(function () use ($actor, $order, $data): void {
+        DB::transaction(function () use ($actor, $order, $data, $announce): void {
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             $hash = $this->hash($data);
             $existing = DB::table('shipments')->where('order_id', $locked->id)->where('idempotency_key', $data['idempotency_key'])->first();
@@ -433,6 +444,11 @@ class OrderService
             $courier = (string) $data['courier'];
             $tracking = trim((string) ($data['tracking'] ?? ''));
             $provider = $data['courier_provider'] ?? null;
+            if (OfficePickup::isPickupOrder($locked)) {
+                // Collected at the office: no courier is booked and no tracking number is kept.
+                [$courier, $tracking, $provider] = [OfficePickup::Courier, '', null];
+                $data = [...$data, 'courier_contact' => null, 'eta' => null];
+            }
             $gatewayMeta = null;
             // The courier is booked only after this transaction commits (BookShipmentCourier),
             // so a rolled-back dispatch never leaves a parcel booked with the courier.
@@ -479,8 +495,16 @@ class OrderService
                 'branch_id' => $fulfillmentBranch->id,
                 'branch_code' => $fulfillmentBranch->code,
             ]);
-            if ($bookCourier) {
+            if ($bookCourier || ! $announce) {
                 // The partner hears about it once the courier has given a tracking number.
+                return;
+            }
+            if (OfficePickup::matches($courier)) {
+                // No courier and no tracking number to tell: only that the goods were handed over.
+                $this->partnerNotice($locked->user_id, 'order_delivery.notice_handed_title', 'order_delivery.notice_handed_body', [
+                    'number' => $locked->number,
+                ], 'order.dispatched');
+
                 return;
             }
             $this->partnerNotice($locked->user_id, 'portal.notice_shipment_dispatched_title', 'portal.notice_shipment_dispatched_body', [
@@ -619,6 +643,9 @@ class OrderService
         $note = $note !== null && trim($note) !== '' ? Str::limit(trim($note), 500, '') : null;
         DB::transaction(function () use ($actor, $order, $provider, $note, $bookNow): void {
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            if (OfficePickup::isPickupOrder($locked)) {
+                throw ValidationException::withMessages(['courier' => __('order_delivery.err_pickup_no_courier')]);
+            }
             $shipment = DB::table('shipments')->where('order_id', $locked->id)->whereNotNull('courier_provider')
                 ->orderByDesc('id')->lockForUpdate()->first();
             $from = $locked->courier_choice;
@@ -707,6 +734,9 @@ class OrderService
             }
             if (! in_array($locked->status, ['approved', 'partially_dispatched'], true)) {
                 throw ValidationException::withMessages(['courier_provider' => __('portal.err_shipment_approve_first')]);
+            }
+            if (OfficePickup::isPickupOrder($locked)) {
+                throw ValidationException::withMessages(['courier_provider' => __('order_delivery.err_pickup_no_courier')]);
             }
             $items = $locked->lines()->whereRaw(OrderLines::unsentSql())->orderBy('id')->get()
                 ->map(fn (OrderLine $line): array => ['line_id' => (int) $line->getKey(),

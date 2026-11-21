@@ -270,8 +270,9 @@ class EnforceStaffActions
                 'confirm' => [['finance'], 'approve'],
                 default => null,
             },
-            // Courier parcels: change courier, try a refused booking again, mark picked up.
-            'CourierShipmentController' => [['inventory', 'order_review'], 'edit'],
+            // Courier parcels: change courier, try a refused booking again, mark picked up. Courier or office
+            // pickup changes like the courier; handing goods over at the office is a dispatch.
+            'CourierShipmentController' => $method === 'officeHandover' ? [['inventory'], 'edit'] : [['inventory', 'order_review'], 'edit'],
             'TrainingController', 'PartnerEventController' => [['content'], $method === 'store' ? 'create' : 'edit'],
             'IntegrationSettingsController' => [['finance'], 'edit'],
             'IdentityLookupController' => [['accounts'], 'view'],
