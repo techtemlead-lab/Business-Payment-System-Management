@@ -288,6 +288,7 @@ final class TreasuryFunds
     {
         return DB::table('reserve_disbursements as r')->leftJoin('fund_expense_heads as h', 'h.id', '=', 'r.expense_head_id')
             ->where('r.program', FundSpending::Program)->where('r.status', 'paid')->where('r.fund_key', $fund)
+            ->whereNotExists(fn ($reversed) => $reversed->from('fund_spend_reversals as v')->whereColumn('v.disbursement_id', 'r.id'))
             ->selectRaw("('s-' || r.id::text) AS id, COALESCE(r.spent_on::timestamp, r.paid_at, r.created_at) AS date, 'spend' AS line_kind, COALESCE(h.name_bn, h.name_en, r.program) AS what_text, h.name_en AS what_en, r.payee_name AS payee, NULL::bigint AS partners, r.amount, r.payment_reference AS reference, CASE WHEN r.receipt_path IS NOT NULL THEN r.id END AS receipt_id, NULL AS kind");
     }
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Clinic\ClinicDispensing;
+use App\Domain\Clinic\ClinicSaleVoids;
 use App\Domain\Clinic\DoseSchedule;
 use App\Domain\Clinic\PatientRecords;
 use App\Domain\Clinic\PrescriberVerification;
@@ -123,6 +124,16 @@ class PrescriptionController extends Controller
         );
 
         return back()->with('success', __('prescription.flash_dispensed', ['number' => $prescription->number]));
+    }
+
+    /** Takes a clinic sale back: money and medicines return, with a reversing journal entry. */
+    public function voidDispense(Request $request, Prescription $prescription, ClinicSaleVoids $voids): RedirectResponse
+    {
+        $data = $request->validate(['reason' => 'required|string|min:5|max:1000']);
+        $this->book->assertVisible($request->user(), $prescription);
+        $voids->void($request->user(), $prescription, trim($data['reason']));
+
+        return back()->with('success', __('prescription.flash_dispense_voided', ['number' => $prescription->number]));
     }
 
     /** The prescriber's own patients for the picker on the new-prescription form. */

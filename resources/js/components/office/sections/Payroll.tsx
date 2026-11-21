@@ -81,6 +81,8 @@ export default function Payroll({ tables, staff, paymentAccounts, hub }: Payroll
             };
             if (mayFinish(row.approved_by)) {
                 actions.push(pay);
+                // An approval made by mistake is undone before payment; the person who approved it needs a second person (the owner excepted).
+                actions.push({ title: translate('office_staff', 'void_salary'), action: `${commandRoot}/payroll/${row.id}/void`, fields: [reason] });
             }
         }
 
@@ -95,6 +97,7 @@ export default function Payroll({ tables, staff, paymentAccounts, hub }: Payroll
     const calculation: Row = stored !== null && typeof stored === 'object' ? (stored as Row) : {};
     const agreement: Row = calculation.contract ?? {};
     const salaryTarget: Row | null = calculation.target ?? null;
+    const partMonth: Row | null = calculation.part_month ?? null;
 
     return (
         <OfficePage
@@ -181,6 +184,7 @@ export default function Payroll({ tables, staff, paymentAccounts, hub }: Payroll
                             { label: translate('office_staff', 'detail_paid_at'), value: opened.paid_at ? dateTime(String(opened.paid_at)) : null },
                         ]}
                     />
+                    {partMonth && <p className="notice" role="note">{translate('office_staff', 'part_month_review', { days: partMonth.active_days, month_days: partMonth.days_in_month, date: dateTime(String(partMonth.status_changed_at)) })}</p>}
                     <div className="emp-cat-title">{translate('office_staff', 'detail_calculation')}</div>
                     <DrawerLines
                         lines={[

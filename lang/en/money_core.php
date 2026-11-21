@@ -192,4 +192,6 @@ return [
     'wo_confirm' => 'I understand: ৳:amount owed by this partner is written off as a company loss.',
     'wo_submit' => 'Write off ৳:amount',
     'reason_split_remainder' => 'Paisa left over when a salary or royalty fund was shared equally',
+    'task_payables_overdue' => 'Withheld tax or salary deductions not paid on for over :days days',
+    'task_spends_overdue' => 'Fund spends waiting for a checker for over :days days',
 ];

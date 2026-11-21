@@ -6952,4 +6952,9 @@ return [
     'pp_salary_estimate_nationwide' => 'If the month ended today, you would get :share. (Fund for all of Bangladesh: :pool · dealers sharing it: :people)',
     'retained_reason_unclaimed_national_salary' => 'No dealer in Bangladesh met his monthly target, so this salary went to company profit.',
     'retained_reason_rank_prize_surplus' => 'The rank prize fund had more than the prizes still waiting need, so this part went to company profit at the month close.',
+    'status_voided' => 'Undone',
+    'payroll_event_prepared_part_month' => 'Prepared for :days of :month_days days: the account is no longer active. Check before approving.',
+    'err_payroll_void' => 'Only an approved salary that is not paid yet can be undone, and never by the person it pays.',
+    'err_payroll_void_own' => 'You approved this salary, so someone else must undo it.',
+    'jr_payroll_voided' => 'Salary approval undone (:month)',
 ];

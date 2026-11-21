@@ -131,6 +131,7 @@ $operations = function (): void {
     Route::post('/payroll/prepare', [$finance, 'prepare']);
     Route::post('/payroll/{id}/review', [$finance, 'payrollReview'])->whereUuid('id');
     Route::post('/payroll/{id}/pay', [$finance, 'payrollPay'])->whereUuid('id');
+    Route::post('/payroll/{id}/void', [$finance, 'payrollVoid'])->whereUuid('id');
     Route::post('/policy-schedules', [$finance, 'schedule']);
     Route::post('/policy-schedules/{id}/review', [$finance, 'scheduleReview'])->whereNumber('id');
     Route::post('/policy-schedules/{id}/end', [$finance, 'scheduleEnd'])->whereNumber('id');
@@ -142,7 +143,7 @@ $operations = function (): void {
     Route::post('/company-funds/spends', [FundSpendingController::class, 'store']);
     Route::post('/company-funds/spends/{id}/review', [FundSpendingController::class, 'review'])->whereNumber('id');
     Route::post('/company-funds/spends/{id}/cancel', [FundSpendingController::class, 'cancel'])->whereNumber('id');
-    Route::post('/company-funds/heads', [FundSpendingController::class, 'storeHead']);
+    Route::post('/company-funds/spends/{id}/reverse', [FundSpendingController::class, 'reverse'])->whereNumber('id');    Route::post('/company-funds/heads', [FundSpendingController::class, 'storeHead']);
     Route::patch('/company-funds/heads/{id}', [FundSpendingController::class, 'updateHead'])->whereNumber('id');
     Route::post('/company-funds/budgets', [FundSpendingController::class, 'saveBudget']);
     Route::post('/holds/{id}/release', [$finance, 'release'])->whereNumber('id');
@@ -161,6 +162,10 @@ $operations = function (): void {
     Route::post('/accounting/statements/{id}/map', [AccountingController::class, 'mapStatement'])->whereUuid('id');
     Route::post('/accounting/statement-lines/{id}/confirm', [AccountingController::class, 'confirmStatementLine'])->whereNumber('id');
     Route::post('/accounting/statement-lines/{id}/dismiss', [AccountingController::class, 'dismissStatementLine'])->whereNumber('id');
+    Route::post('/accounting/payables', [AccountingController::class, 'requestRemittance']);
+    Route::post('/accounting/payables/{id}/review', [AccountingController::class, 'reviewRemittance'])->whereNumber('id');
+    Route::post('/accounting/payables/{id}/cancel', [AccountingController::class, 'cancelRemittance'])->whereNumber('id');
+    Route::post('/accounting/clinic-cash/deposits', [AccountingController::class, 'depositClinicCash']);
 };
 $staffPortal = EnsureStaffPortalHost::class;
 Route::prefix('commands/operations')->middleware(['auth', 'active', 'throttle:60,1', $staffPortal, 'agreement', 'authenticator'])->group($operations);

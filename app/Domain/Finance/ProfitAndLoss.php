@@ -302,6 +302,7 @@ final class ProfitAndLoss
             ->leftJoin('fund_expense_heads as h', 'h.id', '=', 'r.expense_head_id')
             ->where('r.status', 'paid')
             ->where('r.program', FundSpending::Program)
+            ->whereNotExists(fn ($reversed) => $reversed->from('fund_spend_reversals as v')->whereColumn('v.disbursement_id', 'r.id'))
             ->whereIn('r.fund_key', self::KeptFunds)
             ->whereRaw('COALESCE(h.report_as, ?) = ?', [ManagementFigures::ReportAsExpense, ManagementFigures::ReportAsExpense])
             ->whereRaw('COALESCE(r.spent_on, r.paid_at::date) BETWEEN ?::date AND ?::date', [$from, $to])

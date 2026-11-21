@@ -57,7 +57,9 @@ class FundSpendReferenceAfterRefusalTest extends TestCase
     public function test_a_reference_is_free_again_after_the_spend_is_refused(): void
     {
         $id = $this->spend(['amount' => '100.00'])->assertOk()->json('data.id');
-        $this->actingAs($this->checker)->postJson('/api/v1/operations/company-funds/spends/'.$id.'/review', ['decision' => 'rejected', 'reason' => 'The amount does not match the bill'])->assertOk();
+        // The reference says the money may have left, so the checker states it was never paid (an explicit correction, not a silent refusal).
+        $this->actingAs($this->checker)->postJson('/api/v1/operations/company-funds/spends/'.$id.'/review', ['decision' => 'rejected', 'reason' => 'The amount does not match the bill'])->assertUnprocessable();
+        $this->postJson('/api/v1/operations/company-funds/spends/'.$id.'/review', ['decision' => 'rejected', 'reason' => 'The amount does not match the bill', 'not_paid' => true])->assertOk();
 
         $this->spend(['amount' => '150.00'])->assertOk();
 

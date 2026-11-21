@@ -111,7 +111,7 @@ class EnforceStaffActions
             return $next($request);
         }
         $prescribing = in_array($controller, ['PrescriptionToolsController', 'PrescriptionLetterheadController', 'PrescriberPublicToolsController', 'ClinicRecordsController'], true)
-            || ($controller === 'PrescriptionController' && in_array($method, ['storePatient', 'updatePatient', 'store', 'dispense'], true));
+            || ($controller === 'PrescriptionController' && in_array($method, ['storePatient', 'updatePatient', 'store', 'dispense', 'voidDispense'], true));
         if ($prescribing && PrescriptionAccess::usesCompanyStock($actor)) {
             // Office accounts switched on for company stock prescribe and dispense; the domain checks again.
             return $next($request);
@@ -220,14 +220,14 @@ class EnforceStaffActions
             },
             'FinanceOperationsController' => match ($method) {
                 'prepare' => [['payroll'], 'create'],
-                'payrollReview', 'payrollPay', 'scheduleReview', 'reserveReview', 'reservePay', 'release', 'reassignHeld', 'recover', 'openingVerify' => [['finance'], 'approve'],
+                'payrollReview', 'payrollPay', 'payrollVoid', 'scheduleReview', 'reserveReview', 'reservePay', 'release', 'reassignHeld', 'recover', 'openingVerify' => [['finance'], 'approve'],
                 'account' => [['finance'], $request->isMethod('PATCH') ? 'edit' : 'create'],
                 'accounts' => [['finance'], 'view'],
                 'contract' => [['finance'], 'edit'], default => [['finance'], 'create'],
             },
             'IdentityReviewController' => [['finance'], 'edit'],
             'FundSpendingController' => match ($method) {
-                'review' => [['finance'], 'approve'],
+                'review', 'reverse' => [['finance'], 'approve'],
                 'storeHead', 'updateHead', 'saveBudget' => [['finance'], 'edit'],
                 default => [['finance'], 'create'],
             },
@@ -313,7 +313,11 @@ class EnforceStaffActions
             // Payroll-only MD and Chairman are owners but must not rewrite SMS or email, including password texts (D11).
             'MessageTemplateController' => [['content'], 'edit'],
             'PartnerFileController' => [['accounts'], 'edit'],
-            'AccountingController' => [['finance'], $method === 'saveApprovalLimit' ? 'edit' : 'create'],
+            'AccountingController' => [['finance'], match ($method) {
+                'saveApprovalLimit' => 'edit',
+                'reviewRemittance' => 'approve',
+                default => 'create',
+            }],
             'PurchasingController' => [['inventory'], in_array($method, ['updateSupplier', 'archiveSupplier', 'restoreSupplier', 'sendOrder', 'cancelOrder'], true) ? 'edit' : 'create'],
             'StockCountController' => [['inventory'], match ($method) {
                 'approve', 'reject' => 'approve',

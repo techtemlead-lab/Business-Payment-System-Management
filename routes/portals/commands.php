@@ -296,6 +296,7 @@ return function (string $portal): void {
     Route::patch('/commands/prescriptions/patients/{patient}', [PrescriptionController::class, 'updatePatient'])->whereNumber('patient')->middleware('throttle:30,1');
     Route::post('/commands/prescriptions', [PrescriptionController::class, 'store'])->middleware('throttle:30,1');
     Route::post('/commands/prescriptions/{prescription}/dispense', [PrescriptionController::class, 'dispense'])->whereNumber('prescription')->middleware('throttle:20,1');
+    Route::post('/commands/prescriptions/{prescription}/void-dispense', [PrescriptionController::class, 'voidDispense'])->whereNumber('prescription')->middleware('throttle:20,1');
     Route::get('/commands/prescriptions/patients/options', [PrescriptionController::class, 'patientOptions'])->middleware('throttle:60,1');
     Route::post('/commands/prescriptions/registration', [PrescriptionController::class, 'registration'])->middleware('throttle:10,1');
     Route::post('/commands/prescriptions/templates', [PrescriptionToolsController::class, 'storeTemplate'])->middleware('throttle:30,1');
