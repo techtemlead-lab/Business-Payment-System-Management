@@ -25,6 +25,7 @@ const pages: Record<string, () => Promise<{default: React.ComponentType<any>}>> 
     'portals/manage/Dashboard': () => import('./pages/portals/manage/Dashboard'),
     'portals/sadmin/Dashboard': () => import('./pages/portals/sadmin/Dashboard'),
     OrderDetail: () => import('./pages/OrderDetail'),
+    OrderCourier: () => import('./pages/OrderCourier'),
     PatientRecord: () => import('./pages/PatientRecord'),
     WithdrawalDetail: () => import('./pages/WithdrawalDetail'),
     ProductEditor: () => import('./pages/ProductEditor'),

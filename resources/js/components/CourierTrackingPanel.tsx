@@ -123,7 +123,8 @@ export default function CourierTrackingPanel({ order, shipments, events, courier
         ?? courierChoices.find(choice => choice.key === order.courier_choice)?.label
         ?? (order.courier_choice ? providerName(String(order.courier_choice)) : translate('courier', 'company_decides'));
 
-    if (!order.courier_choice && courierShipments.length === 0 && changes.length === 0) {
+    // Collected at the office: there is no courier parcel to follow (the order page says so instead).
+    if (order.delivery_method === 'office' || (!order.courier_choice && courierShipments.length === 0 && changes.length === 0)) {
         return null;
     }
 

@@ -33,9 +33,9 @@ export function actionAllowed(url:string,matrix:Matrix|undefined,method='post'):
     // Cancels, returns and refunds: the order page shows these only when the server allows them; the server checks again.
     if(/^\/commands\/orders\/[^/]+\/returns\/start$/.test(path)||/^\/commands\/order-returns\/\d+\/(approve|reject)$/.test(path))return any(['order_review','finance'],'approve');
     if(/^\/commands\/order-returns\/\d+\/confirm$/.test(path))return any(['finance'],'approve');
-    if(/\/dispatch$|\/delivered$/.test(path))return any(['inventory'],'edit');
-    // Courier parcels: change courier, try a refused booking again, mark picked up.
-    if(/^\/commands\/orders\/[^/]+\/(courier|mixed-outcome-decision|shipments\/\d+\/(courier-retry|picked-up|received-back|manual-update))$/.test(path))return any(['inventory','order_review'],'edit');
+    if(/\/dispatch$|\/delivered$|\/office-handover$/.test(path))return any(['inventory'],'edit');
+    // Courier parcels: change courier or courier/office pickup, try a refused booking again, mark picked up.
+    if(/^\/commands\/orders\/[^/]+\/(courier|delivery-method|mixed-outcome-decision|shipments\/\d+\/(courier-retry|picked-up|received-back|manual-update))$/.test(path))return any(['inventory','order_review'],'edit');
     if(path.startsWith('/commands/claims')||path.startsWith('/commands/withdrawals'))return any(['finance'],'approve');
     if(path.startsWith('/commands/commissions'))return any(['finance'],path.endsWith('/rules')?'edit':path.endsWith('/simulate')||path.endsWith('/split')?'view':path.endsWith('/new-head')?'create':'approve');
     if(path==='/commands/policies')return any(['finance'],'create');

@@ -3,6 +3,8 @@
 namespace App\Http\Requests\Backend;
 
 use App\Domain\Orders\CourierOptions;
+use App\Domain\Orders\OfficePickup;
+use App\Models\Order;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -32,7 +34,11 @@ class DispatchOrderRequest extends FormRequest
         $validator->after(function ($validator): void {
             $provider = $this->input('courier_provider');
             $tracking = trim((string) $this->input('tracking', ''));
-            if (($provider === null || CourierOptions::isManual($provider)) && $tracking === '') {
+            // Goods handed over at the office have no tracking number.
+            $order = $this->route('order');
+            $atOffice = OfficePickup::matches((string) $this->input('courier', ''))
+                || ($order instanceof Order && OfficePickup::isPickupOrder($order));
+            if (! $atOffice && ($provider === null || CourierOptions::isManual($provider)) && $tracking === '') {
                 $validator->errors()->add('tracking', __('portal.err_dispatch_tracking'));
             }
         });

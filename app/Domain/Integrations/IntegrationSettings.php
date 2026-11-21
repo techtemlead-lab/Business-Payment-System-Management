@@ -57,7 +57,12 @@ final class IntegrationSettings
         return (bool) ($this->provider($group, $provider)['enabled'] ?? false);
     }
 
-    /** @return list<array{key: string, label: string, manual?: bool, tracking_url?: string}> */
+    /**
+     * The couriers switched on. A booking-system courier also says whether its API details are all
+     * saved (api_ready); a manual courier has none and carries its tracking page instead.
+     *
+     * @return list<array{key: string, label: string, manual?: bool, tracking_url?: string, api_ready?: bool}>
+     */
     public function enabledCourierOptions(): array
     {
         // One settings read for every courier: the order form and order pages call this on each visit.
@@ -68,11 +73,27 @@ final class IntegrationSettings
             if ((bool) ($row['enabled'] ?? $provider['defaults']['enabled'] ?? false)) {
                 $options[] = ['key' => $key, 'label' => $provider['label'], ...(($provider['manual'] ?? false)
                     ? ['manual' => true, 'tracking_url' => (string) ($row['tracking_url'] ?? $provider['defaults']['tracking_url'] ?? '')]
-                    : [])];
+                    : ['api_ready' => $this->hasCourierApiDetails($key, $row)])];
             }
         }
 
         return $options;
+    }
+
+    /** @param  array<string, mixed>  $row  the courier's saved settings, secrets still sealed */
+    private function hasCourierApiDetails(string $courier, array $row): bool
+    {
+        $needed = IntegrationCatalog::CourierApiRequiredFields[$courier] ?? null;
+        if ($needed === null) {
+            return false;
+        }
+        foreach ($needed as $field) {
+            if (blank($row[$field] ?? null)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /** @return array{mode: ?string, version: int, label: string, description: string} */

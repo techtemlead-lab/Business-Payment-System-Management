@@ -6,6 +6,7 @@ use App\Http\Controllers\DataImportController;
 use App\Http\Controllers\IntegrationSettingsController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\OperationsController;
+use App\Http\Controllers\OrderCourierController;
 use App\Http\Controllers\PartnerFileController;
 use App\Http\Controllers\PartnerStatementController;
 use App\Http\Controllers\PayoutReceiptController;
@@ -54,6 +55,7 @@ Route::middleware(['auth', 'active', 'portal:manage', 'authenticator'])->group(f
     Route::get('/orders/{order}/invoice', [DashboardController::class, 'orderInvoice'])->middleware('throttle:20,1');
     Route::get('/orders/{order}/invoice/print', [DashboardController::class, 'orderInvoicePrint'])->middleware('throttle:20,1');
     Route::get('/orders/{order}/shipping-label', [ShippingLabelController::class, 'print'])->middleware('throttle:30,1');
+    Route::get('/orders/{order}/courier', [OrderCourierController::class, 'show']);
     Route::get('/withdrawals/{id}/receipt', [WithdrawalController::class, 'receipt'])->whereUuid('id');
     Route::get('/payment-receipts/{receipt}/print', [PayoutReceiptController::class, 'print'])->whereNumber('receipt')->middleware('throttle:30,1');
     Route::get('/withdrawals/{id}', [WithdrawalController::class, 'show'])->whereUuid('id');

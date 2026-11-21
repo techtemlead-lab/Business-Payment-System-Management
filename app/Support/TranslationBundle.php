@@ -38,6 +38,7 @@ final class TranslationBundle
         'commission_page' => 'commission_page',
         'special_rates' => 'special_rates',
         'order_money' => 'order_money',
+        'order_delivery' => 'order_delivery',
     ];
 
     /** @var array<string, string> */

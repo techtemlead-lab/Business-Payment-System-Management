@@ -93,12 +93,16 @@ class OrderService
             if (! in_array($channel, [self::OfficeChannel, AccountOrderPayment::Channel], true) && empty($data['use_account'])) {
                 $this->assertPaidInFullWithOrder($data, $total);
             }
+            // Collected at the office: no courier is chosen or booked for it.
+            $pickup = ($data['delivery_method'] ?? null) === OfficePickup::MethodOffice;
             $order = Order::create(['number' => 'MN-'.now((string) config('madina.business_timezone'))->format('ymd').'-'.Str::upper(Str::random(8)),
                 'user_id' => $user->id, 'submitted_by' => $submittedBy?->id, 'total' => Money::decimal($total), 'idempotency_key' => $data['idempotency_key'],
-                'payload_hash' => $hash, 'note' => $data['note'] ?? null, 'courier_choice' => CourierOptions::stored($data['courier_choice'] ?? null)]);
+                'payload_hash' => $hash, 'note' => $data['note'] ?? null,
+                'delivery_method' => $pickup ? OfficePickup::MethodOffice : OfficePickup::MethodCourier,
+                'courier_choice' => $pickup ? null : CourierOptions::stored($data['courier_choice'] ?? null)]);
             $order->lines()->createMany($lines);
             $this->commissions->capture($order, $user);
-            $this->event($order, $submittedBy ?? $user, 'order.submitted');
+            $this->event($order, $submittedBy ?? $user, 'order.submitted', ['delivery_method' => $order->delivery_method]);
             $accountPart = 0;
             $paidWholly = false;
             if (! empty($data['use_account']) && $channel !== AccountOrderPayment::Channel) {
@@ -238,7 +242,12 @@ class OrderService
         }, 3);
     }
 
-    public function decision(User $actor, Order $order, string $status, string $reason, array $replacements = []): void
+    /**
+     * Approves, holds or rejects a submitted order. An approved order whose dealer picked a courier
+     * is booked at once unless $bookNow is false. The office screens pass false: staff then confirm
+     * the courier on the courier page, and nothing is sent until they press Next.
+     */
+    public function decision(User $actor, Order $order, string $status, string $reason, array $replacements = [], bool $bookNow = true): void
     {
         abort_unless($actor->allows('order_review'), 403);
         $this->assertNotOwnOrder($actor, $order);
@@ -246,7 +255,7 @@ class OrderService
         if (! in_array($status, ['approved', 'held', 'rejected'], true)) {
             throw ValidationException::withMessages(['status' => __('portal.err_order_status_choice')]);
         }
-        DB::transaction(function () use ($actor, $order, $status, $reason, $replacements): void {
+        DB::transaction(function () use ($actor, $order, $status, $reason, $replacements, $bookNow): void {
             CommissionWallet::lock();
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             if (! in_array($locked->status, ['submitted', 'held'], true)) {
@@ -298,7 +307,12 @@ class OrderService
                 'number' => $locked->number,
                 'reason' => ReasonFields::shown($reason, SmsText::Locale),
             ]);
-            if ($status === 'approved') {
+            if ($status === 'approved' && OfficePickup::isPickupOrder($locked)) {
+                // Collected at the office: nothing is booked; the partner is told to come for the goods.
+                $this->partnerNotice($locked->user_id, 'order_delivery.notice_approved_pickup_title', 'order_delivery.notice_approved_pickup_body', [
+                    'number' => $locked->number,
+                ]);
+            } elseif ($status === 'approved' && $bookNow) {
                 // The dealer picked a courier: the parcel is booked now, without waiting for manual dispatch.
                 $this->autoShip($actor, $locked);
             }
@@ -389,6 +403,10 @@ class OrderService
                     'number' => $order->number,
                     'outcome' => SmsText::make($approve ? 'portal.payment_outcome_verified' : 'portal.payment_outcome_rejected'),
                 ]);
+                if (! $approve) {
+                    // A wallet-part order whose other payment was turned down: say what is due and by when.
+                    app(WalletPartRelease::class)->remindAfterRejection($order);
+                }
             }, 3);
         } catch (QueryException $exception) {
             if ($exception->getCode() === '23505') {
@@ -398,12 +416,18 @@ class OrderService
         }
     }
 
-    public function dispatch(User $actor, Order $order, array $data): void
+    /**
+     * Records goods leaving the stock for an approved order: a courier parcel, or goods handed over at
+     * the office. An order the partner collects at the office is always saved as an office hand-over,
+     * whatever courier details were sent. `$announce` false leaves telling the partner to the caller
+     * (the one-step office hand-over tells them once, when the order is delivered).
+     */
+    public function dispatch(User $actor, Order $order, array $data, bool $announce = true): void
     {
         $this->branches->assertCompanyHandler($actor);
         abort_unless($actor->allows('inventory'), 403);
         $this->assertNotOwnOrder($actor, $order);
-        DB::transaction(function () use ($actor, $order, $data): void {
+        DB::transaction(function () use ($actor, $order, $data, $announce): void {
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             $hash = $this->hash($data);
             $existing = DB::table('shipments')->where('order_id', $locked->id)->where('idempotency_key', $data['idempotency_key'])->first();
@@ -424,6 +448,11 @@ class OrderService
             $courier = (string) $data['courier'];
             $tracking = trim((string) ($data['tracking'] ?? ''));
             $provider = $data['courier_provider'] ?? null;
+            if (OfficePickup::isPickupOrder($locked)) {
+                // Collected at the office: no courier is booked and no tracking number is kept.
+                [$courier, $tracking, $provider] = [OfficePickup::Courier, '', null];
+                $data = [...$data, 'courier_contact' => null, 'eta' => null];
+            }
             $gatewayMeta = null;
             // The courier is booked only after this transaction commits (BookShipmentCourier),
             // so a rolled-back dispatch never leaves a parcel booked with the courier.
@@ -470,8 +499,16 @@ class OrderService
                 'branch_id' => $fulfillmentBranch->id,
                 'branch_code' => $fulfillmentBranch->code,
             ]);
-            if ($bookCourier) {
+            if ($bookCourier || ! $announce) {
                 // The partner hears about it once the courier has given a tracking number.
+                return;
+            }
+            if (OfficePickup::matches($courier)) {
+                // No courier and no tracking number to tell: only that the goods were handed over.
+                $this->partnerNotice($locked->user_id, 'order_delivery.notice_handed_title', 'order_delivery.notice_handed_body', [
+                    'number' => $locked->number,
+                ], 'order.dispatched');
+
                 return;
             }
             $this->partnerNotice($locked->user_id, 'portal.notice_shipment_dispatched_title', 'portal.notice_shipment_dispatched_body', [
@@ -595,9 +632,10 @@ class OrderService
      * Staff or the owner switch the order to another courier: before the booking, or after
      * the courier refused it (closed, not serving that area, ...). The optional note is
      * shown to the dealer. A waiting or failed booking is then sent to the new courier; an
-     * approved order that was not booked yet is booked now.
+     * approved order that was not booked yet is booked now, unless $bookNow is false (the
+     * office screens: the courier page sends it when staff press Next).
      */
-    public function changeCourier(User $actor, Order $order, string $provider, ?string $note): void
+    public function changeCourier(User $actor, Order $order, string $provider, ?string $note, bool $bookNow = true): void
     {
         abort_unless($actor->allows('inventory') || $actor->allows('order_review'), 403);
         $this->assertNotOwnOrder($actor, $order);
@@ -607,8 +645,11 @@ class OrderService
             throw ValidationException::withMessages(['courier' => __('courier.err_courier_not_enabled')]);
         }
         $note = $note !== null && trim($note) !== '' ? Str::limit(trim($note), 500, '') : null;
-        DB::transaction(function () use ($actor, $order, $provider, $note): void {
+        DB::transaction(function () use ($actor, $order, $provider, $note, $bookNow): void {
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            if (OfficePickup::isPickupOrder($locked)) {
+                throw ValidationException::withMessages(['courier' => __('order_delivery.err_pickup_no_courier')]);
+            }
             $shipment = DB::table('shipments')->where('order_id', $locked->id)->whereNotNull('courier_provider')
                 ->orderByDesc('id')->lockForUpdate()->first();
             $from = $locked->courier_choice;
@@ -640,25 +681,89 @@ class OrderService
                     DB::afterCommit(fn () => BookShipmentCourier::dispatch((int) $shipment->id));
                 }
             }
-            $this->event($locked, $actor, 'order.courier_changed', [
-                'from' => $from,
-                'to' => $provider,
-                'from_label' => CourierOptions::label($from),
-                'to_label' => CourierOptions::label($provider),
-                'note' => $note,
-                'shipment_id' => $shipment?->id,
-            ]);
-            $partner = User::find($locked->user_id);
-            $locale = $partner?->preferredLocale() ?? app()->getLocale();
-            $replace = ['number' => $locked->number, 'from' => CourierOptions::label($from, $locale), 'to' => CourierOptions::label($provider, $locale), 'note' => (string) $note];
-            Audit::notice(
-                $locked->user_id,
-                __('courier.notice_changed_title', $replace, $locale),
-                __($note !== null ? 'courier.notice_changed_body_with_note' : 'courier.notice_changed_body', $replace, $locale),
-            );
-            if (! $shipment && $locked->status === 'approved') {
+            $this->announceCourierChange($actor, $locked, $from, $provider, $note, $shipment?->id);
+            if ($bookNow && ! $shipment && $locked->status === 'approved') {
                 $this->autoShip($actor, $locked);
             }
+        }, 3);
+    }
+
+    /**
+     * Writes a courier change on the order's history and tells the dealer which courier now has the parcel.
+     */
+    private function announceCourierChange(User $actor, Order $locked, ?string $from, string $provider, ?string $note, ?int $shipmentId): void
+    {
+        $this->event($locked, $actor, 'order.courier_changed', [
+            'from' => $from,
+            'to' => $provider,
+            'from_label' => CourierOptions::label($from),
+            'to_label' => CourierOptions::label($provider),
+            'note' => $note,
+            'shipment_id' => $shipmentId,
+        ]);
+        $partner = User::find($locked->user_id);
+        $locale = $partner?->preferredLocale() ?? app()->getLocale();
+        $replace = ['number' => $locked->number, 'from' => CourierOptions::label($from, $locale), 'to' => CourierOptions::label($provider, $locale), 'note' => (string) $note];
+        Audit::notice(
+            $locked->user_id,
+            __('courier.notice_changed_title', $replace, $locale),
+            __($note !== null ? 'courier.notice_changed_body_with_note' : 'courier.notice_changed_body', $replace, $locale),
+        );
+    }
+
+    /**
+     * Sends an approved order with the courier staff confirmed on the courier page: every item still
+     * to go, from the chosen branch. When the courier differs from the dealer's pick, the change is
+     * recorded and the dealer is told, in the same step. A courier with a booking system is then
+     * booked in the background and its tracking number fills in by itself; a manual courier needs
+     * the tracking number typed here. Nothing is saved if the stock or the courier refuses.
+     *
+     * @param  array{courier_provider: string, tracking?: ?string, branch_id?: ?int, idempotency_key: string, eta?: ?string, courier_contact?: ?string}  $data
+     */
+    public function shipWithCourier(User $actor, Order $order, array $data, ?string $note): void
+    {
+        abort_unless($actor->allows('inventory'), 403);
+        $this->assertNotOwnOrder($actor, $order);
+        abort_unless($this->branches->mayOpenOrder($actor, $order), 403);
+        $provider = (string) $data['courier_provider'];
+        if (! app(CourierOptions::class)->isEnabled($provider)) {
+            throw ValidationException::withMessages(['courier_provider' => __('courier.err_courier_not_enabled')]);
+        }
+        $note = $note !== null && trim($note) !== '' ? Str::limit(trim($note), 500, '') : null;
+        DB::transaction(function () use ($actor, $order, $data, $provider, $note): void {
+            $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            // The same key twice is a double press of Next: the parcel is already saved, so do nothing more.
+            if (DB::table('shipments')->where('order_id', $locked->id)->where('idempotency_key', $data['idempotency_key'])->exists()) {
+                return;
+            }
+            if (! in_array($locked->status, ['approved', 'partially_dispatched'], true)) {
+                throw ValidationException::withMessages(['courier_provider' => __('portal.err_shipment_approve_first')]);
+            }
+            if (OfficePickup::isPickupOrder($locked)) {
+                throw ValidationException::withMessages(['courier_provider' => __('order_delivery.err_pickup_no_courier')]);
+            }
+            $items = $locked->lines()->whereRaw(OrderLines::unsentSql())->orderBy('id')->get()
+                ->map(fn (OrderLine $line): array => ['line_id' => (int) $line->getKey(),
+                    'quantity' => (int) $line->getAttribute('quantity') - (int) $line->getAttribute('dispatched') - (int) $line->getAttribute('closed')])
+                ->all();
+            if ($items === []) {
+                throw ValidationException::withMessages(['courier_provider' => __('courier.err_nothing_to_send')]);
+            }
+            if ($locked->courier_choice !== $provider) {
+                $from = $locked->courier_choice;
+                $locked->update(['courier_choice' => $provider]);
+                $this->announceCourierChange($actor, $locked, $from, $provider, $note, null);
+            }
+            $this->dispatch($actor, $locked, [
+                'courier' => CourierOptions::label($provider),
+                'tracking' => $data['tracking'] ?? '',
+                'courier_provider' => $provider,
+                'courier_contact' => $data['courier_contact'] ?? null,
+                'eta' => $data['eta'] ?? null,
+                'branch_id' => $data['branch_id'] ?? null,
+                'idempotency_key' => $data['idempotency_key'],
+                'items' => $items,
+            ]);
         }, 3);
     }
 
@@ -878,7 +983,9 @@ class OrderService
     /**
      * "Account balance + another way": the usable balance pays first and a second method pays
      * the rest. The balance is read again here, under the money lock, so what the form showed
-     * never decides anything. When the balance covers the whole order it pays it all.
+     * never decides anything. When the balance covers the whole order it pays it all, unless the
+     * buyer set a smaller wallet part (`account_amount`): then only that is taken and the rest must
+     * come another way. A wallet part above the usable balance is refused, never cut down quietly.
      *
      * @param  array<string, mixed>  $data
      * @return array{0: int, 1: bool} Paisa taken from the account, and whether that settled the whole order.
@@ -888,6 +995,21 @@ class OrderService
         $accounts = app(AccountOrderPayment::class);
         CommissionWallet::lock();
         $part = $accounts->usableFor($buyer, $totalCents);
+        $wanted = isset($data['account_amount']) && (string) $data['account_amount'] !== '' ? Money::cents((string) $data['account_amount']) : null;
+        if ($wanted !== null) {
+            if ($wanted <= 0 || $wanted > $totalCents) {
+                throw ValidationException::withMessages(['account_amount' => __('order_payment.err_wallet_part_range', [
+                    'total' => LocalDigits::text(Money::grouped(Money::decimal($totalCents))),
+                ])]);
+            }
+            if ($wanted > $part) {
+                throw ValidationException::withMessages(['account_amount' => __('order_payment.err_wallet_part_over', [
+                    'balance' => LocalDigits::text(Money::grouped(Money::decimal($part))),
+                    'part' => LocalDigits::text(Money::grouped(Money::decimal($wanted))),
+                ])]);
+            }
+            $part = $wanted;
+        }
         if ($part >= $totalCents) {
             $accounts->pay($order, $buyer, $submittedBy);
 

@@ -32,6 +32,7 @@ use App\Domain\Notifications\AccountCreatedSms;
 use App\Domain\Notifications\PartnerEventEmail;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
+use App\Domain\Orders\OfficePickup;
 use App\Domain\Orders\OrderRefund;
 use App\Domain\Orders\OrderService;
 use App\Domain\Payouts\WithdrawalHolds;
@@ -95,7 +96,15 @@ class CommandController extends Controller
     public function decision(DecideOrderRequest $r, Order $order, OrderService $s): RedirectResponse
     {
         $d = $r->validated();
-        $s->decision($r->user(), $order, $d['status'], ReasonFields::text($d['reason'] ?? null), $r->replacements());
+        // Nothing is sent on approval itself: whoever can send goes straight on to the courier page.
+        $s->decision($r->user(), $order, $d['status'], ReasonFields::text($d['reason'] ?? null), $r->replacements(), bookNow: false);
+        // Collected at the office: no courier page; the goods are handed over from the order page.
+        if ($d['status'] === 'approved' && OfficePickup::isPickupOrder($order->refresh())) {
+            return redirect('/orders/'.$order->id)->with('success', __('order_delivery.flash_approved_pickup'));
+        }
+        if ($d['status'] === 'approved' && $r->user()->allows('inventory')) {
+            return redirect('/orders/'.$order->id.'/courier')->with('success', __('courier.flash_approved_pick_courier'));
+        }
 
         return back(fallback: '/orders/'.$order->id)->with('success', __('portal.flash_order_decision'));
     }

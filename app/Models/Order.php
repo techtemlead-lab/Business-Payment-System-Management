@@ -16,7 +16,7 @@ class Order extends Model
 
     protected $guarded = ['id'];
 
-    protected $attributes = ['paid' => '0.00', 'due_credit' => '0.00'];
+    protected $attributes = ['paid' => '0.00', 'due_credit' => '0.00', 'delivery_method' => 'courier'];
 
     protected $hidden = ['idempotency_key', 'payload_hash', 'commission_policy_snapshot'];
 

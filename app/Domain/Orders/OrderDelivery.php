@@ -7,12 +7,13 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * How an order's goods reached the partner, as the printed invoice says it: taken from the office,
- * sent by courier (courier name and tracking number), or not decided yet.
+ * sent by courier (courier name and tracking number), to be collected at the office (an office
+ * pickup order not handed over yet), or not decided yet.
  */
 final class OrderDelivery
 {
     /**
-     * @return array{kind: 'office'|'courier'|'none', couriers: list<array{name: string, tracking: string}>}
+     * @return array{kind: 'office'|'office_pending'|'courier'|'none', couriers: list<array{name: string, tracking: string}>}
      */
     public function for(Order $order): array
     {
@@ -37,7 +38,12 @@ final class OrderDelivery
         }
 
         return [
-            'kind' => $couriers !== [] ? 'courier' : ($pickups > 0 ? 'office' : 'none'),
+            'kind' => match (true) {
+                $couriers !== [] => 'courier',
+                $pickups > 0 => 'office',
+                OfficePickup::isPickupOrder($order) => 'office_pending',
+                default => 'none',
+            },
             'couriers' => $couriers,
         ];
     }
