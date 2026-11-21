@@ -15,7 +15,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * The prizes a partner has already earned but that are not in the wallet yet: the one-time rank prize (MO, AM, SM, ME)
+ * The prizes a partner has already earned but that are not in the wallet yet: the one-time rank prize (MO, AM, SM, ED)
  * of a rank the partner holds, and a bike or car prize whose sales target is met. They are shown as waiting with a
  * plain reason, never as received. It only reads rows that already exist and writes nothing: amounts, rules and the
  * moment of posting stay exactly as the engine has them.

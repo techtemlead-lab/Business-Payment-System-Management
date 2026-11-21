@@ -62,6 +62,7 @@ use App\Support\DashboardManagement;
 use App\Support\LocalDigits;
 use App\Support\Money;
 use App\Support\PhoneIdentity;
+use App\Support\RankLabel;
 use App\Support\ReasonFields;
 use App\Support\SiteCustomization;
 use App\Support\StoredPhrase;
@@ -1449,7 +1450,7 @@ class CommandController extends Controller
         return back()->with('success', __('portal.flash_rank_incentive_paid', [
             'amount' => $result['amount'],
             'name' => $user->name,
-            'rank' => strtoupper($result['rank']),
+            'rank' => RankLabel::of($result['rank']),
         ]));
     }
 

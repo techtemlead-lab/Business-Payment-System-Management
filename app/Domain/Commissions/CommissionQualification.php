@@ -13,6 +13,7 @@ use App\Models\RewardMilestoneProgress;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
+use App\Support\RankLabel;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -424,7 +425,7 @@ final class CommissionQualification
         $locale = $partner?->preferredLocale() ?? app()->getLocale();
         $rankLabel = __('portal.net_rank_'.$code, [], $locale);
         if ($rankLabel === 'portal.net_rank_'.$code) {
-            $rankLabel = strtoupper($code);
+            $rankLabel = RankLabel::of($code);
         }
         Audit::notice(
             $rank->user_id,
@@ -440,7 +441,7 @@ final class CommissionQualification
             app(PartnerEventSms::class)->send(
                 $partner,
                 'rank.achieved',
-                SmsText::make('sms.rank_achieved', ['rank' => SmsText::label('portal.net_rank_'.$code, strtoupper($code))]),
+                SmsText::make('sms.rank_achieved', ['rank' => SmsText::label('portal.net_rank_'.$code, RankLabel::of($code))]),
             );
         });
     }

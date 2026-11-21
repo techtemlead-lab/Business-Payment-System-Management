@@ -19,6 +19,7 @@ use App\Models\User;
 use App\Support\DashboardManagement;
 use App\Support\Money;
 use App\Support\PortalHost;
+use App\Support\RankLabel;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -562,10 +563,10 @@ final class PartnerDashboardHome
                 // The same team count rank promotion uses.
                 $counts = $this->qualification->teamRankCounts([(int) $user->id], $depth)[(int) $user->id] ?? [];
                 $count = CommissionQualification::leadersAtOrAbove($counts, $requiredRank);
-                $requiredLabel = strtoupper($requiredRank);
+                $requiredLabel = RankLabel::of($requiredRank);
                 $targets[] = [
                     'key' => 'rank_reward',
-                    'label' => __('portal.target_named_rank_reward', ['rank' => strtoupper($code)]),
+                    'label' => __('portal.target_named_rank_reward', ['rank' => RankLabel::of($code)]),
                     'current' => (string) $count,
                     'target' => (string) $needed,
                     'remaining' => (string) max(0, $needed - $count),
@@ -580,8 +581,8 @@ final class PartnerDashboardHome
                 $targets[] = [
                     'key' => 'rank_reward',
                     'label' => __('portal.target_rank_reward'),
-                    'current' => 'ME',
-                    'target' => 'ME',
+                    'current' => RankLabel::of('me'),
+                    'target' => RankLabel::of('me'),
                     'remaining' => '0',
                     'percent' => 100.0,
                     'hint' => __('portal.target_highest_rank_hint'),

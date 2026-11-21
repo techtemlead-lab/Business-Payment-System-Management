@@ -10,6 +10,7 @@ use App\Support\LocalDigits;
 use App\Support\Money;
 use App\Support\PdfFonts;
 use App\Support\PdfPaper;
+use App\Support\RankLabel;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -98,7 +99,7 @@ final class PartnerCertificates
         $rankKey = 'portal.net_rank_'.$rank->current_rank;
         $rankName = __($rankKey, [], $locale);
         if ($rankName === $rankKey) {
-            $rankName = Str::upper((string) $rank->current_rank);
+            $rankName = RankLabel::of((string) $rank->current_rank);
         }
         $achieved = $rank->achieved_at ? $this->localDate(CarbonImmutable::parse($rank->achieved_at), $locale) : '—';
         $body = '<div class="award"><p class="kicker">'.e($t('cert_rank_kicker')).'</p>'
@@ -108,7 +109,7 @@ final class PartnerCertificates
             .'<p class="lead">'.e($t('cert_rank_since', ['date' => $achieved])).'</p>'
             .'<p class="note">'.e($t('cert_rank_note')).'</p></div>';
 
-        return $this->render($user, $body, $t('cert_rank_doc_title'), 'Madina-rank-certificate-'.$rank->current_rank, PdfPaper::Landscape, $locale);
+        return $this->render($user, $body, $t('cert_rank_doc_title'), 'Madina-rank-certificate-'.strtolower(RankLabel::of((string) $rank->current_rank)), PdfPaper::Landscape, $locale);
     }
 
     /** Completion certificate for a training item whose quiz the partner passed. No money figures. */
