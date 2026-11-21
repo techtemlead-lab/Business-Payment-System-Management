@@ -149,4 +149,8 @@ return [
     'notice_received_body' => ':name says the parcel for order :number has arrived. Please confirm the delivery.',
     'err_received_nothing' => 'This order has no parcel on the way.',
     'open_waiting_owner' => 'This refund is at or above the owner\'s limit, so the owner must confirm it.',
+    'err_refund_whole' => 'Give back the whole ৳:amount. Partners cannot buy on credit, so all money paid for goods they do not keep goes back.',
+    'refund_amount_hint_exact' => 'Type ৳:amount. This is all the money paid for goods the partner does not keep.',
+    'refund_amount_hint_none' => 'No money to give back. Leave it empty.',
+    'err_payment_waiting' => 'A bank or mobile payment for this order is still waiting to be checked. The money may have arrived. Confirm it or turn it down on the Payments page first.',
 ];

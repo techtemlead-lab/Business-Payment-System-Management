@@ -80,7 +80,7 @@ class OrderRefundTest extends TestCase
 
         $this->actingAs($finance)->onPortal('manage')->get('/orders/'.$order->id)->assertOk()
             ->assertInertia(fn (Assert $page) => $page->where('canRefund', true)->where('refund', null));
-        $this->actingAs($finance)->onPortal('manage')->post('/commands/orders/'.$order->id.'/refund', $this->payload('40.00', 'Dealer asked to change the order'))
+        $this->actingAs($finance)->onPortal('manage')->post('/commands/orders/'.$order->id.'/refund', $this->payload('100.00', 'Dealer asked to change the order'))
             ->assertRedirect()->assertSessionHasNoErrors();
         $this->assertDatabaseCount('order_refunds', 0);
         $request = (int) DB::table('order_return_requests')->where('order_id', $order->id)->value('id');
@@ -88,7 +88,7 @@ class OrderRefundTest extends TestCase
         $this->actingAs($second)->onPortal('manage')->post('/commands/order-returns/'.$request.'/confirm', ['reason' => 'Checked the bank slip', 'confirmed' => '1'])
             ->assertSessionHasNoErrors();
 
-        $this->assertDatabaseHas('order_refunds', ['order_id' => $order->id, 'amount' => '40.00', 'refunded_by' => $finance->id, 'approved_by' => $second->id]);
+        $this->assertDatabaseHas('order_refunds', ['order_id' => $order->id, 'amount' => '100.00', 'refunded_by' => $finance->id, 'approved_by' => $second->id]);
     }
 
     public function test_only_paid_orders_that_were_not_sent_or_delivered_can_be_refunded(): void
@@ -177,7 +177,7 @@ class OrderRefundTest extends TestCase
     {
         $order = $this->paidOrder();
         $finance = User::factory()->staff('finance')->create(['name' => 'Finance Officer']);
-        $this->actingAs($finance)->onPortal('manage')->post('/commands/orders/'.$order->id.'/refund', $this->payload('75.50', 'Duplicate order'))->assertSessionHasNoErrors();
+        $this->actingAs($finance)->onPortal('manage')->post('/commands/orders/'.$order->id.'/refund', $this->payload('100.00', 'Duplicate order'))->assertSessionHasNoErrors();
         $request = (int) DB::table('order_return_requests')->where('order_id', $order->id)->value('id');
         $this->actingAs(User::factory()->staff('finance')->create())->onPortal('manage')->post('/commands/order-returns/'.$request.'/confirm', ['reason' => 'Second check', 'confirmed' => '1'])->assertSessionHasNoErrors();
         $today = now('Asia/Dhaka')->toDateString();

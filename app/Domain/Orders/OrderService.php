@@ -266,6 +266,10 @@ class OrderService
             if ($status === 'rejected' && $paidSoFar > 0 && ! $returnsToAccount) {
                 throw ValidationException::withMessages(['status' => __('portal.err_order_paid_needs_refund')]);
             }
+            // A bank or mobile payment nobody has checked may really have arrived: decide it first.
+            if ($status === 'rejected' && OrderReturns::hasPaymentWaiting($locked)) {
+                throw ValidationException::withMessages(['status' => __('orders_stock.err_payment_waiting')]);
+            }
             if ($status === 'approved') {
                 $this->commissions->capture($locked, $locked->user, 'approval', $replacements, $actor);
             } elseif ($replacements !== []) {
