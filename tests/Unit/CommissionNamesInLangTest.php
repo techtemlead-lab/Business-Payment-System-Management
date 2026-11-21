@@ -71,6 +71,20 @@ class CommissionNamesInLangTest extends TestCase
     ];
 
     /**
+     * Old wording for the team levels and the team income (2026-11-21): "D2D", "generation" / "প্রজন্ম" and "Team share".
+     * Patterns, not plain words, so a code such as d2d_gen2 or fund_from_generation sent as a value is not a name.
+     *
+     * @var list<string>
+     */
+    public const OldTeamWordPatterns = [
+        '/(?<![\p{L}\p{N}_])d2d(?![\p{L}\p{N}_])/iu',
+        '/(?<![\p{L}\p{N}_])generations?(?![\p{L}\p{N}_])/iu',
+        '/প্রজন্ম/u',
+        '/টিম শেয়ার/u',
+        '/(?<![\p{L}\p{N}_])team share(?![\p{L}\p{N}_])/iu',
+    ];
+
+    /**
      * Deliberate exceptions: "group.key" => why the old wording is correct there.
      *
      * @var array<string, string>
@@ -83,6 +97,7 @@ class CommissionNamesInLangTest extends TestCase
         'portal.dash_card_network_desc' => 'the people referred directly',
         // Search words people may still type, and the generic word in the manual's formula line.
         'findability.kw_my_income' => 'search keywords: people may still type the old words',
+        'findability.kw_network' => 'search keywords: people may still type "generation" (জেনারেশন)',
         'cr_partner.card_direct' => 'how many people the partner referred directly',
         'manual.network_genealogy_t2' => 'the direct referrer (a person), whose commission is named Staff commission',
     ];
@@ -107,6 +122,11 @@ class CommissionNamesInLangTest extends TestCase
                     foreach (self::OldNames as $old) {
                         if (mb_stripos($clean, $old) !== false) {
                             $found[] = $locale.'/'.$group.'.'.$key.'  ['.$old.']';
+                        }
+                    }
+                    foreach (self::OldTeamWordPatterns as $pattern) {
+                        if (preg_match($pattern, $clean) === 1) {
+                            $found[] = $locale.'/'.$group.'.'.$key.'  ['.$pattern.']';
                         }
                     }
                 }
