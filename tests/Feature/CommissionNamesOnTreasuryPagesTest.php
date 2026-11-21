@@ -49,16 +49,60 @@ class CommissionNamesOnTreasuryPagesTest extends TestCase
             $this->actingAs($owner)->withSession(['locale' => $locale])->onPortal('sadmin')->get($path)->assertOk()
                 ->assertInertia(function (Assert $page) use ($locale, &$found): void {
                     foreach ($this->texts($page->toArray()['props']) as $where => $text) {
-                        foreach (CommissionNamesInLangTest::OldNames as $old) {
-                            if (mb_stripos($this->readable($text), $old) !== false) {
-                                $found[] = $locale.' '.$where.' ['.$old.'] '.mb_substr($text, 0, 80);
-                            }
+                        foreach ($this->oldNamesIn($text) as $old) {
+                            $found[] = $locale.' '.$where.' ['.$old.'] '.mb_substr($text, 0, 80);
                         }
                     }
                 });
         }
 
         $this->assertSame([], $found, "Old commission or fund names on $path:\n".implode("\n", $found));
+    }
+
+    /** @return array<string, array{string}> */
+    public static function partnerPages(): array
+    {
+        return ['my money' => ['/my-money'], 'my income' => ['/my-income']];
+    }
+
+    /** The partner money pages read the same names: income heads, tabs, filter options and the step columns. */
+    #[DataProvider('partnerPages')]
+    public function test_no_old_commission_name_is_sent_to_the_partner_money_pages(string $path): void
+    {
+        $dealer = User::factory()->dealer()->create();
+        $found = [];
+
+        foreach (['bn', 'en'] as $locale) {
+            $this->actingAs($dealer)->withSession(['locale' => $locale])->onPortal('dealer')->get($path)->assertOk()
+                ->assertInertia(function (Assert $page) use ($locale, &$found): void {
+                    foreach ($this->texts($page->toArray()['props']) as $where => $text) {
+                        foreach ($this->oldNamesIn($text) as $old) {
+                            $found[] = $locale.' '.$where.' ['.$old.'] '.mb_substr($text, 0, 80);
+                        }
+                    }
+                });
+        }
+
+        $this->assertSame([], $found, "Old commission names on $path:\n".implode("\n", $found));
+    }
+
+    /** @return list<string> The old names and old team wording found in a text. */
+    private function oldNamesIn(string $text): array
+    {
+        $readable = $this->readable($text);
+        $found = [];
+        foreach (CommissionNamesInLangTest::OldNames as $old) {
+            if (mb_stripos($readable, $old) !== false) {
+                $found[] = $old;
+            }
+        }
+        foreach (CommissionNamesInLangTest::OldTeamWordPatterns as $pattern) {
+            if (preg_match($pattern, $readable) === 1) {
+                $found[] = $pattern;
+            }
+        }
+
+        return $found;
     }
 
     /** Text with the names that are allowed to contain an old word taken out. */

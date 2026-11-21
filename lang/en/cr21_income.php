@@ -6,8 +6,8 @@ return [
 
     'head_own' => 'Doctor Honorarium',
     'head_referral' => 'Staff commission',
-    'head_d2d_gen2' => 'D2D income · 2nd generation',
-    'head_d2d_gen3' => 'D2D income · 3rd generation',
+    'head_d2d_gen2' => 'Team income · 2nd step',
+    'head_d2d_gen3' => 'Team income · 3rd step',
     'head_area_division' => 'Area dealer income · Division',
     'head_area_district' => 'Area dealer income · District',
     'head_area_upazila' => 'Area dealer income · Upazila',
@@ -28,8 +28,8 @@ return [
 
     'hint_own' => 'What you earn when you buy products yourself',
     'hint_referral' => 'From purchases of the members you brought in directly',
-    'hint_d2d_gen2' => 'From purchases of 2nd generation members of your team',
-    'hint_d2d_gen3' => 'From purchases of 3rd generation members of your team',
+    'hint_d2d_gen2' => 'From purchases of 2nd step members of your team',
+    'hint_d2d_gen3' => 'From purchases of 3rd step members of your team',
     'hint_area_division' => 'As division dealer, from sales in the division',
     'hint_area_district' => 'As district dealer, from sales in the district',
     'hint_area_upazila' => 'As upazila dealer, from sales in the upazila',

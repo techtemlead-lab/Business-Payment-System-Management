@@ -33,8 +33,8 @@ return [
 
     'type_own_dealer_cashback' => 'Doctor Honorarium',
     'type_direct_referral' => 'Staff commission',
-    'type_d2d_gen2' => 'D2D income · 2nd generation',
-    'type_d2d_gen3' => 'D2D income · 3rd generation',
+    'type_d2d_gen2' => 'Team income · 2nd step',
+    'type_d2d_gen3' => 'Team income · 3rd step',
     'type_area_division' => 'Area dealer income · Division',
     'type_area_district' => 'Area dealer income · District',
     'type_area_upazila' => 'Area dealer income · Upazila',

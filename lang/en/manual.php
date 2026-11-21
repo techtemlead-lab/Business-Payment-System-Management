@@ -965,7 +965,7 @@ return [
     'reports_w1' => 'Files have names and money figures. Do not give them to anyone outside the office.',
     'money_rules_s1' => 'Only purchases that are fully paid and delivered count.',
     'money_rules_s2' => 'Doctor Honorarium: the buyer gets :cashback_rate% of their own purchase back.',
-    'money_rules_s3' => 'Staff commission and D2D income: the person who brought the buyer gets :referral_rate%. The two people above them get :gen2_rate% (2nd generation) and :gen3_rate% (3rd generation). If nobody is above, that share goes to company profit.',
+    'money_rules_s3' => 'Staff commission and Team income: the person who brought the buyer gets :referral_rate%. The two people above them get :gen2_rate% (2nd step) and :gen3_rate% (3rd step). If nobody is above, that share goes to company profit.',
     'money_rules_s4' => 'Area dealer income: :area_rate% is shared among the area dealers of the buyer’s place codes. Management :area_management%, division :area_division%, district :area_district%, upazila :area_upazila%, union or pourashava :area_union%. If a place has no area dealer, that share goes to company profit.',
     'money_rules_s5' => 'Dealer Acquisition Target Bonus: :dealer_salary_rate% goes into the fund of the buyer’s division. Dealers there who buy at least :dealer_salary_min that month share it equally.',
     'money_rules_s6' => 'Rank royalty: :royalty_rate% is shared each month. It goes to dealers who keep their rank. You get royalty only for your latest rank.',

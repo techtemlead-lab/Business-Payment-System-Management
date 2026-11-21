@@ -14,6 +14,7 @@ use App\Domain\Finance\ReserveService;
 use App\Domain\Inventory\BranchOperations;
 use App\Domain\Payouts\PayoutReceipts;
 use App\Support\Audit;
+use App\Support\CommissionCodeLabel;
 use App\Support\Money;
 use App\Support\PdfFonts;
 use App\Support\PdfPaper;
@@ -519,7 +520,7 @@ class FinanceOperationsController extends Controller
             }
         }
 
-        return Str::headline($value);
+        return CommissionCodeLabel::fromCode($value);
     }
 
     /** Signed amount in cents; report rows (e.g. reversals) may legitimately be negative. */

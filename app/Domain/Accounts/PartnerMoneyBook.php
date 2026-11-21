@@ -6,6 +6,7 @@ use App\Domain\Finance\FundCatalog;
 use App\Domain\Finance\OrderMoneyReport;
 use App\Domain\Finance\ReserveService;
 use App\Models\User;
+use App\Support\CommissionCodeLabel;
 use App\Support\Money;
 use App\Support\MoneyTable;
 use App\Support\MoneyTableFilter;
@@ -16,7 +17,6 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 /**
  * One partner's money: what they have now, where every taka came from and went, and their
@@ -155,7 +155,7 @@ final class PartnerMoneyBook
             }
         }
 
-        return Str::headline($head);
+        return CommissionCodeLabel::fromCode($head);
     }
 
     /**

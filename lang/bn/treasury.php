@@ -33,8 +33,8 @@ return [
 
     'type_own_dealer_cashback' => 'ডক্টর অনারারিয়াম',
     'type_direct_referral' => 'স্টাফ কমিশন',
-    'type_d2d_gen2' => 'D2D আয় · ২য় প্রজন্ম',
-    'type_d2d_gen3' => 'D2D আয় · ৩য় প্রজন্ম',
+    'type_d2d_gen2' => 'টিমের আয় · ২য় ধাপ',
+    'type_d2d_gen3' => 'টিমের আয় · ৩য় ধাপ',
     'type_area_division' => 'এরিয়া ডিলার আয় · বিভাগ',
     'type_area_district' => 'এরিয়া ডিলার আয় · জেলা',
     'type_area_upazila' => 'এরিয়া ডিলার আয় · উপজেলা',

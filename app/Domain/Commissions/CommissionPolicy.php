@@ -67,7 +67,7 @@ final class CommissionPolicy
         $definitions = [
             'own_dealer_cashback' => ['cashback', 'Doctor Honorarium', '5.00', []],
             'direct_referral' => ['referral', 'Staff commission', '10.00', []],
-            'd2d_multitier' => ['d2d', 'Team share (2nd + 3rd generation)', '3.00', ['gen2_pct' => '2.00', 'gen3_pct' => '1.00', 'dynamic_compression' => false]],
+            'd2d_multitier' => ['d2d', 'Team income (2nd and 3rd step)', '3.00', ['gen2_pct' => '2.00', 'gen3_pct' => '1.00', 'dynamic_compression' => false]],
             'area_dealer_pool' => ['area', 'Area dealer pool', '10.00', ['management_share_pct' => '2.00', 'division_share_pct' => '2.00', 'district_share_pct' => '2.00', 'upazila_share_pct' => '2.00', 'union_share_pct' => '2.00',
                 'division_monthly_quota' => '50000.00', 'district_monthly_quota' => '40000.00', 'upazila_monthly_quota' => '20000.00', 'union_monthly_quota' => '10000.00',
                 'held_share_months' => 3]],
