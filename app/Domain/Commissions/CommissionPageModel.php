@@ -83,7 +83,7 @@ final class CommissionPageModel
         ]],
         // The rank royalty is paid at month end to rank holders who met their monthly target: a dealer's one target, or a
         // sub-dealer's own royalty target. The old rank-keeping minimums (rank_maintenance) only apply to older orders.
-        ['id' => 'royalty', 'rule' => 'rank_royalty', 'applies_to' => ['dealer', 'sub_dealer'], 'numbers' => [
+        ['id' => 'rank_keep', 'rule' => 'rank_royalty', 'applies_to' => ['dealer', 'sub_dealer'], 'numbers' => [
             ['param' => 'sub_dealer_royalty_target', 'unit' => 'money', 'controls' => 'own'],
         ]],
         ['id' => 'rank_bonus', 'rule' => 'rank_incentive', 'applies_to' => ['dealer', 'sub_dealer'], 'numbers' => [

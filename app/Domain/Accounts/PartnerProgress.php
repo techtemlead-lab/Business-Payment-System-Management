@@ -104,10 +104,15 @@ final class PartnerProgress
             $plan = $this->settlement->salaryPlan($month);
             $mine = collect($plan['dealers'])->firstWhere('user_id', (int) $user->id);
             // The dealer's division row is found by its place code id, never by its name.
-            $division = $mine !== null && $mine['division_id'] !== null
-                ? collect($plan['divisions'])->firstWhere('division_id', $mine['division_id'])
-                : null;
+            $division = match (true) {
+                $mine === null => null,
+                // One salary fund for all of Bangladesh (owner's rule of 2026-11-21).
+                ($mine['nationwide'] ?? false) === true => collect($plan['divisions'])->firstWhere('nationwide', true),
+                $mine['division_id'] !== null => collect($plan['divisions'])->firstWhere('division_id', $mine['division_id']),
+                default => null,
+            };
             $estimate = [
+                'nationwide' => (bool) ($mine['nationwide'] ?? false),
                 'share' => $mine['share'] ?? '0.00',
                 'division' => $mine['division'] ?? null,
                 'division_pool' => $division['pool'] ?? '0.00',
@@ -125,6 +130,7 @@ final class PartnerProgress
             },
             'rate' => (string) $rules['dealer_monthly_salary']['percentage'],
             'dealer_kind' => $kind,
+            'nationwide' => MonthlyTargets::usesMonthlyTargets($rules),
             ...$this->moneyBar($monthlyVolume, $target),
             'estimate' => $estimate,
         ];

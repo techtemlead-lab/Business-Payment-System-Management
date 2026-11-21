@@ -11,7 +11,9 @@ type DealerSalary = Bar & {
     kind: 'dealer_pool';
     status: 'off' | 'waived' | 'met' | 'not_met';
     rate: string;
-    estimate: { share: string; division: string | null; division_pool: string; qualifiers: number } | null;
+    /** One salary fund for all of Bangladesh (owner's rule of 2026-11-21) instead of one per division. */
+    nationwide?: boolean;
+    estimate: { share: string; division: string | null; division_pool: string; qualifiers: number; nationwide?: boolean } | null;
 };
 type SubDealerSalary = { kind: 'sub_dealer_flat'; status: 'off' | 'earning'; rate: string; current: string; earned: string };
 /** The owner's salary steps (2026-11-21): the bar runs toward the next step; tier_pct is what the month earns now. */
@@ -153,7 +155,7 @@ function SalarySection({ salary, period }: { salary: DealerSalary | SubDealerSal
 
     return (
         <Section icon={<Wallet size={16} />} title={title}>
-            <p className="pp-how">{translate('portal', 'pp_salary_dealer_how', { target: money(salary.target), rate: number(salary.rate) })}</p>
+            <p className="pp-how">{translate('portal', salary.nationwide ? 'pp_salary_dealer_nationwide_how' : 'pp_salary_dealer_how', { target: money(salary.target), rate: number(salary.rate) })}</p>
             {salary.status !== 'waived' && <ProgressBar bar={salary} label={title} tone={salary.status === 'met' ? 'ok' : 'brand'} />}
             {salary.status === 'waived' && <StatusLine ok>{translate('portal', 'pp_salary_waived')}</StatusLine>}
             {salary.status === 'met' && <StatusLine ok>{translate('portal', 'pp_salary_met')}</StatusLine>}
@@ -163,7 +165,7 @@ function SalarySection({ salary, period }: { salary: DealerSalary | SubDealerSal
             {salary.estimate && (
                 <div className="pp-estimate">
                     <p>
-                        {translate('portal', 'pp_salary_estimate', {
+                        {translate('portal', salary.estimate.nationwide ? 'pp_salary_estimate_nationwide' : 'pp_salary_estimate', {
                             share: money(salary.estimate.share),
                             division: salary.estimate.division || 'â€”',
                             pool: money(salary.estimate.division_pool),
