@@ -6877,4 +6877,5 @@ return [
     'event_finance_refund_owner_limit_changed' => 'Owner limit for refunds changed',
     'event_finance_fund_spend_owner_limit_changed' => 'Owner limit for fund spending changed',
     'ops_chk_missed_order_batches' => 'Every delivered, paid order has its commission posted',
+    'ops_chk_stale_holdings' => 'No money has waited too long for someone to act',
 ];

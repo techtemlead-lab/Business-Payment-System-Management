@@ -13,6 +13,7 @@ use App\Domain\Finance\OwnerApprovalLimits;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Finance\ReportData;
 use App\Domain\Finance\ReserveService;
+use App\Domain\Finance\StaleHoldings;
 use App\Domain\Finance\VehiclePools;
 use App\Domain\Finance\WithdrawalApprovalLimit;
 use App\Domain\Finance\WithdrawalSecurityWait;
@@ -176,6 +177,7 @@ class OperationsController extends Controller
             $data['readiness'] = app(FinancialReadiness::class)->inspect();
             $data['deploymentStatus'] = app(DeploymentReadiness::class)->inspect(app()->isProduction());
             $data['startupMode'] = app(IntegrationSettings::class)->startupMode();
+            $data['staleHoldings'] = app(StaleHoldings::class)->report($actor);
             $tables['opening_reviews'] = DB::table('financial_verifications')->select(['id', 'fingerprint', 'source_reference', 'created_by', 'verified_by', 'verified_at', 'created_at', 'fresh_start'])->orderByDesc('id');
         }
         if ($section === 'finance-settings') {

@@ -50,6 +50,7 @@ use App\Http\Controllers\ReasonFieldsController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SalesKitController;
 use App\Http\Controllers\SiteVisitSettingsController;
+use App\Http\Controllers\StaleHoldingsController;
 use App\Http\Controllers\StockCountController;
 use App\Http\Controllers\StockLotController;
 use App\Http\Controllers\StockMovementExportController;
@@ -155,6 +156,8 @@ return function (string $portal): void {
     Route::get('/commands/accounts/{user}/deletion-check', [PartnerAccountDeletionController::class, 'show'])->middleware('throttle:60,1');
     Route::get('/commands/accounts/{user}/closed-balance', [ClosedAccountBalanceController::class, 'show'])->middleware('throttle:60,1');
     Route::post('/commands/accounts/{user}/closed-balance/to-company', [ClosedAccountBalanceController::class, 'store'])->middleware('throttle:10,1');
+    Route::post('/commands/accounts/{user}/clawback/write-off', [StaleHoldingsController::class, 'writeOff'])->middleware('throttle:10,1');
+    Route::post('/commands/stale-holdings/days', [StaleHoldingsController::class, 'saveDays'])->middleware('throttle:20,1');
     Route::post('/commands/accounts/{user}/benefit-controls', [CommandController::class, 'benefitControls']);
     Route::post('/commands/accounts/{partner}/monthly-targets', [PartnerFileController::class, 'setTarget'])->whereNumber('partner')->middleware('throttle:30,1');
     Route::post('/commands/accounts/{partner}/monthly-targets/clear', [PartnerFileController::class, 'clearTarget'])->whereNumber('partner')->middleware('throttle:30,1');

@@ -74,6 +74,8 @@ final class AccountingStatements
         'payroll_expense' => self::Expense,
         'company_marketing_expense' => self::Expense,
         'company_fund_expense' => self::Expense,
+        // Refund debts of closed or suspended partners the owner wrote off (ClawbackWriteOff).
+        'bad_debt_expense' => self::Expense,
     ];
 
     public function __construct(private ManagementFigures $figures) {}

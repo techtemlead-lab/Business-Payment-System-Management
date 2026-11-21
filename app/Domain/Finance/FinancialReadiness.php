@@ -24,7 +24,7 @@ final class FinancialReadiness
      * than saying the books disagree. They are listed with the others, but they do not make the books "not
      * reconciled": the opening check and its fingerprint, which a slow day could otherwise change, leave them out.
      */
-    public const AttentionChecks = ['missed_order_batches'];
+    public const AttentionChecks = ['missed_order_batches', 'stale_holdings'];
 
     /**
      * Do the money records agree with each other right now? Each check is a single read of
@@ -104,6 +104,8 @@ final class FinancialReadiness
             // Attention checks (see AttentionChecks): money waiting for a person, not books that disagree.
             // Delivered, fully paid orders whose commission was never posted (finance:post-missed-orders posts them).
             'missed_order_batches' => ! app(MissedOrderPostings::class)->exist(),
+            // Money that has waited longer than the owner's limit for a person to act (the "Old money" list).
+            'stale_holdings' => ! app(StaleHoldings::class)->exist(),
         ];
     }
 

@@ -6877,4 +6877,5 @@ return [
     'event_finance_refund_owner_limit_changed' => 'টাকা ফেরতের জন্য মালিকের সীমা বদলানো হয়েছে',
     'event_finance_fund_spend_owner_limit_changed' => 'ফান্ড খরচের জন্য মালিকের সীমা বদলানো হয়েছে',
     'ops_chk_missed_order_batches' => 'ডেলিভারি হওয়া ও পুরো টাকা দেওয়া প্রতিটি অর্ডারের কমিশন হিসাবে উঠেছে',
+    'ops_chk_stale_holdings' => 'কোনো টাকা অনেক দিন ধরে কাজের অপেক্ষায় পড়ে নেই',
 ];

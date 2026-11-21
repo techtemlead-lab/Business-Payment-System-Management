@@ -253,4 +253,5 @@ return [
     'flash_limit_saved_refund' => 'The refund limit is saved.',
     'flash_limit_saved_fund_spend' => 'The fund spending limit is saved.',
     'account_closed_account_balance_income' => 'Money from closed accounts moved to the company',
+    'account_bad_debt_expense' => 'Refund debts written off (bad debt)',
 ];

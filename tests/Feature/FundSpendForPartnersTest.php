@@ -340,7 +340,7 @@ class FundSpendForPartnersTest extends TestCase
         $id = $this->spend(['for' => ['mode' => 'everyone']])->assertOk()->json('data.id');
         $this->approve($id);
 
-        $this->assertCount(19, app(FinancialReadiness::class)->checks());
+        $this->assertCount(20, app(FinancialReadiness::class)->checks());
         $this->assertSame($before, app(FinancialReadiness::class)->booksMatch());
         $this->assertSame('0.00', $this->wallet($partner));
     }
