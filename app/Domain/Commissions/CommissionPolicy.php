@@ -80,9 +80,9 @@ final class CommissionPolicy
                 'sub_dealer_royalty_target' => '30000.00']],
             'rank_incentive' => ['incentive', 'Rank incentive reserve', '2.00', ['mo_bonus' => '5000.00', 'am_bonus' => '50000.00', 'sm_bonus' => '250000.00', 'me_bonus' => '300000.00']],
             'company_marketing' => ['marketing', 'Marketing reserve', '2.00', []],
-            // Owner's rule of 2026-11-21: bike at ৳1.20 crore of team sales (at most ৳15 lakh from one direct line),
+            // Owner's rule of 2026-11-21: bike at ৳1 crore of team sales (at most ৳20 lakh from one direct line),
             // prize ৳3 lakh; car at ৳50 crore (at most ৳8 crore from one direct line), prize ৳25 lakh.
-            'car_bike_incentive' => ['rewards', 'Car and motorcycle reserve', '2.00', ['bike_target' => '12000000.00', 'bike_leg_cap' => '1500000.00', 'car_target' => '500000000.00', 'car_leg_cap' => '80000000.00', 'bike_award_amount' => '300000.00', 'car_award_amount' => '2500000.00', 'bike_pool_share_pct' => '50.00']],
+            'car_bike_incentive' => ['rewards', 'Car and motorcycle reserve', '2.00', ['bike_target' => '10000000.00', 'bike_leg_cap' => '2000000.00', 'car_target' => '500000000.00', 'car_leg_cap' => '80000000.00', 'bike_award_amount' => '300000.00', 'car_award_amount' => '2500000.00', 'bike_pool_share_pct' => '50.00']],
             'additional_rank' => ['sub_dealer', 'Sub-dealer extra', '4.00', ['destination' => self::ExtraDestinationDefault]],
             // The salary is set aside at the full percent; at month end the sub-dealer is paid the tier his own month's
             // purchase reached and the rest goes to the company profit fund (owner, 2026-11-21).
