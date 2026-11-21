@@ -63,15 +63,14 @@ final class PartnerMonthlyTargets
     }
 
     /**
-     * Puts the owner's overrides into the target rows the dealer's home page already shows and
-     * adds the royalty row. Rows without an override are left exactly as they were. Everything is
-     * worked out from what the home page already read, so this costs one extra query.
+     * Puts the owner's overrides into the target rows the dealer's home page already shows. Rows
+     * without an override are left exactly as they were. Everything is worked out from what the
+     * home page already read, so this costs one extra query.
      *
      * @param  list<array<string, mixed>>  $targets
-     * @param  array<string, array<string, mixed>>  $rules
      * @return list<array<string, mixed>>
      */
-    public function forHome(User $user, array $targets, string $month, array $rules, int $monthlyVolume, string $currentRank): array
+    public function forHome(User $user, array $targets, string $month): array
     {
         if ($user->role !== 'dealer') {
             return $targets;
@@ -93,19 +92,6 @@ final class PartnerMonthlyTargets
                 'percent' => $this->percent($current, $target),
             ];
         }
-        $royalty = $this->royaltyRow($rules, $monthlyVolume, $currentRank, $overrides);
-        if ($royalty['has_target']) {
-            $targets[] = [
-                'key' => 'royalty_volume',
-                'label' => $royalty['label'],
-                'current' => $royalty['current'],
-                'target' => $royalty['target'],
-                'remaining' => $royalty['remaining'],
-                'percent' => $royalty['percent'],
-                'hint' => $royalty['hint'],
-            ];
-        }
-
         return $targets;
     }
 

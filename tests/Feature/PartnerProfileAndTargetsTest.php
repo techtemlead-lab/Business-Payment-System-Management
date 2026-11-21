@@ -137,7 +137,7 @@ class PartnerProfileAndTargetsTest extends TestCase
 
         $home = collect(app(PartnerDashboardHome::class)->for($dealer)['targets'])->keyBy('key');
         $this->assertSame('25000.00', $home['monthly_salary']['target']);
-        $this->assertArrayHasKey('royalty_volume', $home);
+        $this->assertArrayNotHasKey('royalty_volume', $home, 'The card lists only monthly progress, salary and rank.');
 
         $this->actingAs($owner)->onPortal('sadmin')->post('/commands/accounts/'.$dealer->id.'/monthly-targets/clear', ['month' => '2026-11', 'kind' => 'salary'])->assertRedirect();
         $this->assertSame('10000.00', collect($targets->for($dealer, '2026-11'))->keyBy('kind')['salary']['target']);

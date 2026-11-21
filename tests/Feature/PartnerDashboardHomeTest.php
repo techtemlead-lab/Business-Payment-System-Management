@@ -45,8 +45,10 @@ class PartnerDashboardHomeTest extends TestCase
                 ->where('data.partner_home.wallet.pending_withdrawal', '0.00')
                 ->has('data.partner_home.targets')
                 ->where('data.partner_home.targets.0.key', 'monthly_salary')
-                ->where('data.partner_home.targets.1.key', 'rank_reward')
-                ->where('data.partner_home.targets.2.key', 'bike_incentive'));
+                ->where('data.partner_home.targets.1.key', 'salary_state')
+                ->where('data.partner_home.targets.2.key', 'rank_reward')
+                ->where('data.partner_home.targets.3.key', 'bike_incentive')
+                ->missing('data.partner_home.targets.4'));
     }
 
     public function test_sub_dealer_home_shows_shop_name_and_skips_dealer_rank_bar(): void
@@ -66,7 +68,7 @@ class PartnerDashboardHomeTest extends TestCase
 
         $this->assertSame('Green Care Pharmacy', $home['profile']['shop_name']);
         $this->assertSame('MNHC501-000001', $home['profile']['area_code']);
-        $this->assertSame(['sub_dealer_salary', 'tour_fund', 'bike_incentive'], array_column($home['targets'], 'key'));
+        $this->assertSame(['monthly_purchase', 'sub_dealer_salary', 'bike_incentive'], array_column($home['targets'], 'key'));
     }
 
     public function test_partner_home_target_labels_follow_active_locale(): void
@@ -76,13 +78,13 @@ class PartnerDashboardHomeTest extends TestCase
 
         app()->setLocale('en');
         $english = app(PartnerDashboardHome::class)->for($dealer);
-        $this->assertSame(__('portal.target_monthly_salary_volume', [], 'en'), $english['targets'][0]['label']);
-        $this->assertSame(__('portal.target_bike_incentive', [], 'en'), $english['targets'][2]['label']);
+        $this->assertSame(__('portal.target_monthly_progress', [], 'en'), $english['targets'][0]['label']);
+        $this->assertSame(__('portal.target_bike_incentive', [], 'en'), $english['targets'][3]['label']);
 
         app()->setLocale('bn');
         $bangla = app(PartnerDashboardHome::class)->for($dealer);
-        $this->assertSame(__('portal.target_monthly_salary_volume', [], 'bn'), $bangla['targets'][0]['label']);
-        $this->assertSame(__('portal.target_bike_incentive', [], 'bn'), $bangla['targets'][2]['label']);
+        $this->assertSame(__('portal.target_monthly_progress', [], 'bn'), $bangla['targets'][0]['label']);
+        $this->assertSame(__('portal.target_bike_incentive', [], 'bn'), $bangla['targets'][3]['label']);
         $this->assertNotSame($english['targets'][0]['label'], $bangla['targets'][0]['label']);
     }
 

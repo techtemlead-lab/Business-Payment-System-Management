@@ -43,7 +43,7 @@ class PartnerHomeTargetsCardTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_sub_dealer_card_shows_salary_and_tour_fund_without_a_purchase_target_or_rank(): void
+    public function test_sub_dealer_card_shows_this_months_purchase_then_salary_then_bike_with_no_tour_fund_or_rank(): void
     {
         $sub = User::factory()->create(['role' => 'sub_dealer']);
         ReferralTreePath::attachUser($sub->id, null);
@@ -52,22 +52,20 @@ class PartnerHomeTargetsCardTest extends TestCase
         app()->setLocale('en');
         $targets = collect(app(PartnerDashboardHome::class)->for($sub->fresh())['targets'])->keyBy('key');
 
-        $this->assertSame(['sub_dealer_salary', 'tour_fund', 'bike_incentive'], $targets->keys()->all());
-        $this->assertFalse($targets->has('monthly_salary'));
-        $this->assertFalse($targets->has('rank_reward'));
+        $this->assertSame(['monthly_purchase', 'sub_dealer_salary', 'bike_incentive'], $targets->keys()->all());
+        $this->assertFalse($targets->has('tour_fund'), 'The tour fund stays hidden while PartnerProgress::ShowTourFund is off.');
+        $this->assertSame('amount', $targets['monthly_purchase']['kind']);
+        $this->assertSame('12000.00', $targets['monthly_purchase']['value']);
         $this->assertSame('amount', $targets['sub_dealer_salary']['kind']);
         $this->assertSame('360.00', $targets['sub_dealer_salary']['value']);
         $this->assertSame(__('portal.target_subdealer_salary_hint', ['rate' => '3']), $targets['sub_dealer_salary']['hint']);
         $this->assertStringContainsString('No minimum', $targets['sub_dealer_salary']['hint']);
-        $this->assertSame('360.00', $targets['tour_fund']['value']);
-        $this->assertSame(__('portal.target_tour_fund_hint', ['rate' => '3']), $targets['tour_fund']['hint']);
 
         // The card and the "My progress" pop-up show the same money.
         $popup = $this->actingAs($sub)->onPortal('subdealer')->getJson('/my-progress')->json('data');
         $this->assertSame($popup['salary']['earned'], $targets['sub_dealer_salary']['value']);
-        $this->assertSame($popup['tour']['available'], $targets['tour_fund']['value']);
+        $this->assertSame($popup['salary']['current'], $targets['monthly_purchase']['value']);
     }
-
     public function test_sub_dealer_card_says_when_the_company_switched_the_salary_off(): void
     {
         $owner = User::factory()->create(['role' => 'super_admin']);
@@ -79,7 +77,7 @@ class PartnerHomeTargetsCardTest extends TestCase
         $this->assertSame(__('portal.target_switched_off_hint'), $salary['hint']);
     }
 
-    public function test_sub_dealer_card_leaves_salary_and_tour_out_when_the_salary_page_is_switched_off(): void
+    public function test_sub_dealer_card_leaves_salary_out_when_the_salary_page_is_switched_off(): void
     {
         DashboardManagement::save(['subdealer_salary_enabled' => false]);
         $sub = User::factory()->create(['role' => 'sub_dealer']);
@@ -87,6 +85,26 @@ class PartnerHomeTargetsCardTest extends TestCase
         $this->assertSame(['bike_incentive'], array_column(app(PartnerDashboardHome::class)->for($sub)['targets'], 'key'));
     }
 
+    public function test_dealer_card_lists_monthly_progress_then_salary_then_rank_then_bike(): void
+    {
+        $dealer = User::factory()->create();
+        ReferralTreePath::attachUser($dealer->id, null);
+
+        app()->setLocale('en');
+        $targets = collect(app(PartnerDashboardHome::class)->for($dealer)['targets'])->keyBy('key');
+
+        $this->assertSame(['monthly_salary', 'salary_state', 'rank_reward', 'bike_incentive'], $targets->keys()->all());
+        $this->assertSame(__('portal.target_monthly_progress'), $targets['monthly_salary']['label']);
+        $this->assertSame('status', $targets['salary_state']['kind']);
+        $this->assertSame('not_met', $targets['salary_state']['state']);
+        $this->assertSame(__('portal.target_salary_state_not_met'), $targets['salary_state']['value']);
+
+        $this->purchase($dealer, '12000.00', '20000.00');
+        $met = collect(app(PartnerDashboardHome::class)->for($dealer->fresh())['targets'])->keyBy('key');
+
+        $this->assertSame('met', $met['salary_state']['state']);
+        $this->assertSame(__('portal.target_salary_state_met_hint'), $met['salary_state']['hint']);
+    }
     public function test_opening_the_home_page_does_not_write_a_rank_row(): void
     {
         $dealer = User::factory()->create();

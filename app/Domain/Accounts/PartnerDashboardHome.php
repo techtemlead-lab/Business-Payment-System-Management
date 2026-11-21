@@ -25,6 +25,8 @@ final class PartnerDashboardHome
     /** This month's volume and rank, kept from the dealer targets so the owner's overrides cost no further reads. */
     private int $targetsVolume = 0;
 
+    private bool $targetsVolumeLoaded = false;
+
     private string $targetsRank = 'dealer';
 
     /** The rank row and the bike and car rows the targets already read, handed to the prize lines so they are not read again. Reset on every call of for(). */
@@ -59,6 +61,7 @@ final class PartnerDashboardHome
         $rules = app(CommissionPolicy::class)->snapshot(false)['rules'];
         $this->rankRow = null;
         $this->rankRowLoaded = false;
+        $this->targetsVolumeLoaded = false;
         $this->vehicleRows = null;
         $profile = is_array($user->profile) ? $user->profile : [];
 
@@ -180,7 +183,7 @@ final class PartnerDashboardHome
     private function identityTop(User $user, array $targets, string $month): array
     {
         $isDealer = $user->role === 'dealer';
-        $volume = $isDealer ? $this->targetsVolume : $this->qualification->monthlyVolume($user->id, $month);
+        $volume = $this->targetsVolumeLoaded ? $this->targetsVolume : $this->qualification->monthlyVolume($user->id, $month);
         $salary = collect($targets)->firstWhere('key', 'monthly_salary');
 
         return [
@@ -305,15 +308,17 @@ final class PartnerDashboardHome
             );
         }
 
-        // The owner's own target for this dealer this month, and the royalty target, are added by the targets class.
-        return $user->role === 'dealer'
-            ? app(PartnerMonthlyTargets::class)->forHome($user, $targets, $month, $rules, $this->targetsVolume, $this->targetsRank)
+        // The owner's own target for this dealer this month is put into the rows by the targets class.
+        $targets = $user->role === 'dealer'
+            ? app(PartnerMonthlyTargets::class)->forHome($user, $targets, $month)
             : $targets;
+
+        return $this->withSalaryState($targets);
     }
 
     /**
-     * Sub-dealers have no purchase target and no rank: their salary is a flat share of every
-     * paid and delivered purchase, and a second share is kept in their own tour fund.
+     * Sub-dealers have no purchase target and no rank: the card shows what they bought this month
+     * and the salary set aside for them (the tour fund only when ShowTourFund is on), which is a flat share of every paid and delivered purchase.
      *
      * @param  array<string, array<string, mixed>>  $rules
      * @return list<array<string, mixed>>
@@ -323,28 +328,75 @@ final class PartnerDashboardHome
         if (! DashboardManagement::partnerFeatureEnabled($user, 'salary')) {
             return [];
         }
-        $amountRow = function (string $key, string $label, string $rule, int $value, string $hint) use ($rules): array {
-            $isOn = CommissionPolicy::rate($rules, $rule)->basisPoints > 0;
+        $monthlyVolume = $this->qualification->monthlyVolume($user->id, $month);
+        $this->targetsVolume = $monthlyVolume;
+        $this->targetsVolumeLoaded = true;
+        $isOn = CommissionPolicy::rate($rules, 'sub_dealer_salary')->basisPoints > 0;
 
-            return [
-                'key' => $key,
+        $rows = [
+            [
+                'key' => 'monthly_purchase',
                 'kind' => 'amount',
-                'label' => $label,
-                'value' => Money::decimal($value),
+                'label' => __('portal.target_monthly_progress'),
+                'value' => Money::decimal($monthlyVolume),
+                'hint' => __('portal.target_subdealer_progress_hint'),
+            ],
+            [
+                'key' => 'sub_dealer_salary',
+                'kind' => 'amount',
+                'label' => __('portal.target_subdealer_salary'),
+                'value' => Money::decimal($this->progress->subDealerSalarySetAside((int) $user->id, $month)),
                 'hint' => $isOn
-                    ? __($hint, ['rate' => rtrim(rtrim((string) $rules[$rule]['percentage'], '0'), '.')])
+                    ? __('portal.target_subdealer_salary_hint', ['rate' => rtrim(rtrim((string) $rules['sub_dealer_salary']['percentage'], '0'), '.')])
+                    : __('portal.target_switched_off_hint'),
+            ],
+        ];
+        // Hidden until the company decides to show the sub-dealer tour fund again (see PartnerProgress::ShowTourFund).
+        if (PartnerProgress::ShowTourFund) {
+            $isTourOn = CommissionPolicy::rate($rules, 'sub_dealer_tour')->basisPoints > 0;
+            $rows[] = [
+                'key' => 'tour_fund',
+                'kind' => 'amount',
+                'label' => __('portal.target_tour_fund'),
+                'value' => Money::decimal($this->progress->tourFundLeft((int) $user->id)),
+                'hint' => $isTourOn
+                    ? __('portal.target_tour_fund_hint', ['rate' => rtrim(rtrim((string) $rules['sub_dealer_tour']['percentage'], '0'), '.')])
                     : __('portal.target_switched_off_hint'),
             ];
-        };
+        }
 
-        return [
-            $amountRow('sub_dealer_salary', __('portal.target_subdealer_salary'), 'sub_dealer_salary',
-                $this->progress->subDealerSalarySetAside((int) $user->id, $month), 'portal.target_subdealer_salary_hint'),
-            $amountRow('tour_fund', __('portal.target_tour_fund'), 'sub_dealer_tour',
-                $this->progress->tourFundLeft((int) $user->id), 'portal.target_tour_fund_hint'),
-        ];
+        return $rows;
     }
 
+    /**
+     * The salary row of a dealer says in words whether this month's salary is on the way. It is worked out from the
+     * monthly purchase row (after the owner's own target for this dealer is applied), so both always agree.
+     *
+     * @param  list<array<string, mixed>>  $targets
+     * @return list<array<string, mixed>>
+     */
+    private function withSalaryState(array $targets): array
+    {
+        $progress = collect($targets)->firstWhere('key', 'monthly_salary');
+        foreach ($targets as $index => $row) {
+            if (($row['key'] ?? '') !== 'salary_state' || ! is_array($progress)) {
+                continue;
+            }
+            $state = match (true) {
+                $row['state'] === 'off', $row['state'] === 'waived' => $row['state'],
+                Money::cents((string) $progress['remaining']) === 0 => 'met',
+                default => 'not_met',
+            };
+            $targets[$index] = [
+                ...$row,
+                'state' => $state,
+                'value' => __('portal.target_salary_state_'.$state),
+                'hint' => __('portal.target_salary_state_'.$state.'_hint')
+            ];
+        }
+
+        return $targets;
+    }
     /**
      * @param  array<string, array<string, mixed>>  $rules
      * @return list<array<string, mixed>>
@@ -355,11 +407,12 @@ final class PartnerDashboardHome
         $controls = PartnerBenefitControls::for($user);
         $monthlyVolume = $this->qualification->monthlyVolume($user->id, $month);
         $this->targetsVolume = $monthlyVolume;
+        $this->targetsVolumeLoaded = true;
         $salaryTarget = Money::cents((string) ($rules['dealer_monthly_salary']['parameters']['min_monthly_volume'] ?? '10000.00'));
         if ($controls['unconditional_salary']) {
             $targets[] = [
                 'key' => 'monthly_salary',
-                'label' => __('portal.target_monthly_salary_volume'),
+                'label' => __('portal.target_monthly_progress'),
                 'current' => Money::decimal($monthlyVolume),
                 'target' => Money::decimal($salaryTarget),
                 'remaining' => '0.00',
@@ -369,12 +422,25 @@ final class PartnerDashboardHome
         } else {
             $targets[] = $this->progress(
                 key: 'monthly_salary',
-                label: __('portal.target_monthly_salary_volume'),
+                label: __('portal.target_monthly_progress'),
                 current: $monthlyVolume,
                 target: $salaryTarget,
                 hint: __('portal.target_dealer_salary_hint'),
             );
         }
+
+        $targets[] = [
+            'key' => 'salary_state',
+            'kind' => 'status',
+            'label' => __('portal.target_monthly_salary'),
+            'state' => match (true) {
+                CommissionPolicy::rate($rules, 'dealer_monthly_salary')->basisPoints <= 0 => 'off',
+                $controls['unconditional_salary'] => 'waived',
+                default => 'not_met',
+            },
+            'value' => '',
+            'hint' => '',
+        ];
 
         // Read only: a page view never creates the rank row (posting creates it with the first purchase).
         $rank = DealerRank::query()->where('user_id', $user->id)->first();

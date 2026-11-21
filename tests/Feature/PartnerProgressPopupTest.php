@@ -232,7 +232,7 @@ class PartnerProgressPopupTest extends TestCase
         $this->assertSame('reached', collect($this->progress($leader)->json('data.rewards'))->firstWhere('type', 'bike')['status']);
     }
 
-    public function test_sub_dealer_sees_flat_salary_and_tour_fund_that_settlement_and_reserves_use(): void
+    public function test_sub_dealer_sees_the_flat_salary_that_settlement_uses_and_no_tour_fund(): void
     {
         $sub = User::factory()->create(['role' => 'sub_dealer']);
         ReferralTreePath::attachUser($sub->id, null);
@@ -248,30 +248,11 @@ class PartnerProgressPopupTest extends TestCase
         $this->assertSame('360.00', $data['salary']['earned']);
         $this->assertNull($data['rank']);
         $this->assertSame(['bike', 'car'], array_column($data['rewards'], 'type'));
-        $this->assertSame('saving', $data['tour']['status']);
-        $this->assertSame('360.00', $data['tour']['saved_this_month']);
-        $this->assertSame('360.00', $data['tour']['saved_total']);
-        $this->assertSame('360.00', $data['tour']['available']);
-        $this->assertSame('0.00', $data['tour']['used']);
-        $this->assertSame(0, $data['tour']['requests_waiting']);
+        $this->assertNull($data['tour'], 'The tour fund is hidden while PartnerProgress::ShowTourFund is off.');
 
         $this->travelTo(now()->setDate(2026, 10, 1));
         $paid = collect(app(CommissionService::class)->settleMonthlySalaryPool('2026-09')['distributed'])->firstWhere('user_id', $sub->id);
         $this->assertSame($data['salary']['earned'], $paid['amount']);
-    }
-
-    public function test_sub_dealer_tour_fund_shows_money_already_used_for_a_tour(): void
-    {
-        $sub = User::factory()->create(['role' => 'sub_dealer']);
-        $this->purchase($sub, '12000.00', '20000.00');
-        $fund = DB::table('commission_allocations')->where('user_id', $sub->id)->where('category', 'sub_dealer_tour')->first();
-        DB::table('commission_settlement_payouts')->insert(['allocation_id' => $fund->id, 'user_id' => $sub->id, 'kind' => 'award_1',
-            'period_month' => '2026-09', 'amount' => '100.00', 'refunded_basis' => '0.00', 'created_at' => now(), 'updated_at' => now()]);
-
-        $tour = $this->progress($sub, 'subdealer')->json('data.tour');
-
-        $this->assertSame('260.00', $tour['available']);
-        $this->assertSame('100.00', $tour['used']);
     }
 
     public function test_sub_dealer_with_salary_switched_off_on_the_dashboard_sees_no_salary_or_tour(): void
