@@ -54,31 +54,39 @@ final class CommissionPageModel
      * @var list<array{id: string, rule: string, applies_to: list<string>, numbers: list<array{param: string, unit: string, controls: string}>}>
      */
     private const Conditions = [
+        // Area income is paid once a month against the dealer's one monthly target (the salary condition below).
         ['id' => 'area', 'rule' => 'area_dealer_pool', 'applies_to' => ['dealer'], 'numbers' => [
-            ['param' => 'division_monthly_quota', 'unit' => 'money', 'controls' => 'area'],
-            ['param' => 'district_monthly_quota', 'unit' => 'money', 'controls' => 'area'],
-            ['param' => 'upazila_monthly_quota', 'unit' => 'money', 'controls' => 'area'],
-            ['param' => 'union_monthly_quota', 'unit' => 'money', 'controls' => 'area'],
             ['param' => 'held_share_months', 'unit' => 'months', 'controls' => 'time'],
         ]],
+        // The dealer's one monthly target by kind of dealer: it unlocks the salary, the rank royalty and the area income.
         ['id' => 'salary', 'rule' => 'dealer_monthly_salary', 'applies_to' => ['dealer'], 'numbers' => [
+            ['param' => 'union_target', 'unit' => 'money', 'controls' => 'own'],
+            ['param' => 'upazila_target', 'unit' => 'money', 'controls' => 'own'],
+            ['param' => 'district_target', 'unit' => 'money', 'controls' => 'own'],
+            ['param' => 'division_target', 'unit' => 'money', 'controls' => 'own'],
             ['param' => 'min_monthly_volume', 'unit' => 'money', 'controls' => 'own'],
         ]],
-        ['id' => 'rank_join', 'rule' => 'rank_royalty', 'applies_to' => ['dealer'], 'numbers' => [
+        ['id' => 'sub_salary', 'rule' => 'sub_dealer_salary', 'applies_to' => ['sub_dealer'], 'numbers' => [
+            ['param' => 'tier1_volume', 'unit' => 'money', 'controls' => 'own'],
+            ['param' => 'tier1_pct', 'unit' => 'percent', 'controls' => 'own'],
+            ['param' => 'tier2_volume', 'unit' => 'money', 'controls' => 'own'],
+            ['param' => 'tier2_pct', 'unit' => 'percent', 'controls' => 'own'],
+            ['param' => 'tier3_volume', 'unit' => 'money', 'controls' => 'own'],
+            ['param' => 'tier3_pct', 'unit' => 'percent', 'controls' => 'own'],
+        ]],
+        ['id' => 'rank_join', 'rule' => 'rank_royalty', 'applies_to' => ['dealer', 'sub_dealer'], 'numbers' => [
             ['param' => 'mo_target', 'unit' => 'money', 'controls' => 'own'],
             ['param' => 'am_count', 'unit' => 'count', 'controls' => 'team_count'],
             ['param' => 'sm_count', 'unit' => 'count', 'controls' => 'team_count'],
             ['param' => 'me_count', 'unit' => 'count', 'controls' => 'team_count'],
             ['param' => 'qualification_depth', 'unit' => 'count', 'controls' => 'team_depth'],
         ]],
-        ['id' => 'rank_keep', 'rule' => 'rank_maintenance', 'applies_to' => ['dealer'], 'numbers' => [
-            ['param' => 'mo_min_monthly_volume', 'unit' => 'money', 'controls' => 'own'],
-            ['param' => 'am_min_monthly_volume', 'unit' => 'money', 'controls' => 'own'],
-            ['param' => 'sm_min_monthly_volume', 'unit' => 'money', 'controls' => 'own'],
-            ['param' => 'me_min_monthly_volume', 'unit' => 'money', 'controls' => 'own'],
-            ['param' => 'grace_period_days', 'unit' => 'days', 'controls' => 'time'],
+        // The rank royalty is paid at month end to rank holders who met their monthly target: a dealer's one target, or a
+        // sub-dealer's own royalty target. The old rank-keeping minimums (rank_maintenance) only apply to older orders.
+        ['id' => 'royalty', 'rule' => 'rank_royalty', 'applies_to' => ['dealer', 'sub_dealer'], 'numbers' => [
+            ['param' => 'sub_dealer_royalty_target', 'unit' => 'money', 'controls' => 'own'],
         ]],
-        ['id' => 'rank_bonus', 'rule' => 'rank_incentive', 'applies_to' => ['dealer'], 'numbers' => [
+        ['id' => 'rank_bonus', 'rule' => 'rank_incentive', 'applies_to' => ['dealer', 'sub_dealer'], 'numbers' => [
             ['param' => 'mo_bonus', 'unit' => 'money', 'controls' => 'reward'],
             ['param' => 'am_bonus', 'unit' => 'money', 'controls' => 'reward'],
             ['param' => 'sm_bonus', 'unit' => 'money', 'controls' => 'reward'],
