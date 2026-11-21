@@ -2,6 +2,7 @@
 
 namespace App\Domain\Finance;
 
+use App\Domain\Orders\OrderReturns;
 use App\Domain\Payouts\PayoutReceipts;
 use App\Domain\Security\SelfApproval;
 use App\Models\User;
@@ -69,6 +70,11 @@ final class TreasuryWork
             $tiles[] = $this->tile('payouts', '/payouts-hub', (int) DB::table('withdrawals')->where('status', 'requested')->count());
             $tiles[] = $this->tile('settlements', '/settlements', 0);
             $tiles = [...$tiles, ...$this->commissionTiles()];
+            // Paid money still on finished orders: shows only while there is some to give back.
+            $moneyBack = OrderReturns::moneyToGiveBack();
+            if ($moneyBack['count'] > 0) {
+                $tiles[] = $this->tile('money_back', '/orders?status='.OrderReturns::MoneyBackFilter, $moneyBack['count'], $moneyBack['amount'], null, true);
+            }
             $tiles[] = $this->tile('rewards', '/operations/reserve-payouts', (int) DB::table('reserve_disbursements')->where('status', 'requested')->where('program', '!=', FundSpending::Program)->count());
             $tiles[] = $this->tile('bank', '/operations/accounting', 0);
             $tiles[] = $this->tile('opening', '/operations/financial-readiness', 0);

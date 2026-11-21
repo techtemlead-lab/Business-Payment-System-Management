@@ -10,6 +10,7 @@ use App\Domain\Orders\DeliveredMoney;
 use App\Domain\Orders\OrderLines;
 use App\Domain\Orders\OrderListFigures;
 use App\Domain\Orders\OrderListFilter;
+use App\Domain\Orders\OrderReturns;
 use App\Domain\Orders\OverdueDeliveries;
 use App\Domain\Orders\ShipmentTracking;
 use App\Models\Order;
@@ -127,6 +128,10 @@ final class OrdersSection implements WorkspaceSection
             if ($context->isStaff) {
                 $totals = $props['order_totals'];
                 $props['orders_table'] = $this->tableFacts($request, $sorts, $sort, $direction, ['count' => $totals['orders'], 'capped' => false, 'sums' => $this->tableSums($totals)], ['buyer_role', 'branch_id']);
+                // Finished orders still holding paid money for the partner, under the other filters on screen.
+                $props['money_back_count'] = app(OrderListFilter::class)
+                    ->apply(clone $context->orders, $request->duplicate([...$request->except('status'), 'status' => OrderReturns::MoneyBackFilter]), $context->section, $context->isStaff)
+                    ->toBase()->reorder()->count();
             }
         }
         if ($context->section === 'deliveries') {

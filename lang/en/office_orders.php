@@ -37,4 +37,5 @@ return [
     'stage_with_courier' => 'With courier',
     'col_address' => 'Address',
     'col_mrp' => 'MRP',
+    'money_back' => 'Money to give back',
 ];

@@ -6899,4 +6899,5 @@ return [
     'event_finance_fund_spend_owner_limit_changed' => 'Owner limit for fund spending changed',
     'filter_label_dates' => 'Dates',
     'filter_label_partner' => 'Partner type',
+    'ops_chk_paid_left_on_closed_orders' => 'No paid money left on closed orders',
 ];

@@ -6,6 +6,7 @@ use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Commissions\RetainedFundLedger;
 use App\Domain\Integrations\IntegrationSettings;
+use App\Domain\Orders\OrderReturns;
 use App\Domain\Security\SelfApproval;
 use App\Models\User;
 use App\Support\Audit;
@@ -94,7 +95,19 @@ final class FinancialReadiness
             // The owners' benefits fund rows add up to what each batch left unallocated.
             'benefits_fund_batches' => ! DB::table('commission_batches as b')
                 ->whereRaw("GREATEST(b.unallocated,0) <> COALESCE((SELECT SUM(COALESCE(a.original_amount,a.amount)) FROM commission_allocations a WHERE a.order_id=b.order_id AND a.category = ? AND a.metadata->>'source_allocation_id' IS NULL),0)", [RetainedFundLedger::BenefitsCategory])->exists(),
+            // No credit buying: a finished order holds no paid money beyond the goods the partner
+            // keeps, unless a cancel, return or refund for it is waiting for its approvals.
+            'paid_left_on_closed_orders' => ! $this->paidMoneyLeftOnClosedOrders(),
         ];
+    }
+
+    private function paidMoneyLeftOnClosedOrders(): bool
+    {
+        $orders = DB::table('orders as o')
+            ->whereNotExists(fn ($open) => $open->selectRaw('1')->from('order_return_requests as r')->whereColumn('r.order_id', 'o.id')->whereIn('r.status', OrderReturns::OpenStatuses));
+        OrderReturns::whereMoneyLeft($orders, 'o');
+
+        return $orders->exists();
     }
 
     private function fundBalancesAgree(): bool

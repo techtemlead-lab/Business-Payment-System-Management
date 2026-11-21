@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Orders\OrderInvoice;
 use App\Domain\Orders\OrderReturns;
+use App\Domain\Orders\OrderService;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
@@ -15,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
+use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -164,6 +166,10 @@ class OrderRocketAndAccountBalanceTest extends TestCase
         // The partner asks to cancel; money was taken, so the office decides and returns the account part.
         $asked = app(OrderReturns::class)->ask($dealer, $order, OrderReturns::KindCancel, [], 'I do not need it any more');
         $this->assertFalse($asked['cancelled_now']);
+        // The Rocket payment is still unchecked: the money may have arrived, so it is decided first.
+        $this->assertThrows(fn () => app(OrderReturns::class)->approve($owner, (int) $asked['id'], '150.00', OrderReturns::MethodAccount, null, 'Return the account part'), ValidationException::class);
+        $claim = (int) DB::table('payment_claims')->where('order_id', $order->id)->where('channel', 'Rocket')->value('id');
+        app(OrderService::class)->verify(User::factory()->staff('finance')->create(), $claim, false, 'No such Rocket payment arrived');
         app(OrderReturns::class)->approve($owner, (int) $asked['id'], '150.00', OrderReturns::MethodAccount, null, 'Return the account part');
 
         $this->assertSame('cancelled', $order->fresh()->status);
