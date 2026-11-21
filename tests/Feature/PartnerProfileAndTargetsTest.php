@@ -123,16 +123,17 @@ class PartnerProfileAndTargetsTest extends TestCase
         $targets = app(PartnerMonthlyTargets::class);
 
         $default = collect($targets->for($dealer, '2026-11'))->keyBy('kind');
-        $this->assertSame('10000.00', $default['salary']['target']);
+        // The company rule: a dealer's monthly purchase target is ৳30,000 unless the owner sets another (2026-11-21).
+        $this->assertSame('30000.00', $default['salary']['target']);
         $this->assertNull($default['salary']['override']);
 
         $this->actingAs($owner)->onPortal('sadmin')->post('/commands/accounts/'.$dealer->id.'/monthly-targets', ['month' => '2026-11', 'kind' => 'salary', 'amount' => '25000', 'note' => 'Bigger shop'])->assertRedirect();
 
         $own = collect($targets->for($dealer, '2026-11'))->keyBy('kind')['salary'];
         $this->assertSame('25000.00', $own['target']);
-        $this->assertSame('10000.00', $own['default_target']);
+        $this->assertSame('30000.00', $own['default_target']);
         $this->assertSame('Bigger shop', $own['note']);
-        $this->assertSame('10000.00', collect($targets->for($dealer, '2026-10'))->keyBy('kind')['salary']['target'], 'Another month keeps the company rule.');
+        $this->assertSame('30000.00', collect($targets->for($dealer, '2026-10'))->keyBy('kind')['salary']['target'], 'Another month keeps the company rule.');
         $this->assertDatabaseHas('audit_events', ['action' => 'partner.target_set', 'subject' => (string) $dealer->id]);
 
         $home = collect(app(PartnerDashboardHome::class)->for($dealer)['targets'])->keyBy('key');
@@ -140,7 +141,7 @@ class PartnerProfileAndTargetsTest extends TestCase
         $this->assertArrayNotHasKey('royalty_volume', $home, 'The card lists only monthly progress, salary and rank.');
 
         $this->actingAs($owner)->onPortal('sadmin')->post('/commands/accounts/'.$dealer->id.'/monthly-targets/clear', ['month' => '2026-11', 'kind' => 'salary'])->assertRedirect();
-        $this->assertSame('10000.00', collect($targets->for($dealer, '2026-11'))->keyBy('kind')['salary']['target']);
+        $this->assertSame('30000.00', collect($targets->for($dealer, '2026-11'))->keyBy('kind')['salary']['target']);
         $this->assertDatabaseHas('audit_events', ['action' => 'partner.target_cleared', 'subject' => (string) $dealer->id]);
     }
 
