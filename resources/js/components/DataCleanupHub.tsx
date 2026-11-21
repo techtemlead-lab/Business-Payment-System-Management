@@ -5,6 +5,7 @@ import { dateTime, Pagination, type Row } from './UI';
 import OfficePage from './office/OfficePage';
 import { settingsBack } from './office/sections/SettingsForm';
 import { useT } from '../shared/i18n/t';
+import FilterPicker from './FilterChips';
 
 type CleanupRow = { ref: string; kind: string; label: string; detail: string | null; happened_at: string };
 
@@ -85,12 +86,17 @@ export default function DataCleanupHub({ data }: { data?: CleanupData | null }) 
         >
             <div className="cleanup-hub" data-tour="data-cleanup">
                 <form className="cleanup-filters" onSubmit={applyFilters}>
-                    <label>{translate('portal', 'cleanup_filter_kind')}
-                        <select value={kind} onChange={(event) => setKind(event.target.value)}>
-                            <option value="">{translate('portal', 'cleanup_kind_all')}</option>
-                            {data.kinds.map((name) => <option key={name} value={name}>{translate('portal', `cleanup_kind_${name}`)} ({data.counts[name] ?? 0})</option>)}
-                        </select>
-                    </label>
+                    <FilterPicker
+                        label={translate('portal', 'cleanup_filter_kind')}
+                        allLabel={translate('portal', 'cleanup_kind_all')}
+                        value={kind}
+                        onChange={(value) => {
+                            setKind(value);
+                            setSelected(new Set());
+                            router.get(`${base}/data-cleanup`, Object.fromEntries(Object.entries({ kind: value, older_than_days: days }).filter(([, entry]) => entry !== '')), { preserveScroll: true });
+                        }}
+                        options={data.kinds.map((name) => ({ value: name, label: `${translate('portal', `cleanup_kind_${name}`)} (${data.counts[name] ?? 0})` }))}
+                    />
                     <label>{translate('portal', 'cleanup_filter_days')}
                         <input type="number" min={0} max={3650} inputMode="numeric" value={days} onChange={(event) => setDays(event.target.value)} />
                     </label>
