@@ -7,9 +7,11 @@ use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Inventory\BranchScope;
 use App\Domain\Payouts\ManualPayoutService;
+use App\Domain\Payouts\OfficePayouts;
 use App\Domain\Payouts\PayoutBatchFiles;
 use App\Domain\Payouts\PayoutLimits;
 use App\Domain\Payouts\PayoutReturns;
+use App\Domain\Payouts\WithdrawalMethods;
 use App\Support\Money;
 use App\Support\MoneyTable;
 use App\Support\MoneyTableFilter;
@@ -33,10 +35,15 @@ final class WithdrawalsSection implements WorkspaceSection
         }
         $finance = $context->request->user()->allows('finance');
 
+        $officePayouts = app(OfficePayouts::class)->list($context->request->user(), $context->branchScope);
+
         return [
             'payment_accounts' => $finance ? app(PaymentAccounts::class)->listing($context->request->user(), false, false) : [],
             'payout_batches' => $finance ? app(PayoutBatchFiles::class)->recent() : [],
             ...$this->payoutsHub($context->request, $context->branchScope),
+            // Office withdrawals (cash at the office): the payout-day list staff hand the money over from.
+            'office_payouts' => $officePayouts,
+            'office_cash_total' => Money::decimal(OfficePayouts::cashToHandOver($officePayouts)),
         ];
     }
 
@@ -59,7 +66,7 @@ final class WithdrawalsSection implements WorkspaceSection
                 ['value' => 'in_file', 'label' => (string) __('payouts.bank_file_in')],
                 ['value' => 'not_in_file', 'label' => (string) __('payouts.bank_file_not_in')],
             ]),
-            new MoneyTableFilter('channel', (string) __('portal.pay_col_method'), 'withdrawals.channel', array_map(fn (string $channel): array => ['value' => $channel, 'label' => (string) __('portal.pay_channel_'.strtolower($channel))], PaymentAccounts::channels())),
+            new MoneyTableFilter('channel', (string) __('portal.pay_col_method'), 'withdrawals.channel', array_map(fn (string $channel): array => ['value' => $channel, 'label' => (string) __('portal.pay_channel_'.strtolower($channel))], WithdrawalMethods::all())),
             new MoneyTableFilter('buyer_role', (string) __('treasury.filter_buyer_role'), 'users.role', [
                 ['value' => 'dealer', 'label' => (string) __('portal.acct_role_dealer')],
                 ['value' => 'sub_dealer', 'label' => (string) __('portal.acct_role_sub_dealer')],
@@ -153,7 +160,7 @@ final class WithdrawalsSection implements WorkspaceSection
             'withheld_amount' => $row->withheld_amount,
             'net_amount' => $row->net_amount,
             'channel' => $row->channel,
-            'destination_masked' => $this->maskedDestination(is_string($row->destination) ? $row->destination : null),
+            'destination_masked' => $row->channel === WithdrawalMethods::Office ? (string) __('office_withdrawal.destination_office') : $this->maskedDestination(is_string($row->destination) ? $row->destination : null),
             'status' => $row->status,
             'reason' => $row->reason,
             'payment_reference' => $row->payment_reference,

@@ -69,6 +69,8 @@ class ManualPayoutService
         // already went through is not refused: it just returns the existing one.
         $replay = DB::table('withdrawals')->where('user_id', $actor->id)->where('idempotency_key', $data['idempotency_key'])->exists();
         if (! $replay) {
+            app(WithdrawalWeek::class)->refuseOutsideWindow($actor);
+            app(WithdrawalMethods::class)->refuseOff((string) ($data['channel'] ?? ''));
             app(WithdrawalSecurityWait::class)->refuseWhileWaiting($actor);
         }
 

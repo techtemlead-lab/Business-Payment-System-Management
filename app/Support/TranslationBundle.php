@@ -39,6 +39,7 @@ final class TranslationBundle
         'special_rates' => 'special_rates',
         'order_money' => 'order_money',
         'order_delivery' => 'order_delivery',
+        'office_withdrawal' => 'office_withdrawal',
     ];
 
     /** @var array<string, string> */

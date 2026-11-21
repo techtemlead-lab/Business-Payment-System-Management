@@ -256,6 +256,7 @@ return function (string $portal): void {
     Route::post('/commands/withdrawals/{id}/returned', [WithdrawalController::class, 'recordReturn'])->whereUuid('id');
     Route::post('/commands/withdrawals/{id}/returned/confirm', [WithdrawalController::class, 'confirmReturn'])->whereUuid('id');
     Route::post('/commands/withdrawals/{id}/returned/cancel', [WithdrawalController::class, 'cancelReturn'])->whereUuid('id');
+    Route::post('/commands/withdrawals/{id}/hand-over', [WithdrawalController::class, 'handOver'])->whereUuid('id')->middleware('throttle:30,1');
     Route::post('/commands/policies/{id}/publish', [CommandController::class, 'publishPolicy']);
     Route::post('/commands/commissions/rules', [CommandController::class, 'updateCommissionRules']);
     Route::post('/commands/commissions/settle-salary', [CommandController::class, 'settleSalaryPool']);
