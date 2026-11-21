@@ -72,7 +72,7 @@
             <a href="{{ \App\Support\PortalHost::homeUrl(auth()->user()) }}" class="ref-header-account"><i class="fa-solid fa-user-check" aria-hidden="true"></i><b>{{ auth()->user()->name }}</b></a>
             <form method="POST" action="/logout" class="ref-logout-form"><input type="hidden" name="_token" value="{{ csrf_token() }}"><button type="submit" class="ref-header-logout-btn" title="{{ __('site.log_out') }}" aria-label="{{ __('site.log_out') }}"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i><b>{{ __('site.log_out') }}</b></button></form>
             @else
-            <a href="/login"><i class="fa-solid fa-user" aria-hidden="true"></i><b>{{ $chrome('account', $siteCustomization['header_account_title'] ?? null) }}</b></a>
+            <a href="{{ $site('/login') }}"><i class="fa-solid fa-user" aria-hidden="true"></i><b>{{ $chrome('account', $siteCustomization['header_account_title'] ?? null) }}</b></a>
             @endauth
             <button type="button" class="ref-theme-toggle" data-theme-toggle data-label-day="{{ __('site.day_mode') }}" data-label-night="{{ __('site.night_mode') }}" aria-label="{{ __('site.night_mode') }}" title="{{ __('site.night_mode') }}">
                 <span class="theme-icon-day" aria-hidden="true">
@@ -206,11 +206,11 @@
                 </button>
             </form>
             @else
-            <a href="/login" class="ref-drawer-btn ref-drawer-btn-primary">
+            <a href="{{ $site('/login') }}" class="ref-drawer-btn ref-drawer-btn-primary">
                 <i class="fa-solid fa-user"></i> {{ $chrome('account_sub', $siteCustomization['header_account_subtitle'] ?? null) }}
             </a>
             @if(($publicPageEnabled['partnership'] ?? true) || ($publicPageEnabled['contact'] ?? true))
-            <a href="{{ ($publicPageEnabled['partnership'] ?? true) ? '/partnership' : '/contact#vendor' }}" class="ref-drawer-btn ref-drawer-btn-secondary">
+            <a href="{{ $site(($publicPageEnabled['partnership'] ?? true) ? '/partnership' : '/contact#vendor') }}" class="ref-drawer-btn ref-drawer-btn-secondary">
                 <i class="fa-solid fa-handshake"></i> {{ $chrome('become_a_partner', $siteCustomization['header_partner_title'] ?? null) }}
             </a>
             @endif
