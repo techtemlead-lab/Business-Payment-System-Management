@@ -20,7 +20,7 @@ use RuntimeException;
  * the office to fill in. Running it again changes nothing.
  */
 /**
- * @phpstan-type PlaceSummary array{created: int, coded: int, filled: int, linked: int, codes_taken: list<string>, by_level: array<string, array<string, int>>, conflicts: list<array{code: string, level: string, name: string, held_by: string}>, base_empty: list<array{code: string, level: string, name: string, reason: string, candidates: list<string>, parent: string}>, base_set_list: list<array{code: string, level: string, name: string, base: string, rule: string}>}
+ * @phpstan-type PlaceSummary array{created: int, coded: int, filled: int, linked: int, codes_taken: list<string>, by_level: array<string, array<string, int>>, conflicts: list<array{code: string, level: string, name: string, held_by: string}>, base_empty: list<array{code: string, level: string, name: string, reason: string, candidates: list<string>, parent: string}>, base_set_list: list<array{code: string, level: string, name: string, base: string, rule: string}>, upazilas: array{real: int, with_base: int, without_base: int, reasons: array<string, int>}, fixes: list<array{step: string, code: string, name: string, status: string, detail: string}>}
  */
 final class DefaultPlaceCatalog
 {
@@ -103,7 +103,9 @@ final class DefaultPlaceCatalog
      */
     private function fill(array $payload): array
     {
-        $summary = ['created' => 0, 'coded' => 0, 'filled' => 0, 'linked' => 0, 'codes_taken' => [], 'by_level' => [], 'conflicts' => [], 'base_empty' => [], 'base_set_list' => []];
+        $summary = ['created' => 0, 'coded' => 0, 'filled' => 0, 'linked' => 0, 'codes_taken' => [], 'by_level' => [], 'conflicts' => [], 'base_empty' => [], 'base_set_list' => [], 'upazilas' => ['real' => 0, 'with_base' => 0, 'without_base' => 0, 'reasons' => []], 'fixes' => []];
+        // Corrections of the older list first (moves, duplicate copies, metropolitan-area base places), so the matching below sees the right structure.
+        $summary['fixes'] = (new PlaceDataFixes)->apply();
         foreach (PlaceCode::Levels as $level) {
             $summary['by_level'][$level] = ['created' => 0, 'coded' => 0, 'taken' => 0, 'other_code' => 0, 'base_set' => 0];
         }
@@ -309,8 +311,8 @@ final class DefaultPlaceCatalog
     }
 
     /**
-     * Upazila headquarters unions found in public sources (database/data/bangladesh-upazila-headquarters.json),
-     * only the entries an authoritative source states outright (confidence high).
+     * Upazila headquarters unions of database/data/bangladesh-upazila-headquarters.json: every entry that names one,
+     * whatever its confidence (low ones are marked in the file, and chosen by rule when no source was found).
      *
      * @return array<string, string> Upazila code => union as the source writes it
      */
@@ -324,12 +326,22 @@ final class DefaultPlaceCatalog
         $data = json_decode((string) file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
         $map = [];
         foreach ($data['upazilas'] ?? [] as $row) {
-            if ($row['confidence'] === 'high' && is_string($row['hq_union']) && $row['hq_union'] !== '') {
+            if (is_string($row['hq_union']) && $row['hq_union'] !== '') {
                 $map[$row['code']] = $row['hq_union'];
             }
         }
 
         return $map;
+    }
+
+    /**
+     * Rows of the place list that are not what they look like, for the owner's review (nothing is changed).
+     *
+     * @return list<array{issue: string, code: string, name: string, parent: string, detail: string}>
+     */
+    public function placeListIssues(): array
+    {
+        return (new PlaceListChecks)->review($this->payload()['places']);
     }
 
     /**
@@ -416,6 +428,22 @@ final class DefaultPlaceCatalog
                 continue;
             }
             $summary['base_empty'][] = ['code' => $place['code'], 'level' => $place['level'], 'name' => $place['name'], 'reason' => $emptyReason[$place['code']], 'candidates' => $candidates[$place['code']] ?? [], 'parent' => $parentNames[(string) $place['parent_code']] ?? ''];
+        }
+
+        // The honest count: only real upazilas (not the metropolitan areas typed as upazila in the list).
+        foreach ($payload['places'] as $place) {
+            if ($place['level'] !== PlaceCode::LevelUpazila || ($place['kind'] ?? 'upazila') !== 'upazila') {
+                continue;
+            }
+            $placeId = $idBySource[$place['code']] ?? null;
+            $summary['upazilas']['real']++;
+            if ($placeId !== null && $rows[$placeId]->base_place_id !== null) {
+                $summary['upazilas']['with_base']++;
+            } else {
+                $summary['upazilas']['without_base']++;
+                $reason = $emptyReason[$place['code']] ?? 'no_match';
+                $summary['upazilas']['reasons'][$reason] = ($summary['upazilas']['reasons'][$reason] ?? 0) + 1;
+            }
         }
     }
 
