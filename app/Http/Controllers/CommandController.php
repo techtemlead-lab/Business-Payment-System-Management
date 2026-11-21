@@ -10,6 +10,7 @@ use App\Domain\Accounts\PartnerAge;
 use App\Domain\Accounts\PartnerBenefitControls;
 use App\Domain\Accounts\PartnerCreateMedia;
 use App\Domain\Accounts\PartnerKycDocuments;
+use App\Domain\Accounts\PartnerProfileCard;
 use App\Domain\Accounts\PartnerProfileLock;
 use App\Domain\Accounts\PasswordAccess;
 use App\Domain\Accounts\PasswordResetOwnerNotice;
@@ -360,7 +361,9 @@ class CommandController extends Controller
         $d = $r->validate(['status' => 'sometimes|in:active,suspended', 'name' => 'sometimes|required|string|max:150', 'dealer_code' => 'sometimes|'.($isPartner ? 'required' : 'nullable').'|string|max:40|unique:users,dealer_code,'.$user->id, 'phone' => 'sometimes|required|string|max:30', 'division' => 'nullable|string|max:80', 'district' => 'nullable|string|max:80', 'place_code' => [$isPartner ? 'sometimes' : 'prohibited', 'nullable', 'string', 'max:32'], 'latitude' => 'sometimes|nullable|numeric|between:-90,90', 'longitude' => 'sometimes|nullable|numeric|between:-180,180', 'sponsor_id' => 'sometimes|nullable|integer|exists:users,id', 'directory_visible' => 'sometimes|boolean', 'reason' => ReasonFields::rule($isPartner ? 'partner.account_edit' : 'staff.account_edit', 1000),
             'permissions' => [Rule::prohibitedIf($r->user()->role !== 'super_admin' || ! in_array($user->role, ['employee', 'sr'], true)), 'sometimes', 'nullable', 'array'],
             'permissions.*' => ['string', Rule::in(config($user->role === 'sr' ? 'madina.roles.sr' : 'madina.roles.super_admin'))],
-            'profile' => 'sometimes|array:name_bn,father_name,mother_name,village,post_office,upazila,union,pharmacy,shop_name,area_code', 'profile.name_bn' => 'nullable|string|max:150', 'profile.father_name' => 'nullable|string|max:150', 'profile.mother_name' => 'nullable|string|max:150', 'profile.village' => 'nullable|string|max:150', 'profile.post_office' => 'nullable|string|max:150', 'profile.upazila' => 'nullable|string|max:150', 'profile.union' => 'nullable|string|max:150', 'profile.pharmacy' => 'nullable|string|max:150', 'profile.shop_name' => 'nullable|string|max:150', 'profile.area_code' => 'nullable|string|max:80', 'nid' => 'sometimes|nullable|string|max:30']);
+            'profile' => 'sometimes|array:name_bn,father_name,mother_name,village,post_office,upazila,union,pharmacy,shop_name,area_code', 'profile.name_bn' => 'nullable|string|max:150', 'profile.father_name' => 'nullable|string|max:150', 'profile.mother_name' => 'nullable|string|max:150', 'profile.village' => 'nullable|string|max:150', 'profile.post_office' => 'nullable|string|max:150', 'profile.upazila' => 'nullable|string|max:150', 'profile.union' => 'nullable|string|max:150', 'profile.pharmacy' => 'nullable|string|max:150', 'profile.shop_name' => 'nullable|string|max:150', 'profile.area_code' => 'nullable|string|max:80', 'nid' => 'sometimes|nullable|string|max:30',
+            // A new permanent (home) address for a partner: the deepest place picked, an upazila or a union.
+            'permanent_place_id' => [$isPartner ? 'sometimes' : 'prohibited', 'nullable', 'integer']]);
         if ($r->has('sponsor_id')) {
             $newSponsorId = ! empty($d['sponsor_id']) ? (int) $d['sponsor_id'] : null;
             if ($newSponsorId) {
@@ -395,6 +398,12 @@ class CommandController extends Controller
             $d['profile'] = array_merge($existing, $incoming);
         }
         unset($d['permissions']);
+        // Same rule as on the add-partner form: down to the upazila at least; nothing picked keeps the saved one.
+        $newHome = $isPartner && filled($d['permanent_place_id'] ?? null) ? $partners->permanentAddress($d['permanent_place_id']) : [];
+        unset($d['permanent_place_id']);
+        if ($newHome !== []) {
+            $d['profile'] = [...(is_array($d['profile'] ?? null) ? $d['profile'] : ($user->profile ?? [])), ...$newHome];
+        }
         if (array_key_exists('phone', $d)) {
             $phones = app(AccountPhoneRules::class);
             $newPhone = $phones->normalize($d['phone']);
@@ -426,11 +435,13 @@ class CommandController extends Controller
         $sponsorChange = null;
         $directoryChange = null;
         $phoneChange = null;
-        DB::transaction(function () use ($r, $user, $d, $partners, $isPartner, $placeCode, &$statusChange, &$sponsorChange, &$directoryChange, &$phoneChange) {
+        DB::transaction(function () use ($r, $user, $d, $partners, $isPartner, $placeCode, $newHome, &$statusChange, &$sponsorChange, &$directoryChange, &$phoneChange) {
             CommissionWallet::lock();
             $reason = ReasonFields::text($d['reason'] ?? null);
             unset($d['reason']);
             $locked = User::whereKey($user->id)->lockForUpdate()->firstOrFail();
+            $homePlaces = static fn (array $home): array => array_intersect_key($home, array_flip(['division', 'district', 'upazila', 'union']));
+            $homeBefore = $homePlaces(PartnerProfileCard::permanentAddress(PartnerProfileLock::profileOf($locked)));
             $previousStatus = (string) $locked->status;
             $previousSponsorId = $locked->sponsor_id !== null ? (int) $locked->sponsor_id : null;
             $previousDirectoryVisible = (bool) $locked->directory_visible;
@@ -495,6 +506,12 @@ class CommandController extends Controller
                 app(WithdrawalHolds::class)->releaseForPartner($r->user(), $locked->id, __('payouts.event_hold_reactivated'));
             }
             Audit::record($r->user()->id, 'account.updated', (string) $user->id, ['fields' => array_keys($d), 'changes' => $tracedChanges, 'reason' => $reason]);
+            if ($newHome !== []) {
+                $homeAfter = $homePlaces(PartnerProfileCard::permanentAddress(PartnerProfileLock::profileOf($locked)));
+                if ($homeAfter !== $homeBefore) {
+                    Audit::record($r->user()->id, 'account.permanent_address_updated', (string) $user->id, ['before' => $homeBefore, 'after' => $homeAfter, 'reason' => $reason]);
+                }
+            }
             if ($isPartner && array_key_exists('status', $d) && $previousStatus !== (string) $d['status']) {
                 $statusChange = [
                     'from' => $previousStatus,

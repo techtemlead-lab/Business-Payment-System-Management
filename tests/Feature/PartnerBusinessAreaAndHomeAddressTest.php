@@ -289,6 +289,66 @@ class PartnerBusinessAreaAndHomeAddressTest extends TestCase
         $this->assertSame('Nayabari', $card['biodata']['full_address']);
     }
 
+    public function test_the_office_changes_a_partners_permanent_address_and_it_is_audited(): void
+    {
+        $dealer = $this->dealerWithHome();
+        $owner = User::query()->where('role', 'super_admin')->firstOrFail();
+        $rajshahi = PlaceCode::query()->where('code', 'MNHC104')->firstOrFail();
+        $bogura = PlaceCode::factory()->district($rajshahi)->create(['code' => 'MNHC304', 'name' => 'Bogura']);
+        $sherpur = PlaceCode::factory()->upazila($bogura)->create(['code' => 'MNHC404', 'name' => 'Sherpur']);
+
+        $this->actingAs($owner)->onPortal('sadmin')->patch('/commands/accounts/'.$dealer->id, [
+            'permanent_place_id' => $sherpur->id,
+            'reason' => 'Moved home',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $profile = $dealer->fresh()->profile;
+        $this->assertSame(['Rajshahi', 'Bogura', 'Sherpur', ''], [$profile['permanent_division'], $profile['permanent_district'], $profile['permanent_upazila'], $profile['permanent_union']]);
+        // The business area and the village are not touched.
+        $this->assertSame('Pirganj', $profile['upazila']);
+        $this->assertSame('MNHC402', $profile['place_code']);
+        $this->assertSame('Ratanpur, House 12', $profile['village']);
+
+        $audit = DB::table('audit_events')->where('action', 'account.permanent_address_updated')->where('subject', (string) $dealer->id)->sole();
+        $payload = json_decode((string) $audit->metadata, true);
+        $this->assertSame(['division' => 'Dhaka', 'district' => 'Gazipur', 'upazila' => 'Kaliakair', 'union' => 'Chapair'], $payload['before']);
+        $this->assertSame(['division' => 'Rajshahi', 'district' => 'Bogura', 'upazila' => 'Sherpur', 'union' => null], $payload['after']);
+    }
+
+    public function test_the_editor_keeps_the_same_rule_and_leaves_the_address_alone_when_nothing_is_picked(): void
+    {
+        $dealer = $this->dealerWithHome();
+        $owner = User::query()->where('role', 'super_admin')->firstOrFail();
+
+        $this->actingAs($owner)->onPortal('sadmin')->patch('/commands/accounts/'.$dealer->id, [
+            'permanent_place_id' => $this->home['district']->id,
+            'reason' => 'Stops at the district',
+        ])->assertSessionHasErrors(['permanent_place_id' => __('portal.acct_val_home_place_level')]);
+
+        $this->actingAs($owner)->onPortal('sadmin')->patch('/commands/accounts/'.$dealer->id, [
+            'name' => 'Renamed Partner',
+            'reason' => 'Name only',
+        ])->assertSessionHasNoErrors();
+
+        $profile = $dealer->fresh()->profile;
+        $this->assertSame('Chapair', $profile['permanent_union']);
+        $this->assertSame(0, DB::table('audit_events')->where('action', 'account.permanent_address_updated')->count());
+
+        $staff = User::factory()->create(['role' => 'employee']);
+        $this->actingAs($owner)->onPortal('sadmin')->patch('/commands/accounts/'.$staff->id, [
+            'permanent_place_id' => $this->home['upazila']->id,
+            'reason' => 'Not for staff',
+        ])->assertSessionHasErrors('permanent_place_id');
+    }
+
+    public function test_the_account_editor_has_the_permanent_address_lists(): void
+    {
+        $editor = (string) file_get_contents(resource_path('js/components/AccountEditor.tsx'));
+
+        $this->assertStringContainsString('<PlacePickers', $editor);
+        $this->assertStringContainsString('permanent_place_id', $editor);
+    }
+
     private function dealerWithHome(): User
     {
         $this->asOwner()->post('/commands/accounts', $this->payload([

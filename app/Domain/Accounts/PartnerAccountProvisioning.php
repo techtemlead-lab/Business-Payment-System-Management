@@ -280,13 +280,14 @@ final class PartnerAccountProvisioning
      * The partner's permanent (home) address, kept apart from the business area that sets the code.
      * The office picks the places down to the upazila, or the union; the names are read from the
      * place list by walking up from the picked place, never down to a base place, so a home on an
-     * upazila is never given a union nobody chose. Nothing chosen: nothing is saved.
+     * upazila is never given a union nobody chose. Nothing chosen: nothing is saved. The account
+     * editor uses the same rule when the office changes a partner's permanent address.
      *
      * @return array<string, string> The profile keys to save
      *
      * @throws ValidationException when the place is unknown or not an upazila or union
      */
-    private function permanentAddress(mixed $placeId): array
+    public function permanentAddress(mixed $placeId): array
     {
         if ($placeId === null || $placeId === '') {
             return [];
