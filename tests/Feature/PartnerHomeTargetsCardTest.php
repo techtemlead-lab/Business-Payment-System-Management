@@ -10,6 +10,7 @@ use App\Domain\Orders\OrderService;
 use App\Models\DealerRank;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\RewardMilestoneProgress;
 use App\Models\ReferralTreePath;
 use App\Models\User;
 use App\Support\DashboardManagement;
@@ -104,6 +105,27 @@ class PartnerHomeTargetsCardTest extends TestCase
 
         $this->assertSame('met', $met['salary_state']['state']);
         $this->assertSame(__('portal.target_salary_state_met_hint'), $met['salary_state']['hint']);
+    }
+    public function test_the_card_shows_the_bike_first_and_the_car_only_once_the_bike_target_is_full(): void
+    {
+        $dealer = User::factory()->create();
+        ReferralTreePath::attachUser($dealer->id, null);
+        $keys = fn (): array => array_column(app(PartnerDashboardHome::class)->for($dealer->fresh())['targets'], 'key');
+
+        $this->assertContains('bike_incentive', $keys());
+        $this->assertNotContains('car_incentive', $keys());
+
+        RewardMilestoneProgress::query()->forceCreate(['user_id' => $dealer->id, 'milestone_type' => 'bike', 'target_amount' => '5000000.00', 'leg_cap_amount' => '800000.00', 'qualifying_volume' => '4999999.00']);
+        $this->assertContains('bike_incentive', $keys(), 'Bike progress remains, so no car row yet.');
+        $this->assertNotContains('car_incentive', $keys());
+
+        RewardMilestoneProgress::query()->where('user_id', $dealer->id)->where('milestone_type', 'bike')->update(['qualifying_volume' => '5000000.00']);
+        RewardMilestoneProgress::query()->forceCreate(['user_id' => $dealer->id, 'milestone_type' => 'car', 'target_amount' => '250000000.00', 'leg_cap_amount' => '20000000.00', 'qualifying_volume' => '1000000.00']);
+        $targets = collect(app(PartnerDashboardHome::class)->for($dealer->fresh())['targets'])->keyBy('key');
+
+        $this->assertNotContains('bike_incentive', $keys());
+        $this->assertSame('1000000.00', $targets['car_incentive']['current']);
+        $this->assertSame('250000000.00', $targets['car_incentive']['target']);
     }
     public function test_opening_the_home_page_does_not_write_a_rank_row(): void
     {

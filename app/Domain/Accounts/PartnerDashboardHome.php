@@ -294,19 +294,26 @@ final class PartnerDashboardHome
                 ->where('user_id', $user->id)
                 ->whereIn('milestone_type', ['bike', 'car'])
                 ->get()->keyBy('milestone_type');
-            $bike = $this->vehicleRows->get('bike');
-            $bikeCurrent = Money::cents((string) ($bike === null
-                ? $this->qualification->milestone($user->id, 'bike')['qualifying_volume']
-                : $bike->qualifying_volume));
+            // One reward row at a time: the bike first; the car starts only once the bike target is full.
             $bikeTarget = Money::cents((string) $rules['car_bike_incentive']['parameters']['bike_target']);
-            $targets[] = $this->progress(
-                key: 'bike_incentive',
-                label: __('portal.target_bike_incentive'),
-                current: $bikeCurrent,
-                target: $bikeTarget,
-                hint: __('portal.target_bike_incentive_hint'),
-            );
-        }
+            $bikeCurrent = $this->vehicleVolume($user, 'bike');
+            if ($bikeTarget > 0 && $bikeCurrent >= $bikeTarget) {
+                $targets[] = $this->progress(
+                    key: 'car_incentive',
+                    label: __('portal.target_car_incentive'),
+                    current: $this->vehicleVolume($user, 'car'),
+                    target: Money::cents((string) $rules['car_bike_incentive']['parameters']['car_target']),
+                    hint: __('portal.target_car_incentive_hint'),
+                );
+            } else {
+                $targets[] = $this->progress(
+                    key: 'bike_incentive',
+                    label: __('portal.target_bike_incentive'),
+                    current: $bikeCurrent,
+                    target: $bikeTarget,
+                    hint: __('portal.target_bike_incentive_hint'),
+                );
+            }        }
 
         // The owner's own target for this dealer this month is put into the rows by the targets class.
         $targets = $user->role === 'dealer'
@@ -509,6 +516,15 @@ final class PartnerDashboardHome
         return $targets;
     }
 
+    /** The team volume that counts toward the bike or the car, from the row already read or worked out when there is none yet. */
+    private function vehicleVolume(User $user, string $type): int
+    {
+        $row = $this->vehicleRows?->get($type);
+
+        return Money::cents((string) ($row === null
+            ? $this->qualification->milestone($user->id, $type)['qualifying_volume']
+            : $row->qualifying_volume));
+    }
     /**
      * @return array{key: string, label: string, current: string, target: string, remaining: string, percent: float, hint: string}
      */

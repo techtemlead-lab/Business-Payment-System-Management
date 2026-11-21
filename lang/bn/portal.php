@@ -875,6 +875,8 @@ return [
     'target_highest_rank_hint' => 'সর্বোচ্চ র‍্যাঙ্ক পেয়েছেন।',
     'target_bike_incentive' => 'বাইক পুরস্কার',
     'target_bike_incentive_hint' => 'বাইক পুরস্কারের জন্য গোনা টিমের বিক্রি (প্রতি লাইনের সীমা ধরে)।',
+    'target_car_incentive' => 'গাড়ি পুরস্কার',
+    'target_car_incentive_hint' => 'গাড়ি পুরস্কারের জন্য গোনা টিমের বিক্রি। বাইক পুরস্কার পূর্ণ হওয়ার পর এটি শুরু হয়।',
     'view_all' => 'সব দেখুন',
     'csv_col_order' => 'অর্ডার',
     'csv_col_date_dhaka' => 'তারিখ (ঢাকা)',
