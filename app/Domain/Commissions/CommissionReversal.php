@@ -183,6 +183,9 @@ final class CommissionReversal
                 );
             }
             DB::table('commission_batches')->where('id', $batch->id)->update([...($noCommission ? ['no_commission' => true] : ['refunded_amount' => Money::decimal($after)]), 'updated_at' => now()]);
+            if (! $noCommission && $firstCommissionRow !== null) {
+                $this->placeRoundingPaisa($order, $id, (int) $firstCommissionRow);
+            }
             // A no-commission order already stopped counting, so a later refund has nothing to remove.
             $rank = $batch->no_commission ? null : DealerRank::where('user_id', $order->user_id)->lockForUpdate()->first();
             if ($rank) {
@@ -232,6 +235,53 @@ final class CommissionReversal
 
             return DB::table('commission_reversals')->where('refund_id', $id)->get()->map(fn ($row): array => (array) $row)->all();
         }, 3);
+    }
+
+    /**
+     * Owner's rule (2026-11-21): after a refund the order's money still adds up to the paisa. What the buyer still paid
+     * must equal the company share and the Commission extra fund (both worked out from the batch, as CompanyFunds does)
+     * plus every commission row of the order. Each of them is rounded on its own, so a few paisa can be left in no
+     * fund (or counted twice). Paisa left over go to the Commission extra fund (a split_remainder row with its own
+     * reason); paisa counted twice are taken from the order's largest company-held row (a fund no partner owns yet).
+     * The check runs on the order's whole state after every refund, so it never places the same paisa twice.
+     */
+    private function placeRoundingPaisa(Order $order, string $refundId, int $sourceRowId): void
+    {
+        $batch = DB::selectOne(
+            'SELECT cash_basis - refunded_amount AS net, ROUND(company_share * (cash_basis - refunded_amount) / NULLIF(cash_basis, 0), 2) AS company, '
+            .'ROUND(unallocated * (cash_basis - refunded_amount) / NULLIF(cash_basis, 0), 2) AS benefits FROM commission_batches WHERE order_id = ?',
+            [$order->id],
+        );
+        $rows = DB::table('commission_allocations')->where('order_id', $order->id)->where('status', '!=', 'reversed')
+            ->where(fn ($query) => $query
+                ->where(fn ($own) => $own->whereRaw("metadata->>'source_allocation_id' IS NULL")->where('category', '!=', RetainedFundLedger::BenefitsCategory))
+                ->orWhere('metadata->refund_rounding', true))
+            ->sum('amount');
+        $gap = Money::cents((string) $batch->net) - Money::cents((string) $batch->company) - Money::cents((string) $batch->benefits) - Money::cents((string) $rows);
+        if ($gap > 0) {
+            CommissionAllocation::create([
+                'order_id' => $order->id, 'user_id' => null, 'category' => RetainedFundLedger::BenefitsCategory, 'rate_percentage' => '0.00',
+                'cash_basis' => Money::decimal(Money::cents((string) $batch->net)), 'amount' => Money::decimal($gap), 'original_amount' => Money::decimal($gap), 'status' => 'reserved',
+                'metadata' => ['basis' => 'purchase_value', 'period_month' => CommissionQualification::currentMonth(), 'source_allocation_id' => $sourceRowId,
+                    'source' => CommissionSettlement::SplitRemainder, 'refund_rounding' => true, 'refund_id' => $refundId, 'retained_by' => 'owner_commission_benefits_fund',
+                    'owner_only' => true, 'reason_key' => 'money_core.reason_refund_rounding', 'reason' => __('money_core.reason_refund_rounding')],
+            ]);
+
+            return;
+        }
+        if ($gap < 0) {
+            $row = CommissionAllocation::where('order_id', $order->id)->whereNull('user_id')->whereIn('status', ['pending', 'reserved', 'unassigned_reserve'])
+                ->where('category', '!=', RetainedFundLedger::BenefitsCategory)->whereRaw("metadata->>'source_allocation_id' IS NULL")
+                ->where('amount', '>=', Money::decimal(-$gap))->orderByDesc('amount')->orderBy('id')->lockForUpdate()->first();
+            if ($row === null) {
+                report(new \RuntimeException('Refund rounding: no company-held row could take '.(-$gap).' paisa back on order '.$order->id));
+
+                return;
+            }
+            $row->update(['amount' => Money::decimal(Money::cents((string) $row->amount) + $gap)]);
+            DB::table('commission_reversals')->insert(['refund_id' => $refundId, 'allocation_id' => $row->id,
+                'amount' => Money::decimal(-$gap), 'source_status' => $row->status, 'created_at' => now(), 'updated_at' => now()]);
+        }
     }
 
     /**

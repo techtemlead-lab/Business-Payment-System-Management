@@ -111,4 +111,5 @@ return [
     'pr_cap_example' => 'Example: if one of your direct lines buys ৳:example, only up to ৳:cap of it counts toward the target. So one big order in one line cannot reach the target alone.',
     'pr_claim' => 'How to get it: no separate application is needed. When the target is reached the office will contact you, and once the office approves, the prize money is added to your wallet.',
     'reason_split_remainder' => 'Paisa left over when a salary or royalty fund was shared equally',
+    'reason_refund_rounding' => 'Paisa left over by rounding when an order was partly refunded',
 ];
