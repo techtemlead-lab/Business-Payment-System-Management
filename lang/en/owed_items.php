@@ -1,0 +1,23 @@
+<?php
+
+return [
+    'notice_title' => 'The company owes you goods',
+    'notice_body' => ':quantity pcs of :product from order #:number are out of stock now. Your payment is kept. They will be sent free with your next order.',
+    'company_owes' => 'Company owes you: :quantity pcs of :product (from order #:number)',
+    'company_owes_heading' => 'Goods the company owes you',
+    'staff_heading' => 'Goods still owed to this partner',
+    'list_heading' => 'Owed goods',
+    'invoice_label' => 'Owed items delivered (from order #:number)',
+    'record_button' => 'Owe it: send with the next order',
+    'record_note' => 'Why it is owed (short note)',
+    'ship_button' => 'Add the owed goods to this order',
+    'refund_button' => 'Refund instead of sending',
+    'refund_reason' => 'Reason for the refund',
+    'flash_recorded' => 'Owed goods recorded. The partner has been told.',
+    'flash_added' => ':count owed item(s) added to this order at zero price.',
+    'flash_refund_started' => 'The refund has been started.',
+    'err_not_partly_sent' => 'Goods can be owed only after part of the order was sent.',
+    'err_not_paid' => 'Goods can be owed only on an order paid in full. No goods on credit.',
+    'err_nothing_left' => 'Nothing is left to send on this line.',
+    'err_order_cannot_take' => 'This order cannot take more goods now.',
+];
