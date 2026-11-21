@@ -6,6 +6,7 @@ import PartnerBenefitControls from './PartnerBenefitControls';
 import PartnerProfileLock from './PartnerProfileLock';
 import PartnerPrescriberControls from './PartnerPrescriberControls';
 import PartnerAccountDelete from './PartnerAccountDelete';
+import ClosedAccountBalanceMove from './ClosedAccountBalanceMove';
 import NidReview from './NidReview';
 import AccountPasswordManager from './AccountPasswordManager';
 import { useT } from '../shared/i18n/t';
@@ -288,6 +289,7 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
         <PartnerBenefitControls account={account} />
         <PartnerProfileLock account={account} />
         <PartnerPrescriberControls account={account} />
+        <ClosedAccountBalanceMove account={account} />
         <PartnerAccountDelete account={account} onDone={onDone} />
     </>;
 }

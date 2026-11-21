@@ -252,4 +252,5 @@ return [
     'owner_limit_fund_spend_hint' => 'A spend from a company fund of this amount or more is approved only by the owner.',
     'flash_limit_saved_refund' => 'The refund limit is saved.',
     'flash_limit_saved_fund_spend' => 'The fund spending limit is saved.',
+    'account_closed_account_balance_income' => 'Money from closed accounts moved to the company',
 ];

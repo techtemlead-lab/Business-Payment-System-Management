@@ -6,6 +6,7 @@ use App\Http\Controllers\BanglaModelController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\BranchPerformanceExportController;
 use App\Http\Controllers\ClinicRecordsController;
+use App\Http\Controllers\ClosedAccountBalanceController;
 use App\Http\Controllers\CommandController;
 use App\Http\Controllers\CommissionPageController;
 use App\Http\Controllers\CourierShipmentController;
@@ -152,6 +153,8 @@ return function (string $portal): void {
     Route::patch('/commands/accounts/{user}', [CommandController::class, 'accountUpdate']);
     Route::delete('/commands/accounts/{user}', [PartnerAccountDeletionController::class, 'destroy'])->middleware('throttle:10,1');
     Route::get('/commands/accounts/{user}/deletion-check', [PartnerAccountDeletionController::class, 'show'])->middleware('throttle:60,1');
+    Route::get('/commands/accounts/{user}/closed-balance', [ClosedAccountBalanceController::class, 'show'])->middleware('throttle:60,1');
+    Route::post('/commands/accounts/{user}/closed-balance/to-company', [ClosedAccountBalanceController::class, 'store'])->middleware('throttle:10,1');
     Route::post('/commands/accounts/{user}/benefit-controls', [CommandController::class, 'benefitControls']);
     Route::post('/commands/accounts/{partner}/monthly-targets', [PartnerFileController::class, 'setTarget'])->whereNumber('partner')->middleware('throttle:30,1');
     Route::post('/commands/accounts/{partner}/monthly-targets/clear', [PartnerFileController::class, 'clearTarget'])->whereNumber('partner')->middleware('throttle:30,1');

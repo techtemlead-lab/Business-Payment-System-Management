@@ -67,6 +67,8 @@ final class AccountingStatements
         'manufacturer_fund' => self::Liability,
         'opening_balance_equity' => self::Equity,
         'clinic_fund' => self::Income,
+        // Money a closed partner account still held, moved to the company by the owner (ClosedAccountBalance).
+        'closed_account_balance_income' => self::Income,
         'commission_expense' => self::Expense,
         'commission_clawback_recovery' => self::Expense,
         'payroll_expense' => self::Expense,
