@@ -8,8 +8,8 @@ import { useReasonField } from '../shared/reasonFields';
 import SearchSelect from '../components/SearchSelect';
 import { toLatin } from '../shared/countUp';
 import { localizeDigits } from '../business-date';
+import PlacePickers, { placeLevels, usePlaceChain, type ChildLevel, type PlaceLevel, type PlaceOption } from '../components/PlacePickers';
 
-type PlaceOption = { id: number; code: string; name: string; level: string; parent_id: number | null };
 type CommissionPlace = { level: string; code: string | null; name: string | null; rate?: string | null; pool?: string | null };
 type Consumer = { id: number | null; name: string; refer_code: string | null; rate: string; fund?: string } | null;
 type PlacePreview = {
@@ -21,13 +21,6 @@ type PlacePreview = {
     next_sub_dealer_code?: string | null;
 };
 type Section = { key: string; title: string; hint?: string; required: string[]; boxes: string[] };
-type PlaceLevel = 'division' | 'district' | 'upazila' | 'union';
-type ChildLevel = Exclude<PlaceLevel, 'division'>;
-type PlaceIds = Record<PlaceLevel, string>;
-
-/** From the top of the country down; a dealer of a level picks only down to that level. */
-const placeLevels: PlaceLevel[] = ['division', 'district', 'upazila', 'union'];
-const noPlaces: PlaceIds = { division: '', district: '', upazila: '', union: '' };
 
 const availablePermissionKeys = [
     'field_sales', 'sr_orders', 'sr_onboarding', 'staff_admin', 'payroll',
@@ -55,126 +48,6 @@ async function fetchJson<T>(url: string, failedMessage: string): Promise<T> {
         throw new Error(body?.message || body?.errors?.place_code?.[0] || failedMessage);
     }
     return response.json();
-}
-
-/**
- * One Division > District > Upazila > Union chain of lists. Each list is filled from the server
- * once the place above it is chosen; it is emptied first and "loading" shows until the answer
- * arrives, and an answer for a place that is no longer chosen is dropped, so a slow reply can
- * never fill the list with another upazila's unions. The form uses one chain for the business
- * area and another for the permanent address.
- */
-function usePlaceChain(divisions: PlaceOption[], load: (level: ChildLevel, parentId: string) => Promise<PlaceOption[]>) {
-    const [ids, setIds] = useState<PlaceIds>(noPlaces);
-    const [lists, setLists] = useState<Record<ChildLevel, PlaceOption[]>>({ district: [], upazila: [], union: [] });
-    const [loading, setLoading] = useState<Record<ChildLevel, boolean>>({ district: false, upazila: false, union: false });
-
-    const fill = (level: ChildLevel, parentId: string): (() => void) | undefined => {
-        setLists((prev) => ({ ...prev, [level]: [] }));
-        if (!parentId) {
-            setLoading((prev) => ({ ...prev, [level]: false }));
-            return undefined;
-        }
-        let current = true;
-        setLoading((prev) => ({ ...prev, [level]: true }));
-        load(level, parentId)
-            .then((list) => { if (current) setLists((prev) => ({ ...prev, [level]: list })); })
-            .catch(() => { if (current) setLists((prev) => ({ ...prev, [level]: [] })); })
-            .finally(() => { if (current) setLoading((prev) => ({ ...prev, [level]: false })); });
-        return () => { current = false; };
-    };
-
-    useEffect(() => fill('district', ids.division), [ids.division]);
-    useEffect(() => fill('upazila', ids.district), [ids.district]);
-    useEffect(() => fill('union', ids.upazila), [ids.upazila]);
-
-    /** Chooses a place on one level; every level below it is emptied. Gives back the new choice. */
-    const choose = (level: PlaceLevel, value: string): PlaceIds => {
-        const depth = placeLevels.indexOf(level);
-        const next = { ...ids };
-        placeLevels.forEach((each, index) => {
-            if (index === depth) {
-                next[each] = value;
-            } else if (index > depth) {
-                next[each] = '';
-            }
-        });
-        setIds(next);
-        return next;
-    };
-    const find = (level: PlaceLevel, id: string): PlaceOption | undefined => (level === 'division' ? divisions : lists[level]).find((item) => String(item.id) === id);
-
-    return { divisions, ids, lists, loading, choose, find, clear: () => setIds(noPlaces) };
-}
-
-type PlaceChain = ReturnType<typeof usePlaceChain>;
-
-/** The searchable lists of one chain, only down to the deepest level asked for. */
-function PlacePickers({ chain, levels, onPick, errors, hints }: {
-    chain: PlaceChain;
-    levels: PlaceLevel[];
-    onPick: (level: PlaceLevel, value: string) => void;
-    errors?: Partial<Record<PlaceLevel, string | undefined>>;
-    hints?: Partial<Record<PlaceLevel, string>>;
-}) {
-    const translate = useT();
-    const optionsOf = (list: PlaceOption[]) => list.map((item) => ({ value: String(item.id), label: `${item.code} — ${item.name}` }));
-    const loadingLabel = translate('leftovers_office', 'place_loading');
-    const shown = (level: PlaceLevel) => levels.includes(level);
-
-    return (
-        <>
-            {shown('division') && (
-                <Box text={translate('portal', 'acct_division')} error={errors?.division} hint={hints?.division}>
-                    <SearchSelect
-                        value={chain.ids.division}
-                        onChange={(value) => onPick('division', value)}
-                        emptyLabel={translate('portal', 'acct_select_division')}
-                        options={optionsOf(chain.divisions)}
-                    />
-                </Box>
-            )}
-            {shown('district') && (
-                <Box text={translate('portal', 'acct_district')} error={errors?.district} hint={hints?.district}>
-                    <SearchSelect
-                        value={chain.ids.district}
-                        onChange={(value) => onPick('district', value)}
-                        disabled={!chain.ids.division}
-                        loading={chain.loading.district}
-                        loadingLabel={loadingLabel}
-                        emptyLabel={translate('portal', 'acct_select_district')}
-                        options={optionsOf(chain.lists.district)}
-                    />
-                </Box>
-            )}
-            {shown('upazila') && (
-                <Box text={translate('portal', 'acct_upazila')} error={errors?.upazila} hint={hints?.upazila}>
-                    <SearchSelect
-                        value={chain.ids.upazila}
-                        onChange={(value) => onPick('upazila', value)}
-                        disabled={!chain.ids.district}
-                        loading={chain.loading.upazila}
-                        loadingLabel={loadingLabel}
-                        emptyLabel={translate('portal', 'acct_select_upazila')}
-                        options={optionsOf(chain.lists.upazila)}
-                    />
-                </Box>
-            )}
-            {shown('union') && (
-                <Box text={translate('portal', 'acct_union')} error={errors?.union} hint={hints?.union}>
-                    <SearchSelect
-                        value={chain.ids.union}
-                        onChange={(value) => onPick('union', value)}
-                        disabled={!chain.ids.upazila}
-                        loading={chain.loading.union}
-                        loadingLabel={loadingLabel}
-                        emptyLabel={translate('portal', 'acct_select_union')}
-                        options={optionsOf(chain.lists.union)}
-                    />
-                </Box>
-            )}
-        </>
-    );
 }
 
 /** One box with its label, and its own error directly underneath. */
@@ -857,6 +730,7 @@ export default function AccountCreate({
                                         chain={home}
                                         levels={placeLevels}
                                         onPick={pickHomePlace}
+                                        Field={Box}
                                         errors={{
                                             division: errorOf('permanent_division'),
                                             district: errorOf('permanent_district'),
@@ -890,7 +764,7 @@ export default function AccountCreate({
                                 )}
                                 {businessLevels.length > 0 && <p className="acf-note">{translate('joining', 'place_pick_hint')}</p>}
                                 <div className="acf-grid">
-                                    <PlacePickers chain={business} levels={businessLevels} onPick={pickBusinessPlace} />
+                                    <PlacePickers chain={business} levels={businessLevels} onPick={pickBusinessPlace} Field={Box} />
                                     <Box text={translate('portal', isSubDealer ? 'acct_union_code' : 'acct_place_code')} error={errorOf('place_code') || placeError} hint={translate('joining', 'place_code_hint')}>
                                         <div className="acf-with-button">
                                             <input

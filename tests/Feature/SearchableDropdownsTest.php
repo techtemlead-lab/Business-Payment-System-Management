@@ -29,7 +29,9 @@ class SearchableDropdownsTest extends TestCase
             'prescription: patient search' => ['components/PrescriptionPatientStep.tsx', 1],
             'prescription: medicine template' => ['components/PrescriptionTemplates.tsx', 1],
             'prescription: food template' => ['components/PrescriptionExtras.tsx', 1],
-            'account opening: division, district, upazila, union, sponsor' => ['pages/AccountCreate.tsx', 5],
+            'account opening: sponsor' => ['pages/AccountCreate.tsx', 1],
+            // Business area and permanent address on the add-partner form, permanent address in the account editor.
+            'place lists: division, district, upazila, union' => ['components/PlacePickers.tsx', 4],
             'place codes: referral place, parents, base place' => ['components/PlaceCodesHub.tsx', 4],
             'purchasing: supplier, branch, product' => ['components/PurchasingHub.tsx', 3],
             'product editor: category, sub-category, unit' => ['pages/ProductEditor.tsx', 3],
